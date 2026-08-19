@@ -104,6 +104,60 @@ export const Strings = {
   n3EmptyFootnote: 'Your currency choice was saved.', // mockup.html:2101
   n3EmptyCta: 'Add your first account', // mockup.html:2102
 
+  // N4 Ready — mockup § F (F1-F9). Every value transcribed byte-exact from the
+  // cited mockup line, ASCII apostrophes included. Five declared deviations
+  // from the drawn strings are marked DEVIATION below.
+  n4Eyebrow: 'Setup complete', // mockup.html:2326
+  n4Headline: "You're ready.", // mockup.html:2328
+  n4Body:
+    "Here's where you're starting from. Every number below comes from the opening balances you just entered.", // mockup.html:2329
+  n4HeroLabel: 'Starting net position', // mockup.html:2333
+  n4RateNeededValue: 'Exchange rate needed', // mockup.html:2429
+  n4CaptionRateNeeded: 'Your accounts are saved. Add a rate from the dashboard and this fills in.', // mockup.html:2430
+  n4CaptionNegative: 'Your card balances are bigger than your cash and bank accounts right now.', // mockup.html:2477
+  n4CaptionZero: 'What you have and what you owe cancel out exactly.', // mockup.html:2524
+  n4CaptionSingle:
+    'All of it in one account. You can add more from the dashboard whenever you like.', // mockup.html:2571
+  n4RowBaseCurrency: 'Base currency', // mockup.html:2344
+  n4RowAccounts: 'Accounts', // mockup.html:2348
+  n4RowPrivacy: 'Privacy', // mockup.html:2352
+  n4RowPrivacyValue: 'On device', // mockup.html:2353
+  // DEVIATION 4 (reversed by the user, 2026-08-18): the mockup draws lower-case
+  // `Open my dashboard` (mockup.html:2359) and the plan proposed adopting it.
+  // The user ruled the shipped title case stays — this key is byte-identical to
+  // the `o6Cta` it replaces, so the KEY renames and the COPY does not move.
+  // `n4CompleteError` (N-shell block) still says "tap Open my dashboard"; it is
+  // left exactly as shipped (deviation 5), so the casing differs by one letter.
+  n4Cta: 'Open My Dashboard',
+
+  // DEVIATION 1: parameterises the currency code rather than hard-coding EGP.
+  // The mockup draws the EGP-base case only, but a USD-base user whose accounts
+  // are all USD lands on F1 too, and "in EGP" would be false. Byte-identical to
+  // mockup.html:2335 when `code === 'EGP'`.
+  n4CaptionAllBase: (n: number, code: string) =>
+    `All ${n} accounts are in ${code}, so nothing needed converting.`,
+  // DEVIATION 2: parameterises the foreign code, and pluralises `account` — a
+  // pluralisation point the spec does not name, switching on foreignCount, not
+  // accountCount. Without it two foreign accounts read "Includes 2 USD
+  // account", the exact "1 accounts" tell this ticket exists to remove.
+  n4CaptionConverted: (n: number, code: string) =>
+    `Includes ${n} ${code} account${n === 1 ? '' : 's'}, converted using your saved rate.`, // mockup.html:2382
+  // DEVIATION 6: pluralises the credit-card-only caption. The mockup draws the
+  // one-card sentence only (mockup.html:2618), but `resolveFrame` returns F7
+  // for ANY all-credit-card set and N3 caps nothing — two cards otherwise read
+  // "Your only account is a credit card" above a "2 accounts" pill. Gating F7
+  // on a single card is not the fix: two cards would fall to F4, whose caption
+  // names cash and bank accounts that do not exist. The singular is byte-
+  // identical to mockup.html:2618.
+  n4CaptionCreditOnly: (n: number) =>
+    n === 1
+      ? 'Your only account is a credit card, so this is what you owe. Add a bank or cash account for the full picture.'
+      : 'Your accounts are all credit cards, so this is what you owe. Add a bank or cash account for the full picture.',
+  n4PillAccounts: (n: number) => (n === 1 ? '1 account' : `${n} accounts`), // mockup.html:2337 / :2573
+  n4PillOpeningBal: (n: number) => (n === 1 ? 'opening balance' : 'opening balances'), // mockup.html:2338 / :2574
+  // DEVIATION 3: pluralises the verb (`2 need a rate`), also on foreignCount.
+  n4PillNeedsRate: (n: number) => (n === 1 ? '1 needs a rate' : `${n} need a rate`), // mockup.html:2433
+
   // N-shell — MA-004. Mockup § A (A1-A3) and the per-route frames B1/C1/E1/F1.
   onboardingStepOf: (step: number) => `Step ${step} of 4`,
   onboardingProgressA11y: (step: number, name: string) => `Step ${step} of 4, ${name}`,
@@ -195,13 +249,10 @@ export const Strings = {
   accountColorTriggerA11y: (family: string, tone: string) =>
     `Account colour: ${family}, ${tone.toLowerCase()}`,
 
-  // Ready
-  o6Title: "You're all set!",
-  o6Subtitle: "Your MoneyApp is configured. Here's your summary.",
-  o6Cta: 'Open My Dashboard',
-  o6Currency: 'Base Currency',
-  o6Accounts: 'Accounts',
-  o6TotalBalance: 'Total Balance',
+  // Ready — the rest of this block retired with MA-012's N4 rebuild, which
+  // owns its copy under `n4*`. `o6AccountsUnit` is NOT N4's: the dashboard
+  // hero card renders "{n} accounts" through it, so it stays here rather than
+  // going with the block it was grouped into.
   o6AccountsUnit: 'accounts',
 
   // Placeholder dashboard

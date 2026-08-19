@@ -20,6 +20,18 @@ export const GoldRule = React.memo(function GoldRule() {
 /** mockup.html:387, `.t-over { letter-spacing: 0.14em }`. */
 export const BROADSHEET_EYEBROW_TRACKING_EM = 0.14;
 
+/**
+ * mockup.html:411, `.b-headline { letter-spacing: -0.01em }`.
+ *
+ * Genuinely shared: N3 and N4 draw the same headline tracking, and N3's
+ * `N3_HEADLINE_TRACKING_EM` already cited this line for it. The headline's
+ * LINE HEIGHT is deliberately not hoisted alongside it — `.b-headline` is 1.05
+ * (mockup.html:410) and N3 overrides it inline to 1.12 (mockup.html:2014), so
+ * each screen keeps its own ratio and no shell constant is parked here with a
+ * single consumer.
+ */
+export const BROADSHEET_HEADLINE_TRACKING_EM = -0.01;
+
 export interface EyebrowProps {
   label: string;
 }

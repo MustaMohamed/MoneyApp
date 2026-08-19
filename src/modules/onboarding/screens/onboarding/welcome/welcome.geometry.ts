@@ -70,7 +70,7 @@ export const CURRENCY_ROW_MIN_HEIGHT = Math.max(
 // this object is shared by reference between both rows: a single assignment
 // anywhere would move the geometry of both, and the suite only checks the
 // keys at module load.
-export const CURRENCY_ROW_STYLE: ViewStyle = Object.freeze({
+export const CURRENCY_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({
   minHeight: CURRENCY_ROW_MIN_HEIGHT,
   borderWidth: Size.hairline,
   borderRadius: Radius.md,

@@ -140,6 +140,7 @@ src/test_helpers/     test-only helpers imported through @/test_helpers
 src/screens/          legacy — one dev-only primitives screen; add nothing here
 src/utils/            responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
 __tests__/            snake_case tests — policy: logic-only .ts (legacy .tsx render tests exist, slated for cleanup)
+docs/adr/             architecture decision records — one dated file per decision
 docs/scopes/          workflow state: one folder per scope (see TEMPLATES.md)
 docs/superpowers/     frozen history — specs, plans, reviews, QA from the pre-/scope flow
 ```

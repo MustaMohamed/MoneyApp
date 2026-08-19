@@ -1,26 +1,44 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { cn } from 'heroui-native';
+import { Typography } from 'heroui-native';
 import React from 'react';
+import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { Text } from '@/components/ui/text';
+import { HeroShell } from '@/components/ui/hero_shell';
+import { ScreenScroll } from '@/components/ui/screen';
 import { Strings } from '@/constants/strings';
-import { SemanticTokens } from '@/constants/theme_tokens';
+import { Spacing } from '@/constants/theme';
 import { OnboardingShell } from '@/modules/onboarding/components/onboarding_shell';
+import {
+  Eyebrow,
+  GoldRule,
+} from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 
+import { ReadyHeroCard } from './components/ready_hero_card';
+import { ReadySummaryRows } from './components/ready_summary_rows';
 import { useReadyAnim } from './ready.anim';
+import { N4_BODY_TEXT_STYLE, N4_HEADLINE_TEXT_STYLE, N4_HERO_FRAME_STYLE } from './ready.geometry';
 import { useReady } from './ready.hook';
 
+/**
+ * N4 Ready — mockup § F, frames F1-F9.
+ *
+ * No `GhostNumeral`: mockup.html:2835-2836 rules that N4 draws the rule and the
+ * eyebrow without it, "because by then the number is the biggest thing on
+ * screen".
+ *
+ * There is no early return anywhere in this component and no loading branch:
+ * the summary is derived at render from store state, so the failed-completion
+ * state (F9) is the same screen with a message in the shell's status track —
+ * the hero does not blank, skeleton or recompute, and the same CTA retries.
+ */
 export default function ReadyScreen() {
   const {
-    state: { rows, completing, statusMessage },
+    state: { summary, baseCurrency, completing, busy, statusMessage },
     handleComplete,
     onBack,
   } = useReady();
-  const { checkEntering, headlineEntering, subtitleEntering, rowEntering, ctaEntering } =
-    useReadyAnim();
+  const { introEntering, heroEntering, summaryEntering } = useReadyAnim();
 
   return (
     <OnboardingShell
@@ -34,63 +52,60 @@ export default function ReadyScreen() {
       footnote={Strings.n4Footnote}
       statusMessage={statusMessage}
       cta={
-        <Animated.View entering={ctaEntering}>
-          <Button
-            variant="primary"
-            label={Strings.o6Cta}
-            onPress={() => {
-              void handleComplete();
-            }}
-            isDisabled={completing}
-            isLoading={completing}
-            loadingLabel={Strings.n4CtaBusy}
-          />
-        </Animated.View>
+        // Not one of the three rise blocks — mockup.html:2325/2332/2342 mark
+        // exactly three, and the footer is a fixed track (MA-010 D11).
+        <Button
+          variant="primary"
+          label={Strings.n4Cta}
+          onPress={() => {
+            void handleComplete();
+          }}
+          // `busy` is raised by a back transition as well as by a completion,
+          // and begin() returns null while it is up — so without it here the
+          // CTA stays visually live with an already-inert handler. The spinner
+          // stays on `completing` alone: it belongs to the completion write.
+          isDisabled={completing || busy}
+          isLoading={completing}
+          loadingLabel={Strings.n4CtaBusy}
+        />
       }
     >
-      <Box style={{ flex: 1 }} className="items-center justify-center gap-4 px-4">
-        <Animated.View entering={checkEntering}>
-          <MaterialCommunityIcons name="check-circle" size={64} color={SemanticTokens.positive} />
+      <ScreenScroll
+        contentContainerStyle={{ paddingHorizontal: Spacing.md, paddingBottom: Spacing.lg }}
+      >
+        {/* Block 1 — eyebrow, gold rule, headline, body. */}
+        <Animated.View entering={introEntering}>
+          <Eyebrow label={Strings.n4Eyebrow} />
+
+          <View style={{ marginTop: Spacing.xs }}>
+            <GoldRule />
+          </View>
+
+          <Typography
+            className="text-foreground font-sora-bold"
+            style={[N4_HEADLINE_TEXT_STYLE, { marginTop: Spacing.xs }]}
+          >
+            {Strings.n4Headline}
+          </Typography>
+
+          <Typography
+            className="text-content-secondary font-inter"
+            style={[N4_BODY_TEXT_STYLE, { marginTop: Spacing.xs }]}
+          >
+            {Strings.n4Body}
+          </Typography>
         </Animated.View>
 
-        <Animated.Text entering={headlineEntering}>
-          <Text variant="hero" className="font-sora-extrabold text-foreground text-center">
-            {Strings.o6Title}
-          </Text>
-        </Animated.Text>
+        {/* Block 2 — the hero card, on the shared gradient/grid/glow shell. */}
+        <HeroShell entering={heroEntering} style={N4_HERO_FRAME_STYLE}>
+          <ReadyHeroCard summary={summary} baseCurrency={baseCurrency} />
+        </HeroShell>
 
-        <Animated.Text entering={subtitleEntering}>
-          <Text variant="body" className="text-muted text-center">
-            {Strings.o6Subtitle}
-          </Text>
-        </Animated.Text>
-
-        {/* 3-row summary card */}
-        <Box className="bg-surface border-border w-full rounded-[12px] border px-4 py-3">
-          {rows.map((row, index) => (
-            <Animated.View
-              key={row.label}
-              testID="summary-row"
-              entering={rowEntering(index)}
-              style={{ flexDirection: 'row' }}
-              className={cn(
-                'items-center justify-between py-3',
-                index < rows.length - 1 && 'border-separator border-b',
-              )}
-            >
-              <Text variant="body" className="text-muted">
-                {row.label}
-              </Text>
-              <Text
-                variant="body"
-                className={cn('font-sora-bold', row.gold ? 'text-gold-500' : 'text-foreground')}
-              >
-                {row.value}
-              </Text>
-            </Animated.View>
-          ))}
-        </Box>
-      </Box>
+        {/* Block 3 — the three-row confirmation group. */}
+        <Animated.View entering={summaryEntering} style={{ marginTop: Spacing.md }}>
+          <ReadySummaryRows accountCount={summary.accountCount} baseCurrency={baseCurrency} />
+        </Animated.View>
+      </ScreenScroll>
     </OnboardingShell>
   );
 }

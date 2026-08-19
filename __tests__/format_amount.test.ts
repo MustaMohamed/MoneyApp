@@ -50,7 +50,10 @@ describe('currency amount formatting', () => {
     expect(formatWithCurrencyCode(10500.5, 'GBP', 2)).toBe('10,500.50 GBP');
   });
 
-  it('formats the USD to EGP exchange-rate label', () => {
-    expect(formatExchangeRate(48.125)).toBe('1 USD = 48.13 EGP');
+  it('formats the USD to EGP exchange-rate label in the compact pill form', () => {
+    // spec §1.4: the label shortened from `1 USD = 48.13 EGP` so three pills
+    // fit one line on N4. The 48.125 -> 48.13 rounding is unchanged; only the
+    // surrounding text moved.
+    expect(formatExchangeRate(48.125)).toBe('48.13 EGP/USD');
   });
 });

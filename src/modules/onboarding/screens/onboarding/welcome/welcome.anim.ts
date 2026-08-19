@@ -1,10 +1,8 @@
-import { FadeInDown, useReducedMotion } from 'react-native-reanimated';
+import { useReducedMotion } from 'react-native-reanimated';
 
-import { ms } from '@/utils/responsive';
+import { rise } from '@/modules/onboarding/components/onboarding_shell/onboarding_rise';
 import { useFirstMountEntering } from '@/utils/use_first_mount_entering.hook';
 
-const RISE_DURATION_MS = 500;
-const RISE_TRANSLATE_Y = ms(10);
 const RISE_DELAYS_MS = [0, 120, 240, 360] as const;
 
 /**
@@ -18,21 +16,11 @@ const RISE_DELAYS_MS = [0, 120, 240, 360] as const;
  * on this screen is the headline block, the body column, the currency
  * block and the trust row, all inside the content viewport; the footer is a
  * fixed track and does not enter.
+ *
+ * The builder chain itself lives in `onboarding_rise.ts` — duration, lift and
+ * `withInitialValues` are identical on N1, N3 and N4; only the delay array,
+ * which is the block count, is a screen decision.
  */
-/**
- * The one builder chain, written once. `withInitialValues` is what pins the
- * spec's 10pt lift instead of FadeInDown's own preset 25 — Reanimated reads
- * the flat `translateY` key before it reads `transform[index]`
- * (`defaultAnimations/Utils.ts:19-23`), so this shape is the supported one.
- * Repeating the chain per block let three of its parameters drift
- * independently; here a change reaches all four blocks or none.
- */
-function rise(delayMs: number) {
-  return FadeInDown.duration(RISE_DURATION_MS)
-    .delay(delayMs)
-    .withInitialValues({ translateY: RISE_TRANSLATE_Y });
-}
-
 export function useWelcomeAnim() {
   const isFirstMount = useFirstMountEntering('welcome');
   const reduceMotion = useReducedMotion();
