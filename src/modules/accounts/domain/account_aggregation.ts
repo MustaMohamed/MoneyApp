@@ -25,8 +25,13 @@ import { AccountType } from '@/constants/enums';
  * encoding on purpose: it signs WRITES, not aggregations, and unifying the two
  * is out of scope (spec §2).
  *
- * The corollary is a rule for every consumer: no leading minus is derived at
- * the display layer. The formatter renders whatever sign this returned.
+ * The corollary is scoped to AGGREGATION: a summed TOTAL takes its sign from
+ * this function, and a surface rendering one must not re-apply a minus on top.
+ * It is NOT "no minus is ever composed at the display layer". Per-account
+ * liability ROWS are the standing exception and are deliberately unsigned —
+ * `computeLiabilitiesBreakdown` returns `Math.abs(balanceEgp)`, and
+ * `net_worth_breakdown_sheet.tsx:218` composes the leading minus glyph itself
+ * for the rows it flags `negative`. Signing those rows too would double it.
  */
 export function resolveAccountAggregationSign(type: AccountType): 1 | -1 {
   return type === AccountType.CreditCard ? -1 : 1;

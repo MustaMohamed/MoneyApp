@@ -155,11 +155,16 @@ export function computeLiquidityBreakdown(accounts: Account[], rate: number): Li
   liquidAccounts.sort((a, b) => b.balanceEgp - a.balanceEgp);
   reserveAccounts.sort((a, b) => b.balanceEgp - a.balanceEgp);
 
+  // Rounded once at the sum, completing `computeNetWorth`'s round-then-sum
+  // contract rather than stopping half way through it. Ten 0.05 EGP wallets
+  // accumulate to 0.49999999999999994, which the sheet's assets header renders
+  // as "1" (it reads the rounded `assetsEgp`) and this tier legend rendered as
+  // "0" directly beneath it.
   return {
-    liquidEgp,
+    liquidEgp: roundMoney(liquidEgp),
     liquidCount: liquidAccounts.length,
     liquidAccounts,
-    reserveEgp,
+    reserveEgp: roundMoney(reserveEgp),
     reserveCount: reserveAccounts.length,
     reserveAccounts,
   };

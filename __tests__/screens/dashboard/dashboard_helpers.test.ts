@@ -279,6 +279,37 @@ describe('groupAccountsByType', () => {
   });
 });
 
+// The guard shape `account_aggregation.test.ts` puts on the sign table, applied
+// to the tier allowlists for the same hazard. `resolveAccountAggregationSign`
+// defaults a new `AccountType` to +1, so it joins `assetsEgp` automatically,
+// while `LIQUID_TYPES` and `RESERVE_TYPES` (`dashboard.helpers.ts`) are explicit
+// `Set` allowlists that would silently drop it: the sheet's assets header would
+// exceed liquid + reserve, the account count would undercount, and the tier
+// percentage bar would use the wrong denominator. A `Set` literal cannot carry
+// an exhaustiveness annotation — a `Record` over the enum can, so a sixth member
+// is a TYPE ERROR here, and the assertions below then stay red until it is
+// classified into a tier for real.
+const EXPECTED_TIERS: Record<AccountType, 'liquid' | 'reserve' | 'excluded'> = {
+  [AccountType.Bank]: 'liquid',
+  [AccountType.SmartWallet]: 'liquid',
+  [AccountType.PhysicalWallet]: 'liquid',
+  [AccountType.PhysicalSavings]: 'reserve',
+  [AccountType.CreditCard]: 'excluded',
+};
+
+describe('the tier allowlists classify every AccountType', () => {
+  it.each(Object.entries(EXPECTED_TIERS))('%s → %s', (type, expected) => {
+    const { liquidCount, reserveCount } = computeLiquidityBreakdown(
+      [makeAccount({ type: type as AccountType, current_balance: 100 })],
+      50,
+    );
+    let actual: 'liquid' | 'reserve' | 'excluded' = 'excluded';
+    if (liquidCount === 1) actual = 'liquid';
+    else if (reserveCount === 1) actual = 'reserve';
+    expect(actual).toBe(expected);
+  });
+});
+
 describe('computeLiquidityBreakdown', () => {
   it('splits accounts into liquid and reserve tiers (L-01 canonical)', () => {
     const accounts: Account[] = [
@@ -503,6 +534,39 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
     expect(formatAmount(assetsEgp)).toBe('381');
     expect(formatAmount(liquidEgp)).toBe('381');
     expect(liquidAccounts.map((account) => formatAmount(account.balanceEgp))).toEqual(['381']);
+  });
+
+  // Rounding each value is only half the contract: ten 0.05 EGP balances are
+  // each already 2 dp, and the ACCUMULATOR still lands on 0.49999999999999994.
+  // `computeNetWorth` rounds its sum to 0.5 and the assets header renders "1";
+  // the tier legend, reading a raw accumulator, rendered "0" directly beneath
+  // it. Delete either `roundMoney` at `computeLiquidityBreakdown`'s return and
+  // the matching row goes red.
+  const tenAt5Piastres = (type: AccountType): Account[] =>
+    Array.from({ length: 10 }, (_, i) =>
+      makeAccount({ id: `${type}-${i}`, type, current_balance: 0.05 }),
+    );
+
+  it('assets: the liquid tier total is rounded, so the legend agrees with the header', () => {
+    const accounts = tenAt5Piastres(AccountType.PhysicalWallet);
+
+    const { assetsEgp } = computeNetWorth(accounts, RATE);
+    const { liquidEgp } = computeLiquidityBreakdown(accounts, RATE);
+
+    expect(liquidEgp).toBe(0.5);
+    expect(formatAmount(assetsEgp)).toBe('1');
+    expect(formatAmount(liquidEgp)).toBe('1');
+  });
+
+  it('assets: the reserve tier total is rounded on the same contract', () => {
+    const accounts = tenAt5Piastres(AccountType.PhysicalSavings);
+
+    const { assetsEgp } = computeNetWorth(accounts, RATE);
+    const { reserveEgp } = computeLiquidityBreakdown(accounts, RATE);
+
+    expect(reserveEgp).toBe(0.5);
+    expect(formatAmount(assetsEgp)).toBe('1');
+    expect(formatAmount(reserveEgp)).toBe('1');
   });
 });
 
