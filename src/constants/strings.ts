@@ -118,8 +118,6 @@ export const Strings = {
   n4CaptionZero: 'What you have and what you owe cancel out exactly.', // mockup.html:2524
   n4CaptionSingle:
     'All of it in one account. You can add more from the dashboard whenever you like.', // mockup.html:2571
-  n4CaptionCreditOnly:
-    'Your only account is a credit card, so this is what you owe. Add a bank or cash account for the full picture.', // mockup.html:2618
   n4RowBaseCurrency: 'Base currency', // mockup.html:2344
   n4RowAccounts: 'Accounts', // mockup.html:2348
   n4RowPrivacy: 'Privacy', // mockup.html:2352
@@ -144,6 +142,17 @@ export const Strings = {
   // account", the exact "1 accounts" tell this ticket exists to remove.
   n4CaptionConverted: (n: number, code: string) =>
     `Includes ${n} ${code} account${n === 1 ? '' : 's'}, converted using your saved rate.`, // mockup.html:2382
+  // DEVIATION 6: pluralises the credit-card-only caption. The mockup draws the
+  // one-card sentence only (mockup.html:2618), but `resolveFrame` returns F7
+  // for ANY all-credit-card set and N3 caps nothing — two cards otherwise read
+  // "Your only account is a credit card" above a "2 accounts" pill. Gating F7
+  // on a single card is not the fix: two cards would fall to F4, whose caption
+  // names cash and bank accounts that do not exist. The singular is byte-
+  // identical to mockup.html:2618.
+  n4CaptionCreditOnly: (n: number) =>
+    n === 1
+      ? 'Your only account is a credit card, so this is what you owe. Add a bank or cash account for the full picture.'
+      : 'Your accounts are all credit cards, so this is what you owe. Add a bank or cash account for the full picture.',
   n4PillAccounts: (n: number) => (n === 1 ? '1 account' : `${n} accounts`), // mockup.html:2337 / :2573
   n4PillOpeningBal: (n: number) => (n === 1 ? 'opening balance' : 'opening balances'), // mockup.html:2338 / :2574
   // DEVIATION 3: pluralises the verb (`2 need a rate`), also on foreignCount.

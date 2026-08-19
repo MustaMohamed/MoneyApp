@@ -249,6 +249,25 @@ const STATE_ROWS: readonly StateRow[] = [
       { kind: 'approx', currency: Currency.USD, value: 2342.8 },
     ],
   },
+  {
+    // F7 is not a single-card frame: `isCreditCardOnly` is `every`, so any
+    // all-credit-card set lands here, and N3 caps nothing. This row is what the
+    // caption's plural arm exists for — the frame and the glyph are unchanged
+    // while `accountCount` is 2.
+    case: '14 — F7 with TWO credit cards and nothing else',
+    accounts: [cc(8450), cc(2000)],
+    base: Currency.EGP,
+    rate: 50,
+    rateUpdatedAt: null,
+    frame: 'F7',
+    accountCount: 2,
+    foreignCount: 0,
+    pillsVisible: false,
+    pills: [
+      { kind: 'accounts', count: 2, glyph: 'credit-card' },
+      { kind: 'opening-balances', count: 2 },
+    ],
+  },
 ];
 
 describe('selectReadySummaryState — frame selection and pill composition', () => {
@@ -276,7 +295,7 @@ describe('selectReadySummaryState — the invariants the table encodes', () => {
     const gateClosedAmountRows = STATE_ROWS.filter(
       (row) => !row.pillsVisible && row.frame !== 'F3',
     );
-    expect(gateClosedAmountRows).toHaveLength(5);
+    expect(gateClosedAmountRows).toHaveLength(6);
 
     for (const row of gateClosedAmountRows) {
       const state = selectReadySummaryState({

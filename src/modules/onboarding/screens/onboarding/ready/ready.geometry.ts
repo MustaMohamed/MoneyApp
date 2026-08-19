@@ -303,9 +303,10 @@ type ReadyPillGlyph = ComponentProps<typeof MaterialCommunityIcons>['name'];
  * domain gate (`selectReadySummaryState`) and neither this map nor the card may
  * second-guess that array.
  *
- * F1 and F2 carry the only parameterised captions. Both take a currency CODE
+ * F1 and F2 carry the only parameterised CODES. Both take a currency code
  * rather than hard-coding EGP: a USD-base user whose accounts are all USD lands
- * on F1 too, and "in EGP" would simply be false there.
+ * on F1 too, and "in EGP" would simply be false there. F7 is parameterised too,
+ * but on the account COUNT — see the case below.
  */
 export function resolveCaption(
   frame: ReadyFrame,
@@ -328,7 +329,11 @@ export function resolveCaption(
     case 'F6':
       return Strings.n4CaptionSingle;
     case 'F7':
-      return Strings.n4CaptionCreditOnly;
+      // On `accountCount`, not on a hard-coded 1: F7 is returned for ANY
+      // all-credit-card set, so the singular sentence would sit over a
+      // "2 accounts" pill. See DEVIATION 6 in `strings.ts` for why the frame
+      // is not narrowed instead.
+      return Strings.n4CaptionCreditOnly(accountCount);
   }
 }
 

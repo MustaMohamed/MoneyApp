@@ -1,7 +1,7 @@
 import { Strings } from '@/constants/strings';
 
 /**
- * N4's five parameterised copy functions — mockup § F (F1-F9).
+ * N4's six parameterised copy functions — mockup § F (F1-F9).
  *
  * These are the only place the plural FORMS live. Steps 3 and 13 assert pill
  * descriptors (`{ kind, count }`) and the screen has no render suite, so
@@ -28,7 +28,7 @@ describe('N4 pill copy — both pluralisation points', () => {
   });
 });
 
-describe('N4 hero captions — the parameterised code and its third plural point', () => {
+describe('N4 hero captions — the parameterised codes and their plural points', () => {
   it('pluralises the foreign account noun on foreignCount', () => {
     expect(Strings.n4CaptionConverted(1, 'USD')).toBe(
       'Includes 1 USD account, converted using your saved rate.',
@@ -44,6 +44,23 @@ describe('N4 hero captions — the parameterised code and its third plural point
     );
     expect(Strings.n4CaptionAllBase(2, 'USD')).toBe(
       'All 2 accounts are in USD, so nothing needed converting.',
+    );
+  });
+
+  // The fourth plural point. `resolveFrame` returns F7 for ANY all-credit-card
+  // set and N3 caps nothing, so two cards reach this caption through the normal
+  // flow; without the ternary they read "Your only account is a credit card"
+  // directly above a "2 accounts" pill. The n === 1 arm is byte-identical to
+  // mockup.html:2618 — that is what keeps DEVIATION 6's claim honest.
+  it('pluralises the credit-card-only caption on accountCount', () => {
+    expect(Strings.n4CaptionCreditOnly(1)).toBe(
+      'Your only account is a credit card, so this is what you owe. Add a bank or cash account for the full picture.',
+    );
+    expect(Strings.n4CaptionCreditOnly(2)).toBe(
+      'Your accounts are all credit cards, so this is what you owe. Add a bank or cash account for the full picture.',
+    );
+    expect(Strings.n4CaptionCreditOnly(3)).toBe(
+      'Your accounts are all credit cards, so this is what you owe. Add a bank or cash account for the full picture.',
     );
   });
 });

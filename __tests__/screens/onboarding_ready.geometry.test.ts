@@ -327,6 +327,16 @@ const CAPTION_ROWS: readonly (readonly [ReadyFrame, number, number, string, stri
     'USD',
     'Your only account is a credit card, so this is what you owe. Add a bank or cash account for the full picture.',
   ],
+  // F7 is returned for ANY all-credit-card set, not only a single card, and
+  // this map is the site that has to know it — see `resolveCaption`'s F7 case.
+  [
+    'F7',
+    2,
+    0,
+    'EGP',
+    'USD',
+    'Your accounts are all credit cards, so this is what you owe. Add a bank or cash account for the full picture.',
+  ],
   // The two parameterised frames with the codes the other way round — a USD-base
   // user whose accounts are all USD lands on F1 too, and F2's foreign noun
   // pluralises on foreignCount, not accountCount.
