@@ -231,6 +231,7 @@ export default function DashboardScreen() {
                           type={type}
                           accounts={state.groupedAccounts[type] ?? []}
                           rate={state.rate}
+                          isRateUsable={state.isRateUsable}
                           statsMap={state.statsMap}
                           onAccountPress={goToAccount}
                           onAddPress={goToAddAccount}

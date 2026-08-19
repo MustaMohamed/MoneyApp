@@ -57,6 +57,8 @@ interface AccountCarouselProps {
   type: AccountType;
   accounts: Account[];
   rate: number;
+  /** Rate provenance, decided once in `dashboard.hook.ts` and passed through. */
+  isRateUsable: boolean;
   statsMap: Record<string, AccountStats>;
   onAccountPress: (id: string) => void;
   onAddPress: () => void;
@@ -66,6 +68,7 @@ export function AccountCarousel({
   type,
   accounts,
   rate,
+  isRateUsable,
   statsMap,
   onAccountPress,
   onAddPress,
@@ -91,6 +94,7 @@ export function AccountCarousel({
         <AccountCard
           account={item.account}
           rate={rate}
+          isRateUsable={isRateUsable}
           stats={statsMap[item.account.id]}
           width={cardWidth}
           onPress={accountPressHandlers.get(item.account.id)!}
@@ -98,7 +102,7 @@ export function AccountCarousel({
       ) : (
         <AddCard onPress={onAddPress} width={cardWidth} />
       ),
-    [accountPressHandlers, cardWidth, onAddPress, rate, statsMap],
+    [accountPressHandlers, cardWidth, isRateUsable, onAddPress, rate, statsMap],
   );
   const getItemLayout = useCallback(
     (_data: ArrayLike<AccountCarouselItem> | null | undefined, index: number) =>
@@ -145,6 +149,7 @@ export function AccountCarousel({
           key={account.id}
           account={account}
           rate={rate}
+          isRateUsable={isRateUsable}
           stats={statsMap[account.id]}
           width={cardWidth}
           onPress={accountPressHandlers.get(account.id)!}

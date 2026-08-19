@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
+import { isRateUsable } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
@@ -150,6 +151,13 @@ export function useDashboard() {
     () => computeNetWorth({ accounts, rate, rateUpdatedAt }),
     [accounts, rate, rateUpdatedAt],
   );
+  // Decided ONCE, here, and passed down to every surface that converts. The
+  // account cards used to answer this question for themselves at
+  // `account_card.tsx:140` by converting unconditionally, which is how the
+  // accounts tab came to render `5,000 EGP` under a strip refusing to state a
+  // total. Re-deriving provenance as `rate > 0` at a display layer is the defect
+  // class #255 exists to remove: `INITIAL_STATE.rate` is 50.
+  const rateUsable = isRateUsable(rate, rateUpdatedAt);
   const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);
   const liabilities = useMemo(() => computeLiabilitiesBreakdown(accounts, rate), [accounts, rate]);
   const groupedAccounts = useMemo(() => groupAccountsByType(accounts), [accounts]);
@@ -175,6 +183,7 @@ export function useDashboard() {
       presentation,
       accounts,
       rate,
+      isRateUsable: rateUsable,
       isManualOverride,
       netWorth,
       liquidity,

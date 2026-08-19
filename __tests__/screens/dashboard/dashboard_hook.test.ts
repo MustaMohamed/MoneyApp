@@ -477,6 +477,21 @@ describe('useDashboard', () => {
     });
   });
 
+  it('publishes rate provenance so no surface re-derives it', async () => {
+    // The account cards convert USD balances of their own, and the strip above
+    // them refuses. Both must answer to the SAME question, decided here: a
+    // display layer re-asking it as `rate > 0` says "usable" of the placeholder
+    // 50, which is how `$100` came to render as `5,000 EGP` under "Exchange rate
+    // needed".
+    const verified = await renderHook(() => useDashboard());
+    expect(verified.result.current.state.isRateUsable).toBe(true);
+
+    currencyState.rate_updated_at = null;
+    const unverified = await renderHook(() => useDashboard());
+
+    expect(unverified.result.current.state.isRateUsable).toBe(false);
+  });
+
   it('retains Dashboard navigation and UI actions', async () => {
     const { result } = await renderHook(() => useDashboard());
 

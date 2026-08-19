@@ -47,7 +47,25 @@ interface InfoRow {
   icon?: 'up' | 'down';
 }
 
-function buildInfoRows(account: Account, rate: number, stats: AccountStats | undefined): InfoRow[] {
+/**
+ * Exported for `__tests__/screens/dashboard/account_card.helpers.test.ts` — the
+ * rows are the testable part of this card, and a logic-only `.ts` suite is what
+ * `.claude/rules/tests.md` asks for. The precedent is `account_carousel.tsx`,
+ * whose pure helpers are exported and covered the same way.
+ *
+ * `isRateUsable` arrives as a BOOLEAN, decided once by
+ * `@/modules/accounts/domain/account_aggregation`'s `isRateUsable` in
+ * `dashboard.hook.ts` and passed down. It is never re-derived here as
+ * `rate > 0`: `useCurrencyStore`'s `INITIAL_STATE.rate` is 50, so `rate > 0` is
+ * true for the placeholder, and re-deriving provenance at the display layer is
+ * the defect class #255 exists to remove.
+ */
+export function buildInfoRows(
+  account: Account,
+  rate: number,
+  stats: AccountStats | undefined,
+  isRateUsable: boolean,
+): InfoRow[] {
   const s = stats ?? { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
   const cur = account.currency;
   const isUSD = cur === Currency.USD;
@@ -135,11 +153,21 @@ function buildInfoRows(account: Account, rate: number, stats: AccountStats | und
         value: `${formatAmount(s.month_out)} ${cur}`,
         valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
       },
-      {
-        label: Strings.cardInEgpLabel,
-        value: `${formatAmount(roundMoney(account.current_balance * rate))} EGP`,
-        valueColor: Colors.dark.gold,
-      },
+      // The one row on this card that needs a rate, so the only one the gate
+      // touches. Without it the accounts tab contradicted itself: the strip
+      // above refused to state a total while every USD card below converted at
+      // the very rate the strip had just rejected, printing `$100` as
+      // `5,000 EGP` under "Exchange rate needed". The native-currency rows need
+      // no rate and are untouched.
+      ...(isRateUsable
+        ? [
+            {
+              label: Strings.cardInEgpLabel,
+              value: `${formatAmount(roundMoney(account.current_balance * rate))} EGP`,
+              valueColor: Colors.dark.gold,
+            },
+          ]
+        : []),
     ];
   }
 
@@ -165,17 +193,26 @@ function buildInfoRows(account: Account, rate: number, stats: AccountStats | und
 interface AccountCardProps {
   account: Account;
   rate: number;
+  /** Decided by the domain gate in `dashboard.hook.ts`, never re-derived here. */
+  isRateUsable: boolean;
   stats: AccountStats | undefined;
   width: number;
   onPress: () => void;
 }
 
-export function AccountCard({ account, rate, stats, width, onPress }: AccountCardProps) {
+export function AccountCard({
+  account,
+  rate,
+  isRateUsable,
+  stats,
+  width,
+  onPress,
+}: AccountCardProps) {
   const color = account.color ?? AccountColors[0];
   const isCreditCard = account.type === AccountType.CreditCard;
   const balanceColor = isCreditCard ? Colors.dark.negative : Colors.dark.gold;
   const icon = TYPE_ICONS[account.type];
-  const infoRows = buildInfoRows(account, rate, stats);
+  const infoRows = buildInfoRows(account, rate, stats, isRateUsable);
 
   const showProgress = isCreditCard && (account.credit_limit ?? 0) > 0;
   const limit = account.credit_limit ?? 0;
