@@ -206,6 +206,30 @@ describe('useReady', () => {
     expect(result.current.state.busy).toBe(false);
   });
 
+  it('holds the CTA disabled while a BACK transition is in flight — busy without completing', async () => {
+    // The pair the CTA's `isDisabled={completing || busy}` exists for: during a
+    // back write `begin()` has already raised `busy` and every later tap is
+    // inert, while `completing` is still false. Binding the CTA to `completing`
+    // alone leaves it visually live over a dead handler.
+    const pending = deferred<void>();
+    mockSetStep.mockReturnValueOnce(pending.promise);
+    const { result } = await renderHook(() => useReady());
+
+    let backCall!: Promise<void>;
+    await act(() => {
+      backCall = result.current.onBack();
+    });
+
+    expect(result.current.state.busy).toBe(true);
+    expect(result.current.state.completing).toBe(false);
+
+    await act(async () => {
+      pending.resolve();
+      await backCall;
+    });
+    expect(result.current.state.busy).toBe(false);
+  });
+
   it('a rejecting completeOnboarding resolves handleComplete, sets the status message, and leaves the summary untouched', async () => {
     mockCompleteOnboarding.mockRejectedValueOnce(new Error('boom'));
     const { result } = await renderHook(() => useReady());

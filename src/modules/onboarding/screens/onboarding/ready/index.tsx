@@ -34,7 +34,7 @@ import { useReady } from './ready.hook';
  */
 export default function ReadyScreen() {
   const {
-    state: { summary, baseCurrency, completing, statusMessage },
+    state: { summary, baseCurrency, completing, busy, statusMessage },
     handleComplete,
     onBack,
   } = useReady();
@@ -60,7 +60,11 @@ export default function ReadyScreen() {
           onPress={() => {
             void handleComplete();
           }}
-          isDisabled={completing}
+          // `busy` is raised by a back transition as well as by a completion,
+          // and begin() returns null while it is up — so without it here the
+          // CTA stays visually live with an already-inert handler. The spinner
+          // stays on `completing` alone: it belongs to the completion write.
+          isDisabled={completing || busy}
           isLoading={completing}
           loadingLabel={Strings.n4CtaBusy}
         />
