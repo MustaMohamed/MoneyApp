@@ -1,7 +1,6 @@
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
-  countForeignAccounts,
   type StartingNetPosition,
   StartingNetPositionError,
   resolveStartingNetPosition,
@@ -245,32 +244,14 @@ describe('resolveStartingNetPosition — negative zero (spec §1.1)', () => {
   });
 });
 
-describe('selectActiveAccounts and countForeignAccounts', () => {
+// `countForeignAccounts` moved to `@/modules/accounts/domain/account_aggregation`
+// in #255 chunk 2, and its three cases moved with it — see
+// `__tests__/accounts/account_aggregation.test.ts`.
+describe('selectActiveAccounts', () => {
   it('drops archived rows, whatever their currency or type', () => {
     const active = selectActiveAccounts([bank(1000), archived(cc(500)), archived(wal(7))]);
     expect(active).toHaveLength(1);
     expect(active[0]?.opening_balance).toBe(1000);
-  });
-
-  it('counts every account whose currency differs from the base, not just the first', () => {
-    // A `count > 0 ? 1 : 0` implementation passes every single-foreign fixture
-    // in this file; two USD accounts is what separates the two.
-    expect(
-      countForeignAccounts(
-        [bank(48250), wal(1000, Currency.USD), wal(350, Currency.USD)],
-        Currency.EGP,
-      ),
-    ).toBe(2);
-  });
-
-  it('counts base-currency accounts as foreign when the base flips', () => {
-    expect(countForeignAccounts([bank(48250), wal(1000, Currency.USD)], Currency.USD)).toBe(1);
-  });
-
-  it('never counts an archived account', () => {
-    expect(countForeignAccounts([bank(1000), archived(wal(500, Currency.USD))], Currency.EGP)).toBe(
-      0,
-    );
   });
 });
 

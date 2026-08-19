@@ -1,8 +1,8 @@
 import { Currency } from '@/constants/enums';
+import { countForeignAccounts } from '@/modules/accounts/domain/account_aggregation';
 import {
   type StartingNetPosition,
   type StartingNetPositionInput,
-  countForeignAccounts,
   normalizeNegativeZero,
   resolveStartingNetPosition,
 } from '@/modules/onboarding/domain/starting_net_position';

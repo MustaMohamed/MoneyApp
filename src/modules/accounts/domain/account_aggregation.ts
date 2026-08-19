@@ -1,4 +1,6 @@
-import { AccountType } from '@/constants/enums';
+import { CURRENCY_CONFIG, type CurrencyMeta } from '@/constants/currency';
+import { AccountType, Currency } from '@/constants/enums';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 
 /**
  * Account-aggregation primitives, shared by every surface that sums balances
@@ -44,4 +46,101 @@ export function resolveAccountAggregationSign(type: AccountType): 1 | -1 {
  */
 export function normalizeNegativeZero(value: number): number {
   return value === 0 ? 0 : value;
+}
+
+/**
+ * The dashboard's net-worth outcome. A discriminated union so the refusal is
+ * unrepresentable as a number: the `rate-needed` member carries NO numeric
+ * field, so a formatter structurally cannot be handed a value that was never
+ * computed. Mirrors `StartingNetPosition` deliberately — a reader comparing the
+ * two should find the same shape.
+ *
+ * `assetsUsd` and `netWorthUsd` are `undefined` exactly when the rate is not
+ * usable. That is a SECOND, independent question from the EGP total: the EGP
+ * total needs a rate only when something is foreign, while the `~USD`
+ * equivalent needs a verified rate always, because the conversion is the whole
+ * point of it (spec §3a). They are `undefined` rather than `null` because
+ * neither is DB-mapped (CLAUDE.md's null-versus-undefined rule).
+ */
+export type DashboardNetWorth =
+  | {
+      kind: 'amount';
+      assetsEgp: number;
+      liabilitiesEgp: number;
+      netWorthEgp: number;
+      assetsUsd: number | undefined;
+      netWorthUsd: number | undefined;
+    }
+  | { kind: 'rate-needed'; foreignCount: number };
+
+/**
+ * A single object parameter rather than positional arguments, matching
+ * `StartingNetPositionInput` so the two resolvers read alike. There is no
+ * `baseCurrency` field: EGP base is `computeNetWorth`'s documented precondition
+ * and must not become a parameter (spec §2a).
+ */
+export interface NetWorthInput {
+  /** May contain archived rows — the resolver filters them itself. */
+  accounts: Account[];
+  rate: number;
+  /** DB-mapped nullable setting (`usd_rate_updated_at`); null means unverified. */
+  rateUpdatedAt: string | null;
+}
+
+/**
+ * The rate-provenance gate, stated once so the dashboard and N4 cannot drift.
+ *
+ * `useCurrencyStore`'s `INITIAL_STATE.rate` is `50` — an unverified guess that
+ * must never reach a screen (ADR 2026-08-18 §2), and it is greater than zero, so
+ * a bare `rate > 0` check opens the gate on it. The marker is what separates a
+ * stored rate a user or a fetch actually verified from that placeholder.
+ *
+ * Do NOT loosen this to make pre-#165 installs show a number (ADR 2026-08-18
+ * §3): loosening it re-admits the unverified 50, which is the entire thing the
+ * gate exists to keep off the screen. The remedy for that population is a
+ * backfill migration, filed separately.
+ */
+export function isRateUsable(rate: number, rateUpdatedAt: string | null): boolean {
+  return rateUpdatedAt !== null && Number.isFinite(rate) && rate > 0;
+}
+
+/**
+ * Non-archived accounts whose currency differs from the base — the rate gate's
+ * input.
+ *
+ * Filters `is_archived` inline rather than calling `selectActiveAccounts`, which
+ * stays in the onboarding domain: importing it here would run
+ * accounts -> onboarding, the one direction this file exists to forbid.
+ */
+export function countForeignAccounts(accounts: readonly Account[], base: Currency): number {
+  return accounts.filter((account) => account.is_archived === 0 && account.currency !== base)
+    .length;
+}
+
+/** Shape mirrors `StartingNetPositionError` — thrown type, never message text. */
+export class AccountAggregationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AccountAggregationError';
+  }
+}
+
+// The supported vocabulary is `CURRENCY_CONFIG` itself, never a hand-kept copy
+// of the same codes: it is a `Record<Currency, CurrencyMeta>`, so a member
+// added to the enum is a TYPE ERROR there, while a local array compiles
+// unchanged and throws on real rows.
+//
+// Seen here as a lookup that can MISS. Its index type promises a hit for
+// anything the compiler already believes is a `Currency`, and that promise does
+// not hold: these values arrive from SQLite rows mapped without validation, and
+// an unsupported code is a schema violation upstream (migration 001 has
+// `CHECK(currency IN ('EGP','USD'))`), not a state to degrade into. Nothing
+// catches the throw — the app has no error boundary — and that is a recorded
+// known gap rather than this ticket's to fix (spec §6).
+const CURRENCY_LOOKUP: Readonly<Record<string, CurrencyMeta | undefined>> = CURRENCY_CONFIG;
+
+export function assertSupportedCurrency(currency: Currency): void {
+  if (CURRENCY_LOOKUP[currency] === undefined) {
+    throw new AccountAggregationError(`Unsupported currency: ${currency}`);
+  }
 }

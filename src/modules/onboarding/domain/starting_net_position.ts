@@ -1,6 +1,8 @@
 import { CURRENCY_CONFIG, type CurrencyMeta } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import {
+  countForeignAccounts,
+  isRateUsable,
   normalizeNegativeZero,
   resolveAccountAggregationSign,
 } from '@/modules/accounts/domain/account_aggregation';
@@ -72,6 +74,13 @@ function assertSupportedCurrency(currency: Currency): void {
 // carries no import-path rule, so a re-export here would let the dashboard
 // reach the sign THROUGH the onboarding domain — the exact direction the hoist
 // exists to forbid.
+//
+// `countForeignAccounts` moved to the same accounts file in #255 chunk 2 and is
+// NOT re-exported either, for that same reason: `computeNetWorth` consumes it
+// now, so a re-export here would re-open the inverted direction through a
+// different door. `approximation_pill.ts` and `ready_summary_state.ts` import it
+// from the accounts path directly. `selectActiveAccounts` stays here — it has no
+// dashboard consumer.
 export { normalizeNegativeZero };
 
 /**
@@ -81,11 +90,6 @@ export { normalizeNegativeZero };
  */
 export function selectActiveAccounts(accounts: readonly Account[]): readonly Account[] {
   return accounts.filter((account) => account.is_archived === 0);
-}
-
-/** Non-archived accounts whose currency differs from the base — the rate gate's input. */
-export function countForeignAccounts(accounts: readonly Account[], base: Currency): number {
-  return selectActiveAccounts(accounts).filter((account) => account.currency !== base).length;
 }
 
 // `exchange_rate` is EGP per USD: USD -> EGP multiplies, EGP -> USD divides.
@@ -126,7 +130,7 @@ export function resolveStartingNetPosition(input: StartingNetPositionInput): Sta
   }
 
   const foreignCount = countForeignAccounts(activeAccounts, baseCurrency);
-  const rateUsable = rateUpdatedAt !== null && Number.isFinite(rate) && rate > 0;
+  const rateUsable = isRateUsable(rate, rateUpdatedAt);
   if (foreignCount >= 1 && !rateUsable) {
     return { kind: 'rate-needed', foreignCount };
   }

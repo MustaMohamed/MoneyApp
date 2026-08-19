@@ -308,6 +308,13 @@ export const Strings = {
   dashboardBreakdownReserveCaption: 'Savings',
   dashboardBreakdownTotalDebt: 'Total debt',
 
+  // The dashboard's rate refusal (#255). Modelled on N4's pair
+  // (`n4RateNeededValue` / `n4CaptionRateNeeded`) so the two refusals read as
+  // one app; only the remedy differs, because the user is already past
+  // onboarding and the rate is set in Settings -> Currency from here.
+  dashboardRateNeededValue: 'Exchange rate needed',
+  dashboardRateNeededCaption: 'Your balances are saved. Set a rate in Settings and this fills in.',
+
   // Account Detail (U3)
   accountDetailEdit: 'Edit',
   accountDetailSave: 'Save',
