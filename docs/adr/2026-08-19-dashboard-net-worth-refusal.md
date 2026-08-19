@@ -6,7 +6,11 @@
 - **Applies to:** `computeNetWorth` in
   `src/modules/dashboard/screens/dashboard/dashboard.helpers.ts`, plus
   `src/modules/accounts/domain/account_aggregation.ts` and
-  `src/modules/onboarding/domain/starting_net_position.ts`
+  `src/modules/onboarding/domain/starting_net_position.ts`; and, because section 4 is normative
+  about what they render, the four consuming surfaces in
+  `src/modules/dashboard/screens/dashboard/components/` — `hero_card.tsx`, `stat_cards.tsx`,
+  `net_worth_breakdown_sheet.tsx`, `total_balance_strip.tsx` — with their copy in
+  `src/constants/strings.ts`
 
 `2026-08-18-starting-net-position.md` §5 listed four points on which the dashboard's
 `computeNetWorth` diverged from N4's `resolveStartingNetPosition` and named #249 as the owner of
@@ -23,7 +27,7 @@ recorded here because section 3 is an argument *about* it.
 | §5 divergence | Closed by |
 |---|---|
 | Never rounds | Chunk 1. `round2( Σ sign × round2(converted) )`, in array order, per §4 of the prior ADR. |
-| No archived filter | Chunk 1. `if (a.is_archived) continue;` before every other step, as a contract guarantee. |
+| No archived filter | Chunk 1, as a contract guarantee. Its in-loop `if (a.is_archived) continue;` became `accounts.filter((a) => !a.is_archived)` (`dashboard.helpers.ts:63`) in chunk 2, so the foreign count reads the same set the arithmetic does. |
 | `rate > 0 ? value / rate : 0` fallback | Chunk 2. Replaced by the refusal and by absent `~USD` fields. |
 | Multiplies unconditionally, never divides | **Not closed.** See section 2. |
 
@@ -107,15 +111,19 @@ with no numeric field, so a formatter structurally cannot be handed a value that
 Whether the app can state an EGP total and whether it can state the `~USD` equivalent are two
 questions with two answers. The EGP total needs a rate only when something is foreign. The `~USD` line
 needs a verified rate always, because the conversion is the whole point of it — so on the amount path
-`assetsUsd` and `netWorthUsd` are `undefined` exactly when the rate is unusable. Today
-`hero_card.tsx:164` keys that line on `rate > 0`, and `INITIAL_STATE.rate` is `50`, so every user who
-has never fetched a rate reads a confident `~ N USD` computed from the placeholder.
+`assetsUsd` and `netWorthUsd` are `undefined` exactly when the rate is unusable.
+
+Until chunk 2, `hero_card.tsx:164` keyed that line on `rate > 0`, and `INITIAL_STATE.rate` is `50`,
+so every user who had never fetched a rate read a confident `~ N USD` computed from the placeholder.
+`hero_card.tsx:205-207` now keys it on the field being absent
+(`netWorth.kind === 'amount' && netWorth.assetsUsd !== undefined`), which `rate > 0` could never
+express, and `net_worth_breakdown_sheet.tsx:163-165` re-keyed the same way.
 
 The breakdown sheet renders the refusal **only** on that outcome and does not render its body.
 `computeLiquidityBreakdown` and `computeLiabilitiesBreakdown` still carry the same PROVENANCE defect
 `computeNetWorth` had; left rendering, the sheet would refuse its headline and then print
 `100 × 50 = 5000 EGP` underneath it. Suppressing the body closes that incoherence without touching
-either helper. Their gating gets its own ticket.
+either helper. Their PROVENANCE gating is #259's, whose scope is widened to cover it.
 
 Their ROUNDING is no longer deferred. Chunk 1 rounds each converted balance in both helpers, on
 `computeNetWorth`'s per-value contract, because the exception-3 band above lands inside a single
@@ -130,8 +138,8 @@ make them show a number** — loosening it re-admits the unverified `50`, which 
 gate exists to keep off the screen. The remedy is a backfill migration, filed separately.
 
 This ticket's guarantee is scoped to `computeNetWorth`'s consumers. It is not "the dashboard never
-shows an unverified-rate number", which stays false while #257 is open: `account_card.tsx:139`
-converts a USD card balance at the raw rate and `hero_card.tsx:180` prints the rate itself.
+shows an unverified-rate number", which stays false while #257 is open: `account_card.tsx:140`
+converts a USD card balance at the raw rate and `hero_card.tsx:223` prints the rate itself.
 
 ### What chunk 2 settled that the above does not already say
 
@@ -143,15 +151,29 @@ about the sign resolver. Its two onboarding importers were repointed at the acco
 cannot call `selectActiveAccounts`, which stays in onboarding and has no dashboard consumer, so it
 filters `is_archived` inline; behaviour is identical and the archived case is its regression signal.
 
+That argument is about DIRECTION and settles nothing about the barrel: every one of these imports
+reaches `domain/` past `src/modules/accounts/index.ts:1`, which declares the module's public API to be
+"store, UI components, shared types only", and this diff takes that bypass from 2 deep imports to 8.
+Widening the barrel is audit M2's work (effort L, unscheduled) — no import here changes for it.
+
 **`isRateUsable` is the single encoding of the gate, adopted at both call sites in the same chunk.**
 Shipping a shared predicate and leaving N4's inline copy beside it would reproduce, for the rate,
 precisely the defect this ticket removes for the sign — so the swap at `resolveStartingNetPosition`
 is part of the same diff rather than a follow-up. The gate now cannot drift the way the sign rule did.
 
-**The archived filter runs before the foreign count, not just before the arithmetic.** An archived
-USD wallet on an otherwise-EGP portfolio must not force a refusal on a portfolio with nothing left to
-convert. That ordering is asserted by a table row that is the only one able to tell — every other row
-stays green if the count is hoisted above the filter.
+**An archived USD wallet must not force a refusal on a portfolio with nothing left to convert.**
+`computeNetWorth` drops archived rows before the foreign count as well as before the arithmetic — but
+the ORDER is not what defends that, and an earlier draft of this section claimed it was.
+`countForeignAccounts` filters `is_archived` itself (`account_aggregation.ts:123-125`), so handing it
+the unfiltered array returns the identical count and every row stays green. The two filters are
+defence in depth, and `resolveStartingNetPosition` composes exactly the same pair
+(`starting_net_position.ts:127-132`); neither is redundant to delete.
+
+The regression signal is `__tests__/accounts/account_aggregation.test.ts`'s "never counts an archived
+account", which goes red the moment that inline filter does. `computeNetWorth`'s own filter is held
+by the archived-credit-card row in `dashboard_helpers.test.ts`, whose 50000 flips the total. The
+archived-USD-wallet row in that same table asserts the composed outcome and goes red only if both
+filters go.
 
 ## 5. The reversed contract
 

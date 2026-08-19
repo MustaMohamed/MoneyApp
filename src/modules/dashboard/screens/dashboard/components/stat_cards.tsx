@@ -7,7 +7,10 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
-import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
+import type {
+  DashboardNetWorth,
+  DashboardNetWorthAmount,
+} from '@/modules/accounts/domain/account_aggregation';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
@@ -35,8 +38,6 @@ const SHORT_MONTHS = [
   'Nov',
   'Dec',
 ] as const;
-
-type DashboardNetWorthAmount = Extract<DashboardNetWorth, { kind: 'amount' }>;
 
 interface StatCardsProps {
   /**

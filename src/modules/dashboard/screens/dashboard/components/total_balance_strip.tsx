@@ -63,7 +63,7 @@ export function TotalBalanceStrip({ netWorth, accountsCount }: TotalBalanceStrip
                 size={Size.iconSm}
                 color={SemanticTokens.warning}
               />
-              <RNText className="text-warning font-sora-semibold text-base">
+              <RNText className="text-warning font-sora-semibold flex-1 text-base">
                 {Strings.dashboardRateNeededValue}
               </RNText>
             </View>

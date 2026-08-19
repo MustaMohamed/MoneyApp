@@ -74,6 +74,14 @@ export type DashboardNetWorth =
   | { kind: 'rate-needed'; foreignCount: number };
 
 /**
+ * The amount member, narrowed once at the union's owner rather than at each
+ * surface that needs it: `stat_cards.tsx` and `net_worth_breakdown_sheet.tsx`
+ * both pass it to a body subcomponent that only this member can supply, and
+ * owning the narrowing here makes a discriminant rename one edit, not three.
+ */
+export type DashboardNetWorthAmount = Extract<DashboardNetWorth, { kind: 'amount' }>;
+
+/**
  * A single object parameter rather than positional arguments, matching
  * `StartingNetPositionInput` so the two resolvers read alike. There is no
  * `baseCurrency` field: EGP base is `computeNetWorth`'s documented precondition

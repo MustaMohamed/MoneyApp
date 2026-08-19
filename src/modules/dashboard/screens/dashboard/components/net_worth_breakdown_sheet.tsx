@@ -8,7 +8,10 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Type } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
-import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
+import type {
+  DashboardNetWorth,
+  DashboardNetWorthAmount,
+} from '@/modules/accounts/domain/account_aggregation';
 import { formatAmount } from '@/utils/format_amount';
 import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
@@ -16,8 +19,6 @@ import { ms } from '@/utils/responsive';
 import type { AccountRow, LiabilityRow, LiquidityBreakdown } from '../dashboard.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-type DashboardNetWorthAmount = Extract<DashboardNetWorth, { kind: 'amount' }>;
 
 interface NetWorthBreakdownSheetProps {
   isOpen: boolean;
@@ -40,11 +41,16 @@ const LIABILITY_COLOR = Colors.dark.negative;
  * On a `rate-needed` outcome this renders the refusal and NOTHING ELSE.
  *
  * `computeLiquidityBreakdown` and `computeLiabilitiesBreakdown` still take the
- * raw `rate` with no marker and no gate — chunk 1 rounded them, it did not gate
- * them — so rendering the body underneath a refused headline would print
+ * raw `rate` and never see `rateUpdatedAt` — chunk 1 rounded them, it did not
+ * gate them — so rendering the body underneath a refused headline would print
  * `100 × 50 = 5000 EGP` computed from the placeholder rate the headline just
  * refused to use. Suppressing the body closes that incoherence without touching
- * either helper; their gating is a separate ticket (#259 / spec §3b).
+ * either helper.
+ *
+ * What those two still owe is PROVENANCE gating: reading `rateUpdatedAt` and
+ * refusing through `isRateUsable`, the way `computeNetWorth` does. #259 owns
+ * that — its scope is widened from rounding contracts to name rate provenance
+ * as well — and spec §3b holds this chunk to rounding only.
  */
 export function NetWorthBreakdownSheet({
   isOpen,

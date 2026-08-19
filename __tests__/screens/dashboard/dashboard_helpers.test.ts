@@ -142,12 +142,20 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     },
   },
   {
-    // The ONLY row proving archived rows leave the FOREIGN COUNT. Reorder the
-    // count ahead of the archived filter and every other row here stays green —
-    // the other archived row is an EGP card, whose exclusion changes no count.
-    // Here the archived row is the only foreign one, so the correct order gives
-    // `foreignCount: 0` and an amount, while counting first gives 1 and refuses.
-    // That asymmetry is why this row's marker must be `null`.
+    // The COMPOSED outcome: an archived foreign row leaves the count, so an
+    // unverified rate is irrelevant and this is an amount rather than a refusal.
+    // It is NOT the signal for the filter/count ordering, which an earlier
+    // version of this comment claimed: `countForeignAccounts` filters
+    // `is_archived` itself, so handing it the unfiltered array returns the same
+    // `0` and this row stays green. The two filters are defence in depth and
+    // `resolveStartingNetPosition` composes the same pair; the single-point
+    // signal for the count's own filter is `account_aggregation.test.ts`'s
+    // "never counts an archived account", and the signal for `computeNetWorth`'s
+    // is the archived-card row below, whose 50000 flips the total. This row goes
+    // red only if BOTH filters go.
+    //
+    // The marker must stay `null`: with a verified rate the refusal branch is
+    // unreachable and the row would prove nothing about the foreign count.
     case: 'an archived USD wallet leaves the foreign count, so an unverified rate is still irrelevant',
     accounts: [
       makeAccount({ current_balance: 1000 }),
