@@ -1,4 +1,4 @@
-import { CURRENCY_CONFIG } from '@/constants/currency';
+import { CURRENCY_CONFIG, type CurrencyMeta } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { roundMoney } from '@/utils/money';
@@ -37,15 +37,20 @@ export class StartingNetPositionError extends Error {
   }
 }
 
-// Checked at runtime rather than trusted from the type, because these values
-// arrive from SQLite rows that are mapped without validation — an unsupported
-// code is a schema violation upstream, not a state to degrade into.
+// The supported vocabulary is `CURRENCY_CONFIG` itself, never a hand-kept copy
+// of the same codes: it is a `Record<Currency, CurrencyMeta>`, so a member
+// added to the enum is a TYPE ERROR there, while a local array compiles
+// unchanged and throws on real rows.
 //
-// The vocabulary is `CURRENCY_CONFIG`, which is a `Record<Currency, ...>`: a
-// member added to the enum is a TYPE ERROR there, whereas a hand-kept array of
-// the same codes compiles unchanged and throws on real rows.
+// Seen here as a lookup that can MISS. Its index type promises a hit for
+// anything the compiler already believes is a `Currency`, and that promise does
+// not hold: these values arrive from SQLite rows mapped without validation, and
+// an unsupported code is a schema violation upstream, not a state to degrade
+// into.
+const CURRENCY_LOOKUP: Readonly<Record<string, CurrencyMeta | undefined>> = CURRENCY_CONFIG;
+
 function assertSupportedCurrency(currency: Currency): void {
-  if (CURRENCY_CONFIG[currency] === undefined) {
+  if (CURRENCY_LOOKUP[currency] === undefined) {
     throw new StartingNetPositionError(`Unsupported currency: ${currency}`);
   }
 }

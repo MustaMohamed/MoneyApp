@@ -40,7 +40,11 @@ export function useReady() {
 
   const handleComplete = async () => {
     // The double-tap guard is a SYNCHRONOUS store read, matching
-    // add_account.hook.ts: complete.isLoading is React state and lags a
+    // `useAddAccountTransitionState.getState().begin()` in
+    // `src/modules/onboarding/screens/onboarding/add_account/add_account.hook.ts`
+    // (NOT the same-named accounts-module hook at
+    // `src/modules/accounts/screens/accounts/add_account/add_account.hook.ts`,
+    // which has no transition state): complete.isLoading is React state and lags a
     // render, so two taps in one frame both pass it. begin() checks and sets
     // `busy` in one call, and clears the status track for the new attempt —
     // every writer of that track clears it when its own attempt starts.
