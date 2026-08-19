@@ -45,6 +45,20 @@ export interface ReadySummaryState {
 }
 
 /**
+ * The all-credit-card fact, hoisted out of `resolveFrame` because the accounts
+ * pill's glyph needs the SAME expression. Keyed off it and never off the frame:
+ * F3 is returned before F7 is even tested, so a credit-card-only set that also
+ * needs a rate is on F3 while still being all credit cards — glyph logic that
+ * reads `frame === 'F7'` renders a bank outline over it.
+ */
+function isCreditCardOnly(activeAccounts: readonly Account[]): boolean {
+  return (
+    activeAccounts.length >= 1 &&
+    activeAccounts.every((account) => account.type === AccountType.CreditCard)
+  );
+}
+
+/**
  * Frame selection, in evaluation order. The order is the contract: F3 precedes
  * every `amount` frame, and F7/F6 precede F4/F5/F1 so a single credit card
  * lands on F7 rather than F4.
@@ -53,14 +67,12 @@ function resolveFrame(
   outcome: StartingNetPosition,
   activeAccounts: readonly Account[],
   foreignCount: number,
+  creditCardOnly: boolean,
 ): ReadyFrame {
   if (outcome.kind === 'rate-needed') {
     return 'F3';
   }
-  if (
-    activeAccounts.length >= 1 &&
-    activeAccounts.every((account) => account.type === AccountType.CreditCard)
-  ) {
+  if (creditCardOnly) {
     return 'F7';
   }
   if (activeAccounts.length === 1) {
@@ -91,7 +103,8 @@ export function selectReadySummaryState(input: StartingNetPositionInput): ReadyS
   const activeAccounts = selectActiveAccounts(input.accounts);
   const accountCount = activeAccounts.length;
   const foreignCount = countForeignAccounts(activeAccounts, input.baseCurrency);
-  const frame = resolveFrame(outcome, activeAccounts, foreignCount);
+  const creditCardOnly = isCreditCardOnly(activeAccounts);
+  const frame = resolveFrame(outcome, activeAccounts, foreignCount, creditCardOnly);
 
   // The gate — `outcome.kind === 'amount' && foreignCount >= 1` — is evaluated
   // once, inside `selectApproximationPill`, which returns both pills or neither.
@@ -107,7 +120,8 @@ export function selectReadySummaryState(input: StartingNetPositionInput): ReadyS
   const accountsPill: ReadyPill = {
     kind: 'accounts',
     count: accountCount,
-    glyph: frame === 'F7' ? 'credit-card' : 'bank-outline',
+    // The account COMPOSITION, never the frame — see `isCreditCardOnly`.
+    glyph: creditCardOnly ? 'credit-card' : 'bank-outline',
   };
 
   const pills: readonly ReadyPill[] =

@@ -215,7 +215,26 @@ const STATE_ROWS: readonly StateRow[] = [
     ],
   },
   {
-    case: '12 — F2 with TWO foreign accounts; foreignCount is a count, not a flag',
+    // The glyph is keyed off the account COMPOSITION, not off the frame: this
+    // set is all credit cards AND needs a rate, and `resolveFrame` returns F3
+    // before it ever tests F7. A glyph read from `frame === 'F7'` renders
+    // `bank-outline` over a credit-card-only set here.
+    case: '12 — F3 over a credit-card-only set; the glyph still swaps',
+    accounts: [cc(1350, Currency.USD)],
+    base: Currency.EGP,
+    rate: 50,
+    rateUpdatedAt: null,
+    frame: 'F3',
+    accountCount: 1,
+    foreignCount: 1,
+    pillsVisible: false,
+    pills: [
+      { kind: 'accounts', count: 1, glyph: 'credit-card' },
+      { kind: 'needs-rate', count: 1 },
+    ],
+  },
+  {
+    case: '13 — F2 with TWO foreign accounts; foreignCount is a count, not a flag',
     accounts: [bank(48250), wal(1000, Currency.USD), wal(350, Currency.USD)],
     base: Currency.EGP,
     rate: 48.6,
