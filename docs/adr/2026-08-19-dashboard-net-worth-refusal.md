@@ -4,8 +4,8 @@
 - **Status:** accepted
 - **Ticket:** MA-013 (issue #255), ruling #249
 - **Applies to:** `computeNetWorth` in
-  `src/modules/dashboard/screens/dashboard/dashboard.helpers.ts`,
-  `src/modules/accounts/domain/account_aggregation.ts`, and
+  `src/modules/dashboard/screens/dashboard/dashboard.helpers.ts`, plus
+  `src/modules/accounts/domain/account_aggregation.ts` and
   `src/modules/onboarding/domain/starting_net_position.ts`
 
 `2026-08-18-starting-net-position.md` §5 listed four points on which the dashboard's
@@ -37,13 +37,17 @@ not aggregations, and unifying the two is out of scope. So the three independent
 ADR §1 counted become two, and the split runs along the write/aggregate line by design rather than by
 oversight.
 
-That is bookkeeping against the prior ADR's list, **not** an app-wide count. App-wide, four sites still
-encode the credit-card rule after this change: `resolveAccountAggregationSign`,
-`resolvePrimaryBalanceDelta`, and two inline checks in the same file this diff edits —
+That is bookkeeping against the prior ADR's list, **not** an app-wide count. App-wide, five sites still
+encode the credit-card rule after this change: `resolveAccountAggregationSign`;
+`resolvePrimaryBalanceDelta`; two inline checks in the same file this diff edits —
 `computeLiabilitiesBreakdown`'s `type !== AccountType.CreditCard` filter and
 `computeDashboardAccountCounts`'s `type === AccountType.CreditCard` bucket, which is a count
-aggregation on exactly this rule. Adopting the resolver at either is out of scope for #255 (spec §7)
-and owned by a separate ticket. A minus sign is still never derived at the display layer.
+aggregation on exactly this rule; and `isCreditCardOnly` at
+`src/modules/onboarding/domain/ready_summary_state.ts:57`, which classifies the whole active set on the
+same rule to pick N4's accounts-pill glyph. The count is over sites that CLASSIFY accounts on the rule:
+icon and label maps, the credit-card form fields, the transaction-shape picker filters and per-account
+display colour are not on it. Adopting the resolver at the latter three is out of scope for #255
+(spec §7) and owned by a separate ticket. A minus sign is still never derived at the display layer.
 
 ## 2. EGP base is a precondition, not a bug to fix
 
