@@ -11,6 +11,7 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing } from '@/constants/theme';
+import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
 
 import { AccountCarousel } from './components/account_carousel';
 import { BudgetCard } from './components/budget_card';
@@ -66,6 +67,8 @@ export default function DashboardScreen() {
   const visibleTypes = TYPE_ORDER.filter((type) => state.groupedAccounts[type]?.length);
   const segment = state.selectedSegment;
   const totalAccountsCount = state.accountCounts.assets + state.accountCounts.liabilities;
+  // TEMPORARY — deleted by C2-3B, which makes computeNetWorth return the union directly.
+  const netWorth: DashboardNetWorth = { kind: 'amount', ...state.netWorth };
   const openBreakdown = useCallback(() => setBreakdownVisible(true), [setBreakdownVisible]);
 
   const onTabChange = useCallback(
@@ -164,8 +167,7 @@ export default function DashboardScreen() {
                   <>
                     <Animated.View style={heroStyle}>
                       <HeroCard
-                        assetsEgp={state.netWorth.assetsEgp}
-                        assetsUsd={state.netWorth.assetsUsd}
+                        netWorth={netWorth}
                         rate={state.rate}
                         isManualOverride={state.isManualOverride}
                         assetsCount={state.accountCounts.assets}
@@ -177,9 +179,7 @@ export default function DashboardScreen() {
 
                     <Animated.View entering={statsEntering}>
                       <StatCards
-                        netWorthEgp={state.netWorth.netWorthEgp}
-                        assetsEgp={state.netWorth.assetsEgp}
-                        liabilitiesEgp={state.netWorth.liabilitiesEgp}
+                        netWorth={netWorth}
                         assetsCount={state.accountCounts.assets}
                         liabilitiesCount={state.accountCounts.liabilities}
                         monthSpentEgp={state.monthSpend.currentEgp}
@@ -220,10 +220,7 @@ export default function DashboardScreen() {
                   </>
                 ) : (
                   <>
-                    <TotalBalanceStrip
-                      assetsEgp={state.netWorth.assetsEgp}
-                      accountsCount={totalAccountsCount}
-                    />
+                    <TotalBalanceStrip netWorth={netWorth} accountsCount={totalAccountsCount} />
                     {visibleTypes.map((type, index) => (
                       <Animated.View key={type} entering={sectionEntering(index)}>
                         <SectionHeader
@@ -263,11 +260,7 @@ export default function DashboardScreen() {
         onOpenChange={(open) => {
           if (!open) setBreakdownVisible(false);
         }}
-        assetsEgp={state.netWorth.assetsEgp}
-        liabilitiesEgp={state.netWorth.liabilitiesEgp}
-        netWorthEgp={state.netWorth.netWorthEgp}
-        netWorthUsd={state.netWorth.netWorthUsd}
-        rate={state.rate}
+        netWorth={netWorth}
         liquidity={state.liquidity}
         liabilities={state.liabilities}
       />

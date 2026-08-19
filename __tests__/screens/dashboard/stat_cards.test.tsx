@@ -62,9 +62,23 @@ jest.mock('heroui-native', () => {
 });
 
 const baseProps = {
-  netWorthEgp: 1000,
-  assetsEgp: 1200,
-  liabilitiesEgp: -200,
+  // `liabilitiesEgp` is a POSITIVE magnitude — `computeNetWorth` returns it as
+  // one and `dashboard.helpers.ts` says so — so the old `-200` literal is
+  // corrected here rather than carried into the type that now states the
+  // contract. Verified inert: `stat_cards.tsx` reads the field as
+  // `Math.abs(...)` for the proportion bar, and the one assertion naming the
+  // rendered string runs with `netWorthLoading` set, where neither value renders.
+  // The two USD values are 1200 and 1000 at a rate of 40, chosen so neither
+  // collides with a string an existing query matches; nothing asserts them —
+  // `StatCards` reads no USD field at all.
+  netWorth: {
+    kind: 'amount',
+    assetsEgp: 1200,
+    liabilitiesEgp: 200,
+    netWorthEgp: 1000,
+    assetsUsd: 30,
+    netWorthUsd: 25,
+  } as const,
   assetsCount: 2,
   liabilitiesCount: 1,
   monthSpentEgp: 3000,
