@@ -30,7 +30,7 @@ import { ms } from '@/utils/responsive';
  */
 
 /** mockup.html:667, :678, :695 — `.hero-hd`, `.hero-v` and `.hero-pills` gap. */
-export const N4_HERO_GAP = ms(6);
+const N4_HERO_GAP = ms(6);
 
 /** mockup.html:668, `.hero-hd .chip24 { width: 24px }`. */
 export const N4_HERO_CHIP_SIZE = ms(24);
@@ -39,13 +39,13 @@ export const N4_HERO_CHIP_SIZE = ms(24);
 export const N4_HERO_CHIP_GLYPH = ms(14);
 
 /** mockup.html:675, `.hero-l { letter-spacing: 0.04em }`. */
-export const N4_HERO_LABEL_TRACKING_EM = 0.04;
+const N4_HERO_LABEL_TRACKING_EM = 0.04;
 
 /** mockup.html:683, `.hero-v .n { letter-spacing: -1px }` at 40px. */
-export const N4_HERO_VALUE_TRACKING_EM = -0.025;
+const N4_HERO_VALUE_TRACKING_EM = -0.025;
 
 /** mockup.html:686, `.hero-v .n.step { letter-spacing: -0.6px }` at 28px. */
-export const N4_HERO_VALUE_STEP_TRACKING_EM = -0.021;
+const N4_HERO_VALUE_STEP_TRACKING_EM = -0.021;
 
 /**
  * mockup.html:410, `.b-headline { line-height: 1.05 }`.
@@ -65,7 +65,7 @@ export const N4_HEADLINE_LINE_HEIGHT_RATIO = 1.05;
  * `.n.step`. The count EXCLUDES the currency suffix, which renders as a
  * separate node at a different size and opacity.
  */
-export const N4_STEP_DOWN_MAX_CHARS = 13;
+const N4_STEP_DOWN_MAX_CHARS = 13;
 
 /**
  * mockup.html:2332, `.hero.mt20` — overrides `HeroShell`'s own horizontal

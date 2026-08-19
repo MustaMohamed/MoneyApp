@@ -19,8 +19,8 @@ import { ms } from '@/utils/responsive';
  * This file is the shared home `more_accounts.anim.ts` nominated when it had to
  * duplicate the chain — "once N4 is the third consumer". N4 is that consumer.
  */
-export const RISE_DURATION_MS = 500;
-export const RISE_TRANSLATE_Y = ms(10);
+const RISE_DURATION_MS = 500;
+const RISE_TRANSLATE_Y = ms(10);
 
 export function rise(delayMs: number) {
   return FadeInDown.duration(RISE_DURATION_MS)
