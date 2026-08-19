@@ -1,5 +1,6 @@
 import { Currency } from '@/constants/enums';
 import {
+  type StartingNetPosition,
   type StartingNetPositionInput,
   countForeignAccounts,
   normalizeNegativeZero,
@@ -30,9 +31,19 @@ export interface ApproximationPill {
  * base approximates into USD and divides, a USD base approximates into EGP and
  * multiplies. The sign always matches the hero value; it is the same fact in the
  * other currency, never a friendlier one.
+ *
+ * `outcome` is a parameter with a default rather than an unconditional resolve:
+ * `selectReadySummaryState` has already resolved the same input and passes its
+ * result in, so the two share one resolve structurally instead of by accident.
+ * The default keeps the function callable on its own — the pill table drives it
+ * with an input alone — and it must stay the SAME resolve, never a substitute:
+ * passing an outcome computed from a different input would silently decouple
+ * the pill from the hero value it approximates.
  */
-export function selectApproximationPill(input: StartingNetPositionInput): ApproximationPill {
-  const outcome = resolveStartingNetPosition(input);
+export function selectApproximationPill(
+  input: StartingNetPositionInput,
+  outcome: StartingNetPosition = resolveStartingNetPosition(input),
+): ApproximationPill {
   const foreignCount = countForeignAccounts(input.accounts, input.baseCurrency);
 
   if (outcome.kind !== 'amount' || foreignCount < 1) {

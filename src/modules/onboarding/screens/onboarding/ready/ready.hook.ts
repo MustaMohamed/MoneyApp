@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { OnboardingStep } from '@/constants/enums';
@@ -31,12 +32,21 @@ export function useReady() {
   // mount should never be able to show a message from a previous visit.
   useInit(() => useReadyTransitionState.getState().reset());
 
-  // Derived at render, every render, from store state and nothing else. That
-  // is what makes F9 work: a failed completion leaves the screen mounted with
-  // its summary intact because there is nothing to blank, skeleton or refetch.
-  // There is deliberately no loading branch and no early return above the
-  // animation hook (issue #247's shape).
-  const summary = selectReadySummaryState({ accounts, baseCurrency, rate, rateUpdatedAt });
+  // Derived from store state and nothing else. That is what makes F9 work: a
+  // failed completion leaves the screen mounted with its summary intact because
+  // there is nothing to blank, skeleton or refetch. There is deliberately no
+  // loading branch and no early return above the animation hook (issue #247's
+  // shape).
+  //
+  // Memoised on the four inputs it actually reads, so the re-renders this screen
+  // takes for reasons of its own — `busy`, `completing`, the status track — do
+  // not re-run the resolver over the account list. The deps ARE the whole input
+  // object; adding a field to `StartingNetPositionInput` without adding it here
+  // is a stale summary.
+  const summary = useMemo(
+    () => selectReadySummaryState({ accounts, baseCurrency, rate, rateUpdatedAt }),
+    [accounts, baseCurrency, rate, rateUpdatedAt],
+  );
 
   const handleComplete = async () => {
     // The double-tap guard is a SYNCHRONOUS store read, matching

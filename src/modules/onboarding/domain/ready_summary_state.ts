@@ -108,7 +108,10 @@ export function selectReadySummaryState(input: StartingNetPositionInput): ReadyS
 
   // The gate — `outcome.kind === 'amount' && foreignCount >= 1` — is evaluated
   // once, inside `selectApproximationPill`, which returns both pills or neither.
-  const { ratePill, approxPill } = selectApproximationPill(input);
+  // `outcome` is handed over rather than re-resolved: the pill IS the hero value
+  // in the other currency, so the two must come from one resolve, not two that
+  // happen to agree.
+  const { ratePill, approxPill } = selectApproximationPill(input, outcome);
   const currencyPills: readonly ReadyPill[] | undefined =
     ratePill !== undefined && approxPill !== undefined
       ? [
