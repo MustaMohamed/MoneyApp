@@ -8,16 +8,26 @@ import { ms } from '@/utils/responsive';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@/components/ui/hero_shell', () => ({
+  // The real `HeroShell` renders its `Pressable` wrapper ONLY when it is handed
+  // an `onPress`, and renders a plain card otherwise — so whether the card is
+  // tappable is exactly whether that prop arrived. The mock re-states that as a
+  // sentinel child rather than as a press, because RNTL's `fireEvent` resolves a
+  // handler on COMPOSITE ancestors too: pressing the mocked shell finds
+  // `HeroCard`'s own `onPress` prop and fires it whatever the shell received,
+  // which makes a press-based assertion vacuous here.
   HeroShell: ({
     children,
     style,
+    onPress,
   }: {
     children?: ReactNode;
     style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
+    onPress?: () => void;
   }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
     return (
       <View testID="dashboard-hero-card" style={style}>
+        {onPress ? <View testID="dashboard-hero-press-target" /> : null}
         {children}
       </View>
     );
@@ -131,5 +141,40 @@ describe('HeroCard skeleton loading', () => {
       minHeight: ms(20),
     });
     expect(getAllByTestId('dashboard-hero-skeleton-pill')).toHaveLength(3);
+  });
+});
+
+// Two USD wallets and no verified rate: `computeNetWorth` refuses, so the card
+// is handed a union member carrying no number at all.
+const rateNeededProps = {
+  ...baseProps,
+  netWorth: { kind: 'rate-needed', foreignCount: 2 } as const,
+};
+
+describe('HeroCard on the rate-needed refusal', () => {
+  it('shows no exchange rate under the refusal', async () => {
+    // The only rate available on this path is the unverified one the refusal
+    // exists to keep off the screen; `rate` is still 49.06 in the props.
+    const { queryByText } = await render(<HeroCard {...rateNeededProps} isLoading={false} />);
+
+    expect(queryByText(/1 USD =/)).toBeNull();
+  });
+
+  it('still shows the exchange rate on the amount path', async () => {
+    const { getByText } = await render(<HeroCard {...baseProps} isLoading={false} />);
+
+    expect(getByText('1 USD = 49.06 EGP')).toBeTruthy();
+  });
+
+  it('hands the shell no press handler, so the breakdown sheet cannot open', async () => {
+    const { queryByTestId } = await render(<HeroCard {...rateNeededProps} isLoading={false} />);
+
+    expect(queryByTestId('dashboard-hero-press-target')).toBeNull();
+  });
+
+  it('stays tappable on the amount path', async () => {
+    const { queryByTestId } = await render(<HeroCard {...baseProps} isLoading={false} />);
+
+    expect(queryByTestId('dashboard-hero-press-target')).not.toBeNull();
   });
 });
