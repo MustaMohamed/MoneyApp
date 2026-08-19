@@ -1,3 +1,4 @@
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { roundMoney } from '@/utils/money';
@@ -36,14 +37,15 @@ export class StartingNetPositionError extends Error {
   }
 }
 
-// The app has exactly two currencies. Checked at runtime rather than trusted
-// from the type, because these values arrive from SQLite rows that are mapped
-// without validation — an unsupported code is a schema violation upstream, not
-// a state to degrade into.
-const SUPPORTED_CURRENCIES: readonly Currency[] = [Currency.EGP, Currency.USD];
-
+// Checked at runtime rather than trusted from the type, because these values
+// arrive from SQLite rows that are mapped without validation — an unsupported
+// code is a schema violation upstream, not a state to degrade into.
+//
+// The vocabulary is `CURRENCY_CONFIG`, which is a `Record<Currency, ...>`: a
+// member added to the enum is a TYPE ERROR there, whereas a hand-kept array of
+// the same codes compiles unchanged and throws on real rows.
 function assertSupportedCurrency(currency: Currency): void {
-  if (!SUPPORTED_CURRENCIES.includes(currency)) {
+  if (CURRENCY_CONFIG[currency] === undefined) {
     throw new StartingNetPositionError(`Unsupported currency: ${currency}`);
   }
 }
