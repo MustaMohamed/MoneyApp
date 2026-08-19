@@ -152,11 +152,11 @@ export function useDashboard() {
     [accounts, rate, rateUpdatedAt],
   );
   // Decided ONCE, here, and passed down to every surface that converts. The
-  // account cards used to answer this question for themselves at
-  // `account_card.tsx:140` by converting unconditionally, which is how the
-  // accounts tab came to render `5,000 EGP` under a strip refusing to state a
-  // total. Re-deriving provenance as `rate > 0` at a display layer is the defect
-  // class #255 exists to remove: `INITIAL_STATE.rate` is 50.
+  // account cards used to answer this question for themselves — their "In EGP"
+  // row converted unconditionally — which is how the accounts tab came to
+  // render `5,000 EGP` under a strip refusing to state a total. Re-deriving
+  // provenance as `rate > 0` at a display layer is the defect class #255 exists
+  // to remove: `INITIAL_STATE.rate` is 50.
   const rateUsable = isRateUsable(rate, rateUpdatedAt);
   const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);
   const liabilities = useMemo(() => computeLiabilitiesBreakdown(accounts, rate), [accounts, rate]);
