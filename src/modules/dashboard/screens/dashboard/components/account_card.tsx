@@ -9,6 +9,7 @@ import { AccountColors, Colors, Size } from '@/constants/theme';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { formatAmount } from '@/utils/format_amount';
+import { roundMoney } from '@/utils/money';
 import { ms, msFont } from '@/utils/responsive';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -136,7 +137,7 @@ function buildInfoRows(account: Account, rate: number, stats: AccountStats | und
       },
       {
         label: Strings.cardInEgpLabel,
-        value: `${formatAmount(account.current_balance * rate)} EGP`,
+        value: `${formatAmount(roundMoney(account.current_balance * rate))} EGP`,
         valueColor: Colors.dark.gold,
       },
     ];

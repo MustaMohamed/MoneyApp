@@ -1,5 +1,9 @@
 import { CURRENCY_CONFIG, type CurrencyMeta } from '@/constants/currency';
-import { AccountType, Currency } from '@/constants/enums';
+import { Currency } from '@/constants/enums';
+import {
+  normalizeNegativeZero,
+  resolveAccountAggregationSign,
+} from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { roundMoney } from '@/utils/money';
 
@@ -55,25 +59,20 @@ function assertSupportedCurrency(currency: Currency): void {
   }
 }
 
-/**
- * The single named site for "credit cards are liabilities" in this screen's
- * math. It is the THIRD independent encoding of that rule in the app
- * (`computeNetWorth` inlines it, `resolvePrimaryBalanceDelta` owns the
- * write side) and it must be the last: no leading minus is derived at the
- * display layer, so when #249 is answered there is one site to adopt or move.
- */
-export function resolveAccountAggregationSign(type: AccountType): 1 | -1 {
-  return type === AccountType.CreditCard ? -1 : 1;
-}
-
-/**
- * `roundMoney` returns `-0` for a negative input that rounds to zero, and
- * `Intl.NumberFormat` renders `-0` as "-0.00". Called as the LAST operation
- * before returning any value that reaches a formatter.
- */
-export function normalizeNegativeZero(value: number): number {
-  return value === 0 ? 0 : value;
-}
+// Both now live in `@/modules/accounts/domain/account_aggregation` — the sign
+// rule has one owner for aggregations, and `normalizeNegativeZero` went with it
+// because the dashboard needs it and the import may only run
+// dashboard -> accounts. `normalizeNegativeZero` alone is re-exported: it is
+// what `approximation_pill.ts` imports, and keeping that importer unedited is
+// the whole purpose of the re-export. #255 chunk 2 may drop it once that
+// importer moves.
+//
+// `resolveAccountAggregationSign` is deliberately NOT re-exported. Both its
+// consumers already import it from the accounts path, and `.oxlintrc.json`
+// carries no import-path rule, so a re-export here would let the dashboard
+// reach the sign THROUGH the onboarding domain — the exact direction the hoist
+// exists to forbid.
+export { normalizeNegativeZero };
 
 /**
  * Archived rows never contribute. `getAccounts` already filters at SQL, but the

@@ -2,8 +2,6 @@ import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   countForeignAccounts,
-  normalizeNegativeZero,
-  resolveAccountAggregationSign,
   type StartingNetPosition,
   StartingNetPositionError,
   resolveStartingNetPosition,
@@ -244,33 +242,6 @@ describe('resolveStartingNetPosition — negative zero (spec §1.1)', () => {
 
   it('while a raw -0 still renders "-0.00 EGP" — the tripwire proving the two above can fail', () => {
     expect(formatCurrencyAmount(-0, Currency.EGP, 2)).toBe('-0.00 EGP');
-  });
-});
-
-describe('normalizeNegativeZero', () => {
-  it('maps -0 to +0', () => {
-    expect(Object.is(normalizeNegativeZero(-0), 0)).toBe(true);
-  });
-
-  it('leaves +0 alone', () => {
-    expect(Object.is(normalizeNegativeZero(0), 0)).toBe(true);
-  });
-
-  it('passes every other value through untouched', () => {
-    expect(normalizeNegativeZero(-1234.56)).toBe(-1234.56);
-    expect(normalizeNegativeZero(148250)).toBe(148250);
-  });
-});
-
-describe('resolveAccountAggregationSign — the one site that owns the credit-card sign', () => {
-  it.each([
-    [AccountType.Bank, 1],
-    [AccountType.SmartWallet, 1],
-    [AccountType.PhysicalWallet, 1],
-    [AccountType.PhysicalSavings, 1],
-    [AccountType.CreditCard, -1],
-  ])('%s → %p', (type, expected) => {
-    expect(resolveAccountAggregationSign(type)).toBe(expected);
   });
 });
 

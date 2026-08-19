@@ -1,4 +1,8 @@
 import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import {
+  normalizeNegativeZero,
+  resolveAccountAggregationSign,
+} from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
@@ -6,6 +10,7 @@ import type {
   DashboardBudgetLimitRow,
   DashboardTransactionFactRow,
 } from '@/modules/dashboard/database/dashboard_snapshot';
+import { roundMoney } from '@/utils/money';
 
 export interface NetWorthResult {
   assetsEgp: number;
@@ -15,23 +20,80 @@ export interface NetWorthResult {
   netWorthUsd: number;
 }
 
+/**
+ * `round2( Σ sign × round2(converted current_balance) )`, over non-archived
+ * accounts, in array order.
+ *
+ * **EGP is the base currency — a precondition, not an assumption.** The
+ * dashboard has no base at all: `base_currency` is written at
+ * `onboarding.repository.ts:34` and read nowhere on this path, this function
+ * takes no base parameter, and every output field is named `*Egp`. So USD
+ * balances MULTIPLY by the rate (`exchange_rate` is EGP per USD) and the two
+ * `*Usd` fields divide. Adding a divide branch or a `baseCurrency` parameter
+ * would create a path no supported input reaches; supporting a USD base is
+ * audit M28's work and out of scope for #255.
+ *
+ * Reads `current_balance`, unlike N4's `resolveStartingNetPosition`, which
+ * reads `opening_balance` — that difference is deliberate and unchanged here.
+ *
+ * Archived rows never contribute. `getAccounts` already filters them at SQL,
+ * so this is a CONTRACT guarantee of the function rather than a change to the
+ * current call path. That guarantee FORECLOSES audit M12's recommendation (a) —
+ * giving the dashboard snapshot an archived-inclusive credit-card read so an
+ * archived card's debt keeps counting against net worth. Anyone taking that
+ * route has to reopen this contract and this comment, not just widen a query.
+ * M12's other half, the archive-confirmation copy that contradicts the current
+ * behaviour, is untouched by #255.
+ */
 export function computeNetWorth(accounts: Account[], rate: number): NetWorthResult {
   let assetsEgp = 0;
   let liabilitiesEgp = 0;
+  // Accumulated separately rather than derived as `assetsEgp - liabilitiesEgp`:
+  // subtracting two independently-rounded group totals cannot produce the `-0`
+  // that a cancelling portfolio really lands on, and the two agree at 2 dp
+  // everywhere else.
+  let netWorthEgp = 0;
 
   for (const a of accounts) {
-    const balanceEgp = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
-    if (a.type === AccountType.CreditCard) {
-      liabilitiesEgp += balanceEgp;
-    } else {
-      assetsEgp += balanceEgp;
+    if (a.is_archived) {
+      continue;
     }
+
+    const converted = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
+    // Round each converted value, then round once more at the sum — never
+    // sum-then-round: 0.502 USD at rate 2 is 1.004, so two of them are 2.00
+    // round-then-sum and 2.01 sum-then-round.
+    const rounded = roundMoney(converted);
+    const sign = resolveAccountAggregationSign(a.type);
+
+    if (sign === 1) {
+      assetsEgp += rounded;
+    } else {
+      // `liabilitiesEgp` stays a POSITIVE magnitude — `stat_cards.tsx` and the
+      // breakdown sheet both render it as one, and adopting the resolver
+      // changes which bucket a row lands in, not this field's polarity.
+      liabilitiesEgp += rounded;
+    }
+    netWorthEgp += sign * rounded;
   }
 
-  const netWorthEgp = assetsEgp - liabilitiesEgp;
+  // Both numerators are the RAW accumulators, before the rounding and
+  // normalisation below: a cancelling portfolio's netWorthEgp accumulator is
+  // -2.7755575615628914e-17, which divides to -5.551115123125783e-19 and
+  // rounds to -0. Dividing the already-normalised value would yield +0 and
+  // make the suite's negative-zero assertion unfalsifiable.
   const assetsUsd = rate > 0 ? assetsEgp / rate : 0;
   const netWorthUsd = rate > 0 ? netWorthEgp / rate : 0;
-  return { assetsEgp, assetsUsd, liabilitiesEgp, netWorthEgp, netWorthUsd };
+
+  // `normalizeNegativeZero` is the LAST operation before any of these reaches a
+  // formatter — `Intl.NumberFormat` renders `-0` as "-0".
+  return {
+    assetsEgp: normalizeNegativeZero(roundMoney(assetsEgp)),
+    assetsUsd: normalizeNegativeZero(roundMoney(assetsUsd)),
+    liabilitiesEgp: normalizeNegativeZero(roundMoney(liabilitiesEgp)),
+    netWorthEgp: normalizeNegativeZero(roundMoney(netWorthEgp)),
+    netWorthUsd: normalizeNegativeZero(roundMoney(netWorthUsd)),
+  };
 }
 
 export function groupAccountsByType(accounts: Account[]): Partial<Record<AccountType, Account[]>> {
@@ -74,7 +136,13 @@ export function computeLiquidityBreakdown(accounts: Account[], rate: number): Li
 
   for (const a of accounts) {
     if (a.is_archived) continue;
-    const balanceEgp = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
+    // Rounded per value on `computeNetWorth`'s contract. The breakdown sheet
+    // renders these rows directly beneath that function's totals, all at zero
+    // decimals, so an unrounded 380.4951 here beside a rounded 380.50 there is
+    // 380 and 381 on one screen for one account.
+    const balanceEgp = roundMoney(
+      a.currency === Currency.USD ? a.current_balance * rate : a.current_balance,
+    );
     if (LIQUID_TYPES.has(a.type)) {
       liquidEgp += balanceEgp;
       liquidAccounts.push({ id: a.id, name: a.name, balanceEgp });
@@ -87,11 +155,16 @@ export function computeLiquidityBreakdown(accounts: Account[], rate: number): Li
   liquidAccounts.sort((a, b) => b.balanceEgp - a.balanceEgp);
   reserveAccounts.sort((a, b) => b.balanceEgp - a.balanceEgp);
 
+  // Rounded once at the sum, completing `computeNetWorth`'s round-then-sum
+  // contract rather than stopping half way through it. Ten 0.05 EGP wallets
+  // accumulate to 0.49999999999999994, which the sheet's assets header renders
+  // as "1" (it reads the rounded `assetsEgp`) and this tier legend rendered as
+  // "0" directly beneath it.
   return {
-    liquidEgp,
+    liquidEgp: roundMoney(liquidEgp),
     liquidCount: liquidAccounts.length,
     liquidAccounts,
-    reserveEgp,
+    reserveEgp: roundMoney(reserveEgp),
     reserveCount: reserveAccounts.length,
     reserveAccounts,
   };
@@ -106,7 +179,11 @@ export function computeLiabilitiesBreakdown(accounts: Account[], rate: number): 
   for (const a of accounts) {
     if (a.is_archived) continue;
     if (a.type !== AccountType.CreditCard) continue;
-    const balanceEgp = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
+    // Rounded per value, same contract and same reason as
+    // `computeLiquidityBreakdown` above.
+    const balanceEgp = roundMoney(
+      a.currency === Currency.USD ? a.current_balance * rate : a.current_balance,
+    );
     rows.push({
       id: a.id,
       name: a.name,

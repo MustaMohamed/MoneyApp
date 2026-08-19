@@ -9,9 +9,11 @@ import {
   computeLiquidityBreakdown,
   computeNetWorth,
   groupAccountsByType,
+  type NetWorthResult,
   reduceDashboardTransactionFacts,
 } from '@/modules/dashboard/screens/dashboard/dashboard.helpers';
 import type { Account } from '@/store/account.store';
+import { formatAmount } from '@/utils/format_amount';
 
 const makeAccount = (overrides: Partial<Account> = {}): Account => ({
   id: 'acc-1',
@@ -54,55 +56,200 @@ const makePayment = (overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
   ...overrides,
 });
 
-describe('computeNetWorth', () => {
-  it('returns all zeros for empty accounts', () => {
-    expect(computeNetWorth([], 50)).toEqual({
+interface NetWorthRow {
+  case: string;
+  accounts: Account[];
+  rate: number;
+  expected: NetWorthResult;
+}
+
+// Every `expected` is a LITERAL: nothing here is re-derived through `roundMoney`
+// or through `computeNetWorth` itself, because an assertion built from the code
+// under test cannot fail. Mirrors the shape of
+// `__tests__/starting_net_position.test.ts`'s resolver table.
+//
+// EGP is this function's base currency (see its doc comment), so USD balances
+// MULTIPLY by the rate and the `~USD` fields divide.
+const NET_WORTH_ROWS: readonly NetWorthRow[] = [
+  {
+    case: 'no accounts at all; the helper is total',
+    accounts: [],
+    rate: 50,
+    expected: { assetsEgp: 0, assetsUsd: 0, liabilitiesEgp: 0, netWorthEgp: 0, netWorthUsd: 0 },
+  },
+  {
+    case: 'an EGP-only portfolio; nothing is converted',
+    accounts: [makeAccount({ current_balance: 10000 })],
+    rate: 50,
+    expected: {
+      assetsEgp: 10000,
+      assetsUsd: 200,
+      liabilitiesEgp: 0,
+      netWorthEgp: 10000,
+      netWorthUsd: 200,
+    },
+  },
+  {
+    case: 'a USD wallet converted into EGP, an EGP card subtracted',
+    accounts: [
+      makeAccount({ current_balance: 48250 }),
+      makeAccount({ type: AccountType.SmartWallet, currency: Currency.USD, current_balance: 1350 }),
+      makeAccount({ type: AccountType.CreditCard, current_balance: 8450 }),
+    ],
+    rate: 48.6,
+    expected: {
+      assetsEgp: 113860,
+      assetsUsd: 2342.8,
+      liabilitiesEgp: 8450,
+      netWorthEgp: 105410,
+      netWorthUsd: 2168.93,
+    },
+  },
+  {
+    // The conversion and the sign land on the SAME account here, and nowhere
+    // else in this table. Cards otherwise appear only in EGP and USD only in
+    // wallets, so a body reading `currency === USD && type !== CreditCard`
+    // passes every other row — in the chunk whose whole purpose is routing sign
+    // and conversion through one resolver. No two fields of this row collide
+    // either: a missed conversion gives netWorthEgp 4900, a flipped sign 9860.
+    case: 'a USD CREDIT CARD — converted and subtracted on the same row',
+    accounts: [
+      makeAccount({ current_balance: 5000 }),
+      makeAccount({
+        type: AccountType.CreditCard,
+        currency: Currency.USD,
+        current_balance: 100,
+      }),
+    ],
+    rate: 48.6,
+    expected: {
+      assetsEgp: 5000,
+      assetsUsd: 102.88,
+      liabilitiesEgp: 4860,
+      netWorthEgp: 140,
+      netWorthUsd: 2.88,
+    },
+  },
+  {
+    case: 'a single credit card, so the whole position is owed',
+    accounts: [makeAccount({ type: AccountType.CreditCard, current_balance: 8450 })],
+    rate: 50,
+    expected: {
       assetsEgp: 0,
       assetsUsd: 0,
+      liabilitiesEgp: 8450,
+      netWorthEgp: -8450,
+      netWorthUsd: -169,
+    },
+  },
+  {
+    // The archived row is deliberately large enough to flip the total, not
+    // decorative: `getAccounts` filters archived at SQL today, so this asserts
+    // the CONTRACT rather than the current call path.
+    case: 'an archived card never contributes, however large',
+    accounts: [
+      makeAccount({ current_balance: 1000 }),
+      makeAccount({ type: AccountType.CreditCard, current_balance: 50000, is_archived: 1 }),
+    ],
+    rate: 50,
+    expected: {
+      assetsEgp: 1000,
+      assetsUsd: 20,
       liabilitiesEgp: 0,
+      netWorthEgp: 1000,
+      netWorthUsd: 20,
+    },
+  },
+  {
+    // The round-then-sum catcher, and it is load-bearing: 0.502 USD at rate 2
+    // converts to 1.004, so rounding each value gives 1.00 + 1.00 = 2.00 while
+    // rounding the sum alone gives roundMoney(2.008) = 2.01. Delete the
+    // per-value `roundMoney` and only this row goes red.
+    case: 'sub-cent residue: each converted value is rounded BEFORE it is summed',
+    accounts: [
+      makeAccount({
+        type: AccountType.SmartWallet,
+        currency: Currency.USD,
+        current_balance: 0.502,
+      }),
+      makeAccount({
+        type: AccountType.SmartWallet,
+        currency: Currency.USD,
+        current_balance: 0.502,
+      }),
+    ],
+    rate: 2,
+    expected: { assetsEgp: 2, assetsUsd: 1, liabilitiesEgp: 0, netWorthEgp: 2, netWorthUsd: 1 },
+  },
+  {
+    // The ORDER is what produces the residue: 0.30 − 0.10 − 0.20 summed in
+    // array order is -2.7755575615628914e-17, whose roundMoney is -0. A body
+    // that grouped or sorted the rows first, or that derived netWorthEgp as
+    // assetsEgp − liabilitiesEgp, would make this row a tautology — so
+    // "accumulate in array order" is part of the contract.
+    case: 'a portfolio that cancels out to a floating-point residue',
+    accounts: [
+      makeAccount({ current_balance: 0.3 }),
+      makeAccount({ type: AccountType.CreditCard, current_balance: 0.1 }),
+      makeAccount({ type: AccountType.CreditCard, current_balance: 0.2 }),
+    ],
+    rate: 50,
+    expected: {
+      assetsEgp: 0.3,
+      assetsUsd: 0.01,
+      liabilitiesEgp: 0.3,
       netWorthEgp: 0,
       netWorthUsd: 0,
-    });
+    },
+  },
+];
+
+describe('computeNetWorth', () => {
+  it.each(NET_WORTH_ROWS)('$case', ({ accounts, rate, expected }) => {
+    expect(computeNetWorth(accounts, rate)).toStrictEqual(expected);
   });
 
-  it('adds EGP non-CC account balance to assets', () => {
-    const result = computeNetWorth([makeAccount({ current_balance: 10000 })], 50);
-    expect(result.assetsEgp).toBe(10000);
-    expect(result.liabilitiesEgp).toBe(0);
-    expect(result.netWorthEgp).toBe(10000);
-  });
-
-  it('converts USD account to EGP using rate', () => {
-    const result = computeNetWorth(
-      [makeAccount({ current_balance: 100, currency: Currency.USD })],
-      50,
-    );
-    expect(result.assetsEgp).toBe(5000);
-  });
-
-  it('adds credit card balance to liabilities, not assets', () => {
-    const result = computeNetWorth(
-      [makeAccount({ type: AccountType.CreditCard, current_balance: 2000 })],
-      50,
-    );
-    expect(result.liabilitiesEgp).toBe(2000);
-    expect(result.assetsEgp).toBe(0);
-    expect(result.netWorthEgp).toBe(-2000);
-  });
-
-  it('computes net worth = assets − liabilities across mixed accounts', () => {
-    const accounts = [
-      makeAccount({ id: 'a1', current_balance: 10000 }),
-      makeAccount({ id: 'a2', type: AccountType.CreditCard, current_balance: 3000 }),
-    ];
-    const result = computeNetWorth(accounts, 50);
-    expect(result.netWorthEgp).toBe(7000);
-    expect(result.netWorthUsd).toBeCloseTo(140, 1);
-  });
-
+  // Carried forward from before #255 and still green: chunk 1 keeps the
+  // `rate > 0 ? value / rate : 0` fallback untouched. Chunk 2 retires it, and
+  // what replaces it is NOT a refusal — this fixture is a single EGP account,
+  // so nothing needs converting and the outcome stays an amount
+  // (`assetsEgp: 5000`, `netWorthEgp: 5000`) whose `assetsUsd` and
+  // `netWorthUsd` become `undefined` because the rate is unusable.
   it('returns netWorthUsd=0 when rate=0 to avoid division by zero', () => {
     const result = computeNetWorth([makeAccount({ current_balance: 5000 })], 0);
     expect(result.netWorthUsd).toBe(0);
+  });
+});
+
+describe('computeNetWorth — negative zero', () => {
+  // Two independent -0 sites, and neither one's zero reaches the other (ADR
+  // 2026-08-18 §4), so both need their own assertion: the netWorthEgp
+  // accumulator lands on -2.7755575615628914e-17, and netWorthUsd divides that
+  // RAW accumulator by the rate to -5.551115123125783e-19. roundMoney maps both
+  // to -0. Divide the already-normalised netWorthEgp instead and the second
+  // assertion below can never fail.
+  const negativeZeroAccounts = [
+    makeAccount({ current_balance: 0.3 }),
+    makeAccount({ type: AccountType.CreditCard, current_balance: 0.1 }),
+    makeAccount({ type: AccountType.CreditCard, current_balance: 0.2 }),
+  ];
+
+  it('normalises netWorthEgp to +0', () => {
+    expect(Object.is(computeNetWorth(negativeZeroAccounts, 50).netWorthEgp, 0)).toBe(true);
+  });
+
+  it('normalises netWorthUsd to +0', () => {
+    expect(Object.is(computeNetWorth(negativeZeroAccounts, 50).netWorthUsd, 0)).toBe(true);
+  });
+
+  it('and therefore renders "0", which is what the user sees', () => {
+    // A helper-level assertion alone does not catch the render: the bug is
+    // Intl's, and it only appears once the number reaches the formatter.
+    expect(formatAmount(computeNetWorth(negativeZeroAccounts, 50).netWorthEgp)).toBe('0');
+  });
+
+  it('while a raw -0 still renders "-0" — the tripwire proving the three above can fail', () => {
+    expect(formatAmount(-0)).toBe('-0');
   });
 });
 
@@ -129,6 +276,37 @@ describe('groupAccountsByType', () => {
     const groups = groupAccountsByType([a1, a2]);
     expect(groups[AccountType.Bank]![0].name).toBe('First');
     expect(groups[AccountType.Bank]![1].name).toBe('Second');
+  });
+});
+
+// The guard shape `account_aggregation.test.ts` puts on the sign table, applied
+// to the tier allowlists for the same hazard. `resolveAccountAggregationSign`
+// defaults a new `AccountType` to +1, so it joins `assetsEgp` automatically,
+// while `LIQUID_TYPES` and `RESERVE_TYPES` (`dashboard.helpers.ts`) are explicit
+// `Set` allowlists that would silently drop it: the sheet's assets header would
+// exceed liquid + reserve, the account count would undercount, and the tier
+// percentage bar would use the wrong denominator. A `Set` literal cannot carry
+// an exhaustiveness annotation — a `Record` over the enum can, so a sixth member
+// is a TYPE ERROR here, and the assertions below then stay red until it is
+// classified into a tier for real.
+const EXPECTED_TIERS: Record<AccountType, 'liquid' | 'reserve' | 'excluded'> = {
+  [AccountType.Bank]: 'liquid',
+  [AccountType.SmartWallet]: 'liquid',
+  [AccountType.PhysicalWallet]: 'liquid',
+  [AccountType.PhysicalSavings]: 'reserve',
+  [AccountType.CreditCard]: 'excluded',
+};
+
+describe('the tier allowlists classify every AccountType', () => {
+  it.each(Object.entries(EXPECTED_TIERS))('%s → %s', (type, expected) => {
+    const { liquidCount, reserveCount } = computeLiquidityBreakdown(
+      [makeAccount({ type: type as AccountType, current_balance: 100 })],
+      50,
+    );
+    let actual: 'liquid' | 'reserve' | 'excluded' = 'excluded';
+    if (liquidCount === 1) actual = 'liquid';
+    else if (reserveCount === 1) actual = 'reserve';
+    expect(actual).toBe(expected);
   });
 });
 
@@ -305,6 +483,90 @@ describe('computeLiabilitiesBreakdown', () => {
     ];
     const [row] = computeLiabilitiesBreakdown(accounts, 48.85);
     expect(row.balanceEgp).toBe(1000);
+  });
+});
+
+describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
+  // 9.51 USD at 40.01 converts to 380.4951, whose 2 dp rounding is 380.50 — and
+  // `formatAmount` renders at zero decimals, half-expand, so the two sides of
+  // that rounding are 380 and 381. `computeNetWorth` rounds; before #255 chunk 1
+  // these two helpers did not, and `net_worth_breakdown_sheet.tsx` renders both
+  // in one view: section header 381, the card's own row 380, total-debt footer
+  // 380. Delete either helper's `roundMoney` and the row assertions below go red.
+  const RATE = 40.01;
+
+  it('liabilities: section header, the card row and the total-debt footer agree', () => {
+    const accounts: Account[] = [
+      makeAccount({
+        id: '1',
+        name: 'USD Card',
+        type: AccountType.CreditCard,
+        currency: Currency.USD,
+        current_balance: 9.51,
+      }),
+    ];
+
+    const { liabilitiesEgp } = computeNetWorth(accounts, RATE);
+    const rows = computeLiabilitiesBreakdown(accounts, RATE);
+    // `net_worth_breakdown_sheet.tsx:51` — the footer is a raw reduce over the
+    // rows, so it inherits whatever the rows carry.
+    const totalDebt = rows.reduce((sum, row) => sum + row.balanceEgp, 0);
+
+    expect(formatAmount(liabilitiesEgp)).toBe('381');
+    expect(rows.map((row) => formatAmount(row.balanceEgp))).toEqual(['381']);
+    expect(formatAmount(totalDebt)).toBe('381');
+  });
+
+  it('assets: section header, the tier legend and the account sub-row agree', () => {
+    const accounts: Account[] = [
+      makeAccount({
+        id: '1',
+        name: 'USD Bank',
+        type: AccountType.Bank,
+        currency: Currency.USD,
+        current_balance: 9.51,
+      }),
+    ];
+
+    const { assetsEgp } = computeNetWorth(accounts, RATE);
+    const { liquidEgp, liquidAccounts } = computeLiquidityBreakdown(accounts, RATE);
+
+    expect(formatAmount(assetsEgp)).toBe('381');
+    expect(formatAmount(liquidEgp)).toBe('381');
+    expect(liquidAccounts.map((account) => formatAmount(account.balanceEgp))).toEqual(['381']);
+  });
+
+  // Rounding each value is only half the contract: ten 0.05 EGP balances are
+  // each already 2 dp, and the ACCUMULATOR still lands on 0.49999999999999994.
+  // `computeNetWorth` rounds its sum to 0.5 and the assets header renders "1";
+  // the tier legend, reading a raw accumulator, rendered "0" directly beneath
+  // it. Delete either `roundMoney` at `computeLiquidityBreakdown`'s return and
+  // the matching row goes red.
+  const tenAt5Piastres = (type: AccountType): Account[] =>
+    Array.from({ length: 10 }, (_, i) =>
+      makeAccount({ id: `${type}-${i}`, type, current_balance: 0.05 }),
+    );
+
+  it('assets: the liquid tier total is rounded, so the legend agrees with the header', () => {
+    const accounts = tenAt5Piastres(AccountType.PhysicalWallet);
+
+    const { assetsEgp } = computeNetWorth(accounts, RATE);
+    const { liquidEgp } = computeLiquidityBreakdown(accounts, RATE);
+
+    expect(liquidEgp).toBe(0.5);
+    expect(formatAmount(assetsEgp)).toBe('1');
+    expect(formatAmount(liquidEgp)).toBe('1');
+  });
+
+  it('assets: the reserve tier total is rounded on the same contract', () => {
+    const accounts = tenAt5Piastres(AccountType.PhysicalSavings);
+
+    const { assetsEgp } = computeNetWorth(accounts, RATE);
+    const { reserveEgp } = computeLiquidityBreakdown(accounts, RATE);
+
+    expect(reserveEgp).toBe(0.5);
+    expect(formatAmount(assetsEgp)).toBe('1');
+    expect(formatAmount(reserveEgp)).toBe('1');
   });
 });
 
