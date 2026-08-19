@@ -36,7 +36,7 @@ describe('normalizeNegativeZero', () => {
 });
 
 // A `Record<AccountType, …>` rather than a hand-written array of rows, for the
-// reason `starting_net_position.ts:44-54` states about `CURRENCY_CONFIG`: a
+// reason `starting_net_position.ts:46-56` states about `CURRENCY_CONFIG`: a
 // member added to the enum must be a TYPE ERROR, not a runtime surprise. An
 // array compiles unchanged when a sixth `AccountType` appears, leaves this table
 // green, and lets the new member sign +1 in both `computeNetWorth` and

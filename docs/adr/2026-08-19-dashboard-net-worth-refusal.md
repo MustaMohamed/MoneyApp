@@ -17,7 +17,7 @@
 reconciling them. This is that reconciliation. It changes money-handling behaviour and reverses a
 contract a test recorded, so the decisions are here rather than in a commit message.
 
-The work shipped in two chunks, both merged. Chunk 1 is the sign, the rounding and the archived
+The work is split into two chunks. Chunk 1 is the sign, the rounding and the archived
 filter, behind an unchanged return shape; chunk 2 is the refusal, the type change and the four
 surfaces. Sections 1 to 3 and 5 are chunk 1's decisions, section 4 is chunk 2's. The split is kept
 recorded here because section 3 is an argument *about* it.

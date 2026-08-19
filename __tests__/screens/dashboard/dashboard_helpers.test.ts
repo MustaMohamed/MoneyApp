@@ -671,7 +671,7 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
       computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED }),
     );
     const rows = computeLiabilitiesBreakdown(accounts, RATE);
-    // `net_worth_breakdown_sheet.tsx:51` — the footer is a raw reduce over the
+    // `net_worth_breakdown_sheet.tsx:143` — the footer is a raw reduce over the
     // rows, so it inherits whatever the rows carry.
     const totalDebt = rows.reduce((sum, row) => sum + row.balanceEgp, 0);
 
