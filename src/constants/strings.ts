@@ -240,13 +240,10 @@ export const Strings = {
   accountColorTriggerA11y: (family: string, tone: string) =>
     `Account colour: ${family}, ${tone.toLowerCase()}`,
 
-  // Ready
-  o6Title: "You're all set!",
-  o6Subtitle: "Your MoneyApp is configured. Here's your summary.",
-  o6Cta: 'Open My Dashboard',
-  o6Currency: 'Base Currency',
-  o6Accounts: 'Accounts',
-  o6TotalBalance: 'Total Balance',
+  // Ready — the rest of this block retired with MA-012's N4 rebuild, which
+  // owns its copy under `n4*`. `o6AccountsUnit` is NOT N4's: the dashboard
+  // hero card renders "{n} accounts" through it, so it stays here rather than
+  // going with the block it was grouped into.
   o6AccountsUnit: 'accounts',
 
   // Placeholder dashboard
