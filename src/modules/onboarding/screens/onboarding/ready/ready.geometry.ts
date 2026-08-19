@@ -4,7 +4,7 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import type { Currency } from '@/constants/enums';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 /**
@@ -268,4 +268,20 @@ export function resolveHeroAmountParts(
     value: formatAmount(value, N4_HERO_AMOUNT_DECIMALS),
     code: CURRENCY_CONFIG[currency].code,
   };
+}
+
+/**
+ * `'148,250.00 EGP'` — the hero value's single a11y announcement, so a screen
+ * reader reads the amount and its currency as one thing rather than as the two
+ * nodes `resolveHeroAmountParts` splits them into. `resolveAccountRowA11yLabel`
+ * is the same shape one screen over.
+ *
+ * It exists as a named function for the reason that one does: the explicit
+ * decimals are the whole point, and `CURRENCY_CONFIG[Currency.EGP].decimals` is
+ * 0 — dropping the third argument here silently announces "148,250 EGP" over a
+ * screen reading "148,250.00 EGP". Composed inline in the card that bug would
+ * be reachable by no logic-only test, which is the repo's only kind.
+ */
+export function resolveHeroValueA11yLabel(value: number, currency: Currency): string {
+  return formatCurrencyAmount(value, currency, N4_HERO_AMOUNT_DECIMALS);
 }

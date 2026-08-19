@@ -23,8 +23,10 @@ import {
   N4_SUMMARY_ROW_STYLE,
   N4_SUMMARY_ROW_TEXT_STYLE,
   resolveHeroAmountParts,
+  resolveHeroValueA11yLabel,
   resolveHeroValueTextStyle,
 } from '@/modules/onboarding/screens/onboarding/ready/ready.geometry';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 
 /**
  * N4's geometry, and the two resolvers behind the hero value.
@@ -247,5 +249,25 @@ describe('resolveHeroAmountParts — the explicit two decimals', () => {
 
   it('renders a zero with both decimals', () => {
     expect(resolveHeroAmountParts(0, Currency.EGP)).toEqual({ value: '0.00', code: 'EGP' });
+  });
+});
+
+describe('resolveHeroValueA11yLabel — one announcement, the same explicit decimals', () => {
+  // The two-node split above is invisible to a screen reader, which gets this
+  // single string instead. It is the SAME bug class as the visible value's, one
+  // node over: `formatCurrencyAmount(value, EGP)` without the third argument
+  // announces "148,250 EGP" over a screen reading "148,250.00 EGP".
+  it('announces the amount and its code as one string, at two decimals', () => {
+    expect(resolveHeroValueA11yLabel(148250, Currency.EGP)).toBe('148,250.00 EGP');
+  });
+
+  it('carries the sign the resolver produced, never a hand-written minus', () => {
+    expect(resolveHeroValueA11yLabel(-8450, Currency.EGP)).toBe('-8,450.00 EGP');
+  });
+
+  // The tripwire that proves the two rows above are not vacuous: this is what
+  // the formatter does when the decimals are left to CURRENCY_CONFIG.
+  it('the currency config default really is zero decimals for EGP', () => {
+    expect(formatCurrencyAmount(148250, Currency.EGP)).toBe('148,250 EGP');
   });
 });

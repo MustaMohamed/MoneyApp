@@ -1,8 +1,9 @@
 import { renderHook, act } from '@testing-library/react-native';
 
-import { Currency, OnboardingStep } from '@/constants/enums';
+import { AccountType, Currency, OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useReady } from '@/modules/onboarding/screens/onboarding/ready/ready.hook';
 import { useReadyTransitionState } from '@/modules/onboarding/screens/onboarding/ready/ready.state';
 import {
@@ -10,6 +11,7 @@ import {
   useOnboardingStore,
 } from '@/modules/onboarding/store/onboarding.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { makeTestAccount } from '@/test_helpers/transaction';
 
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({ replace: jest.fn() })),
@@ -24,16 +26,35 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
   useAccountStore: jest.fn(),
 }));
+jest.mock('@/modules/currency/store/currency.store', () => ({
+  useCurrencyStore: jest.fn(),
+}));
 
 const mockCompleteOnboarding = jest.fn().mockResolvedValue(undefined);
 const mockSetStep = jest.fn().mockResolvedValue(undefined);
 const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 const mockReplace = jest.fn();
 
+/**
+ * The mixed fixture — one USD account among three, with a verified rate. It
+ * lands on F2 with the currency-pill gate OPEN, which is the only shape that
+ * exercises the resolver, the frame selector and the pill composition at once
+ * through the hook. The literal values match row 2 of
+ * `ready_summary_state.test.ts`.
+ */
 const fakeAccounts = [
-  { id: '1', current_balance: 5000, type: 'bank', opening_balance: 5000 },
-  { id: '2', current_balance: 200, type: 'physical_wallet', opening_balance: 200 },
+  makeTestAccount({ id: '1', type: AccountType.Bank, opening_balance: 48250 }),
+  makeTestAccount({
+    id: '2',
+    type: AccountType.PhysicalWallet,
+    currency: Currency.USD,
+    opening_balance: 1350,
+  }),
+  makeTestAccount({ id: '3', type: AccountType.CreditCard, opening_balance: 8450 }),
 ];
+
+const RATE = 48.6;
+const RATE_UPDATED_AT = '2026-08-01T00:00:00.000Z';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -72,6 +93,10 @@ function setup() {
     accounts: fakeAccounts,
     loadAccounts: mockLoadAccounts,
   }));
+  attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+    rate: RATE,
+    rate_updated_at: RATE_UPDATED_AT,
+  }));
 }
 
 describe('useReady', () => {
@@ -86,30 +111,43 @@ describe('useReady', () => {
     await expect(renderHook(() => useReady())).resolves.toBeDefined();
   });
 
-  it('rows has exactly 3 items (no Security row)', async () => {
+  it('derives the summary from the stores — frame, counts and the composed pill row', async () => {
     const { result } = await renderHook(() => useReady());
-    expect(result.current.state.rows).toHaveLength(3);
+
+    expect(result.current.state.summary.frame).toBe('F2');
+    expect(result.current.state.summary.accountCount).toBe(3);
+    expect(result.current.state.summary.foreignCount).toBe(1);
+    expect(result.current.state.summary.outcome).toEqual({ kind: 'amount', value: 105410 });
+    // The currency pills REPLACE the opening-balances pill; they never merely
+    // add to it. Asserted as the whole array, not a length or a spot-check.
+    expect(result.current.state.summary.pills).toEqual([
+      { kind: 'accounts', count: 3, glyph: 'bank-outline' },
+      { kind: 'rate', rate: RATE },
+      { kind: 'approx', currency: Currency.USD, value: 2168.93 },
+    ]);
   });
 
-  it('rows contains Currency, Accounts, and TotalBalance', async () => {
+  it('exposes the base currency the hero and the summary rows render', async () => {
     const { result } = await renderHook(() => useReady());
-    const labels = result.current.state.rows.map((r) => r.label);
-    expect(labels).toContain(Strings.o6Currency);
-    expect(labels).toContain(Strings.o6Accounts);
-    expect(labels).toContain(Strings.o6TotalBalance);
-  });
-
-  it('TotalBalance value reflects sum of account.current_balance', async () => {
-    const { result } = await renderHook(() => useReady());
-    const balanceRow = result.current.state.rows.find((r) => r.label === Strings.o6TotalBalance);
-    // 5000 + 200 = 5200 → formatted as "5,200 EGP"
-    expect(balanceRow?.value).toContain('5,200');
+    expect(result.current.state.baseCurrency).toBe(Currency.EGP);
   });
 
   it('does not load the account list on mount', async () => {
     await renderHook(() => useReady());
 
     expect(mockLoadAccounts).not.toHaveBeenCalled();
+  });
+
+  it('clears a status message left behind by a previous visit, on mount', async () => {
+    // The MA-005/L27 guard, and the case that dies when the `useInit(() =>
+    // ...reset())` line is deleted: the store is dirtied BEFORE the mount, so
+    // no in-render writer clears it. Without the guard the screen would open
+    // showing a message about an attempt the user has already left behind.
+    useReadyTransitionState.setState({ statusMessage: 'stale' });
+
+    const { result } = await renderHook(() => useReady());
+
+    expect(result.current.state.statusMessage).toBe('');
   });
 
   it('completing defaults to false', async () => {
@@ -125,31 +163,50 @@ describe('useReady', () => {
     expect(mockCompleteOnboarding).toHaveBeenCalledTimes(1);
   });
 
-  it('double-tap guard: handleComplete ignores a second press while completion is pending', async () => {
+  it('double-tap in one frame writes completion exactly once', async () => {
     const pending = deferred<void>();
     mockCompleteOnboarding.mockReturnValueOnce(pending.promise);
     const { result } = await renderHook(() => useReady());
 
+    // Both taps fire with NO render in between — that is the whole point. A
+    // guard on complete.isLoading is React state and lags a render, so it
+    // survives an `act` boundary between the two calls and lets both through.
     let firstCall!: Promise<void>;
+    let secondCall!: Promise<void>;
     await act(() => {
       firstCall = result.current.handleComplete();
-    });
-
-    expect(result.current.state.completing).toBe(true);
-
-    await act(async () => {
-      await result.current.handleComplete();
+      secondCall = result.current.handleComplete();
     });
 
     expect(mockCompleteOnboarding).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       pending.resolve();
-      await firstCall;
+      await Promise.all([firstCall, secondCall]);
     });
   });
 
-  it('a rejecting completeOnboarding resolves handleComplete, sets the status message, and leaves rows unchanged', async () => {
+  it('busy is raised for the duration of the completion write and lowered after it', async () => {
+    const pending = deferred<void>();
+    mockCompleteOnboarding.mockReturnValueOnce(pending.promise);
+    const { result } = await renderHook(() => useReady());
+
+    expect(result.current.state.busy).toBe(false);
+
+    let firstCall!: Promise<void>;
+    await act(() => {
+      firstCall = result.current.handleComplete();
+    });
+    expect(result.current.state.busy).toBe(true);
+
+    await act(async () => {
+      pending.resolve();
+      await firstCall;
+    });
+    expect(result.current.state.busy).toBe(false);
+  });
+
+  it('a rejecting completeOnboarding resolves handleComplete, sets the status message, and leaves the summary untouched', async () => {
     mockCompleteOnboarding.mockRejectedValueOnce(new Error('boom'));
     const { result } = await renderHook(() => useReady());
 
@@ -158,7 +215,28 @@ describe('useReady', () => {
     });
 
     expect(result.current.state.statusMessage).toBe(Strings.n4CompleteError);
-    expect(result.current.state.rows).toHaveLength(3);
+    // F9 preserves the summary — no blank, no skeleton, no recompute.
+    expect(result.current.state.summary.frame).toBe('F2');
+    expect(result.current.state.summary.pills).toHaveLength(3);
+  });
+
+  it('the same CTA is a live retry after a failed completion', async () => {
+    mockCompleteOnboarding.mockRejectedValueOnce(new Error('boom'));
+    const { result } = await renderHook(() => useReady());
+
+    await act(async () => {
+      await result.current.handleComplete();
+    });
+    // Dropping settle() from the failure path latches busy true, and every
+    // later tap is swallowed by begin() — §7's "the same CTA retries" dies
+    // silently.
+    expect(result.current.state.busy).toBe(false);
+
+    await act(async () => {
+      await result.current.handleComplete();
+    });
+
+    expect(mockCompleteOnboarding).toHaveBeenCalledTimes(2);
   });
 
   it('a failed back write reports its own message, not a stale failed-completion message', async () => {
