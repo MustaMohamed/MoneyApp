@@ -12,6 +12,7 @@ import { SemanticTokens } from '@/constants/theme_tokens';
 import type { ReadySummaryState } from '@/modules/onboarding/domain/ready_summary_state';
 
 import {
+  N4_HERO_CAPTION_MAX_LINES,
   N4_HERO_CAPTION_SLOT_STYLE,
   N4_HERO_CAPTION_TEXT_STYLE,
   N4_HERO_CHIP_GLYPH,
@@ -39,7 +40,8 @@ export interface ReadyHeroCardProps {
  * N4's hero card — mockup.html:2332-2341, `.hero`. Four stacked slots with
  * FIXED heights, which is the whole zero-shift contract: the value slot holds
  * a 40px number in five states and a 22px refusal line in another, the caption
- * slot holds one or two lines, and the card is the same height in all nine.
+ * slot holds `N4_HERO_CAPTION_MAX_LINES` lines, and the card is the same height
+ * in all nine.
  *
  * The gradient, the grid texture and the corner glow are `HeroShell`'s; this
  * component draws only what sits on top of them.
@@ -108,7 +110,16 @@ export function ReadyHeroCard({ summary, baseCurrency }: ReadyHeroCardProps) {
       )}
 
       <View style={N4_HERO_CAPTION_SLOT_STYLE}>
-        <Typography className="text-foreground font-inter" style={N4_HERO_CAPTION_TEXT_STYLE}>
+        {/* The caption's counterpart to the value's `numberOfLines={1}`, and
+            load-bearing for the same reason: the slot above is a fixed dp
+            height with `overflow: hidden`, so an uncapped overflowing line is
+            drawn and then sliced mid-glyph rather than ellipsised. The cap
+            itself is named beside that slot, as `N4_HERO_CAPTION_MAX_LINES`. */}
+        <Typography
+          className="text-foreground font-inter"
+          style={N4_HERO_CAPTION_TEXT_STYLE}
+          numberOfLines={N4_HERO_CAPTION_MAX_LINES}
+        >
           {resolveCaption(
             frame,
             accountCount,

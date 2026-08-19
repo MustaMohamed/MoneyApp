@@ -110,7 +110,20 @@ export const N4_HERO_VALUE_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze({
   overflow: 'hidden',
 });
 
-/** mockup.html:691-694, `.hero-c` — sized for the two-line F7 caption. */
+/**
+ * The caption's line cap — the counterpart of the value slot's
+ * `numberOfLines={1}`, and load-bearing for the same reason.
+ *
+ * `Size.summaryCaptionSlot` is a fixed dp height that clips, while the caption's
+ * `lineHeight` scales with the OS text size; and the longest caption (F7's, at
+ * 109 characters) needs a third line on a narrow screen even at base size. With
+ * no cap that third line is drawn and then sliced mid-glyph by the slot's
+ * `overflow: 'hidden'`. Capping at the two lines the slot was sized for
+ * ellipsises instead.
+ */
+export const N4_HERO_CAPTION_MAX_LINES = 2;
+
+/** mockup.html:691-694, `.hero-c` — sized for `N4_HERO_CAPTION_MAX_LINES`. */
 export const N4_HERO_CAPTION_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze({
   height: Size.summaryCaptionSlot,
   marginTop: Spacing.xxs,

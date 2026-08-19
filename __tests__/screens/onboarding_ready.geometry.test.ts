@@ -9,6 +9,7 @@ import {
   N4_BODY_TEXT_STYLE,
   N4_HEADLINE_LINE_HEIGHT_RATIO,
   N4_HEADLINE_TEXT_STYLE,
+  N4_HERO_CAPTION_MAX_LINES,
   N4_HERO_CAPTION_SLOT_STYLE,
   N4_HERO_CAPTION_TEXT_STYLE,
   N4_HERO_CONTENT_STYLE,
@@ -136,6 +137,21 @@ describe('N4 zero-shift slots — fixed tracks, consumed unconditionally', () =>
     expect(N4_HERO_CAPTION_SLOT_STYLE.height).toBe(Size.summaryCaptionSlot);
     expect(N4_HERO_CAPTION_SLOT_STYLE.minHeight).toBeUndefined();
     expect(N4_HERO_CAPTION_SLOT_STYLE.overflow).toBe('hidden');
+  });
+
+  // The cap on the caption is a render prop, and no suite in this repo renders —
+  // exactly as with the hero value's `numberOfLines={1}`. What IS assertable is
+  // the geometry the cap is derived from: the slot holds the capped number of
+  // caption lines and no more, so a cap raised to 3 (or a slot shrunk to one
+  // line) is a contradiction this catches.
+  it('the caption slot holds exactly N4_HERO_CAPTION_MAX_LINES caption lines', () => {
+    const captionLineHeight = lineHeightFor(Type.caption);
+    expect(N4_HERO_CAPTION_MAX_LINES * captionLineHeight).toBeLessThanOrEqual(
+      Size.summaryCaptionSlot,
+    );
+    expect((N4_HERO_CAPTION_MAX_LINES + 1) * captionLineHeight).toBeGreaterThan(
+      Size.summaryCaptionSlot,
+    );
   });
 
   it('the pill row is a fixed token track that clips rather than grows', () => {
