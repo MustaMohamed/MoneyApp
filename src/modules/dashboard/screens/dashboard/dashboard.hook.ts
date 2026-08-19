@@ -59,10 +59,13 @@ export function useDashboard() {
       requestedKey: state.requestedKey,
     })),
   );
-  const { rate, isManualOverride } = useCurrencyStore(
+  const { rate, isManualOverride, rateUpdatedAt } = useCurrencyStore(
     useShallow((state) => ({
       rate: state.rate,
       isManualOverride: state.isManualOverride,
+      // `computeNetWorth` refuses without this marker. `INITIAL_STATE.rate` is
+      // 50, so the rate alone cannot tell a verified value from the placeholder.
+      rateUpdatedAt: state.rate_updated_at,
     })),
   );
   const { isBreakdownVisible, selectedSegment } = useDashboardState(
@@ -143,7 +146,10 @@ export function useDashboard() {
   const yearMonth = matchingSnapshot?.yearMonth ?? currentYearMonth();
   const previousYearMonth = matchingSnapshot?.previousYearMonth ?? shiftYearMonth(yearMonth, -1);
 
-  const netWorth = useMemo(() => computeNetWorth(accounts, rate), [accounts, rate]);
+  const netWorth = useMemo(
+    () => computeNetWorth({ accounts, rate, rateUpdatedAt }),
+    [accounts, rate, rateUpdatedAt],
+  );
   const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);
   const liabilities = useMemo(() => computeLiabilitiesBreakdown(accounts, rate), [accounts, rate]);
   const groupedAccounts = useMemo(() => groupAccountsByType(accounts), [accounts]);
