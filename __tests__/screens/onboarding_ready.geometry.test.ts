@@ -4,6 +4,7 @@ import { HERO_PILL_HEIGHT, HERO_PILL_STYLE, HERO_PILL_TEXT_STYLE } from '@/compo
 import { Currency } from '@/constants/enums';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
+import type { ReadyFrame, ReadyPill } from '@/modules/onboarding/domain/ready_summary_state';
 import {
   N4_BODY_TEXT_STYLE,
   N4_HEADLINE_LINE_HEIGHT_RATIO,
@@ -22,14 +23,18 @@ import {
   N4_HERO_VALUE_TEXT_STYLE,
   N4_SUMMARY_ROW_STYLE,
   N4_SUMMARY_ROW_TEXT_STYLE,
+  resolveCaption,
   resolveHeroAmountParts,
   resolveHeroValueA11yLabel,
   resolveHeroValueTextStyle,
+  resolvePill,
 } from '@/modules/onboarding/screens/onboarding/ready/ready.geometry';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
 /**
- * N4's geometry, and the two resolvers behind the hero value.
+ * N4's geometry, and the four resolvers behind the hero — the value's two, and
+ * the frame -> caption and descriptor -> pill maps (moved out of the card at P8
+ * T3, where no logic-only suite could reach their twelve branches).
  *
  * Every assertion is token- or ms()-bound. Under jest-expo the Dimensions mock
  * is 750pt, so responsiveScale clamps to 1.15 and Size.summaryValueSlot is 60,
@@ -269,5 +274,143 @@ describe('resolveHeroValueA11yLabel — one announcement, the same explicit deci
   // the formatter does when the decimals are left to CURRENCY_CONFIG.
   it('the currency config default really is zero decimals for EGP', () => {
     expect(formatCurrencyAmount(148250, Currency.EGP)).toBe('148,250 EGP');
+  });
+});
+
+/**
+ * The frame -> caption map, every frame, and the descriptor -> pill map, every
+ * kind. Both switches lived inside the card until P8 T3, where no logic-only
+ * suite could reach them: swapping `n4PillOpeningBal` for `n4PillAccounts`, or
+ * mapping F4's caption onto F5, shipped fully green.
+ *
+ * Every expected value is a LITERAL — never `Strings.n4CaptionZero`, which
+ * would restate the implementation's own lookup and pass through any
+ * mis-mapping. The copy itself is owned by `onboarding_ready.strings.test.ts`;
+ * what these tables own is which branch each input reaches.
+ *
+ * The two counts and the two codes are DISTINCT in every parameterised row, so
+ * a swapped argument pair fails rather than coinciding.
+ */
+const CAPTION_ROWS: readonly (readonly [ReadyFrame, number, number, string, string, string])[] = [
+  ['F1', 3, 0, 'EGP', 'USD', 'All 3 accounts are in EGP, so nothing needed converting.'],
+  ['F2', 3, 1, 'EGP', 'USD', 'Includes 1 USD account, converted using your saved rate.'],
+  [
+    'F3',
+    3,
+    1,
+    'EGP',
+    'USD',
+    'Your accounts are saved. Add a rate from the dashboard and this fills in.',
+  ],
+  [
+    'F4',
+    2,
+    0,
+    'EGP',
+    'USD',
+    'Your card balances are bigger than your cash and bank accounts right now.',
+  ],
+  ['F5', 2, 0, 'EGP', 'USD', 'What you have and what you owe cancel out exactly.'],
+  [
+    'F6',
+    1,
+    0,
+    'EGP',
+    'USD',
+    'All of it in one account. You can add more from the dashboard whenever you like.',
+  ],
+  [
+    'F7',
+    1,
+    0,
+    'EGP',
+    'USD',
+    'Your only account is a credit card, so this is what you owe. Add a bank or cash account for the full picture.',
+  ],
+  // The two parameterised frames with the codes the other way round — a USD-base
+  // user whose accounts are all USD lands on F1 too, and F2's foreign noun
+  // pluralises on foreignCount, not accountCount.
+  ['F1', 2, 0, 'USD', 'EGP', 'All 2 accounts are in USD, so nothing needed converting.'],
+  ['F2', 3, 2, 'USD', 'EGP', 'Includes 2 EGP accounts, converted using your saved rate.'],
+];
+
+describe('resolveCaption — every frame reaches its own copy', () => {
+  it.each(CAPTION_ROWS)(
+    '%s(%i accounts, %i foreign, base %s, foreign %s)',
+    (frame, accountCount, foreignCount, baseCode, foreignCode, expected) => {
+      expect(resolveCaption(frame, accountCount, foreignCount, baseCode, foreignCode)).toBe(
+        expected,
+      );
+    },
+  );
+
+  it('the table covers all seven frames', () => {
+    expect([...new Set(CAPTION_ROWS.map(([frame]) => frame))].sort()).toEqual([
+      'F1',
+      'F2',
+      'F3',
+      'F4',
+      'F5',
+      'F6',
+      'F7',
+    ]);
+  });
+});
+
+const PILL_ROWS: readonly (readonly [string, ReadyPill, { label: string; glyph: string }])[] = [
+  [
+    'accounts, plural, bank glyph',
+    { kind: 'accounts', count: 3, glyph: 'bank-outline' },
+    { label: '3 accounts', glyph: 'bank-outline' },
+  ],
+  [
+    // The glyph is the DESCRIPTOR's, which the domain keys off the account
+    // composition — this map may not re-derive it from anything.
+    'accounts, singular, credit-card glyph',
+    { kind: 'accounts', count: 1, glyph: 'credit-card' },
+    { label: '1 account', glyph: 'credit-card' },
+  ],
+  [
+    'opening-balances',
+    { kind: 'opening-balances', count: 2 },
+    { label: 'opening balances', glyph: 'information-outline' },
+  ],
+  [
+    'needs-rate counts the foreign accounts the descriptor carries',
+    { kind: 'needs-rate', count: 1 },
+    { label: '1 needs a rate', glyph: 'swap-horizontal' },
+  ],
+  [
+    'rate, through the shortened formatter',
+    { kind: 'rate', rate: 48.6 },
+    { label: '48.60 EGP/USD', glyph: 'swap-horizontal' },
+  ],
+  [
+    'approx, USD cents',
+    { kind: 'approx', currency: Currency.USD, value: 2168.93 },
+    { label: '2,168.93 USD', glyph: 'approximately-equal' },
+  ],
+  [
+    // CURRENCY_CONFIG[EGP].decimals is 0, so dropping the explicit 2 renders
+    // `-4,860 EGP` here — the same bug class as the hero value's, one node over.
+    'approx, EGP at the screen-local two decimals',
+    { kind: 'approx', currency: Currency.EGP, value: -4860 },
+    { label: '-4,860.00 EGP', glyph: 'approximately-equal' },
+  ],
+];
+
+describe('resolvePill — every descriptor kind reaches its own copy and glyph', () => {
+  it.each(PILL_ROWS)('%s', (_case, pill, expected) => {
+    expect(resolvePill(pill)).toEqual(expected);
+  });
+
+  it('the table covers all five pill kinds', () => {
+    expect([...new Set(PILL_ROWS.map(([, pill]) => pill.kind))].sort()).toEqual([
+      'accounts',
+      'approx',
+      'needs-rate',
+      'opening-balances',
+      'rate',
+    ]);
   });
 });

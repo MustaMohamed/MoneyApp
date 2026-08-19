@@ -9,15 +9,9 @@ import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
-import type {
-  ReadyFrame,
-  ReadyPill,
-  ReadySummaryState,
-} from '@/modules/onboarding/domain/ready_summary_state';
-import { formatCurrencyAmount, formatExchangeRate } from '@/utils/format_amount';
+import type { ReadySummaryState } from '@/modules/onboarding/domain/ready_summary_state';
 
 import {
-  N4_HERO_AMOUNT_DECIMALS,
   N4_HERO_CAPTION_SLOT_STYLE,
   N4_HERO_CAPTION_TEXT_STYLE,
   N4_HERO_CHIP_GLYPH,
@@ -29,73 +23,12 @@ import {
   N4_HERO_PILL_ROW_STYLE,
   N4_HERO_REFUSAL_TEXT_STYLE,
   N4_HERO_VALUE_SLOT_STYLE,
+  resolveCaption,
   resolveHeroAmountParts,
   resolveHeroValueA11yLabel,
   resolveHeroValueTextStyle,
+  resolvePill,
 } from '../ready.geometry';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-/**
- * The frame decides the caption and nothing else — the pills are composed by
- * the domain gate (`selectReadySummaryState`) and this layer must not
- * second-guess that array.
- *
- * F1 and F2 carry the only parameterised captions. Both take a currency CODE
- * rather than hard-coding EGP: a USD-base user whose accounts are all USD
- * lands on F1 too, and "in EGP" would simply be false there.
- */
-function resolveCaption(
-  frame: ReadyFrame,
-  accountCount: number,
-  foreignCount: number,
-  baseCode: string,
-  foreignCode: string,
-): string {
-  switch (frame) {
-    case 'F1':
-      return Strings.n4CaptionAllBase(accountCount, baseCode);
-    case 'F2':
-      return Strings.n4CaptionConverted(foreignCount, foreignCode);
-    case 'F3':
-      return Strings.n4CaptionRateNeeded;
-    case 'F4':
-      return Strings.n4CaptionNegative;
-    case 'F5':
-      return Strings.n4CaptionZero;
-    case 'F6':
-      return Strings.n4CaptionSingle;
-    case 'F7':
-      return Strings.n4CaptionCreditOnly;
-  }
-}
-
-/**
- * Descriptor to copy — mockup.html:2337-2338, :2385-2386, :2433, :2620.
- *
- * `needs-rate` renders the descriptor's own `count`, which the domain sets to
- * `foreignCount`; substituting `accountCount` here would read "3 need a rate"
- * for one USD account among three.
- */
-function resolvePill(pill: ReadyPill): { label: string; glyph: IconName } {
-  switch (pill.kind) {
-    case 'accounts':
-      return { label: Strings.n4PillAccounts(pill.count), glyph: pill.glyph };
-    case 'opening-balances':
-      return { label: Strings.n4PillOpeningBal(pill.count), glyph: 'information-outline' };
-    case 'needs-rate':
-      return { label: Strings.n4PillNeedsRate(pill.count), glyph: 'swap-horizontal' };
-    case 'rate':
-      return { label: formatExchangeRate(pill.rate), glyph: 'swap-horizontal' };
-    case 'approx':
-      return {
-        // Two decimals, against the mockup's rounded `2,169 USD` — Marcus's
-        // 2026-08-06 ruling, recorded in the PR body as a declared deviation.
-        label: formatCurrencyAmount(pill.value, pill.currency, N4_HERO_AMOUNT_DECIMALS),
-        glyph: 'approximately-equal',
-      };
-  }
-}
 
 export interface ReadyHeroCardProps {
   summary: ReadySummaryState;

@@ -1,19 +1,25 @@
+import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import type { ComponentProps } from 'react';
 import type { TextStyle, ViewStyle } from 'react-native';
 
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import type { Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
-import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
+import type { ReadyFrame, ReadyPill } from '@/modules/onboarding/domain/ready_summary_state';
+import { formatAmount, formatCurrencyAmount, formatExchangeRate } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 /**
- * N4's geometry — mockup § F (F1-F9) — and the two pure resolvers behind the
- * hero value.
+ * N4's geometry — mockup § F (F1-F9) — and the four pure resolvers behind the
+ * hero: the value's two, and the frame -> caption and descriptor -> pill maps.
  *
  * The resolvers live here rather than inside the card so the suite can assert
- * the step-down rung and the explicit two decimals without rendering anything,
- * the same split `resolveAccountRowAmount` already ships one screen over.
+ * the step-down rung, the explicit two decimals and all twelve copy branches
+ * without rendering anything — the same split `resolveAccountRowAmount` already
+ * ships one screen over, for the reason `N3_ACCOUNT_TYPE_LABELS` records: a
+ * resolver must not import a component.
  *
  * The pill's OWN box — padding, radius, fill, height, glyph and label type —
  * is not here: it lives in `chip.tsx` beside the component that draws it, as
@@ -284,4 +290,73 @@ export function resolveHeroAmountParts(
  */
 export function resolveHeroValueA11yLabel(value: number, currency: Currency): string {
   return formatCurrencyAmount(value, currency, N4_HERO_AMOUNT_DECIMALS);
+}
+
+/** The glyph a pill draws — `HeroPill`'s own `glyph` prop, named at its source. */
+type ReadyPillGlyph = ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+/**
+ * The frame's caption — mockup.html:2335, :2382, :2430, :2477, :2524, :2571,
+ * :2618.
+ *
+ * The frame decides the caption and NOTHING else: the pills are composed by the
+ * domain gate (`selectReadySummaryState`) and neither this map nor the card may
+ * second-guess that array.
+ *
+ * F1 and F2 carry the only parameterised captions. Both take a currency CODE
+ * rather than hard-coding EGP: a USD-base user whose accounts are all USD lands
+ * on F1 too, and "in EGP" would simply be false there.
+ */
+export function resolveCaption(
+  frame: ReadyFrame,
+  accountCount: number,
+  foreignCount: number,
+  baseCode: string,
+  foreignCode: string,
+): string {
+  switch (frame) {
+    case 'F1':
+      return Strings.n4CaptionAllBase(accountCount, baseCode);
+    case 'F2':
+      return Strings.n4CaptionConverted(foreignCount, foreignCode);
+    case 'F3':
+      return Strings.n4CaptionRateNeeded;
+    case 'F4':
+      return Strings.n4CaptionNegative;
+    case 'F5':
+      return Strings.n4CaptionZero;
+    case 'F6':
+      return Strings.n4CaptionSingle;
+    case 'F7':
+      return Strings.n4CaptionCreditOnly;
+  }
+}
+
+/**
+ * Descriptor to copy — mockup.html:2337-2338, :2385-2386, :2433, :2620.
+ *
+ * `needs-rate` renders the descriptor's own `count`, which the domain sets to
+ * `foreignCount`; substituting `accountCount` here would read "3 need a rate"
+ * for one USD account among three. The accounts pill's glyph is likewise the
+ * descriptor's own — the domain keys it off the account composition, and this
+ * map must not re-derive it.
+ */
+export function resolvePill(pill: ReadyPill): { label: string; glyph: ReadyPillGlyph } {
+  switch (pill.kind) {
+    case 'accounts':
+      return { label: Strings.n4PillAccounts(pill.count), glyph: pill.glyph };
+    case 'opening-balances':
+      return { label: Strings.n4PillOpeningBal(pill.count), glyph: 'information-outline' };
+    case 'needs-rate':
+      return { label: Strings.n4PillNeedsRate(pill.count), glyph: 'swap-horizontal' };
+    case 'rate':
+      return { label: formatExchangeRate(pill.rate), glyph: 'swap-horizontal' };
+    case 'approx':
+      return {
+        // Two decimals, against the mockup's rounded `2,169 USD` — Marcus's
+        // 2026-08-06 ruling, recorded in the PR body as a declared deviation.
+        label: formatCurrencyAmount(pill.value, pill.currency, N4_HERO_AMOUNT_DECIMALS),
+        glyph: 'approximately-equal',
+      };
+  }
 }
