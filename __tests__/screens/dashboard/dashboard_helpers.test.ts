@@ -148,11 +148,20 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     // version of this comment claimed: `countForeignAccounts` filters
     // `is_archived` itself, so handing it the unfiltered array returns the same
     // `0` and this row stays green. The two filters are defence in depth and
-    // `resolveStartingNetPosition` composes the same pair; the single-point
-    // signal for the count's own filter is `account_aggregation.test.ts`'s
-    // "never counts an archived account", and the signal for `computeNetWorth`'s
-    // is the archived-card row below, whose 50000 flips the total. This row goes
-    // red only if BOTH filters go.
+    // `resolveStartingNetPosition` composes the same pair.
+    //
+    // What this row guards, measured by mutation rather than argued: it is a
+    // SECOND signal for `computeNetWorth`'s own archived filter, alongside the
+    // archived-card row below. Delete that filter alone
+    // (`dashboard.helpers.ts:63`) and the wallet enters the arithmetic at
+    // `1000 + roundMoney(500 * 50)`, so this row reports `assetsEgp` and
+    // `netWorthEgp` of 26000 against 1000 expected. It is INSENSITIVE to
+    // `countForeignAccounts`'s inline filter in isolation: delete that one alone
+    // and this whole table stays green, with only `account_aggregation.test.ts`'s
+    // "never counts an archived account" going red. Losing both filters would
+    // additionally flip `kind` to `rate-needed`, but that is a stricter
+    // condition than this row needs — the whole-object `toStrictEqual` has
+    // already failed on the value.
     //
     // The marker must stay `null`: with a verified rate the refusal branch is
     // unreachable and the row would prove nothing about the foreign count.

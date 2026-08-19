@@ -27,7 +27,7 @@ recorded here because section 3 is an argument *about* it.
 | §5 divergence | Closed by |
 |---|---|
 | Never rounds | Chunk 1. `round2( Σ sign × round2(converted) )`, in array order, per §4 of the prior ADR. |
-| No archived filter | Chunk 1, as a contract guarantee. Its in-loop `if (a.is_archived) continue;` became `accounts.filter((a) => !a.is_archived)` (`dashboard.helpers.ts:63`) in chunk 2, so the foreign count reads the same set the arithmetic does. |
+| No archived filter | Chunk 1, as a contract guarantee. Its in-loop `continue` guard on `a.is_archived` became `accounts.filter((a) => !a.is_archived)` (`dashboard.helpers.ts:63`) in chunk 2, so the foreign count reads the same set the arithmetic does. |
 | `rate > 0 ? value / rate : 0` fallback | Chunk 2. Replaced by the refusal and by absent `~USD` fields. |
 | Multiplies unconditionally, never divides | **Not closed.** See section 2. |
 
@@ -169,11 +169,15 @@ the unfiltered array returns the identical count and every row stays green. The 
 defence in depth, and `resolveStartingNetPosition` composes exactly the same pair
 (`starting_net_position.ts:127-132`); neither is redundant to delete.
 
-The regression signal is `__tests__/accounts/account_aggregation.test.ts`'s "never counts an archived
-account", which goes red the moment that inline filter does. `computeNetWorth`'s own filter is held
-by the archived-credit-card row in `dashboard_helpers.test.ts`, whose 50000 flips the total. The
-archived-USD-wallet row in that same table asserts the composed outcome and goes red only if both
-filters go.
+The regression signal for the inline filter is `__tests__/accounts/account_aggregation.test.ts`'s
+"never counts an archived account", and it is the only one: deleting that predicate alone leaves the
+entire dashboard table green. `computeNetWorth`'s own filter has two signals, both in
+`dashboard_helpers.test.ts` — the archived-credit-card row, whose 50000 flips the total, and the
+archived-USD-wallet row, which is redundant with it rather than near-vacuous. Deleting
+`dashboard.helpers.ts:63` alone puts the wallet into the arithmetic at `1000 + roundMoney(500 * 50)`,
+so that row reports `assetsEgp` and `netWorthEgp` of 26000 against 1000 expected. Its `kind` stays
+`amount` — flipping it to `rate-needed` is what would need both filters gone — but the whole-object
+`toStrictEqual` has already failed on the value.
 
 ## 5. The reversed contract
 
