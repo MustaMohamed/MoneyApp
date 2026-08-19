@@ -4,8 +4,9 @@
 - **Status:** accepted
 - **Ticket:** MA-013 (issue #255), ruling #249
 - **Applies to:** `computeNetWorth` in
-  `src/modules/dashboard/screens/dashboard/dashboard.helpers.ts` and
-  `src/modules/accounts/domain/account_aggregation.ts`
+  `src/modules/dashboard/screens/dashboard/dashboard.helpers.ts`,
+  `src/modules/accounts/domain/account_aggregation.ts`, and
+  `src/modules/onboarding/domain/starting_net_position.ts`
 
 `2026-08-18-starting-net-position.md` §5 listed four points on which the dashboard's
 `computeNetWorth` diverged from N4's `resolveStartingNetPosition` and named #249 as the owner of
@@ -34,7 +35,15 @@ import or a second copy.
 `resolvePrimaryBalanceDelta` in the transactions domain stays a separate encoding. It signs **writes**,
 not aggregations, and unifying the two is out of scope. So the three independent encodings the prior
 ADR §1 counted become two, and the split runs along the write/aggregate line by design rather than by
-oversight. A minus sign is still never derived at the display layer.
+oversight.
+
+That is bookkeeping against the prior ADR's list, **not** an app-wide count. App-wide, four sites still
+encode the credit-card rule after this change: `resolveAccountAggregationSign`,
+`resolvePrimaryBalanceDelta`, and two inline checks in the same file this diff edits —
+`computeLiabilitiesBreakdown`'s `type !== AccountType.CreditCard` filter and
+`computeDashboardAccountCounts`'s `type === AccountType.CreditCard` bucket, which is a count
+aggregation on exactly this rule. Adopting the resolver at either is out of scope for #255 (spec §7)
+and owned by a separate ticket. A minus sign is still never derived at the display layer.
 
 ## 2. EGP base is a precondition, not a bug to fix
 
@@ -57,17 +66,35 @@ M28's work.
 The sign, rounding and archived work ships behind an identical five-field `NetWorthResult` and an
 identical two-parameter signature, even though chunk 2 replaces both a PR later.
 
-That is deliberate. It makes chunk 1 provably pixel-free — archived rows never reach the function
-today because `getAccounts` filters them at SQL, and EGP renders at zero decimals, so 2 dp rounding is
-invisible — which lets the four consuming surfaces stay untouched until the chunk that actually
-redesigns them. It also keeps the risky half of the ticket, the arithmetic, in one PR a reviewer can
+That is deliberate. It lets the four consuming surfaces stay untouched until the chunk that actually
+redesigns them, and it keeps the risky half of the ticket, the arithmetic, in one PR a reviewer can
 hold in their head.
 
-The claim rests on those two facts rather than on the arithmetic being identical. If a caller ever
-passes `getByIdsIncludingArchived` output, or EGP's configured decimals move off `0`, chunk 1 stops
-being invisible.
+Chunk 1 is *close to* pixel-free, and an earlier draft of this section claimed it was provably so.
+That was wrong. Archived rows never reach the function today because `getAccounts` filters them at
+SQL, and EGP renders at zero decimals, so 2 dp rounding is usually invisible. Three things break that,
+and the third needs no exotic input at all:
+
+1. A caller passes `getByIdsIncludingArchived` output, so the new archived filter has something to
+   exclude.
+2. EGP's configured decimals move off `0`.
+3. **Rounding each converted balance before summing moves the rendered figure by one pound** whenever
+   that rounding crosses a half-integer boundary. Every surface renders EGP at zero decimals and
+   `Intl` rounds half-expand, so a raw `.4951` and a rounded `.50` are different integers on screen:
+
+| USD balance | rate | raw product | `main` renders | this PR renders |
+|---|---|---|---|---|
+| 0.01 | 49.99 | 0.4999 | `0` | `1` |
+| 10.01 | 49.50 | 495.495 | `495` | `496` |
+
+The new number is the better one — rounded arithmetic is what this ADR exists to introduce. What was
+false is the claim of invisibility, and that claim was the argument for chunk 1 skipping emulator
+verification.
 
 ## 4. The refusal contract (implemented by chunk 2)
+
+This section is normative present tense about code that is not in the tree yet. Chunk 2 implements
+every sentence of it; the `accepted` status above is on the decision, not on shipped behaviour.
 
 A stored rate counts as usable only when `rateUpdatedAt !== null` **and** `rate` is finite **and**
 `rate > 0` — character for character the gate N4 already applies, stated once in the accounts domain so
@@ -83,10 +110,16 @@ needs a verified rate always, because the conversion is the whole point of it �
 has never fetched a rate reads a confident `~ N USD` computed from the placeholder.
 
 The breakdown sheet renders the refusal **only** on that outcome and does not render its body.
-`computeLiquidityBreakdown` and `computeLiabilitiesBreakdown` carry the same provenance and rounding
-defects `computeNetWorth` had and are out of scope here; left rendering, the sheet would refuse its
-headline and then print `100 × 50 = 5000 EGP` underneath it. Suppressing the body closes that
-incoherence without touching either helper. Those two get their own ticket.
+`computeLiquidityBreakdown` and `computeLiabilitiesBreakdown` still carry the same PROVENANCE defect
+`computeNetWorth` had; left rendering, the sheet would refuse its headline and then print
+`100 × 50 = 5000 EGP` underneath it. Suppressing the body closes that incoherence without touching
+either helper. Their gating gets its own ticket.
+
+Their ROUNDING is no longer deferred. Chunk 1 rounds each converted balance in both helpers, on
+`computeNetWorth`'s per-value contract, because the exception-3 band above lands inside a single
+render: at 9.51 USD and rate 40.01 the sheet showed section header 381, the card's own row 380 and the
+total-debt footer 380 for one account. This diff introduced that disagreement, so this diff closes it
+(spec §3b, amended and user-approved at P8). Rounding only — nothing else about either helper moves.
 
 The pre-#165 install population that lands on a permanent false refusal is **accepted**, unchanged
 from `2026-08-18-starting-net-position.md` §3. Those installs hydrate a real, user-entered rate

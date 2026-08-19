@@ -38,7 +38,12 @@ export interface NetWorthResult {
  *
  * Archived rows never contribute. `getAccounts` already filters them at SQL,
  * so this is a CONTRACT guarantee of the function rather than a change to the
- * current call path.
+ * current call path. That guarantee FORECLOSES audit M12's recommendation (a) —
+ * giving the dashboard snapshot an archived-inclusive credit-card read so an
+ * archived card's debt keeps counting against net worth. Anyone taking that
+ * route has to reopen this contract and this comment, not just widen a query.
+ * M12's other half, the archive-confirmation copy that contradicts the current
+ * behaviour, is untouched by #255.
  */
 export function computeNetWorth(accounts: Account[], rate: number): NetWorthResult {
   let assetsEgp = 0;
@@ -131,7 +136,13 @@ export function computeLiquidityBreakdown(accounts: Account[], rate: number): Li
 
   for (const a of accounts) {
     if (a.is_archived) continue;
-    const balanceEgp = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
+    // Rounded per value on `computeNetWorth`'s contract. The breakdown sheet
+    // renders these rows directly beneath that function's totals, all at zero
+    // decimals, so an unrounded 380.4951 here beside a rounded 380.50 there is
+    // 380 and 381 on one screen for one account.
+    const balanceEgp = roundMoney(
+      a.currency === Currency.USD ? a.current_balance * rate : a.current_balance,
+    );
     if (LIQUID_TYPES.has(a.type)) {
       liquidEgp += balanceEgp;
       liquidAccounts.push({ id: a.id, name: a.name, balanceEgp });
@@ -163,7 +174,11 @@ export function computeLiabilitiesBreakdown(accounts: Account[], rate: number): 
   for (const a of accounts) {
     if (a.is_archived) continue;
     if (a.type !== AccountType.CreditCard) continue;
-    const balanceEgp = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
+    // Rounded per value, same contract and same reason as
+    // `computeLiquidityBreakdown` above.
+    const balanceEgp = roundMoney(
+      a.currency === Currency.USD ? a.current_balance * rate : a.current_balance,
+    );
     rows.push({
       id: a.id,
       name: a.name,

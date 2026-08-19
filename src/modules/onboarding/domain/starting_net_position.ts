@@ -62,10 +62,17 @@ function assertSupportedCurrency(currency: Currency): void {
 // Both now live in `@/modules/accounts/domain/account_aggregation` — the sign
 // rule has one owner for aggregations, and `normalizeNegativeZero` went with it
 // because the dashboard needs it and the import may only run
-// dashboard -> accounts. Re-exported here so `approximation_pill.ts` keeps
-// importing from this module unedited; #255 chunk 2 may drop the re-export once
-// that importer moves.
-export { normalizeNegativeZero, resolveAccountAggregationSign };
+// dashboard -> accounts. `normalizeNegativeZero` alone is re-exported: it is
+// what `approximation_pill.ts` imports, and keeping that importer unedited is
+// the whole purpose of the re-export. #255 chunk 2 may drop it once that
+// importer moves.
+//
+// `resolveAccountAggregationSign` is deliberately NOT re-exported. Both its
+// consumers already import it from the accounts path, and `.oxlintrc.json`
+// carries no import-path rule, so a re-export here would let the dashboard
+// reach the sign THROUGH the onboarding domain — the exact direction the hoist
+// exists to forbid.
+export { normalizeNegativeZero };
 
 /**
  * Archived rows never contribute. `getAccounts` already filters at SQL, but the

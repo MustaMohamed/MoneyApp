@@ -455,6 +455,57 @@ describe('computeLiabilitiesBreakdown', () => {
   });
 });
 
+describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
+  // 9.51 USD at 40.01 converts to 380.4951, whose 2 dp rounding is 380.50 — and
+  // `formatAmount` renders at zero decimals, half-expand, so the two sides of
+  // that rounding are 380 and 381. `computeNetWorth` rounds; before #255 chunk 1
+  // these two helpers did not, and `net_worth_breakdown_sheet.tsx` renders both
+  // in one view: section header 381, the card's own row 380, total-debt footer
+  // 380. Delete either helper's `roundMoney` and the row assertions below go red.
+  const RATE = 40.01;
+
+  it('liabilities: section header, the card row and the total-debt footer agree', () => {
+    const accounts: Account[] = [
+      makeAccount({
+        id: '1',
+        name: 'USD Card',
+        type: AccountType.CreditCard,
+        currency: Currency.USD,
+        current_balance: 9.51,
+      }),
+    ];
+
+    const { liabilitiesEgp } = computeNetWorth(accounts, RATE);
+    const rows = computeLiabilitiesBreakdown(accounts, RATE);
+    // `net_worth_breakdown_sheet.tsx:51` — the footer is a raw reduce over the
+    // rows, so it inherits whatever the rows carry.
+    const totalDebt = rows.reduce((sum, row) => sum + row.balanceEgp, 0);
+
+    expect(formatAmount(liabilitiesEgp)).toBe('381');
+    expect(rows.map((row) => formatAmount(row.balanceEgp))).toEqual(['381']);
+    expect(formatAmount(totalDebt)).toBe('381');
+  });
+
+  it('assets: section header, the tier legend and the account sub-row agree', () => {
+    const accounts: Account[] = [
+      makeAccount({
+        id: '1',
+        name: 'USD Bank',
+        type: AccountType.Bank,
+        currency: Currency.USD,
+        current_balance: 9.51,
+      }),
+    ];
+
+    const { assetsEgp } = computeNetWorth(accounts, RATE);
+    const { liquidEgp, liquidAccounts } = computeLiquidityBreakdown(accounts, RATE);
+
+    expect(formatAmount(assetsEgp)).toBe('381');
+    expect(formatAmount(liquidEgp)).toBe('381');
+    expect(liquidAccounts.map((account) => formatAmount(account.balanceEgp))).toEqual(['381']);
+  });
+});
+
 describe('reduceDashboardTransactionFacts', () => {
   it('builds current and previous month facts without clamping card credits', () => {
     const reduced = reduceDashboardTransactionFacts(

@@ -10,14 +10,20 @@ import { AccountType } from '@/constants/enums';
  */
 
 /**
- * The single named site for "credit cards are liabilities" in every
- * AGGREGATION. Its two consumers are `computeNetWorth` (dashboard helpers) and
+ * The named site for "credit cards are liabilities" in the two aggregations
+ * that adopted it: `computeNetWorth` (dashboard helpers) and
  * `resolveStartingNetPosition` (N4); before #255 each inlined its own copy of
  * the conditional.
  *
+ * It is NOT yet the only aggregation encoding the rule. Two more sit inline in
+ * `dashboard.helpers.ts`: `computeLiabilitiesBreakdown` filters on
+ * `type !== AccountType.CreditCard`, and `computeDashboardAccountCounts`
+ * buckets accounts on `type === AccountType.CreditCard`. Adopting the resolver
+ * at either is out of scope for #255 (spec §7) and owned by a separate ticket.
+ *
  * `resolvePrimaryBalanceDelta` in the transactions domain remains a separate
  * encoding on purpose: it signs WRITES, not aggregations, and unifying the two
- * is out of scope (spec §2). Two encodings, split along that line, by design.
+ * is out of scope (spec §2).
  *
  * The corollary is a rule for every consumer: no leading minus is derived at
  * the display layer. The formatter renders whatever sign this returned.

@@ -19,14 +19,22 @@ describe('normalizeNegativeZero', () => {
   });
 });
 
+// A `Record<AccountType, …>` rather than a hand-written array of rows, for the
+// reason `starting_net_position.ts:44-54` states about `CURRENCY_CONFIG`: a
+// member added to the enum must be a TYPE ERROR, not a runtime surprise. An
+// array compiles unchanged when a sixth `AccountType` appears, leaves this table
+// green, and lets the new member sign +1 in both `computeNetWorth` and
+// `resolveStartingNetPosition` — one implicit default, now two callers.
+const EXPECTED_SIGNS: Record<AccountType, 1 | -1> = {
+  [AccountType.Bank]: 1,
+  [AccountType.SmartWallet]: 1,
+  [AccountType.PhysicalWallet]: 1,
+  [AccountType.PhysicalSavings]: 1,
+  [AccountType.CreditCard]: -1,
+};
+
 describe('resolveAccountAggregationSign — the one site that owns the credit-card sign', () => {
-  it.each([
-    [AccountType.Bank, 1],
-    [AccountType.SmartWallet, 1],
-    [AccountType.PhysicalWallet, 1],
-    [AccountType.PhysicalSavings, 1],
-    [AccountType.CreditCard, -1],
-  ])('%s → %p', (type, expected) => {
-    expect(resolveAccountAggregationSign(type)).toBe(expected);
+  it.each(Object.entries(EXPECTED_SIGNS))('%s → %p', (type, expected) => {
+    expect(resolveAccountAggregationSign(type as AccountType)).toBe(expected);
   });
 });
