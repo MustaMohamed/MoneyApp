@@ -152,16 +152,23 @@ keys arrived in one commit, that "manual override without a marker" was unreacha
 everything older than it; section 7 records the trap. §3 of the prior ADR stands, is not superseded,
 and is not edited from here.
 
-The window is real and it is narrow:
+The window is real, and what is established about it is its bounds, not its cause:
 
-- `currency.store.ts` shipped in **#23** (2026-05-01) writing `usd_rate`, `usd_rate_fetched_at` and
-  `usd_rate_manual_override`. There was no `usd_rate_updated_at` key at all.
-- The marker first appears in **#85** (2026-05-19), with no backfill.
+- `currency.store.ts` shipped in **#23** (`7fecbbc`, 2026-05-01) writing `usd_rate`,
+  `usd_rate_fetched_at` and `usd_rate_manual_override`. The manual-rate feature is that old, and
+  there was no `usd_rate_updated_at` key at all.
+- The marker is **absent** at `db480ce` (#52, 2026-05-10) and **present** at `6d1b112` (#85,
+  2026-05-19). Both are reads of the file at a ref, not history queries.
+- The commit that introduced the marker is somewhere between those two refs, and this ADR does not
+  identify it. #85 is a docs-only PR, `docs(§7): Add Transaction sheet — design spec +
+  implementation plan (#85)`, so it is where the key is first seen present, not where it came from.
+  Naming it as the origin would be the same claim section 7 rules out, one section later.
 
-For those 18 days, using the manual-rate feature exactly as designed durably wrote
-`usd_rate_manual_override = 'true'` beside a rate and no marker. (The prior ADR dates the marker's
-arrival to #165 rather than #85. The two numbers disagree; the population is the same under either,
-and this repository cannot settle the question — again, section 7.)
+So from 2026-05-01 until some date before 2026-05-19, using the manual-rate feature exactly as
+designed durably wrote `usd_rate_manual_override = 'true'` beside a rate and no marker. Nine of those
+days, 05-01 to 05-10, are covered by the absence at `db480ce`; the rest of the window is bounded but
+not dated. Nothing backfilled the marker when it did arrive, so those rows carry the flag and no
+verification time to this day.
 
 That population splits, and only one half repairs itself:
 
