@@ -1,5 +1,9 @@
 import { AccountType } from '@/constants/enums';
 
+/**
+ * The balance-colour class two account surfaces render by account type.
+ * Scope, exclusions, and the rationale are on the function below.
+ */
 export type AccountBalanceColorClass = 'text-foreground' | 'text-accent';
 
 const ACCOUNT_BALANCE_COLOR_CLASS: Record<AccountType, AccountBalanceColorClass> = {
@@ -11,9 +15,18 @@ const ACCOUNT_BALANCE_COLOR_CLASS: Record<AccountType, AccountBalanceColorClass>
 };
 
 /**
- * The one site that maps an account type to a balance colour. Both
- * `account_card.tsx` (dashboard) and `balance_hero.tsx` (account detail) call
- * this instead of branching on `AccountType` themselves.
+ * The balance-colour site for `account_card.tsx` (dashboard) and
+ * `balance_hero.tsx` (account detail); both call this instead of branching on
+ * `AccountType` themselves.
+ *
+ * It is NOT yet the only site that colours a balance by account type.
+ * `net_worth_breakdown_sheet.tsx:153` sets a liability row's `valueColor` to
+ * the fixed `LIABILITY_COLOR` (`:32`, `Colors.dark.negative`), on rows
+ * `dashboard.helpers.ts:181`'s `computeLiabilitiesBreakdown` builds by
+ * filtering `type !== AccountType.CreditCard` — an account's own balance,
+ * coloured from its account type, in the same red this ticket exists to
+ * remove from `account_card.tsx` and `balance_hero.tsx`. Adopting this
+ * resolver there is out of scope here and owned by #265.
  *
  * `text-foreground` (cream) for a credit card, `text-accent` (gold) for every
  * other type. Cream is not a demotion to body text — it is the absence of the

@@ -16,7 +16,11 @@ const EXPECTED: Record<AccountType, AccountBalanceColorClass> = {
   [AccountType.CreditCard]: 'text-foreground',
 };
 
-describe('resolveAccountBalanceColorClass — the one site that owns the balance colour', () => {
+// Class-string assertions here are not audit M35: M35 is text scraped off a
+// rendered node, breaking on no-op refactors. These bind to
+// resolveAccountBalanceColorClass's declared return union — its API, not its
+// rendering — so a `tv()`/className refactor elsewhere cannot break them.
+describe('resolveAccountBalanceColorClass — the site account_card.tsx and balance_hero.tsx use for balance colour', () => {
   it.each(Object.entries(EXPECTED))('%s → %p', (type, expected) => {
     expect(resolveAccountBalanceColorClass(type as AccountType)).toBe(expected);
   });
@@ -27,9 +31,5 @@ describe('resolveAccountBalanceColorClass — the one site that owns the balance
         (type) => resolveAccountBalanceColorClass(type) !== 'text-accent',
       ),
     ).toEqual([AccountType.CreditCard]);
-  });
-
-  it('maps the credit card to the neutral token, not the danger token', () => {
-    expect(resolveAccountBalanceColorClass(AccountType.CreditCard)).toBe('text-foreground');
   });
 });
