@@ -40,6 +40,6 @@ Standing non-HeroUI exceptions (layout/effect pieces HeroUI lacks): `Screen`/`Sc
 All values in `constants/theme.ts`, scaled with `ms()`/`msFont()`. Never hardcode hex/spacing/radius.
 
 - **Typography:** Sora (numbers, headings, CTAs) · Inter (body, labels, secondary). That split decides which family class a given element takes — anything rendering `formatAmount()`, a count, or a percentage is a number.
-- **Numbers:** `Intl.NumberFormat('en-US', { style: 'decimal' })` → `122,300`.
+- **Numbers:** comma-grouped — `122,300`. Amounts → `formatCurrencyAmount`; rates → `formatExchangeRate`, which owns the 2dp — never `rate.toFixed(2)`, never a second literal `2`. Both come from `src/utils/format_amount.ts`; decimal counts are `.claude/rules/review.md` item 3's.
 - **CTA:** `Size.ctaHeight` (52) · `Radius.cta` (13) · gold gradient on midnight-blue text.
 - **Strings:** all user-visible copy in `constants/strings.ts`.
