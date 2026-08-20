@@ -110,7 +110,7 @@ for (const file of files) {
   const line = firstConstructorLine(file);
   if (line !== undefined && !allowlistPaths.has(file)) {
     errors.push(
-      `${file}:${line}: constructs \`new Intl.NumberFormat\` — use formatCurrencyAmount/formatExchangeRate from src/utils/format_amount.ts (.claude/rules/review.md item 3)`,
+      `${file}:${line}: constructs \`new Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
     );
   }
 }
