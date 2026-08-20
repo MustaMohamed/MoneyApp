@@ -277,6 +277,7 @@ describe('selectReadySummaryState — frame selection and pill composition', () 
       baseCurrency: row.base,
       rate: row.rate,
       rateUpdatedAt: row.rateUpdatedAt,
+      isManualOverride: false,
     });
 
     expect(state.frame).toBe(row.frame);
@@ -303,6 +304,7 @@ describe('selectReadySummaryState — the invariants the table encodes', () => {
         baseCurrency: row.base,
         rate: row.rate,
         rateUpdatedAt: row.rateUpdatedAt,
+        isManualOverride: false,
       });
       const [accountsPill, openingBalancesPill] = state.pills;
       expect(accountsPill).toHaveProperty('count', row.accountCount);
@@ -316,6 +318,7 @@ describe('selectReadySummaryState — the invariants the table encodes', () => {
       baseCurrency: Currency.USD,
       rate: 48.6,
       rateUpdatedAt: RATE_VERIFIED_AT,
+      isManualOverride: false,
     });
     const approxPill = state.pills[2];
     if (approxPill.kind !== 'approx') {
@@ -331,6 +334,7 @@ describe('selectReadySummaryState — the invariants the table encodes', () => {
         baseCurrency: Currency.EGP,
         rate: 50,
         rateUpdatedAt: null,
+        isManualOverride: false,
       }).outcome,
     ).toStrictEqual({ kind: 'amount', value: 148250 });
   });
@@ -346,6 +350,7 @@ describe('selectReadySummaryState — currencies outside EGP | USD throw', () =>
         baseCurrency: Currency.EGP,
         rate: 48.6,
         rateUpdatedAt: RATE_VERIFIED_AT,
+        isManualOverride: false,
       }),
     ).toThrow(StartingNetPositionError);
   });

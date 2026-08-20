@@ -1,7 +1,6 @@
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
-  countForeignAccounts,
   type StartingNetPosition,
   StartingNetPositionError,
   resolveStartingNetPosition,
@@ -184,9 +183,18 @@ const RESOLVER_ROWS: readonly ResolverRow[] = [
 ];
 
 describe('resolveStartingNetPosition — the scope spec table, all 16 rows', () => {
+  // Every row is a NON-override rate — see the same note on `computeNetWorth`'s
+  // table. The override half of the gate is asserted in the
+  // "a manual rate carrying no marker" describe.
   it.each(RESOLVER_ROWS)('$case', ({ accounts, base, rate, rateUpdatedAt, expected }) => {
     expect(
-      resolveStartingNetPosition({ accounts, baseCurrency: base, rate, rateUpdatedAt }),
+      resolveStartingNetPosition({
+        accounts,
+        baseCurrency: base,
+        rate,
+        rateUpdatedAt,
+        isManualOverride: false,
+      }),
     ).toStrictEqual(expected);
   });
 });
@@ -206,8 +214,40 @@ describe('resolveStartingNetPosition — round-then-sum, with a fixture that can
         baseCurrency: Currency.EGP,
         rate: 2,
         rateUpdatedAt: RATE_VERIFIED_AT,
+        isManualOverride: false,
       }),
     ).toStrictEqual({ kind: 'amount', value: 2 });
+  });
+});
+
+describe('resolveStartingNetPosition — a manual rate carrying no marker', () => {
+  // N4 shares `isRateUsable` with the dashboard, so it shares this: the user who
+  // saved a rate before `usd_rate_updated_at` existed (#23 to #85) carries the
+  // override flag and no marker, and no background fetch will ever write one.
+  const accounts = [bank(1000), wal(100, Currency.USD)];
+
+  it('states the position, because the user supplied the rate', () => {
+    expect(
+      resolveStartingNetPosition({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: 48,
+        rateUpdatedAt: null,
+        isManualOverride: true,
+      }),
+    ).toStrictEqual({ kind: 'amount', value: 5800 });
+  });
+
+  it('refuses the identical rate when nothing says where it came from', () => {
+    expect(
+      resolveStartingNetPosition({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: 48,
+        rateUpdatedAt: null,
+        isManualOverride: false,
+      }),
+    ).toStrictEqual({ kind: 'rate-needed', foreignCount: 1 });
   });
 });
 
@@ -222,6 +262,7 @@ describe('resolveStartingNetPosition — negative zero (spec §1.1)', () => {
     baseCurrency: Currency.EGP,
     rate: 50,
     rateUpdatedAt: null,
+    isManualOverride: false,
   };
 
   it('normalises the resolver value to +0', () => {
@@ -245,32 +286,14 @@ describe('resolveStartingNetPosition — negative zero (spec §1.1)', () => {
   });
 });
 
-describe('selectActiveAccounts and countForeignAccounts', () => {
+// `countForeignAccounts` moved to `@/modules/accounts/domain/account_aggregation`
+// in #255 chunk 2, and its three cases moved with it — see
+// `__tests__/accounts/account_aggregation.test.ts`.
+describe('selectActiveAccounts', () => {
   it('drops archived rows, whatever their currency or type', () => {
     const active = selectActiveAccounts([bank(1000), archived(cc(500)), archived(wal(7))]);
     expect(active).toHaveLength(1);
     expect(active[0]?.opening_balance).toBe(1000);
-  });
-
-  it('counts every account whose currency differs from the base, not just the first', () => {
-    // A `count > 0 ? 1 : 0` implementation passes every single-foreign fixture
-    // in this file; two USD accounts is what separates the two.
-    expect(
-      countForeignAccounts(
-        [bank(48250), wal(1000, Currency.USD), wal(350, Currency.USD)],
-        Currency.EGP,
-      ),
-    ).toBe(2);
-  });
-
-  it('counts base-currency accounts as foreign when the base flips', () => {
-    expect(countForeignAccounts([bank(48250), wal(1000, Currency.USD)], Currency.USD)).toBe(1);
-  });
-
-  it('never counts an archived account', () => {
-    expect(countForeignAccounts([bank(1000), archived(wal(500, Currency.USD))], Currency.EGP)).toBe(
-      0,
-    );
   });
 });
 
@@ -284,6 +307,7 @@ describe('resolveStartingNetPosition — archived rows the SQL filter would not 
         baseCurrency: Currency.EGP,
         rate: 50,
         rateUpdatedAt: null,
+        isManualOverride: false,
       }),
     ).toStrictEqual({ kind: 'amount', value: 1000 });
   });
@@ -299,6 +323,7 @@ describe('resolveStartingNetPosition — currencies outside EGP | USD throw', ()
         baseCurrency: Currency.EGP,
         rate: 48.6,
         rateUpdatedAt: RATE_VERIFIED_AT,
+        isManualOverride: false,
       }),
     ).toThrow(StartingNetPositionError);
   });
@@ -310,6 +335,25 @@ describe('resolveStartingNetPosition — currencies outside EGP | USD throw', ()
         baseCurrency: unsupported,
         rate: 48.6,
         rateUpdatedAt: RATE_VERIFIED_AT,
+        isManualOverride: false,
+      }),
+    ).toThrow(StartingNetPositionError);
+  });
+
+  // The guard used to ask `CURRENCY_LOOKUP[currency] !== undefined`, which
+  // resolves through the prototype chain: `toString` is a member of
+  // `Object.prototype`, so a row carrying it passed the guard and was summed as
+  // if it were base currency. Still the DOMAIN'S OWN error type after the
+  // predicate was hoisted — that is what spec §6 requires and what this
+  // assertion pins.
+  it('throws on an Object.prototype member masquerading as a currency', () => {
+    expect(() =>
+      resolveStartingNetPosition({
+        accounts: [bank(1000, 'toString' as unknown as Currency)],
+        baseCurrency: Currency.EGP,
+        rate: 48.6,
+        rateUpdatedAt: RATE_VERIFIED_AT,
+        isManualOverride: false,
       }),
     ).toThrow(StartingNetPositionError);
   });

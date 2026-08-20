@@ -1,3 +1,4 @@
+import { isRateUsable } from '@/modules/accounts/domain/account_aggregation';
 import { createCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
 
@@ -51,6 +52,53 @@ describe('currencyStore initial state', () => {
     expect(store.getState().lastFetched).toBeNull();
     expect(store.getState().isManualOverride).toBe(false);
     expect(store.getState().rate_updated_at).toBeNull();
+  });
+});
+
+// The gate lives in the accounts domain and is unit-tested there against
+// hand-written triples. These two rows are the ones a hand-written triple cannot
+// prove: they hydrate the REAL store — its `INITIAL_STATE`, its `loadRate`, its
+// `parsePersistedRate` — and ask the real predicate what it makes of the result.
+// A future edit to `INITIAL_STATE` that quietly made the placeholder acceptable
+// would leave the domain table green and turn the first of these red.
+describe('currencyStore — what isRateUsable makes of the hydrated state', () => {
+  const gate = (state: {
+    rate: number;
+    rate_updated_at: string | null;
+    isManualOverride: boolean;
+  }) =>
+    isRateUsable({
+      rate: state.rate,
+      rateUpdatedAt: state.rate_updated_at,
+      isManualOverride: state.isManualOverride,
+    });
+
+  it('refuses the fresh install, before and after hydration', async () => {
+    // `INITIAL_STATE.rate` is 50 with no marker and no override. The dashboard
+    // renders during the load too, so the pre-hydration state has to be refused
+    // as well — the assertion is deliberately on both sides of `loadRate`.
+    const store = createCurrencyStore(makeRepo());
+    expect(gate(store.getState())).toBe(false);
+
+    await store.getState().loadRate();
+
+    expect(gate(store.getState())).toBe(false);
+  });
+
+  it('accepts the install whose manual rate predates the marker', async () => {
+    // The same seed as 'does not fetch a manual override' below, which is the
+    // proof that this install never repairs itself: `shouldRefreshRate` returns
+    // false for an override, so `usd_rate_updated_at` is never written and the
+    // marker never appears. `currency.store.ts` shipped in #23 with these two
+    // keys and no marker; the marker arrives in #85 (ADR 2026-08-19 §4).
+    const store = createCurrencyStore(
+      makeRepo({ usd_rate: '48', usd_rate_manual_override: 'true' }),
+    );
+    await store.getState().loadRate();
+
+    expect(store.getState().rate_updated_at).toBeNull();
+    expect(store.getState().isManualOverride).toBe(true);
+    expect(gate(store.getState())).toBe(true);
   });
 });
 

@@ -6,7 +6,9 @@ import { View } from 'react-native';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, Size, Type } from '@/constants/theme';
+import { SemanticTokens } from '@/constants/theme_tokens';
+import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
@@ -16,8 +18,12 @@ const DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT = ms(35);
 const DASHBOARD_HERO_PILL_SKELETON_HEIGHT = ms(20);
 
 interface HeroCardProps {
-  assetsEgp: number;
-  assetsUsd: number;
+  /**
+   * One object, not loose numbers: a discriminated union narrows only when the
+   * discriminant and the fields arrive together, and sibling props destructured
+   * in a signature do not narrow each other.
+   */
+  netWorth: DashboardNetWorth;
   rate: number;
   isManualOverride: boolean;
   assetsCount: number;
@@ -68,8 +74,7 @@ function HeroCardSkeleton(): React.ReactElement {
 }
 
 export function HeroCard({
-  assetsEgp,
-  assetsUsd,
+  netWorth,
   rate,
   isManualOverride,
   assetsCount,
@@ -80,7 +85,26 @@ export function HeroCard({
   const totalAccounts = assetsCount + liabilitiesCount;
 
   return (
-    <HeroShell onPress={onPress} accessibilityLabel={Strings.dashAvailableToSpend}>
+    /*
+     * The hero is NOT tappable on the refusal path: the breakdown sheet cannot
+     * honestly show a breakdown when the headline refused to state a total, so
+     * it does not open at all. Rendering the sheet's EGP-only rows instead is
+     * not the alternative — a refusal only fires when at least one non-archived
+     * account is foreign, so those rows would be a partial total over an
+     * incomplete account set, which spec §7 prohibits by name.
+     *
+     * `NetWorthBreakdownSheet` still suppresses its body on `rate-needed`. With
+     * the sheet unreachable in that state that suppression becomes a SECOND
+     * guard rather than the primary one, and it stays: the sheet's prop is
+     * public and nothing in its own file makes the state impossible.
+     *
+     * `HeroShell` drops the `Pressable` wrapper entirely when `onPress` is
+     * undefined, so this also removes the button role and the press feedback.
+     */
+    <HeroShell
+      onPress={netWorth.kind === 'rate-needed' ? undefined : onPress}
+      accessibilityLabel={Strings.dashAvailableToSpend}
+    >
       <View
         className="flex-row items-center justify-between px-3 pt-3"
         style={{ flexDirection: 'row' }}
@@ -136,12 +160,43 @@ export function HeroCard({
         <HeroCardSkeleton />
       ) : (
         <>
-          <Text
-            className="font-sora-bold mt-3 mb-2 px-3"
-            style={{ color: Colors.dark.gold, fontSize: ms(32) }}
-          >
-            {formatAmount(assetsEgp)} <Text style={{ fontSize: ms(16), opacity: 0.8 }}>EGP</Text>
-          </Text>
+          {netWorth.kind === 'rate-needed' ? (
+            <>
+              {/* Warning, not danger — nothing failed and nothing is broken.
+                  No number, no dash-as-number, no partial total, no substituted
+                  rate: `INITIAL_STATE.rate` is an unverified guess. Mirrors
+                  `ready_hero_card.tsx`'s refusal so the two read as one app. */}
+              <View
+                className="mt-3 mb-1 flex-row items-center px-3"
+                style={{ flexDirection: 'row', gap: ms(8) }}
+                accessible
+                accessibilityLabel={Strings.dashboardRateNeededValue}
+              >
+                <MaterialCommunityIcons
+                  name="alert-outline"
+                  size={Size.iconMd}
+                  color={SemanticTokens.warning}
+                />
+                <Text
+                  className="text-warning font-sora-semibold flex-1"
+                  style={{ fontSize: Type.headline }}
+                >
+                  {Strings.dashboardRateNeededValue}
+                </Text>
+              </View>
+              <Text variant="caption" className="mb-2 px-3">
+                {Strings.dashboardRateNeededCaption}
+              </Text>
+            </>
+          ) : (
+            <Text
+              className="font-sora-bold mt-3 mb-2 px-3"
+              style={{ color: Colors.dark.gold, fontSize: ms(32) }}
+            >
+              {formatAmount(netWorth.assetsEgp)}{' '}
+              <Text style={{ fontSize: ms(16), opacity: 0.8 }}>EGP</Text>
+            </Text>
+          )}
 
           <View
             className="flex-row flex-wrap px-3 pb-5"
@@ -160,25 +215,40 @@ export function HeroCard({
                 size={ms(11)}
                 color={Colors.dark.text1}
               />
+              {/* Keyed on the FIELD being absent, not on `rate > 0`:
+                  `INITIAL_STATE.rate` is 50, so the old check printed a
+                  confident `~ N USD` computed from the placeholder for every
+                  user who had never fetched a rate. No `?? 0` — `formatAmount(0)`
+                  is a wrong number, not an absent one. */}
               <Text className="text-foreground text-xs">
-                {rate > 0 ? `${formatAmount(assetsUsd, 0)} USD` : '— USD'}
+                {netWorth.kind === 'amount' && netWorth.assetsUsd !== undefined
+                  ? `${formatAmount(netWorth.assetsUsd, 0)} USD`
+                  : '— USD'}
               </Text>
             </View>
-            <View
-              className="flex-row items-center rounded-full px-2 py-1"
-              style={{
-                flexDirection: 'row',
-                gap: ms(4),
-                backgroundColor: Colors.dark.overlayWhite7,
-              }}
-            >
-              <MaterialCommunityIcons
-                name="swap-horizontal"
-                size={ms(11)}
-                color={Colors.dark.text1}
-              />
-              <Text className="text-foreground text-xs">1 USD = {rate.toFixed(2)} EGP</Text>
-            </View>
+            {/* The rate pill prints the very number the refusal exists to hide:
+                on `rate-needed` the only rate available is the unverified one
+                (`INITIAL_STATE.rate` is 50), so `1 USD = 50.00 EGP` would sit
+                one line under "Exchange rate needed". `ready_hero_card.tsx`,
+                the refusal this card mirrors, shows no rate at all in that
+                state. The amount path is untouched. */}
+            {netWorth.kind === 'rate-needed' ? null : (
+              <View
+                className="flex-row items-center rounded-full px-2 py-1"
+                style={{
+                  flexDirection: 'row',
+                  gap: ms(4),
+                  backgroundColor: Colors.dark.overlayWhite7,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="swap-horizontal"
+                  size={ms(11)}
+                  color={Colors.dark.text1}
+                />
+                <Text className="text-foreground text-xs">1 USD = {rate.toFixed(2)} EGP</Text>
+              </View>
+            )}
             <View
               className="flex-row items-center rounded-full px-2 py-1"
               style={{

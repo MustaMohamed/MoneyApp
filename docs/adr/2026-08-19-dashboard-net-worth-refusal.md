@@ -6,23 +6,29 @@
 - **Applies to:** `computeNetWorth` in
   `src/modules/dashboard/screens/dashboard/dashboard.helpers.ts`, plus
   `src/modules/accounts/domain/account_aggregation.ts` and
-  `src/modules/onboarding/domain/starting_net_position.ts`
+  `src/modules/onboarding/domain/starting_net_position.ts`; and, because section 4 is normative
+  about what they render, the four consuming surfaces in
+  `src/modules/dashboard/screens/dashboard/components/` — `hero_card.tsx`, `stat_cards.tsx`,
+  `net_worth_breakdown_sheet.tsx`, `total_balance_strip.tsx` — with their copy in
+  `src/constants/strings.ts`; and, since the P8 cycle-2 fence lift (§4), `account_card.tsx` and the
+  `account_carousel.tsx` that passes provenance to it
 
 `2026-08-18-starting-net-position.md` §5 listed four points on which the dashboard's
 `computeNetWorth` diverged from N4's `resolveStartingNetPosition` and named #249 as the owner of
 reconciling them. This is that reconciliation. It changes money-handling behaviour and reverses a
 contract a test recorded, so the decisions are here rather than in a commit message.
 
-The work ships in two chunks. Chunk 1 is the sign, the rounding and the archived filter, behind an
-unchanged return shape. Chunk 2 is the refusal and the type change. Sections 1 to 3 and 5 are chunk 1;
-section 4 is written against chunk 2 and marked as such.
+The work is split into two chunks. Chunk 1 is the sign, the rounding and the archived
+filter, behind an unchanged return shape; chunk 2 is the refusal, the type change and the four
+surfaces. Sections 1 to 3 and 5 are chunk 1's decisions, section 4 is chunk 2's. The split is kept
+recorded here because section 3 is an argument *about* it.
 
 ## 1. Which of the four divergences this closes, and how
 
 | §5 divergence | Closed by |
 |---|---|
 | Never rounds | Chunk 1. `round2( Σ sign × round2(converted) )`, in array order, per §4 of the prior ADR. |
-| No archived filter | Chunk 1. `if (a.is_archived) continue;` before every other step, as a contract guarantee. |
+| No archived filter | Chunk 1, as a contract guarantee. Its in-loop `continue` guard on `a.is_archived` became `accounts.filter((a) => !a.is_archived)` (`dashboard.helpers.ts:63`) in chunk 2, so the foreign count reads the same set the arithmetic does. |
 | `rate > 0 ? value / rate : 0` fallback | Chunk 2. Replaced by the refusal and by absent `~USD` fields. |
 | Multiplies unconditionally, never divides | **Not closed.** See section 2. |
 
@@ -65,6 +71,22 @@ nothing upstream supplies.
 The precondition is now written on the function instead of assumed. Supporting a USD base is audit
 M28's work.
 
+**Superseded 2026-08-20.** An earlier draft of this section treated "EGP base is a precondition" as
+the closing word on the question — correct as a description of what the code does today, wrong as a
+claim about what is architecturally settled. Gate 1 of MA-onboarding-redesign, approved 2026-08-06,
+records `base_currency` as a REPORTING currency by product decision
+(`docs/scopes/MA-onboarding-redesign/scope.md:46`: "each option states a display consequence... That
+is the cheap answer, and it is honest under the current architecture where EGP is the storage
+currency"). EGP is the storage currency; `base_currency` is a separate, later-approved product
+decision about what a user is shown; `computeNetWorth` does not yet honour it. The gap this section's
+withdrawal leaves open is not closed by this diff: a USD-base user with a USD-only portfolio and no
+saved rate is refused a total for a conversion their portfolio does not need — gated against a
+currency they did not choose. Closing it needs this function to take `baseCurrency`, share one
+conversion with N4's resolver, and rename the five `*Egp` label sites and field names that assume it.
+That is audit M28's work, tracked separately. This section is left in place as the record of what P1
+approved and why the divide branch was withdrawn then; the withdrawal of that P1 item stands, the
+"precondition, not a bug" framing for it does not.
+
 ## 3. Chunk 1 keeps the return shape unchanged
 
 The sign, rounding and archived work ships behind an identical five-field `NetWorthResult` and an
@@ -95,29 +117,42 @@ The new number is the better one — rounded arithmetic is what this ADR exists 
 false is the claim of invisibility, and that claim was the argument for chunk 1 skipping emulator
 verification.
 
-## 4. The refusal contract (implemented by chunk 2)
+## 4. The refusal contract
 
-This section is normative present tense about code that is not in the tree yet. Chunk 2 implements
-every sentence of it; the `accepted` status above is on the decision, not on shipped behaviour.
-
-A stored rate counts as usable only when `rateUpdatedAt !== null` **and** `rate` is finite **and**
-`rate > 0` — character for character the gate N4 already applies, stated once in the accounts domain so
-the two cannot drift. Conversion is required only when at least one non-archived account is foreign.
+A stored rate counts as usable only when `rate` is finite **and** `rate > 0` **and** the app can say
+where the number came from. Provenance has two sufficient sources, and either alone opens the gate:
+`rateUpdatedAt !== null`, the marker recording *when* a fetch or a manual save wrote the rate, or
+`isManualOverride`, the flag recording *that* the user typed it. The predicate is stated once in the
+accounts domain, so the dashboard and N4 cannot drift; the disjunction and the population it exists
+for are argued below. Conversion is required only when at least one non-archived account is foreign.
 Required and unusable is the refusal outcome, `{ kind: 'rate-needed', foreignCount }`, a union member
 with no numeric field, so a formatter structurally cannot be handed a value that does not exist.
 
 Whether the app can state an EGP total and whether it can state the `~USD` equivalent are two
 questions with two answers. The EGP total needs a rate only when something is foreign. The `~USD` line
-needs a verified rate always, because the conversion is the whole point of it — so on the amount path
-`assetsUsd` and `netWorthUsd` are `undefined` exactly when the rate is unusable. Today
-`hero_card.tsx:164` keys that line on `rate > 0`, and `INITIAL_STATE.rate` is `50`, so every user who
-has never fetched a rate reads a confident `~ N USD` computed from the placeholder.
+needs a usable rate always, because the conversion is the whole point of it — so on the amount path
+`assetsUsd` and `netWorthUsd` are `undefined` exactly when the rate is unusable.
 
-The breakdown sheet renders the refusal **only** on that outcome and does not render its body.
+Until chunk 2, `hero_card.tsx:164` keyed that line on `rate > 0`, and `INITIAL_STATE.rate` is `50`,
+so every user who had never fetched a rate read a confident `~ N USD` computed from the placeholder.
+`hero_card.tsx:224-226` now keys it on the field being absent
+(`netWorth.kind === 'amount' && netWorth.assetsUsd !== undefined`), which `rate > 0` could never
+express, and `net_worth_breakdown_sheet.tsx:163-165` re-keyed the same way.
+
+The hero does not open the breakdown sheet at all on that outcome: `hero_card.tsx` hands `HeroShell`
+no `onPress` when `netWorth.kind === 'rate-needed'`, so the card loses its button role with its press
+handler. A sheet that cannot honestly show a breakdown should not open. Rendering only the sheet's
+EGP-only rows was the alternative considered and rejected — a refusal fires only when at least one
+non-archived account is foreign, so those rows would be a partial total over an incomplete account
+set, which spec §7 prohibits by name.
+
+The breakdown sheet still renders the refusal **only** on that outcome and does not render its body.
+With the sheet unreachable that suppression is a second guard rather than the primary one, and it
+stays: the sheet's `netWorth` prop is public and nothing in its own file makes the state impossible.
 `computeLiquidityBreakdown` and `computeLiabilitiesBreakdown` still carry the same PROVENANCE defect
 `computeNetWorth` had; left rendering, the sheet would refuse its headline and then print
 `100 × 50 = 5000 EGP` underneath it. Suppressing the body closes that incoherence without touching
-either helper. Their gating gets its own ticket.
+either helper. Their PROVENANCE gating is #259's, whose scope is widened to cover it.
 
 Their ROUNDING is no longer deferred. Chunk 1 rounds each converted balance in both helpers, on
 `computeNetWorth`'s per-value contract, because the exception-3 band above lands inside a single
@@ -125,15 +160,137 @@ render: at 9.51 USD and rate 40.01 the sheet showed section header 381, the card
 total-debt footer 380 for one account. This diff introduced that disagreement, so this diff closes it
 (spec §3b, amended and user-approved at P8). Rounding only — nothing else about either helper moves.
 
-The pre-#165 install population that lands on a permanent false refusal is **accepted**, unchanged
-from `2026-08-18-starting-net-position.md` §3. Those installs hydrate a real, user-entered rate
-alongside a null marker and stay refused until the user re-saves a rate. **Do not loosen the gate to
-make them show a number** — loosening it re-admits the unverified `50`, which is the entire thing the
-gate exists to keep off the screen. The remedy is a backfill migration, filed separately.
+**A permanently-refused population exists, and this diff reaches it by widening the gate rather than
+by migrating data.** An earlier draft of this section said the opposite — that all four `usd_rate*`
+keys arrived in one commit, that "manual override without a marker" was unreachable, and that
+`2026-08-18-starting-net-position.md` §3 was superseded. Every part of that was wrong. It rested on
+`git log -S` run inside a **shallow clone**, which reports the shallow boundary as the origin of
+everything older than it; section 7 records the trap. §3 of the prior ADR stands, is not superseded,
+and is not edited from here.
 
-This ticket's guarantee is scoped to `computeNetWorth`'s consumers. It is not "the dashboard never
-shows an unverified-rate number", which stays false while #257 is open: `account_card.tsx:139`
-converts a USD card balance at the raw rate and `hero_card.tsx:180` prints the rate itself.
+The window is real, and what is established about it is its bounds, not its cause:
+
+- `currency.store.ts` shipped in **#23** (`7fecbbc`, 2026-05-01) writing `usd_rate`,
+  `usd_rate_fetched_at` and `usd_rate_manual_override`. The manual-rate feature is that old, and
+  there was no `usd_rate_updated_at` key at all.
+- The marker is **absent** at `db480ce` (#52, 2026-05-10) and **present** at `6d1b112` (#85,
+  2026-05-19). Both are reads of the file at a ref, not history queries.
+- The commit that introduced the marker is somewhere between those two refs, and this ADR does not
+  identify it. #85 is a docs-only PR, `docs(§7): Add Transaction sheet — design spec +
+  implementation plan (#85)`, so it is where the key is first seen present, not where it came from.
+  Naming it as the origin would be the same claim section 7 rules out, one section later.
+
+So from 2026-05-01 until some date before 2026-05-19, using the manual-rate feature exactly as
+designed durably wrote `usd_rate_manual_override = 'true'` beside a rate and no marker. Nine of those
+days, 05-01 to 05-10, are covered by the absence at `db480ce`; the rest of the window is bounded but
+not dated. Nothing backfilled the marker when it did arrive, so those rows carry the flag and no
+verification time to this day.
+
+That population splits, and only one half repairs itself:
+
+- **Fetched, no marker.** `isManualOverride` is false, so `shouldRefreshRate` returns true on a stale
+  or absent `lastFetched` and the next online app-open writes the marker. Refused for one launch.
+- **Manual, no marker.** `shouldRefreshRate` returns `false` on its **first line** for an override, so
+  no background fetch ever runs and nothing writes the marker. Under the narrow gate this user's
+  dashboard refused **permanently**, while Settings showed them their own rate in the manual field
+  with the override badge lit. `__tests__/currency.store.test.ts`'s `does not fetch a manual override`
+  had that mechanism recorded and green the whole time.
+
+**The remedy is to read the provenance already stored, not to invent the provenance that is missing.**
+The marker records *when* a rate was verified; the override flag records *that* the user set it.
+Either is evidence the number is not the placeholder, so `isRateUsable` accepts either. A backfill
+migration would have to stamp a verification time onto a rate whose real one is genuinely unknown —
+the substitution `2026-08-18-starting-net-position.md` §2 forbids by name — and would rewrite user
+data to work around a predicate. No migration is written, and the prior ADR's "the remedy is a
+backfill migration, filed separately" is answered by this diff instead.
+
+**The widening does not loosen the gate against what it exists to stop.** `INITIAL_STATE` is
+`rate: 50, rate_updated_at: null, isManualOverride: false`, so the unverified placeholder is refused
+by the widened predicate exactly as it was by the narrow one, and an override carrying `0`, `NaN` or
+`Infinity` is still refused on the number. Nor can the flag outlive its rate: `loadRate` publishes
+`isManualOverride` as `rate !== undefined && manualStr === 'true'`, so an install whose `usd_rate` row
+fails to parse falls back to the placeholder with the flag OFF. The single input this admits that the
+marker would not is a user who typed `50` themselves — their number, deliberately entered, and
+indistinguishable from the placeholder by value alone. Both directions are measured rather than
+asserted, by mutating the predicate and recording what dies:
+
+| Mutation | Assertions that fail |
+|---|---|
+| Narrow it back to `rateUpdatedAt !== null && …` | 5 — the gate's override row, `computeNetWorth`'s and `resolveStartingNetPosition`'s "states the total", the store-hydration row, and `useDashboard`'s. Nothing else in 2706 moves. |
+| Drop provenance entirely, `Number.isFinite(rate) && rate > 0` | 17 — every refusal row in both resolver tables, N4's pill and frame rows, the hook's two provenance tests, and the fresh-install row that hydrates the real store. |
+
+The second row is the one that matters for the fear this widening raises. `INITIAL_STATE` is not
+copied into a fixture to prove it: `__tests__/currency.store.test.ts` builds the real store over an
+empty repository and asks the real predicate, before and after `loadRate`.
+
+`isRateUsable` now takes one `RateProvenance` object rather than two positional arguments, and both
+`NetWorthInput` and `StartingNetPositionInput` **extend** that interface. That is not cosmetic: it is
+what made every caller a compile error rather than a silent `false`, which is exactly how a
+provenance source reaches one resolver and not the other. `dashboard.hook.ts` and N4's `ready.hook.ts`
+each select the flag from the currency store alongside the marker.
+
+This ticket's guarantee was scoped to `computeNetWorth`'s consumers, and the two sites that kept
+"the dashboard never shows an unverified-rate number" false were fenced to #257: `account_card.tsx`
+converted a USD balance at the raw rate, and `hero_card.tsx` printed the rate itself one line under
+the refusal. **The user lifted that fence at P8 cycle 2 ("fix all to the end"), and both are closed
+here**, because each contradicted a refusal rendered on the same screen — `$100` as `5,000 EGP`
+beneath "Exchange rate needed" on the accounts tab, and `1 USD = 50.00 EGP` beneath it on the hero.
+
+Provenance is decided once, in `dashboard.hook.ts`, by the same `isRateUsable` call that feeds
+`computeNetWorth`, and passed down to the account cards as a boolean. It is never re-derived at a
+display layer as `rate > 0`: `INITIAL_STATE.rate` is 50, so that check calls the placeholder usable.
+Only the converted "In EGP" row is gated; the native-currency rows need no rate. #257's remaining
+concerns at that line are untouched, as are `computeLiquidityBreakdown` and
+`computeLiabilitiesBreakdown` (#259).
+
+### What chunk 2 settled that the above does not already say
+
+**`countForeignAccounts` moved into the accounts domain, and is NOT re-exported from onboarding.**
+The gate needs a foreign count, so `computeNetWorth` consumes it, and re-exporting it from
+`starting_net_position.ts` would let the dashboard reach it *through* the onboarding domain — the one
+direction the hoist exists to forbid, for exactly the reason that file's own comment already gives
+about the sign resolver. Its two onboarding importers were repointed at the accounts path instead. It
+cannot call `selectActiveAccounts`, which stays in onboarding and has no dashboard consumer, so it
+filters `is_archived` inline; behaviour is identical and the archived case is its regression signal.
+
+That argument is about DIRECTION and settles nothing about the barrel: every one of these imports
+reaches `domain/` past `src/modules/accounts/index.ts:1`, which declares the module's public API to be
+"store, UI components, shared types only", and this diff takes that bypass from 2 deep imports to 8.
+Widening the barrel is audit M2's work (effort L, unscheduled) — no import here changes for it.
+
+**The supported-currency vocabulary is a single encoding too, and it is own-property only.**
+`assertSupportedCurrency`, its `CURRENCY_LOOKUP` and their 11-line comment were byte-identical in
+`account_aggregation.ts` and `starting_net_position.ts`, differing only in the thrown class. The
+lookup and the membership test now live once as `isSupportedCurrency`; each domain keeps its own
+two-line throw, because spec §6 requires the thrown TYPE to name its domain and four test files
+assert `StartingNetPositionError` by name. The test is `Object.hasOwn`, not an index read: the old
+`CURRENCY_LOOKUP[currency] !== undefined` resolved through the prototype chain, so `constructor`,
+`toString` and every other `Object.prototype` member answered "supported" and was summed as base
+currency. Unreachable behind migration 001's `CHECK(currency IN ('EGP','USD'))`, and one word to
+close.
+
+**`isRateUsable` is the single encoding of the gate, adopted at both call sites in the same chunk.**
+Shipping a shared predicate and leaving N4's inline copy beside it would reproduce, for the rate,
+precisely the defect this ticket removes for the sign — so the swap at `resolveStartingNetPosition`
+is part of the same diff rather than a follow-up. The gate now cannot drift the way the sign rule did.
+
+**An archived USD wallet must not force a refusal on a portfolio with nothing left to convert.**
+`computeNetWorth` drops archived rows before the foreign count as well as before the arithmetic — but
+the ORDER is not what defends that, and an earlier draft of this section claimed it was.
+`countForeignAccounts` filters `is_archived` itself (`account_aggregation.ts:123-125`), so handing it
+the unfiltered array returns the identical count and every row stays green. The two filters are
+defence in depth, and `resolveStartingNetPosition` composes exactly the same pair
+(`starting_net_position.ts:120-125`); neither is redundant to delete.
+
+The regression signal for the inline filter is `__tests__/accounts/account_aggregation.test.ts`'s
+"never counts an archived account", and it is the only one: deleting that predicate alone leaves the
+entire dashboard table green. `computeNetWorth`'s own filter has two signals, both in
+`dashboard_helpers.test.ts` — the archived-credit-card row, whose 50000 flips the total, and the
+archived-USD-wallet row, which is redundant with it rather than near-vacuous. Deleting
+`dashboard.helpers.ts:63` alone puts the wallet into the arithmetic at `1000 + roundMoney(500 * 50)`,
+so that row reports `assetsEgp` and `netWorthEgp` of 26000 against 1000 expected. Its `kind` stays
+`amount` — flipping it to `rate-needed` is what would need both filters gone — but the whole-object
+`toStrictEqual` has already failed on the value.
 
 ## 5. The reversed contract
 
@@ -165,3 +322,24 @@ Both were measured against the shipped `roundMoney` rather than asserted from me
   can never fail. Each `-0` site needs its own fixture, per the prior ADR §4, and array order is part
   of the contract: a body that grouped or sorted rows first, or that derived `netWorthEgp` as
   `assetsEgp − liabilitiesEgp`, would make both rows tautologies.
+
+## 7. This repository is a shallow clone, and `git log` lies past its boundary
+
+The verification environment for this ticket is a shallow clone.
+`git rev-parse --is-shallow-repository` returns `true`, `.git/shallow` contains the single commit
+`3e5c9fb`, and `git log --oneline | wc -l` counts 66 on this branch. Everything before that boundary
+is absent, not merely unlisted.
+
+`git log -S`, `git log --follow` and `git log -- <path>` do not report that. They terminate at the
+boundary and attribute what they cannot see to the boundary commit — so **every** `usd_rate*` key
+looks introduced by `3e5c9fb`, and `currency.store.ts` looks created by it. Both are false, and both
+were stated as findings in a review of this diff, which then closed a real user-data defect as
+unreachable on that basis.
+
+Rules that follow, for anyone verifying here:
+
+- A history claim is not evidence in this environment. `git fetch --unshallow` first, or answer from
+  artifacts that live in the tree — migrations, ADRs, tests, PR numbers in commit messages.
+- "No commit introduced X before Y" and "no user can have this data" are the two conclusions this
+  trap produces, and they are the two that damage users when wrong. Neither may rest on a log read
+  here.

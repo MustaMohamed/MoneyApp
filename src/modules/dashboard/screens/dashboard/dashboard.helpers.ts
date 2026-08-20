@@ -1,5 +1,10 @@
 import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import {
+  assertSupportedCurrency,
+  countForeignAccounts,
+  type DashboardNetWorth,
+  isRateUsable,
+  type NetWorthInput,
   normalizeNegativeZero,
   resolveAccountAggregationSign,
 } from '@/modules/accounts/domain/account_aggregation';
@@ -12,26 +17,26 @@ import type {
 } from '@/modules/dashboard/database/dashboard_snapshot';
 import { roundMoney } from '@/utils/money';
 
-export interface NetWorthResult {
-  assetsEgp: number;
-  assetsUsd: number;
-  liabilitiesEgp: number;
-  netWorthEgp: number;
-  netWorthUsd: number;
-}
-
 /**
  * `round2( Σ sign × round2(converted current_balance) )`, over non-archived
  * accounts, in array order.
  *
- * **EGP is the base currency — a precondition, not an assumption.** The
- * dashboard has no base at all: `base_currency` is written at
- * `onboarding.repository.ts:34` and read nowhere on this path, this function
- * takes no base parameter, and every output field is named `*Egp`. So USD
+ * **EGP is the storage currency; `base_currency` is a reporting currency this
+ * function does not yet honour.** The gate-1 product decision recorded at
+ * `docs/scopes/MA-onboarding-redesign/scope.md:46` treats the N1 currency
+ * choice as a display promise, not an architecture change — honest under the
+ * current EGP-storage app, but a promise this function does not keep: it
+ * hardcodes `Currency.EGP` as both the summation target and the rate-gate
+ * reference (see below), takes no `baseCurrency` parameter, and every output
+ * field is named `*Egp`, though `base_currency` is written at
+ * `onboarding.repository.ts:34` and read nowhere on this path. So USD
  * balances MULTIPLY by the rate (`exchange_rate` is EGP per USD) and the two
- * `*Usd` fields divide. Adding a divide branch or a `baseCurrency` parameter
- * would create a path no supported input reaches; supporting a USD base is
- * audit M28's work and out of scope for #255.
+ * `*Usd` fields divide, regardless of which currency the user chose at N1. A
+ * USD-base user with a USD-only portfolio and no saved rate is refused a
+ * total for a conversion their portfolio does not need. Closing the gap needs
+ * a `baseCurrency` parameter, a shared conversion with N4's resolver, and the
+ * `*Egp`-named fields and their consuming labels renamed — audit M28's work,
+ * not done here.
  *
  * Reads `current_balance`, unlike N4's `resolveStartingNetPosition`, which
  * reads `opening_balance` — that difference is deliberate and unchanged here.
@@ -44,8 +49,46 @@ export interface NetWorthResult {
  * route has to reopen this contract and this comment, not just widen a query.
  * M12's other half, the archive-confirmation copy that contradicts the current
  * behaviour, is untouched by #255.
+ *
+ * A rate counts as usable only when it is finite AND positive AND its
+ * provenance is known — a verification marker or the user's own manual-override
+ * flag (`isRateUsable`, which owns that disjunction for this function and N4
+ * alike). It is REQUIRED only when at least one non-archived account is
+ * foreign. Required and unusable is the `rate-needed` outcome — never a
+ * substituted rate, a zero, or a partial total.
+ *
+ * Whether the EGP total can be stated and whether the `~USD` equivalent can be
+ * stated are two questions with two answers. The EGP total needs a rate only
+ * when something is foreign; the `~USD` equivalent needs a verified rate ALWAYS,
+ * because the conversion is the whole point of it. So on the amount path
+ * `assetsUsd` and `netWorthUsd` are `undefined` exactly when the rate is
+ * unusable.
  */
-export function computeNetWorth(accounts: Account[], rate: number): NetWorthResult {
+export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
+  const { accounts, rate } = input;
+
+  // Archived rows are dropped BEFORE every other step, the foreign count
+  // included: an archived USD wallet must not force a refusal on a portfolio
+  // that has nothing left to convert.
+  const activeAccounts = accounts.filter((a) => !a.is_archived);
+  for (const a of activeAccounts) {
+    assertSupportedCurrency(a.currency);
+  }
+
+  // `Currency.EGP` is named here rather than taken as a parameter: this
+  // function still treats EGP as the only base it aggregates against.
+  // `base_currency` is a reporting currency per the gate-1 decision
+  // (`docs/scopes/MA-onboarding-redesign/scope.md:46`), which this function
+  // does not yet honour — a USD-base user is gated on a currency they did not
+  // choose. Audit M28 owns closing this gap.
+  const foreignCount = countForeignAccounts(activeAccounts, Currency.EGP);
+  // `input` itself, not a re-assembled literal: `NetWorthInput` extends
+  // `RateProvenance`, so a provenance field added there cannot be dropped here.
+  const rateUsable = isRateUsable(input);
+  if (foreignCount >= 1 && !rateUsable) {
+    return { kind: 'rate-needed', foreignCount };
+  }
+
   let assetsEgp = 0;
   let liabilitiesEgp = 0;
   // Accumulated separately rather than derived as `assetsEgp - liabilitiesEgp`:
@@ -54,11 +97,7 @@ export function computeNetWorth(accounts: Account[], rate: number): NetWorthResu
   // everywhere else.
   let netWorthEgp = 0;
 
-  for (const a of accounts) {
-    if (a.is_archived) {
-      continue;
-    }
-
+  for (const a of activeAccounts) {
     const converted = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
     // Round each converted value, then round once more at the sum — never
     // sum-then-round: 0.502 USD at rate 2 is 1.004, so two of them are 2.00
@@ -82,17 +121,22 @@ export function computeNetWorth(accounts: Account[], rate: number): NetWorthResu
   // -2.7755575615628914e-17, which divides to -5.551115123125783e-19 and
   // rounds to -0. Dividing the already-normalised value would yield +0 and
   // make the suite's negative-zero assertion unfalsifiable.
-  const assetsUsd = rate > 0 ? assetsEgp / rate : 0;
-  const netWorthUsd = rate > 0 ? netWorthEgp / rate : 0;
+  //
+  // `undefined` when the rate is unusable, never `?? 0` and never a substituted
+  // rate: `formatAmount(0)` renders a wrong number rather than an absent one.
+  const assetsUsd = rateUsable ? assetsEgp / rate : undefined;
+  const netWorthUsd = rateUsable ? netWorthEgp / rate : undefined;
 
   // `normalizeNegativeZero` is the LAST operation before any of these reaches a
   // formatter — `Intl.NumberFormat` renders `-0` as "-0".
   return {
+    kind: 'amount',
     assetsEgp: normalizeNegativeZero(roundMoney(assetsEgp)),
-    assetsUsd: normalizeNegativeZero(roundMoney(assetsUsd)),
     liabilitiesEgp: normalizeNegativeZero(roundMoney(liabilitiesEgp)),
     netWorthEgp: normalizeNegativeZero(roundMoney(netWorthEgp)),
-    netWorthUsd: normalizeNegativeZero(roundMoney(netWorthUsd)),
+    assetsUsd: assetsUsd === undefined ? undefined : normalizeNegativeZero(roundMoney(assetsUsd)),
+    netWorthUsd:
+      netWorthUsd === undefined ? undefined : normalizeNegativeZero(roundMoney(netWorthUsd)),
   };
 }
 

@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type {
   DashboardLoadInput,
@@ -57,6 +58,15 @@ jest.mock('@/modules/currency/store/currency.store', () => ({
 jest.mock('@/modules/transactions/store/transaction.store', () => ({
   useTransactionStore: jest.fn(),
 }));
+
+function amountNetWorth(
+  netWorth: DashboardNetWorth,
+): Extract<DashboardNetWorth, { kind: 'amount' }> {
+  if (netWorth.kind !== 'amount') {
+    throw new Error(`expected an amount outcome, got "${netWorth.kind}"`);
+  }
+  return netWorth;
+}
 
 const ensureSnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const refreshSnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
@@ -184,6 +194,10 @@ let dashboardUiState: {
 let currencyState: {
   rate: number;
   isManualOverride: boolean;
+  // The STORE's field name, not the hook's local alias: `attachMockSelectorStore`
+  // hands this object to the real selector, which reads `s.rate_updated_at`. The
+  // rename to `rateUpdatedAt` happens inside the hook and never reaches here.
+  rate_updated_at: string | null;
 };
 
 let transactionStoreState: {
@@ -222,6 +236,12 @@ beforeEach(() => {
   currencyState = {
     rate: 50,
     isManualOverride: false,
+    // Not optional: `populatedSnapshot()` carries a USD bank account, so under
+    // the rate-provenance gate this snapshot REFUSES without a marker and every
+    // numeric assertion below goes red. Omitting it yields `undefined`, and
+    // `undefined !== null` is true — the gate would open on a marker that was
+    // never set. Fixed ISO literal, never `new Date()`.
+    rate_updated_at: '2026-07-20T09:00:00.000Z',
   };
   transactionStoreState = {
     mutationVersion: 0,
@@ -325,6 +345,7 @@ describe('useDashboard', () => {
     expect(result.current.state.accounts).toBe(currentSnapshot?.accounts);
     expect(result.current.state.statsMap).toBe(currentSnapshot?.statsMap);
     expect(result.current.state.netWorth).toMatchObject({
+      kind: 'amount',
       assetsEgp: 5000,
       liabilitiesEgp: 1000,
       netWorthEgp: 4000,
@@ -433,13 +454,61 @@ describe('useDashboard', () => {
   it('re-derives currency values without starting a snapshot request', async () => {
     const { result, rerender } = await renderHook(() => useDashboard());
 
-    expect(result.current.state.netWorth.assetsEgp).toBe(5000);
+    expect(amountNetWorth(result.current.state.netWorth).assetsEgp).toBe(5000);
     currencyState.rate = 55;
     await rerender({});
 
-    expect(result.current.state.netWorth.assetsEgp).toBe(5500);
+    expect(amountNetWorth(result.current.state.netWorth).assetsEgp).toBe(5500);
     expect(ensureSnapshot).not.toHaveBeenCalled();
     expect(refreshSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('refuses a net worth outright when the USD account has no verified rate', async () => {
+    // The whole point of the gate: `populatedSnapshot()`'s USD bank account
+    // cannot be converted at a rate nobody verified, so there is no number to
+    // render — not a partial total, not a zero, not the placeholder 50.
+    currencyState.rate_updated_at = null;
+
+    const { result } = await renderHook(() => useDashboard());
+
+    expect(result.current.state.netWorth).toStrictEqual({
+      kind: 'rate-needed',
+      foreignCount: 1,
+    });
+  });
+
+  it('publishes rate provenance so no surface re-derives it', async () => {
+    // The account cards convert USD balances of their own, and the strip above
+    // them refuses. Both must answer to the SAME question, decided here: a
+    // display layer re-asking it as `rate > 0` says "usable" of the placeholder
+    // 50, which is how `$100` came to render as `5,000 EGP` under "Exchange rate
+    // needed".
+    const verified = await renderHook(() => useDashboard());
+    expect(verified.result.current.state.isRateUsable).toBe(true);
+
+    currencyState.rate_updated_at = null;
+    const unverified = await renderHook(() => useDashboard());
+
+    expect(unverified.result.current.state.isRateUsable).toBe(false);
+  });
+
+  it('publishes a manual rate that predates the marker as usable', async () => {
+    // The pre-#85 manual user reaching the screen: they typed a rate into
+    // Settings, `usd_rate_manual_override` is 'true', and `usd_rate_updated_at`
+    // never existed to be written. Under the narrow gate this dashboard refused
+    // forever while Settings showed them their own rate with the override badge
+    // on.
+    //
+    // The fixture rate is the same 50 the test two above refuses, and that is
+    // the point of the pair: identical rate, identical null marker, and the ONLY
+    // difference is the flag saying the user supplied it.
+    currencyState.rate_updated_at = null;
+    currencyState.isManualOverride = true;
+
+    const { result } = await renderHook(() => useDashboard());
+
+    expect(result.current.state.isRateUsable).toBe(true);
+    expect(amountNetWorth(result.current.state.netWorth).assetsEgp).toBe(5000);
   });
 
   it('retains Dashboard navigation and UI actions', async () => {
