@@ -109,8 +109,10 @@ export interface RateProvenance {
 /**
  * A single object parameter rather than positional arguments, matching
  * `StartingNetPositionInput` so the two resolvers read alike. There is no
- * `baseCurrency` field: EGP base is `computeNetWorth`'s documented precondition
- * and must not become a parameter (spec §2a).
+ * `baseCurrency` field: EGP is the storage currency, and `base_currency` is a
+ * reporting currency per the gate-1 decision at
+ * `docs/scopes/MA-onboarding-redesign/scope.md:46` that `computeNetWorth`
+ * does not yet honour — a gap audit M28 owns, not a choice this shape makes.
  */
 export interface NetWorthInput extends RateProvenance {
   /** May contain archived rows — the resolver filters them itself. */

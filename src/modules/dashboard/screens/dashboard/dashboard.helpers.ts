@@ -21,14 +21,22 @@ import { roundMoney } from '@/utils/money';
  * `round2( Σ sign × round2(converted current_balance) )`, over non-archived
  * accounts, in array order.
  *
- * **EGP is the base currency — a precondition, not an assumption.** The
- * dashboard has no base at all: `base_currency` is written at
- * `onboarding.repository.ts:34` and read nowhere on this path, this function
- * takes no base parameter, and every output field is named `*Egp`. So USD
+ * **EGP is the storage currency; `base_currency` is a reporting currency this
+ * function does not yet honour.** The gate-1 product decision recorded at
+ * `docs/scopes/MA-onboarding-redesign/scope.md:46` treats the N1 currency
+ * choice as a display promise, not an architecture change — honest under the
+ * current EGP-storage app, but a promise this function does not keep: it
+ * hardcodes `Currency.EGP` as both the summation target and the rate-gate
+ * reference (see below), takes no `baseCurrency` parameter, and every output
+ * field is named `*Egp`, though `base_currency` is written at
+ * `onboarding.repository.ts:34` and read nowhere on this path. So USD
  * balances MULTIPLY by the rate (`exchange_rate` is EGP per USD) and the two
- * `*Usd` fields divide. Adding a divide branch or a `baseCurrency` parameter
- * would create a path no supported input reaches; supporting a USD base is
- * audit M28's work and out of scope for #255.
+ * `*Usd` fields divide, regardless of which currency the user chose at N1. A
+ * USD-base user with a USD-only portfolio and no saved rate is refused a
+ * total for a conversion their portfolio does not need. Closing the gap needs
+ * a `baseCurrency` parameter, a shared conversion with N4's resolver, and the
+ * `*Egp`-named fields and their consuming labels renamed — audit M28's work,
+ * not done here.
  *
  * Reads `current_balance`, unlike N4's `resolveStartingNetPosition`, which
  * reads `opening_balance` — that difference is deliberate and unchanged here.
@@ -67,8 +75,12 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
     assertSupportedCurrency(a.currency);
   }
 
-  // `Currency.EGP` is named here rather than taken as a parameter: EGP base is
-  // this function's documented precondition (above), not a choice.
+  // `Currency.EGP` is named here rather than taken as a parameter: this
+  // function still treats EGP as the only base it aggregates against.
+  // `base_currency` is a reporting currency per the gate-1 decision
+  // (`docs/scopes/MA-onboarding-redesign/scope.md:46`), which this function
+  // does not yet honour — a USD-base user is gated on a currency they did not
+  // choose. Audit M28 owns closing this gap.
   const foreignCount = countForeignAccounts(activeAccounts, Currency.EGP);
   // `input` itself, not a re-assembled literal: `NetWorthInput` extends
   // `RateProvenance`, so a provenance field added there cannot be dropped here.

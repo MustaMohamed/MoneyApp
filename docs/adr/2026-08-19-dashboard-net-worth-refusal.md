@@ -71,6 +71,22 @@ nothing upstream supplies.
 The precondition is now written on the function instead of assumed. Supporting a USD base is audit
 M28's work.
 
+**Superseded 2026-08-20.** An earlier draft of this section treated "EGP base is a precondition" as
+the closing word on the question — correct as a description of what the code does today, wrong as a
+claim about what is architecturally settled. Gate 1 of MA-onboarding-redesign, approved 2026-08-06,
+records `base_currency` as a REPORTING currency by product decision
+(`docs/scopes/MA-onboarding-redesign/scope.md:46`: "each option states a display consequence... That
+is the cheap answer, and it is honest under the current architecture where EGP is the storage
+currency"). EGP is the storage currency; `base_currency` is a separate, later-approved product
+decision about what a user is shown; `computeNetWorth` does not yet honour it. The gap this section's
+withdrawal leaves open is not closed by this diff: a USD-base user with a USD-only portfolio and no
+saved rate is refused a total for a conversion their portfolio does not need — gated against a
+currency they did not choose. Closing it needs this function to take `baseCurrency`, share one
+conversion with N4's resolver, and rename the five `*Egp` label sites and field names that assume it.
+That is audit M28's work, tracked separately. This section is left in place as the record of what P1
+approved and why the divide branch was withdrawn then; the withdrawal of that P1 item stands, the
+"precondition, not a bug" framing for it does not.
+
 ## 3. Chunk 1 keeps the return shape unchanged
 
 The sign, rounding and archived work ships behind an identical five-field `NetWorthResult` and an
