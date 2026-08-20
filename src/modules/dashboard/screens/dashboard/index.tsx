@@ -164,8 +164,7 @@ export default function DashboardScreen() {
                   <>
                     <Animated.View style={heroStyle}>
                       <HeroCard
-                        assetsEgp={state.netWorth.assetsEgp}
-                        assetsUsd={state.netWorth.assetsUsd}
+                        netWorth={state.netWorth}
                         rate={state.rate}
                         isManualOverride={state.isManualOverride}
                         assetsCount={state.accountCounts.assets}
@@ -177,9 +176,7 @@ export default function DashboardScreen() {
 
                     <Animated.View entering={statsEntering}>
                       <StatCards
-                        netWorthEgp={state.netWorth.netWorthEgp}
-                        assetsEgp={state.netWorth.assetsEgp}
-                        liabilitiesEgp={state.netWorth.liabilitiesEgp}
+                        netWorth={state.netWorth}
                         assetsCount={state.accountCounts.assets}
                         liabilitiesCount={state.accountCounts.liabilities}
                         monthSpentEgp={state.monthSpend.currentEgp}
@@ -221,7 +218,7 @@ export default function DashboardScreen() {
                 ) : (
                   <>
                     <TotalBalanceStrip
-                      assetsEgp={state.netWorth.assetsEgp}
+                      netWorth={state.netWorth}
                       accountsCount={totalAccountsCount}
                     />
                     {visibleTypes.map((type, index) => (
@@ -234,6 +231,7 @@ export default function DashboardScreen() {
                           type={type}
                           accounts={state.groupedAccounts[type] ?? []}
                           rate={state.rate}
+                          isRateUsable={state.isRateUsable}
                           statsMap={state.statsMap}
                           onAccountPress={goToAccount}
                           onAddPress={goToAddAccount}
@@ -263,11 +261,7 @@ export default function DashboardScreen() {
         onOpenChange={(open) => {
           if (!open) setBreakdownVisible(false);
         }}
-        assetsEgp={state.netWorth.assetsEgp}
-        liabilitiesEgp={state.netWorth.liabilitiesEgp}
-        netWorthEgp={state.netWorth.netWorthEgp}
-        netWorthUsd={state.netWorth.netWorthUsd}
-        rate={state.rate}
+        netWorth={state.netWorth}
         liquidity={state.liquidity}
         liabilities={state.liabilities}
       />

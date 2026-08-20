@@ -1,4 +1,8 @@
 import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import {
+  AccountAggregationError,
+  type DashboardNetWorth,
+} from '@/modules/accounts/domain/account_aggregation';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   buildDashboardBudgetSummary,
@@ -9,7 +13,6 @@ import {
   computeLiquidityBreakdown,
   computeNetWorth,
   groupAccountsByType,
-  type NetWorthResult,
   reduceDashboardTransactionFacts,
 } from '@/modules/dashboard/screens/dashboard/dashboard.helpers';
 import type { Account } from '@/store/account.store';
@@ -56,11 +59,25 @@ const makePayment = (overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
   ...overrides,
 });
 
+// Time is an input, never `new Date()`. The gate reads only whether this marker
+// is null — a non-null value means a fetch or a manual save actually wrote this
+// rate. The other provenance source, `isManualOverride`, is false on every row
+// of the table below and has its own describe further down.
+const VERIFIED = '2026-08-18T09:00:00.000Z';
+
+function amount(outcome: DashboardNetWorth): Extract<DashboardNetWorth, { kind: 'amount' }> {
+  if (outcome.kind !== 'amount') {
+    throw new Error(`expected an amount outcome, got "${outcome.kind}"`);
+  }
+  return outcome;
+}
+
 interface NetWorthRow {
   case: string;
   accounts: Account[];
   rate: number;
-  expected: NetWorthResult;
+  rateUpdatedAt: string | null;
+  expected: DashboardNetWorth;
 }
 
 // Every `expected` is a LITERAL: nothing here is re-derived through `roundMoney`
@@ -70,23 +87,105 @@ interface NetWorthRow {
 //
 // EGP is this function's base currency (see its doc comment), so USD balances
 // MULTIPLY by the rate and the `~USD` fields divide.
+//
+// EVERY row states `rateUpdatedAt` explicitly, including the rows that do not
+// need a rate: three of them carry `null` and still expect an amount, so
+// deleting the `foreignCount >= 1 &&` conjunct from the gate turns all three red
+// instead of leaving the suite green over a refusal nobody asked for.
 const NET_WORTH_ROWS: readonly NetWorthRow[] = [
   {
-    case: 'no accounts at all; the helper is total',
-    accounts: [],
-    rate: 50,
-    expected: { assetsEgp: 0, assetsUsd: 0, liabilitiesEgp: 0, netWorthEgp: 0, netWorthUsd: 0 },
-  },
-  {
-    case: 'an EGP-only portfolio; nothing is converted',
+    // Row 1 keeps its USD numbers because its marker is VERIFIED — which is what
+    // makes `assetsUsd: 200` legitimate rather than a rate-50 guess asserted
+    // inside the suite meant to forbid guesses.
+    case: 'an EGP-only portfolio with a verified rate; nothing is converted, the ~USD line still fills in',
     accounts: [makeAccount({ current_balance: 10000 })],
     rate: 50,
+    rateUpdatedAt: VERIFIED,
     expected: {
+      kind: 'amount',
       assetsEgp: 10000,
-      assetsUsd: 200,
       liabilitiesEgp: 0,
       netWorthEgp: 10000,
+      assetsUsd: 200,
       netWorthUsd: 200,
+    },
+  },
+  {
+    // The largest affected population: a fresh install that has never fetched a
+    // rate. The EGP total is stated normally; the ~USD equivalent is ABSENT, not
+    // a placeholder-rate guess. Populate `assetsUsd` from `rate` unconditionally
+    // and only this row and the two below it fail — repo policy forbids catching
+    // it in a render test, so if this table does not catch it nothing does.
+    case: 'an EGP-only portfolio whose rate was never verified; the ~USD fields are absent',
+    accounts: [makeAccount({ current_balance: 12000 })],
+    rate: 50,
+    rateUpdatedAt: null,
+    expected: {
+      kind: 'amount',
+      assetsEgp: 12000,
+      liabilitiesEgp: 0,
+      netWorthEgp: 12000,
+      assetsUsd: undefined,
+      netWorthUsd: undefined,
+    },
+  },
+  {
+    case: 'no accounts at all; the helper is total, and an unusable rate is irrelevant',
+    accounts: [],
+    rate: 50,
+    rateUpdatedAt: null,
+    expected: {
+      kind: 'amount',
+      assetsEgp: 0,
+      liabilitiesEgp: 0,
+      netWorthEgp: 0,
+      assetsUsd: undefined,
+      netWorthUsd: undefined,
+    },
+  },
+  {
+    // The COMPOSED outcome: an archived foreign row leaves the count, so an
+    // unverified rate is irrelevant and this is an amount rather than a refusal.
+    // It is NOT the signal for the filter/count ordering, which an earlier
+    // version of this comment claimed: `countForeignAccounts` filters
+    // `is_archived` itself, so handing it the unfiltered array returns the same
+    // `0` and this row stays green. The two filters are defence in depth and
+    // `resolveStartingNetPosition` composes the same pair.
+    //
+    // What this row guards, measured by mutation rather than argued: it is a
+    // SECOND signal for `computeNetWorth`'s own archived filter, alongside the
+    // archived-card row below. Delete that filter alone
+    // (`dashboard.helpers.ts:63`) and the wallet enters the arithmetic at
+    // `1000 + roundMoney(500 * 50)`, so this row reports `assetsEgp` and
+    // `netWorthEgp` of 26000 against 1000 expected. It is INSENSITIVE to
+    // `countForeignAccounts`'s inline filter in isolation: delete that one alone
+    // and this whole table stays green, with only `account_aggregation.test.ts`'s
+    // "never counts an archived account" going red. Losing both filters would
+    // additionally flip `kind` to `rate-needed`, but that is a stricter
+    // condition than this row needs — the whole-object `toStrictEqual` has
+    // already failed on the value.
+    //
+    // The marker must stay `null`: with a verified rate the refusal branch is
+    // unreachable and the row would prove nothing about the foreign count.
+    case: 'an archived USD wallet leaves the foreign count, so an unverified rate is still irrelevant',
+    accounts: [
+      makeAccount({ current_balance: 1000 }),
+      makeAccount({
+        type: AccountType.SmartWallet,
+        currency: Currency.USD,
+        current_balance: 500,
+        is_archived: 1,
+      }),
+    ],
+    rate: 50,
+    rateUpdatedAt: null,
+    expected: {
+      kind: 'amount',
+      assetsEgp: 1000,
+      liabilitiesEgp: 0,
+      netWorthEgp: 1000,
+      assetsUsd: undefined,
+      netWorthUsd: undefined,
     },
   },
   {
@@ -97,11 +196,13 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       makeAccount({ type: AccountType.CreditCard, current_balance: 8450 }),
     ],
     rate: 48.6,
+    rateUpdatedAt: VERIFIED,
     expected: {
+      kind: 'amount',
       assetsEgp: 113860,
-      assetsUsd: 2342.8,
       liabilitiesEgp: 8450,
       netWorthEgp: 105410,
+      assetsUsd: 2342.8,
       netWorthUsd: 2168.93,
     },
   },
@@ -109,9 +210,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     // The conversion and the sign land on the SAME account here, and nowhere
     // else in this table. Cards otherwise appear only in EGP and USD only in
     // wallets, so a body reading `currency === USD && type !== CreditCard`
-    // passes every other row — in the chunk whose whole purpose is routing sign
-    // and conversion through one resolver. No two fields of this row collide
-    // either: a missed conversion gives netWorthEgp 4900, a flipped sign 9860.
+    // passes every other row. No two fields of this row collide either: a missed
+    // conversion gives netWorthEgp 4900, a flipped sign 9860.
     case: 'a USD CREDIT CARD — converted and subtracted on the same row',
     accounts: [
       makeAccount({ current_balance: 5000 }),
@@ -122,11 +222,13 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       }),
     ],
     rate: 48.6,
+    rateUpdatedAt: VERIFIED,
     expected: {
+      kind: 'amount',
       assetsEgp: 5000,
-      assetsUsd: 102.88,
       liabilitiesEgp: 4860,
       netWorthEgp: 140,
+      assetsUsd: 102.88,
       netWorthUsd: 2.88,
     },
   },
@@ -134,11 +236,13 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     case: 'a single credit card, so the whole position is owed',
     accounts: [makeAccount({ type: AccountType.CreditCard, current_balance: 8450 })],
     rate: 50,
+    rateUpdatedAt: VERIFIED,
     expected: {
+      kind: 'amount',
       assetsEgp: 0,
-      assetsUsd: 0,
       liabilitiesEgp: 8450,
       netWorthEgp: -8450,
+      assetsUsd: 0,
       netWorthUsd: -169,
     },
   },
@@ -152,11 +256,13 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       makeAccount({ type: AccountType.CreditCard, current_balance: 50000, is_archived: 1 }),
     ],
     rate: 50,
+    rateUpdatedAt: VERIFIED,
     expected: {
+      kind: 'amount',
       assetsEgp: 1000,
-      assetsUsd: 20,
       liabilitiesEgp: 0,
       netWorthEgp: 1000,
+      assetsUsd: 20,
       netWorthUsd: 20,
     },
   },
@@ -179,7 +285,15 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       }),
     ],
     rate: 2,
-    expected: { assetsEgp: 2, assetsUsd: 1, liabilitiesEgp: 0, netWorthEgp: 2, netWorthUsd: 1 },
+    rateUpdatedAt: VERIFIED,
+    expected: {
+      kind: 'amount',
+      assetsEgp: 2,
+      liabilitiesEgp: 0,
+      netWorthEgp: 2,
+      assetsUsd: 1,
+      netWorthUsd: 1,
+    },
   },
   {
     // The ORDER is what produces the residue: 0.30 − 0.10 − 0.20 summed in
@@ -194,30 +308,149 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       makeAccount({ type: AccountType.CreditCard, current_balance: 0.2 }),
     ],
     rate: 50,
+    rateUpdatedAt: VERIFIED,
     expected: {
+      kind: 'amount',
       assetsEgp: 0.3,
-      assetsUsd: 0.01,
       liabilitiesEgp: 0.3,
       netWorthEgp: 0,
+      assetsUsd: 0.01,
       netWorthUsd: 0,
     },
   },
+  {
+    case: 'a USD wallet whose rate marker was never set; no number at all',
+    accounts: [
+      makeAccount({ current_balance: 48250 }),
+      makeAccount({ type: AccountType.SmartWallet, currency: Currency.USD, current_balance: 1350 }),
+    ],
+    rate: 48.6,
+    rateUpdatedAt: null,
+    expected: { kind: 'rate-needed', foreignCount: 1 },
+  },
+  {
+    // A refusal member hardcoding `foreignCount: 1` survives every other row.
+    case: 'TWO unverified USD wallets — the refusal reports how many, not whether',
+    accounts: [
+      makeAccount({ type: AccountType.SmartWallet, currency: Currency.USD, current_balance: 1000 }),
+      makeAccount({ type: AccountType.SmartWallet, currency: Currency.USD, current_balance: 350 }),
+    ],
+    rate: 48.6,
+    rateUpdatedAt: null,
+    expected: { kind: 'rate-needed', foreignCount: 2 },
+  },
+  ...([0, -1, NaN, Infinity] as const).map((rate) => ({
+    // Same outcome as the null-marker rows, different cause: the marker is
+    // present and the number itself is unusable.
+    case: `a USD wallet at an unusable rate of ${String(rate)}, marker present; no number at all`,
+    accounts: [
+      makeAccount({ current_balance: 48250 }),
+      makeAccount({ type: AccountType.SmartWallet, currency: Currency.USD, current_balance: 1350 }),
+    ],
+    rate,
+    rateUpdatedAt: VERIFIED,
+    expected: { kind: 'rate-needed' as const, foreignCount: 1 },
+  })),
 ];
 
 describe('computeNetWorth', () => {
-  it.each(NET_WORTH_ROWS)('$case', ({ accounts, rate, expected }) => {
-    expect(computeNetWorth(accounts, rate)).toStrictEqual(expected);
+  // `toStrictEqual`, not `toEqual`: an ABSENT `assetsUsd` key must not be
+  // silently equal to an explicit `undefined` one, because the union declares
+  // both USD fields as present-and-possibly-undefined.
+  //
+  // Every row in this table is a NON-override rate, stated here once rather than
+  // on each row: the table enumerates the arithmetic and the refusal, and
+  // the provenance disjunction `isRateUsable` owns — marker OR override — has
+  // its own four-row table in `__tests__/accounts/account_aggregation.test.ts`
+  // plus the two resolver-level rows in the describe below this one. Hardcoding
+  // `false` here is what keeps the null-marker rows above meaningful: with
+  // `true` they would all state amounts and the refusal rows would go green for
+  // the wrong reason.
+  it.each(NET_WORTH_ROWS)('$case', ({ accounts, rate, rateUpdatedAt, expected }) => {
+    expect(
+      computeNetWorth({ accounts, rate, rateUpdatedAt, isManualOverride: false }),
+    ).toStrictEqual(expected);
   });
 
-  // Carried forward from before #255 and still green: chunk 1 keeps the
-  // `rate > 0 ? value / rate : 0` fallback untouched. Chunk 2 retires it, and
-  // what replaces it is NOT a refusal — this fixture is a single EGP account,
-  // so nothing needs converting and the outcome stays an amount
-  // (`assetsEgp: 5000`, `netWorthEgp: 5000`) whose `assetsUsd` and
-  // `netWorthUsd` become `undefined` because the rate is unusable.
-  it('returns netWorthUsd=0 when rate=0 to avoid division by zero', () => {
-    const result = computeNetWorth([makeAccount({ current_balance: 5000 })], 0);
-    expect(result.netWorthUsd).toBe(0);
+  // RETIRED here: `it('returns netWorthUsd=0 when rate=0 to avoid division by
+  // zero')`, which asserted the contract this ticket reverses. What it guarded —
+  // the `rate > 0 ? value / rate : 0` fallback — no longer exists. What replaces
+  // it is NOT a refusal: its fixture was a single EGP bank account at rate 0, so
+  // `foreignCount` is 0, nothing needs converting, and the outcome is an amount
+  // (`assetsEgp: 5000`, `netWorthEgp: 5000`) whose `assetsUsd` and `netWorthUsd`
+  // are `undefined` because the rate is unusable. The EGP-only rows above assert
+  // exactly that shape. Recorded in
+  // `docs/adr/2026-08-19-dashboard-net-worth-refusal.md` §5; not deleted silently
+  // to go green.
+
+  describe('currencies outside EGP | USD throw', () => {
+    const unsupported = 'GBP' as unknown as Currency;
+
+    it('throws on an account currency the schema should never have allowed', () => {
+      expect(() =>
+        computeNetWorth({
+          accounts: [makeAccount({ currency: unsupported, current_balance: 1000 })],
+          rate: 48.6,
+          rateUpdatedAt: VERIFIED,
+          isManualOverride: false,
+        }),
+      ).toThrow(AccountAggregationError);
+    });
+
+    // The guard used to ask `CURRENCY_LOOKUP[currency] !== undefined`, which
+    // resolves through the prototype chain: `constructor` is a member of
+    // `Object.prototype`, so a row carrying it passed the guard and was summed
+    // as an EGP balance.
+    it('throws on an Object.prototype member masquerading as a currency', () => {
+      expect(() =>
+        computeNetWorth({
+          accounts: [
+            makeAccount({
+              currency: 'constructor' as unknown as Currency,
+              current_balance: 1000,
+            }),
+          ],
+          rate: 48.6,
+          rateUpdatedAt: VERIFIED,
+          isManualOverride: false,
+        }),
+      ).toThrow(AccountAggregationError);
+    });
+  });
+});
+
+describe('computeNetWorth — a manual rate carrying no marker', () => {
+  // The pre-#85 manual user, at the resolver that decides what the dashboard
+  // shows: they saved 48 themselves, `usd_rate_manual_override` is 'true', and
+  // no `usd_rate_updated_at` row was ever written because that key did not exist
+  // yet. `shouldRefreshRate` returns false for an override, so nothing repairs
+  // it — the refusal is permanent, and Settings shows them their own 48 the
+  // whole time (ADR 2026-08-19 §4).
+  const accounts: Account[] = [
+    makeAccount({ current_balance: 1000 }),
+    makeAccount({ type: AccountType.Bank, currency: Currency.USD, current_balance: 100 }),
+  ];
+
+  it('states the total, because the user supplied the rate', () => {
+    expect(
+      computeNetWorth({ accounts, rate: 48, rateUpdatedAt: null, isManualOverride: true }),
+    ).toStrictEqual({
+      kind: 'amount',
+      assetsEgp: 5800,
+      liabilitiesEgp: 0,
+      netWorthEgp: 5800,
+      assetsUsd: 120.83,
+      netWorthUsd: 120.83,
+    });
+  });
+
+  it('refuses the identical rate when nothing says where it came from', () => {
+    // The same 48, the same accounts, override false. This is the row that keeps
+    // the widening honest: what changed the answer above is the provenance, not
+    // the number.
+    expect(
+      computeNetWorth({ accounts, rate: 48, rateUpdatedAt: null, isManualOverride: false }),
+    ).toStrictEqual({ kind: 'rate-needed', foreignCount: 1 });
   });
 });
 
@@ -228,24 +461,37 @@ describe('computeNetWorth — negative zero', () => {
   // RAW accumulator by the rate to -5.551115123125783e-19. roundMoney maps both
   // to -0. Divide the already-normalised netWorthEgp instead and the second
   // assertion below can never fail.
+  //
+  // The marker must be VERIFIED, or `netWorthUsd` is `undefined` and the second
+  // assertion becomes vacuous rather than falsifiable — the same trap, one level
+  // up, as dividing the normalised value.
   const negativeZeroAccounts = [
     makeAccount({ current_balance: 0.3 }),
     makeAccount({ type: AccountType.CreditCard, current_balance: 0.1 }),
     makeAccount({ type: AccountType.CreditCard, current_balance: 0.2 }),
   ];
+  const result = () =>
+    amount(
+      computeNetWorth({
+        accounts: negativeZeroAccounts,
+        rate: 50,
+        rateUpdatedAt: VERIFIED,
+        isManualOverride: false,
+      }),
+    );
 
   it('normalises netWorthEgp to +0', () => {
-    expect(Object.is(computeNetWorth(negativeZeroAccounts, 50).netWorthEgp, 0)).toBe(true);
+    expect(Object.is(result().netWorthEgp, 0)).toBe(true);
   });
 
   it('normalises netWorthUsd to +0', () => {
-    expect(Object.is(computeNetWorth(negativeZeroAccounts, 50).netWorthUsd, 0)).toBe(true);
+    expect(Object.is(result().netWorthUsd, 0)).toBe(true);
   });
 
   it('and therefore renders "0", which is what the user sees', () => {
     // A helper-level assertion alone does not catch the render: the bug is
     // Intl's, and it only appears once the number reaches the formatter.
-    expect(formatAmount(computeNetWorth(negativeZeroAccounts, 50).netWorthEgp)).toBe('0');
+    expect(formatAmount(result().netWorthEgp)).toBe('0');
   });
 
   it('while a raw -0 still renders "-0" — the tripwire proving the three above can fail', () => {
@@ -506,9 +752,11 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
       }),
     ];
 
-    const { liabilitiesEgp } = computeNetWorth(accounts, RATE);
+    const { liabilitiesEgp } = amount(
+      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+    );
     const rows = computeLiabilitiesBreakdown(accounts, RATE);
-    // `net_worth_breakdown_sheet.tsx:51` — the footer is a raw reduce over the
+    // `net_worth_breakdown_sheet.tsx:143` — the footer is a raw reduce over the
     // rows, so it inherits whatever the rows carry.
     const totalDebt = rows.reduce((sum, row) => sum + row.balanceEgp, 0);
 
@@ -528,7 +776,9 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
       }),
     ];
 
-    const { assetsEgp } = computeNetWorth(accounts, RATE);
+    const { assetsEgp } = amount(
+      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+    );
     const { liquidEgp, liquidAccounts } = computeLiquidityBreakdown(accounts, RATE);
 
     expect(formatAmount(assetsEgp)).toBe('381');
@@ -550,7 +800,9 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
   it('assets: the liquid tier total is rounded, so the legend agrees with the header', () => {
     const accounts = tenAt5Piastres(AccountType.PhysicalWallet);
 
-    const { assetsEgp } = computeNetWorth(accounts, RATE);
+    const { assetsEgp } = amount(
+      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+    );
     const { liquidEgp } = computeLiquidityBreakdown(accounts, RATE);
 
     expect(liquidEgp).toBe(0.5);
@@ -561,7 +813,9 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
   it('assets: the reserve tier total is rounded on the same contract', () => {
     const accounts = tenAt5Piastres(AccountType.PhysicalSavings);
 
-    const { assetsEgp } = computeNetWorth(accounts, RATE);
+    const { assetsEgp } = amount(
+      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+    );
     const { reserveEgp } = computeLiquidityBreakdown(accounts, RATE);
 
     expect(reserveEgp).toBe(0.5);

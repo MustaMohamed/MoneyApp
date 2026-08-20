@@ -6,7 +6,12 @@ import { View } from 'react-native';
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, Size, Type } from '@/constants/theme';
+import { SemanticTokens } from '@/constants/theme_tokens';
+import type {
+  DashboardNetWorth,
+  DashboardNetWorthAmount,
+} from '@/modules/accounts/domain/account_aggregation';
 import { formatAmount } from '@/utils/format_amount';
 import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
@@ -18,11 +23,12 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 interface NetWorthBreakdownSheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  assetsEgp: number;
-  liabilitiesEgp: number;
-  netWorthEgp: number;
-  netWorthUsd: number;
-  rate: number;
+  /**
+   * One object, not loose numbers: a discriminated union narrows only when the
+   * discriminant and the fields arrive together, and sibling props destructured
+   * in a signature do not narrow each other.
+   */
+  netWorth: DashboardNetWorth;
   liquidity: LiquidityBreakdown;
   liabilities: LiabilityRow[];
 }
@@ -31,17 +37,103 @@ const LIQUID_COLOR = Colors.dark.positive;
 const RESERVE_COLOR = Colors.dark.gold;
 const LIABILITY_COLOR = Colors.dark.negative;
 
+/**
+ * On a `rate-needed` outcome this renders the refusal and NOTHING ELSE.
+ *
+ * `computeLiquidityBreakdown` and `computeLiabilitiesBreakdown` still take the
+ * raw `rate` and never see `rateUpdatedAt` — chunk 1 rounded them, it did not
+ * gate them — so rendering the body underneath a refused headline would print
+ * `100 × 50 = 5000 EGP` computed from the placeholder rate the headline just
+ * refused to use. Suppressing the body closes that incoherence without touching
+ * either helper.
+ *
+ * What those two still owe is PROVENANCE gating: reading `rateUpdatedAt` and
+ * refusing through `isRateUsable`, the way `computeNetWorth` does. #259 owns
+ * that — its scope is widened from rounding contracts to name rate provenance
+ * as well — and spec §3b holds this chunk to rounding only.
+ */
 export function NetWorthBreakdownSheet({
   isOpen,
   onOpenChange,
-  assetsEgp,
-  liabilitiesEgp,
-  netWorthEgp,
-  netWorthUsd,
-  rate,
+  netWorth,
   liquidity,
   liabilities,
 }: NetWorthBreakdownSheetProps) {
+  return (
+    <Sheet
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      title={Strings.dashboardBreakdownTitle}
+      size="lg"
+      scrollable
+    >
+      <BottomSheetScrollView contentContainerStyle={{ paddingBottom: ms(24) }}>
+        {netWorth.kind === 'rate-needed' ? (
+          <NetWorthRefusalHeadline />
+        ) : (
+          <NetWorthBreakdownBody
+            netWorth={netWorth}
+            liquidity={liquidity}
+            liabilities={liabilities}
+          />
+        )}
+      </BottomSheetScrollView>
+    </Sheet>
+  );
+}
+
+/**
+ * Warning, not danger — nothing failed. No number, no dash-as-number, no partial
+ * total, no substituted rate: the union carries no value on this path, by
+ * construction. Mirrors `ready_hero_card.tsx`'s refusal so the two read as one
+ * app.
+ */
+function NetWorthRefusalHeadline(): React.ReactElement {
+  return (
+    <View className="px-4 pt-2">
+      <Text variant="hint" className="text-muted text-xs tracking-wide uppercase">
+        {Strings.dashboardBreakdownNetWorthLabel}
+      </Text>
+      <View
+        className="mt-1 flex-row items-center"
+        style={{ flexDirection: 'row', gap: ms(8) }}
+        accessible
+        accessibilityLabel={Strings.dashboardRateNeededValue}
+      >
+        <MaterialCommunityIcons
+          name="alert-outline"
+          size={Size.iconMd}
+          color={SemanticTokens.warning}
+        />
+        <Text
+          className="text-warning font-sora-semibold flex-1"
+          style={{ fontSize: Type.headline }}
+        >
+          {Strings.dashboardRateNeededValue}
+        </Text>
+      </View>
+      <Text variant="caption" className="mt-2">
+        {Strings.dashboardRateNeededCaption}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * The amount path's body, kept as a subcomponent rather than an early return:
+ * the eight derivations below then sit INSIDE the narrowing, and the `Sheet`'s
+ * five configuration props and the scroll view's `contentContainerStyle` are
+ * declared once instead of drifting between two returns.
+ */
+function NetWorthBreakdownBody({
+  netWorth,
+  liquidity,
+  liabilities,
+}: {
+  netWorth: DashboardNetWorthAmount;
+  liquidity: LiquidityBreakdown;
+  liabilities: LiabilityRow[];
+}): React.ReactElement {
   const assetsTotal = liquidity.liquidEgp + liquidity.reserveEgp;
   const liquidPct = assetsTotal > 0 ? liquidity.liquidEgp / assetsTotal : 0;
   const reservePct = 1 - liquidPct;
@@ -52,120 +144,119 @@ export function NetWorthBreakdownSheet({
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
 
   return (
-    <Sheet
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      title={Strings.dashboardBreakdownTitle}
-      size="lg"
-      scrollable
-    >
-      <BottomSheetScrollView contentContainerStyle={{ paddingBottom: ms(24) }}>
-        {/* Net Worth headline */}
-        <View className="px-4 pt-2">
-          <Text variant="hint" className="text-muted text-xs tracking-wide uppercase">
-            {Strings.dashboardBreakdownNetWorthLabel}
-          </Text>
-          <Text
-            className="font-sora-bold mt-1"
-            style={{ color: Colors.dark.gold, fontSize: ms(28) }}
+    <>
+      {/* Net Worth headline */}
+      <View className="px-4 pt-2">
+        <Text variant="hint" className="text-muted text-xs tracking-wide uppercase">
+          {Strings.dashboardBreakdownNetWorthLabel}
+        </Text>
+        <Text className="font-sora-bold mt-1" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
+          {formatAmount(netWorth.netWorthEgp)}{' '}
+          <Text className="font-inter-medium text-muted text-base">EGP</Text>
+        </Text>
+        {/* Keyed on the FIELD being absent, not on `rate > 0`:
+              `INITIAL_STATE.rate` is 50, so the old check printed a confident
+              `≈ N USD` computed from the placeholder for every user who had
+              never fetched a rate. No `?? 0` — `formatAmount(0)` renders
+              `≈ 0 USD`, a wrong number rather than an absent one. */}
+        <Text variant="caption" className="text-muted mt-1">
+          {netWorth.netWorthUsd !== undefined
+            ? `≈ ${formatAmount(netWorth.netWorthUsd, 0)} USD`
+            : '— USD'}
+        </Text>
+      </View>
+
+      {/* Divider */}
+      <View className="bg-separator mx-4 my-4 h-px" />
+
+      {/* Assets */}
+      <View className="px-4">
+        <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
+          {Strings.dashAssetsLabel} ·{' '}
+          {Strings.dashboardBreakdownAssetsHeader(
+            formatAmount(netWorth.assetsEgp),
+            assetsAccountCount,
+          )}
+        </Text>
+        {assetsTotal > 0 && (
+          <View
+            className="mb-2 overflow-hidden rounded"
+            style={{ height: ms(6), flexDirection: 'row' }}
           >
-            {formatAmount(netWorthEgp)}{' '}
-            <Text className="font-inter-medium text-muted text-base">EGP</Text>
-          </Text>
-          <Text variant="caption" className="text-muted mt-1">
-            {rate > 0 ? `≈ ${formatAmount(netWorthUsd, 0)} USD` : '— USD'}
-          </Text>
-        </View>
-
-        {/* Divider */}
-        <View className="bg-separator mx-4 my-4 h-px" />
-
-        {/* Assets */}
-        <View className="px-4">
-          <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
-            {Strings.dashAssetsLabel} ·{' '}
-            {Strings.dashboardBreakdownAssetsHeader(formatAmount(assetsEgp), assetsAccountCount)}
-          </Text>
-          {assetsTotal > 0 && (
-            <View
-              className="mb-2 overflow-hidden rounded"
-              style={{ height: ms(6), flexDirection: 'row' }}
-            >
-              {showLiquid && <View style={{ flex: liquidPct, backgroundColor: LIQUID_COLOR }} />}
-              {showReserve && <View style={{ flex: reservePct, backgroundColor: RESERVE_COLOR }} />}
-            </View>
-          )}
-          {showLiquid && (
-            <>
-              <LegendRow
-                color={LIQUID_COLOR}
-                icon="wallet-outline"
-                label={Strings.dashboardBreakdownLiquid}
-                caption={Strings.dashboardBreakdownLiquidCaption}
-                value={liquidity.liquidEgp}
-                count={liquidity.liquidCount}
-              />
-              {liquidity.liquidAccounts.map((acc) => (
-                <AccountSubRow key={acc.id} account={acc} />
-              ))}
-            </>
-          )}
-          {showReserve && (
-            <>
-              <LegendRow
-                color={RESERVE_COLOR}
-                icon="piggy-bank"
-                label={Strings.dashboardBreakdownReserve}
-                caption={Strings.dashboardBreakdownReserveCaption}
-                value={liquidity.reserveEgp}
-                count={liquidity.reserveCount}
-              />
-              {liquidity.reserveAccounts.map((acc) => (
-                <AccountSubRow key={acc.id} account={acc} />
-              ))}
-            </>
-          )}
-        </View>
-
-        {showLiabilities && (
+            {showLiquid && <View style={{ flex: liquidPct, backgroundColor: LIQUID_COLOR }} />}
+            {showReserve && <View style={{ flex: reservePct, backgroundColor: RESERVE_COLOR }} />}
+          </View>
+        )}
+        {showLiquid && (
           <>
-            <View className="bg-separator mx-4 my-4 h-px" />
-            <View className="px-4">
-              <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
-                {Strings.dashLiabilitiesLabel} ·{' '}
-                {Strings.dashboardBreakdownLiabilitiesHeader(
-                  formatAmount(liabilitiesEgp),
-                  liabilities.length,
-                )}
-              </Text>
-              {liabilities.map((row) => (
-                <LegendRow
-                  key={row.id}
-                  color={LIABILITY_COLOR}
-                  icon="credit-card"
-                  label={row.name}
-                  caption={
-                    row.statementDueDay != null && row.statementDueDay > 0
-                      ? `due ${nextDueDate(row.statementDueDay)}`
-                      : undefined
-                  }
-                  value={row.balanceEgp}
-                  valueColor={LIABILITY_COLOR}
-                  negative
-                />
-              ))}
-              <View className="bg-separator mt-1 mb-2 h-px" />
-              <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
-                <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
-                <Text className="font-sora-bold" style={{ color: Colors.dark.gold }}>
-                  {formatAmount(totalDebt)}
-                </Text>
-              </View>
-            </View>
+            <LegendRow
+              color={LIQUID_COLOR}
+              icon="wallet-outline"
+              label={Strings.dashboardBreakdownLiquid}
+              caption={Strings.dashboardBreakdownLiquidCaption}
+              value={liquidity.liquidEgp}
+              count={liquidity.liquidCount}
+            />
+            {liquidity.liquidAccounts.map((acc) => (
+              <AccountSubRow key={acc.id} account={acc} />
+            ))}
           </>
         )}
-      </BottomSheetScrollView>
-    </Sheet>
+        {showReserve && (
+          <>
+            <LegendRow
+              color={RESERVE_COLOR}
+              icon="piggy-bank"
+              label={Strings.dashboardBreakdownReserve}
+              caption={Strings.dashboardBreakdownReserveCaption}
+              value={liquidity.reserveEgp}
+              count={liquidity.reserveCount}
+            />
+            {liquidity.reserveAccounts.map((acc) => (
+              <AccountSubRow key={acc.id} account={acc} />
+            ))}
+          </>
+        )}
+      </View>
+
+      {showLiabilities && (
+        <>
+          <View className="bg-separator mx-4 my-4 h-px" />
+          <View className="px-4">
+            <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
+              {Strings.dashLiabilitiesLabel} ·{' '}
+              {Strings.dashboardBreakdownLiabilitiesHeader(
+                formatAmount(netWorth.liabilitiesEgp),
+                liabilities.length,
+              )}
+            </Text>
+            {liabilities.map((row) => (
+              <LegendRow
+                key={row.id}
+                color={LIABILITY_COLOR}
+                icon="credit-card"
+                label={row.name}
+                caption={
+                  row.statementDueDay != null && row.statementDueDay > 0
+                    ? `due ${nextDueDate(row.statementDueDay)}`
+                    : undefined
+                }
+                value={row.balanceEgp}
+                valueColor={LIABILITY_COLOR}
+                negative
+              />
+            ))}
+            <View className="bg-separator mt-1 mb-2 h-px" />
+            <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
+              <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
+              <Text className="font-sora-bold" style={{ color: Colors.dark.gold }}>
+                {formatAmount(totalDebt)}
+              </Text>
+            </View>
+          </View>
+        </>
+      )}
+    </>
   );
 }
 

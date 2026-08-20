@@ -134,7 +134,13 @@ describe('selectApproximationPill — the scope spec table, P1-P9, plus P10', ()
     // toStrictEqual, not toEqual: toEqual ignores explicitly-undefined keys, so
     // an implementation returning `{}` for a hidden pill would pass it.
     expect(
-      selectApproximationPill({ accounts, baseCurrency: base, rate, rateUpdatedAt }),
+      selectApproximationPill({
+        accounts,
+        baseCurrency: base,
+        rate,
+        rateUpdatedAt,
+        isManualOverride: false,
+      }),
     ).toStrictEqual(expected);
   });
 });
@@ -145,6 +151,7 @@ describe('selectApproximationPill — zero and negative zero', () => {
     baseCurrency: Currency.USD,
     rate: 48.6,
     rateUpdatedAt: RATE_VERIFIED_AT,
+    isManualOverride: false,
   };
 
   // P10 is the row that dies when `normalizeNegativeZero` is deleted from THIS
@@ -156,6 +163,7 @@ describe('selectApproximationPill — zero and negative zero', () => {
     baseCurrency: Currency.EGP,
     rate: 48.6,
     rateUpdatedAt: RATE_VERIFIED_AT,
+    isManualOverride: false,
   };
 
   it('renders the legitimate zero of row P9 rather than hiding it', () => {
@@ -187,6 +195,7 @@ describe('selectApproximationPill — currencies outside EGP | USD throw', () =>
         baseCurrency: Currency.EGP,
         rate: 48.6,
         rateUpdatedAt: RATE_VERIFIED_AT,
+        isManualOverride: false,
       }),
     ).toThrow(StartingNetPositionError);
   });

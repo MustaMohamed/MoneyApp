@@ -1,8 +1,8 @@
 import { Currency } from '@/constants/enums';
+import { countForeignAccounts } from '@/modules/accounts/domain/account_aggregation';
 import {
   type StartingNetPosition,
   type StartingNetPositionInput,
-  countForeignAccounts,
   normalizeNegativeZero,
   resolveStartingNetPosition,
 } from '@/modules/onboarding/domain/starting_net_position';
@@ -15,7 +15,7 @@ import { roundMoney } from '@/utils/money';
  *
  * Both fields are `undefined` rather than `null` when the gate is closed:
  * `null` is reserved for DB-mapped nullable columns, and neither of these is
- * one (`StartingNetPositionInput.rateUpdatedAt` stays `null` because it is).
+ * one (`RateProvenance.rateUpdatedAt` stays `null` because it is).
  */
 export interface ApproximationPill {
   ratePill: { rate: number } | undefined;

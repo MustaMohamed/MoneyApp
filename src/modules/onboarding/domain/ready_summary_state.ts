@@ -1,11 +1,11 @@
 import type { Currency } from '@/constants/enums';
 import { AccountType } from '@/constants/enums';
+import { countForeignAccounts } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { selectApproximationPill } from '@/modules/onboarding/domain/approximation_pill';
 import {
   type StartingNetPosition,
   type StartingNetPositionInput,
-  countForeignAccounts,
   resolveStartingNetPosition,
   selectActiveAccounts,
 } from '@/modules/onboarding/domain/starting_net_position';
