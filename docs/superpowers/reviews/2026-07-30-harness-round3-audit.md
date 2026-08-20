@@ -27,10 +27,10 @@ Not fixed in this round: widening `collectCoverageFrom` against a `branches: 100
 | Surface | Files | Was covered by |
 |---|---|---|
 | `__tests__/**` | 221 | nothing — and test quality is a proven defect class here (M33 vacuous atomicity tests, M35 source-text assertions) |
-| `src/modules/**/domain/**`, `money.ts`, `format_amount.ts` | 4 + 3 importers † | nothing — the money iron rule had no path trigger |
+| `src/modules/**/domain/**`, `money.ts`, `format_amount.ts` | 4 + 4 importers † | nothing — the money iron rule had no path trigger |
 | `src/repositories/**` | 6 | nothing — omitted from `database.md`'s globs |
 
-† Corrected 2026-08-20 by MA-015 (#268); the cell read `4 + 11 importers`. The 11 came from an unscoped repo-wide grep that counted `money.md` itself plus doc, agent and test files. Measured at `aca2d4d`, the commit that minted both this cell and `.claude/rules/money.md`: `git ls-tree -r --name-only aca2d4d | grep -E '^src/modules/[^/]+/domain/|^src/utils/(money|format_amount)\.ts$'` returns 4, and `git grep -l resolveTransactionAmounts aca2d4d -- src` returns 4 paths — one of which is `transaction_amounts.ts`, the definition site and already one of the 4, leaving 3 importers. The `4` was always right; only the importer count was invented.
+† Corrected 2026-08-20 by MA-015 (#268); the cell read `4 + 11 importers`. The 11 came from an unscoped repo-wide grep that counted `money.md` itself plus doc, agent and test files. Measured at `aca2d4d`, the commit that minted both this cell and `.claude/rules/money.md`: `git ls-tree -r --name-only aca2d4d | grep -E '^src/modules/[^/]+/domain/|^src/utils/(money|format_amount)\.ts$'` returns 4, and `git grep -l 'resolveTransactionAmounts\|resolveCommitmentPaymentAmounts' aca2d4d -- src` returns 5 paths — one of which is `transaction_amounts.ts`, the definition site and already one of the 4, leaving 4 importers. The `4` was always right; only the importer count was invented. The single-resolver form of this command (`resolveTransactionAmounts` alone) returns 4 paths and undercounts by 1 — it is the same command `money.md` deprecates for missing `commitment.repository.ts`, so this footnote now uses the two-resolver form to agree with it.
 
 Skills load on model judgment; rules load deterministically on file match. The three most defect-dense surfaces relied on judgment alone.
 

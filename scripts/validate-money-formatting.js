@@ -55,15 +55,32 @@ const ALLOWLIST = [
   { path: 'src/utils/format_amount.ts' },
 ];
 
-const listing = spawnSync('git', ['ls-files', 'src/*.ts', 'src/*.tsx'], {
-  cwd: root,
-  encoding: 'utf8',
-});
+const listing = spawnSync(
+  'git',
+  ['-c', 'core.quotePath=false', 'ls-files', 'src/*.ts', 'src/*.tsx'],
+  {
+    cwd: root,
+    encoding: 'utf8',
+  },
+);
+
+// Checked before any use of `stdout` — on the error path (git missing from PATH, cwd gone)
+// spawnSync returns `{ status: null, stdout: undefined }` despite `stdout`'s non-nullable
+// type with `encoding: 'utf8'`. Accessing `.split` on that path throws a TypeError stack
+// instead of this message, so the status/error check must precede the split, not follow it.
+if (listing.error || listing.status !== 0) {
+  errors.push(
+    `git ls-files failed to run — run from a git checkout of MoneyApp (${listing.error?.message ?? `exit code ${String(listing.status)}`})`,
+  );
+  console.error(errors.join('\n'));
+  process.exit(1);
+}
+
 const files = listing.stdout.split('\n').filter(Boolean);
 
-// A run outside a git checkout, or with a broken pathspec, must not silently pass with zero
-// files scanned — that is the failure mode this repo keeps shipping.
-if (listing.status !== 0 || files.length === 0) {
+// A broken pathspec must not silently pass with zero files scanned — that is the failure
+// mode this repo keeps shipping.
+if (files.length === 0) {
   errors.push('git ls-files returned no files — run from a git checkout of MoneyApp');
   console.error(errors.join('\n'));
   process.exit(1);
