@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/ui/status_badge';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
+import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import { formatAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
@@ -37,7 +38,6 @@ interface BalanceHeroProps {
 
 export function BalanceHero({ account }: BalanceHeroProps) {
   const color = account.color ?? AcctTokens.midnight.rich;
-  const isCC = account.type === AccountType.CreditCard;
   const caption = buildHeroCaption(account);
 
   return (
@@ -59,11 +59,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
         {/* Balance */}
         <Typography
           numberOfLines={1}
-          className={
-            isCC
-              ? 'text-danger font-sora-bold mt-1 text-[20px] tabular-nums'
-              : 'text-accent font-sora-bold mt-1 text-[20px] tabular-nums'
-          }
+          className={`font-sora-bold mt-1 text-[20px] tabular-nums ${resolveAccountBalanceColorClass(account.type)}`}
         >
           {formatAmount(account.current_balance)} {account.currency}
         </Typography>

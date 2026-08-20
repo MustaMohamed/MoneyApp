@@ -6,6 +6,7 @@ import { Text } from '@/components/ui/text';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, Size } from '@/constants/theme';
+import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { formatAmount } from '@/utils/format_amount';
@@ -173,7 +174,6 @@ interface AccountCardProps {
 export function AccountCard({ account, rate, stats, width, onPress }: AccountCardProps) {
   const color = account.color ?? AccountColors[0];
   const isCreditCard = account.type === AccountType.CreditCard;
-  const balanceColor = isCreditCard ? Colors.dark.negative : Colors.dark.gold;
   const icon = TYPE_ICONS[account.type];
   const infoRows = buildInfoRows(account, rate, stats);
 
@@ -253,7 +253,8 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
               <Text
                 variant="numMd"
                 numberOfLines={1}
-                style={{ flex: 1, color: balanceColor, fontSize: msFont(17) }}
+                className={resolveAccountBalanceColorClass(account.type)}
+                style={{ flex: 1, fontSize: msFont(17) }}
               >
                 {formatAmount(account.current_balance)} {account.currency}
               </Text>
