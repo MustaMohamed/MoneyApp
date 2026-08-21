@@ -70,7 +70,7 @@ describe('TransactionsCard', () => {
     const onPress = jest.fn();
     const { getByText, getByLabelText, queryAllByTestId } = await render(
       <TransactionsCard
-        current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
+        current={{ incomeEgp: 1000.4, expenseEgp: 300.9, netEgp: 699.5 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
         previousLabel="June 2026"
         yearMonth="2026-07"
@@ -80,9 +80,9 @@ describe('TransactionsCard', () => {
     );
 
     expect(getByText(Strings.transactions)).toBeTruthy();
-    expect(getByText('+25,000')).toBeTruthy();
-    expect(getByText('-13,000')).toBeTruthy();
-    expect(getByText('+12,000')).toBeTruthy();
+    expect(getByText('+1,000')).toBeTruthy();
+    expect(getByText('-301')).toBeTruthy();
+    expect(getByText('+700')).toBeTruthy();
     expect(getByText(Strings.totalsVsPrev('June 2026'))).toBeTruthy();
     expect(queryAllByTestId('skeleton-item')).toHaveLength(0);
 

@@ -168,9 +168,9 @@ describe('polarityColor', () => {
 
 describe('transactions summary presentation helpers', () => {
   it('formats signed current-period amounts by metric', () => {
-    expect(formatSignedAmount(25000, 'income')).toBe('+25,000');
-    expect(formatSignedAmount(13000, 'expense')).toBe('-13,000');
-    expect(formatSignedAmount(12000, 'net')).toBe('+12,000');
+    expect(formatSignedAmount(1000.4, 'income')).toBe('+1,000');
+    expect(formatSignedAmount(300.9, 'expense')).toBe('-301');
+    expect(formatSignedAmount(699.5, 'net')).toBe('+700');
     expect(formatSignedAmount(-1200, 'net')).toBe('-1,200');
   });
 

@@ -10,6 +10,7 @@ import { Strings } from '@/constants/strings';
 import { Size, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import { getAccountTypeIcon } from '../detail.helpers';
 import { DETAIL_TRANSFER_MIN_HEIGHT } from './detail_geometry';
@@ -24,8 +25,6 @@ interface Props {
   onPressFrom?: () => void;
   onPressTo?: () => void;
 }
-
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 function Cell({
   label,
@@ -70,7 +69,7 @@ function Cell({
         numberOfLines={1}
       >
         {signPrefix}
-        {numberFmt.format(amount)} {currency}
+        {formatCurrencyAmount(amount, currency)}
       </Text>
     </View>
   );
@@ -82,8 +81,7 @@ function Cell({
         accessibilityRole="button"
         accessibilityLabel={Strings.detailOpenAccountAccessibility(
           account.name,
-          numberFmt.format(amount),
-          currency,
+          formatCurrencyAmount(amount, currency),
         )}
         className="flex-1"
       >

@@ -22,19 +22,9 @@ const CONSTRUCTOR = /(?<![\w.])Intl\.NumberFormat\s*\(/;
 // an `issue` may only ever be deleted, never added without a gate.
 const ALLOWLIST = [
   {
-    path: 'src/modules/transactions/screens/transactions/components/transaction_row.helpers.ts',
-    issue: 270,
-  },
-  {
-    path: 'src/modules/transactions/screens/transactions/detail/components/transfer_flow_card.tsx',
-    issue: 270,
-  },
-  { path: 'src/modules/transactions/screens/transactions/detail/detail.helpers.ts', issue: 270 },
-  {
     path: 'src/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row.tsx',
     issue: 270,
   },
-  { path: 'src/modules/transactions/screens/transactions/transactions.helpers.ts', issue: 270 },
   // Sanctioned: the single legitimate constructor. No `issue` — this entry is permanent.
   { path: 'src/utils/format_amount.ts' },
 ];

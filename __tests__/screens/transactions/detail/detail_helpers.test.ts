@@ -11,6 +11,7 @@ import {
   resolveDetailViewState,
 } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 import type { TransactionDetailStatus } from '@/modules/transactions/screens/transactions/detail/detail.state';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 
 const now = '2026-07-20T12:00:00.000Z';
 
@@ -145,7 +146,7 @@ describe('buildTransactionDetailPresentation', () => {
         toAccount: destination,
       }).transferFlow,
     ).toMatchObject({
-      fromAmountText: '100 USD',
+      fromAmountText: '100.00 USD',
       toAmountText: '4,850 EGP',
     });
   });
@@ -200,5 +201,26 @@ describe('buildTransactionDetailPresentation', () => {
       categoryBadgeTone: 'info',
       heroColor: InfoTokens[500],
     });
+  });
+
+  it('renders the USD original amount at the config default, and the tripwire confirms what that default is', () => {
+    const { originalAmountText } = buildTransactionDetailPresentation({
+      tx: transaction({ amount: 1200 }),
+      account: account({ currency: Currency.USD }),
+    });
+    expect(originalAmountText).toBe('1,200.00 USD');
+    expect(formatCurrencyAmount(1200, Currency.USD)).toBe('1,200.00 USD');
+  });
+
+  it('keeps the rate at 2dp regardless of the EGP amount default — the tripwire that would catch a find-and-replace onto formatCurrencyAmount', () => {
+    const { exchangeRateText } = buildTransactionDetailPresentation({
+      tx: transaction({ exchange_rate: 48.6 }),
+      account: account({ currency: Currency.USD }),
+    });
+    expect(exchangeRateText).toBe('1 USD = 48.60 EGP');
+    // formatCurrencyAmount routes EGP through CURRENCY_CONFIG's 0dp default — the wrong
+    // decimals for a rate. If exchangeRateText were ever rewired to call it, this would
+    // silently drop to '49 EGP' while the assertion above kept a stale expectation green.
+    expect(formatCurrencyAmount(48.6, Currency.EGP)).toBe('49 EGP');
   });
 });

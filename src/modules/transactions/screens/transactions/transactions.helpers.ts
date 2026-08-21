@@ -1,5 +1,8 @@
+import { CURRENCY_CONFIG } from '@/constants/currency';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
+import { formatAmount } from '@/utils/format_amount';
 import { currentYearMonth, shiftYearMonth } from '@/utils/year_month';
 
 export { currentYearMonth };
@@ -22,8 +25,6 @@ export interface TotalsPresentation {
   railClassName: string;
   accessibilityLabel: string;
 }
-
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 export function resolvePeriod(selection: TransactionPeriod): {
   from: string;
@@ -56,7 +57,7 @@ export function polarityColor(metric: TotalsMetric, deltaPct: number): PolarityS
 }
 
 export function formatSignedAmount(value: number, metric: TotalsMetric): string {
-  const formatted = numberFmt.format(Math.abs(value));
+  const formatted = formatAmount(Math.abs(value), CURRENCY_CONFIG[Currency.EGP].decimals);
   if (metric === 'expense') return `${value < 0 ? '+' : '-'}${formatted}`;
   return `${value >= 0 ? '+' : '-'}${formatted}`;
 }

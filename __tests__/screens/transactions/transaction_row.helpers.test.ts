@@ -100,7 +100,7 @@ describe('buildTransactionRowPresentation', () => {
     ).toMatchObject({
       title: Strings.transferTitle,
       context: 'USD wallet → CIB',
-      primaryAmount: '100 USD',
+      primaryAmount: '100.00 USD',
       secondaryAmount: '→ 4,850 EGP',
     });
   });
@@ -171,9 +171,9 @@ describe('buildTransactionRowPresentation', () => {
         category,
       }),
     ).toMatchObject({
-      primaryAmount: '−20 USD',
+      primaryAmount: '−20.00 USD',
       secondaryAmount: '≈ 1,000 EGP',
-      rateText: '@ 50',
+      rateText: '@ 50.00',
     });
   });
 
