@@ -15,14 +15,13 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
 import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
 import { usePaySheet } from './pay_sheet.hook';
-
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 interface Props {
   commitment: Commitment | undefined;
@@ -54,6 +53,7 @@ export function PaySheet({ commitment, payment }: Props) {
   const accountError = form.formState.errors.account_id?.message;
   const rateError = form.formState.errors.exchange_rate?.message;
 
+  const payAccount = state.selectedAccount;
   const exchangeRateStr = state.exchangeRateValue != null ? String(state.exchangeRateValue) : '';
   const amountWatch = form.watch('amount');
   const paidDate = form.watch('paid_date');
@@ -177,8 +177,10 @@ export function PaySheet({ commitment, payment }: Props) {
                       {state.selectedAccount.name}
                     </Text>
                     <Text className="font-inter text-muted text-[12px]">
-                      {numberFmt.format(state.selectedAccount.current_balance)}{' '}
-                      {state.selectedAccount.currency}
+                      {formatCurrencyAmount(
+                        state.selectedAccount.current_balance,
+                        state.selectedAccount.currency,
+                      )}
                     </Text>
                   </View>
                 </>
@@ -213,10 +215,10 @@ export function PaySheet({ commitment, payment }: Props) {
           ) : null}
 
           {/* Converted total (conditional) */}
-          {state.requiresRate && convertedTotal != null ? (
+          {state.requiresRate && convertedTotal != null && payAccount ? (
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }} className="mt-2">
               <Text className="font-sora-semibold text-foreground text-[15px]">
-                = {numberFmt.format(convertedTotal)} {state.selectedAccount?.currency}
+                = {formatCurrencyAmount(convertedTotal, payAccount.currency)}
               </Text>
             </View>
           ) : null}

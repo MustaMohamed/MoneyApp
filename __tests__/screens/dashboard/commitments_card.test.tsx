@@ -2,6 +2,7 @@ import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CommitmentsCard } from '@/modules/dashboard/screens/dashboard/components/commitments_card';
 import { ms } from '@/utils/responsive';
@@ -82,7 +83,7 @@ describe('CommitmentsCard skeleton loading', () => {
     const { queryByText, getAllByTestId, queryByTestId } = await render(
       <CommitmentsCard
         counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
-        totalsByCurrency={new Map([['EGP', 5000]])}
+        totalsByCurrency={new Map([[Currency.EGP, 5000]])}
         yearMonth="2026-07"
         isLoading
         onPress={jest.fn()}
@@ -101,7 +102,7 @@ describe('CommitmentsCard skeleton loading', () => {
     const loading = await render(
       <CommitmentsCard
         counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
-        totalsByCurrency={new Map([['EGP', 5000]])}
+        totalsByCurrency={new Map([[Currency.EGP, 5000]])}
         yearMonth="2026-07"
         isLoading
         onPress={jest.fn()}
@@ -110,7 +111,7 @@ describe('CommitmentsCard skeleton loading', () => {
     const loaded = await render(
       <CommitmentsCard
         counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
-        totalsByCurrency={new Map([['EGP', 5000]])}
+        totalsByCurrency={new Map([[Currency.EGP, 5000]])}
         yearMonth="2026-07"
         isLoading={false}
         onPress={jest.fn()}
@@ -127,7 +128,7 @@ describe('CommitmentsCard skeleton loading', () => {
     const { getAllByTestId, getByTestId } = await render(
       <CommitmentsCard
         counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
-        totalsByCurrency={new Map([['EGP', 5000]])}
+        totalsByCurrency={new Map([[Currency.EGP, 5000]])}
         yearMonth="2026-07"
         isLoading
         onPress={jest.fn()}

@@ -1,13 +1,12 @@
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
 import { STATUS_COLORS, STATUS_LABELS } from '../../commitment_status';
-
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 interface Props {
   payment: CommitmentPayment;
@@ -20,7 +19,7 @@ export function PaymentRow({ payment, commitment, showDivider = true }: Props) {
   const statusLabel = STATUS_LABELS[payment.status];
   const displayAmount = payment.amount_paid ?? payment.amount_due ?? commitment.amount;
   const amountText =
-    displayAmount != null ? `${numberFmt.format(displayAmount)} ${payment.currency}` : '—';
+    displayAmount != null ? formatCurrencyAmount(displayAmount, payment.currency) : '—';
 
   return (
     <View

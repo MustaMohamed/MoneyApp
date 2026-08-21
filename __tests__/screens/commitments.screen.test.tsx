@@ -152,7 +152,7 @@ const baseCommitmentsState: CommitmentsScreenState = {
   sections: [],
   selectedMonth: '2026-08',
   counts: { paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 },
-  totalsByCurrency: new Map<string, number>(),
+  totalsByCurrency: new Map<Currency, number>(),
   refreshing: false,
   isEmpty: true,
   commitmentsLoaded: true,

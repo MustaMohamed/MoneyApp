@@ -100,7 +100,7 @@ describe('buildTransactionRowPresentation', () => {
     ).toMatchObject({
       title: Strings.transferTitle,
       context: 'USD wallet → CIB',
-      primaryAmount: '100 USD',
+      primaryAmount: '100.00 USD',
       secondaryAmount: '→ 4,850 EGP',
     });
   });
@@ -171,9 +171,24 @@ describe('buildTransactionRowPresentation', () => {
         category,
       }),
     ).toMatchObject({
-      primaryAmount: '−20 USD',
+      primaryAmount: '−20.00 USD',
       secondaryAmount: '≈ 1,000 EGP',
-      rateText: '@ 50',
+      rateText: '@ 50.00',
+    });
+  });
+
+  // MA-016 P8 F-1: unaffected control for the -0 escalation fix — USD's 2dp display
+  // precision already matches roundMoney's precision, so the escalation branch is
+  // structurally unreachable and this must render exactly as it did before the fix.
+  it('leaves a sub-unit USD expense unescalated — its 2dp precision already carries the magnitude', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: transaction({ amount: 0.4, currency: Currency.USD, egp_amount: 20 }),
+        account: account({ currency: Currency.USD }),
+        category,
+      }),
+    ).toMatchObject({
+      primaryAmount: '−0.40 USD',
     });
   });
 

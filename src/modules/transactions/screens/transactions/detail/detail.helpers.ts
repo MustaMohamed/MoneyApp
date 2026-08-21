@@ -1,6 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
 
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
@@ -8,6 +9,12 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import {
+  EXCHANGE_RATE_DECIMALS,
+  formatAmount,
+  formatCurrencyAmount,
+  formatDisplayMagnitude,
+} from '@/utils/format_amount';
 import { formatLongDate } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
@@ -16,7 +23,6 @@ import type { BadgeTone } from './components/detail_row';
 import type { TransactionDetailStatus } from './detail.state';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 export type TransactionDetailViewState =
   | 'loading'
@@ -111,10 +117,12 @@ function isCardCredit(tx: Transaction, account?: Account): boolean {
 }
 
 function signedAmount(tx: Transaction): string {
-  const value = numberFmt.format(tx.egp_amount);
-  if (tx.type === TransactionType.Expense) return `−${value} EGP`;
-  if (tx.type === TransactionType.Income) return `+${value} EGP`;
-  return `${value} EGP`;
+  const { text, isZero } = formatDisplayMagnitude(tx.egp_amount, Currency.EGP);
+  const value = `${text} ${CURRENCY_CONFIG[Currency.EGP].code}`;
+  if (isZero) return value;
+  if (tx.type === TransactionType.Expense) return `−${value}`;
+  if (tx.type === TransactionType.Income) return `+${value}`;
+  return value;
 }
 
 export function buildTransactionDetailPresentation({
@@ -147,9 +155,11 @@ export function buildTransactionDetailPresentation({
     accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
     accountIcon: getAccountTypeIcon(account?.type),
     originalAmountText:
-      tx.currency === Currency.USD ? `${numberFmt.format(tx.amount)} USD` : undefined,
+      tx.currency === Currency.USD ? formatCurrencyAmount(tx.amount, Currency.USD) : undefined,
     exchangeRateText:
-      tx.exchange_rate === null ? undefined : `1 USD = ${numberFmt.format(tx.exchange_rate)} EGP`,
+      tx.exchange_rate === null
+        ? undefined
+        : `1 USD = ${formatAmount(tx.exchange_rate, EXCHANGE_RATE_DECIMALS)} EGP`,
     budgetLabel:
       tx.budget_id === null ? undefined : (budget?.name ?? Strings.detailBudgetUnavailable),
     sourceLabel:
@@ -163,10 +173,10 @@ export function buildTransactionDetailPresentation({
             toAccount,
             fromAmount: tx.amount,
             fromCurrency: tx.currency,
-            fromAmountText: `${numberFmt.format(tx.amount)} ${tx.currency}`,
+            fromAmountText: formatCurrencyAmount(tx.amount, tx.currency),
             toAmount: destinationAmount,
             toCurrency: destinationCurrency,
-            toAmountText: `${numberFmt.format(destinationAmount)} ${destinationCurrency}`,
+            toAmountText: formatCurrencyAmount(destinationAmount, destinationCurrency),
           }
         : null,
   };

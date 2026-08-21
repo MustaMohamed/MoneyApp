@@ -15,11 +15,9 @@ import {
   STATUS_COLORS,
   STATUS_ICONS,
   STATUS_LABELS,
-  resolveDisplayAmount,
+  formatCommitmentAmount,
 } from '../../commitment_status';
 import { cardEntering } from '../detail.anim';
-
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 interface Props {
   payment: CommitmentPayment;
@@ -31,13 +29,9 @@ interface Props {
 export function CurrentCycleCard({ payment, commitment, onMarkAsPaid, onSkip }: Props) {
   const statusColor = STATUS_COLORS[payment.status];
   const statusLabel = STATUS_LABELS[payment.status];
-  const { amount, showTilde } = resolveDisplayAmount(payment, commitment);
   const amountText =
-    amount != null
-      ? `${showTilde ? '~' : ''}${numberFmt.format(amount)} ${payment.currency}`
-      : commitment.amount_type === AmountType.Variable
-        ? Strings.commitmentsAmountVariable
-        : '—';
+    formatCommitmentAmount(payment, commitment) ??
+    (commitment.amount_type === AmountType.Variable ? Strings.commitmentsAmountVariable : '—');
   const isActionable =
     payment.status !== CommitmentPaymentStatus.Paid &&
     payment.status !== CommitmentPaymentStatus.Skipped;

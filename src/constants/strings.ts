@@ -1168,8 +1168,8 @@ export const Strings = {
   detailFlowToLabel: 'To',
   detailFlowCategoryLabel: 'Category',
   detailFlowSourceLabel: 'Source',
-  detailOpenAccountAccessibility: (name: string, amount: string, currency: string) =>
-    `${name}, ${amount} ${currency}, open account detail`,
+  detailOpenAccountAccessibility: (name: string, amount: string) =>
+    `${name}, ${amount}, open account detail`,
 
   // §6 Transactions — Detail screen V2 actions + states
   detailDeleteButton: 'Delete',

@@ -352,10 +352,10 @@ export function computeDashboardCommitmentSummary(payments: CommitmentPayment[])
     skipped: number;
     total: number;
   };
-  totalsByCurrency: Map<string, number>;
+  totalsByCurrency: Map<Currency, number>;
 } {
   const counts = { paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 };
-  const totalsByCurrency = new Map<string, number>();
+  const totalsByCurrency = new Map<Currency, number>();
 
   for (const payment of payments) {
     switch (payment.status) {

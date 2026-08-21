@@ -7,7 +7,7 @@ import { FormErrorText } from '@/components/ui/form_error_text';
 import { Input } from '@/components/ui/input';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Strings } from '@/constants/strings';
-import { formatAmount } from '@/utils/format_amount';
+import { EXCHANGE_RATE_DECIMALS, formatAmount } from '@/utils/format_amount';
 
 import { useCurrencyScreen } from './currency.hook';
 
@@ -35,7 +35,7 @@ export default function CurrencyScreen() {
             <Typography
               className={`font-sora-bold text-4xl ${isManualOverride ? 'text-accent' : 'text-foreground'}`}
             >
-              {formatAmount(rate, 2)}
+              {formatAmount(rate, EXCHANGE_RATE_DECIMALS)}
             </Typography>
             <Typography className="text-muted font-inter mt-1 text-xs">
               {Strings.currencyRateSub}

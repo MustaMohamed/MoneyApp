@@ -7,7 +7,10 @@ import {
 } from '@/constants/enums';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
-import { resolveDisplayAmount } from '@/modules/commitments/screens/commitments/commitment_status';
+import {
+  formatCommitmentAmount,
+  resolveDisplayAmount,
+} from '@/modules/commitments/screens/commitments/commitment_status';
 
 function mkPayment(over: Partial<CommitmentPayment>): CommitmentPayment {
   return {
@@ -129,5 +132,85 @@ describe('resolveDisplayAmount', () => {
   it('undefined payment + undefined commitment: amount undefined, no tilde', () => {
     const r = resolveDisplayAmount(undefined, undefined);
     expect(r).toEqual({ amount: undefined, showTilde: false });
+  });
+});
+
+describe('formatCommitmentAmount', () => {
+  it('USD payment at 1234.5: currency-aware 2dp, no tilde', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({
+        status: CommitmentPaymentStatus.Due,
+        amount_due: 1234.5,
+        currency: Currency.USD,
+      }),
+      mkCommitment({ currency: Currency.USD }),
+    );
+    expect(text).toBe('1,234.50 USD');
+  });
+
+  it('EGP payment at 1234.56: currency-aware 0dp, no tilde', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({
+        status: CommitmentPaymentStatus.Due,
+        amount_due: 1234.56,
+        currency: Currency.EGP,
+      }),
+      mkCommitment({ currency: Currency.EGP }),
+    );
+    expect(text).toBe('1,235 EGP');
+  });
+
+  it('variable + unpaid: carries the leading tilde', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({
+        status: CommitmentPaymentStatus.Upcoming,
+        amount_due: 100,
+        currency: Currency.EGP,
+      }),
+      mkCommitment({ amount_type: AmountType.Variable, currency: Currency.EGP }),
+    );
+    expect(text).toBe('~100 EGP');
+  });
+
+  it('no amount to format: undefined', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({ status: CommitmentPaymentStatus.Due, amount_due: null, amount_paid: null }),
+      mkCommitment({ amount: null }),
+    );
+    expect(text).toBeUndefined();
+  });
+
+  // MA-016 P8 F-2 (@sarah's ratified condition): pins the ADR's worked example (b) row
+  // value — three 249.50 EGP commitments each render "250 EGP" — the row half of the
+  // rows-vs-header approximation the ticket accepts. See
+  // docs/adr/2026-08-21-currency-aware-display-decimals.md §1.
+  it('EGP payment at 249.50: renders "250 EGP", the ADR worked-example row value', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({
+        status: CommitmentPaymentStatus.Due,
+        amount_due: 249.5,
+        currency: Currency.EGP,
+      }),
+      mkCommitment({ currency: Currency.EGP }),
+    );
+    expect(text).toBe('250 EGP');
+  });
+
+  // MA-016 second amendment round (@layla): formatCommitmentAmount never routed through
+  // formatDisplayMagnitude, so a 0.40 EGP commitment read "0 EGP" here while the identical
+  // magnitude on a transaction row already escalated to "0.40 EGP" — the same defect
+  // class the composed-sign sites were fixed for, just unreached on this surface. Fixed by
+  // routing through the shared magnitude/escalate rule (the m0/escalate half only — no
+  // sign here to compose in the first place).
+  it('EGP payment at 0.40: escalates to "0.40 EGP" instead of rounding away to "0 EGP"', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({
+        status: CommitmentPaymentStatus.Due,
+        amount_due: 0.4,
+        currency: Currency.EGP,
+      }),
+      mkCommitment({ currency: Currency.EGP }),
+    );
+    expect(text).toBe('0.40 EGP');
   });
 });

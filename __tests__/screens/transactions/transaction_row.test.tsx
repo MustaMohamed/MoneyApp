@@ -182,7 +182,7 @@ describe('TransactionRow ownership actions', () => {
       />,
     );
 
-    expect(getByText('100 USD')).toBeTruthy();
+    expect(getByText('100.00 USD')).toBeTruthy();
     expect(getByText('→ 4,850 EGP')).toBeTruthy();
   });
 });

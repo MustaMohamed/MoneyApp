@@ -11,6 +11,7 @@ import {
   resolveDetailViewState,
 } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 import type { TransactionDetailStatus } from '@/modules/transactions/screens/transactions/detail/detail.state';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 
 const now = '2026-07-20T12:00:00.000Z';
 
@@ -145,7 +146,7 @@ describe('buildTransactionDetailPresentation', () => {
         toAccount: destination,
       }).transferFlow,
     ).toMatchObject({
-      fromAmountText: '100 USD',
+      fromAmountText: '100.00 USD',
       toAmountText: '4,850 EGP',
     });
   });
@@ -200,5 +201,53 @@ describe('buildTransactionDetailPresentation', () => {
       categoryBadgeTone: 'info',
       heroColor: InfoTokens[500],
     });
+  });
+
+  // MA-016 P8 cycle 2 B-2: restores the presentation assertion F-4 deleted along with
+  // its byte-identical twin (`expect(formatCurrencyAmount(1200, Currency.USD))`).
+  // originalAmountText is one of MA-016's own changed surfaces (0dp -> 2dp) and the
+  // only assertion of it anywhere — without this row, reverting the change on
+  // detail.helpers.ts's originalAmountText line back to 0dp leaves the suite green.
+  it('renders the USD original amount at the config default', () => {
+    const { originalAmountText } = buildTransactionDetailPresentation({
+      tx: transaction({ amount: 1200 }),
+      account: account({ currency: Currency.USD }),
+    });
+    expect(originalAmountText).toBe('1,200.00 USD');
+  });
+
+  // MA-016 P8 F-1: signedAmount composes its own sign and passes a positive magnitude
+  // to formatCurrencyAmount, so formatAmount's -0 guard never sees it — a genuine 0.40
+  // EGP expense rounded to "0" at EGP's 0dp precision and displayed as "-0", the guard's
+  // target string with no way to distinguish it from a true zero. See
+  // docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
+  it('escalates to 2dp rather than print a sign beside a rounded-away magnitude', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: transaction({ type: TransactionType.Expense, egp_amount: 0.4 }),
+        account: account({}),
+      }).amountText,
+    ).toBe('−0.40 EGP');
+  });
+
+  it('does not escalate once the site precision would print a nonzero digit', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: transaction({ type: TransactionType.Expense, egp_amount: 0.6 }),
+        account: account({}),
+      }).amountText,
+    ).toBe('−1 EGP');
+  });
+
+  it('keeps the rate at 2dp regardless of the EGP amount default — the tripwire that would catch a find-and-replace onto formatCurrencyAmount', () => {
+    const { exchangeRateText } = buildTransactionDetailPresentation({
+      tx: transaction({ exchange_rate: 48.6 }),
+      account: account({ currency: Currency.USD }),
+    });
+    expect(exchangeRateText).toBe('1 USD = 48.60 EGP');
+    // formatCurrencyAmount routes EGP through CURRENCY_CONFIG's 0dp default — the wrong
+    // decimals for a rate. If exchangeRateText were ever rewired to call it, this would
+    // silently drop to '49 EGP' while the assertion above kept a stale expectation green.
+    expect(formatCurrencyAmount(48.6, Currency.EGP)).toBe('49 EGP');
   });
 });

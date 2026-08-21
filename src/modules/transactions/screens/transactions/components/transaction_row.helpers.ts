@@ -1,11 +1,18 @@
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
 
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import {
+  EXCHANGE_RATE_DECIMALS,
+  formatAmount,
+  formatCurrencyAmount,
+  formatDisplayMagnitude,
+} from '@/utils/format_amount';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
@@ -18,7 +25,6 @@ export const TRANSACTION_ROW_HEIGHT = ms(60);
 export const TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT = ms(8);
 
 const FALLBACK_ICON: IconName = 'shape-outline';
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 export interface TransactionRowPresentationInput {
   tx: Transaction;
@@ -73,16 +79,18 @@ function contextFor(
 function primaryAmountFor(tx: Transaction, cardCredit: boolean): string {
   const sign =
     tx.type === TransactionType.Expense ? '−' : tx.type === TransactionType.Income ? '+' : '';
-  return `${cardCredit ? '+' : sign}${numberFmt.format(tx.amount)} ${tx.currency}`;
+  const { text, isZero } = formatDisplayMagnitude(tx.amount, tx.currency);
+  const value = `${text} ${CURRENCY_CONFIG[tx.currency].code}`;
+  return isZero ? value : `${cardCredit ? '+' : sign}${value}`;
 }
 
 function destinationAmountFor(tx: Transaction, toAccount?: Account): string | undefined {
   if (tx.type !== TransactionType.Transfer && tx.type !== TransactionType.CCPayment) {
     if (tx.currency === Currency.EGP) return undefined;
-    return `≈ ${numberFmt.format(tx.egp_amount)} EGP`;
+    return `≈ ${formatCurrencyAmount(tx.egp_amount, Currency.EGP)}`;
   }
   if (tx.to_amount === null) return undefined;
-  return `→ ${numberFmt.format(tx.to_amount)} ${toAccount?.currency ?? Currency.EGP}`;
+  return `→ ${formatCurrencyAmount(tx.to_amount, toAccount?.currency ?? Currency.EGP)}`;
 }
 
 function amountClassNameFor(tx: Transaction, cardCredit: boolean): string {
@@ -132,7 +140,10 @@ export function buildTransactionRowPresentation({
     context,
     primaryAmount,
     secondaryAmount,
-    rateText: tx.exchange_rate === null ? undefined : `@ ${numberFmt.format(tx.exchange_rate)}`,
+    rateText:
+      tx.exchange_rate === null
+        ? undefined
+        : `@ ${formatAmount(tx.exchange_rate, EXCHANGE_RATE_DECIMALS)}`,
     // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- blank notes are intentionally omitted
     note: tx.note?.trim() || undefined,
     ownershipLabel,

@@ -8,11 +8,13 @@ import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
+import { formatAmount } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { ms } from '@/utils/responsive';
 
 const STALE_THRESHOLD_DAYS = 30;
+const RATE_PREVIEW_AMOUNT_DECIMALS = 2;
 
 function isStale(rateUpdatedAt: string | null): boolean {
   if (!rateUpdatedAt) return false;
@@ -26,11 +28,7 @@ function formatPreviewAmount(amount: number, rateStr: string): string {
   const rate = parsePositiveDecimal(rateStr);
   if (rate === undefined) return '—';
   const egp = roundMoney(amount * rate);
-  return new Intl.NumberFormat('en-US', {
-    style: 'decimal',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(egp);
+  return formatAmount(egp, RATE_PREVIEW_AMOUNT_DECIMALS);
 }
 
 function formatDateShort(iso: string): string {

@@ -16,7 +16,7 @@ import {
   reduceDashboardTransactionFacts,
 } from '@/modules/dashboard/screens/dashboard/dashboard.helpers';
 import type { Account } from '@/store/account.store';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 
 const makeAccount = (overrides: Partial<Account> = {}): Account => ({
   id: 'acc-1',
@@ -987,5 +987,20 @@ describe('computeDashboardCommitmentSummary', () => {
         [Currency.USD, 20],
       ]),
     );
+  });
+
+  // MA-016 P8 F-2 (@sarah's ratified condition): the ADR's worked example (b) — the
+  // commitments header total over its own rows, the ticket's gate-deciding accepted
+  // approximation — was published as "measured" without a companion assertion. This is
+  // that assertion. See docs/adr/2026-08-21-currency-aware-display-decimals.md §1.
+  it('and therefore renders "749 EGP" for the header total — three 249.50 commitments summing to 748.5', () => {
+    const summary = computeDashboardCommitmentSummary([
+      makePayment({ id: 'a', status: CommitmentPaymentStatus.Due, amount_due: 249.5 }),
+      makePayment({ id: 'b', status: CommitmentPaymentStatus.Due, amount_due: 249.5 }),
+      makePayment({ id: 'c', status: CommitmentPaymentStatus.Due, amount_due: 249.5 }),
+    ]);
+    const total = summary.totalsByCurrency.get(Currency.EGP);
+    expect(total).toBe(748.5);
+    expect(formatCurrencyAmount(total ?? 0, Currency.EGP)).toBe('749 EGP');
   });
 });

@@ -168,10 +168,38 @@ describe('polarityColor', () => {
 
 describe('transactions summary presentation helpers', () => {
   it('formats signed current-period amounts by metric', () => {
-    expect(formatSignedAmount(25000, 'income')).toBe('+25,000');
-    expect(formatSignedAmount(13000, 'expense')).toBe('-13,000');
-    expect(formatSignedAmount(12000, 'net')).toBe('+12,000');
+    expect(formatSignedAmount(1000.4, 'income')).toBe('+1,000');
+    expect(formatSignedAmount(300.9, 'expense')).toBe('-301');
+    expect(formatSignedAmount(699.5, 'net')).toBe('+700');
     expect(formatSignedAmount(-1200, 'net')).toBe('-1,200');
+  });
+
+  // MA-016 P8 F-1: formatSignedAmount composes its own sign around Math.abs(value), so
+  // formatAmount's -0 guard never sees it — a net delta rounded to "0" at EGP's 0dp
+  // precision still carried whichever sign the metric branch computed, printing e.g. a
+  // "-0" net tile for a genuine 0.40 deficit, and — pre-existing — beside a true tie.
+  // See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
+  it('escalates a net delta that rounds to zero at 0dp, so a deficit never reads as parity', () => {
+    // income 100.20, expense 100.60 -> net -0.40
+    expect(formatSignedAmount(-0.4, 'net')).toBe('-0.40');
+  });
+
+  it('escalates the opposite-signed net delta the same way', () => {
+    // income 100.60, expense 100.20 -> net +0.40
+    expect(formatSignedAmount(0.4, 'net')).toBe('+0.40');
+  });
+
+  it('renders a true net tie as an unsigned zero — deficit and parity are different facts', () => {
+    expect(formatSignedAmount(0, 'net')).toBe('0');
+  });
+
+  it('normalises float noise around zero to the same unsigned zero', () => {
+    expect(formatSignedAmount(-1e-13, 'net')).toBe('0');
+  });
+
+  it('leaves the pre-existing exact-zero case unsigned for every metric, not just net', () => {
+    expect(formatSignedAmount(0, 'income')).toBe('0');
+    expect(formatSignedAmount(0, 'expense')).toBe('0');
   });
 
   it('calculates expense share as a clamped percent of income', () => {
