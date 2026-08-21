@@ -195,4 +195,22 @@ describe('formatCommitmentAmount', () => {
     );
     expect(text).toBe('250 EGP');
   });
+
+  // MA-016 second amendment round (@layla): formatCommitmentAmount never routed through
+  // formatDisplayMagnitude, so a 0.40 EGP commitment read "0 EGP" here while the identical
+  // magnitude on a transaction row already escalated to "0.40 EGP" — the same defect
+  // class the composed-sign sites were fixed for, just unreached on this surface. Fixed by
+  // routing through the shared magnitude/escalate rule (the m0/escalate half only — no
+  // sign here to compose in the first place).
+  it('EGP payment at 0.40: escalates to "0.40 EGP" instead of rounding away to "0 EGP"', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({
+        status: CommitmentPaymentStatus.Due,
+        amount_due: 0.4,
+        currency: Currency.EGP,
+      }),
+      mkCommitment({ currency: Currency.EGP }),
+    );
+    expect(text).toBe('0.40 EGP');
+  });
 });

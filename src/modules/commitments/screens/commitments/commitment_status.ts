@@ -1,10 +1,11 @@
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
 
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { formatDisplayMagnitude } from '@/utils/format_amount';
 
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../entities/commitment_payment.entity';
@@ -70,6 +71,14 @@ export function resolveDisplayAmount(
  * unreachable at all three call sites (each always supplies a payment or a
  * commitment with a `currency`), but the `| undefined` parameter types make
  * it possible in principle, so the signature stays honest about it.
+ *
+ * Routes the amount through `formatDisplayMagnitude` (`src/utils/format_amount.ts`) for
+ * its m0/escalate half only — the same currency-aware-decimals-then-escalate-to-2dp rule
+ * every composed-sign transaction site uses, so a genuine 0.40 EGP commitment reads
+ * "0.40 EGP" here too, not "0 EGP". Commitments compose no sign, so the function's
+ * `isZero` branch (which exists to drop a sign glyph) is simply unused, not reimplemented
+ * — there is no sign here to drop in the first place. MA-016 second amendment round; see
+ * docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
  */
 export function formatCommitmentAmount(
   payment: CommitmentPayment | undefined,
@@ -80,5 +89,6 @@ export function formatCommitmentAmount(
   if (amount === undefined || currency === undefined) {
     return undefined;
   }
-  return `${showTilde ? '~' : ''}${formatCurrencyAmount(amount, currency)}`;
+  const { text } = formatDisplayMagnitude(amount, currency);
+  return `${showTilde ? '~' : ''}${text} ${CURRENCY_CONFIG[currency].code}`;
 }

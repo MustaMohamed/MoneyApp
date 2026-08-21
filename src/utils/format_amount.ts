@@ -55,38 +55,55 @@ const MONEY_ROUNDING_DECIMALS = 2;
 // that comment for the distinction. Do not fold them into one.
 const ZERO_AT_DISPLAY_PRECISION = /^0(\.0+)?$/;
 
+// Mirrors roundMoney's own half-cent detection tolerance (src/utils/money.ts:18), reused
+// here for a different purpose: telling a true zero apart from a nonzero value that is
+// merely small. `net === 0` after a JS `income - expense` subtraction can arrive as
+// `-1e-13` (float noise on a genuine tie) — smaller than this epsilon, correctly a true
+// zero. `tx.amount` can arrive as `0.001` — a raw, unrounded persisted value (see the
+// isTrueZero test below) — larger than this epsilon, correctly NOT a true zero, even
+// though it is far smaller than either currency's display precision.
+const ZERO_EPSILON = 1e-9;
+
 /**
  * The magnitude four composed-sign call sites were each computing by hand
  * (`transactions.helpers.ts`, `detail.helpers.ts`, `transaction_row.helpers.ts`,
- * `transfer_flow_card.tsx`), plus whether the true rounded value is an exact zero.
- * Callers own sign composition and any currency-code suffix — this owns exactly the
- * money-precision problem that was quadruplicated: `roundMoney` persists at 2dp, but
- * EGP's 0dp display precision can round a genuine 0.40 down to a printed "0", and a
- * sign glyph beside that reads as a direction that does not exist. See
+ * `transfer_flow_card.tsx`), plus whether the value is a true zero — and, since MA-016's
+ * second amendment round, the same magnitude problem `formatCommitmentAmount`
+ * (`src/modules/commitments/screens/commitments/commitment_status.ts`) has independently
+ * of any sign. Callers own sign composition (where they have one) and any currency-code
+ * suffix — this owns exactly the money-precision problem: `roundMoney` persists at 2dp,
+ * but EGP's 0dp display precision can round a genuine 0.40 down to a printed "0", and a
+ * sign glyph beside that (where present) reads as a direction that does not exist. See
  * docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
  *
  * The rule, site-independent:
- *   1. `r = roundMoney(value)` — magnitude only. `-0 === 0` already holds in JS, so no
- *      separate negative-zero normalisation is needed to test for an exact zero here
- *      (that stays `normalizeNegativeZero`'s job at the domain layer, upstream of this).
- *   2. `r === 0`  -> magnitude `"0"`, `isZero: true`. There is no direction to report.
- *   3. `r !== 0`  -> render at the site's normal (currency-config) precision. If that
- *      would print a literal zero, fall back to `r`'s full rounding precision instead so
- *      a nonzero amount never displays as zero. Structurally unreachable for any
- *      currency whose display precision already matches or exceeds
+ *   1. `isTrueZero = Math.abs(value) < ZERO_EPSILON`, tested on the RAW value, never on
+ *      `roundMoney(value)`. Those coincide only when the input is already known to live at
+ *      2dp precision — true for `net`, `egp_amount`, `to_amount`, NOT true for a raw
+ *      `tx.amount` (persisted unrounded — `transaction.repository.ts:143` — and accepted at
+ *      any positive precision by `parsePositiveDecimal`). Rounding first would let a real
+ *      `0.001` collapse to a false true-zero and print with no sign at all.
+ *   2. `isTrueZero` -> magnitude `"0"`, `isZero: true`. There is no direction to report.
+ *   3. otherwise -> render `Math.abs(value)` at the site's normal (currency-config)
+ *      precision. If that would print a literal zero, escalate ONCE, to `roundMoney`'s own
+ *      2dp ledger floor — never further, so this stays the display layer's cap on precision
+ *      rather than a window onto whatever precision the raw value happens to carry
+ *      (M1/M22, the uncapped-`Intl` defect this cleanup exists to close). Structurally
+ *      unreachable for any currency whose display precision already matches or exceeds
  *      `MONEY_ROUNDING_DECIMALS` — USD today.
  */
 export function formatDisplayMagnitude(
   value: number,
   currency: Currency,
 ): { text: string; isZero: boolean } {
-  const magnitude = Math.abs(roundMoney(value));
-  if (magnitude === 0) return { text: formatAmount(0, 0), isZero: true };
+  const isTrueZero = Math.abs(value) < ZERO_EPSILON;
+  if (isTrueZero) return { text: formatAmount(0, 0), isZero: true };
 
+  const magnitude = Math.abs(value);
   const config = CURRENCY_CONFIG[currency];
   const atSitePrecision = formatAmount(magnitude, config.decimals);
   const text = ZERO_AT_DISPLAY_PRECISION.test(atSitePrecision)
-    ? formatAmount(magnitude, MONEY_ROUNDING_DECIMALS)
+    ? formatAmount(roundMoney(magnitude), MONEY_ROUNDING_DECIMALS)
     : atSitePrecision;
   return { text, isZero: false };
 }

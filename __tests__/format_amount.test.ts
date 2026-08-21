@@ -102,7 +102,12 @@ describe('formatDisplayMagnitude', () => {
     expect(formatDisplayMagnitude(0, Currency.EGP)).toEqual({ text: '0', isZero: true });
   });
 
-  it('collapses float noise that rounds to -0 the same way', () => {
+  // Regression guard, not a new case: this passed under the OLD rounding-based zero test
+  // for a different reason (roundMoney(-1e-13) === 0). MA-016's second amendment round
+  // moved the zero test onto the raw value with roundMoney's own 1e-9 epsilon, so this row
+  // must be pinned explicitly now — a bare `raw === 0` would have missed it entirely, and
+  // a wider epsilon could swallow USD 0.001 (also pinned below) into a false true-zero.
+  it('collapses a float tie (-1e-13, income === expense) to a true, unsigned zero', () => {
     expect(formatDisplayMagnitude(-1e-13, Currency.EGP)).toEqual({ text: '0', isZero: true });
   });
 
@@ -115,8 +120,24 @@ describe('formatDisplayMagnitude', () => {
     expect(formatDisplayMagnitude(0.6, Currency.EGP)).toEqual({ text: '1', isZero: false });
   });
 
+  // EGP's tie-breaking case for the same "does not escalate" rule: 249.50 rounds UP to an
+  // already-nonzero "250" at 0dp, so there is nothing to escalate to. Also the ADR §1
+  // worked-example row value (three of these total "749", accepted approximation).
+  it('does not escalate a half-EGP tie that already rounds to a nonzero digit', () => {
+    expect(formatDisplayMagnitude(249.5, Currency.EGP)).toEqual({ text: '250', isZero: false });
+  });
+
+  // MA-016 second amendment round (@layla): the zero test must run on the RAW value, not
+  // on roundMoney(value) — a raw `tx.amount` is never guaranteed to already live at 2dp
+  // (transaction.repository.ts:143 persists it unrounded), so 0.001 is a real nonzero
+  // magnitude that must escalate to 2dp, not a false zero.
+  it('escalates a sub-cent raw USD magnitude instead of collapsing it to a false zero', () => {
+    expect(formatDisplayMagnitude(0.001, Currency.USD)).toEqual({ text: '0.00', isZero: false });
+    expect(formatDisplayMagnitude(0.004, Currency.USD)).toEqual({ text: '0.00', isZero: false });
+  });
+
   it('never escalates for USD — its 2dp display precision already matches roundMoney', () => {
     expect(formatDisplayMagnitude(0.4, Currency.USD)).toEqual({ text: '0.40', isZero: false });
-    expect(formatDisplayMagnitude(0.004, Currency.USD)).toEqual({ text: '0', isZero: true });
+    expect(formatDisplayMagnitude(0.01, Currency.USD)).toEqual({ text: '0.01', isZero: false });
   });
 });

@@ -133,18 +133,43 @@ number.
 `formatDisplayMagnitude` (`src/utils/format_amount.ts`) is their shared contract:
 
 ```
-1. r = Math.abs(roundMoney(value))
-2. r === 0  -> magnitude "0", isZero: true. No sign is composed at any of the four call
-               sites. There is no direction to report.
-3. r !== 0  -> render at the site's normal (CURRENCY_CONFIG) precision. If that would print a
-               literal zero — a genuine nonzero amount rounding away at display precision, e.g.
-               0.40 EGP at EGP's 0dp — escalate to roundMoney's own 2dp instead, so a nonzero
-               amount never prints as zero. Sign composition is unchanged: unaffected by this
-               function, still the caller's.
+1. isTrueZero = Math.abs(value) < ZERO_EPSILON (1e-9, roundMoney's own half-cent tolerance),
+               tested on the RAW value, never on roundMoney(value). No sign is composed at
+               any of the four composed-sign call sites when isTrueZero. There is no
+               direction to report.
+2. !isTrueZero -> render Math.abs(value) at the site's normal (CURRENCY_CONFIG) precision.
+               If that would print a literal zero — a genuine nonzero amount rounding away
+               at display precision, e.g. 0.40 EGP at EGP's 0dp — escalate ONCE to
+               roundMoney's own 2dp, never further, so a nonzero amount never prints as zero
+               and the display layer never chases whatever precision the raw value happens
+               to carry. Sign composition is unchanged: unaffected by this function, still
+               the caller's (where it has one).
 ```
 
 Measured: `0.40` EGP -> `"0.40"` (escalated, not `"0"`) · `0.60` EGP -> `"1"` (no escalation
 needed) · `0` EGP -> `"0"`, `isZero: true`.
+
+**MA-016 second amendment round — the zero test moved from `roundMoney(value) === 0` to
+`Math.abs(value) < ZERO_EPSILON` on the raw value.** The two tests coincide only when the
+input is already known to live at 2dp precision — true for `net`, `egp_amount`, `to_amount`,
+not true for a raw `tx.amount` (`transaction.repository.ts:143` persists it unrounded, and
+`parsePositiveDecimal` accepts any positive decimal). Under the original rounding-based test,
+`tx.amount = 0.001` rounded to exactly `0` and the function reported a true zero — no sign,
+no magnitude, silently indistinguishable from an actual zero-amount transaction, where `main`
+had rendered `−0.001` (rounded for display, but signed). Testing the raw value against
+`roundMoney`'s own `1e-9` epsilon fixes both populations at once with one constant: a genuine
+float tie from `income − expense` (`-1e-13`) is still `< 1e-9`, still a true zero, and `0.001`
+is not, so it escalates through step 2 like any other sub-precision nonzero magnitude
+(`"0.00"` at USD's 2dp — the 2dp ceiling is hard; see the surrounding rule, unchanged).
+
+**The rule is universal, not composed-sign-only.** `formatCommitmentAmount`
+(`src/modules/commitments/screens/commitments/commitment_status.ts`) independently had the
+same defect for the same reason — it called `formatCurrencyAmount` directly instead of
+`formatDisplayMagnitude`, so a 0.40 EGP commitment read `"0 EGP"` on every commitments surface
+while the identical magnitude on a transaction row already escalated to `"0.40 EGP"`. It now
+routes through `formatDisplayMagnitude` for step 2 (the magnitude/escalate half) only — it
+composes no sign, so step 1's `isZero` branch (which exists to drop a sign glyph) is simply
+unused on that call site, not reimplemented differently.
 
 This does not reopen §2's "an exact `-0` at a formatter stays visible" rule, because that rule
 governs `formatAmount` receiving the domain's own signed value directly — the population where a
