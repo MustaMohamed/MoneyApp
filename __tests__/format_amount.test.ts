@@ -2,6 +2,7 @@ import { Currency } from '@/constants/enums';
 import {
   formatAmount,
   formatCurrencyAmount,
+  formatDisplayMagnitude,
   formatExchangeRate,
   formatWithCurrencyCode,
 } from '@/utils/format_amount';
@@ -89,5 +90,33 @@ describe('formatAmount — the signed-zero display guard', () => {
     expect(formatAmount(-0.001, 3)).toBe('-0.001');
     expect(formatAmount(-1234.5, 2)).toBe('-1,234.50');
     expect(formatAmount(-1, 0)).toBe('-1');
+  });
+});
+
+describe('formatDisplayMagnitude', () => {
+  // MA-016 P8 F-1 (@layla's ruling): the defect the three composed-sign sites shared
+  // was never the sign — it's that 0dp rounding discards precision the domain already
+  // computed, printing "0" where the truth is "0.40". This is the one shared rule.
+  // See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.
+  it('collapses an exact zero to a bare, unsigned magnitude', () => {
+    expect(formatDisplayMagnitude(0, Currency.EGP)).toEqual({ text: '0', isZero: true });
+  });
+
+  it('collapses float noise that rounds to -0 the same way', () => {
+    expect(formatDisplayMagnitude(-1e-13, Currency.EGP)).toEqual({ text: '0', isZero: true });
+  });
+
+  it('escalates to full rounding precision when EGP 0dp display would print a nonzero value as "0"', () => {
+    expect(formatDisplayMagnitude(0.4, Currency.EGP)).toEqual({ text: '0.40', isZero: false });
+    expect(formatDisplayMagnitude(-0.4, Currency.EGP)).toEqual({ text: '0.40', isZero: false });
+  });
+
+  it('does not escalate once 0dp already prints a nonzero digit', () => {
+    expect(formatDisplayMagnitude(0.6, Currency.EGP)).toEqual({ text: '1', isZero: false });
+  });
+
+  it('never escalates for USD — its 2dp display precision already matches roundMoney', () => {
+    expect(formatDisplayMagnitude(0.4, Currency.USD)).toEqual({ text: '0.40', isZero: false });
+    expect(formatDisplayMagnitude(0.004, Currency.USD)).toEqual({ text: '0', isZero: true });
   });
 });

@@ -11,7 +11,6 @@ import {
   formatCommitmentAmount,
   resolveDisplayAmount,
 } from '@/modules/commitments/screens/commitments/commitment_status';
-import { formatCurrencyAmount } from '@/utils/format_amount';
 
 function mkPayment(over: Partial<CommitmentPayment>): CommitmentPayment {
   return {
@@ -181,10 +180,19 @@ describe('formatCommitmentAmount', () => {
     expect(text).toBeUndefined();
   });
 
-  // Tripwire (MA-015 idiom): pins what the config default really produces, so the
-  // rows above cannot pass because a bare literal happens to agree with it.
-  it('tripwire: matches what formatCurrencyAmount produces under CURRENCY_CONFIG', () => {
-    expect(formatCurrencyAmount(1234.56, Currency.EGP)).toBe('1,235 EGP');
-    expect(formatCurrencyAmount(1234.5, Currency.USD)).toBe('1,234.50 USD');
+  // MA-016 P8 F-2 (@sarah's ratified condition): pins the ADR's worked example (b) row
+  // value — three 249.50 EGP commitments each render "250 EGP" — the row half of the
+  // rows-vs-header approximation the ticket accepts. See
+  // docs/adr/2026-08-21-currency-aware-display-decimals.md §1.
+  it('EGP payment at 249.50: renders "250 EGP", the ADR worked-example row value', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({
+        status: CommitmentPaymentStatus.Due,
+        amount_due: 249.5,
+        currency: Currency.EGP,
+      }),
+      mkCommitment({ currency: Currency.EGP }),
+    );
+    expect(text).toBe('250 EGP');
   });
 });

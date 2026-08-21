@@ -1,12 +1,18 @@
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
 
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { EXCHANGE_RATE_DECIMALS, formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
+import {
+  EXCHANGE_RATE_DECIMALS,
+  formatAmount,
+  formatCurrencyAmount,
+  formatDisplayMagnitude,
+} from '@/utils/format_amount';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
@@ -73,7 +79,9 @@ function contextFor(
 function primaryAmountFor(tx: Transaction, cardCredit: boolean): string {
   const sign =
     tx.type === TransactionType.Expense ? '−' : tx.type === TransactionType.Income ? '+' : '';
-  return `${cardCredit ? '+' : sign}${formatCurrencyAmount(tx.amount, tx.currency)}`;
+  const { text, isZero } = formatDisplayMagnitude(tx.amount, tx.currency);
+  const value = `${text} ${CURRENCY_CONFIG[tx.currency].code}`;
+  return isZero ? value : `${cardCredit ? '+' : sign}${value}`;
 }
 
 function destinationAmountFor(tx: Transaction, toAccount?: Account): string | undefined {

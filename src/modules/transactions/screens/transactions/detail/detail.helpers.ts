@@ -1,6 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
 
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
@@ -8,7 +9,12 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { EXCHANGE_RATE_DECIMALS, formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
+import {
+  EXCHANGE_RATE_DECIMALS,
+  formatAmount,
+  formatCurrencyAmount,
+  formatDisplayMagnitude,
+} from '@/utils/format_amount';
 import { formatLongDate } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
@@ -111,7 +117,9 @@ function isCardCredit(tx: Transaction, account?: Account): boolean {
 }
 
 function signedAmount(tx: Transaction): string {
-  const value = formatCurrencyAmount(tx.egp_amount, Currency.EGP);
+  const { text, isZero } = formatDisplayMagnitude(tx.egp_amount, Currency.EGP);
+  const value = `${text} ${CURRENCY_CONFIG[Currency.EGP].code}`;
+  if (isZero) return value;
   if (tx.type === TransactionType.Expense) return `−${value}`;
   if (tx.type === TransactionType.Income) return `+${value}`;
   return value;

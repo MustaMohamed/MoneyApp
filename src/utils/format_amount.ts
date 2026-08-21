@@ -1,5 +1,6 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { type Currency } from '@/constants/enums';
+import { roundMoney } from '@/utils/money';
 
 // A NONZERO negative magnitude that rounds to zero at this precision still carries the
 // minus sign, and reads as a small debt that does not exist. Struck after formatting,
@@ -33,6 +34,52 @@ export function formatCurrencyAmount(value: number, currency: Currency, decimals
 
 export function formatWithCurrencyCode(value: number, code: string, decimals = 0): string {
   return `${formatAmount(value, decimals)} ${code}`;
+}
+
+// Mirrors roundMoney's fixed precision (src/utils/money.ts) — the domain's persisted
+// precision, not any currency's display precision. Not exported from money.ts because
+// nothing there needs it as a value; it exists here only as the fallback this function
+// escalates to.
+const MONEY_ROUNDING_DECIMALS = 2;
+
+// Matches a magnitude that prints as a literal zero at the site's display precision —
+// "0", "0.0", "0.00" — even though the rounded value it came from is nonzero. No sign
+// variant needed: the input here is always Math.abs()'d before this runs.
+const ZERO_AT_DISPLAY_PRECISION = /^0(\.0+)?$/;
+
+/**
+ * The magnitude three composed-sign call sites were each computing by hand
+ * (`transactions.helpers.ts`, `detail.helpers.ts`, `transaction_row.helpers.ts`), plus
+ * whether the true rounded value is an exact zero. Callers own sign composition and any
+ * currency-code suffix — this owns exactly the money-precision problem that was
+ * triplicated: `roundMoney` persists at 2dp, but EGP's 0dp display precision can round a
+ * genuine 0.40 down to a printed "0", and a sign glyph beside that reads as a direction
+ * that does not exist. See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.
+ *
+ * The rule, site-independent:
+ *   1. `r = roundMoney(value)` — magnitude only. `-0 === 0` already holds in JS, so no
+ *      separate negative-zero normalisation is needed to test for an exact zero here
+ *      (that stays `normalizeNegativeZero`'s job at the domain layer, upstream of this).
+ *   2. `r === 0`  -> magnitude `"0"`, `isZero: true`. There is no direction to report.
+ *   3. `r !== 0`  -> render at the site's normal (currency-config) precision. If that
+ *      would print a literal zero, fall back to `r`'s full rounding precision instead so
+ *      a nonzero amount never displays as zero. Structurally unreachable for any
+ *      currency whose display precision already matches or exceeds
+ *      `MONEY_ROUNDING_DECIMALS` — USD today.
+ */
+export function formatDisplayMagnitude(
+  value: number,
+  currency: Currency,
+): { text: string; isZero: boolean } {
+  const magnitude = Math.abs(roundMoney(value));
+  if (magnitude === 0) return { text: formatAmount(0, 0), isZero: true };
+
+  const config = CURRENCY_CONFIG[currency];
+  const atSitePrecision = formatAmount(magnitude, config.decimals);
+  const text = ZERO_AT_DISPLAY_PRECISION.test(atSitePrecision)
+    ? formatAmount(magnitude, MONEY_ROUNDING_DECIMALS)
+    : atSitePrecision;
+  return { text, isZero: false };
 }
 
 /**

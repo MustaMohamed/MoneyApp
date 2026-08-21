@@ -1,7 +1,15 @@
 // Invariant: no tracked src/ .ts/.tsx file outside the literal allowlist below constructs
-// an `Intl.NumberFormat`, and every allowlist entry names a file that still does. The 12
-// `issue: 270` entries are #270's cleanup register — every #270 PR that fixes one of these
-// files must delete its entry in the same commit, or this check goes red on the stale half.
+// an `Intl.NumberFormat`, and every allowlist entry names a file that still does. Steady
+// state today (post-MA-016): one sanctioned entry — `format_amount.ts`, the app's one
+// legitimate constructor — and zero `issue` entries; #270's original 12-file cleanup
+// register emptied out as MA-016 and its predecessors fixed each site in turn.
+//
+// `issue` is not dead — it is the re-arming mechanism for the *next* such campaign, not
+// this one's leftovers. To temporarily allowlist a newly discovered violation, add
+// `{ path, issue: <N> }`; the PR that fixes that file must delete its entry in the same
+// commit, or this check goes red on the stale half (pass 2, below). A zero count here is
+// the register being empty because the last campaign finished clean, not evidence the
+// mechanism is unused.
 const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');

@@ -112,6 +112,14 @@ describe('HeroCard skeleton loading', () => {
 
     expect(getByText(Strings.dashAvailableToSpend)).toBeTruthy();
     expect(queryByText(/8,650/)).toBeNull();
+    // MA-016 P8 F-3: restores the content-absent-while-loading coverage a prior chunk-D
+    // dispatch wrongly deleted, believing the pill-presence assertions below carried the
+    // same property. They don't — those assert the SKELETON is present; these assert the
+    // real USD total and rate pill are NOT rendered underneath it. Testing by testID
+    // rather than the old text regex because this same commit moved the rate pill's copy
+    // from "1 USD = 49.06 EGP" to "49.06 EGP/USD" and the total to 2dp.
+    expect(queryByTestId('dashboard-hero-rate-pill')).toBeNull();
+    expect(queryByText(/176\.00 USD/)).toBeNull();
     expect(queryByText(`1 ${Strings.o6AccountsUnit}`)).toBeNull();
     expect(queryByTestId('skeleton-group-only')).toBeNull();
     expect(getByTestId('dashboard-hero-skeleton-amount').props.animation).toEqual({

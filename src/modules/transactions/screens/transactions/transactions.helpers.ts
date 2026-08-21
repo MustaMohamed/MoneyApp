@@ -1,8 +1,7 @@
-import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
-import { formatAmount } from '@/utils/format_amount';
+import { formatDisplayMagnitude } from '@/utils/format_amount';
 import { currentYearMonth, shiftYearMonth } from '@/utils/year_month';
 
 export { currentYearMonth };
@@ -57,9 +56,10 @@ export function polarityColor(metric: TotalsMetric, deltaPct: number): PolarityS
 }
 
 export function formatSignedAmount(value: number, metric: TotalsMetric): string {
-  const formatted = formatAmount(Math.abs(value), CURRENCY_CONFIG[Currency.EGP].decimals);
-  if (metric === 'expense') return `${value < 0 ? '+' : '-'}${formatted}`;
-  return `${value >= 0 ? '+' : '-'}${formatted}`;
+  const { text, isZero } = formatDisplayMagnitude(value, Currency.EGP);
+  if (isZero) return text;
+  if (metric === 'expense') return `${value < 0 ? '+' : '-'}${text}`;
+  return `${value >= 0 ? '+' : '-'}${text}`;
 }
 
 export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentation {

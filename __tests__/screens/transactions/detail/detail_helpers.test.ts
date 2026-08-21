@@ -203,13 +203,27 @@ describe('buildTransactionDetailPresentation', () => {
     });
   });
 
-  it('renders the USD original amount at the config default, and the tripwire confirms what that default is', () => {
-    const { originalAmountText } = buildTransactionDetailPresentation({
-      tx: transaction({ amount: 1200 }),
-      account: account({ currency: Currency.USD }),
-    });
-    expect(originalAmountText).toBe('1,200.00 USD');
-    expect(formatCurrencyAmount(1200, Currency.USD)).toBe('1,200.00 USD');
+  // MA-016 P8 F-1: signedAmount composes its own sign and passes a positive magnitude
+  // to formatCurrencyAmount, so formatAmount's -0 guard never sees it — a genuine 0.40
+  // EGP expense rounded to "0" at EGP's 0dp precision and displayed as "-0", the guard's
+  // target string with no way to distinguish it from a true zero. See
+  // docs/adr/2026-08-21-currency-aware-display-decimals.md §2.
+  it('escalates to 2dp rather than print a sign beside a rounded-away magnitude', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: transaction({ type: TransactionType.Expense, egp_amount: 0.4 }),
+        account: account({}),
+      }).amountText,
+    ).toBe('−0.40 EGP');
+  });
+
+  it('does not escalate once the site precision would print a nonzero digit', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: transaction({ type: TransactionType.Expense, egp_amount: 0.6 }),
+        account: account({}),
+      }).amountText,
+    ).toBe('−1 EGP');
   });
 
   it('keeps the rate at 2dp regardless of the EGP amount default — the tripwire that would catch a find-and-replace onto formatCurrencyAmount', () => {
