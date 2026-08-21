@@ -55,13 +55,26 @@ const MONEY_ROUNDING_DECIMALS = 2;
 // that comment for the distinction. Do not fold them into one.
 const ZERO_AT_DISPLAY_PRECISION = /^0(\.0+)?$/;
 
-// Mirrors roundMoney's own half-cent detection tolerance (src/utils/money.ts:18), reused
-// here for a different purpose: telling a true zero apart from a nonzero value that is
+// Chosen independently of roundMoney's 1e-9 (src/utils/money.ts:18) — the two share a
+// numeral but not a derivation, and do not track each other. roundMoney's 1e-9 bounds a
+// DISTANCE from a half-cent boundary, in ×100-scaled units (compared against
+// `Math.abs(remainder - 0.5)`, remainder being the fractional part of `abs(n) * 100` — i.e.
+// 1e-11 in currency units). This one bounds an absolute MAGNITUDE, unscaled (compared
+// against `Math.abs(value)` directly). Different operand, different scale, different
+// question; do not "fix" one by copying the other's value.
+//
+// What this epsilon actually does: tells a true zero apart from a nonzero value that is
 // merely small. `net === 0` after a JS `income - expense` subtraction can arrive as
 // `-1e-13` (float noise on a genuine tie) — smaller than this epsilon, correctly a true
 // zero. `tx.amount` can arrive as `0.001` — a raw, unrounded persisted value (see the
 // isTrueZero test below) — larger than this epsilon, correctly NOT a true zero, even
 // though it is far smaller than either currency's display precision.
+//
+// Trade recorded, not derived: the prior rule zeroed anything under half a cent (0.005);
+// this one zeroes only under 1e-9, so the float-noise headroom for an income-expense tie
+// drops from 0.005 to 1e-9. Measured residue per accumulation is ~2.2e-16 × magnitude, so
+// it stays under 1e-9 until EGP totals reach roughly 5e6 over several additions — four-plus
+// orders of headroom at realistic balances. Not a defect; a narrower margin than before.
 const ZERO_EPSILON = 1e-9;
 
 /**
@@ -88,9 +101,12 @@ const ZERO_EPSILON = 1e-9;
  *      precision. If that would print a literal zero, escalate ONCE, to `roundMoney`'s own
  *      2dp ledger floor — never further, so this stays the display layer's cap on precision
  *      rather than a window onto whatever precision the raw value happens to carry
- *      (M1/M22, the uncapped-`Intl` defect this cleanup exists to close). Structurally
- *      unreachable for any currency whose display precision already matches or exceeds
- *      `MONEY_ROUNDING_DECIMALS` — USD today.
+ *      (M1/M22, the uncapped-`Intl` defect this cleanup exists to close). For a currency
+ *      whose display precision already matches or exceeds `MONEY_ROUNDING_DECIMALS` — USD
+ *      today — the branch is still entered (a sub-cent magnitude like `0.001` prints "0.00"
+ *      at 2dp and trips the escalate check), it is just a no-op there: re-rendering at 2dp
+ *      produces the same string `atSitePrecision` already held. Not unreachable — reached
+ *      and idempotent. See `__tests__/format_amount.test.ts`'s USD rows.
  */
 export function formatDisplayMagnitude(
   value: number,

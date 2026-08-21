@@ -136,7 +136,7 @@ describe('formatDisplayMagnitude', () => {
     expect(formatDisplayMagnitude(0.004, Currency.USD)).toEqual({ text: '0.00', isZero: false });
   });
 
-  it('never escalates for USD — its 2dp display precision already matches roundMoney', () => {
+  it('does not escalate for USD magnitudes that already print a nonzero digit at 2dp', () => {
     expect(formatDisplayMagnitude(0.4, Currency.USD)).toEqual({ text: '0.40', isZero: false });
     expect(formatDisplayMagnitude(0.01, Currency.USD)).toEqual({ text: '0.01', isZero: false });
   });

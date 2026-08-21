@@ -119,22 +119,25 @@ Each asserts that a raw `-0` reaching a formatter still renders with its sign, s
 red and makes the assertions above them vacuous — passing whether or not the domain still
 normalises. The narrowed guard preserves the whole chain with zero edits to any of the three.
 
-### 2.1 Composed-sign sites: a third population, and why "stays visible" does not apply to it
+### 2.1 The magnitude/escalate rule: a third population, and why "stays visible" does not apply to it
 
 `transactions.helpers.ts`'s `formatSignedAmount`, `detail.helpers.ts`'s `signedAmount`,
 `transaction_row.helpers.ts`'s `primaryAmountFor`, and `transfer_flow_card.tsx`'s
-`transferCellAmountText` never pass a signed value to `formatAmount`. Each computes
-`Math.abs(roundMoney(value))` and prefixes a sign character it derives on its own — transaction
+`transferCellAmountText` never pass a signed value to `formatAmount`. Each routes through
+`formatDisplayMagnitude` and prefixes a sign character it derives on its own — transaction
 type, credit/debit direction, transfer flow — never the domain value's actual sign. That is a
 third population, outside the two-row table above, and `formatAmount`'s guard (which fires on a
 sign `Intl` itself produced) structurally cannot see it: these callers never hand `Intl` a negative
-number.
+number. `formatCommitmentAmount` shares the same magnitude/escalate problem below despite
+composing no sign at all — see the "rule is universal" paragraph below the worked example.
 
 `formatDisplayMagnitude` (`src/utils/format_amount.ts`) is their shared contract:
 
 ```
-1. isTrueZero = Math.abs(value) < ZERO_EPSILON (1e-9, roundMoney's own half-cent tolerance),
-               tested on the RAW value, never on roundMoney(value). No sign is composed at
+1. isTrueZero = Math.abs(value) < ZERO_EPSILON (1e-9, chosen independently of roundMoney's
+               own 1e-9 — see src/utils/format_amount.ts, they compare different operands
+               at different scales and do not track each other), tested on the RAW value,
+               never on roundMoney(value). No sign is composed at
                any of the four composed-sign call sites when isTrueZero. There is no
                direction to report.
 2. !isTrueZero -> render Math.abs(value) at the site's normal (CURRENCY_CONFIG) precision.
@@ -147,7 +150,9 @@ number.
 ```
 
 Measured: `0.40` EGP -> `"0.40"` (escalated, not `"0"`) · `0.60` EGP -> `"1"` (no escalation
-needed) · `0` EGP -> `"0"`, `isZero: true`.
+needed) · `0` EGP -> `"0"`, `isZero: true` · `0.001` USD -> `"0.00"`, `isZero: false` (the
+amendment's headline row: escalation entered and idempotent at USD's own 2dp, not a true
+zero — see §2.1's amendment paragraph below).
 
 **MA-016 second amendment round — the zero test moved from `roundMoney(value) === 0` to
 `Math.abs(value) < ZERO_EPSILON` on the raw value.** The two tests coincide only when the
@@ -157,10 +162,19 @@ not true for a raw `tx.amount` (`transaction.repository.ts:143` persists it unro
 `tx.amount = 0.001` rounded to exactly `0` and the function reported a true zero — no sign,
 no magnitude, silently indistinguishable from an actual zero-amount transaction, where `main`
 had rendered `−0.001` (rounded for display, but signed). Testing the raw value against
-`roundMoney`'s own `1e-9` epsilon fixes both populations at once with one constant: a genuine
+`ZERO_EPSILON`'s `1e-9` — chosen independently of `roundMoney`'s own `1e-9`, not derived
+from it (they bound different things at different scales; see `src/utils/format_amount.ts`)
+— fixes both populations at once with one constant: a genuine
 float tie from `income − expense` (`-1e-13`) is still `< 1e-9`, still a true zero, and `0.001`
 is not, so it escalates through step 2 like any other sub-precision nonzero magnitude
 (`"0.00"` at USD's 2dp — the 2dp ceiling is hard; see the surrounding rule, unchanged).
+
+**Trade, not previously recorded here:** the prior rounding-based test zeroed anything under
+half a cent (`0.005`); this one zeroes only under `1e-9`, so the float-noise headroom for an
+`income − expense` tie drops from `0.005` to `1e-9`. Measured residue is ~`2.2e-16 ×
+magnitude` per accumulation, so it stays under `1e-9` until EGP totals reach roughly `5e6`
+over several additions — four-plus orders of headroom at realistic balances. Not a defect;
+a narrower margin than before, accepted on that measurement.
 
 **The rule is universal, not composed-sign-only.** `formatCommitmentAmount`
 (`src/modules/commitments/screens/commitments/commitment_status.ts`) independently had the
