@@ -21,25 +21,6 @@ const CONSTRUCTOR = /(?<![\w.])Intl\.NumberFormat\s*\(/;
 // a fresh grep by eye, and #270's single-entry deletions stay single-line diffs. Entries with
 // an `issue` may only ever be deleted, never added without a gate.
 const ALLOWLIST = [
-  { path: 'src/modules/commitments/screens/commitments/components/commitment_row.tsx', issue: 270 },
-  { path: 'src/modules/commitments/screens/commitments/components/summary_header.tsx', issue: 270 },
-  {
-    path: 'src/modules/commitments/screens/commitments/detail/components/current_cycle_card.tsx',
-    issue: 270,
-  },
-  {
-    path: 'src/modules/commitments/screens/commitments/detail/components/detail_hero.tsx',
-    issue: 270,
-  },
-  {
-    path: 'src/modules/commitments/screens/commitments/detail/components/pay_sheet.tsx',
-    issue: 270,
-  },
-  {
-    path: 'src/modules/commitments/screens/commitments/detail/components/payment_row.tsx',
-    issue: 270,
-  },
-  { path: 'src/modules/dashboard/screens/dashboard/components/commitments_card.tsx', issue: 270 },
   {
     path: 'src/modules/transactions/screens/transactions/components/transaction_row.helpers.ts',
     issue: 270,

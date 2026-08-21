@@ -2,7 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useDeferredValue, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { CommitmentPaymentStatus } from '@/constants/enums';
+import { type Currency, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
@@ -188,7 +188,7 @@ export function useCommitments() {
   // Group totals by currency. For paid: actual paid amount; for variable+unpaid with no
   // estimate: skipped (excluded). Skipped payments excluded entirely.
   const totalsByCurrency = useMemo(() => {
-    const totals = new Map<string, number>();
+    const totals = new Map<Currency, number>();
     for (const p of activePayments) {
       if (p.status === CommitmentPaymentStatus.Skipped) continue;
       const isPaid = p.status === CommitmentPaymentStatus.Paid;

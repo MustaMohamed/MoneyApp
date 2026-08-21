@@ -7,7 +7,11 @@ import {
 } from '@/constants/enums';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
-import { resolveDisplayAmount } from '@/modules/commitments/screens/commitments/commitment_status';
+import {
+  formatCommitmentAmount,
+  resolveDisplayAmount,
+} from '@/modules/commitments/screens/commitments/commitment_status';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 
 function mkPayment(over: Partial<CommitmentPayment>): CommitmentPayment {
   return {
@@ -129,5 +133,58 @@ describe('resolveDisplayAmount', () => {
   it('undefined payment + undefined commitment: amount undefined, no tilde', () => {
     const r = resolveDisplayAmount(undefined, undefined);
     expect(r).toEqual({ amount: undefined, showTilde: false });
+  });
+});
+
+describe('formatCommitmentAmount', () => {
+  it('USD payment at 1234.5: currency-aware 2dp, no tilde', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({
+        status: CommitmentPaymentStatus.Due,
+        amount_due: 1234.5,
+        currency: Currency.USD,
+      }),
+      mkCommitment({ currency: Currency.USD }),
+    );
+    expect(text).toBe('1,234.50 USD');
+  });
+
+  it('EGP payment at 1234.56: currency-aware 0dp, no tilde', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({
+        status: CommitmentPaymentStatus.Due,
+        amount_due: 1234.56,
+        currency: Currency.EGP,
+      }),
+      mkCommitment({ currency: Currency.EGP }),
+    );
+    expect(text).toBe('1,235 EGP');
+  });
+
+  it('variable + unpaid: carries the leading tilde', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({
+        status: CommitmentPaymentStatus.Upcoming,
+        amount_due: 100,
+        currency: Currency.EGP,
+      }),
+      mkCommitment({ amount_type: AmountType.Variable, currency: Currency.EGP }),
+    );
+    expect(text).toBe('~100 EGP');
+  });
+
+  it('no amount to format: undefined', () => {
+    const text = formatCommitmentAmount(
+      mkPayment({ status: CommitmentPaymentStatus.Due, amount_due: null, amount_paid: null }),
+      mkCommitment({ amount: null }),
+    );
+    expect(text).toBeUndefined();
+  });
+
+  // Tripwire (MA-015 idiom): pins what the config default really produces, so the
+  // rows above cannot pass because a bare literal happens to agree with it.
+  it('tripwire: matches what formatCurrencyAmount produces under CURRENCY_CONFIG', () => {
+    expect(formatCurrencyAmount(1234.56, Currency.EGP)).toBe('1,235 EGP');
+    expect(formatCurrencyAmount(1234.5, Currency.USD)).toBe('1,234.50 USD');
   });
 });

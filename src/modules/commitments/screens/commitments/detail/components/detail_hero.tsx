@@ -11,10 +11,8 @@ import { toIconName } from '@/utils/icon_name_guard';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
-import { resolveDisplayAmount } from '../../commitment_status';
+import { formatCommitmentAmount } from '../../commitment_status';
 import { heroEntering } from '../detail.anim';
-
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 interface Props {
   commitment: Commitment;
@@ -26,14 +24,10 @@ interface Props {
 export function DetailHero({ commitment, category, payment, recurrenceLabel }: Props) {
   const iconColor = category?.color ?? Colors.dark.gold;
   const tintBg = iconColor.length === 7 ? `${iconColor}2E` : iconColor;
-  const { amount, showTilde } = resolveDisplayAmount(payment, commitment);
   const currency = payment?.currency ?? commitment.currency;
   const amountText =
-    amount != null
-      ? `${showTilde ? '~' : ''}${currency} ${numberFmt.format(amount)}`
-      : commitment.amount_type === AmountType.Variable
-        ? Strings.commitmentsAmountVariable
-        : currency;
+    formatCommitmentAmount(payment, commitment) ??
+    (commitment.amount_type === AmountType.Variable ? Strings.commitmentsAmountVariable : currency);
 
   return (
     <HeroShell entering={heroEntering} glowColor={iconColor} glowOpacity={0.25}>

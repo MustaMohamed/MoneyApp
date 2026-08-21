@@ -4,9 +4,11 @@ import { Card, Skeleton } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 interface SummaryHeaderProps {
@@ -18,12 +20,11 @@ interface SummaryHeaderProps {
     skipped: number;
     total: number;
   };
-  totalsByCurrency: Map<string, number>;
+  totalsByCurrency: Map<Currency, number>;
   isLoading?: boolean;
 }
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 const SUMMARY_ROW_HEIGHT = ms(27);
 const SUMMARY_PROGRESS_HEIGHT = ms(3);
 const SUMMARY_STATS_ROW_HEIGHT = ms(13);
@@ -83,7 +84,7 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
   const totalsLine =
     totalEntries.length === 0
       ? '—'
-      : totalEntries.map(([cur, amt]) => `${numberFmt.format(amt)} ${cur}`).join('  ·  ');
+      : totalEntries.map(([cur, amt]) => formatCurrencyAmount(amt, cur)).join('  ·  ');
 
   return (
     <Card className="bg-surface border-border mx-4 mb-2 gap-1 rounded-2xl border px-3 py-2">

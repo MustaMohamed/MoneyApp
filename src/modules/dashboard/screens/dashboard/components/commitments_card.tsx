@@ -5,8 +5,10 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
@@ -21,7 +23,7 @@ interface Props {
     skipped: number;
     total: number;
   };
-  totalsByCurrency: Map<string, number>;
+  totalsByCurrency: Map<Currency, number>;
   yearMonth: string;
   isLoading: boolean;
   onPress: () => void;
@@ -32,8 +34,6 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT = ms(33);
 const DASHBOARD_COMMITMENTS_PROGRESS_HEIGHT = ms(3);
 const DASHBOARD_COMMITMENTS_STATS_ROW_HEIGHT = ms(14);
-
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 function CommitmentsCardSkeleton(): React.ReactElement {
   return (
@@ -122,7 +122,7 @@ export function CommitmentsCard({
   const totalsLine =
     totalEntries.length === 0
       ? '—'
-      : totalEntries.map(([cur, amt]) => `${numberFmt.format(amt)} ${cur}`).join('  ·  ');
+      : totalEntries.map(([cur, amt]) => formatCurrencyAmount(amt, cur)).join('  ·  ');
 
   return (
     <PressableFeedback

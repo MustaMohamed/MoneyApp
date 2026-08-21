@@ -18,6 +18,7 @@ import {
   STATUS_COLORS,
   STATUS_ICONS,
   STATUS_LABELS,
+  formatCommitmentAmount,
   resolveDisplayAmount,
 } from '../commitment_status';
 
@@ -31,8 +32,6 @@ interface CommitmentRowProps {
   onDelete: (commitmentId: string | undefined) => void;
 }
 
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
-
 function CommitmentRowComponent({
   payment,
   commitment,
@@ -44,8 +43,9 @@ function CommitmentRowComponent({
 }: CommitmentRowProps) {
   const statusColor = STATUS_COLORS[payment.status];
   const statusLabel = STATUS_LABELS[payment.status];
-  const { amount, showTilde } = resolveDisplayAmount(payment, commitment);
-  const formattedAmount = amount != null ? numberFmt.format(amount) : '—';
+  const { showTilde } = resolveDisplayAmount(payment, commitment);
+  const amountText =
+    formatCommitmentAmount(payment, commitment) ?? `${showTilde ? '~' : ''}— ${payment.currency}`;
   const iconBg = category?.color ? `${category.color}2E` : CoreTokens.surfaceEl;
 
   const handlePress = useCallback(() => onPress(payment.id), [onPress, payment.id]);
@@ -84,12 +84,12 @@ function CommitmentRowComponent({
       rowId={payment.id}
       actions={actions}
       disabled={commitment === undefined}
-      accessibilityLabel={`${commitment?.name ?? ''}, ${showTilde ? '~' : ''}${formattedAmount} ${payment.currency}, ${statusLabel}`}
+      accessibilityLabel={`${commitment?.name ?? ''}, ${amountText}, ${statusLabel}`}
     >
       <PressableFeedback
         onPress={handlePress}
         accessibilityRole="button"
-        accessibilityLabel={`${commitment?.name ?? ''}, ${showTilde ? '~' : ''}${formattedAmount} ${payment.currency}, ${statusLabel}`}
+        accessibilityLabel={`${commitment?.name ?? ''}, ${amountText}, ${statusLabel}`}
         style={{ flexDirection: 'row', alignItems: 'center' }}
         className="border-separator min-h-[48px] gap-2 border-b px-4 py-2"
       >
@@ -112,10 +112,7 @@ function CommitmentRowComponent({
           </Text>
         </Box>
         <View style={{ alignItems: 'flex-end' }} className="gap-1">
-          <Text className="font-sora-bold text-foreground text-[15px]">
-            {showTilde ? '~' : ''}
-            {formattedAmount} {payment.currency}
-          </Text>
+          <Text className="font-sora-bold text-foreground text-[15px]">{amountText}</Text>
           <View
             style={{
               backgroundColor: `${statusColor}22`,
