@@ -112,8 +112,6 @@ describe('HeroCard skeleton loading', () => {
 
     expect(getByText(Strings.dashAvailableToSpend)).toBeTruthy();
     expect(queryByText(/8,650/)).toBeNull();
-    expect(queryByText(/176 USD/)).toBeNull();
-    expect(queryByText(/1 USD = 49.06 EGP/)).toBeNull();
     expect(queryByText(`1 ${Strings.o6AccountsUnit}`)).toBeNull();
     expect(queryByTestId('skeleton-group-only')).toBeNull();
     expect(getByTestId('dashboard-hero-skeleton-amount').props.animation).toEqual({
@@ -155,15 +153,17 @@ describe('HeroCard on the rate-needed refusal', () => {
   it('shows no exchange rate under the refusal', async () => {
     // The only rate available on this path is the unverified one the refusal
     // exists to keep off the screen; `rate` is still 49.06 in the props.
-    const { queryByText } = await render(<HeroCard {...rateNeededProps} isLoading={false} />);
+    const { queryByTestId } = await render(<HeroCard {...rateNeededProps} isLoading={false} />);
 
-    expect(queryByText(/1 USD =/)).toBeNull();
+    expect(queryByTestId('dashboard-hero-rate-pill')).toBeNull();
   });
 
-  it('still shows the exchange rate on the amount path', async () => {
-    const { getByText } = await render(<HeroCard {...baseProps} isLoading={false} />);
+  it('still shows the exchange rate and USD total on the amount path', async () => {
+    const { getByText, getByTestId } = await render(<HeroCard {...baseProps} isLoading={false} />);
 
-    expect(getByText('1 USD = 49.06 EGP')).toBeTruthy();
+    expect(getByText('49.06 EGP/USD')).toBeTruthy();
+    expect(getByTestId('dashboard-hero-rate-pill')).toBeTruthy();
+    expect(getByText('176.00 USD')).toBeTruthy();
   });
 
   it('hands the shell no press handler, so the breakdown sheet cannot open', async () => {

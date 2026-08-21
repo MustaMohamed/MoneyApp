@@ -21,10 +21,6 @@ const CONSTRUCTOR = /(?<![\w.])Intl\.NumberFormat\s*\(/;
 // a fresh grep by eye, and #270's single-entry deletions stay single-line diffs. Entries with
 // an `issue` may only ever be deleted, never added without a gate.
 const ALLOWLIST = [
-  {
-    path: 'src/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row.tsx',
-    issue: 270,
-  },
   // Sanctioned: the single legitimate constructor. No `issue` — this entry is permanent.
   { path: 'src/utils/format_amount.ts' },
 ];

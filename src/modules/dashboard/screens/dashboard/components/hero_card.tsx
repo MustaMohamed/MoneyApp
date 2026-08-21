@@ -5,11 +5,12 @@ import { View } from 'react-native';
 
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Type } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatCurrencyAmount, formatExchangeRate } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
@@ -222,7 +223,7 @@ export function HeroCard({
                   is a wrong number, not an absent one. */}
               <Text className="text-foreground text-xs">
                 {netWorth.kind === 'amount' && netWorth.assetsUsd !== undefined
-                  ? `${formatAmount(netWorth.assetsUsd, 0)} USD`
+                  ? formatCurrencyAmount(netWorth.assetsUsd, Currency.USD)
                   : '— USD'}
               </Text>
             </View>
@@ -234,6 +235,7 @@ export function HeroCard({
                 state. The amount path is untouched. */}
             {netWorth.kind === 'rate-needed' ? null : (
               <View
+                testID="dashboard-hero-rate-pill"
                 className="flex-row items-center rounded-full px-2 py-1"
                 style={{
                   flexDirection: 'row',
@@ -246,7 +248,7 @@ export function HeroCard({
                   size={ms(11)}
                   color={Colors.dark.text1}
                 />
-                <Text className="text-foreground text-xs">1 USD = {rate.toFixed(2)} EGP</Text>
+                <Text className="text-foreground text-xs">{formatExchangeRate(rate)}</Text>
               </View>
             )}
             <View
