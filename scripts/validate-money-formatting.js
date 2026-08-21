@@ -1,5 +1,5 @@
-// Invariant: no tracked src/ .ts/.tsx file outside the literal allowlist below contains
-// `new Intl.NumberFormat`, and every allowlist entry names a file that still does. The 12
+// Invariant: no tracked src/ .ts/.tsx file outside the literal allowlist below constructs
+// an `Intl.NumberFormat`, and every allowlist entry names a file that still does. The 12
 // `issue: 270` entries are #270's cleanup register — every #270 PR that fixes one of these
 // files must delete its entry in the same commit, or this check goes red on the stale half.
 const { spawnSync } = require('child_process');
@@ -10,9 +10,12 @@ const root = path.join(__dirname, '..');
 const errors = [];
 
 // No `g` flag: with one, RegExp#test carries lastIndex between calls and silently skips
-// roughly every other match. `new` is load-bearing — see the two prose mentions this keeps
-// out of the allowlist (account_aggregation.ts, dashboard.helpers.ts).
-const CONSTRUCTOR = /new Intl\.NumberFormat/;
+// roughly every other match. The paren is load-bearing, not `new` — `Intl.NumberFormat(...)`
+// without `new` is legal and returns a working formatter, so a pattern anchored on `new`
+// is evaded by deleting four characters. The negative lookbehind keeps `SomeIntl.NumberFormat(`
+// from matching; see the two prose mentions this keeps out of the allowlist
+// (account_aggregation.ts, dashboard.helpers.ts) — neither has a paren after the name.
+const CONSTRUCTOR = /(?<![\w.])Intl\.NumberFormat\s*\(/;
 
 // ASCII ascending by path — this is git ls-files order, so a reviewer can diff this against
 // a fresh grep by eye, and #270's single-entry deletions stay single-line diffs. Entries with
@@ -110,7 +113,7 @@ for (const file of files) {
   const line = firstConstructorLine(file);
   if (line !== undefined && !allowlistPaths.has(file)) {
     errors.push(
-      `${file}:${line}: constructs \`new Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
+      `${file}:${line}: constructs an \`Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
     );
   }
 }
@@ -130,11 +133,11 @@ for (const entry of ALLOWLIST) {
   if (firstConstructorLine(entry.path) === undefined) {
     if (entry.issue === undefined) {
       errors.push(
-        `${entry.path}: allowlisted as the sanctioned formatter but no longer constructs \`new Intl.NumberFormat\` — the money surface moved; update scripts/validate-money-formatting.js`,
+        `${entry.path}: allowlisted as the sanctioned formatter but no longer constructs an \`Intl.NumberFormat\` — the money surface moved; update scripts/validate-money-formatting.js`,
       );
     } else {
       errors.push(
-        `${entry.path}: allowlisted for #${entry.issue} but no longer constructs \`new Intl.NumberFormat\` — delete its allowlist entry in scripts/validate-money-formatting.js`,
+        `${entry.path}: allowlisted for #${entry.issue} but no longer constructs an \`Intl.NumberFormat\` — delete its allowlist entry in scripts/validate-money-formatting.js`,
       );
     }
   }
