@@ -203,11 +203,24 @@ describe('buildTransactionDetailPresentation', () => {
     });
   });
 
+  // MA-016 P8 cycle 2 B-2: restores the presentation assertion F-4 deleted along with
+  // its byte-identical twin (`expect(formatCurrencyAmount(1200, Currency.USD))`).
+  // originalAmountText is one of MA-016's own changed surfaces (0dp -> 2dp) and the
+  // only assertion of it anywhere — without this row, reverting the change on
+  // detail.helpers.ts's originalAmountText line back to 0dp leaves the suite green.
+  it('renders the USD original amount at the config default', () => {
+    const { originalAmountText } = buildTransactionDetailPresentation({
+      tx: transaction({ amount: 1200 }),
+      account: account({ currency: Currency.USD }),
+    });
+    expect(originalAmountText).toBe('1,200.00 USD');
+  });
+
   // MA-016 P8 F-1: signedAmount composes its own sign and passes a positive magnitude
   // to formatCurrencyAmount, so formatAmount's -0 guard never sees it — a genuine 0.40
   // EGP expense rounded to "0" at EGP's 0dp precision and displayed as "-0", the guard's
   // target string with no way to distinguish it from a true zero. See
-  // docs/adr/2026-08-21-currency-aware-display-decimals.md §2.
+  // docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
   it('escalates to 2dp rather than print a sign beside a rounded-away magnitude', () => {
     expect(
       buildTransactionDetailPresentation({

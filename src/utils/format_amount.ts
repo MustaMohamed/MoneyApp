@@ -12,6 +12,11 @@ import { roundMoney } from '@/utils/money';
 // operation before the formatter — and this layer deliberately leaves it on screen rather
 // than laundering it. Widening the condition to catch everything deletes the three
 // tripwire tests' only signal. See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.
+//
+// Looks like ZERO_AT_DISPLAY_PRECISION below (one character apart) but is not the same
+// check: this one matches an Intl-produced sign character, the other matches a bare
+// magnitude that was Math.abs()'d before this regex ever sees it. Do not fold them into
+// one — they run at different layers, over different populations (§2 vs §2.1).
 const SIGNED_ZERO = /^-0(\.0+)?$/;
 
 // Rate precision, shared by every rate site that keeps its own surrounding string. Not the
@@ -45,16 +50,20 @@ const MONEY_ROUNDING_DECIMALS = 2;
 // Matches a magnitude that prints as a literal zero at the site's display precision —
 // "0", "0.0", "0.00" — even though the rounded value it came from is nonzero. No sign
 // variant needed: the input here is always Math.abs()'d before this runs.
+//
+// Looks like SIGNED_ZERO above (one character apart) but is not the same check — see
+// that comment for the distinction. Do not fold them into one.
 const ZERO_AT_DISPLAY_PRECISION = /^0(\.0+)?$/;
 
 /**
- * The magnitude three composed-sign call sites were each computing by hand
- * (`transactions.helpers.ts`, `detail.helpers.ts`, `transaction_row.helpers.ts`), plus
- * whether the true rounded value is an exact zero. Callers own sign composition and any
- * currency-code suffix — this owns exactly the money-precision problem that was
- * triplicated: `roundMoney` persists at 2dp, but EGP's 0dp display precision can round a
- * genuine 0.40 down to a printed "0", and a sign glyph beside that reads as a direction
- * that does not exist. See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.
+ * The magnitude four composed-sign call sites were each computing by hand
+ * (`transactions.helpers.ts`, `detail.helpers.ts`, `transaction_row.helpers.ts`,
+ * `transfer_flow_card.tsx`), plus whether the true rounded value is an exact zero.
+ * Callers own sign composition and any currency-code suffix — this owns exactly the
+ * money-precision problem that was quadruplicated: `roundMoney` persists at 2dp, but
+ * EGP's 0dp display precision can round a genuine 0.40 down to a printed "0", and a
+ * sign glyph beside that reads as a direction that does not exist. See
+ * docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
  *
  * The rule, site-independent:
  *   1. `r = roundMoney(value)` — magnitude only. `-0 === 0` already holds in JS, so no

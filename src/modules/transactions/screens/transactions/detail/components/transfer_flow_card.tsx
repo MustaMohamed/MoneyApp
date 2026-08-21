@@ -5,12 +5,13 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { formatDisplayMagnitude } from '@/utils/format_amount';
 
 import { getAccountTypeIcon } from '../detail.helpers';
 import { DETAIL_TRANSFER_MIN_HEIGHT } from './detail_geometry';
@@ -24,6 +25,29 @@ interface Props {
   toCurrency: Currency;
   onPressFrom?: () => void;
   onPressTo?: () => void;
+}
+
+/**
+ * A transfer cell composes its own sign (`signPrefix`, direction-of-flow — not the
+ * domain value's sign) beside a positive magnitude, the same shape as
+ * `transactions.helpers.ts`'s `formatSignedAmount` and `detail.helpers.ts`'s
+ * `signedAmount`. It shares their composed-sign population and their fix: route the
+ * magnitude through `formatDisplayMagnitude` so a rounded-away amount (e.g. 0.40 EGP
+ * at EGP's 0dp display precision) never prints a sign beside a magnitude that reads
+ * "0" — and, per the same rule's other branch, an exact-zero magnitude carries no
+ * sign at all. See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
+ *
+ * Exported so the composition can be asserted directly — this is the text the cell
+ * actually renders, not a parallel field the component can silently stop reading.
+ */
+export function transferCellAmountText(
+  amount: number,
+  currency: Currency,
+  signPrefix: '+' | '−',
+): { display: string; accessible: string } {
+  const { text, isZero } = formatDisplayMagnitude(amount, currency);
+  const accessible = `${text} ${CURRENCY_CONFIG[currency].code}`;
+  return { display: isZero ? accessible : `${signPrefix}${accessible}`, accessible };
 }
 
 function Cell({
@@ -41,6 +65,7 @@ function Cell({
   signPrefix: '+' | '−';
   onPress?: () => void;
 }): React.ReactElement {
+  const { display, accessible } = transferCellAmountText(amount, currency, signPrefix);
   const inner = (
     <View className="flex-1 items-center">
       <Text
@@ -68,8 +93,7 @@ function Cell({
         style={{ fontSize: Type.micro }}
         numberOfLines={1}
       >
-        {signPrefix}
-        {formatCurrencyAmount(amount, currency)}
+        {display}
       </Text>
     </View>
   );
@@ -79,10 +103,7 @@ function Cell({
       <PressableFeedback
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel={Strings.detailOpenAccountAccessibility(
-          account.name,
-          formatCurrencyAmount(amount, currency),
-        )}
+        accessibilityLabel={Strings.detailOpenAccountAccessibility(account.name, accessible)}
         className="flex-1"
       >
         {inner}

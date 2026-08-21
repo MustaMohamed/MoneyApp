@@ -12,7 +12,11 @@
 
 Moving eleven at-rest amount sites onto `CURRENCY_CONFIG`'s EGP-0dp default makes numbers that are
 on screen **together** stop summing to the number displayed for their total, on two surfaces.
-Measured, not argued:
+Measured, not argued. (Three of the eleven — the composed-sign sites — do not adopt that 0dp
+default unconditionally at the individual-value level: §2.1 below escalates a single value away
+from it when 0dp would print a nonzero magnitude as zero. That escalation is a per-value fix and
+is orthogonal to this section, which is about the aggregate no longer summing to the pre-escalation
+per-value default.)
 
 **Transactions totals strip + dashboard transactions card.** `netEgp` is derived in JS
 (`income − expense`) and all three render side by side.
@@ -114,6 +118,47 @@ Each asserts that a raw `-0` reaching a formatter still renders with its sign, s
 `Object.is(domainValue, 0)` row. A guard that fires on every signed-zero string turns all three
 red and makes the assertions above them vacuous — passing whether or not the domain still
 normalises. The narrowed guard preserves the whole chain with zero edits to any of the three.
+
+### 2.1 Composed-sign sites: a third population, and why "stays visible" does not apply to it
+
+`transactions.helpers.ts`'s `formatSignedAmount`, `detail.helpers.ts`'s `signedAmount`,
+`transaction_row.helpers.ts`'s `primaryAmountFor`, and `transfer_flow_card.tsx`'s
+`transferCellAmountText` never pass a signed value to `formatAmount`. Each computes
+`Math.abs(roundMoney(value))` and prefixes a sign character it derives on its own — transaction
+type, credit/debit direction, transfer flow — never the domain value's actual sign. That is a
+third population, outside the two-row table above, and `formatAmount`'s guard (which fires on a
+sign `Intl` itself produced) structurally cannot see it: these callers never hand `Intl` a negative
+number.
+
+`formatDisplayMagnitude` (`src/utils/format_amount.ts`) is their shared contract:
+
+```
+1. r = Math.abs(roundMoney(value))
+2. r === 0  -> magnitude "0", isZero: true. No sign is composed at any of the four call
+               sites. There is no direction to report.
+3. r !== 0  -> render at the site's normal (CURRENCY_CONFIG) precision. If that would print a
+               literal zero — a genuine nonzero amount rounding away at display precision, e.g.
+               0.40 EGP at EGP's 0dp — escalate to roundMoney's own 2dp instead, so a nonzero
+               amount never prints as zero. Sign composition is unchanged: unaffected by this
+               function, still the caller's.
+```
+
+Measured: `0.40` EGP -> `"0.40"` (escalated, not `"0"`) · `0.60` EGP -> `"1"` (no escalation
+needed) · `0` EGP -> `"0"`, `isZero: true`.
+
+This does not reopen §2's "an exact `-0` at a formatter stays visible" rule, because that rule
+governs `formatAmount` receiving the domain's own signed value directly — the population where a
+visible `-0` is the only surviving evidence that `normalizeNegativeZero` failed to run. A
+composed-sign caller's sign was never derived from the domain value's sign in the first place
+(these sites decide `+`/`−` from transaction type or flow direction, right or wrong, independent
+of whether the underlying value happens to be `-0`), so an exact-zero magnitude here carries no
+domain-bug signal to preserve — printing `"0.4"` behind a hand-composed `−` before this fix implied
+a debt that did not exist, and printing a hand-composed sign next to a *true* zero (the
+pre-existing case fixed in the same commit — @layla: "the other branch of the `if` you're already
+writing") implied a direction that never existed either. Suppressing the sign at `isZero: true` is
+strictly more correct for this population; it is a different question from the table above's, not
+a retreat from it. `normalizeNegativeZero` and `formatAmount`'s own guard are unmodified and
+continue to own the population the table above describes.
 
 ## 3. Two decimals constants, allowed to diverge
 

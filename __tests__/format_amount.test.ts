@@ -94,10 +94,10 @@ describe('formatAmount — the signed-zero display guard', () => {
 });
 
 describe('formatDisplayMagnitude', () => {
-  // MA-016 P8 F-1 (@layla's ruling): the defect the three composed-sign sites shared
+  // MA-016 P8 F-1 (@layla's ruling): the defect the composed-sign sites shared
   // was never the sign — it's that 0dp rounding discards precision the domain already
   // computed, printing "0" where the truth is "0.40". This is the one shared rule.
-  // See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.
+  // See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
   it('collapses an exact zero to a bare, unsigned magnitude', () => {
     expect(formatDisplayMagnitude(0, Currency.EGP)).toEqual({ text: '0', isZero: true });
   });
