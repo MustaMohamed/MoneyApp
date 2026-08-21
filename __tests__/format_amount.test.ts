@@ -57,3 +57,37 @@ describe('currency amount formatting', () => {
     expect(formatExchangeRate(48.125)).toBe('48.13 EGP/USD');
   });
 });
+
+describe('formatAmount — the signed-zero display guard', () => {
+  // The guard's whole contract in two adjacent inputs, opposite outcomes, one line of
+  // code between them. This is what stops a future reader "simplifying" the condition
+  // to catch everything — see docs/adr/2026-08-21-currency-aware-display-decimals.md §2.
+  it('draws the line between the domain population and the display population', () => {
+    expect(formatAmount(-0)).toBe('-0'); // exact -0 is the domain's bug, not this layer's
+    expect(formatAmount(-0.4)).toBe('0'); // nonzero, rounds to zero at 0dp — this layer's job
+  });
+
+  it('strips the sign from a nonzero negative that rounds to zero at display precision', () => {
+    expect(formatAmount(-0.4, 0)).toBe('0');
+    expect(formatAmount(-0.001, 0)).toBe('0');
+    expect(formatAmount(-0.004, 2)).toBe('0.00');
+    expect(formatAmount(-0.001, 2)).toBe('0.00');
+    expect(formatAmount(-1e-7, 3)).toBe('0.000');
+  });
+
+  it('leaves an exact -0 visible — it is a domain defect, not this layer to repair', () => {
+    expect(formatAmount(-0, 0)).toBe('-0');
+    expect(formatAmount(-0, 2)).toBe('-0.00');
+  });
+
+  it('leaves a genuinely negative value, whose magnitude rounds to non-zero, byte-identical', () => {
+    expect(formatAmount(-0.4, 2)).toBe('-0.40');
+    expect(formatAmount(-0.01, 2)).toBe('-0.01');
+    expect(formatAmount(-0.005, 2)).toBe('-0.01');
+    expect(formatAmount(-0.5, 0)).toBe('-1');
+    expect(formatAmount(-0.9, 0)).toBe('-1');
+    expect(formatAmount(-0.001, 3)).toBe('-0.001');
+    expect(formatAmount(-1234.5, 2)).toBe('-1,234.50');
+    expect(formatAmount(-1, 0)).toBe('-1');
+  });
+});
