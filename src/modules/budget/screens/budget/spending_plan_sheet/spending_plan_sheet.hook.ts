@@ -23,8 +23,8 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
+import { parseNonNegativeDecimal, parsePositiveDecimal } from '@/utils/parse_decimal';
 import {
-  parseLimit,
   spendingPlanFormSchema,
   spendingPlanInputSchema,
   type SpendingPlanFormValues,
@@ -39,8 +39,7 @@ export interface SpendingPlanSheetProps {
 
 function parseOptionalAmount(text: string): number | undefined {
   if (text.trim().length === 0) return undefined;
-  const parsed = parseLimit(text);
-  return Number.isFinite(parsed) ? parsed : undefined;
+  return parseNonNegativeDecimal(text);
 }
 
 export function useSpendingPlanSheet({
@@ -87,7 +86,8 @@ export function useSpendingPlanSheet({
     () => budgetableCategories.filter((category) => selectedCategoryIds.includes(category.id)),
     [budgetableCategories, selectedCategoryIds],
   );
-  const totalAmount = parseLimit(watch('totalText') || '0');
+  // preview only
+  const totalAmount = parseNonNegativeDecimal(watch('totalText') || '0') ?? 0;
   const safeTotalAmount = Number.isFinite(totalAmount) ? totalAmount : 0;
   const allocationHelper = computeAllocationHelper(
     safeTotalAmount,
@@ -136,7 +136,7 @@ export function useSpendingPlanSheet({
       name: values.nameText,
       startDate,
       endDate,
-      totalAmount: parseLimit(values.totalText),
+      totalAmount: parsePositiveDecimal(values.totalText) ?? Number.NaN,
       categories: selectedCategoryIds.map((categoryId) => ({
         categoryId,
         allocatedAmount: allocateByCategory ? allocations[categoryId] : undefined,

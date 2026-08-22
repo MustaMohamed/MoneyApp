@@ -57,7 +57,7 @@ describe('useIncomeSheet', () => {
     await act(async () => result.current.save());
 
     expect(setExpectedIncome).not.toHaveBeenCalled();
-    expect(result.current.state.validationMessage).toBe('Enter an amount greater than 0');
+    expect(result.current.state.validationMessage).toBe('Amount must be at least 0.01');
     expect(result.current.state.isOpen).toBe(true);
   });
 
