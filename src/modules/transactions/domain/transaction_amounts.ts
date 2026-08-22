@@ -2,6 +2,7 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { roundMoney } from '@/utils/money';
 
 export interface TransactionAmounts {
+  amount: number;
   egpAmount: number;
   toAmount: number | null;
   exchangeRate: number | null;
@@ -28,7 +29,8 @@ export function resolveTransactionAmounts(input: {
   destinationCurrency?: Currency;
   exchangeRate?: number;
 }): TransactionAmounts {
-  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+  const amount = roundMoney(input.amount);
+  if (!Number.isFinite(amount) || amount <= 0) {
     throw new TransactionAmountError('Transaction amount must be positive');
   }
 
@@ -51,21 +53,21 @@ export function resolveTransactionAmounts(input: {
   const exchangeRate = usesUsd ? (input.exchangeRate ?? null) : null;
   const egpAmount =
     input.sourceCurrency === Currency.USD
-      ? roundMoney(input.amount * (exchangeRate ?? 0))
-      : roundMoney(input.amount);
+      ? roundMoney(amount * (exchangeRate ?? 0))
+      : roundMoney(amount);
 
   if (!hasDestination) {
-    return { egpAmount, toAmount: null, exchangeRate };
+    return { amount, egpAmount, toAmount: null, exchangeRate };
   }
 
   const toAmount =
     input.destinationCurrency === Currency.EGP
       ? egpAmount
       : input.sourceCurrency === Currency.USD
-        ? roundMoney(input.amount)
+        ? roundMoney(amount)
         : roundMoney(egpAmount / (exchangeRate ?? 0));
 
-  return { egpAmount, toAmount, exchangeRate };
+  return { amount, egpAmount, toAmount, exchangeRate };
 }
 
 export function resolveCommitmentPaymentAmounts(input: {
