@@ -540,4 +540,32 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
     expect(updateTx).not.toHaveBeenCalled();
     expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountZero);
   });
+
+  it("binds the resolver's rounded amount into the payload, not the raw typed value", async () => {
+    const usdTx = {
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 500,
+      exchange_rate: 48,
+    };
+    useEditTransactionStore.getState().loadFromTx(usdTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await act(() => result.current.setAmountStr('10.005'));
+    await act(() => result.current.setExchangeRate('48'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({
+        amount: 10,
+        egp_amount: 480,
+        exchange_rate: 48,
+      }),
+    );
+  });
 });

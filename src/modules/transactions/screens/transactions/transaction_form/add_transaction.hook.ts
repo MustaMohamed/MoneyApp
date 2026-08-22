@@ -418,7 +418,7 @@ export function useAddTransaction(
       const submittedAt = toTransactionTimestamp(new Date());
       await addTransaction({
         type,
-        amount: data.amount,
+        amount: amounts.amount,
         currency: fromCurrency,
         egp_amount: amounts.egpAmount,
         to_amount: amounts.toAmount ?? undefined,

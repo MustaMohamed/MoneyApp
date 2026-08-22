@@ -319,7 +319,7 @@ export function useEditTransaction(
       });
 
       const update: UpdateTransactionInput = {
-        amount: data.amount,
+        amount: amounts.amount,
         currency: fromCurrency,
         egp_amount: amounts.egpAmount,
         to_amount: amounts.toAmount,

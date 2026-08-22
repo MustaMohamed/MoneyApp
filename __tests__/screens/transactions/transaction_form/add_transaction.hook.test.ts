@@ -556,6 +556,25 @@ describe('useAddTransaction — the MIN_MONEY_AMOUNT floor', () => {
     expect(addTx).toHaveBeenCalledTimes(1);
     expect(result.current.state.errors.amount).toBeUndefined();
   });
+
+  it("binds the resolver's rounded amount into the payload, not the raw typed value", async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr('10.005'));
+    await act(() => result.current.selectAccount(mockAccountUSD));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+    await act(() => result.current.setExchangeRate('48'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 10,
+        egp_amount: 480,
+        exchange_rate: 48,
+      }),
+    );
+  });
 });
 
 describe('useAddTransaction — cross-currency math', () => {
