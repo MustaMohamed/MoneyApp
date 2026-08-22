@@ -17,6 +17,7 @@ import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
 import type { AccountRow, LiabilityRow, LiquidityBreakdown } from '../dashboard.helpers';
+import { resolveNetWorthUsdCaption } from './net_worth_breakdown_sheet.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -154,15 +155,8 @@ function NetWorthBreakdownBody({
           {formatAmount(netWorth.netWorthEgp)}{' '}
           <Text className="font-inter-medium text-muted text-base">EGP</Text>
         </Text>
-        {/* Keyed on the FIELD being absent, not on `rate > 0`:
-              `INITIAL_STATE.rate` is 50, so the old check printed a confident
-              `≈ N USD` computed from the placeholder for every user who had
-              never fetched a rate. No `?? 0` — `formatAmount(0)` renders
-              `≈ 0 USD`, a wrong number rather than an absent one. */}
         <Text variant="caption" className="text-muted mt-1">
-          {netWorth.netWorthUsd !== undefined
-            ? `≈ ${formatAmount(netWorth.netWorthUsd, 0)} USD`
-            : '— USD'}
+          {resolveNetWorthUsdCaption(netWorth.netWorthUsd)}
         </Text>
       </View>
 
