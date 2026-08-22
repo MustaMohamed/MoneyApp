@@ -56,4 +56,16 @@ describe('roundMoney', () => {
       expect(roundMoney(-0.015)).toBe(-0.02);
     });
   });
+
+  describe('null passthrough (Layla row 26)', () => {
+    it('passes null through unchanged, not 0', () => {
+      expect(roundMoney(null)).toBe(null);
+    });
+  });
+
+  describe('MIN_MONEY_AMOUNT boundary sanity (Layla row 27)', () => {
+    it('rounds 0.01 to 0.01 (unchanged)', () => {
+      expect(roundMoney(0.01)).toBe(0.01);
+    });
+  });
 });
