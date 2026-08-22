@@ -121,7 +121,12 @@ describe('spendingPlanInputSchema', () => {
     ).toBe(true);
   });
 
-  it('rejects an allocation strictly between 0 and the floor (Layla row 19)', () => {
+  // Schema-contract only: this proves the refine itself, not that a real
+  // input reaches it as typed. Reachability through the allocation field
+  // is proven at spending_plan_sheet_hook.test.ts, where parseOptionalAmount
+  // (spending_plan_sheet.hook.ts) is what used to collapse a sub-floor value
+  // to `undefined` before it ever got here.
+  it('rejects an allocation strictly between 0 and the floor', () => {
     expect(
       spendingPlanInputSchema.safeParse({
         ...validInput,

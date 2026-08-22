@@ -23,7 +23,11 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
-import { parseNonNegativeDecimal, parsePositiveDecimal } from '@/utils/parse_decimal';
+import {
+  parseDecimalText,
+  parseNonNegativeDecimal,
+  parsePositiveDecimal,
+} from '@/utils/parse_decimal';
 import {
   spendingPlanFormSchema,
   spendingPlanInputSchema,
@@ -39,7 +43,7 @@ export interface SpendingPlanSheetProps {
 
 function parseOptionalAmount(text: string): number | undefined {
   if (text.trim().length === 0) return undefined;
-  return parseNonNegativeDecimal(text);
+  return parseDecimalText(text);
 }
 
 export function useSpendingPlanSheet({
