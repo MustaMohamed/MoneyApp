@@ -95,9 +95,14 @@ const ZERO_AT_DISPLAY_PRECISION = /^0(\.0+)?$/;
 // zero. Any of the six money columns MA-018 rounds at its write path (transactions.amount,
 // commitment_payments.amount_paid, commitments.amount, budgets.limit_amount, budget-month
 // income, spending-plan total/allocations) can still arrive here as `0.001` — a raw,
-// unrounded value — but only for a row written before that ticket, since existing rows are
-// not rewritten (see the isTrueZero test below). Larger than this epsilon, correctly NOT a
-// true zero, even though it is far smaller than either currency's display precision.
+// unrounded value — for a row written before that ticket, since existing rows are not
+// rewritten (see the isTrueZero test below). `commitment_payments.amount_due` is a seventh
+// column that reaches this same formatter and is NOT bounded that way: housekeeping
+// (`commitment_housekeeping.helpers.ts`) copies `commitment.amount` verbatim into every
+// newly materialised due-date row, so a pre-MA-018 commitment with an unrounded amount keeps
+// minting brand-new unrounded `amount_due` rows for as long as that commitment stays active —
+// the residual for this column does not shrink over time. Larger than this epsilon, correctly
+// NOT a true zero, even though it is far smaller than either currency's display precision.
 //
 // Trade recorded, not derived: the prior rule zeroed anything under half a cent (0.005);
 // this one zeroes only under 1e-9, so the float-noise headroom for an income-expense tie
@@ -127,6 +132,10 @@ const ZERO_EPSILON = 1e-9;
  *      budget-month income, spending-plan total/allocations) also rounds at the write, so
  *      this is NOT true only for a row already on disk before that ticket — existing rows
  *      are not rewritten, so a raw sub-cent value can still reach here for one of those.
+ *      `commitment_payments.amount_due` reaches here too and is not bounded by that same
+ *      "existing rows only" limit: housekeeping re-derives it from `commitment.amount` on
+ *      every newly materialised due date, so a pre-MA-018 commitment's unrounded amount
+ *      keeps producing fresh unrounded `amount_due` rows for as long as it stays active.
  *      Rounding first would let a real `0.001` collapse to a false true-zero and print with
  *      no sign at all.
  *   2. `isTrueZero` -> magnitude `"0"`, `isZero: true`. There is no direction to report.

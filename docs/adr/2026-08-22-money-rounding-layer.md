@@ -59,13 +59,23 @@ outcome.
 Same rule, two modules, no exceptions: **the rounded value is the one that gets validated, derived
 from, and written.**
 
+The same rule silently **accepts** the converse of the spending-plan case above. Total `1.00` with
+allocations `[0.5049, 0.5049]` sums raw to `1.0098` — over the total, and would be rejected if the
+over-allocation check compared raw values — but each allocation rounds to `0.50`, whose sum is
+exactly `1.00`, so the plan passes. Verified by execution. This is not a gap: it is the deliberate
+consequence of validating what actually gets persisted rather than what was typed, the same
+consequence that makes the `[0.335, 0.335, 0.33]` case above correctly *reject*. The two together
+mean the check is exact against the written rows and inexact (bounded by under half a piastre per
+row) against the raw input — worth recording so a future reader does not read the accept case as an
+oversight the reject case somehow missed.
+
 ## 3. The three classes and their coverage
 
 | # | Column | Class | Rounding point | Value bound at the write |
 |---|---|---|---|---|
 | 1 | `transactions.amount` | A | `resolveTransactionAmounts`, first line | `amounts.amount` at `transaction.repository.ts:309` / `:409`, supplied by `add_transaction.hook.ts:409-419` / `edit_transaction.hook.ts:312-322` |
 | 2 | `commitment_payments.amount_paid` | A | `resolveCommitmentPaymentAmounts`, first line | `amounts.paymentAmount`, threaded from `commitment.repository.ts:207` into `commitment_payments.ts:274` **in place of `details.amount_paid`** |
-| 3 | `commitments.amount` | B | `CommitmentRepository.add` (`:106`) and `.update` (`:119`), first statement | the rounded field of the composed `Commitment` / `UpdateCommitmentData`, into `commitments.ts:47` / `:91` |
+| 3 | `commitments.amount` | B | `CommitmentRepository.add` (`:106`) and `.update` (`:119`), first statement | the rounded field of the composed `Commitment` / `UpdateCommitmentData`, into `commitments.ts:47` / `:91` — `Commitment.amount: number \| null` (null for Variable commitments), so this is the actual production caller of `roundMoney`'s `null` overload |
 | 4 | `budgets.limit_amount` | C | `BudgetRepository.setBudget` (`:324`), first statement — `setLimit` (`:348`) delegates to it | `input.limit` into `setBudgetRow` (`budgets.ts:47`), whose own finite-and-positive check then runs on the rounded value |
 | 5 | budget-month income | C | `BudgetRepository.setExpectedIncome` (`:316`), first statement — **before** `withExclusiveTransactionAsync` | `setBudgetMonthIncome(tx, …)` at `:319`, so `snapshotBudgetMonthCategoryGroups` at `:320` sees the rounded value |
 | 6 | spending-plan total / allocations | C | `BudgetRepository.setSpendingPlan` (`:426`), first statement — **before** `validateSpendingPlanInput` at `:427` | `:481` `total_amount`, `:493` `allocated_amount` (null-preserving, see §7) |
@@ -151,6 +161,18 @@ Note that accounts is already split, correctly, along §1's own membership line:
 a **derived** column and is rounded in the policy resolver (`transaction_policy.ts:86`), which is
 this ADR's class-A rule already in force.
 
+**The floor is not grandfathered the way the rounding layer is.** §5's exception is scoped to
+`roundMoney` — the write-path rounding call this ADR governs. `MIN_MONEY_AMOUNT` is a separate
+mechanism (Layla's input-floor ruling) enforced inside `parseNonNegativeDecimal` /
+`parsePositiveDecimal` (`src/utils/parse_decimal.ts`), which `add_account.schema.ts` already
+imported before this ticket. `accounts.*` therefore inherits the floor for free, through the shared
+parser, with no change to this file: `'0.005'` in a balance/credit-limit/minimum-payment field now
+fails the schema's own `.refine` with `Strings.errAmountInvalid` at the field, reachable and legible
+rather than the pre-diff silent `0`. Confirmed benign for all three fields; `toNewAccountInput`'s
+`optionalAmount` null-fallback branch stays unreachable, since it and the schema share
+`parseNonNegativeDecimal`, so a string the schema accepted always re-parses successfully in the
+mapper.
+
 ## 6. The invariant
 
 > **No money value reaches a `db.runAsync` parameter list without having passed `roundMoney`
@@ -220,5 +242,8 @@ call site outside the allowlist (§5) and is not in this ticket's diff at all.
   grep that `markAsPaid` has exactly one caller chain (`commitment.store.ts:261` ← `pay_sheet.hook.ts:153`)
   and that nothing passes `updatePaymentStatus`'s optional `amount_paid` field.
 - **c8 (budgets):** `parseLimit` is deleted in favour of `parse_decimal.ts`; the three repository
-  methods round at their first statement; `allocated_amount` uses `roundMoney`'s `null` overload so
-  `null` survives (`014_create_spending_plans.ts:18`).
+  methods round at their first statement. `allocated_amount` (`014_create_spending_plans.ts:18`)
+  needs `null` to survive, but `setSpendingPlan` (`budget.repository.ts:435-436`) special-cases
+  `undefined` before the call rather than exercising the overload, so this is not where
+  `roundMoney`'s `null` overload is actually used in production — see §3's row 3 note above for the
+  real caller.
