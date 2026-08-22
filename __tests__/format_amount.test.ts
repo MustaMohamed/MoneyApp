@@ -119,6 +119,13 @@ describe('formatDisplayMagnitude', () => {
   // was never the sign — it's that 0dp rounding discards precision the domain already
   // computed, printing "0" where the truth is "0.40". This is the one shared rule.
   // See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
+  //
+  // MA-018 P8 F-2: `isTrueZero` (above, tested on the RAW value) and `isZero` (returned,
+  // tested on the RENDERED text) are two different questions and can disagree — a magnitude
+  // like `0.001` is not a true zero (there's a real amount) but its rendered text at the
+  // escalation cap still prints "0.00", so `isZero` is true anyway. Don't collapse one into
+  // the other: `isTrueZero` says whether there's a magnitude to report at all, `isZero` says
+  // whether what's about to print can carry a sign.
   it('collapses an exact zero to a bare, unsigned magnitude', () => {
     expect(formatDisplayMagnitude(0, Currency.EGP)).toEqual({ text: '0', isZero: true });
   });
@@ -151,10 +158,18 @@ describe('formatDisplayMagnitude', () => {
   // MA-016 second amendment round (@layla): the zero test must run on the RAW value, not
   // on roundMoney(value) — a raw `tx.amount` is never guaranteed to already live at 2dp
   // (transaction.repository.ts:143 persists it unrounded), so 0.001 is a real nonzero
-  // magnitude that must escalate to 2dp, not a false zero.
-  it('escalates a sub-cent raw USD magnitude instead of collapsing it to a false zero', () => {
-    expect(formatDisplayMagnitude(0.001, Currency.USD)).toEqual({ text: '0.00', isZero: false });
-    expect(formatDisplayMagnitude(0.004, Currency.USD)).toEqual({ text: '0.00', isZero: false });
+  // magnitude that must escalate to 2dp, not a false zero — `text` still reports the
+  // escalated magnitude, `'0.00'`, not the raw `'0'` the true-zero branch would use.
+  //
+  // MA-018 P8 F-2 (@layla's ruling): `isZero` is now read off `text`, not fixed `false`
+  // once past the true-zero branch — the RAW magnitude here is real and non-collapsed
+  // (`isTrueZero` above is false, `text` is the escalated `'0.00'`, not `'0'`), but the
+  // RENDERED text still prints as zero, so `isZero` reports `true`: there is nothing on
+  // screen for a composed sign glyph to attach to. See the `isTrueZero`-vs-`isZero`
+  // distinction noted beside the MA-016 comment above this describe block.
+  it('escalates a sub-cent raw USD magnitude to 2dp, but reports isZero true — the escalation still cannot show a nonzero digit', () => {
+    expect(formatDisplayMagnitude(0.001, Currency.USD)).toEqual({ text: '0.00', isZero: true });
+    expect(formatDisplayMagnitude(0.004, Currency.USD)).toEqual({ text: '0.00', isZero: true });
   });
 
   it('does not escalate for USD magnitudes that already print a nonzero digit at 2dp', () => {
@@ -178,7 +193,24 @@ describe('formatDisplayMagnitude', () => {
     expect(formatDisplayMagnitude(0.025, Currency.EGP)).toEqual({ text: '0.03', isZero: false });
   });
 
-  it('holds the hard 2dp ceiling for a magnitude below half a cent — unchanged (spec row 4)', () => {
-    expect(formatDisplayMagnitude(0.001, Currency.EGP)).toEqual({ text: '0.00', isZero: false });
+  it('holds the hard 2dp ceiling for a magnitude below half a cent, and reports isZero true since the ceiling prints no nonzero digit (spec row 4)', () => {
+    expect(formatDisplayMagnitude(0.001, Currency.EGP)).toEqual({ text: '0.00', isZero: true });
+  });
+
+  // MA-018 P8 F-2 (@layla's ruling): pins the defect directly, not just the return
+  // shape above — a magnitude below the escalation cap must report isZero: true on
+  // BOTH currencies (EGP's own escalation and USD's already-at-cap "escalation"
+  // alike), because a sign glyph beside a printed "0.00" reads as a direction that
+  // does not exist regardless of which currency produced it.
+  it('reports isZero true for a magnitude the 2dp escalation ceiling still cannot show a nonzero digit for, on both currencies', () => {
+    expect(formatDisplayMagnitude(0.001, Currency.EGP).isZero).toBe(true);
+    expect(formatDisplayMagnitude(0.001, Currency.USD).isZero).toBe(true);
+  });
+
+  // Sibling to the case above, same cap, opposite outcome: a magnitude the escalation
+  // CAN show a nonzero digit for must still report isZero: false, so this fix cannot be
+  // over-applied into suppressing a sign on a real, displayable small amount.
+  it('reports isZero false for a magnitude the 2dp escalation can show a nonzero digit for', () => {
+    expect(formatDisplayMagnitude(0.4, Currency.EGP)).toEqual({ text: '0.40', isZero: false });
   });
 });

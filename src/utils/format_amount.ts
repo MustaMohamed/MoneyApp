@@ -138,6 +138,16 @@ const ZERO_EPSILON = 1e-9;
  *      trips the escalate check), it is just a no-op there: re-rendering at 2dp produces the
  *      same string `atSitePrecision` already held. Not unreachable — reached and idempotent.
  *      See `__tests__/format_amount.test.ts`'s USD rows.
+ *   4. `isZero` is read off the RENDERED TEXT from step 3, not off `value` and not off
+ *      `isTrueZero` — it means "this string prints as zero, so a sign glyph beside it is not
+ *      meaningful", never "the underlying value is zero". A nonzero magnitude that survives
+ *      the 2dp escalation cap and still prints "0.00" — `0.001 EGP`, or `0.001`/`0.004 USD`,
+ *      whose display precision already sits at the escalation ceiling — reports `isZero:
+ *      true` here on exactly that ground: there is a real amount, but nothing on screen for a
+ *      sign to attach to. The escalation cap itself is unchanged (see step 3) — this is its
+ *      residual, not a new rule. Do not "fix" this field to read `value === 0`; that is the
+ *      raw-zero question step 1's `isTrueZero` already answers, on the raw value, for the
+ *      reason given there.
  */
 export function formatDisplayMagnitude(
   value: number,
@@ -152,7 +162,8 @@ export function formatDisplayMagnitude(
   const text = ZERO_AT_DISPLAY_PRECISION.test(atSitePrecision)
     ? formatAmount(magnitude, MONEY_ROUNDING_DECIMALS)
     : atSitePrecision;
-  return { text, isZero: false };
+  const isZero = ZERO_AT_DISPLAY_PRECISION.test(text);
+  return { text, isZero };
 }
 
 /**
