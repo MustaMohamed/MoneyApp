@@ -1,0 +1,224 @@
+# ADR — where `roundMoney` belongs on a write path
+
+- **Date:** 2026-08-22
+- **Status:** accepted
+- **Ticket:** MA-018 (issue #286), chunk 283a — the architectural deliverable
+- **Decided by:** @tariq (architecture, per CLAUDE.md domain sovereignty). Composes with
+  @layla's input-floor ruling of the same date (`MIN_MONEY_AMOUNT = 0.01`, checked on the raw
+  parsed value before rounding) and with `.claude/rules/money.md`'s *"Round at this layer, once."*
+- **Applies to:** the six money columns of MA-018 §6.5 —
+  `transactions.amount`, `commitment_payments.amount_paid`, `commitments.amount`,
+  `budgets.limit_amount`, budget-month income, spending-plan total and allocations.
+
+## 1. The decision
+
+**Round at the first point that is downstream of the user's raw input and upstream of every
+derivation, validation and balance effect that reads the value.** That point is not one layer,
+because the six columns are not one shape. It resolves, mechanically, from a single membership
+question:
+
+> Does this column have a **derived sibling** — another column computed from it in the same write
+> (`egp_amount`, `to_amount`, an `AccountDelta`)?
+
+- **Yes → the domain resolver, first line.** `resolveTransactionAmounts` and
+  `resolveCommitmentPaymentAmounts` round the amount they *receive* before deriving anything from
+  it, and **return** that rounded amount alongside the derived siblings. Every write binds the
+  resolver's return value; no write binds a field of the object that was passed to the resolver.
+- **No → the owning repository method, first statement.** `CommitmentRepository.add` / `.update`,
+  `BudgetRepository.setExpectedIncome` / `.setBudget` / `.setSpendingPlan` round their input before
+  they validate it, before they open a transaction, and before any query layer sees it.
+
+Two layers, by construction, with a membership rule that decides which one a new column gets
+without a second ADR. §6 states the invariant a reviewer checks each chunk against.
+
+## 2. The constraint that forces "upstream", not "at the column"
+
+The obvious fix — round where the value lands in the row — is wrong twice, in two different
+modules, and both failures are `.claude/rules/review.md` item 3's drift class *introduced by the
+fix*.
+
+**Transactions.** `transaction.repository.ts:309` (add) and `:409` (update) are where `data.amount`
+lands. Upstream of both:
+
+- `validateNormalizedInput` (`:272`, `:375`) calls `normalizedAmountsMatch` (`:131-153`), which
+  **re-derives** `egp_amount` from `input.amount` and compares it to the caller's;
+- `toPolicyCommand` (`:295-303`, `:407-415`) feeds `data.amount` into the balance-delta effect.
+
+Round only at `:309` and a `10.005 USD` transaction at rate 48 persists `amount = 10.00` beside
+`egp_amount = 480.24` (re-derivation says `480.00`), while `current_balance` moved by `10.005`.
+Three numbers, one payment, none of them agreeing.
+
+**Spending plans.** `budget.schema.ts:99-105` rejects a plan whose allocations sum above its total.
+`roundMoney` is monotone per value but **not** across a sum: total `1.00` with allocations
+`[0.335, 0.335, 0.33]` sums to exactly `1.00` raw and to `1.01` after banker's rounding
+(`0.335 → 0.34` twice). Round downstream of `validateSpendingPlanInput`
+(`budget.repository.ts:427`) and the app persists a plan its own validator would reject. Round
+upstream of it and the user gets `budgetPlanAllocationOver` at the field, which is the correct
+outcome.
+
+Same rule, two modules, no exceptions: **the rounded value is the one that gets validated, derived
+from, and written.**
+
+## 3. The three classes and their coverage
+
+| # | Column | Class | Rounding point | Value bound at the write |
+|---|---|---|---|---|
+| 1 | `transactions.amount` | A | `resolveTransactionAmounts`, first line | `amounts.amount` at `transaction.repository.ts:309` / `:409`, supplied by `add_transaction.hook.ts:409-419` / `edit_transaction.hook.ts:312-322` |
+| 2 | `commitment_payments.amount_paid` | A | `resolveCommitmentPaymentAmounts`, first line | `amounts.paymentAmount`, threaded from `commitment.repository.ts:207` into `commitment_payments.ts:274` **in place of `details.amount_paid`** |
+| 3 | `commitments.amount` | B | `CommitmentRepository.add` (`:106`) and `.update` (`:119`), first statement | the rounded field of the composed `Commitment` / `UpdateCommitmentData`, into `commitments.ts:47` / `:91` |
+| 4 | `budgets.limit_amount` | C | `BudgetRepository.setBudget` (`:324`), first statement — `setLimit` (`:348`) delegates to it | `input.limit` into `setBudgetRow` (`budgets.ts:47`), whose own finite-and-positive check then runs on the rounded value |
+| 5 | budget-month income | C | `BudgetRepository.setExpectedIncome` (`:316`), first statement — **before** `withExclusiveTransactionAsync` | `setBudgetMonthIncome(tx, …)` at `:319`, so `snapshotBudgetMonthCategoryGroups` at `:320` sees the rounded value |
+| 6 | spending-plan total / allocations | C | `BudgetRepository.setSpendingPlan` (`:426`), first statement — **before** `validateSpendingPlanInput` at `:427` | `:481` `total_amount`, `:493` `allocated_amount` (null-preserving, see §7) |
+
+**Class A's contract change.** Both resolvers gain a returned field carrying the rounded input:
+`TransactionAmounts.amount` and `CommitmentPaymentAmounts.paymentAmount`. The names are fixed here,
+not per chunk, because three chunks consume them.
+
+Both resolvers round **before** their positivity throw (`transaction_amounts.ts:31-33`, `:77-79`),
+so the throw fires on any amount that rounds to zero — which is what @layla's regression pins 23 and
+25 require (`resolveTransactionAmounts({ amount: 0.005 })` must throw, and `0.005 > 0` is true).
+`Number.isFinite` on the rounded value still catches `NaN` and `Infinity`.
+
+Both resolvers become **idempotent under their own output**: `resolve(resolve(x).amount)` deep-equals
+`resolve(x)`. That property is what keeps `normalizedAmountsMatch` green when the repository is
+handed the rounded amount, and it is a one-line property test per resolver.
+
+**`normalizedAmountsMatch` (`:148`) must also compare `amount`.** Today it compares only
+`egpAmount` and `toAmount`, so a caller persisting a raw `amount` beside a correctly-derived
+`egp_amount` passes the gate. Adding `input.amount === expected.amount` turns
+`transactionRepository.add` / `.update` into a machine-enforced guard for column 1, for every future
+caller. Blast radius is two callers today (`add_transaction.hook.ts:418`,
+`edit_transaction.hook.ts:332`) plus direct-repository tests, all of which use already-2dp amounts.
+
+**Free inheritance:** `commitment_housekeeping.helpers.ts:52` writes
+`commitment_payments.amount_due` as `commitment.amount`. Rounding column 3 at its write makes
+`amount_due` correct for every commitment created after this ticket, with no code in that file.
+
+## 4. Why the other candidates lose
+
+**(b) Form-mapping everywhere**, the `account_form.helpers.ts:24-36` pattern. It *can* satisfy §2 —
+rounding `data.amount` in the two transaction hooks before the resolver call would work. It loses on
+three counts:
+
+1. **It scales with call sites, not columns.** `add_transaction.hook.ts` and
+   `edit_transaction.hook.ts` are structurally identical and each pass `data.amount` twice (spec
+   row 16). Four places for one column, against one in the resolver.
+2. **It does not close row 18 by construction.** `commitment_payments.amount_paid` is written
+   *inside* `commitment_payments.ts:274` from `details.amount_paid` — the resolver's own input
+   object. A rounded value in the pay sheet does not reach that line; only "the write binds the
+   resolver's return" does. Row 18 is the highest-value row in the ticket and this layer misses it.
+3. **It contradicts `money.md:20`** and leaves the resolver a function that rounds its outputs and
+   not its inputs — the exact asymmetry that produced all six defects.
+
+**(c) Schema-enforced — a CHECK or a trigger.** Rejected, on four independent grounds:
+
+1. **A CHECK detects, it does not round.** `CHECK(amount = ROUND(amount, 2))` still requires a
+   rounding layer above it; it is additive cost, not an alternative.
+2. **It is an equality test between two IEEE-754 doubles** — JS `Math.round(x*100)/100` against
+   SQLite's `ROUND`. Agreement is not guaranteed for every value, and a disagreement is a hard write
+   failure on a correctly-rounded amount with no user-visible recovery.
+3. **SQLite cannot `ALTER TABLE … ADD CHECK`.** Six columns means six 12-step table rebuilds across
+   `004_create_transactions.ts`, the commitments tables, budgets and `014_create_spending_plans.ts`,
+   with every foreign key re-pointed — and the rebuild would **fail on real user data**, because
+   pre-MA-018 sub-cent rows exist and spec §2 puts backfill out of scope as a data-loss risk
+   (critical trigger 3). Choosing this layer converts MA-018's "no schema change, no migration"
+   (spec §5) into the largest migration in the app's history.
+4. **A rounding trigger breaks read-your-writes.** `transactionRepository.add` returns the
+   `Transaction` object it constructed (`:306-335`), not a re-read row. A trigger that silently
+   rounds on insert leaves the returned object — and every store consumer of it — holding a value
+   the database does not have.
+
+Its one genuine advantage is conceded in §7: it is the only layer that survives a write path added
+later without anyone reading this ADR.
+
+## 5. The `accounts.*` exception
+
+`accounts.opening_balance`, `credit_limit`, `minimum_payment` and `apr` are rounded at
+`account_form.helpers.ts:28/:35`, in the form-mapping layer. Under §1 they are class B and belong in
+`AccountRepository`. MA-018 does not move them.
+
+**Verdict: temporary, with a named follow-up** — move the two `roundMoney` calls out of
+`requiredAmount` / `optionalAmount` and into `AccountRepository`'s write methods, leaving the helper
+a pure parse-and-map. Not permanent: calling it permanent would license form-layer rounding as a
+third legitimate pattern, and the whole value of §1 is that there is a rule rather than a
+precedent per module.
+
+**Why it is not in this ticket.** Spec row 32 puts it out of scope, and MA-018's `roundMoney`
+overload set (spec §5) exists *specifically* so this file stays out of the diff. Editing it here
+would make the overload argument moot and grow the ticket — scope balloon, critical trigger 6.
+
+Note that accounts is already split, correctly, along §1's own membership line: `current_balance` is
+a **derived** column and is rounded in the policy resolver (`transaction_policy.ts:86`), which is
+this ADR's class-A rule already in force.
+
+## 6. The invariant
+
+> **No money value reaches a `db.runAsync` parameter list without having passed `roundMoney`
+> exactly once, upstream of every derivation, validation and balance effect that reads it — inside
+> `resolveTransactionAmounts` / `resolveCommitmentPaymentAmounts` for the two columns with derived
+> siblings, where the write binds the resolver's *return* value and never the input object handed
+> to it, and as the first statement of the owning repository method for the four columns without —
+> so the only files in which an MA-018 diff may **add** a `roundMoney` call are `src/utils/money.ts`,
+> `src/modules/transactions/domain/transaction_amounts.ts`,
+> `src/modules/commitments/repositories/commitment.repository.ts` and
+> `src/modules/budget/repositories/budget.repository.ts`.**
+
+Three mechanical checks, none of which require re-deriving the call graph:
+
+1. **Allowlist.** `git diff main...HEAD -U0 | grep -n 'roundMoney'` — every added call site is in one
+   of the four files above. A `roundMoney` in a hook, a schema, a component, a `*.state.ts`, a
+   `*.helpers.ts` or anything under `src/modules/*/database/` is a finding, improvement or not.
+2. **Six bindings.** At each of §3's six write lines, the bound identifier is either a resolver
+   return field or a local rounded at the method's first statement. Six `file:line` reads.
+3. **Two properties.** The resolver idempotence tests exist and pass, and
+   `transaction.repository.ts:148` compares `amount`.
+
+The allowlist governs **added** calls only. `roundMoney` is legitimately used at 33 call
+expressions on `main`, most of them in the display and aggregation layer (`dashboard.helpers.ts`
+×10, `transaction_policy.ts` ×7); those are untouched, and two files carrying them —
+`account_card.tsx:167` and `format_amount.ts:122`, the latter *removed* by c2 — are in this ticket's
+diff for unrelated reasons. `account_form.helpers.ts:28/:35` is the one grandfathered write-path
+call site outside the allowlist (§5) and is not in this ticket's diff at all.
+
+## 7. Accepted residuals
+
+- **The budget copy path is not covered.** `copyBudgetsToMonth` / `copyLimitsToMonth`
+  (`budget.repository.ts:357/:374`) read stored rows into JS and re-write them through `setBudgetRow`,
+  so copying a pre-MA-018 unrounded budget creates a **new** unrounded row. Rounding there would be
+  a partial backfill performed silently under a button labelled "copy", and spec row 26 rules out
+  backfill. **What MA-018 makes true is therefore: every money value originating at an input
+  boundary is 2dp — not: every row written after MA-018 is 2dp.** Stated here so nobody claims the
+  stronger version.
+- **A future write path added without reading this ADR is unprotected.** That is schema
+  enforcement's one real advantage and §4 declines to pay for it. The mitigation is §6 check 1 — a
+  grep an implementation reviewer runs on every diff — not a database constraint.
+- **Existing rows are not rewritten** (spec row 26 / @layla Q6). The residual is aggregation
+  exactness, already an accepted class under `.claude/rules/review.md` item 3.
+- **Three rounding locations ship in this repo** after MA-018: two sanctioned (§1) and one
+  grandfathered (§5). §6's allowlist is what stops a fourth.
+- **Display and persisted value disagree at exact half-cent ties.** `formatDisplayMagnitude`'s
+  escalate branch (`src/utils/format_amount.ts`) borrows only `roundMoney`'s 2dp *precision*, never
+  its half-even *mode* — a display string is never aggregated, so the unbiasedness `roundMoney`'s
+  mode exists to protect does not apply to it, and `Intl.NumberFormat`'s half-expand is what every
+  other call to `formatAmount` already uses. At an exact 2dp tie this means the digit on screen can
+  differ from the digit `roundMoney` would persist for the same raw value: `0.025 EGP` displays
+  `'0.03'` (half-expand) while `roundMoney(0.025)` persists `0.02` (half-even). Confirmed, not merely
+  argued: no escalate-branch output is ever summed, re-parsed, or fed back into a resolver — it is a
+  terminal display string at all five call sites (`transactions.helpers.ts`, `detail.helpers.ts`,
+  `transaction_row.helpers.ts`, `transfer_flow_card.tsx`, `formatCommitmentAmount`). This is a
+  residual of §1's write-path rounding mode, not a defect in it, and is scoped to values that are
+  simultaneously (a) below the site's display precision and (b) an exact half-unit at the 2dp
+  escalation cap — a narrow intersection, but real whenever it lands.
+
+## 8. Consequences for the implementation chunks
+
+- **c6 (transactions):** resolver rounds first and returns `amount`; both hooks bind
+  `amounts.amount` for the persisted amount; `normalizedAmountsMatch` compares `amount`;
+  idempotence test.
+- **c7 (commitments):** resolver returns `paymentAmount`; `markAsPaid` threads it into
+  `commitment_payments.ts:274`; `CommitmentRepository.add` / `.update` round `amount`. Confirm by
+  grep that `markAsPaid` has exactly one caller chain (`commitment.store.ts:261` ← `pay_sheet.hook.ts:153`)
+  and that nothing passes `updatePaymentStatus`'s optional `amount_paid` field.
+- **c8 (budgets):** `parseLimit` is deleted in favour of `parse_decimal.ts`; the three repository
+  methods round at their first statement; `allocated_amount` uses `roundMoney`'s `null` overload so
+  `null` survives (`014_create_spending_plans.ts:18`).
