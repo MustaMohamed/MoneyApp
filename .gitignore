@@ -68,3 +68,6 @@ app-example
 .superpowers/
 
 /.vscode
+
+# scratch fixtures for __tests__/scripts/validate_money_formatting.test.ts
+.ma017-guard-fixtures/
