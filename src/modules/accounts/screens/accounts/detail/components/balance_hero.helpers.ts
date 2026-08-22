@@ -1,3 +1,4 @@
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
@@ -37,18 +38,26 @@ export function buildHeroCaption(account: Account): HeroCaption {
   const currency = account.currency;
   const isCC = account.type === AccountType.CreditCard;
   const limit = account.credit_limit ?? 0;
+  // Not formatCurrencyAmount: Strings.accountHeroAvailable/accountHeroOpening interpolate
+  // the currency themselves, so `formatCurrencyAmount(...)` as the `amount` arg would ship
+  // "Opening 30,000 EGP EGP" (spec §6.2's own correction).
+  const decimals = CURRENCY_CONFIG[currency].decimals;
 
   if (isCC && limit > 0) {
     const available = Math.max(0, limit - account.current_balance);
     return {
-      text: Strings.accountHeroAvailable(formatAmount(available), currency, formatAmount(limit)),
+      text: Strings.accountHeroAvailable(
+        formatAmount(available, decimals),
+        currency,
+        formatAmount(limit, decimals),
+      ),
       adjusted: false,
       color: availableCreditColor(available, limit),
     };
   }
 
   return {
-    text: Strings.accountHeroOpening(formatAmount(account.opening_balance), currency),
+    text: Strings.accountHeroOpening(formatAmount(account.opening_balance, decimals), currency),
     adjusted: account.current_balance !== account.opening_balance,
   };
 }

@@ -45,7 +45,17 @@ describe('buildHeroCaption — non-CC types', () => {
     const cap = buildHeroCaption(
       mkAccount({ currency: Currency.USD, opening_balance: 100, current_balance: 100 }),
     );
-    expect(cap.text).toBe('Opening 100 USD');
+    // #277 base -> head: 'Opening 100 USD' -> 'Opening 100.00 USD'. Written to expect the
+    // 0dp bug before this ticket; USD's decimals now come from CURRENCY_CONFIG like every
+    // other site (spec §6.4).
+    expect(cap.text).toBe('Opening 100.00 USD');
+  });
+
+  it('#277: takes decimals from CURRENCY_CONFIG for a non-whole EGP opening balance', () => {
+    const cap = buildHeroCaption(
+      mkAccount({ opening_balance: 1250.75, current_balance: 1250.75 }),
+    );
+    expect(cap.text).toBe('Opening 1,251 EGP');
   });
 });
 
@@ -94,6 +104,18 @@ describe('buildHeroCaption — credit cards', () => {
       mkAccount({ type: AccountType.CreditCard, credit_limit: 1000, current_balance: 1500 }),
     );
     expect(cap.text).toBe('Available 0 EGP of 1,000');
+  });
+
+  it('#277: USD direction — both amounts on the caption take CURRENCY_CONFIG decimals', () => {
+    const cap = buildHeroCaption(
+      mkAccount({
+        currency: Currency.USD,
+        type: AccountType.CreditCard,
+        credit_limit: 500,
+        current_balance: 0,
+      }),
+    );
+    expect(cap.text).toBe('Available 500.00 USD of 500.00');
   });
 });
 
