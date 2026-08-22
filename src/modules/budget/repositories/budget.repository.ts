@@ -45,6 +45,7 @@ import type {
   SpendingPlanWithCategories,
 } from '@/modules/budget/entities/budget.entity';
 import { getCategoriesByType, setCategoryGroup } from '@/modules/categories/database/categories';
+import { roundMoney } from '@/utils/money';
 import { spendingPlanInputSchema, type SpendingPlanInput } from '@/utils/schemas/budget.schema';
 
 export function currentYearMonth(now: Date = new Date()): string {
@@ -314,9 +315,10 @@ export class BudgetRepository implements IBudgetRepository {
   }
 
   async setExpectedIncome(yearMonth: string, amount: number): Promise<void> {
+    const income = roundMoney(amount);
     const db = await getDb();
     await db.withExclusiveTransactionAsync(async (tx) => {
-      await setBudgetMonthIncome(tx, yearMonth, amount);
+      await setBudgetMonthIncome(tx, yearMonth, income);
       await snapshotBudgetMonthCategoryGroups(tx, yearMonth);
     });
   }
