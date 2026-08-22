@@ -173,16 +173,22 @@ below was observed running.
 
 **Verified statically, by reading the installed `expo-router` package:**
 
-- `fromImport` (in `useScreens.js`) destructures `{ ErrorBoundary, SuspenseFallback, ...component }`
+- `fromImport` (`useScreens.js:141`) destructures `{ ErrorBoundary, SuspenseFallback, ...component }`
   off whatever module it is handed and wraps the default export in `<Try catch={ErrorBoundary}>`
   when `ErrorBoundary` is present. Nothing in `fromImport` branches on `value.type`, so it cannot
   distinguish a layout route's module from a leaf route's — both take the same wrap.
-- `routeToScreen` (also in `useScreens.js`) is `fromImport`'s only caller in the file, and passes
-  every route through it uniformly, layouts included.
+- `fromImport` is called from within `getQualifiedRouteComponent` (`useScreens.js:175`), not from
+  `routeToScreen` directly. `routeToScreen` (`:365`) reaches it indirectly, through the
+  `getComponent: () => getQualifiedRouteComponent(route)` callback it hands to `Screen`.
+  `getQualifiedRouteComponent` does branch on `value.type` (`:208`), but only to select
+  `LayoutSuspenseFallback` for the resolved component's suspense fallback, after `fromImport` has
+  already returned — that branch plays no part in whether `Try` wraps the export.
+  `fromImport` never branches on `value.type` when deciding whether to wrap in `Try`; the only
+  `value.type` branch on this path selects a suspense fallback.
 - `getRoutesCore.js` pushes a directory's `_layout` node onto its enclosing layout's `children`
   (`previousLayout.children.push(layout)`), which is what makes `(app)/_layout.tsx` and
   `(onboarding)/_layout.tsx` reachable by the root layout's own screen list in the first place —
-  i.e. reachable by the same `fromImport` pass that wraps them.
+  i.e. reachable by the same `getQualifiedRouteComponent` -> `fromImport` pass that wraps them.
 
 **Not verified — deferred to a device pass:** that `Try` actually engages on a real Android build
 under the New Architecture when a segment layout throws below it; that the fallback renders
