@@ -430,7 +430,11 @@ describe('CommitmentRepository.markAsPaid', () => {
     ).mock.calls[0];
     expect(calledDb).toBe(mockDb);
     expect(calledPaymentId).toBe('p-1');
-    expect(calledDetails).toBe(details);
+    // No longer the same object reference as `details` — markAsPaid rebuilds
+    // it around the resolver's rounded `paymentAmount` (ADR: money-rounding-
+    // layer §3 row 2). Values match here because 250 is already 2dp; the
+    // rounding itself is pinned by the row below.
+    expect(calledDetails).toEqual(details);
     expect(calledTx.id).toBe('test-uuid-1234');
     expect(calledTx.type).toBe(TransactionType.Expense);
     expect(calledTx.amount).toBe(details.amount_paid);
@@ -484,6 +488,20 @@ describe('CommitmentRepository.markAsPaid', () => {
       });
     },
   );
+
+  it('hands markCommitmentAsPaid the resolver-rounded amount_paid, not the raw input', async () => {
+    // The gate: delete the `paidDetails` rebinding in markAsPaid (i.e. pass
+    // `details` straight through again) and this assertion goes red because
+    // calledDetails.amount_paid reverts to the raw 10.999.
+    await repo.markAsPaid(
+      'p-1',
+      { ...details, amount_paid: 10.999 },
+      { ...baseCommitment, currency: Currency.EGP },
+    );
+
+    const [, , calledDetails] = (markCommitmentAsPaid as jest.Mock).mock.calls[0];
+    expect(calledDetails.amount_paid).toBe(11);
+  });
 
   it('increases liability when a commitment is paid with a credit card', async () => {
     (getAccountByIdIncludingArchived as jest.Mock).mockResolvedValue({

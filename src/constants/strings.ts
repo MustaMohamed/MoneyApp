@@ -473,7 +473,7 @@ export const Strings = {
   budgetRemoveCta: 'Remove budget',
   budgetNameRequired: 'Enter a budget name',
   budgetAmountRequired: 'Enter a monthly limit',
-  budgetAmountInvalid: 'Enter an amount greater than 0',
+  budgetAmountInvalid: 'Amount must be at least 0.01',
   budgetPickCategory: 'Choose a category',
   budgetDetailNet: 'Net',
   budgetDetailAvg: 'Avg / mo',
@@ -504,14 +504,14 @@ export const Strings = {
   budgetPlanAllocationHelper: (allocated: string, total: string, buffer: string) =>
     `${allocated} of ${total} allocated · ${buffer} buffer`,
   budgetPlanAllocationOver: 'Allocations exceed the plan total.',
-  budgetPlanAllocationInvalid: 'Each allocation must be zero or greater.',
+  budgetPlanAllocationInvalid: 'Each allocation must be 0 or at least 0.01.',
   budgetPlanExpenseCategoriesOnly: 'Select expense categories only.',
   budgetPlanOverlapError: (categoryName: string, planName: string) =>
     `${categoryName} overlaps ${planName}`,
   budgetPlanSave: 'Save plan',
   budgetPlanNameRequired: 'Enter a plan name',
   budgetPlanAmountRequired: 'Enter a plan amount',
-  budgetPlanAmountInvalid: 'Enter a valid plan amount',
+  budgetPlanAmountInvalid: 'Amount must be at least 0.01',
   budgetPlanDateInvalid: 'End date must be on or after start date',
   budgetPlanCategoryRequired: 'Select at least one category',
   budgetPlanSaveError: 'Could not save plan. Try again.',
@@ -742,7 +742,7 @@ export const Strings = {
   incomeSheetSaveCta: 'Save',
   incomeSheetSaveError: 'Could not save expected income. Please try again.',
   incomeSheetAmountRequired: 'Enter your monthly income',
-  incomeSheetAmountInvalid: 'Enter an amount greater than 0',
+  incomeSheetAmountInvalid: 'Amount must be at least 0.01',
 
   // U25 Settings Categories
   categoriesTitle: 'Categories',
@@ -817,7 +817,7 @@ export const Strings = {
   addTxSaveCta: 'Save',
   editTxSaveCta: 'Save Changes',
   addTxErrAmountRequired: 'Enter an amount',
-  addTxErrAmountZero: 'Amount must be greater than 0',
+  addTxErrAmountZero: 'Amount must be at least 0.01',
   addTxErrAccountRequired: 'Select an account',
   addTxErrFromRequired: 'Select source account',
   addTxErrToRequired: 'Select destination account',
@@ -983,7 +983,7 @@ export const Strings = {
   commitmentsErrNameRequired: 'Name is required',
   commitmentsErrNameMax: 'Name must be 50 characters or less',
   commitmentsErrAmountRequired: 'Amount is required for fixed commitments',
-  commitmentsErrAmountPositive: 'Amount must be greater than zero',
+  commitmentsErrAmountPositive: 'Amount must be at least 0.01',
   commitmentsErrCategoryRequired: 'Category is required',
   commitmentsErrStartDateRequired: 'Start date is required',
   commitmentsErrEndDateRequired: 'End date is required',
@@ -1036,6 +1036,7 @@ export const Strings = {
   commitmentsPayNotes: 'Notes',
   commitmentsPayConfirm: 'Confirm Payment',
   commitmentsPayErrAmountRequired: 'Amount is required',
+  commitmentsPayErrAmountMin: 'Amount must be at least 0.01',
   commitmentsPayErrAccountRequired: 'Select an account',
 
   // Commitments — Deactivate

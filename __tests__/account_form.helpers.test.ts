@@ -163,10 +163,10 @@ describe('toNewAccountInput — the MA-007 case table, against the mapping', () 
 });
 
 describe('toNewAccountInput — rounding, roundMoney half-even', () => {
-  it('0.005 rounds down to the even cent on opening_balance', () => {
-    expect(
-      toNewAccountInput(baseData({ balance: '0.005' }), { sortOrder: 0 }).opening_balance,
-    ).toBe(0);
+  it('0.005 is below MIN_MONEY_AMOUNT and is rejected, not rounded to 0', () => {
+    expect(() => toNewAccountInput(baseData({ balance: '0.005' }), { sortOrder: 0 })).toThrow(
+      AccountFormMappingError,
+    );
   });
 
   it('0.015 rounds up to the even cent on opening_balance', () => {
@@ -175,17 +175,17 @@ describe('toNewAccountInput — rounding, roundMoney half-even', () => {
     ).toBe(0.02);
   });
 
-  it('0.005 / 0.015 round the same way on credit_limit', () => {
+  it('0.005 is below MIN_MONEY_AMOUNT on credit_limit; 0.015 still rounds', () => {
     const cc = (credit_limit: string) =>
       baseData({ selected_type: AccountType.CreditCard, credit_limit });
-    expect(toNewAccountInput(cc('0.005'), { sortOrder: 0 }).credit_limit).toBe(0);
+    expect(toNewAccountInput(cc('0.005'), { sortOrder: 0 }).credit_limit).toBeNull();
     expect(toNewAccountInput(cc('0.015'), { sortOrder: 0 }).credit_limit).toBe(0.02);
   });
 
-  it('0.005 / 0.015 round the same way on minimum_payment', () => {
+  it('0.005 is below MIN_MONEY_AMOUNT on minimum_payment; 0.015 still rounds', () => {
     const cc = (min_payment: string) =>
       baseData({ selected_type: AccountType.CreditCard, credit_limit: '1000', min_payment });
-    expect(toNewAccountInput(cc('0.005'), { sortOrder: 0 }).minimum_payment).toBe(0);
+    expect(toNewAccountInput(cc('0.005'), { sortOrder: 0 }).minimum_payment).toBeNull();
     expect(toNewAccountInput(cc('0.015'), { sortOrder: 0 }).minimum_payment).toBe(0.02);
   });
 

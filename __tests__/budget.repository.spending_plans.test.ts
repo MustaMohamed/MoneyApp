@@ -237,7 +237,7 @@ describe('BudgetRepository spending plans', () => {
         totalAmount: 5000,
         categories: [{ categoryId: 'cat_food', allocatedAmount: -1 }],
       }),
-    ).rejects.toThrow('Each allocation must be zero or greater');
+    ).rejects.toThrow('Each allocation must be 0 or at least 0.01');
 
     expect(setSpendingPlanRow).not.toHaveBeenCalled();
   });

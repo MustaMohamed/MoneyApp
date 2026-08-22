@@ -1,20 +1,15 @@
 import { z } from 'zod';
 
 import { Strings } from '@/constants/strings';
-
-export function parseLimit(text: string): number {
-  return Number(text.replace(/,/g, ''));
-}
+import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { parsePositiveDecimal } from '@/utils/parse_decimal';
 
 export const budgetFormSchema = z.object({
   nameText: z.string().trim().min(1, Strings.budgetNameRequired),
   limitText: z
     .string()
     .min(1, Strings.budgetAmountRequired)
-    .refine((s) => {
-      const n = parseLimit(s);
-      return Number.isFinite(n) && n > 0;
-    }, Strings.budgetAmountInvalid),
+    .refine((s) => parsePositiveDecimal(s) !== undefined, Strings.budgetAmountInvalid),
 });
 
 export type BudgetFormValues = z.infer<typeof budgetFormSchema>;
@@ -24,8 +19,8 @@ export const incomeFormSchema = z.object({
     .string()
     .min(1, Strings.incomeSheetAmountRequired)
     .refine((text) => {
-      const amount = parseLimit(text);
-      return Number.isFinite(amount) && amount > 0 && amount <= Number.MAX_SAFE_INTEGER;
+      const amount = parsePositiveDecimal(text);
+      return amount !== undefined && amount <= Number.MAX_SAFE_INTEGER;
     }, Strings.incomeSheetAmountInvalid),
 });
 
@@ -36,10 +31,7 @@ export const spendingPlanFormSchema = z.object({
   totalText: z
     .string()
     .min(1, Strings.budgetPlanAmountRequired)
-    .refine((s) => {
-      const n = parseLimit(s);
-      return Number.isFinite(n) && n > 0;
-    }, Strings.budgetPlanAmountInvalid),
+    .refine((s) => parsePositiveDecimal(s) !== undefined, Strings.budgetPlanAmountInvalid),
 });
 
 export type SpendingPlanFormValues = z.infer<typeof spendingPlanFormSchema>;
@@ -66,12 +58,15 @@ export const spendingPlanInputSchema = z
     name: z.string().trim().min(1, Strings.budgetPlanNameRequired),
     startDate: spendingPlanDateSchema,
     endDate: spendingPlanDateSchema,
-    totalAmount: z.number().positive(Strings.budgetPlanAmountInvalid),
+    totalAmount: z.number().refine((n) => n >= MIN_MONEY_AMOUNT, Strings.budgetPlanAmountInvalid),
     categories: z
       .array(
         z.object({
           categoryId: z.string().min(1),
-          allocatedAmount: z.number().nonnegative(Strings.budgetPlanAllocationInvalid).optional(),
+          allocatedAmount: z
+            .number()
+            .refine((n) => n === 0 || n >= MIN_MONEY_AMOUNT, Strings.budgetPlanAllocationInvalid)
+            .optional(),
         }),
       )
       .min(1, Strings.budgetPlanCategoryRequired),

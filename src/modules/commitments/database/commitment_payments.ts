@@ -271,6 +271,10 @@ export async function markCommitmentAsPaid(
          AND transaction_id IS NULL`,
       [
         details.paid_date,
+        // Invariant (ADR: money-rounding-layer §3 row 2): the caller
+        // (CommitmentRepository.markAsPaid) must hand in the resolver's
+        // rounded `paymentAmount` here, never the raw amount the pay sheet
+        // collected — this is the write the resolver's round exists to reach.
         details.amount_paid,
         details.account_id,
         details.exchange_rate_snapshot ?? null,

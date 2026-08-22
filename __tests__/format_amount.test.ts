@@ -156,10 +156,12 @@ describe('formatDisplayMagnitude', () => {
   });
 
   // MA-016 second amendment round (@layla): the zero test must run on the RAW value, not
-  // on roundMoney(value) — a raw `tx.amount` is never guaranteed to already live at 2dp
-  // (transaction.repository.ts:143 persists it unrounded), so 0.001 is a real nonzero
-  // magnitude that must escalate to 2dp, not a false zero — `text` still reports the
-  // escalated magnitude, `'0.00'`, not the raw `'0'` the true-zero branch would use.
+  // on roundMoney(value) — a raw `tx.amount` is never guaranteed to already live at 2dp for
+  // a row written before MA-018 (existing rows are not rewritten; MA-018's write path now
+  // rounds and reconciles every new transactions.amount — see
+  // docs/adr/2026-08-22-money-rounding-layer.md), so 0.001 is a real nonzero magnitude that
+  // must escalate to 2dp, not a false zero — `text` still reports the escalated magnitude,
+  // `'0.00'`, not the raw `'0'` the true-zero branch would use.
   //
   // MA-018 P8 F-2 (@layla's ruling): `isZero` is now read off `text`, not fixed `false`
   // once past the true-zero branch — the RAW magnitude here is real and non-collapsed

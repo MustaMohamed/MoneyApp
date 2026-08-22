@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { CategoryType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useSpendingPlanSheet } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.hook';
 import { useSpendingPlanSheetState } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.state';
@@ -114,5 +115,111 @@ describe('useSpendingPlanSheet', () => {
     expect(useSpendingPlanSheetStore.getState().endDate).toBe('2026-07-21');
     expect(useSpendingPlanSheetStore.getState().startDate).toBe(startDate);
     expect(useSpendingPlanSheetState.getState().datePickerTarget).toBeUndefined();
+  });
+
+  // MA-018 c8 follow-up: parseOptionalAmount used to route allocation text
+  // through parseNonNegativeDecimal, which silently collapsed a sub-floor
+  // value like '0.005' to undefined (unallocated) before it ever reached
+  // spendingPlanInputSchema's own floor refine. Switched to parseDecimalText
+  // so the raw value survives to the schema.
+  it('rejects a sub-cent allocation at submit and leaves the plan unsaved (Layla row 19)', async () => {
+    const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setSpendingPlan });
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(() => result.current.setAllocateByCategory(true));
+    await act(() => result.current.setAllocationText('cat_food', '0.005'));
+    expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe(0.005);
+
+    await act(async () => result.current.submit());
+
+    expect(setSpendingPlan).not.toHaveBeenCalled();
+    expect(useSpendingPlanSheetState.getState().submitError).toBe(
+      Strings.budgetPlanAllocationInvalid,
+    );
+  });
+
+  // Blank must still mean unallocated, not zero — the one way this fix could
+  // do harm. parseOptionalAmount's blank guard runs before parseDecimalText,
+  // so this path is untouched by the parser swap; asserted directly anyway.
+  it('clears an allocation back to unallocated on blank text and saves it as such', async () => {
+    const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setSpendingPlan });
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(() => result.current.setAllocateByCategory(true));
+    await act(() => result.current.setAllocationText('cat_food', '10'));
+    expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe(10);
+    await act(() => result.current.setAllocationText('cat_food', ''));
+    expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBeUndefined();
+
+    await act(async () => result.current.submit());
+
+    expect(setSpendingPlan).toHaveBeenCalledTimes(1);
+    const [input] = setSpendingPlan.mock.calls[0] as [
+      { categories: Array<{ categoryId: string; allocatedAmount?: number }> },
+    ];
+    expect(
+      input.categories.find((c) => c.categoryId === 'cat_food')?.allocatedAmount,
+    ).toBeUndefined();
+    expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+  });
+
+  // Confirms the behaviour change @sarah is flagging in the PR body: a
+  // pre-MA-018 plan whose allocated_amount was saved sub-cent (the old
+  // parseLimit-era path let this through) now shows the field error on
+  // save rather than silently persisting again. The stored 0.005 loads
+  // into the allocation input verbatim (SpendingPlanAllocations renders
+  // String(value)) and is never touched by the user in this scenario.
+  it('a legacy plan with a stored sub-cent allocation rejects at save, untouched', async () => {
+    const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setSpendingPlan });
+    const editingPlan = {
+      id: 'plan-legacy',
+      name: 'Legacy Plan',
+      startDate: '2026-07-01',
+      endDate: '2026-07-31',
+      totalAmount: 500,
+      categoryChips: [{ id: 'cat_food', name: 'Food', icon: 'food', color: '#000', spent: 0 }],
+      allocationRows: [
+        {
+          categoryId: 'cat_food',
+          categoryName: 'Food',
+          icon: 'food',
+          color: '#000',
+          allocatedAmount: 0.005,
+          spent: 0,
+          left: 0,
+          pct: 0,
+          isOver: false,
+        },
+      ],
+    } as unknown as Parameters<typeof useSpendingPlanSheet>[0]['editingPlan'];
+
+    useBudgetState.getState().openEditPlan('plan-legacy');
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories, editingPlan }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe(0.005),
+    );
+    expect(useSpendingPlanSheetStore.getState().allocateByCategory).toBe(true);
+
+    await act(async () => result.current.submit());
+
+    expect(setSpendingPlan).not.toHaveBeenCalled();
+    expect(useSpendingPlanSheetState.getState().submitError).toBe(
+      Strings.budgetPlanAllocationInvalid,
+    );
   });
 });

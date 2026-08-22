@@ -5,6 +5,7 @@ import {
   RecurrencePeriod,
   RecurrencePreset,
 } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import {
   COMMITMENT_SCHEMA,
@@ -121,6 +122,29 @@ describe('COMMITMENT_SCHEMA', () => {
 
   it('fails when Fixed has amount of 0', () => {
     const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0 });
+    expect(result.success).toBe(false);
+  });
+
+  // Layla row 14 — the floor's own boundary does not reject.
+  it('passes when Fixed has amount 0.01 (the floor)', () => {
+    expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0.01 }).success).toBe(true);
+  });
+
+  // Layla row 15 — a gate, not just a boolean: swap the `.refine` back to
+  // `.positive()` and this goes green on 0.005 instead of red.
+  it('fails when Fixed has amount 0.005 with the floor message', () => {
+    const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0.005 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const amountIssue = result.error.issues.find((issue) => issue.path.includes('amount'));
+      expect(amountIssue?.message).toBe(Strings.commitmentsErrAmountPositive);
+    }
+  });
+
+  // No silent round-up: 0.006 rounds to 0.01 and a rounded-value check would
+  // pass it. The floor compares the raw parsed value, so it must still reject.
+  it('fails when Fixed has amount 0.006 (rounds to the floor but is below it raw)', () => {
+    const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0.006 });
     expect(result.success).toBe(false);
   });
 });

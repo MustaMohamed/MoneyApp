@@ -45,6 +45,7 @@ import type {
   SpendingPlanWithCategories,
 } from '@/modules/budget/entities/budget.entity';
 import { getCategoriesByType, setCategoryGroup } from '@/modules/categories/database/categories';
+import { roundMoney } from '@/utils/money';
 import { spendingPlanInputSchema, type SpendingPlanInput } from '@/utils/schemas/budget.schema';
 
 export function currentYearMonth(now: Date = new Date()): string {
@@ -314,14 +315,16 @@ export class BudgetRepository implements IBudgetRepository {
   }
 
   async setExpectedIncome(yearMonth: string, amount: number): Promise<void> {
+    const income = roundMoney(amount);
     const db = await getDb();
     await db.withExclusiveTransactionAsync(async (tx) => {
-      await setBudgetMonthIncome(tx, yearMonth, amount);
+      await setBudgetMonthIncome(tx, yearMonth, income);
       await snapshotBudgetMonthCategoryGroups(tx, yearMonth);
     });
   }
 
   async setBudget(input: SetBudgetInput): Promise<void> {
+    const limit = roundMoney(input.limit);
     const db = await getDb();
     const now = new Date().toISOString();
     const yearMonth = input.yearMonth ?? currentYearMonth();
@@ -333,7 +336,7 @@ export class BudgetRepository implements IBudgetRepository {
         id,
         category_id: input.categoryId,
         name: normalizeBudgetName(input.name),
-        limit_amount: input.limit,
+        limit_amount: limit,
         effective_from: yearMonth,
         created_at: existing?.created_at ?? now,
         updated_at: now,
@@ -423,7 +426,16 @@ export class BudgetRepository implements IBudgetRepository {
     };
   }
 
-  async setSpendingPlan(input: SetSpendingPlanInput): Promise<void> {
+  async setSpendingPlan(rawInput: SetSpendingPlanInput): Promise<void> {
+    const input: SetSpendingPlanInput = {
+      ...rawInput,
+      totalAmount: roundMoney(rawInput.totalAmount),
+      categories: rawInput.categories.map((category) => ({
+        ...category,
+        allocatedAmount:
+          category.allocatedAmount === undefined ? undefined : roundMoney(category.allocatedAmount),
+      })),
+    };
     validateSpendingPlanInput(input);
     const db = await getDb();
     const now = new Date().toISOString();

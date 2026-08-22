@@ -17,6 +17,7 @@ import {
   DurationType,
   RecurrencePeriod,
 } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
@@ -274,6 +275,62 @@ describe('usePaySheet', () => {
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
     const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
     expect(arg.exchange_rate_snapshot).toBe(52);
+  });
+
+  // c7 step 3: the floor is Layla row 25's resolver throw made unreachable
+  // from the UI. Gate: swap the `.refine` back to `.positive()` and this
+  // assertion goes red — markAsPaid gets called with the raw 0.005.
+  it('rejects a sub-cent amount at the field and leaves markAsPaid uncalled', async () => {
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-1');
+      result.current.form.setValue('amount', 0.005);
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    // formState.errors is a vacuous read under renderHook (MA-008 T6) — RHF
+    // only re-renders it once something has READ it during a render, which
+    // nothing here does. getFieldState reads the live field directly.
+    expect(result.current.form.getFieldState('amount').error?.message).toBe(
+      Strings.commitmentsPayErrAmountMin,
+    );
+  });
+
+  // No silent round-up: 0.006 rounds to 0.01, which a rounded-value check
+  // would accept. The floor compares the raw parsed value, so it must still
+  // reject and leave markAsPaid uncalled.
+  it('rejects 0.006 (rounds to the floor but is below it raw) and leaves markAsPaid uncalled', async () => {
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-1');
+      result.current.form.setValue('amount', 0.006);
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('amount').error?.message).toBe(
+      Strings.commitmentsPayErrAmountMin,
+    );
+  });
+
+  it('accepts the floor amount 0.01 and submits', async () => {
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-1');
+      result.current.form.setValue('amount', 0.01);
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    const arg = mockMarkAsPaid.mock.calls[0][1] as { amount_paid: number };
+    expect(arg.amount_paid).toBe(0.01);
   });
 
   it('closes after a committed payment when account revalidation fails', async () => {

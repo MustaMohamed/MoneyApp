@@ -9,7 +9,8 @@ import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { budgetFormSchema, parseLimit, type BudgetFormValues } from '@/utils/schemas/budget.schema';
+import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { budgetFormSchema, type BudgetFormValues } from '@/utils/schemas/budget.schema';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useSetBudgetSheetState } from './set_budget_sheet.state';
@@ -144,7 +145,7 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
         id: isEdit ? editingRow?.id : undefined,
         categoryId: resolvedCategoryId,
         name: values.nameText,
-        limit: parseLimit(values.limitText),
+        limit: parsePositiveDecimal(values.limitText) ?? Number.NaN,
         yearMonth: selectedMonth,
         categoryGroup: groupValue ?? undefined,
       });

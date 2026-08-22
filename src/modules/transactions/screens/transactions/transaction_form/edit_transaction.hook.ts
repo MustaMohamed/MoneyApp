@@ -16,7 +16,8 @@ import {
   useTransactionStore,
   type UpdateTransactionInput,
 } from '@/modules/transactions/store/transaction.store';
-import { parseNonNegativeDecimal, parsePositiveDecimal } from '@/utils/parse_decimal';
+import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { isSameBudgetEligibility, resolveBudgetAssignment } from './budget_assignment.helpers';
@@ -43,7 +44,7 @@ function createEditSchema(
     .object({
       amount: z
         .number({ error: Strings.addTxErrAmountRequired })
-        .refine((v) => v > 0, Strings.addTxErrAmountZero),
+        .refine((v) => v >= MIN_MONEY_AMOUNT, Strings.addTxErrAmountZero),
       categoryId: isTransferOrCC ? z.string() : z.string().min(1, Strings.addTxErrCategoryRequired),
       budgetId: z.string(),
       note: z.string(),
@@ -318,7 +319,7 @@ export function useEditTransaction(
       });
 
       const update: UpdateTransactionInput = {
-        amount: data.amount,
+        amount: amounts.amount,
         currency: fromCurrency,
         egp_amount: amounts.egpAmount,
         to_amount: amounts.toAmount,
@@ -447,7 +448,7 @@ export function useEditTransaction(
     retryFormData: prerequisites?.retry ?? ignorePrerequisiteRetry,
     handleSave: () => {
       const amountStr = useEditTransactionStore.getState().amountStr;
-      form.setValue('amount', parseNonNegativeDecimal(amountStr) ?? Number.NaN);
+      form.setValue('amount', parseDecimalText(amountStr) ?? Number.NaN);
       return form.handleSubmit(onValid)();
     },
   };

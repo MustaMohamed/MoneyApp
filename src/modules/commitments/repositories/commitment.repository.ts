@@ -8,6 +8,7 @@ import { resolveCommitmentPaymentAmounts } from '@/modules/transactions/domain/t
 import { resolveCreateDeltas } from '@/modules/transactions/domain/transaction_policy';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { TransactionValidationError } from '@/modules/transactions/repositories/transaction.errors';
+import { roundMoney } from '@/utils/money';
 
 import {
   addPayments,
@@ -104,10 +105,11 @@ export class CommitmentRepository implements ICommitmentRepository {
   }
 
   async add(data: NewCommitmentInput): Promise<void> {
+    const input = { ...data, amount: roundMoney(data.amount) };
     const db = await getDb();
     const now = new Date().toISOString();
     const commitment: Commitment = {
-      ...data,
+      ...input,
       id: String(uuid.v4()),
       is_active: 1,
       created_at: now,
@@ -117,8 +119,9 @@ export class CommitmentRepository implements ICommitmentRepository {
   }
 
   async update(id: string, data: UpdateCommitmentInput): Promise<void> {
+    const input = { ...data, amount: roundMoney(data.amount) };
     const db = await getDb();
-    const updateData: UpdateCommitmentData = { ...data };
+    const updateData: UpdateCommitmentData = { ...input };
     await updateCommitment(db, id, updateData);
   }
 
@@ -240,7 +243,10 @@ export class CommitmentRepository implements ICommitmentRepository {
       minimumPaymentSnapshot: null,
       source: toAccountSnapshot(account),
     });
-    await markCommitmentAsPaid(db, paymentId, details, tx, accountDelta);
+    // The resolver's rounded return, not the raw `details.amount_paid` — see
+    // the invariant note at commitment_payments.ts's amount_paid write.
+    const paidDetails = { ...details, amount_paid: amounts.paymentAmount };
+    await markCommitmentAsPaid(db, paymentId, paidDetails, tx, accountDelta);
   }
 
   async markAsSkipped(paymentId: string): Promise<void> {
