@@ -426,7 +426,16 @@ export class BudgetRepository implements IBudgetRepository {
     };
   }
 
-  async setSpendingPlan(input: SetSpendingPlanInput): Promise<void> {
+  async setSpendingPlan(rawInput: SetSpendingPlanInput): Promise<void> {
+    const input: SetSpendingPlanInput = {
+      ...rawInput,
+      totalAmount: roundMoney(rawInput.totalAmount),
+      categories: rawInput.categories.map((category) => ({
+        ...category,
+        allocatedAmount:
+          category.allocatedAmount === undefined ? undefined : roundMoney(category.allocatedAmount),
+      })),
+    };
     validateSpendingPlanInput(input);
     const db = await getDb();
     const now = new Date().toISOString();
