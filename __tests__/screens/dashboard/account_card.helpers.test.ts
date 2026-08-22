@@ -2,7 +2,10 @@ import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { buildInfoRows } from '@/modules/dashboard/screens/dashboard/components/account_card';
+import {
+  buildBalanceText,
+  buildInfoRows,
+} from '@/modules/dashboard/screens/dashboard/components/account_card';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 const STATS: AccountStats = { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
@@ -187,5 +190,15 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+describe('buildBalanceText — #277 account_card.tsx:296 (spec row 9)', () => {
+  it('shows USD cents — base: 1,251 USD, head: 1,250.75 USD', () => {
+    expect(buildBalanceText(usdBank(1250.75))).toBe('1,250.75 USD');
+  });
+
+  it('leaves EGP unchanged (spec row 11)', () => {
+    expect(buildBalanceText(egpBank(1250.75))).toBe('1,251 EGP');
   });
 });
