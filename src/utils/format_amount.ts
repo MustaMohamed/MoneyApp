@@ -23,11 +23,33 @@ const SIGNED_ZERO = /^-0(\.0+)?$/;
 // pre-confirmation EGP amount, not a rate, and the two are allowed to diverge; see the ADR.
 export const EXCHANGE_RATE_DECIMALS = 2;
 
-export function formatAmount(value: number, decimals = 0): string {
-  const formatted = new Intl.NumberFormat('en-US', {
+// One formatter per fraction-digit count, keyed on `decimals`. Total because the locale is
+// the string literal 'en-US' in the constructor call below — not a runtime input — so
+// `decimals` is the only thing that varies across constructions. If a locale ever becomes a
+// parameter, this key must grow with it or the cache stops being total.
+// Observed keys resolve to {0, 1, 2}.
+//
+// The `new Intl.NumberFormat('en-US', {` call below must stay on one physical line:
+// scripts/validate-money-formatting.js matches the constructor line by line (`:78`), so
+// splitting it across lines reds `npm run lint` on the sanctioned allowlist entry even
+// though the constructor is still there. Since MA-017 it also reds `npm test` —
+// __tests__/scripts/validate_money_formatting.test.ts runs the validator against the real
+// tree and asserts exit 0.
+const FORMATTERS = new Map<number, Intl.NumberFormat>();
+
+function formatterFor(decimals: number): Intl.NumberFormat {
+  const cached = FORMATTERS.get(decimals);
+  if (cached !== undefined) return cached;
+  const created = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
-  }).format(value);
+  });
+  FORMATTERS.set(decimals, created);
+  return created;
+}
+
+export function formatAmount(value: number, decimals = 0): string {
+  const formatted = formatterFor(decimals).format(value);
   return value !== 0 && SIGNED_ZERO.test(formatted) ? formatted.slice(1) : formatted;
 }
 
