@@ -817,7 +817,7 @@ export const Strings = {
   addTxSaveCta: 'Save',
   editTxSaveCta: 'Save Changes',
   addTxErrAmountRequired: 'Enter an amount',
-  addTxErrAmountZero: 'Amount must be greater than 0',
+  addTxErrAmountZero: 'Amount must be at least 0.01',
   addTxErrAccountRequired: 'Select an account',
   addTxErrFromRequired: 'Select source account',
   addTxErrToRequired: 'Select destination account',

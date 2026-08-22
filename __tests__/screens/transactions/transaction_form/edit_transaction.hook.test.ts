@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
@@ -473,5 +474,70 @@ describe('useEditTransaction', () => {
 
     expect(result.current.state.errors.budget).toBeDefined();
     expect(updateTx).not.toHaveBeenCalled();
+  });
+});
+
+describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
+  it('rejects 0.005 typed into the amount field, and never calls updateTransaction', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await act(() => result.current.setAmountStr('0.005'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountZero);
+  });
+
+  it('rejects 0.006 rather than silently rounding it up to 0.01', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await act(() => result.current.setAmountStr('0.006'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountZero);
+  });
+
+  it('accepts 0.01, the floor itself', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await act(() => result.current.setAmountStr('0.01'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).toHaveBeenCalledTimes(1);
+    expect(result.current.state.errors.amount).toBeUndefined();
+  });
+
+  // The §0.2 ruling's gate: a pre-existing sub-cent row opened in the edit
+  // form seeds `amountStr` from storage (edit_transaction.store.ts:33,
+  // `amountStr: String(tx.amount)`), never through AmountHero.sanitize
+  // (onChangeText only) — so a stored 0.005 reaches the raw-value floor
+  // untouched. This must render "Amount must be at least 0.01", not "Enter
+  // an amount": the amount is present and typed, just below the floor.
+  // Swap `parseDecimalText` back to `parseNonNegativeDecimal` at
+  // edit_transaction.hook.ts's handleSave and this goes red on the message
+  // (addTxErrAmountRequired instead of addTxErrAmountZero).
+  it('rejects a stored 0.005 on Save without the amount field ever being touched', async () => {
+    const subCentTx = makeTestTransaction({
+      ...mockTxExpense,
+      amount: 0.005,
+    });
+    useEditTransactionStore.getState().loadFromTx(subCentTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(subCentTx, jest.fn(), jest.fn()));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountZero);
   });
 });

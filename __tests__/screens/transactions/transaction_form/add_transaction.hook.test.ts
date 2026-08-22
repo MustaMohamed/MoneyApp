@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
@@ -516,6 +517,47 @@ describe('useAddTransaction — validation', () => {
   });
 });
 
+describe('useAddTransaction — the MIN_MONEY_AMOUNT floor', () => {
+  it('rejects 0.005, on the raw parsed value, and never calls addTransaction', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr('0.005'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountZero);
+  });
+
+  it('rejects 0.006 rather than silently rounding it up to 0.01', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr('0.006'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountZero);
+  });
+
+  it('accepts 0.01, the floor itself', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr('0.01'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).toHaveBeenCalledTimes(1);
+    expect(result.current.state.errors.amount).toBeUndefined();
+  });
+});
+
 describe('useAddTransaction — cross-currency math', () => {
   it('non-transfer USD source: egp_amount = amount × rate (rounded)', async () => {
     const addTx = installMockAddTransaction();
@@ -644,8 +686,10 @@ describe('useAddTransaction — cross-currency math', () => {
 
 describe('useAddTransaction — rounding', () => {
   it("applies banker's rounding to egp_amount on cross-currency expense", async () => {
-    // Plan test entered `3.275` via numpad, but the shipped store caps inputs at
-    // 2 decimal places — the `5` digit is silently dropped, giving `3.27`.
+    // Plan test entered `3.275` via numpad, but the cap to 2 decimal places
+    // lives in AmountHero.sanitize (amount_hero.tsx), not the store — the
+    // store itself is a bare `set` — so the `5` digit is silently dropped
+    // at the keystroke, giving `3.27`.
     // Adjusted case: amount=1 (integer, no decimal issues), rate=30.005.
     //   1 × 30.005 = 30.005 → scaled=3000.5, truncated=3000 (even).
     //   Banker's rounding: stays at 3000 → 30.00.

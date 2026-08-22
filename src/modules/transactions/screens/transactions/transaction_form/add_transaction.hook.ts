@@ -13,7 +13,8 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
-import { parseNonNegativeDecimal, parsePositiveDecimal } from '@/utils/parse_decimal';
+import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useAddTransactionState } from './add_transaction.state';
@@ -51,7 +52,7 @@ function createSchema(
     .object({
       amount: z
         .number({ error: Strings.addTxErrAmountRequired })
-        .refine((v) => v > 0, Strings.addTxErrAmountZero),
+        .refine((v) => v >= MIN_MONEY_AMOUNT, Strings.addTxErrAmountZero),
       accountId: z
         .string()
         .min(1, isTransferOrCC ? Strings.addTxErrFromRequired : Strings.addTxErrAccountRequired),
@@ -582,7 +583,7 @@ export function useAddTransaction(
     retryFormData: prerequisites?.retry ?? ignorePrerequisiteRetry,
     handleSave: () => {
       const amountStr = useAddTransactionStore.getState().amountStr;
-      form.setValue('amount', parseNonNegativeDecimal(amountStr) ?? Number.NaN);
+      form.setValue('amount', parseDecimalText(amountStr) ?? Number.NaN);
       return form.handleSubmit(onValid)();
     },
   };
