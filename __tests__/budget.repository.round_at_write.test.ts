@@ -81,6 +81,13 @@ function readExpectedIncome(yearMonth: string): number | null {
   return row?.expected_income ?? null;
 }
 
+function readLimitAmount(id: string): number | null {
+  const row = realDb.prepare('SELECT limit_amount FROM budgets WHERE id = ?').get(id) as
+    | { limit_amount: number }
+    | undefined;
+  return row?.limit_amount ?? null;
+}
+
 describe('BudgetRepository.setExpectedIncome — rounds at the first statement', () => {
   // Scenario row 22. Gate: delete the `roundMoney` rebinding (bind `amount`
   // straight into `setBudgetMonthIncome` again) and this reads back
@@ -91,5 +98,34 @@ describe('BudgetRepository.setExpectedIncome — rounds at the first statement',
     await repo.setExpectedIncome('2026-08', 12000.004);
 
     expect(readExpectedIncome('2026-08')).toBe(12000);
+  });
+});
+
+describe('BudgetRepository.setBudget — rounds at the first statement', () => {
+  // Scenario row 21. Gate: delete the `roundMoney` rebinding (bind
+  // `input.limit` straight into `setBudgetRow` again) and this reads back
+  // 500.555.
+  it('500.555 persists as 500.56', async () => {
+    const repo = new BudgetRepository();
+    await repo.setBudget({
+      categoryId: 'cat_food',
+      name: 'Weekday meals',
+      limit: 500.555,
+      yearMonth: '2026-08',
+    });
+
+    expect(readLimitAmount('generated-1')).toBe(500.56);
+  });
+
+  // setLimit (:348) delegates to setBudget and must not round a second time
+  // -- roundMoney is idempotent, so a second call would be silently
+  // undetectable from the persisted value alone; asserted separately so the
+  // delegation itself (not just the arithmetic) cannot be silently replaced
+  // with a duplicate rounding call.
+  it('setLimit persists through the same rounding as setBudget', async () => {
+    const repo = new BudgetRepository();
+    await repo.setLimit('cat_food', 500.555, '2026-08');
+
+    expect(readLimitAmount('generated-1')).toBe(500.56);
   });
 });

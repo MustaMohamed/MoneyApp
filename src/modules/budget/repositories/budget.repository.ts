@@ -324,6 +324,7 @@ export class BudgetRepository implements IBudgetRepository {
   }
 
   async setBudget(input: SetBudgetInput): Promise<void> {
+    const limit = roundMoney(input.limit);
     const db = await getDb();
     const now = new Date().toISOString();
     const yearMonth = input.yearMonth ?? currentYearMonth();
@@ -335,7 +336,7 @@ export class BudgetRepository implements IBudgetRepository {
         id,
         category_id: input.categoryId,
         name: normalizeBudgetName(input.name),
-        limit_amount: input.limit,
+        limit_amount: limit,
         effective_from: yearMonth,
         created_at: existing?.created_at ?? now,
         updated_at: now,
