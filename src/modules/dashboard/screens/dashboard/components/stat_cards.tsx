@@ -15,6 +15,7 @@ import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
+import { resolveMonthSpendUsdAmount } from './stat_cards.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -176,6 +177,7 @@ export function StatCards({
     : deltaNegative
       ? 'trending-up'
       : 'trending-neutral';
+  const monthSpendUsdParts = resolveMonthSpendUsdAmount(monthSpentUsd);
 
   return (
     <View className="mx-4 mt-2 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
@@ -246,8 +248,10 @@ export function StatCards({
               <Text className="font-inter-medium text-muted text-xs">EGP</Text>
             </Text>
             <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
-              {formatAmount(monthSpentUsd, 0)}{' '}
-              <Text className="font-inter-medium text-muted text-xs">USD</Text>
+              {monthSpendUsdParts.value}{' '}
+              <Text className="font-inter-medium text-muted text-xs">
+                {monthSpendUsdParts.code}
+              </Text>
             </Text>
             <View
               className="flex-row items-center justify-between"
