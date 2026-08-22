@@ -5,6 +5,8 @@ import { BackHandler } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 
+export { RouteErrorFallback as ErrorBoundary } from '@/modules/navigation/components/route_error_fallback';
+
 export type OnboardingStackParams = {
   welcome: undefined;
   // Expo Router params are strings on the wire. more_accounts.hook.ts's

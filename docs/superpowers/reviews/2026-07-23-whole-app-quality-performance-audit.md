@@ -5,6 +5,7 @@
 **Lenses:** Runtime performance, render performance, data correctness, async state ownership, layout stability, HeroUI/design-system compliance, and codebase conventions.
 **Status:** Review only. No production code changed.
 **Branch:** `audit/whole-app-quality-performance`
+**Note:** this document's `H*`/`M*`/`L*` numbering is local to it — CLAUDE.md's and `.claude/rules/`'s audit-ID citations resolve against `docs/superpowers/reviews/2026-07-29-full-technical-audit.md` instead.
 
 ---
 
