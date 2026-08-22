@@ -53,9 +53,18 @@ export function formatAmount(value: number, decimals = 0): string {
   return value !== 0 && SIGNED_ZERO.test(formatted) ? formatted.slice(1) : formatted;
 }
 
-export function formatCurrencyAmount(value: number, currency: Currency, decimals?: number): string {
+export function formatCurrencyParts(
+  value: number,
+  currency: Currency,
+  decimals?: number,
+): { value: string; code: string } {
   const config = CURRENCY_CONFIG[currency];
-  return `${formatAmount(value, decimals ?? config.decimals)} ${config.code}`;
+  return { value: formatAmount(value, decimals ?? config.decimals), code: config.code };
+}
+
+export function formatCurrencyAmount(value: number, currency: Currency, decimals?: number): string {
+  const parts = formatCurrencyParts(value, currency, decimals);
+  return `${parts.value} ${parts.code}`;
 }
 
 export function formatWithCurrencyCode(value: number, code: string, decimals = 0): string {

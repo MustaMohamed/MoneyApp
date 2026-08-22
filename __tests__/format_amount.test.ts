@@ -2,6 +2,7 @@ import { Currency } from '@/constants/enums';
 import {
   formatAmount,
   formatCurrencyAmount,
+  formatCurrencyParts,
   formatDisplayMagnitude,
   formatExchangeRate,
   formatWithCurrencyCode,
@@ -56,6 +57,32 @@ describe('currency amount formatting', () => {
     // fit one line on N4. The 48.125 -> 48.13 rounding is unchanged; only the
     // surrounding text moved.
     expect(formatExchangeRate(48.125)).toBe('48.13 EGP/USD');
+  });
+
+  it('#243: formatCurrencyParts splits value and code, decimals from CURRENCY_CONFIG by default', () => {
+    expect(formatCurrencyParts(10500.5, Currency.USD)).toEqual({
+      value: '10,500.50',
+      code: 'USD',
+    });
+    expect(formatCurrencyParts(10500.5, Currency.EGP)).toEqual({ value: '10,501', code: 'EGP' });
+  });
+
+  it('#243: formatCurrencyParts honors an explicit decimal count, both sides of the ?? covered', () => {
+    expect(formatCurrencyParts(10500.5, Currency.EGP, 1)).toEqual({
+      value: '10,500.5',
+      code: 'EGP',
+    });
+  });
+
+  it('#243: formatCurrencyAmount is the join of formatCurrencyParts, pinned against pre-refactor literals', () => {
+    // NOT `formatCurrencyAmount(x, c) === \`${parts.value} ${parts.code}\`` — after this
+    // refactor formatCurrencyAmount IS that join, so the property is a tautology that holds
+    // for a broken formatCurrencyParts too. These three strings were captured before the
+    // refactor and pinned as literals instead — they fail if the parts are wrong, if the
+    // separator is wrong, or if the code node is wrong.
+    expect(formatCurrencyAmount(10500.5, Currency.USD)).toBe('10,500.50 USD');
+    expect(formatCurrencyAmount(10500.5, Currency.EGP)).toBe('10,501 EGP');
+    expect(formatCurrencyAmount(10500.5, Currency.EGP, 1)).toBe('10,500.5 EGP');
   });
 });
 
