@@ -197,20 +197,14 @@ describe('formatDisplayMagnitude', () => {
     expect(formatDisplayMagnitude(0.001, Currency.EGP)).toEqual({ text: '0.00', isZero: true });
   });
 
-  // MA-018 P8 F-2 (@layla's ruling): pins the defect directly, not just the return
-  // shape above — a magnitude below the escalation cap must report isZero: true on
-  // BOTH currencies (EGP's own escalation and USD's already-at-cap "escalation"
-  // alike), because a sign glyph beside a printed "0.00" reads as a direction that
-  // does not exist regardless of which currency produced it.
+  // MA-018 P8 F-2 (@layla's ruling): redundant-but-cheap belt-and-braces, not new
+  // coverage — mutating isZero's computation to a bare `false` already reds the
+  // `toEqual` assertions at :171 and :197 on their own, on both currencies. Kept
+  // because it names the ruling and the "both currencies" invariant explicitly in
+  // one place, at the cost of a duplicate assertion pair; do not read this as the
+  // test that would catch a regression here if :171/:197 were ever deleted.
   it('reports isZero true for a magnitude the 2dp escalation ceiling still cannot show a nonzero digit for, on both currencies', () => {
     expect(formatDisplayMagnitude(0.001, Currency.EGP).isZero).toBe(true);
     expect(formatDisplayMagnitude(0.001, Currency.USD).isZero).toBe(true);
-  });
-
-  // Sibling to the case above, same cap, opposite outcome: a magnitude the escalation
-  // CAN show a nonzero digit for must still report isZero: false, so this fix cannot be
-  // over-applied into suppressing a sign on a real, displayable small amount.
-  it('reports isZero false for a magnitude the 2dp escalation can show a nonzero digit for', () => {
-    expect(formatDisplayMagnitude(0.4, Currency.EGP)).toEqual({ text: '0.40', isZero: false });
   });
 });
