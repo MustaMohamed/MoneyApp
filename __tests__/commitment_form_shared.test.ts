@@ -140,6 +140,13 @@ describe('COMMITMENT_SCHEMA', () => {
       expect(amountIssue?.message).toBe(Strings.commitmentsErrAmountPositive);
     }
   });
+
+  // No silent round-up: 0.006 rounds to 0.01 and a rounded-value check would
+  // pass it. The floor compares the raw parsed value, so it must still reject.
+  it('fails when Fixed has amount 0.006 (rounds to the floor but is below it raw)', () => {
+    const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0.006 });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('detectPreset', () => {

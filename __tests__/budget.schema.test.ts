@@ -130,6 +130,19 @@ describe('spendingPlanInputSchema', () => {
     ).toBe(false);
   });
 
+  // totalAmount's own floor, isolated from the object-level over-allocation
+  // superRefine: nothing is allocated, so only the `.refine` on totalAmount
+  // itself can reject this.
+  it('rejects a total strictly between 0 and the floor, with nothing allocated', () => {
+    expect(
+      spendingPlanInputSchema.safeParse({
+        ...validInput,
+        totalAmount: 0.006,
+        categories: [{ categoryId: 'cat_food' }],
+      }).success,
+    ).toBe(false);
+  });
+
   it('rejects invalid names, totals, and allocations', () => {
     const result = spendingPlanInputSchema.safeParse({
       ...validInput,

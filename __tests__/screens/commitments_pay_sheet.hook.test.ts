@@ -299,6 +299,25 @@ describe('usePaySheet', () => {
     );
   });
 
+  // No silent round-up: 0.006 rounds to 0.01, which a rounded-value check
+  // would accept. The floor compares the raw parsed value, so it must still
+  // reject and leave markAsPaid uncalled.
+  it('rejects 0.006 (rounds to the floor but is below it raw) and leaves markAsPaid uncalled', async () => {
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-1');
+      result.current.form.setValue('amount', 0.006);
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('amount').error?.message).toBe(
+      Strings.commitmentsPayErrAmountMin,
+    );
+  });
+
   it('accepts the floor amount 0.01 and submits', async () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
