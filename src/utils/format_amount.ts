@@ -1,6 +1,5 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { type Currency } from '@/constants/enums';
-import { roundMoney } from '@/utils/money';
 
 // A NONZERO negative magnitude that rounds to zero at this precision still carries the
 // minus sign, and reads as a small debt that does not exist. Struck after formatting,
@@ -93,20 +92,25 @@ const ZERO_EPSILON = 1e-9;
  *   1. `isTrueZero = Math.abs(value) < ZERO_EPSILON`, tested on the RAW value, never on
  *      `roundMoney(value)`. Those coincide only when the input is already known to live at
  *      2dp precision — true for `net`, `egp_amount`, `to_amount`, NOT true for a raw
- *      `tx.amount` (persisted unrounded — `transaction.repository.ts:143` — and accepted at
- *      any positive precision by `parsePositiveDecimal`). Rounding first would let a real
- *      `0.001` collapse to a false true-zero and print with no sign at all.
+ *      `tx.amount`, which `transaction.repository.ts:309` persists at whatever precision the
+ *      input parses to — not guaranteed already at 2dp — and which `parsePositiveDecimal`
+ *      accepts at any positive precision. Rounding first would let a real `0.001` collapse to
+ *      a false true-zero and print with no sign at all.
  *   2. `isTrueZero` -> magnitude `"0"`, `isZero: true`. There is no direction to report.
  *   3. otherwise -> render `Math.abs(value)` at the site's normal (currency-config)
- *      precision. If that would print a literal zero, escalate ONCE, to `roundMoney`'s own
- *      2dp ledger floor — never further, so this stays the display layer's cap on precision
- *      rather than a window onto whatever precision the raw value happens to carry
- *      (M1/M22, the uncapped-`Intl` defect this cleanup exists to close). For a currency
- *      whose display precision already matches or exceeds `MONEY_ROUNDING_DECIMALS` — USD
- *      today — the branch is still entered (a sub-cent magnitude like `0.001` prints "0.00"
- *      at 2dp and trips the escalate check), it is just a no-op there: re-rendering at 2dp
- *      produces the same string `atSitePrecision` already held. Not unreachable — reached
- *      and idempotent. See `__tests__/format_amount.test.ts`'s USD rows.
+ *      precision. If that would print a literal zero, escalate ONCE, to
+ *      `MONEY_ROUNDING_DECIMALS`' 2dp ceiling — never further, so this stays the display
+ *      layer's cap on precision rather than a window onto whatever precision the raw value
+ *      happens to carry (M1/M22, the uncapped-`Intl` defect this cleanup exists to close).
+ *      The escalation takes `roundMoney`'s PRECISION only, never its MODE: banker's
+ *      (half-even) rounding exists to keep aggregations of PERSISTED values unbiased, a
+ *      property no display string has, so this branch renders at half-expand — the same mode
+ *      every other call to `formatAmount` already uses. For a currency whose display
+ *      precision already matches or exceeds `MONEY_ROUNDING_DECIMALS` — USD today — the
+ *      branch is still entered (a sub-cent magnitude like `0.001` prints "0.00" at 2dp and
+ *      trips the escalate check), it is just a no-op there: re-rendering at 2dp produces the
+ *      same string `atSitePrecision` already held. Not unreachable — reached and idempotent.
+ *      See `__tests__/format_amount.test.ts`'s USD rows.
  */
 export function formatDisplayMagnitude(
   value: number,
@@ -119,7 +123,7 @@ export function formatDisplayMagnitude(
   const config = CURRENCY_CONFIG[currency];
   const atSitePrecision = formatAmount(magnitude, config.decimals);
   const text = ZERO_AT_DISPLAY_PRECISION.test(atSitePrecision)
-    ? formatAmount(roundMoney(magnitude), MONEY_ROUNDING_DECIMALS)
+    ? formatAmount(magnitude, MONEY_ROUNDING_DECIMALS)
     : atSitePrecision;
   return { text, isZero: false };
 }

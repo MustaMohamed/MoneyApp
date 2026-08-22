@@ -140,4 +140,24 @@ describe('formatDisplayMagnitude', () => {
     expect(formatDisplayMagnitude(0.4, Currency.USD)).toEqual({ text: '0.40', isZero: false });
     expect(formatDisplayMagnitude(0.01, Currency.USD)).toEqual({ text: '0.01', isZero: false });
   });
+
+  // #284 spec rows 1-4 (p1-gate-ruling.md §6, spec §3): the escalate branch dropped
+  // roundMoney's banker's-rounding MODE while keeping its 2dp PRECISION as the ceiling.
+  // Both branches now agree on half-expand — the same rounding Intl already applies on the
+  // direct branch — so an EGP half-cent tie escalates the same way a USD one always has.
+  it('escalates an EGP half-cent tie under half-expand, matching USD at the same magnitude (spec row 1)', () => {
+    expect(formatDisplayMagnitude(0.005, Currency.EGP)).toEqual({ text: '0.01', isZero: false });
+  });
+
+  it('leaves the USD half-cent tie byte-identical — the direct branch was always half-expand (spec row 2)', () => {
+    expect(formatDisplayMagnitude(0.005, Currency.USD)).toEqual({ text: '0.01', isZero: false });
+  });
+
+  it('escalates a second EGP half-cent tie under half-expand, not the old banker\'s rounding (spec row 3)', () => {
+    expect(formatDisplayMagnitude(0.025, Currency.EGP)).toEqual({ text: '0.03', isZero: false });
+  });
+
+  it('holds the hard 2dp ceiling for a magnitude below half a cent — unchanged (spec row 4)', () => {
+    expect(formatDisplayMagnitude(0.001, Currency.EGP)).toEqual({ text: '0.00', isZero: false });
+  });
 });
