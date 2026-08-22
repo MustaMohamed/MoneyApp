@@ -43,9 +43,20 @@ Banker's rounding (round-half-even) to 2 dp. Apply to **every persisted monetary
 
 ## Formatting — `src/utils/format_amount.ts`
 
-- `formatCurrencyAmount(value, currency)` — currency-aware decimals; **use this for any amount with a known currency** (USD gets its decimals; plain `formatAmount` renders 0 dp and truncates cents — audit M22).
-- `formatAmount(value, decimals = 0)` — bare EGP integers only.
-- Never construct `Intl.NumberFormat` inline in components — hoist to module scope (M24) or use these utils.
+All six exports, as of this commit:
+
+| Export | What it is |
+|---|---|
+| `formatAmount(value, decimals = 0)` | grouped magnitude, no currency code; strips a signed zero that a nonzero value rounded into |
+| `formatCurrencyAmount(value, currency, decimals?)` | `formatAmount` + the currency code; decimals default to `CURRENCY_CONFIG[currency].decimals` |
+| `formatWithCurrencyCode(value, code, decimals = 0)` | same shape for a code that is not a `Currency` enum member. Scheduled for deletion by MA-018 — described here as of this commit, not pre-deleted |
+| `formatDisplayMagnitude(value, currency)` | `{ text, isZero }` — absolute magnitude for composed-sign sites, escalating to 2 dp when currency precision would print a real value as `0` |
+| `formatExchangeRate(rate)` | `48.60 EGP/USD`; owns rate precision — `.claude/rules/ui.md` names it canonical for rates |
+| `EXCHANGE_RATE_DECIMALS` | the 2 dp that `formatExchangeRate` applies |
+
+Decimals for an amount come from `CURRENCY_CONFIG` (`src/constants/currency.ts` — EGP 0, USD 2; plain `formatAmount` defaults to 0 dp and truncates cents if you skip `formatCurrencyAmount` — audit M22). A screen may override only by passing a **named constant** to a formatter's own `decimals` parameter — never a bare literal — recorded in an ADR. Shipped precedent: `N4_HERO_AMOUNT_DECIMALS` (`src/modules/onboarding/screens/onboarding/ready/ready.geometry.ts`), approved at `docs/adr/2026-08-18-starting-net-position.md` §6. This must not contradict `.claude/rules/review.md` item 3, which is the authority on decimal counts.
+
+Never construct `Intl.NumberFormat` outside `src/utils/format_amount.ts`, full stop — `npm run lint` rejects the constructor at **any** scope, not just top-level. Use a formatter from this file instead.
 
 ## Sign conventions
 
