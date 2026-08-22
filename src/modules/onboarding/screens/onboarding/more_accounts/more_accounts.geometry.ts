@@ -1,6 +1,5 @@
 import type { ViewStyle } from 'react-native';
 
-import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing } from '@/constants/theme';
@@ -10,7 +9,7 @@ import {
 } from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
-import { formatAmount } from '@/utils/format_amount';
+import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 /**
@@ -111,11 +110,7 @@ export function resolveAccountRowDotColor(color: string | null): string {
  * recorded deviation — see spec §3 S4. A USD row is the one that shows cents.
  */
 export function resolveAccountRowAmount(account: Account): { value: string; code: string } {
-  const config = CURRENCY_CONFIG[account.currency];
-  return {
-    value: formatAmount(account.current_balance, config.decimals),
-    code: config.code,
-  };
+  return formatCurrencyParts(account.current_balance, account.currency);
 }
 
 /**

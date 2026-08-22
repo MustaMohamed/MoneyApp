@@ -4,6 +4,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
@@ -11,7 +12,7 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
@@ -178,6 +179,7 @@ export function StatCards({
       ? 'trending-up'
       : 'trending-neutral';
   const monthSpendUsdParts = resolveMonthSpendUsdAmount(monthSpentUsd);
+  const monthSpendEgpParts = formatCurrencyParts(monthSpentEgp, Currency.EGP);
 
   return (
     <View className="mx-4 mt-2 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
@@ -244,8 +246,10 @@ export function StatCards({
         ) : (
           <>
             <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
-              {formatAmount(monthSpentEgp)}{' '}
-              <Text className="font-inter-medium text-muted text-xs">EGP</Text>
+              {monthSpendEgpParts.value}{' '}
+              <Text className="font-inter-medium text-muted text-xs">
+                {monthSpendEgpParts.code}
+              </Text>
             </Text>
             <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
               {monthSpendUsdParts.value}{' '}
@@ -333,12 +337,13 @@ function NetWorthCardBody({
 }): React.ReactElement {
   const total = netWorth.assetsEgp + Math.abs(netWorth.liabilitiesEgp);
   const assetsPct = total > 0 ? netWorth.assetsEgp / total : 1;
+  const netWorthEgpParts = formatCurrencyParts(netWorth.netWorthEgp, Currency.EGP);
 
   return (
     <>
       <Text className="font-sora-bold text-lg" style={{ color: netColor }} numberOfLines={1}>
-        {formatAmount(netWorth.netWorthEgp)}{' '}
-        <Text className="font-inter-medium text-muted text-xs">EGP</Text>
+        {netWorthEgpParts.value}{' '}
+        <Text className="font-inter-medium text-muted text-xs">{netWorthEgpParts.code}</Text>
       </Text>
       <View
         className="bg-default flex-row overflow-hidden rounded"

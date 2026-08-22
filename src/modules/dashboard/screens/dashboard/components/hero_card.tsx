@@ -10,7 +10,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, Size, Type } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
-import { formatAmount, formatCurrencyAmount, formatExchangeRate } from '@/utils/format_amount';
+import { formatCurrencyAmount, formatCurrencyParts, formatExchangeRate } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
@@ -194,8 +194,10 @@ export function HeroCard({
               className="font-sora-bold mt-3 mb-2 px-3"
               style={{ color: Colors.dark.gold, fontSize: ms(32) }}
             >
-              {formatAmount(netWorth.assetsEgp)}{' '}
-              <Text style={{ fontSize: ms(16), opacity: 0.8 }}>EGP</Text>
+              {formatCurrencyParts(netWorth.assetsEgp, Currency.EGP).value}{' '}
+              <Text style={{ fontSize: ms(16), opacity: 0.8 }}>
+                {formatCurrencyParts(netWorth.assetsEgp, Currency.EGP).code}
+              </Text>
             </Text>
           )}
 

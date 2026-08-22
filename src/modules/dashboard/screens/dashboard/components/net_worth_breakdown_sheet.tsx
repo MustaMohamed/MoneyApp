@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Type } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
@@ -12,7 +13,7 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatCurrencyParts } from '@/utils/format_amount';
 import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
@@ -143,6 +144,7 @@ function NetWorthBreakdownBody({
   const showLiabilities = liabilities.length > 0;
   const totalDebt = liabilities.reduce((sum, row) => sum + row.balanceEgp, 0);
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
+  const netWorthEgpParts = formatCurrencyParts(netWorth.netWorthEgp, Currency.EGP);
 
   return (
     <>
@@ -152,8 +154,8 @@ function NetWorthBreakdownBody({
           {Strings.dashboardBreakdownNetWorthLabel}
         </Text>
         <Text className="font-sora-bold mt-1" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
-          {formatAmount(netWorth.netWorthEgp)}{' '}
-          <Text className="font-inter-medium text-muted text-base">EGP</Text>
+          {netWorthEgpParts.value}{' '}
+          <Text className="font-inter-medium text-muted text-base">{netWorthEgpParts.code}</Text>
         </Text>
         <Text variant="caption" className="text-muted mt-1">
           {resolveNetWorthUsdCaption(netWorth.netWorthUsd)}
