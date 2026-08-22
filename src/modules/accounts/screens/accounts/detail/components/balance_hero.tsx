@@ -9,10 +9,9 @@ import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
-import { formatAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
-import { buildHeroCaption } from './balance_hero.helpers';
+import { buildHeroBalanceText, buildHeroCaption } from './balance_hero.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -61,7 +60,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
           numberOfLines={1}
           className={`font-sora-bold mt-1 text-[20px] tabular-nums ${resolveAccountBalanceColorClass(account.type)}`}
         >
-          {formatAmount(account.current_balance)} {account.currency}
+          {buildHeroBalanceText(account)}
         </Typography>
 
         {/* Context caption */}
