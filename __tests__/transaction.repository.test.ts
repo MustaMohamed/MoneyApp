@@ -213,6 +213,23 @@ describe('TransactionRepository.add', () => {
       }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
   });
+
+  it('rejects a raw amount beside a correctly-rounded egp_amount sibling — the reconciliation guard', async () => {
+    // amount should be roundMoney(10.005) = 10, deriving egp_amount = 10 x 48 = 480.
+    // Persisting the raw 10.005 beside the correctly-derived 480 is exactly the
+    // drift the layer rounds once, upstream, to prevent. Delete the `input.amount
+    // === expected.amount` conjunct and this goes green — that is the gate.
+    await expect(
+      repo.add({
+        ...baseInput,
+        account_id: 'acc_usd',
+        currency: Currency.USD,
+        amount: 10.005,
+        egp_amount: 480,
+        exchange_rate: 48,
+      }),
+    ).rejects.toBeInstanceOf(TransactionValidationError);
+  });
 });
 
 describe('TransactionRepository.getAll', () => {

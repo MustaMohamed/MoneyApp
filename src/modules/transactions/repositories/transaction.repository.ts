@@ -145,7 +145,11 @@ function normalizedAmountsMatch(input: {
       destinationCurrency: input.destination?.currency,
       exchangeRate: input.exchangeRate ?? undefined,
     });
-    return input.egpAmount === expected.egpAmount && input.toAmount === expected.toAmount;
+    return (
+      input.amount === expected.amount &&
+      input.egpAmount === expected.egpAmount &&
+      input.toAmount === expected.toAmount
+    );
   } catch (error) {
     if (error instanceof TransactionAmountError) return false;
     throw error;
