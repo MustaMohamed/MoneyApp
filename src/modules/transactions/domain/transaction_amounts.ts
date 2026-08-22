@@ -9,6 +9,7 @@ export interface TransactionAmounts {
 }
 
 export interface CommitmentPaymentAmounts {
+  paymentAmount: number;
   accountNativeAmount: number;
   accountCurrency: Currency;
   egpAmount: number;
@@ -76,7 +77,8 @@ export function resolveCommitmentPaymentAmounts(input: {
   accountCurrency: Currency;
   exchangeRate?: number;
 }): CommitmentPaymentAmounts {
-  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+  const amount = roundMoney(input.amount);
+  if (!Number.isFinite(amount) || amount <= 0) {
     throw new TransactionAmountError('Payment amount must be positive');
   }
 
@@ -92,16 +94,17 @@ export function resolveCommitmentPaymentAmounts(input: {
   const exchangeRate = usesUsd ? (input.exchangeRate ?? null) : null;
   const egpAmount =
     input.commitmentCurrency === Currency.USD
-      ? roundMoney(input.amount * (exchangeRate ?? 0))
-      : roundMoney(input.amount);
+      ? roundMoney(amount * (exchangeRate ?? 0))
+      : roundMoney(amount);
   const accountNativeAmount =
     input.accountCurrency === Currency.USD
       ? input.commitmentCurrency === Currency.USD
-        ? roundMoney(input.amount)
+        ? roundMoney(amount)
         : roundMoney(egpAmount / (exchangeRate ?? 0))
       : egpAmount;
 
   return {
+    paymentAmount: amount,
     accountNativeAmount,
     accountCurrency: input.accountCurrency,
     egpAmount,

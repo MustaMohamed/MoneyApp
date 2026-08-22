@@ -1,5 +1,6 @@
 import { Currency, TransactionType } from '@/constants/enums';
 import {
+  resolveCommitmentPaymentAmounts,
   resolveTransactionAmounts,
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
@@ -178,5 +179,124 @@ describe('resolveTransactionAmounts', () => {
         }),
       ).toEqual({ amount: 0.01, egpAmount: 0.48, toAmount: null, exchangeRate: 48 });
     });
+  });
+});
+
+describe('resolveCommitmentPaymentAmounts', () => {
+  // This resolver had zero tests before MA-018 c7 (git grep confirmed one
+  // production caller, no test file) — money.md's "worked numbers for all
+  // four currency pairs, plus the throw cases" is a new obligation here, not
+  // an extension. 10.999 is reused across all four pairs so the same input
+  // proves the fix at every branch of the resolver.
+  it('EGP commitment / EGP account: 10.999 rounds to 11 before deriving anything', () => {
+    expect(
+      resolveCommitmentPaymentAmounts({
+        amount: 10.999,
+        commitmentCurrency: Currency.EGP,
+        accountCurrency: Currency.EGP,
+      }),
+    ).toEqual({
+      paymentAmount: 11,
+      accountNativeAmount: 11,
+      accountCurrency: Currency.EGP,
+      egpAmount: 11,
+      exchangeRate: null,
+    });
+  });
+
+  // ADR (money-rounding-layer) §3 row 2's own worked pin: rounding the input
+  // changes egp_amount for a sub-cent payment — 528.00, not 527.95.
+  it('USD commitment / EGP account: 10.999 USD @ rate 48 persists egpAmount 528.00, not 527.95', () => {
+    expect(
+      resolveCommitmentPaymentAmounts({
+        amount: 10.999,
+        commitmentCurrency: Currency.USD,
+        accountCurrency: Currency.EGP,
+        exchangeRate: 48,
+      }),
+    ).toEqual({
+      paymentAmount: 11,
+      accountNativeAmount: 528,
+      accountCurrency: Currency.EGP,
+      egpAmount: 528,
+      exchangeRate: 48,
+    });
+  });
+
+  it('EGP commitment / USD account: 10.999 EGP @ rate 48 rounds amount before deriving accountNativeAmount', () => {
+    expect(
+      resolveCommitmentPaymentAmounts({
+        amount: 10.999,
+        commitmentCurrency: Currency.EGP,
+        accountCurrency: Currency.USD,
+        exchangeRate: 48,
+      }),
+    ).toEqual({
+      paymentAmount: 11,
+      accountNativeAmount: 0.23,
+      accountCurrency: Currency.USD,
+      egpAmount: 11,
+      exchangeRate: 48,
+    });
+  });
+
+  it('USD commitment / USD account: 10.999 @ rate 48 rounds amount before it is reused as accountNativeAmount', () => {
+    expect(
+      resolveCommitmentPaymentAmounts({
+        amount: 10.999,
+        commitmentCurrency: Currency.USD,
+        accountCurrency: Currency.USD,
+        exchangeRate: 48,
+      }),
+    ).toEqual({
+      paymentAmount: 11,
+      accountNativeAmount: 11,
+      accountCurrency: Currency.USD,
+      egpAmount: 528,
+      exchangeRate: 48,
+    });
+  });
+
+  it('rejects a missing or non-positive USD exchange rate', () => {
+    expect(() =>
+      resolveCommitmentPaymentAmounts({
+        amount: 10,
+        commitmentCurrency: Currency.USD,
+        accountCurrency: Currency.EGP,
+      }),
+    ).toThrow(TransactionAmountError);
+    expect(() =>
+      resolveCommitmentPaymentAmounts({
+        amount: 10,
+        commitmentCurrency: Currency.EGP,
+        accountCurrency: Currency.USD,
+        exchangeRate: 0,
+      }),
+    ).toThrow(TransactionAmountError);
+  });
+
+  // Layla row 25 — regression pin, mirrors resolveTransactionAmounts row 23:
+  // rounding runs before the positivity throw, so an amount that rounds to
+  // zero still throws rather than persisting a zero payment.
+  it('0.005 rounds to 0 and throws, rather than persisting a zero payment', () => {
+    expect(() =>
+      resolveCommitmentPaymentAmounts({
+        amount: 0.005,
+        commitmentCurrency: Currency.EGP,
+        accountCurrency: Currency.EGP,
+      }),
+    ).toThrow(TransactionAmountError);
+  });
+
+  it('resolve(resolve(x).paymentAmount) deep-equals resolve(x) — idempotent under its own output', () => {
+    const input = {
+      amount: 10.999,
+      commitmentCurrency: Currency.USD,
+      accountCurrency: Currency.EGP,
+      exchangeRate: 48,
+    };
+    const first = resolveCommitmentPaymentAmounts(input);
+    const second = resolveCommitmentPaymentAmounts({ ...input, amount: first.paymentAmount });
+    expect(second).toEqual(first);
   });
 });
