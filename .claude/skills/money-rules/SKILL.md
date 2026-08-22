@@ -48,8 +48,8 @@ All six exports, as of this commit:
 | Export | What it is |
 |---|---|
 | `formatAmount(value, decimals = 0)` | grouped magnitude, no currency code; strips a signed zero that a nonzero value rounded into |
-| `formatCurrencyAmount(value, currency, decimals?)` | `formatAmount` + the currency code; decimals default to `CURRENCY_CONFIG[currency].decimals` |
-| `formatWithCurrencyCode(value, code, decimals = 0)` | same shape for a code that is not a `Currency` enum member. Scheduled for deletion by MA-018 — described here as of this commit, not pre-deleted |
+| `formatCurrencyAmount(value, currency, decimals?)` | `formatAmount` + the currency code; decimals default to `CURRENCY_CONFIG[currency].decimals`. Defined as the join of `formatCurrencyParts` |
+| `formatCurrencyParts(value, currency, decimals?)` | `{ value, code }` — the same decimals rule as `formatCurrencyAmount`, for the two-node splits where the code renders in its own `<Text>` |
 | `formatDisplayMagnitude(value, currency)` | `{ text, isZero }` — absolute magnitude for composed-sign sites, escalating to 2 dp when currency precision would print a real value as `0` |
 | `formatExchangeRate(rate)` | `48.60 EGP/USD`; owns rate precision — `.claude/rules/ui.md` names it canonical for rates |
 | `EXCHANGE_RATE_DECIMALS` | the 2 dp that `formatExchangeRate` applies |

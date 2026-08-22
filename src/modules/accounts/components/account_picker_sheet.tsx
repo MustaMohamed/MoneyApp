@@ -5,10 +5,10 @@ import { View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import type { Account } from '../entities/account.entity';
+import { resolvePickerRowBalance } from './account_picker_sheet.helpers';
 import { TYPE_OPTIONS } from './account_type_pill';
 
 interface Props {
@@ -71,7 +71,7 @@ export function AccountPickerSheet({
                   {item.name}
                 </Typography>
                 <Typography className="font-inter text-muted text-[12px]">
-                  {formatAmount(item.current_balance)} {item.currency}
+                  {resolvePickerRowBalance(item)}
                 </Typography>
               </View>
               {isSelected ? (

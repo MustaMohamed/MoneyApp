@@ -1,6 +1,5 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { type Currency } from '@/constants/enums';
-import { roundMoney } from '@/utils/money';
 
 // A NONZERO negative magnitude that rounds to zero at this precision still carries the
 // minus sign, and reads as a small debt that does not exist. Struck after formatting,
@@ -24,21 +23,48 @@ const SIGNED_ZERO = /^-0(\.0+)?$/;
 // pre-confirmation EGP amount, not a rate, and the two are allowed to diverge; see the ADR.
 export const EXCHANGE_RATE_DECIMALS = 2;
 
-export function formatAmount(value: number, decimals = 0): string {
-  const formatted = new Intl.NumberFormat('en-US', {
+// One formatter per fraction-digit count, keyed on `decimals`. Total because the locale is
+// the string literal 'en-US' in the constructor call below — not a runtime input — so
+// `decimals` is the only thing that varies across constructions. If a locale ever becomes a
+// parameter, this key must grow with it or the cache stops being total.
+// Observed keys resolve to {0, 1, 2}.
+//
+// The `new Intl.NumberFormat` constructor below, opening paren and all, must stay on one
+// physical line: scripts/validate-money-formatting.js matches the constructor line by line
+// (`:78`), so splitting it across lines reds `npm run lint` on the sanctioned allowlist entry
+// even though the constructor is still there. Since MA-017 it also reds `npm test` —
+// __tests__/scripts/validate_money_formatting.test.ts runs the validator against the real
+// tree and asserts exit 0.
+const FORMATTERS = new Map<number, Intl.NumberFormat>();
+
+function formatterFor(decimals: number): Intl.NumberFormat {
+  const cached = FORMATTERS.get(decimals);
+  if (cached !== undefined) return cached;
+  const created = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
-  }).format(value);
+  });
+  FORMATTERS.set(decimals, created);
+  return created;
+}
+
+export function formatAmount(value: number, decimals = 0): string {
+  const formatted = formatterFor(decimals).format(value);
   return value !== 0 && SIGNED_ZERO.test(formatted) ? formatted.slice(1) : formatted;
 }
 
-export function formatCurrencyAmount(value: number, currency: Currency, decimals?: number): string {
+export function formatCurrencyParts(
+  value: number,
+  currency: Currency,
+  decimals?: number,
+): { value: string; code: string } {
   const config = CURRENCY_CONFIG[currency];
-  return `${formatAmount(value, decimals ?? config.decimals)} ${config.code}`;
+  return { value: formatAmount(value, decimals ?? config.decimals), code: config.code };
 }
 
-export function formatWithCurrencyCode(value: number, code: string, decimals = 0): string {
-  return `${formatAmount(value, decimals)} ${code}`;
+export function formatCurrencyAmount(value: number, currency: Currency, decimals?: number): string {
+  const parts = formatCurrencyParts(value, currency, decimals);
+  return `${parts.value} ${parts.code}`;
 }
 
 // Mirrors roundMoney's fixed precision (src/utils/money.ts) — the domain's persisted
@@ -93,20 +119,35 @@ const ZERO_EPSILON = 1e-9;
  *   1. `isTrueZero = Math.abs(value) < ZERO_EPSILON`, tested on the RAW value, never on
  *      `roundMoney(value)`. Those coincide only when the input is already known to live at
  *      2dp precision — true for `net`, `egp_amount`, `to_amount`, NOT true for a raw
- *      `tx.amount` (persisted unrounded — `transaction.repository.ts:143` — and accepted at
- *      any positive precision by `parsePositiveDecimal`). Rounding first would let a real
- *      `0.001` collapse to a false true-zero and print with no sign at all.
+ *      `tx.amount`, which `transaction.repository.ts:309` persists at whatever precision the
+ *      input parses to — not guaranteed already at 2dp — and which `parsePositiveDecimal`
+ *      accepts at any positive precision. Rounding first would let a real `0.001` collapse to
+ *      a false true-zero and print with no sign at all.
  *   2. `isTrueZero` -> magnitude `"0"`, `isZero: true`. There is no direction to report.
  *   3. otherwise -> render `Math.abs(value)` at the site's normal (currency-config)
- *      precision. If that would print a literal zero, escalate ONCE, to `roundMoney`'s own
- *      2dp ledger floor — never further, so this stays the display layer's cap on precision
- *      rather than a window onto whatever precision the raw value happens to carry
- *      (M1/M22, the uncapped-`Intl` defect this cleanup exists to close). For a currency
- *      whose display precision already matches or exceeds `MONEY_ROUNDING_DECIMALS` — USD
- *      today — the branch is still entered (a sub-cent magnitude like `0.001` prints "0.00"
- *      at 2dp and trips the escalate check), it is just a no-op there: re-rendering at 2dp
- *      produces the same string `atSitePrecision` already held. Not unreachable — reached
- *      and idempotent. See `__tests__/format_amount.test.ts`'s USD rows.
+ *      precision. If that would print a literal zero, escalate ONCE, to
+ *      `MONEY_ROUNDING_DECIMALS`' 2dp ceiling — never further, so this stays the display
+ *      layer's cap on precision rather than a window onto whatever precision the raw value
+ *      happens to carry (M1/M22, the uncapped-`Intl` defect this cleanup exists to close).
+ *      The escalation takes `roundMoney`'s PRECISION only, never its MODE: banker's
+ *      (half-even) rounding exists to keep aggregations of PERSISTED values unbiased, a
+ *      property no display string has, so this branch renders at half-expand — the same mode
+ *      every other call to `formatAmount` already uses. For a currency whose display
+ *      precision already matches or exceeds `MONEY_ROUNDING_DECIMALS` — USD today — the
+ *      branch is still entered (a sub-cent magnitude like `0.001` prints "0.00" at 2dp and
+ *      trips the escalate check), it is just a no-op there: re-rendering at 2dp produces the
+ *      same string `atSitePrecision` already held. Not unreachable — reached and idempotent.
+ *      See `__tests__/format_amount.test.ts`'s USD rows.
+ *   4. `isZero` is read off the RENDERED TEXT from step 3, not off `value` and not off
+ *      `isTrueZero` — it means "this string prints as zero, so a sign glyph beside it is not
+ *      meaningful", never "the underlying value is zero". A nonzero magnitude that survives
+ *      the 2dp escalation cap and still prints "0.00" — `0.001 EGP`, or `0.001`/`0.004 USD`,
+ *      whose display precision already sits at the escalation ceiling — reports `isZero:
+ *      true` here on exactly that ground: there is a real amount, but nothing on screen for a
+ *      sign to attach to. The escalation cap itself is unchanged (see step 3) — this is its
+ *      residual, not a new rule. Do not "fix" this field to read `value === 0`; that is the
+ *      raw-zero question step 1's `isTrueZero` already answers, on the raw value, for the
+ *      reason given there.
  */
 export function formatDisplayMagnitude(
   value: number,
@@ -119,9 +160,10 @@ export function formatDisplayMagnitude(
   const config = CURRENCY_CONFIG[currency];
   const atSitePrecision = formatAmount(magnitude, config.decimals);
   const text = ZERO_AT_DISPLAY_PRECISION.test(atSitePrecision)
-    ? formatAmount(roundMoney(magnitude), MONEY_ROUNDING_DECIMALS)
+    ? formatAmount(magnitude, MONEY_ROUNDING_DECIMALS)
     : atSitePrecision;
-  return { text, isZero: false };
+  const isZero = ZERO_AT_DISPLAY_PRECISION.test(text);
+  return { text, isZero };
 }
 
 /**

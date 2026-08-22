@@ -8,11 +8,12 @@ import {
   HERO_GRADIENT_END,
   HERO_GRADIENT_START,
 } from '@/components/ui/hero_gradient';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
-import { formatAmount } from '@/utils/format_amount';
+import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 // This strip only ever painted 2 of HeroShell's 3 gradient stops — kept
@@ -69,8 +70,10 @@ export function TotalBalanceStrip({ netWorth, accountsCount }: TotalBalanceStrip
             </View>
           ) : (
             <RNText className="font-sora-bold text-accent mt-1 text-2xl">
-              {formatAmount(netWorth.assetsEgp)}{' '}
-              <RNText className="text-muted text-base">EGP</RNText>
+              {formatCurrencyParts(netWorth.assetsEgp, Currency.EGP).value}{' '}
+              <RNText className="text-muted text-base">
+                {formatCurrencyParts(netWorth.assetsEgp, Currency.EGP).code}
+              </RNText>
             </RNText>
           )}
         </View>

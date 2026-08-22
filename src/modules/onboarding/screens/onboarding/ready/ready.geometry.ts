@@ -2,13 +2,16 @@ import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIco
 import type { ComponentProps } from 'react';
 import type { TextStyle, ViewStyle } from 'react-native';
 
-import { CURRENCY_CONFIG } from '@/constants/currency';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 import type { ReadyFrame, ReadyPill } from '@/modules/onboarding/domain/ready_summary_state';
-import { formatAmount, formatCurrencyAmount, formatExchangeRate } from '@/utils/format_amount';
+import {
+  formatCurrencyAmount,
+  formatCurrencyParts,
+  formatExchangeRate,
+} from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 /**
@@ -283,10 +286,7 @@ export function resolveHeroAmountParts(
   value: number,
   currency: Currency,
 ): { value: string; code: string } {
-  return {
-    value: formatAmount(value, N4_HERO_AMOUNT_DECIMALS),
-    code: CURRENCY_CONFIG[currency].code,
-  };
+  return formatCurrencyParts(value, currency, N4_HERO_AMOUNT_DECIMALS);
 }
 
 /**

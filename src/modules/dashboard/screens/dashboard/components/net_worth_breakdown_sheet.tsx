@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Type } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
@@ -12,11 +13,12 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatCurrencyParts } from '@/utils/format_amount';
 import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
 import type { AccountRow, LiabilityRow, LiquidityBreakdown } from '../dashboard.helpers';
+import { resolveNetWorthUsdCaption } from './net_worth_breakdown_sheet.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -142,6 +144,7 @@ function NetWorthBreakdownBody({
   const showLiabilities = liabilities.length > 0;
   const totalDebt = liabilities.reduce((sum, row) => sum + row.balanceEgp, 0);
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
+  const netWorthEgpParts = formatCurrencyParts(netWorth.netWorthEgp, Currency.EGP);
 
   return (
     <>
@@ -151,18 +154,11 @@ function NetWorthBreakdownBody({
           {Strings.dashboardBreakdownNetWorthLabel}
         </Text>
         <Text className="font-sora-bold mt-1" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
-          {formatAmount(netWorth.netWorthEgp)}{' '}
-          <Text className="font-inter-medium text-muted text-base">EGP</Text>
+          {netWorthEgpParts.value}{' '}
+          <Text className="font-inter-medium text-muted text-base">{netWorthEgpParts.code}</Text>
         </Text>
-        {/* Keyed on the FIELD being absent, not on `rate > 0`:
-              `INITIAL_STATE.rate` is 50, so the old check printed a confident
-              `≈ N USD` computed from the placeholder for every user who had
-              never fetched a rate. No `?? 0` — `formatAmount(0)` renders
-              `≈ 0 USD`, a wrong number rather than an absent one. */}
         <Text variant="caption" className="text-muted mt-1">
-          {netWorth.netWorthUsd !== undefined
-            ? `≈ ${formatAmount(netWorth.netWorthUsd, 0)} USD`
-            : '— USD'}
+          {resolveNetWorthUsdCaption(netWorth.netWorthUsd)}
         </Text>
       </View>
 
