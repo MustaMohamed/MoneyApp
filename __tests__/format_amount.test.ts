@@ -174,7 +174,7 @@ describe('formatDisplayMagnitude', () => {
     expect(formatDisplayMagnitude(0.005, Currency.USD)).toEqual({ text: '0.01', isZero: false });
   });
 
-  it('escalates a second EGP half-cent tie under half-expand, not the old banker\'s rounding (spec row 3)', () => {
+  it("escalates a second EGP half-cent tie under half-expand, not the old banker's rounding (spec row 3)", () => {
     expect(formatDisplayMagnitude(0.025, Currency.EGP)).toEqual({ text: '0.03', isZero: false });
   });
 

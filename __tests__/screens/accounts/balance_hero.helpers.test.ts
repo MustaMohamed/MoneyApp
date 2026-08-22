@@ -53,9 +53,7 @@ describe('buildHeroCaption — non-CC types', () => {
   });
 
   it('#277: takes decimals from CURRENCY_CONFIG for a non-whole EGP opening balance', () => {
-    const cap = buildHeroCaption(
-      mkAccount({ opening_balance: 1250.75, current_balance: 1250.75 }),
-    );
+    const cap = buildHeroCaption(mkAccount({ opening_balance: 1250.75, current_balance: 1250.75 }));
     expect(cap.text).toBe('Opening 1,251 EGP');
   });
 });
@@ -138,9 +136,7 @@ describe('availableCreditColor — thresholds match §5 AccountCard', () => {
 describe('buildHeroBalanceText — #277 balance_hero.tsx:64', () => {
   it('shows USD cents — base: 1,251 USD, head: 1,250.75 USD', () => {
     expect(
-      buildHeroBalanceText(
-        mkAccount({ currency: Currency.USD, current_balance: 1250.75 }),
-      ),
+      buildHeroBalanceText(mkAccount({ currency: Currency.USD, current_balance: 1250.75 })),
     ).toBe('1,250.75 USD');
   });
 

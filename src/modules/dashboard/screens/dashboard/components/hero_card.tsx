@@ -10,7 +10,11 @@ import { Strings } from '@/constants/strings';
 import { Colors, Size, Type } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
-import { formatCurrencyAmount, formatCurrencyParts, formatExchangeRate } from '@/utils/format_amount';
+import {
+  formatCurrencyAmount,
+  formatCurrencyParts,
+  formatExchangeRate,
+} from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';

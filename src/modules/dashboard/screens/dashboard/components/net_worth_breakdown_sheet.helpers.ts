@@ -11,5 +11,7 @@ import { formatCurrencyAmount } from '@/utils/format_amount';
  * rather than an absent one.
  */
 export function resolveNetWorthUsdCaption(netWorthUsd: number | undefined): string {
-  return netWorthUsd === undefined ? '— USD' : `≈ ${formatCurrencyAmount(netWorthUsd, Currency.USD)}`;
+  return netWorthUsd === undefined
+    ? '— USD'
+    : `≈ ${formatCurrencyAmount(netWorthUsd, Currency.USD)}`;
 }

@@ -7,7 +7,11 @@ import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 import type { ReadyFrame, ReadyPill } from '@/modules/onboarding/domain/ready_summary_state';
-import { formatCurrencyAmount, formatCurrencyParts, formatExchangeRate } from '@/utils/format_amount';
+import {
+  formatCurrencyAmount,
+  formatCurrencyParts,
+  formatExchangeRate,
+} from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 /**

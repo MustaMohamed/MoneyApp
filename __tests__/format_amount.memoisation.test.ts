@@ -31,7 +31,8 @@ describe('formatAmount — Intl.NumberFormat memoisation', () => {
   });
 
   it('constructs one Intl.NumberFormat per distinct fraction-digit count, not per call', () => {
-    const { formatAmount } = require('@/utils/format_amount') as typeof import('@/utils/format_amount');
+    const { formatAmount } =
+      require('@/utils/format_amount') as typeof import('@/utils/format_amount');
 
     formatAmount(1, 2);
     formatAmount(1, 2);
@@ -45,7 +46,8 @@ describe('formatAmount — Intl.NumberFormat memoisation', () => {
   });
 
   it('does not contaminate one decimals key with another when calls interleave', () => {
-    const { formatAmount } = require('@/utils/format_amount') as typeof import('@/utils/format_amount');
+    const { formatAmount } =
+      require('@/utils/format_amount') as typeof import('@/utils/format_amount');
 
     // First call per key is the cache-miss branch; the repeats are the cache-hit branch —
     // both sides of the `cached !== undefined` check get exercised here.
@@ -57,7 +59,8 @@ describe('formatAmount — Intl.NumberFormat memoisation', () => {
   });
 
   it('still runs the signed-zero guard through the memoised path on a warm cache', () => {
-    const { formatAmount } = require('@/utils/format_amount') as typeof import('@/utils/format_amount');
+    const { formatAmount } =
+      require('@/utils/format_amount') as typeof import('@/utils/format_amount');
 
     formatAmount(1, 0); // warm the decimals=0 formatter before the guard cases below
     expect(formatAmount(-0.4)).toBe('0');

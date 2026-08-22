@@ -151,10 +151,13 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
   it.each([
     ['USD', Currency.USD, '+610.50 USD'],
     ['EGP', Currency.EGP, '+611 EGP'],
-  ])('PhysicalSavings change (:134), composed sign kept — %s direction', (_dir, currency, expected) => {
-    const rows = buildInfoRows(physicalSavings(currency), PLACEHOLDER_RATE, STATS_CENTS, false);
-    expect(rows[1]?.value).toBe(expected);
-  });
+  ])(
+    'PhysicalSavings change (:134), composed sign kept — %s direction',
+    (_dir, currency, expected) => {
+      const rows = buildInfoRows(physicalSavings(currency), PLACEHOLDER_RATE, STATS_CENTS, false);
+      expect(rows[1]?.value).toBe(expected);
+    },
+  );
 
   it('Bank + USD month_in (:149) takes CURRENCY_CONFIG decimals', () => {
     const rows = buildInfoRows(usdBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false);
@@ -182,8 +185,18 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
     // function's signature. Local-time constructor so getDate() === 20 in any timezone.
     jest.useFakeTimers({ now: new Date(2026, 7, 20, 12, 0, 0) });
     try {
-      const usdRows = buildInfoRows(physicalWallet(Currency.USD), PLACEHOLDER_RATE, STATS_CENTS, false);
-      const egpRows = buildInfoRows(physicalWallet(Currency.EGP), PLACEHOLDER_RATE, STATS_CENTS, false);
+      const usdRows = buildInfoRows(
+        physicalWallet(Currency.USD),
+        PLACEHOLDER_RATE,
+        STATS_CENTS,
+        false,
+      );
+      const egpRows = buildInfoRows(
+        physicalWallet(Currency.EGP),
+        PLACEHOLDER_RATE,
+        STATS_CENTS,
+        false,
+      );
       // month_out: 640.25 / 20 days = 32.0125 -> '32.0' at the explicit 1dp this site keeps.
       expect(usdRows[1]?.value).toBe('32.0 USD');
       expect(egpRows[1]?.value).toBe('32.0 EGP');
