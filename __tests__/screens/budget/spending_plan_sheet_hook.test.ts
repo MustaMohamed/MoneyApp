@@ -122,7 +122,7 @@ describe('useSpendingPlanSheet', () => {
   // value like '0.005' to undefined (unallocated) before it ever reached
   // spendingPlanInputSchema's own floor refine. Switched to parseDecimalText
   // so the raw value survives to the schema.
-  it('rejects a sub-cent allocation at submit and leaves the plan unsaved', async () => {
+  it('rejects a sub-cent allocation at submit and leaves the plan unsaved (Layla row 19)', async () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setSpendingPlan });
     const { result } = await renderHook(() =>
