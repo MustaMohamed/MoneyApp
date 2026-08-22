@@ -8,6 +8,7 @@ import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { toLocalDateString } from '@/utils/format_date';
+import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -17,7 +18,9 @@ import { useCommitmentStore } from '../../../../store/commitment.store';
 import { usePaySheetState } from './pay_sheet.state';
 
 const schema = z.object({
-  amount: z.number({ error: Strings.commitmentsPayErrAmountRequired }).positive(),
+  amount: z
+    .number({ error: Strings.commitmentsPayErrAmountRequired })
+    .refine((v) => v >= MIN_MONEY_AMOUNT, Strings.commitmentsPayErrAmountMin),
   account_id: z.string().min(1, Strings.commitmentsPayErrAccountRequired),
   paid_date: z.string().min(1),
   exchange_rate: z.number().positive().optional(),

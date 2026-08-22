@@ -1036,6 +1036,7 @@ export const Strings = {
   commitmentsPayNotes: 'Notes',
   commitmentsPayConfirm: 'Confirm Payment',
   commitmentsPayErrAmountRequired: 'Amount is required',
+  commitmentsPayErrAmountMin: 'Amount must be at least 0.01',
   commitmentsPayErrAccountRequired: 'Select an account',
 
   // Commitments — Deactivate
