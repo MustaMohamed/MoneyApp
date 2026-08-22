@@ -5,7 +5,6 @@ import {
   formatCurrencyParts,
   formatDisplayMagnitude,
   formatExchangeRate,
-  formatWithCurrencyCode,
 } from '@/utils/format_amount';
 
 describe('formatAmount', () => {
@@ -45,11 +44,6 @@ describe('currency amount formatting', () => {
 
   it('honors an explicit currency decimal count', () => {
     expect(formatCurrencyAmount(10500.5, Currency.EGP, 1)).toBe('10,500.5 EGP');
-  });
-
-  it('formats an arbitrary currency code with default and explicit decimals', () => {
-    expect(formatWithCurrencyCode(10500.5, 'GBP')).toBe('10,501 GBP');
-    expect(formatWithCurrencyCode(10500.5, 'GBP', 2)).toBe('10,500.50 GBP');
   });
 
   it('formats the USD to EGP exchange-rate label in the compact pill form', () => {

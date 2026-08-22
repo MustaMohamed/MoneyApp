@@ -67,10 +67,6 @@ export function formatCurrencyAmount(value: number, currency: Currency, decimals
   return `${parts.value} ${parts.code}`;
 }
 
-export function formatWithCurrencyCode(value: number, code: string, decimals = 0): string {
-  return `${formatAmount(value, decimals)} ${code}`;
-}
-
 // Mirrors roundMoney's fixed precision (src/utils/money.ts) — the domain's persisted
 // precision, not any currency's display precision. Not exported from money.ts because
 // nothing there needs it as a value; it exists here only as the fallback this function
