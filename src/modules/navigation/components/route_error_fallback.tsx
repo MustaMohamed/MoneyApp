@@ -4,7 +4,8 @@ import { Strings } from '@/constants/strings';
 
 import { ErrorState } from './error_state';
 
-export function RouteErrorFallback({ retry }: ErrorBoundaryProps) {
+export function RouteErrorFallback({ retry, error }: ErrorBoundaryProps) {
+  console.error('[routeErrorFallback] render-phase error caught by boundary:', error);
   return (
     <ErrorState
       iconName="alert-circle-outline"
