@@ -9,7 +9,7 @@ import { AccountColors, Colors, Size } from '@/constants/theme';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 import { ms, msFont } from '@/utils/responsive';
 
@@ -104,7 +104,7 @@ export function buildInfoRows(
     return [
       {
         label: Strings.cardMonthSpendLabel,
-        value: `${formatAmount(s.month_out)} ${cur}`,
+        value: formatCurrencyAmount(s.month_out, cur),
         valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
       },
       {
@@ -113,7 +113,7 @@ export function buildInfoRows(
       },
       {
         label: Strings.cardWeekSpendLabel,
-        value: `${formatAmount(s.week_out)} ${cur}`,
+        value: formatCurrencyAmount(s.week_out, cur),
         valueColor: s.week_out > 0 ? Colors.dark.negative : Colors.dark.text1,
       },
     ];
@@ -127,11 +127,11 @@ export function buildInfoRows(
     return [
       {
         label: Strings.cardMonthStartLabel,
-        value: `${formatAmount(Math.max(0, monthStart))} ${cur}`,
+        value: formatCurrencyAmount(Math.max(0, monthStart), cur),
       },
       {
         label: Strings.cardChangeLabel,
-        value: `${change >= 0 ? '+' : ''}${formatAmount(change)} ${cur}`,
+        value: `${change >= 0 ? '+' : ''}${formatCurrencyAmount(change, cur)}`,
         valueColor: changeColor,
         icon: change >= 0 ? 'up' : 'down',
       },
@@ -146,12 +146,12 @@ export function buildInfoRows(
     return [
       {
         label: Strings.cardMonthInLabel,
-        value: `${formatAmount(s.month_in)} ${cur}`,
+        value: formatCurrencyAmount(s.month_in, cur),
         valueColor: s.month_in > 0 ? Colors.dark.positive : Colors.dark.text1,
       },
       {
         label: Strings.cardMonthOutLabel,
-        value: `${formatAmount(s.month_out)} ${cur}`,
+        value: formatCurrencyAmount(s.month_out, cur),
         valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
       },
       // The one row on this card that needs a rate, so the only one the gate
