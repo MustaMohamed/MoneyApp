@@ -29,10 +29,10 @@ export const EXCHANGE_RATE_DECIMALS = 2;
 // parameter, this key must grow with it or the cache stops being total.
 // Observed keys resolve to {0, 1, 2}.
 //
-// The `new Intl.NumberFormat('en-US', {` call below must stay on one physical line:
-// scripts/validate-money-formatting.js matches the constructor line by line (`:78`), so
-// splitting it across lines reds `npm run lint` on the sanctioned allowlist entry even
-// though the constructor is still there. Since MA-017 it also reds `npm test` —
+// The `new Intl.NumberFormat` constructor below, opening paren and all, must stay on one
+// physical line: scripts/validate-money-formatting.js matches the constructor line by line
+// (`:78`), so splitting it across lines reds `npm run lint` on the sanctioned allowlist entry
+// even though the constructor is still there. Since MA-017 it also reds `npm test` —
 // __tests__/scripts/validate_money_formatting.test.ts runs the validator against the real
 // tree and asserts exit 0.
 const FORMATTERS = new Map<number, Intl.NumberFormat>();

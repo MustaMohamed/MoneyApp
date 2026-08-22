@@ -159,4 +159,36 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
     expect(match).not.toBeNull();
     expect(Number(match?.[1])).toBeGreaterThan(0);
   }, 15000);
+
+  // Not in spec §4 rows 5-10 — MA-018 B1 regression. `firstConstructorLine` (`:70-82`)
+  // resolves with `lines.findIndex`, so the FIRST line matching `CONSTRUCTOR` wins,
+  // comment or not. `format_amount.ts` carries prose above the real constructor
+  // explaining why the constructor call must stay on one line — MA-018 shipped a
+  // version of that prose that itself matched `CONSTRUCTOR`, so the header comment
+  // resolved before the executable constructor and pass 2 (`:108-118`, the check that
+  // reds when the sanctioned entry stops constructing) went permanently dead: it read
+  // the comment's line number forever, never noticing the real constructor disappear.
+  //
+  // The pattern is read out of the script's own source rather than re-declared here —
+  // a hand-copied literal would silently stop tracking `CONSTRUCTOR` if the script's
+  // regex ever changed, which is exactly the kind of drift this suite exists to catch.
+  // This does not exercise pass 2 itself (still out of scope per the file header above);
+  // it pins the narrower, cheaper invariant that a regression here would break: exactly
+  // one line of the sanctioned file matches, and it is the constructor, not a comment.
+  it('the CONSTRUCTOR pattern matches exactly one line of format_amount.ts, and it is not a comment', () => {
+    const scriptSource = fs.readFileSync(scriptPath, 'utf8');
+    const patternLiteral = /^const CONSTRUCTOR = \/(.+)\/;$/m.exec(scriptSource);
+    expect(patternLiteral).not.toBeNull();
+    const CONSTRUCTOR = new RegExp(patternLiteral?.[1] ?? '');
+
+    const formatAmountPath = path.join(repoRoot, 'src', 'utils', 'format_amount.ts');
+    const lines = fs.readFileSync(formatAmountPath, 'utf8').split('\n');
+    const matchingLines = lines
+      .map((line, index) => ({ line, number: index + 1 }))
+      .filter(({ line }) => CONSTRUCTOR.test(line));
+
+    expect(matchingLines).toHaveLength(1);
+    expect(matchingLines[0]?.line.trim().startsWith('//')).toBe(false);
+    expect(matchingLines[0]?.line).toContain('new Intl.NumberFormat(');
+  });
 });
