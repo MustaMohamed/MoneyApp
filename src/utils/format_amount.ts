@@ -92,9 +92,12 @@ const ZERO_AT_DISPLAY_PRECISION = /^0(\.0+)?$/;
 // What this epsilon actually does: tells a true zero apart from a nonzero value that is
 // merely small. `net === 0` after a JS `income - expense` subtraction can arrive as
 // `-1e-13` (float noise on a genuine tie) — smaller than this epsilon, correctly a true
-// zero. `tx.amount` can arrive as `0.001` — a raw, unrounded persisted value (see the
-// isTrueZero test below) — larger than this epsilon, correctly NOT a true zero, even
-// though it is far smaller than either currency's display precision.
+// zero. Any of the six money columns MA-018 rounds at its write path (transactions.amount,
+// commitment_payments.amount_paid, commitments.amount, budgets.limit_amount, budget-month
+// income, spending-plan total/allocations) can still arrive here as `0.001` — a raw,
+// unrounded value — but only for a row written before that ticket, since existing rows are
+// not rewritten (see the isTrueZero test below). Larger than this epsilon, correctly NOT a
+// true zero, even though it is far smaller than either currency's display precision.
 //
 // Trade recorded, not derived: the prior rule zeroed anything under half a cent (0.005);
 // this one zeroes only under 1e-9, so the float-noise headroom for an income-expense tie
@@ -118,11 +121,14 @@ const ZERO_EPSILON = 1e-9;
  * The rule, site-independent:
  *   1. `isTrueZero = Math.abs(value) < ZERO_EPSILON`, tested on the RAW value, never on
  *      `roundMoney(value)`. Those coincide only when the input is already known to live at
- *      2dp precision — true for `net`, `egp_amount`, `to_amount`, NOT true for a raw
- *      `tx.amount`, which `transaction.repository.ts:309` persists at whatever precision the
- *      input parses to — not guaranteed already at 2dp — and which `parsePositiveDecimal`
- *      accepts at any positive precision. Rounding first would let a real `0.001` collapse to
- *      a false true-zero and print with no sign at all.
+ *      2dp precision — true for `net`, `egp_amount`, `to_amount`. Since MA-018, every write
+ *      path for the six money columns it owns (transactions.amount,
+ *      commitment_payments.amount_paid, commitments.amount, budgets.limit_amount,
+ *      budget-month income, spending-plan total/allocations) also rounds at the write, so
+ *      this is NOT true only for a row already on disk before that ticket — existing rows
+ *      are not rewritten, so a raw sub-cent value can still reach here for one of those.
+ *      Rounding first would let a real `0.001` collapse to a false true-zero and print with
+ *      no sign at all.
  *   2. `isTrueZero` -> magnitude `"0"`, `isZero: true`. There is no direction to report.
  *   3. otherwise -> render `Math.abs(value)` at the site's normal (currency-config)
  *      precision. If that would print a literal zero, escalate ONCE, to

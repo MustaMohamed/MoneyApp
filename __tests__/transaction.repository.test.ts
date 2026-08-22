@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { Currency, TransactionType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
 import * as transactionsModule from '@/modules/transactions/database/transactions';
+import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import {
   TransactionBalanceError,
   TransactionNotFoundError,
@@ -953,6 +954,85 @@ describe('commitment-owned transaction mutations', () => {
     ).toEqual({
       amount: 200,
     });
+  });
+});
+
+// MA-018 c6 step 8 — the ticket's own deliverable: no test anywhere exercised
+// a fractional amount through any write path. These drive the hooks' own
+// three-line mapping (resolveTransactionAmounts -> repo.add / repo.update)
+// against a real database and read all three numbers back, proving they
+// reconcile — not just that a mocked call received the right shape.
+describe('MA-018 c6 — full-cycle write path: amount, egp_amount and the balance reconcile', () => {
+  it('repo.add: 10.005 USD @ rate 48 persists amount 10, egp_amount 480, and moves acc_usd by exactly 10 (row 15)', async () => {
+    const amounts = resolveTransactionAmounts({
+      type: TransactionType.Expense,
+      amount: 10.005,
+      sourceCurrency: Currency.USD,
+      exchangeRate: 48,
+    });
+    const before = accountBalance('acc_usd');
+
+    const tx = await repo.add({
+      ...baseInput,
+      account_id: 'acc_usd',
+      currency: Currency.USD,
+      amount: amounts.amount,
+      egp_amount: amounts.egpAmount,
+      exchange_rate: amounts.exchangeRate ?? undefined,
+    });
+
+    const row = realDb
+      .prepare('SELECT amount, egp_amount FROM transactions WHERE id = ?')
+      .get(tx.id) as { amount: number; egp_amount: number };
+    expect(row.amount).toBe(10);
+    expect(row.egp_amount).toBe(480);
+    // Expense from a non-credit-card account subtracts in the account's own currency.
+    expect(accountBalance('acc_usd') - before).toBe(-10);
+  });
+
+  it('repo.update: re-deriving 10.005 USD @ rate 48 persists amount 10, egp_amount 480, and the account ends moved by exactly 10 (row 16)', async () => {
+    // Seed with an unrelated raw fractional amount so the update path is
+    // proven independently, not by re-reading a value add() already wrote.
+    const seedAmounts = resolveTransactionAmounts({
+      type: TransactionType.Expense,
+      amount: 5.005,
+      sourceCurrency: Currency.USD,
+      exchangeRate: 48,
+    });
+    const tx = await repo.add({
+      ...baseInput,
+      account_id: 'acc_usd',
+      currency: Currency.USD,
+      amount: seedAmounts.amount,
+      egp_amount: seedAmounts.egpAmount,
+      exchange_rate: seedAmounts.exchangeRate ?? undefined,
+    });
+    expect(accountBalance('acc_usd')).toBe(-5);
+
+    const amounts = resolveTransactionAmounts({
+      type: TransactionType.Expense,
+      amount: 10.005,
+      sourceCurrency: Currency.USD,
+      exchangeRate: 48,
+    });
+    await repo.update(tx.id, {
+      amount: amounts.amount,
+      currency: Currency.USD,
+      egp_amount: amounts.egpAmount,
+      exchange_rate: amounts.exchangeRate ?? undefined,
+      category_id: 'cat_food',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    const row = realDb
+      .prepare('SELECT amount, egp_amount FROM transactions WHERE id = ?')
+      .get(tx.id) as { amount: number; egp_amount: number };
+    expect(row.amount).toBe(10);
+    expect(row.egp_amount).toBe(480);
+    // Total movement from the pristine acc_usd balance (0) is exactly the
+    // final amount, regardless of the seeded intermediate value.
+    expect(accountBalance('acc_usd')).toBe(-10);
   });
 });
 
