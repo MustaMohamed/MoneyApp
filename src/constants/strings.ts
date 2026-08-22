@@ -983,7 +983,7 @@ export const Strings = {
   commitmentsErrNameRequired: 'Name is required',
   commitmentsErrNameMax: 'Name must be 50 characters or less',
   commitmentsErrAmountRequired: 'Amount is required for fixed commitments',
-  commitmentsErrAmountPositive: 'Amount must be greater than zero',
+  commitmentsErrAmountPositive: 'Amount must be at least 0.01',
   commitmentsErrCategoryRequired: 'Category is required',
   commitmentsErrStartDateRequired: 'Start date is required',
   commitmentsErrEndDateRequired: 'End date is required',

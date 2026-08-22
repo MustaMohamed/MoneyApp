@@ -9,6 +9,7 @@ import {
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { toLocalDateString } from '@/utils/format_date';
+import { MIN_MONEY_AMOUNT } from '@/utils/money';
 
 import type { Commitment } from '../../entities/commitment.entity';
 
@@ -21,7 +22,7 @@ export const COMMITMENT_SCHEMA = z
       .max(50, Strings.commitmentsErrNameMax),
     amount: z
       .number({ error: Strings.commitmentsErrAmountRequired })
-      .positive(Strings.commitmentsErrAmountPositive)
+      .refine((n) => n >= MIN_MONEY_AMOUNT, Strings.commitmentsErrAmountPositive)
       .optional(),
     currency: z.enum(Currency),
     categoryId: z.string().min(1, Strings.commitmentsErrCategoryRequired),
