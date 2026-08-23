@@ -1047,6 +1047,7 @@ export const Strings = {
   commitmentsDeactivateCancel: 'Cancel',
   commitmentsDeactivateConfirm: 'Deactivate',
   commitmentsDeactivateError: 'Could not deactivate this commitment. Please try again.',
+  commitmentsPayError: 'Could not save this payment. Please try again.',
 
   // Commitments — status badges
   commitmentsStatusOverdue: 'Overdue',

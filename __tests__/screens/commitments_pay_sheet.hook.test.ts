@@ -53,6 +53,7 @@ let paySheetStateInner = {
   saving: false,
   accountPickerVisible: false,
   rateOverride: false,
+  saveError: false,
 };
 const mockPaySheetState = {
   get visible() {
@@ -67,6 +68,9 @@ const mockPaySheetState = {
   get rateOverride() {
     return paySheetStateInner.rateOverride;
   },
+  get saveError() {
+    return paySheetStateInner.saveError;
+  },
   setVisible: jest.fn((v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, visible: v };
   }),
@@ -79,12 +83,16 @@ const mockPaySheetState = {
   setRateOverride: jest.fn((v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
   }),
+  setSaveError: jest.fn((v: boolean) => {
+    paySheetStateInner = { ...paySheetStateInner, saveError: v };
+  }),
   reset: jest.fn(() => {
     paySheetStateInner = {
       visible: false,
       saving: false,
       accountPickerVisible: false,
       rateOverride: false,
+      saveError: false,
     };
   }),
 };
@@ -178,12 +186,16 @@ describe('usePaySheet', () => {
     mockPaySheetState.setRateOverride.mockImplementation((v: boolean) => {
       paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
     });
+    mockPaySheetState.setSaveError.mockImplementation((v: boolean) => {
+      paySheetStateInner = { ...paySheetStateInner, saveError: v };
+    });
     mockPaySheetState.reset.mockImplementation(() => {
       paySheetStateInner = {
         visible: false,
         saving: false,
         accountPickerVisible: false,
         rateOverride: false,
+        saveError: false,
       };
     });
     // Reset the capturable store mocks
@@ -366,7 +378,7 @@ describe('usePaySheet', () => {
   // survived a green CI.
 
   async function submitAmount(typed: string) {
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-1');
       result.current.form.setValue('amountText', typed);
@@ -375,7 +387,7 @@ describe('usePaySheet', () => {
     await act(async () => {
       await result.current.onSubmit();
     });
-    return result;
+    return { result, rerender };
   }
 
   // `expectedAmountPaid` is what the hook hands the STORE — the parsed,
@@ -388,7 +400,7 @@ describe('usePaySheet', () => {
     ['A1-12', '0.01', 0.01],
     ['A1-16', '10.999', 10.999],
   ] as const)('%s: accepts "%s" and hands the store %p', async (_id, typed, expected) => {
-    const result = await submitAmount(typed);
+    const { result } = await submitAmount(typed);
 
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
     const arg = mockMarkAsPaid.mock.calls[0][1] as { amount_paid: number };
@@ -410,7 +422,7 @@ describe('usePaySheet', () => {
     ['A1-14', '-5', Strings.errAmountInvalid],
     ['A1-15', '1e999', Strings.errAmountInvalid],
   ] as const)('%s: rejects "%s" at the field and writes nothing', async (_id, typed, message) => {
-    const result = await submitAmount(typed);
+    const { result } = await submitAmount(typed);
 
     expect(mockMarkAsPaid).not.toHaveBeenCalled();
     // getFieldState, not formState.errors — the latter is a vacuous read under
@@ -462,6 +474,23 @@ describe('usePaySheet', () => {
       expect(result.current.form.getFieldState('exchange_rate').error?.message).toBe(message);
     },
   );
+
+  // D7: the catch was `catch { // error logged by store }`, so a failed save
+  // left the sheet open, the button idle and the user told nothing —
+  // .claude/rules/review.md class 1, reachable from the keyboard.
+  it('surfaces a failed save and keeps the sheet open', async () => {
+    mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
+    const { result, rerender } = await submitAmount('15');
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(mockPaySheetState.setSaveError).toHaveBeenLastCalledWith(true);
+    // The mocked selector store does not subscribe, so the flag only reaches
+    // the hook's returned state on the next render — which is what the sheet
+    // renders the error row from.
+    await act(() => rerender(undefined));
+    expect(result.current.state.saveError).toBe(true);
+    expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(false);
+  });
 
   it('A2-04: omits the rate snapshot when the payment stays in one currency', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];

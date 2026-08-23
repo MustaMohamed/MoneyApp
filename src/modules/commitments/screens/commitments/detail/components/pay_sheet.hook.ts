@@ -77,18 +77,20 @@ export function usePaySheet(
   commitment: Commitment | undefined,
   payment: CommitmentPayment | undefined,
 ) {
-  const { visible, saving, accountPickerVisible, rateOverride } = usePaySheetState(
+  const { visible, saving, accountPickerVisible, rateOverride, saveError } = usePaySheetState(
     useShallow((s) => ({
       visible: s.visible,
       saving: s.saving,
       accountPickerVisible: s.accountPickerVisible,
       rateOverride: s.rateOverride,
+      saveError: s.saveError,
     })),
   );
   const setVisible = usePaySheetState.getState().setVisible;
   const setSaving = usePaySheetState.getState().setSaving;
   const setAccountPickerVisible = usePaySheetState.getState().setAccountPickerVisible;
   const setRateOverride = usePaySheetState.getState().setRateOverride;
+  const setSaveError = usePaySheetState.getState().setSaveError;
   const reset = usePaySheetState.getState().reset;
 
   const accounts = useAccountStore((s) => s.accounts);
@@ -187,6 +189,7 @@ export function usePaySheet(
   async function onValid(data: PaySheetFormValues) {
     if (!payment) return;
     setSaving(true);
+    setSaveError(false);
     try {
       await markAsPaid(payment.id, {
         // Both `??` fallbacks are unreachable once the schema has passed —
@@ -206,7 +209,9 @@ export function usePaySheet(
         console.error('[paySheet] account revalidation failed:', error),
       );
     } catch {
-      // error logged by store
+      // The store logs and rethrows; the sheet stays open, so the user has to
+      // be told why. Without this the failure is silent (review.md class 1).
+      setSaveError(true);
     } finally {
       setSaving(false);
     }
@@ -229,6 +234,7 @@ export function usePaySheet(
       rateOverride,
       exchangeRateValue,
       rateUpdatedAt,
+      saveError,
     },
     onSubmit: form.handleSubmit(onValid),
     openAccountPicker: () => setAccountPickerVisible(true),

@@ -90,13 +90,20 @@ export function PaySheet({ commitment, payment }: Props) {
         size="lg"
         scrollable
         footer={
-          <Button
-            variant="primary"
-            label={Strings.commitmentsPayConfirm}
-            isLoading={state.saving}
-            isDisabled={state.saving || isAlreadyPaid}
-            onPress={() => void onSubmit()}
-          />
+          <>
+            {state.saveError ? (
+              <Text className="font-inter text-danger text-[11px]">
+                {Strings.commitmentsPayError}
+              </Text>
+            ) : null}
+            <Button
+              variant="primary"
+              label={Strings.commitmentsPayConfirm}
+              isLoading={state.saving}
+              isDisabled={state.saving || isAlreadyPaid}
+              onPress={() => void onSubmit()}
+            />
+          </>
         }
       >
         <BottomSheetScrollView

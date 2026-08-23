@@ -7,6 +7,7 @@ interface PaySheetStateShape {
   saving: boolean;
   accountPickerVisible: boolean;
   rateOverride: boolean;
+  saveError: boolean;
 }
 
 type PaySheetState = PaySheetStateShape & {
@@ -14,6 +15,7 @@ type PaySheetState = PaySheetStateShape & {
   setSaving: (v: boolean) => void;
   setAccountPickerVisible: (v: boolean) => void;
   setRateOverride: (v: boolean) => void;
+  setSaveError: (v: boolean) => void;
   reset: () => void;
 };
 
@@ -22,6 +24,7 @@ const INITIAL_STATE: PaySheetStateShape = {
   saving: false,
   accountPickerVisible: false,
   rateOverride: false,
+  saveError: false,
 };
 
 export const usePaySheetState = createMoneyAppSelectors(
@@ -31,6 +34,7 @@ export const usePaySheetState = createMoneyAppSelectors(
     setSaving: (v) => set({ saving: v }),
     setAccountPickerVisible: (v) => set({ accountPickerVisible: v }),
     setRateOverride: (v) => set({ rateOverride: v }),
+    setSaveError: (v) => set({ saveError: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );
