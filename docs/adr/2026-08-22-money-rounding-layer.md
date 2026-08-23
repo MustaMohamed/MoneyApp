@@ -194,6 +194,31 @@ floor leaking into non-money parsers — is filed as **#305**; not re-argued her
 `parseNonNegativeDecimal`, so a string the schema accepted always re-parses successfully in the
 mapper.
 
+**Addendum (MA-019): two write paths on one column, two classes.** §5 says above:
+
+> Note that accounts is already split, correctly, along §1's own membership line: `current_balance` is
+> a **derived** column and is rounded in the policy resolver (`transaction_policy.ts:86`), which is
+> this ADR's class-A rule already in force.
+
+That is correct and stays correct, scoped to the write path it names. `accounts.current_balance` has
+**two** writers, and §1's membership question has to be asked of each. The transaction effect
+(`transaction_policy.ts:85-86` → `normalizeMoney` → `AccountDelta`) derives siblings in the same
+write, so it is **class A** — the domain resolver, unchanged by MA-019. The manual adjust
+(`AccountRepository.adjustBalance` → `setAccountBalance`, `accounts.ts:117-132`) derives nothing —
+one `UPDATE`, a value and a flag — so it is **class B**, and MA-019 adds the `roundMoney` as the
+first statement of that repository method. Before it, that path reached SQLite with no rounding
+anywhere on it. **This does not reclassify the column**; it classifies one of its two write paths,
+and a wholesale reclassification would contradict the sentence quoted above.
+
+§6's allowlist below reads "the only files in which **an MA-018 diff** may add a `roundMoney` call"
+— scoped to that ticket by its own words, so it does not forbid this one. Mechanical check 1 will
+still flag `account.repository.ts` in an MA-019 diff; this paragraph is the record that it is
+intended.
+
+Accepted asymmetry: `AccountRepository` now rounds in `adjustBalance` and trusts its caller in
+`add`, whose only reachable input already rounds at `account_form.helpers.ts:28`. Closing that is
+§5's named follow-up above, which this paragraph does not prejudge.
+
 ## 6. The invariant
 
 > **No money value reaches a `db.runAsync` parameter list without having passed `roundMoney`
