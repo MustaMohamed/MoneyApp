@@ -35,16 +35,31 @@ describe('useIncomeSheet', () => {
     expect(result.current.state.isOpen).toBe(false);
   });
 
-  it('normalizes a formatted income amount before saving', async () => {
+  // This test asserted the opposite until MA-020: that a typed '5,000'
+  // normalised to 5000 on save. That normalisation is the 1000x bug -- on an
+  // ar-EG or de-DE keyboard the comma is a DECIMAL separator, so the user who
+  // typed one-and-a-half thousand got fifteen hundred. D9 refuses the comma at
+  // the keystroke instead, on all four MA-020 money fields. Accepted
+  // regression (row 11): the character does not appear, which is loud and
+  // visible, where the old behaviour was silently wrong.
+  //
+  // The draft is read before save() because a successful save resets it -- this
+  // one is blocked, but the ordering is the rule, not the exception.
+  it('refuses a comma keystroke, leaving the field empty and the save blocked', async () => {
     const setExpectedIncome = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setExpectedIncome });
     useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
     const { result } = await renderHook(() => useIncomeSheet());
 
     await act(() => result.current.setAmountText('5,000'));
+
+    expect(result.current.state.amountText).toBe('');
+    expect(useIncomeSheetState.getState().amountText).toBe('');
+
     await act(async () => result.current.save());
 
-    expect(setExpectedIncome).toHaveBeenCalledWith('2026-07', 5000);
+    expect(setExpectedIncome).not.toHaveBeenCalled();
+    expect(result.current.state.validationMessage).toBe('Enter your monthly income');
   });
 
   it('shows validation feedback and does not save malformed income', async () => {
@@ -57,7 +72,10 @@ describe('useIncomeSheet', () => {
     await act(async () => result.current.save());
 
     expect(setExpectedIncome).not.toHaveBeenCalled();
-    expect(result.current.state.validationMessage).toBe('Amount must be at least 0.01');
+    // The floor message until MA-020, when '12000abc' still reached the schema.
+    // The mask refuses those letters at the keystroke, so the field is empty at
+    // save and `.min(1)` answers first.
+    expect(result.current.state.validationMessage).toBe('Enter your monthly income');
     expect(result.current.state.isOpen).toBe(true);
   });
 
