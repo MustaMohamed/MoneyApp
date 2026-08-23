@@ -243,12 +243,15 @@ Accepted asymmetry: `AccountRepository` now rounds in `adjustBalance` and trusts
 
 Three mechanical checks, none of which require re-deriving the call graph:
 
-1. **Allowlist.** `git diff main...HEAD -U0 | grep -nE 'roundMoney\(|toCents\(|sumAllocations\('` —
+1. **Allowlist.** `git diff main...HEAD -U0 -- src __tests__ | grep -nE 'roundMoney\(|toCents\(|sumAllocations\('` —
    every added call site is in one of the four files above. A `roundMoney` in a hook, a schema, a
    component, a `*.state.ts`, a `*.helpers.ts` or anything under `src/modules/*/database/` is a
    finding, improvement or not. The two transitive rounders are in the pattern so that the grep can
    see the call sites at all; where they are permitted to appear is Addendum A point 1's ruling, not
-   this list's. The paren keeps every alternative matched on call sites rather than mentions.
+   this list's. The `-- src __tests__` scope is what keeps this document out of its own check —
+   the ADR names all three identifiers with their parens, so an unscoped run reports its own
+   prose — and the paren then separates a call site from an import specifier. Neither filters a
+   commented-out call.
 2. **Six bindings.** At each of §3's six write lines, the bound identifier is either a resolver
    return field or a local rounded at the method's first statement. Six `file:line` reads.
 3. **Two properties.** The resolver idempotence tests exist and pass, and
@@ -317,12 +320,18 @@ invariant are unchanged.
    `sumAllocations(amounts, total)`, both in `src/utils/money.ts`. `roundMoney` moves *inside*
    `toCents`, so §6's allowlist is satisfied by construction rather than by exception —
    `src/utils/money.ts` is the only file in which MA-020 **adds a `roundMoney` call**, and check 1
-   still resolves to one file. Check 1 is over added call sites, not textual mentions — this
-   addendum names `roundMoney` in prose several times and adds no call site anywhere. But from this
-   merge on, a `toCents(` or `sumAllocations(` added in a repository, hook or schema **is** itself a
-   rounding call site, so §6 check 1's pattern is widened to cover both: §7 names that grep as the
-   sole mitigation for a write path added without reading this ADR, and unwidened it would already
-   be blind to the one this addendum adds at `budget.schema.ts:94`.
+   resolves to one file on its `roundMoney` leg. Check 1 is over added call sites, not textual
+   mentions — this addendum names `roundMoney` in prose several times and adds no call site
+   anywhere. But from this merge on, a `toCents(` or `sumAllocations(` added in a repository, hook
+   or schema **is** itself a rounding call site, so §6 check 1's pattern is widened to cover both:
+   §7 names that grep as the sole mitigation for a write path added without reading this ADR, and
+   unwidened it would already be blind to the two this addendum adds, at `budget.schema.ts:94` and
+   `spending_plans.helpers.ts:441`. **The permitted `toCents(` / `sumAllocations(` call sites in
+   `src/` are exactly `src/utils/money.ts`, `src/utils/schemas/budget.schema.ts` and
+   `src/modules/budget/screens/budget/spending_plans.helpers.ts`; a fourth is a finding,
+   improvement or not.** A test that exercises one of the three pins it rather than adding a call
+   site, so the widened check's remaining output at this merge — `__tests__/utils/money.test.ts`
+   and `__tests__/budget.schema.test.ts` — is expected and accounted for.
    `budget.schema.ts`'s `superRefine` and
    `spending_plans.helpers.ts`'s `computeAllocationHelper` both delegate to `sumAllocations`, so
    the live preview and the save gate cannot disagree. `#303`'s literal proposal
