@@ -271,7 +271,17 @@ export function usePaySheet(
   function toggleRateOverride() {
     const next = !rateOverride;
     setRateOverride(next);
-    if (!next) form.setValue('exchange_rate', String(rate));
+    // Same `isSubmitted` gate as the row's own onChange and `selectAccount`'s
+    // seed — this is the third write to the field and the three must not drift.
+    // Turning the override off after a failed submit IS the user fixing the
+    // rate, so D6's required error has to go with the restored value; before
+    // the first submit there is nothing to clear and nothing may be raised.
+    // Unlike the row's onChange, this site can only ever CLEAR an error:
+    // `String(rate)` is a positive global rate, so no input reaches it that the
+    // refine would reject. The gate buys staleness removal here, not a
+    // suppressed false error — which is why pinning `true` instead is
+    // indistinguishable at this site and the test asserts only the clearing.
+    if (!next) form.setValue('exchange_rate', String(rate), { shouldValidate: isSubmitted });
   }
 
   return {

@@ -751,6 +751,52 @@ describe('usePaySheet', () => {
     expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
   });
 
+  // H4. `toggleRateOverride` is the THIRD write to `exchange_rate` and had the
+  // same pinned-false default. Turning the override off after a failed submit is
+  // the user handing the field back to the global rate — the error it fixes has
+  // to go with it. Unlike the row's own onChange this site can only ever CLEAR
+  // one: `String(rate)` is a positive global rate, so no input reaches it that
+  // D6's refine would reject. Staleness only, which is exactly what is asserted.
+  it('H4: turning the override off after a failed submit clears the stale rate error', async () => {
+    mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-usd');
+      result.current.form.setValue('amountText', '15');
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    await act(() => rerender(undefined));
+    expect(result.current.state.requiresRate).toBe(true);
+
+    // Override on, then the field cleared — the shape F2 already covers.
+    await act(() => result.current.toggleRateOverride());
+    await act(() => rerender(undefined));
+    await act(() => {
+      result.current.form.setValue('exchange_rate', '');
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    await act(() => rerender(undefined));
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('exchange_rate').error?.message).toBe(
+      Strings.addTxErrRateRequired,
+    );
+
+    // "Reset to global" hands the rate back. The revalidate `setValue`
+    // schedules is async, hence the microtask flush.
+    await act(async () => {
+      result.current.toggleRateOverride();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.state.rateOverride).toBe(false);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+    expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
+  });
+
   it('H1: seeding the rate before any submit raises no error', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
     const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
