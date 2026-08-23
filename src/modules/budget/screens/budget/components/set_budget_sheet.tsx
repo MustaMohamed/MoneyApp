@@ -180,9 +180,11 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                         // Refused before `clearError()` as well as before
                         // `onChange`, so a rejected keystroke cannot wipe a
                         // save error the user still needs to read. Only this
-                        // Controller is masked -- the name field above shares
-                        // this handler's exact shape and must keep accepting
-                        // letters (row 26).
+                        // Controller is masked: the name field above is
+                        // character-identical to what this handler was, which
+                        // is exactly what makes it easy to mask by accident,
+                        // and a masked name field refuses every letter of a
+                        // budget name (row 26).
                         if (!acceptsMoneyFieldText('amount', text)) return;
                         clearError();
                         onChange(text);

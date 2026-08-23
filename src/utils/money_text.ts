@@ -57,9 +57,9 @@ function expandExponentialNotation(text: string): string {
  * refuses it, and the field it prefilled cannot be backspaced. Hence the
  * expansion above rather than a bare `String(value)`.
  *
- * `null`/`undefined` render as `''` — unallocated, never `'0'`. Neither column
- * can deliver those to the plan total (`total_amount` is `NOT NULL`); the
- * allocation column can.
+ * `null`/`undefined` render as `''` — unallocated, never `'0'`. Only the
+ * allocation column can deliver either; `spending_plans.total_amount` is
+ * `NOT NULL`, so the plan total never takes that branch.
  */
 export function formatStoredMoneyText(value: number | null | undefined): string {
   if (value === null || value === undefined) return '';
