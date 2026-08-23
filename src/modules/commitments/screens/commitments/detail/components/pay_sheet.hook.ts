@@ -175,6 +175,11 @@ export function usePaySheet(
           notes: undefined,
         });
         setRateOverride(false);
+        // Same shape as `rateOverride` above: a module-level flag that outlives
+        // the sheet. Dismissing after a failed save leaves it set, so the next
+        // open renders "could not save this payment" on a different payment
+        // before the user has touched anything.
+        setSaveError(false);
       }
     }
 
@@ -217,6 +222,14 @@ export function usePaySheet(
     }
   }
 
+  // `onValid` clears the save error on entry, but RHF only calls it once
+  // validation passes. Without this the sheet shows a field error and the
+  // banner from an earlier attempt together, for a submit that never reached
+  // the store.
+  function onInvalid() {
+    setSaveError(false);
+  }
+
   function selectAccount(account: Account) {
     form.setValue('account_id', account.id);
     // The rate is required whenever EITHER side is USD, so a pick that flips
@@ -255,7 +268,7 @@ export function usePaySheet(
       rateUpdatedAt,
       saveError,
     },
-    onSubmit: form.handleSubmit(onValid),
+    onSubmit: form.handleSubmit(onValid, onInvalid),
     openAccountPicker: () => setAccountPickerVisible(true),
     closeAccountPicker: () => setAccountPickerVisible(false),
     selectAccount,

@@ -607,4 +607,71 @@ describe('usePaySheet', () => {
     await act(() => result.current.toggleRateOverride());
     expect(result.current.form.getValues('exchange_rate')).toBe('48.6');
   });
+
+  // F3 sequence (a): fail -> dismiss -> reopen. The flag lives in a
+  // module-level store, so without a clear on open the banner renders on a
+  // different payment before the user has touched anything.
+  it('F3: clears a stale save error when the sheet is reopened after a dismiss', async () => {
+    mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
+    mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
+
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(async () => {});
+    // The prefill supplies a complete, valid form: amount, account and rate.
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    await act(() => rerender(undefined));
+    expect(result.current.state.saveError).toBe(true);
+
+    mockPaySheetState.setSaveError.mockClear();
+
+    // Swipe-down: the sheet closes without going through onValid's reset().
+    await act(() => result.current.setVisible(false));
+    await act(async () => {
+      rerender(undefined);
+    });
+    // Reopened on a later payment.
+    await act(() => result.current.setVisible(true));
+    await act(async () => {
+      rerender(undefined);
+    });
+    await act(() => rerender(undefined));
+
+    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(false);
+    expect(result.current.state.saveError).toBe(false);
+  });
+
+  // F3 sequence (b): fail -> mistype -> submit. Validation rejects, so
+  // `onValid` never runs and nothing clears the flag; the sheet showed the
+  // field error and the save-failed banner together, for a submit that never
+  // reached the store.
+  it('F3: clears the save error on a submit that fails validation', async () => {
+    mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
+    const { result, rerender } = await submitAmount('15');
+    await act(() => rerender(undefined));
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(result.current.state.saveError).toBe(true);
+
+    mockPaySheetState.setSaveError.mockClear();
+
+    await act(() => {
+      result.current.form.setValue('amountText', '12abc');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    await act(() => rerender(undefined));
+
+    // The second submit never reached the store.
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(
+      Strings.errAmountInvalid,
+    );
+    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(false);
+    expect(result.current.state.saveError).toBe(false);
+  });
 });
