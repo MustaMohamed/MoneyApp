@@ -219,7 +219,26 @@ export function usePaySheet(
 
   function selectAccount(account: Account) {
     form.setValue('account_id', account.id);
+    // The rate is required whenever EITHER side is USD, so a pick that flips
+    // `requiresRate` on has to bring the global rate with it — otherwise the
+    // rate row renders blank and the schema refuses the save with no value the
+    // user ever chose. Precedent: add_transaction.hook.ts `selectAccount`; the
+    // condition is this sheet's, not that one's.
+    if (commitment && (commitment.currency === Currency.USD || account.currency === Currency.USD)) {
+      form.setValue('exchange_rate', String(rate));
+      setRateOverride(false);
+    }
     setAccountPickerVisible(false);
+  }
+
+  // Turning the override off means "use the global rate again", so the field
+  // has to be handed that rate back. Leaving whatever the user typed — an
+  // empty string, most often — hard-fails the save with no editable field on
+  // screen. Precedent: add_transaction.hook.ts `toggleRateOverride`.
+  function toggleRateOverride() {
+    const next = !rateOverride;
+    setRateOverride(next);
+    if (!next) form.setValue('exchange_rate', String(rate));
   }
 
   return {
@@ -241,7 +260,7 @@ export function usePaySheet(
     closeAccountPicker: () => setAccountPickerVisible(false),
     selectAccount,
     setVisible,
-    toggleRateOverride: () => setRateOverride(!rateOverride),
+    toggleRateOverride,
     setPaidDate: (iso: string) => form.setValue('paid_date', iso, { shouldValidate: true }),
   };
 }

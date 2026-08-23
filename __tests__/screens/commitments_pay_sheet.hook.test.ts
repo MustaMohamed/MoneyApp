@@ -511,4 +511,100 @@ describe('usePaySheet', () => {
     const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
     expect(arg.exchange_rate_snapshot).toBeUndefined();
   });
+  // ---------------------------------------------------------------------
+  // P8 cycle 1 — F1/F2/F3. Three regressions the rate-required superRefine
+  // introduced by requiring a value that nothing seeds, plus a stale error
+  // flag that outlives the sheet.
+  // ---------------------------------------------------------------------
+
+  const egpCommitment: Commitment = { ...fixedCommitment, currency: Currency.EGP };
+
+  // F1: picking an account that flips `requiresRate` on must bring the global
+  // rate with it. Without it the schema demands a rate the user was never
+  // offered a populated field for.
+  it('F1: seeds the global rate when the picked account turns the requirement on', async () => {
+    mockAccounts = [
+      { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
+      { id: 'acc-usd', currency: Currency.USD } as unknown as Account,
+    ];
+    const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+    });
+    await act(() => rerender(undefined));
+    expect(result.current.state.requiresRate).toBe(false);
+    expect(result.current.form.getValues('exchange_rate')).toBeUndefined();
+
+    await act(() => {
+      result.current.selectAccount(mockAccounts[1]);
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.state.requiresRate).toBe(true);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+    expect(mockPaySheetState.setRateOverride).toHaveBeenLastCalledWith(false);
+  });
+
+  // F1, the half that is NOT the transaction form's condition: a USD
+  // commitment needs a rate whatever the account's currency is, so an EGP
+  // account has to seed too. A copied `account.currency === USD` guard reds here.
+  it('F1: seeds the global rate for a USD commitment paid from an EGP account', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('exchange_rate', '');
+    });
+    await act(() => {
+      result.current.selectAccount(mockAccounts[0]);
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.state.requiresRate).toBe(true);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+  });
+
+  it('F1: leaves the rate alone when neither side is USD', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    await act(() => {
+      result.current.selectAccount(mockAccounts[0]);
+    });
+    expect(result.current.form.getValues('exchange_rate')).toBeUndefined();
+  });
+
+  // F2: "reset to global" has to hand the global rate back. Turning the
+  // override off after clearing the field used to leave '' in the form with
+  // no input on screen to correct it.
+  it('F2: restores the global rate when the override is turned back off', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+    });
+
+    await act(() => result.current.toggleRateOverride());
+    await act(() => rerender(undefined));
+    expect(result.current.state.rateOverride).toBe(true);
+
+    // The user clears the field while the override is on.
+    await act(() => {
+      result.current.form.setValue('exchange_rate', '');
+    });
+
+    await act(() => result.current.toggleRateOverride());
+    await act(() => rerender(undefined));
+
+    expect(result.current.state.rateOverride).toBe(false);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+  });
+
+  it('F2: does not overwrite the typed rate when the override is turned on', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('exchange_rate', '48.6');
+    });
+    await act(() => result.current.toggleRateOverride());
+    expect(result.current.form.getValues('exchange_rate')).toBe('48.6');
+  });
 });

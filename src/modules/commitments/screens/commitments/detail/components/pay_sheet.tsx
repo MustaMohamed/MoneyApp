@@ -55,11 +55,17 @@ export function PaySheet({ commitment, payment }: Props) {
   const rateError = form.formState.errors.exchange_rate?.message;
 
   const payAccount = state.selectedAccount;
-  const amountWatch = parseDecimalText(form.watch('amountText')) ?? 0;
+  const amountWatch = parseDecimalText(form.watch('amountText'));
   const paidDate = form.watch('paid_date');
   const rateNum = parseDecimalText(state.exchangeRateValue ?? '');
+  // The gate hides on an amount the parser cannot read, the way the rate side
+  // already does. Coercing it to 0 first put a confidently formatted "= 0" on
+  // screen for every half-typed value — `1,`, `1,23`, `1,234.` — beside an
+  // Amount field the user is still filling in.
   const convertedTotal =
-    state.requiresRate && rateNum && rateNum > 0 ? amountWatch * rateNum : undefined;
+    state.requiresRate && amountWatch !== undefined && rateNum && rateNum > 0
+      ? amountWatch * rateNum
+      : undefined;
 
   const paidDateAsDate = paidDate ? new Date(paidDate + 'T00:00:00') : new Date();
 
