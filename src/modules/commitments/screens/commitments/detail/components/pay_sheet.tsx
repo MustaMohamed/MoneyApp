@@ -53,6 +53,10 @@ export function PaySheet({ commitment, payment }: Props) {
   const amountError = form.formState.errors.amountText?.message;
   const accountError = form.formState.errors.account_id?.message;
   const rateError = form.formState.errors.exchange_rate?.message;
+  // Read during render for the same reason the hook does — a read from inside
+  // the `onChange` below would see the previous render's value, which after a
+  // failed submit is still `false`.
+  const isSubmitted = form.formState.isSubmitted;
 
   const payAccount = state.selectedAccount;
   const amountWatch = parseDecimalText(form.watch('amountText'));
@@ -209,7 +213,14 @@ export function PaySheet({ commitment, payment }: Props) {
           {state.requiresRate ? (
             <ExchangeRateRow
               value={state.exchangeRateValue ?? ''}
-              onChange={(v) => form.setValue('exchange_rate', v, { shouldValidate: false })}
+              // `shouldValidate` is gated on `isSubmitted`, not pinned false and not
+              // pinned true. The rate row is not a `Controller`, so `setValue` is the
+              // only thing that can revalidate it; pinned false leaves D6's required
+              // refine showing its error while the user is typing the fix, and pinned
+              // true would run that refine on a form nobody has submitted yet. The
+              // gate reproduces exactly what a registered field does under this
+              // form's `mode: 'onSubmit'` + `reValidateMode: 'onChange'`.
+              onChange={(v) => form.setValue('exchange_rate', v, { shouldValidate: isSubmitted })}
               overrideEnabled={state.rateOverride}
               onToggleOverride={toggleRateOverride}
               rateUpdatedAt={state.rateUpdatedAt}

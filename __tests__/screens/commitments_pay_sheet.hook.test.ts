@@ -700,4 +700,77 @@ describe('usePaySheet', () => {
     expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(false);
     expect(result.current.state.saveError).toBe(false);
   });
+
+  // ---------------------------------------------------------------------
+  // P8 cycle 3 — H1. The rate row is not a `Controller`, so `setValue` is the
+  // only thing that can revalidate it. Pinned `shouldValidate: false`, the
+  // required refine D6 added kept its error on screen while the user typed the
+  // fix; the amount field beside it, which goes through a `Controller`, cleared
+  // live. The gate is `isSubmitted`, which is what a registered field does
+  // under `mode: 'onSubmit'` + `reValidateMode: 'onChange'`.
+  // ---------------------------------------------------------------------
+
+  it('H1: seeding the rate after a failed submit clears the rate error without a second submit', async () => {
+    mockAccounts = [
+      { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
+      { id: 'acc-usd', currency: Currency.USD } as unknown as Account,
+    ];
+    const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    // An EGP commitment paid from an EGP account: no rate required yet.
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+      result.current.form.setValue('amountText', '15');
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    // Switch to the USD account WITHOUT the seed, so the submit below fails on
+    // the rate. `setValue` is the raw form write; `selectAccount` is the seed.
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-usd');
+    });
+    await act(() => rerender(undefined));
+    expect(result.current.state.requiresRate).toBe(true);
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('exchange_rate').error?.message).toBe(
+      Strings.addTxErrRateRequired,
+    );
+
+    // Re-picking the account seeds the global rate. That is the user fixing the
+    // field, so the error has to go with it — no second Save tap. The revalidate
+    // `setValue` schedules is async, hence the microtask flush.
+    await act(async () => {
+      result.current.selectAccount(mockAccounts[1]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+    expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
+  });
+
+  it('H1: seeding the rate before any submit raises no error', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(async () => {
+      result.current.selectAccount(mockAccounts[0]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.form.formState.isSubmitted).toBe(false);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+    // Nothing raised, on any field. `setValue(name, …, { shouldValidate })`
+    // publishes errors only at `name`, so pinning true HERE would in fact be
+    // harmless — the seeded global rate is always positive, and the amount and
+    // account errors the superRefine also computes are discarded. That is why
+    // this case does not red under a pinned-true mutation and the row's own
+    // onChange does: there the user can type a rate that fails. The gate is
+    // kept at both sites so one write cannot drift from the other.
+    expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
+    expect(result.current.form.getFieldState('amountText').error).toBeUndefined();
+    expect(result.current.form.getFieldState('account_id').error).toBeUndefined();
+  });
 });

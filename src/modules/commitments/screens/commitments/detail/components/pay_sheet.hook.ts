@@ -117,6 +117,13 @@ export function usePaySheet(
 
   const accountId = form.watch('account_id');
   const exchangeRateValue = form.watch('exchange_rate');
+  // Read DURING render, not inside the handler that uses it. `formState` is a
+  // proxy: RHF only re-renders — and only refreshes `form.formState` — for the
+  // keys something read while rendering. Read from inside `selectAccount`
+  // instead and the flag is whatever the last render saw, which after a failed
+  // submit is still `false`. Verified: MA-008 T6 records the same trap for
+  // `formState.errors`.
+  const isSubmitted = form.formState.isSubmitted;
 
   const selectedAccount = useMemo(
     () => accounts.find((a) => a.id === accountId) ?? undefined,
@@ -248,7 +255,10 @@ export function usePaySheet(
       commitment &&
       (commitment.currency === Currency.USD || account.currency === Currency.USD)
     ) {
-      form.setValue('exchange_rate', String(rate));
+      // Same `isSubmitted` gate as the rate row's own onChange in pay_sheet.tsx:
+      // seeding a rate after a failed submit has to clear the error it fixes,
+      // and seeding before the first submit must not raise one.
+      form.setValue('exchange_rate', String(rate), { shouldValidate: isSubmitted });
       setRateOverride(false);
     }
     setAccountPickerVisible(false);
