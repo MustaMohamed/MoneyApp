@@ -3,7 +3,10 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { normalizeNegativeZero } from '@/modules/accounts/domain/account_aggregation';
 import { monthRange } from '@/modules/budget/database/spending_plans';
-import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
+import type {
+  SpendingPlanCategory,
+  SpendingPlanWithCategories,
+} from '@/modules/budget/entities/budget.entity';
 import {
   computePlanTiming,
   derivePlanStatus,
@@ -527,10 +530,18 @@ export function buildSpendingPlanRows({
         0,
       );
       const allocationRows = plan.categories
-        .filter((row) => row.allocated_amount !== null)
+        // A type predicate, not a bare filter: `.filter` without one leaves
+        // `allocated_amount` as `number | null` and the `?? 0` below reads as
+        // load-bearing when it is unreachable. Under a text-holding sheet
+        // store that fallback would prefill '0' for a row nobody allocated,
+        // turning "not decided" into "deliberate zero" on the next save.
+        .filter(
+          (row): row is SpendingPlanCategory & { allocated_amount: number } =>
+            row.allocated_amount !== null,
+        )
         .map((row) => {
           const category = categoryById.get(row.category_id);
-          const allocatedAmount = row.allocated_amount ?? 0;
+          const allocatedAmount = row.allocated_amount;
           const categorySpent = spend[row.category_id] ?? 0;
           const pct =
             allocatedAmount > 0 ? categorySpent / allocatedAmount : categorySpent > 0 ? 1 : 0;

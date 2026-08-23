@@ -840,6 +840,30 @@ describe('spending plan helpers', () => {
     expect(Object.is(computeAllocationHelper(100, [100]).buffer, 0)).toBe(true);
   });
 
+  // Regression pin, not a gate: green at base, because :530's filter already
+  // runs before the `?? 0` at :533. It becomes load-bearing once the sheet
+  // store holds text -- a NULL row that produced an entry would prefill '0'
+  // and convert "not decided" into "deliberate zero" on the next save.
+  it('gives a NULL allocation no row at all, and a zero allocation a row worth 0', () => {
+    const row = buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          categoryRows: [
+            { plan_id: 'plan_trip', category_id: 'cat_food', allocated_amount: null },
+            { plan_id: 'plan_trip', category_id: 'cat_travel', allocated_amount: 0 },
+          ],
+        }),
+      ],
+      categories,
+      spendByPlanId: {},
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    })[0];
+
+    expect(row.allocationRows.map((allocation) => allocation.categoryId)).toEqual(['cat_travel']);
+    expect(row.allocationRows[0].allocatedAmount).toBe(0);
+  });
+
   it('builds compact allocation, category, and overflow chips for plan cards', () => {
     expect(
       buildSpendingPlanCardChips({
