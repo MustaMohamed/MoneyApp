@@ -9,6 +9,7 @@ import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { isTypeableMoneyText } from '@/utils/money_text';
 import { ms } from '@/utils/responsive';
 
 let mockSetBudget: jest.Mock<Promise<void>, [unknown]>;
@@ -340,6 +341,54 @@ describe('SetBudgetSheet', () => {
         categoryGroup: BudgetGroup.Want,
       }),
     );
+  });
+
+  // The three save tests above type '1500', '700' and '1750' -- all of which
+  // the mask accepts, so the suite stays green with the mask at
+  // set_budget_sheet.tsx:188 deleted. This is the case that goes red instead.
+  // A rejected keystroke must also leave the field holding what it held: the
+  // mask returns before `onChange`, so the last accepted text survives.
+  it('refuses a comma keystroke on the limit and keeps the accepted text', async () => {
+    const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
+
+    await fireEvent.changeText(getByTestId('budget-limit-input'), '15');
+    await fireEvent.changeText(getByTestId('budget-limit-input'), '1,5');
+
+    expect(getByTestId('budget-limit-input')).toHaveProp('value', '15');
+    // The name field is character-identical to what the limit handler was, and
+    // must stay unmasked -- a leaked mask refuses every letter of a name.
+    await fireEvent.changeText(getByTestId('budget-name-input'), 'Alexandria, Trip');
+    expect(getByTestId('budget-name-input')).toHaveProp('value', 'Alexandria, Trip');
+  });
+
+  // `budgets.limit_amount` is a bare `REAL NOT NULL` with no CHECK
+  // (migrations/013:8), so nothing in the schema keeps a stored limit out of
+  // `String()`'s exponent form. The prefill is a programmatic write that the
+  // mask never sees, so `String(1e-7)` would open the sheet on '1e-7' -- text
+  // the mask then refuses, leaving the field unable to accept even a
+  // backspace. Red against `String(editingRow.limit)`.
+  it('prefills an exponent-form limit as digits the mask accepts, and it backspaces', async () => {
+    useBudgetState.getState().reset();
+    useBudgetState.getState().setSelectedMonth('2026-08');
+    useBudgetState.getState().openEdit('budget-trip-food');
+
+    const { getByTestId } = await render(
+      <SetBudgetSheet
+        budgetableCategories={categories}
+        editingRow={{ ...existingBudget, limit: 1e-7 }}
+      />,
+    );
+
+    const prefilled = '0.0000001';
+    expect(getByTestId('budget-limit-input')).toHaveProp('value', prefilled);
+    // The two assertions are one claim: the field opens holding `prefilled`,
+    // and `prefilled` is text the mask lets through. Splitting them is what
+    // makes the second non-tautological -- it is the mask's verdict on the
+    // string the first line pinned the field to.
+    expect(isTypeableMoneyText(prefilled)).toBe(true);
+
+    await fireEvent.changeText(getByTestId('budget-limit-input'), prefilled.slice(0, -1));
+    expect(getByTestId('budget-limit-input')).toHaveProp('value', '0.000000');
   });
 
   it('keeps an in-flight edit save locked when refreshed props arrive', async () => {
