@@ -28,4 +28,45 @@ describe('parseAdjustInput', () => {
   it('rejects Infinity-producing input', () => {
     expect(parseAdjustInput('1e999')).toEqual({ ok: false });
   });
+
+  // MA-019 B1: the field now parses through `parseNonNegativeDecimal`, so a
+  // grouped decimal survives and every `parseFloat` corruption vector is
+  // rejected at the field instead of reaching `accounts.current_balance`.
+  it('B1-03: parses a comma-grouped decimal instead of truncating it', () => {
+    expect(parseAdjustInput('1,234.56')).toEqual({ ok: true, value: 1234.56 });
+  });
+
+  it('B1-04: rejects a trailing decimal point', () => {
+    expect(parseAdjustInput('12.')).toEqual({ ok: false });
+  });
+
+  it('B1-05: rejects a leading decimal point', () => {
+    expect(parseAdjustInput('.5')).toEqual({ ok: false });
+  });
+
+  it('B1-07: rejects whitespace only', () => {
+    expect(parseAdjustInput('   ')).toEqual({ ok: false });
+  });
+
+  it('B1-08: rejects exponential notation', () => {
+    expect(parseAdjustInput('1e3')).toEqual({ ok: false });
+  });
+
+  it('B1-09: rejects a second decimal point', () => {
+    expect(parseAdjustInput('1.2.3')).toEqual({ ok: false });
+  });
+
+  it('B1-10: rejects digits followed by letters', () => {
+    expect(parseAdjustInput('12abc')).toEqual({ ok: false });
+  });
+
+  it('B1-11: rejects a sub-cent amount against the shared floor', () => {
+    expect(parseAdjustInput('0.005')).toEqual({ ok: false });
+  });
+
+  // The parser passes 100.005 through unchanged — `roundMoney` in
+  // AccountRepository.adjustBalance is what turns it into 100 (B1-15).
+  it('B1-15: passes a sub-cent-precision amount through unrounded', () => {
+    expect(parseAdjustInput('100.005')).toEqual({ ok: true, value: 100.005 });
+  });
 });

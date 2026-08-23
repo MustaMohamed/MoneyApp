@@ -8,7 +8,7 @@ import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { toLocalDateString } from '@/utils/format_date';
-import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -17,21 +17,55 @@ import { commitmentRepository } from '../../../../repositories/commitment.reposi
 import { useCommitmentStore } from '../../../../store/commitment.store';
 import { usePaySheetState } from './pay_sheet.state';
 
-const schema = z.object({
-  amount: z
-    .number({ error: Strings.commitmentsPayErrAmountRequired })
-    .refine((v) => v >= MIN_MONEY_AMOUNT, Strings.commitmentsPayErrAmountMin),
-  account_id: z.string().min(1, Strings.commitmentsPayErrAccountRequired),
-  paid_date: z.string().min(1),
-  exchange_rate: z.number().positive().optional(),
-  notes: z.string().optional(),
-});
+// A factory, not a module constant: the rate refine has to know whether this
+// payment crosses currencies, and that is derived from the account the form
+// holds. Closing over the boolean would be a cycle (schema -> form -> watch ->
+// account -> boolean), so the flag is re-derived from `data` at validation
+// time. Same shape as the transaction form's `createSchema`.
+function createPaySheetSchema(commitment: Commitment | undefined, accounts: Account[]) {
+  return z
+    .object({
+      amountText: z
+        .string()
+        .min(1, Strings.commitmentsPayErrAmountRequired)
+        .refine((s) => parseDecimalText(s) !== undefined, Strings.errAmountInvalid)
+        .refine((s) => parsePositiveDecimal(s) !== undefined, Strings.commitmentsPayErrAmountMin),
+      account_id: z.string().min(1, Strings.commitmentsPayErrAccountRequired),
+      paid_date: z.string().min(1),
+      exchange_rate: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      // Must match `requiresRate` below on every input, including its
+      // !selectedAccount guard — `onValid` gates the snapshot on that one.
+      const acc = accounts.find((a) => a.id === data.account_id);
+      const needsRate =
+        !!commitment &&
+        !!acc &&
+        (commitment.currency === Currency.USD || acc.currency === Currency.USD);
+      if (needsRate) {
+        if (!data.exchange_rate) {
+          ctx.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrRateRequired,
+            path: ['exchange_rate'],
+          });
+        } else if (parsePositiveDecimal(data.exchange_rate) === undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrRateInvalid,
+            path: ['exchange_rate'],
+          });
+        }
+      }
+    });
+}
 
-type PaySheetFormValues = z.infer<typeof schema>;
+type PaySheetFormValues = z.infer<ReturnType<typeof createPaySheetSchema>>;
 
 function buildDefaults(): PaySheetFormValues {
   return {
-    amount: 0,
+    amountText: '',
     account_id: '',
     paid_date: toLocalDateString(new Date()),
     exchange_rate: undefined,
@@ -43,18 +77,20 @@ export function usePaySheet(
   commitment: Commitment | undefined,
   payment: CommitmentPayment | undefined,
 ) {
-  const { visible, saving, accountPickerVisible, rateOverride } = usePaySheetState(
+  const { visible, saving, accountPickerVisible, rateOverride, saveError } = usePaySheetState(
     useShallow((s) => ({
       visible: s.visible,
       saving: s.saving,
       accountPickerVisible: s.accountPickerVisible,
       rateOverride: s.rateOverride,
+      saveError: s.saveError,
     })),
   );
   const setVisible = usePaySheetState.getState().setVisible;
   const setSaving = usePaySheetState.getState().setSaving;
   const setAccountPickerVisible = usePaySheetState.getState().setAccountPickerVisible;
   const setRateOverride = usePaySheetState.getState().setRateOverride;
+  const setSaveError = usePaySheetState.getState().setSaveError;
   const reset = usePaySheetState.getState().reset;
 
   const accounts = useAccountStore((s) => s.accounts);
@@ -71,6 +107,8 @@ export function usePaySheet(
 
   const markAsPaid = useCommitmentStore.getState().markAsPaid;
 
+  const schema = useMemo(() => createPaySheetSchema(commitment, accounts), [commitment, accounts]);
+
   const form = useZodForm(schema, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
@@ -79,6 +117,13 @@ export function usePaySheet(
 
   const accountId = form.watch('account_id');
   const exchangeRateValue = form.watch('exchange_rate');
+  // Read DURING render, not inside the handler that uses it. `formState` is a
+  // proxy: RHF only re-renders — and only refreshes `form.formState` — for the
+  // keys something read while rendering. Read from inside `selectAccount`
+  // instead and the flag is whatever the last render saw, which after a failed
+  // submit is still `false`. Verified: MA-008 T6 records the same trap for
+  // `formState.errors`.
+  const isSubmitted = form.formState.isSubmitted;
 
   const selectedAccount = useMemo(
     () => accounts.find((a) => a.id === accountId) ?? undefined,
@@ -126,17 +171,22 @@ export function usePaySheet(
 
       if (!cancelled) {
         form.reset({
-          amount: prefillAmount,
+          amountText: prefillAmount > 0 ? String(prefillAmount) : '',
           account_id: prefillAccountId,
           paid_date: toLocalDateString(new Date()),
           exchange_rate:
             commitment.currency === Currency.USD ||
             accounts.find((account) => account.id === prefillAccountId)?.currency === Currency.USD
-              ? rate
+              ? String(rate)
               : undefined,
           notes: undefined,
         });
         setRateOverride(false);
+        // Same shape as `rateOverride` above: a module-level flag that outlives
+        // the sheet. Dismissing after a failed save leaves it set, so the next
+        // open renders "could not save this payment" on a different payment
+        // before the user has touched anything.
+        setSaveError(false);
       }
     }
 
@@ -151,12 +201,17 @@ export function usePaySheet(
   async function onValid(data: PaySheetFormValues) {
     if (!payment) return;
     setSaving(true);
+    setSaveError(false);
     try {
       await markAsPaid(payment.id, {
-        amount_paid: data.amount,
+        // Both `??` fallbacks are unreachable once the schema has passed —
+        // kept because deleting them costs a cast or a non-null assertion.
+        amount_paid: parsePositiveDecimal(data.amountText) ?? Number.NaN,
         account_id: data.account_id,
         paid_date: data.paid_date,
-        exchange_rate_snapshot: requiresRate ? (data.exchange_rate ?? rate) : undefined,
+        exchange_rate_snapshot: requiresRate
+          ? (parsePositiveDecimal(data.exchange_rate ?? '') ?? rate)
+          : undefined,
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
@@ -166,15 +221,67 @@ export function usePaySheet(
         console.error('[paySheet] account revalidation failed:', error),
       );
     } catch {
-      // error logged by store
+      // The store logs and rethrows; the sheet stays open, so the user has to
+      // be told why. Without this the failure is silent (review.md class 1).
+      setSaveError(true);
     } finally {
       setSaving(false);
     }
   }
 
+  // `onValid` clears the save error on entry, but RHF only calls it once
+  // validation passes. Without this the sheet shows a field error and the
+  // banner from an earlier attempt together, for a submit that never reached
+  // the store.
+  function onInvalid() {
+    setSaveError(false);
+  }
+
   function selectAccount(account: Account) {
     form.setValue('account_id', account.id);
+    // The rate is required whenever EITHER side is USD, so a pick that flips
+    // `requiresRate` on has to bring the global rate with it — otherwise the
+    // rate row renders blank and the schema refuses the save with no value the
+    // user ever chose. Precedent: add_transaction.hook.ts `selectAccount`; the
+    // condition is this sheet's, not that one's.
+    // `!rateOverride` keeps the seed off a rate the user typed themselves. The
+    // picker fires `onSelect` for every row including the checked one, so
+    // re-tapping the current account is a no-op tap that used to throw that
+    // input away. It cannot re-open the blank-field case: `rateOverride` is
+    // only reachable from `ExchangeRateRow`, which only renders once
+    // `requiresRate` is already true, and every open resets the flag to false.
+    if (
+      !rateOverride &&
+      commitment &&
+      (commitment.currency === Currency.USD || account.currency === Currency.USD)
+    ) {
+      // Same `isSubmitted` gate as the rate row's own onChange in pay_sheet.tsx:
+      // seeding a rate after a failed submit has to clear the error it fixes,
+      // and seeding before the first submit must not raise one.
+      form.setValue('exchange_rate', String(rate), { shouldValidate: isSubmitted });
+      setRateOverride(false);
+    }
     setAccountPickerVisible(false);
+  }
+
+  // Turning the override off means "use the global rate again", so the field
+  // has to be handed that rate back. Leaving whatever the user typed — an
+  // empty string, most often — hard-fails the save with no editable field on
+  // screen. Precedent: add_transaction.hook.ts `toggleRateOverride`.
+  function toggleRateOverride() {
+    const next = !rateOverride;
+    setRateOverride(next);
+    // Same `isSubmitted` gate as the row's own onChange and `selectAccount`'s
+    // seed — this is the third write to the field and the three must not drift.
+    // Turning the override off after a failed submit IS the user fixing the
+    // rate, so D6's required error has to go with the restored value; before
+    // the first submit there is nothing to clear and nothing may be raised.
+    // Unlike the row's onChange, this site can only ever CLEAR an error:
+    // `String(rate)` is a positive global rate, so no input reaches it that the
+    // refine would reject. The gate buys staleness removal here, not a
+    // suppressed false error — which is why pinning `true` instead is
+    // indistinguishable at this site and the test asserts only the clearing.
+    if (!next) form.setValue('exchange_rate', String(rate), { shouldValidate: isSubmitted });
   }
 
   return {
@@ -189,13 +296,14 @@ export function usePaySheet(
       rateOverride,
       exchangeRateValue,
       rateUpdatedAt,
+      saveError,
     },
-    onSubmit: form.handleSubmit(onValid),
+    onSubmit: form.handleSubmit(onValid, onInvalid),
     openAccountPicker: () => setAccountPickerVisible(true),
     closeAccountPicker: () => setAccountPickerVisible(false),
     selectAccount,
     setVisible,
-    toggleRateOverride: () => setRateOverride(!rateOverride),
+    toggleRateOverride,
     setPaidDate: (iso: string) => form.setValue('paid_date', iso, { shouldValidate: true }),
   };
 }

@@ -4,6 +4,7 @@ import { CommitmentPaymentStatus, TransactionType } from '@/constants/enums';
 import { getDb } from '@/database/client';
 import { getAccountByIdIncludingArchived } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { resolveCommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { resolveCreateDeltas } from '@/modules/transactions/domain/transaction_policy';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -87,7 +88,11 @@ export interface ICommitmentRepository {
   insertPayments(payments: CommitmentPayment[]): Promise<void>;
   deleteUnpaidPayments(commitmentId: string): Promise<void>;
 
-  markAsPaid(paymentId: string, details: PaymentDetails, commitment: Commitment): Promise<void>;
+  markAsPaid(
+    paymentId: string,
+    details: PaymentDetails,
+    commitment: Commitment,
+  ): Promise<CommitmentPaymentAmounts>;
   markAsSkipped(paymentId: string): Promise<void>;
   runHousekeeping(now: Date): Promise<void>;
   getMonthSnapshot(yearMonth: string): Promise<CommitmentMonthSnapshot>;
@@ -199,7 +204,7 @@ export class CommitmentRepository implements ICommitmentRepository {
     paymentId: string,
     details: PaymentDetails,
     commitment: Commitment,
-  ): Promise<void> {
+  ): Promise<CommitmentPaymentAmounts> {
     const db = await getDb();
     const clock = new Date();
     const now = clock.toISOString();
@@ -247,6 +252,7 @@ export class CommitmentRepository implements ICommitmentRepository {
     // the invariant note at commitment_payments.ts's amount_paid write.
     const paidDetails = { ...details, amount_paid: amounts.paymentAmount };
     await markCommitmentAsPaid(db, paymentId, paidDetails, tx, accountDelta);
+    return amounts;
   }
 
   async markAsSkipped(paymentId: string): Promise<void> {

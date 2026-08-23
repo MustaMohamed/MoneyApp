@@ -53,6 +53,7 @@ let paySheetStateInner = {
   saving: false,
   accountPickerVisible: false,
   rateOverride: false,
+  saveError: false,
 };
 const mockPaySheetState = {
   get visible() {
@@ -67,6 +68,9 @@ const mockPaySheetState = {
   get rateOverride() {
     return paySheetStateInner.rateOverride;
   },
+  get saveError() {
+    return paySheetStateInner.saveError;
+  },
   setVisible: jest.fn((v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, visible: v };
   }),
@@ -79,12 +83,16 @@ const mockPaySheetState = {
   setRateOverride: jest.fn((v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
   }),
+  setSaveError: jest.fn((v: boolean) => {
+    paySheetStateInner = { ...paySheetStateInner, saveError: v };
+  }),
   reset: jest.fn(() => {
     paySheetStateInner = {
       visible: false,
       saving: false,
       accountPickerVisible: false,
       rateOverride: false,
+      saveError: false,
     };
   }),
 };
@@ -178,12 +186,16 @@ describe('usePaySheet', () => {
     mockPaySheetState.setRateOverride.mockImplementation((v: boolean) => {
       paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
     });
+    mockPaySheetState.setSaveError.mockImplementation((v: boolean) => {
+      paySheetStateInner = { ...paySheetStateInner, saveError: v };
+    });
     mockPaySheetState.reset.mockImplementation(() => {
       paySheetStateInner = {
         visible: false,
         saving: false,
         accountPickerVisible: false,
         rateOverride: false,
+        saveError: false,
       };
     });
     // Reset the capturable store mocks
@@ -204,7 +216,7 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     // prefill runs in a useEffect; flush microtasks
     await act(async () => {});
-    expect(result.current.form.getValues('amount')).toBe(15);
+    expect(result.current.form.getValues('amountText')).toBe('15');
     expect(result.current.form.getValues('paid_date')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
@@ -245,9 +257,9 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-usd');
-      result.current.form.setValue('amount', 15);
+      result.current.form.setValue('amountText', '15');
       result.current.form.setValue('paid_date', '2026-05-20');
-      result.current.form.setValue('exchange_rate', 99);
+      result.current.form.setValue('exchange_rate', '99');
     });
     expect(result.current.state.requiresRate).toBe(true);
     await act(async () => {
@@ -264,9 +276,9 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
-      result.current.form.setValue('amount', 15);
+      result.current.form.setValue('amountText', '15');
       result.current.form.setValue('paid_date', '2026-05-20');
-      result.current.form.setValue('exchange_rate', 52);
+      result.current.form.setValue('exchange_rate', '52');
     });
     expect(result.current.state.requiresRate).toBe(true);
     await act(async () => {
@@ -284,7 +296,7 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-1');
-      result.current.form.setValue('amount', 0.005);
+      result.current.form.setValue('amountText', '0.005');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
     await act(async () => {
@@ -294,7 +306,7 @@ describe('usePaySheet', () => {
     // formState.errors is a vacuous read under renderHook (MA-008 T6) — RHF
     // only re-renders it once something has READ it during a render, which
     // nothing here does. getFieldState reads the live field directly.
-    expect(result.current.form.getFieldState('amount').error?.message).toBe(
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(
       Strings.commitmentsPayErrAmountMin,
     );
   });
@@ -306,14 +318,14 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-1');
-      result.current.form.setValue('amount', 0.006);
+      result.current.form.setValue('amountText', '0.006');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
     await act(async () => {
       await result.current.onSubmit();
     });
     expect(mockMarkAsPaid).not.toHaveBeenCalled();
-    expect(result.current.form.getFieldState('amount').error?.message).toBe(
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(
       Strings.commitmentsPayErrAmountMin,
     );
   });
@@ -322,7 +334,7 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-1');
-      result.current.form.setValue('amount', 0.01);
+      result.current.form.setValue('amountText', '0.01');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
     await act(async () => {
@@ -340,7 +352,7 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
-      result.current.form.setValue('amount', 15);
+      result.current.form.setValue('amountText', '15');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
 
@@ -358,5 +370,453 @@ describe('usePaySheet', () => {
       refreshError,
     );
     consoleSpy.mockRestore();
+  });
+
+  // MA-019 spec §3 A1/A2 — the contract for what a TYPED STRING produces.
+  // Before this ticket nothing on either path asserted that: every test
+  // entered an already-numeric value, so parseFloat's corruptions all
+  // survived a green CI.
+
+  async function submitAmount(typed: string) {
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-1');
+      result.current.form.setValue('amountText', typed);
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    return { result, rerender };
+  }
+
+  // `expectedAmountPaid` is what the hook hands the STORE — the parsed,
+  // unrounded value. roundMoney runs later, inside the repository's resolver,
+  // which is why A1-16 is 10.999 here and 11 in the database (pinned by
+  // commitment.repository.mark_as_paid.test.ts).
+  it.each([
+    ['A1-01', '12.34', 12.34],
+    ['A1-02', '1,234.56', 1234.56],
+    ['A1-12', '0.01', 0.01],
+    ['A1-16', '10.999', 10.999],
+  ] as const)('%s: accepts "%s" and hands the store %p', async (_id, typed, expected) => {
+    const { result } = await submitAmount(typed);
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    const arg = mockMarkAsPaid.mock.calls[0][1] as { amount_paid: number };
+    expect(arg.amount_paid).toBe(expected);
+    expect(result.current.form.getFieldState('amountText').error).toBeUndefined();
+  });
+
+  it.each([
+    ['A1-03', '12.', Strings.errAmountInvalid],
+    ['A1-04', '.5', Strings.errAmountInvalid],
+    ['A1-05', '', Strings.commitmentsPayErrAmountRequired],
+    ['A1-06', '   ', Strings.errAmountInvalid],
+    ['A1-07', '1e3', Strings.errAmountInvalid],
+    ['A1-08', '1.2.3', Strings.errAmountInvalid],
+    ['A1-09', '12abc', Strings.errAmountInvalid],
+    ['A1-10', '0.005', Strings.commitmentsPayErrAmountMin],
+    ['A1-11', '0.006', Strings.commitmentsPayErrAmountMin],
+    ['A1-13', '0', Strings.commitmentsPayErrAmountMin],
+    ['A1-14', '-5', Strings.errAmountInvalid],
+    ['A1-15', '1e999', Strings.errAmountInvalid],
+  ] as const)('%s: rejects "%s" at the field and writes nothing', async (_id, typed, message) => {
+    const { result } = await submitAmount(typed);
+
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    // getFieldState, not formState.errors — the latter is a vacuous read under
+    // renderHook (MA-008 T6), as the comment above the 0.005 case records.
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(message);
+  });
+
+  // A USD commitment paid from an EGP account, so requiresRate is true and the
+  // rate field is the one under test.
+  async function submitRate(typed: string) {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+      result.current.form.setValue('amountText', '15');
+      result.current.form.setValue('paid_date', '2026-05-20');
+      result.current.form.setValue('exchange_rate', typed);
+    });
+    expect(result.current.state.requiresRate).toBe(true);
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    return result;
+  }
+
+  it.each([
+    ['A2-01', '48.6', 48.6],
+    ['A2-07', '1,234', 1234],
+  ] as const)('%s: accepts "%s" and snapshots %p', async (_id, typed, expected) => {
+    await submitRate(typed);
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
+    expect(arg.exchange_rate_snapshot).toBe(expected);
+  });
+
+  it.each([
+    ['A2-02', '48.', Strings.addTxErrRateInvalid],
+    ['A2-03', '', Strings.addTxErrRateRequired],
+    ['A2-05', '0', Strings.addTxErrRateInvalid],
+    ['A2-06', 'abc', Strings.addTxErrRateInvalid],
+    ['A2-08', '1e999', Strings.addTxErrRateInvalid],
+  ] as const)(
+    '%s: rejects "%s" at the rate field and writes nothing',
+    async (_id, typed, message) => {
+      const result = await submitRate(typed);
+
+      expect(mockMarkAsPaid).not.toHaveBeenCalled();
+      expect(result.current.form.getFieldState('exchange_rate').error?.message).toBe(message);
+    },
+  );
+
+  // D7: the catch was `catch { // error logged by store }`, so a failed save
+  // left the sheet open, the button idle and the user told nothing —
+  // .claude/rules/review.md class 1, reachable from the keyboard.
+  it('surfaces a failed save and keeps the sheet open', async () => {
+    mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
+    const { result, rerender } = await submitAmount('15');
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(mockPaySheetState.setSaveError).toHaveBeenLastCalledWith(true);
+    // The mocked selector store does not subscribe, so the flag only reaches
+    // the hook's returned state on the next render — which is what the sheet
+    // renders the error row from.
+    await act(() => rerender(undefined));
+    expect(result.current.state.saveError).toBe(true);
+    expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(false);
+  });
+
+  it('A2-04: omits the rate snapshot when the payment stays in one currency', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result } = await renderHook(() =>
+      usePaySheet({ ...fixedCommitment, currency: Currency.EGP }, duePayment),
+    );
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+      result.current.form.setValue('amountText', '15');
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    expect(result.current.state.requiresRate).toBe(false);
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
+    expect(arg.exchange_rate_snapshot).toBeUndefined();
+  });
+  // ---------------------------------------------------------------------
+  // P8 cycle 1 — F1/F2/F3. Three regressions the rate-required superRefine
+  // introduced by requiring a value that nothing seeds, plus a stale error
+  // flag that outlives the sheet.
+  // ---------------------------------------------------------------------
+
+  const egpCommitment: Commitment = { ...fixedCommitment, currency: Currency.EGP };
+
+  // F1: picking an account that flips `requiresRate` on must bring the global
+  // rate with it. Without it the schema demands a rate the user was never
+  // offered a populated field for.
+  it('F1: seeds the global rate when the picked account turns the requirement on', async () => {
+    mockAccounts = [
+      { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
+      { id: 'acc-usd', currency: Currency.USD } as unknown as Account,
+    ];
+    const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+    });
+    await act(() => rerender(undefined));
+    expect(result.current.state.requiresRate).toBe(false);
+    expect(result.current.form.getValues('exchange_rate')).toBeUndefined();
+
+    await act(() => {
+      result.current.selectAccount(mockAccounts[1]);
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.state.requiresRate).toBe(true);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+    expect(mockPaySheetState.setRateOverride).toHaveBeenLastCalledWith(false);
+  });
+
+  // F1, the half that is NOT the transaction form's condition: a USD
+  // commitment needs a rate whatever the account's currency is, so an EGP
+  // account has to seed too. A copied `account.currency === USD` guard reds here.
+  it('F1: seeds the global rate for a USD commitment paid from an EGP account', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('exchange_rate', '');
+    });
+    await act(() => {
+      result.current.selectAccount(mockAccounts[0]);
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.state.requiresRate).toBe(true);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+  });
+
+  it('F1: leaves the rate alone when neither side is USD', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    await act(() => {
+      result.current.selectAccount(mockAccounts[0]);
+    });
+    expect(result.current.form.getValues('exchange_rate')).toBeUndefined();
+  });
+
+  // G1: `AccountPickerSheet` fires `onSelect` for every row, the checked one
+  // included, so re-tapping the already-selected account is a tap that means
+  // nothing. Before the `!rateOverride` guard it re-seeded the global rate and
+  // cleared the override, discarding a rate the user had typed.
+  it('G1: keeps a typed override rate when the already-selected account is re-picked', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+    });
+    await act(() => result.current.toggleRateOverride());
+    await act(() => {
+      result.current.form.setValue('exchange_rate', '60');
+    });
+    await act(() => rerender(undefined));
+    expect(result.current.state.rateOverride).toBe(true);
+
+    await act(() => {
+      result.current.selectAccount(mockAccounts[0]);
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.form.getValues('exchange_rate')).toBe('60');
+    expect(result.current.state.rateOverride).toBe(true);
+  });
+
+  // F2: "reset to global" has to hand the global rate back. Turning the
+  // override off after clearing the field used to leave '' in the form with
+  // no input on screen to correct it.
+  it('F2: restores the global rate when the override is turned back off', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+    });
+
+    await act(() => result.current.toggleRateOverride());
+    await act(() => rerender(undefined));
+    expect(result.current.state.rateOverride).toBe(true);
+
+    // The user clears the field while the override is on.
+    await act(() => {
+      result.current.form.setValue('exchange_rate', '');
+    });
+
+    await act(() => result.current.toggleRateOverride());
+    await act(() => rerender(undefined));
+
+    expect(result.current.state.rateOverride).toBe(false);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+  });
+
+  it('F2: does not overwrite the typed rate when the override is turned on', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('exchange_rate', '48.6');
+    });
+    await act(() => result.current.toggleRateOverride());
+    expect(result.current.form.getValues('exchange_rate')).toBe('48.6');
+  });
+
+  // F3 sequence (a): fail -> dismiss -> reopen. The flag lives in a
+  // module-level store, so without a clear on open the banner renders on a
+  // different payment before the user has touched anything.
+  it('F3: clears a stale save error when the sheet is reopened after a dismiss', async () => {
+    mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
+    mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
+
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(async () => {});
+    // The prefill supplies a complete, valid form: amount, account and rate.
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    await act(() => rerender(undefined));
+    expect(result.current.state.saveError).toBe(true);
+
+    mockPaySheetState.setSaveError.mockClear();
+
+    // Swipe-down: the sheet closes without going through onValid's reset().
+    await act(() => result.current.setVisible(false));
+    await act(async () => {
+      rerender(undefined);
+    });
+    // Reopened on a later payment.
+    await act(() => result.current.setVisible(true));
+    await act(async () => {
+      rerender(undefined);
+    });
+    await act(() => rerender(undefined));
+
+    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(false);
+    expect(result.current.state.saveError).toBe(false);
+  });
+
+  // F3 sequence (b): fail -> mistype -> submit. Validation rejects, so
+  // `onValid` never runs and nothing clears the flag; the sheet showed the
+  // field error and the save-failed banner together, for a submit that never
+  // reached the store.
+  it('F3: clears the save error on a submit that fails validation', async () => {
+    mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
+    const { result, rerender } = await submitAmount('15');
+    await act(() => rerender(undefined));
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(result.current.state.saveError).toBe(true);
+
+    mockPaySheetState.setSaveError.mockClear();
+
+    await act(() => {
+      result.current.form.setValue('amountText', '12abc');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    await act(() => rerender(undefined));
+
+    // The second submit never reached the store.
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(
+      Strings.errAmountInvalid,
+    );
+    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(false);
+    expect(result.current.state.saveError).toBe(false);
+  });
+
+  // ---------------------------------------------------------------------
+  // P8 cycle 3 — H1. The rate row is not a `Controller`, so `setValue` is the
+  // only thing that can revalidate it. Pinned `shouldValidate: false`, the
+  // required refine D6 added kept its error on screen while the user typed the
+  // fix; the amount field beside it, which goes through a `Controller`, cleared
+  // live. The gate is `isSubmitted`, which is what a registered field does
+  // under `mode: 'onSubmit'` + `reValidateMode: 'onChange'`.
+  // ---------------------------------------------------------------------
+
+  it('H1: seeding the rate after a failed submit clears the rate error without a second submit', async () => {
+    mockAccounts = [
+      { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
+      { id: 'acc-usd', currency: Currency.USD } as unknown as Account,
+    ];
+    const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    // An EGP commitment paid from an EGP account: no rate required yet.
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+      result.current.form.setValue('amountText', '15');
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    // Switch to the USD account WITHOUT the seed, so the submit below fails on
+    // the rate. `setValue` is the raw form write; `selectAccount` is the seed.
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-usd');
+    });
+    await act(() => rerender(undefined));
+    expect(result.current.state.requiresRate).toBe(true);
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('exchange_rate').error?.message).toBe(
+      Strings.addTxErrRateRequired,
+    );
+
+    // Re-picking the account seeds the global rate. That is the user fixing the
+    // field, so the error has to go with it — no second Save tap. The revalidate
+    // `setValue` schedules is async, hence the microtask flush.
+    await act(async () => {
+      result.current.selectAccount(mockAccounts[1]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+    expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
+  });
+
+  // H4. `toggleRateOverride` is the THIRD write to `exchange_rate` and had the
+  // same pinned-false default. Turning the override off after a failed submit is
+  // the user handing the field back to the global rate — the error it fixes has
+  // to go with it. Unlike the row's own onChange this site can only ever CLEAR
+  // one: `String(rate)` is a positive global rate, so no input reaches it that
+  // D6's refine would reject. Staleness only, which is exactly what is asserted.
+  it('H4: turning the override off after a failed submit clears the stale rate error', async () => {
+    mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-usd');
+      result.current.form.setValue('amountText', '15');
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    await act(() => rerender(undefined));
+    expect(result.current.state.requiresRate).toBe(true);
+
+    // Override on, then the field cleared — the shape F2 already covers.
+    await act(() => result.current.toggleRateOverride());
+    await act(() => rerender(undefined));
+    await act(() => {
+      result.current.form.setValue('exchange_rate', '');
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    await act(() => rerender(undefined));
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('exchange_rate').error?.message).toBe(
+      Strings.addTxErrRateRequired,
+    );
+
+    // "Reset to global" hands the rate back. The revalidate `setValue`
+    // schedules is async, hence the microtask flush.
+    await act(async () => {
+      result.current.toggleRateOverride();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.state.rateOverride).toBe(false);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+    expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
+  });
+
+  it('H1: seeding the rate before any submit raises no error', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(async () => {
+      result.current.selectAccount(mockAccounts[0]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.form.formState.isSubmitted).toBe(false);
+    expect(result.current.form.getValues('exchange_rate')).toBe('55');
+    // Nothing raised, on any field. `setValue(name, …, { shouldValidate })`
+    // publishes errors only at `name`, so pinning true HERE would in fact be
+    // harmless — the seeded global rate is always positive, and the amount and
+    // account errors the superRefine also computes are discarded. That is why
+    // this case does not red under a pinned-true mutation and the row's own
+    // onChange does: there the user can type a rate that fails. The gate is
+    // kept at both sites so one write cannot drift from the other.
+    expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
+    expect(result.current.form.getFieldState('amountText').error).toBeUndefined();
+    expect(result.current.form.getFieldState('account_id').error).toBeUndefined();
   });
 });

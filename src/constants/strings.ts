@@ -354,6 +354,10 @@ export const Strings = {
   adjustBalanceLabel: 'New Balance',
   adjustBalanceSave: 'Save Balance',
   adjustBalanceCancel: 'Cancel',
+  // Distinct from errBalanceInvalid on purpose: that one asks the user to fix
+  // what they typed, this one asks them to try the same value again. Voice
+  // follows its neighbours accountBalanceReviewError and commitmentsPayError.
+  adjustBalanceSaveError: 'Could not save this balance. Please try again.',
 
   // Settings Main (U23)
   settingsTitle: 'Settings',
@@ -1047,6 +1051,7 @@ export const Strings = {
   commitmentsDeactivateCancel: 'Cancel',
   commitmentsDeactivateConfirm: 'Deactivate',
   commitmentsDeactivateError: 'Could not deactivate this commitment. Please try again.',
+  commitmentsPayError: 'Could not save this payment. Please try again.',
 
   // Commitments — status badges
   commitmentsStatusOverdue: 'Overdue',

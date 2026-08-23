@@ -503,6 +503,19 @@ describe('CommitmentRepository.markAsPaid', () => {
     expect(calledDetails.amount_paid).toBe(11);
   });
 
+  // #308: the store's optimistic patch used to hold the raw input, so the
+  // in-memory value disagreed with the row until a background refresh landed.
+  // markAsPaid now returns the amounts it already resolved for the write.
+  it('returns the resolved amounts so the caller can bind the rounded value', async () => {
+    const returned = await repo.markAsPaid(
+      'p-1',
+      { ...details, amount_paid: 10.999 },
+      { ...baseCommitment, currency: Currency.EGP },
+    );
+
+    expect(returned.paymentAmount).toBe(11);
+  });
+
   it('increases liability when a commitment is paid with a credit card', async () => {
     (getAccountByIdIncludingArchived as jest.Mock).mockResolvedValue({
       ...baseAccount,

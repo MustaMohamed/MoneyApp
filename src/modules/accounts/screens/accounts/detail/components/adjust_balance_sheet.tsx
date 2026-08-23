@@ -20,7 +20,9 @@ interface AdjustBalanceSheetProps {
   currentBalance: number;
   currency: Currency;
   onOpenChange: (open: boolean) => void;
-  onSave: (newBalance: number) => void;
+  // Promise-returning on purpose: `handleSave` awaits it and catches, so the
+  // caller's rejection is surfaced here instead of escaping a void handler.
+  onSave: (newBalance: number) => void | Promise<void>;
   isLoading: boolean;
 }
 
@@ -48,14 +50,28 @@ export function AdjustBalanceSheet({
     }
   }, [isOpen, currentBalance, initialize]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const result = parseAdjustInput(input);
     if (!result.ok) {
       setError(Strings.errBalanceInvalid);
       return;
     }
+    // Clear the parse error before the write, so a save failure replaces it
+    // rather than sitting under it.
     setError('');
-    onSave(result.value);
+    try {
+      await onSave(result.value);
+    } catch {
+      // `account.store` logs and rethrows and the screen hook lets it through,
+      // so this sheet — still on screen, with the failed value still in it — is
+      // what tells the user. Mirrors the pay sheet's D7 catch, and keeps the
+      // error copy in the component that owns the channel it renders through
+      // (.claude/rules/state.md). Distinct from errBalanceInvalid on purpose:
+      // that one asks the user to change what they typed, this one to retry it.
+      // The `await` above is load-bearing — drop it and the rejection leaves
+      // this try as an unhandled one and the catch can never run.
+      setError(Strings.adjustBalanceSaveError);
+    }
   };
 
   const footer = (
@@ -71,7 +87,7 @@ export function AdjustBalanceSheet({
         <Button
           variant="primary"
           label={Strings.adjustBalanceSave}
-          onPress={handleSave}
+          onPress={() => void handleSave()}
           isDisabled={isLoading}
           isLoading={isLoading}
         />

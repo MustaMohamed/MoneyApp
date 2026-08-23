@@ -15,6 +15,7 @@ import type {
   UpdateCommitmentInput,
 } from '@/modules/commitments/repositories/commitment.repository';
 import { createCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 
 const MAY = '2026-05';
 const DAY_ONE = new Date('2026-05-08T23:30:00.000Z');
@@ -72,6 +73,21 @@ function snapshot(
   return { loadedMonth: month, commitments, payments };
 }
 
+// The resolver's return, which markAsPaid now hands back so the store's
+// optimistic patch holds the rounded value the database holds (#308).
+function paymentAmounts(
+  overrides: Partial<CommitmentPaymentAmounts> = {},
+): CommitmentPaymentAmounts {
+  return {
+    paymentAmount: 250,
+    accountNativeAmount: 250,
+    accountCurrency: Currency.EGP,
+    egpAmount: 250,
+    exchangeRate: null,
+    ...overrides,
+  };
+}
+
 function makeRepository(overrides: Partial<ICommitmentRepository> = {}): ICommitmentRepository {
   return {
     getAll: jest.fn().mockResolvedValue([commitment()]),
@@ -87,7 +103,7 @@ function makeRepository(overrides: Partial<ICommitmentRepository> = {}): ICommit
     getExistingDueDates: jest.fn().mockResolvedValue([]),
     insertPayments: jest.fn().mockResolvedValue(undefined),
     deleteUnpaidPayments: jest.fn().mockResolvedValue(undefined),
-    markAsPaid: jest.fn().mockResolvedValue(undefined),
+    markAsPaid: jest.fn().mockResolvedValue(paymentAmounts()),
     markAsSkipped: jest.fn().mockResolvedValue(undefined),
     runHousekeeping: jest.fn().mockResolvedValue(undefined),
     getMonthSnapshot: jest.fn().mockResolvedValue(snapshot()),
@@ -549,7 +565,7 @@ describe('commitment store mutation invalidation', () => {
   });
 
   it('locks a payment against a stale Skip while Pay persistence is in flight', async () => {
-    const payRequest = deferred<void>();
+    const payRequest = deferred<CommitmentPaymentAmounts>();
     const repository = makeRepository({
       markAsPaid: jest.fn().mockReturnValue(payRequest.promise),
     });
@@ -560,7 +576,7 @@ describe('commitment store mutation invalidation', () => {
     const skipAction = store.getState().skipPayment('payment');
 
     expect(store.getState().transitioningPaymentIds).toEqual(['payment']);
-    payRequest.resolve();
+    payRequest.resolve(paymentAmounts());
     await payAction;
     await expect(skipAction).rejects.toThrow('Payment transition already in progress: payment');
     expect(repository.markAsSkipped).not.toHaveBeenCalled();
@@ -582,7 +598,7 @@ describe('commitment store mutation invalidation', () => {
         status: CommitmentPaymentStatus.Paid,
         paid_date: paymentDetails.paid_date,
         skipped_date: null,
-        amount_paid: paymentDetails.amount_paid,
+        amount_paid: paymentAmounts().paymentAmount,
         account_id: paymentDetails.account_id,
       }),
     ]);
@@ -590,6 +606,47 @@ describe('commitment store mutation invalidation', () => {
 
     refresh.resolve();
     await flushMicrotasks();
+  });
+
+  // #308 S-01: the store patched `details.amount_paid` — the raw input — so it
+  // disagreed with the database, which holds the resolver's rounded value.
+  it('S-01: patches the amount the repository resolved, not the raw input', async () => {
+    const refresh = deferred<void>();
+    const repository = makeRepository({
+      markAsPaid: jest.fn().mockResolvedValue(paymentAmounts({ paymentAmount: 11 })),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthSnapshot(MAY);
+    (repository.runHousekeeping as jest.Mock).mockReset().mockReturnValue(refresh.promise);
+
+    await store.getState().markAsPaid('payment', { ...paymentDetails, amount_paid: 10.999 });
+
+    expect(store.getState().payments[0].amount_paid).toBe(11);
+
+    refresh.resolve();
+    await flushMicrotasks();
+  });
+
+  // #308 S-03: revalidateAfterMutation is fire-and-forget with a log-only
+  // .catch, so there is no second chance — the optimistic patch is what the
+  // user keeps looking at. That is what makes S-01 a defect, not a flicker.
+  it('S-03: keeps the resolved amount when the background revalidation fails', async () => {
+    const refreshError = new Error('post-pay refresh failed');
+    const repository = makeRepository({
+      markAsPaid: jest.fn().mockResolvedValue(paymentAmounts({ paymentAmount: 11 })),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthSnapshot(MAY);
+    (repository.runHousekeeping as jest.Mock).mockReset().mockRejectedValue(refreshError);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await store.getState().markAsPaid('payment', { ...paymentDetails, amount_paid: 10.999 });
+    await flushMicrotasks();
+
+    expect(consoleSpy).toHaveBeenCalledWith('[commitmentStore] revalidation failed:', refreshError);
+    expect(store.getState().loadError).toBe(true);
+    expect(store.getState().payments[0].amount_paid).toBe(11);
+    consoleSpy.mockRestore();
   });
 
   it('invalidates and reloads once after skipping', async () => {

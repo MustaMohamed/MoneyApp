@@ -6,6 +6,7 @@ import * as SQLite from 'expo-sqlite';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
+import { parseAdjustInput } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.helpers';
 import { AccountRepository } from '@/repositories/account.repository';
 import type { NewAccountInput } from '@/repositories/account.repository';
 
@@ -332,6 +333,41 @@ describe('AccountRepository.adjustBalance — TC-M15-03', () => {
       .prepare('SELECT current_balance, balance_review_required FROM accounts WHERE id = ?')
       .get(id) as { balance_review_required: number; current_balance: number };
     expect(row).toEqual({ current_balance: 750, balance_review_required: 0 });
+  });
+
+  // MA-019 D3: the manual-adjust write path had no roundMoney anywhere on it,
+  // so a sub-cent value reached a REAL column every aggregation treats as 2dp.
+  async function adjustedBalance(newBalance: number): Promise<number> {
+    await repo.add({ ...baseInput, opening_balance: 1000 });
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    await repo.adjustBalance(id, newBalance);
+    return (
+      realDb.prepare('SELECT current_balance FROM accounts WHERE id = ?').get(id) as {
+        current_balance: number;
+      }
+    ).current_balance;
+  }
+
+  it('B1-15: rounds a sub-cent adjustment down to the nearest even cent', async () => {
+    await expect(adjustedBalance(100.005)).resolves.toBe(100);
+  });
+
+  it('B1-16: rounds a sub-cent adjustment up to the nearest even cent', async () => {
+    await expect(adjustedBalance(99.995)).resolves.toBe(100);
+  });
+
+  it('B1-17: rounds 0.015 up to 0.02', async () => {
+    await expect(adjustedBalance(0.015)).resolves.toBe(0.02);
+  });
+
+  // B1-03 end to end — the parser's output has to survive adjustBalance and
+  // land in the column. This assertion replaced emulator walk steps 6-7.
+  it('B1-03: a comma-grouped typed amount reaches current_balance intact', async () => {
+    const parsed = parseAdjustInput('1,234.56');
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+
+    await expect(adjustedBalance(parsed.value)).resolves.toBe(1234.56);
   });
 });
 

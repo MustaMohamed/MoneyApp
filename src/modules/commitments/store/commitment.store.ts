@@ -248,7 +248,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
               ? get().commitments.find((candidate) => candidate.id === payment.commitment_id)
               : undefined;
             if (!commitment) throw new Error(`Commitment not found for payment ${paymentId}`);
-            await repo.markAsPaid(paymentId, details, commitment);
+            const amounts = await repo.markAsPaid(paymentId, details, commitment);
             const updatedAt = new Date().toISOString();
             set((state) => ({
               payments: state.payments.map((candidate) =>
@@ -258,7 +258,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
                       status: CommitmentPaymentStatus.Paid,
                       paid_date: details.paid_date,
                       skipped_date: null,
-                      amount_paid: details.amount_paid,
+                      amount_paid: amounts.paymentAmount,
                       account_id: details.account_id,
                       exchange_rate_snapshot:
                         details.exchange_rate_snapshot ?? candidate.exchange_rate_snapshot,
