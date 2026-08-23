@@ -209,4 +209,69 @@ describe('spendingPlanInputSchema', () => {
       'Allocations exceed the plan total.',
     );
   });
+
+  // The over-allocation check runs on integer cents. A float sum puts
+  // 0.01 + 0.05 at 0.060000000000000005, over a total of 0.06 -- the smallest
+  // plan this schema used to refuse for no reason the user could see.
+  it('accepts allocations whose float sum only appears to exceed the total', () => {
+    expect(
+      spendingPlanInputSchema.safeParse({
+        ...validInput,
+        totalAmount: 0.06,
+        categories: [
+          { categoryId: 'cat_food', allocatedAmount: 0.01 },
+          { categoryId: 'cat_travel', allocatedAmount: 0.05 },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  // Both allocations round to 0.50, which is what gets written, and 0.50 twice
+  // is exactly the total. Rejecting this on the raw sum 1.0098 refused a plan
+  // that would have persisted correctly.
+  it('accepts sub-cent allocations that round down to the total', () => {
+    expect(
+      spendingPlanInputSchema.safeParse({
+        ...validInput,
+        totalAmount: 1,
+        categories: [
+          { categoryId: 'cat_food', allocatedAmount: 0.5049 },
+          { categoryId: 'cat_travel', allocatedAmount: 0.5049 },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  // The converse, and the one this layer used to miss: the raw sum is exactly
+  // 1.00, so a float comparison read `1 > 1` and passed it through, leaving the
+  // repository to reject it after rounding. Each 0.335 rounds to 0.34, so the
+  // values that would be written sum to 1.01.
+  it('rejects allocations that round up past the total', () => {
+    const result = spendingPlanInputSchema.safeParse({
+      ...validInput,
+      totalAmount: 1,
+      categories: [
+        { categoryId: 'cat_food', allocatedAmount: 0.335 },
+        { categoryId: 'cat_travel', allocatedAmount: 0.335 },
+        { categoryId: 'cat_bills', allocatedAmount: 0.33 },
+      ],
+    });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.issues.map((issue) => issue.message)).toContain(
+      'Allocations exceed the plan total.',
+    );
+  });
+
+  // Regression pin, green at base and newly load-bearing: `toCents(NaN)` is
+  // NaN, which would make the whole comparison silently false. `z.number()`
+  // is what keeps NaN off this path.
+  it('rejects a NaN allocation before the sum comparison sees it', () => {
+    expect(
+      spendingPlanInputSchema.safeParse({
+        ...validInput,
+        categories: [{ categoryId: 'cat_food', allocatedAmount: Number.NaN }],
+      }).success,
+    ).toBe(false);
+  });
 });

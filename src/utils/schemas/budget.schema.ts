@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { Strings } from '@/constants/strings';
-import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { MIN_MONEY_AMOUNT, sumAllocations } from '@/utils/money';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 
 export const budgetFormSchema = z.object({
@@ -87,11 +87,15 @@ export const spendingPlanInputSchema = z
         message: Strings.budgetPlanDuplicateCategory,
       });
     }
-    const allocated = value.categories.reduce(
-      (total, category) => total + (category.allocatedAmount ?? 0),
-      0,
+    // Integer cents, through the same function the sheet's live helper line
+    // uses. A float sum disagrees with itself in both directions: it refuses
+    // 0.01 + 0.05 against 0.06, and it passes [0.335, 0.335, 0.33] against
+    // 1.00 that the repository then rejects after rounding.
+    const { isOver } = sumAllocations(
+      value.categories.map((category) => category.allocatedAmount),
+      value.totalAmount,
     );
-    if (allocated > value.totalAmount) {
+    if (isOver) {
       context.addIssue({
         code: 'custom',
         path: ['categories'],

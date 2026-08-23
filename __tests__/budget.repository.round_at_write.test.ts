@@ -225,13 +225,17 @@ describe('BudgetRepository.setSpendingPlan — rounds at the first statement, up
   });
 
   // c1's ordering case. roundMoney is not additive: raw allocations
-  // [0.335, 0.335, 0.33] sum to exactly 1.00 against a raw total of 1.00
-  // (passes the hook's own pre-check, which validates raw values), but each
-  // 0.335 rounds to 0.34 under banker's rounding (0.335 * 100 is exactly
-  // 33.5, 34 is even), so the rounded allocations sum to 1.01 -- over the
-  // rounded total. Rounding upstream of validateSpendingPlanInput is what
-  // makes this rejected rather than silently persisted as a plan the app's
-  // own validator would reject.
+  // [0.335, 0.335, 0.33] sum to exactly 1.00 against a raw total of 1.00,
+  // but each 0.335 rounds to 0.34 under banker's rounding (0.335 * 100 is
+  // exactly 33.5, 34 is even), so the rounded allocations sum to 1.01 --
+  // over the rounded total. Rounding upstream of validateSpendingPlanInput
+  // is what makes this rejected rather than silently persisted as a plan
+  // the app's own validator would reject.
+  // Until MA-020 these raw values also passed the hook's own pre-check,
+  // which compared raw floats; the hook now compares integer cents
+  // (34 + 34 + 33 = 101 > 100) and rejects them first. What this case
+  // covers is the repository's own guard -- all a non-sheet caller of
+  // setSpendingPlan has.
   it('rejects when independently-rounded allocations exceed the rounded total, and writes nothing', async () => {
     const repo = new BudgetRepository();
 
