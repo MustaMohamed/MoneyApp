@@ -1,6 +1,7 @@
 import uuid from 'react-native-uuid';
 
 import { getDb } from '@/database/client';
+import { roundMoney } from '@/utils/money';
 
 import {
   addAccount,
@@ -79,8 +80,9 @@ export class AccountRepository implements IAccountRepository {
   }
 
   async adjustBalance(id: string, newBalance: number): Promise<void> {
+    const rounded = roundMoney(newBalance);
     const db = await getDb();
-    await setAccountBalance(db, id, newBalance, new Date().toISOString());
+    await setAccountBalance(db, id, rounded, new Date().toISOString());
   }
 
   async confirmBalanceReviewed(id: string): Promise<void> {
