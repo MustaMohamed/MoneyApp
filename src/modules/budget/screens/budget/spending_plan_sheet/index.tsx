@@ -67,6 +67,7 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
             onEnabledChange={actions.setAllocateByCategory}
             selectedCategories={state.selectedCategories}
             values={state.allocations}
+            errors={state.allocationErrors}
             helperText={state.allocationHelperText}
             isOver={state.allocationIsOver}
             onAllocationTextChange={actions.setAllocationText}

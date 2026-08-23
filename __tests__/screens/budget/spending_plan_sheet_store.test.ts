@@ -22,10 +22,17 @@ describe('spending plan sheet stores', () => {
     );
   });
 
+  it('holds an allocation as the raw text the user typed', () => {
+    const store = useSpendingPlanSheetStore.getState();
+    store.initAddMode({ month: '2026-07', firstCategoryId: 'cat_food' });
+    store.setAllocation('cat_food', '3000');
+    expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('3000');
+  });
+
   it('clears an allocation when its category is removed', () => {
     const store = useSpendingPlanSheetStore.getState();
     store.initAddMode({ month: '2026-07', firstCategoryId: 'cat_food' });
-    store.setAllocation('cat_food', 3000);
+    store.setAllocation('cat_food', '3000');
     store.toggleCategoryId('cat_food');
     expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual([]);
     expect(useSpendingPlanSheetStore.getState().allocations).toEqual({});
