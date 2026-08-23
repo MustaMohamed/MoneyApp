@@ -10,6 +10,9 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 
 const mockResetForm = jest.fn();
+// `watch('totalText')` is settable per test: the total is what decides whether
+// the running-total line renders at all, so it cannot stay hard-coded.
+let mockTotalText = '500';
 const mockHandleSubmit =
   (submit: (values: { nameText: string; totalText: string }) => Promise<void>) => () =>
     submit({ nameText: 'Trip', totalText: '500' });
@@ -22,7 +25,7 @@ jest.mock('@/utils/use_zod_form.hook', () => ({
     control: {},
     handleSubmit: mockHandleSubmit,
     reset: mockResetForm,
-    watch: () => '500',
+    watch: () => mockTotalText,
   }),
 }));
 
@@ -41,6 +44,7 @@ const category: Category = {
 const categories = [category];
 
 beforeEach(() => {
+  mockTotalText = '500';
   useBudgetState.getState().reset();
   useSpendingPlanSheetState.getState().reset();
   useSpendingPlanSheetStore.getState().reset();
@@ -221,5 +225,48 @@ describe('useSpendingPlanSheet', () => {
     expect(useSpendingPlanSheetState.getState().submitError).toBe(
       Strings.budgetPlanAllocationInvalid,
     );
+  });
+
+  // A total of '0' is not a total. Coercing it to 0 made the helper line shout
+  // "over" on any allocation while Save reported the total itself as invalid --
+  // two messages for one unentered field. Both halves belong in one assertion:
+  // `allocationIsOver` is already false when nothing is allocated.
+  it('hides the allocation helper line while no plan total has been entered', async () => {
+    mockTotalText = '0';
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(() => result.current.setAllocateByCategory(true));
+    await act(() => result.current.setAllocationText('cat_food', '100'));
+
+    // Read before any submit: a successful save closes the sheet, and the
+    // hook's visibility effect resets the draft store, so every value derived
+    // from it reads as if nothing was ever typed.
+    expect(result.current.state.allocationHelperText).toBeUndefined();
+    expect(result.current.state.allocationIsOver).toBe(false);
+  });
+
+  // Layla row 21: `cat_transport` is never selected by the fixture, so the 600
+  // on it is an orphan. Fed the whole allocations record, the helper counted it
+  // against the 500 total and the sheet warned about an allocation the user
+  // cannot see. Written through `setAllocationText`, not the store, so the same
+  // call survives the store turning to text.
+  it('ignores an allocation on a category that is not selected', async () => {
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(() => result.current.setAllocateByCategory(true));
+    await act(() => result.current.setAllocationText('cat_transport', '600'));
+
+    // Read before any submit, for the reason given above.
+    expect(result.current.state.allocationIsOver).toBe(false);
   });
 });

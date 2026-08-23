@@ -23,11 +23,7 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
-import {
-  parseDecimalText,
-  parseNonNegativeDecimal,
-  parsePositiveDecimal,
-} from '@/utils/parse_decimal';
+import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
 import {
   spendingPlanFormSchema,
   spendingPlanInputSchema,
@@ -90,12 +86,16 @@ export function useSpendingPlanSheet({
     () => budgetableCategories.filter((category) => selectedCategoryIds.includes(category.id)),
     [budgetableCategories, selectedCategoryIds],
   );
-  // preview only
-  const totalAmount = parseNonNegativeDecimal(watch('totalText') || '0') ?? 0;
-  const safeTotalAmount = Number.isFinite(totalAmount) ? totalAmount : 0;
+  // preview only. An unentered total stays `undefined` rather than being
+  // coerced to 0, which is what made an allocated plan read as over-allocated
+  // before a total was typed.
+  const totalAmount = parsePositiveDecimal(watch('totalText'));
   const allocationHelper = computeAllocationHelper(
-    safeTotalAmount,
-    allocateByCategory ? allocations : {},
+    totalAmount,
+    // Mapped over the selected categories — the same expression the submit
+    // builds `categories` from — so an allocation left on a category the user
+    // has since deselected cannot count against the total.
+    allocateByCategory ? selectedCategoryIds.map((id) => allocations[id]) : [],
   );
 
   useEffect(() => {
@@ -180,11 +180,19 @@ export function useSpendingPlanSheet({
     datePickerTarget === 'end'
       ? endDate || `${selectedMonth}-01`
       : startDate || `${selectedMonth}-01`;
-  const helperText = Strings.budgetPlanAllocationHelper(
-    formatAmount(allocationHelper.allocated),
-    formatAmount(safeTotalAmount),
-    formatAmount(Math.max(0, allocationHelper.buffer)),
-  );
+  // Hidden, not zeroed: the line is `undefined` exactly when
+  // `parsePositiveDecimal(totalText)` is, and `sumAllocations` returns
+  // `buffer: undefined` for exactly that input. The two clauses are one
+  // condition; narrowing either does not narrow the other.
+  const { allocated, buffer } = allocationHelper;
+  const helperText =
+    buffer === undefined || totalAmount === undefined
+      ? undefined
+      : Strings.budgetPlanAllocationHelper(
+          formatAmount(allocated),
+          formatAmount(totalAmount),
+          formatAmount(Math.max(0, buffer)),
+        );
 
   return {
     state: {

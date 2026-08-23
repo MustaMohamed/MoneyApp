@@ -12,7 +12,7 @@ interface SpendingPlanAllocationsProps {
   onEnabledChange: (enabled: boolean) => void;
   selectedCategories: Category[];
   values: Record<string, number | undefined>;
-  helperText: string;
+  helperText?: string;
   isOver: boolean;
   onAllocationTextChange: (categoryId: string, text: string) => void;
   onFocus: (event: FocusEvent) => void;
@@ -34,7 +34,9 @@ export function SpendingPlanAllocations(props: SpendingPlanAllocationsProps) {
       </View>
       {props.isEnabled ? (
         <View className="gap-2">
-          <Text className="font-inter text-muted text-[11px]">{props.helperText}</Text>
+          {props.helperText === undefined ? null : (
+            <Text className="font-inter text-muted text-[11px]">{props.helperText}</Text>
+          )}
           {props.isOver ? (
             <Text className="font-inter text-danger mt-2 text-[11px]">
               {Strings.budgetPlanAllocationOver}

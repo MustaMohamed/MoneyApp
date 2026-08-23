@@ -797,19 +797,47 @@ describe('spending plan helpers', () => {
   });
 
   it('allows allocations below the total and reports buffer', () => {
-    expect(computeAllocationHelper(8000, { cat_food: 3000 })).toEqual({
+    expect(computeAllocationHelper(8000, [3000])).toEqual({
       allocated: 3000,
       buffer: 5000,
       isOver: false,
     });
   });
 
+  // The array parameter is the guard: it stops compiling the moment the
+  // signature is re-widened to accept a record keyed by category, which is
+  // what let an allocation on a deselected category count against the total.
   it('marks allocations above the total as invalid', () => {
-    expect(computeAllocationHelper(5000, { cat_food: 3000, cat_travel: 3000 })).toEqual({
+    expect(computeAllocationHelper(5000, [3000, 3000])).toEqual({
       allocated: 6000,
       buffer: -1000,
       isOver: true,
     });
+  });
+
+  it('treats an unparseable allocation as contributing 0', () => {
+    expect(computeAllocationHelper(100, [40, undefined]).allocated).toBe(40);
+  });
+
+  // Float subtraction gives -0.4000000000000057 here; only the integer-cents
+  // basis reports the buffer the user is shown.
+  it('reports an exact negative buffer when the allocations overshoot', () => {
+    expect(computeAllocationHelper(100, [100.4]).buffer).toBe(-0.4);
+  });
+
+  it('reports no buffer and no overage while the total is unentered', () => {
+    expect(computeAllocationHelper(undefined, [40])).toEqual({
+      allocated: 40,
+      buffer: undefined,
+      isOver: false,
+    });
+  });
+
+  // Regression pin, not a gate: -0 is unreachable under integer cents, since
+  // `a - b` with `a === b` is +0. Kept because a signed zero renders as
+  // "-0.00" and the display rule owns that.
+  it('never reports a negative zero buffer', () => {
+    expect(Object.is(computeAllocationHelper(100, [100]).buffer, 0)).toBe(true);
   });
 
   it('builds compact allocation, category, and overflow chips for plan cards', () => {
