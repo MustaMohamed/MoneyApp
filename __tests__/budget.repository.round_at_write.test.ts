@@ -18,7 +18,9 @@ import {
   BudgetRepository,
   SpendingPlanValidationError,
 } from '@/modules/budget/repositories/budget.repository';
+import { validateAllocationText } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
 import { getSQLiteParams } from '@/test_helpers/sqlite';
+import { formatStoredAllocationText } from '@/utils/money_text';
 
 jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
@@ -254,5 +256,123 @@ describe('BudgetRepository.setSpendingPlan — rounds at the first statement, up
     ).rejects.toThrow(SpendingPlanValidationError);
 
     expect(countSpendingPlans()).toBe(0);
+  });
+});
+
+// MA-020 c2. What the sheet does on an edit is: prefill each row's text with
+// formatStoredAllocationText, validate it with validateAllocationText, and
+// submit the parsed value. These cases run that chain against the real column
+// so "open the plan, press Save, change nothing" is asserted end to end rather
+// than reasoned about. None of them is a gate -- they are the guarantees the
+// `?? 0` finding needed, and they stay green only while the three states
+// (NULL, deliberate 0, a real amount) stay distinct.
+describe('BudgetRepository.setSpendingPlan — open then save unchanged', () => {
+  const PLAN_ID = 'plan-existing';
+  const START_DATE = '2026-08-20';
+  const END_DATE = '2026-08-21';
+
+  function seedPlan(rows: Array<{ categoryId: string; allocatedAmount: number | null }>): void {
+    realDb
+      .prepare(
+        'INSERT INTO spending_plans (id, name, start_date, end_date, total_amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(PLAN_ID, 'Existing plan', START_DATE, END_DATE, 1000, NOW_ISO, NOW_ISO);
+    for (const row of rows) {
+      realDb
+        .prepare(
+          'INSERT INTO spending_plan_categories (plan_id, category_id, allocated_amount) VALUES (?, ?, ?)',
+        )
+        .run(PLAN_ID, row.categoryId, row.allocatedAmount);
+    }
+  }
+
+  /** The sheet's own round trip: stored value -> field text -> parsed value. */
+  async function saveUnchanged(): Promise<void> {
+    const stored = realDb
+      .prepare(
+        'SELECT category_id, allocated_amount FROM spending_plan_categories WHERE plan_id = ? ORDER BY category_id',
+      )
+      .all(PLAN_ID) as Array<{ category_id: string; allocated_amount: number | null }>;
+    const categories = stored.map((row) => {
+      const validation = validateAllocationText(formatStoredAllocationText(row.allocated_amount));
+      if (!validation.ok)
+        throw new Error(`prefill did not survive its own validator: ${row.category_id}`);
+      return { categoryId: row.category_id, allocatedAmount: validation.value };
+    });
+    await new BudgetRepository().setSpendingPlan({
+      id: PLAN_ID,
+      name: 'Existing plan',
+      startDate: START_DATE,
+      endDate: END_DATE,
+      totalAmount: 1000,
+      categories,
+    });
+  }
+
+  it('leaves a NULL allocation NULL, and a deliberate 0 at 0', async () => {
+    seedPlan([
+      { categoryId: 'cat_food', allocatedAmount: null },
+      { categoryId: 'cat_groceries', allocatedAmount: 0 },
+    ]);
+
+    await saveUnchanged();
+
+    // Read with an explicit IS NULL predicate, for the reason at :214-217: the
+    // column CHECK accepts 0 happily, so a collapse to 0 passes a loose read.
+    const isNullRow = realDb
+      .prepare(
+        'SELECT allocated_amount IS NULL AS is_null FROM spending_plan_categories WHERE plan_id = ? AND category_id = ?',
+      )
+      .get(PLAN_ID, 'cat_food') as { is_null: number };
+    expect(isNullRow.is_null).toBe(1);
+    expect(readAllocatedAmount(PLAN_ID, 'cat_groceries')).toBe(0);
+  });
+
+  // The standing round-at-write contract, not a Q7 defect: a legacy row above
+  // the floor but beyond 2dp is rounded by an unrelated save, exactly as a
+  // freshly typed 12.345 would be. Asserted explicitly so nobody later reads
+  // it as a regression and "fixes" it.
+  it('rounds a legacy sub-piastre allocation to 2dp on an unrelated save', async () => {
+    seedPlan([{ categoryId: 'cat_food', allocatedAmount: 12.345 }]);
+
+    await saveUnchanged();
+
+    expect(readAllocatedAmount(PLAN_ID, 'cat_food')).toBe(12.34);
+  });
+
+  // Row 24's NaN -> NULL net, in jest rather than on the emulator. SQLite binds
+  // a JS NaN to a REAL column as NULL without complaint, so a NaN that reached
+  // the write path would read back as "unallocated" and look like a user
+  // choice. `text` would mean the raw field text leaked through the store
+  // inversion without ever being parsed.
+  it('stores every allocation as REAL or NULL, never as text', async () => {
+    const repo = new BudgetRepository();
+    await repo.setSpendingPlan({
+      name: 'Typed, zero, blank',
+      startDate: '2026-08-25',
+      endDate: '2026-08-26',
+      totalAmount: 1000,
+      categories: [
+        { categoryId: 'cat_food', allocatedAmount: 40.5 },
+        { categoryId: 'cat_groceries', allocatedAmount: 0 },
+        { categoryId: 'cat_dining_out' },
+      ],
+    });
+
+    const rows = realDb
+      .prepare(
+        'SELECT category_id, allocated_amount, typeof(allocated_amount) AS column_type FROM spending_plan_categories WHERE plan_id = ? ORDER BY category_id',
+      )
+      .all('generated-1') as Array<{
+      category_id: string;
+      allocated_amount: number | null;
+      column_type: string;
+    }>;
+
+    expect(rows).toEqual([
+      { category_id: 'cat_dining_out', allocated_amount: null, column_type: 'null' },
+      { category_id: 'cat_food', allocated_amount: 40.5, column_type: 'real' },
+      { category_id: 'cat_groceries', allocated_amount: 0, column_type: 'real' },
+    ]);
   });
 });
