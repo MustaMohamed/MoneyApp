@@ -8,7 +8,7 @@ import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { toLocalDateString } from '@/utils/format_date';
-import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -17,21 +17,55 @@ import { commitmentRepository } from '../../../../repositories/commitment.reposi
 import { useCommitmentStore } from '../../../../store/commitment.store';
 import { usePaySheetState } from './pay_sheet.state';
 
-const schema = z.object({
-  amount: z
-    .number({ error: Strings.commitmentsPayErrAmountRequired })
-    .refine((v) => v >= MIN_MONEY_AMOUNT, Strings.commitmentsPayErrAmountMin),
-  account_id: z.string().min(1, Strings.commitmentsPayErrAccountRequired),
-  paid_date: z.string().min(1),
-  exchange_rate: z.number().positive().optional(),
-  notes: z.string().optional(),
-});
+// A factory, not a module constant: the rate refine has to know whether this
+// payment crosses currencies, and that is derived from the account the form
+// holds. Closing over the boolean would be a cycle (schema -> form -> watch ->
+// account -> boolean), so the flag is re-derived from `data` at validation
+// time. Same shape as the transaction form's `createSchema`.
+function createPaySheetSchema(commitment: Commitment | undefined, accounts: Account[]) {
+  return z
+    .object({
+      amountText: z
+        .string()
+        .min(1, Strings.commitmentsPayErrAmountRequired)
+        .refine((s) => parseDecimalText(s) !== undefined, Strings.errAmountInvalid)
+        .refine((s) => parsePositiveDecimal(s) !== undefined, Strings.commitmentsPayErrAmountMin),
+      account_id: z.string().min(1, Strings.commitmentsPayErrAccountRequired),
+      paid_date: z.string().min(1),
+      exchange_rate: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      // Must match `requiresRate` below on every input, including its
+      // !selectedAccount guard — `onValid` gates the snapshot on that one.
+      const acc = accounts.find((a) => a.id === data.account_id);
+      const needsRate =
+        !!commitment &&
+        !!acc &&
+        (commitment.currency === Currency.USD || acc.currency === Currency.USD);
+      if (needsRate) {
+        if (!data.exchange_rate) {
+          ctx.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrRateRequired,
+            path: ['exchange_rate'],
+          });
+        } else if (parsePositiveDecimal(data.exchange_rate) === undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrRateInvalid,
+            path: ['exchange_rate'],
+          });
+        }
+      }
+    });
+}
 
-type PaySheetFormValues = z.infer<typeof schema>;
+type PaySheetFormValues = z.infer<ReturnType<typeof createPaySheetSchema>>;
 
 function buildDefaults(): PaySheetFormValues {
   return {
-    amount: 0,
+    amountText: '',
     account_id: '',
     paid_date: toLocalDateString(new Date()),
     exchange_rate: undefined,
@@ -70,6 +104,8 @@ export function usePaySheet(
   );
 
   const markAsPaid = useCommitmentStore.getState().markAsPaid;
+
+  const schema = useMemo(() => createPaySheetSchema(commitment, accounts), [commitment, accounts]);
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
@@ -126,13 +162,13 @@ export function usePaySheet(
 
       if (!cancelled) {
         form.reset({
-          amount: prefillAmount,
+          amountText: prefillAmount > 0 ? String(prefillAmount) : '',
           account_id: prefillAccountId,
           paid_date: toLocalDateString(new Date()),
           exchange_rate:
             commitment.currency === Currency.USD ||
             accounts.find((account) => account.id === prefillAccountId)?.currency === Currency.USD
-              ? rate
+              ? String(rate)
               : undefined,
           notes: undefined,
         });
@@ -153,10 +189,14 @@ export function usePaySheet(
     setSaving(true);
     try {
       await markAsPaid(payment.id, {
-        amount_paid: data.amount,
+        // Both `??` fallbacks are unreachable once the schema has passed —
+        // kept because deleting them costs a cast or a non-null assertion.
+        amount_paid: parsePositiveDecimal(data.amountText) ?? Number.NaN,
         account_id: data.account_id,
         paid_date: data.paid_date,
-        exchange_rate_snapshot: requiresRate ? (data.exchange_rate ?? rate) : undefined,
+        exchange_rate_snapshot: requiresRate
+          ? (parsePositiveDecimal(data.exchange_rate ?? '') ?? rate)
+          : undefined,
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });

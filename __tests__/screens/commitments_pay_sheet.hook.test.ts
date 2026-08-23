@@ -204,7 +204,7 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     // prefill runs in a useEffect; flush microtasks
     await act(async () => {});
-    expect(result.current.form.getValues('amount')).toBe(15);
+    expect(result.current.form.getValues('amountText')).toBe('15');
     expect(result.current.form.getValues('paid_date')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
@@ -245,9 +245,9 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-usd');
-      result.current.form.setValue('amount', 15);
+      result.current.form.setValue('amountText', '15');
       result.current.form.setValue('paid_date', '2026-05-20');
-      result.current.form.setValue('exchange_rate', 99);
+      result.current.form.setValue('exchange_rate', '99');
     });
     expect(result.current.state.requiresRate).toBe(true);
     await act(async () => {
@@ -264,9 +264,9 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
-      result.current.form.setValue('amount', 15);
+      result.current.form.setValue('amountText', '15');
       result.current.form.setValue('paid_date', '2026-05-20');
-      result.current.form.setValue('exchange_rate', 52);
+      result.current.form.setValue('exchange_rate', '52');
     });
     expect(result.current.state.requiresRate).toBe(true);
     await act(async () => {
@@ -284,7 +284,7 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-1');
-      result.current.form.setValue('amount', 0.005);
+      result.current.form.setValue('amountText', '0.005');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
     await act(async () => {
@@ -294,7 +294,7 @@ describe('usePaySheet', () => {
     // formState.errors is a vacuous read under renderHook (MA-008 T6) — RHF
     // only re-renders it once something has READ it during a render, which
     // nothing here does. getFieldState reads the live field directly.
-    expect(result.current.form.getFieldState('amount').error?.message).toBe(
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(
       Strings.commitmentsPayErrAmountMin,
     );
   });
@@ -306,14 +306,14 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-1');
-      result.current.form.setValue('amount', 0.006);
+      result.current.form.setValue('amountText', '0.006');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
     await act(async () => {
       await result.current.onSubmit();
     });
     expect(mockMarkAsPaid).not.toHaveBeenCalled();
-    expect(result.current.form.getFieldState('amount').error?.message).toBe(
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(
       Strings.commitmentsPayErrAmountMin,
     );
   });
@@ -322,7 +322,7 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-1');
-      result.current.form.setValue('amount', 0.01);
+      result.current.form.setValue('amountText', '0.01');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
     await act(async () => {
@@ -340,7 +340,7 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
-      result.current.form.setValue('amount', 15);
+      result.current.form.setValue('amountText', '15');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
 

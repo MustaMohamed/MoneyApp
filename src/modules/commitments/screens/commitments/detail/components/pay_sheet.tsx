@@ -17,6 +17,7 @@ import { AccountPickerSheet } from '@/modules/accounts/components/account_picker
 import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
+import { parseDecimalText } from '@/utils/parse_decimal';
 import { ms } from '@/utils/responsive';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -49,18 +50,16 @@ export function PaySheet({ commitment, payment }: Props) {
     payment?.status === CommitmentPaymentStatus.Skipped;
   const isVariable = commitment?.amount_type === AmountType.Variable;
 
-  const amountError = form.formState.errors.amount?.message;
+  const amountError = form.formState.errors.amountText?.message;
   const accountError = form.formState.errors.account_id?.message;
   const rateError = form.formState.errors.exchange_rate?.message;
 
   const payAccount = state.selectedAccount;
-  const exchangeRateStr = state.exchangeRateValue != null ? String(state.exchangeRateValue) : '';
-  const amountWatch = form.watch('amount');
+  const amountWatch = parseDecimalText(form.watch('amountText')) ?? 0;
   const paidDate = form.watch('paid_date');
+  const rateNum = parseDecimalText(state.exchangeRateValue ?? '');
   const convertedTotal =
-    state.requiresRate && state.exchangeRateValue && state.exchangeRateValue > 0
-      ? amountWatch * state.exchangeRateValue
-      : undefined;
+    state.requiresRate && rateNum && rateNum > 0 ? amountWatch * rateNum : undefined;
 
   const paidDateAsDate = paidDate ? new Date(paidDate + 'T00:00:00') : new Date();
 
@@ -121,14 +120,11 @@ export function PaySheet({ commitment, payment }: Props) {
               <View style={{ flex: 1 }}>
                 <Controller
                   control={form.control}
-                  name="amount"
+                  name="amountText"
                   render={({ field }) => (
                     <Input
-                      value={field.value > 0 ? String(field.value) : ''}
-                      onChangeText={(v) => {
-                        const parsed = parseFloat(v);
-                        field.onChange(isNaN(parsed) ? 0 : parsed);
-                      }}
+                      value={field.value}
+                      onChangeText={field.onChange}
                       onFocus={onFocus}
                       onBlur={onBlur}
                       keyboardType="decimal-pad"
@@ -199,13 +195,8 @@ export function PaySheet({ commitment, payment }: Props) {
           {/* Exchange rate (conditional) */}
           {state.requiresRate ? (
             <ExchangeRateRow
-              value={exchangeRateStr}
-              onChange={(v) => {
-                const parsed = parseFloat(v);
-                form.setValue('exchange_rate', isNaN(parsed) ? undefined : parsed, {
-                  shouldValidate: false,
-                });
-              }}
+              value={state.exchangeRateValue ?? ''}
+              onChange={(v) => form.setValue('exchange_rate', v, { shouldValidate: false })}
               overrideEnabled={state.rateOverride}
               onToggleOverride={toggleRateOverride}
               rateUpdatedAt={state.rateUpdatedAt}
