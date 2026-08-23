@@ -59,14 +59,14 @@ outcome.
 Same rule, two modules, no exceptions: **the rounded value is the one that gets validated, derived
 from, and written.**
 
-The converse total `1.00` with allocations `[0.5049, 0.5049]` does **not** silently pass end to
+~~The converse total `1.00` with allocations `[0.5049, 0.5049]` does **not** silently pass end to
 end, even though the repository's own check would let it through in isolation: `setSpendingPlan`
 rounds first, so `validateSpendingPlanInput` (`budget.repository.ts:439`) sees `[0.50, 0.50]`
 against a rounded total of `1.00` — exact, and it passes. But `spending_plan_sheet.hook.ts:149`
 runs the identical schema against the **raw**, pre-rounding input first, and raw sum `1.0098` is
 over the raw total `1.00`, so the hook's own check rejects it with `budgetPlanAllocationOver`
 before `setSpendingPlan` is ever called — `budget.store.ts:284` is the repository method's only
-caller, reached only once that check has passed. Verified by execution:
+caller, reached only once that check has passed. Verified by execution:~~
 
 ```
 raw sum 1.0098 | rounded [0.5, 0.5]
@@ -74,12 +74,22 @@ RAW   (hook, pre-round)    success = false  Allocations exceed the plan total.
 ROUNDED (repo, post-round) success = true
 ```
 
-So the two example totals are not symmetric the way they first look. `[0.335, 0.335, 0.33]`'s raw
+~~So the two example totals are not symmetric the way they first look. `[0.335, 0.335, 0.33]`'s raw
 sum lands exactly on the total (`1.00`, not over), so the hook's raw check passes it through, and
 only the repository's post-rounding check — reached as defence-in-depth — catches the rounded
 overage. `[0.5049, 0.5049]`'s raw sum is already over, so the hook's raw check catches it first and
 the repository check never runs. Both end in the same user-visible outcome — `budgetPlanAllocationOver`,
-nothing written — just at different layers. There is no accepted converse case to record.
+nothing written — just at different layers. There is no accepted converse case to record.~~
+
+**Superseded by Addendum A (MA-020).** Both struck paragraphs above describe a layer split this
+merge removes. Under the integer-cents basis the hook and the repository run the identical
+comparison, so neither example is decided by which layer sees it first. `[0.335, 0.335, 0.33]` is
+rejected at the **hook** — `34 + 34 + 33 = 101 > 100` — and `setSpendingPlan` is never reached;
+on `main` it passed the hook, because `0.335 + 0.335 + 0.33 === 1` exactly and `1 > 1` is false,
+and only the repository's post-rounding check caught it. `[0.5049, 0.5049]` is **accepted at
+both** — `50 + 50 = 100`, not over — and is written as `[0.50, 0.50]`: the accepted converse case
+the struck text said did not exist. The execution block above records the old behaviour and is
+retained for that purpose. See Addendum A, points 2 and 3.
 
 ## 3. The three classes and their coverage
 
@@ -293,3 +303,58 @@ call site outside the allowlist (§5) and is not in this ticket's diff at all.
   `undefined` before the call rather than exercising the overload, so this is not where
   `roundMoney`'s `null` overload is actually used in production — see §3's row 3 note above for the
   real caller.
+
+## Addendum A — the allocation-sum comparison moves to an integer-cents basis (MA-020)
+
+2026-08-23, `#304` / `#303`. Amends §2. §1's rule, §3's classes, §5's exception and §6's
+invariant are unchanged.
+
+1. **The basis.** The spending-plan allocation-sum-versus-total comparison no longer compares
+   floats. It runs on integer cents through `toCents(n) = Math.round(roundMoney(n) * 100)` and
+   `sumAllocations(amounts, total)`, both in `src/utils/money.ts`. `roundMoney` moves *inside*
+   `toCents`, so §6's allowlist is satisfied by construction rather than by exception —
+   `src/utils/money.ts` is the only file in which MA-020 **adds a `roundMoney` call**, and check 1
+   still resolves to one file. Check 1 is over added call sites, not textual mentions — this
+   addendum names `roundMoney` in prose several times and adds no call site anywhere.
+   `budget.schema.ts`'s `superRefine` and
+   `spending_plans.helpers.ts`'s `computeAllocationHelper` both delegate to `sumAllocations`, so
+   the live preview and the save gate cannot disagree. `#303`'s literal proposal
+   (`Math.round(x * 100)`, without `roundMoney`) was rejected: it diverges from the persisted
+   value at every exact half-cent — 9,999 of 199,999 sampled values, 5.0%, all ties.
+
+2. **§2's `[0.5049, 0.5049]` execution changes verdict at the hook layer.** Under integer cents,
+   `toCents(0.5049)` is `50` twice, `100 > 100` is false, and the plan is **accepted** — where
+   `main@8a0d104` rejected it on the raw sum `1.0098 > 1.00`. This is the correct outcome under
+   §2's own stated principle: the values that get written are `[0.50, 0.50]`, which are exact
+   against `1.00`. The two-layer structure is unchanged and both `safeParse` calls stay — the
+   repository's is the only guard `setSpendingPlanRow` and `replaceSpendingPlanCategoryRows` have
+   for any future non-sheet caller. What is gone, for this check specifically, is the property
+   §2 called defence-in-depth: the layers no longer compute different things, so the second one
+   no longer catches what the first missed. Keep both calls for guard coverage; stop describing
+   them as independently verifying.
+
+3. **§2's `[0.335, 0.335, 0.33]` example keeps its verdict, changes its layer, and its test still
+   passes.** `0.335 * 100` is exactly `33.5`, so the roundMoney-based and bare-`Math.round`
+   derivations agree: `34 + 34 + 33 = 101 > 100`, rejected under either. The rejection is what is
+   unaffected; **where it happens is not.** On `main@8a0d104` only the **repository** rejected this
+   — it rounds to `[0.34, 0.34, 0.33]` before validating — while the hook passed it through, since
+   the raw sum is exactly `1.00` and `1 > 1` is false. Under integer cents the hook rejects it too
+   and `setSpendingPlan` is never called.
+   `__tests__/budget.repository.round_at_write.test.ts:227-253` invokes the repository directly, so
+   it is untouched by that shift and passes with **no assertion edited**, verified by execution.
+   Its comment at `:227-234` did not survive: `:229` said these raw values "pass the hook's own
+   pre-check", which was true of `main@8a0d104` and is false the moment the basis changes, so
+   MA-020 corrects that clause in the same commit that changes the basis. The record of the old
+   layering is this point, in this addendum — not a sentence left standing in a test file after it
+   stopped being true. Recorded here so nobody "fixes" that test's assertions while changing the
+   basis, and so nobody restores the struck clause.
+
+4. **Display precision on the running-total line.** `Strings.budgetPlanAllocationHelper`'s three
+   interpolations render at a fixed 2dp via a named `SPENDING_PLAN_ALLOCATION_DECIMALS` constant
+   passed to `formatAmount`'s own `decimals` parameter, and the `Math.max(0, buffer)` clamp is
+   deleted so an over-allocated plan shows its true signed buffer. This surface deliberately
+   overrides the currency display default: it is a live-entry confirmation line, not an at-rest
+   amount, so `formatDisplayMagnitude`'s escalate-on-zero rule is the wrong instrument — `45.40`
+   renders `"45"` at EGP's 0dp, silently wrong and never literally zero, so escalation never
+   fires. Cross-referenced from
+   `docs/adr/2026-08-21-currency-aware-display-decimals.md`.

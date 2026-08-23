@@ -229,6 +229,11 @@ recorded in an ADR — the obligation `exchange_rate_row.tsx`'s prior bare liter
 - **The in/out line is: files this ticket already opens.** `hero_card.tsx:225` is in because
   chunk D opens that file anyway; the four sites above are out because nothing else in this
   ticket touches those files.
+- **MA-020 adds one sanctioned override outside this ADR's rule.** The spending-plan
+  running-total line renders at a fixed 2dp rather than `CURRENCY_CONFIG`'s precision or §2.1's
+  escalate-on-zero rule, because it is a live-entry confirmation of what the user is typing, not
+  an at-rest amount. Recorded in
+  `docs/adr/2026-08-22-money-rounding-layer.md` Addendum A §4.
 
 Do not amend `docs/adr/2026-08-18-starting-net-position.md` §6 from here — it is stale for a
 separate reason (#276), not this ticket's.
