@@ -21,10 +21,12 @@ export function isTypeableMoneyText(text: string): boolean {
  * expansion is string surgery rather than a `toFixed`/`toLocaleString`
  * recomputation.
  *
- * The `(-?)` capture and the `${sign}` it re-emits are unreachable from the
- * allocation prefill — `spending_plan_categories.allocated_amount` carries
- * `CHECK(allocated_amount IS NULL OR allocated_amount >= 0)` — but the branch
- * is not dead: this is a plain string utility any future caller can reach.
+ * The `(-?)` capture and the `${sign}` it re-emits are unreachable from either
+ * sheet prefill — `spending_plan_categories.allocated_amount` carries
+ * `CHECK(allocated_amount IS NULL OR allocated_amount >= 0)` and
+ * `spending_plans.total_amount` carries `CHECK(total_amount > 0)`
+ * (`migrations/014_create_spending_plans.ts:9`, `:18`) — but the branch is not
+ * dead: this is a plain string utility any future caller can reach.
  */
 function expandExponentialNotation(text: string): string {
   const match = /^(-?)(\d+)(?:\.(\d+))?e([+-]\d+)$/i.exec(text);
@@ -41,17 +43,25 @@ function expandExponentialNotation(text: string): string {
 }
 
 /**
- * Edit-mode prefill: the initial field text for a stored allocation. Never
+ * Edit-mode prefill: the initial field text for a stored money value — an
+ * allocation row, and the plan total that shares the sheet with it. Never
  * rounds and never formats for display — this text is re-parsed by the same
- * row validator a typed value goes through, so it has to equal what the
- * database actually holds rather than a display approximation of it. A stored
- * `0.005` therefore prefills as `'0.005'` and fails the row's floor check,
- * where `formatAmount(x, 2)` would render `'0.01'` and silently substitute a
- * value nobody entered.
+ * validator a typed value goes through, so it has to equal what the database
+ * actually holds rather than a display approximation of it. A stored `0.005`
+ * therefore prefills as `'0.005'` and fails the row's floor check, where
+ * `formatAmount(x, 2)` would render `'0.01'` and silently substitute a value
+ * nobody entered.
  *
- * `null`/`undefined` render as `''` — unallocated, never `'0'`.
+ * It also has to survive the keystroke mask, which runs on `onChangeText` and
+ * never on a programmatic prefill: `String(1e21)` is `'1e+21'`, the mask
+ * refuses it, and the field it prefilled cannot be backspaced. Hence the
+ * expansion above rather than a bare `String(value)`.
+ *
+ * `null`/`undefined` render as `''` — unallocated, never `'0'`. Neither column
+ * can deliver those to the plan total (`total_amount` is `NOT NULL`); the
+ * allocation column can.
  */
-export function formatStoredAllocationText(value: number | null | undefined): string {
+export function formatStoredMoneyText(value: number | null | undefined): string {
   if (value === null || value === undefined) return '';
   return expandExponentialNotation(String(value));
 }

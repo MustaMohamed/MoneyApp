@@ -27,7 +27,7 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
-import { formatStoredAllocationText, isTypeableMoneyText } from '@/utils/money_text';
+import { formatStoredMoneyText, isTypeableMoneyText } from '@/utils/money_text';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import {
   spendingPlanFormSchema,
@@ -133,7 +133,14 @@ export function useSpendingPlanSheet({
       return;
     }
     if (planSheetMode === 'edit' && editingPlan) {
-      resetForm({ nameText: editingPlan.name, totalText: String(editingPlan.totalAmount) });
+      // Not `String(editingPlan.totalAmount)`: the total goes through the same
+      // unbounded parser an allocation does, so a plan saved at 1e21 prefills
+      // as '1e+21', which the field's own keystroke mask refuses — leaving a
+      // total that cannot be backspaced (spec row 25, on this field).
+      resetForm({
+        nameText: editingPlan.name,
+        totalText: formatStoredMoneyText(editingPlan.totalAmount),
+      });
       useSpendingPlanSheetStore.getState().initEditMode({
         startDate: editingPlan.startDate,
         endDate: editingPlan.endDate,
@@ -141,7 +148,7 @@ export function useSpendingPlanSheet({
         allocations: Object.fromEntries(
           editingPlan.allocationRows.map((row) => [
             row.categoryId,
-            formatStoredAllocationText(row.allocatedAmount),
+            formatStoredMoneyText(row.allocatedAmount),
           ]),
         ),
         allocateByCategory: editingPlan.allocationRows.length > 0,

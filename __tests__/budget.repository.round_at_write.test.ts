@@ -20,7 +20,7 @@ import {
 } from '@/modules/budget/repositories/budget.repository';
 import { validateAllocationText } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
 import { getSQLiteParams } from '@/test_helpers/sqlite';
-import { formatStoredAllocationText } from '@/utils/money_text';
+import { formatStoredMoneyText } from '@/utils/money_text';
 
 jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
@@ -260,7 +260,7 @@ describe('BudgetRepository.setSpendingPlan — rounds at the first statement, up
 });
 
 // MA-020 c2. What the sheet does on an edit is: prefill each row's text with
-// formatStoredAllocationText, validate it with validateAllocationText, and
+// formatStoredMoneyText, validate it with validateAllocationText, and
 // submit the parsed value. These cases run that chain against the real column
 // so "open the plan, press Save, change nothing" is asserted end to end rather
 // than reasoned about. None of them is a gate -- they are the guarantees the
@@ -294,7 +294,7 @@ describe('BudgetRepository.setSpendingPlan — open then save unchanged', () => 
       )
       .all(PLAN_ID) as Array<{ category_id: string; allocated_amount: number | null }>;
     const categories = stored.map((row) => {
-      const validation = validateAllocationText(formatStoredAllocationText(row.allocated_amount));
+      const validation = validateAllocationText(formatStoredMoneyText(row.allocated_amount));
       if (!validation.ok)
         throw new Error(`prefill did not survive its own validator: ${row.category_id}`);
       return { categoryId: row.category_id, allocatedAmount: validation.value };

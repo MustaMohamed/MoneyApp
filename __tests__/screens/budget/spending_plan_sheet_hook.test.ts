@@ -190,7 +190,7 @@ describe('useSpendingPlanSheet', () => {
   // pre-MA-018 plan whose allocated_amount was saved sub-cent (the old
   // parseLimit-era path let this through) now shows the field error on
   // save rather than silently persisting again. The stored 0.005 prefills
-  // verbatim through formatStoredAllocationText -- never rounded to '0.01',
+  // verbatim through formatStoredMoneyText -- never rounded to '0.01',
   // which would pass the floor and save a value nobody entered (@layla Q7).
   it('a legacy plan with a stored sub-cent allocation rejects at save, untouched', async () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
@@ -233,6 +233,35 @@ describe('useSpendingPlanSheet', () => {
       Strings.budgetPlanAllocationBelowMin,
     );
     expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+  });
+
+  // The prefill hazard row 25 states, on the plan total rather than on an
+  // allocation row: the mask runs on `onChangeText` and never on a programmatic
+  // prefill, so a prefill the mask would refuse leaves a field that cannot be
+  // backspaced -- the keystroke is a silent no-op. `String(1e21)` is '1e+21',
+  // which the mask refuses, and 1e21 is reachable by typing 22 digits into a
+  // field whose parser has no upper bound. The literal is asserted rather than
+  // the mask's verdict on it because a `expect(mask(prefill)).toBe(true)` beside
+  // it would be implied by this line and could not fail on its own.
+  it('prefills an edit-mode plan total as plain digits, never exponent notation', async () => {
+    useBudgetStore.setState({ setSpendingPlan: jest.fn().mockResolvedValue(undefined) });
+    const editingPlan = {
+      id: 'plan-huge',
+      name: 'Huge Plan',
+      startDate: '2026-07-01',
+      endDate: '2026-07-31',
+      totalAmount: 1e21,
+      categoryChips: [],
+      allocationRows: [],
+    } as unknown as Parameters<typeof useSpendingPlanSheet>[0]['editingPlan'];
+
+    mockResetForm.mockClear();
+    useBudgetState.getState().openEditPlan('plan-huge');
+    await renderHook(() => useSpendingPlanSheet({ budgetableCategories: categories, editingPlan }));
+
+    await waitFor(() => expect(mockResetForm).toHaveBeenCalled());
+    const [prefill] = mockResetForm.mock.calls[0] as [{ nameText: string; totalText: string }];
+    expect(prefill.totalText).toBe('1000000000000000000000');
   });
 
   // A total of '0' is not a total. Coercing it to 0 made the helper line shout
