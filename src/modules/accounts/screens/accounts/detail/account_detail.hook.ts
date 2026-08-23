@@ -9,6 +9,7 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 import { DEFAULT_ACCOUNT_COLOR } from '../../../constants/account_palette';
 import { useAccountStore } from '../../../store/account.store';
 import { useAccountDetailState } from './account_detail.state';
+import { useAdjustBalanceSheetState } from './components/adjust_balance_sheet.state';
 
 export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -113,6 +114,15 @@ export function useAccountDetail() {
     try {
       await adjustBalance(id, newBalance);
       setAdjustVisible(false);
+    } catch (error) {
+      // The store logs and rethrows. Without this catch the rejection escaped
+      // into the sheet's non-async onPress and became an unhandled rejection:
+      // the sheet stayed open, the button went idle and nothing was said
+      // (.claude/rules/review.md class 1). Surfaced through the sheet's own
+      // error channel — the one errBalanceInvalid already uses — because that
+      // is where the user is looking when they tap Save Balance.
+      console.error('[accountDetail] adjustBalance failed:', error);
+      useAdjustBalanceSheetState.getState().setError(Strings.adjustBalanceSaveError);
     } finally {
       setAdjusting(false);
     }

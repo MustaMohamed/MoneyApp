@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { Strings } from '@/constants/strings';
 import { useAccountDetail } from '@/modules/accounts/screens/accounts/detail/account_detail.hook';
 import { useAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
+import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
@@ -34,6 +35,7 @@ const mockSetConfirmingBalanceReview = jest.fn();
 const mockSetBalanceReviewError = jest.fn();
 const mockReset = jest.fn();
 const mockConfirmBalanceReviewed = jest.fn();
+const mockAdjustBalance = jest.fn();
 
 type DetailStateMock = {
   isEditing: boolean;
@@ -91,10 +93,13 @@ function setup() {
     accounts: [],
     updateAccount: jest.fn(),
     archiveAccount: jest.fn(),
-    adjustBalance: jest.fn(),
+    adjustBalance: mockAdjustBalance,
     confirmBalanceReviewed: mockConfirmBalanceReviewed,
   }));
   mockDetailState();
+  // The sheet's error store is the real one — mocking it would mock the thing
+  // these assertions claim to verify (.claude/rules/tests.md).
+  useAdjustBalanceSheetState.getState().reset();
 }
 
 describe('useAccountDetail', () => {
@@ -164,6 +169,47 @@ describe('useAccountDetail', () => {
 
     expect(mockConfirmBalanceReviewed).not.toHaveBeenCalled();
     expect(mockSetConfirmingBalanceReview).not.toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------------
+  // P8 cycle 3 — H2. `handleAdjustBalance` was try/finally with no catch and
+  // `account.store` rethrows, so a repository failure escaped into the sheet's
+  // non-async onPress: unhandled rejection, sheet still open, button idle,
+  // nothing said. Same class the pay sheet's D7 fixed one screen over.
+  // ---------------------------------------------------------------------
+
+  it('closes the adjust sheet on a successful balance adjust', async () => {
+    mockAdjustBalance.mockResolvedValue(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleAdjustBalance(1500));
+
+    expect(mockAdjustBalance).toHaveBeenCalledWith('acc-1', 1500);
+    expect(mockSetAdjustVisible).toHaveBeenCalledWith(false);
+    expect(useAdjustBalanceSheetState.getState().error).toBe('');
+    expect(mockSetAdjusting).toHaveBeenLastCalledWith(false);
+  });
+
+  it('H2: surfaces a failed balance adjust and leaves the sheet open', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation();
+    const failure = new Error('db write failed');
+    mockAdjustBalance.mockRejectedValue(failure);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    // Resolving rather than rejecting IS the unhandled-rejection assertion:
+    // the sheet calls this from a handler whose return value is discarded, so
+    // anything that escapes here has nowhere left to be caught.
+    await act(async () => {
+      await expect(result.current.handleAdjustBalance(1500)).resolves.toBeUndefined();
+    });
+
+    expect(useAdjustBalanceSheetState.getState().error).toBe(Strings.adjustBalanceSaveError);
+    // Not the parse error — the two need different remedies from the user.
+    expect(useAdjustBalanceSheetState.getState().error).not.toBe(Strings.errBalanceInvalid);
+    expect(mockSetAdjustVisible).not.toHaveBeenCalledWith(false);
+    expect(mockSetAdjusting).toHaveBeenLastCalledWith(false);
+    expect(consoleError).toHaveBeenCalledWith('[accountDetail] adjustBalance failed:', failure);
+    consoleError.mockRestore();
   });
 
   it('leaves edit mode instead of navigating back when editing', async () => {

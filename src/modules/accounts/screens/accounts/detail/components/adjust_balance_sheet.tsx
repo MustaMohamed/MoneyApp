@@ -20,7 +20,9 @@ interface AdjustBalanceSheetProps {
   currentBalance: number;
   currency: Currency;
   onOpenChange: (open: boolean) => void;
-  onSave: (newBalance: number) => void;
+  // Promise-returning on purpose: `handleSave` awaits it, so the caller's
+  // rejection cannot become an unhandled one on the way out of a void handler.
+  onSave: (newBalance: number) => void | Promise<void>;
   isLoading: boolean;
 }
 
@@ -48,14 +50,16 @@ export function AdjustBalanceSheet({
     }
   }, [isOpen, currentBalance, initialize]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const result = parseAdjustInput(input);
     if (!result.ok) {
       setError(Strings.errBalanceInvalid);
       return;
     }
+    // Clear the parse error before the write, so a save failure replaces it
+    // rather than sitting under it.
     setError('');
-    onSave(result.value);
+    await onSave(result.value);
   };
 
   const footer = (
@@ -71,7 +75,7 @@ export function AdjustBalanceSheet({
         <Button
           variant="primary"
           label={Strings.adjustBalanceSave}
-          onPress={handleSave}
+          onPress={() => void handleSave()}
           isDisabled={isLoading}
           isLoading={isLoading}
         />
