@@ -359,4 +359,127 @@ describe('usePaySheet', () => {
     );
     consoleSpy.mockRestore();
   });
+
+  // MA-019 spec §3 A1/A2 — the contract for what a TYPED STRING produces.
+  // Before this ticket nothing on either path asserted that: every test
+  // entered an already-numeric value, so parseFloat's corruptions all
+  // survived a green CI.
+
+  async function submitAmount(typed: string) {
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-1');
+      result.current.form.setValue('amountText', typed);
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    return result;
+  }
+
+  // `expectedAmountPaid` is what the hook hands the STORE — the parsed,
+  // unrounded value. roundMoney runs later, inside the repository's resolver,
+  // which is why A1-16 is 10.999 here and 11 in the database (pinned by
+  // commitment.repository.mark_as_paid.test.ts).
+  it.each([
+    ['A1-01', '12.34', 12.34],
+    ['A1-02', '1,234.56', 1234.56],
+    ['A1-12', '0.01', 0.01],
+    ['A1-16', '10.999', 10.999],
+  ] as const)('%s: accepts "%s" and hands the store %p', async (_id, typed, expected) => {
+    const result = await submitAmount(typed);
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    const arg = mockMarkAsPaid.mock.calls[0][1] as { amount_paid: number };
+    expect(arg.amount_paid).toBe(expected);
+    expect(result.current.form.getFieldState('amountText').error).toBeUndefined();
+  });
+
+  it.each([
+    ['A1-03', '12.', Strings.errAmountInvalid],
+    ['A1-04', '.5', Strings.errAmountInvalid],
+    ['A1-05', '', Strings.commitmentsPayErrAmountRequired],
+    ['A1-06', '   ', Strings.errAmountInvalid],
+    ['A1-07', '1e3', Strings.errAmountInvalid],
+    ['A1-08', '1.2.3', Strings.errAmountInvalid],
+    ['A1-09', '12abc', Strings.errAmountInvalid],
+    ['A1-10', '0.005', Strings.commitmentsPayErrAmountMin],
+    ['A1-11', '0.006', Strings.commitmentsPayErrAmountMin],
+    ['A1-13', '0', Strings.commitmentsPayErrAmountMin],
+    ['A1-14', '-5', Strings.errAmountInvalid],
+    ['A1-15', '1e999', Strings.errAmountInvalid],
+  ] as const)('%s: rejects "%s" at the field and writes nothing', async (_id, typed, message) => {
+    const result = await submitAmount(typed);
+
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    // getFieldState, not formState.errors — the latter is a vacuous read under
+    // renderHook (MA-008 T6), as the comment above the 0.005 case records.
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(message);
+  });
+
+  // A USD commitment paid from an EGP account, so requiresRate is true and the
+  // rate field is the one under test.
+  async function submitRate(typed: string) {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+      result.current.form.setValue('amountText', '15');
+      result.current.form.setValue('paid_date', '2026-05-20');
+      result.current.form.setValue('exchange_rate', typed);
+    });
+    expect(result.current.state.requiresRate).toBe(true);
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    return result;
+  }
+
+  it.each([
+    ['A2-01', '48.6', 48.6],
+    ['A2-07', '1,234', 1234],
+  ] as const)('%s: accepts "%s" and snapshots %p', async (_id, typed, expected) => {
+    await submitRate(typed);
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
+    expect(arg.exchange_rate_snapshot).toBe(expected);
+  });
+
+  it.each([
+    ['A2-02', '48.', Strings.addTxErrRateInvalid],
+    ['A2-03', '', Strings.addTxErrRateRequired],
+    ['A2-05', '0', Strings.addTxErrRateInvalid],
+    ['A2-06', 'abc', Strings.addTxErrRateInvalid],
+    ['A2-08', '1e999', Strings.addTxErrRateInvalid],
+  ] as const)(
+    '%s: rejects "%s" at the rate field and writes nothing',
+    async (_id, typed, message) => {
+      const result = await submitRate(typed);
+
+      expect(mockMarkAsPaid).not.toHaveBeenCalled();
+      expect(result.current.form.getFieldState('exchange_rate').error?.message).toBe(message);
+    },
+  );
+
+  it('A2-04: omits the rate snapshot when the payment stays in one currency', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result } = await renderHook(() =>
+      usePaySheet({ ...fixedCommitment, currency: Currency.EGP }, duePayment),
+    );
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+      result.current.form.setValue('amountText', '15');
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    expect(result.current.state.requiresRate).toBe(false);
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
+    expect(arg.exchange_rate_snapshot).toBeUndefined();
+  });
 });
