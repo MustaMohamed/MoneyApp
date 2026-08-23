@@ -529,7 +529,7 @@ export const Strings = {
   budgetPlanCategoryRequired: 'Select at least one category',
   budgetPlanSaveError: 'Could not save plan. Try again.',
   budgetPlanDuplicateCategory: 'Select each category once.',
-  zeroAmountPlaceholder: '0',
+  zeroAmountPlaceholder: '0.00',
   budgetPlanDeleteConfirmTitle: 'Remove plan?',
   budgetPlanDeleteConfirmBody: (name: string) =>
     `Remove ${name}? This deletes the temporary budget and its category allocations.`,
@@ -750,7 +750,7 @@ export const Strings = {
       : 'This value applies only to the selected budget month.',
   incomeSheetAmountLabel: (monthLabel: string | undefined) =>
     monthLabel ? `Expected income for ${monthLabel}` : 'Expected monthly income',
-  incomeSheetAmountPlaceholder: '0',
+  incomeSheetAmountPlaceholder: '0.00',
   incomeSheetSuggestionNote: 'Pre-filled from your last 3 months of income',
   incomeSheetSaveCta: 'Save',
   incomeSheetSaveError: 'Could not save expected income. Please try again.',
