@@ -4,6 +4,7 @@ import type { BlurEvent, FocusEvent, KeyboardTypeOptions } from 'react-native';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { acceptsMoneyFieldText } from '@/utils/money_text';
 import type { SpendingPlanFormValues } from '@/utils/schemas/budget.schema';
 
 interface SpendingPlanFieldProps {
@@ -28,7 +29,14 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
         <Input
           testID={props.testID}
           value={value}
-          onChangeText={onChange}
+          onChangeText={(text) => {
+            // The field's own variant, never a literal and never a boolean
+            // derived here: this one component renders both the plan name and
+            // the plan total, so a mask applied to every keystroke would refuse
+            // every letter of a plan name with nothing on screen to say why.
+            if (!acceptsMoneyFieldText(props.variant, text)) return;
+            onChange(text);
+          }}
           onFocus={props.onFocus}
           onBlur={props.onBlur}
           keyboardType={props.keyboardType}
@@ -78,7 +86,7 @@ export function SpendingPlanFormFields({ control, onFocus, onBlur }: SpendingPla
         label={Strings.budgetPlanAmountLabel}
         testID="spending-plan-total-input"
         placeholder={Strings.zeroAmountPlaceholder}
-        keyboardType="number-pad"
+        keyboardType="decimal-pad"
         variant="amount"
         suffix={Strings.currencyEgp}
         onFocus={onFocus}

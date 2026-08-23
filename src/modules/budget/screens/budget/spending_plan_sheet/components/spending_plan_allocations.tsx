@@ -130,7 +130,7 @@ export function SpendingPlanAllocations(props: SpendingPlanAllocationsProps) {
                   onChangeText={(text) => props.onAllocationTextChange(category.id, text)}
                   onFocus={props.onFocus}
                   onBlur={props.onBlur}
-                  keyboardType="number-pad"
+                  keyboardType="decimal-pad"
                   placeholder={Strings.zeroAmountPlaceholder}
                   isInvalid={props.errors[category.id] !== undefined}
                   errorMessage={props.errors[category.id]}
