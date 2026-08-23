@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Strings } from '@/constants/strings';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
-import { acceptsMoneyFieldText } from '@/utils/money_text';
+import { acceptsMoneyFieldText, formatStoredMoneyText } from '@/utils/money_text';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { incomeFormSchema, type IncomeFormValues } from '@/utils/schemas/budget.schema';
 import { useZodForm } from '@/utils/use_zod_form.hook';
@@ -33,6 +33,21 @@ export function useIncomeSheet() {
     },
   );
   const amountText = watch('amountText');
+
+  // Compared against the same formatter the prefill writes, not `String()`. The
+  // note is "this text came from the suggestion", so the two have to be
+  // produced identically -- with `String()` here the note would silently stop
+  // rendering for exactly the values the prefill fix is about (a stored 1e-7
+  // prefills as '0.0000001' and would never equal '1e-7'). The `!== null` guard
+  // stays: `formatStoredMoneyText(null)` is '', which an untouched empty field
+  // would match.
+  //
+  // Derived from the RHF value the Controller renders, never from the draft
+  // store: `setAmountText` writes both, but the mask refuses a keystroke before
+  // either write, so a rejected character is the one moment the two could
+  // disagree about what is on screen.
+  const isPrefilledFromSuggestion =
+    state.suggestion !== null && amountText === formatStoredMoneyText(state.suggestion);
 
   useEffect(() => {
     if (!state.isOpen) return;
@@ -84,6 +99,7 @@ export function useIncomeSheet() {
     state: {
       ...state,
       amountText,
+      isPrefilledFromSuggestion,
       validationMessage: formState.errors.amountText?.message,
     },
     control,

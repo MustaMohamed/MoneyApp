@@ -62,6 +62,33 @@ describe('useIncomeSheet', () => {
     expect(result.current.state.validationMessage).toBe('Enter your monthly income');
   });
 
+  // The suggestion note is the only thing on the sheet that says "this number
+  // is ours, not yours", and it renders off a string comparison. Nothing renders
+  // this component in the suite -- budget_screen.test.tsx mocks IncomeSheet as
+  // `() => null` -- so the flag is pinned at the hook, where it now lives.
+  it('flags a prefill the exponent-form suggestion produced', async () => {
+    useIncomeSheetState.getState().open(1e-7, null, '2026-07', 'July 2026');
+
+    const { result } = await renderHook(() => useIncomeSheet());
+
+    // `String(1e-7)` is '1e-7'; the prefill writes '0.0000001'. Comparing
+    // against anything but `formatStoredMoneyText` drops the note here.
+    expect(result.current.state.amountText).toBe('0.0000001');
+    expect(result.current.state.isPrefilledFromSuggestion).toBe(true);
+  });
+
+  // `formatStoredMoneyText(null)` is '', so without the `suggestion !== null`
+  // guard an untouched empty field matches a suggestion that does not exist.
+  it('does not flag an untouched empty field on a month with no suggestion', async () => {
+    useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
+
+    const { result } = await renderHook(() => useIncomeSheet());
+
+    expect(result.current.state.amountText).toBe('');
+    expect(result.current.state.suggestion).toBeNull();
+    expect(result.current.state.isPrefilledFromSuggestion).toBe(false);
+  });
+
   it('shows validation feedback and does not save malformed income', async () => {
     const setExpectedIncome = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setExpectedIncome });
