@@ -1,9 +1,23 @@
+import { Strings } from '@/constants/strings';
 import {
   budgetFormSchema,
   incomeFormSchema,
   spendingPlanFormSchema,
   spendingPlanInputSchema,
 } from '@/utils/schemas/budget.schema';
+
+/**
+ * The message a field actually renders. RHF reports one error per field, the
+ * first issue, so `issues[0]` is the user-visible verdict and the refine order
+ * is what decides it.
+ */
+type ParseOutcome =
+  | { success: true }
+  | { success: false; error: { issues: { message: string }[] } };
+
+function firstIssueMessage(result: ParseOutcome): string | undefined {
+  return result.success ? undefined : result.error.issues[0]?.message;
+}
 
 // c8 step 1: `parseLimit` (a bare `Number(text.replace(/,/g, ''))`, no floor, no
 // pattern) is deleted in favour of `parse_decimal.ts`'s `parsePositiveDecimal` /
@@ -14,20 +28,36 @@ describe('text-amount schemas share the parse floor and DECIMAL_PATTERN', () => 
   const cases: Array<{
     label: string;
     parse: (text: string) => boolean;
+    firstMessage: (text: string) => string | undefined;
+    requiredMessage: string;
+    floorMessage: string;
   }> = [
     {
       label: 'budgetFormSchema.limitText',
       parse: (text) =>
         budgetFormSchema.safeParse({ nameText: 'Monthly Food', limitText: text }).success,
+      firstMessage: (text) =>
+        firstIssueMessage(
+          budgetFormSchema.safeParse({ nameText: 'Monthly Food', limitText: text }),
+        ),
+      requiredMessage: Strings.budgetAmountRequired,
+      floorMessage: Strings.budgetAmountInvalid,
     },
     {
       label: 'incomeFormSchema.amountText',
       parse: (text) => incomeFormSchema.safeParse({ amountText: text }).success,
+      firstMessage: (text) => firstIssueMessage(incomeFormSchema.safeParse({ amountText: text })),
+      requiredMessage: Strings.incomeSheetAmountRequired,
+      floorMessage: Strings.incomeSheetAmountInvalid,
     },
     {
       label: 'spendingPlanFormSchema.totalText',
       parse: (text) =>
         spendingPlanFormSchema.safeParse({ nameText: 'Trip', totalText: text }).success,
+      firstMessage: (text) =>
+        firstIssueMessage(spendingPlanFormSchema.safeParse({ nameText: 'Trip', totalText: text })),
+      requiredMessage: Strings.budgetPlanAmountRequired,
+      floorMessage: Strings.budgetPlanAmountInvalid,
     },
   ];
 
@@ -59,6 +89,49 @@ describe('text-amount schemas share the parse floor and DECIMAL_PATTERN', () => 
   it('incomeFormSchema.amountText rejects a sub-cent amount (Layla row 22)', () => {
     expect(incomeFormSchema.safeParse({ amountText: '0.001' }).success).toBe(false);
   });
+
+  // The refine split. All three fields raised one message for two different
+  // failures: '1.' -- what a half-typed decimal looks like at submit -- was
+  // reported as being below the 0.01 floor, which is not what is wrong with it
+  // and not something the user can act on. The pattern failure now answers
+  // first, and 'Numbers only.' already ships in exactly this role.
+  //
+  // The mask does not make this refine dead code: it admits '1.', '.' and '.5',
+  // every one of which DECIMAL_PATTERN rejects, so these are precisely the
+  // strings a mid-typing submit produces.
+  it.each(cases)(
+    '$label reports an incomplete decimal as a pattern failure',
+    ({ firstMessage }) => {
+      for (const text of ['1.', '.', '.5']) {
+        expect(firstMessage(text)).toBe(Strings.errAmountInvalid);
+      }
+    },
+  );
+
+  // Green on `main`, and this row and the next each fire on a different real
+  // mis-implementation -- measured, not assumed, because the obvious guess is
+  // wrong here. Swapping the two refines does NOT red this row: '0.005' clears
+  // DECIMAL_PATTERN and fails only the floor in either order. What reds it is
+  // writing the pattern leg with the floor parser (`parsePositiveDecimal` in
+  // place of `parseDecimalText`), which turns every sub-cent amount into
+  // 'Numbers only.' and loses the one message that names the minimum.
+  it.each(cases)(
+    '$label still reports a sub-cent amount as a floor failure',
+    ({ firstMessage, floorMessage }) => {
+      expect(firstMessage('0.005')).toBe(floorMessage);
+    },
+  );
+
+  // The other half: the new refine must not shadow `.min(1)`. Moving it in
+  // front reds this row -- measured -- because parseDecimalText('') is
+  // undefined, so a blank field would read 'Numbers only.' instead of naming
+  // what it wants.
+  it.each(cases)(
+    '$label still reports blank text as required',
+    ({ firstMessage, requiredMessage }) => {
+      expect(firstMessage('')).toBe(requiredMessage);
+    },
+  );
 
   it('budgetFormSchema rejects zero, a negative amount, and an empty name', () => {
     expect(budgetFormSchema.safeParse({ nameText: 'Monthly Food', limitText: '0' }).success).toBe(
