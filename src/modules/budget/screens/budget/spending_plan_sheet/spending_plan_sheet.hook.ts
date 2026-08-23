@@ -169,63 +169,78 @@ export function useSpendingPlanSheet({
     selectedMonth,
   ]);
 
-  const submit = handleSubmit(async (values) => {
-    if (useSpendingPlanSheetState.getState().saving) return;
-    // The pre-flight is what stops a rejected row from being written as
-    // "unallocated". A row the validator rejects carries `amount: undefined`
-    // (see `allocationFields`), so `allocatedByCategoryId` yields `undefined`
-    // for it below and `allocated_amount` binds as NULL — which reads back as
-    // absent, not as a failure. Nothing downstream objects: `allocatedAmount`
-    // is `.optional()` in `spendingPlanInputSchema`, so absent is exactly what
-    // that schema permits. Without this early return a typed `0.005` saves as
-    // "no allocation" instead of blocking the save with its floor message.
-    // The rows checked are the ones the save carries, so an orphan allocation
-    // on a deselected category cannot block Save with an error attached to no
-    // visible row.
-    if (allocationFields.some(({ validation }) => !validation.ok)) {
+  const submit = handleSubmit(
+    async (values) => {
+      if (useSpendingPlanSheetState.getState().saving) return;
+      // The pre-flight is what stops a rejected row from being written as
+      // "unallocated". A row the validator rejects carries `amount: undefined`
+      // (see `allocationFields`), so `allocatedByCategoryId` yields `undefined`
+      // for it below and `allocated_amount` binds as NULL — which reads back as
+      // absent, not as a failure. Nothing downstream objects: `allocatedAmount`
+      // is `.optional()` in `spendingPlanInputSchema`, so absent is exactly what
+      // that schema permits. Without this early return a typed `0.005` saves as
+      // "no allocation" instead of blocking the save with its floor message.
+      // The rows checked are the ones the save carries, so an orphan allocation
+      // on a deselected category cannot block Save with an error attached to no
+      // visible row.
+      if (allocationFields.some(({ validation }) => !validation.ok)) {
+        useSpendingPlanSheetState.getState().setAllocationSubmitAttempted(true);
+        return;
+      }
+      const input: SetSpendingPlanInput = {
+        id: planSheetMode === 'edit' ? editingPlan?.id : undefined,
+        name: values.nameText,
+        startDate,
+        endDate,
+        totalAmount: parsePositiveDecimal(values.totalText) ?? Number.NaN,
+        categories: selectedCategoryIds.map((categoryId) => ({
+          categoryId,
+          allocatedAmount: allocatedByCategoryId.get(categoryId),
+        })),
+      };
+      const validation = spendingPlanInputSchema.safeParse(input);
+      if (!validation.success) {
+        useSpendingPlanSheetState
+          .getState()
+          .setSubmitError(validation.error.issues[0]?.message ?? Strings.budgetPlanSaveError);
+        return;
+      }
+      const visibleMonth = planIntersectsMonth(
+        { start_date: startDate, end_date: endDate },
+        selectedMonth,
+      )
+        ? selectedMonth
+        : startDate.slice(0, 7);
+      const state = useSpendingPlanSheetState.getState();
+      state.setSubmitError(undefined);
+      state.setSaving(true);
+      try {
+        await useBudgetStore.getState().setSpendingPlan(validation.data, visibleMonth);
+        if (visibleMonth !== selectedMonth)
+          useBudgetState.getState().setSelectedMonth(visibleMonth);
+        await onSaved?.();
+        useBudgetState.getState().closePlan();
+      } catch (error) {
+        state.setSubmitError(
+          error instanceof SpendingPlanValidationError
+            ? error.message
+            : Strings.budgetPlanSaveError,
+        );
+      } finally {
+        state.setSaving(false);
+      }
+    },
+    () => {
+      // `handleSubmit`'s onInvalid leg. RHF sets `isSubmitted` on any submit
+      // ATTEMPT, and spec §5.6 gives this flag the same semantics: an incomplete
+      // allocation row stays silent until a Save is blocked, whichever leg blocks
+      // it. Set only in the valid callback, it is narrower than the sentence it
+      // implements: a Save the plan total blocks never reaches that callback, so
+      // the half-typed row beside it stays mute while the sheet reports an error
+      // — two problems on screen and one message between them.
       useSpendingPlanSheetState.getState().setAllocationSubmitAttempted(true);
-      return;
-    }
-    const input: SetSpendingPlanInput = {
-      id: planSheetMode === 'edit' ? editingPlan?.id : undefined,
-      name: values.nameText,
-      startDate,
-      endDate,
-      totalAmount: parsePositiveDecimal(values.totalText) ?? Number.NaN,
-      categories: selectedCategoryIds.map((categoryId) => ({
-        categoryId,
-        allocatedAmount: allocatedByCategoryId.get(categoryId),
-      })),
-    };
-    const validation = spendingPlanInputSchema.safeParse(input);
-    if (!validation.success) {
-      useSpendingPlanSheetState
-        .getState()
-        .setSubmitError(validation.error.issues[0]?.message ?? Strings.budgetPlanSaveError);
-      return;
-    }
-    const visibleMonth = planIntersectsMonth(
-      { start_date: startDate, end_date: endDate },
-      selectedMonth,
-    )
-      ? selectedMonth
-      : startDate.slice(0, 7);
-    const state = useSpendingPlanSheetState.getState();
-    state.setSubmitError(undefined);
-    state.setSaving(true);
-    try {
-      await useBudgetStore.getState().setSpendingPlan(validation.data, visibleMonth);
-      if (visibleMonth !== selectedMonth) useBudgetState.getState().setSelectedMonth(visibleMonth);
-      await onSaved?.();
-      useBudgetState.getState().closePlan();
-    } catch (error) {
-      state.setSubmitError(
-        error instanceof SpendingPlanValidationError ? error.message : Strings.budgetPlanSaveError,
-      );
-    } finally {
-      state.setSaving(false);
-    }
-  });
+    },
+  );
 
   const pickerDate =
     datePickerTarget === 'end'

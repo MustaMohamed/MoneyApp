@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { Strings } from '@/constants/strings';
 import { useIncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet.hook';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
@@ -88,7 +89,11 @@ describe('useIncomeSheet', () => {
     await act(async () => result.current.save());
 
     expect(setExpectedIncome).not.toHaveBeenCalled();
-    expect(result.current.state.validationMessage).toBe('Amount must be at least 0.01');
+    // The floor message until MA-020's refine split, which is not part of the
+    // comma reversal and stays: '12000abc' fails DECIMAL_PATTERN, and a
+    // pattern failure now answers before the floor rather than telling the
+    // user a string with letters in it is too small.
+    expect(result.current.state.validationMessage).toBe(Strings.errAmountInvalid);
     expect(result.current.state.isOpen).toBe(true);
   });
 

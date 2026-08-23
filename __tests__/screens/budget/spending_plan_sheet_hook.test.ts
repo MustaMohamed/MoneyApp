@@ -13,9 +13,24 @@ const mockResetForm = jest.fn();
 // `watch('totalText')` is settable per test: the total is what decides whether
 // the running-total line renders at all, so it cannot stay hard-coded.
 let mockTotalText = '500';
+// RHF's `handleSubmit(onValid, onInvalid)` runs exactly one of its two
+// arguments, and this flag is which. `false` is the Save RHF itself blocks --
+// an empty name, a plan total that does not parse -- where `onValid` never
+// runs at all. Without an onInvalid leg in the mock, every test here would be
+// a valid-form test and the leg under it could not be reached.
+let mockFormValid = true;
 const mockHandleSubmit =
-  (submit: (values: { nameText: string; totalText: string }) => Promise<void>) => () =>
-    submit({ nameText: 'Trip', totalText: '500' });
+  (
+    submit: (values: { nameText: string; totalText: string }) => Promise<void>,
+    onInvalid?: () => void,
+  ) =>
+  async () => {
+    if (!mockFormValid) {
+      onInvalid?.();
+      return;
+    }
+    await submit({ nameText: 'Trip', totalText: '500' });
+  };
 
 jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
@@ -45,6 +60,7 @@ const categories = [category];
 
 beforeEach(() => {
   mockTotalText = '500';
+  mockFormValid = true;
   useBudgetState.getState().reset();
   useSpendingPlanSheetState.getState().reset();
   useSpendingPlanSheetStore.getState().reset();
@@ -333,6 +349,35 @@ describe('useSpendingPlanSheet', () => {
     expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('1.');
     expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
 
+    await act(async () => result.current.submit());
+
+    expect(setSpendingPlan).not.toHaveBeenCalled();
+    expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
+  });
+
+  // The other leg of the same rule (spec §5.6), and the one the test above
+  // cannot reach: here RHF blocks the Save itself, so the submit never enters
+  // the valid callback where the flag used to be set alone. The row is
+  // incomplete either way and the user pressed Save either way, so it must
+  // speak either way -- that is what "the same semantics RHF's `isSubmitted`
+  // carries" means. Red against `handleSubmit(onValid)` with no second
+  // argument: the error stays `undefined` and the half-typed row is mute
+  // beside a sheet that is already reporting a failure.
+  it('surfaces an incomplete row when RHF blocks the save before the valid callback', async () => {
+    const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setSpendingPlan });
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(() => result.current.setAllocateByCategory(true));
+    await act(() => result.current.setAllocationText('cat_food', '1.'));
+    expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
+
+    mockFormValid = false;
     await act(async () => result.current.submit());
 
     expect(setSpendingPlan).not.toHaveBeenCalled();
