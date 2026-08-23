@@ -1,4 +1,8 @@
-import { formatStoredAllocationText, isTypeableMoneyText } from '@/utils/money_text';
+import {
+  acceptsMoneyFieldText,
+  formatStoredAllocationText,
+  isTypeableMoneyText,
+} from '@/utils/money_text';
 
 describe('isTypeableMoneyText', () => {
   it.each([[''], ['0'], ['1.'], ['.5'], ['.'], ['0.005'], ['1234.56'], ['0.0000001']])(
@@ -134,5 +138,35 @@ describe('formatStoredAllocationText invariants over the prefill domain', () => 
         expect(isTypeableMoneyText(text.slice(0, end))).toBe(true);
       }
     }
+  });
+});
+
+// Row 26. `SpendingPlanField` renders both the plan name and the plan total
+// through one `onChangeText`, so the gating rule has to travel with the field's
+// own variant rather than being re-derived at each call site. These rows are
+// that rule: a name field is never masked, whatever the text, and an amount
+// field's verdict is exactly `isTypeableMoneyText`'s -- no truncation and no
+// second normalisation on top of it (spec §7.1).
+describe('acceptsMoneyFieldText', () => {
+  it.each([
+    ['Alexandria Trip'],
+    // The row that fails against an implementation which masks first and
+    // consults the variant second: '1,500' is a legal plan name.
+    ['1,500'],
+    ['1.2.3'],
+    [''],
+  ])('accepts %p on a name field', (text) => {
+    expect(acceptsMoneyFieldText('name', text)).toBe(true);
+  });
+
+  it.each([['Alexandria Trip'], ['1,500'], ['1e-7'], ['-5']])(
+    'refuses %p on an amount field',
+    (text) => {
+      expect(acceptsMoneyFieldText('amount', text)).toBe(false);
+    },
+  );
+
+  it.each([['12.3'], [''], ['1.'], ['0.005']])('accepts %p on an amount field', (text) => {
+    expect(acceptsMoneyFieldText('amount', text)).toBe(true);
   });
 });

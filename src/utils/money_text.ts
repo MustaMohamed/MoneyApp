@@ -55,3 +55,25 @@ export function formatStoredAllocationText(value: number | null | undefined): st
   if (value === null || value === undefined) return '';
   return expandExponentialNotation(String(value));
 }
+
+/**
+ * The keystroke rule for a form field that may or may not hold money. A name
+ * field is never masked, whatever the text; an amount field gets exactly
+ * `isTypeableMoneyText`'s verdict, with no truncation and no second
+ * normalisation layered on top.
+ *
+ * It takes the field's own `variant` rather than a boolean the caller derives,
+ * because the trap it closes is a shared component: `SpendingPlanField` renders
+ * both the plan name and the plan total through one `onChangeText`, so a mask
+ * applied there unconditionally would refuse every letter of a plan name with
+ * nothing on screen to say why. A call site that passes its `variant` straight
+ * through cannot get that wrong; a call site that computed a boolean could, and
+ * no test of this predicate would see it.
+ *
+ * `setAllocationText` deliberately keeps calling `isTypeableMoneyText`
+ * directly — it has no variant, and inventing one for it would be an
+ * abstraction with a single fake caller.
+ */
+export function acceptsMoneyFieldText(variant: 'name' | 'amount', text: string): boolean {
+  return variant === 'name' || isTypeableMoneyText(text);
+}
