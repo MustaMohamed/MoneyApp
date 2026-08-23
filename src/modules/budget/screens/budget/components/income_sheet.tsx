@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { useIncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet.hook';
+import { formatStoredMoneyText } from '@/utils/money_text';
 
 export function IncomeSheet() {
   const { state, control, close, setAmountText, save } = useIncomeSheet();
@@ -56,7 +57,15 @@ export function IncomeSheet() {
                 placeholderColorClassName="text-muted"
                 label={amountLabel}
                 helperText={
-                  state.suggestion !== null && value === String(state.suggestion)
+                  // Compared against the same formatter the prefill writes, not
+                  // `String()`. The note is "this text came from the
+                  // suggestion", so the two have to be produced identically --
+                  // with `String()` here the note would silently stop rendering
+                  // for exactly the values the prefill fix is about (a stored
+                  // 1e-7 prefills as '0.0000001' and would never equal '1e-7').
+                  // The `!== null` guard stays: `formatStoredMoneyText(null)` is
+                  // '', which an untouched empty field would match.
+                  state.suggestion !== null && value === formatStoredMoneyText(state.suggestion)
                     ? Strings.incomeSheetSuggestionNote
                     : undefined
                 }

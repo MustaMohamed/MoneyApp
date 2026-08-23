@@ -1,4 +1,5 @@
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
+import { isTypeableMoneyText } from '@/utils/money_text';
 
 beforeEach(() => useIncomeSheetState.getState().reset());
 
@@ -28,6 +29,28 @@ describe('useIncomeSheetState', () => {
     useIncomeSheetState.getState().open(15000, 20000, '2026-07', 'July 2026');
     const s = useIncomeSheetState.getState();
     expect(s.amountText).toBe('20000');
+  });
+
+  // The prefill is a programmatic write, so `setAmountText`'s mask never sees
+  // it. `String(1e-7)` is '1e-7', which that mask refuses -- the field would
+  // open holding text no keystroke can change, backspace included. 1e-7 is
+  // reachable: `expected_income`'s CHECK is only `> 0 AND <= 9007199254740991`
+  // and migration 016's backfill writes a CAST of a legacy app_settings string
+  // without the form's 0.01 floor. Red against `String(currentIncome)`.
+  it('prefills a current income the keystroke mask accepts, never exponent form', () => {
+    useIncomeSheetState.getState().open(null, 1e-7, '2026-07', 'July 2026');
+    const { amountText } = useIncomeSheetState.getState();
+    expect(amountText).toBe('0.0000001');
+    expect(isTypeableMoneyText(amountText)).toBe(true);
+  });
+
+  // The suggestion is the other half of the same `??`, and it is an average --
+  // ROUND(AVG(...)) over egp_amount, a column with no CHECK of its own.
+  it('prefills a suggestion the keystroke mask accepts, never exponent form', () => {
+    useIncomeSheetState.getState().open(1e-7, null, '2026-07', 'July 2026');
+    const { amountText } = useIncomeSheetState.getState();
+    expect(amountText).toBe('0.0000001');
+    expect(isTypeableMoneyText(amountText)).toBe(true);
   });
 
   it('open with neither suggestion nor current income leaves amountText empty', () => {
