@@ -164,11 +164,17 @@ export function useSpendingPlanSheet({
 
   const submit = handleSubmit(async (values) => {
     if (useSpendingPlanSheetState.getState().saving) return;
-    // Nothing unparseable ever reaches SetSpendingPlanInput: `Number.NaN` binds
-    // to `allocated_amount` as NULL without complaint, which reads back as
-    // "unallocated" rather than as a failure. The rows checked are the ones the
-    // save carries, so an orphan allocation on a deselected category cannot
-    // block Save with an error attached to no visible row.
+    // The pre-flight is what stops a rejected row from being written as
+    // "unallocated". A row the validator rejects carries `amount: undefined`
+    // (see `allocationFields`), so `allocatedByCategoryId` yields `undefined`
+    // for it below and `allocated_amount` binds as NULL — which reads back as
+    // absent, not as a failure. Nothing downstream objects: `allocatedAmount`
+    // is `.optional()` in `spendingPlanInputSchema`, so absent is exactly what
+    // that schema permits. Without this early return a typed `0.005` saves as
+    // "no allocation" instead of blocking the save with its floor message.
+    // The rows checked are the ones the save carries, so an orphan allocation
+    // on a deselected category cannot block Save with an error attached to no
+    // visible row.
     if (allocationFields.some(({ validation }) => !validation.ok)) {
       useSpendingPlanSheetState.getState().setAllocationSubmitAttempted(true);
       return;

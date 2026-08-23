@@ -105,10 +105,20 @@ describe('formatStoredAllocationText invariants over the prefill domain', () => 
     }
   });
 
-  // Row 25b -- the backspace chain, in the form a unit test can hold it. "The
-  // field goes dead" means exactly one refused intermediate prefix, so the
-  // property is over every prefix, not over the one chain a walk would type.
-  // '0.0000001' is nine characters, hence ten prefixes from '' upward.
+  // Row 25b -- the backspace chain. "The field goes dead" means exactly one
+  // refused intermediate prefix, so the property has to be over every prefix,
+  // not over the one chain a walk would type.
+  //
+  // What this actually pins is a property of the MASK, not of the formatter:
+  // the language `/^\d*\.?\d*$/` accepts is closed under prefix, so every
+  // prefix of an accepted string is accepted (checked exhaustively over all
+  // 1024 mask-accepted strings up to length 7 over `{0, 9, .}`, and it follows
+  // from the shape of the language). Prefix-closure is what makes the invariant
+  // above sufficient for backspacing, which is why this test cannot fail at any
+  // sample size -- it is implied by `always produces text the keystroke mask
+  // accepts`. It is kept because prefix-closure is a real thing to pin: a mask
+  // that grew a length bound, a leading-zero rule, or a "must not end in `.`"
+  // clause would break it while leaving the invariant above green.
   it('accepts every prefix of a prefilled value, so backspacing never goes dead', () => {
     // Over the core table and the named edges in full, plus a slice of the
     // sample: `Number.MIN_VALUE` expands to 325 characters, so the prefix walk
