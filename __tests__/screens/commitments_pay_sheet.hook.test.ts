@@ -572,6 +572,32 @@ describe('usePaySheet', () => {
     expect(result.current.form.getValues('exchange_rate')).toBeUndefined();
   });
 
+  // G1: `AccountPickerSheet` fires `onSelect` for every row, the checked one
+  // included, so re-tapping the already-selected account is a tap that means
+  // nothing. Before the `!rateOverride` guard it re-seeded the global rate and
+  // cleared the override, discarding a rate the user had typed.
+  it('G1: keeps a typed override rate when the already-selected account is re-picked', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+    });
+    await act(() => result.current.toggleRateOverride());
+    await act(() => {
+      result.current.form.setValue('exchange_rate', '60');
+    });
+    await act(() => rerender(undefined));
+    expect(result.current.state.rateOverride).toBe(true);
+
+    await act(() => {
+      result.current.selectAccount(mockAccounts[0]);
+    });
+    await act(() => rerender(undefined));
+
+    expect(result.current.form.getValues('exchange_rate')).toBe('60');
+    expect(result.current.state.rateOverride).toBe(true);
+  });
+
   // F2: "reset to global" has to hand the global rate back. Turning the
   // override off after clearing the field used to leave '' in the form with
   // no input on screen to correct it.

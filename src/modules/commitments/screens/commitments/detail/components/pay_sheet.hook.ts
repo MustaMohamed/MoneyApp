@@ -237,7 +237,17 @@ export function usePaySheet(
     // rate row renders blank and the schema refuses the save with no value the
     // user ever chose. Precedent: add_transaction.hook.ts `selectAccount`; the
     // condition is this sheet's, not that one's.
-    if (commitment && (commitment.currency === Currency.USD || account.currency === Currency.USD)) {
+    // `!rateOverride` keeps the seed off a rate the user typed themselves. The
+    // picker fires `onSelect` for every row including the checked one, so
+    // re-tapping the current account is a no-op tap that used to throw that
+    // input away. It cannot re-open the blank-field case: `rateOverride` is
+    // only reachable from `ExchangeRateRow`, which only renders once
+    // `requiresRate` is already true, and every open resets the flag to false.
+    if (
+      !rateOverride &&
+      commitment &&
+      (commitment.currency === Currency.USD || account.currency === Currency.USD)
+    ) {
       form.setValue('exchange_rate', String(rate));
       setRateOverride(false);
     }
