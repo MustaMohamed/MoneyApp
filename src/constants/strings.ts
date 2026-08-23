@@ -508,7 +508,16 @@ export const Strings = {
   budgetPlanAllocationHelper: (allocated: string, total: string, buffer: string) =>
     `${allocated} of ${total} allocated · ${buffer} buffer`,
   budgetPlanAllocationOver: 'Allocations exceed the plan total.',
+  // Two messages for one rule, deliberately. budgetPlanAllocationInvalid is the
+  // sheet footer's, raised by spendingPlanInputSchema's refine, which has no row
+  // context and needs the whole sentence. budgetPlanAllocationBelowMin is the
+  // per-row one, and the row is a 128px column: the full sentence truncated to
+  // 'Each allocati…', which says nothing the red border did not. Both legal
+  // repairs stay named -- a deliberate 0 is a valid allocation ('tracking this
+  // category, allocating nothing'), so 'Min 0.01' alone would read complete and
+  // be wrong. No trailing period, matching budgetAmountInvalid above.
   budgetPlanAllocationInvalid: 'Each allocation must be 0 or at least 0.01.',
+  budgetPlanAllocationBelowMin: '0 or min 0.01',
   budgetPlanExpenseCategoriesOnly: 'Select expense categories only.',
   budgetPlanOverlapError: (categoryName: string, planName: string) =>
     `${categoryName} overlaps ${planName}`,

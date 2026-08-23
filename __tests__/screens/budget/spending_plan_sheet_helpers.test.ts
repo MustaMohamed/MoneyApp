@@ -26,12 +26,12 @@ describe('validateAllocationText', () => {
     expect(validateAllocationText('0.005')).toEqual({
       ok: false,
       incomplete: false,
-      message: Strings.budgetPlanAllocationInvalid,
+      message: Strings.budgetPlanAllocationBelowMin,
     });
   });
 
-  // '.5' fails the pattern, so it is a format failure -- and 'Each allocation
-  // must be 0 or at least 0.01.' is the wrong sentence for it.
+  // '.5' fails the pattern, so it is a format failure -- and '0 or min 0.01'
+  // is the wrong message for it.
   it('reports a pattern failure with the format message, not the floor one', () => {
     expect(validateAllocationText('.5')).toEqual({
       ok: false,

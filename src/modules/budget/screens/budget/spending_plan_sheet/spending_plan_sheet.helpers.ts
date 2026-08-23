@@ -41,5 +41,5 @@ export function validateAllocationText(text: string): AllocationValidation {
   if (parseDecimalText(text) === undefined) {
     return { ok: false, incomplete: false, message: Strings.errAmountInvalid };
   }
-  return { ok: false, incomplete: false, message: Strings.budgetPlanAllocationInvalid };
+  return { ok: false, incomplete: false, message: Strings.budgetPlanAllocationBelowMin };
 }

@@ -149,7 +149,7 @@ describe('useSpendingPlanSheet', () => {
 
     expect(setSpendingPlan).not.toHaveBeenCalled();
     expect(result.current.state.allocationErrors.cat_food).toBe(
-      Strings.budgetPlanAllocationInvalid,
+      Strings.budgetPlanAllocationBelowMin,
     );
     expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
   });
@@ -230,7 +230,7 @@ describe('useSpendingPlanSheet', () => {
 
     expect(setSpendingPlan).not.toHaveBeenCalled();
     expect(result.current.state.allocationErrors.cat_food).toBe(
-      Strings.budgetPlanAllocationInvalid,
+      Strings.budgetPlanAllocationBelowMin,
     );
     expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
   });
