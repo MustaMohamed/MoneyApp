@@ -98,6 +98,13 @@ jest.mock('@/modules/categories/components/category_picker_sheet', () => ({
 jest.mock('heroui-native', () => {
   const { Pressable, Text, TextInput, View } =
     jest.requireActual<typeof import('react-native')>('react-native');
+  // Keyed on the accessibility label, not on `keyboardType`: both money fields
+  // in this sheet now carry `decimal-pad`, so a keyboard-derived testID gives
+  // both inputs the same one and every assertion below resolves to the wrong
+  // element. Required through `requireActual` because a jest.mock factory
+  // cannot close over an out-of-scope import.
+  const { Strings: ActualStrings } =
+    jest.requireActual<typeof import('@/constants/strings')>('@/constants/strings');
   let onRadioValueChange: ((value: string) => void) | undefined;
   const RadioGroup = ({
     children,
@@ -122,7 +129,11 @@ jest.mock('heroui-native', () => {
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
     Input: (props: Record<string, unknown>) => (
       <TextInput
-        testID={props.keyboardType === 'number-pad' ? 'budget-limit-input' : 'budget-name-input'}
+        testID={
+          props.accessibilityLabel === ActualStrings.budgetMonthlyLimitLabel
+            ? 'budget-limit-input'
+            : 'budget-name-input'
+        }
         {...props}
       />
     ),

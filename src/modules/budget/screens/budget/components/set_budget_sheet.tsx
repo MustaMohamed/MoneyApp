@@ -17,6 +17,7 @@ import {
 } from '@/modules/budget/screens/budget/components/set_budget_sheet.hook';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import { toIconName } from '@/utils/icon_name_guard';
+import { acceptsMoneyFieldText } from '@/utils/money_text';
 import { ms } from '@/utils/responsive';
 
 export type SetBudgetSheetProps = SetBudgetSheetOptions;
@@ -176,13 +177,20 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                     <Input
                       value={value}
                       onChangeText={(text) => {
+                        // Refused before `clearError()` as well as before
+                        // `onChange`, so a rejected keystroke cannot wipe a
+                        // save error the user still needs to read. Only this
+                        // Controller is masked -- the name field above shares
+                        // this handler's exact shape and must keep accepting
+                        // letters (row 26).
+                        if (!acceptsMoneyFieldText('amount', text)) return;
                         clearError();
                         onChange(text);
                       }}
                       onFocus={onFocus}
                       onBlur={onBlur}
-                      keyboardType="number-pad"
-                      placeholder="0"
+                      keyboardType="decimal-pad"
+                      placeholder={Strings.zeroAmountPlaceholder}
                       placeholderColorClassName="text-muted"
                       className="h-7 min-h-0 flex-1 border-0 bg-transparent p-0"
                       style={{
