@@ -63,13 +63,16 @@ describe('formatStoredMoneyText', () => {
 // >= 0. `±Infinity`, `NaN` and negatives are out of domain and must not appear
 // here -- `String(Infinity)` is 'Infinity', which the mask is *right* to refuse,
 // so generating it would red invariant 2 on a value no prefill can carry.
-// migrations/014_create_spending_plans.ts:18's
-// CHECK(allocated_amount IS NULL OR allocated_amount >= 0) excludes negatives;
 // parse_decimal.ts:17's Number.isFinite guard and budget.schema.ts's z.number()
-// exclude non-finite values on the write path. The plan total prefills through
-// the same function and its column is a strict subset of this domain --
-// total_amount is NOT NULL CHECK(total_amount > 0) at :9 -- so it needs no
-// rows of its own here.
+// exclude non-finite values on the write path. Negatives are excluded per
+// caller, and not uniformly by SQL -- see money_text.ts's note above
+// expandExponentialNotation: three of the four prefill sources carry a CHECK
+// that forbids them (allocated_amount >= 0, total_amount > 0, expected_income
+// > 0), budgets.limit_amount carries no CHECK at all, and there the exclusion
+// is parsePositiveDecimal at the form. All four are subsets of the domain
+// below, so none of them needs rows of its own here; what a negative would
+// break is the FORMATTER's contract, and that is money_text.ts's problem, not
+// this sample's.
 const PREFILL_DOMAIN_CORE = [0, 0.005, 0.01, 1.5, 10, 1234.56, 1e-7, 0.30000000000000004];
 const PREFILL_DOMAIN_EDGES = [0, Number.MIN_VALUE, 1e21, 1e300, Number.MAX_VALUE];
 
