@@ -442,7 +442,11 @@ export function computeAllocationHelper(
   return {
     allocated,
     // Defensive rather than load-bearing: `a - b` with `a === b` is +0 under
-    // integer cents, so -0 is unreachable. The display rule owns signed zero.
+    // integer cents, so -0 is unreachable. Kept because signed zero is THIS
+    // layer's to own: `format_amount.ts:9-13` treats an exact -0 arriving at the
+    // formatter as a domain defect and deliberately leaves it on screen rather
+    // than laundering it, so the normalise has to happen here — last operation
+    // before display, as at `dashboard.helpers.ts:130-139`.
     buffer: buffer === undefined ? undefined : normalizeNegativeZero(buffer),
     isOver,
   };

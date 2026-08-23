@@ -243,9 +243,12 @@ Accepted asymmetry: `AccountRepository` now rounds in `adjustBalance` and trusts
 
 Three mechanical checks, none of which require re-deriving the call graph:
 
-1. **Allowlist.** `git diff main...HEAD -U0 | grep -n 'roundMoney'` — every added call site is in one
-   of the four files above. A `roundMoney` in a hook, a schema, a component, a `*.state.ts`, a
-   `*.helpers.ts` or anything under `src/modules/*/database/` is a finding, improvement or not.
+1. **Allowlist.** `git diff main...HEAD -U0 | grep -nE 'roundMoney\(|toCents\(|sumAllocations\('` —
+   every added call site is in one of the four files above. A `roundMoney` in a hook, a schema, a
+   component, a `*.state.ts`, a `*.helpers.ts` or anything under `src/modules/*/database/` is a
+   finding, improvement or not. The two transitive rounders are in the pattern so that the grep can
+   see the call sites at all; where they are permitted to appear is Addendum A point 1's ruling, not
+   this list's. The paren keeps every alternative matched on call sites rather than mentions.
 2. **Six bindings.** At each of §3's six write lines, the bound identifier is either a resolver
    return field or a local rounded at the method's first statement. Six `file:line` reads.
 3. **Two properties.** The resolver idempotence tests exist and pass, and
@@ -315,7 +318,11 @@ invariant are unchanged.
    `toCents`, so §6's allowlist is satisfied by construction rather than by exception —
    `src/utils/money.ts` is the only file in which MA-020 **adds a `roundMoney` call**, and check 1
    still resolves to one file. Check 1 is over added call sites, not textual mentions — this
-   addendum names `roundMoney` in prose several times and adds no call site anywhere.
+   addendum names `roundMoney` in prose several times and adds no call site anywhere. But from this
+   merge on, a `toCents(` or `sumAllocations(` added in a repository, hook or schema **is** itself a
+   rounding call site, so §6 check 1's pattern is widened to cover both: §7 names that grep as the
+   sole mitigation for a write path added without reading this ADR, and unwidened it would already
+   be blind to the one this addendum adds at `budget.schema.ts:94`.
    `budget.schema.ts`'s `superRefine` and
    `spending_plans.helpers.ts`'s `computeAllocationHelper` both delegate to `sumAllocations`, so
    the live preview and the save gate cannot disagree. `#303`'s literal proposal
