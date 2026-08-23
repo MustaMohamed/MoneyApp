@@ -3,7 +3,6 @@ import { act, renderHook } from '@testing-library/react-native';
 import { Strings } from '@/constants/strings';
 import { useAccountDetail } from '@/modules/accounts/screens/accounts/detail/account_detail.hook';
 import { useAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
-import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
@@ -97,9 +96,6 @@ function setup() {
     confirmBalanceReviewed: mockConfirmBalanceReviewed,
   }));
   mockDetailState();
-  // The sheet's error store is the real one — mocking it would mock the thing
-  // these assertions claim to verify (.claude/rules/tests.md).
-  useAdjustBalanceSheetState.getState().reset();
 }
 
 describe('useAccountDetail', () => {
@@ -172,10 +168,13 @@ describe('useAccountDetail', () => {
   });
 
   // ---------------------------------------------------------------------
-  // P8 cycle 3 — H2. `handleAdjustBalance` was try/finally with no catch and
-  // `account.store` rethrows, so a repository failure escaped into the sheet's
-  // non-async onPress: unhandled rejection, sheet still open, button idle,
-  // nothing said. Same class the pay sheet's D7 fixed one screen over.
+  // P8 cycle 3 — H2/H5. `handleAdjustBalance` was try/finally with no catch,
+  // and its one caller discarded the promise, so a store rethrow became an
+  // unhandled rejection: sheet still open, button idle, nothing said. The catch
+  // lives in AdjustBalanceSheet, which owns the error channel it renders
+  // through — see adjust_balance_sheet_save_error.test.tsx. What this hook owes
+  // that arrangement is a rejection that actually arrives, with the close
+  // skipped and the spinner released.
   // ---------------------------------------------------------------------
 
   it('closes the adjust sheet on a successful balance adjust', async () => {
@@ -186,30 +185,26 @@ describe('useAccountDetail', () => {
 
     expect(mockAdjustBalance).toHaveBeenCalledWith('acc-1', 1500);
     expect(mockSetAdjustVisible).toHaveBeenCalledWith(false);
-    expect(useAdjustBalanceSheetState.getState().error).toBe('');
     expect(mockSetAdjusting).toHaveBeenLastCalledWith(false);
   });
 
-  it('H2: surfaces a failed balance adjust and leaves the sheet open', async () => {
-    const consoleError = jest.spyOn(console, 'error').mockImplementation();
+  it('H5: propagates a failed balance adjust to the sheet and leaves it open', async () => {
     const failure = new Error('db write failed');
     mockAdjustBalance.mockRejectedValue(failure);
     const { result } = await renderHook(() => useAccountDetail());
 
-    // Resolving rather than rejecting IS the unhandled-rejection assertion:
-    // the sheet calls this from a handler whose return value is discarded, so
-    // anything that escapes here has nowhere left to be caught.
+    // Rejecting rather than resolving IS the assertion: the sheet's handleSave
+    // awaits this inside a try, so a swallowed rejection here would leave that
+    // catch permanently unreachable and the failure silent again.
     await act(async () => {
-      await expect(result.current.handleAdjustBalance(1500)).resolves.toBeUndefined();
+      await expect(result.current.handleAdjustBalance(1500)).rejects.toBe(failure);
     });
 
-    expect(useAdjustBalanceSheetState.getState().error).toBe(Strings.adjustBalanceSaveError);
-    // Not the parse error — the two need different remedies from the user.
-    expect(useAdjustBalanceSheetState.getState().error).not.toBe(Strings.errBalanceInvalid);
+    // `setAdjustVisible(false)` sits after the throw, so the sheet stays open
+    // with the value the user typed still in it, ready to retry.
     expect(mockSetAdjustVisible).not.toHaveBeenCalledWith(false);
+    // `finally` still runs — the Save Balance button must not stay spinning.
     expect(mockSetAdjusting).toHaveBeenLastCalledWith(false);
-    expect(consoleError).toHaveBeenCalledWith('[accountDetail] adjustBalance failed:', failure);
-    consoleError.mockRestore();
   });
 
   it('leaves edit mode instead of navigating back when editing', async () => {
