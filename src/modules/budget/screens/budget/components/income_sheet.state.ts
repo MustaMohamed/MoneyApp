@@ -50,9 +50,9 @@ export const useIncomeSheetState = createMoneyAppSelectors(
         monthLabel,
         saving: false,
         errorMessage: undefined,
-        // Not `String(...)`: the mask on `setAmountText` runs on `onChangeText`
-        // and never on a prefill, so a stored value whose `String()` is
-        // exponent form fills a field the mask then refuses to backspace.
+        // Not `String(...)`: a stored value whose `String()` is exponent form
+        // fills the field with text `DECIMAL_PATTERN` rejects, so the sheet
+        // opens on an amount it will not let the user save back.
         // Reachable at the low end -- `expected_income`'s CHECK is only
         // `> 0 AND <= 9007199254740991` (migrations/016:6-10), and 016's own
         // backfill inserts `CAST(TRIM(value) AS REAL)` from a legacy

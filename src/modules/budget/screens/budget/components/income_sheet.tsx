@@ -51,7 +51,7 @@ export function IncomeSheet() {
                   onFieldBlur();
                   onBlur(event);
                 }}
-                keyboardType="decimal-pad"
+                keyboardType="number-pad"
                 placeholder={Strings.incomeSheetAmountPlaceholder}
                 placeholderColorClassName="text-muted"
                 label={amountLabel}

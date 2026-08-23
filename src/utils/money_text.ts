@@ -1,18 +1,4 @@
 /**
- * Whether `text` is something the user can be part-way through typing into a
- * money field: digits, at most one decimal point, nothing else.
- *
- * It gates characters and never truncates a value — no 2dp cap, no
- * leading-zero insertion, no `.` normalisation, no comma stripping. `'0.005'`
- * has to reach the row validator and produce a legible floor message rather
- * than being silently rounded into `'0.00'`, and `'1,500'` has to be refused
- * outright rather than quietly parsed as 1500.
- */
-export function isTypeableMoneyText(text: string): boolean {
-  return /^\d*\.?\d*$/.test(text);
-}
-
-/**
  * Expands `Number.prototype.toString()`'s exponential form (`'1e-7'`,
  * `'1.5e+21'`) into plain positional notation, using only the digits
  * `toString()` already emitted. It repositions the decimal point and adds no
@@ -62,8 +48,8 @@ function expandExponentialNotation(text: string): string {
  * Edit-mode prefill: the initial field text for a stored money value. Four
  * callers as of MA-020 c3 — an allocation row, the plan total that shares the
  * sheet with it, the monthly income amount, and a budget's monthly limit; the
- * rule is that every field carrying a keystroke mask prefills through here,
- * because the mask never runs on a programmatic write.
+ * rule is that every money field prefills through here rather than through
+ * `String(value)`, because `String` can emit a form no money field can parse.
  *
  * Never rounds and never formats for display — this text is re-parsed by the
  * same validator a typed value goes through, so it has to equal what the
@@ -72,10 +58,13 @@ function expandExponentialNotation(text: string): string {
  * `formatAmount(x, 2)` would render `'0.01'` and silently substitute a value
  * nobody entered.
  *
- * It also has to survive the keystroke mask, which runs on `onChangeText` and
- * never on a programmatic prefill: `String(1e21)` is `'1e+21'`, the mask
- * refuses it, and the field it prefilled cannot be backspaced. Hence the
- * expansion above rather than a bare `String(value)`.
+ * The other form it must not emit is the exponent one, and that is what the
+ * expansion above is for.
+ * `String(1e21)` is `'1e+21'` and `String(1e-7)` is `'1e-7'`; both are
+ * unparseable by `DECIMAL_PATTERN`, so a field prefilled from a bare
+ * `String(value)` opens holding text its own validator rejects — a stored value
+ * the user never entered and cannot save back. The expansion is what makes the
+ * prefill re-parse to the number it came from.
  *
  * `null`/`undefined` render as `''` — unallocated, never `'0'`. Two callers
  * reach that branch: the allocation column, which is nullable, and the income
@@ -86,26 +75,4 @@ function expandExponentialNotation(text: string): string {
 export function formatStoredMoneyText(value: number | null | undefined): string {
   if (value === null || value === undefined) return '';
   return expandExponentialNotation(String(value));
-}
-
-/**
- * The keystroke rule for a form field that may or may not hold money. A name
- * field is never masked, whatever the text; an amount field gets exactly
- * `isTypeableMoneyText`'s verdict, with no truncation and no second
- * normalisation layered on top.
- *
- * It takes the field's own `variant` rather than a boolean the caller derives,
- * because the trap it closes is a shared component: `SpendingPlanField` renders
- * both the plan name and the plan total through one `onChangeText`, so a mask
- * applied there unconditionally would refuse every letter of a plan name with
- * nothing on screen to say why. A call site that passes its `variant` straight
- * through cannot get that wrong; a call site that computed a boolean could, and
- * no test of this predicate would see it.
- *
- * `setAllocationText` deliberately keeps calling `isTypeableMoneyText`
- * directly — it has no variant, and inventing one for it would be an
- * abstraction with a single fake caller.
- */
-export function acceptsMoneyFieldText(variant: 'name' | 'amount', text: string): boolean {
-  return variant === 'name' || isTypeableMoneyText(text);
 }

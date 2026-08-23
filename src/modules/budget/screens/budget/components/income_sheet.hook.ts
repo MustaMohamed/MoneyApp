@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Strings } from '@/constants/strings';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
-import { acceptsMoneyFieldText, formatStoredMoneyText } from '@/utils/money_text';
+import { formatStoredMoneyText } from '@/utils/money_text';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { incomeFormSchema, type IncomeFormValues } from '@/utils/schemas/budget.schema';
 import { useZodForm } from '@/utils/use_zod_form.hook';
@@ -43,9 +43,8 @@ export function useIncomeSheet() {
   // would match.
   //
   // Derived from the RHF value the Controller renders, never from the draft
-  // store: `setAmountText` writes both, but the mask refuses a keystroke before
-  // either write, so a rejected character is the one moment the two could
-  // disagree about what is on screen.
+  // store: the Controller's value is what is on screen, and the note is a claim
+  // about what the user is looking at.
   const isPrefilledFromSuggestion =
     state.suggestion !== null && amountText === formatStoredMoneyText(state.suggestion);
 
@@ -56,12 +55,9 @@ export function useIncomeSheet() {
 
   const setAmountText = useCallback(
     (text: string) => {
-      // Refused before both writes, so a keystroke the mask rejects leaves the
-      // draft store and the RHF field agreeing on the old text rather than
-      // drifting apart. The refusal is silent by design (row 11): a comma is a
-      // decimal separator on an ar-EG keyboard, and a character that does not
-      // appear is better than 1,500 quietly saved as 1500.
-      if (!acceptsMoneyFieldText('amount', text)) return;
+      // Both writes take the text as typed. The draft store and the RHF field
+      // are written from the same string in the same call, so they cannot
+      // disagree about what the field holds.
       setDraftAmountText(text);
       setValue('amountText', text, { shouldDirty: true, shouldValidate: formState.isSubmitted });
     },

@@ -27,7 +27,7 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
-import { formatStoredMoneyText, isTypeableMoneyText } from '@/utils/money_text';
+import { formatStoredMoneyText } from '@/utils/money_text';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import {
   spendingPlanFormSchema,
@@ -135,8 +135,8 @@ export function useSpendingPlanSheet({
     if (planSheetMode === 'edit' && editingPlan) {
       // Not `String(editingPlan.totalAmount)`: the total goes through the same
       // unbounded parser an allocation does, so a plan saved at 1e21 prefills
-      // as '1e+21', which the field's own keystroke mask refuses — leaving a
-      // total that cannot be backspaced (spec row 25, on this field).
+      // as '1e+21' — text `DECIMAL_PATTERN` rejects, leaving a total the sheet
+      // will not save back (spec row 25, on this field).
       resetForm({
         nameText: editingPlan.name,
         totalText: formatStoredMoneyText(editingPlan.totalAmount),
@@ -278,10 +278,9 @@ export function useSpendingPlanSheet({
     setAllocateByCategory: (enabled: boolean) =>
       useSpendingPlanSheetStore.getState().setAllocateByCategory(enabled),
     setAllocationText: (categoryId: string, text: string) => {
-      // Refused, not corrected: the mask gates characters and never truncates
-      // or normalises, so '1,500' puts nothing in the field instead of quietly
-      // becoming 1500, and '0.005' survives to the row validator.
-      if (!isTypeableMoneyText(text)) return;
+      // Stored as typed, never corrected: the row keeps the exact characters
+      // the user entered, so '0.005' survives to the row validator and produces
+      // its floor message instead of being rounded into '0.00' on the way in.
       useSpendingPlanSheetStore.getState().setAllocation(categoryId, text);
     },
     openDatePicker: (target: SpendingPlanDatePickerTarget) =>

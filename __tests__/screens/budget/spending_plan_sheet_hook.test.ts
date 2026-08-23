@@ -236,13 +236,12 @@ describe('useSpendingPlanSheet', () => {
   });
 
   // The prefill hazard row 25 states, on the plan total rather than on an
-  // allocation row: the mask runs on `onChangeText` and never on a programmatic
-  // prefill, so a prefill the mask would refuse leaves a field that cannot be
-  // backspaced -- the keystroke is a silent no-op. `String(1e21)` is '1e+21',
-  // which the mask refuses, and 1e21 is reachable by typing 22 digits into a
-  // field whose parser has no upper bound. The literal is asserted rather than
-  // the mask's verdict on it because a `expect(mask(prefill)).toBe(true)` beside
-  // it would be implied by this line and could not fail on its own.
+  // allocation row: `String(1e21)` is '1e+21', which `DECIMAL_PATTERN` rejects,
+  // so the sheet would open on a total it will not let the user save back. 1e21
+  // is reachable by typing 22 digits into a field whose parser has no upper
+  // bound. The literal is asserted rather than a predicate's verdict on it,
+  // because a second assertion over the same string would be implied by this
+  // line and could not fail on its own.
   it('prefills an edit-mode plan total as plain digits, never exponent notation', async () => {
     useBudgetStore.setState({ setSpendingPlan: jest.fn().mockResolvedValue(undefined) });
     const editingPlan = {
@@ -364,25 +363,6 @@ describe('useSpendingPlanSheet', () => {
       expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe(expected);
       expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
     }
-  });
-
-  // Row 10. parseDecimalText accepts grouped thousands, so before the mask a
-  // typed comma turned 1.500 into the number 1500 -- a 1000x error with
-  // nothing on screen to show for it. The keystroke is refused instead.
-  it('refuses a comma keystroke on an allocation row, leaving the store untouched', async () => {
-    const { result } = await renderHook(() =>
-      useSpendingPlanSheet({ budgetableCategories: categories }),
-    );
-    await waitFor(() =>
-      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
-    );
-
-    await act(() => result.current.setAllocateByCategory(true));
-    await act(() => result.current.setAllocationText('cat_food', '1'));
-    await act(() => result.current.setAllocationText('cat_food', '1,500'));
-
-    // Read before any submit, for the reason given above.
-    expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('1');
   });
 
   // Row 7, and the only two-row helper pin in the chunk. With a single row an

@@ -122,14 +122,14 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
     if (!initialized) return;
     resetForm({
       nameText: isEdit && editingRow ? editingRow.name : '',
-      // Not `String(editingRow.limit)`: the mask at set_budget_sheet.tsx:188
-      // runs on `onChangeText` and never on this prefill, so a limit whose
-      // `String()` is exponent form fills a field the mask then refuses to
-      // backspace. `budgets.limit_amount` is a bare `REAL NOT NULL` with no
-      // CHECK at all (migrations/013:8), so unlike the plan tables nothing in
-      // the schema bounds it -- only the form's own `parsePositiveDecimal`,
-      // which every non-form writer bypasses. The name field above keeps
-      // `editingRow.name` raw: it is not a money field and is not masked.
+      // Not `String(editingRow.limit)`: a limit whose `String()` is exponent
+      // form fills the field with text `DECIMAL_PATTERN` rejects, so the sheet
+      // opens on a value it will not let the user save back.
+      // `budgets.limit_amount` is a bare `REAL NOT NULL` with no CHECK at all
+      // (migrations/013:8), so unlike the plan tables nothing in the schema
+      // bounds it -- only the form's own `parsePositiveDecimal`, which every
+      // non-form writer bypasses. The name field above keeps `editingRow.name`
+      // raw: it is not a money field and needs no expansion.
       limitText: isEdit && editingRow ? formatStoredMoneyText(editingRow.limit) : '',
     });
   }, [
