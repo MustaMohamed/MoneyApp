@@ -142,8 +142,8 @@ describe('useIncomeSheet', () => {
     expect(result.current.state.isPrefilledFromSuggestion).toBe(true);
   });
 
-  // `formatStoredMoneyText(null)` is '', so without the `suggestion !== null`
-  // guard an untouched empty field matches a suggestion that does not exist.
+  // `formatStoredMoneyText(null)` is '', so without a blank guard an untouched
+  // empty field matches a suggestion that does not exist.
   it('does not flag an untouched empty field on a month with no suggestion', async () => {
     useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
 
@@ -151,6 +151,23 @@ describe('useIncomeSheet', () => {
 
     expect(result.current.state.amountText).toBe('');
     expect(result.current.state.suggestion).toBeNull();
+    expect(result.current.state.isPrefilledFromSuggestion).toBe(false);
+  });
+
+  // The second producer of '', and the one a `suggestion !== null` guard cannot
+  // see. `getTrailingIncomeSuggestion` averages `transactions.egp_amount`, a
+  // bare `REAL NOT NULL` (004:9), so a negative average reaches the formatter,
+  // which declines to render it rather than freezing the field on '-5'. The
+  // suggestion is then non-null and its text is '', which an untouched empty
+  // field matches -- the note would claim a number the sheet is not showing.
+  // Red against `state.suggestion !== null && amountText === formatStoredMoneyText(...)`.
+  it('does not flag an empty field on a suggestion the formatter declines', async () => {
+    useIncomeSheetState.getState().open(-5, null, '2026-07', 'July 2026');
+
+    const { result } = await renderHook(() => useIncomeSheet());
+
+    expect(result.current.state.amountText).toBe('');
+    expect(result.current.state.suggestion).toBe(-5);
     expect(result.current.state.isPrefilledFromSuggestion).toBe(false);
   });
 
