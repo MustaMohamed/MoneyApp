@@ -30,13 +30,18 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
         size="lg"
         scrollable
         footer={
-          <Button
-            variant="primary"
-            label={Strings.budgetPlanSave}
-            onPress={() => void actions.submit()}
-            isLoading={state.saving}
-            isDisabled={state.saving}
-          />
+          <>
+            {state.submitError ? (
+              <Text className="font-inter text-danger mt-2 text-[11px]">{state.submitError}</Text>
+            ) : null}
+            <Button
+              variant="primary"
+              label={Strings.budgetPlanSave}
+              onPress={() => void actions.submit()}
+              isLoading={state.saving}
+              isDisabled={state.saving}
+            />
+          </>
         }
       >
         <BottomSheetScrollView
@@ -74,9 +79,6 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
             onFocus={actions.onFocus}
             onBlur={actions.onBlur}
           />
-          {state.submitError ? (
-            <Text className="font-inter text-danger mt-2 text-[11px]">{state.submitError}</Text>
-          ) : null}
         </BottomSheetScrollView>
       </Sheet>
 
