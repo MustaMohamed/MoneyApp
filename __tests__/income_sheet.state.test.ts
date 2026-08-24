@@ -30,6 +30,28 @@ describe('useIncomeSheetState', () => {
     expect(s.amountText).toBe('20000');
   });
 
+  // `String(1e-7)` is '1e-7', which DECIMAL_PATTERN rejects -- the field would
+  // open holding text its own validator refuses, unsaveable without retyping a
+  // value the user never chose. 1e-7 is reachable: `expected_income`'s CHECK is
+  // only `> 0 AND <= 9007199254740991` and migration 016's backfill writes a
+  // CAST of a legacy app_settings string without the form's 0.01 floor. Red
+  // against `String(currentIncome)`.
+  it('prefills a current income as positional digits, never exponent form', () => {
+    useIncomeSheetState.getState().open(null, 1e-7, '2026-07', 'July 2026');
+    const { amountText } = useIncomeSheetState.getState();
+    expect(amountText).toBe('0.0000001');
+    expect(amountText).not.toMatch(/e/i);
+  });
+
+  // The suggestion is the other half of the same `??`, and it is an average --
+  // ROUND(AVG(...)) over egp_amount, a column with no CHECK of its own.
+  it('prefills a suggestion as positional digits, never exponent form', () => {
+    useIncomeSheetState.getState().open(1e-7, null, '2026-07', 'July 2026');
+    const { amountText } = useIncomeSheetState.getState();
+    expect(amountText).toBe('0.0000001');
+    expect(amountText).not.toMatch(/e/i);
+  });
+
   it('open with neither suggestion nor current income leaves amountText empty', () => {
     useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
     const s = useIncomeSheetState.getState();

@@ -1,23 +1,32 @@
 import { z } from 'zod';
 
 import { Strings } from '@/constants/strings';
-import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { MIN_MONEY_AMOUNT, sumAllocations } from '@/utils/money';
+import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
 
 export const budgetFormSchema = z.object({
   nameText: z.string().trim().min(1, Strings.budgetNameRequired),
+  // Three checks in order, and the order is the contract: RHF renders the first
+  // issue, so the pattern failure has to sit between `.min(1)` and the floor
+  // check. Before the split, a half-typed '1.' was reported as being below the
+  // 0.01 floor -- true of nothing the user did, and not actionable.
   limitText: z
     .string()
     .min(1, Strings.budgetAmountRequired)
+    .refine((s) => parseDecimalText(s) !== undefined, Strings.errAmountInvalid)
     .refine((s) => parsePositiveDecimal(s) !== undefined, Strings.budgetAmountInvalid),
 });
 
 export type BudgetFormValues = z.infer<typeof budgetFormSchema>;
 
 export const incomeFormSchema = z.object({
+  // Same three-check order as `limitText` above. The MAX_SAFE_INTEGER ceiling
+  // stays on the floor check with its existing message -- it is a bound on the
+  // value, not on the pattern.
   amountText: z
     .string()
     .min(1, Strings.incomeSheetAmountRequired)
+    .refine((text) => parseDecimalText(text) !== undefined, Strings.errAmountInvalid)
     .refine((text) => {
       const amount = parsePositiveDecimal(text);
       return amount !== undefined && amount <= Number.MAX_SAFE_INTEGER;
@@ -28,9 +37,11 @@ export type IncomeFormValues = z.infer<typeof incomeFormSchema>;
 
 export const spendingPlanFormSchema = z.object({
   nameText: z.string().trim().min(1, Strings.budgetPlanNameRequired),
+  // Same three-check order as `limitText` above.
   totalText: z
     .string()
     .min(1, Strings.budgetPlanAmountRequired)
+    .refine((s) => parseDecimalText(s) !== undefined, Strings.errAmountInvalid)
     .refine((s) => parsePositiveDecimal(s) !== undefined, Strings.budgetPlanAmountInvalid),
 });
 
@@ -87,11 +98,15 @@ export const spendingPlanInputSchema = z
         message: Strings.budgetPlanDuplicateCategory,
       });
     }
-    const allocated = value.categories.reduce(
-      (total, category) => total + (category.allocatedAmount ?? 0),
-      0,
+    // Integer cents, through the same function the sheet's live helper line
+    // uses. A float sum disagrees with itself in both directions: it refuses
+    // 0.01 + 0.05 against 0.06, and it passes [0.335, 0.335, 0.33] against
+    // 1.00 that the repository then rejects after rounding.
+    const { isOver } = sumAllocations(
+      value.categories.map((category) => category.allocatedAmount),
+      value.totalAmount,
     );
-    if (allocated > value.totalAmount) {
+    if (isOver) {
       context.addIssue({
         code: 'custom',
         path: ['categories'],

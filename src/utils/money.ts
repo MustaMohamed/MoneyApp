@@ -45,3 +45,55 @@ export function roundMoney(n: number | null): number | null {
 
   return (sign * Math.round(scaled)) / 100;
 }
+
+/**
+ * The result of comparing a set of allocations against a plan total. Both the
+ * live helper line and the save gate derive from this one shape, so they
+ * cannot disagree.
+ */
+export interface AllocationTotals {
+  /** Whole currency units, 2dp-exact — never cents. */
+  allocated: number;
+  /** `total - allocated`; `undefined` when no total has been entered. */
+  buffer: number | undefined;
+  isOver: boolean;
+}
+
+/**
+ * A monetary value as an integer number of cents, rounded the way the write
+ * path rounds. `Math.round(x * 100)` on its own disagrees with the persisted
+ * value at every exact half-cent (0.005 → 0 vs 1, 0.025 → 2 vs 3), so the
+ * banker's rounding runs first and this is idempotent on an already-rounded
+ * value — which is what lets a raw input and a pre-rounded one reach the
+ * same verdict.
+ */
+export function toCents(n: number): number {
+  return Math.round(roundMoney(n) * 100);
+}
+
+/**
+ * Compare allocations against a plan total on an integer-cents basis.
+ * `null` and `undefined` allocations contribute 0. Summing the rounded
+ * cents — never rounding a float sum — is what makes the result independent
+ * of allocation order.
+ *
+ * `total === undefined` means "no total entered yet", a real state rather
+ * than zero: the buffer is `undefined` and nothing can be over.
+ */
+export function sumAllocations(
+  amounts: readonly (number | null | undefined)[],
+  total: number | undefined,
+): AllocationTotals {
+  let allocatedCents = 0;
+  for (const amount of amounts) allocatedCents += toCents(amount ?? 0);
+  const allocated = allocatedCents / 100;
+
+  if (total === undefined) return { allocated, buffer: undefined, isOver: false };
+
+  const totalCents = toCents(total);
+  return {
+    allocated,
+    buffer: (totalCents - allocatedCents) / 100,
+    isOver: allocatedCents > totalCents,
+  };
+}

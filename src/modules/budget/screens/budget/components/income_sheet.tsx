@@ -51,14 +51,12 @@ export function IncomeSheet() {
                   onFieldBlur();
                   onBlur(event);
                 }}
-                keyboardType="number-pad"
+                keyboardType="decimal-pad"
                 placeholder={Strings.incomeSheetAmountPlaceholder}
                 placeholderColorClassName="text-muted"
                 label={amountLabel}
                 helperText={
-                  state.suggestion !== null && value === String(state.suggestion)
-                    ? Strings.incomeSheetSuggestionNote
-                    : undefined
+                  state.isPrefilledFromSuggestion ? Strings.incomeSheetSuggestionNote : undefined
                 }
                 suffix={
                   <Typography className="font-inter-semibold text-muted text-[13px]">

@@ -1,8 +1,12 @@
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
+import { normalizeNegativeZero } from '@/modules/accounts/domain/account_aggregation';
 import { monthRange } from '@/modules/budget/database/spending_plans';
-import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
+import type {
+  SpendingPlanCategory,
+  SpendingPlanWithCategories,
+} from '@/modules/budget/entities/budget.entity';
 import {
   computePlanTiming,
   derivePlanStatus,
@@ -28,6 +32,7 @@ import type {
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';
+import { sumAllocations } from '@/utils/money';
 
 import {
   BUDGET_WARNING_THRESHOLD,
@@ -426,13 +431,28 @@ export function planIntersectsMonth(
   return plan.start_date < range.endExclusive && plan.end_date >= range.start;
 }
 
+/**
+ * The running-total line above the allocation rows. Takes a plain list of
+ * amounts rather than a record keyed by category, so the caller has to decide
+ * which categories are in play — an allocation left on a deselected category
+ * cannot silently count against the total.
+ */
 export function computeAllocationHelper(
-  totalAmount: number,
-  allocations: Record<string, number | undefined>,
+  totalAmount: number | undefined,
+  amounts: readonly (number | undefined)[],
 ): AllocationHelperVM {
-  let allocated = 0;
-  for (const amount of Object.values(allocations)) allocated += amount ?? 0;
-  return { allocated, buffer: totalAmount - allocated, isOver: allocated > totalAmount };
+  const { allocated, buffer, isOver } = sumAllocations(amounts, totalAmount);
+  return {
+    allocated,
+    // Defensive rather than load-bearing: `a - b` with `a === b` is +0 under
+    // integer cents, so -0 is unreachable. Kept because signed zero is THIS
+    // layer's to own: `format_amount.ts:9-13` treats an exact -0 arriving at the
+    // formatter as a domain defect and deliberately leaves it on screen rather
+    // than laundering it, so the normalise has to happen here — last operation
+    // before display, as at `dashboard.helpers.ts:130-139`.
+    buffer: buffer === undefined ? undefined : normalizeNegativeZero(buffer),
+    isOver,
+  };
 }
 
 export function buildSpendingPlanCardChips({
@@ -510,10 +530,18 @@ export function buildSpendingPlanRows({
         0,
       );
       const allocationRows = plan.categories
-        .filter((row) => row.allocated_amount !== null)
+        // A type predicate, not a bare filter: `.filter` without one leaves
+        // `allocated_amount` as `number | null` and the `?? 0` below reads as
+        // load-bearing when it is unreachable. Under a text-holding sheet
+        // store that fallback would prefill '0' for a row nobody allocated,
+        // turning "not decided" into "deliberate zero" on the next save.
+        .filter(
+          (row): row is SpendingPlanCategory & { allocated_amount: number } =>
+            row.allocated_amount !== null,
+        )
         .map((row) => {
           const category = categoryById.get(row.category_id);
-          const allocatedAmount = row.allocated_amount ?? 0;
+          const allocatedAmount = row.allocated_amount;
           const categorySpent = spend[row.category_id] ?? 0;
           const pct =
             allocatedAmount > 0 ? categorySpent / allocatedAmount : categorySpent > 0 ? 1 : 0;

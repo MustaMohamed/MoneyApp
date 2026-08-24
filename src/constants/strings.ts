@@ -508,7 +508,16 @@ export const Strings = {
   budgetPlanAllocationHelper: (allocated: string, total: string, buffer: string) =>
     `${allocated} of ${total} allocated · ${buffer} buffer`,
   budgetPlanAllocationOver: 'Allocations exceed the plan total.',
+  // Two messages for one rule, deliberately. budgetPlanAllocationInvalid is the
+  // sheet footer's, raised by spendingPlanInputSchema's refine, which has no row
+  // context and needs the whole sentence. budgetPlanAllocationBelowMin is the
+  // per-row one, and the row is a 128px column: the full sentence truncated to
+  // 'Each allocati…', which says nothing the red border did not. Both legal
+  // repairs stay named -- a deliberate 0 is a valid allocation ('tracking this
+  // category, allocating nothing'), so 'Min 0.01' alone would read complete and
+  // be wrong. No trailing period, matching budgetAmountInvalid above.
   budgetPlanAllocationInvalid: 'Each allocation must be 0 or at least 0.01.',
+  budgetPlanAllocationBelowMin: '0 or min 0.01',
   budgetPlanExpenseCategoriesOnly: 'Select expense categories only.',
   budgetPlanOverlapError: (categoryName: string, planName: string) =>
     `${categoryName} overlaps ${planName}`,
@@ -520,7 +529,7 @@ export const Strings = {
   budgetPlanCategoryRequired: 'Select at least one category',
   budgetPlanSaveError: 'Could not save plan. Try again.',
   budgetPlanDuplicateCategory: 'Select each category once.',
-  zeroAmountPlaceholder: '0',
+  zeroAmountPlaceholder: '0.00',
   budgetPlanDeleteConfirmTitle: 'Remove plan?',
   budgetPlanDeleteConfirmBody: (name: string) =>
     `Remove ${name}? This deletes the temporary budget and its category allocations.`,
@@ -741,7 +750,7 @@ export const Strings = {
       : 'This value applies only to the selected budget month.',
   incomeSheetAmountLabel: (monthLabel: string | undefined) =>
     monthLabel ? `Expected income for ${monthLabel}` : 'Expected monthly income',
-  incomeSheetAmountPlaceholder: '0',
+  incomeSheetAmountPlaceholder: '0.00',
   incomeSheetSuggestionNote: 'Pre-filled from your last 3 months of income',
   incomeSheetSaveCta: 'Save',
   incomeSheetSaveError: 'Could not save expected income. Please try again.',

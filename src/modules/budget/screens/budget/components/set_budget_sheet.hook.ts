@@ -9,6 +9,7 @@ import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { formatStoredMoneyText } from '@/utils/money_text';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { budgetFormSchema, type BudgetFormValues } from '@/utils/schemas/budget.schema';
 import { useZodForm } from '@/utils/use_zod_form.hook';
@@ -121,7 +122,15 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
     if (!initialized) return;
     resetForm({
       nameText: isEdit && editingRow ? editingRow.name : '',
-      limitText: isEdit && editingRow ? String(editingRow.limit) : '',
+      // Not `String(editingRow.limit)`: a limit whose `String()` is exponent
+      // form fills the field with text `DECIMAL_PATTERN` rejects, so the sheet
+      // opens on a value it will not let the user save back.
+      // `budgets.limit_amount` is a bare `REAL NOT NULL` with no CHECK at all
+      // (migrations/013:8), so unlike the plan tables nothing in the schema
+      // bounds it -- only the form's own `parsePositiveDecimal`, which every
+      // non-form writer bypasses. The name field above keeps `editingRow.name`
+      // raw: it is not a money field and needs no expansion.
+      limitText: isEdit && editingRow ? formatStoredMoneyText(editingRow.limit) : '',
     });
   }, [
     addBudgetGroup,

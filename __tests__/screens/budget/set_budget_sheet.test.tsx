@@ -98,6 +98,15 @@ jest.mock('@/modules/categories/components/category_picker_sheet', () => ({
 jest.mock('heroui-native', () => {
   const { Pressable, Text, TextInput, View } =
     jest.requireActual<typeof import('react-native')>('react-native');
+  // Keyed on the accessibility label, not on `keyboardType`. The label is what
+  // distinguishes these two inputs to a user; the keyboard is a presentation
+  // detail that has already moved once this ticket, and a keyboard-derived
+  // testID hands both inputs the same one the moment the two fields agree on a
+  // keyboard, resolving every assertion below to the wrong element. Required
+  // through `requireActual` because a jest.mock factory cannot close over an
+  // out-of-scope import.
+  const { Strings: ActualStrings } =
+    jest.requireActual<typeof import('@/constants/strings')>('@/constants/strings');
   let onRadioValueChange: ((value: string) => void) | undefined;
   const RadioGroup = ({
     children,
@@ -122,7 +131,11 @@ jest.mock('heroui-native', () => {
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
     Input: (props: Record<string, unknown>) => (
       <TextInput
-        testID={props.keyboardType === 'number-pad' ? 'budget-limit-input' : 'budget-name-input'}
+        testID={
+          props.accessibilityLabel === ActualStrings.budgetMonthlyLimitLabel
+            ? 'budget-limit-input'
+            : 'budget-name-input'
+        }
         {...props}
       />
     ),
@@ -329,6 +342,110 @@ describe('SetBudgetSheet', () => {
         categoryGroup: BudgetGroup.Want,
       }),
     );
+  });
+
+  // The three save tests above type '1500', '700' and '1750' -- all of which
+  // the mask accepts, so the suite stays green with the mask at
+  // set_budget_sheet.tsx:178 deleted. These are the cases that go red instead:
+  // @layla's tables 1 and 2 on the limit field, plus the name field asserted
+  // alongside, because a mask leaked onto the name Controller (which is
+  // character-identical to what this handler was) refuses every letter.
+  it('carries a typed comma on the limit to a decimal point, and leaves the name alone', async () => {
+    const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
+
+    // Asserted after EVERY step. With only a final assertion the sequence
+    // passes against an implementation that refuses the comma outright: step 3
+    // delivers a whole resynced '1.5' and the field catches up. Step 2's held
+    // text is the one that separates them.
+    for (const [delivered, held] of [
+      ['1', '1'],
+      ['1,', '1.'],
+      ['1.5', '1.5'],
+      ['1.50', '1.50'],
+    ] as const) {
+      await fireEvent.changeText(getByTestId('budget-limit-input'), delivered);
+      expect(getByTestId('budget-limit-input')).toHaveProp('value', held);
+    }
+
+    await fireEvent.changeText(getByTestId('budget-name-input'), 'Alexandria, Trip');
+    expect(getByTestId('budget-name-input')).toHaveProp('value', 'Alexandria, Trip');
+  });
+
+  // A refused delivery must leave the field holding what it held: the handler
+  // returns before `clearError()` as well as before `onChange`, so neither the
+  // text nor a save error the user still needs to read is disturbed. Both
+  // refusal shapes are here -- a second separator, and the comma-bearing paste
+  // that would otherwise be a silent 1000x.
+  it.each([['1.5,'], ['1.5.'], ['1,500'], ['1,234.56']])(
+    'refuses %p on the limit and keeps the accepted text',
+    async (delivered) => {
+      const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
+
+      await fireEvent.changeText(getByTestId('budget-limit-input'), '1.5');
+      await fireEvent.changeText(getByTestId('budget-limit-input'), delivered);
+
+      expect(getByTestId('budget-limit-input')).toHaveProp('value', '1.5');
+    },
+  );
+
+  // `budgets.limit_amount` is a bare `REAL NOT NULL` with no CHECK
+  // (migrations/013:8), so nothing in the schema keeps a stored limit out of
+  // `String()`'s exponent form. `String(1e-7)` would open the sheet on '1e-7',
+  // which `DECIMAL_PATTERN` rejects -- the field holds text its own validator
+  // refuses and the row cannot be saved back without retyping a value the user
+  // never chose. Red against `String(editingRow.limit)`.
+  it('prefills an exponent-form limit as positional digits, and it backspaces', async () => {
+    useBudgetState.getState().reset();
+    useBudgetState.getState().setSelectedMonth('2026-08');
+    useBudgetState.getState().openEdit('budget-trip-food');
+
+    const { getByTestId } = await render(
+      <SetBudgetSheet
+        budgetableCategories={categories}
+        editingRow={{ ...existingBudget, limit: 1e-7 }}
+      />,
+    );
+
+    const prefilled = '0.0000001';
+    expect(getByTestId('budget-limit-input')).toHaveProp('value', prefilled);
+    // The two assertions are one claim: the field opens holding `prefilled`,
+    // and `prefilled` is positional digits rather than the '1e-7' that
+    // `String(1e-7)` emits and DECIMAL_PATTERN rejects. Splitting them is what
+    // makes the second non-tautological -- it is a property of the string the
+    // first line pinned the field to.
+    expect(prefilled).not.toMatch(/e/i);
+
+    await fireEvent.changeText(getByTestId('budget-limit-input'), prefilled.slice(0, -1));
+    expect(getByTestId('budget-limit-input')).toHaveProp('value', '0.000000');
+  });
+
+  // The same column, the other value it is unconstrained against. A stored
+  // negative prefilled verbatim reads '-5', and the mask refuses '-5', the '-'
+  // one backspace leaves, and every digit appended to either -- so the field
+  // freezes and only select-all-and-retype gets out of it. It was editable
+  // before the mask landed, which makes this a regression the mask introduced
+  // and the formatter has to close.
+  //
+  // Blank, never '5'. Both assertions are the pin: the first is what stops the
+  // freeze, the second is what stops the repair being a silent re-sign into a
+  // number nobody stored (@layla Q7). Red against a formatter that returns
+  // `expandExponentialNotation(String(x))` unguarded.
+  it('prefills a stored negative limit as blank, and the field still types', async () => {
+    useBudgetState.getState().reset();
+    useBudgetState.getState().setSelectedMonth('2026-08');
+    useBudgetState.getState().openEdit('budget-trip-food');
+
+    const { getByTestId } = await render(
+      <SetBudgetSheet
+        budgetableCategories={categories}
+        editingRow={{ ...existingBudget, limit: -5 }}
+      />,
+    );
+
+    expect(getByTestId('budget-limit-input')).toHaveProp('value', '');
+
+    await fireEvent.changeText(getByTestId('budget-limit-input'), '5');
+    expect(getByTestId('budget-limit-input')).toHaveProp('value', '5');
   });
 
   it('keeps an in-flight edit save locked when refreshed props arrive', async () => {

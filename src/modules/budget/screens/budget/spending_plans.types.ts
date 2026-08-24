@@ -212,6 +212,7 @@ export interface SpendingPlansSummaryVM {
 
 export interface AllocationHelperVM {
   allocated: number;
-  buffer: number;
+  /** `undefined` while no plan total has been entered. */
+  buffer: number | undefined;
   isOver: boolean;
 }

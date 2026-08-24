@@ -1,4 +1,5 @@
 import { roundMoney } from '@/utils/money';
+import { sumAllocations, toCents, type AllocationTotals } from '@/utils/money';
 
 describe('roundMoney', () => {
   describe('non-half cases (standard rounding)', () => {
@@ -67,5 +68,80 @@ describe('roundMoney', () => {
     it('rounds 0.01 to 0.01 (unchanged)', () => {
       expect(roundMoney(0.01)).toBe(0.01);
     });
+  });
+});
+
+describe('toCents', () => {
+  it.each([
+    [0.1, 10],
+    [0.2, 20],
+    [0, 0],
+    [100, 10000],
+    [0.335, 34],
+    [0.015, 2],
+  ])('converts %p to %p cents', (input, expected) => {
+    expect(toCents(input)).toBe(expected);
+  });
+
+  // The tie case, and the reason `toCents` rounds through the money layer's
+  // banker's rounding instead of being a bare `Math.round(x * 100)`: that
+  // literal gives 33 here and disagrees with the persisted value at every
+  // exact half-cent.
+  it('rounds an exact half-cent to even, not up (0.325 -> 32)', () => {
+    expect(toCents(0.325)).toBe(32);
+  });
+
+  it('is idempotent on an already-rounded value', () => {
+    expect(toCents(0.34)).toBe(34);
+  });
+});
+
+describe('sumAllocations', () => {
+  it('accepts a sum that only float accumulation puts over the total', () => {
+    expect(sumAllocations([0.01, 0.05], 0.06).isOver).toBe(false);
+  });
+
+  it('accepts sub-cent allocations that round down to the total', () => {
+    expect(sumAllocations([0.5049, 0.5049], 1).isOver).toBe(false);
+  });
+
+  it('rejects allocations that round up past the total', () => {
+    expect(sumAllocations([0.335, 0.335, 0.33], 1).isOver).toBe(true);
+  });
+
+  it('reports no buffer and no overage when the total is not yet entered', () => {
+    expect(sumAllocations([0.4], undefined)).toEqual({
+      allocated: 0.4,
+      buffer: undefined,
+      isOver: false,
+    });
+  });
+
+  // D-A5: cents never leave this function. A cents value reaching
+  // `formatAmount` is a 100x display bug.
+  it('reports `allocated` in whole currency units, never cents', () => {
+    expect(sumAllocations([0.4], 100).allocated).toBe(0.4);
+  });
+
+  it('treats null and undefined allocations as contributing 0', () => {
+    expect(sumAllocations([null, undefined, 0.05], 0.06).allocated).toBe(0.05);
+  });
+
+  // D4: order independence. Under float accumulation this fails for ~11.86%
+  // of three-way triples, so the permutation set is fixed rather than random.
+  it('is order-independent across every permutation of the same allocations', () => {
+    const permutations: number[][] = [
+      [0.335, 0.12, 0.5049],
+      [0.335, 0.5049, 0.12],
+      [0.12, 0.335, 0.5049],
+      [0.12, 0.5049, 0.335],
+      [0.5049, 0.335, 0.12],
+      [0.5049, 0.12, 0.335],
+    ];
+    const expected: AllocationTotals = { allocated: 0.96, buffer: 0.04, isOver: false };
+
+    for (const amounts of permutations) {
+      expect(sumAllocations(amounts, 1)).toEqual(expected);
+    }
   });
 });

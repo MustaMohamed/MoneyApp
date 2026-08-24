@@ -4,6 +4,7 @@ import type { BlurEvent, FocusEvent, KeyboardTypeOptions } from 'react-native';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { maskFieldText } from '@/utils/money_text';
 import type { SpendingPlanFormValues } from '@/utils/schemas/budget.schema';
 
 interface SpendingPlanFieldProps {
@@ -15,6 +16,7 @@ interface SpendingPlanFieldProps {
   keyboardType?: KeyboardTypeOptions;
   variant: 'name' | 'amount';
   suffix?: string;
+  onEdit: () => void;
   onFocus: (event: FocusEvent) => void;
   onBlur: (event: BlurEvent) => void;
 }
@@ -28,7 +30,24 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
         <Input
           testID={props.testID}
           value={value}
-          onChangeText={onChange}
+          onChangeText={(text) => {
+            // The field's own variant, never a literal and never a boolean
+            // derived here: this one component renders both the plan name and
+            // the plan total, so a mask applied to every keystroke would refuse
+            // every letter of a plan name with nothing on screen to say why.
+            // `value` is the prior held text the classifier diffs against --
+            // the Controller's own value, which is what is on screen.
+            const masked = maskFieldText(props.variant, value, text);
+            if (masked === undefined) return;
+            // Mask, clear, write -- the order matters and is copied from
+            // `set_budget_sheet.tsx`: clearing above the guard would let a
+            // refused keystroke wipe an error the user still needs to read.
+            // Both fields clear it, not just the amount: one footer message
+            // serves the name, the total and every allocation row, so a subset
+            // would make the sheet's honesty depend on which field was touched.
+            props.onEdit();
+            onChange(masked);
+          }}
           onFocus={props.onFocus}
           onBlur={props.onBlur}
           keyboardType={props.keyboardType}
@@ -55,11 +74,17 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
 
 interface SpendingPlanFormFieldsProps {
   control: Control<SpendingPlanFormValues>;
+  onEdit: () => void;
   onFocus: (event: FocusEvent) => void;
   onBlur: (event: BlurEvent) => void;
 }
 
-export function SpendingPlanFormFields({ control, onFocus, onBlur }: SpendingPlanFormFieldsProps) {
+export function SpendingPlanFormFields({
+  control,
+  onEdit,
+  onFocus,
+  onBlur,
+}: SpendingPlanFormFieldsProps) {
   return (
     <>
       <SpendingPlanField
@@ -69,6 +94,7 @@ export function SpendingPlanFormFields({ control, onFocus, onBlur }: SpendingPla
         testID="spending-plan-name-input"
         placeholder={Strings.budgetPlanNamePlaceholder}
         variant="name"
+        onEdit={onEdit}
         onFocus={onFocus}
         onBlur={onBlur}
       />
@@ -78,9 +104,10 @@ export function SpendingPlanFormFields({ control, onFocus, onBlur }: SpendingPla
         label={Strings.budgetPlanAmountLabel}
         testID="spending-plan-total-input"
         placeholder={Strings.zeroAmountPlaceholder}
-        keyboardType="number-pad"
+        keyboardType="decimal-pad"
         variant="amount"
         suffix={Strings.currencyEgp}
+        onEdit={onEdit}
         onFocus={onFocus}
         onBlur={onBlur}
       />
