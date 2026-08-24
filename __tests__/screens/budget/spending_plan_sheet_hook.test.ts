@@ -500,6 +500,44 @@ describe('useSpendingPlanSheet', () => {
     }
   });
 
+  // D12, reopened by the keyboard change that made it reachable. Under
+  // `decimal-pad` a leading point is a plausible first keystroke and the mask
+  // accepts it, so '.5' is a state the user types INTO on the way to '0.5' --
+  // not the malformed input the format branch is for. Classified as a hard
+  // format failure it put the row red with 'Numbers only.' after two keystrokes
+  // and blocked Save on digits and a decimal point.
+  //
+  // The post-submit half is what makes the silence a decision rather than an
+  // absence, and it is also the whole of what did not change: '.5' still blocks
+  // the Save, it just stops shouting mid-word. Red against
+  // PARTIAL_DECIMAL_PATTERN as `/^\d*\.$/`: the row goes red at '.5'.
+  it('stays silent while an amount is typed leading-point first', async () => {
+    const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setSpendingPlan });
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(() => result.current.setAllocateByCategory(true));
+    // Read before any submit, for the reason given above. The store half is
+    // what stops this asserting the mask's refusal instead of the validator's
+    // silence -- a mask that dropped the leading point would leave the field
+    // empty and quiet too.
+    for (const text of ['.', '.5', '.50']) {
+      await act(() => result.current.setAllocationText('cat_food', text));
+      expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe(text);
+      expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
+    }
+
+    await act(async () => result.current.submit());
+
+    expect(setSpendingPlan).not.toHaveBeenCalled();
+    expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
+  });
+
   // Row 7, and the only two-row helper pin in the chunk. With a single row an
   // unparseable allocation contributing 0 is indistinguishable from a dropped
   // row or a hidden line; the sibling's 40 is what separates them. It is also
