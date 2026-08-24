@@ -419,6 +419,35 @@ describe('SetBudgetSheet', () => {
     expect(getByTestId('budget-limit-input')).toHaveProp('value', '0.000000');
   });
 
+  // The same column, the other value it is unconstrained against. A stored
+  // negative prefilled verbatim reads '-5', and the mask refuses '-5', the '-'
+  // one backspace leaves, and every digit appended to either -- so the field
+  // freezes and only select-all-and-retype gets out of it. It was editable
+  // before the mask landed, which makes this a regression the mask introduced
+  // and the formatter has to close.
+  //
+  // Blank, never '5'. Both assertions are the pin: the first is what stops the
+  // freeze, the second is what stops the repair being a silent re-sign into a
+  // number nobody stored (@layla Q7). Red against a formatter that returns
+  // `expandExponentialNotation(String(x))` unguarded.
+  it('prefills a stored negative limit as blank, and the field still types', async () => {
+    useBudgetState.getState().reset();
+    useBudgetState.getState().setSelectedMonth('2026-08');
+    useBudgetState.getState().openEdit('budget-trip-food');
+
+    const { getByTestId } = await render(
+      <SetBudgetSheet
+        budgetableCategories={categories}
+        editingRow={{ ...existingBudget, limit: -5 }}
+      />,
+    );
+
+    expect(getByTestId('budget-limit-input')).toHaveProp('value', '');
+
+    await fireEvent.changeText(getByTestId('budget-limit-input'), '5');
+    expect(getByTestId('budget-limit-input')).toHaveProp('value', '5');
+  });
+
   it('keeps an in-flight edit save locked when refreshed props arrive', async () => {
     const pendingSave = deferred();
     mockSetBudget.mockReturnValueOnce(pendingSave.promise);

@@ -169,22 +169,55 @@ describe('formatStoredMoneyText', () => {
   it.each([[null], [undefined]])('renders %p as the empty string, never "0"', (value) => {
     expect(formatStoredMoneyText(value)).toBe('');
   });
+
+  // A stored value the field cannot hold renders as '' rather than as text no
+  // keystroke can repair. '-5' is the string that froze the budget limit: the
+  // mask refuses it, refuses the '-' one backspace leaves, and refuses every
+  // digit appended to either, so the field was editable only by
+  // select-all-and-retype. `budgets.limit_amount` is what makes it reachable --
+  // a bare REAL NOT NULL with no CHECK (migrations/013:8).
+  //
+  // Never '5'. Stripping the sign would manufacture a number nobody stored
+  // that then clears the floor and saves silently (@layla Q7), which is worse
+  // than the freeze it fixes. Red against `expandExponentialNotation(String(x))`
+  // returned unguarded: '-5' stays '-5'.
+  it.each([
+    [-5],
+    [-0.01],
+    [-1e-7],
+    [-1e21],
+    [Number.POSITIVE_INFINITY],
+    [Number.NEGATIVE_INFINITY],
+    [Number.NaN],
+  ])('renders %p as the empty string rather than text no keystroke repairs', (value) => {
+    expect(formatStoredMoneyText(value)).toBe('');
+  });
 });
 
-// The prefill domain, stated once (spec §5.5): `null`, plus every finite double
-// >= 0. `±Infinity`, `NaN` and negatives are out of domain and must not appear
-// here -- `String(Infinity)` is 'Infinity', which no money validator accepts,
-// so generating it would red invariant 2 on a value no prefill can carry.
-// parse_decimal.ts:17's Number.isFinite guard and budget.schema.ts's z.number()
-// exclude non-finite values on the write path. Negatives are excluded per
-// caller, and not uniformly by SQL -- see money_text.ts's note above
-// expandExponentialNotation: three of the four prefill sources carry a CHECK
-// that forbids them (allocated_amount >= 0, total_amount > 0, expected_income
-// > 0), budgets.limit_amount carries no CHECK at all, and there the exclusion
-// is parsePositiveDecimal at the form. All four are subsets of the domain
-// below, so none of them needs rows of its own here; what a negative would
-// break is the FORMATTER's contract, and that is money_text.ts's problem, not
-// this sample's.
+// Two domains, because the two invariants below are two different claims.
+//
+// FIDELITY -- `Number(format(x)) === x` -- is claimed only where the field can
+// carry the value at all, so it keeps spec §5.5's domain: `null`, plus every
+// finite double >= 0. It cannot be widened. `Number('')` is 0, so a value the
+// formatter declines to render can never round-trip, and making one round-trip
+// would mean re-signing it -- the substitution @layla Q7 forbids.
+//
+// TYPEABILITY -- the prefill is text the keystroke mask accepts -- is claimed
+// over everything the formatter's own signature admits, and that widening is
+// the fix for how the budget limit froze. This property was quantified over
+// finite doubles >= 0, a bound cited to migration 014's
+// `CHECK(allocated_amount IS NULL OR allocated_amount >= 0)`. That CHECK
+// governs the two spending-plan columns; `budgets.limit_amount` is a bare REAL
+// NOT NULL with no CHECK at all (migrations/013:8) and `transactions.egp_amount`
+// behind the income suggestion is another (004:9). A property whose domain was
+// drawn from three of the four sources could not see the fourth, which is the
+// only one that can break it -- so the domain is the function's parameter type
+// now, and the formatter carries a postcondition that makes it hold.
+//
+// `±Infinity` and `NaN` join it for the same structural reason rather than
+// because a write path admits them: parse_decimal.ts:17's Number.isFinite guard
+// and budget.schema.ts's z.number() still exclude them, but that is again an
+// application guard on one path, and the formatter no longer needs the argument.
 const PREFILL_DOMAIN_CORE = [0, 0.005, 0.01, 1.5, 10, 1234.56, 1e-7, 0.30000000000000004];
 const PREFILL_DOMAIN_EDGES = [0, Number.MIN_VALUE, 1e21, 1e300, Number.MAX_VALUE];
 
@@ -210,7 +243,24 @@ function sampleFiniteNonNegativeDoubles(count: number): number[] {
 const PREFILL_SAMPLE = sampleFiniteNonNegativeDoubles(2000);
 const PREFILL_DOMAIN = [...PREFILL_DOMAIN_CORE, ...PREFILL_DOMAIN_EDGES, ...PREFILL_SAMPLE];
 
-describe('formatStoredMoneyText invariants over the prefill domain', () => {
+/** Everything `number` admits that no prefill should carry -- and that nothing
+ * upstream of `budgets.limit_amount` actually stops. */
+const OUT_OF_PREFILL_DOMAIN = [
+  -5,
+  -0.01,
+  -1e-7,
+  -1e21,
+  -Number.MIN_VALUE,
+  -Number.MAX_VALUE,
+  Number.POSITIVE_INFINITY,
+  Number.NEGATIVE_INFINITY,
+  Number.NaN,
+  ...PREFILL_SAMPLE.slice(0, 200).map((value) => -value),
+];
+const FORMATTER_DOMAIN = [...PREFILL_DOMAIN, ...OUT_OF_PREFILL_DOMAIN];
+
+describe('formatStoredMoneyText invariants', () => {
+  // Fidelity, over the prefill domain only -- see the note above the domains.
   it('round-trips every finite non-negative double through Number()', () => {
     for (const value of PREFILL_DOMAIN) {
       expect(Number(formatStoredMoneyText(value))).toBe(value);
@@ -227,7 +277,7 @@ describe('formatStoredMoneyText invariants over the prefill domain', () => {
   it('always produces plain positional notation, null included', () => {
     const isPositional = (text: string) => !/e/i.test(text) && text.split('.').length <= 2;
     expect(isPositional(formatStoredMoneyText(null))).toBe(true);
-    for (const value of PREFILL_DOMAIN) {
+    for (const value of FORMATTER_DOMAIN) {
       expect(isPositional(formatStoredMoneyText(value))).toBe(true);
     }
   });
@@ -240,7 +290,7 @@ describe('formatStoredMoneyText invariants over the prefill domain', () => {
   // field where the keystroke is a silent no-op.
   it('always produces text the keystroke mask accepts, null included', () => {
     expect(isTypeableMoneyText(formatStoredMoneyText(null))).toBe(true);
-    for (const value of PREFILL_DOMAIN) {
+    for (const value of FORMATTER_DOMAIN) {
       expect(isTypeableMoneyText(formatStoredMoneyText(value))).toBe(true);
     }
   });
@@ -265,6 +315,7 @@ describe('formatStoredMoneyText invariants over the prefill domain', () => {
       ...PREFILL_DOMAIN_CORE,
       ...PREFILL_DOMAIN_EDGES,
       ...PREFILL_SAMPLE.slice(0, 200),
+      ...OUT_OF_PREFILL_DOMAIN,
     ]) {
       const text = formatStoredMoneyText(value);
       for (let end = 0; end <= text.length; end += 1) {

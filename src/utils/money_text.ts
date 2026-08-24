@@ -57,10 +57,16 @@ export function isTypeableMoneyText(text: string): boolean {
  * On the fourth, and on the income sheet's other input — a suggestion averaged
  * over `transactions.egp_amount`, itself a bare `REAL NOT NULL` (`004:9`) — the
  * only thing excluding a negative is `parsePositiveDecimal` at the form, which
- * is an application guard every non-form writer bypasses. So the branch stays
- * for the reason it is written, not as decoration: the proof narrowed when the
- * domain grew, and a plain string utility any future caller can reach should
- * not lose a correct branch to an argument that now covers half its callers.
+ * is an application guard every non-form writer bypasses. A negative therefore
+ * does reach this function, and this branch expands it correctly: `'-1e-7'`
+ * becomes `'-0.0000001'`.
+ *
+ * What it no longer does is change what the caller returns.
+ * `formatStoredMoneyText`'s postcondition refuses the expanded string for the
+ * same reason it would have refused the unexpanded `'-1e-7'` — neither is text
+ * a money field can hold — so both land on `''`. The branch stays because it is
+ * correct and this is a plain string utility, not because a caller depends on
+ * it; deleting it is a quality call and not a correctness one.
  */
 function expandExponentialNotation(text: string): string {
   const match = /^(-?)(\d+)(?:\.(\d+))?e([+-]\d+)$/i.exec(text);
@@ -93,8 +99,21 @@ function expandExponentialNotation(text: string): string {
  * It also has to survive the keystroke mask, which runs on `onChangeText` and
  * never on a programmatic write: a prefill outside `isTypeableMoneyText` leaves
  * a field that cannot even be backspaced, because every intermediate prefix is
- * refused with nothing on screen to say why. That property is pinned directly
- * over this function's whole domain rather than argued here.
+ * refused with nothing on screen to say why. **That is enforced on the way out
+ * rather than assumed** — the last line is the property, so it holds for every
+ * `number | null | undefined` a caller can pass and not only for the values
+ * today's four columns happen to admit.
+ *
+ * A stored negative is what makes that difference load-bearing.
+ * `budgets.limit_amount` is a bare `REAL NOT NULL` with **no CHECK at all**
+ * (`migrations/013:8`), so `-5` reaches here, `String()` renders it `'-5'`, and
+ * the mask refuses `'-5'`, refuses the `'-'` a backspace leaves behind, and
+ * refuses every digit appended to either — a field editable only by
+ * select-all-and-retype. Rendering it as `''` instead opens the field blank
+ * against a validator that requires a value, which is loud and repairable. It
+ * is never re-signed into `'5'`: that would manufacture a number nobody stored,
+ * one that clears the floor and is one Save from being written — the exact
+ * substitution @layla Q7 forbids.
  *
  * The other form it must not emit is the exponent one, and that is what the
  * expansion above is for.
@@ -108,11 +127,15 @@ function expandExponentialNotation(text: string): string {
  * reach that branch: the allocation column, which is nullable, and the income
  * sheet, whose `currentIncome ?? suggestion` is `null` on a month with neither.
  * `spending_plans.total_amount` and `budgets.limit_amount` are both `NOT NULL`
- * and their sheets prefill only in edit mode, so neither takes it.
+ * and their sheets prefill only in edit mode, so neither takes it. The
+ * postcondition returns `''` too, meaning something else — not "unallocated"
+ * but "unrenderable". One return value covers both because the field does the
+ * same thing with either: it opens blank and the user owns what goes in it.
  */
 export function formatStoredMoneyText(value: number | null | undefined): string {
   if (value === null || value === undefined) return '';
-  return expandExponentialNotation(String(value));
+  const text = expandExponentialNotation(String(value));
+  return isTypeableMoneyText(text) ? text : '';
 }
 
 /**
