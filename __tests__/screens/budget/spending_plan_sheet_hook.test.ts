@@ -168,7 +168,12 @@ describe('useSpendingPlanSheet', () => {
     expect(result.current.state.allocationErrors.cat_food).toBe(
       Strings.budgetPlanAllocationBelowMin,
     );
-    expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+    // The row message is the specific one; the sheet-level one is what the user
+    // sees when the row is scrolled out from under a fixed Save button. Red
+    // against a pre-flight that returns without writing it.
+    expect(useSpendingPlanSheetState.getState().submitError).toBe(
+      Strings.budgetPlanAllocationInvalid,
+    );
   });
 
   // Blank must still mean unallocated, not zero — the one way this fix could
@@ -249,7 +254,9 @@ describe('useSpendingPlanSheet', () => {
     expect(result.current.state.allocationErrors.cat_food).toBe(
       Strings.budgetPlanAllocationBelowMin,
     );
-    expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+    expect(useSpendingPlanSheetState.getState().submitError).toBe(
+      Strings.budgetPlanAllocationInvalid,
+    );
   });
 
   // The prefill hazard row 25 states, on the plan total rather than on an
@@ -616,6 +623,36 @@ describe('useSpendingPlanSheet', () => {
 
     expect(useSpendingPlanSheetState.getState().submitError).toBe(Strings.budgetPlanSaveError);
     expect(useSpendingPlanSheetState.getState().saving).toBe(false);
+  });
+
+  // The stale half of the same finding, and the leg the two pre-flight tests
+  // above cannot reach: they start from a clean sheet, where "no message" and
+  // "the wrong message" are the same assertion. Here the sheet is already
+  // reporting a repository failure when a row is made invalid, so the second
+  // Save has something to replace. Red against a pre-flight that returns
+  // without writing submitError: 'Could not save plan. Try again.' stays on
+  // screen, describing a save that is no longer what is being blocked.
+  it('replaces a stale save error when the allocation pre-flight blocks the next Save', async () => {
+    const setSpendingPlan = jest.fn().mockRejectedValue(new Error('disk is on fire'));
+    useBudgetStore.setState({ setSpendingPlan });
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(async () => result.current.submit());
+    expect(useSpendingPlanSheetState.getState().submitError).toBe(Strings.budgetPlanSaveError);
+
+    await act(() => result.current.setAllocateByCategory(true));
+    await act(() => result.current.setAllocationText('cat_food', '0.005'));
+    await act(async () => result.current.submit());
+
+    expect(setSpendingPlan).toHaveBeenCalledTimes(1);
+    expect(useSpendingPlanSheetState.getState().submitError).toBe(
+      Strings.budgetPlanAllocationInvalid,
+    );
   });
 
   // Row 3 / @layla Q7. A NULL allocation has no allocationRows entry, so the

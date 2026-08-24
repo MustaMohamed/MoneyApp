@@ -184,7 +184,24 @@ export function useSpendingPlanSheet({
       // on a deselected category cannot block Save with an error attached to no
       // visible row.
       if (allocationFields.some(({ validation }) => !validation.ok)) {
-        useSpendingPlanSheetState.getState().setAllocationSubmitAttempted(true);
+        const preflight = useSpendingPlanSheetState.getState();
+        preflight.setAllocationSubmitAttempted(true);
+        // The row message alone is not a response to the tap. It renders in a
+        // 128px column inside the scroll view; Save is in the sheet's fixed
+        // footer, which does not scroll with it. With the offending row off
+        // screen, unmuting it changes nothing in the viewport and the button
+        // reads as dead.
+        //
+        // Setting it is also what clears a stale one — a repository failure
+        // from the previous attempt otherwise stays on screen describing a
+        // problem that is no longer what is blocking the save. One write does
+        // both, so there is no separate clear to forget.
+        //
+        // `budgetPlanAllocationInvalid` is the sheet-level wording for exactly
+        // this rule, already carried for `spendingPlanInputSchema`'s refine
+        // (see its note in `strings.ts`) — the same rule failing one layer
+        // earlier gets the same sentence, and no new string is introduced.
+        preflight.setSubmitError(Strings.budgetPlanAllocationInvalid);
         return;
       }
       const input: SetSpendingPlanInput = {
