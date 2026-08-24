@@ -96,10 +96,9 @@ describe('text-amount schemas share the parse floor and DECIMAL_PATTERN', () => 
   // and not something the user can act on. The pattern failure now answers
   // first, and 'Numbers only.' already ships in exactly this role.
   //
-  // These are not hypothetical strings. The fields store what `onChangeText`
-  // delivers, verbatim and unfiltered, so '1.', '.' and '.5' reach the schema
-  // from a paste, from a hardware keyboard, and from any soft keyboard the
-  // platform attaches -- and DECIMAL_PATTERN rejects all three.
+  // The mask does not make this refine dead code: it admits '1.', '.' and '.5',
+  // every one of which DECIMAL_PATTERN rejects, so these are precisely the
+  // strings a mid-typing submit produces.
   it.each(cases)(
     '$label reports an incomplete decimal as a pattern failure',
     ({ firstMessage }) => {

@@ -8,6 +8,7 @@ import { useSpendingPlanSheetState } from '@/modules/budget/screens/budget/spend
 import { useSpendingPlanSheetStore } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.store';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
 
 const mockResetForm = jest.fn();
 // `watch('totalText')` is settable per test: the total is what decides whether
@@ -383,6 +384,95 @@ describe('useSpendingPlanSheet', () => {
     expect(setSpendingPlan).not.toHaveBeenCalled();
     expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
   });
+
+  // Row 10, rewritten for the mechanism that replaced the refusal. @layla's
+  // table 1 on the allocation row: the four keystrokes a comma-decimal keyboard
+  // sends for "one and a half" end at '1.50' and parse to 1.5. Before MA-020
+  // the comma reached parseDecimalText and stored 1500 -- a 1000x error with
+  // nothing on screen to show for it; under the reverted mask the same four
+  // keystrokes froze the field at '1'.
+  //
+  // `previous` is read back from the store by the hook, not passed in, so this
+  // chain is also the pin on that read: a hook that diffed against '' every
+  // time would classify step 2 as a paste and refuse it.
+  it('carries a typed comma on an allocation row to a decimal point', async () => {
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(() => result.current.setAllocateByCategory(true));
+    // Asserted after EVERY step. With only a final assertion the sequence
+    // passes against an implementation that refuses the comma outright: step 3
+    // delivers a whole resynced '1.5' and the row catches up. Step 2's held
+    // text is the one that separates them.
+    for (const [delivered, expected] of [
+      ['1', '1'],
+      ['1,', '1.'],
+      ['1.5', '1.5'],
+      ['1.50', '1.50'],
+    ] as const) {
+      await act(() => result.current.setAllocationText('cat_food', delivered));
+      // Read before any submit, for the reason given above.
+      expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe(expected);
+    }
+
+    // The parse is over the held text rather than a literal, so it is the row's
+    // own value that has to come out at 1.5 -- not 150, and not 1500.
+    expect(parseNonNegativeDecimal(useSpendingPlanSheetStore.getState().allocations.cat_food)).toBe(
+      1.5,
+    );
+  });
+
+  // @layla's table 2 on this row, both glyphs. Neither passes by inspecting the
+  // character typed: the rewritten candidate carries two separators and the
+  // single-'.' pattern refuses it, which is what keeps the mechanism safe on a
+  // keyboard exposing both keys at once.
+  it.each([['1.5,'], ['1.5.']])(
+    'refuses %p on an allocation row, a second separator',
+    async (delivered) => {
+      const { result } = await renderHook(() =>
+        useSpendingPlanSheet({ budgetableCategories: categories }),
+      );
+      await waitFor(() =>
+        expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+      );
+
+      await act(() => result.current.setAllocateByCategory(true));
+      await act(() => result.current.setAllocationText('cat_food', '1.5'));
+      await act(() => result.current.setAllocationText('cat_food', delivered));
+
+      // Read before any submit, for the reason given above.
+      expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('1.5');
+    },
+  );
+
+  // @layla's table 3 on this row -- the silent-1000x branch. '1,500' arriving
+  // as one delta is refused by shape before anything interprets it: read as a
+  // keystroke it would normalise to '1.500' and store 1.5, and read by
+  // DECIMAL_PATTERN it is 1500. Both are guesses, so neither is made.
+  // '1,234.56' is refused too, which is @sarah Q10 ruling 2's accepted cost.
+  it.each([['1,500'], ['1,234.56'], ['1,5']])(
+    'refuses the comma-bearing paste %p, leaving the row on its last accepted text',
+    async (delivered) => {
+      const { result } = await renderHook(() =>
+        useSpendingPlanSheet({ budgetableCategories: categories }),
+      );
+      await waitFor(() =>
+        expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+      );
+
+      await act(() => result.current.setAllocateByCategory(true));
+      await act(() => result.current.setAllocationText('cat_food', '1'));
+      await act(() => result.current.setAllocationText('cat_food', delivered));
+
+      // Read before any submit, for the reason given above. Never '1500',
+      // never '1.5' -- the row holds what it held.
+      expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('1');
+    },
+  );
 
   // '0.40' passes through '0.' on the way in. Rendering every failure on the
   // keystroke would flash a message once per amount the user enters, so the

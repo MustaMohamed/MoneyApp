@@ -344,6 +344,50 @@ describe('SetBudgetSheet', () => {
     );
   });
 
+  // The three save tests above type '1500', '700' and '1750' -- all of which
+  // the mask accepts, so the suite stays green with the mask at
+  // set_budget_sheet.tsx:178 deleted. These are the cases that go red instead:
+  // @layla's tables 1 and 2 on the limit field, plus the name field asserted
+  // alongside, because a mask leaked onto the name Controller (which is
+  // character-identical to what this handler was) refuses every letter.
+  it('carries a typed comma on the limit to a decimal point, and leaves the name alone', async () => {
+    const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
+
+    // Asserted after EVERY step. With only a final assertion the sequence
+    // passes against an implementation that refuses the comma outright: step 3
+    // delivers a whole resynced '1.5' and the field catches up. Step 2's held
+    // text is the one that separates them.
+    for (const [delivered, held] of [
+      ['1', '1'],
+      ['1,', '1.'],
+      ['1.5', '1.5'],
+      ['1.50', '1.50'],
+    ] as const) {
+      await fireEvent.changeText(getByTestId('budget-limit-input'), delivered);
+      expect(getByTestId('budget-limit-input')).toHaveProp('value', held);
+    }
+
+    await fireEvent.changeText(getByTestId('budget-name-input'), 'Alexandria, Trip');
+    expect(getByTestId('budget-name-input')).toHaveProp('value', 'Alexandria, Trip');
+  });
+
+  // A refused delivery must leave the field holding what it held: the handler
+  // returns before `clearError()` as well as before `onChange`, so neither the
+  // text nor a save error the user still needs to read is disturbed. Both
+  // refusal shapes are here -- a second separator, and the comma-bearing paste
+  // that would otherwise be a silent 1000x.
+  it.each([['1.5,'], ['1.5.'], ['1,500'], ['1,234.56']])(
+    'refuses %p on the limit and keeps the accepted text',
+    async (delivered) => {
+      const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
+
+      await fireEvent.changeText(getByTestId('budget-limit-input'), '1.5');
+      await fireEvent.changeText(getByTestId('budget-limit-input'), delivered);
+
+      expect(getByTestId('budget-limit-input')).toHaveProp('value', '1.5');
+    },
+  );
+
   // `budgets.limit_amount` is a bare `REAL NOT NULL` with no CHECK
   // (migrations/013:8), so nothing in the schema keeps a stored limit out of
   // `String()`'s exponent form. `String(1e-7)` would open the sheet on '1e-7',

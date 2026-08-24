@@ -27,7 +27,7 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
-import { formatStoredMoneyText } from '@/utils/money_text';
+import { formatStoredMoneyText, maskMoneyFieldText } from '@/utils/money_text';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import {
   spendingPlanFormSchema,
@@ -293,10 +293,19 @@ export function useSpendingPlanSheet({
     setAllocateByCategory: (enabled: boolean) =>
       useSpendingPlanSheetStore.getState().setAllocateByCategory(enabled),
     setAllocationText: (categoryId: string, text: string) => {
-      // Stored as typed, never corrected: the row keeps the exact characters
-      // the user entered, so '0.005' survives to the row validator and produces
-      // its floor message instead of being rounded into '0.00' on the way in.
-      useSpendingPlanSheetStore.getState().setAllocation(categoryId, text);
+      // The prior held text is read back from the store rather than passed in:
+      // the row renders `props.values[category.id] ?? ''` from this same
+      // record, so this is what is on screen, and no prop is added to carry it.
+      //
+      // Refused or normalised, never truncated: a comma typed into the row
+      // becomes a decimal point, a comma arriving in a paste-shaped delta puts
+      // nothing in the field, and '0.005' survives to the row validator to
+      // produce its floor message instead of being rounded into '0.00' on the
+      // way in.
+      const previous = useSpendingPlanSheetStore.getState().allocations[categoryId] ?? '';
+      const masked = maskMoneyFieldText(previous, text);
+      if (masked === undefined) return;
+      useSpendingPlanSheetStore.getState().setAllocation(categoryId, masked);
     },
     openDatePicker: (target: SpendingPlanDatePickerTarget) =>
       useSpendingPlanSheetState.getState().openDatePicker(target),
