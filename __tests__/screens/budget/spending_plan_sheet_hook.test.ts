@@ -655,6 +655,61 @@ describe('useSpendingPlanSheet', () => {
     );
   });
 
+  // The footer message is a verdict on text that has since changed. It now
+  // rides above Save in the fixed footer rather than at the bottom of the
+  // scroll body, so a stale one is permanently in view claiming a block the
+  // user has already cleared. Red against a `setAllocationText` that only
+  // masks and writes.
+  it('clears the footer message on an accepted allocation keystroke', async () => {
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(() => result.current.setAllocateByCategory(true));
+    await act(() => result.current.setAllocationText('cat_food', '0.005'));
+    await act(async () => result.current.submit());
+    expect(useSpendingPlanSheetState.getState().submitError).toBe(
+      Strings.budgetPlanAllocationInvalid,
+    );
+
+    await act(() => result.current.setAllocationText('cat_food', '0.05'));
+
+    expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('0.05');
+    expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+  });
+
+  // The ordering half, and the reason the clear sits below the mask guard
+  // rather than at the top of the handler. A second decimal point is refused,
+  // so the field still holds the text the message is complaining about --
+  // wiping the message there would leave the user with a Save that refuses and
+  // nothing on screen saying why. Red the moment the clear is hoisted above
+  // `if (masked === undefined) return;`.
+  it('leaves the footer message standing when the allocation keystroke is refused', async () => {
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(() => result.current.setAllocateByCategory(true));
+    await act(() => result.current.setAllocationText('cat_food', '0.005'));
+    await act(async () => result.current.submit());
+    expect(useSpendingPlanSheetState.getState().submitError).toBe(
+      Strings.budgetPlanAllocationInvalid,
+    );
+
+    await act(() => result.current.setAllocationText('cat_food', '0.0.05'));
+
+    expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('0.005');
+    expect(useSpendingPlanSheetState.getState().submitError).toBe(
+      Strings.budgetPlanAllocationInvalid,
+    );
+  });
+
   // Row 3 / @layla Q7. A NULL allocation has no allocationRows entry, so the
   // row prefills '' and saves back as undefined -- NULL in, NULL out, never a
   // '0' the user never chose. Correct on `main` through the :530 filter;

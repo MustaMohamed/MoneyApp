@@ -322,8 +322,19 @@ export function useSpendingPlanSheet({
       const previous = useSpendingPlanSheetStore.getState().allocations[categoryId] ?? '';
       const masked = maskMoneyFieldText(previous, text);
       if (masked === undefined) return;
+      // Mask, clear, write. The footer message is a pre-flight verdict on text
+      // that has since changed, so an accepted edit retires it -- otherwise the
+      // sheet keeps claiming a block above Save, permanently in view, after the
+      // row that caused it was fixed. Clearing above the guard instead would let
+      // a refused keystroke wipe an error the user still needs to read.
+      useSpendingPlanSheetState.getState().setSubmitError(undefined);
       useSpendingPlanSheetStore.getState().setAllocation(categoryId, masked);
     },
+    // The same clear for the plan name and total, threaded to the one shared
+    // handler behind both Controllers. One footer message serves all three
+    // inputs; leaving two of them able to strand it would put the sheet's
+    // honesty on which field the user happened to touch.
+    clearSubmitError: () => useSpendingPlanSheetState.getState().setSubmitError(undefined),
     openDatePicker: (target: SpendingPlanDatePickerTarget) =>
       useSpendingPlanSheetState.getState().openDatePicker(target),
     // datetimepicker 9 split the old single `onChange` in two. Closing the picker
