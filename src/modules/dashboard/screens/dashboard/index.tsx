@@ -8,6 +8,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing } from '@/constants/theme';
@@ -33,14 +34,6 @@ const TYPE_ORDER: AccountType[] = [
   AccountType.PhysicalSavings,
   AccountType.CreditCard,
 ];
-
-const SECTION_TITLES: Record<AccountType, string> = {
-  [AccountType.Bank]: Strings.typeBank.toUpperCase(),
-  [AccountType.SmartWallet]: Strings.typeSmartWallet.toUpperCase(),
-  [AccountType.PhysicalWallet]: Strings.typePhysicalWallet.toUpperCase(),
-  [AccountType.PhysicalSavings]: Strings.typePhysicalSavings.toUpperCase(),
-  [AccountType.CreditCard]: Strings.typeCreditCard.toUpperCase(),
-};
 
 export default function DashboardScreen() {
   const {
@@ -224,7 +217,7 @@ export default function DashboardScreen() {
                     {visibleTypes.map((type, index) => (
                       <Animated.View key={type} entering={sectionEntering(index)}>
                         <SectionHeader
-                          title={SECTION_TITLES[type]}
+                          title={ACCOUNT_TYPE_LABELS[type].toUpperCase()}
                           count={state.groupedAccounts[type]?.length ?? 0}
                         />
                         <AccountCarousel

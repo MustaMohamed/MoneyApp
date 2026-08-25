@@ -3,13 +3,13 @@ import { ListGroup, Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { AccountType } from '@/constants/enums';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
 import {
-  N3_ACCOUNT_TYPE_LABELS,
   N3_ROW_STYLE,
   N3_ROW_TYPE_GAP,
   N3_ROW_TYPE_GLYPH,
@@ -95,7 +95,7 @@ export function AccountRow({ account }: { account: Account }) {
             className="text-content-secondary font-inter"
             style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
           >
-            {N3_ACCOUNT_TYPE_LABELS[account.type]}
+            {ACCOUNT_TYPE_LABELS[account.type]}
           </Typography>
         </View>
       </ListGroup.ItemContent>
