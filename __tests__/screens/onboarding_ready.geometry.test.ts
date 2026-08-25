@@ -6,6 +6,13 @@ import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 import type { ReadyFrame, ReadyPill } from '@/modules/onboarding/domain/ready_summary_state';
 import {
+  resolveCaption,
+  resolveHeroAmountParts,
+  resolveHeroValueA11yLabel,
+  resolveHeroValueTextStyle,
+  resolvePill,
+} from '@/modules/onboarding/screens/onboarding/ready/ready.format';
+import {
   N4_BODY_TEXT_STYLE,
   N4_HEADLINE_LINE_HEIGHT_RATIO,
   N4_HEADLINE_TEXT_STYLE,
@@ -24,11 +31,6 @@ import {
   N4_HERO_VALUE_TEXT_STYLE,
   N4_SUMMARY_ROW_STYLE,
   N4_SUMMARY_ROW_TEXT_STYLE,
-  resolveCaption,
-  resolveHeroAmountParts,
-  resolveHeroValueA11yLabel,
-  resolveHeroValueTextStyle,
-  resolvePill,
 } from '@/modules/onboarding/screens/onboarding/ready/ready.geometry';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
