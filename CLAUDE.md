@@ -16,6 +16,8 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 - Negative results are one line. No-finding sections get one line, not a heading.
 - Cut: restating the request, narrating tool calls, re-explaining, process commentary.
 
+MoneyApp specifics for the contract: `primitive`, `surface`, and `harness` are domain terms here, exempt from the jargon rule where they name the real thing. Method-certification baseline: `grep -roE "rather than assumed|rather than inferred|not inferred|not assumed" docs/scopes/ | wc -l` returns 36 today; it must not grow.
+
 ## Workflow
 
 **Always branch before any work. Never commit to `main`.** (`feat/x`, `refactor/x`, `fix/x`, `perf/x`; task branches add the ID — `feat/MA-042-slug`)

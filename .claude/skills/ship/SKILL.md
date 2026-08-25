@@ -108,15 +108,12 @@ pr: <url or ->                    # direct/chunk-single: the PR; chunk/split: - 
 
 ### Output budgets
 
-The `unslop` skill is the output contract and binds every artifact this workflow writes — conductor and subagents alike; dispatches say so. Ship-specific ceilings, in words unless stated:
+The `unslop` skill is the output contract and binds every artifact this workflow writes — conductor and subagents alike; dispatches say so. Findings, reports, and subagent returns follow its budgets (finding 400 words, round 800, return 300 — restated in the phase-7 charters because pasted prompts must be self-contained). Ship adds only its own artifact ceilings:
 
 | Artifact | Ceiling | Past it |
 |---|---|---|
-| `spec.md` | 3,000 | Split the ticket |
-| `plans/MA-XXX.md` | 2,000 | The plan is a spec — re-cut the chunks |
-| A lens report | 800 | Write `findings/<lens>-p7.md`, return the path |
-| One finding | 400 | It is two findings |
-| A subagent's return | 300 | Write a file, return the path |
+| `spec.md` | 3,000 words | Split the ticket |
+| `plans/MA-XXX.md` | 2,000 words | The plan is a spec — re-cut the chunks |
 | `state.md` | 15 KB total | Collapse the oldest narrative into pointers |
 
 On entering P3, replace `## P1 output` with a ≤10-line summary plus a pointer to the prestage/scout files — P2 is its only consumer, and `state.md` is read in full on every resume. Measured on MA-011: the uncollapsed section was 14.7 KB, 32% of the file, read back on every one of ~40 resume points.
