@@ -2,17 +2,19 @@
 
 React Native (Expo) personal finance app — local-only, no bank connections.
 
-Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `emulator-verify` (drive the app on the emulator yourself), `moneyapp-expert-panel` (inline personas), `unslop` (cut AI tells from prose).
+Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `emulator-verify` (drive the app on the emulator yourself), `moneyapp-expert-panel` (inline personas), `unslop` (the output contract — mandatory for all composed output; see *Answering me*).
 
 Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](docs/superpowers/reviews/2026-07-29-full-technical-audit.md); remediation is tracked in [docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md](docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md).
 
 ## Answering me
 
-Clear and short. A preferred shape, not a template — a direct question just gets its answer.
+**The `unslop` skill is the output contract. Load it at session start and hold every reply, agent return, review, plan, spec, and record to it — budgets included.** The always-in-force short form:
 
-Small paragraph for context, bullets for the detail, and if something needs doing, say it straight — no hedging or burying it at the end.
-
-Cut: restating the request, narrating tool calls, re-explaining what you already told me, process commentary. Keep the evidence — a measured number, not a paragraph defending it. Long form only when I ask for the reasoning.
+- Lead with the answer. A direct question gets its answer in the first sentence and may end there.
+- Chat replies: 150 words unless I ask for the reasoning. Per-artifact budgets are in the skill.
+- Evidence, not defence of evidence. The number and the command, never "measured rather than assumed".
+- Negative results are one line. No-finding sections get one line, not a heading.
+- Cut: restating the request, narrating tool calls, re-explaining, process commentary.
 
 ## Workflow
 
