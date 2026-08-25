@@ -2,12 +2,17 @@ import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
-import { AmountType, Currency } from '@/constants/enums';
+import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import {
+  requiresExchangeRate,
+  resolveCommitmentPaymentAmounts,
+} from '@/modules/transactions/domain/transaction_amounts';
 import { toLocalDateString } from '@/utils/format_date';
+import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -39,10 +44,25 @@ function createPaySheetSchema(commitment: Commitment | undefined, accounts: Acco
       // Must match `requiresRate` below on every input, including its
       // !selectedAccount guard — `onValid` gates the snapshot on that one.
       const acc = accounts.find((a) => a.id === data.account_id);
+
+      // W1B: an id the loaded (non-archived) list does not hold is one the
+      // write path refuses (commitment.repository.ts:211-214). Falling through
+      // on `acc === undefined` read as "no rate needed": the schema passed,
+      // `markAsPaid` threw, and the user got only the generic save banner with
+      // no field to fix. Deliberately NOT resolved through
+      // getAccountByIdIncludingArchived — the schema must not accept what the
+      // write rejects. The empty selection stays the field's own `min(1)`.
+      if (data.account_id && !acc) {
+        ctx.addIssue({
+          code: 'custom',
+          message: Strings.commitmentsPayErrAccountUnavailable,
+          path: ['account_id'],
+        });
+        return;
+      }
+
       const needsRate =
-        !!commitment &&
-        !!acc &&
-        (commitment.currency === Currency.USD || acc.currency === Currency.USD);
+        !!commitment && !!acc && requiresExchangeRate(commitment.currency, acc.currency);
       if (needsRate) {
         if (!data.exchange_rate) {
           ctx.addIssue({
@@ -57,6 +77,32 @@ function createPaySheetSchema(commitment: Commitment | undefined, accounts: Acco
             path: ['exchange_rate'],
           });
         }
+      }
+
+      // W1B: the converted amount can round below the money floor even though
+      // the entered amount clears it (0.01 EGP at 49.06 is 0.00 USD). The write
+      // path refuses that at validateTransactionPolicy's amount_invalid, with
+      // the generic banner; this puts the reason on the Amount field and blocks
+      // the submit. It lives in the schema and not in a hook-level `setError`
+      // because RHF calls the latter only once validation has already passed.
+      // Operands are re-parsed locally rather than closed over: the schema is
+      // rebuilt per render and `data` is the only value guaranteed current.
+      if (!commitment || !acc) return;
+      const amount = parsePositiveDecimal(data.amountText);
+      const exchangeRate = parsePositiveDecimal(data.exchange_rate ?? '');
+      if (amount === undefined || (needsRate && exchangeRate === undefined)) return;
+      const { accountNativeAmount } = resolveCommitmentPaymentAmounts({
+        amount,
+        commitmentCurrency: commitment.currency,
+        accountCurrency: acc.currency,
+        exchangeRate,
+      });
+      if (accountNativeAmount < MIN_MONEY_AMOUNT) {
+        ctx.addIssue({
+          code: 'custom',
+          message: Strings.commitmentsPayErrConvertedBelowMin,
+          path: ['amountText'],
+        });
       }
     });
 }
@@ -131,8 +177,12 @@ export function usePaySheet(
   );
 
   const requiresRate = useMemo(() => {
+    // The guard is load-bearing and stays in front of the predicate rather
+    // than inside it: `requiresExchangeRate` is wide, so (USD, undefined)
+    // is true there. A rate must not be demanded before an account exists to
+    // demand it for (mockup frame 4).
     if (!commitment || !selectedAccount) return false;
-    return commitment.currency === Currency.USD || selectedAccount.currency === Currency.USD;
+    return requiresExchangeRate(commitment.currency, selectedAccount.currency);
   }, [commitment, selectedAccount]);
 
   // Pre-fill form when sheet becomes visible
@@ -165,6 +215,13 @@ export function usePaySheet(
           // silently fall through
         }
       }
+      // W1B: membership applies to a prefilled id too. `commitment.account_id`
+      // and the last-paid id are both durable copies that outlive an account
+      // being archived or deleted, and seeding one opens the sheet already
+      // invalid on a field the user never touched.
+      if (prefillAccountId && !accounts.some((account) => account.id === prefillAccountId)) {
+        prefillAccountId = '';
+      }
       if (!prefillAccountId && accounts.length > 0) {
         prefillAccountId = accounts[0].id;
       }
@@ -174,11 +231,12 @@ export function usePaySheet(
           amountText: prefillAmount > 0 ? String(prefillAmount) : '',
           account_id: prefillAccountId,
           paid_date: toLocalDateString(new Date()),
-          exchange_rate:
-            commitment.currency === Currency.USD ||
-            accounts.find((account) => account.id === prefillAccountId)?.currency === Currency.USD
-              ? String(rate)
-              : undefined,
+          exchange_rate: requiresExchangeRate(
+            commitment.currency,
+            accounts.find((account) => account.id === prefillAccountId)?.currency,
+          )
+            ? String(rate)
+            : undefined,
           notes: undefined,
         });
         setRateOverride(false);
@@ -253,7 +311,7 @@ export function usePaySheet(
     if (
       !rateOverride &&
       commitment &&
-      (commitment.currency === Currency.USD || account.currency === Currency.USD)
+      requiresExchangeRate(commitment.currency, account.currency)
     ) {
       // Same `isSubmitted` gate as the rate row's own onChange in pay_sheet.tsx:
       // seeding a rate after a failed submit has to clear the error it fixes,

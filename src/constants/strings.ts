@@ -1051,6 +1051,20 @@ export const Strings = {
   commitmentsPayErrAmountRequired: 'Amount is required',
   commitmentsPayErrAmountMin: 'Amount must be at least 0.01',
   commitmentsPayErrAccountRequired: 'Select an account',
+  // W1B — the rate row's purpose caption for a payment that crosses no
+  // currency (USD commitment, USD account). The rate is still required there
+  // because egp_amount is the ledger's storage currency, and a demanded field
+  // with no visible reason reads as a bug. Renders above the source line, so
+  // the "last updated" freshness stays where it is.
+  commitmentsPayRatePurposeEgp: 'Used to record this payment in EGP',
+  // W1B — the account_id membership refine. A plain empty selection keeps
+  // commitmentsPayErrAccountRequired above; this one is for an id the loaded
+  // (non-archived) list no longer holds, which the write path rejects.
+  commitmentsPayErrAccountUnavailable: 'This account is no longer available. Pick another.',
+  // W1B — the converted amount rounds below MIN_MONEY_AMOUNT in the paying
+  // account's currency. Replaces the generic save banner with the reason, on
+  // the field that owns it.
+  commitmentsPayErrConvertedBelowMin: 'Converts to less than 0.01 USD at this rate',
 
   // Commitments — Deactivate
   commitmentsDeactivate: 'Deactivate Commitment',

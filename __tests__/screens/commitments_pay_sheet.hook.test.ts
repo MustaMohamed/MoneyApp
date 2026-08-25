@@ -121,6 +121,14 @@ const fixedCommitment: Commitment = {
   updated_at: '2026-01-01T00:00:00.000Z',
 };
 
+// W1B: the schema now refuses an `account_id` the store's loaded list does not
+// hold, so a fixture pair is needed wherever a submit is expected to reach the
+// store. The EGP pair also needs no rate, which is what lets the amount battery
+// below isolate the amount (spec §3 row 10).
+const egpCommitment: Commitment = { ...fixedCommitment, currency: Currency.EGP };
+const egpAccount = { id: 'acc-egp', currency: Currency.EGP } as unknown as Account;
+const usdAccount = { id: 'acc-usd', currency: Currency.USD } as unknown as Account;
+
 const duePayment: CommitmentPayment = {
   id: 'p1',
   commitment_id: 'c1',
@@ -293,9 +301,10 @@ describe('usePaySheet', () => {
   // from the UI. Gate: swap the `.refine` back to `.positive()` and this
   // assertion goes red — markAsPaid gets called with the raw 0.005.
   it('rejects a sub-cent amount at the field and leaves markAsPaid uncalled', async () => {
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    mockAccounts = [egpAccount];
+    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
     await act(() => {
-      result.current.form.setValue('account_id', 'acc-1');
+      result.current.form.setValue('account_id', egpAccount.id);
       result.current.form.setValue('amountText', '0.005');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
@@ -315,9 +324,10 @@ describe('usePaySheet', () => {
   // would accept. The floor compares the raw parsed value, so it must still
   // reject and leave markAsPaid uncalled.
   it('rejects 0.006 (rounds to the floor but is below it raw) and leaves markAsPaid uncalled', async () => {
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    mockAccounts = [egpAccount];
+    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
     await act(() => {
-      result.current.form.setValue('account_id', 'acc-1');
+      result.current.form.setValue('account_id', egpAccount.id);
       result.current.form.setValue('amountText', '0.006');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
@@ -331,9 +341,10 @@ describe('usePaySheet', () => {
   });
 
   it('accepts the floor amount 0.01 and submits', async () => {
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    mockAccounts = [egpAccount];
+    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
     await act(() => {
-      result.current.form.setValue('account_id', 'acc-1');
+      result.current.form.setValue('account_id', egpAccount.id);
       result.current.form.setValue('amountText', '0.01');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
@@ -349,9 +360,10 @@ describe('usePaySheet', () => {
     const refreshError = new Error('account refresh failed');
     mockLoadAccounts.mockRejectedValueOnce(refreshError);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    mockAccounts = [egpAccount];
+    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
     await act(() => {
-      result.current.form.setValue('account_id', 'acc-egp');
+      result.current.form.setValue('account_id', egpAccount.id);
       result.current.form.setValue('amountText', '15');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
@@ -377,10 +389,16 @@ describe('usePaySheet', () => {
   // entered an already-numeric value, so parseFloat's corruptions all
   // survived a green CI.
 
+  // W1B (#312, spec §3 row 10): an EGP commitment paid from a loaded EGP
+  // account. Both halves are load-bearing for what this battery claims to
+  // isolate — the loaded account clears the membership refine, and the
+  // matching currency means no rate is demanded, so every row that reds here
+  // reds on the amount it typed and on nothing else.
   async function submitAmount(typed: string) {
-    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    mockAccounts = [egpAccount];
+    const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
     await act(() => {
-      result.current.form.setValue('account_id', 'acc-1');
+      result.current.form.setValue('account_id', egpAccount.id);
       result.current.form.setValue('amountText', typed);
       result.current.form.setValue('paid_date', '2026-05-20');
     });
@@ -516,8 +534,6 @@ describe('usePaySheet', () => {
   // introduced by requiring a value that nothing seeds, plus a stale error
   // flag that outlives the sheet.
   // ---------------------------------------------------------------------
-
-  const egpCommitment: Commitment = { ...fixedCommitment, currency: Currency.EGP };
 
   // F1: picking an account that flips `requiresRate` on must bring the global
   // rate with it. Without it the schema demands a rate the user was never
@@ -818,5 +834,156 @@ describe('usePaySheet', () => {
     expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
     expect(result.current.form.getFieldState('amountText').error).toBeUndefined();
     expect(result.current.form.getFieldState('account_id').error).toBeUndefined();
+  });
+
+  // ---------------------------------------------------------------------
+  // W1B — account membership (spec §3 rows 6/7) and the sub-floor mirror
+  // (row 5). The store publishes non-archived accounts only, so "archived",
+  // "deleted" and "not loaded yet" are one shape at this layer: an id the
+  // list does not hold.
+  // ---------------------------------------------------------------------
+
+  async function submitWithAccountId(commitment: Commitment, accountId: string) {
+    const { result } = await renderHook(() => usePaySheet(commitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', accountId);
+      result.current.form.setValue('amountText', '15');
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    return result;
+  }
+
+  it.each([
+    ['an archived account', 'acc-archived'],
+    ['an account that no longer exists', 'acc-gone'],
+  ] as const)('rejects %s at the field and writes nothing', async (_label, accountId) => {
+    mockAccounts = [egpAccount];
+    const result = await submitWithAccountId(egpCommitment, accountId);
+
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('account_id').error?.message).toBe(
+      Strings.commitmentsPayErrAccountUnavailable,
+    );
+  });
+
+  // The loading window is pinned deliberately: a commitment carrying an
+  // account_id, opened before the store has published its accounts, errors
+  // rather than submitting an id the write path cannot resolve.
+  it('rejects a set account_id while the store list is still empty', async () => {
+    const result = await submitWithAccountId(egpCommitment, 'acc-egp');
+
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('account_id').error?.message).toBe(
+      Strings.commitmentsPayErrAccountUnavailable,
+    );
+  });
+
+  it('accepts an account_id the loaded list holds', async () => {
+    mockAccounts = [egpAccount];
+    const result = await submitWithAccountId(egpCommitment, egpAccount.id);
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(result.current.form.getFieldState('account_id').error).toBeUndefined();
+  });
+
+  // An empty selection is the field's own `min(1)`, not the membership refine.
+  // Merging the two messages would tell a user who has picked nothing that
+  // their account is unavailable.
+  it('keeps the plain required message when nothing is selected', async () => {
+    mockAccounts = [egpAccount];
+    const result = await submitWithAccountId(egpCommitment, '');
+
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('account_id').error?.message).toBe(
+      Strings.commitmentsPayErrAccountRequired,
+    );
+  });
+
+  // The defect this refine exists for: `accounts.find(...)` returning
+  // undefined made `needsRate` false, so a USD commitment sailed through with
+  // no rate and failed at the store with the generic banner. The membership
+  // issue now precedes the rate demand, and the hook's own `requiresRate`
+  // stays false because its !selectedAccount guard is untouched.
+  it('does not fall through to "no rate needed" when the account is missing from the list', async () => {
+    mockAccounts = [egpAccount];
+    const result = await submitWithAccountId(fixedCommitment, 'acc-gone');
+
+    expect(result.current.state.requiresRate).toBe(false);
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('account_id').error?.message).toBe(
+      Strings.commitmentsPayErrAccountUnavailable,
+    );
+    expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
+  });
+
+  // Spec §3 row 7. `commitment.account_id` is a durable copy that outlives the
+  // account being archived, so prefilling it unchanged opens the sheet already
+  // invalid on a field the user never touched.
+  it('drops a prefilled account_id the list does not hold and falls back to the first account', async () => {
+    mockAccounts = [egpAccount];
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
+    const { result } = await renderHook(() =>
+      usePaySheet({ ...egpCommitment, account_id: 'acc-archived' }, duePayment),
+    );
+    await act(async () => {});
+
+    expect(result.current.form.getValues('account_id')).toBe(egpAccount.id);
+  });
+
+  it('leaves the account empty when the prefilled id is dropped and nothing is loaded', async () => {
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
+    const { result } = await renderHook(() =>
+      usePaySheet({ ...egpCommitment, account_id: 'acc-archived' }, duePayment),
+    );
+    await act(async () => {});
+
+    expect(result.current.form.getValues('account_id')).toBe('');
+  });
+
+  // Spec §3 row 5. 0.01 EGP at 49.06 is 0.00 USD: above the Amount field's own
+  // floor, below the floor in the currency actually debited. The write path
+  // refuses it at validateTransactionPolicy with the generic banner, so the
+  // schema mirrors the resolver to name the reason on the field instead.
+  // (The mockup's 0.40 EGP illustration does NOT reach this branch —
+  // roundMoney(0.40 / 49.06) is 0.01.)
+  it('blocks a save whose converted amount rounds below the money floor', async () => {
+    mockAccounts = [usdAccount];
+    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', usdAccount.id);
+      result.current.form.setValue('amountText', '0.01');
+      result.current.form.setValue('paid_date', '2026-05-20');
+      result.current.form.setValue('exchange_rate', '49.06');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(
+      Strings.commitmentsPayErrConvertedBelowMin,
+    );
+  });
+
+  // The same amount at a rate that leaves it on the floor saves. Without this
+  // row a refine that always raised would pass the case above.
+  it('saves the same amount when the rate leaves the converted value on the floor', async () => {
+    mockAccounts = [usdAccount];
+    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    await act(() => {
+      result.current.form.setValue('account_id', usdAccount.id);
+      result.current.form.setValue('amountText', '0.01');
+      result.current.form.setValue('paid_date', '2026-05-20');
+      result.current.form.setValue('exchange_rate', '1');
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(result.current.form.getFieldState('amountText').error).toBeUndefined();
   });
 });
