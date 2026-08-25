@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { AccountType } from '@/constants/enums';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/store/account.store';
+import { formatCurrencyParts } from '@/utils/format_amount';
 
 import {
   N3_ACCOUNT_TYPE_LABELS,
@@ -13,7 +14,6 @@ import {
   N3_ROW_TYPE_GAP,
   N3_ROW_TYPE_GLYPH,
   resolveAccountRowA11yLabel,
-  resolveAccountRowAmount,
   resolveAccountRowDotColor,
 } from '../more_accounts.geometry';
 
@@ -43,7 +43,10 @@ const TYPE_ICONS: Record<AccountType, IconName> = {
  * with no `onPress` here and must not announce as a button.
  */
 export function AccountRow({ account }: { account: Account }) {
-  const { value, code } = resolveAccountRowAmount(account);
+  // Split into two nodes rather than routed through `formatCurrencyAmount`, which
+  // concatenates them, because the mockup stacks value over code (`.am > .v` then `.c`,
+  // mockup.html:626-628). Decimals still come from CURRENCY_CONFIG via `formatCurrencyParts`.
+  const { value, code } = formatCurrencyParts(account.current_balance, account.currency);
 
   return (
     <ListGroup.Item

@@ -5,10 +5,10 @@ import {
   N3_ROW_MIN_HEIGHT,
   N3_ROW_STYLE,
   resolveAccountRowA11yLabel,
-  resolveAccountRowAmount,
   resolveAccountRowDotColor,
 } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.geometry';
 import { makeTestAccount } from '@/test_helpers/transaction';
+import { formatCurrencyParts } from '@/utils/format_amount';
 
 // makeTestAccount defaults to EGP, `color: null` and both balances 0, so each
 // fixture below is the one or two fields its assertion is actually about.
@@ -77,22 +77,26 @@ describe('N3 row colour dot (S5)', () => {
 
 describe('N3 row amount (S4) — decimals by currency, balance by field', () => {
   it('renders EGP with no decimals — CURRENCY_CONFIG wins over the mockup', () => {
-    expect(resolveAccountRowAmount(egpAccount).value).toBe('48,250');
+    expect(formatCurrencyParts(egpAccount.current_balance, egpAccount.currency).value).toBe(
+      '48,250',
+    );
   });
 
   it('renders USD cents', () => {
-    expect(resolveAccountRowAmount(usdAccount).value).toBe('1,350.50');
+    expect(formatCurrencyParts(usdAccount.current_balance, usdAccount.currency).value).toBe(
+      '1,350.50',
+    );
   });
 
   it('reads current_balance, not opening_balance', () => {
     // Business rule 6 makes the two equal at creation, so this is the only
     // fixture shape that can catch a regression to the old field.
     const account = makeTestAccount({ current_balance: 999, opening_balance: 111 });
-    expect(resolveAccountRowAmount(account).value).toBe('999');
+    expect(formatCurrencyParts(account.current_balance, account.currency).value).toBe('999');
   });
 
   it('renders the ISO code, not the currency label', () => {
-    expect(resolveAccountRowAmount(usdAccount).code).toBe('USD');
+    expect(formatCurrencyParts(usdAccount.current_balance, usdAccount.currency).code).toBe('USD');
   });
 });
 

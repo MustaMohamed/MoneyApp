@@ -1211,6 +1211,8 @@ export const Strings = {
   addTxRateReset: 'Reset to global',
   addTxRateStale: 'Rate may be stale',
   addTxEgpPreview: '≈ {amount} EGP',
+  netWorthBreakdownUsdUnavailable: '— USD',
+  netWorthBreakdownUsdApprox: (amount: string) => `≈ ${amount}`,
   addTxBudgetOptionAccessibility: (name: string, amount: string) => `${name}, ${amount} EGP`,
 
   // Swipe actions — shared labels

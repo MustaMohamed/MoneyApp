@@ -1,4 +1,5 @@
 import { Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
 /**
@@ -12,6 +13,6 @@ import { formatCurrencyAmount } from '@/utils/format_amount';
  */
 export function resolveNetWorthUsdCaption(netWorthUsd: number | undefined): string {
   return netWorthUsd === undefined
-    ? '— USD'
-    : `≈ ${formatCurrencyAmount(netWorthUsd, Currency.USD)}`;
+    ? Strings.netWorthBreakdownUsdUnavailable
+    : Strings.netWorthBreakdownUsdApprox(formatCurrencyAmount(netWorthUsd, Currency.USD));
 }
