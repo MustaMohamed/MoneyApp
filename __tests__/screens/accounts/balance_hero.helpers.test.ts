@@ -1,10 +1,10 @@
 import { AccountType, Currency } from '@/constants/enums';
 import {
   availableCreditColor,
-  buildHeroBalanceText,
   buildHeroCaption,
 } from '@/modules/accounts/screens/accounts/detail/components/balance_hero.helpers';
 import type { Account } from '@/store/account.store';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
   return {
@@ -133,14 +133,16 @@ describe('availableCreditColor — thresholds match §5 AccountCard', () => {
   });
 });
 
-describe('buildHeroBalanceText — #277 balance_hero.tsx:64', () => {
+// #298: buildHeroBalanceText was a same-signature formatCurrencyAmount wrapper, deleted —
+// the hero balance now calls formatCurrencyAmount directly at balance_hero.tsx.
+describe('balance hero balance row — balance_hero.tsx', () => {
   it('shows USD cents — base: 1,251 USD, head: 1,250.75 USD', () => {
-    expect(
-      buildHeroBalanceText(mkAccount({ currency: Currency.USD, current_balance: 1250.75 })),
-    ).toBe('1,250.75 USD');
+    const account = mkAccount({ currency: Currency.USD, current_balance: 1250.75 });
+    expect(formatCurrencyAmount(account.current_balance, account.currency)).toBe('1,250.75 USD');
   });
 
   it('leaves EGP unchanged (spec row 11)', () => {
-    expect(buildHeroBalanceText(mkAccount({ current_balance: 1250.75 }))).toBe('1,251 EGP');
+    const account = mkAccount({ current_balance: 1250.75 });
+    expect(formatCurrencyAmount(account.current_balance, account.currency)).toBe('1,251 EGP');
   });
 });

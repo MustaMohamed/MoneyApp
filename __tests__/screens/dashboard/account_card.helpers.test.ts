@@ -2,11 +2,9 @@ import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
-import {
-  buildBalanceText,
-  buildInfoRows,
-} from '@/modules/dashboard/screens/dashboard/components/account_card';
+import { buildInfoRows } from '@/modules/dashboard/screens/dashboard/components/account_card';
 import { makeTestAccount } from '@/test_helpers/transaction';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 
 const STATS: AccountStats = { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
 
@@ -206,12 +204,16 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
   });
 });
 
-describe('buildBalanceText — #277 account_card.tsx:296 (spec row 9)', () => {
+// #298: buildBalanceText was a same-signature formatCurrencyAmount wrapper, deleted —
+// the balance row now calls formatCurrencyAmount directly at account_card.tsx.
+describe('account_card balance row — account_card.tsx (spec row 9)', () => {
   it('shows USD cents — base: 1,251 USD, head: 1,250.75 USD', () => {
-    expect(buildBalanceText(usdBank(1250.75))).toBe('1,250.75 USD');
+    const account = usdBank(1250.75);
+    expect(formatCurrencyAmount(account.current_balance, account.currency)).toBe('1,250.75 USD');
   });
 
   it('leaves EGP unchanged (spec row 11)', () => {
-    expect(buildBalanceText(egpBank(1250.75))).toBe('1,251 EGP');
+    const account = egpBank(1250.75);
+    expect(formatCurrencyAmount(account.current_balance, account.currency)).toBe('1,251 EGP');
   });
 });

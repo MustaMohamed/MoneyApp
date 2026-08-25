@@ -191,15 +191,6 @@ export function buildInfoRows(
   ];
 }
 
-/**
- * Exported for `__tests__/screens/dashboard/account_card.helpers.test.ts`, following
- * `buildInfoRows`' own documented precedent (`:51-58`) — asserted independently of the
- * account picker sheet's identical one-liner (spec row 10: "two files, two guards").
- */
-export function buildBalanceText(account: Account): string {
-  return formatCurrencyAmount(account.current_balance, account.currency);
-}
-
 interface AccountCardProps {
   account: Account;
   rate: number;
@@ -302,7 +293,7 @@ export function AccountCard({
                 className={resolveAccountBalanceColorClass(account.type)}
                 style={{ flex: 1, fontSize: msFont(17) }}
               >
-                {buildBalanceText(account)}
+                {formatCurrencyAmount(account.current_balance, account.currency)}
               </Text>
             </View>
           </View>
