@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
-import { AmountType } from '@/constants/enums';
+import { AmountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -163,6 +163,7 @@ export function usePaySheet(
 
   const accountId = form.watch('account_id');
   const exchangeRateValue = form.watch('exchange_rate');
+  const amountText = form.watch('amountText');
   // Read DURING render, not inside the handler that uses it. `formState` is a
   // proxy: RHF only re-renders — and only refreshes `form.formState` — for the
   // keys something read while rendering. Read from inside `selectAccount`
@@ -184,6 +185,63 @@ export function usePaySheet(
     if (!commitment || !selectedAccount) return false;
     return requiresExchangeRate(commitment.currency, selectedAccount.currency);
   }, [commitment, selectedAccount]);
+
+  // Every money figure this sheet shows comes from one resolver call — the
+  // same function `markAsPaid` runs at the write, so the preview cannot drift
+  // from what is actually debited (.claude/rules/review.md class 3). It used
+  // to be `amountWatch * rateNum` in the render body, which was the wrong
+  // operation in the wrong direction for an EGP commitment paid from a USD
+  // account: 5,000 EGP at 49.06 rendered 245,300 USD against a 101.92 debit.
+  const preview = useMemo(() => {
+    const base = {
+      convertedTotal: undefined as { amount: number; currency: Currency } | undefined,
+      convertedBelowMin: false,
+      previewEgpAmount: undefined as number | undefined,
+      // Mockup frame 2: for an EGP commitment the rate row's `≈ … EGP` line
+      // would echo the Amount field one row above, so it does not render.
+      // Suppression is this flag and never an absent `previewEgpAmount`, which
+      // means "not derivable yet" and renders the row's placeholder.
+      previewHidden: commitment?.currency === Currency.EGP,
+      // Frame 3: no conversion to show, but the rate is still demanded because
+      // `egp_amount` is the ledger's storage currency. A required field with
+      // no visible purpose reads as a bug, so the row says why.
+      purposeCaption:
+        commitment?.currency === Currency.USD && selectedAccount?.currency === Currency.USD
+          ? Strings.commitmentsPayRatePurposeEgp
+          : undefined,
+    };
+    if (!commitment || !selectedAccount) return base;
+
+    // `parsePositiveDecimal`, not a bare `> 0`: 0.004 is positive, and
+    // `roundMoney(0.004)` is 0, which the resolver throws on — here, in a
+    // render. The floor gate also hides the line for a typed zero, which is
+    // scenario 4 and a sanctioned change from the old `= 0 EGP`.
+    const amount = parsePositiveDecimal(amountText);
+    const exchangeRate = parsePositiveDecimal(exchangeRateValue ?? '');
+    if (amount === undefined || (requiresRate && exchangeRate === undefined)) return base;
+
+    const resolved = resolveCommitmentPaymentAmounts({
+      amount,
+      commitmentCurrency: commitment.currency,
+      accountCurrency: selectedAccount.currency,
+      exchangeRate,
+    });
+    // Below the floor the line must not render a confident `= 0.00`; the
+    // Amount field carries the reason instead, and the schema blocks the save.
+    const convertedBelowMin = resolved.accountNativeAmount < MIN_MONEY_AMOUNT;
+    // The gate is currency INEQUALITY, not `requiresRate` — those are
+    // different questions, and the USD/USD case answers them differently.
+    const converts = commitment.currency !== selectedAccount.currency;
+    return {
+      ...base,
+      previewEgpAmount: resolved.egpAmount,
+      convertedBelowMin,
+      convertedTotal:
+        converts && !convertedBelowMin
+          ? { amount: resolved.accountNativeAmount, currency: resolved.accountCurrency }
+          : undefined,
+    };
+  }, [amountText, commitment, exchangeRateValue, requiresRate, selectedAccount]);
 
   // Pre-fill form when sheet becomes visible
   useEffect(() => {
@@ -355,6 +413,11 @@ export function usePaySheet(
       exchangeRateValue,
       rateUpdatedAt,
       saveError,
+      convertedTotal: preview.convertedTotal,
+      convertedBelowMin: preview.convertedBelowMin,
+      previewEgpAmount: preview.previewEgpAmount,
+      previewHidden: preview.previewHidden,
+      purposeCaption: preview.purposeCaption,
     },
     onSubmit: form.handleSubmit(onValid, onInvalid),
     openAccountPicker: () => setAccountPickerVisible(true),
