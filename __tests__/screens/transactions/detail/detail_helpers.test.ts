@@ -131,23 +131,34 @@ describe('resolveDetailViewState', () => {
 });
 
 describe('buildTransactionDetailPresentation', () => {
-  it('exposes native send and receive values for a transfer', () => {
-    const source = account({});
+  // #282: fromAmountText/toAmountText are now transferCellAmountText's whole
+  // {display, accessible} object — the same value TransferFlowCard renders, not a
+  // parallel recomputation it can silently diverge from. The 0.40 EGP leg pins the
+  // composed-sign escalation (a rounded-away magnitude must not go signless) on the
+  // "from" cell, and the USD leg keeps the native-per-side currency coverage the
+  // original fixture had.
+  it('exposes native send and receive values for a transfer, as the rendered display/accessible pair', () => {
+    const source = account({ currency: Currency.EGP });
     const destination = account({
       id: 'destination',
-      name: 'CIB',
-      currency: Currency.EGP,
+      name: 'Chase',
+      currency: Currency.USD,
     });
 
     expect(
       buildTransactionDetailPresentation({
-        tx: transaction({}),
+        tx: transaction({
+          currency: Currency.EGP,
+          amount: 0.4,
+          egp_amount: 0.4,
+          to_amount: 19.4,
+        }),
         account: source,
         toAccount: destination,
       }).transferFlow,
     ).toMatchObject({
-      fromAmountText: '100.00 USD',
-      toAmountText: '4,850 EGP',
+      fromAmountText: { display: '−0.40 EGP', accessible: '0.40 EGP' },
+      toAmountText: { display: '+19.40 USD', accessible: '19.40 USD' },
     });
   });
 

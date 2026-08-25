@@ -68,10 +68,8 @@ export default function TransactionDetailScreen(): React.ReactElement {
                 <TransferFlowCard
                   fromAccount={transferFlow.fromAccount}
                   toAccount={transferFlow.toAccount}
-                  fromAmount={transferFlow.fromAmount}
-                  fromCurrency={transferFlow.fromCurrency}
-                  toAmount={transferFlow.toAmount}
-                  toCurrency={transferFlow.toCurrency}
+                  fromAmountText={transferFlow.fromAmountText}
+                  toAmountText={transferFlow.toAmountText}
                   onPressFrom={() => openAccount(transferFlow.fromAccount.id)}
                   onPressTo={() => openAccount(transferFlow.toAccount.id)}
                 />
