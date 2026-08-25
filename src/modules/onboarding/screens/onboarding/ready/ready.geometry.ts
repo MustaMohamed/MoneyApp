@@ -238,6 +238,7 @@ export const N4_SUMMARY_ROW_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
 /**
  * The hero renders EGP at TWO decimals, against `CURRENCY_CONFIG`'s own 0 for
  * that currency — spec §1.3's screen-local deviation, approved, and recorded
- * in the PR body alongside the dashboard sites that render it at 0.
+ * in `docs/adr/2026-08-18-starting-net-position.md` §6 alongside the dashboard
+ * sites that render it at 0.
  */
 export const N4_HERO_AMOUNT_DECIMALS = 2;
