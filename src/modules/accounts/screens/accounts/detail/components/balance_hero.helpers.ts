@@ -2,7 +2,7 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
-import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
+import { formatAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
 
@@ -60,12 +60,4 @@ export function buildHeroCaption(account: Account): HeroCaption {
     text: Strings.accountHeroOpening(formatAmount(account.opening_balance, decimals), currency),
     adjusted: account.current_balance !== account.opening_balance,
   };
-}
-
-/**
- * Exported for `__tests__/screens/accounts/balance_hero.helpers.test.ts` — this component
- * already has a helpers sibling, so the extraction lands here rather than a new file.
- */
-export function buildHeroBalanceText(account: Account): string {
-  return formatCurrencyAmount(account.current_balance, account.currency);
 }

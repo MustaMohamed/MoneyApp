@@ -6,7 +6,8 @@ import { formatCurrencyParts } from '@/utils/format_amount';
  * stat_cards.tsx:249 was inline JSX with no test seam.
  *
  * Extracted in the `{ value, code }` shape c5 keeps (spec §6.3 / #243) -- this is the same
- * shape `resolveAccountRowAmount` (more_accounts.geometry.ts:113) already uses, so this is a
+ * shape `formatCurrencyParts` itself returns, called directly here the same way
+ * `resolveAccountRowA11yLabel` (more_accounts.geometry.ts) composes it inline -- so this is a
  * direct call to `formatCurrencyParts`. `Currency.USD` here is a construction-time literal --
  * stat_cards.tsx:181's call site is always the USD month-spend stat (the render itself is at
  * :255), never any other currency -- so this site stays reachable at the corrected mutation

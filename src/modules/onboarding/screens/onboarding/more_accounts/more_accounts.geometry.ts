@@ -13,7 +13,7 @@ import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 /**
- * N3's row geometry and the three pure resolvers behind its columns.
+ * N3's row geometry and the two pure resolvers behind its columns.
  *
  * The resolvers live here rather than inside the row so the suite can assert
  * decimals-by-currency, the `current_balance` field read and the colour
@@ -90,36 +90,19 @@ export function resolveAccountRowDotColor(color: string | null): string {
 }
 
 /**
- * `{ value: '48,250', code: 'EGP' }` — the two nodes of the amount column,
- * kept pure so §8 can assert decimals-by-currency and the `current_balance`
- * field read without a render.
+ * `"CIB Current, Bank, 48,250 EGP"` — one label for the whole row, so a screen
+ * reader reads it as one thing instead of four. The dot is decorative and
+ * contributes nothing.
  *
  * `current_balance`, never `opening_balance` (§4): business rule 6 makes the
  * two equal at creation, so the old field read correctly through onboarding
  * and incorrectly ever after. Decimals come from `CURRENCY_CONFIG`, never a
- * literal — this is the audit-M1 fix.
- *
- * Split into two nodes rather than routed through `formatCurrencyAmount`,
- * which concatenates them, because the mockup stacks value over code
- * (`.am > .v` then `.c`, mockup.html:626-628). The decimals still come from
- * the one place that knows them, which is what `.claude/rules/money.md`
- * requires.
- *
- * EGP renders 0 decimals: `CURRENCY_CONFIG` is the app-wide contract and it
- * says so. The mockup draws `48,250.00` (:2024, :2034); that is a deliberate,
- * recorded deviation — see spec §3 S4. A USD row is the one that shows cents.
- */
-export function resolveAccountRowAmount(account: Account): { value: string; code: string } {
-  return formatCurrencyParts(account.current_balance, account.currency);
-}
-
-/**
- * `"CIB Current, Bank, 48,250 EGP"` — one label for the whole row, so a screen
- * reader reads it as one thing instead of four. The dot is decorative and
- * contributes nothing. EGP has no decimals here, for the same reason as
- * `resolveAccountRowAmount` above.
+ * literal — this is the audit-M1 fix. EGP renders 0 decimals: `CURRENCY_CONFIG`
+ * is the app-wide contract and it says so. The mockup draws `48,250.00`
+ * (:2024, :2034); that is a deliberate, recorded deviation — see spec §3 S4.
+ * A USD row is the one that shows cents.
  */
 export function resolveAccountRowA11yLabel(account: Account): string {
-  const { value, code } = resolveAccountRowAmount(account);
+  const { value, code } = formatCurrencyParts(account.current_balance, account.currency);
   return `${account.name}, ${N3_ACCOUNT_TYPE_LABELS[account.type]}, ${value} ${code}`;
 }

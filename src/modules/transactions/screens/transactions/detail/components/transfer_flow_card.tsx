@@ -5,67 +5,35 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { CURRENCY_CONFIG } from '@/constants/currency';
-import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
-import { formatDisplayMagnitude } from '@/utils/format_amount';
 
-import { getAccountTypeIcon } from '../detail.helpers';
+import { getAccountTypeIcon, type TransferCellText } from '../detail.helpers';
 import { DETAIL_TRANSFER_MIN_HEIGHT } from './detail_geometry';
 
 interface Props {
   fromAccount: Account;
   toAccount: Account;
-  fromAmount: number;
-  fromCurrency: Currency;
-  toAmount: number;
-  toCurrency: Currency;
+  fromAmountText: TransferCellText;
+  toAmountText: TransferCellText;
   onPressFrom?: () => void;
   onPressTo?: () => void;
-}
-
-/**
- * A transfer cell composes its own sign (`signPrefix`, direction-of-flow — not the
- * domain value's sign) beside a positive magnitude, the same shape as
- * `transactions.helpers.ts`'s `formatSignedAmount` and `detail.helpers.ts`'s
- * `signedAmount`. It shares their composed-sign population and their fix: route the
- * magnitude through `formatDisplayMagnitude` so a rounded-away amount (e.g. 0.40 EGP
- * at EGP's 0dp display precision) never prints a sign beside a magnitude that reads
- * "0" — and, per the same rule's other branch, an exact-zero magnitude carries no
- * sign at all. See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
- *
- * Exported so the composition can be asserted directly — this is the text the cell
- * actually renders, not a parallel field the component can silently stop reading.
- */
-export function transferCellAmountText(
-  amount: number,
-  currency: Currency,
-  signPrefix: '+' | '−',
-): { display: string; accessible: string } {
-  const { text, isZero } = formatDisplayMagnitude(amount, currency);
-  const accessible = `${text} ${CURRENCY_CONFIG[currency].code}`;
-  return { display: isZero ? accessible : `${signPrefix}${accessible}`, accessible };
 }
 
 function Cell({
   label,
   account,
-  amount,
-  currency,
-  signPrefix,
+  amountText,
   onPress,
 }: {
   label: string;
   account: Account;
-  amount: number;
-  currency: Currency;
-  signPrefix: '+' | '−';
+  amountText: TransferCellText;
   onPress?: () => void;
 }): React.ReactElement {
-  const { display, accessible } = transferCellAmountText(amount, currency, signPrefix);
+  const { display, accessible } = amountText;
   const inner = (
     <View className="flex-1 items-center">
       <Text
@@ -116,10 +84,8 @@ function Cell({
 export function TransferFlowCard({
   fromAccount,
   toAccount,
-  fromAmount,
-  fromCurrency,
-  toAmount,
-  toCurrency,
+  fromAmountText,
+  toAmountText,
   onPressFrom,
   onPressTo,
 }: Props): React.ReactElement {
@@ -131,18 +97,14 @@ export function TransferFlowCard({
       <Cell
         label={Strings.detailFlowFromLabel}
         account={fromAccount}
-        amount={fromAmount}
-        currency={fromCurrency}
-        signPrefix="−"
+        amountText={fromAmountText}
         onPress={onPressFrom}
       />
       <MaterialCommunityIcons name="arrow-right" size={Size.iconBack} color={GoldTokens[500]} />
       <Cell
         label={Strings.detailFlowToLabel}
         account={toAccount}
-        amount={toAmount}
-        currency={toCurrency}
-        signPrefix="+"
+        amountText={toAmountText}
         onPress={onPressTo}
       />
     </Card>

@@ -9,7 +9,7 @@ import { AccountColors, Colors, Size } from '@/constants/theme';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 import { ms, msFont } from '@/utils/responsive';
 
@@ -30,6 +30,12 @@ function availableCreditColor(available: number, limit: number): string {
   if (pct >= 0.2) return Colors.dark.warning;
   return Colors.dark.negative;
 }
+
+// The PhysicalWallet avg/day row's explicit 1dp — finer than EGP's CURRENCY_CONFIG
+// default (0dp) so a small daily average doesn't round to "0". Pre-existing precision,
+// unchanged by #299; named per `.claude/rules/review.md` item 3 (never a bare literal
+// on a rewritten line) as it moves onto formatCurrencyAmount's own decimals param.
+const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;
 
 function nextDueDate(dueDay: number): string {
   const today = new Date();
@@ -83,11 +89,11 @@ export function buildInfoRows(
     return [
       {
         label: Strings.cardLimitLabel,
-        value: `${formatAmount(limit)} EGP`,
+        value: formatCurrencyAmount(limit, cur),
       },
       {
         label: Strings.cardAvailableLabel,
-        value: isOverLimit ? Strings.cardOverLimit : `${formatAmount(available)} EGP`,
+        value: isOverLimit ? Strings.cardOverLimit : formatCurrencyAmount(available, cur),
         valueColor: availColor,
       },
       {
@@ -109,7 +115,7 @@ export function buildInfoRows(
       },
       {
         label: Strings.cardAvgDayLabel,
-        value: `${formatAmount(avgDay, 1)} ${cur}`,
+        value: formatCurrencyAmount(avgDay, cur, ACCOUNT_CARD_AVG_DAY_DECIMALS),
       },
       {
         label: Strings.cardWeekSpendLabel,
@@ -164,7 +170,7 @@ export function buildInfoRows(
         ? [
             {
               label: Strings.cardInEgpLabel,
-              value: `${formatAmount(roundMoney(account.current_balance * rate))} EGP`,
+              value: formatCurrencyAmount(roundMoney(account.current_balance * rate), Currency.EGP),
               valueColor: Colors.dark.gold,
             },
           ]
@@ -175,29 +181,20 @@ export function buildInfoRows(
   return [
     {
       label: Strings.cardMonthInLabel,
-      value: `${formatAmount(s.month_in)} ${cur}`,
+      value: formatCurrencyAmount(s.month_in, cur),
       valueColor: s.month_in > 0 ? Colors.dark.positive : Colors.dark.text1,
     },
     {
       label: Strings.cardMonthOutLabel,
-      value: `${formatAmount(s.month_out)} ${cur}`,
+      value: formatCurrencyAmount(s.month_out, cur),
       valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
     },
     {
       label: Strings.cardThisWeekLabel,
-      value: `${weekNet >= 0 ? '+' : ''}${formatAmount(weekNet)} ${cur}`,
+      value: `${weekNet >= 0 ? '+' : ''}${formatCurrencyAmount(weekNet, cur)}`,
       valueColor: weekNetColor,
     },
   ];
-}
-
-/**
- * Exported for `__tests__/screens/dashboard/account_card.helpers.test.ts`, following
- * `buildInfoRows`' own documented precedent (`:51-58`) — asserted independently of the
- * account picker sheet's identical one-liner (spec row 10: "two files, two guards").
- */
-export function buildBalanceText(account: Account): string {
-  return formatCurrencyAmount(account.current_balance, account.currency);
 }
 
 interface AccountCardProps {
@@ -302,7 +299,7 @@ export function AccountCard({
                 className={resolveAccountBalanceColorClass(account.type)}
                 style={{ flex: 1, fontSize: msFont(17) }}
               >
-                {buildBalanceText(account)}
+                {formatCurrencyAmount(account.current_balance, account.currency)}
               </Text>
             </View>
           </View>

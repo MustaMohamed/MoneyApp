@@ -311,6 +311,8 @@ export const Strings = {
   dashboardBreakdownLiquidCaption: 'Bank, Smart Wallet, Cash',
   dashboardBreakdownReserveCaption: 'Savings',
   dashboardBreakdownTotalDebt: 'Total debt',
+  netWorthBreakdownUsdUnavailable: '— USD',
+  netWorthBreakdownUsdApprox: (amount: string) => `≈ ${amount}`,
 
   // The dashboard's rate refusal (#255). Modelled on N4's pair
   // (`n4RateNeededValue` / `n4CaptionRateNeeded`) so the two refusals read as
@@ -878,6 +880,7 @@ export const Strings = {
   detailDateTime: 'DATE & TIME',
   detailOriginalAmount: 'ORIGINAL AMOUNT',
   detailExchangeRate: 'EXCHANGE RATE',
+  detailExchangeRateSentence: (rate: string) => `1 USD = ${rate} EGP`,
   detailBudget: 'BUDGET',
   detailSource: 'SOURCE',
   detailBudgetUnavailable: 'Budget unavailable',
@@ -951,6 +954,11 @@ export const Strings = {
   searchCommitmentsPlaceholder: 'Search commitments…',
   commitmentsPaidSummary: 'Paid this month',
   commitmentsTotalCommitted: 'Total committed',
+  // Not commitments-specific — formatCurrencyTotals (format_amount.ts) is a shared
+  // multi-currency join; both its current callers (this list's summary header and the
+  // dashboard commitments card) happen to sit here.
+  currencyTotalsSeparator: '  ·  ',
+  currencyTotalsUnavailable: '—',
   commitmentsOverdue: 'Overdue',
   commitmentsDueToday: 'Due Today',
   commitmentsUpcoming: 'Upcoming',

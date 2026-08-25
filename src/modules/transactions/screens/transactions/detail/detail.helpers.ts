@@ -10,10 +10,9 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
-  EXCHANGE_RATE_DECIMALS,
-  formatAmount,
   formatCurrencyAmount,
   formatDisplayMagnitude,
+  formatExchangeRateSentence,
 } from '@/utils/format_amount';
 import { formatLongDate } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
@@ -103,13 +102,42 @@ export interface TransactionDetailPresentation {
   transferFlow: {
     fromAccount: Account;
     toAccount: Account;
-    fromAmount: number;
-    fromCurrency: Currency;
-    fromAmountText: string;
-    toAmount: number;
-    toCurrency: Currency;
-    toAmountText: string;
+    fromAmountText: TransferCellText;
+    toAmountText: TransferCellText;
   } | null;
+}
+
+/** The two nodes a transfer flow cell renders: the signed display text and the
+ * unsigned accessible text `Strings.detailOpenAccountAccessibility` composes into. */
+export interface TransferCellText {
+  display: string;
+  accessible: string;
+}
+
+/**
+ * A transfer cell composes its own sign (`signPrefix`, direction-of-flow — not the
+ * domain value's sign) beside a positive magnitude, the same shape as
+ * `transactions.helpers.ts`'s `formatSignedAmount` and this file's own `signedAmount`.
+ * It shares their composed-sign population and their fix: route the magnitude through
+ * `formatDisplayMagnitude` so a rounded-away amount (e.g. 0.40 EGP at EGP's 0dp display
+ * precision) never prints a sign beside a magnitude that reads "0" — and, per the same
+ * rule's other branch, an exact-zero magnitude carries no sign at all. See
+ * docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
+ *
+ * Lives here rather than in `TransferFlowCard` so `buildTransactionDetailPresentation`'s
+ * output IS what the card renders — the two previously diverged because the card
+ * recomputed this from raw amount/currency/sign instead of reading the presentation
+ * field, which is #282: `detail_helpers.test.ts` asserted the (unread) field while the
+ * card rendered its own recomputation, so the two could silently disagree.
+ */
+export function transferCellAmountText(
+  amount: number,
+  currency: Currency,
+  signPrefix: '+' | '−',
+): TransferCellText {
+  const { text, printsAsZero } = formatDisplayMagnitude(amount, currency);
+  const accessible = `${text} ${CURRENCY_CONFIG[currency].code}`;
+  return { display: printsAsZero ? accessible : `${signPrefix}${accessible}`, accessible };
 }
 
 function isCardCredit(tx: Transaction, account?: Account): boolean {
@@ -117,9 +145,9 @@ function isCardCredit(tx: Transaction, account?: Account): boolean {
 }
 
 function signedAmount(tx: Transaction): string {
-  const { text, isZero } = formatDisplayMagnitude(tx.egp_amount, Currency.EGP);
+  const { text, printsAsZero } = formatDisplayMagnitude(tx.egp_amount, Currency.EGP);
   const value = `${text} ${CURRENCY_CONFIG[Currency.EGP].code}`;
-  if (isZero) return value;
+  if (printsAsZero) return value;
   if (tx.type === TransactionType.Expense) return `−${value}`;
   if (tx.type === TransactionType.Income) return `+${value}`;
   return value;
@@ -157,9 +185,7 @@ export function buildTransactionDetailPresentation({
     originalAmountText:
       tx.currency === Currency.USD ? formatCurrencyAmount(tx.amount, Currency.USD) : undefined,
     exchangeRateText:
-      tx.exchange_rate === null
-        ? undefined
-        : `1 USD = ${formatAmount(tx.exchange_rate, EXCHANGE_RATE_DECIMALS)} EGP`,
+      tx.exchange_rate === null ? undefined : formatExchangeRateSentence(tx.exchange_rate),
     budgetLabel:
       tx.budget_id === null ? undefined : (budget?.name ?? Strings.detailBudgetUnavailable),
     sourceLabel:
@@ -171,12 +197,8 @@ export function buildTransactionDetailPresentation({
         ? {
             fromAccount: account,
             toAccount,
-            fromAmount: tx.amount,
-            fromCurrency: tx.currency,
-            fromAmountText: formatCurrencyAmount(tx.amount, tx.currency),
-            toAmount: destinationAmount,
-            toCurrency: destinationCurrency,
-            toAmountText: formatCurrencyAmount(destinationAmount, destinationCurrency),
+            fromAmountText: transferCellAmountText(tx.amount, tx.currency, '−'),
+            toAmountText: transferCellAmountText(destinationAmount, destinationCurrency, '+'),
           }
         : null,
   };

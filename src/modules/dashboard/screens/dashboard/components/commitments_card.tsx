@@ -8,7 +8,7 @@ import { Text } from '@/components/ui/text';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { formatCurrencyTotals } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
@@ -118,11 +118,7 @@ export function CommitmentsCard({
   const monthLabel = formatMonthYear(yearMonth);
   const progress = counts.total === 0 ? 0 : counts.paid / counts.total;
   const progressPct = Math.round(progress * 100);
-  const totalEntries = Array.from(totalsByCurrency.entries());
-  const totalsLine =
-    totalEntries.length === 0
-      ? '—'
-      : totalEntries.map(([cur, amt]) => formatCurrencyAmount(amt, cur)).join('  ·  ');
+  const totalsLine = formatCurrencyTotals(totalsByCurrency);
 
   return (
     <PressableFeedback

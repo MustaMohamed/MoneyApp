@@ -2,10 +2,7 @@ import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
-import {
-  buildBalanceText,
-  buildInfoRows,
-} from '@/modules/dashboard/screens/dashboard/components/account_card';
+import { buildInfoRows } from '@/modules/dashboard/screens/dashboard/components/account_card';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 const STATS: AccountStats = { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
@@ -171,8 +168,10 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
 
   // Bank + EGP: named unchanged pins, spec row 29 — NOT guarded by either mutation. The
   // `if (isUSD)` branch above returns first, so the EGP direction of the *labels* at
-  // :149/:154 never executes; these EGP amounts come out of the untouched :178/:183 branch
-  // on the bare 0dp `formatAmount(x)` default, out of scope for #277 and unedited by c4.
+  // :154/:159 never executes; these EGP amounts come out of the :184/:189 branch, which
+  // #299 did rewrite onto `formatCurrencyAmount(x, cur)` — the values below are unchanged
+  // because that call's output is identical to the old `` `${formatAmount(x)} ${cur}` ``
+  // template for EGP.
   it('Bank + EGP month_in/month_out — unchanged, out of scope (spec row 29)', () => {
     const rows = buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false);
     expect(rows[0]?.value).toBe('1,251 EGP');
@@ -206,12 +205,47 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
   });
 });
 
-describe('buildBalanceText — #277 account_card.tsx:296 (spec row 9)', () => {
-  it('shows USD cents — base: 1,251 USD, head: 1,250.75 USD', () => {
-    expect(buildBalanceText(usdBank(1250.75))).toBe('1,250.75 USD');
+// #299: the credit-card limit/available rows (:86,:90) adopt formatCurrencyAmount and take
+// the card's OWN currency instead of a hardcoded EGP suffix — the #287 defect, where a USD
+// card's limit and available credit rendered as `NNN EGP`. EGP is the coincidence-correct
+// currency for every fixture elsewhere in this file, so this branch had zero coverage of
+// the USD direction before now.
+describe("buildInfoRows — credit card limit/available take the card's own currency (#287 fix)", () => {
+  const creditCard = (currency: Currency, balance: number, limit: number | null): Account =>
+    makeTestAccount({
+      type: AccountType.CreditCard,
+      currency,
+      current_balance: balance,
+      opening_balance: balance,
+      credit_limit: limit,
+    });
+
+  it('a USD card now renders limit and available credit in USD, not EGP', () => {
+    const rows = buildInfoRows(creditCard(Currency.USD, 200, 1000), PLACEHOLDER_RATE, STATS, false);
+    expect(rows[0]?.value).toBe('1,000.00 USD');
+    expect(rows[1]?.value).toBe('800.00 USD');
   });
 
-  it('leaves EGP unchanged (spec row 11)', () => {
-    expect(buildBalanceText(egpBank(1250.75))).toBe('1,251 EGP');
+  it('an EGP card renders limit and available credit unchanged', () => {
+    const rows = buildInfoRows(creditCard(Currency.EGP, 200, 1000), PLACEHOLDER_RATE, STATS, false);
+    expect(rows[0]?.value).toBe('1,000 EGP');
+    expect(rows[1]?.value).toBe('800 EGP');
+  });
+
+  it('the over-limit short-circuit still shows Strings.cardOverLimit, on either currency', () => {
+    const egpRows = buildInfoRows(
+      creditCard(Currency.EGP, 1500, 1000),
+      PLACEHOLDER_RATE,
+      STATS,
+      false,
+    );
+    const usdRows = buildInfoRows(
+      creditCard(Currency.USD, 1500, 1000),
+      PLACEHOLDER_RATE,
+      STATS,
+      false,
+    );
+    expect(egpRows[1]?.value).toBe(Strings.cardOverLimit);
+    expect(usdRows[1]?.value).toBe(Strings.cardOverLimit);
   });
 });

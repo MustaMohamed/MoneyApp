@@ -9,7 +9,10 @@ import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Type } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
-import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
+import type {
+  DashboardNetWorth,
+  DashboardNetWorthAmount,
+} from '@/modules/accounts/domain/account_aggregation';
 import {
   formatCurrencyAmount,
   formatCurrencyParts,
@@ -75,6 +78,31 @@ function HeroCardSkeleton(): React.ReactElement {
         />
       </View>
     </>
+  );
+}
+
+/**
+ * The amount path's headline, kept as a subcomponent rather than inline so the two
+ * `formatCurrencyParts` calls the value/code split needs collapse to one. Matches
+ * `stat_cards.tsx`'s `NetWorthCardBody` and `net_worth_breakdown_sheet.tsx`'s
+ * `NetWorthBreakdownBody` — the established shape for a `DashboardNetWorthAmount`-narrowed
+ * subcomponent in this codebase, not a compiler requirement (an if/else-scoped const also
+ * compiles here).
+ */
+function HeroCardAssetsAmount({
+  netWorth,
+}: {
+  netWorth: DashboardNetWorthAmount;
+}): React.ReactElement {
+  const assetsEgpParts = formatCurrencyParts(netWorth.assetsEgp, Currency.EGP);
+  return (
+    <Text
+      className="font-sora-bold mt-3 mb-2 px-3"
+      style={{ color: Colors.dark.gold, fontSize: ms(32) }}
+    >
+      {assetsEgpParts.value}{' '}
+      <Text style={{ fontSize: ms(16), opacity: 0.8 }}>{assetsEgpParts.code}</Text>
+    </Text>
   );
 }
 
@@ -194,15 +222,7 @@ export function HeroCard({
               </Text>
             </>
           ) : (
-            <Text
-              className="font-sora-bold mt-3 mb-2 px-3"
-              style={{ color: Colors.dark.gold, fontSize: ms(32) }}
-            >
-              {formatCurrencyParts(netWorth.assetsEgp, Currency.EGP).value}{' '}
-              <Text style={{ fontSize: ms(16), opacity: 0.8 }}>
-                {formatCurrencyParts(netWorth.assetsEgp, Currency.EGP).code}
-              </Text>
-            </Text>
+            <HeroCardAssetsAmount netWorth={netWorth} />
           )}
 
           <View
@@ -230,7 +250,7 @@ export function HeroCard({
               <Text className="text-foreground text-xs">
                 {netWorth.kind === 'amount' && netWorth.assetsUsd !== undefined
                   ? formatCurrencyAmount(netWorth.assetsUsd, Currency.USD)
-                  : '— USD'}
+                  : Strings.netWorthBreakdownUsdUnavailable}
               </Text>
             </View>
             {/* The rate pill prints the very number the refusal exists to hide:

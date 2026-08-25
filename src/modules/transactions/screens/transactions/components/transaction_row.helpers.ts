@@ -79,9 +79,9 @@ function contextFor(
 function primaryAmountFor(tx: Transaction, cardCredit: boolean): string {
   const sign =
     tx.type === TransactionType.Expense ? '−' : tx.type === TransactionType.Income ? '+' : '';
-  const { text, isZero } = formatDisplayMagnitude(tx.amount, tx.currency);
+  const { text, printsAsZero } = formatDisplayMagnitude(tx.amount, tx.currency);
   const value = `${text} ${CURRENCY_CONFIG[tx.currency].code}`;
-  return isZero ? value : `${cardCredit ? '+' : sign}${value}`;
+  return printsAsZero ? value : `${cardCredit ? '+' : sign}${value}`;
 }
 
 function destinationAmountFor(tx: Transaction, toAccount?: Account): string | undefined {

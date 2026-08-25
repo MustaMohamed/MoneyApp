@@ -76,7 +76,7 @@ export function resolveDisplayAmount(
  * its m0/escalate half only — the same currency-aware-decimals-then-escalate-to-2dp rule
  * every composed-sign transaction site uses, so a genuine 0.40 EGP commitment reads
  * "0.40 EGP" here too, not "0 EGP". Commitments compose no sign, so the function's
- * `isZero` branch (which exists to drop a sign glyph) is simply unused, not reimplemented
+ * `printsAsZero` branch (which exists to drop a sign glyph) is simply unused, not reimplemented
  * — there is no sign here to drop in the first place. MA-016 second amendment round; see
  * docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
  */

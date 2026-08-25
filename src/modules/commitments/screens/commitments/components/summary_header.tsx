@@ -8,7 +8,7 @@ import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { formatCurrencyTotals } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 interface SummaryHeaderProps {
@@ -80,11 +80,7 @@ function SummarySkeleton(): React.ReactElement {
 export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: SummaryHeaderProps) {
   const progress = counts.total > 0 ? counts.paid / counts.total : 0;
   const progressPct = Math.round(progress * 100);
-  const totalEntries = Array.from(totalsByCurrency.entries());
-  const totalsLine =
-    totalEntries.length === 0
-      ? '—'
-      : totalEntries.map(([cur, amt]) => formatCurrencyAmount(amt, cur)).join('  ·  ');
+  const totalsLine = formatCurrencyTotals(totalsByCurrency);
 
   return (
     <Card className="bg-surface border-border mx-4 mb-2 gap-1 rounded-2xl border px-3 py-2">

@@ -3,8 +3,10 @@ import {
   formatAmount,
   formatCurrencyAmount,
   formatCurrencyParts,
+  formatCurrencyTotals,
   formatDisplayMagnitude,
   formatExchangeRate,
+  formatExchangeRateSentence,
 } from '@/utils/format_amount';
 
 describe('formatAmount', () => {
@@ -51,6 +53,10 @@ describe('currency amount formatting', () => {
     // fit one line on N4. The 48.125 -> 48.13 rounding is unchanged; only the
     // surrounding text moved.
     expect(formatExchangeRate(48.125)).toBe('48.13 EGP/USD');
+  });
+
+  it('formats the labelled-row long form with the same rounding as the compact pill', () => {
+    expect(formatExchangeRateSentence(48.125)).toBe('1 USD = 48.13 EGP');
   });
 
   it('#243: formatCurrencyParts splits value and code, decimals from CURRENCY_CONFIG by default', () => {
@@ -120,14 +126,14 @@ describe('formatDisplayMagnitude', () => {
   // computed, printing "0" where the truth is "0.40". This is the one shared rule.
   // See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
   //
-  // MA-018 P8 F-2: `isTrueZero` (above, tested on the RAW value) and `isZero` (returned,
+  // MA-018 P8 F-2: `isTrueZero` (above, tested on the RAW value) and `printsAsZero` (returned,
   // tested on the RENDERED text) are two different questions and can disagree — a magnitude
   // like `0.001` is not a true zero (there's a real amount) but its rendered text at the
-  // escalation cap still prints "0.00", so `isZero` is true anyway. Don't collapse one into
-  // the other: `isTrueZero` says whether there's a magnitude to report at all, `isZero` says
+  // escalation cap still prints "0.00", so `printsAsZero` is true anyway. Don't collapse one into
+  // the other: `isTrueZero` says whether there's a magnitude to report at all, `printsAsZero` says
   // whether what's about to print can carry a sign.
   it('collapses an exact zero to a bare, unsigned magnitude', () => {
-    expect(formatDisplayMagnitude(0, Currency.EGP)).toEqual({ text: '0', isZero: true });
+    expect(formatDisplayMagnitude(0, Currency.EGP)).toEqual({ text: '0', printsAsZero: true });
   });
 
   // Regression guard, not a new case: this passed under the OLD rounding-based zero test
@@ -136,23 +142,32 @@ describe('formatDisplayMagnitude', () => {
   // must be pinned explicitly now — a bare `raw === 0` would have missed it entirely, and
   // a wider epsilon could swallow USD 0.001 (also pinned below) into a false true-zero.
   it('collapses a float tie (-1e-13, income === expense) to a true, unsigned zero', () => {
-    expect(formatDisplayMagnitude(-1e-13, Currency.EGP)).toEqual({ text: '0', isZero: true });
+    expect(formatDisplayMagnitude(-1e-13, Currency.EGP)).toEqual({ text: '0', printsAsZero: true });
   });
 
   it('escalates to full rounding precision when EGP 0dp display would print a nonzero value as "0"', () => {
-    expect(formatDisplayMagnitude(0.4, Currency.EGP)).toEqual({ text: '0.40', isZero: false });
-    expect(formatDisplayMagnitude(-0.4, Currency.EGP)).toEqual({ text: '0.40', isZero: false });
+    expect(formatDisplayMagnitude(0.4, Currency.EGP)).toEqual({
+      text: '0.40',
+      printsAsZero: false,
+    });
+    expect(formatDisplayMagnitude(-0.4, Currency.EGP)).toEqual({
+      text: '0.40',
+      printsAsZero: false,
+    });
   });
 
   it('does not escalate once 0dp already prints a nonzero digit', () => {
-    expect(formatDisplayMagnitude(0.6, Currency.EGP)).toEqual({ text: '1', isZero: false });
+    expect(formatDisplayMagnitude(0.6, Currency.EGP)).toEqual({ text: '1', printsAsZero: false });
   });
 
   // EGP's tie-breaking case for the same "does not escalate" rule: 249.50 rounds UP to an
   // already-nonzero "250" at 0dp, so there is nothing to escalate to. Also the ADR §1
   // worked-example row value (three of these total "749", accepted approximation).
   it('does not escalate a half-EGP tie that already rounds to a nonzero digit', () => {
-    expect(formatDisplayMagnitude(249.5, Currency.EGP)).toEqual({ text: '250', isZero: false });
+    expect(formatDisplayMagnitude(249.5, Currency.EGP)).toEqual({
+      text: '250',
+      printsAsZero: false,
+    });
   });
 
   // MA-016 second amendment round (@layla): the zero test must run on the RAW value, not
@@ -163,20 +178,32 @@ describe('formatDisplayMagnitude', () => {
   // must escalate to 2dp, not a false zero — `text` still reports the escalated magnitude,
   // `'0.00'`, not the raw `'0'` the true-zero branch would use.
   //
-  // MA-018 P8 F-2 (@layla's ruling): `isZero` is now read off `text`, not fixed `false`
+  // MA-018 P8 F-2 (@layla's ruling): `printsAsZero` is now read off `text`, not fixed `false`
   // once past the true-zero branch — the RAW magnitude here is real and non-collapsed
   // (`isTrueZero` above is false, `text` is the escalated `'0.00'`, not `'0'`), but the
-  // RENDERED text still prints as zero, so `isZero` reports `true`: there is nothing on
-  // screen for a composed sign glyph to attach to. See the `isTrueZero`-vs-`isZero`
+  // RENDERED text still prints as zero, so `printsAsZero` reports `true`: there is nothing on
+  // screen for a composed sign glyph to attach to. See the `isTrueZero`-vs-`printsAsZero`
   // distinction noted beside the MA-016 comment above this describe block.
-  it('escalates a sub-cent raw USD magnitude to 2dp, but reports isZero true — the escalation still cannot show a nonzero digit', () => {
-    expect(formatDisplayMagnitude(0.001, Currency.USD)).toEqual({ text: '0.00', isZero: true });
-    expect(formatDisplayMagnitude(0.004, Currency.USD)).toEqual({ text: '0.00', isZero: true });
+  it('escalates a sub-cent raw USD magnitude to 2dp, but reports printsAsZero true — the escalation still cannot show a nonzero digit', () => {
+    expect(formatDisplayMagnitude(0.001, Currency.USD)).toEqual({
+      text: '0.00',
+      printsAsZero: true,
+    });
+    expect(formatDisplayMagnitude(0.004, Currency.USD)).toEqual({
+      text: '0.00',
+      printsAsZero: true,
+    });
   });
 
   it('does not escalate for USD magnitudes that already print a nonzero digit at 2dp', () => {
-    expect(formatDisplayMagnitude(0.4, Currency.USD)).toEqual({ text: '0.40', isZero: false });
-    expect(formatDisplayMagnitude(0.01, Currency.USD)).toEqual({ text: '0.01', isZero: false });
+    expect(formatDisplayMagnitude(0.4, Currency.USD)).toEqual({
+      text: '0.40',
+      printsAsZero: false,
+    });
+    expect(formatDisplayMagnitude(0.01, Currency.USD)).toEqual({
+      text: '0.01',
+      printsAsZero: false,
+    });
   });
 
   // #284 spec rows 1-4 (p1-gate-ruling.md §6, spec §3): the escalate branch dropped
@@ -184,29 +211,65 @@ describe('formatDisplayMagnitude', () => {
   // Both branches now agree on half-expand — the same rounding Intl already applies on the
   // direct branch — so an EGP half-cent tie escalates the same way a USD one always has.
   it('escalates an EGP half-cent tie under half-expand, matching USD at the same magnitude (spec row 1)', () => {
-    expect(formatDisplayMagnitude(0.005, Currency.EGP)).toEqual({ text: '0.01', isZero: false });
+    expect(formatDisplayMagnitude(0.005, Currency.EGP)).toEqual({
+      text: '0.01',
+      printsAsZero: false,
+    });
   });
 
   it('leaves the USD half-cent tie byte-identical — the direct branch was always half-expand (spec row 2)', () => {
-    expect(formatDisplayMagnitude(0.005, Currency.USD)).toEqual({ text: '0.01', isZero: false });
+    expect(formatDisplayMagnitude(0.005, Currency.USD)).toEqual({
+      text: '0.01',
+      printsAsZero: false,
+    });
   });
 
   it("escalates a second EGP half-cent tie under half-expand, not the old banker's rounding (spec row 3)", () => {
-    expect(formatDisplayMagnitude(0.025, Currency.EGP)).toEqual({ text: '0.03', isZero: false });
+    expect(formatDisplayMagnitude(0.025, Currency.EGP)).toEqual({
+      text: '0.03',
+      printsAsZero: false,
+    });
   });
 
-  it('holds the hard 2dp ceiling for a magnitude below half a cent, and reports isZero true since the ceiling prints no nonzero digit (spec row 4)', () => {
-    expect(formatDisplayMagnitude(0.001, Currency.EGP)).toEqual({ text: '0.00', isZero: true });
+  it('holds the hard 2dp ceiling for a magnitude below half a cent, and reports printsAsZero true since the ceiling prints no nonzero digit (spec row 4)', () => {
+    expect(formatDisplayMagnitude(0.001, Currency.EGP)).toEqual({
+      text: '0.00',
+      printsAsZero: true,
+    });
   });
 
   // MA-018 P8 F-2 (@layla's ruling): redundant-but-cheap belt-and-braces, not new
-  // coverage — mutating isZero's computation to a bare `false` already reds the
+  // coverage — mutating printsAsZero's computation to a bare `false` already reds the
   // `toEqual` assertions at :171 and :197 on their own, on both currencies. Kept
   // because it names the ruling and the "both currencies" invariant explicitly in
   // one place, at the cost of a duplicate assertion pair; do not read this as the
   // test that would catch a regression here if :171/:197 were ever deleted.
-  it('reports isZero true for a magnitude the 2dp escalation ceiling still cannot show a nonzero digit for, on both currencies', () => {
-    expect(formatDisplayMagnitude(0.001, Currency.EGP).isZero).toBe(true);
-    expect(formatDisplayMagnitude(0.001, Currency.USD).isZero).toBe(true);
+  it('reports printsAsZero true for a magnitude the 2dp escalation ceiling still cannot show a nonzero digit for, on both currencies', () => {
+    expect(formatDisplayMagnitude(0.001, Currency.EGP).printsAsZero).toBe(true);
+    expect(formatDisplayMagnitude(0.001, Currency.USD).printsAsZero).toBe(true);
+  });
+});
+
+// #280 pt 1: the join summary_header.tsx and commitments_card.tsx each built by hand from
+// their totalsByCurrency map, extracted so both screens share one home for the join order,
+// the separator and the empty-map placeholder.
+describe('formatCurrencyTotals', () => {
+  it('renders a single currency entry with no separator', () => {
+    expect(formatCurrencyTotals(new Map([[Currency.EGP, 4850]]))).toBe('4,850 EGP');
+  });
+
+  it('joins two currency entries with the shared separator, in insertion order', () => {
+    expect(
+      formatCurrencyTotals(
+        new Map([
+          [Currency.EGP, 4850],
+          [Currency.USD, 100],
+        ]),
+      ),
+    ).toBe('4,850 EGP  ·  100.00 USD');
+  });
+
+  it('renders the em dash placeholder for an empty map', () => {
+    expect(formatCurrencyTotals(new Map())).toBe('—');
   });
 });

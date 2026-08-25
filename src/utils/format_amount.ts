@@ -1,5 +1,6 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { type Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 
 // A NONZERO negative magnitude that rounds to zero at this precision still carries the
 // minus sign, and reads as a small debt that does not exist. Struck after formatting,
@@ -65,6 +66,25 @@ export function formatCurrencyParts(
 export function formatCurrencyAmount(value: number, currency: Currency, decimals?: number): string {
   const parts = formatCurrencyParts(value, currency, decimals);
   return `${parts.value} ${parts.code}`;
+}
+
+/**
+ * `'4,850 EGP  ·  100.00 USD'` — one `formatCurrencyAmount` join per currency present in
+ * the map, in insertion order. An empty map (no commitments due this month, in either
+ * currency) renders `Strings.currencyTotalsUnavailable` rather than an empty string,
+ * matching what both callers rendered before this extraction.
+ *
+ * Shared by every multi-currency totals line — commitments' summary header and dashboard
+ * card today. Not commitments-specific despite both current callers being commitments
+ * screens: no `commitments/domain/` directory exists to own it (verified), and this file
+ * is already the money-formatting home every other screen reads decimals rules from.
+ */
+export function formatCurrencyTotals(totals: Map<Currency, number>): string {
+  const entries = Array.from(totals.entries());
+  if (entries.length === 0) return Strings.currencyTotalsUnavailable;
+  return entries
+    .map(([currency, amount]) => formatCurrencyAmount(amount, currency))
+    .join(Strings.currencyTotalsSeparator);
 }
 
 // Mirrors roundMoney's fixed precision (src/utils/money.ts) — the domain's persisted
@@ -138,7 +158,7 @@ const ZERO_EPSILON = 1e-9;
  *      keeps producing fresh unrounded `amount_due` rows for as long as it stays active.
  *      Rounding first would let a real `0.001` collapse to a false true-zero and print with
  *      no sign at all.
- *   2. `isTrueZero` -> magnitude `"0"`, `isZero: true`. There is no direction to report.
+ *   2. `isTrueZero` -> magnitude `"0"`, `printsAsZero: true`. There is no direction to report.
  *   3. otherwise -> render `Math.abs(value)` at the site's normal (currency-config)
  *      precision. If that would print a literal zero, escalate ONCE, to
  *      `MONEY_ROUNDING_DECIMALS`' 2dp ceiling — never further, so this stays the display
@@ -153,11 +173,11 @@ const ZERO_EPSILON = 1e-9;
  *      trips the escalate check), it is just a no-op there: re-rendering at 2dp produces the
  *      same string `atSitePrecision` already held. Not unreachable — reached and idempotent.
  *      See `__tests__/format_amount.test.ts`'s USD rows.
- *   4. `isZero` is read off the RENDERED TEXT from step 3, not off `value` and not off
+ *   4. `printsAsZero` is read off the RENDERED TEXT from step 3, not off `value` and not off
  *      `isTrueZero` — it means "this string prints as zero, so a sign glyph beside it is not
  *      meaningful", never "the underlying value is zero". A nonzero magnitude that survives
  *      the 2dp escalation cap and still prints "0.00" — `0.001 EGP`, or `0.001`/`0.004 USD`,
- *      whose display precision already sits at the escalation ceiling — reports `isZero:
+ *      whose display precision already sits at the escalation ceiling — reports `printsAsZero:
  *      true` here on exactly that ground: there is a real amount, but nothing on screen for a
  *      sign to attach to. The escalation cap itself is unchanged (see step 3) — this is its
  *      residual, not a new rule. Do not "fix" this field to read `value === 0`; that is the
@@ -167,9 +187,9 @@ const ZERO_EPSILON = 1e-9;
 export function formatDisplayMagnitude(
   value: number,
   currency: Currency,
-): { text: string; isZero: boolean } {
+): { text: string; printsAsZero: boolean } {
   const isTrueZero = Math.abs(value) < ZERO_EPSILON;
-  if (isTrueZero) return { text: formatAmount(0, 0), isZero: true };
+  if (isTrueZero) return { text: formatAmount(0, 0), printsAsZero: true };
 
   const magnitude = Math.abs(value);
   const config = CURRENCY_CONFIG[currency];
@@ -177,8 +197,8 @@ export function formatDisplayMagnitude(
   const text = ZERO_AT_DISPLAY_PRECISION.test(atSitePrecision)
     ? formatAmount(magnitude, MONEY_ROUNDING_DECIMALS)
     : atSitePrecision;
-  const isZero = ZERO_AT_DISPLAY_PRECISION.test(text);
-  return { text, isZero };
+  const printsAsZero = ZERO_AT_DISPLAY_PRECISION.test(text);
+  return { text, printsAsZero };
 }
 
 /**
@@ -195,4 +215,16 @@ export function formatDisplayMagnitude(
  */
 export function formatExchangeRate(rate: number): string {
   return `${formatAmount(rate, EXCHANGE_RATE_DECIMALS)} EGP/USD`;
+}
+
+/**
+ * `1 USD = 48.60 EGP` — the labelled-row long form (mockup.html:2385), as opposed to
+ * `formatExchangeRate`'s compact pill form above. Selection rule (marcus 2026-08-25): a
+ * chip or pill reads the compact form; a labelled row with its own line reads this
+ * sentence. Same precision as the pill — `EXCHANGE_RATE_DECIMALS` — only the surrounding
+ * copy differs, and that copy lives in `Strings.detailExchangeRateSentence` rather than
+ * inline, per the project's one-home-for-copy rule.
+ */
+export function formatExchangeRateSentence(rate: number): string {
+  return Strings.detailExchangeRateSentence(formatAmount(rate, EXCHANGE_RATE_DECIMALS));
 }
