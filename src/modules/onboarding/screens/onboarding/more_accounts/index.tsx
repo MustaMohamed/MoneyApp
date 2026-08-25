@@ -179,6 +179,24 @@ export default function MoreAccountsScreen() {
                 shadowOpacity: 0,
               }}
             >
+              {/* Unvirtualized, deliberately (#248). N3 sees 1-5 accounts today; per row
+                  this map dispatches three resolver calls — `resolveAccountRowA11yLabel`,
+                  `resolveAccountRowDotColor`, and AccountRow's own direct
+                  `formatCurrencyParts` call, two of the three (the direct call and the one
+                  inside `resolveAccountRowA11yLabel`) landing on `formatCurrencyParts` — so
+                  the issue's stated 60-row scale is 180-300 calls, not the single-digit
+                  count N3 pays. (`formatCurrencyParts`'s `Intl.NumberFormat` is cached by
+                  `decimals`, `format_amount.ts:39-50`, so construction itself isn't a
+                  per-row cost — the calls above are.)
+                  A virtualized branch is also structurally unavailable here: this list
+                  lives inside `ScreenScroll`, a plain vertical `ScrollView`
+                  (`screen.tsx:64-78`), and a same-orientation `FlatList`/`FlashList` nested
+                  inside one triggers RN's nested-VirtualizedList warning and virtualizes
+                  nothing. The dashboard's account carousel virtualizes past a threshold
+                  (`shouldVirtualizeAccountCarousel`, `account_carousel.tsx:113-133`) but
+                  that precedent doesn't transfer: its list is horizontal, with no such
+                  host to nest inside. #248's other gap — no cap on account count — is
+                  retired deliberately by this comment, not closed by code. */}
               {accounts.map((account, index) => (
                 <React.Fragment key={account.id}>
                   {/* Full bleed, and drawn by the parent: with `index` gone from
