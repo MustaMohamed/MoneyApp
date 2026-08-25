@@ -1,5 +1,4 @@
 import { AccountType, Currency } from '@/constants/enums';
-import { Size } from '@/constants/theme';
 import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_palette';
 import {
   N3_ROW_MIN_HEIGHT,
@@ -8,6 +7,7 @@ import {
   resolveAccountRowDotColor,
 } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.geometry';
 import { makeTestAccount } from '@/test_helpers/transaction';
+import { ms } from '@/utils/responsive';
 
 // makeTestAccount defaults to EGP, `color: null` and both balances 0, so each
 // fixture below is the one or two fields its assertion is actually about.
@@ -19,8 +19,8 @@ const egpAccount = makeTestAccount({
 const usdAccount = makeTestAccount({ currency: Currency.USD, current_balance: 1350.5 });
 
 describe('N3 row geometry — the truncation contract (S3)', () => {
-  it('takes its height from the budget-category row token, as a minimum', () => {
-    expect(N3_ROW_MIN_HEIGHT).toBe(Size.budgetCategoryRowHeight);
+  it('is 58dp, the mockup value, as a minimum', () => {
+    expect(N3_ROW_MIN_HEIGHT).toBe(ms(58));
     expect(N3_ROW_STYLE.minHeight).toBe(N3_ROW_MIN_HEIGHT);
   });
 

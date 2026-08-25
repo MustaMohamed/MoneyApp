@@ -21,7 +21,7 @@ import { ms } from '@/utils/responsive';
  */
 
 /** mockup.html:619, `.lrow { min-height: var(--size-budget-category-row-height) }`. */
-export const N3_ROW_MIN_HEIGHT = Size.budgetCategoryRowHeight;
+export const N3_ROW_MIN_HEIGHT = Size.listRowHeight;
 
 /**
  * The whole geometry of a row — mockup.html:617-620, `.lrow`.
