@@ -1,14 +1,25 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"suppressOutput\":true,\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"Output contract in force (unslop skill; load it if not yet loaded this session). Lead with the answer, then stop; detail only where it changes what the reader does next. Evidence, not defence of evidence. Negative results: one line each. No method certification.\"}}'",
+            "statusMessage": "Output contract"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "^(Agent|Task)$",
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"suppressOutput\":true,\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Reply contract (CLAUDE.md > Answering me). An agent just returned. Report the DELTA only: the verdict, what changed, and what needs doing. Do not restate the request, do not re-explain what you already told the user, do not narrate tool calls or re-summarise findings already reported. Keep the evidence \u2014 the measured number, the file:line, the verdict; cut the prose around it, not the fact. Small paragraph for context, bullets for detail, the ask said straight.\"}}'",
-            "statusMessage": "Reply contract"
+            "command": "echo '{\"suppressOutput\":true,\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Output contract (unslop). An agent returned: report the delta only. Verdict, what changed, what needs doing, then stop. Keep the number and file:line; cut the prose around them. A subagent return is verdict plus deltas; anything more goes in a file with the path returned. No method certification, no restating the request, no narrating tool calls.\"}}'",
+            "statusMessage": "Output contract"
           }
         ]
       }

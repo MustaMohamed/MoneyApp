@@ -106,6 +106,18 @@ pr: <url or ->                    # direct/chunk-single: the PR; chunk/split: - 
 
 **Log entries are facts, capped at ~8 lines each** — SHAs, verdicts, counts, decisions. Narrative belongs nowhere; the reviews carry their own evidence. The template is a floor, not a ceiling: phases append the structured sections their reference files direct. Sub-tickets and chunks have **no state.md of their own** — their state is their row here.
 
+### Output shapes
+
+The `unslop` skill is the output contract and binds every artifact this workflow writes — conductor and subagents alike; dispatches say so. Findings, reports, and subagent returns follow its shapes (a finding is `path:line` + failing scenario + smallest fix; a return is verdict + deltas with files for the rest — restated in the phase-7 charters because pasted prompts must be self-contained). Ship adds its own artifact shapes:
+
+| Artifact | Shape | Past it |
+|---|---|---|
+| `spec.md` | Contracts and tables, not narrative | A fact stated twice: cut one. Still growing: split the ticket |
+| `plans/MA-XXX.md` | A step is one row: file, change, test | Re-describing what sits at a cited line makes it a spec — re-cut the chunks |
+| `state.md` | Facts: SHAs, verdicts, counts, decisions | 15 KB total — collapse the oldest narrative into pointers |
+
+On entering P3, replace `## P1 output` with a ≤10-line summary plus a pointer to the prestage/scout files — P2 is its only consumer, and `state.md` is read in full on every resume. Measured on MA-011: the uncollapsed section was 14.7 KB, 32% of the file, read back on every one of ~40 resume points.
+
 ## Hard rules
 
 Violating the letter of these rules is violating their spirit.
