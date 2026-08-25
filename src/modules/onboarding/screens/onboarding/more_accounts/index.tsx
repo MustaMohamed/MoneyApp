@@ -39,7 +39,7 @@ const N3_BODY_MAX_WIDTH = ms(290);
 export default function MoreAccountsScreen() {
   const { accounts, handleAddAnother, handleAddFirstAccount, handleContinue, onBack, state } =
     useMoreAccounts();
-  const { introEntering, listEntering } = useMoreAccountsAnim();
+  const { introEntering, listEntering } = useMoreAccountsAnim(accounts.length > 0);
 
   const onBackPress = () => {
     // onBack and handleContinue below both catch their own failure inside
