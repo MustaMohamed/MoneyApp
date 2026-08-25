@@ -204,6 +204,51 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
   });
 });
 
+// #299: the credit-card limit/available rows (:86,:90) adopt formatCurrencyAmount and take
+// the card's OWN currency instead of a hardcoded EGP suffix — the #287 defect, where a USD
+// card's limit and available credit rendered as `NNN EGP`. EGP is the coincidence-correct
+// currency for every fixture elsewhere in this file, so this branch had zero coverage of
+// the USD direction before now.
+describe("buildInfoRows — credit card limit/available take the card's own currency (#287 fix)", () => {
+  const creditCard = (currency: Currency, balance: number, limit: number | null): Account =>
+    makeTestAccount({
+      type: AccountType.CreditCard,
+      currency,
+      current_balance: balance,
+      opening_balance: balance,
+      credit_limit: limit,
+    });
+
+  it('a USD card now renders limit and available credit in USD, not EGP', () => {
+    const rows = buildInfoRows(creditCard(Currency.USD, 200, 1000), PLACEHOLDER_RATE, STATS, false);
+    expect(rows[0]?.value).toBe('1,000.00 USD');
+    expect(rows[1]?.value).toBe('800.00 USD');
+  });
+
+  it('an EGP card renders limit and available credit unchanged', () => {
+    const rows = buildInfoRows(creditCard(Currency.EGP, 200, 1000), PLACEHOLDER_RATE, STATS, false);
+    expect(rows[0]?.value).toBe('1,000 EGP');
+    expect(rows[1]?.value).toBe('800 EGP');
+  });
+
+  it('the over-limit short-circuit still shows Strings.cardOverLimit, on either currency', () => {
+    const egpRows = buildInfoRows(
+      creditCard(Currency.EGP, 1500, 1000),
+      PLACEHOLDER_RATE,
+      STATS,
+      false,
+    );
+    const usdRows = buildInfoRows(
+      creditCard(Currency.USD, 1500, 1000),
+      PLACEHOLDER_RATE,
+      STATS,
+      false,
+    );
+    expect(egpRows[1]?.value).toBe(Strings.cardOverLimit);
+    expect(usdRows[1]?.value).toBe(Strings.cardOverLimit);
+  });
+});
+
 // #298: buildBalanceText was a same-signature formatCurrencyAmount wrapper, deleted —
 // the balance row now calls formatCurrencyAmount directly at account_card.tsx.
 describe('account_card balance row — account_card.tsx (spec row 9)', () => {
