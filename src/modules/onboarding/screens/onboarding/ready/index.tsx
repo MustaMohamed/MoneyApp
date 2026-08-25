@@ -34,7 +34,7 @@ import { useReady } from './ready.hook';
  */
 export default function ReadyScreen() {
   const {
-    state: { summary, baseCurrency, completing, busy, statusMessage },
+    state: { summary, completing, busy, statusMessage },
     handleComplete,
     onBack,
   } = useReady();
@@ -98,12 +98,15 @@ export default function ReadyScreen() {
 
         {/* Block 2 — the hero card, on the shared gradient/grid/glow shell. */}
         <HeroShell entering={heroEntering} style={N4_HERO_FRAME_STYLE}>
-          <ReadyHeroCard summary={summary} baseCurrency={baseCurrency} />
+          <ReadyHeroCard summary={summary} />
         </HeroShell>
 
         {/* Block 3 — the three-row confirmation group. */}
         <Animated.View entering={summaryEntering} style={{ marginTop: Spacing.md }}>
-          <ReadySummaryRows accountCount={summary.accountCount} baseCurrency={baseCurrency} />
+          <ReadySummaryRows
+            accountCount={summary.accountCount}
+            baseCurrency={summary.baseCurrency}
+          />
         </Animated.View>
       </ScreenScroll>
     </OnboardingShell>

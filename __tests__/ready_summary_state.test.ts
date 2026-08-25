@@ -298,6 +298,9 @@ describe('selectReadySummaryState — frame selection and pill composition', () 
     expect(state.frame).toBe(row.frame);
     expect(state.accountCount).toBe(row.accountCount);
     expect(state.foreignCount).toBe(row.foreignCount);
+    // Published straight through from the input — every row's own `base` is
+    // the expected value, so all 14 exercise both base-currency directions.
+    expect(state.baseCurrency).toBe(row.base);
     expect(state.foreignCurrency).toBe(row.foreignCurrency);
     expect(state.pillsVisible).toBe(row.pillsVisible);
     expect(state.pills).toStrictEqual(row.pills);

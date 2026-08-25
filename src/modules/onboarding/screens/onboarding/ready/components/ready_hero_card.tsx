@@ -12,13 +12,6 @@ import { SemanticTokens } from '@/constants/theme_tokens';
 import type { ReadySummaryState } from '@/modules/onboarding/domain/ready_summary_state';
 
 import {
-  resolveCaption,
-  resolveHeroAmountParts,
-  resolveHeroValueA11yLabel,
-  resolveHeroValueTextStyle,
-  resolvePill,
-} from '../ready.format';
-import {
   N4_HERO_CAPTION_MAX_LINES,
   N4_HERO_CAPTION_SLOT_STYLE,
   N4_HERO_CAPTION_TEXT_STYLE,
@@ -32,10 +25,16 @@ import {
   N4_HERO_REFUSAL_TEXT_STYLE,
   N4_HERO_VALUE_SLOT_STYLE,
 } from '../ready.geometry';
+import {
+  resolveCaption,
+  resolveHeroAmountParts,
+  resolveHeroValueA11yLabel,
+  resolveHeroValueTextStyle,
+  resolvePill,
+} from '../ready.helpers';
 
 export interface ReadyHeroCardProps {
   summary: ReadySummaryState;
-  baseCurrency: Currency;
 }
 
 /**
@@ -52,8 +51,9 @@ export interface ReadyHeroCardProps {
  * negative and zero frames — this screen deliberately does not adopt
  * `stat_cards.tsx`'s sign colouring, and it does not import the dashboard hero.
  */
-export function ReadyHeroCard({ summary, baseCurrency }: ReadyHeroCardProps) {
-  const { outcome, frame, accountCount, foreignCount, foreignCurrency, pills } = summary;
+export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
+  const { outcome, frame, accountCount, foreignCount, foreignCurrency, baseCurrency, pills } =
+    summary;
 
   return (
     <View style={N4_HERO_CONTENT_STYLE}>
@@ -145,7 +145,7 @@ export function ReadyHeroCard({ summary, baseCurrency }: ReadyHeroCardProps) {
  * mid-number instead of stepping down.
  *
  * The split, the step-down rung, the explicit decimals and the a11y label are
- * `ready.format.ts`'s — see `resolveHeroAmountParts`, `resolveHeroValueTextStyle`
+ * `ready.helpers.ts`'s — see `resolveHeroAmountParts`, `resolveHeroValueTextStyle`
  * and `resolveHeroValueA11yLabel` there for the reasoning.
  */
 function HeroValue({ value, baseCurrency }: { value: number; baseCurrency: Currency }) {

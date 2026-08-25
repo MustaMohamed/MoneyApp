@@ -8,10 +8,10 @@ import { ms } from '@/utils/responsive';
  * N4's geometry — mockup § F (F1-F9): the fixed slot heights, the type styles
  * and the tracking. The formatter resolvers that used to live here — the
  * hero value's own three, and the frame -> caption and descriptor -> pill
- * maps — moved to the sibling `ready.format.ts` (folder convention
+ * maps — moved to the sibling `ready.helpers.ts` (folder convention
  * `ready.<role>.ts`), so this file stays pure layout tokens.
  * `N4_STEP_DOWN_MAX_CHARS` and `N4_HERO_AMOUNT_DECIMALS` stay here and are
- * exported so `ready.format.ts` can import them: both are geometry facts (a
+ * exported so `ready.helpers.ts` can import them: both are geometry facts (a
  * character-count boundary, a decimals deviation), not formatting logic.
  *
  * The pill's OWN box — padding, radius, fill, height, glyph and label type —
@@ -58,8 +58,8 @@ export const N4_HEADLINE_LINE_HEIGHT_RATIO = 1.05;
  * `.n.step`. The count EXCLUDES the currency suffix, which renders as a
  * separate node at a different size and opacity.
  *
- * Exported for `ready.format.ts`'s `resolveHeroValueTextStyle`, the sole
- * reader — this export is what keeps the dependency one-directional.
+ * Exported for `ready.helpers.ts` to import — this export is what keeps the
+ * dependency one-directional.
  */
 export const N4_STEP_DOWN_MAX_CHARS = 13;
 

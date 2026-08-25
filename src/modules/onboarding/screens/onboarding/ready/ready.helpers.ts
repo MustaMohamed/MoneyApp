@@ -20,7 +20,8 @@ import {
 
 /**
  * N4's formatter resolvers — split out of `ready.geometry.ts` (folder
- * convention `ready.<role>.ts`): the hero value's three (its step-down text
+ * convention `ready.<role>.ts`, `ready.helpers.ts` per the repo's own
+ * `.helpers.ts` precedent): the hero value's three (its step-down text
  * style, its split amount parts, its a11y label) and the two maps that turn a
  * frame or a pill descriptor into copy.
  *
@@ -62,7 +63,8 @@ export function resolveHeroValueTextStyle(formattedAmount: string): Readonly<Tex
  * 2)`, so a screen reader gets one announcement from the one formatter.
  *
  * The sign comes from whatever the domain resolver produced and from `Intl`,
- * never from a hand-written leading minus.
+ * never from a hand-written leading minus. (The mockup draws U+2212 MINUS and
+ * `Intl` emits U+002D HYPHEN-MINUS — formatter output, not transcribed copy.)
  */
 export function resolveHeroAmountParts(
   value: number,
@@ -74,8 +76,8 @@ export function resolveHeroAmountParts(
 /**
  * `'148,250.00 EGP'` — the hero value's single a11y announcement, so a screen
  * reader reads the amount and its currency as one thing rather than as the two
- * nodes `resolveHeroAmountParts` splits them into. `resolveAccountRowA11yLabel`
- * is the same shape one screen over.
+ * nodes `resolveHeroAmountParts` splits them into. N3's account row a11y label
+ * is the same shape, one screen over.
  *
  * It exists as a named function for the reason that one does: the explicit
  * decimals are the whole point, and `CURRENCY_CONFIG[Currency.EGP].decimals` is
