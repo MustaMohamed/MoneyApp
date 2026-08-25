@@ -627,27 +627,10 @@ describe('commitment store mutation invalidation', () => {
     await flushMicrotasks();
   });
 
-  // #308 S-03: revalidateAfterMutation is fire-and-forget with a log-only
-  // .catch, so there is no second chance — the optimistic patch is what the
-  // user keeps looking at. That is what makes S-01 a defect, not a flicker.
-  it('S-03: keeps the resolved amount when the background revalidation fails', async () => {
-    const refreshError = new Error('post-pay refresh failed');
-    const repository = makeRepository({
-      markAsPaid: jest.fn().mockResolvedValue(paymentAmounts({ paymentAmount: 11 })),
-    });
-    const store = createCommitmentStore(repository);
-    await store.getState().loadMonthSnapshot(MAY);
-    (repository.runHousekeeping as jest.Mock).mockReset().mockRejectedValue(refreshError);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-    await store.getState().markAsPaid('payment', { ...paymentDetails, amount_paid: 10.999 });
-    await flushMicrotasks();
-
-    expect(consoleSpy).toHaveBeenCalledWith('[commitmentStore] revalidation failed:', refreshError);
-    expect(store.getState().loadError).toBe(true);
-    expect(store.getState().payments[0].amount_paid).toBe(11);
-    consoleSpy.mockRestore();
-  });
+  // #308 S-03 was deleted at W1B (#312): all three of its assertions already
+  // live elsewhere in this file. The resolved-amount patch is S-01 above; the
+  // `loadError` flag is asserted at the failed-load, failed-add and
+  // failed-persist cases; the revalidation log line at the last two of those.
 
   it('invalidates and reloads once after skipping', async () => {
     const repository = makeRepository();
