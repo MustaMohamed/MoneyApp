@@ -322,22 +322,31 @@ describe('resolveCommitmentPaymentAmounts', () => {
   // 1 / 40 is 0.025 exactly, and banker's rounding takes it DOWN to the even
   // cent. A one-step `amt / rate` with Math.round would show 0.03 — a cent the
   // write path never persists.
-  it('EGP commitment / USD account: 1.00 EGP @ 40 converts to 0.02, not 0.03', () => {
-    expect(
-      resolveCommitmentPaymentAmounts({
-        amount: 1,
-        commitmentCurrency: Currency.EGP,
+  //
+  // 1.005 is the row that carries the kill, and 1.00 alone would not: at 1.00
+  // the INNER round is a no-op, so a reimplementation that divides once and
+  // rounds once still agrees. At 1.005 the resolver rounds the amount to 1.00
+  // and returns 0.02 where `roundMoney(1.005 / 40)` returns 0.03. Both inputs
+  // share one expectation, which is what makes the pair worth keeping.
+  it.each([[1], [1.005]])(
+    'EGP commitment / USD account: %p EGP @ 40 converts to 0.02, not 0.03',
+    (amount) => {
+      expect(
+        resolveCommitmentPaymentAmounts({
+          amount,
+          commitmentCurrency: Currency.EGP,
+          accountCurrency: Currency.USD,
+          exchangeRate: 40,
+        }),
+      ).toEqual({
+        paymentAmount: 1,
+        accountNativeAmount: 0.02,
         accountCurrency: Currency.USD,
+        egpAmount: 1,
         exchangeRate: 40,
-      }),
-    ).toEqual({
-      paymentAmount: 1,
-      accountNativeAmount: 0.02,
-      accountCurrency: Currency.USD,
-      egpAmount: 1,
-      exchangeRate: 40,
-    });
-  });
+      });
+    },
+  );
 
   it('resolve(resolve(x).paymentAmount) deep-equals resolve(x) — idempotent under its own output', () => {
     const input = {

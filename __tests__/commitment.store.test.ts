@@ -627,10 +627,35 @@ describe('commitment store mutation invalidation', () => {
     await flushMicrotasks();
   });
 
-  // #308 S-03 was deleted at W1B (#312): all three of its assertions already
-  // live elsewhere in this file. The resolved-amount patch is S-01 above; the
-  // `loadError` flag is asserted at the failed-load, failed-add and
-  // failed-persist cases; the revalidation log line at the last two of those.
+  // #308 S-03 was rewritten at W1B (#312), not deleted outright. Its
+  // `loadError` and revalidation-log assertions are genuinely redundant — the
+  // failed-load, failed-add and failed-persist cases carry both. Its THIRD
+  // assertion was not: S-01 above reads the amount while the refresh promise
+  // is still pending, and the failed-revalidation battery never reads the
+  // amount at all and uses a fixture where raw equals resolved. So nothing
+  // proved the resolved value SURVIVES a revalidation that rejects, which is
+  // the whole reason the optimistic patch has to be the resolver's number.
+  // That single case is what this is:
+  it('keeps the resolved amount after the background revalidation rejects', async () => {
+    const refreshError = new Error('post-pay refresh failed');
+    const repository = makeRepository({
+      // 10.999 in, 11 out — raw and resolved differ, so a patch that kept the
+      // raw input is distinguishable from one that kept the resolver's value.
+      markAsPaid: jest.fn().mockResolvedValue(paymentAmounts({ paymentAmount: 11 })),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthSnapshot(MAY);
+    (repository.runHousekeeping as jest.Mock).mockReset().mockRejectedValue(refreshError);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await store.getState().markAsPaid('payment', { ...paymentDetails, amount_paid: 10.999 });
+    await flushMicrotasks();
+
+    // revalidateAfterMutation is fire-and-forget with a log-only catch, so
+    // there is no second chance: this patch is what the user keeps looking at.
+    expect(store.getState().payments[0].amount_paid).toBe(11);
+    consoleSpy.mockRestore();
+  });
 
   it('invalidates and reloads once after skipping', async () => {
     const repository = makeRepository();

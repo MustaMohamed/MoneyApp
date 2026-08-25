@@ -1063,8 +1063,12 @@ export const Strings = {
   commitmentsPayErrAccountUnavailable: 'This account is no longer available. Pick another.',
   // W1B — the converted amount rounds below MIN_MONEY_AMOUNT in the paying
   // account's currency. Replaces the generic save banner with the reason, on
-  // the field that owns it.
-  commitmentsPayErrConvertedBelowMin: 'Converts to less than 0.01 USD at this rate',
+  // the field that owns it. Function-valued because the shortfall is in the
+  // ACCOUNT's currency, and it is not always USD: a USD commitment paid from an
+  // EGP account at an override rate of 0.01 puts 0.50 USD under the floor in
+  // EGP, which a hardcoded "USD" mislabels.
+  commitmentsPayErrConvertedBelowMin: (currency: string) =>
+    `Converts to less than 0.01 ${currency} at this rate`,
 
   // Commitments — Deactivate
   commitmentsDeactivate: 'Deactivate Commitment',

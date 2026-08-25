@@ -8,6 +8,7 @@ import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
+  type CommitmentPaymentAmounts,
   requiresExchangeRate,
   resolveCommitmentPaymentAmounts,
 } from '@/modules/transactions/domain/transaction_amounts';
@@ -21,6 +22,39 @@ import type { CommitmentPayment } from '../../../../entities/commitment_payment.
 import { commitmentRepository } from '../../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../../store/commitment.store';
 import { usePaySheetState } from './pay_sheet.state';
+
+/**
+ * Parse, gate, resolve — the sequence the schema's sub-floor refine and the
+ * sheet's preview both need, in one place so they cannot answer differently
+ * for the same form. `undefined` means the inputs cannot produce a resolution
+ * yet, which is also exactly the set of inputs the resolver throws on.
+ *
+ * Ownership of the operands stays with the caller (the P5 layering ruling):
+ * the schema passes its own `data` fields, the preview passes what it watches.
+ * Only the shared logic lives here.
+ */
+function deriveResolution(
+  commitment: Commitment | undefined,
+  account: Account | undefined,
+  amountText: string,
+  rateText: string | undefined,
+): CommitmentPaymentAmounts | undefined {
+  if (!commitment || !account) return undefined;
+  // `parsePositiveDecimal`, not a bare `> 0`: 0.004 is positive, and
+  // `roundMoney(0.004)` is 0, which the resolver throws on.
+  const amount = parsePositiveDecimal(amountText);
+  const exchangeRate = parsePositiveDecimal(rateText ?? '');
+  if (amount === undefined) return undefined;
+  if (requiresExchangeRate(commitment.currency, account.currency) && exchangeRate === undefined) {
+    return undefined;
+  }
+  return resolveCommitmentPaymentAmounts({
+    amount,
+    commitmentCurrency: commitment.currency,
+    accountCurrency: account.currency,
+    exchangeRate,
+  });
+}
 
 // A factory, not a module constant: the rate refine has to know whether this
 // payment crosses currencies, and that is derived from the account the form
@@ -85,22 +119,14 @@ function createPaySheetSchema(commitment: Commitment | undefined, accounts: Acco
       // the generic banner; this puts the reason on the Amount field and blocks
       // the submit. It lives in the schema and not in a hook-level `setError`
       // because RHF calls the latter only once validation has already passed.
-      // Operands are re-parsed locally rather than closed over: the schema is
-      // rebuilt per render and `data` is the only value guaranteed current.
-      if (!commitment || !acc) return;
-      const amount = parsePositiveDecimal(data.amountText);
-      const exchangeRate = parsePositiveDecimal(data.exchange_rate ?? '');
-      if (amount === undefined || (needsRate && exchangeRate === undefined)) return;
-      const { accountNativeAmount } = resolveCommitmentPaymentAmounts({
-        amount,
-        commitmentCurrency: commitment.currency,
-        accountCurrency: acc.currency,
-        exchangeRate,
-      });
-      if (accountNativeAmount < MIN_MONEY_AMOUNT) {
+      // Operands come from `data` rather than from anything closed over: the
+      // schema is memoized on `[commitment, accounts]`, so a form value it had
+      // captured could be a render behind the one being validated.
+      const resolved = deriveResolution(commitment, acc, data.amountText, data.exchange_rate);
+      if (resolved && resolved.accountNativeAmount < MIN_MONEY_AMOUNT) {
         ctx.addIssue({
           code: 'custom',
-          message: Strings.commitmentsPayErrConvertedBelowMin,
+          message: Strings.commitmentsPayErrConvertedBelowMin(resolved.accountCurrency),
           path: ['amountText'],
         });
       }
@@ -203,38 +229,28 @@ export function usePaySheet(
       // means "not derivable yet" and renders the row's placeholder.
       previewHidden: commitment?.currency === Currency.EGP,
       // Frame 3: no conversion to show, but the rate is still demanded because
-      // `egp_amount` is the ledger's storage currency. A required field with
-      // no visible purpose reads as a bug, so the row says why.
+      // `egp_amount` is the ledger's storage currency. That is the semantic —
+      // a rate is required and nothing converts — so it is written as exactly
+      // that, from the facts already in scope, rather than as a second
+      // hand-written currency comparison beside the shared predicate.
       purposeCaption:
-        commitment?.currency === Currency.USD && selectedAccount?.currency === Currency.USD
+        requiresRate && commitment?.currency === selectedAccount?.currency
           ? Strings.commitmentsPayRatePurposeEgp
           : undefined,
     };
-    if (!commitment || !selectedAccount) return base;
+    const resolved = deriveResolution(commitment, selectedAccount, amountText, exchangeRateValue);
+    if (!commitment || !selectedAccount || !resolved) return base;
 
-    // `parsePositiveDecimal`, not a bare `> 0`: 0.004 is positive, and
-    // `roundMoney(0.004)` is 0, which the resolver throws on — here, in a
-    // render. The floor gate also hides the line for a typed zero, which is
-    // scenario 4 and a sanctioned change from the old `= 0 EGP`.
-    const amount = parsePositiveDecimal(amountText);
-    const exchangeRate = parsePositiveDecimal(exchangeRateValue ?? '');
-    if (amount === undefined || (requiresRate && exchangeRate === undefined)) return base;
-
-    const resolved = resolveCommitmentPaymentAmounts({
-      amount,
-      commitmentCurrency: commitment.currency,
-      accountCurrency: selectedAccount.currency,
-      exchangeRate,
-    });
-    // Below the floor the line must not render a confident `= 0.00`; the
-    // Amount field carries the reason instead, and the schema blocks the save.
+    // Below the floor NOTHING confident renders: not the converted line, and
+    // not the rate row's `≈ 0.00 EGP` above it. The Amount field carries the
+    // reason instead, and the schema blocks the save.
     const convertedBelowMin = resolved.accountNativeAmount < MIN_MONEY_AMOUNT;
     // The gate is currency INEQUALITY, not `requiresRate` — those are
     // different questions, and the USD/USD case answers them differently.
     const converts = commitment.currency !== selectedAccount.currency;
     return {
       ...base,
-      previewEgpAmount: resolved.egpAmount,
+      previewEgpAmount: convertedBelowMin ? undefined : resolved.egpAmount,
       convertedBelowMin,
       convertedTotal:
         converts && !convertedBelowMin

@@ -51,10 +51,14 @@ export function PaySheet({ commitment, payment }: Props) {
 
   // The RHF error wins the slot: after a submit the schema's own sub-floor
   // mirror publishes the same message there, and before one the live flag is
-  // the only source of it.
+  // the only source of it. The currency named is the PAYING ACCOUNT's, which
+  // `convertedBelowMin` implies is resolved — the flag is only ever set from a
+  // resolution that had one.
   const amountError =
     form.formState.errors.amountText?.message ??
-    (state.convertedBelowMin ? Strings.commitmentsPayErrConvertedBelowMin : undefined);
+    (state.convertedBelowMin && state.selectedAccount
+      ? Strings.commitmentsPayErrConvertedBelowMin(state.selectedAccount.currency)
+      : undefined);
   const accountError = form.formState.errors.account_id?.message;
   const rateError = form.formState.errors.exchange_rate?.message;
   // Read during render for the same reason the hook does — a read from inside

@@ -22,9 +22,11 @@ Every money figure this ticket touches comes from `resolveCommitmentPaymentAmoun
 `resolveTransactionAmounts`. No component, hook, or schema recomputes what they already return.
 
 The double round is the reason this is a rule and not a preference.
-`roundMoney(roundMoney(amount) / rate)` is not `roundMoney(amount / rate)`: at 1.00 EGP and rate 40
-the resolver returns `0.02` and a one-step divide with half-expand returns `0.03`. A preview that
-re-derives the number is wrong by a cent on exactly the inputs nobody tests by hand.
+`roundMoney(roundMoney(amount) / rate)` is not `roundMoney(amount / rate)`, and the input has to be
+chosen to show it: at **1.005 EGP and rate 40** the resolver rounds the amount to `1.00` first and
+returns `0.02`, while a one-step `roundMoney(1.005 / 40)` returns `0.03`. A round figure like
+`1.00` does not separate them — its inner round is a no-op, so a re-derivation that skips it still
+agrees. A preview that recomputes is wrong by a cent on exactly the inputs nobody tests by hand.
 
 Consequences that are now structural rather than conventional:
 
@@ -84,8 +86,11 @@ save banner. The resolution deliberately does **not** consult `getAccountByIdInc
 write rejects archived accounts, so the form must too. Prefill drops an id that misses the list
 before falling back to `accounts[0]`.
 
-Pinned consequence: a set `commitment.account_id` with an empty store errors during the loading
-window. That is preferred to accepting an account the write will refuse.
+Pinned consequence: a set `commitment.account_id` opened against a store that has not published its
+accounts yet is dropped, and **recovery is a manual re-pick**, not a later correction. The prefill
+effect keys on `[visible, commitment?.id, payment?.id]` and does not list `accounts`, so it never
+re-runs when the list arrives. Spec row 6 already mandates the re-pick, so the behaviour stands as
+specified — it is the "it will fix itself in a moment" reading that is wrong.
 
 **Sub-floor.** When `accountNativeAmount` is below `MIN_MONEY_AMOUNT` the Amount field carries
 `commitmentsPayErrConvertedBelowMin` instead of the line rendering `= 0.00`. Worked case: 0.01 EGP
