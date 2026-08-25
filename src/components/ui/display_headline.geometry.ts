@@ -14,7 +14,14 @@ const SORA_DESCENT_EM = 0.29;
 
 /** Mockup § B, `.b-headline { line-height: 1.05 }`. */
 export const DISPLAY_HEADLINE_LINE_HEIGHT = 1.05;
-/** Mockup § B, `.b-headline { letter-spacing: -0.01em }`. */
+/**
+ * Mockup § B, `.b-headline { letter-spacing: -0.01em }`. Same value as
+ * `BROADSHEET_HEADLINE_TRACKING_EM` (`onboarding_broadsheet.tsx`) today, but
+ * deliberately not the same constant: this one measures an SVG primitive
+ * that can retune independently of the plain-`Typography` headlines N3 and
+ * N4 draw. Citing the same `.b-headline` rule for both does not settle them
+ * as one value — see that file's docstring.
+ */
 export const DISPLAY_HEADLINE_TRACKING_EM = -0.01;
 
 /**
