@@ -179,15 +179,18 @@ export default function MoreAccountsScreen() {
                 shadowOpacity: 0,
               }}
             >
-              {/* Unvirtualized, deliberately (#248). N3 sees 1-5 accounts today; per row
-                  this map dispatches three resolver calls — `resolveAccountRowA11yLabel`,
-                  `resolveAccountRowDotColor`, and AccountRow's own direct
-                  `formatCurrencyParts` call, two of the three (the direct call and the one
-                  inside `resolveAccountRowA11yLabel`) landing on `formatCurrencyParts` — so
-                  the issue's stated 60-row scale is 180-300 calls, not the single-digit
-                  count N3 pays. (`formatCurrencyParts`'s `Intl.NumberFormat` is cached by
-                  `decimals`, `format_amount.ts:39-50`, so construction itself isn't a
-                  per-row cost — the calls above are.)
+              {/* Unvirtualized, deliberately (#248). AccountRow's render body makes three
+                  resolver calls per row — the direct `formatCurrencyParts` call,
+                  `resolveAccountRowA11yLabel`, and `resolveAccountRowDotColor`
+                  (`account_row.tsx:49,55,64`) — so N3's 1-5 accounts cost up to 15 calls
+                  today (3 × 5). `resolveAccountRowA11yLabel` makes a fourth call
+                  internally, a nested `formatCurrencyParts` (`more_accounts.geometry.ts:92`),
+                  so counted at the formatter level the per-row cost is 4, not 3. At the
+                  issue's stated 60-row scale that is 180 resolver calls (3 × 60) or 240
+                  total formatter-level calls (4 × 60) — either count is well short of the
+                  hundreds a virtualized list earns its keep at. (`formatCurrencyParts`'s
+                  `Intl.NumberFormat` is cached by `decimals`, `format_amount.ts:39-50`, so
+                  construction itself isn't a per-row cost — the calls above are.)
                   A virtualized branch is also structurally unavailable here: this list
                   lives inside `ScreenScroll`, a plain vertical `ScrollView`
                   (`screen.tsx:64-78`), and a same-orientation `FlatList`/`FlashList` nested

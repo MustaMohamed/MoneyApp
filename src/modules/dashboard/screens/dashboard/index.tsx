@@ -35,6 +35,17 @@ const TYPE_ORDER: AccountType[] = [
   AccountType.CreditCard,
 ];
 
+// Precomputed at module load, not per render — derived FROM ACCOUNT_TYPE_LABELS
+// so this stays the single source for the text, just uppercased for the section
+// rail (mockup's section headers are all-caps; the label map isn't).
+const SECTION_TITLES: Record<AccountType, string> = {
+  [AccountType.Bank]: ACCOUNT_TYPE_LABELS[AccountType.Bank].toUpperCase(),
+  [AccountType.SmartWallet]: ACCOUNT_TYPE_LABELS[AccountType.SmartWallet].toUpperCase(),
+  [AccountType.PhysicalWallet]: ACCOUNT_TYPE_LABELS[AccountType.PhysicalWallet].toUpperCase(),
+  [AccountType.PhysicalSavings]: ACCOUNT_TYPE_LABELS[AccountType.PhysicalSavings].toUpperCase(),
+  [AccountType.CreditCard]: ACCOUNT_TYPE_LABELS[AccountType.CreditCard].toUpperCase(),
+};
+
 export default function DashboardScreen() {
   const {
     state,
@@ -217,7 +228,7 @@ export default function DashboardScreen() {
                     {visibleTypes.map((type, index) => (
                       <Animated.View key={type} entering={sectionEntering(index)}>
                         <SectionHeader
-                          title={ACCOUNT_TYPE_LABELS[type].toUpperCase()}
+                          title={SECTION_TITLES[type]}
                           count={state.groupedAccounts[type]?.length ?? 0}
                         />
                         <AccountCarousel

@@ -17,6 +17,10 @@ const seen = new Set<string>();
  * (e.g. an empty state that unmounts and remounts populated) defer the claim
  * until a render that should count. A mid-mount `claim` flip never changes an
  * already-latched value; only the first render that had `claim=true` decides.
+ *
+ * Pre-existing caveat, not fixed here: `seen.add` runs in the render body, not
+ * an effect, so a discarded or speculative render that never commits could in
+ * principle mark a key seen that no committed render actually claimed.
  */
 export function useFirstMountEntering(key: string, claim: boolean = true): boolean {
   const ref = useRef<boolean | null>(null);

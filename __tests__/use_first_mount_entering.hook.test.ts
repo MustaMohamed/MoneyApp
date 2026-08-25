@@ -1,10 +1,17 @@
 import { renderHook } from '@testing-library/react-native';
+import { createElement, StrictMode, type PropsWithChildren } from 'react';
 
 import { useFirstMountEntering } from '@/utils/use_first_mount_entering.hook';
 
 // The hook's "seen" set is module state, not reset between tests in this
 // file — each case below uses its own key so no test can observe another's
 // claim.
+
+// Wrapper pattern from transaction_form_prerequisites.test.ts.
+function StrictModeWrapper({ children }: PropsWithChildren): React.ReactElement {
+  return createElement(StrictMode, null, children);
+}
+
 describe('useFirstMountEntering — claim gating (#247)', () => {
   it('claim=false consumes nothing: a later claim=true render still claims the key', async () => {
     const key = 'consumes-nothing';
@@ -57,5 +64,31 @@ describe('useFirstMountEntering — claim gating (#247)', () => {
 
     await rerender({ claim: false });
     expect(result.current).toBe(false);
+  });
+
+  it('a claim=false render that later flips to claim=true still gets to decide — nothing latched it first', async () => {
+    const key = 'flip-to-claim';
+    const { result, rerender } = await renderHook(
+      ({ claim }: { claim: boolean }) => useFirstMountEntering(key, claim),
+      { initialProps: { claim: false } },
+    );
+    expect(result.current).toBe(false);
+
+    await rerender({ claim: true });
+    expect(result.current).toBe(true);
+  });
+
+  it("claims exactly once under StrictMode's double-invoked render", async () => {
+    const key = 'strict-mode';
+    const { result } = await renderHook(() => useFirstMountEntering(key), {
+      wrapper: StrictModeWrapper,
+    });
+    // If the double-invoke re-decided on its second pass (finding `key` already
+    // in `seen` from the first), this would read `false` instead.
+    expect(result.current).toBe(true);
+
+    // A fresh mount of the same key must see it already claimed, exactly once.
+    const { result: second } = await renderHook(() => useFirstMountEntering(key));
+    expect(second.current).toBe(false);
   });
 });
