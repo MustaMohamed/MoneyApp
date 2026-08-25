@@ -1,9 +1,39 @@
 import { Currency, TransactionType } from '@/constants/enums';
 import {
+  requiresExchangeRate,
   resolveCommitmentPaymentAmounts,
   resolveTransactionAmounts,
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
+
+describe('requiresExchangeRate', () => {
+  it.each([
+    [Currency.EGP, Currency.EGP, false],
+    [Currency.EGP, Currency.USD, true],
+    [Currency.USD, Currency.EGP, true],
+    [Currency.USD, Currency.USD, true],
+  ] as const)('(%s, %s) is %s', (a, b, expected) => {
+    expect(requiresExchangeRate(a, b)).toBe(expected);
+  });
+
+  // The wide signature's whole point: a caller holding an optional currency
+  // passes it in unguarded. `undefined` compares unequal to USD, so it never
+  // demands a rate on its own, and never suppresses one the other side needs.
+  it.each([
+    [Currency.EGP, undefined, false],
+    [Currency.USD, undefined, true],
+    [undefined, Currency.EGP, false],
+    [undefined, Currency.USD, true],
+    [undefined, undefined, false],
+  ] as const)('(%s, %s) is %s with an absent currency', (a, b, expected) => {
+    expect(requiresExchangeRate(a, b)).toBe(expected);
+  });
+
+  it('answers on one argument, for the sites that have no second currency', () => {
+    expect(requiresExchangeRate(Currency.USD)).toBe(true);
+    expect(requiresExchangeRate(Currency.EGP)).toBe(false);
+  });
+});
 
 describe('resolveTransactionAmounts', () => {
   it('normalizes a USD expense to EGP without a destination amount', () => {
@@ -286,6 +316,27 @@ describe('resolveCommitmentPaymentAmounts', () => {
         accountCurrency: Currency.EGP,
       }),
     ).toThrow(TransactionAmountError);
+  });
+
+  // The half-even edge the pay sheet's converted line now renders directly:
+  // 1 / 40 is 0.025 exactly, and banker's rounding takes it DOWN to the even
+  // cent. A one-step `amt / rate` with Math.round would show 0.03 — a cent the
+  // write path never persists.
+  it('EGP commitment / USD account: 1.00 EGP @ 40 converts to 0.02, not 0.03', () => {
+    expect(
+      resolveCommitmentPaymentAmounts({
+        amount: 1,
+        commitmentCurrency: Currency.EGP,
+        accountCurrency: Currency.USD,
+        exchangeRate: 40,
+      }),
+    ).toEqual({
+      paymentAmount: 1,
+      accountNativeAmount: 0.02,
+      accountCurrency: Currency.USD,
+      egpAmount: 1,
+      exchangeRate: 40,
+    });
   });
 
   it('resolve(resolve(x).paymentAmount) deep-equals resolve(x) — idempotent under its own output', () => {
