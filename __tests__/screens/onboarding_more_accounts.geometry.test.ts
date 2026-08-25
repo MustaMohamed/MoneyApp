@@ -8,7 +8,6 @@ import {
   resolveAccountRowDotColor,
 } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.geometry';
 import { makeTestAccount } from '@/test_helpers/transaction';
-import { formatCurrencyParts } from '@/utils/format_amount';
 
 // makeTestAccount defaults to EGP, `color: null` and both balances 0, so each
 // fixture below is the one or two fields its assertion is actually about.
@@ -75,28 +74,31 @@ describe('N3 row colour dot (S5)', () => {
   });
 });
 
+// Re-pointed at `resolveAccountRowA11yLabel` rather than calling `formatCurrencyParts`
+// directly (P8 cycle 1 item 1): a direct call only proves the formatter formats its own
+// input, which is tautological once the alias it used to go through was inlined. Routing
+// through the real, surviving export also restores the `current_balance`-vs-`opening_balance`
+// guard the direct-field-read version lost — a production regression to the wrong field
+// now actually fails these tests, instead of the test picking the field itself.
 describe('N3 row amount (S4) — decimals by currency, balance by field', () => {
   it('renders EGP with no decimals — CURRENCY_CONFIG wins over the mockup', () => {
-    expect(formatCurrencyParts(egpAccount.current_balance, egpAccount.currency).value).toBe(
-      '48,250',
-    );
+    expect(resolveAccountRowA11yLabel(egpAccount)).toContain('48,250 EGP');
   });
 
   it('renders USD cents', () => {
-    expect(formatCurrencyParts(usdAccount.current_balance, usdAccount.currency).value).toBe(
-      '1,350.50',
-    );
+    expect(resolveAccountRowA11yLabel(usdAccount)).toContain('1,350.50 USD');
   });
 
   it('reads current_balance, not opening_balance', () => {
     // Business rule 6 makes the two equal at creation, so this is the only
     // fixture shape that can catch a regression to the old field.
     const account = makeTestAccount({ current_balance: 999, opening_balance: 111 });
-    expect(formatCurrencyParts(account.current_balance, account.currency).value).toBe('999');
+    expect(resolveAccountRowA11yLabel(account)).toContain('999');
+    expect(resolveAccountRowA11yLabel(account)).not.toContain('111');
   });
 
   it('renders the ISO code, not the currency label', () => {
-    expect(formatCurrencyParts(usdAccount.current_balance, usdAccount.currency).code).toBe('USD');
+    expect(resolveAccountRowA11yLabel(usdAccount)).toContain('USD');
   });
 });
 

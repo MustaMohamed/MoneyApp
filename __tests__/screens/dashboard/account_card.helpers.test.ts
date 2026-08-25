@@ -4,7 +4,6 @@ import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { buildInfoRows } from '@/modules/dashboard/screens/dashboard/components/account_card';
 import { makeTestAccount } from '@/test_helpers/transaction';
-import { formatCurrencyAmount } from '@/utils/format_amount';
 
 const STATS: AccountStats = { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
 
@@ -169,8 +168,9 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
 
   // Bank + EGP: named unchanged pins, spec row 29 — NOT guarded by either mutation. The
   // `if (isUSD)` branch above returns first, so the EGP direction of the *labels* at
-  // :149/:154 never executes; these EGP amounts come out of the untouched :178/:183 branch
-  // on the bare 0dp `formatAmount(x)` default, out of scope for #277 and unedited by c4.
+  // :154/:159 never executes; these EGP amounts come out of the :184/:189 branch, which
+  // #299 did rewrite onto `formatCurrencyAmount(x, cur)` — the values below are unchanged
+  // because that call is byte-identical to the old bare 0dp `formatAmount(x)` for EGP.
   it('Bank + EGP month_in/month_out — unchanged, out of scope (spec row 29)', () => {
     const rows = buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false);
     expect(rows[0]?.value).toBe('1,251 EGP');
@@ -246,19 +246,5 @@ describe("buildInfoRows — credit card limit/available take the card's own curr
     );
     expect(egpRows[1]?.value).toBe(Strings.cardOverLimit);
     expect(usdRows[1]?.value).toBe(Strings.cardOverLimit);
-  });
-});
-
-// #298: buildBalanceText was a same-signature formatCurrencyAmount wrapper, deleted —
-// the balance row now calls formatCurrencyAmount directly at account_card.tsx.
-describe('account_card balance row — account_card.tsx (spec row 9)', () => {
-  it('shows USD cents — base: 1,251 USD, head: 1,250.75 USD', () => {
-    const account = usdBank(1250.75);
-    expect(formatCurrencyAmount(account.current_balance, account.currency)).toBe('1,250.75 USD');
-  });
-
-  it('leaves EGP unchanged (spec row 11)', () => {
-    const account = egpBank(1250.75);
-    expect(formatCurrencyAmount(account.current_balance, account.currency)).toBe('1,251 EGP');
   });
 });

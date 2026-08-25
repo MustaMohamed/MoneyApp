@@ -4,7 +4,6 @@ import {
   buildHeroCaption,
 } from '@/modules/accounts/screens/accounts/detail/components/balance_hero.helpers';
 import type { Account } from '@/store/account.store';
-import { formatCurrencyAmount } from '@/utils/format_amount';
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
   return {
@@ -130,19 +129,5 @@ describe('availableCreditColor — thresholds match §5 AccountCard', () => {
   });
   it('negative when < 20% available', () => {
     expect(availableCreditColor(100, 1000)).toBe('#E05A42');
-  });
-});
-
-// #298: buildHeroBalanceText was a same-signature formatCurrencyAmount wrapper, deleted —
-// the hero balance now calls formatCurrencyAmount directly at balance_hero.tsx.
-describe('balance hero balance row — balance_hero.tsx', () => {
-  it('shows USD cents — base: 1,251 USD, head: 1,250.75 USD', () => {
-    const account = mkAccount({ currency: Currency.USD, current_balance: 1250.75 });
-    expect(formatCurrencyAmount(account.current_balance, account.currency)).toBe('1,250.75 USD');
-  });
-
-  it('leaves EGP unchanged (spec row 11)', () => {
-    const account = mkAccount({ current_balance: 1250.75 });
-    expect(formatCurrencyAmount(account.current_balance, account.currency)).toBe('1,251 EGP');
   });
 });

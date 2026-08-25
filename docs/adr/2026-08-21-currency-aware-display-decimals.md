@@ -150,8 +150,8 @@ composing no sign at all — see the "rule is universal" paragraph below the wor
 ```
 
 Measured: `0.40` EGP -> `"0.40"` (escalated, not `"0"`) · `0.60` EGP -> `"1"` (no escalation
-needed) · `0` EGP -> `"0"`, `isZero: true` · `0.001` USD -> `"0.00"`, `isZero: false` (the
-amendment's headline row: escalation entered and idempotent at USD's own 2dp, not a true
+needed) · `0` EGP -> `"0"`, `printsAsZero: true` · `0.001` USD -> `"0.00"`, `printsAsZero: false`
+(the amendment's headline row: escalation entered and idempotent at USD's own 2dp, not a true
 zero — see §2.1's amendment paragraph below).
 
 **MA-016 second amendment round — the zero test moved from `roundMoney(value) === 0` to
@@ -182,8 +182,8 @@ same defect for the same reason — it called `formatCurrencyAmount` directly in
 `formatDisplayMagnitude`, so a 0.40 EGP commitment read `"0 EGP"` on every commitments surface
 while the identical magnitude on a transaction row already escalated to `"0.40 EGP"`. It now
 routes through `formatDisplayMagnitude` for step 2 (the magnitude/escalate half) only — it
-composes no sign, so step 1's `isZero` branch (which exists to drop a sign glyph) is simply
-unused on that call site, not reimplemented differently.
+composes no sign, so step 1's `printsAsZero` branch (which exists to drop a sign glyph) is
+simply unused on that call site, not reimplemented differently.
 
 This does not reopen §2's "an exact `-0` at a formatter stays visible" rule, because that rule
 governs `formatAmount` receiving the domain's own signed value directly — the population where a
@@ -194,12 +194,12 @@ of whether the underlying value happens to be `-0`), so an exact-zero magnitude 
 domain-bug signal to preserve — printing `"0.4"` behind a hand-composed `−` before this fix implied
 a debt that did not exist, and printing a hand-composed sign next to a *true* zero (the
 pre-existing case fixed in the same commit — @layla: "the other branch of the `if` you're already
-writing") implied a direction that never existed either. Suppressing the sign at `isZero: true` is
-strictly more correct for this population; it is a different question from the table above's, not
-a retreat from it. `normalizeNegativeZero` and `formatAmount`'s own guard are unmodified and
+writing") implied a direction that never existed either. Suppressing the sign at
+`printsAsZero: true` is strictly more correct for this population; it is a different question
+from the table above's, not a retreat from it. `normalizeNegativeZero` and `formatAmount`'s own guard are unmodified and
 continue to own the population the table above describes.
 
-## 3. Two decimals constants, allowed to diverge
+## 3. Three decimals constants, allowed to diverge
 
 - **`EXCHANGE_RATE_DECIMALS`** (`src/utils/format_amount.ts`) owns rate precision for
   `formatExchangeRate` and for every rate site that keeps its own surrounding string:
@@ -208,10 +208,19 @@ continue to own the population the table above describes.
 - **`RATE_PREVIEW_AMOUNT_DECIMALS`**, declared locally in `exchange_rate_row.tsx` beside
   `STALE_THRESHOLD_DAYS`, owns one pre-confirmation **EGP amount** — the live preview of
   `roundMoney(amount * rate)` a user is actively verifying while typing a rate. It is not a rate.
+- **`ACCOUNT_CARD_AVG_DAY_DECIMALS`**, declared locally in `account_card.tsx` beside the
+  info-row builder, owns the PhysicalWallet card's avg/day row (`month_out / daysElapsed`) — a
+  derived at-rest amount that keeps its pre-existing 1dp regardless of currency, finer than
+  `CURRENCY_CONFIG`'s EGP-0dp default so a small daily average does not round to "0". The
+  precision itself predates W1A; W1A's #299 only moved the bare literal it was already passed
+  as onto a named constant, discharging `review.md:15`'s recording obligation for the first
+  time.
 
-Both are `2` today, and that agreement is coincidence, not a shared contract. A rate is an
-EGP-per-USD ratio; the preview is a stored-currency amount someone reads mid-entry, and its
-final decimal count is @marcus's call, out of scope for this ticket (`spec.md` §2, §4.2).
+`EXCHANGE_RATE_DECIMALS` and `RATE_PREVIEW_AMOUNT_DECIMALS` are both `2` today, and that
+agreement is coincidence, not a shared contract — `ACCOUNT_CARD_AVG_DAY_DECIMALS` is `1`,
+already diverging, which is the point. A rate is an EGP-per-USD ratio; the preview is a
+stored-currency amount someone reads mid-entry, and its final decimal count is @marcus's call,
+out of scope for this ticket (`spec.md` §2, §4.2).
 Declaring it locally rather than importing `EXCHANGE_RATE_DECIMALS` means that later ruling moves
 one number, not every rate display in the app — following the precedent `review.md:13` names by
 example, `N4_HERO_AMOUNT_DECIMALS` living beside its own surface

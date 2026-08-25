@@ -36,9 +36,10 @@ interface TotalBalanceStripProps {
 
 /**
  * The amount path's headline, kept as a subcomponent rather than inline so the two
- * `formatCurrencyParts` calls the value/code split needs collapse to one — the prop is
- * already narrowed to `DashboardNetWorthAmount` at the call site's ternary (#297), matching
- * `stat_cards.tsx`'s `NetWorthCardBody` and `hero_card.tsx`'s `HeroCardAssetsAmount`.
+ * `formatCurrencyParts` calls the value/code split needs collapse to one. Matches
+ * `stat_cards.tsx`'s `NetWorthCardBody` and `hero_card.tsx`'s `HeroCardAssetsAmount` — the
+ * established shape for a `DashboardNetWorthAmount`-narrowed subcomponent here, not a
+ * compiler requirement (an if/else-scoped const also compiles here).
  */
 function TotalBalanceStripAmount({
   netWorth,

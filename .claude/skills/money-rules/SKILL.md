@@ -43,16 +43,18 @@ Banker's rounding (round-half-even) to 2 dp. Apply to **every persisted monetary
 
 ## Formatting — `src/utils/format_amount.ts`
 
-All six exports, as of this commit:
+All eight exports, as of this commit:
 
 | Export | What it is |
 |---|---|
 | `formatAmount(value, decimals = 0)` | grouped magnitude, no currency code; strips a signed zero that a nonzero value rounded into |
 | `formatCurrencyAmount(value, currency, decimals?)` | `formatAmount` + the currency code; decimals default to `CURRENCY_CONFIG[currency].decimals`. Defined as the join of `formatCurrencyParts` |
 | `formatCurrencyParts(value, currency, decimals?)` | `{ value, code }` — the same decimals rule as `formatCurrencyAmount`, for the two-node splits where the code renders in its own `<Text>` |
-| `formatDisplayMagnitude(value, currency)` | `{ text, isZero }` — absolute magnitude for composed-sign sites, escalating to 2 dp when currency precision would print a real value as `0` |
+| `formatCurrencyTotals(totals: Map<Currency, number>)` | one `formatCurrencyAmount` join per currency present, `'X  ·  Y'`; the em-dash placeholder for an empty map |
+| `formatDisplayMagnitude(value, currency)` | `{ text, printsAsZero }` — absolute magnitude for composed-sign sites, escalating to 2 dp when currency precision would print a real value as `0` |
 | `formatExchangeRate(rate)` | `48.60 EGP/USD`; owns rate precision — `.claude/rules/ui.md` names it canonical for rates |
-| `EXCHANGE_RATE_DECIMALS` | the 2 dp that `formatExchangeRate` applies |
+| `formatExchangeRateSentence(rate)` | `1 USD = 48.60 EGP`; the labelled-row long form beside a rate chip's compact `formatExchangeRate` |
+| `EXCHANGE_RATE_DECIMALS` | the 2 dp that `formatExchangeRate` and `formatExchangeRateSentence` apply |
 
 Decimals for an amount come from `CURRENCY_CONFIG` (`src/constants/currency.ts` — EGP 0, USD 2; plain `formatAmount` defaults to 0 dp and truncates cents if you skip `formatCurrencyAmount` — audit M22). A screen may override only by passing a **named constant** to a formatter's own `decimals` parameter — never a bare literal — recorded in an ADR. Shipped precedent: `N4_HERO_AMOUNT_DECIMALS` (`src/modules/onboarding/screens/onboarding/ready/ready.geometry.ts`), approved at `docs/adr/2026-08-18-starting-net-position.md` §6. This must not contradict `.claude/rules/review.md` item 3, which is the authority on decimal counts.
 

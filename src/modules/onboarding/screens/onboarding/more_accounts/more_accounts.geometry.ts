@@ -13,7 +13,7 @@ import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 /**
- * N3's row geometry and the three pure resolvers behind its columns.
+ * N3's row geometry and the two pure resolvers behind its columns.
  *
  * The resolvers live here rather than inside the row so the suite can assert
  * decimals-by-currency, the `current_balance` field read and the colour

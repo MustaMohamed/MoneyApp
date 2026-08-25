@@ -83,11 +83,11 @@ function HeroCardSkeleton(): React.ReactElement {
 
 /**
  * The amount path's headline, kept as a subcomponent rather than inline so the two
- * `formatCurrencyParts` calls the value/code split needs collapse to one — the prop is
- * already narrowed to `DashboardNetWorthAmount` at the call site's ternary (#297), so the
- * hoist above this return is compiler-enforced rather than an `undefined`-widened const.
- * Matches `stat_cards.tsx`'s `NetWorthCardBody` and
- * `net_worth_breakdown_sheet.tsx`'s `NetWorthBreakdownBody`.
+ * `formatCurrencyParts` calls the value/code split needs collapse to one. Matches
+ * `stat_cards.tsx`'s `NetWorthCardBody` and `net_worth_breakdown_sheet.tsx`'s
+ * `NetWorthBreakdownBody` — the established shape for a `DashboardNetWorthAmount`-narrowed
+ * subcomponent in this codebase, not a compiler requirement (an if/else-scoped const also
+ * compiles here).
  */
 function HeroCardAssetsAmount({
   netWorth,
@@ -250,7 +250,7 @@ export function HeroCard({
               <Text className="text-foreground text-xs">
                 {netWorth.kind === 'amount' && netWorth.assetsUsd !== undefined
                   ? formatCurrencyAmount(netWorth.assetsUsd, Currency.USD)
-                  : '— USD'}
+                  : Strings.netWorthBreakdownUsdUnavailable}
               </Text>
             </View>
             {/* The rate pill prints the very number the refusal exists to hide:
