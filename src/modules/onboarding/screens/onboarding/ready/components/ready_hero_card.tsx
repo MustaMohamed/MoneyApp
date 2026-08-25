@@ -51,12 +51,7 @@ export interface ReadyHeroCardProps {
  * `stat_cards.tsx`'s sign colouring, and it does not import the dashboard hero.
  */
 export function ReadyHeroCard({ summary, baseCurrency }: ReadyHeroCardProps) {
-  const { outcome, frame, accountCount, foreignCount, pills } = summary;
-
-  // The app has exactly two currencies, so "the other one" is unambiguous.
-  // This is a CODE lookup for a caption, not a money derivation — no amount is
-  // computed here; the resolver already produced every number on this card.
-  const foreignCurrency = baseCurrency === Currency.EGP ? Currency.USD : Currency.EGP;
+  const { outcome, frame, accountCount, foreignCount, foreignCurrency, pills } = summary;
 
   return (
     <View style={N4_HERO_CONTENT_STYLE}>

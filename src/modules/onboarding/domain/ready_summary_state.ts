@@ -1,5 +1,4 @@
-import type { Currency } from '@/constants/enums';
-import { AccountType } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
 import { countForeignAccounts } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { selectApproximationPill } from '@/modules/onboarding/domain/approximation_pill';
@@ -33,6 +32,14 @@ export interface ReadySummaryState {
   /** Non-archived accounts — the count both pluralisation points switch on. */
   accountCount: number;
   foreignCount: number;
+  /**
+   * The app has exactly two currencies, so "the other one" is unambiguous: an
+   * EGP base publishes USD and vice versa. A CODE lookup for the caption, not
+   * a money derivation — no amount is computed here, and it is published
+   * unconditionally so F1/F2's captions can read it even when the pill gate
+   * below is closed.
+   */
+  foreignCurrency: Currency;
   /**
    * The currency-pill gate, INDEPENDENT of `frame`. Exported because it is the
    * one flag that explains the composed `pills` array — it is the assertable
@@ -103,6 +110,7 @@ export function selectReadySummaryState(input: StartingNetPositionInput): ReadyS
   const activeAccounts = selectActiveAccounts(input.accounts);
   const accountCount = activeAccounts.length;
   const foreignCount = countForeignAccounts(activeAccounts, input.baseCurrency);
+  const foreignCurrency = input.baseCurrency === Currency.EGP ? Currency.USD : Currency.EGP;
   const creditCardOnly = isCreditCardOnly(activeAccounts);
   const frame = resolveFrame(outcome, activeAccounts, foreignCount, creditCardOnly);
 
@@ -140,6 +148,7 @@ export function selectReadySummaryState(input: StartingNetPositionInput): ReadyS
     frame,
     accountCount,
     foreignCount,
+    foreignCurrency,
     pillsVisible: currencyPills !== undefined,
     pills,
   };
