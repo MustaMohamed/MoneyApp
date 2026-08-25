@@ -81,10 +81,9 @@ describe('N3 row colour dot (S5)', () => {
 // guard the direct-field-read version lost — a production regression to the wrong field
 // now actually fails these tests, instead of the test picking the field itself.
 describe('N3 row amount (S4) — decimals by currency, balance by field', () => {
-  it('renders EGP with no decimals — CURRENCY_CONFIG wins over the mockup', () => {
-    expect(resolveAccountRowA11yLabel(egpAccount)).toContain('48,250 EGP');
-  });
-
+  // The EGP-decimals case is not re-added here: at exact-string granularity it is a
+  // strict subset of S5's 'announces name, type and amount as one label' below, which
+  // already pins the same egpAccount fixture's full label, '48,250 EGP' included.
   it('renders USD cents', () => {
     expect(resolveAccountRowA11yLabel(usdAccount)).toContain('1,350.50 USD');
   });

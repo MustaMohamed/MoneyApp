@@ -150,7 +150,7 @@ composing no sign at all — see the "rule is universal" paragraph below the wor
 ```
 
 Measured: `0.40` EGP -> `"0.40"` (escalated, not `"0"`) · `0.60` EGP -> `"1"` (no escalation
-needed) · `0` EGP -> `"0"`, `printsAsZero: true` · `0.001` USD -> `"0.00"`, `printsAsZero: false`
+needed) · `0` EGP -> `"0"`, `printsAsZero: true` · `0.001` USD -> `"0.00"`, `printsAsZero: true`
 (the amendment's headline row: escalation entered and idempotent at USD's own 2dp, not a true
 zero — see §2.1's amendment paragraph below).
 
@@ -196,8 +196,8 @@ a debt that did not exist, and printing a hand-composed sign next to a *true* ze
 pre-existing case fixed in the same commit — @layla: "the other branch of the `if` you're already
 writing") implied a direction that never existed either. Suppressing the sign at
 `printsAsZero: true` is strictly more correct for this population; it is a different question
-from the table above's, not a retreat from it. `normalizeNegativeZero` and `formatAmount`'s own guard are unmodified and
-continue to own the population the table above describes.
+from the table above's, not a retreat from it. `normalizeNegativeZero` and `formatAmount`'s
+own guard are unmodified and continue to own the population the table above describes.
 
 ## 3. Three decimals constants, allowed to diverge
 

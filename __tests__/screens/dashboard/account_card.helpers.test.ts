@@ -170,7 +170,8 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
   // `if (isUSD)` branch above returns first, so the EGP direction of the *labels* at
   // :154/:159 never executes; these EGP amounts come out of the :184/:189 branch, which
   // #299 did rewrite onto `formatCurrencyAmount(x, cur)` — the values below are unchanged
-  // because that call is byte-identical to the old bare 0dp `formatAmount(x)` for EGP.
+  // because that call's output is identical to the old `` `${formatAmount(x)} ${cur}` ``
+  // template for EGP.
   it('Bank + EGP month_in/month_out — unchanged, out of scope (spec row 29)', () => {
     const rows = buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false);
     expect(rows[0]?.value).toBe('1,251 EGP');
