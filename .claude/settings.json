@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"suppressOutput\":true,\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"Output contract in force (unslop skill; load it if not yet loaded this session). Lead with the answer. Chat reply under 150 words unless reasoning was requested. Evidence, not defence of evidence. Negative results: one line each. No method certification.\"}}'",
+            "command": "echo '{\"suppressOutput\":true,\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"Output contract in force (unslop skill; load it if not yet loaded this session). Lead with the answer, then stop; detail only where it changes what the reader does next. Evidence, not defence of evidence. Negative results: one line each. No method certification.\"}}'",
             "statusMessage": "Output contract"
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"suppressOutput\":true,\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Output contract (unslop). An agent returned: report the delta only. Verdict, what changed, what needs doing, under 150 words. Keep the number and file:line; cut the prose around them. A subagent return is under 300 words; anything larger goes in a file with the path returned. No method certification, no restating the request, no narrating tool calls.\"}}'",
+            "command": "echo '{\"suppressOutput\":true,\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Output contract (unslop). An agent returned: report the delta only. Verdict, what changed, what needs doing, then stop. Keep the number and file:line; cut the prose around them. A subagent return is verdict plus deltas; anything more goes in a file with the path returned. No method certification, no restating the request, no narrating tool calls.\"}}'",
             "statusMessage": "Output contract"
           }
         ]

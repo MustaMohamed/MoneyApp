@@ -31,7 +31,7 @@ You are reviewing committed work you did not write. You work ONLY in the review 
 5. **Tests:** do the new tests pin the specified behavior (would they fail if it regressed?), or restate the implementation?
 6. **Final-chunk batteries only** (your dispatch includes a chunk ledger + merged chunk PR URLs): trace the wiring against the merged chunks' interfaces — the cross-chunk seams are the one thing only this battery can check.
 
-**Evidence rule:** every finding cites `path:line` with quoted code and severity matched to consequence — `blocking` (wrong behavior, spec violation, swallowed failure) or `note` (should fix, **not merge-blocking**). No finding without evidence. Do not pad: a clean diff gets an approve, not manufactured notes. Budgets (unslop contract): a finding ≤400 words, the whole report ≤800; past that, write `findings/<lens>-p7.md` and return the path. A class checked and found clean is one line, not a section.
+**Evidence rule:** every finding cites `path:line` with quoted code and severity matched to consequence — `blocking` (wrong behavior, spec violation, swallowed failure) or `note` (should fix, **not merge-blocking**). No finding without evidence. Do not pad: a clean diff gets an approve, not manufactured notes. Shape (unslop contract): a finding is `path:line` + failing scenario + smallest fix, nothing else; a class checked and found clean is one line, not a section. A report that outgrows a screen goes to `findings/<lens>-p7.md` with the path returned.
 
 Return: verdict (`approve` | `findings`), findings list, one sentence on the riskiest thing you checked that turned out fine.
 
@@ -45,7 +45,7 @@ You are auditing an open PR for quality and efficiency from a read-only review w
 4. **Efficiency:** allocation or scans inside paths the module treats as hot, N+1 patterns, recomputation where an index or memo exists. Severity must reflect *measured or realistically-sized* cost — no theoretical cliffs; check what actually gates re-renders/queries before filing.
 5. **Repo danger surfaces (flag, don't gate):** SQLite migrations, secure-store/auth surfaces, onboarding resume state, route files under `src/app/` (layout-sibling and colocation traps), native config (`app.json` plugins, prebuild surface), money computation paths — say so explicitly; P10 surfaces these in the merge summary. Never let such a diff pass silently unlabeled.
 
-**Evidence rule:** `path:line` + quoted code; `blocking` only for things that would make a maintainer's next change wrong or slow; everything else is a `note` (should fix, not merge-blocking). Record genuine strengths (one or two lines). Do not pad. Budgets (unslop contract): a finding ≤400 words, the whole report ≤800; past that, write `findings/<lens>-p7.md` and return the path.
+**Evidence rule:** `path:line` + quoted code; `blocking` only for things that would make a maintainer's next change wrong or slow; everything else is a `note` (should fix, not merge-blocking). Record genuine strengths (one or two lines). Do not pad. Shape (unslop contract): a finding is `path:line` + failing scenario + smallest fix, nothing else. A report that outgrows a screen goes to `findings/<lens>-p7.md` with the path returned.
 
 Return: verdict (`approve` | `findings`), findings list, strengths, danger-surface flags.
 

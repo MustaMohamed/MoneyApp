@@ -8,10 +8,10 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 
 ## Answering me
 
-**The `unslop` skill is the output contract. Load it at session start and hold every reply, agent return, review, plan, spec, and record to it — budgets included.** The always-in-force short form:
+**The `unslop` skill is the output contract. Load it at session start and hold every reply, agent return, review, plan, spec, and record to it — shapes included.** The always-in-force short form:
 
 - Lead with the answer. A direct question gets its answer in the first sentence and may end there.
-- Chat replies: 150 words unless I ask for the reasoning. Per-artifact budgets are in the skill.
+- A reply answers, then stops; detail only where it changes what I do next. Per-artifact shapes are in the skill.
 - Evidence, not defence of evidence. The number and the command, never "measured rather than assumed".
 - Negative results are one line. No-finding sections get one line, not a heading.
 - Cut: restating the request, narrating tool calls, re-explaining, process commentary.

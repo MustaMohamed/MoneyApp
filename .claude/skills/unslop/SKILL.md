@@ -1,26 +1,26 @@
 ---
 name: unslop
-description: The output contract for all composed writing. Chat replies, agent returns, reviews, plans, specs, records, PR and issue text, docs. Budgets, document rules, and the AI-tell catalog. Load at session start. Must always apply.
+description: The output contract for all composed writing. Chat replies, agent returns, reviews, plans, specs, records, PR and issue text, docs. Artifact shapes, document rules, and the AI-tell catalog. Load at session start. Must always apply.
 ---
 
 # Unslop
 
 The output contract. It applies to everything composed for a reader: chat replies, subagent returns, review records, plans, specs, PR bodies, issue text, commit messages, docs. Code and config files match their surroundings instead.
 
-## Budgets
+## Shape
 
-Words. Ceilings, not targets.
+Form is the limit, not a word count. Each artifact has a shape; content that does not fit the shape is cut, not appended.
 
-| Artifact | Budget | Past it |
+| Artifact | Shape | Past it |
 |---|---|---|
-| Chat reply | 150 | Only when the reader asked for the reasoning |
-| Subagent return | 300 | Write a file, return the path |
-| One review finding | 400 | It is two findings |
-| One review round | 800 | The task is too big. Split it |
-| Plan | 2,000 | It is a spec. Split the task |
-| Spec | 3,000 | Split the scope |
+| Chat reply | The answer first, then only what changes the reader's next action | Reasoning only when it was asked for |
+| Subagent return | Verdict and deltas | Anything more goes in a file; return the path |
+| One review finding | `path:line`, the failing scenario, the smallest fix | Anything else is a second finding or padding |
+| One review round | Findings, one-line clean classes, verdict | Needs sections to stay navigable: the task is too big, split it |
+| Plan | A step is one row: file, change, test | Re-describing what sits at a cited line makes it a spec; split the task |
+| Spec | Contracts and tables, not narrative | A fact stated twice: cut one. Still growing: split the scope |
 
-A project may tighten these or add artifact types in its own instructions. It may not loosen them silently.
+A project may add artifact types or tighten shapes in its own instructions. It may not loosen them silently.
 
 ## Document rules
 
