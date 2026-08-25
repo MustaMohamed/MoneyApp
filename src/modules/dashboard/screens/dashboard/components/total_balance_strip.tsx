@@ -12,7 +12,10 @@ import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
-import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
+import type {
+  DashboardNetWorth,
+  DashboardNetWorthAmount,
+} from '@/modules/accounts/domain/account_aggregation';
 import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
@@ -29,6 +32,25 @@ interface TotalBalanceStripProps {
    */
   netWorth: DashboardNetWorth;
   accountsCount: number;
+}
+
+/**
+ * The amount path's headline, kept as a subcomponent rather than inline so the two
+ * `formatCurrencyParts` calls the value/code split needs collapse to one — the prop is
+ * already narrowed to `DashboardNetWorthAmount` at the call site's ternary (#297), matching
+ * `stat_cards.tsx`'s `NetWorthCardBody` and `hero_card.tsx`'s `HeroCardAssetsAmount`.
+ */
+function TotalBalanceStripAmount({
+  netWorth,
+}: {
+  netWorth: DashboardNetWorthAmount;
+}): React.ReactElement {
+  const assetsEgpParts = formatCurrencyParts(netWorth.assetsEgp, Currency.EGP);
+  return (
+    <RNText className="font-sora-bold text-accent mt-1 text-2xl">
+      {assetsEgpParts.value} <RNText className="text-muted text-base">{assetsEgpParts.code}</RNText>
+    </RNText>
+  );
 }
 
 export function TotalBalanceStrip({ netWorth, accountsCount }: TotalBalanceStripProps) {
@@ -69,12 +91,7 @@ export function TotalBalanceStrip({ netWorth, accountsCount }: TotalBalanceStrip
               </RNText>
             </View>
           ) : (
-            <RNText className="font-sora-bold text-accent mt-1 text-2xl">
-              {formatCurrencyParts(netWorth.assetsEgp, Currency.EGP).value}{' '}
-              <RNText className="text-muted text-base">
-                {formatCurrencyParts(netWorth.assetsEgp, Currency.EGP).code}
-              </RNText>
-            </RNText>
+            <TotalBalanceStripAmount netWorth={netWorth} />
           )}
         </View>
         <View style={{ alignItems: 'flex-end' }}>
