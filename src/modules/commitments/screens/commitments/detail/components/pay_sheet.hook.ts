@@ -225,8 +225,9 @@ export function usePaySheet(
       previewEgpAmount: undefined as number | undefined,
       // Mockup frame 2: for an EGP commitment the rate row's `≈ … EGP` line
       // would echo the Amount field one row above, so it does not render.
-      // Suppression is this flag and never an absent `previewEgpAmount`, which
-      // means "not derivable yet" and renders the row's placeholder.
+      // Suppression is this flag and never an absent `previewEgpAmount`: that
+      // renders the row's placeholder, and covers both "not derivable yet" and
+      // the below-floor case set further down.
       previewHidden: commitment?.currency === Currency.EGP,
       // Frame 3: no conversion to show, but the rate is still demanded because
       // `egp_amount` is the ledger's storage currency. That is the semantic —

@@ -45,14 +45,18 @@ interface Props {
    * `resolveTransactionAmounts` / `resolveCommitmentPaymentAmounts`. This row
    * holds no arithmetic: it multiplied `amount * rate` itself until W1B, which
    * is the wrong operation whenever the amount is already EGP. `undefined`
-   * means "not derivable from what is on screen yet" and renders a placeholder.
+   * renders the placeholder and covers two cases: not derivable from what is
+   * on screen yet, and derivable but below the money floor, where a confident
+   * `≈ 0.00 EGP` would sit above an Amount field already saying the payment is
+   * too small to debit.
    */
   previewEgpAmount: number | undefined;
   /**
    * Drop the preview line altogether. The pay sheet sets it for an EGP
    * commitment, where the line would echo the Amount field one row above
    * (mockup frame 2). Never inferred from `previewEgpAmount` being absent —
-   * that is the placeholder case, and the two must stay distinguishable.
+   * that renders the placeholder, for either of the two reasons above, and
+   * "no line at all" has to stay distinguishable from "a line reading —".
    */
   previewHidden?: boolean;
   /** Extra subtitle above the rate's source line, saying why a rate is
