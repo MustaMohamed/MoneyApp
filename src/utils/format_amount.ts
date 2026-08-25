@@ -68,6 +68,26 @@ export function formatCurrencyAmount(value: number, currency: Currency, decimals
   return `${parts.value} ${parts.code}`;
 }
 
+// Shared by every multi-currency totals line — commitments' summary header and dashboard
+// card today. Not commitments-specific despite both current callers being commitments
+// screens: no `commitments/domain/` directory exists to own it (verified), and this file
+// is already the money-formatting home every other screen reads decimals rules from.
+const CURRENCY_TOTALS_SEPARATOR = '  ·  ';
+
+/**
+ * `'4,850 EGP  ·  100.00 USD'` — one `formatCurrencyAmount` join per currency present in
+ * the map, in insertion order. An empty map (no commitments due this month, in either
+ * currency) renders the em dash placeholder rather than an empty string, matching what
+ * both callers rendered before this extraction.
+ */
+export function formatCurrencyTotals(totals: Map<Currency, number>): string {
+  const entries = Array.from(totals.entries());
+  if (entries.length === 0) return '—';
+  return entries
+    .map(([currency, amount]) => formatCurrencyAmount(amount, currency))
+    .join(CURRENCY_TOTALS_SEPARATOR);
+}
+
 // Mirrors roundMoney's fixed precision (src/utils/money.ts) — the domain's persisted
 // precision, not any currency's display precision. Not exported from money.ts because
 // nothing there needs it as a value; it exists here only as the fallback this function

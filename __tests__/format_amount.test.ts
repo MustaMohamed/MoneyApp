@@ -3,6 +3,7 @@ import {
   formatAmount,
   formatCurrencyAmount,
   formatCurrencyParts,
+  formatCurrencyTotals,
   formatDisplayMagnitude,
   formatExchangeRate,
   formatExchangeRateSentence,
@@ -246,5 +247,29 @@ describe('formatDisplayMagnitude', () => {
   it('reports printsAsZero true for a magnitude the 2dp escalation ceiling still cannot show a nonzero digit for, on both currencies', () => {
     expect(formatDisplayMagnitude(0.001, Currency.EGP).printsAsZero).toBe(true);
     expect(formatDisplayMagnitude(0.001, Currency.USD).printsAsZero).toBe(true);
+  });
+});
+
+// #280 pt 1: the join summary_header.tsx and commitments_card.tsx each built by hand from
+// their totalsByCurrency map, extracted so both screens share one home for the join order,
+// the separator and the empty-map placeholder.
+describe('formatCurrencyTotals', () => {
+  it('renders a single currency entry with no separator', () => {
+    expect(formatCurrencyTotals(new Map([[Currency.EGP, 4850]]))).toBe('4,850 EGP');
+  });
+
+  it('joins two currency entries with the shared separator, in insertion order', () => {
+    expect(
+      formatCurrencyTotals(
+        new Map([
+          [Currency.EGP, 4850],
+          [Currency.USD, 100],
+        ]),
+      ),
+    ).toBe('4,850 EGP  ·  100.00 USD');
+  });
+
+  it('renders the em dash placeholder for an empty map', () => {
+    expect(formatCurrencyTotals(new Map())).toBe('—');
   });
 });
