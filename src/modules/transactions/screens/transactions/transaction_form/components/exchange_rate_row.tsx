@@ -9,12 +9,14 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
 import { formatAmount } from '@/utils/format_amount';
-import { roundMoney } from '@/utils/money';
-import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { ms } from '@/utils/responsive';
 
 const STALE_THRESHOLD_DAYS = 30;
 const RATE_PREVIEW_AMOUNT_DECIMALS = 2;
+// What the preview reads when the EGP value is not derivable from what is on
+// screen yet — an unreadable amount or rate. Distinct from `previewHidden`,
+// which removes the line entirely because the surface has nothing to preview.
+const PREVIEW_PLACEHOLDER = '—';
 
 function isStale(rateUpdatedAt: string | null): boolean {
   if (!rateUpdatedAt) return false;
@@ -22,13 +24,6 @@ function isStale(rateUpdatedAt: string | null): boolean {
   if (isNaN(updated)) return false;
   const ageMs = Date.now() - updated;
   return ageMs > STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
-}
-
-function formatPreviewAmount(amount: number, rateStr: string): string {
-  const rate = parsePositiveDecimal(rateStr);
-  if (rate === undefined) return '—';
-  const egp = roundMoney(amount * rate);
-  return formatAmount(egp, RATE_PREVIEW_AMOUNT_DECIMALS);
 }
 
 function formatDateShort(iso: string): string {
@@ -45,7 +40,24 @@ interface Props {
   overrideEnabled: boolean;
   onToggleOverride: () => void;
   rateUpdatedAt: string | null;
-  amount: number;
+  /**
+   * The entered amount in EGP, already resolved by
+   * `resolveTransactionAmounts` / `resolveCommitmentPaymentAmounts`. This row
+   * holds no arithmetic: it multiplied `amount * rate` itself until W1B, which
+   * is the wrong operation whenever the amount is already EGP. `undefined`
+   * means "not derivable from what is on screen yet" and renders a placeholder.
+   */
+  previewEgpAmount: number | undefined;
+  /**
+   * Drop the preview line altogether. The pay sheet sets it for an EGP
+   * commitment, where the line would echo the Amount field one row above
+   * (mockup frame 2). Never inferred from `previewEgpAmount` being absent —
+   * that is the placeholder case, and the two must stay distinguishable.
+   */
+  previewHidden?: boolean;
+  /** Extra subtitle above the rate's source line, saying why a rate is
+   * required for a payment that converts nothing (mockup frame 3). */
+  purposeCaption?: string;
   error?: string;
 }
 
@@ -55,7 +67,9 @@ export function ExchangeRateRow({
   overrideEnabled,
   onToggleOverride,
   rateUpdatedAt,
-  amount,
+  previewEgpAmount,
+  previewHidden = false,
+  purposeCaption,
   error,
 }: Props): React.ReactElement {
   const stale = isStale(rateUpdatedAt);
@@ -80,6 +94,11 @@ export function ExchangeRateRow({
           <Text className="font-sora-semibold text-foreground" style={{ fontSize: Type.body }}>
             {Strings.currencyRateLabel}
           </Text>
+          {purposeCaption ? (
+            <Text className="font-inter text-muted mt-0.5" style={{ fontSize: Type.micro }}>
+              {purposeCaption}
+            </Text>
+          ) : null}
           <Text className="font-inter text-muted mt-0.5" style={{ fontSize: Type.micro }}>
             {subtitle}
           </Text>
@@ -114,9 +133,16 @@ export function ExchangeRateRow({
         )}
       </PressableFeedback>
 
-      <Text className="font-inter text-muted mt-2" style={{ fontSize: Type.caption }}>
-        {Strings.addTxEgpPreview.replace('{amount}', formatPreviewAmount(amount, value))}
-      </Text>
+      {previewHidden ? null : (
+        <Text className="font-inter text-muted mt-2" style={{ fontSize: Type.caption }}>
+          {Strings.addTxEgpPreview.replace(
+            '{amount}',
+            previewEgpAmount === undefined
+              ? PREVIEW_PLACEHOLDER
+              : formatAmount(previewEgpAmount, RATE_PREVIEW_AMOUNT_DECIMALS),
+          )}
+        </Text>
+      )}
 
       <View style={{ minHeight: ms(20) }} className="mt-1 items-end justify-center">
         {overrideEnabled ? (

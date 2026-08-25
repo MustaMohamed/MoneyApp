@@ -17,7 +17,6 @@ import { AccountPickerSheet } from '@/modules/accounts/components/account_picker
 import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
-import { parseDecimalText } from '@/utils/parse_decimal';
 import { ms } from '@/utils/responsive';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -63,7 +62,6 @@ export function PaySheet({ commitment, payment }: Props) {
   // failed submit is still `false`.
   const isSubmitted = form.formState.isSubmitted;
 
-  const amountWatch = parseDecimalText(form.watch('amountText'));
   const paidDate = form.watch('paid_date');
 
   const paidDateAsDate = paidDate ? new Date(paidDate + 'T00:00:00') : new Date();
@@ -219,7 +217,9 @@ export function PaySheet({ commitment, payment }: Props) {
               overrideEnabled={state.rateOverride}
               onToggleOverride={toggleRateOverride}
               rateUpdatedAt={state.rateUpdatedAt}
-              amount={amountWatch || 0}
+              previewEgpAmount={state.previewEgpAmount}
+              previewHidden={state.previewHidden}
+              purposeCaption={state.purposeCaption}
               error={rateError}
             />
           ) : null}

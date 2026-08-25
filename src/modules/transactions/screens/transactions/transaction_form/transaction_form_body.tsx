@@ -325,6 +325,9 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             onToggleOverride={toggleRateOverride}
             rateUpdatedAt={rateUpdatedAt}
             mode={formMode}
+            type={type}
+            sourceCurrency={selectedAccount?.currency}
+            destinationCurrency={selectedToAccount?.currency}
             error={rateError}
           />
         ) : null}
