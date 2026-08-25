@@ -56,8 +56,8 @@ export function polarityColor(metric: TotalsMetric, deltaPct: number): PolarityS
 }
 
 export function formatSignedAmount(value: number, metric: TotalsMetric): string {
-  const { text, isZero } = formatDisplayMagnitude(value, Currency.EGP);
-  if (isZero) return text;
+  const { text, printsAsZero } = formatDisplayMagnitude(value, Currency.EGP);
+  if (printsAsZero) return text;
   if (metric === 'expense') return `${value < 0 ? '+' : '-'}${text}`;
   return `${value >= 0 ? '+' : '-'}${text}`;
 }

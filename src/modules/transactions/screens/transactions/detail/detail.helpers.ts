@@ -117,9 +117,9 @@ function isCardCredit(tx: Transaction, account?: Account): boolean {
 }
 
 function signedAmount(tx: Transaction): string {
-  const { text, isZero } = formatDisplayMagnitude(tx.egp_amount, Currency.EGP);
+  const { text, printsAsZero } = formatDisplayMagnitude(tx.egp_amount, Currency.EGP);
   const value = `${text} ${CURRENCY_CONFIG[Currency.EGP].code}`;
-  if (isZero) return value;
+  if (printsAsZero) return value;
   if (tx.type === TransactionType.Expense) return `−${value}`;
   if (tx.type === TransactionType.Income) return `+${value}`;
   return value;

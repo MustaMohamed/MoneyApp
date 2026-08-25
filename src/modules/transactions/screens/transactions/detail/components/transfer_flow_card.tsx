@@ -45,9 +45,9 @@ export function transferCellAmountText(
   currency: Currency,
   signPrefix: '+' | '−',
 ): { display: string; accessible: string } {
-  const { text, isZero } = formatDisplayMagnitude(amount, currency);
+  const { text, printsAsZero } = formatDisplayMagnitude(amount, currency);
   const accessible = `${text} ${CURRENCY_CONFIG[currency].code}`;
-  return { display: isZero ? accessible : `${signPrefix}${accessible}`, accessible };
+  return { display: printsAsZero ? accessible : `${signPrefix}${accessible}`, accessible };
 }
 
 function Cell({
