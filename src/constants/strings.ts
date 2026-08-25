@@ -878,6 +878,7 @@ export const Strings = {
   detailDateTime: 'DATE & TIME',
   detailOriginalAmount: 'ORIGINAL AMOUNT',
   detailExchangeRate: 'EXCHANGE RATE',
+  detailExchangeRateSentence: '1 USD = {rate} EGP',
   detailBudget: 'BUDGET',
   detailSource: 'SOURCE',
   detailBudgetUnavailable: 'Budget unavailable',

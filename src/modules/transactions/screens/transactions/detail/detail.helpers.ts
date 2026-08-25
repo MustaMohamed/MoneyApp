@@ -10,10 +10,9 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
-  EXCHANGE_RATE_DECIMALS,
-  formatAmount,
   formatCurrencyAmount,
   formatDisplayMagnitude,
+  formatExchangeRateSentence,
 } from '@/utils/format_amount';
 import { formatLongDate } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
@@ -157,9 +156,7 @@ export function buildTransactionDetailPresentation({
     originalAmountText:
       tx.currency === Currency.USD ? formatCurrencyAmount(tx.amount, Currency.USD) : undefined,
     exchangeRateText:
-      tx.exchange_rate === null
-        ? undefined
-        : `1 USD = ${formatAmount(tx.exchange_rate, EXCHANGE_RATE_DECIMALS)} EGP`,
+      tx.exchange_rate === null ? undefined : formatExchangeRateSentence(tx.exchange_rate),
     budgetLabel:
       tx.budget_id === null ? undefined : (budget?.name ?? Strings.detailBudgetUnavailable),
     sourceLabel:

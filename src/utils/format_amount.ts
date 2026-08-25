@@ -1,5 +1,6 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { type Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 
 // A NONZERO negative magnitude that rounds to zero at this precision still carries the
 // minus sign, and reads as a small debt that does not exist. Struck after formatting,
@@ -195,4 +196,19 @@ export function formatDisplayMagnitude(
  */
 export function formatExchangeRate(rate: number): string {
   return `${formatAmount(rate, EXCHANGE_RATE_DECIMALS)} EGP/USD`;
+}
+
+/**
+ * `1 USD = 48.60 EGP` — the labelled-row long form (mockup.html:2385), as opposed to
+ * `formatExchangeRate`'s compact pill form above. Selection rule (marcus 2026-08-25): a
+ * chip or pill reads the compact form; a labelled row with its own line reads this
+ * sentence. Same precision as the pill — `EXCHANGE_RATE_DECIMALS` — only the surrounding
+ * copy differs, and that copy lives in `Strings.detailExchangeRateSentence` rather than
+ * inline, per the project's one-home-for-copy rule.
+ */
+export function formatExchangeRateSentence(rate: number): string {
+  return Strings.detailExchangeRateSentence.replace(
+    '{rate}',
+    formatAmount(rate, EXCHANGE_RATE_DECIMALS),
+  );
 }

@@ -5,6 +5,7 @@ import {
   formatCurrencyParts,
   formatDisplayMagnitude,
   formatExchangeRate,
+  formatExchangeRateSentence,
 } from '@/utils/format_amount';
 
 describe('formatAmount', () => {
@@ -51,6 +52,10 @@ describe('currency amount formatting', () => {
     // fit one line on N4. The 48.125 -> 48.13 rounding is unchanged; only the
     // surrounding text moved.
     expect(formatExchangeRate(48.125)).toBe('48.13 EGP/USD');
+  });
+
+  it('formats the labelled-row long form with the same rounding as the compact pill', () => {
+    expect(formatExchangeRateSentence(48.125)).toBe('1 USD = 48.13 EGP');
   });
 
   it('#243: formatCurrencyParts splits value and code, decimals from CURRENCY_CONFIG by default', () => {
