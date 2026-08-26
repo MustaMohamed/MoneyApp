@@ -634,16 +634,13 @@ describe('useSpendingPlanSheet', () => {
   });
 
   // W2E c2, §4/§8.7. `totalAmount: parsePositiveDecimal(values.totalText) ??
-  // Number.NaN` used to reach `setSpendingPlan` unguarded; the sentinel swap
-  // reports through this sheet's save-error constant instead, before the
-  // store method is ever called. `spendingPlanInputSchema` cannot be what
-  // reds this test either way -- this suite mocks `setSpendingPlan` itself
-  // (`useBudgetStore.setState({ setSpendingPlan })`), replacing the real
-  // repository the schema lives inside, so nothing here ever calls it. Reds
-  // if the sentinel is restored because the mock then gets called with
-  // `NaN` and resolves as if the save succeeded -- the assertion that
-  // actually catches it is `setSpendingPlan` staying uncalled below, not the
-  // `submitError` message.
+  // Number.NaN` used to reach `spendingPlanInputSchema.safeParse` and surface
+  // its own NaN issue message; the sentinel swap reports through this sheet's
+  // save-error constant instead, before that schema ever runs. Reds if the
+  // sentinel is restored: NaN then reaches `spendingPlanInputSchema.safeParse`
+  // at `spending_plan_sheet.hook.ts:240` and is rejected there, and
+  // `submitError` carries the schema's issue text rather than
+  // `Strings.budgetPlanSaveError`.
   it('reports a schema/submit desync on the plan total as a save error and does not save', async () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setSpendingPlan });

@@ -6,7 +6,8 @@
 - **Applies to:** `src/modules/transactions/domain/transaction_amounts.ts`,
   `src/utils/parse_decimal.ts`, `src/modules/accounts/utils/add_account.schema.ts`,
   `src/modules/transactions/screens/transactions/filter/filter.helpers.ts`,
-  `src/modules/transactions/database/transactions.ts`
+  `src/modules/transactions/database/transactions.ts`,
+  `src/modules/accounts/components/account_form/account_form.helpers.ts`
 
 ## Decision
 
@@ -27,7 +28,7 @@
    is non-finite or exceeds `Number.MAX_SAFE_INTEGER`. Invariant, scoped to these two resolvers: no
    leg they compute reaches a caller non-finite or above `Number.MAX_SAFE_INTEGER`. Upper-bound
    precedent: `budget_month_profiles.ts`'s income guard. This does not extend to every write path:
-   `account_form.helpers.ts:85`'s `requiredAmount` → `accounts.ts:87,:97` binds `opening_balance`/
+   `account_form.helpers.ts:85`'s `requiredAmount` → `accounts.ts:87,:97-98` binds `opening_balance`/
    `current_balance` via `runAsync` with no magnitude bound of its own (`REAL NOT NULL DEFAULT 0`,
    no `CHECK` — `001_create_accounts.ts:10-11`), unchanged by this diff and unbounded on `main`
    before it too — not fixed here.

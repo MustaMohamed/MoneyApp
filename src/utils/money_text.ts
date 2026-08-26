@@ -85,10 +85,11 @@ function expandExponentialNotation(text: string): string {
 }
 
 /**
- * Edit-mode prefill: the initial field text for a stored money value. Four
- * callers as of MA-020 c3 — an allocation row, the plan total that shares the
- * sheet with it, the monthly income amount, and a budget's monthly limit; the
- * rule is that every money field prefills through here rather than through
+ * Edit-mode prefill: the initial field text for a stored money value. Six
+ * callers as of W2E c3 — an allocation row, the plan total that shares the
+ * sheet with it, the monthly income amount, a budget's monthly limit, an
+ * edit-mode transaction amount, and a commitment's payment amount; the rule
+ * is that every money field prefills through here rather than through
  * `String(value)`, because `String` can emit a form no money field can parse.
  *
  * Never rounds and never formats for display — this text is re-parsed by the
