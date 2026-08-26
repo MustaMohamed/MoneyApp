@@ -29,7 +29,8 @@ import {
  * assert the step-down rung, the explicit two decimals and all twelve copy
  * branches without rendering anything — the same value/code split N3's
  * account row already uses, one screen over, for the reason
- * `N3_ACCOUNT_TYPE_LABELS` records: a resolver must not import a component.
+ * `ACCOUNT_TYPE_LABELS` (`constants/account_type_labels.ts`) exists: a
+ * resolver must not import a component.
  */
 
 /**
