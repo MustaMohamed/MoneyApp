@@ -286,7 +286,14 @@ export class MoneyTextMappingError extends Error {
   }
 }
 
-/** A required money amount: parse or throw `MoneyTextMappingError`. */
+/**
+ * A required money amount: parse or throw `MoneyTextMappingError`. Unlike
+ * `requiredAmount` (`account_form.helpers.ts:25-29`), this does not round —
+ * every caller here hands the result straight to a repository method (or, on
+ * the pay sheet, the payment resolver) that rounds at write under MA-018's
+ * round-at-write layer, so rounding here would be a second, redundant pass
+ * rather than the first one.
+ */
 export function parseRequiredMoneyText(value: string, field: string): number {
   const parsed = parsePositiveDecimal(value);
   if (parsed === undefined) throw new MoneyTextMappingError(field);

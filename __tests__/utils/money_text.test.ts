@@ -340,18 +340,15 @@ describe('parseRequiredMoneyText', () => {
   });
 
   // The sentinel this replaces silently produced NaN for every one of these;
-  // this throws instead, with `field` naming which text failed.
+  // this throws instead, with `field` naming which text failed. `name` reads
+  // off the class rather than a repeated string literal, so a future rename
+  // of `MoneyTextMappingError` keeps this in sync instead of going stale.
   it.each([[''], ['0'], ['0.005'], ['abc'], ['-5'], ['1e3']])(
     'throws MoneyTextMappingError on %p, naming the field',
     (text) => {
-      expect(() => parseRequiredMoneyText(text, 'amountText')).toThrow(MoneyTextMappingError);
-      try {
-        parseRequiredMoneyText(text, 'amountText');
-        throw new Error('expected parseRequiredMoneyText to throw');
-      } catch (error) {
-        expect(error).toBeInstanceOf(MoneyTextMappingError);
-        expect((error as MoneyTextMappingError).field).toBe('amountText');
-      }
+      expect(() => parseRequiredMoneyText(text, 'amountText')).toThrow(
+        expect.objectContaining({ name: MoneyTextMappingError.name, field: 'amountText' }),
+      );
     },
   );
 });

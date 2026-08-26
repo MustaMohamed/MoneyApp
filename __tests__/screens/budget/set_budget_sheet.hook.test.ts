@@ -15,8 +15,12 @@ import { MoneyTextMappingError, parseRequiredMoneyText } from '@/utils/money_tex
 
 // `useSetBudgetSheet` (unlike `useSetBudgetSheetSave` above) calls
 // `useBottomSheetAwareHandlers`, which needs a mounted bottom-sheet context
-// this headless `renderHook` does not provide -- same mock the `.tsx` render
-// suite for this sheet uses.
+// this headless `renderHook` does not provide -- same mock
+// `spending_plan_sheet_hook.test.ts:41-43` uses for the same reason, byte for
+// byte. Not the `.tsx` render suite for this sheet: it mocks a broader
+// surface of `@/components/ui/sheet` (footer clearance, the `Sheet`
+// component itself) that a headless hook test does not need, and copying it
+// would carry that extra surface along for no reason.
 jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
 }));
