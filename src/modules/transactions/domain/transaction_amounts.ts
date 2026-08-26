@@ -16,6 +16,22 @@ export interface CommitmentPaymentAmounts {
   exchangeRate: number | null;
 }
 
+/**
+ * Does a movement between these two currencies need a USD exchange rate?
+ * True when either side is USD — the storage-currency rule, since `egp_amount`
+ * is the ledger's own currency and a USD leg has to be converted to reach it.
+ *
+ * Wide on purpose: `undefined` compares unequal to `Currency.USD`, so a caller
+ * holding an optional currency passes it straight in. **Callers own presence
+ * semantics.** This answers the currency question only — it cannot express
+ * "no account has been picked yet", and returns `true` for `(USD, undefined)`.
+ * `usePaySheet`'s `requiresRate` keeps its own `!commitment || !selectedAccount`
+ * guard in front of this call for exactly that reason.
+ */
+export function requiresExchangeRate(a: Currency | undefined, b?: Currency): boolean {
+  return a === Currency.USD || b === Currency.USD;
+}
+
 export class TransactionAmountError extends Error {
   constructor(message: string) {
     super(message);
@@ -41,9 +57,10 @@ export function resolveTransactionAmounts(input: {
     throw new TransactionAmountError('A destination currency is required');
   }
 
-  const usesUsd =
-    input.sourceCurrency === Currency.USD ||
-    (hasDestination && input.destinationCurrency === Currency.USD);
+  const usesUsd = requiresExchangeRate(
+    input.sourceCurrency,
+    hasDestination ? input.destinationCurrency : undefined,
+  );
   if (
     usesUsd &&
     (!input.exchangeRate || !Number.isFinite(input.exchangeRate) || input.exchangeRate <= 0)
@@ -82,8 +99,7 @@ export function resolveCommitmentPaymentAmounts(input: {
     throw new TransactionAmountError('Payment amount must be positive');
   }
 
-  const usesUsd =
-    input.commitmentCurrency === Currency.USD || input.accountCurrency === Currency.USD;
+  const usesUsd = requiresExchangeRate(input.commitmentCurrency, input.accountCurrency);
   if (
     usesUsd &&
     (!input.exchangeRate || !Number.isFinite(input.exchangeRate) || input.exchangeRate <= 0)

@@ -24,12 +24,14 @@ import {
   N4_HERO_VALUE_TEXT_STYLE,
   N4_SUMMARY_ROW_STYLE,
   N4_SUMMARY_ROW_TEXT_STYLE,
+} from '@/modules/onboarding/screens/onboarding/ready/ready.geometry';
+import {
   resolveCaption,
   resolveHeroAmountParts,
   resolveHeroValueA11yLabel,
   resolveHeroValueTextStyle,
   resolvePill,
-} from '@/modules/onboarding/screens/onboarding/ready/ready.geometry';
+} from '@/modules/onboarding/screens/onboarding/ready/ready.helpers';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
 /**

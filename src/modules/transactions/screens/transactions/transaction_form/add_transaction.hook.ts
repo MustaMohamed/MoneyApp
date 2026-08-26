@@ -11,7 +11,10 @@ import { budgetRepository } from '@/modules/budget/repositories/budget.repositor
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
+import {
+  requiresExchangeRate,
+  resolveTransactionAmounts,
+} from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
@@ -144,8 +147,10 @@ function createSchema(
         }
       }
 
-      const needsRate =
-        acc?.currency === Currency.USD || (isTransferOrCC && toAcc?.currency === Currency.USD);
+      const needsRate = requiresExchangeRate(
+        acc?.currency,
+        isTransferOrCC ? toAcc?.currency : undefined,
+      );
       if (needsRate) {
         if (!data.exchangeRate) {
           ctx.addIssue({
@@ -287,9 +292,10 @@ export function useAddTransaction(
   );
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
-  const isUSD = selectedAccount?.currency === Currency.USD;
-  const isToUSD = selectedToAccount?.currency === Currency.USD;
-  const requiresRate = isUSD || (isTransferOrCC && isToUSD);
+  const requiresRate = requiresExchangeRate(
+    selectedAccount?.currency,
+    isTransferOrCC ? selectedToAccount?.currency : undefined,
+  );
 
   const visibleCategories = useMemo(
     () =>

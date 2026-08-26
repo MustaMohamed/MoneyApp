@@ -127,11 +127,6 @@ describe('useReady', () => {
     ]);
   });
 
-  it('exposes the base currency the hero and the summary rows render', async () => {
-    const { result } = await renderHook(() => useReady());
-    expect(result.current.state.baseCurrency).toBe(Currency.EGP);
-  });
-
   it('does not load the account list on mount', async () => {
     await renderHook(() => useReady());
 

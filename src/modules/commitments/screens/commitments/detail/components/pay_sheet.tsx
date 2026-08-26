@@ -17,7 +17,6 @@ import { AccountPickerSheet } from '@/modules/accounts/components/account_picker
 import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
-import { parseDecimalText } from '@/utils/parse_decimal';
 import { ms } from '@/utils/responsive';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -50,7 +49,16 @@ export function PaySheet({ commitment, payment }: Props) {
     payment?.status === CommitmentPaymentStatus.Skipped;
   const isVariable = commitment?.amount_type === AmountType.Variable;
 
-  const amountError = form.formState.errors.amountText?.message;
+  // The RHF error wins the slot: after a submit the schema's own sub-floor
+  // mirror publishes the same message there, and before one the live flag is
+  // the only source of it. The currency named is the PAYING ACCOUNT's, which
+  // `convertedBelowMin` implies is resolved — the flag is only ever set from a
+  // resolution that had one.
+  const amountError =
+    form.formState.errors.amountText?.message ??
+    (state.convertedBelowMin && state.selectedAccount
+      ? Strings.commitmentsPayErrConvertedBelowMin(state.selectedAccount.currency)
+      : undefined);
   const accountError = form.formState.errors.account_id?.message;
   const rateError = form.formState.errors.exchange_rate?.message;
   // Read during render for the same reason the hook does — a read from inside
@@ -58,18 +66,7 @@ export function PaySheet({ commitment, payment }: Props) {
   // failed submit is still `false`.
   const isSubmitted = form.formState.isSubmitted;
 
-  const payAccount = state.selectedAccount;
-  const amountWatch = parseDecimalText(form.watch('amountText'));
   const paidDate = form.watch('paid_date');
-  const rateNum = parseDecimalText(state.exchangeRateValue ?? '');
-  // The gate hides on an amount the parser cannot read, the way the rate side
-  // already does. Coercing it to 0 first put a confidently formatted "= 0" on
-  // screen for every half-typed value — `1,`, `1,23`, `1,234.` — beside an
-  // Amount field the user is still filling in.
-  const convertedTotal =
-    state.requiresRate && amountWatch !== undefined && rateNum && rateNum > 0
-      ? amountWatch * rateNum
-      : undefined;
 
   const paidDateAsDate = paidDate ? new Date(paidDate + 'T00:00:00') : new Date();
 
@@ -224,16 +221,20 @@ export function PaySheet({ commitment, payment }: Props) {
               overrideEnabled={state.rateOverride}
               onToggleOverride={toggleRateOverride}
               rateUpdatedAt={state.rateUpdatedAt}
-              amount={amountWatch || 0}
+              previewEgpAmount={state.previewEgpAmount}
+              previewHidden={state.previewHidden}
+              purposeCaption={state.purposeCaption}
               error={rateError}
             />
           ) : null}
 
-          {/* Converted total (conditional) */}
-          {state.requiresRate && convertedTotal != null && payAccount ? (
+          {/* Converted total — the hook's resolver output, gated on currency
+              inequality. No override on the decimals, so each currency renders
+              at its CURRENCY_CONFIG precision: `= 4,906 EGP`, `= 101.92 USD`. */}
+          {state.convertedTotal ? (
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }} className="mt-2">
               <Text className="font-sora-semibold text-foreground text-[15px]">
-                = {formatCurrencyAmount(convertedTotal, payAccount.currency)}
+                = {formatCurrencyAmount(state.convertedTotal.amount, state.convertedTotal.currency)}
               </Text>
             </View>
           ) : null}

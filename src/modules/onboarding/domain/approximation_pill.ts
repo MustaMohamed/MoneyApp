@@ -1,3 +1,4 @@
+import { foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { countForeignAccounts } from '@/modules/accounts/domain/account_aggregation';
 import {
@@ -56,7 +57,7 @@ export function selectApproximationPill(
   return {
     ratePill: { rate: input.rate },
     approxPill: {
-      currency: isEgpBase ? Currency.USD : Currency.EGP,
+      currency: foreignCurrencyFor(input.baseCurrency),
       value: normalizeNegativeZero(roundMoney(converted)),
     },
   };

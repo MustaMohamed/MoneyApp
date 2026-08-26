@@ -7,7 +7,13 @@ import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import {
+  type CommitmentPaymentAmounts,
+  requiresExchangeRate,
+  resolveCommitmentPaymentAmounts,
+} from '@/modules/transactions/domain/transaction_amounts';
 import { toLocalDateString } from '@/utils/format_date';
+import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -16,6 +22,39 @@ import type { CommitmentPayment } from '../../../../entities/commitment_payment.
 import { commitmentRepository } from '../../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../../store/commitment.store';
 import { usePaySheetState } from './pay_sheet.state';
+
+/**
+ * Parse, gate, resolve — the sequence the schema's sub-floor refine and the
+ * sheet's preview both need, in one place so they cannot answer differently
+ * for the same form. `undefined` means the inputs cannot produce a resolution
+ * yet, which is also exactly the set of inputs the resolver throws on.
+ *
+ * Ownership of the operands stays with the caller (the P5 layering ruling):
+ * the schema passes its own `data` fields, the preview passes what it watches.
+ * Only the shared logic lives here.
+ */
+function deriveResolution(
+  commitment: Commitment | undefined,
+  account: Account | undefined,
+  amountText: string,
+  rateText: string | undefined,
+): CommitmentPaymentAmounts | undefined {
+  if (!commitment || !account) return undefined;
+  // `parsePositiveDecimal`, not a bare `> 0`: 0.004 is positive, and
+  // `roundMoney(0.004)` is 0, which the resolver throws on.
+  const amount = parsePositiveDecimal(amountText);
+  const exchangeRate = parsePositiveDecimal(rateText ?? '');
+  if (amount === undefined) return undefined;
+  if (requiresExchangeRate(commitment.currency, account.currency) && exchangeRate === undefined) {
+    return undefined;
+  }
+  return resolveCommitmentPaymentAmounts({
+    amount,
+    commitmentCurrency: commitment.currency,
+    accountCurrency: account.currency,
+    exchangeRate,
+  });
+}
 
 // A factory, not a module constant: the rate refine has to know whether this
 // payment crosses currencies, and that is derived from the account the form
@@ -39,10 +78,25 @@ function createPaySheetSchema(commitment: Commitment | undefined, accounts: Acco
       // Must match `requiresRate` below on every input, including its
       // !selectedAccount guard — `onValid` gates the snapshot on that one.
       const acc = accounts.find((a) => a.id === data.account_id);
+
+      // W1B: an id the loaded (non-archived) list does not hold is one the
+      // write path refuses (commitment.repository.ts:211-214). Falling through
+      // on `acc === undefined` read as "no rate needed": the schema passed,
+      // `markAsPaid` threw, and the user got only the generic save banner with
+      // no field to fix. Deliberately NOT resolved through
+      // getAccountByIdIncludingArchived — the schema must not accept what the
+      // write rejects. The empty selection stays the field's own `min(1)`.
+      if (data.account_id && !acc) {
+        ctx.addIssue({
+          code: 'custom',
+          message: Strings.commitmentsPayErrAccountUnavailable,
+          path: ['account_id'],
+        });
+        return;
+      }
+
       const needsRate =
-        !!commitment &&
-        !!acc &&
-        (commitment.currency === Currency.USD || acc.currency === Currency.USD);
+        !!commitment && !!acc && requiresExchangeRate(commitment.currency, acc.currency);
       if (needsRate) {
         if (!data.exchange_rate) {
           ctx.addIssue({
@@ -57,6 +111,24 @@ function createPaySheetSchema(commitment: Commitment | undefined, accounts: Acco
             path: ['exchange_rate'],
           });
         }
+      }
+
+      // W1B: the converted amount can round below the money floor even though
+      // the entered amount clears it (0.01 EGP at 49.06 is 0.00 USD). The write
+      // path refuses that at validateTransactionPolicy's amount_invalid, with
+      // the generic banner; this puts the reason on the Amount field and blocks
+      // the submit. It lives in the schema and not in a hook-level `setError`
+      // because RHF calls the latter only once validation has already passed.
+      // Operands come from `data` rather than from anything closed over: the
+      // schema is memoized on `[commitment, accounts]`, so a form value it had
+      // captured could be a render behind the one being validated.
+      const resolved = deriveResolution(commitment, acc, data.amountText, data.exchange_rate);
+      if (resolved && resolved.accountNativeAmount < MIN_MONEY_AMOUNT) {
+        ctx.addIssue({
+          code: 'custom',
+          message: Strings.commitmentsPayErrConvertedBelowMin(resolved.accountCurrency),
+          path: ['amountText'],
+        });
       }
     });
 }
@@ -117,6 +189,7 @@ export function usePaySheet(
 
   const accountId = form.watch('account_id');
   const exchangeRateValue = form.watch('exchange_rate');
+  const amountText = form.watch('amountText');
   // Read DURING render, not inside the handler that uses it. `formState` is a
   // proxy: RHF only re-renders — and only refreshes `form.formState` — for the
   // keys something read while rendering. Read from inside `selectAccount`
@@ -131,9 +204,61 @@ export function usePaySheet(
   );
 
   const requiresRate = useMemo(() => {
+    // The guard is load-bearing and stays in front of the predicate rather
+    // than inside it: `requiresExchangeRate` is wide, so (USD, undefined)
+    // is true there. A rate must not be demanded before an account exists to
+    // demand it for (mockup frame 4).
     if (!commitment || !selectedAccount) return false;
-    return commitment.currency === Currency.USD || selectedAccount.currency === Currency.USD;
+    return requiresExchangeRate(commitment.currency, selectedAccount.currency);
   }, [commitment, selectedAccount]);
+
+  // Every money figure this sheet shows comes from one resolver call — the
+  // same function `markAsPaid` runs at the write, so the preview cannot drift
+  // from what is actually debited (.claude/rules/review.md class 3). It used
+  // to be `amountWatch * rateNum` in the render body, which was the wrong
+  // operation in the wrong direction for an EGP commitment paid from a USD
+  // account: 5,000 EGP at 49.06 rendered 245,300 USD against a 101.92 debit.
+  const preview = useMemo(() => {
+    const base = {
+      convertedTotal: undefined as { amount: number; currency: Currency } | undefined,
+      convertedBelowMin: false,
+      previewEgpAmount: undefined as number | undefined,
+      // Mockup frame 2: for an EGP commitment the rate row's `≈ … EGP` line
+      // would echo the Amount field one row above, so it does not render.
+      // Suppression is this flag and never an absent `previewEgpAmount`: that
+      // renders the row's placeholder, and covers both "not derivable yet" and
+      // the below-floor case set further down.
+      previewHidden: commitment?.currency === Currency.EGP,
+      // Frame 3: no conversion to show, but the rate is still demanded because
+      // `egp_amount` is the ledger's storage currency. That is the semantic —
+      // a rate is required and nothing converts — so it is written as exactly
+      // that, from the facts already in scope, rather than as a second
+      // hand-written currency comparison beside the shared predicate.
+      purposeCaption:
+        requiresRate && commitment?.currency === selectedAccount?.currency
+          ? Strings.commitmentsPayRatePurposeEgp
+          : undefined,
+    };
+    const resolved = deriveResolution(commitment, selectedAccount, amountText, exchangeRateValue);
+    if (!commitment || !selectedAccount || !resolved) return base;
+
+    // Below the floor NOTHING confident renders: not the converted line, and
+    // not the rate row's `≈ 0.00 EGP` above it. The Amount field carries the
+    // reason instead, and the schema blocks the save.
+    const convertedBelowMin = resolved.accountNativeAmount < MIN_MONEY_AMOUNT;
+    // The gate is currency INEQUALITY, not `requiresRate` — those are
+    // different questions, and the USD/USD case answers them differently.
+    const converts = commitment.currency !== selectedAccount.currency;
+    return {
+      ...base,
+      previewEgpAmount: convertedBelowMin ? undefined : resolved.egpAmount,
+      convertedBelowMin,
+      convertedTotal:
+        converts && !convertedBelowMin
+          ? { amount: resolved.accountNativeAmount, currency: resolved.accountCurrency }
+          : undefined,
+    };
+  }, [amountText, commitment, exchangeRateValue, requiresRate, selectedAccount]);
 
   // Pre-fill form when sheet becomes visible
   useEffect(() => {
@@ -165,6 +290,13 @@ export function usePaySheet(
           // silently fall through
         }
       }
+      // W1B: membership applies to a prefilled id too. `commitment.account_id`
+      // and the last-paid id are both durable copies that outlive an account
+      // being archived or deleted, and seeding one opens the sheet already
+      // invalid on a field the user never touched.
+      if (prefillAccountId && !accounts.some((account) => account.id === prefillAccountId)) {
+        prefillAccountId = '';
+      }
       if (!prefillAccountId && accounts.length > 0) {
         prefillAccountId = accounts[0].id;
       }
@@ -174,11 +306,12 @@ export function usePaySheet(
           amountText: prefillAmount > 0 ? String(prefillAmount) : '',
           account_id: prefillAccountId,
           paid_date: toLocalDateString(new Date()),
-          exchange_rate:
-            commitment.currency === Currency.USD ||
-            accounts.find((account) => account.id === prefillAccountId)?.currency === Currency.USD
-              ? String(rate)
-              : undefined,
+          exchange_rate: requiresExchangeRate(
+            commitment.currency,
+            accounts.find((account) => account.id === prefillAccountId)?.currency,
+          )
+            ? String(rate)
+            : undefined,
           notes: undefined,
         });
         setRateOverride(false);
@@ -253,7 +386,7 @@ export function usePaySheet(
     if (
       !rateOverride &&
       commitment &&
-      (commitment.currency === Currency.USD || account.currency === Currency.USD)
+      requiresExchangeRate(commitment.currency, account.currency)
     ) {
       // Same `isSubmitted` gate as the rate row's own onChange in pay_sheet.tsx:
       // seeding a rate after a failed submit has to clear the error it fixes,
@@ -297,6 +430,11 @@ export function usePaySheet(
       exchangeRateValue,
       rateUpdatedAt,
       saveError,
+      convertedTotal: preview.convertedTotal,
+      convertedBelowMin: preview.convertedBelowMin,
+      previewEgpAmount: preview.previewEgpAmount,
+      previewHidden: preview.previewHidden,
+      purposeCaption: preview.purposeCaption,
     },
     onSubmit: form.handleSubmit(onValid, onInvalid),
     openAccountPicker: () => setAccountPickerVisible(true),

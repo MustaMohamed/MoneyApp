@@ -24,16 +24,17 @@ import {
   N4_HERO_PILL_ROW_STYLE,
   N4_HERO_REFUSAL_TEXT_STYLE,
   N4_HERO_VALUE_SLOT_STYLE,
+} from '../ready.geometry';
+import {
   resolveCaption,
   resolveHeroAmountParts,
   resolveHeroValueA11yLabel,
   resolveHeroValueTextStyle,
   resolvePill,
-} from '../ready.geometry';
+} from '../ready.helpers';
 
 export interface ReadyHeroCardProps {
   summary: ReadySummaryState;
-  baseCurrency: Currency;
 }
 
 /**
@@ -50,13 +51,9 @@ export interface ReadyHeroCardProps {
  * negative and zero frames — this screen deliberately does not adopt
  * `stat_cards.tsx`'s sign colouring, and it does not import the dashboard hero.
  */
-export function ReadyHeroCard({ summary, baseCurrency }: ReadyHeroCardProps) {
-  const { outcome, frame, accountCount, foreignCount, pills } = summary;
-
-  // The app has exactly two currencies, so "the other one" is unambiguous.
-  // This is a CODE lookup for a caption, not a money derivation — no amount is
-  // computed here; the resolver already produced every number on this card.
-  const foreignCurrency = baseCurrency === Currency.EGP ? Currency.USD : Currency.EGP;
+export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
+  const { outcome, frame, accountCount, foreignCount, foreignCurrency, baseCurrency, pills } =
+    summary;
 
   return (
     <View style={N4_HERO_CONTENT_STYLE}>
@@ -142,24 +139,14 @@ export function ReadyHeroCard({ summary, baseCurrency }: ReadyHeroCardProps) {
 
 /**
  * The amount, as the two nodes `.hero-v .n` and its nested `.cur`
- * (mockup.html:2334). Split rather than routed through `formatCurrencyAmount`
- * because the step-down counts characters EXCLUDING the suffix and the suffix
- * renders at its own size and opacity — the same split `resolveAccountRowAmount`
- * already ships one screen over.
+ * (mockup.html:2334). `numberOfLines={1}` is `.hero-v`'s `white-space: nowrap`
+ * (mockup.html:679), and it is load-bearing: the slot is a fixed height with
+ * `overflow: hidden`, so without it a long amount wraps and gets sliced
+ * mid-number instead of stepping down.
  *
- * `numberOfLines={1}` is `.hero-v`'s `white-space: nowrap` (mockup.html:679),
- * and it is load-bearing: the slot is a fixed height with `overflow: hidden`,
- * so without it a long amount wraps and gets sliced mid-number instead of
- * stepping down to `N4_HERO_VALUE_STEP_TEXT_STYLE`.
- *
- * The a11y label is one string, built by `resolveHeroValueA11yLabel` so that
- * its explicit decimals are assertable without a renderer — the default for EGP
- * is 0, which would announce "148,250 EGP" over a screen reading
- * "148,250.00 EGP".
- *
- * The sign is whatever the resolver and `Intl` produced; no leading minus is
- * written here. (The mockup draws U+2212 MINUS and `Intl` emits U+002D
- * HYPHEN-MINUS — formatter output, not transcribed copy.)
+ * The split, the step-down rung, the explicit decimals and the a11y label are
+ * `ready.helpers.ts`'s — see `resolveHeroAmountParts`, `resolveHeroValueTextStyle`
+ * and `resolveHeroValueA11yLabel` there for the reasoning.
  */
 function HeroValue({ value, baseCurrency }: { value: number; baseCurrency: Currency }) {
   const { value: amountString, code } = resolveHeroAmountParts(value, baseCurrency);
