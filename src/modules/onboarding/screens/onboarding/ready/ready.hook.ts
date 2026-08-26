@@ -106,7 +106,6 @@ export function useReady() {
   return {
     state: {
       summary,
-      baseCurrency,
       completing: complete.isLoading,
       // backStatusMessage takes precedence: begin() clears it at the start of
       // every back attempt AND of every completion attempt — so it is non-empty

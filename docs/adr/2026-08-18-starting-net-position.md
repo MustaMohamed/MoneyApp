@@ -87,8 +87,8 @@ reconciled toward — not evidence that N4 is the odd one out.
 
 ## 6. Recorded deviation: EGP at two decimals on this screen
 
-N4 renders EGP amounts with an explicit two decimals (`formatCurrencyAmount(value, currency, 2)`),
-while `CURRENCY_CONFIG` sets EGP's default to zero and the dashboard's stat cards, hero card and
+N4 renders EGP amounts with an explicit two decimals (`N4_HERO_AMOUNT_DECIMALS`), while
+`CURRENCY_CONFIG` sets EGP's default to zero and the dashboard's stat cards, hero card and
 net-worth breakdown all render it at zero. This is a deliberate, approved, screen-local deviation: the
 number on N4 is the sum of balances the user has just typed, and dropping the cents would make it
 disagree with what they entered. It does not change the default for any other surface.

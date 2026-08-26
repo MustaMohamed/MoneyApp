@@ -31,6 +31,7 @@ interface StateRow {
   frame: ReadyFrame;
   accountCount: number;
   foreignCount: number;
+  foreignCurrency: Currency;
   pillsVisible: boolean;
   pills: readonly ReadyPill[];
 }
@@ -53,6 +54,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F1',
     accountCount: 2,
     foreignCount: 0,
+    foreignCurrency: Currency.USD,
     pillsVisible: false,
     pills: [
       { kind: 'accounts', count: 2, glyph: 'bank-outline' },
@@ -68,6 +70,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F2',
     accountCount: 3,
     foreignCount: 1,
+    foreignCurrency: Currency.USD,
     pillsVisible: true,
     pills: [
       { kind: 'accounts', count: 3, glyph: 'bank-outline' },
@@ -84,6 +87,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F3',
     accountCount: 3,
     foreignCount: 1,
+    foreignCurrency: Currency.USD,
     pillsVisible: false,
     pills: [
       { kind: 'accounts', count: 3, glyph: 'bank-outline' },
@@ -99,6 +103,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F4',
     accountCount: 2,
     foreignCount: 0,
+    foreignCurrency: Currency.USD,
     pillsVisible: false,
     pills: [
       { kind: 'accounts', count: 2, glyph: 'bank-outline' },
@@ -114,6 +119,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F4',
     accountCount: 2,
     foreignCount: 1,
+    foreignCurrency: Currency.EGP,
     pillsVisible: true,
     pills: [
       { kind: 'accounts', count: 2, glyph: 'bank-outline' },
@@ -130,6 +136,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F5',
     accountCount: 2,
     foreignCount: 0,
+    foreignCurrency: Currency.USD,
     pillsVisible: false,
     pills: [
       { kind: 'accounts', count: 2, glyph: 'bank-outline' },
@@ -145,6 +152,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F5',
     accountCount: 2,
     foreignCount: 1,
+    foreignCurrency: Currency.EGP,
     pillsVisible: true,
     pills: [
       { kind: 'accounts', count: 2, glyph: 'bank-outline' },
@@ -161,6 +169,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F6',
     accountCount: 1,
     foreignCount: 0,
+    foreignCurrency: Currency.USD,
     pillsVisible: false,
     pills: [
       { kind: 'accounts', count: 1, glyph: 'bank-outline' },
@@ -176,6 +185,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F6',
     accountCount: 1,
     foreignCount: 1,
+    foreignCurrency: Currency.EGP,
     pillsVisible: true,
     pills: [
       { kind: 'accounts', count: 1, glyph: 'bank-outline' },
@@ -192,6 +202,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F7',
     accountCount: 1,
     foreignCount: 0,
+    foreignCurrency: Currency.USD,
     pillsVisible: false,
     pills: [
       { kind: 'accounts', count: 1, glyph: 'credit-card' },
@@ -207,6 +218,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F7',
     accountCount: 1,
     foreignCount: 1,
+    foreignCurrency: Currency.EGP,
     pillsVisible: true,
     pills: [
       { kind: 'accounts', count: 1, glyph: 'credit-card' },
@@ -227,6 +239,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F3',
     accountCount: 1,
     foreignCount: 1,
+    foreignCurrency: Currency.USD,
     pillsVisible: false,
     pills: [
       { kind: 'accounts', count: 1, glyph: 'credit-card' },
@@ -242,6 +255,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F2',
     accountCount: 3,
     foreignCount: 2,
+    foreignCurrency: Currency.USD,
     pillsVisible: true,
     pills: [
       { kind: 'accounts', count: 3, glyph: 'bank-outline' },
@@ -262,6 +276,7 @@ const STATE_ROWS: readonly StateRow[] = [
     frame: 'F7',
     accountCount: 2,
     foreignCount: 0,
+    foreignCurrency: Currency.USD,
     pillsVisible: false,
     pills: [
       { kind: 'accounts', count: 2, glyph: 'credit-card' },
@@ -283,6 +298,10 @@ describe('selectReadySummaryState — frame selection and pill composition', () 
     expect(state.frame).toBe(row.frame);
     expect(state.accountCount).toBe(row.accountCount);
     expect(state.foreignCount).toBe(row.foreignCount);
+    // Published straight through from the input — every row's own `base` is
+    // the expected value, so all 14 exercise both base-currency directions.
+    expect(state.baseCurrency).toBe(row.base);
+    expect(state.foreignCurrency).toBe(row.foreignCurrency);
     expect(state.pillsVisible).toBe(row.pillsVisible);
     expect(state.pills).toStrictEqual(row.pills);
   });
