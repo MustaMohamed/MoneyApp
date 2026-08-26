@@ -29,8 +29,20 @@
  * constructor from `src/utils/format_amount.ts`, 6f goes red — that is MA-018's hazard
  * (spec §11), not a defect in this suite.
  *
+ * Two label schemes appear below, deliberately kept apart: `6a`-`6f` name the six original
+ * subprocess-contract cases above (MA-017 spec §4 — git failure, git empty, planted
+ * violation, bare `new`-less construction, stale allowlist, real-HEAD check), untouched by
+ * this chunk. `(a)`-`(i)` name the comment-stripping fixture cases added by W1D c1 spec §2
+ * and batched below.
+ *
+ * (c) and (g) deliberately exercise the same block-comment scanner branch: a JSDoc-style
+ * continuation line and a plain multi-line paragraph are both interior lines of one open
+ * block comment, so stripComments treats them identically. They stay two cases, not one,
+ * because each replays a distinct row of #295's measured four-row blinding matrix — the
+ * contract under test is that matrix, not the scanner's branch count.
+ *
  * Case (h) reaches pass 2's "no longer constructs" branch
- * (validate-money-formatting.js:108-118) directly, without mutating
+ * (validate-money-formatting.js:156-166) directly, without mutating
  * `src/utils/format_amount.ts`: the shipped script is copied to a throwaway `fakeroot/`
  * so its own `__dirname`-derived `root` resolves there instead of the real repo, and a
  * `fakeroot/src/utils/format_amount.ts` fixture stands in for the real allowlisted file.
@@ -69,6 +81,26 @@ function runGuardAt(
 
 function runGuard(env: NodeJS.ProcessEnv, timeout?: number): SpawnSyncReturns<string> {
   return runGuardAt(scriptPath, env, timeout);
+}
+
+// Shared by the batched (a)-(i) cases below: writes every fixture, stubs `git` to list the
+// sanctioned entry plus all of them, and runs the guard once. Callers assert status/stderr
+// against the returned relative paths — one spawn per exit-code outcome, not one per case.
+type Fixture = { name: string; content: string };
+
+function runGuardOverFixtures(fixtures: Fixture[]): {
+  result: SpawnSyncReturns<string>;
+  relPaths: string[];
+} {
+  const relPaths = fixtures.map(({ name, content }) => {
+    fs.writeFileSync(path.join(fixtureRoot, name), content);
+    return `.ma017-guard-fixtures/${name}`;
+  });
+  const stubDir = makeStubGit(
+    `#!/bin/sh\necho 'src/utils/format_amount.ts'\n${relPaths.map((p) => `echo '${p}'`).join('\n')}\nexit 0\n`,
+  );
+  const result = runGuard(envWithStub(stubDir));
+  return { result, relPaths };
 }
 
 // One cleanup lifetime for the whole fixture surface: the fixture root and the stub `git`
@@ -114,7 +146,7 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
     );
   });
 
-  // §4 row 7, pass 1 (`:87-94`). The stub omits `src/utils/format_amount.ts`, so pass 2
+  // §4 row 7, pass 1 (`:135-142`). The stub omits `src/utils/format_amount.ts`, so pass 2
   // also fires — stderr is asserted for the whole contiguous violation message as one
   // substring, never as three separate `toContain` calls, because pass 2's "gone" line
   // also contains `src/utils/format_amount.ts`.
@@ -140,7 +172,7 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
     expect(result.stderr).toContain(violationRel);
   });
 
-  // §4 row 8, pass 2's "gone" branch (`:100-107`). The stub lists only a clean fixture,
+  // §4 row 8, pass 2's "gone" branch (`:150-155`). The stub lists only a clean fixture,
   // omitting `src/utils/format_amount.ts` entirely, so it reads as gone.
   it('flags a stale allowlist entry without flagging a violation', () => {
     const cleanRel = '.ma017-guard-fixtures/clean.ts';
@@ -168,127 +200,77 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
     expect(Number(match?.[1])).toBeGreaterThan(0);
   }, 15000);
 
-  // c1 spec §2 item 2, case (a) — #295's row 1: a full-line `//` comment is the only
-  // mention of the constructor. stripComments blanks it before matching, so it must not
-  // be reported.
-  it('does not report a constructor mentioned only in a line comment', () => {
-    const violationRel = '.ma017-guard-fixtures/blinded_line_comment.ts';
-    fs.writeFileSync(
-      path.join(fixtureRoot, 'blinded_line_comment.ts'),
-      "// new Intl.NumberFormat('en-US');\nexport const nothingHere = 1;\n",
-    );
-    const stubDir = makeStubGit(
-      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
-    );
-    const result = runGuard(envWithStub(stubDir));
+  // c1 spec §2 item 2, cases (a)-(d), (g), (i-silent) — one spawn over six fixtures, all of
+  // which must stay silent. (a) full-line `//` comment (#295 row 1). (b) single-line block
+  // comment (#295 row 2). (c) JSDoc-style ` * …` continuation line inside a real multi-line
+  // block comment (#295 row 3 — shares its scanner branch with (g), deliberately: see file
+  // header). (d) trailing `//` comment on unrelated code (#295 row 4). (g) a multi-line
+  // block without a per-line `*` prefix, constructor text on an interior line. (i-silent)
+  // the P8 false-positive: an escaped quote (`\'`) followed by a trailing comment — before
+  // the escape fix this desynced the quote scanner and the comment was never truncated.
+  it('does not report a constructor mentioned only in a comment (a-d, g, i-silent)', () => {
+    const { result } = runGuardOverFixtures([
+      {
+        name: 'blinded_line_comment.ts',
+        content: "// new Intl.NumberFormat('en-US');\nexport const nothingHere = 1;\n",
+      },
+      {
+        name: 'blinded_block_comment.ts',
+        content: "/* new Intl.NumberFormat('en-US'); */\nexport const nothingHere = 1;\n",
+      },
+      {
+        name: 'blinded_jsdoc_comment.ts',
+        content: "/**\n * new Intl.NumberFormat('en-US');\n */\nexport const nothingHere = 1;\n",
+      },
+      {
+        name: 'blinded_trailing_comment.ts',
+        content: "const x = 1; // new Intl.NumberFormat('en-US');\n",
+      },
+      {
+        name: 'blinded_multiline_block.ts',
+        content:
+          "/*\nThis explains why new Intl.NumberFormat('en-US') must never appear\noutside format_amount.ts.\n*/\nexport const nothingHere = 1;\n",
+      },
+      {
+        name: 'blinded_escaped_quote_comment.ts',
+        content: "const x = 'a\\'b'; // new Intl.NumberFormat('en-US');\n",
+      },
+    ]);
     expect(result.status).toBe(0);
     expect(result.stderr).toBe('');
   });
 
-  // c1 spec §2 item 2, case (b) — #295's row 2: a single-line `/* … */` block comment is
-  // the only mention of the constructor.
-  it('does not report a constructor mentioned only in a single-line block comment', () => {
-    const violationRel = '.ma017-guard-fixtures/blinded_block_comment.ts';
-    fs.writeFileSync(
-      path.join(fixtureRoot, 'blinded_block_comment.ts'),
-      "/* new Intl.NumberFormat('en-US'); */\nexport const nothingHere = 1;\n",
-    );
-    const stubDir = makeStubGit(
-      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
-    );
-    const result = runGuard(envWithStub(stubDir));
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe('');
-  });
-
-  // c1 spec §2 item 2, case (c) — #295's row 3: a JSDoc-style ` * …` continuation line is
-  // the only mention of the constructor, inside a real multi-line block comment.
-  it('does not report a constructor mentioned only in a JSDoc continuation line', () => {
-    const violationRel = '.ma017-guard-fixtures/blinded_jsdoc_comment.ts';
-    fs.writeFileSync(
-      path.join(fixtureRoot, 'blinded_jsdoc_comment.ts'),
-      "/**\n * new Intl.NumberFormat('en-US');\n */\nexport const nothingHere = 1;\n",
-    );
-    const stubDir = makeStubGit(
-      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
-    );
-    const result = runGuard(envWithStub(stubDir));
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe('');
-  });
-
-  // c1 spec §2 item 2, case (d) — #295's row 4: a trailing `//` comment on an unrelated
-  // code line is the only mention of the constructor.
-  it('does not report a constructor mentioned only in a trailing comment on unrelated code', () => {
-    const violationRel = '.ma017-guard-fixtures/blinded_trailing_comment.ts';
-    fs.writeFileSync(
-      path.join(fixtureRoot, 'blinded_trailing_comment.ts'),
-      "const x = 1; // new Intl.NumberFormat('en-US');\n",
-    );
-    const stubDir = makeStubGit(
-      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
-    );
-    const result = runGuard(envWithStub(stubDir));
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe('');
-  });
-
-  // c1 spec §2 item 2, case (e) — a real constructor with an unrelated trailing comment on
-  // the same line must still be reported; stripping the comment must not blank the code
-  // that precedes it.
-  it('reports a real constructor even with a trailing comment on the same line', () => {
-    const violationRel = '.ma017-guard-fixtures/real_with_trailing_comment.ts';
-    fs.writeFileSync(
-      path.join(fixtureRoot, 'real_with_trailing_comment.ts'),
-      "new Intl.NumberFormat('en-US'); // formats a money string\n",
-    );
-    const stubDir = makeStubGit(
-      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
-    );
-    const result = runGuard(envWithStub(stubDir));
+  // c1 spec §2 item 2, cases (e), (f), (i-reported) — one spawn over three fixtures, all of
+  // which must still be reported; stripping must never blank real code. (e) a real
+  // constructor with an unrelated trailing comment on the same line. (f) the quote-state
+  // exerciser: a `//` inside a string literal (a URL) must not truncate the real
+  // constructor that follows on the same line. (i-reported) an escaped quote followed by a
+  // real constructor with no comment at all — the escape fix must not eat the code after it.
+  it('reports a real constructor despite a trailing comment, a quoted `//`, or an escaped quote (e, f, i-reported)', () => {
+    const { result, relPaths } = runGuardOverFixtures([
+      {
+        name: 'real_with_trailing_comment.ts',
+        content: "new Intl.NumberFormat('en-US'); // formats a money string\n",
+      },
+      {
+        name: 'quote_state.ts',
+        content: "const u = 'https://x'; new Intl.NumberFormat('en-US');\n",
+      },
+      {
+        name: 'escaped_quote_then_constructor.ts',
+        content: "const x = 'a\\'b'; new Intl.NumberFormat('en-US');\n",
+      },
+    ]);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      `${violationRel}:1: constructs an \`Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
-    );
-  });
-
-  // c1 spec §2 item 2, case (f) — the quote-state exerciser: a `//` inside a string
-  // literal (a URL) must not truncate the real constructor call that follows it on the
-  // same line.
-  it('reports a real constructor after a string literal containing `//`', () => {
-    const violationRel = '.ma017-guard-fixtures/quote_state.ts';
-    fs.writeFileSync(
-      path.join(fixtureRoot, 'quote_state.ts'),
-      "const u = 'https://x'; new Intl.NumberFormat('en-US');\n",
-    );
-    const stubDir = makeStubGit(
-      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
-    );
-    const result = runGuard(envWithStub(stubDir));
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      `${violationRel}:1: constructs an \`Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
-    );
-  });
-
-  // c1 spec §2 item 2, case (g) — a multi-line `/* … */` block, without a per-line `*`
-  // prefix, carrying the constructor text across an interior line must stay silent.
-  it('does not report a constructor mentioned inside a multi-line block comment', () => {
-    const violationRel = '.ma017-guard-fixtures/blinded_multiline_block.ts';
-    fs.writeFileSync(
-      path.join(fixtureRoot, 'blinded_multiline_block.ts'),
-      "/*\nThis explains why new Intl.NumberFormat('en-US') must never appear\noutside format_amount.ts.\n*/\nexport const nothingHere = 1;\n",
-    );
-    const stubDir = makeStubGit(
-      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
-    );
-    const result = runGuard(envWithStub(stubDir));
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe('');
+    for (const relPath of relPaths) {
+      expect(result.stderr).toContain(
+        `${relPath}:1: constructs an \`Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
+      );
+    }
   });
 
   // c1 spec §2 item 2, case (h) — proves pass 2's blinding directly
-  // (validate-money-formatting.js:108-118) rather than transitively through
+  // (validate-money-formatting.js:156-166) rather than transitively through
   // src/utils/format_amount.ts. The shipped script is copied to a throwaway fakeroot so
   // its own `__dirname`-derived `root` (script `:17`) resolves there, and a
   // fakeroot/src/utils/format_amount.ts fixture — whose only constructor text is a

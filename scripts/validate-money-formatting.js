@@ -84,8 +84,10 @@ function firstConstructorLine(relPath) {
 // Comment stripping runs before matching, so prose *about* a constructor cannot mimic one and
 // a constructor hidden inside a comment cannot escape detection. Block-comment state carries
 // across lines; quote state (`'`, `"`, backtick) is tracked within a line so a `//` inside a
-// string literal (e.g. a URL) does not truncate real code. Lines are blanked, not deleted, so
-// every line's index — and therefore every reported line number — is unchanged.
+// string literal (e.g. a URL) does not truncate real code. A backslash inside a quote escapes
+// the next character, so an escaped quote (`\'`) cannot close the string early and desync real
+// code after it from what it actually is. Lines are blanked, not deleted, so every line's
+// index — and therefore every reported line number — is unchanged.
 function stripComments(lines) {
   let inBlockComment = false;
   return lines.map((line) => {
@@ -102,6 +104,11 @@ function stripComments(lines) {
       }
       if (quote) {
         result += ch;
+        if (ch === '\\' && i + 1 < line.length) {
+          result += line[i + 1];
+          i++;
+          continue;
+        }
         if (ch === quote) quote = null;
         continue;
       }
