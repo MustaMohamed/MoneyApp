@@ -71,15 +71,15 @@ function runGuard(env: NodeJS.ProcessEnv, timeout?: number): SpawnSyncReturns<st
   return runGuardAt(scriptPath, env, timeout);
 }
 
-beforeAll(() => {
+// One cleanup lifetime for the whole fixture surface: the fixture root and the stub `git`
+// dirs are both per-case (beforeEach/afterEach), so a crashed case leaves nothing behind
+// for the next one to trip over — the reason the `.gitignore` line for this dir exists.
+beforeEach(() => {
   fs.mkdirSync(fixtureRoot, { recursive: true });
 });
 
-afterAll(() => {
-  fs.rmSync(fixtureRoot, { recursive: true, force: true });
-});
-
 afterEach(() => {
+  fs.rmSync(fixtureRoot, { recursive: true, force: true });
   for (const dir of stubDirs.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
