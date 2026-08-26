@@ -1,6 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
 
+import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -44,14 +45,6 @@ export function resolveDetailViewState(
   if (refreshError && hasTransaction) return 'refreshErrorWithData';
   return hasTransaction ? 'ready' : 'loading';
 }
-
-const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  [AccountType.Bank]: Strings.typeBank,
-  [AccountType.SmartWallet]: Strings.typeSmartWallet,
-  [AccountType.PhysicalWallet]: Strings.typePhysicalWallet,
-  [AccountType.PhysicalSavings]: Strings.typePhysicalSavings,
-  [AccountType.CreditCard]: Strings.typeCreditCard,
-};
 
 const TYPE_BADGE: Record<TransactionType, string> = {
   [TransactionType.Expense]: Strings.typeBadgeExpense,

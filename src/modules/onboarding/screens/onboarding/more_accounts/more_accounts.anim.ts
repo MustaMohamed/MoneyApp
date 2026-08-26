@@ -19,9 +19,16 @@ const RISE_DELAYS_MS = [0, 120] as const;
  *
  * The builder chain moved to `onboarding_rise.ts`, the shared home this file's
  * own note nominated for it once N4 became the third consumer.
+ *
+ * `hasAccounts` threads through as `useFirstMountEntering`'s `claim` (#247):
+ * E3, the empty state, renders with `hasAccounts=false` and claims nothing,
+ * so the `'more_accounts'` key stays unclaimed through it; the first populated
+ * render — a fresh mount via `router.replace`, `add_account.hook.ts:62` —
+ * still gets to animate instead of finding the key already burned by a screen
+ * that never showed the list at all.
  */
-export function useMoreAccountsAnim() {
-  const isFirstMount = useFirstMountEntering('more_accounts');
+export function useMoreAccountsAnim(hasAccounts: boolean) {
+  const isFirstMount = useFirstMountEntering('more_accounts', hasAccounts);
   const reduceMotion = useReducedMotion();
   const play = isFirstMount && !reduceMotion;
 

@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { HeroShell } from '@/components/ui/hero_shell';
 import { StatusBadge } from '@/components/ui/status_badge';
+import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
@@ -15,14 +16,6 @@ import type { Account } from '../../../../store/account.store';
 import { buildHeroCaption } from './balance_hero.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const TYPE_LABEL: Record<AccountType, string> = {
-  [AccountType.Bank]: Strings.typeBank,
-  [AccountType.SmartWallet]: Strings.typeSmartWallet,
-  [AccountType.PhysicalWallet]: Strings.typePhysicalWallet,
-  [AccountType.PhysicalSavings]: Strings.typePhysicalSavings,
-  [AccountType.CreditCard]: Strings.typeCreditCard,
-};
 
 const TYPE_ICON: Record<AccountType, IconName> = {
   [AccountType.Bank]: 'bank',
@@ -49,7 +42,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
             {Strings.accountDetailBalance}
           </Typography>
           <StatusBadge
-            label={TYPE_LABEL[account.type]}
+            label={ACCOUNT_TYPE_LABELS[account.type]}
             color={color}
             icon={TYPE_ICON[account.type]}
             size="sm"

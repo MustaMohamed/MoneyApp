@@ -189,7 +189,7 @@ export const Size = {
   budgetRuleRowMinHeight: ms(62),
   budgetNamedRing: ms(34),
   budgetRingStroke: ms(3),
-  budgetCategoryRowHeight: ms(58),
+  listRowHeight: ms(58),
   budgetNamedRowHeight: ms(44),
   budgetColdContentHeight: ms(320),
   budgetCopyPreviewRowHeight: ms(54),

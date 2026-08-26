@@ -1,7 +1,6 @@
 import type { ViewStyle } from 'react-native';
 
-import { AccountType } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
+import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Size, Spacing } from '@/constants/theme';
 import {
   DEFAULT_ACCOUNT_COLOR,
@@ -21,7 +20,7 @@ import { ms } from '@/utils/responsive';
  */
 
 /** mockup.html:619, `.lrow { min-height: var(--size-budget-category-row-height) }`. */
-export const N3_ROW_MIN_HEIGHT = Size.budgetCategoryRowHeight;
+export const N3_ROW_MIN_HEIGHT = Size.listRowHeight;
 
 /**
  * The whole geometry of a row — mockup.html:617-620, `.lrow`.
@@ -64,19 +63,6 @@ export const N3_HEADLINE_LINE_HEIGHT_RATIO = 1.12;
 export const N3_HEADLINE_TRACKING_EM = BROADSHEET_HEADLINE_TRACKING_EM;
 
 /**
- * The row's type label — mockup.html:624, `.lrow .ty`. Lives beside the
- * resolvers because `resolveAccountRowA11yLabel` needs it and a resolver must
- * not import a component.
- */
-export const N3_ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  [AccountType.Bank]: Strings.typeBank,
-  [AccountType.SmartWallet]: Strings.typeSmartWallet,
-  [AccountType.PhysicalWallet]: Strings.typePhysicalWallet,
-  [AccountType.PhysicalSavings]: Strings.typePhysicalSavings,
-  [AccountType.CreditCard]: Strings.typeCreditCard,
-};
-
-/**
  * The dot's fill — mockup.html:574, `.dot`. `null` and any hex outside the 32
  * both fall back to `DEFAULT_ACCOUNT_COLOR`.
  *
@@ -104,5 +90,5 @@ export function resolveAccountRowDotColor(color: string | null): string {
  */
 export function resolveAccountRowA11yLabel(account: Account): string {
   const { value, code } = formatCurrencyParts(account.current_balance, account.currency);
-  return `${account.name}, ${N3_ACCOUNT_TYPE_LABELS[account.type]}, ${value} ${code}`;
+  return `${account.name}, ${ACCOUNT_TYPE_LABELS[account.type]}, ${value} ${code}`;
 }

@@ -8,6 +8,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing } from '@/constants/theme';
@@ -34,12 +35,15 @@ const TYPE_ORDER: AccountType[] = [
   AccountType.CreditCard,
 ];
 
+// Precomputed at module load, not per render — derived FROM ACCOUNT_TYPE_LABELS
+// so this stays the single source for the text, just uppercased for the section
+// rail (mockup's section headers are all-caps; the label map isn't).
 const SECTION_TITLES: Record<AccountType, string> = {
-  [AccountType.Bank]: Strings.typeBank.toUpperCase(),
-  [AccountType.SmartWallet]: Strings.typeSmartWallet.toUpperCase(),
-  [AccountType.PhysicalWallet]: Strings.typePhysicalWallet.toUpperCase(),
-  [AccountType.PhysicalSavings]: Strings.typePhysicalSavings.toUpperCase(),
-  [AccountType.CreditCard]: Strings.typeCreditCard.toUpperCase(),
+  [AccountType.Bank]: ACCOUNT_TYPE_LABELS[AccountType.Bank].toUpperCase(),
+  [AccountType.SmartWallet]: ACCOUNT_TYPE_LABELS[AccountType.SmartWallet].toUpperCase(),
+  [AccountType.PhysicalWallet]: ACCOUNT_TYPE_LABELS[AccountType.PhysicalWallet].toUpperCase(),
+  [AccountType.PhysicalSavings]: ACCOUNT_TYPE_LABELS[AccountType.PhysicalSavings].toUpperCase(),
+  [AccountType.CreditCard]: ACCOUNT_TYPE_LABELS[AccountType.CreditCard].toUpperCase(),
 };
 
 export default function DashboardScreen() {
