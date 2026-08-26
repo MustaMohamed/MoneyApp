@@ -36,9 +36,10 @@ interface RatePreviewInput {
  * rather than catching them: an amount that fails `parsePositiveDecimal`
  * (0.004 is positive and rounds to 0, which throws), a missing destination
  * for a type that requires one, and a missing rate when either side is USD.
- * The fourth — §3.4's output guard, unbounded now that rate text carries no
- * upper bound of its own — cannot be mirrored the same way: it fires on the
- * computed result, not the typed inputs, so it is caught instead.
+ * The fourth — the resolver's output guard (ADR: parse-floor-money-only),
+ * unbounded now that rate text carries no upper bound of its own — cannot be
+ * mirrored the same way: it fires on the computed result, not the typed
+ * inputs, so it is caught instead.
  */
 export function useTransactionRatePreview(input: RatePreviewInput): number | undefined {
   const { mode, type, sourceCurrency, destinationCurrency, exchangeRate } = input;
@@ -69,8 +70,9 @@ export function useTransactionRatePreview(input: RatePreviewInput): number | und
         exchangeRate: rate,
       }).egpAmount;
     } catch (error) {
-      // §3.4: the output guard on a typed amount too large to store. Never a
-      // render crash — the rate row falls back to its existing placeholder.
+      // The output guard (ADR: parse-floor-money-only) on a typed amount too
+      // large to store. Never a render crash — the rate row falls back to
+      // its existing placeholder.
       if (error instanceof TransactionAmountError) return undefined;
       throw error;
     }

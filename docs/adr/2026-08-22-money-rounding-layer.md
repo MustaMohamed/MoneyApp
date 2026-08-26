@@ -188,21 +188,34 @@ this ADR's class-A rule already in force.
 mechanism (Layla's input-floor ruling) enforced inside `parseNonNegativeDecimal` /
 `parsePositiveDecimal` (`src/utils/parse_decimal.ts`), which `add_account.schema.ts` already
 imported before this ticket. `accounts.*` therefore inherits the floor for free, through the shared
-parser, with no change to this file. `add_account.schema.ts` routes five fields through
-`parseNonNegativeDecimal`: `balance` (`:13`), `credit_limit` (`:46`), `min_payment` (`:64`),
-`due_day` (`:87`), `apr` (`:110`). `'0.005'` in balance, credit_limit or min_payment now fails the
-schema's own check with `Strings.errAmountInvalid`, reachable and legible rather than the pre-diff
-silent `0`. `due_day` is unaffected — it already required an integer in `[1, 31]`, so `< 1` was
-rejected before this floor existed and still is. `apr` is a percentage, not money, and its
-behaviour genuinely changes: on `main`, `parseNonNegativeDecimal` only checked `>= 0`, so
-`apr: '0.005'` (a 0.005% rate) parsed and passed; after the floor it fails with
-`Strings.errAmountInvalid`. Benign in practice — no real card carries a 0.005% APR, and `0%` still
-parses and passes, both before and after — but it is a real, if inconsequential, behaviour change
-this PR causes outside its stated scope. The broader problem this is one instance of — the shared
-floor leaking into non-money parsers — is filed as **#305**; not re-argued here. `toNewAccountInput`'s
-`optionalAmount` null-fallback branch stays unreachable, since it and the schema share
-`parseNonNegativeDecimal`, so a string the schema accepted always re-parses successfully in the
-mapper.
+parser, with no change to this file. `add_account.schema.ts` routed five fields through
+`parseNonNegativeDecimal` at the time this ADR was written: `balance` (`:13`), `credit_limit`
+(`:46`), `min_payment` (`:64`), `due_day` (`:87`), `apr` (`:110`). `'0.005'` in balance,
+credit_limit or min_payment fails the schema's own check with `Strings.errAmountInvalid`,
+reachable and legible rather than the pre-diff silent `0` — that part is still true. The next two
+sentences are not:
+
+> `due_day` is unaffected — it already required an integer in `[1, 31]`, so `< 1` was rejected
+> before this floor existed and still is. `apr` is a percentage, not money, and its behaviour
+> genuinely changes: on `main`, `parseNonNegativeDecimal` only checked `>= 0`, so `apr: '0.005'`
+> (a 0.005% rate) parsed and passed; after the floor it fails with `Strings.errAmountInvalid`.
+
+**Amended by W2E (2026-08-26), closing the #305 pointer this paragraph opened —
+`docs/adr/2026-08-26-parse-floor-money-only.md`.** `due_day` and `apr` are not money and no longer
+route through `parseNonNegativeDecimal`: both move to `parseDecimalText`, so the floor described
+above now applies to exactly three fields — `balance`, `credit_limit`, `min_payment`. `due_day`'s
+observable behaviour is unchanged by that move, so the quoted sentence's *conclusion* still holds
+on a different path (an out-of-range or non-integer value still fails with the same
+`Strings.errDueDayRange`). `apr`'s does not: the quoted sentence's "after the floor it fails" is now
+false — `apr: '0.005'` is accepted again, quantized to `0` at 2dp half-even
+(`account_form.helpers.ts`'s `optionalPercent`, not the shared `optionalAmount` below). Benign in
+practice either way — no real card carries a 0.005% APR, and `0%` parses and passes throughout —
+but "genuinely changes" no longer describes what happens on `main` today. The broader problem this
+was one instance of — the shared floor leaking into non-money parsers — was filed as **#305** and is
+now closed; not re-argued here. `toNewAccountInput`'s `optionalAmount` null-fallback branch stays
+unreachable for the three fields still on `parseNonNegativeDecimal`, since they and the schema
+share it, so a string the schema accepted always re-parses successfully in the mapper; `apr` now
+goes through the sibling `optionalPercent` mapper instead, on the same principle.
 
 **Addendum (MA-019): two write paths on one column, two classes.** §5 says above:
 

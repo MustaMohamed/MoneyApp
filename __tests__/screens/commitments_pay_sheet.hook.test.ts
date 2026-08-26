@@ -26,6 +26,7 @@ import { usePaySheet } from '@/modules/commitments/screens/commitments/detail/co
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
@@ -1017,6 +1018,38 @@ describe('usePaySheet', () => {
       });
 
       expect(result.current.state.convertedTotal).toBeUndefined();
+    });
+
+    // P8 c1 finding item 6: the submit-time half of the overflow path, which
+    // the preview test above only proves does not crash. The schema's
+    // amountText refine requires only `parsePositiveDecimal(s) !==
+    // undefined` — a huge finite number clears it — so submission reaches
+    // markAsPaid, which is where the real resolver's TransactionAmountError
+    // actually fires (commitment.repository.ts -> resolveCommitmentPaymentAmounts).
+    // Asserts store/banner STATE, not message text: field validation passes,
+    // the existing generic banner surfaces, and the sheet neither closes nor
+    // resets — the same "no write" evidence the failed-save test above uses.
+    it('an oversized amount clears field validation; a markAsPaid rejection surfaces the banner with no write', async () => {
+      mockAccounts = [egpAccount];
+      mockMarkAsPaid.mockRejectedValueOnce(
+        new TransactionAmountError('Computed amount exceeds the storable range', 'unstorable'),
+      );
+      const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+      await act(() => {
+        result.current.form.setValue('account_id', egpAccount.id);
+        result.current.form.setValue('amountText', '99999999999999999999');
+        result.current.form.setValue('paid_date', '2026-05-20');
+      });
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+
+      expect(result.current.form.getFieldState('amountText').error).toBeUndefined();
+      expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+      expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(false);
+
+      await act(() => rerender(undefined));
+      expect(result.current.state.saveError).toBe(true);
     });
 
     // The same amount at a rate that leaves it on the floor saves. Without this

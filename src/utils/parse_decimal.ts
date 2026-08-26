@@ -3,12 +3,16 @@ import { MIN_MONEY_AMOUNT } from '@/utils/money';
 const DECIMAL_PATTERN = /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/;
 
 /**
- * Pattern + finite parse only — no money floor. For a value that must reach
- * a schema `.refine` as typed, so the field renders its own floor message
- * against the raw parsed value (e.g. the transaction amount hooks, which
- * compare this output to `MIN_MONEY_AMOUNT` at the field's own validator).
- * Every money text field that has no such refine in front of it uses
- * `parseNonNegativeDecimal` or `parsePositiveDecimal` below instead.
+ * Pattern + finite parse only — no money floor. Two shapes reach this: a
+ * money value that must still clear a schema `.refine` as typed, so the
+ * field renders its own floor message against the raw parsed value (e.g.
+ * the transaction amount hooks, which compare this output to
+ * `MIN_MONEY_AMOUNT` at the field's own validator) — every money text field
+ * with no such refine in front of it uses `parseNonNegativeDecimal` or
+ * `parsePositiveDecimal` below instead; and every non-money numeric text
+ * field, direct — APR, due_day, the transaction filter and search amounts,
+ * and (via `parseRateText` below) the exchange rate. The money floor never
+ * applied to that second class (ADR: parse-floor-money-only).
  */
 export function parseDecimalText(value: string): number | undefined {
   const normalized = value.trim();

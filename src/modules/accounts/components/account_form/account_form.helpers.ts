@@ -38,10 +38,10 @@ function optionalAmount(value: string | undefined): number | null {
 /**
  * An optional percentage (APR): blank or unparseable falls back to null.
  * Not money — no floor — so it parses through `parseDecimalText`, then
- * quantizes at the stated 2dp half-even precision (spec §3.3, reusing
- * `roundMoney` as the quantizer). `0.005` → `0` is that stated rounding
- * rule, not a silent bump: `0` stays a valid, explicit APR (promotional
- * cards).
+ * quantizes at the stated 2dp half-even precision (ADR: parse-floor-money-only,
+ * reusing `roundMoney` as the quantizer). `0.005` → `0` is that stated
+ * rounding rule, not a silent bump: `0` stays a valid, explicit APR
+ * (promotional cards).
  */
 function optionalPercent(value: string | undefined): number | null {
   if (!value?.trim()) return null;

@@ -60,13 +60,27 @@ describe('transaction form helpers', () => {
     );
   });
 
-  // §3.4: never `error.message` — the resolver's other four throws are
-  // hardcoded domain literals, not Strings keys, so echoing `.message` would
-  // turn them into user copy the moment schema and resolver disagree. Bound
-  // to the constant, with an arbitrary message, to prove the mapping ignores it.
-  it('maps a TransactionAmountError to the §3.4 constant, never its own message', () => {
-    expect(resolveTransactionSaveError(new TransactionAmountError('arbitrary internal text'))).toBe(
-      Strings.addTxErrAmountUnstorable,
-    );
+  // P8 c1 finding item 1: the mapper matches the discriminant, not the error
+  // class — only `reason === 'unstorable'` (the resolver's output guard)
+  // maps to the named string, never `error.message`. Both directions
+  // asserted: an arbitrary message is ignored on the discriminated cause,
+  // and an undiscriminated TransactionAmountError — every other throw in
+  // transaction_amounts.ts (missing destination, non-positive amount,
+  // missing rate) — falls through to the generic banner rather than
+  // surfacing an internal domain literal as user copy.
+  it('maps the discriminated output-guard cause to the named constant, ignoring its own message', () => {
+    expect(
+      resolveTransactionSaveError(
+        new TransactionAmountError('arbitrary internal text', 'unstorable'),
+      ),
+    ).toBe(Strings.addTxErrAmountUnstorable);
+  });
+
+  it('falls through an undiscriminated TransactionAmountError to the generic banner', () => {
+    expect(
+      resolveTransactionSaveError(
+        new TransactionAmountError('A positive USD exchange rate is required'),
+      ),
+    ).toBe(Strings.transactionSaveError);
   });
 });

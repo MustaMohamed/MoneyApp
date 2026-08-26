@@ -34,10 +34,10 @@ import { usePaySheetState } from './pay_sheet.state';
  * the schema passes its own `data` fields, the preview passes what it watches.
  * Only the shared logic lives here.
  *
- * §3.4: the resolver's output guard (a typed amount too large to store) is
- * caught here too, alongside the input-side conditions above — never a
- * render crash, and this is the one place that would otherwise duplicate the
- * resolver's own math to detect it upfront.
+ * The resolver's output guard (ADR: parse-floor-money-only — a typed amount
+ * too large to store) is caught here too, alongside the input-side
+ * conditions above — never a render crash, and this is the one place that
+ * would otherwise duplicate the resolver's own math to detect it upfront.
  */
 function deriveResolution(
   commitment: Commitment | undefined,
