@@ -3,24 +3,27 @@
  *
  * RuleTester cannot run under this repo's jest: oxlint is ESM and depends on
  * `import.meta.url` plus native (Rust) bindings jest's CJS transform cannot host — H1 at
- * P5. This suite instead drives the real `oxlint` CLI as a subprocess, over its
- * stdout/exit-code contract, the same way `npm run lint` runs it.
+ * P5. This suite instead drives the real `oxlint` binary as a subprocess, over its
+ * stdout/exit-code contract — `node_modules/.bin/oxlint` directly, the same binary
+ * `npm run lint` invokes (measured: going through `npx oxlint` instead costs +322ms/spawn
+ * for a resolve this repo's own lint script never pays).
  *
  * Fixtures are written at test time, never tracked: a tracked fixture would enter
  * `npm run typecheck` (tsconfig's `**\/*.ts` has no exclude), `oxfmt --check`, and the
  * repo's own lint count. The first attempt at this suite put fixtures in a gitignored
  * `<repoRoot>/.w1d-rule-fixtures/`, mirroring `.ma017-guard-fixtures/`'s pattern
  * (`.gitignore:73`) — measured to fail: oxlint 1.77.0's file walker respects `.gitignore`
- * regardless of `--no-ignore` (confirmed by toggling the entry alone; `--help` documents
- * `--no-ignore` as covering only `.eslintignore` / `--ignore-path` / `--ignore-pattern`,
- * never VCS ignore files, and there is no flag that does). Fixtures instead live under a
- * fresh `os.tmpdir()` directory per test — outside the repo tree entirely, so nothing needs
- * ignoring and no walker exclusion applies — created `beforeEach`, removed `afterEach`,
- * exactly how this suite's sibling (validate_money_formatting.test.ts) already places its
- * ephemeral `git`-stub directories.
+ * unconditionally (confirmed by toggling the entry alone; `--help` documents `--no-ignore`
+ * as covering only `.eslintignore` / `--ignore-path` / `--ignore-pattern`, never VCS ignore
+ * files, and there is no flag that does — so `--no-ignore` is dropped below too, it never
+ * did anything for a tmpdir target). Fixtures instead live under a fresh `os.tmpdir()`
+ * directory per test, precisely BECAUSE that walker respects `.gitignore` unconditionally:
+ * a directory outside the repo has no `.gitignore` ancestry to be subject to it at all —
+ * created `beforeEach`, removed `afterEach`, exactly how this suite's sibling
+ * (validate_money_formatting.test.ts) already places its ephemeral `git`-stub directories.
  *
- * One spawn over the whole fixture directory, `-c <fixture config> --no-ignore -f json
- * <fixtureRoot>`, asserts the EXACT set of `(filename, labels[0].span.line, code)` — the
+ * One spawn over the whole fixture directory, `-c <fixture config> -f json <fixtureRoot>`,
+ * asserts the EXACT set of `(filename, labels[0].span.line, code)` — the
  * `-f json` diagnostic shape measured directly: `code` is `moneyapp(font-size-pairs-
  * line-height)` (oxlint's `plugin(rule)` form, not the config's `plugin/rule` slash form),
  * and the reported line is `labels[0].span.line`. `number_of_files` is asserted equal to
@@ -48,6 +51,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const repoRoot = path.join(__dirname, '..', '..');
+const oxlintBin = path.join(repoRoot, 'node_modules', '.bin', 'oxlint');
 const pluginPath = path.join(repoRoot, 'scripts', 'oxlint-plugin-moneyapp.js');
 const repoConfigPath = path.join(repoRoot, '.oxlintrc.json');
 const RULE_CODE = 'moneyapp(font-size-pairs-line-height)';
@@ -62,9 +66,11 @@ interface Fixture {
 // Invalid (7): inline unpaired · array-with-identifier (Decision 1: array members never
 // satisfy pairing) · module-level constant unpaired · numeric lineHeight · ms() lineHeight
 // · fontSize line carrying a trailing comment (L6, proves AST detection over raw text) · a
-// multi-line reflowed object (L6). Valid (4): the lineHeightFor pairing · the
-// FIELD_MESSAGE_TEXT_LINE_HEIGHT carve-out (a) · a nav-option key object, carve-out (b) ·
-// an object with no fontSize at all.
+// multi-line reflowed object (L6). Valid (6): the lineHeightFor pairing · the
+// FIELD_MESSAGE_TEXT_LINE_HEIGHT carve-out (a) · carve-out (b), one fixture per kept
+// NAV_OPTION_STYLE_KEYS entry (headerTitleStyle, headerLargeTitleStyle, tabBarLabelStyle —
+// P8 trimmed the set to these three TextStyle-capable keys) · an object with no fontSize
+// at all.
 const FIXTURES: Fixture[] = [
   {
     name: 'inline_unpaired.ts',
@@ -112,9 +118,19 @@ const FIXTURES: Fixture[] = [
     content: 'export const style = { fontSize: 14, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT };\n',
   },
   {
-    name: 'nav_option_key.ts',
+    name: 'nav_option_header_title_style.ts',
     content:
       "export const screenOptions = {\n  headerTitleStyle: { fontFamily: 'Sora', fontSize: 17 },\n};\n",
+  },
+  {
+    name: 'nav_option_header_large_title_style.ts',
+    content:
+      "export const screenOptions = {\n  headerLargeTitleStyle: { fontFamily: 'Sora', fontSize: 24 },\n};\n",
+  },
+  {
+    name: 'nav_option_tab_bar_label_style.ts',
+    content:
+      "export const screenOptions = {\n  tabBarLabelStyle: { fontFamily: 'Inter', fontSize: 11 },\n};\n",
   },
   {
     name: 'no_font_size.ts',
@@ -135,12 +151,32 @@ interface OxlintJsonOutput {
 }
 
 function runOxlint(args: string[]): OxlintJsonOutput {
-  const result = spawnSync('npx', ['oxlint', ...args], {
+  const result = spawnSync(oxlintBin, args, {
     cwd: repoRoot,
     encoding: 'utf8',
     timeout: 30000,
   });
-  return JSON.parse(result.stdout) as OxlintJsonOutput;
+  // `result.error` only covers the child process failing to spawn at all (bad binary path,
+  // permissions) — not the failure this guards, which is a real spawn that runs and exits
+  // non-JSON. Measured: a plugin syntax error makes oxlint print "Failed to load JS
+  // plugin: ..." plus the underlying SyntaxError and stack to STDOUT as plain text (not
+  // stderr, and not `-f json`'s shape) and exit 1; `result.stdout` is non-empty, so a bare
+  // `!result.stdout` check would not catch it either. `JSON.parse` throwing is the only
+  // reliable signal — wrap it and surface both streams, so a failure here reads as
+  // oxlint's real message instead of jest's opaque `Unexpected token ... is not valid
+  // JSON`. Mirrors scripts/validate-money-formatting.js:45-52's own
+  // error-before-`stdout`-use guard, adapted to a failure mode measured on THIS binary.
+  if (result.error) {
+    throw new Error(`oxlint failed to spawn: ${result.error.message}`);
+  }
+  try {
+    return JSON.parse(result.stdout) as OxlintJsonOutput;
+  } catch (cause) {
+    throw new Error(
+      `oxlint did not return valid JSON (exit ${String(result.status)}).\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
+      { cause },
+    );
+  }
 }
 
 let fixtureRoot: string;
@@ -170,7 +206,6 @@ describe('oxlint-plugin-moneyapp.js — font-size-pairs-line-height (W1D c2, #23
     const output = runOxlint([
       '-c',
       path.join(fixtureRoot, 'oxlintrc.fixture.json'),
-      '--no-ignore',
       '-f',
       'json',
       fixtureRoot,
@@ -193,7 +228,6 @@ describe('oxlint-plugin-moneyapp.js — font-size-pairs-line-height (W1D c2, #23
     const output = runOxlint([
       '-c',
       repoConfigPath,
-      '--no-ignore',
       '-f',
       'json',
       path.join(fixtureRoot, 'inline_unpaired.ts'),
