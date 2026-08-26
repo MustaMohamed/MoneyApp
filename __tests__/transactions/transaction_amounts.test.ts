@@ -227,7 +227,7 @@ describe('resolveTransactionAmounts', () => {
           destinationCurrency: Currency.USD,
           exchangeRate: 1e-16,
         }),
-      ).toThrow(TransactionAmountError);
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
     });
 
     // The pre-existing hole this guard also closes: a huge typed amount was
@@ -241,7 +241,7 @@ describe('resolveTransactionAmounts', () => {
           sourceCurrency: Currency.USD,
           exchangeRate: 1000,
         }),
-      ).toThrow(TransactionAmountError);
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
     });
 
     // roundMoney(MAX_SAFE_INTEGER) is exact, so the boundary itself must not
@@ -416,7 +416,7 @@ describe('resolveCommitmentPaymentAmounts', () => {
           accountCurrency: Currency.USD,
           exchangeRate: 1e-16,
         }),
-      ).toThrow(TransactionAmountError);
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
     });
 
     it('a huge amount multiplied by the rate throws on the egpAmount leg', () => {
@@ -427,7 +427,7 @@ describe('resolveCommitmentPaymentAmounts', () => {
           accountCurrency: Currency.EGP,
           exchangeRate: 1000,
         }),
-      ).toThrow(TransactionAmountError);
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
     });
 
     it('an amount exactly at MAX_SAFE_INTEGER does not throw', () => {
