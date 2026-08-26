@@ -15,6 +15,7 @@ import {
 } from '@/modules/transactions/domain/transaction_amounts';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { parseRequiredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -348,11 +349,15 @@ export function usePaySheet(
     setSaveError(false);
     try {
       await markAsPaid(payment.id, {
-        // Both `??` fallbacks are unreachable once the schema has passed —
-        // kept because deleting them costs a cast or a non-null assertion.
-        amount_paid: parsePositiveDecimal(data.amountText) ?? Number.NaN,
+        // A schema/submit desync on this field now reports through
+        // MoneyTextMappingError instead of fabricating a NaN — caught below
+        // like any other failure and surfaced as this sheet's existing
+        // save-error banner (spec §3.4/§4, W2E).
+        amount_paid: parseRequiredMoneyText(data.amountText, 'amountText'),
         account_id: data.account_id,
         paid_date: data.paid_date,
+        // This `??` fallback is unreachable once the schema has passed —
+        // kept because deleting it costs a cast or a non-null assertion.
         exchange_rate_snapshot: requiresRate
           ? (parseRateText(data.exchange_rate ?? '') ?? rate)
           : undefined,

@@ -3,6 +3,8 @@ import {
   isTypeableMoneyText,
   maskFieldText,
   maskMoneyFieldText,
+  MoneyTextMappingError,
+  parseRequiredMoneyText,
 } from '@/utils/money_text';
 import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
 
@@ -323,4 +325,33 @@ describe('formatStoredMoneyText invariants', () => {
       }
     }
   });
+});
+
+// W2E c2, §4/§8.7. Replaces the `parsePositiveDecimal(x) ?? Number.NaN`
+// sentinel four submit paths shared: schema and submit disagreeing must
+// report, never fabricate a value the store then persists as-is.
+describe('parseRequiredMoneyText', () => {
+  it.each([
+    ['0.01', 0.01],
+    ['50', 50],
+    ['1234.56', 1234.56],
+  ])('parses %p as %p', (text, expected) => {
+    expect(parseRequiredMoneyText(text, 'amountText')).toBe(expected);
+  });
+
+  // The sentinel this replaces silently produced NaN for every one of these;
+  // this throws instead, with `field` naming which text failed.
+  it.each([[''], ['0'], ['0.005'], ['abc'], ['-5'], ['1e3']])(
+    'throws MoneyTextMappingError on %p, naming the field',
+    (text) => {
+      expect(() => parseRequiredMoneyText(text, 'amountText')).toThrow(MoneyTextMappingError);
+      try {
+        parseRequiredMoneyText(text, 'amountText');
+        throw new Error('expected parseRequiredMoneyText to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(MoneyTextMappingError);
+        expect((error as MoneyTextMappingError).field).toBe('amountText');
+      }
+    },
+  );
 });

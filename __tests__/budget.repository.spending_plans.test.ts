@@ -2,7 +2,10 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { BudgetGroup, CategoryType } from '@/constants/enums';
 import type { SpendingPlan, SpendingPlanCategory } from '@/modules/budget/entities/budget.entity';
-import { BudgetRepository } from '@/modules/budget/repositories/budget.repository';
+import {
+  BudgetRepository,
+  SpendingPlanValidationError,
+} from '@/modules/budget/repositories/budget.repository';
 
 jest.mock('react-native-uuid', () => ({ v4: jest.fn(() => 'new-plan-id') }));
 jest.mock('@/database/client', () => {
@@ -238,6 +241,31 @@ describe('BudgetRepository spending plans', () => {
         categories: [{ categoryId: 'cat_food', allocatedAmount: -1 }],
       }),
     ).rejects.toThrow('Each allocation must be 0 or at least 0.01');
+
+    expect(setSpendingPlanRow).not.toHaveBeenCalled();
+  });
+
+  // W2E c2, #307's "second half" (§4/§8.8): `validateSpendingPlanInput`
+  // (`:238`) runs `spendingPlanInputSchema.safeParse` before `getDb()` is
+  // even called, so this guard is exercised entirely ahead of the mocked row
+  // functions above -- not vacuous under the M33 sense (tests.md), because a
+  // deleted guard would let a real regression reach those mocks instead of
+  // being caught here. Type asserted, not message text (money.md,
+  // tests.md:13): the sibling rejection tests above pin
+  // `spendingPlanInputSchema`'s own issue text, which this desync is
+  // deliberately not -- `totalAmount` never reaches that schema as `NaN`
+  // today, since the sheet's own `parseRequiredMoneyText` throws first
+  // (W2E c2, spending_plan_sheet.hook.ts).
+  it('rejects a non-finite plan total before writing', async () => {
+    await expect(
+      new BudgetRepository().setSpendingPlan({
+        name: 'Trip',
+        startDate: '2026-07-18',
+        endDate: '2026-07-21',
+        totalAmount: Number.NaN,
+        categories: [{ categoryId: 'cat_food' }],
+      }),
+    ).rejects.toThrow(SpendingPlanValidationError);
 
     expect(setSpendingPlanRow).not.toHaveBeenCalled();
   });

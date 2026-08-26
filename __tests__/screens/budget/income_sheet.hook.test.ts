@@ -4,6 +4,17 @@ import { Strings } from '@/constants/strings';
 import { useIncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet.hook';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
+import { MoneyTextMappingError, parseRequiredMoneyText } from '@/utils/money_text';
+
+// A blanket `jest.mock` would break `formatStoredMoneyText`/`maskFieldText`,
+// which this suite's other tests drive for real (moneyapp-testing skill's
+// mock boundary). Spread the actual module and wrap only the parse this
+// suite needs to desync, so every other test keeps the real implementation.
+jest.mock('@/utils/money_text', () => {
+  const actual = jest.requireActual('@/utils/money_text');
+  return { ...actual, parseRequiredMoneyText: jest.fn(actual.parseRequiredMoneyText) };
+});
+const mockedParseRequiredMoneyText = parseRequiredMoneyText as jest.Mock;
 
 function deferred() {
   let resolve: (() => void) | undefined;
@@ -21,6 +32,7 @@ function deferred() {
 
 beforeEach(() => {
   useIncomeSheetState.getState().reset();
+  mockedParseRequiredMoneyText.mockClear();
 });
 
 describe('useIncomeSheet', () => {
@@ -257,5 +269,28 @@ describe('useIncomeSheet', () => {
     expect(result.current.state.saving).toBe(false);
     expect(result.current.state.yearMonth).toBe('2026-06');
     expect(result.current.state.monthLabel).toBe('June 2026');
+  });
+
+  // W2E c2, §4/§8.7. Wiring test: `incomeFormSchema`'s refine and this
+  // submit callback share `parsePositiveDecimal`, so a real schema/submit
+  // desync is unreachable today -- this proves the wiring by mocking the
+  // helper to throw on text the schema itself accepts. Reds if
+  // `parsePositiveDecimal(validAmountText) ?? Number.NaN` is restored: the
+  // mocked helper would never be called, the store would be called with
+  // NaN, and the assertion below would fail.
+  it('surfaces the save error and does not save on a schema/submit desync', async () => {
+    const setExpectedIncome = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setExpectedIncome });
+    mockedParseRequiredMoneyText.mockImplementationOnce(() => {
+      throw new MoneyTextMappingError('amountText');
+    });
+    useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
+    const { result } = await renderHook(() => useIncomeSheet());
+
+    await act(() => result.current.setAmountText('12000'));
+    await act(async () => result.current.save());
+
+    expect(setExpectedIncome).not.toHaveBeenCalled();
+    expect(result.current.state.errorMessage).toBe(Strings.incomeSheetSaveError);
   });
 });

@@ -110,6 +110,20 @@ describe('BudgetRepository.setExpectedIncome — rounds at the first statement',
   });
 });
 
+// W2E c2, #307's "second half" (§4/§8.8): the row layer already guards a
+// non-finite amount (`budget_month_profiles.ts:27-29`, since #169) -- this is
+// the missing test proving it, on the real column rather than a mock of the
+// function under test.
+describe('BudgetRepository.setExpectedIncome — rejects a non-finite amount before any row is written', () => {
+  it('NaN throws and writes nothing', async () => {
+    const repo = new BudgetRepository();
+
+    await expect(repo.setExpectedIncome('2026-09', Number.NaN)).rejects.toThrow();
+
+    expect(readExpectedIncome('2026-09')).toBeNull();
+  });
+});
+
 describe('BudgetRepository.setBudget — rounds at the first statement', () => {
   // Scenario row 21. Gate: delete the `roundMoney` rebinding (bind
   // `input.limit` straight into `setBudgetRow` again) and this reads back
@@ -136,6 +150,31 @@ describe('BudgetRepository.setBudget — rounds at the first statement', () => {
     await repo.setLimit('cat_food', 500.555, '2026-08');
 
     expect(readLimitAmount('generated-1')).toBe(500.56);
+  });
+});
+
+function countBudgets(): number {
+  const row = realDb.prepare('SELECT COUNT(*) AS count FROM budgets').get() as { count: number };
+  return row.count;
+}
+
+// W2E c2, #307's "second half" (§4/§8.8): the row layer already guards a
+// non-finite limit (`budgets.ts:46-52`) -- this is the missing test proving
+// it, on the real column rather than a mock of the function under test.
+describe('BudgetRepository.setBudget — rejects a non-finite limit before any row is written', () => {
+  it('NaN throws and writes nothing', async () => {
+    const repo = new BudgetRepository();
+
+    await expect(
+      repo.setBudget({
+        categoryId: 'cat_food',
+        name: 'Weekday meals',
+        limit: Number.NaN,
+        yearMonth: '2026-09',
+      }),
+    ).rejects.toThrow();
+
+    expect(countBudgets()).toBe(0);
   });
 });
 
