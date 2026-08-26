@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { Currency } from '@/constants/enums';
 import { TransactionType } from '@/constants/enums';
-import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
+import { parseDecimalText } from '@/utils/parse_decimal';
 
 import type { Transaction } from '../entities/transaction.entity';
 
@@ -149,8 +149,7 @@ export async function getTransactions(
   const trimmed = query.search?.trim();
   const searchParam: string | null = trimmed && trimmed.length > 0 ? trimmed : null;
   const likePattern = searchParam !== null ? `%${escapeLike(searchParam)}%` : null;
-  const numericSearch =
-    searchParam !== null ? (parseNonNegativeDecimal(searchParam) ?? null) : null;
+  const numericSearch = searchParam !== null ? (parseDecimalText(searchParam) ?? null) : null;
   const searchProjection =
     searchParam === null
       ? ''

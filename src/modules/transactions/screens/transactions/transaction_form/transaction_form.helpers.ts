@@ -1,5 +1,6 @@
 import { AccountType, CategoryType, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
 import { toLocalDateString } from '@/utils/format_date';
 
 export interface TransactionFormSemantics {
@@ -72,6 +73,15 @@ export function toTransactionTimestamp(now: Date): { date: string; time: string 
 }
 
 export function resolveTransactionSaveError(error: unknown): string {
+  // §3.4: unconditional, never `error.message`. The resolver's other four
+  // throws are hardcoded domain literals (transaction_amounts.ts), not
+  // `strings.ts` keys — echoing `.message` for any of them would turn an
+  // internal literal into user copy the moment schema and resolver disagree,
+  // the exact assumption `AccountFormMappingError`'s docblock refuses.
+  if (error instanceof TransactionAmountError) {
+    return Strings.addTxErrAmountUnstorable;
+  }
+
   const issues = error && typeof error === 'object' && 'issues' in error ? error.issues : undefined;
   if (!Array.isArray(issues)) {
     return Strings.transactionSaveError;

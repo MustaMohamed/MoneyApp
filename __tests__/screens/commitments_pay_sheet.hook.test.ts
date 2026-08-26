@@ -469,6 +469,10 @@ describe('usePaySheet', () => {
   it.each([
     ['A2-01', '48.6', 48.6],
     ['A2-07', '1,234', 1234],
+    // W2E §3.2 row 8: rate text is unfloored (parseRateText), so a rate below
+    // MIN_MONEY_AMOUNT now accepts — the resolver output guard, not the
+    // parse floor, is what bounds a rate this small from here on.
+    ['A2-09', '0.005', 0.005],
   ] as const)('%s: accepts "%s" and snapshots %p', async (_id, typed, expected) => {
     await submitRate(typed);
 
@@ -990,6 +994,29 @@ describe('usePaySheet', () => {
       expect(result.current.form.getFieldState('amountText').error?.message).toBe(
         Strings.commitmentsPayErrConvertedBelowMin(Currency.EGP),
       );
+    });
+
+    // §3.4's output guard, reached through deriveResolution rather than
+    // mirrored: a typed amount huge enough to overflow the resolver returns
+    // undefined, not a thrown error inside a render. A huge AMOUNT, not a
+    // tiny rate — until c1 step 7 un-floors rate text here (`:46`), a
+    // sub-floor rate still fails `parsePositiveDecimal` before ever reaching
+    // the resolver, which would make a tiny-rate case vacuous. Cross-currency
+    // (USD commitment paid from an EGP account) so convertedTotal is not
+    // undefined for the unrelated reason the same-currency `converts` gate
+    // (pay_sheet.hook.ts:251-259) already produces.
+    it('shows no converted line for an amount that overflows the resolver output guard', async () => {
+      mockAccounts = [egpAccount];
+      const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+      // If deriveResolution's guard were uncaught, this act() would throw —
+      // the render itself would crash, same as the rate-preview hook's case.
+      await act(() => {
+        result.current.form.setValue('account_id', egpAccount.id);
+        result.current.form.setValue('amountText', '99999999999999999999');
+        result.current.form.setValue('exchange_rate', '49.06');
+      });
+
+      expect(result.current.state.convertedTotal).toBeUndefined();
     });
 
     // The same amount at a rate that leaves it on the floor saves. Without this

@@ -11,10 +11,11 @@ import {
   type CommitmentPaymentAmounts,
   requiresExchangeRate,
   resolveCommitmentPaymentAmounts,
+  TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
+import { parseDecimalText, parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -32,6 +33,11 @@ import { usePaySheetState } from './pay_sheet.state';
  * Ownership of the operands stays with the caller (the P5 layering ruling):
  * the schema passes its own `data` fields, the preview passes what it watches.
  * Only the shared logic lives here.
+ *
+ * §3.4: the resolver's output guard (a typed amount too large to store) is
+ * caught here too, alongside the input-side conditions above — never a
+ * render crash, and this is the one place that would otherwise duplicate the
+ * resolver's own math to detect it upfront.
  */
 function deriveResolution(
   commitment: Commitment | undefined,
@@ -43,17 +49,22 @@ function deriveResolution(
   // `parsePositiveDecimal`, not a bare `> 0`: 0.004 is positive, and
   // `roundMoney(0.004)` is 0, which the resolver throws on.
   const amount = parsePositiveDecimal(amountText);
-  const exchangeRate = parsePositiveDecimal(rateText ?? '');
+  const exchangeRate = parseRateText(rateText ?? '');
   if (amount === undefined) return undefined;
   if (requiresExchangeRate(commitment.currency, account.currency) && exchangeRate === undefined) {
     return undefined;
   }
-  return resolveCommitmentPaymentAmounts({
-    amount,
-    commitmentCurrency: commitment.currency,
-    accountCurrency: account.currency,
-    exchangeRate,
-  });
+  try {
+    return resolveCommitmentPaymentAmounts({
+      amount,
+      commitmentCurrency: commitment.currency,
+      accountCurrency: account.currency,
+      exchangeRate,
+    });
+  } catch (error) {
+    if (error instanceof TransactionAmountError) return undefined;
+    throw error;
+  }
 }
 
 // A factory, not a module constant: the rate refine has to know whether this
@@ -104,7 +115,7 @@ function createPaySheetSchema(commitment: Commitment | undefined, accounts: Acco
             message: Strings.addTxErrRateRequired,
             path: ['exchange_rate'],
           });
-        } else if (parsePositiveDecimal(data.exchange_rate) === undefined) {
+        } else if (parseRateText(data.exchange_rate) === undefined) {
           ctx.addIssue({
             code: 'custom',
             message: Strings.addTxErrRateInvalid,
@@ -343,7 +354,7 @@ export function usePaySheet(
         account_id: data.account_id,
         paid_date: data.paid_date,
         exchange_rate_snapshot: requiresRate
-          ? (parsePositiveDecimal(data.exchange_rate ?? '') ?? rate)
+          ? (parseRateText(data.exchange_rate ?? '') ?? rate)
           : undefined,
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,

@@ -2,7 +2,11 @@ import { z } from 'zod';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { parseNonNegativeDecimal, parsePositiveDecimal } from '@/utils/parse_decimal';
+import {
+  parseDecimalText,
+  parseNonNegativeDecimal,
+  parsePositiveDecimal,
+} from '@/utils/parse_decimal';
 
 import type { Account } from '../store/account.store';
 
@@ -84,7 +88,7 @@ export function createAddAccountSchema(accounts: Account[]) {
 
       const dueDayRaw = data.due_day?.trim();
       if (dueDayRaw) {
-        const parsedDueDay = parseNonNegativeDecimal(dueDayRaw);
+        const parsedDueDay = parseDecimalText(dueDayRaw);
         if (
           parsedDueDay === undefined ||
           !Number.isInteger(parsedDueDay) ||
@@ -99,15 +103,15 @@ export function createAddAccountSchema(accounts: Account[]) {
       // Same three-branch shape as credit_limit above (required → parses →
       // bounded), not due_day's combined single condition: the upper-bound
       // failure is a distinct, more specific message than "not a number at
-      // all", and a negative value is already filtered out one branch
-      // earlier by parseNonNegativeDecimal, so the range check only ever
-      // sees a value that has already parsed as >= 0.
+      // all". A negative value never parses — DECIMAL_PATTERN admits no
+      // minus sign — so the range check only ever sees a value that already
+      // parsed as >= 0.
       if (data.interest_tracking) {
         const aprRaw = data.apr?.trim();
         if (!aprRaw) {
           ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAprRequired });
         } else {
-          const parsedApr = parseNonNegativeDecimal(aprRaw);
+          const parsedApr = parseDecimalText(aprRaw);
           if (parsedApr === undefined) {
             ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAmountInvalid });
           } else if (parsedApr > 100) {

@@ -1,4 +1,5 @@
 import { Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { roundMoney } from '@/utils/money';
 
 export interface TransactionAmounts {
@@ -39,6 +40,21 @@ export class TransactionAmountError extends Error {
   }
 }
 
+/**
+ * Every computed, rounded leg passes through here before a resolver can
+ * return it. §3.4's invariant: no computed money value above
+ * `MAX_SAFE_INTEGER` or non-finite ever reaches a `db.runAsync` bind.
+ * `parseRateText` (parse_decimal.ts) carries no magnitude bound at parse —
+ * this is the net that makes that safe. `>`, not `>=`: the boundary value
+ * itself is still representable (upper-bound precedent:
+ * budget_month_profiles.ts's income guard).
+ */
+function assertStorable(value: number): void {
+  if (!Number.isFinite(value) || value > Number.MAX_SAFE_INTEGER) {
+    throw new TransactionAmountError(Strings.addTxErrAmountUnstorable);
+  }
+}
+
 export function resolveTransactionAmounts(input: {
   type: TransactionType;
   amount: number;
@@ -50,6 +66,7 @@ export function resolveTransactionAmounts(input: {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new TransactionAmountError('Transaction amount must be positive');
   }
+  assertStorable(amount);
 
   const hasDestination =
     input.type === TransactionType.Transfer || input.type === TransactionType.CCPayment;
@@ -73,6 +90,7 @@ export function resolveTransactionAmounts(input: {
     input.sourceCurrency === Currency.USD
       ? roundMoney(amount * (exchangeRate ?? 0))
       : roundMoney(amount);
+  assertStorable(egpAmount);
 
   if (!hasDestination) {
     return { amount, egpAmount, toAmount: null, exchangeRate };
@@ -84,6 +102,7 @@ export function resolveTransactionAmounts(input: {
       : input.sourceCurrency === Currency.USD
         ? roundMoney(amount)
         : roundMoney(egpAmount / (exchangeRate ?? 0));
+  assertStorable(toAmount);
 
   return { amount, egpAmount, toAmount, exchangeRate };
 }
@@ -98,6 +117,7 @@ export function resolveCommitmentPaymentAmounts(input: {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new TransactionAmountError('Payment amount must be positive');
   }
+  assertStorable(amount);
 
   const usesUsd = requiresExchangeRate(input.commitmentCurrency, input.accountCurrency);
   if (
@@ -112,12 +132,14 @@ export function resolveCommitmentPaymentAmounts(input: {
     input.commitmentCurrency === Currency.USD
       ? roundMoney(amount * (exchangeRate ?? 0))
       : roundMoney(amount);
+  assertStorable(egpAmount);
   const accountNativeAmount =
     input.accountCurrency === Currency.USD
       ? input.commitmentCurrency === Currency.USD
         ? roundMoney(amount)
         : roundMoney(egpAmount / (exchangeRate ?? 0))
       : egpAmount;
+  assertStorable(accountNativeAmount);
 
   return {
     paymentAmount: amount,

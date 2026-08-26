@@ -1,5 +1,6 @@
 import { AccountType, CategoryType, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
 import {
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
@@ -56,6 +57,16 @@ describe('transaction form helpers', () => {
     ).toBe(Strings.addTxErrCardCreditExceedsLiability);
     expect(resolveTransactionSaveError(new Error('write failed'))).toBe(
       Strings.transactionSaveError,
+    );
+  });
+
+  // §3.4: never `error.message` — the resolver's other four throws are
+  // hardcoded domain literals, not Strings keys, so echoing `.message` would
+  // turn them into user copy the moment schema and resolver disagree. Bound
+  // to the constant, with an arbitrary message, to prove the mapping ignores it.
+  it('maps a TransactionAmountError to the §3.4 constant, never its own message', () => {
+    expect(resolveTransactionSaveError(new TransactionAmountError('arbitrary internal text'))).toBe(
+      Strings.addTxErrAmountUnstorable,
     );
   });
 });

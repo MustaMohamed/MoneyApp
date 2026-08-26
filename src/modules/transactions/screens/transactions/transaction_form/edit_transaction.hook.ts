@@ -20,7 +20,7 @@ import {
   type UpdateTransactionInput,
 } from '@/modules/transactions/store/transaction.store';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
+import { parseDecimalText, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { isSameBudgetEligibility, resolveBudgetAssignment } from './budget_assignment.helpers';
@@ -80,7 +80,7 @@ function createEditSchema(
             message: Strings.addTxErrRateRequired,
             path: ['exchangeRate'],
           });
-        } else if (parsePositiveDecimal(data.exchangeRate) === undefined) {
+        } else if (parseRateText(data.exchangeRate) === undefined) {
           context.addIssue({
             code: 'custom',
             message: Strings.addTxErrRateInvalid,
@@ -312,7 +312,7 @@ export function useEditTransaction(
     try {
       const fromCurrency = selectedAccount?.currency ?? Currency.EGP;
       const toCurrency = selectedToAccount?.currency;
-      const parsedRate = requiresRate ? parsePositiveDecimal(data.exchangeRate) : undefined;
+      const parsedRate = requiresRate ? parseRateText(data.exchangeRate) : undefined;
 
       const amounts = resolveTransactionAmounts({
         type,

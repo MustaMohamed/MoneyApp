@@ -27,3 +27,14 @@ export function parsePositiveDecimal(value: string): number | undefined {
   const parsed = parseNonNegativeDecimal(value);
   return parsed !== undefined && parsed >= MIN_MONEY_AMOUNT ? parsed : undefined;
 }
+
+/**
+ * An exchange rate (EGP per USD): positive and finite, NOT money — no floor,
+ * no upper bound at parse. A rate this loose could still drive a resolver to
+ * an absurd computed amount; `transaction_amounts.ts`'s output guard is what
+ * makes that safe, not a bound here (ADR: parse-floor-money-only).
+ */
+export function parseRateText(value: string): number | undefined {
+  const parsed = parseDecimalText(value);
+  return parsed !== undefined && parsed > 0 ? parsed : undefined;
+}

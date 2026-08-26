@@ -3,6 +3,7 @@ import {
   parseDecimalText,
   parseNonNegativeDecimal,
   parsePositiveDecimal,
+  parseRateText,
 } from '@/utils/parse_decimal';
 
 // Layla's input-floor ruling, rows 1-13 (both currencies named for provenance —
@@ -51,5 +52,21 @@ describe('parseDecimalText — pattern and finiteness only, no money floor', () 
 
   it('carries no money floor — 0.005 parses as 0.005, not undefined', () => {
     expect(parseDecimalText('0.005')).toBe(0.005);
+  });
+});
+
+// W2E §3.1 / §8.1 — exchange rate is positive and finite, NOT money: no
+// floor, no upper bound at parse. Magnitude safety is the resolver output
+// guard's job (transaction_amounts.ts), not this parser's.
+describe('parseRateText — positive, finite, no money floor', () => {
+  it.each([
+    ['0.005', 0.005], // below MIN_MONEY_AMOUNT — accepted, unlike parsePositiveDecimal
+    ['0', undefined], // not > 0
+    ['50', 50],
+    ['abc', undefined], // garbage
+    ['1e3', undefined], // exponent notation rejected, same as parseDecimalText
+    ['-5', undefined], // negative
+  ])('parseRateText(%p) -> %p', (value, expected) => {
+    expect(parseRateText(value)).toBe(expected);
   });
 });

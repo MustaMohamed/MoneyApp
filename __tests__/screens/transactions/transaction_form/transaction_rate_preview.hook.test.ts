@@ -90,6 +90,22 @@ describe('useTransactionRatePreview', () => {
     expect(await preview(input)).toBeUndefined();
   });
 
+  // §3.4's guard, reached through the resolver rather than mirrored: a typed
+  // amount huge enough to overflow the resolver's output guard returns the
+  // placeholder, not a thrown error inside a render. Driven with a huge
+  // AMOUNT rather than a tiny rate: until c1 step 7 un-floors rate text here
+  // (`:52`), a sub-floor rate still fails `parsePositiveDecimal` before ever
+  // reaching the resolver, which would make this case vacuous.
+  it('has no preview for an amount that overflows the resolver output guard', async () => {
+    expect(
+      await preview({
+        amount: '99999999999999999999',
+        type: TransactionType.Expense,
+        sourceCurrency: Currency.USD,
+      }),
+    ).toBeUndefined();
+  });
+
   it('has no preview before an account is picked', async () => {
     useAddTransactionStore.getState().setAmountStr('100');
     const { result } = await renderHook(() =>

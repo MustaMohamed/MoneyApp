@@ -1,6 +1,6 @@
 import { Strings } from '@/constants/strings';
 import type { TransactionListFilters } from '@/modules/transactions/store/transaction.store';
-import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
+import { parseDecimalText } from '@/utils/parse_decimal';
 
 import type { AdvancedFilters } from './filter.store';
 
@@ -27,7 +27,7 @@ export function toQueryFilters(applied: AdvancedFilters): Partial<TransactionLis
 export function parseAmountInput(s: string): number | undefined {
   const trimmed = s.trim();
   if (!trimmed) return undefined;
-  return parseNonNegativeDecimal(trimmed);
+  return parseDecimalText(trimmed);
 }
 
 export interface AmountRangeValidation {

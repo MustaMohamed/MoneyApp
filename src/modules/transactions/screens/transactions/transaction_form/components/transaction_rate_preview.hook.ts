@@ -4,8 +4,9 @@ import { type Currency, TransactionType } from '@/constants/enums';
 import {
   requiresExchangeRate,
   resolveTransactionAmounts,
+  TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
-import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 
 import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
@@ -31,10 +32,13 @@ interface RatePreviewInput {
  * reds that test. This hook uses the same `useTransactionAmount` subscription
  * `AmountHero` does, so a keystroke re-renders the rate row and nothing above.
  *
- * The completeness guard mirrors the resolver's three throw conditions rather
- * than catching them: an amount that fails `parsePositiveDecimal` (0.004 is
- * positive and rounds to 0, which throws), a missing destination for a type
- * that requires one, and a missing rate when either side is USD.
+ * The completeness guard mirrors three of the resolver's throw conditions
+ * rather than catching them: an amount that fails `parsePositiveDecimal`
+ * (0.004 is positive and rounds to 0, which throws), a missing destination
+ * for a type that requires one, and a missing rate when either side is USD.
+ * The fourth — §3.4's output guard, unbounded now that rate text carries no
+ * upper bound of its own — cannot be mirrored the same way: it fires on the
+ * computed result, not the typed inputs, so it is caught instead.
  */
 export function useTransactionRatePreview(input: RatePreviewInput): number | undefined {
   const { mode, type, sourceCurrency, destinationCurrency, exchangeRate } = input;
@@ -49,19 +53,26 @@ export function useTransactionRatePreview(input: RatePreviewInput): number | und
     const amount = parsePositiveDecimal(amountStr);
     if (amount === undefined) return undefined;
 
-    const rate = parsePositiveDecimal(exchangeRate);
+    const rate = parseRateText(exchangeRate);
     const needsRate = requiresExchangeRate(
       sourceCurrency,
       hasDestination ? destinationCurrency : undefined,
     );
     if (needsRate && rate === undefined) return undefined;
 
-    return resolveTransactionAmounts({
-      type,
-      amount,
-      sourceCurrency,
-      destinationCurrency,
-      exchangeRate: rate,
-    }).egpAmount;
+    try {
+      return resolveTransactionAmounts({
+        type,
+        amount,
+        sourceCurrency,
+        destinationCurrency,
+        exchangeRate: rate,
+      }).egpAmount;
+    } catch (error) {
+      // §3.4: the output guard on a typed amount too large to store. Never a
+      // render crash — the rate row falls back to its existing placeholder.
+      if (error instanceof TransactionAmountError) return undefined;
+      throw error;
+    }
   }, [amountStr, destinationCurrency, exchangeRate, sourceCurrency, type]);
 }
