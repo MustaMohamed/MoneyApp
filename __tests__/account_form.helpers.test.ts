@@ -200,6 +200,31 @@ describe('toNewAccountInput — rounding, roundMoney half-even', () => {
   });
 });
 
+// W2E §3.2 row 3 / §8.3 — apr now maps through optionalPercent
+// (parseDecimalText + roundMoney quantization), not optionalAmount: below
+// MIN_MONEY_AMOUNT is a valid, quantized percentage, not a rejected amount.
+describe('toNewAccountInput — apr, optionalPercent quantization (§3.3)', () => {
+  const cc = (apr: string) =>
+    baseData({
+      selected_type: AccountType.CreditCard,
+      credit_limit: '1000',
+      interest_tracking: true,
+      apr,
+    });
+
+  it('0.005 quantizes to 0 at 2dp half-even, not rejected as below the money floor', () => {
+    expect(toNewAccountInput(cc('0.005'), { sortOrder: 0 }).apr).toBe(0);
+  });
+
+  it('17.999 quantizes to 18', () => {
+    expect(toNewAccountInput(cc('17.999'), { sortOrder: 0 }).apr).toBe(18);
+  });
+
+  it('blank stays null', () => {
+    expect(toNewAccountInput(cc(''), { sortOrder: 0 }).apr).toBeNull();
+  });
+});
+
 describe('toNewAccountInput — credit vs non-credit', () => {
   it('AccountType.Bank with every credit input filled still persists all credit fields absent', () => {
     const data = baseData({

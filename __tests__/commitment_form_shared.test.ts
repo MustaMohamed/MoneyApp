@@ -213,4 +213,22 @@ describe('buildEditDefaults', () => {
   it('converts null end_after_count to undefined', () => {
     expect(buildEditDefaults(MOCK_COMMITMENT).endAfterCount).toBeUndefined();
   });
+
+  // §8.11 (W2E c3, #301 ruling): edit-commitment needs no code — the numeric
+  // default plus the save-time refine (commitment_form.shared.ts:23-26)
+  // already implement "the floor error renders on Save only". This pins that:
+  // a legacy sub-cent (0.005) amount survives the mapping as a number, not
+  // rounded and not dropped, and it is COMMITMENT_SCHEMA's own refine that
+  // rejects it on the amount path — no mount-time trigger involved.
+  it('carries a legacy sub-cent amount through as a number, rejected only by the schema refine on save', () => {
+    const defaults = buildEditDefaults({ ...MOCK_COMMITMENT, amount: 0.005 });
+    expect(defaults.amount).toBe(0.005);
+
+    const result = COMMITMENT_SCHEMA.safeParse(defaults);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const amountIssue = result.error.issues.find((issue) => issue.path.includes('amount'));
+      expect(amountIssue?.message).toBe(Strings.commitmentsErrAmountPositive);
+    }
+  });
 });

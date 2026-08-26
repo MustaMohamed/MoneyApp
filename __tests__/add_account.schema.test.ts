@@ -295,6 +295,15 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
       );
     });
 
+    // W2E §3.2 row 1: apr text is unfloored (parseDecimalText), so a value
+    // below MIN_MONEY_AMOUNT now parses and clears the 0-100 range check.
+    it.each(['0.005', '0.004'])(
+      '#15b apr %p, interest on → accept — below the money floor, still a valid percentage',
+      (apr) => {
+        expect(fieldErrors(cc({ interest_tracking: true, apr }))).toEqual({});
+      },
+    );
+
     it('#16 interest on, apr abc → reject apr / errAmountInvalid', () => {
       expect(fieldErrors(cc({ interest_tracking: true, apr: 'abc' })).apr).toBe(
         Strings.errAmountInvalid,
@@ -501,6 +510,22 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
             }),
           ).due_day,
         ).toBeUndefined();
+      });
+
+      // W2E §3.2 row 2: due_day text is unfloored too, but the observable
+      // behavior is unchanged — parseDecimalText('0.005') now parses to
+      // 0.005 instead of undefined, and the non-integer check rejects it
+      // with the same errDueDayRange message either way.
+      it('"0.005" parses but is non-integer → errDueDayRange, same as an unparseable value', () => {
+        expect(
+          fieldErrors(
+            baseData({
+              selected_type: AccountType.CreditCard,
+              credit_limit: '1000',
+              due_day: '0.005',
+            }),
+          ).due_day,
+        ).toBe(Strings.errDueDayRange);
       });
     });
   });

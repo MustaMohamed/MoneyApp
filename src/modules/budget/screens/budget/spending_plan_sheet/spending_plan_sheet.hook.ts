@@ -27,7 +27,12 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
-import { formatStoredMoneyText, maskMoneyFieldText } from '@/utils/money_text';
+import {
+  formatStoredMoneyText,
+  maskMoneyFieldText,
+  MoneyTextMappingError,
+  parseRequiredMoneyText,
+} from '@/utils/money_text';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import {
   spendingPlanFormSchema,
@@ -204,12 +209,29 @@ export function useSpendingPlanSheet({
         preflight.setSubmitError(Strings.budgetPlanAllocationInvalid);
         return;
       }
+      // Hoisted out of the `input` literal below rather than folded into the
+      // save try/catch further down: that try also wraps `setSaving(true)`,
+      // and moving the parse into it would put a state change after
+      // validation could still fail this field. A schema/submit desync here
+      // (unreachable today — the refine below and this call share
+      // `parsePositiveDecimal`) reports through the same sheet-bottom
+      // message a repository failure uses, not the schema's own NaN issue
+      // text, and returns before `setSaving` runs, so there is no saving
+      // flag left dirty to clean up.
+      let totalAmount: number;
+      try {
+        totalAmount = parseRequiredMoneyText(values.totalText, 'totalText');
+      } catch (error) {
+        if (!(error instanceof MoneyTextMappingError)) throw error;
+        useSpendingPlanSheetState.getState().setSubmitError(Strings.budgetPlanSaveError);
+        return;
+      }
       const input: SetSpendingPlanInput = {
         id: planSheetMode === 'edit' ? editingPlan?.id : undefined,
         name: values.nameText,
         startDate,
         endDate,
-        totalAmount: parsePositiveDecimal(values.totalText) ?? Number.NaN,
+        totalAmount,
         categories: selectedCategoryIds.map((categoryId) => ({
           categoryId,
           allocatedAmount: allocatedByCategoryId.get(categoryId),

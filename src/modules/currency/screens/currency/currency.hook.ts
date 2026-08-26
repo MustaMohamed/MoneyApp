@@ -4,13 +4,13 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useCurrencyScreenState } from './currency.state';
 
 const manualRateSchema = z.object({
-  rate: z.string().refine((value) => parsePositiveDecimal(value) !== undefined, {
+  rate: z.string().refine((value) => parseRateText(value) !== undefined, {
     message: Strings.errBalanceInvalid,
   }),
 });
@@ -67,7 +67,7 @@ export function useCurrencyScreen() {
   };
 
   const handleSaveManualRate = form.handleSubmit(async (data) => {
-    const rate = parsePositiveDecimal(data.rate);
+    const rate = parseRateText(data.rate);
     if (rate === undefined) return;
 
     setSaving(true);

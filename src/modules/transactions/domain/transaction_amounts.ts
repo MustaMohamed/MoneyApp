@@ -32,10 +32,40 @@ export function requiresExchangeRate(a: Currency | undefined, b?: Currency): boo
   return a === Currency.USD || b === Currency.USD;
 }
 
+/**
+ * `reason` names the ONE throw cause a caller may need to react to
+ * differently: `assertStorable`'s output-guard failure. Every other throw in
+ * this file — missing destination, non-positive amount, missing rate — is a
+ * bare domain literal with no discriminant, exactly like it was before this
+ * class carried one: nothing downstream reacts to those individually, so
+ * nothing here should suggest they are named surfaces. Only
+ * `resolveTransactionSaveError` reads `reason`, and only to pick the one
+ * mapped string; it is not a public error-code enum.
+ */
 export class TransactionAmountError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly reason?: 'unstorable',
+  ) {
     super(message);
     this.name = 'TransactionAmountError';
+  }
+}
+
+/**
+ * Every computed, rounded leg passes through here before a resolver can
+ * return it. The invariant (ADR: parse-floor-money-only): no computed money
+ * value above `MAX_SAFE_INTEGER` or non-finite ever reaches a `db.runAsync`
+ * bind. `parseRateText` (parse_decimal.ts) carries no magnitude bound at
+ * parse — this is the net that makes that safe. `>`, not `>=`: the boundary
+ * value itself is still representable (upper-bound precedent:
+ * budget_month_profiles.ts's income guard). Throws a bare domain literal,
+ * like every other throw in this file — `resolveTransactionSaveError` maps
+ * user copy from `reason`, never from this message.
+ */
+function assertStorable(value: number): void {
+  if (!Number.isFinite(value) || value > Number.MAX_SAFE_INTEGER) {
+    throw new TransactionAmountError('Computed amount exceeds the storable range', 'unstorable');
   }
 }
 
@@ -50,6 +80,7 @@ export function resolveTransactionAmounts(input: {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new TransactionAmountError('Transaction amount must be positive');
   }
+  assertStorable(amount);
 
   const hasDestination =
     input.type === TransactionType.Transfer || input.type === TransactionType.CCPayment;
@@ -73,6 +104,7 @@ export function resolveTransactionAmounts(input: {
     input.sourceCurrency === Currency.USD
       ? roundMoney(amount * (exchangeRate ?? 0))
       : roundMoney(amount);
+  assertStorable(egpAmount);
 
   if (!hasDestination) {
     return { amount, egpAmount, toAmount: null, exchangeRate };
@@ -84,6 +116,7 @@ export function resolveTransactionAmounts(input: {
       : input.sourceCurrency === Currency.USD
         ? roundMoney(amount)
         : roundMoney(egpAmount / (exchangeRate ?? 0));
+  assertStorable(toAmount);
 
   return { amount, egpAmount, toAmount, exchangeRate };
 }
@@ -98,6 +131,7 @@ export function resolveCommitmentPaymentAmounts(input: {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new TransactionAmountError('Payment amount must be positive');
   }
+  assertStorable(amount);
 
   const usesUsd = requiresExchangeRate(input.commitmentCurrency, input.accountCurrency);
   if (
@@ -112,12 +146,14 @@ export function resolveCommitmentPaymentAmounts(input: {
     input.commitmentCurrency === Currency.USD
       ? roundMoney(amount * (exchangeRate ?? 0))
       : roundMoney(amount);
+  assertStorable(egpAmount);
   const accountNativeAmount =
     input.accountCurrency === Currency.USD
       ? input.commitmentCurrency === Currency.USD
         ? roundMoney(amount)
         : roundMoney(egpAmount / (exchangeRate ?? 0))
       : egpAmount;
+  assertStorable(accountNativeAmount);
 
   return {
     paymentAmount: amount,

@@ -26,6 +26,7 @@ import { usePaySheet } from '@/modules/commitments/screens/commitments/detail/co
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
@@ -226,6 +227,48 @@ describe('usePaySheet', () => {
     await act(async () => {});
     expect(result.current.form.getValues('amountText')).toBe('15');
     expect(result.current.form.getValues('paid_date')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  // §8.10 (W2E c3, #301): the one growing instance — housekeeping mints
+  // payment rows from legacy `commitments.amount`, so `amount_due` can already
+  // hold a sub-cent or exponential-notation value. `formatStoredMoneyText`
+  // (not `String(prefillAmount)`) is what makes the prefill re-parse to the
+  // number it came from, same contract as edit_transaction.store's §8.9.
+  it.each([
+    [0.005, '0.005'],
+    [1e-7, '0.0000001'],
+  ])('prefills amount_due %p as %p through amountText', async (amountDue, expected) => {
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
+    const { result } = await renderHook(() =>
+      usePaySheet(fixedCommitment, { ...duePayment, amount_due: amountDue }),
+    );
+    await act(async () => {});
+    expect(result.current.form.getValues('amountText')).toBe(expected);
+  });
+
+  // §8.10's e2e round-trip: the fix's actual target case, storage through to
+  // the field's own error, not just the prefill text above. A stored
+  // amount_due of 1e-7 prefills as '0.0000001' and, left untouched, has to
+  // fail the same way a typed sub-cent amount does at A1-10 below — present,
+  // typed, below the floor — never as unparseable text a Save cannot even
+  // classify.
+  it('rejects a prefilled amount_due of 1e-7 on submit as the floor message', async () => {
+    mockAccounts = [egpAccount];
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
+    const { result } = await renderHook(() =>
+      usePaySheet(egpCommitment, { ...duePayment, amount_due: 1e-7 }),
+    );
+    await act(async () => {});
+    expect(result.current.form.getValues('amountText')).toBe('0.0000001');
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(
+      Strings.commitmentsPayErrAmountMin,
+    );
   });
 
   it('starts with rateOverride false on open', async () => {
@@ -469,6 +512,10 @@ describe('usePaySheet', () => {
   it.each([
     ['A2-01', '48.6', 48.6],
     ['A2-07', '1,234', 1234],
+    // W2E §3.2 row 8: rate text is unfloored (parseRateText), so a rate below
+    // MIN_MONEY_AMOUNT now accepts — the resolver output guard, not the
+    // parse floor, is what bounds a rate this small from here on.
+    ['A2-09', '0.005', 0.005],
   ] as const)('%s: accepts "%s" and snapshots %p', async (_id, typed, expected) => {
     await submitRate(typed);
 
@@ -990,6 +1037,61 @@ describe('usePaySheet', () => {
       expect(result.current.form.getFieldState('amountText').error?.message).toBe(
         Strings.commitmentsPayErrConvertedBelowMin(Currency.EGP),
       );
+    });
+
+    // §3.4's output guard, reached through deriveResolution rather than
+    // mirrored: a typed amount huge enough to overflow the resolver returns
+    // undefined, not a thrown error inside a render. A huge AMOUNT, not a
+    // tiny rate — until c1 step 7 un-floors rate text here (`:46`), a
+    // sub-floor rate still fails `parsePositiveDecimal` before ever reaching
+    // the resolver, which would make a tiny-rate case vacuous. Cross-currency
+    // (USD commitment paid from an EGP account) so convertedTotal is not
+    // undefined for the unrelated reason the same-currency `converts` gate
+    // (pay_sheet.hook.ts:251-259) already produces.
+    it('shows no converted line for an amount that overflows the resolver output guard', async () => {
+      mockAccounts = [egpAccount];
+      const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+      // If deriveResolution's guard were uncaught, this act() would throw —
+      // the render itself would crash, same as the rate-preview hook's case.
+      await act(() => {
+        result.current.form.setValue('account_id', egpAccount.id);
+        result.current.form.setValue('amountText', '99999999999999999999');
+        result.current.form.setValue('exchange_rate', '49.06');
+      });
+
+      expect(result.current.state.convertedTotal).toBeUndefined();
+    });
+
+    // P8 c1 finding item 6: the submit-time half of the overflow path, which
+    // the preview test above only proves does not crash. The schema's
+    // amountText refine requires only `parsePositiveDecimal(s) !==
+    // undefined` — a huge finite number clears it — so submission reaches
+    // markAsPaid, which is where the real resolver's TransactionAmountError
+    // actually fires (commitment.repository.ts -> resolveCommitmentPaymentAmounts).
+    // Asserts store/banner STATE, not message text: field validation passes,
+    // the existing generic banner surfaces, and the sheet neither closes nor
+    // resets — the same "no write" evidence the failed-save test above uses.
+    it('an oversized amount clears field validation; a markAsPaid rejection surfaces the banner with no write', async () => {
+      mockAccounts = [egpAccount];
+      mockMarkAsPaid.mockRejectedValueOnce(
+        new TransactionAmountError('Computed amount exceeds the storable range', 'unstorable'),
+      );
+      const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+      await act(() => {
+        result.current.form.setValue('account_id', egpAccount.id);
+        result.current.form.setValue('amountText', '99999999999999999999');
+        result.current.form.setValue('paid_date', '2026-05-20');
+      });
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+
+      expect(result.current.form.getFieldState('amountText').error).toBeUndefined();
+      expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+      expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(false);
+
+      await act(() => rerender(undefined));
+      expect(result.current.state.saveError).toBe(true);
     });
 
     // The same amount at a rate that leaves it on the floor saves. Without this

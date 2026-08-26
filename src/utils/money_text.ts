@@ -1,3 +1,5 @@
+import { parsePositiveDecimal } from '@/utils/parse_decimal';
+
 /**
  * Whether `text` is something the user can be part-way through typing into a
  * money field: digits, at most one decimal point, nothing else.
@@ -83,10 +85,11 @@ function expandExponentialNotation(text: string): string {
 }
 
 /**
- * Edit-mode prefill: the initial field text for a stored money value. Four
- * callers as of MA-020 c3 — an allocation row, the plan total that shares the
- * sheet with it, the monthly income amount, and a budget's monthly limit; the
- * rule is that every money field prefills through here rather than through
+ * Edit-mode prefill: the initial field text for a stored money value. Six
+ * callers as of W2E c3 — an allocation row, the plan total that shares the
+ * sheet with it, the monthly income amount, a budget's monthly limit, an
+ * edit-mode transaction amount, and a commitment's payment amount; the rule
+ * is that every money field prefills through here rather than through
  * `String(value)`, because `String` can emit a form no money field can parse.
  *
  * Never rounds and never formats for display — this text is re-parsed by the
@@ -259,4 +262,41 @@ export function maskFieldText(
   next: string,
 ): string | undefined {
   return variant === 'name' ? next : maskMoneyFieldText(previous, next);
+}
+
+/**
+ * A required money amount reached form submission holding text its own
+ * schema should already have rejected — schema and submit disagreeing must
+ * report, never fabricate a value the store then persists as-is. Mirrors
+ * `AccountFormMappingError` (`account_form.helpers.ts:17-29`): `field` names
+ * which text failed so a caller's catch can report without inspecting the
+ * message.
+ *
+ * Four submit paths (income, budget limit, spending-plan total, commitment
+ * pay amount) shared one sentinel before this: `parsePositiveDecimal(x) ??
+ * Number.NaN`. Every one of them gates the same field with a schema refine
+ * built on the same `parsePositiveDecimal`, so the fallback was unreachable
+ * while the two agreed — which is exactly the failure mode #307 named: a NaN
+ * silently reaching the store the day schema and submit drift apart, with
+ * nothing to say why. This throws instead of manufacturing that NaN.
+ */
+export class MoneyTextMappingError extends Error {
+  constructor(readonly field: string) {
+    super(`MoneyTextMappingError: ${field} did not parse`);
+    this.name = 'MoneyTextMappingError';
+  }
+}
+
+/**
+ * A required money amount: parse or throw `MoneyTextMappingError`. Unlike
+ * `requiredAmount` (`account_form.helpers.ts:25-29`), this does not round —
+ * every caller here hands the result straight to a repository method (or, on
+ * the pay sheet, the payment resolver) that rounds at write under MA-018's
+ * round-at-write layer, so rounding here would be a second, redundant pass
+ * rather than the first one.
+ */
+export function parseRequiredMoneyText(value: string, field: string): number {
+  const parsed = parsePositiveDecimal(value);
+  if (parsed === undefined) throw new MoneyTextMappingError(field);
+  return parsed;
 }

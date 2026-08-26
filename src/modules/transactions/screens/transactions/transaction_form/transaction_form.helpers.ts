@@ -1,5 +1,6 @@
 import { AccountType, CategoryType, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
 import { toLocalDateString } from '@/utils/format_date';
 
 export interface TransactionFormSemantics {
@@ -72,6 +73,19 @@ export function toTransactionTimestamp(now: Date): { date: string; time: string 
 }
 
 export function resolveTransactionSaveError(error: unknown): string {
+  // Matches the class where the resolver names a condition (ADR:
+  // parse-floor-money-only): only `reason === 'unstorable'` — the output
+  // guard — maps to a named string, and never `error.message`. Every other
+  // `TransactionAmountError` cause (missing destination, non-positive
+  // amount, missing rate) is undiscriminated on purpose — those are
+  // hardcoded domain literals (transaction_amounts.ts), not `strings.ts`
+  // keys, and falls through below to the generic banner rather than
+  // surfacing an internal literal as user copy, the exact assumption
+  // `AccountFormMappingError`'s docblock refuses.
+  if (error instanceof TransactionAmountError && error.reason === 'unstorable') {
+    return Strings.addTxErrAmountUnstorable;
+  }
+
   const issues = error && typeof error === 'object' && 'issues' in error ? error.issues : undefined;
   if (!Array.isArray(issues)) {
     return Strings.transactionSaveError;

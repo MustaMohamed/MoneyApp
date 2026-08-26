@@ -210,6 +210,52 @@ describe('resolveTransactionAmounts', () => {
       ).toEqual({ amount: 0.01, egpAmount: 0.48, toAmount: null, exchangeRate: 48 });
     });
   });
+
+  // §3.4 — the output guard `parseRateText`'s open bound leans on: no
+  // computed, rounded leg may reach a caller non-finite or above
+  // MAX_SAFE_INTEGER. Upper-bound precedent: budget_month_profiles.ts:27.
+  describe('output guard (§3.4)', () => {
+    // 100 / 1e-10 = 1e12 would NOT trip the guard; 1e-16 clears
+    // MAX_SAFE_INTEGER (~9.007e15) by several orders of magnitude, which is
+    // what a rate this tiny needs now that parseRateText carries no bound.
+    it('a tiny rate dividing the destination leg throws, rather than persisting 1e18', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: 100,
+          sourceCurrency: Currency.EGP,
+          destinationCurrency: Currency.USD,
+          exchangeRate: 1e-16,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
+    });
+
+    // The pre-existing hole this guard also closes: a huge typed amount was
+    // never output-checked. The amount itself (1e14) clears its own bound;
+    // the egpAmount multiply leg is what overflows.
+    it('a huge amount multiplied by the rate throws on the egpAmount leg', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Expense,
+          amount: 1e14,
+          sourceCurrency: Currency.USD,
+          exchangeRate: 1000,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
+    });
+
+    // roundMoney(MAX_SAFE_INTEGER) is exact, so the boundary itself must not
+    // throw — the one input that reds a `>` → `>=` mutation in the guard.
+    it('an amount exactly at MAX_SAFE_INTEGER does not throw', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Expense,
+          amount: Number.MAX_SAFE_INTEGER,
+          sourceCurrency: Currency.EGP,
+        }),
+      ).not.toThrow();
+    });
+  });
 });
 
 describe('resolveCommitmentPaymentAmounts', () => {
@@ -358,5 +404,40 @@ describe('resolveCommitmentPaymentAmounts', () => {
     const first = resolveCommitmentPaymentAmounts(input);
     const second = resolveCommitmentPaymentAmounts({ ...input, amount: first.paymentAmount });
     expect(second).toEqual(first);
+  });
+
+  // §3.4 — mirrors resolveTransactionAmounts' output guard block above.
+  describe('output guard (§3.4)', () => {
+    it('a tiny rate dividing accountNativeAmount throws, rather than persisting 1e18', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: 100,
+          commitmentCurrency: Currency.EGP,
+          accountCurrency: Currency.USD,
+          exchangeRate: 1e-16,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
+    });
+
+    it('a huge amount multiplied by the rate throws on the egpAmount leg', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: 1e14,
+          commitmentCurrency: Currency.USD,
+          accountCurrency: Currency.EGP,
+          exchangeRate: 1000,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
+    });
+
+    it('an amount exactly at MAX_SAFE_INTEGER does not throw', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: Number.MAX_SAFE_INTEGER,
+          commitmentCurrency: Currency.EGP,
+          accountCurrency: Currency.EGP,
+        }),
+      ).not.toThrow();
+    });
   });
 });

@@ -123,6 +123,9 @@ describe('amount range validation', () => {
     ['50abc', undefined],
     ['12,34', undefined],
     ['-1', undefined],
+    // W2E §3.2 row 5 / §8.4: unfloored now — below MIN_MONEY_AMOUNT still
+    // parses and reaches the SELECT bind, closing the #302 residual.
+    ['0.005', 0.005],
   ])('strictly parses %s', (input, expected) => {
     expect(parseAmountInput(input)).toBe(expected);
   });

@@ -1,7 +1,7 @@
 import { AccountType, type Currency } from '@/constants/enums';
 import type { NewAccountInput } from '@/modules/accounts/repositories/account.repository';
 import { roundMoney } from '@/utils/money';
-import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
+import { parseDecimalText, parseNonNegativeDecimal } from '@/utils/parse_decimal';
 
 import { DEFAULT_ACCOUNT_COLOR } from '../../constants/account_palette';
 import type { AddAccountFormData } from '../../utils/add_account.schema';
@@ -35,10 +35,24 @@ function optionalAmount(value: string | undefined): number | null {
   return parsed === undefined ? null : roundMoney(parsed);
 }
 
+/**
+ * An optional percentage (APR): blank or unparseable falls back to null.
+ * Not money — no floor — so it parses through `parseDecimalText`, then
+ * quantizes at the stated 2dp half-even precision (ADR: parse-floor-money-only,
+ * reusing `roundMoney` as the quantizer). `0.005` → `0` is that stated
+ * rounding rule, not a silent bump: `0` stays a valid, explicit APR
+ * (promotional cards).
+ */
+function optionalPercent(value: string | undefined): number | null {
+  if (!value?.trim()) return null;
+  const parsed = parseDecimalText(value);
+  return parsed === undefined ? null : roundMoney(parsed);
+}
+
 /** statement_due_day: blank, unparseable, or non-integer all fall back to null. */
 function optionalDay(value: string | undefined): number | null {
   if (!value?.trim()) return null;
-  const parsed = parseNonNegativeDecimal(value);
+  const parsed = parseDecimalText(value);
   if (parsed === undefined || !Number.isInteger(parsed)) return null;
   return parsed;
 }
@@ -86,6 +100,6 @@ export function toNewAccountInput(
     credit_limit: isCC ? optionalAmount(data.credit_limit) : null,
     minimum_payment: isCC ? optionalAmount(data.min_payment) : null,
     statement_due_day: isCC ? optionalDay(data.due_day) : null,
-    apr: isCC && data.interest_tracking ? optionalAmount(data.apr) : null,
+    apr: isCC && data.interest_tracking ? optionalPercent(data.apr) : null,
   };
 }

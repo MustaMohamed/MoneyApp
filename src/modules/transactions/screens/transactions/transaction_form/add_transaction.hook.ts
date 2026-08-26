@@ -17,7 +17,7 @@ import {
 } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
+import { parseDecimalText, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useAddTransactionState } from './add_transaction.state';
@@ -159,7 +159,7 @@ function createSchema(
             path: ['exchangeRate'],
           });
         } else {
-          if (parsePositiveDecimal(data.exchangeRate) === undefined) {
+          if (parseRateText(data.exchangeRate) === undefined) {
             ctx.addIssue({
               code: 'custom',
               message: Strings.addTxErrRateInvalid,
@@ -411,7 +411,7 @@ export function useAddTransaction(
     try {
       const fromCurrency = selectedAccount?.currency ?? Currency.EGP;
       const toCurrency = selectedToAccount?.currency;
-      const parsedRate = requiresRate ? parsePositiveDecimal(data.exchangeRate) : undefined;
+      const parsedRate = requiresRate ? parseRateText(data.exchangeRate) : undefined;
 
       const amounts = resolveTransactionAmounts({
         type,

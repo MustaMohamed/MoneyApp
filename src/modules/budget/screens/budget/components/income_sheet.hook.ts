@@ -4,8 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Strings } from '@/constants/strings';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
-import { formatStoredMoneyText, maskFieldText } from '@/utils/money_text';
-import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { formatStoredMoneyText, maskFieldText, parseRequiredMoneyText } from '@/utils/money_text';
 import { incomeFormSchema, type IncomeFormValues } from '@/utils/schemas/budget.schema';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -87,7 +86,7 @@ export function useIncomeSheet() {
         return;
       }
       try {
-        await setExpectedIncome(yearMonth, parsePositiveDecimal(validAmountText) ?? Number.NaN);
+        await setExpectedIncome(yearMonth, parseRequiredMoneyText(validAmountText, 'amountText'));
         setSaving(false);
         close();
       } catch {

@@ -1,5 +1,6 @@
 import { AccountType, CategoryType, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
 import {
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
@@ -57,5 +58,29 @@ describe('transaction form helpers', () => {
     expect(resolveTransactionSaveError(new Error('write failed'))).toBe(
       Strings.transactionSaveError,
     );
+  });
+
+  // P8 c1 finding item 1: the mapper matches the discriminant, not the error
+  // class — only `reason === 'unstorable'` (the resolver's output guard)
+  // maps to the named string, never `error.message`. Both directions
+  // asserted: an arbitrary message is ignored on the discriminated cause,
+  // and an undiscriminated TransactionAmountError — every other throw in
+  // transaction_amounts.ts (missing destination, non-positive amount,
+  // missing rate) — falls through to the generic banner rather than
+  // surfacing an internal domain literal as user copy.
+  it('maps the discriminated output-guard cause to the named constant, ignoring its own message', () => {
+    expect(
+      resolveTransactionSaveError(
+        new TransactionAmountError('arbitrary internal text', 'unstorable'),
+      ),
+    ).toBe(Strings.addTxErrAmountUnstorable);
+  });
+
+  it('falls through an undiscriminated TransactionAmountError to the generic banner', () => {
+    expect(
+      resolveTransactionSaveError(
+        new TransactionAmountError('A positive USD exchange rate is required'),
+      ),
+    ).toBe(Strings.transactionSaveError);
   });
 });

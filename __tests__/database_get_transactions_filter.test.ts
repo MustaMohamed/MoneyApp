@@ -314,6 +314,18 @@ describe('getTransactions — expanded search projection', () => {
     ]);
   });
 
+  // W2E §3.2 row 6 / §8.5: the numeric search parse is unfloored
+  // (parseDecimalText), so a legacy sub-cent row (#302 residual) is
+  // searchable by its exact stored amount again.
+  it('finds a stored sub-cent legacy row by its exact amount', async () => {
+    await insert({ id: 'sub-cent', amount: 0.005, egp_amount: 0.005 });
+    await insert({ id: 'different-amount', amount: 150, egp_amount: 150 });
+
+    expect((await getTransactions(mockDb, { search: '0.005' })).map((row) => row.id)).toEqual([
+      'sub-cent',
+    ]);
+  });
+
   it('uses one joined projection without correlated probes across a sizeable history', async () => {
     for (let index = 0; index < 600; index += 1) {
       await insert({

@@ -14,6 +14,11 @@ const mockResetForm = jest.fn();
 // `watch('totalText')` is settable per test: the total is what decides whether
 // the running-total line renders at all, so it cannot stay hard-coded.
 let mockTotalText = '500';
+// The value RHF's `onValid` callback receives once the mock form declares
+// itself valid -- separate from `mockTotalText` above (`watch`'s live value)
+// so a desync test can drive `submit()` with text the mocked form treats as
+// validated while the running-total line above keeps rendering off '500'.
+let mockSubmitTotalText = '500';
 // RHF's `handleSubmit(onValid, onInvalid)` runs exactly one of its two
 // arguments, and this flag is which. `false` is the Save RHF itself blocks --
 // an empty name, a plan total that does not parse -- where `onValid` never
@@ -30,7 +35,7 @@ const mockHandleSubmit =
       onInvalid?.();
       return;
     }
-    await submit({ nameText: 'Trip', totalText: '500' });
+    await submit({ nameText: 'Trip', totalText: mockSubmitTotalText });
   };
 
 jest.mock('@/components/ui/sheet', () => ({
@@ -61,6 +66,7 @@ const categories = [category];
 
 beforeEach(() => {
   mockTotalText = '500';
+  mockSubmitTotalText = '500';
   mockFormValid = true;
   useBudgetState.getState().reset();
   useSpendingPlanSheetState.getState().reset();
@@ -604,6 +610,52 @@ describe('useSpendingPlanSheet', () => {
     // corroborates it.
     expect(setSpendingPlan).toHaveBeenCalledTimes(1);
     expect(useSpendingPlanSheetState.getState().submitError).toBeUndefined();
+  });
+
+  // W2E c2, §4/§8.7. Extends the "notifies the owning detail screen" case
+  // above with the claim that matters for the sentinel swap: the total
+  // reaches the store as the parsed number 500, not the string '500' or a
+  // sentinel NaN.
+  it('parses the plan total exactly once on a valid submit', async () => {
+    const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setSpendingPlan });
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(async () => result.current.submit());
+
+    expect(setSpendingPlan).toHaveBeenCalledTimes(1);
+    const [input] = setSpendingPlan.mock.calls[0] as [{ totalAmount: number }];
+    expect(input.totalAmount).toBe(500);
+  });
+
+  // W2E c2, §4/§8.7. `totalAmount: parsePositiveDecimal(values.totalText) ??
+  // Number.NaN` used to reach `spendingPlanInputSchema.safeParse` and surface
+  // its own NaN issue message; the sentinel swap reports through this sheet's
+  // save-error constant instead, before that schema ever runs. Reds if the
+  // sentinel is restored: NaN then reaches `spendingPlanInputSchema.safeParse`
+  // at `spending_plan_sheet.hook.ts:240` and is rejected there, and
+  // `submitError` carries the schema's issue text rather than
+  // `Strings.budgetPlanSaveError`.
+  it('reports a schema/submit desync on the plan total as a save error and does not save', async () => {
+    const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setSpendingPlan });
+    mockSubmitTotalText = 'not-a-number';
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+
+    await act(async () => result.current.submit());
+
+    expect(setSpendingPlan).not.toHaveBeenCalled();
+    expect(useSpendingPlanSheetState.getState().submitError).toBe(Strings.budgetPlanSaveError);
   });
 
   // Row 15. `grep -rn budgetPlanSaveError __tests__/` returned nothing before

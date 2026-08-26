@@ -11,10 +11,12 @@ import {
   type CommitmentPaymentAmounts,
   requiresExchangeRate,
   resolveCommitmentPaymentAmounts,
+  TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import { parseDecimalText, parsePositiveDecimal } from '@/utils/parse_decimal';
+import { formatStoredMoneyText, parseRequiredMoneyText } from '@/utils/money_text';
+import { parseDecimalText, parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -32,6 +34,11 @@ import { usePaySheetState } from './pay_sheet.state';
  * Ownership of the operands stays with the caller (the P5 layering ruling):
  * the schema passes its own `data` fields, the preview passes what it watches.
  * Only the shared logic lives here.
+ *
+ * The resolver's output guard (ADR: parse-floor-money-only — a typed amount
+ * too large to store) is caught here too, alongside the input-side
+ * conditions above — never a render crash, and this is the one place that
+ * would otherwise duplicate the resolver's own math to detect it upfront.
  */
 function deriveResolution(
   commitment: Commitment | undefined,
@@ -43,17 +50,22 @@ function deriveResolution(
   // `parsePositiveDecimal`, not a bare `> 0`: 0.004 is positive, and
   // `roundMoney(0.004)` is 0, which the resolver throws on.
   const amount = parsePositiveDecimal(amountText);
-  const exchangeRate = parsePositiveDecimal(rateText ?? '');
+  const exchangeRate = parseRateText(rateText ?? '');
   if (amount === undefined) return undefined;
   if (requiresExchangeRate(commitment.currency, account.currency) && exchangeRate === undefined) {
     return undefined;
   }
-  return resolveCommitmentPaymentAmounts({
-    amount,
-    commitmentCurrency: commitment.currency,
-    accountCurrency: account.currency,
-    exchangeRate,
-  });
+  try {
+    return resolveCommitmentPaymentAmounts({
+      amount,
+      commitmentCurrency: commitment.currency,
+      accountCurrency: account.currency,
+      exchangeRate,
+    });
+  } catch (error) {
+    if (error instanceof TransactionAmountError) return undefined;
+    throw error;
+  }
 }
 
 // A factory, not a module constant: the rate refine has to know whether this
@@ -104,7 +116,7 @@ function createPaySheetSchema(commitment: Commitment | undefined, accounts: Acco
             message: Strings.addTxErrRateRequired,
             path: ['exchange_rate'],
           });
-        } else if (parsePositiveDecimal(data.exchange_rate) === undefined) {
+        } else if (parseRateText(data.exchange_rate) === undefined) {
           ctx.addIssue({
             code: 'custom',
             message: Strings.addTxErrRateInvalid,
@@ -303,7 +315,14 @@ export function usePaySheet(
 
       if (!cancelled) {
         form.reset({
-          amountText: prefillAmount > 0 ? String(prefillAmount) : '',
+          // #301: housekeeping mints payment rows straight from legacy
+          // `commitments.amount`, so `amount_due` can already hold a sub-cent
+          // or exponential-notation value; `formatStoredMoneyText` is what
+          // makes the prefill re-parse to the number it came from, same
+          // contract as edit_transaction.store's amountStr. The `> 0` gate
+          // stays: `formatStoredMoneyText(0)` is `'0'`, and today's variable
+          // (unfixed-amount) case is an empty field, not a typed zero.
+          amountText: prefillAmount > 0 ? formatStoredMoneyText(prefillAmount) : '',
           account_id: prefillAccountId,
           paid_date: toLocalDateString(new Date()),
           exchange_rate: requiresExchangeRate(
@@ -337,13 +356,17 @@ export function usePaySheet(
     setSaveError(false);
     try {
       await markAsPaid(payment.id, {
-        // Both `??` fallbacks are unreachable once the schema has passed —
-        // kept because deleting them costs a cast or a non-null assertion.
-        amount_paid: parsePositiveDecimal(data.amountText) ?? Number.NaN,
+        // A schema/submit desync on this field now reports through
+        // MoneyTextMappingError instead of fabricating a NaN — caught below
+        // like any other failure and surfaced as this sheet's existing
+        // save-error banner (spec §3.4/§4, W2E).
+        amount_paid: parseRequiredMoneyText(data.amountText, 'amountText'),
         account_id: data.account_id,
         paid_date: data.paid_date,
+        // This `??` fallback is unreachable once the schema has passed —
+        // kept because deleting it costs a cast or a non-null assertion.
         exchange_rate_snapshot: requiresRate
-          ? (parsePositiveDecimal(data.exchange_rate ?? '') ?? rate)
+          ? (parseRateText(data.exchange_rate ?? '') ?? rate)
           : undefined,
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
