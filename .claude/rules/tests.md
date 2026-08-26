@@ -14,7 +14,7 @@ paths:
 - **Time is an input, never `new Date()`.** Fixed ISO strings; month-end (day 31 in a 30-day month) and leap-year cases are required for any date arithmetic.
 - Migration suites: at least one must drive the real `runMigrations(db)`, not `MIGRATIONS.map(m => m.up).join()` (audit H11).
 
-Placement and naming: `__tests__/`, `snake_case`, logic-only `.ts`. New tests follow that; the 40 `.tsx` render suites are a settled exception, not a pending one.
+Placement and naming: `__tests__/`, `snake_case`, logic-only `.ts`. New tests follow that; the 43 `.tsx` render suites are a settled exception, not a pending one.
 
 **Render-suite policy (resolves audit M36, decided 2026-08-05): keep the files, don't add to them, prune by reading.** This reverses the earlier "delete them all" stance (recorded at audit M36) on measurement rather than preference — so don't "restore" the older policy. ~105 `fireEvent` interactions live across 25 of those suites, and none of the 25 has a same-named `.test.ts` counterpart; four have partial relatives (`set_budget_sheet.hook`/`.state`, `filter_rail_usage`, `budget_copy_sheet_geometry`) but none of those exercises a render→handler binding. Delete the suites and that wiring coverage goes with nothing inheriting it.
 

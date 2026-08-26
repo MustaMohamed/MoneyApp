@@ -1,17 +1,17 @@
 /**
  * pay_sheet_converted_total.test.tsx
  *
- * The converted-total preview's render gate, and only that. `convertedTotal`
- * is derived in the render body of pay_sheet.tsx (recorded as debt D2), so
- * there is no hook or helper a logic-only `.ts` suite can reach — the gate is
- * observable through what the sheet renders or not at all. Mocking style
- * follows set_budget_sheet.test.tsx: the sheet chrome, the icons and the
- * sibling sheets are stubbed, the hook under test is real.
+ * The converted-total preview's render gate as the SHEET binds it: the row
+ * appears and disappears with what the Amount field holds. W1B moved the
+ * derivation into `usePaySheet` (debt D2 paid off), so the arithmetic, the
+ * currency label, the sub-floor case and the rate-row facts are asserted in
+ * the logic-only `commitments_pay_sheet.hook.test.ts` instead. What stays here
+ * is the render-to-gate wiring nothing else covers.
  *
- * Scope is deliberately one behaviour. The multiply itself, its `requiresRate`
- * gate and its currency label are #278's and are not asserted here; the rate
- * row is stubbed out for the same reason (its half of this defect needs
- * ExchangeRateRow's prop signature to change, which is G13's).
+ * Amended, not extended (`.claude/rules/tests.md`): no case was added, and the
+ * typed-zero case at the bottom reverses under the new floor gate. Mocking
+ * style follows set_budget_sheet.test.tsx: the sheet chrome, the icons and the
+ * sibling sheets are stubbed, the hook under test is real.
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
@@ -231,11 +231,18 @@ describe('PaySheet converted-total preview', () => {
     },
   );
 
-  // A typed zero is not unreadable input — "= 0 EGP" is the truth there, and
-  // the gate must not widen into hiding it.
-  it('still shows the converted total for a typed zero', async () => {
-    const { getByPlaceholderText, getByText } = await renderOpenSheet();
+  // Reversed at W1B, deliberately and with the spec's sanction (§3 row 4).
+  // The gate is now the resolver's own floor — `parsePositiveDecimal`, which
+  // refuses 0 — because the resolver throws on an amount that rounds to zero
+  // and cannot be called speculatively from a render. "= 0 EGP" was true but
+  // useless: nothing is being paid, and the old assertion was written to stop
+  // the gate widening into unreadable input, which the rows above still guard.
+  it('hides the converted total for a typed zero', async () => {
+    const { getByPlaceholderText, queryByText } = await renderOpenSheet();
+    await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), '1');
+    expect(queryByText(CONVERTED_ROW)).not.toBeNull();
+
     await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), '0');
-    expect(getByText(`= ${formatCurrencyAmount(0, Currency.EGP)}`)).toBeTruthy();
+    expect(queryByText(CONVERTED_ROW)).toBeNull();
   });
 });

@@ -10,7 +10,10 @@ import { budgetRepository } from '@/modules/budget/repositories/budget.repositor
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
+import {
+  requiresExchangeRate,
+  resolveTransactionAmounts,
+} from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   useTransactionStore,
@@ -174,9 +177,10 @@ export function useEditTransaction(
     () => resolveTransactionFormSemantics(type, selectedAccount?.type),
     [selectedAccount?.type, type],
   );
-  const isUSD = selectedAccount?.currency === Currency.USD;
-  const isToUSD = selectedToAccount?.currency === Currency.USD;
-  const requiresRate = isUSD || (isTransferOrCC && isToUSD);
+  const requiresRate = requiresExchangeRate(
+    selectedAccount?.currency,
+    isTransferOrCC ? selectedToAccount?.currency : undefined,
+  );
   const requiresBudgetSelection =
     semantics.usesBudget && availableBudgets.length > 1 && !budgetId && !preserveBudgetNull;
   const schema = useMemo(

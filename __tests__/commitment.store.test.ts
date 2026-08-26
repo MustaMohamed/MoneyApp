@@ -627,12 +627,20 @@ describe('commitment store mutation invalidation', () => {
     await flushMicrotasks();
   });
 
-  // #308 S-03: revalidateAfterMutation is fire-and-forget with a log-only
-  // .catch, so there is no second chance — the optimistic patch is what the
-  // user keeps looking at. That is what makes S-01 a defect, not a flicker.
-  it('S-03: keeps the resolved amount when the background revalidation fails', async () => {
+  // #308 S-03 was rewritten at W1B (#312), not deleted outright. Its
+  // `loadError` and revalidation-log assertions are genuinely redundant — the
+  // failed-load, failed-add and failed-persist cases carry both. Its THIRD
+  // assertion was not: S-01 above reads the amount while the refresh promise
+  // is still pending, and the failed-revalidation battery never reads the
+  // amount at all and uses a fixture where raw equals resolved. So nothing
+  // proved the resolved value SURVIVES a revalidation that rejects, which is
+  // the whole reason the optimistic patch has to be the resolver's number.
+  // That single case is what this is:
+  it('keeps the resolved amount after the background revalidation rejects', async () => {
     const refreshError = new Error('post-pay refresh failed');
     const repository = makeRepository({
+      // 10.999 in, 11 out — raw and resolved differ, so a patch that kept the
+      // raw input is distinguishable from one that kept the resolver's value.
       markAsPaid: jest.fn().mockResolvedValue(paymentAmounts({ paymentAmount: 11 })),
     });
     const store = createCommitmentStore(repository);
@@ -643,8 +651,8 @@ describe('commitment store mutation invalidation', () => {
     await store.getState().markAsPaid('payment', { ...paymentDetails, amount_paid: 10.999 });
     await flushMicrotasks();
 
-    expect(consoleSpy).toHaveBeenCalledWith('[commitmentStore] revalidation failed:', refreshError);
-    expect(store.getState().loadError).toBe(true);
+    // revalidateAfterMutation is fire-and-forget with a log-only catch, so
+    // there is no second chance: this patch is what the user keeps looking at.
     expect(store.getState().payments[0].amount_paid).toBe(11);
     consoleSpy.mockRestore();
   });
