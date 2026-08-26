@@ -246,6 +246,31 @@ describe('usePaySheet', () => {
     expect(result.current.form.getValues('amountText')).toBe(expected);
   });
 
+  // §8.10's e2e round-trip: the fix's actual target case, storage through to
+  // the field's own error, not just the prefill text above. A stored
+  // amount_due of 1e-7 prefills as '0.0000001' and, left untouched, has to
+  // fail the same way a typed sub-cent amount does at A1-10 below — present,
+  // typed, below the floor — never as unparseable text a Save cannot even
+  // classify.
+  it('rejects a prefilled amount_due of 1e-7 on submit as the floor message', async () => {
+    mockAccounts = [egpAccount];
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
+    const { result } = await renderHook(() =>
+      usePaySheet(egpCommitment, { ...duePayment, amount_due: 1e-7 }),
+    );
+    await act(async () => {});
+    expect(result.current.form.getValues('amountText')).toBe('0.0000001');
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(mockMarkAsPaid).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('amountText').error?.message).toBe(
+      Strings.commitmentsPayErrAmountMin,
+    );
+  });
+
   it('starts with rateOverride false on open', async () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     // rateOverride starts false (initial state, sheet not yet opened)

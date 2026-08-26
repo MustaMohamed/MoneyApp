@@ -21,12 +21,30 @@ export function parseDecimalText(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+/**
+ * Money text, zero admitted: parse-and-floor. `0` always passes (an unset
+ * optional amount, a promotional card's APR is not this parser's concern —
+ * this is money only); anything else below `MIN_MONEY_AMOUNT` parses as
+ * `undefined`, the same "not a number" result a garbled string gets — the
+ * floor is a parse failure, never a silent round-up. This is the correct
+ * parser for money text only; a non-money numeric field starts from
+ * `parseDecimalText` (or `parseRateText` below for a rate) instead (ADR:
+ * parse-floor-money-only).
+ */
 export function parseNonNegativeDecimal(value: string): number | undefined {
   const parsed = parseDecimalText(value);
   if (parsed === undefined) return undefined;
   return parsed === 0 || parsed >= MIN_MONEY_AMOUNT ? parsed : undefined;
 }
 
+/**
+ * Money text, zero refused: the required-amount parser for a payment, limit,
+ * or income that must be strictly positive. Below `MIN_MONEY_AMOUNT` —
+ * `0` included — parses as `undefined`, same shape as a garbled string.
+ * This floor is now load-bearing *only* for money text; a non-money numeric
+ * field starts from `parseDecimalText` (or `parseRateText` below for a
+ * rate) instead (ADR: parse-floor-money-only).
+ */
 export function parsePositiveDecimal(value: string): number | undefined {
   const parsed = parseNonNegativeDecimal(value);
   return parsed !== undefined && parsed >= MIN_MONEY_AMOUNT ? parsed : undefined;

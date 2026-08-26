@@ -844,7 +844,7 @@ export const Strings = {
   addTxErrTransferNoCc: 'Use Credit Pay for credit card moves',
   addTxErrRateRequired: 'Enter the exchange rate',
   addTxErrRateInvalid: 'Enter a valid rate greater than 0',
-  addTxErrAmountUnstorable: "Amounts this large can't be stored — check the exchange rate",
+  addTxErrAmountUnstorable: "Amounts this large can't be stored",
   addTxErrCardCreditExceedsLiability: 'Card credit cannot exceed the current card balance',
   addTxErrCcPaymentExceedsLiability: 'Payment cannot exceed the current card balance',
   addTxInsufficientBalance: (name: string) => `Insufficient balance in ${name}`,

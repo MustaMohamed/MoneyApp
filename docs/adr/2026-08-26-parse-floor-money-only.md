@@ -4,7 +4,9 @@
 - **Status:** accepted (P1 gate, W2E)
 - **Ticket:** W2E (issues #305, #307, #301)
 - **Applies to:** `src/modules/transactions/domain/transaction_amounts.ts`,
-  `src/utils/parse_decimal.ts`
+  `src/utils/parse_decimal.ts`, `src/modules/accounts/utils/add_account.schema.ts`,
+  `src/modules/transactions/screens/transactions/filter/filter.helpers.ts`,
+  `src/modules/transactions/database/transactions.ts`
 
 ## Decision
 
@@ -22,9 +24,13 @@
    on #257, not fixed here (Layla's P1 ruling refused a display-layer `RATE_MIN`).
 3. **The resolvers bound their outputs.** `resolveTransactionAmounts` and
    `resolveCommitmentPaymentAmounts` throw `TransactionAmountError` when any computed, rounded leg
-   is non-finite or exceeds `Number.MAX_SAFE_INTEGER`. Invariant, scoped to the write path: no
-   computed money value above `MAX_SAFE_INTEGER` or non-finite ever reaches a `db.runAsync` bind.
-   Upper-bound precedent: `budget_month_profiles.ts`'s income guard.
+   is non-finite or exceeds `Number.MAX_SAFE_INTEGER`. Invariant, scoped to these two resolvers: no
+   leg they compute reaches a caller non-finite or above `Number.MAX_SAFE_INTEGER`. Upper-bound
+   precedent: `budget_month_profiles.ts`'s income guard. This does not extend to every write path:
+   `account_form.helpers.ts:85`'s `requiredAmount` → `accounts.ts:87,:97` binds `opening_balance`/
+   `current_balance` via `runAsync` with no magnitude bound of its own (`REAL NOT NULL DEFAULT 0`,
+   no `CHECK` — `001_create_accounts.ts:10-11`), unchanged by this diff and unbounded on `main`
+   before it too — not fixed here.
 4. **APR** is a percentage in `[0, 100]` with a stated precision of 2 dp, quantized half-even.
    Quantization under a stated precision is not a silent bump; the floor's reject-don't-round rule
    applies to money amounts, not percentages.
@@ -32,7 +38,7 @@
 ## Why
 
 MA-018 put the money floor inside the shared parsers, making "below the money floor" and "not a
-number" indistinguishable for four value classes that are not money (#305). Removing the floor from
+number" indistinguishable for five value classes that are not money (#305). Removing the floor from
 rate parsing reopens the path from a tiny typed rate to an absurd computed amount on the **write
 path** (`egp / rate` inside the resolvers); the output guard closes that path at the layer that owns
 amount validity there, and also closes the pre-existing hole where a huge typed amount was never

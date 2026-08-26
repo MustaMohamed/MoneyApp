@@ -541,6 +541,35 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
     expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountZero);
   });
 
+  // W2E c3, §8/§8.9's e2e round-trip: the fix's actual target case, where the
+  // sub-cent test above coincidentally passed even against the old
+  // `String(tx.amount)` (`String(0.005) === '0.005'` by luck). `1e-7` is what
+  // `String()` renders as exponential text (`'1e-7'`) — unparseable by
+  // `DECIMAL_PATTERN` — so a bare `String()` prefill opened this field on
+  // text no keystroke could even repair. `formatStoredMoneyText` renders it
+  // as `'0.0000001'` instead, which is present, typed, and just below the
+  // floor — this pins that it fails Save the same way the sub-cent case
+  // does, not silently and not with "Enter an amount".
+  it('rejects a stored 1e-7 on Save as the floor message, never as unparseable text', async () => {
+    const exponentialTx = makeTestTransaction({
+      ...mockTxExpense,
+      amount: 1e-7,
+    });
+    useEditTransactionStore.getState().loadFromTx(exponentialTx);
+    const updateTx = installMockUpdateTransaction();
+    // The prefill itself, not just the Save outcome: `'0.0000001'` is what
+    // `formatStoredMoneyText` renders and what the field can hold at all.
+    expect(useEditTransactionStore.getState().amountStr).toBe('0.0000001');
+    const { result } = await renderHook(() =>
+      useEditTransaction(exponentialTx, jest.fn(), jest.fn()),
+    );
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountZero);
+  });
+
   it("binds the resolver's rounded amount into the payload, not the raw typed value", async () => {
     const usdTx = {
       ...mockTxExpense,

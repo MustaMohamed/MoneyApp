@@ -111,7 +111,7 @@ describe('BudgetRepository.setExpectedIncome — rounds at the first statement',
 });
 
 // W2E c2, #307's "second half" (§4/§8.8): the row layer already guards a
-// non-finite amount (`budget_month_profiles.ts:27-29`, since #169) -- this is
+// non-finite amount (`budget_month_profiles.ts:27-29`, since #161) -- this is
 // the missing test proving it, on the real column rather than a mock of the
 // function under test.
 //
