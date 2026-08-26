@@ -229,6 +229,23 @@ describe('usePaySheet', () => {
     expect(result.current.form.getValues('paid_date')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
+  // §8.10 (W2E c3, #301): the one growing instance — housekeeping mints
+  // payment rows from legacy `commitments.amount`, so `amount_due` can already
+  // hold a sub-cent or exponential-notation value. `formatStoredMoneyText`
+  // (not `String(prefillAmount)`) is what makes the prefill re-parse to the
+  // number it came from, same contract as edit_transaction.store's §8.9.
+  it.each([
+    [0.005, '0.005'],
+    [1e-7, '0.0000001'],
+  ])('prefills amount_due %p as %p through amountText', async (amountDue, expected) => {
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
+    const { result } = await renderHook(() =>
+      usePaySheet(fixedCommitment, { ...duePayment, amount_due: amountDue }),
+    );
+    await act(async () => {});
+    expect(result.current.form.getValues('amountText')).toBe(expected);
+  });
+
   it('starts with rateOverride false on open', async () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     // rateOverride starts false (initial state, sheet not yet opened)

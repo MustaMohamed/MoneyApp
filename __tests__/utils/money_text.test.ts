@@ -346,6 +346,7 @@ describe('parseRequiredMoneyText', () => {
   it.each([[''], ['0'], ['0.005'], ['abc'], ['-5'], ['1e3']])(
     'throws MoneyTextMappingError on %p, naming the field',
     (text) => {
+      expect(() => parseRequiredMoneyText(text, 'amountText')).toThrow(MoneyTextMappingError);
       expect(() => parseRequiredMoneyText(text, 'amountText')).toThrow(
         expect.objectContaining({ name: MoneyTextMappingError.name, field: 'amountText' }),
       );

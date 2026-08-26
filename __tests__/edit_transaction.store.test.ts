@@ -23,6 +23,20 @@ describe('useEditTransactionStore', () => {
     });
   });
 
+  // §8.9 (W2E c3, #301): the prefill has to equal what is stored, digit for
+  // digit, through `formatStoredMoneyText` rather than a bare `String(tx.amount)`.
+  // `0.005` is the legacy sub-cent case #301 is about — it must reach the field
+  // as '0.005' so Save fails loudly with the floor message, not silently as
+  // '0.01' (formatAmount) or as unparseable exponential text ('1e-7').
+  it.each([
+    [0.005, '0.005'],
+    [1e-7, '0.0000001'],
+  ])('loads a stored amount of %p as the prefill text %p', (amount, expected) => {
+    useEditTransactionStore.getState().loadFromTx(makeTestTransaction({ amount }));
+
+    expect(useEditTransactionStore.getState().amountStr).toBe(expected);
+  });
+
   it('stores available budgets and a selected budget', () => {
     const budget = makeTestBudget({ id: 'budget-food' });
     useEditTransactionStore.getState().setAvailableBudgets([budget]);

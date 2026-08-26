@@ -15,7 +15,7 @@ import {
 } from '@/modules/transactions/domain/transaction_amounts';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import { parseRequiredMoneyText } from '@/utils/money_text';
+import { formatStoredMoneyText, parseRequiredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -315,7 +315,14 @@ export function usePaySheet(
 
       if (!cancelled) {
         form.reset({
-          amountText: prefillAmount > 0 ? String(prefillAmount) : '',
+          // #301: housekeeping mints payment rows straight from legacy
+          // `commitments.amount`, so `amount_due` can already hold a sub-cent
+          // or exponential-notation value; `formatStoredMoneyText` is what
+          // makes the prefill re-parse to the number it came from, same
+          // contract as edit_transaction.store's amountStr. The `> 0` gate
+          // stays: `formatStoredMoneyText(0)` is `'0'`, and today's variable
+          // (unfixed-amount) case is an empty field, not a typed zero.
+          amountText: prefillAmount > 0 ? formatStoredMoneyText(prefillAmount) : '',
           account_id: prefillAccountId,
           paid_date: toLocalDateString(new Date()),
           exchange_rate: requiresExchangeRate(
