@@ -29,11 +29,11 @@
  * constructor from `src/utils/format_amount.ts`, 6f goes red — that is MA-018's hazard
  * (spec §11), not a defect in this suite.
  *
- * Not covered, deliberately: pass 2's "no longer constructs" branch
- * (validate-money-formatting.js:108-118). Reaching it needs an allowlisted file that
- * still exists but no longer constructs — that means either mutating
- * `src/utils/format_amount.ts` (MA-018 owns it) or refactoring the script to accept an
- * injected allowlist, and both are out of scope (spec §3.2 — the script gets zero diff).
+ * Case (h) reaches pass 2's "no longer constructs" branch
+ * (validate-money-formatting.js:108-118) directly, without mutating
+ * `src/utils/format_amount.ts`: the shipped script is copied to a throwaway `fakeroot/`
+ * so its own `__dirname`-derived `root` resolves there instead of the real repo, and a
+ * `fakeroot/src/utils/format_amount.ts` fixture stands in for the real allowlisted file.
  */
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import fs from 'node:fs';
@@ -59,8 +59,16 @@ function envWithStub(stubDir: string): NodeJS.ProcessEnv {
   return { ...process.env, PATH: `${stubDir}${path.delimiter}${String(process.env.PATH)}` };
 }
 
+function runGuardAt(
+  guardPath: string,
+  env: NodeJS.ProcessEnv,
+  timeout?: number,
+): SpawnSyncReturns<string> {
+  return spawnSync(process.execPath, [guardPath], { encoding: 'utf8', env, timeout });
+}
+
 function runGuard(env: NodeJS.ProcessEnv, timeout?: number): SpawnSyncReturns<string> {
-  return spawnSync(process.execPath, [scriptPath], { encoding: 'utf8', env, timeout });
+  return runGuardAt(scriptPath, env, timeout);
 }
 
 beforeAll(() => {
@@ -160,51 +168,147 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
     expect(Number(match?.[1])).toBeGreaterThan(0);
   }, 15000);
 
-  // Not in spec §4 rows 5-10 — MA-018 B1 regression. `firstConstructorLine` (`:70-82`)
-  // resolves with `lines.findIndex`, so the FIRST line matching `CONSTRUCTOR` wins,
-  // comment or not. `format_amount.ts` carries prose above the real constructor
-  // explaining why the constructor call must stay on one line — MA-018 shipped a
-  // version of that prose that itself matched `CONSTRUCTOR`, so the header comment
-  // resolved before the executable constructor and pass 2 (`:108-118`, the check that
-  // reds when the sanctioned entry stops constructing) went permanently dead: it read
-  // the comment's line number forever, never noticing the real constructor disappear.
-  //
-  // The pattern is read out of the script's own source rather than re-declared here —
-  // a hand-copied literal would silently stop tracking `CONSTRUCTOR` if the script's
-  // regex ever changed, which is exactly the kind of drift this suite exists to catch.
-  // This does not exercise pass 2 itself (still out of scope per the file header above);
-  // it pins the narrower, cheaper invariant that a regression here would break: exactly
-  // one line of the sanctioned file matches, and it is the constructor, not a comment.
-  it('the CONSTRUCTOR pattern matches exactly one line of format_amount.ts, and it is not a comment', () => {
-    const scriptSource = fs.readFileSync(scriptPath, 'utf8');
-    const patternLiteral = /^const CONSTRUCTOR = \/(.+)\/;$/m.exec(scriptSource);
-    // Jest's `expect` takes no message argument (that's Jasmine); a bare `not.toBeNull()`
-    // reds here with only `Received: null`, which says nothing about WHY. Guard clause
-    // instead, so a reflow or rename of the guard's own `CONSTRUCTOR` declaration reads in
-    // one second, not an hour of diffing scripts/validate-money-formatting.js by hand.
-    if (patternLiteral === null) {
-      throw new Error(
-        "scripts/validate-money-formatting.js no longer declares `const CONSTRUCTOR = /.../;` on one line — the extraction regex above and the guard's own declaration have drifted apart",
-      );
-    }
-    const CONSTRUCTOR = new RegExp(patternLiteral[1] ?? '');
+  // c1 spec §2 item 2, case (a) — #295's row 1: a full-line `//` comment is the only
+  // mention of the constructor. stripComments blanks it before matching, so it must not
+  // be reported.
+  it('does not report a constructor mentioned only in a line comment', () => {
+    const violationRel = '.ma017-guard-fixtures/blinded_line_comment.ts';
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'blinded_line_comment.ts'),
+      "// new Intl.NumberFormat('en-US');\nexport const nothingHere = 1;\n",
+    );
+    const stubDir = makeStubGit(
+      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
+    );
+    const result = runGuard(envWithStub(stubDir));
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+  });
 
-    const formatAmountPath = path.join(repoRoot, 'src', 'utils', 'format_amount.ts');
-    const lines = fs.readFileSync(formatAmountPath, 'utf8').split('\n');
-    const matchingLines = lines
-      .map((line, index) => ({ line, number: index + 1 }))
-      .filter(({ line }) => CONSTRUCTOR.test(line));
+  // c1 spec §2 item 2, case (b) — #295's row 2: a single-line `/* … */` block comment is
+  // the only mention of the constructor.
+  it('does not report a constructor mentioned only in a single-line block comment', () => {
+    const violationRel = '.ma017-guard-fixtures/blinded_block_comment.ts';
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'blinded_block_comment.ts'),
+      "/* new Intl.NumberFormat('en-US'); */\nexport const nothingHere = 1;\n",
+    );
+    const stubDir = makeStubGit(
+      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
+    );
+    const result = runGuard(envWithStub(stubDir));
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+  });
 
-    expect(matchingLines).toHaveLength(1);
-    // Catches a line-comment (`//`), a block-comment opener (`/*`), and a JSDoc/block
-    // continuation (`*`) prefix — the three ways a comment line can itself contain the
-    // constructor text and be mistaken for the real call. A comment trailing on a CODE
-    // line (e.g. `const x = 1; // new Intl.NumberFormat(`) is NOT caught by this and
-    // cannot be from a leading-anchor regex — the line correctly contains `const x = 1`,
-    // real code, before the comment starts. That case is out of what this line-level
-    // assertion can see; scripts/validate-money-formatting.js's own line-based scan
-    // shares the same blind spot (filed as debt, not fixed here per S1 review).
-    expect(/^\s*(\/\/|\/\*|\*)/.test(matchingLines[0]?.line ?? '')).toBe(false);
-    expect(matchingLines[0]?.line).toContain('new Intl.NumberFormat(');
+  // c1 spec §2 item 2, case (c) — #295's row 3: a JSDoc-style ` * …` continuation line is
+  // the only mention of the constructor, inside a real multi-line block comment.
+  it('does not report a constructor mentioned only in a JSDoc continuation line', () => {
+    const violationRel = '.ma017-guard-fixtures/blinded_jsdoc_comment.ts';
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'blinded_jsdoc_comment.ts'),
+      "/**\n * new Intl.NumberFormat('en-US');\n */\nexport const nothingHere = 1;\n",
+    );
+    const stubDir = makeStubGit(
+      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
+    );
+    const result = runGuard(envWithStub(stubDir));
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+  });
+
+  // c1 spec §2 item 2, case (d) — #295's row 4: a trailing `//` comment on an unrelated
+  // code line is the only mention of the constructor.
+  it('does not report a constructor mentioned only in a trailing comment on unrelated code', () => {
+    const violationRel = '.ma017-guard-fixtures/blinded_trailing_comment.ts';
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'blinded_trailing_comment.ts'),
+      "const x = 1; // new Intl.NumberFormat('en-US');\n",
+    );
+    const stubDir = makeStubGit(
+      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
+    );
+    const result = runGuard(envWithStub(stubDir));
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+  });
+
+  // c1 spec §2 item 2, case (e) — a real constructor with an unrelated trailing comment on
+  // the same line must still be reported; stripping the comment must not blank the code
+  // that precedes it.
+  it('reports a real constructor even with a trailing comment on the same line', () => {
+    const violationRel = '.ma017-guard-fixtures/real_with_trailing_comment.ts';
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'real_with_trailing_comment.ts'),
+      "new Intl.NumberFormat('en-US'); // formats a money string\n",
+    );
+    const stubDir = makeStubGit(
+      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
+    );
+    const result = runGuard(envWithStub(stubDir));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      `${violationRel}:1: constructs an \`Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
+    );
+  });
+
+  // c1 spec §2 item 2, case (f) — the quote-state exerciser: a `//` inside a string
+  // literal (a URL) must not truncate the real constructor call that follows it on the
+  // same line.
+  it('reports a real constructor after a string literal containing `//`', () => {
+    const violationRel = '.ma017-guard-fixtures/quote_state.ts';
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'quote_state.ts'),
+      "const u = 'https://x'; new Intl.NumberFormat('en-US');\n",
+    );
+    const stubDir = makeStubGit(
+      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
+    );
+    const result = runGuard(envWithStub(stubDir));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      `${violationRel}:1: constructs an \`Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
+    );
+  });
+
+  // c1 spec §2 item 2, case (g) — a multi-line `/* … */` block, without a per-line `*`
+  // prefix, carrying the constructor text across an interior line must stay silent.
+  it('does not report a constructor mentioned inside a multi-line block comment', () => {
+    const violationRel = '.ma017-guard-fixtures/blinded_multiline_block.ts';
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'blinded_multiline_block.ts'),
+      "/*\nThis explains why new Intl.NumberFormat('en-US') must never appear\noutside format_amount.ts.\n*/\nexport const nothingHere = 1;\n",
+    );
+    const stubDir = makeStubGit(
+      `#!/bin/sh\necho 'src/utils/format_amount.ts'\necho '${violationRel}'\nexit 0\n`,
+    );
+    const result = runGuard(envWithStub(stubDir));
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+  });
+
+  // c1 spec §2 item 2, case (h) — proves pass 2's blinding directly
+  // (validate-money-formatting.js:108-118) rather than transitively through
+  // src/utils/format_amount.ts. The shipped script is copied to a throwaway fakeroot so
+  // its own `__dirname`-derived `root` (script `:17`) resolves there, and a
+  // fakeroot/src/utils/format_amount.ts fixture — whose only constructor text is a
+  // comment — stands in for the real allowlisted file. Pre-fix this exits 0 blind, the
+  // guard's headline defect (#294 P8); post-fix it reaches "no longer constructs".
+  it('reaches pass 2 blinding directly through a copied script and a comment-only allowlisted fixture', () => {
+    const fakeRoot = path.join(fixtureRoot, 'fakeroot');
+    const fakeScriptsDir = path.join(fakeRoot, 'scripts');
+    const fakeUtilsDir = path.join(fakeRoot, 'src', 'utils');
+    fs.mkdirSync(fakeScriptsDir, { recursive: true });
+    fs.mkdirSync(fakeUtilsDir, { recursive: true });
+    const copiedScriptPath = path.join(fakeScriptsDir, 'validate-money-formatting.js');
+    fs.copyFileSync(scriptPath, copiedScriptPath);
+    fs.writeFileSync(
+      path.join(fakeUtilsDir, 'format_amount.ts'),
+      "// new Intl.NumberFormat('en-US') lives here in prose only.\nexport const nothingHere = 1;\n",
+    );
+    const stubDir = makeStubGit("#!/bin/sh\necho 'src/utils/format_amount.ts'\nexit 0\n");
+    const result = runGuardAt(copiedScriptPath, envWithStub(stubDir));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('no longer constructs');
   });
 });
