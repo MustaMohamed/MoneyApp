@@ -21,8 +21,8 @@ const errors = [];
 // roughly every other match. The paren is load-bearing, not `new` — `Intl.NumberFormat(...)`
 // without `new` is legal and returns a working formatter, so a pattern anchored on `new`
 // is evaded by deleting four characters. The negative lookbehind keeps `SomeIntl.NumberFormat(`
-// from matching; see the two prose mentions this keeps out of the allowlist
-// (account_aggregation.ts, dashboard.helpers.ts) — neither has a paren after the name.
+// from matching; comments are stripped before matching (stripComments, below) — a prose
+// mention of the constructor no longer needs a paren-less workaround to stay out of the allowlist.
 const CONSTRUCTOR = /(?<![\w.])Intl\.NumberFormat\s*\(/;
 
 // ASCII ascending by path — this is git ls-files order, so a reviewer can diff this against
@@ -75,10 +75,69 @@ function firstConstructorLine(relPath) {
     return undefined;
   }
   const lines = fs.readFileSync(abs, 'utf8').split('\n');
-  const index = lines.findIndex((line) => CONSTRUCTOR.test(line));
+  const index = stripComments(lines).findIndex((line) => CONSTRUCTOR.test(line));
   const result = index === -1 ? undefined : index + 1;
   constructorLineCache.set(relPath, result);
   return result;
+}
+
+// Comment stripping runs before matching, so prose *about* a constructor cannot mimic one and
+// a constructor hidden inside a comment cannot escape detection. Block-comment state carries
+// across lines; quote state (`'`, `"`, backtick) ALSO carries across lines — a backtick
+// template literal is valid, ordinary JS across several physical lines, and treating an
+// interior line's `/*` as a real comment-opener (the bug this replaced) can blank a real
+// constructor below it: a silent false negative. At the end of a line, quote state is reset
+// unless it is a backtick — single/double-quoted strings do not legitimately span lines, so
+// closing them at line-end is a safe simplification; keeping backtick state open is not.
+// This can produce a loud false positive (a `` ` `` inside what reads as a regex character
+// class opens quote state that a same-line trailing comment then rides past, uncommented —
+// see validate_money_formatting.test.ts's pinned case) but never a silent false negative:
+// string content is preserved (`result += ch`), never blanked, so a real constructor is
+// never swallowed by quote state, only possibly mis-flagged — the accepted direction
+// (P8 cycle 1 item 8, deep-mode verifier CONFIRMED). A backslash inside a quote escapes
+// the next character, so an escaped quote (`\'`) cannot close the string early either.
+// Lines are blanked, not deleted, so every line's index — and therefore every reported
+// line number — is unchanged.
+function stripComments(lines) {
+  let inBlockComment = false;
+  let quote = null;
+  return lines.map((line) => {
+    let result = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inBlockComment) {
+        if (ch === '*' && line[i + 1] === '/') {
+          inBlockComment = false;
+          i++;
+        }
+        continue;
+      }
+      if (quote) {
+        result += ch;
+        if (ch === '\\' && i + 1 < line.length) {
+          result += line[i + 1];
+          i++;
+          continue;
+        }
+        if (ch === quote) quote = null;
+        continue;
+      }
+      if (ch === "'" || ch === '"' || ch === '`') {
+        quote = ch;
+        result += ch;
+        continue;
+      }
+      if (ch === '/' && line[i + 1] === '/') break;
+      if (ch === '/' && line[i + 1] === '*') {
+        inBlockComment = true;
+        i++;
+        continue;
+      }
+      result += ch;
+    }
+    if (quote !== '`') quote = null;
+    return result;
+  });
 }
 
 const allowlistPaths = new Set(ALLOWLIST.map((entry) => entry.path));

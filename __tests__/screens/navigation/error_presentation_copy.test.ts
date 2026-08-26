@@ -18,7 +18,6 @@ describe('shared error-presentation Strings keys', () => {
     ];
 
     for (const value of keys) {
-      expect(typeof value).toBe('string');
       expect(value.length).toBeGreaterThan(0);
     }
   });

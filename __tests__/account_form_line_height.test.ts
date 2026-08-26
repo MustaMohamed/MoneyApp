@@ -28,4 +28,11 @@ describe('lineHeightFor', () => {
  * The invariant is still worth enforcing; the right tool is an oxlint rule,
  * which sees module-level and array styles and files nobody remembered to
  * add to a list. Not written here: a lint rule is not this task's scope.
+ *
+ * That rule shipped in W1D c2 (#230): `moneyapp/font-size-pairs-line-height`
+ * (scripts/oxlint-plugin-moneyapp.js), detected at warn by `npm run lint` — not
+ * yet enforced; a warning doesn't fail CI. Blocking arrives with the burn-down
+ * issue's flip to error. It sees module-level style constants, array-style
+ * members, and any file nobody remembered to add to a list — the three ways
+ * the regex above failed.
  */

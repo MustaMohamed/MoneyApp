@@ -5,6 +5,10 @@
     {
       "name": "expo",
       "specifier": "eslint-plugin-expo"
+    },
+    {
+      "name": "moneyapp",
+      "specifier": "./scripts/oxlint-plugin-moneyapp.js"
     }
   ],
   "env": {
@@ -47,6 +51,7 @@
     "expo/use-dom-exports": "error",
     "expo/no-env-var-destructuring": "error",
     "expo/no-dynamic-env-var": "error",
+    "moneyapp/font-size-pairs-line-height": "warn",
     "typescript/no-floating-promises": "error",
     "typescript/no-misused-promises": "error",
     "typescript/await-thenable": "error",
@@ -92,6 +97,10 @@
       "files": ["jest.setup.js", "__tests__/**/*.{ts,tsx,js}", "__mocks__/**/*.{ts,tsx,js}"],
       "rules": {
         "react/display-name": "off",
+        // Token-bound `toHaveStyle({ fontSize: Type.x })` assertions are exactly what
+        // tests.md:23 protects — real style objects, not test-only ones, are what this
+        // rule exists to check (set_budget_sheet.test.tsx:225,232,245 fire otherwise).
+        "moneyapp/font-size-pairs-line-height": "off",
         "typescript/no-unsafe-type-assertion": "warn",
         "typescript/no-explicit-any": "warn",
         "typescript/no-unsafe-assignment": "warn",
