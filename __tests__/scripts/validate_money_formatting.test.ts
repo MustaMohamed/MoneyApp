@@ -42,7 +42,7 @@
  * contract under test is that matrix, not the scanner's branch count.
  *
  * Case (h) reaches pass 2's "no longer constructs" branch
- * (validate-money-formatting.js:156-166) directly, without mutating
+ * (validate-money-formatting.js:167-177) directly, without mutating
  * `src/utils/format_amount.ts`: the shipped script is copied to a throwaway `fakeroot/`
  * so its own `__dirname`-derived `root` resolves there instead of the real repo, and a
  * `fakeroot/src/utils/format_amount.ts` fixture stands in for the real allowlisted file.
@@ -146,7 +146,7 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
     );
   });
 
-  // §4 row 7, pass 1 (`:135-142`). The stub omits `src/utils/format_amount.ts`, so pass 2
+  // §4 row 7, pass 1 (`:146-153`). The stub omits `src/utils/format_amount.ts`, so pass 2
   // also fires — stderr is asserted for the whole contiguous violation message as one
   // substring, never as three separate `toContain` calls, because pass 2's "gone" line
   // also contains `src/utils/format_amount.ts`.
@@ -172,7 +172,7 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
     expect(result.stderr).toContain(violationRel);
   });
 
-  // §4 row 8, pass 2's "gone" branch (`:150-155`). The stub lists only a clean fixture,
+  // §4 row 8, pass 2's "gone" branch (`:161-166`). The stub lists only a clean fixture,
   // omitting `src/utils/format_amount.ts` entirely, so it reads as gone.
   it('flags a stale allowlist entry without flagging a violation', () => {
     const cleanRel = '.ma017-guard-fixtures/clean.ts';
@@ -240,37 +240,66 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
     expect(result.stderr).toBe('');
   });
 
-  // c1 spec §2 item 2, cases (e), (f), (i-reported) — one spawn over three fixtures, all of
-  // which must still be reported; stripping must never blank real code. (e) a real
-  // constructor with an unrelated trailing comment on the same line. (f) the quote-state
-  // exerciser: a `//` inside a string literal (a URL) must not truncate the real
-  // constructor that follows on the same line. (i-reported) an escaped quote followed by a
-  // real constructor with no comment at all — the escape fix must not eat the code after it.
-  it('reports a real constructor despite a trailing comment, a quoted `//`, or an escaped quote (e, f, i-reported)', () => {
-    const { result, relPaths } = runGuardOverFixtures([
+  // c1 spec §2 item 2, cases (e), (f), (i-reported), plus P8 cycle 1 item 8's two additions
+  // — one spawn over five fixtures, all of which must still be reported; stripping must
+  // never blank real code. (e) a real constructor with an unrelated trailing comment on the
+  // same line. (f) the quote-state exerciser: a `//` inside a string literal (a URL) must
+  // not truncate the real constructor that follows on the same line. (i-reported) an
+  // escaped quote followed by a real constructor with no comment at all — the escape fix
+  // must not eat the code after it. `template_interior_block_open` pins item 8's fix: a
+  // `/*`-looking line INSIDE a multi-line template literal must not open real block-comment
+  // state (pre-fix, quote state reset at every line start, so this line's `/*` was read as
+  // a genuine comment-opener with no closing `*/` anywhere after it, blanking every line to
+  // EOF — including the real constructor below — a silent false negative; post-fix, hoisted
+  // backtick-persisting quote state keeps the whole template as string content throughout).
+  // `backtick_regex_class_fp` pins the accepted trade the same fix makes on purpose: a
+  // backtick this scanner cannot know is inside a regex character class (it has no concept
+  // of regex literals — #295's own ruling declined a real parser for one pattern) opens
+  // quote state that rides straight through a same-line `//`, so the trailing comment's
+  // constructor mention is never truncated and gets reported — a LOUD false positive,
+  // deliberately preferred over the silent false negative it replaced (P8 cycle 1 item 8,
+  // deep-mode verifier CONFIRMED; zero live sites in `src/` match this shape today).
+  it('reports a real constructor despite a trailing comment, a quoted `//`, an escaped quote, or being inside a multi-line template (e, f, i-reported, item-8 pair)', () => {
+    const cases: Array<Fixture & { line: number }> = [
       {
         name: 'real_with_trailing_comment.ts',
         content: "new Intl.NumberFormat('en-US'); // formats a money string\n",
+        line: 1,
       },
       {
         name: 'quote_state.ts',
         content: "const u = 'https://x'; new Intl.NumberFormat('en-US');\n",
+        line: 1,
       },
       {
         name: 'escaped_quote_then_constructor.ts',
         content: "const x = 'a\\'b'; new Intl.NumberFormat('en-US');\n",
+        line: 1,
       },
-    ]);
+      {
+        // Real constructor sits AFTER the template, at line 5, not line 1 like its siblings.
+        name: 'template_interior_block_open.ts',
+        content:
+          "const template = `line one\n/* unterminated within this template\nline three`;\n\nnew Intl.NumberFormat('en-US');\n",
+        line: 5,
+      },
+      {
+        name: 'backtick_regex_class_fp.ts',
+        content: 'const re = /[`]/; // new Intl.NumberFormat(\n',
+        line: 1,
+      },
+    ];
+    const { result, relPaths } = runGuardOverFixtures(cases);
     expect(result.status).toBe(1);
-    for (const relPath of relPaths) {
+    cases.forEach((c, index) => {
       expect(result.stderr).toContain(
-        `${relPath}:1: constructs an \`Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
+        `${relPaths[index]}:${c.line}: constructs an \`Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
       );
-    }
+    });
   });
 
   // c1 spec §2 item 2, case (h) — proves pass 2's blinding directly
-  // (validate-money-formatting.js:156-166) rather than transitively through
+  // (validate-money-formatting.js:167-177) rather than transitively through
   // src/utils/format_amount.ts. The shipped script is copied to a throwaway fakeroot so
   // its own `__dirname`-derived `root` (script `:17`) resolves there, and a
   // fakeroot/src/utils/format_amount.ts fixture — whose only constructor text is a

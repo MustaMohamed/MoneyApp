@@ -83,16 +83,26 @@ function firstConstructorLine(relPath) {
 
 // Comment stripping runs before matching, so prose *about* a constructor cannot mimic one and
 // a constructor hidden inside a comment cannot escape detection. Block-comment state carries
-// across lines; quote state (`'`, `"`, backtick) is tracked within a line so a `//` inside a
-// string literal (e.g. a URL) does not truncate real code. A backslash inside a quote escapes
-// the next character, so an escaped quote (`\'`) cannot close the string early and desync real
-// code after it from what it actually is. Lines are blanked, not deleted, so every line's
-// index — and therefore every reported line number — is unchanged.
+// across lines; quote state (`'`, `"`, backtick) ALSO carries across lines — a backtick
+// template literal is valid, ordinary JS across several physical lines, and treating an
+// interior line's `/*` as a real comment-opener (the bug this replaced) can blank a real
+// constructor below it: a silent false negative. At the end of a line, quote state is reset
+// unless it is a backtick — single/double-quoted strings do not legitimately span lines, so
+// closing them at line-end is a safe simplification; keeping backtick state open is not.
+// This can produce a loud false positive (a `` ` `` inside what reads as a regex character
+// class opens quote state that a same-line trailing comment then rides past, uncommented —
+// see validate_money_formatting.test.ts's pinned case) but never a silent false negative:
+// string content is preserved (`result += ch`), never blanked, so a real constructor is
+// never swallowed by quote state, only possibly mis-flagged — the accepted direction
+// (P8 cycle 1 item 8, deep-mode verifier CONFIRMED). A backslash inside a quote escapes
+// the next character, so an escaped quote (`\'`) cannot close the string early either.
+// Lines are blanked, not deleted, so every line's index — and therefore every reported
+// line number — is unchanged.
 function stripComments(lines) {
   let inBlockComment = false;
+  let quote = null;
   return lines.map((line) => {
     let result = '';
-    let quote = null;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (inBlockComment) {
@@ -125,6 +135,7 @@ function stripComments(lines) {
       }
       result += ch;
     }
+    if (quote !== '`') quote = null;
     return result;
   });
 }
