@@ -3,11 +3,13 @@ import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 
-export type LoadErrorAlertMode = 'fill' | 'inline' | 'floating';
-export type LoadErrorAlertFloatingOffset = 'tabBar' | 'edge';
 /** Semantic keys, not the Tailwind classes themselves — `status_badge.tsx`'s
- * `size?: 'sm' | 'md'` is the house precedent for this exact class-map shape. */
-export type LoadErrorAlertFillPadding = 'default' | 'wide';
+ * `size?: 'sm' | 'md'` is the house precedent for this exact class-map shape,
+ * inlined rather than exported for the same reason that precedent is: no
+ * caller outside this file needs the mode/offset/padding vocabulary by name,
+ * only the discriminated `LoadErrorAlertProps` union built from it below. */
+type LoadErrorAlertFloatingOffset = 'tabBar' | 'edge';
+type LoadErrorAlertFillPadding = 'default' | 'wide';
 
 interface LoadErrorAlertCommonProps {
   title: string;

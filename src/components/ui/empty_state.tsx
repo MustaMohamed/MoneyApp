@@ -10,16 +10,10 @@ import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
-// Ruled genuinely different from ErrorState, not merged (#290): 4 of these 9
-// variants render no action at all, where every ErrorState caller does; the
-// action widget differs (this component's gradient CTA or text link vs
-// ErrorState's mandatory shared Button with loading/disabled state); the
-// wrapper differs (this component is a View embedded in its caller's own
-// layout, ErrorState owns a route-level Screen); and the a11y-label and
-// testID contracts differ (this component carries neither; ErrorState
-// requires both). Only the geometry is shared, through
-// `state_screen.geometry.ts` — a merge would need a discriminated union plus
-// a nullable CTA slot, which is what #290 weighed and rejected.
+// Ruled genuinely different from ErrorState, not merged (#290) — canonical
+// statement of the four decisive facts and the rejected merge shape lives on
+// `error_state.tsx`'s matching comment, not duplicated here. Only the
+// geometry is shared, through `state_screen.geometry.ts`.
 const LAYOUT = resolveStateScreenLayout('empty');
 
 export type EmptyStateVariant =

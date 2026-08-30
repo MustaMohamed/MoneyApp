@@ -8,14 +8,18 @@ import { Screen } from '@/components/ui/screen';
 import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
 
-// MaterialCommunityIcons always writes its own `color` key into the style
-// array it builds internally (create-icon-set.js), even when undefined —
-// and RN's flattenStyle copies keys unconditionally, so a later
-// `color: undefined` clobbers an earlier className-resolved colour. A bare
-// `className` on the icon is a silent no-op for that reason. Wrapping with
-// `withUniwind` resolves the className into `style` before the icon's own
-// render runs, so the resolved colour lands after the icon's own
-// `color: undefined` in the flatten order and wins. (Harmless nit: the
+// MaterialCommunityIcons's own style array (create-icon-set.js:48-59) puts
+// its `color` key first, in `styleDefaults`, with whatever the caller's
+// `style` prop resolves to nested right after — so it's the caller's
+// `style`, not the icon's own ordering, that decides the flatten. A bare
+// `className` never becomes a `style` prop by itself; that conversion is
+// uniwind's job, so an unwrapped `className` on the icon is a silent no-op.
+// Wrapping with `withUniwind` supplies the missing `style`: its
+// `withAutoUniwind` (`withUniwind.native.tsx:54,62`) builds its own array
+// with the resolved className at index 0 and the incoming style at index 1,
+// and that whole array becomes the icon's `style` prop — landing after the
+// icon's own `color: undefined` in the flatten order, same as any other
+// caller-supplied style, and winning. (Harmless nit: the
 // icon's own Text render is itself uniwind-patched, so the class resolves
 // a second time internally — same result, redundant work.) className, not
 // the `color=` prop the other 130 of 141 icon sites in `src/` use, is still
@@ -65,7 +69,7 @@ export function ErrorState({
   // Padding, margin and text-align come from LAYOUT (style), not className,
   // for the opposite reason the icon glyph above stays on className: these
   // are now runtime ms()-scaled numbers, and className is build-time only
-  // (ui.md:22) — a scaled value can never be a Tailwind class. Colour stays
+  // (ui.md:15) — a scaled value can never be a Tailwind class. Colour stays
   // on className throughout, per the same rule.
   return (
     <Screen testID={testID}>

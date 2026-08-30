@@ -25,6 +25,11 @@ import { ms } from '@/utils/responsive';
  * `error.iconSize` is the one member that IS a scale token
  * (`Size.iconXl`, added in c1) because it feeds the icon's own `size` prop.
  *
+ * Exported for `state_screen_geometry.test.ts`, the only current importer —
+ * it pins the raw constants directly (the "token + independent number in the
+ * same row" shape) rather than only through the resolved singletons below,
+ * so a value edit here fails the test even before either component renders.
+ *
  * The one sanctioned visual delta (§4.2 — device-QA item, not a bug):
  * ErrorState's static Tailwind values become these `ms()`-scaled numbers, so
  * off-baseline devices now draw a different size than before. At the
@@ -59,9 +64,12 @@ export const STATE_SCREEN_LAYOUT = {
   },
 } as const;
 
-export type StateScreenKind = 'error' | 'empty';
+// Not exported: nothing outside this file names the kind or the resolved
+// shape directly — every consumer either calls `resolveStateScreenLayout`
+// with a literal ('error'/'empty') or reads the two frozen singletons below.
+type StateScreenKind = 'error' | 'empty';
 
-export interface StateScreenLayout {
+interface StateScreenLayout {
   root: Readonly<ViewStyle>;
   iconCircle: Readonly<ViewStyle>;
   /** Not a style object — feeds the icon's own `size` prop directly. */
@@ -129,7 +137,10 @@ function buildStateScreenLayout(kind: StateScreenKind): StateScreenLayout {
  * mutation must throw in dev rather than silently retune every instance at
  * once. Exported directly (the `ready.geometry.ts` shape) as well as through
  * the lookup below, so a consumer can import either the kind it always wants
- * or the resolver when the kind is a runtime value.
+ * or the resolver when the kind is a runtime value — today only
+ * `state_screen_geometry.test.ts` takes the direct route, as a pin on the
+ * resolved shape; `resolveStateScreenLayout` below is what both components
+ * actually call.
  */
 export const ERROR_STATE_SCREEN_LAYOUT: StateScreenLayout = buildStateScreenLayout('error');
 export const EMPTY_STATE_SCREEN_LAYOUT: StateScreenLayout = buildStateScreenLayout('empty');
