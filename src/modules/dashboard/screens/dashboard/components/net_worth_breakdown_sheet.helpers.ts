@@ -1,5 +1,6 @@
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Colors } from '@/constants/theme';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
 /**
@@ -15,4 +16,28 @@ export function resolveNetWorthUsdCaption(netWorthUsd: number | undefined): stri
   return netWorthUsd === undefined
     ? Strings.netWorthBreakdownUsdUnavailable
     : Strings.netWorthBreakdownUsdApprox(formatCurrencyAmount(netWorthUsd, Currency.USD));
+}
+
+/**
+ * The bar segment / legend dot / legend icon colour for a breakdown row, by
+ * kind — categorical, identifying which group a row belongs to, never a
+ * judgement on the row's balance (docs/adr/2026-08-27-money-colour-vocabulary.md).
+ * `value` is `undefined` for every kind: a liability's magnitude is money the
+ * user owes, not an actionable state, so it takes no colour and falls to
+ * `LegendRow`'s default `text-foreground` — its composed `−` sign is what
+ * carries the polarity. Liquid and reserve route through here too, alongside
+ * liability, so a future kind can't reintroduce a value colour by omission.
+ */
+export function resolveBreakdownRowColors(kind: 'liquid' | 'reserve' | 'liability'): {
+  legend: string;
+  value: string | undefined;
+} {
+  const legend =
+    kind === 'liquid'
+      ? Colors.dark.positive
+      : kind === 'reserve'
+        ? Colors.dark.gold
+        : Colors.dark.negative;
+
+  return { legend, value: undefined };
 }

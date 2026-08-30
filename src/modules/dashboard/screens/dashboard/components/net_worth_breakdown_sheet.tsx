@@ -18,7 +18,10 @@ import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
 import type { AccountRow, LiabilityRow, LiquidityBreakdown } from '../dashboard.helpers';
-import { resolveNetWorthUsdCaption } from './net_worth_breakdown_sheet.helpers';
+import {
+  resolveBreakdownRowColors,
+  resolveNetWorthUsdCaption,
+} from './net_worth_breakdown_sheet.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -34,10 +37,6 @@ interface NetWorthBreakdownSheetProps {
   liquidity: LiquidityBreakdown;
   liabilities: LiabilityRow[];
 }
-
-const LIQUID_COLOR = Colors.dark.positive;
-const RESERVE_COLOR = Colors.dark.gold;
-const LIABILITY_COLOR = Colors.dark.negative;
 
 /**
  * On a `rate-needed` outcome this renders the refusal and NOTHING ELSE.
@@ -145,6 +144,9 @@ function NetWorthBreakdownBody({
   const totalDebt = liabilities.reduce((sum, row) => sum + row.balanceEgp, 0);
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
   const netWorthEgpParts = formatCurrencyParts(netWorth.netWorthEgp, Currency.EGP);
+  const liquidColors = resolveBreakdownRowColors('liquid');
+  const reserveColors = resolveBreakdownRowColors('reserve');
+  const liabilityColors = resolveBreakdownRowColors('liability');
 
   return (
     <>
@@ -179,14 +181,18 @@ function NetWorthBreakdownBody({
             className="mb-2 overflow-hidden rounded"
             style={{ height: ms(6), flexDirection: 'row' }}
           >
-            {showLiquid && <View style={{ flex: liquidPct, backgroundColor: LIQUID_COLOR }} />}
-            {showReserve && <View style={{ flex: reservePct, backgroundColor: RESERVE_COLOR }} />}
+            {showLiquid && (
+              <View style={{ flex: liquidPct, backgroundColor: liquidColors.legend }} />
+            )}
+            {showReserve && (
+              <View style={{ flex: reservePct, backgroundColor: reserveColors.legend }} />
+            )}
           </View>
         )}
         {showLiquid && (
           <>
             <LegendRow
-              color={LIQUID_COLOR}
+              color={liquidColors.legend}
               icon="wallet-outline"
               label={Strings.dashboardBreakdownLiquid}
               caption={Strings.dashboardBreakdownLiquidCaption}
@@ -201,7 +207,7 @@ function NetWorthBreakdownBody({
         {showReserve && (
           <>
             <LegendRow
-              color={RESERVE_COLOR}
+              color={reserveColors.legend}
               icon="piggy-bank"
               label={Strings.dashboardBreakdownReserve}
               caption={Strings.dashboardBreakdownReserveCaption}
@@ -229,7 +235,7 @@ function NetWorthBreakdownBody({
             {liabilities.map((row) => (
               <LegendRow
                 key={row.id}
-                color={LIABILITY_COLOR}
+                color={liabilityColors.legend}
                 icon="credit-card"
                 label={row.name}
                 caption={
@@ -238,7 +244,6 @@ function NetWorthBreakdownBody({
                     : undefined
                 }
                 value={row.balanceEgp}
-                valueColor={LIABILITY_COLOR}
                 negative
               />
             ))}
