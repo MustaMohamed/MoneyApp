@@ -4,7 +4,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { getSetting, setSetting, setSettings } from '@/database/app_settings';
 import { MIGRATIONS } from '@/database/migrations';
 
-const openDbs: InstanceType<typeof Database>[] = [];
+const openDbs: ReturnType<typeof Database>[] = [];
 
 function makeDb(): SQLiteDatabase {
   const raw = new Database(':memory:');
@@ -20,10 +20,27 @@ function makeDb(): SQLiteDatabase {
   } as unknown as SQLiteDatabase;
 }
 
+// afterEach, not the sibling afterAll(close) spelling: a test that throws mid-body still
+// reaches this afterEach with its handle already pushed, so afterAll would leave it
+// stranded until the file's last test — afterEach drains after every test instead.
 afterEach(() => {
   const drained = openDbs.splice(0);
-  for (const db of drained) db.close();
+  const closeFailures: unknown[] = [];
+  for (const db of drained) {
+    try {
+      db.close();
+    } catch (err) {
+      closeFailures.push(err);
+    }
+  }
+  // Always runs, even when a close() above threw: the per-handle proof must name every
+  // stranded handle, not just the ones that happened to close cleanly.
   for (const db of drained) expect(db.open).toBe(false);
+  if (closeFailures.length > 0) {
+    throw new Error(
+      `db.close() failed for ${closeFailures.length} handle(s): ${closeFailures.map(String).join('; ')}`,
+    );
+  }
 });
 
 describe('getSetting', () => {

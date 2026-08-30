@@ -10,9 +10,13 @@
  * `path.join(root, relPath)` behind an `fs.existsSync` guard, so a fixture anywhere else
  * is invisible to it and pass 1 would silently find nothing. `src/` itself is never
  * mutated. The per-pid subdir keeps two concurrent test processes from racing each
- * other's fixture writes and cleanup; the empty gitignored `.ma017-guard-fixtures/`
- * parent that's left behind after a run is deliberate — an `afterAll` cleanup of it
- * would reintroduce that race.
+ * other's fixture writes and cleanup. A `beforeAll` sweep clears any sibling `<pid>/`
+ * dir a crashed run left behind (`process.kill(pid, 0)` throwing ESRCH means that pid
+ * is dead) plus this process's own dir if a recycled pid left one stale. An `afterAll`
+ * non-recursive `rmdirSync` then removes the gitignored `.ma017-guard-fixtures/` parent
+ * only when this process is the last one out — `ENOTEMPTY` means a live sibling still
+ * holds it, so the parent survives exactly when it must, without reintroducing the
+ * cross-process race this layout exists to kill.
  *
  * `git` is stubbed via PATH injection — one throwaway stub directory per scenario, so
  * stubs cannot leak between cases. The script's own `spawnSync('git', …)` always runs
@@ -57,7 +61,8 @@ import path from 'node:path';
 
 const repoRoot = path.join(__dirname, '..', '..');
 const scriptPath = path.join(repoRoot, 'scripts', 'validate-money-formatting.js');
-const fixtureRel = path.join('.ma017-guard-fixtures', String(process.pid));
+const fixtureRel = `.ma017-guard-fixtures/${process.pid}`;
+const fixtureParent = path.join(repoRoot, '.ma017-guard-fixtures');
 const fixtureRoot = path.join(repoRoot, fixtureRel);
 
 const stubDirs: string[] = [];
@@ -107,6 +112,33 @@ function runGuardOverFixtures(fixtures: Fixture[]): {
   return { result, relPaths };
 }
 
+// Orphan hygiene: a process that crashes mid-suite never reaches its own afterEach/afterAll,
+// so its `<pid>/` dir is permanent — and oxfmt does not honour .gitignore, so a stray dir
+// under `.ma017-guard-fixtures/` reds `format:check` with no diff. Sweep dead siblings
+// before this run starts: a dir name that parses as a pid and fails `process.kill(pid, 0)`
+// with ESRCH belongs to a process that no longer exists, so it's safe to remove; a dir
+// matching this process's own pid (a recycled pid reusing a dead process's number) is
+// cleared unconditionally, since it cannot belong to a still-running process by definition.
+beforeAll(() => {
+  if (!fs.existsSync(fixtureParent)) return;
+  for (const entry of fs.readdirSync(fixtureParent)) {
+    const pid = Number(entry);
+    if (!Number.isInteger(pid) || pid <= 0) continue;
+    const entryPath = path.join(fixtureParent, entry);
+    if (pid === process.pid) {
+      fs.rmSync(entryPath, { recursive: true, force: true });
+      continue;
+    }
+    try {
+      process.kill(pid, 0);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ESRCH') {
+        fs.rmSync(entryPath, { recursive: true, force: true });
+      }
+    }
+  }
+});
+
 // One cleanup lifetime for the whole fixture surface: the fixture root and the stub `git`
 // dirs are both per-case (beforeEach/afterEach), so a crashed case leaves nothing behind
 // for the next one to trip over — the reason the `.gitignore` line for this dir exists.
@@ -118,6 +150,19 @@ afterEach(() => {
   fs.rmSync(fixtureRoot, { recursive: true, force: true });
   for (const dir of stubDirs.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// Non-recursive on purpose: this only succeeds once this process's own afterEach has left
+// the parent empty, i.e. this was the last process out. ENOTEMPTY means a concurrent
+// process's pid dir is still under the parent — exactly the case where the parent must
+// survive, so the removal is dropped rather than reintroducing the cross-process race
+// this per-pid layout exists to kill.
+afterAll(() => {
+  try {
+    fs.rmdirSync(fixtureParent);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOTEMPTY') throw err;
   }
 });
 
