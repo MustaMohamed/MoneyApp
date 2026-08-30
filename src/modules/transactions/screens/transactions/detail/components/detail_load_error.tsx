@@ -1,8 +1,7 @@
-import { Alert } from 'heroui-native';
-import { View } from 'react-native';
-
-import { Button } from '@/components/ui/button';
+import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Strings } from '@/constants/strings';
+
+import { resolveDetailLoadErrorTitle } from './detail_load_error.helpers';
 
 interface DetailLoadErrorProps {
   floating?: boolean;
@@ -13,27 +12,13 @@ export function DetailLoadError({
   floating = false,
   onRetry,
 }: DetailLoadErrorProps): React.ReactElement {
-  const alert = (
-    <Alert status="danger" className="w-full">
-      <Alert.Indicator />
-      <Alert.Content>
-        <Alert.Title>
-          {floating ? Strings.detailRefreshErrorTitle : Strings.detailLoadErrorTitle}
-        </Alert.Title>
-      </Alert.Content>
-      <Button
-        variant="secondary"
-        size="sm"
-        label={Strings.detailLoadRetry}
-        accessibilityLabel={Strings.detailLoadRetry}
-        onPress={onRetry}
-      />
-    </Alert>
-  );
-
-  return floating ? (
-    <View className="absolute right-4 bottom-4 left-4 z-50">{alert}</View>
-  ) : (
-    <View className="flex-1 items-center justify-center px-4">{alert}</View>
+  return (
+    <LoadErrorAlert
+      mode={floating ? 'floating' : 'fill'}
+      title={resolveDetailLoadErrorTitle(floating)}
+      retryLabel={Strings.detailLoadRetry}
+      onRetry={onRetry}
+      testID="detail-load-error"
+    />
   );
 }

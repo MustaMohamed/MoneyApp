@@ -1,7 +1,4 @@
-import { Alert } from 'heroui-native';
-import { View } from 'react-native';
-
-import { Button } from '@/components/ui/button';
+import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Strings } from '@/constants/strings';
 
 interface Props {
@@ -10,19 +7,12 @@ interface Props {
 
 export function TransactionFormDataError({ onRetry }: Props): React.ReactElement {
   return (
-    <View className="flex-1 justify-center px-4">
-      <Alert status="danger" className="w-full">
-        <Alert.Indicator />
-        <Alert.Content>
-          <Alert.Title>{Strings.addTxDataLoadError}</Alert.Title>
-        </Alert.Content>
-        <Button
-          variant="secondary"
-          size="sm"
-          label={Strings.addTxDataLoadRetry}
-          onPress={onRetry}
-        />
-      </Alert>
-    </View>
+    <LoadErrorAlert
+      mode="fill"
+      title={Strings.addTxDataLoadError}
+      retryLabel={Strings.addTxDataLoadRetry}
+      onRetry={onRetry}
+      testID="transaction-form-data-error"
+    />
   );
 }

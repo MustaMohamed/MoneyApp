@@ -5,8 +5,8 @@ import { withUniwind } from 'uniwind';
 
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
-import { Size } from '@/constants/theme';
 
 // MaterialCommunityIcons always writes its own `color` key into the style
 // array it builds internally (create-icon-set.js), even when undefined —
@@ -17,8 +17,27 @@ import { Size } from '@/constants/theme';
 // render runs, so the resolved colour lands after the icon's own
 // `color: undefined` in the flatten order and wins. (Harmless nit: the
 // icon's own Text render is itself uniwind-patched, so the class resolves
-// a second time internally — same result, redundant work.)
+// a second time internally — same result, redundant work.) className, not
+// the `color=` prop the other 130 of 141 icon sites in `src/` use, is still
+// the right target: ui.md:22 keeps className for colour (and padding, gap,
+// typography), reserving style for layout — this glyph is the one place
+// that contract needed the wrapper to actually hold.
+//
+// Module-private: no second `withUniwind` consumer exists yet. Hoist this
+// (and its comment) to a shared module the day one does — don't pre-export it.
 const StateIcon = withUniwind(MaterialCommunityIcons);
+
+// Ruled genuinely different from EmptyState, not merged (#290): 4 of 9
+// EmptyState callers render no action at all, where every ErrorState caller
+// does; the action widget differs (EmptyState's gradient CTA or text-link
+// vs this component's mandatory shared Button with loading/disabled state);
+// the wrapper differs (EmptyState is a View embedded in its caller's own
+// layout, this component owns a route-level Screen); and the a11y-label and
+// testID contracts differ (EmptyState carries neither; this component
+// requires both). Only the geometry is shared, through
+// `state_screen.geometry.ts` — a merge would need a discriminated union plus
+// a nullable CTA slot, which is what #290 weighed and rejected.
+const LAYOUT = resolveStateScreenLayout('error');
 
 export interface ErrorStateProps {
   iconName: ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -45,24 +64,25 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <Screen testID={testID}>
-      <View style={{ flex: 1 }} className="items-center justify-center px-6">
-        <View className="bg-danger/10 size-16 items-center justify-center rounded-full">
-          <StateIcon name={iconName} size={Size.iconXl} className="text-danger" />
+      <View style={LAYOUT.root}>
+        <View style={LAYOUT.iconCircle} className="bg-danger/10">
+          <StateIcon name={iconName} size={LAYOUT.iconSize} className="text-danger" />
         </View>
-        <Text variant="h2" className="mt-5 text-center">
+        <Text variant="h2" style={LAYOUT.headline}>
           {title}
         </Text>
-        <Text variant="body" muted className="mt-2 max-w-80 text-center">
+        <Text variant="body" muted style={LAYOUT.body}>
           {description}
         </Text>
-        <Button
-          label={actionLabel}
-          accessibilityLabel={actionAccessibilityLabel}
-          className="mt-6 w-full max-w-80"
-          isLoading={isActionLoading}
-          isDisabled={isActionDisabled}
-          onPress={onAction}
-        />
+        <View style={LAYOUT.action}>
+          <Button
+            label={actionLabel}
+            accessibilityLabel={actionAccessibilityLabel}
+            isLoading={isActionLoading}
+            isDisabled={isActionDisabled}
+            onPress={onAction}
+          />
+        </View>
       </View>
     </Screen>
   );

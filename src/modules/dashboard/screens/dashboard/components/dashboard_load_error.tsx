@@ -1,11 +1,13 @@
-import { Alert } from 'heroui-native';
-import { View } from 'react-native';
-
-import { Button } from '@/components/ui/button';
+import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Strings } from '@/constants/strings';
 
+import {
+  resolveDashboardLoadErrorTitle,
+  type DashboardLoadErrorVariant,
+} from './dashboard_load_error.helpers';
+
 interface DashboardLoadErrorProps {
-  variant: 'initial' | 'refresh';
+  variant: DashboardLoadErrorVariant;
   onRetry: () => void;
 }
 
@@ -13,31 +15,28 @@ export function DashboardLoadError({
   variant,
   onRetry,
 }: DashboardLoadErrorProps): React.ReactElement {
-  const alert = (
-    <Alert status="danger" className="w-full">
-      <Alert.Indicator />
-      <Alert.Content>
-        <Alert.Title>
-          {variant === 'initial' ? Strings.dashboardLoadError : Strings.dashboardRefreshError}
-        </Alert.Title>
-      </Alert.Content>
-      <Button
-        variant="secondary"
-        size="sm"
-        label={Strings.dashboardLoadRetry}
-        accessibilityLabel={Strings.dashboardLoadRetry}
-        onPress={onRetry}
-      />
-    </Alert>
-  );
+  const title = resolveDashboardLoadErrorTitle(variant);
 
   if (variant === 'initial') {
     return (
-      <View style={{ flex: 1 }} className="items-center justify-center px-4">
-        {alert}
-      </View>
+      <LoadErrorAlert
+        mode="fill"
+        title={title}
+        retryLabel={Strings.dashboardLoadRetry}
+        onRetry={onRetry}
+        testID="dashboard-load-error"
+      />
     );
   }
 
-  return <View className="absolute right-4 bottom-24 left-4 z-50">{alert}</View>;
+  return (
+    <LoadErrorAlert
+      mode="floating"
+      floatingOffset="tabBar"
+      title={title}
+      retryLabel={Strings.dashboardLoadRetry}
+      onRetry={onRetry}
+      testID="dashboard-load-error"
+    />
+  );
 }
