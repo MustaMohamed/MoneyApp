@@ -718,7 +718,7 @@ describe('computeLiabilitiesBreakdown', () => {
     expect(row.balanceEgp).toBeCloseTo(4885, 0);
   });
 
-  it('uses absolute value if a card balance is stored as negative (defensive)', () => {
+  it('keeps a negative stored balance signed — an overpaid card is in credit, not a magnitude to launder (#259)', () => {
     const accounts: Account[] = [
       makeAccount({
         id: '1',
@@ -728,7 +728,43 @@ describe('computeLiabilitiesBreakdown', () => {
       }),
     ];
     const [row] = computeLiabilitiesBreakdown(accounts, 48.85);
-    expect(row.balanceEgp).toBe(1000);
+    expect(row.balanceEgp).toBe(-1000);
+  });
+
+  it('keeps rows signed and sorted debt-first: an overpaid card sorts last (S5)', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', name: 'Visa A', type: AccountType.CreditCard, current_balance: 5000 }),
+      makeAccount({ id: '2', name: 'Visa B', type: AccountType.CreditCard, current_balance: -300 }),
+    ];
+    const result = computeLiabilitiesBreakdown(accounts, 48.85);
+    expect(result.map((row) => row.balanceEgp)).toEqual([5000, -300]);
+  });
+});
+
+describe('computeNetWorth — liabilitiesEgp is the signed owed-frame total (#259 T4)', () => {
+  it('nets an overpaid card against unpaid debt (S5)', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', type: AccountType.CreditCard, current_balance: 5000 }),
+      makeAccount({ id: '2', type: AccountType.CreditCard, current_balance: -300 }),
+    ];
+    const { liabilitiesEgp } = amount(
+      computeNetWorth({ accounts, rate: 50, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+    );
+    expect(liabilitiesEgp).toBe(4700);
+    expect(formatAmount(liabilitiesEgp)).toBe('4,700');
+  });
+
+  it('goes negative when every card is in credit (S5b)', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', type: AccountType.CreditCard, current_balance: -300 }),
+    ];
+    const { liabilitiesEgp } = amount(
+      computeNetWorth({ accounts, rate: 50, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+    );
+    // Intl's ASCII hyphen, pre-existing shape (the header reads this same
+    // field today) — the glyph is #332's, out of scope here (spec §7, S5b).
+    expect(liabilitiesEgp).toBe(-300);
+    expect(formatAmount(liabilitiesEgp)).toBe('-300');
   });
 });
 

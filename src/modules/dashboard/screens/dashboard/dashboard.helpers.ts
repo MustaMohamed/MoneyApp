@@ -108,9 +108,12 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
     if (sign === 1) {
       assetsEgp += rounded;
     } else {
-      // `liabilitiesEgp` stays a POSITIVE magnitude — `stat_cards.tsx` and the
-      // breakdown sheet both render it as one, and adopting the resolver
-      // changes which bucket a row lands in, not this field's polarity.
+      // `liabilitiesEgp` is the OWED-FRAME total: positive when cards are
+      // owed, negative when every card is in credit (#259 T4 pins
+      // `liabilitiesEgp === -300` on an all-credit portfolio). `stat_cards.tsx`
+      // and the sheet's header/footer render it without re-signing, and
+      // `computeLiabilitiesBreakdown`'s rows below now carry the same
+      // polarity.
       liabilitiesEgp += rounded;
     }
     netWorthEgp += sign * rounded;
@@ -231,7 +234,7 @@ export function computeLiabilitiesBreakdown(accounts: Account[], rate: number): 
     rows.push({
       id: a.id,
       name: a.name,
-      balanceEgp: Math.abs(balanceEgp),
+      balanceEgp,
       statementDueDay: a.statement_due_day ?? null,
     });
   }

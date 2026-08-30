@@ -28,12 +28,17 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
  * is out of scope (spec §2).
  *
  * The corollary is scoped to AGGREGATION: a summed TOTAL takes its sign from
- * this function, and a surface rendering one must not re-apply a minus on top.
- * It is NOT "no minus is ever composed at the display layer". Per-account
- * liability ROWS are the standing exception and are deliberately unsigned —
- * `computeLiabilitiesBreakdown` returns `Math.abs(balanceEgp)`, and
- * `net_worth_breakdown_sheet.tsx:309` composes the leading minus glyph itself
- * for the rows it flags `negative`. Signing those rows too would double it.
+ * this function, and no surface re-applies a minus to a total. Per-account
+ * liability ROWS were the standing exception UNTIL #259 — deliberately
+ * unsigned, with `computeLiabilitiesBreakdown` returning `Math.abs(balanceEgp)`
+ * and the sheet composing the leading minus glyph itself for every row. As of
+ * #259 the rows carry the signed owed-frame value instead (positive owed,
+ * negative in credit), and the double-minus this comment used to warn about
+ * is prevented by a single composition point — `formatLiabilityRowValue`
+ * (`net_worth_breakdown_sheet.helpers.ts`) — rather than by keeping the rows
+ * unsigned. Per-row polarity is composed there, per ADR
+ * 2026-08-27-money-colour-vocabulary.md §3; the aggregate corollary above is
+ * unchanged.
  */
 export function resolveAccountAggregationSign(type: AccountType): 1 | -1 {
   return type === AccountType.CreditCard ? -1 : 1;
