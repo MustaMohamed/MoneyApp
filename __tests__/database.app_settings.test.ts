@@ -4,8 +4,11 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { getSetting, setSetting, setSettings } from '@/database/app_settings';
 import { MIGRATIONS } from '@/database/migrations';
 
+const openDbs: InstanceType<typeof Database>[] = [];
+
 function makeDb(): SQLiteDatabase {
   const raw = new Database(':memory:');
+  openDbs.push(raw);
   raw.exec(MIGRATIONS.map((m) => m.up).join('\n'));
   return {
     getFirstAsync: async <T>(sql: string, ...params: unknown[]) =>
@@ -16,6 +19,12 @@ function makeDb(): SQLiteDatabase {
     },
   } as unknown as SQLiteDatabase;
 }
+
+afterEach(() => {
+  const drained = openDbs.splice(0);
+  for (const db of drained) db.close();
+  for (const db of drained) expect(db.open).toBe(false);
+});
 
 describe('getSetting', () => {
   it('returns null when key does not exist', async () => {

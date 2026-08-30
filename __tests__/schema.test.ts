@@ -9,11 +9,20 @@ const SCHEMA_SQL = MIGRATIONS.map((m) => m.up).join('\n');
 // values. We run the same SCHEMA_SQL against an in-memory better-sqlite3
 // instance, since we can't reach the on-device expo-sqlite from tests.
 
+const openDbs: InstanceType<typeof Database>[] = [];
+
 function withDb(): InstanceType<typeof Database> {
   const db = new Database(':memory:');
+  openDbs.push(db);
   db.exec(SCHEMA_SQL);
   return db;
 }
+
+afterEach(() => {
+  const drained = openDbs.splice(0);
+  for (const db of drained) db.close();
+  for (const db of drained) expect(db.open).toBe(false);
+});
 
 const VALID_INSERT = `
   INSERT INTO accounts (

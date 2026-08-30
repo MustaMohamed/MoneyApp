@@ -5,11 +5,14 @@
  * scope, no `module.exports`. It is exercised the same way `npm run lint` runs it — as a
  * subprocess, over its stdout/stderr/exit-code contract, never via `require()`.
  *
- * Fixtures live under `<repoRoot>/.ma017-guard-fixtures/` (gitignored), never an OS temp
- * dir. The script derives `root` from its own `__dirname` and reads
+ * Fixtures live under `<repoRoot>/.ma017-guard-fixtures/<pid>/` (gitignored), never an OS
+ * temp dir. The script derives `root` from its own `__dirname` and reads
  * `path.join(root, relPath)` behind an `fs.existsSync` guard, so a fixture anywhere else
  * is invisible to it and pass 1 would silently find nothing. `src/` itself is never
- * mutated.
+ * mutated. The per-pid subdir keeps two concurrent test processes from racing each
+ * other's fixture writes and cleanup; the empty gitignored `.ma017-guard-fixtures/`
+ * parent that's left behind after a run is deliberate — an `afterAll` cleanup of it
+ * would reintroduce that race.
  *
  * `git` is stubbed via PATH injection — one throwaway stub directory per scenario, so
  * stubs cannot leak between cases. The script's own `spawnSync('git', …)` always runs
@@ -54,7 +57,8 @@ import path from 'node:path';
 
 const repoRoot = path.join(__dirname, '..', '..');
 const scriptPath = path.join(repoRoot, 'scripts', 'validate-money-formatting.js');
-const fixtureRoot = path.join(repoRoot, '.ma017-guard-fixtures');
+const fixtureRel = path.join('.ma017-guard-fixtures', String(process.pid));
+const fixtureRoot = path.join(repoRoot, fixtureRel);
 
 const stubDirs: string[] = [];
 
@@ -94,7 +98,7 @@ function runGuardOverFixtures(fixtures: Fixture[]): {
 } {
   const relPaths = fixtures.map(({ name, content }) => {
     fs.writeFileSync(path.join(fixtureRoot, name), content);
-    return `.ma017-guard-fixtures/${name}`;
+    return `${fixtureRel}/${name}`;
   });
   const stubDir = makeStubGit(
     `#!/bin/sh\necho 'src/utils/format_amount.ts'\n${relPaths.map((p) => `echo '${p}'`).join('\n')}\nexit 0\n`,
@@ -151,20 +155,20 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
   // substring, never as three separate `toContain` calls, because pass 2's "gone" line
   // also contains `src/utils/format_amount.ts`.
   it('names the planted violation with file, line, and the sanctioned-formatter pointer', () => {
-    const violationRel = '.ma017-guard-fixtures/violation.ts';
+    const violationRel = `${fixtureRel}/violation.ts`;
     fs.writeFileSync(path.join(fixtureRoot, 'violation.ts'), "new Intl.NumberFormat('en-US');\n");
     const stubDir = makeStubGit(`#!/bin/sh\necho '${violationRel}'\nexit 0\n`);
     const result = runGuard(envWithStub(stubDir));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      '.ma017-guard-fixtures/violation.ts:1: constructs an `Intl.NumberFormat` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)',
+      `${violationRel}:1: constructs an \`Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
     );
   });
 
   // Not in spec §4 rows 5-10 — kept because it pins the regex's own documented
   // invariant (script `:20-25`): the paren is load-bearing, not `new`.
   it('catches a bare Intl.NumberFormat construction with no `new`', () => {
-    const violationRel = '.ma017-guard-fixtures/violation_bare.ts';
+    const violationRel = `${fixtureRel}/violation_bare.ts`;
     fs.writeFileSync(path.join(fixtureRoot, 'violation_bare.ts'), "Intl.NumberFormat('en-US');\n");
     const stubDir = makeStubGit(`#!/bin/sh\necho '${violationRel}'\nexit 0\n`);
     const result = runGuard(envWithStub(stubDir));
@@ -175,7 +179,7 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
   // §4 row 8, pass 2's "gone" branch (`:161-166`). The stub lists only a clean fixture,
   // omitting `src/utils/format_amount.ts` entirely, so it reads as gone.
   it('flags a stale allowlist entry without flagging a violation', () => {
-    const cleanRel = '.ma017-guard-fixtures/clean.ts';
+    const cleanRel = `${fixtureRel}/clean.ts`;
     fs.writeFileSync(path.join(fixtureRoot, 'clean.ts'), 'export const nothingHere = 1;\n');
     const stubDir = makeStubGit(`#!/bin/sh\necho '${cleanRel}'\nexit 0\n`);
     const result = runGuard(envWithStub(stubDir));
