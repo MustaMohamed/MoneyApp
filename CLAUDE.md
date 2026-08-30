@@ -16,7 +16,13 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 - Negative results are one line. No-finding sections get one line, not a heading.
 - Cut: restating the request, narrating tool calls, re-explaining, process commentary.
 
-MoneyApp specifics for the contract: `primitive`, `surface`, and `harness` are domain terms here, exempt from the jargon rule where they name the real thing. Method-certification baseline: `grep -roE "rather than assumed|rather than inferred|not inferred|not assumed" docs/scopes/ | wc -l` returns 36 today; it must not grow.
+MoneyApp specifics for the contract: `primitive`, `surface`, and `harness` are domain terms here, exempt from the jargon rule where they name the real thing. Method-certification baseline, over the live tree — `docs/scopes/` and `docs/superpowers/` are frozen history and this file and the skill quote the banned phrases to ban them:
+
+```bash
+git grep -oE "rather than assumed|rather than inferred|not inferred|not assumed" -- . ':!docs/scopes' ':!docs/superpowers' ':!CLAUDE.md' ':!.claude/skills/unslop' | wc -l
+```
+
+Returns 6 today; it must not grow. Two of the six are `phase-10-merge.md`'s checklist and are fair game to fix.
 
 ## Workflow
 
@@ -27,6 +33,21 @@ MoneyApp specifics for the contract: `primitive`, `surface`, and `harness` are d
 **Domain consults are separate from delivery.** Three advisory personas live in `.claude/agents/`: `layla` (financial rules), `marcus` (product and UX), `tariq` (architecture and slicing). Tag inline for a stance — `[layla] how should a partial payoff round?` — or dispatch `@name` for file-producing work. They own no `/ship` phase; `/ship` composes its own planner, implementer, and review lenses and never dispatches a persona.
 
 **CI parity before pushing to a PR branch** — run the chain in `Commands`. CI is the last line of defence, not the first.
+
+### Critical triggers (wake me; everywhere else proceed)
+
+These fire wherever the work is happening, `/ship` phases included, and they are decisions rather than flags. `/ship`'s own danger-surface list (phase 7 charter B, surfaced again at phase 10) is deliberately *flag, don't gate* and does not overlap items 3 and 4.
+
+1. Product/domain disagreement `[marcus]` and `[layla]` cannot resolve
+2. Cross-cutting impact — a decision binds later work non-obviously
+3. High blast radius — feature-flag flip, V1 deletion, migration with data-loss risk
+4. New dependency, native code change, anything outside the established stack
+5. User-facing copy with voice/branding weight (field labels and error messages stay team-decided)
+6. Scope balloon vs the original brief
+7. Auth / secure store / data-loss surface
+8. Manual device QA — always, on real hardware, before any merge of a UI change
+
+Not critical (decide it and move): field-level UX, naming, file structure, test approach, code style, order of work within a ticket, hex→token swaps, a11y polish, minor dep bumps.
 
 ## Tech Stack
 

@@ -6,7 +6,7 @@ paths:
 
 # MoneyApp defect checklist
 
-Five classes the 2026-07-29 audit proved recur in this codebase. **The implementer checks these while writing and again during self-review (ship phase 6); the review battery checks every one against the diff (ship phase 7).** Catching them before a reviewer is dispatched is the point of this file living in `.claude/rules/` rather than in a reviewer's prompt.
+Five classes the 2026-07-29 audit proved recur in this codebase. **The implementer checks these while writing and again during self-review (ship phase 6); the quality lens answers every one explicitly against the diff (ship phase 7, charter B step 1); the plan reviewer checks the plan against them (phase 5).** Catching them before a reviewer is dispatched is the point of this file living in `.claude/rules/` rather than in a reviewer's prompt.
 
 1. **Silent async failure** — every async write path sets an error field the UI renders. No comment-only `catch {}`, no `void handler()` swallowing a rejection (H14/M42). The most repeated defect in this codebase.
 2. **Focus-reload churn** — `useFocusEffect` loaders have a staleness gate, nothing invalidates on blur, one coherent publication per load (M13/M32/L26).
@@ -21,7 +21,7 @@ Audit IDs resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.m
 
 ## Gates
 
-Not audit-ID defect classes — process rules MA-016's own review found itself reproducing, over specs, task files, and jest invocations rather than over `src/`. That is why this section, and this file's path list, cover `__tests__/**` too — the same discipline applies to `ship`'s `spec.md`/`task.md`, which live under `~/.ship/MoneyApp/` and so can't be path-matched here.
+Not audit-ID defect classes — process rules MA-016's own review found itself reproducing, over specs, task files, and jest invocations rather than over `src/`. That is why this section, and this file's path list, cover `__tests__/**` too. The same discipline applies to `ship`'s `spec.md`/`task.md`, which live under `~/.ship/MoneyApp/` and so can't be path-matched here — `phase-2-spec.md` item 8 and `phase-5-plan-review.md` item 7 point back at this section instead, and that citation is the only thing carrying these two rules to the people who publish acceptance commands. Cut it there and they reach nobody.
 
 - **A gate that cannot fail is not a gate.** Every acceptance command published in a spec or task must be demonstrated to produce a different result at base than at head — a command that passes in both states asserts nothing (the fifth recurrence of this exact defect across two tickets). Rule 1 subsumes rule 2 below, and both are kept: every one of MA-016's five failed gates would have been caught by this rule alone, applied at the point the command was published.
 - **Jest treats a path argument as a regex.** A path that matches nothing is a silent skip at exit 0, not a failure. `test -f` every jest path argument before it is published in a spec or task — a concrete recipe for the general rule above, worth keeping on its own because this exact failure mode (a renamed or moved suite, still cited by its old path) recurs independently of whether anyone thought to demonstrate the gate at base vs head.

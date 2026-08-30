@@ -13,7 +13,7 @@ Device QA is the last user-facing gate before a merge: **only the user can walk 
 
 1. **Scope it:** list the screens the change touches (from the diff), plus the *always-run* checks below.
 2. **Assemble the checklist:** relevant area matrices + always-run checks. Present it to the user as a numbered list they can walk top-to-bottom.
-3. **Record the verdict:** results land under `## Device QA` in the ticket's `task.md` (`~/.ship/MoneyApp/<ticket>/task.md`) — per item: pass / fail (with what was seen) / skipped. A fail routes back through the review battery's fix loop (ship phase 8) with the failing item as the repro. (Pre-`/scope` passes live in `docs/superpowers/qa/`; pre-`/ship` scope passes live in `docs/scopes/`; both are frozen history.)
+3. **Record the verdict:** results land under `## Device QA` **in the PR description** — per item: pass / fail (with what was seen) / skipped. Mirror them into the ticket's `task.md` (`~/.ship/MoneyApp/<ticket>/task.md`) while the ticket is live, but write the PR copy first: ship's phase 10 deletes `~/.ship/MoneyApp/<ticket>/` as its terminal step, and the PR is one of the three records that survive it. A fail routes back through the review battery's fix loop (ship phase 8) with the failing item as the repro. (Pre-`/scope` passes live in `docs/superpowers/qa/`; pre-`/ship` scope passes live in `docs/scopes/`; both are frozen history.)
 
 ## Always-run checks (every QA pass, ~2 min)
 

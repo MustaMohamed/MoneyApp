@@ -11,8 +11,9 @@ Give the human a compact readiness summary — not a recap comment posted to the
 - **If any commit landed after the last re-check, say so here explicitly** — never present an unreviewed head as reviewed; the human can demand another re-check before merging.
 - **CI status — re-read it now**: `gh pr checks <pr-url-from-state.md>`. P8 triage read it at triage entry, but fix commits have landed since — this is the final read before the human merges, and it must be green or explained. Red checks route through P8 triage before presenting.
 - Any danger-surface flags from the quality lens (SQLite migrations, secure-store/auth surfaces, route files under `src/app/`, native config, money paths) so the human merges with eyes open.
-- **UI tickets:** the P6 render-pass evidence (screenshots per screen state) — plus the standing caveat that fonts, shadows, gesture feel, and performance are visible only on real hardware; the emulator pass is design-conformance evidence, not device QA.
+- **UI tickets: run the Device QA gate before presenting.** The P6 render pass is design-conformance evidence on an emulator, not device QA — fonts, shadows, gesture feel, and performance are visible only on real hardware (audit H15: the app shipped months in the wrong typeface with green CI). Assemble the checklist with the `device-qa` skill, hand it to the human, and present their per-item results alongside the P6 screenshots. **This is critical trigger 8 — a UI ticket does not reach the merge question without it.** A fail routes back through P8 triage with the failing item as the repro.
 - Accepted trade-offs: unfixed `note`s and every ledger adjudication that shaped this PR — written into the PR description too, so the next reviewer stops rediscovering them.
+- **Device QA results go into the PR description**, not only into `task.md` — step 5 below deletes the artifact directory, and the PR is one of the three durable records.
 - Open disputes: none, or the both-sides summary awaiting their call.
 
 Then wait. **The human merges — never the conductor**, regardless of how green everything is. PR comments from the human route back through P8 triage (implementer fixes, delta re-check, return here). **While waiting, pre-stage what the next step needs** (next chunk's dispatch, next sub-ticket's plan charter) under `prestage/` — the merge releases execution.
@@ -27,6 +28,8 @@ Then wait. **The human merges — never the conductor**, regardless of how green
 2. GitHub: confirm the merge closed the issue — the PR's `Closes #N` does it, and closed **is** the done signal (`gh issue view <N> --json state`; close explicitly only if the closing keyword was missing). Leave the `status:*` label alone — it is inert once the issue is closed. Sub-ticket → its sub-issue; last sub-ticket, final chunk, or direct → the ticket's issue, and the parent issue if applicable.
 3. Final `state.md` entry (`P10: merged <sha>, cleaned`) — written now, **before** any deletion.
 4. Teardown, in order (commands in SKILL.md → Worktrees): review worktree, implementation worktree(s), local branch(es), `git worktree prune`.
+   - **`npm ci` in the primary checkout if the merge moved `package-lock.json`** (`git diff --name-only HEAD@{1} HEAD -- package-lock.json`). Otherwise its `node_modules` belongs to neither branch, and every later verification — the parity chain, the next device QA build — runs against a tree that matches nothing.
+   - Squash-merged branches never appear in `git branch --merged`: the squash commit shares no history with them. Confirm with `gh pr list --head <branch> --state all` and delete only what reads `MERGED`.
 5. Artifacts, the terminal step: direct, final chunk, or parent-closing → delete `~/.ship/MoneyApp/MA-XXX/`; mid-split sub-ticket → keep the parent dir. Nothing writes to the directory after this; the durable record is the PR(s), the issue, and any committed ADRs.
 6. Next sub-ticket, if any: set its sub-issue to `status:implementing` via `gh issue edit` and enter phase 4 (its slice brief, its plan file, its branch, its worktrees).
 
@@ -35,10 +38,12 @@ Then wait. **The human merges — never the conductor**, regardless of how green
 - [ ] PR merged — verified against the `state.md` URL, not assumed
 - [ ] CI was read (`gh pr checks <url>`) before the merge summary
 - [ ] Post-re-check commits disclosed (or none existed)
+- [ ] Device QA walked by the human and its results written into the PR description (UI tickets)
 - [ ] Accepted trade-offs + adjudications written into the PR description
 - [ ] Issue closed (sub/parent/final chunk as applicable) — verified, not assumed
 - [ ] Final `state.md` entry written before teardown
 - [ ] Review + implementation worktrees removed, `worktree prune` run
-- [ ] Local branch(es) deleted
+- [ ] Local branch(es) deleted — verified `MERGED` via `gh pr list --head`, not `git branch --merged`
+- [ ] `npm ci` run in the primary checkout if the merge moved `package-lock.json`
 - [ ] Artifacts deleted last (or parent-deferred / mid-chunk-deferred) — no writes after
 - [ ] Next sub-ticket set to `status:implementing` and started at P4 / next chunk started at P6, if any

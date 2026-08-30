@@ -16,6 +16,7 @@ Written for agents that will never see this conversation. Every section present;
 6. **Error paths** — what fails, what the user sees, what gets logged.
 7. **Non-goals** — what a reasonable implementer might build but must not.
 8. **Test surface** — what gets automated tests per the repo's conventions, what is manual. **Full cycles are integration tests, never emulator walks:** any end-to-end behavior (store → repository → SQLite) is proven in Jest against a real database per the `moneyapp-testing` skill. The emulator's only job is the UI — declare here whether the ticket has UI surface and **which screens**; that list is what P6's UI render pass walks. No UI-component render tests (repo policy): design conformance is checked on the emulator, logic in Jest.
+   **Every acceptance command you publish here must be a gate that can fail** — read `.claude/rules/review.md` → *Gates*, whose rules were written for spec and task files and which the ship artifacts cannot path-match. Demonstrate the command produces a different result at base than at head; a command that passes in both states asserts nothing. Jest treats a path argument as a regex, so `test -f` every jest path before publishing it — a renamed suite still cited by its old path is a silent skip at exit 0, not a failure.
 
 ## task.md — the human checklist
 

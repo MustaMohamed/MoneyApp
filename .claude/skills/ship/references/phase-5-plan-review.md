@@ -19,7 +19,8 @@ Check, in order:
 3. **Reality** — spot-check the named files/symbols with LSP. A plan step naming a file that doesn't exist, or missing a call site that LSP finds, is a finding.
 4. **Tests** — each behavioral step has its proving test, placed where the repo's conventions allow tests; test-first ordering where applicable. Would each test fail if the behavior regressed?
 5. **Order** — the branch would compile and stay green after each step; no step depends on a later one; cross-step hazards (declaration order, import cycles, registration order) checked deliberately.
-6. **Conventions** — steps comply with the repo's `CLAUDE.md` and the `.claude/rules/` files matching the touched paths (`ui.md`, `state.md`, `database.md`, `money.md`, `tests.md` — state management, layering, naming). Cite the rule-file line when flagging.
+6. **Conventions** — steps comply with the repo's `CLAUDE.md` and the `.claude/rules/` files matching the touched paths (`ui.md`, `state.md`, `database.md`, `money.md`, `tests.md` — state management, layering, naming) and with `review.md`'s five defect classes. Cite the rule-file line when flagging.
+7. **Every acceptance command in the plan is a real gate** — read `.claude/rules/review.md` → *Gates*, which the ship artifacts cannot path-match: a command that passes at base and at head asserts nothing, and a jest path argument is a regex, so a path matching nothing is a silent skip at exit 0. `test -f` every jest path the plan publishes.
 
 **Evidence rule:** every finding cites the plan step and the spec section or `path:line` it conflicts with, with severity matched to consequence. No finding without evidence.
 

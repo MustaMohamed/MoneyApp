@@ -11,8 +11,8 @@ You can drive the app yourself: install it, tap through it, screenshot it, and r
 SQLite it wrote. That closes the loop between "tests pass" and "it works" without waiting
 on the user.
 
-**This is not the Device QA gate.** Gate 3 is the user's, on real hardware, and it is
-critical trigger #8 — the emulator does not discharge it. What you produce here is
+**This is not the Device QA gate.** That gate is the user's, on real hardware, and it is
+critical trigger 8 — the emulator does not discharge it (`/ship` runs it at phase 10). What you produce here is
 evidence *for* that gate: a change you have watched run, with the failures already found.
 Fonts, shadows, gesture feel, and performance still need the real device (`device-qa`).
 
@@ -83,10 +83,12 @@ focused field. Re-run `find` after every interaction rather than reusing an offs
 
 ## Running from a task worktree
 
-Under `/ship`, this runs once: the implementer's own UI render pass in phase 6, triggered
-when the spec declares UI screens (mechanics: `phase-6-implement.md`) — a pixel check
-against the design reference, not a behavior walk. It happens in the implementation
-worktree, which needs three things the worktree does not have by default.
+Under `/ship`, the run that needs a worktree is the implementer's UI render pass in phase 6,
+triggered when the spec declares UI screens (mechanics: `phase-6-implement.md`) — a pixel
+check against the design reference, not a behavior walk. It happens in the implementation
+worktree, which needs three things the worktree does not have by default. (Phase 1 also
+reaches for this skill when live app behavior matters; that run is from the primary
+checkout and skips all three.)
 
 1. **A real `npm install`.** A worktree's `node_modules` is symlinked. That passes `tsc`,
    `jest`, and lint, but it breaks device builds — expo-router resolves zero routes and you
@@ -217,5 +219,5 @@ user's gate: this is "verified on emulator", never "QA passed".
 | A walk driven one tool call per tap | Every round trip carries a whole UI hierarchy. Put the scenario in a script and run `mqa walk`. |
 | Tapping by screenshot coordinates | Read them from `mqa find`. RN wraps a Pressable around a same-labelled Text; only the `clickable` node responds. `find` sorts those first and `tap` refuses a text-only match rather than firing a no-op that reports success. |
 | Typing a value containing `&`, `;`, `'` or `$` | The text reaches the *device's* shell. `mqa type` single-quotes it; a raw `adb shell input text` truncates at the metacharacter **and still exits 0**, so it looks like it worked. Account and category names are exactly where this bites. |
-| Treating a green emulator run as QA | Gate 3 is the user's, on real hardware. This produces evidence for it, not a verdict. |
+| Treating a green emulator run as QA | The Device QA gate is the user's, on real hardware. This produces evidence for it, not a verdict. |
 | Trusting the UI for a money assertion | The screen is the thing under test. Assert against `mqa db`. |
