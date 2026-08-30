@@ -65,7 +65,7 @@ export function ConfirmDialog({
         <Dialog.Content
           isSwipeable={false}
           className="bg-surface border-border w-full rounded-2xl border p-5"
-          style={{ shadowOpacity: 0, elevation: 0 }}
+          style={{ boxShadow: 'none' }}
         >
           <Dialog.Title className="text-foreground font-sora-bold mb-2 text-xl">
             {title}

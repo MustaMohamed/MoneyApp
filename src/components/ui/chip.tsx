@@ -194,8 +194,9 @@ export const HERO_PILL_HEIGHT = Spacing.xxs * 2 + lineHeightFor(Type.caption);
  * composed from — the two state the same box, they do not disagree.
  *
  * Recorded deviation: `.hero-pill`'s `inset 0 1px 0 rgba(255,255,255,.07)`
- * highlight is not ported. `boxShadow` has zero style uses anywhere in `src/`,
- * and the shipped dashboard hero card omits the same inset on the same element.
+ * highlight remains unported, and the shipped dashboard hero card omits the
+ * same inset on the same element. `boxShadow` style uses now exist only as
+ * the Surface-shadow kills (§5.2) — none of them is this inset highlight.
  */
 export const HERO_PILL_STYLE: Readonly<ViewStyle> = Object.freeze({
   flexDirection: 'row',

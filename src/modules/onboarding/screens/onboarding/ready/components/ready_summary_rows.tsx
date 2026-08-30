@@ -1,10 +1,11 @@
 import { ListGroup, Separator, Typography } from 'heroui-native';
 import React from 'react';
 
+import { ListCard } from '@/components/ui/list_card';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Radius, Size } from '@/constants/theme';
+import { Size } from '@/constants/theme';
 
 import { N4_SUMMARY_ROW_STYLE, N4_SUMMARY_ROW_TEXT_STYLE } from '../ready.geometry';
 
@@ -34,24 +35,7 @@ export function ReadySummaryRows({ accountCount, baseCurrency }: ReadySummaryRow
   ];
 
   return (
-    /* The Surface trap (§5.2), invisible to every CI check. ListGroup
-       is Surface-based and `.surface__root` resolves to `p-4
-       rounded-3xl shadow-surface overflow-hidden` with no border,
-       ever — so the border, the radius and `p-0` are each required.
-       `shadow-none` loses to the custom --shadow-surface token; the
-       `elevation`/`shadowOpacity` pair below does not beat it either,
-       because uniwind keys that token as `boxShadow`, a separate RN
-       pipeline (measured on device). Kept for consistency with the
-       other Surface call sites (debt:quality #246). */
-    <ListGroup
-      className="border-separator p-0"
-      style={{
-        borderWidth: Size.hairline,
-        borderRadius: Radius.lg,
-        elevation: 0,
-        shadowOpacity: 0,
-      }}
-    >
+    <ListCard>
       {rows.map((row, index) => (
         <React.Fragment key={row.label}>
           {/* Full bleed, and drawn by the parent, exactly as N3 does it:
@@ -79,6 +63,6 @@ export function ReadySummaryRows({ accountCount, baseCurrency }: ReadySummaryRow
           </ListGroup.Item>
         </React.Fragment>
       ))}
-    </ListGroup>
+    </ListCard>
   );
 }

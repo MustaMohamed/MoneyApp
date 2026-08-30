@@ -63,7 +63,7 @@ import { BottomSheet, Button } from 'heroui-native';
 
 ## Card = Surface trap (device-QA-only bug class)
 
-HeroUI `Card` wraps `Surface`, whose base resolves to `p-4 rounded-3xl shadow-surface overflow-hidden` with `bg-surface` from the default variant. `Dialog.Content` does not wrap `Surface` — it carries its own `bg-overlay p-5 rounded-3xl shadow-overlay` — but lands in the same trap. **Neither has a border, ever.** Migrating a `View` to `Card` therefore needs `border border-separator`, `rounded-2xl`, and `p-0` passed explicitly, plus `style={{ elevation: 0, shadowOpacity: 0 }}` to kill the shadow — className `shadow-none` will NOT override the custom shadow token. CI stays green on all of this; only device QA catches it.
+HeroUI `Card` wraps `Surface`, whose base resolves to `p-4 rounded-3xl shadow-surface overflow-hidden` with `bg-surface` from the default variant. `Dialog.Content` does not wrap `Surface` — it carries its own `bg-overlay p-5 rounded-3xl shadow-overlay` — but lands in the same trap. **Neither has a border, ever.** Migrating a `View` to `Card` therefore needs `border border-separator`, `rounded-2xl`, and `p-0` passed explicitly, plus `style={{ boxShadow: 'none' }}` to kill the shadow. className `shadow-none` will NOT override the custom shadow token, and neither does the older `` `elevation`/`shadowOpacity` `` pair — Uniwind emits the shadow token as `boxShadow`, a separate RN style pipeline that pair never touches; `boxShadow: 'none'` is the deterministic both-variant kill (device-proven). CI stays green on all of this; only device QA catches it.
 
 Since 1.0.7 those defaults are defined in `node_modules/heroui-native/src/styles/components/<name>.css` (`.surface__root`, `.dialog__content`) rather than as Tailwind strings in `<name>.styles.ts`, which now only name the class. Resolved values are unchanged — read the CSS when you need to know what a primitive actually paints.
 
@@ -73,6 +73,6 @@ Since 1.0.7 those defaults are defined in `node_modules/heroui-native/src/styles
 |---|---|
 | Fetching heroui.com docs for an API | That's 2.x. Read `node_modules/heroui-native/src/components/<name>/<name>.md`. |
 | Building a component `src/components/ui/` already has | Run `npm run ui:inventory` first — this is the most common wasted change here. |
-| `shadow-none` on a Card | Custom shadow token wins. Use the `style` override. |
+| `shadow-none` on a Card | Custom shadow token wins. Use `style={{ boxShadow: 'none' }}`. |
 | Handling sheet close via `Content.onClose` | Fires only on swipe-down. Use `onOpenChange`. |
 | Importing scrollables from `react-native` inside a sheet | Gesture conflict. Use the `@gorhom/bottom-sheet` variants. |

@@ -235,7 +235,7 @@ export function AccountCard({
     >
       <Card
         className="border-border overflow-hidden rounded-2xl border p-0"
-        style={{ elevation: 0, shadowOpacity: 0 }}
+        style={{ boxShadow: 'none' }}
       >
         {/* Accent bar — dynamic color stays inline */}
         <View style={{ height: ms(3), width: '100%', backgroundColor: color }} />
