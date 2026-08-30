@@ -2,7 +2,7 @@
 
 React Native (Expo) personal finance app — local-only, no bank connections.
 
-Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `emulator-verify` (drive the app on the emulator yourself), `ship` (gated ten-phase ticket delivery — see *Workflow*), `unslop` (the output contract — mandatory for all composed output; see *Answering me*).
+Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `emulator-verify` (drive the app on the emulator yourself), `ship` (gated ten-phase ticket delivery — see *Workflow*), `moneyapp-expert-panel` (inline domain consults — see *Workflow*), `unslop` (the output contract — mandatory for all composed output; see *Answering me*).
 
 Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](docs/superpowers/reviews/2026-07-29-full-technical-audit.md); remediation is tracked in [docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md](docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md).
 
@@ -23,6 +23,8 @@ MoneyApp specifics for the contract: `primitive`, `surface`, and `harness` are d
 **Always branch before any work. Never commit to `main`.** (`feat/x`, `refactor/x`, `fix/x`, `perf/x`; task branches add the ID — `feat/MA-042-slug`)
 
 **Ticket delivery goes through `/ship`** (the `ship` skill) — a ten-phase gated workflow from brainstorm to merged PR: human gates at scope approval, task/mode approval, and every merge; a cold planner, a plan review, an implementer, and a parallel review battery each run as isolated subagents. Mechanics, artifacts (`~/.ship/MoneyApp/<ticket>/`), and hard rules live in the skill — this file does not restate them.
+
+**Domain consults are separate from delivery.** Three advisory personas live in `.claude/agents/`: `layla` (financial rules), `marcus` (product and UX), `tariq` (architecture and slicing). Tag inline for a stance — `[layla] how should a partial payoff round?` — or dispatch `@name` for file-producing work. They own no `/ship` phase; `/ship` composes its own planner, implementer, and review lenses and never dispatches a persona.
 
 **CI parity before pushing to a PR branch** — run the chain in `Commands`. CI is the last line of defence, not the first.
 

@@ -4,7 +4,7 @@
 
 ## Conductor: compose the implementer (no persona dependency)
 
-Do not reach for named personas (e.g. a `.claude/agents/` file) — they belonged to the retired `/scope` workflow and carried its step contracts; `/ship` composes its own implementer fresh, every time. Assemble the implementer prompt from three layers at dispatch time:
+Do not reach for named personas (e.g. a `.claude/agents/` file) — those are advisory domain consultants and own no phase; `/ship` composes its own implementer fresh, every time. Assemble the implementer prompt from three layers at dispatch time:
 
 1. **Repo layer** — required reading, in this order: the worktree's `CLAUDE.md`, plus the `.claude/rules/` files matching the touched paths (`database.md`, `ui.md`, `state.md`, `money.md`, `tests.md`, `review.md`). Name the verification commands from `CLAUDE.md` → `## Commands`: the **fast subset** (`npm run format:check && npm run lint && npm run typecheck && npm test -- --ci`) is the per-commit check; the **full CI parity chain** (the subset plus `npx --yes expo-doctor@1.20.1 && npx expo prebuild --no-install --platform android && test -d android`) runs once, pre-push — the doctor and prebuild members cost minutes and are not per-commit checks.
 2. **Task layer** — from `spec.md`: the module being touched, the conventions that are load-bearing for THIS change (e.g. UI work: HeroUI primitive first, tokens via `ms()`/`msFont()` from `theme.ts`, copy in `constants/strings.ts`, no `useState` in `index.tsx`; money work: rounding and formatting per the `money-rules` skill; DB work: `null` only for DB-mapped nullable columns), and any ADRs the spec cites.

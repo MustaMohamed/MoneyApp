@@ -141,7 +141,7 @@ Violating the letter of these rules is violating their spirit.
 | "I'll update state.md at the end to save writes" | A crash loses the session; `state.md` is the only resume point. Write at every transition. |
 | "The subagent can update the issue label while it's at it" | Hard rule 1: issue writes are conductor-only — splitting issue ownership creates double-writes and races. |
 | "Spec is thin but the implementer can infer the rest" | Inference is where phase-6 bugs come from. Fix the spec; it's cheaper here than at P7. |
-| "A `.claude/agents/` persona fits this — dispatch it directly" | Those personas belonged to the retired `/scope` workflow and carried its step contracts, not `/ship`'s. Inside `/ship`, roles are fixed by phase: producers produce, reviewers review, the conductor conducts. |
+| "A `.claude/agents/` persona fits this — dispatch it directly" | Those personas are advisory domain consultants (`layla`, `marcus`, `tariq`) and own no phase. Inside `/ship`, roles are fixed by phase: producers produce, reviewers review, the conductor conducts. Consult a persona outside a ticket, never as a phase actor. |
 | "I told the human I'm skipping the gates, so it's on the record" | Announcing a skip is not approval. Gates end with a question and wait for the answer. |
 | "Stacking chunk PRs beats waiting for merges" | CI runs only on main-targeting PRs, and every squash-merge forces child rebases. Work another disjoint chunk, or fold the tail into the final PR. |
 | "This reviewer re-found the ruled-on finding and sounds more certain" | Rule 10. Cite the ledger, move on. Three reviewers independently re-finding a ruled trade-off is review sensitivity working, not a new defect. |
