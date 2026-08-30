@@ -8,18 +8,27 @@ import { Screen } from '@/components/ui/screen';
 import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
 
-// MaterialCommunityIcons's own style array (create-icon-set.js:48-59) puts
-// its `color` key first, in `styleDefaults`, with whatever the caller's
-// `style` prop resolves to nested right after — so it's the caller's
-// `style`, not the icon's own ordering, that decides the flatten. A bare
-// `className` never becomes a `style` prop by itself; that conversion is
-// uniwind's job, so an unwrapped `className` on the icon is a silent no-op.
-// Wrapping with `withUniwind` supplies the missing `style`: its
-// `withAutoUniwind` (`withUniwind.native.tsx:54,62`) builds its own array
-// with the resolved className at index 0 and the incoming style at index 1,
-// and that whole array becomes the icon's `style` prop — landing after the
-// icon's own `color: undefined` in the flatten order, same as any other
-// caller-supplied style, and winning. (Harmless nit: the
+// create-icon-set.js's own ordering (`:59`, `[styleDefaults, style,
+// styleOverrides, fontStyle || {}]`) is what decides the flatten —
+// `styleDefaults`'s `color` key goes first, whatever lands in the `style`
+// slot goes right after and wins. A bare `className` on the icon DOES
+// resolve even unwrapped, though: create-icon-set.js's own `Text` import
+// (`:2`) isn't excluded from Metro's uniwind resolver rewrite —
+// `resolvers.ts:57,69-71` skips only paths matching `/react-native/`, and
+// `react-native-vector-icons` doesn't — so that `Text` is already the
+// patched one (`uniwind/components/index.ts:44-45`), and `className`
+// survives the destructure into `...props` (`:41`) and reaches it at `:62`.
+// That patched Text resolves `props.className` itself (`Text.tsx:19`) and
+// renders `style={[style, props.style]}` (`:25`) — the resolved colour at
+// index 0, the icon's own array (`styleDefaults` first) at index 1. That's
+// the no-op: the resolved colour sits ahead of `styleDefaults.color:
+// undefined`, which is nested one level in but still later in flatten
+// order, so `undefined` wins. Wrapping with `withUniwind` supplies the
+// missing `style`: its `withAutoUniwind` (`withUniwind.native.tsx:54,62`)
+// builds its own array with the resolved className at index 0 and the
+// incoming style at index 1, and that whole array becomes the icon's
+// `style` prop — landing after `styleDefaults` this time, same ordering,
+// and winning. (Harmless nit: the
 // icon's own Text render is itself uniwind-patched, so the class resolves
 // a second time internally — same result, redundant work.) className, not
 // the `color=` prop the other 130 of 141 icon sites in `src/` use, is still
