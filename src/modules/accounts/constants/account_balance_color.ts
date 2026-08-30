@@ -19,14 +19,14 @@ const ACCOUNT_BALANCE_COLOR_CLASS: Record<AccountType, AccountBalanceColorClass>
  * `balance_hero.tsx` (account detail); both call this instead of branching on
  * `AccountType` themselves.
  *
- * It is NOT yet the only site that colours a balance by account type.
- * `net_worth_breakdown_sheet.tsx:153` sets a liability row's `valueColor` to
- * the fixed `LIABILITY_COLOR` (`:32`, `Colors.dark.negative`), on rows
+ * `net_worth_breakdown_sheet.tsx`'s liability rows used to set `valueColor` to
+ * a fixed `LIABILITY_COLOR` (`Colors.dark.negative`) on rows
  * `dashboard.helpers.ts:181`'s `computeLiabilitiesBreakdown` builds by
  * filtering `type !== AccountType.CreditCard` — an account's own balance,
- * coloured from its account type, in the same red this ticket exists to
- * remove from `account_card.tsx` and `balance_hero.tsx`. Adopting this
- * resolver there is out of scope here and owned by #265.
+ * coloured from its account type, in the same red this file's function exists
+ * to remove from `account_card.tsx` and `balance_hero.tsx`. #265 has since
+ * adopted the rule there too, via `resolveBreakdownRowColors` in
+ * `net_worth_breakdown_sheet.helpers.ts` — see the ADR.
  *
  * `text-foreground` (cream) for a credit card, `text-accent` (gold) for every
  * other type. Cream is not a demotion to body text — it is the absence of the
@@ -40,8 +40,8 @@ const ACCOUNT_BALANCE_COLOR_CLASS: Record<AccountType, AccountBalanceColorClass>
  * over-limit treatment are a separate decision and do not route through this
  * function — red there still means something the user can act on.
  *
- * This does not claim to be the app's balance/money colour vocabulary; #265
- * tracks that as a still-open, wider question.
+ * This does not claim to be the app's balance/money colour vocabulary; that
+ * rule is written down at docs/adr/2026-08-27-money-colour-vocabulary.md.
  */
 export function resolveAccountBalanceColorClass(type: AccountType): AccountBalanceColorClass {
   return ACCOUNT_BALANCE_COLOR_CLASS[type];
