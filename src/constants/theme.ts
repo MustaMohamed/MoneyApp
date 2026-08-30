@@ -23,9 +23,9 @@ export const Colors = {
     gold: '#D4A44C',
     positive: '#4CAF82',
     negative: '#E05A42',
-    warning: '#D4830A',
+    warning: '#E8B130',
     dangerBg: 'rgba(224, 90, 66, 0.12)',
-    warningBg: 'rgba(212, 131, 10, 0.12)',
+    warningBg: 'rgba(232, 177, 48, 0.12)',
     overlayWhite7: 'rgba(255, 255, 255, 0.07)',
     // Budget 5-band colour scale
     budgetUnder: '#6FA8DC',
