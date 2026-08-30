@@ -36,9 +36,9 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
  * negative in credit), and the double-minus this comment used to warn about
  * is prevented by a single composition point — `formatLiabilityRowValue`
  * (`net_worth_breakdown_sheet.helpers.ts`) — rather than by keeping the rows
- * unsigned. Per-row polarity is composed there, per ADR
- * 2026-08-27-money-colour-vocabulary.md §3; the aggregate corollary above is
- * unchanged.
+ * unsigned. Per-row polarity is composed there, per
+ * docs/adr/2026-08-27-money-colour-vocabulary.md §3; the aggregate corollary
+ * above is unchanged.
  */
 export function resolveAccountAggregationSign(type: AccountType): 1 | -1 {
   return type === AccountType.CreditCard ? -1 : 1;
