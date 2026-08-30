@@ -12,29 +12,31 @@ import { Text } from '@/components/ui/text';
 // styleOverrides, fontStyle || {}]`) is what decides the flatten —
 // `styleDefaults`'s `color` key goes first, whatever lands in the `style`
 // slot goes right after and wins. A bare `className` on the icon DOES
-// resolve even unwrapped, though: create-icon-set.js's own `Text` import
-// (`:2`) isn't excluded from Metro's uniwind resolver rewrite —
-// `resolvers.ts:57,69-71` skips only paths matching `/react-native/`, and
-// `react-native-vector-icons` doesn't — so that `Text` is already the
-// patched one (`uniwind/components/index.ts:44-45`), and `className`
-// survives the destructure into `...props` (`:41`) and reaches it at `:62`.
-// That patched Text resolves `props.className` itself (`Text.tsx:19`) and
+// resolve even unwrapped, though: this is `@expo/vector-icons`'s vendored
+// `create-icon-set.js` (reached via `@expo/vector-icons/build/
+// createIconSet.js:81-83`, which spreads `this.props` straight through
+// unchanged) — its own `Text` import (`:2`) isn't excluded from Metro's
+// uniwind resolver rewrite: `resolvers.ts:57`'s origin-path test (also
+// matching `/@react-native/`, `:58`) doesn't match this file — neither do
+// the internal/non-source checks at `:62-63` — so `:69-71`'s rewrite fires
+// and that `Text` is already the patched one
+// (`uniwind/components/index.ts:44-45`); `className` survives the
+// destructure into `...props` (`:41`) and reaches it at `:62`. That
+// patched Text resolves `props.className` itself (`Text.tsx:19`) and
 // renders `style={[style, props.style]}` (`:25`) — the resolved colour at
 // index 0, the icon's own array (`styleDefaults` first) at index 1. That's
 // the no-op: the resolved colour sits ahead of `styleDefaults.color:
 // undefined`, which is nested one level in but still later in flatten
 // order, so `undefined` wins. Wrapping with `withUniwind` supplies the
-// missing `style`: its `withAutoUniwind` (`withUniwind.native.tsx:54,62`)
+// missing `style`: its `withAutoUniwind` (`withUniwind.native.tsx:55,62`)
 // builds its own array with the resolved className at index 0 and the
 // incoming style at index 1, and that whole array becomes the icon's
 // `style` prop — landing after `styleDefaults` this time, same ordering,
-// and winning. (Harmless nit: the
-// icon's own Text render is itself uniwind-patched, so the class resolves
-// a second time internally — same result, redundant work.) className, not
-// the `color=` prop the other 130 of 141 icon sites in `src/` use, is still
-// the right target: ui.md:22 keeps className for colour (and padding, gap,
-// typography), reserving style for layout — this glyph is the one place
-// that contract needed the wrapper to actually hold.
+// and winning. className, not the `color=` prop the other 130 of 141 icon
+// sites in `src/` use, is still the right target: ui.md:22 keeps
+// className for colour (and padding, gap, typography), reserving style
+// for layout — this glyph is the one place that contract needed the
+// wrapper to actually hold.
 //
 // Module-private: no second `withUniwind` consumer exists yet. Hoist this
 // (and its comment) to a shared module the day one does — don't pre-export it.
