@@ -1,7 +1,9 @@
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { formatCurrencyAmount, formatDisplayMagnitude } from '@/utils/format_amount';
+
+import type { LiquidityBreakdown } from '../dashboard.helpers';
 
 /**
  * Exported for `__tests__/screens/dashboard/net_worth_breakdown_sheet.helpers.test.ts` —
@@ -47,4 +49,44 @@ export function resolveBreakdownRowColors(kind: BreakdownRowKind): {
   value: string | undefined;
 } {
   return { legend: BREAKDOWN_ROW_LEGEND_COLOR[kind], value: undefined };
+}
+
+/**
+ * A liability row's value cell — `LiabilityRow.balanceEgp` is signed
+ * (positive owed, negative in credit; #259 C2), and this is the SINGLE site
+ * that composes a glyph onto it. `printsAsZero` is checked before the sign:
+ * a magnitude that rounds to a printed zero gets no glyph at all, the
+ * `transaction_row.helpers.ts` `primaryAmountFor` shape. U+2212 `−`, never an
+ * ASCII hyphen, when owed; ASCII `+` in credit — no space either side.
+ *
+ * Pure `(number) => string`: no `LiabilityRow` in the signature, no React
+ * import in this file. `-0` is admitted deliberately (C2) — do not add a
+ * `normalizeNegativeZero` call here; `-0 < 0` is false, so it takes the
+ * `−` branch, and `formatDisplayMagnitude`'s true-zero test already routes
+ * it to the unsigned `printsAsZero` return before the sign check runs.
+ */
+export function formatLiabilityRowValue(balanceEgp: number): string {
+  const { text, printsAsZero } = formatDisplayMagnitude(balanceEgp, Currency.EGP);
+  if (printsAsZero) return text;
+  return `${balanceEgp < 0 ? '+' : '−'}${text}`;
+}
+
+/**
+ * The breakdown sheet's asset proportion bar, gated on both parts being
+ * non-negative and the total being positive — not just `assetsTotal > 0`.
+ * `current_balance REAL NOT NULL DEFAULT 0` carries no CHECK constraint
+ * (`src/database/migrations/001_create_accounts.ts:11`), so an overdrawn
+ * bank can make one part negative while the total stays positive; without
+ * this the bar rendered `flex: -0.5` on one segment.
+ *
+ * Takes `Pick<LiquidityBreakdown, 'liquidEgp' | 'reserveEgp'>`, not the full
+ * breakdown: the predicate reads exactly two fields, and the narrow
+ * signature keeps its test fixtures to two numbers. The total is derived
+ * from the two picked fields, never taken as a third parameter — a caller
+ * cannot pass a total that disagrees with its own parts.
+ */
+export function shouldShowProportionBar(
+  parts: Pick<LiquidityBreakdown, 'liquidEgp' | 'reserveEgp'>,
+): boolean {
+  return parts.liquidEgp >= 0 && parts.reserveEgp >= 0 && parts.liquidEgp + parts.reserveEgp > 0;
 }
