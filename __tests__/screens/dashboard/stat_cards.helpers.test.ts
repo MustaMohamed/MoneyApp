@@ -1,4 +1,8 @@
-import { resolveMonthSpendUsdAmount } from '@/modules/dashboard/screens/dashboard/components/stat_cards.helpers';
+import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
+import {
+  resolveMonthSpendUsdAmount,
+  resolveNetWorthStatColor,
+} from '@/modules/dashboard/screens/dashboard/components/stat_cards.helpers';
 
 // #277 spec §6.4: USD-only by construction (a literal `USD` node sits beside this amount),
 // so it carries two USD fixtures instead of two currency directions (F2). Extracted in the
@@ -11,5 +15,33 @@ describe('resolveMonthSpendUsdAmount — stat_cards.tsx:249', () => {
 
   it('shows the row-12 whole-number shape — base value: 100, head: 100.00', () => {
     expect(resolveMonthSpendUsdAmount(100)).toEqual({ value: '100.00', code: 'USD' });
+  });
+});
+
+// #265 / the ADR: a net worth is a magnitude the user owns or owes — it stops being
+// coloured by sign, so a negative net worth stops reading as a red/danger state and
+// renders identically to a positive one. rate-needed stays warning (actionable: no rate
+// to compute from). Fails at base 618517dc: the old branch returned Colors.dark.negative
+// for the amount-at--5000 case.
+describe('resolveNetWorthStatColor — stat_cards.tsx netColor', () => {
+  const amountNetWorth = (netWorthEgp: number): DashboardNetWorth => ({
+    kind: 'amount',
+    assetsEgp: 10000,
+    liabilitiesEgp: 10000 - netWorthEgp,
+    netWorthEgp,
+    assetsUsd: undefined,
+    netWorthUsd: undefined,
+  });
+
+  it('rate-needed stays warning', () => {
+    expect(resolveNetWorthStatColor({ kind: 'rate-needed', foreignCount: 1 })).toBe('#E8B130');
+  });
+
+  it('a negative net worth renders gold, not red', () => {
+    expect(resolveNetWorthStatColor(amountNetWorth(-5000))).toBe('#D4A44C');
+  });
+
+  it('a positive net worth renders gold', () => {
+    expect(resolveNetWorthStatColor(amountNetWorth(5000))).toBe('#D4A44C');
   });
 });
