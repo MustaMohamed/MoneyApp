@@ -91,7 +91,7 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
               style={{
                 width: ms(22),
                 height: ms(22),
-                backgroundColor: Colors.shared.cairoGold + '22',
+                backgroundColor: Colors.dark.goldTint,
               }}
             >
               <MaterialCommunityIcons

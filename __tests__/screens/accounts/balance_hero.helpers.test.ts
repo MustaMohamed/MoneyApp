@@ -1,8 +1,6 @@
 import { AccountType, Currency } from '@/constants/enums';
-import {
-  availableCreditColor,
-  buildHeroCaption,
-} from '@/modules/accounts/screens/accounts/detail/components/balance_hero.helpers';
+import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
+import { buildHeroCaption } from '@/modules/accounts/screens/accounts/detail/components/balance_hero.helpers';
 import type { Account } from '@/store/account.store';
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
@@ -114,20 +112,5 @@ describe('buildHeroCaption — credit cards', () => {
       }),
     );
     expect(cap.text).toBe('Available 500.00 USD of 500.00');
-  });
-});
-
-describe('availableCreditColor — thresholds match §5 AccountCard', () => {
-  it('returns text2 grey when limit <= 0', () => {
-    expect(availableCreditColor(0, 0)).toBe('#6B7F99');
-  });
-  it('positive when > 50% available', () => {
-    expect(availableCreditColor(600, 1000)).toBe('#4CAF82');
-  });
-  it('warning when 20%–50% available', () => {
-    expect(availableCreditColor(300, 1000)).toBe('#E8B130');
-  });
-  it('negative when < 20% available', () => {
-    expect(availableCreditColor(100, 1000)).toBe('#E05A42');
   });
 });

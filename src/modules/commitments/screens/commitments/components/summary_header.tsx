@@ -101,7 +101,7 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
               </Text>
             </View>
             <View
-              style={{ backgroundColor: `${GoldTokens[500]}22` }}
+              style={{ backgroundColor: Colors.dark.goldTint }}
               className="rounded-full px-2 py-0.5"
             >
               <Text className="font-sora-bold text-[13px]" style={{ color: GoldTokens[500] }}>

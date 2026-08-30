@@ -7,6 +7,7 @@ import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, Size } from '@/constants/theme';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
+import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { formatCurrencyAmount } from '@/utils/format_amount';
@@ -22,14 +23,6 @@ const TYPE_ICONS: Record<AccountType, IconName> = {
   [AccountType.PhysicalSavings]: 'piggy-bank',
   [AccountType.CreditCard]: 'credit-card',
 };
-
-function availableCreditColor(available: number, limit: number): string {
-  if (limit <= 0) return Colors.dark.text2;
-  const pct = available / limit;
-  if (pct > 0.5) return Colors.dark.positive;
-  if (pct >= 0.2) return Colors.dark.warning;
-  return Colors.dark.negative;
-}
 
 // The PhysicalWallet avg/day row's explicit 1dp — finer than EGP's CURRENCY_CONFIG
 // default (0dp) so a small daily average doesn't round to "0". Pre-existing precision,
