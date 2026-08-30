@@ -1,11 +1,11 @@
-import { Alert, Separator, Surface, Typography } from 'heroui-native';
+import { Separator, Surface, Typography } from 'heroui-native';
 import { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
-import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty_state';
 import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
+import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Screen } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { CommitmentPaymentStatus } from '@/constants/enums';
@@ -222,42 +222,26 @@ export default function CommitmentsScreen() {
       />
 
       {state.presentation === 'contentWithError' ? (
-        <View
-          className="absolute right-4 bottom-24 left-4 z-50"
-          style={{ minHeight: Size.statusRailMinHeight }}
-        >
-          <Alert status="danger" className="w-full">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{Strings.commitmentsLoadError}</Alert.Title>
-            </Alert.Content>
-            <Button
-              variant="secondary"
-              size="sm"
-              label={Strings.commitmentsLoadRetry}
-              accessibilityLabel={Strings.commitmentsLoadRetry}
-              onPress={() => void onRefresh()}
-            />
-          </Alert>
-        </View>
+        <LoadErrorAlert
+          mode="floating"
+          floatingOffset="tabBar"
+          minHeight={Size.statusRailMinHeight}
+          title={Strings.commitmentsLoadError}
+          retryLabel={Strings.commitmentsLoadRetry}
+          onRetry={() => void onRefresh()}
+          testID="commitments-load-error"
+        />
       ) : null}
 
       {state.presentation === 'coldError' ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Alert status="danger" className="w-full">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{Strings.commitmentsLoadError}</Alert.Title>
-            </Alert.Content>
-            <Button
-              variant="secondary"
-              size="sm"
-              label={Strings.commitmentsLoadRetry}
-              accessibilityLabel={Strings.commitmentsLoadRetry}
-              onPress={() => void onRefresh()}
-            />
-          </Alert>
-        </View>
+        <LoadErrorAlert
+          mode="fill"
+          fillPadding="wide"
+          title={Strings.commitmentsLoadError}
+          retryLabel={Strings.commitmentsLoadRetry}
+          onRetry={() => void onRefresh()}
+          testID="commitments-load-error"
+        />
       ) : showCommitmentsEmptyState ? (
         <CommitmentsEmptyState onAdd={goToAdd} />
       ) : (

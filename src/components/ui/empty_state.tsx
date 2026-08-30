@@ -3,11 +3,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
+
+// Ruled genuinely different from ErrorState, not merged (#290) — canonical
+// statement of the four decisive facts and the rejected merge shape lives on
+// `error_state.tsx`'s matching comment, not duplicated here. Only the
+// geometry is shared, through `state_screen.geometry.ts`.
+const LAYOUT = resolveStateScreenLayout('empty');
 
 export type EmptyStateVariant =
   | 'accounts'
@@ -116,7 +123,11 @@ export function EmptyState({ variant, onAction }: EmptyStateProps) {
     <View style={styles.root}>
       {/* Icon circle */}
       <View style={styles.iconCircle}>
-        <MaterialCommunityIcons name={config.icon} size={ms(40)} color={Colors.dark.text2} />
+        <MaterialCommunityIcons
+          name={config.icon}
+          size={LAYOUT.iconSize}
+          color={Colors.dark.text2}
+        />
       </View>
 
       {/* Headline */}
@@ -164,33 +175,21 @@ export function EmptyState({ variant, onAction }: EmptyStateProps) {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
+  root: LAYOUT.root,
   iconCircle: {
-    width: ms(80),
-    height: ms(80),
-    borderRadius: ms(40),
+    ...LAYOUT.iconCircle,
     backgroundColor: Colors.dark.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   headline: {
-    marginTop: Spacing.md,
-    textAlign: 'center',
+    ...LAYOUT.headline,
     color: Colors.dark.text1,
   },
   description: {
-    marginTop: Spacing.xs,
-    textAlign: 'center',
-    maxWidth: ms(260),
+    ...LAYOUT.body,
     color: Colors.dark.text2,
   },
   ctaWrapper: {
-    marginTop: Spacing.md,
+    ...LAYOUT.action,
     width: '100%',
     height: ms(52),
     borderRadius: Radius.cta,
@@ -212,7 +211,7 @@ const styles = StyleSheet.create({
     color: Colors.shared.midnightBlue,
   },
   clearWrapper: {
-    marginTop: Spacing.md,
+    ...LAYOUT.action,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.md,
   },

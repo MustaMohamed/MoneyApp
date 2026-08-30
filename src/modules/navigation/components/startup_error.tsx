@@ -1,6 +1,6 @@
+import { ErrorState } from '@/components/ui/error_state';
 import { Strings } from '@/constants/strings';
 
-import { ErrorState } from './error_state';
 import { resolveStartupRetryPresentation } from './startup_error.helpers';
 
 interface StartupErrorProps {

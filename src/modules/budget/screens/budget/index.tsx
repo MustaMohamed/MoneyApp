@@ -1,10 +1,10 @@
 import { useFocusEffect } from 'expo-router';
-import { Alert, Separator, Surface, Typography } from 'heroui-native';
+import { Separator, Surface, Typography } from 'heroui-native';
 import React, { useCallback } from 'react';
 import { RefreshControl, View } from 'react-native';
 
-import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty_state';
+import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
@@ -125,42 +125,26 @@ export default function BudgetScreen() {
       />
 
       {state.presentation === 'contentWithError' ? (
-        <View
-          className="absolute right-4 bottom-24 left-4 z-50"
-          style={{ minHeight: Size.statusRailMinHeight }}
-        >
-          <Alert status="danger" className="w-full">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{Strings.budgetLoadError}</Alert.Title>
-            </Alert.Content>
-            <Button
-              variant="secondary"
-              size="sm"
-              label={Strings.budgetLoadRetry}
-              accessibilityLabel={Strings.budgetLoadRetry}
-              onPress={() => void refresh()}
-            />
-          </Alert>
-        </View>
+        <LoadErrorAlert
+          mode="floating"
+          floatingOffset="tabBar"
+          minHeight={Size.statusRailMinHeight}
+          title={Strings.budgetLoadError}
+          retryLabel={Strings.budgetLoadRetry}
+          onRetry={() => void refresh()}
+          testID="budget-load-error"
+        />
       ) : null}
 
       {state.presentation === 'coldError' ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Alert status="danger" className="w-full">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{Strings.budgetLoadError}</Alert.Title>
-            </Alert.Content>
-            <Button
-              variant="secondary"
-              size="sm"
-              label={Strings.budgetLoadRetry}
-              accessibilityLabel={Strings.budgetLoadRetry}
-              onPress={() => void refresh()}
-            />
-          </Alert>
-        </View>
+        <LoadErrorAlert
+          mode="fill"
+          fillPadding="wide"
+          title={Strings.budgetLoadError}
+          retryLabel={Strings.budgetLoadRetry}
+          onRetry={() => void refresh()}
+          testID="budget-load-error"
+        />
       ) : state.presentation === 'coldLoading' ? (
         <ScreenScroll
           contentContainerStyle={{ paddingBottom: ms(96) }}

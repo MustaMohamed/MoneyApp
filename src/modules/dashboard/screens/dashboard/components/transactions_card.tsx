@@ -244,8 +244,7 @@ export function TransactionsCard({
         className="border-border mx-4 mt-4 rounded-2xl border p-0 px-3 py-2"
         style={{
           gap: ms(8),
-          elevation: 0,
-          shadowOpacity: 0,
+          boxShadow: 'none',
         }}
       >
         <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>

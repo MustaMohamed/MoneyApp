@@ -26,7 +26,7 @@ export default function CurrencyScreen() {
         {/* Rate card */}
         <Card
           className="border-border mx-4 mt-4 rounded-2xl border p-0"
-          style={{ elevation: 0, shadowOpacity: 0 }}
+          style={{ boxShadow: 'none' }}
         >
           <Card.Body className="p-5">
             <Typography className="text-muted font-inter-medium mb-1 text-xs tracking-wider uppercase">

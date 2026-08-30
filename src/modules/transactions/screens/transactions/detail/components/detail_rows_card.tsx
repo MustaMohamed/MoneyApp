@@ -10,7 +10,7 @@ export function DetailRowsCard({ children }: Props): React.ReactElement {
     <ListGroup
       variant="default"
       className="border-separator mx-4 mt-4 overflow-hidden rounded-2xl border p-0"
-      style={{ elevation: 0, shadowOpacity: 0 }}
+      style={{ boxShadow: 'none' }}
     >
       {children}
     </ListGroup>

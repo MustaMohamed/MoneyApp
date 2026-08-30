@@ -1,4 +1,4 @@
-import { ListGroup, Separator, Typography } from 'heroui-native';
+import { Separator, Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -6,9 +6,10 @@ import Animated from 'react-native-reanimated';
 import { Button } from '@/components/ui/button';
 import { SuccessChip } from '@/components/ui/chip';
 import { EmptyState } from '@/components/ui/empty_state';
+import { ListCard } from '@/components/ui/list_card';
 import { ScreenScroll } from '@/components/ui/screen';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { OnboardingShell } from '@/modules/onboarding/components/onboarding_shell';
 import {
   GhostNumeral,
@@ -161,24 +162,7 @@ export default function MoreAccountsScreen() {
               </Typography>
             </View>
 
-            {/* The Surface trap (§5.2), invisible to every CI check. ListGroup
-                is Surface-based and `.surface__root` resolves to `p-4
-                rounded-3xl shadow-surface overflow-hidden` with no border,
-                ever — so the border, the radius and `p-0` are each required.
-                `shadow-none` loses to the custom --shadow-surface token; the
-                `elevation`/`shadowOpacity` pair below does not beat it either,
-                because uniwind keys that token as `boxShadow`, a separate RN
-                pipeline (measured on device). Kept for consistency with the
-                other Surface call sites (debt:quality #246). */}
-            <ListGroup
-              className="border-separator p-0"
-              style={{
-                borderWidth: Size.hairline,
-                borderRadius: Radius.lg,
-                elevation: 0,
-                shadowOpacity: 0,
-              }}
-            >
+            <ListCard>
               {/* Unvirtualized, deliberately (#248). AccountRow's render body makes three
                   resolver calls per row — the direct `formatCurrencyParts` call,
                   `resolveAccountRowA11yLabel`, and `resolveAccountRowDotColor`
@@ -211,7 +195,7 @@ export default function MoreAccountsScreen() {
                   <AccountRow account={account} />
                 </React.Fragment>
               ))}
-            </ListGroup>
+            </ListCard>
 
             {/* 48pt button centred in a reserved 52 slot — the shape the scope
                 spec already settled for the footer CTA, reused rather than

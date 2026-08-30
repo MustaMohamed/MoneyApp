@@ -22,7 +22,7 @@ export function TransferFlowSkeletonCard(): React.ReactElement {
     <Card
       testID="transaction-detail-skeleton-transfer"
       className="border-separator mx-4 mt-4 rounded-2xl border p-3.5"
-      style={{ height: DETAIL_TRANSFER_MIN_HEIGHT, elevation: 0, shadowOpacity: 0 }}
+      style={{ height: DETAIL_TRANSFER_MIN_HEIGHT, boxShadow: 'none' }}
     >
       <SkeletonGroup isLoading isSkeletonOnly>
         <View className="flex-row items-center justify-between">
@@ -75,6 +75,7 @@ export function TransactionDetailSkeleton({ transaction }: Props): React.ReactEl
         <Card
           testID="transaction-detail-skeleton-rows"
           className="border-separator mx-4 mt-4 overflow-hidden rounded-2xl border p-0"
+          style={{ boxShadow: 'none' }}
         >
           {geometry.rowHeights.map((height, row) => (
             <View
@@ -97,7 +98,7 @@ export function TransactionDetailSkeleton({ transaction }: Props): React.ReactEl
           <Card
             testID="transaction-detail-skeleton-note"
             className="border-separator mx-4 mt-4 rounded-2xl border p-4"
-            style={{ minHeight: DETAIL_NOTE_MIN_HEIGHT, elevation: 0, shadowOpacity: 0 }}
+            style={{ minHeight: DETAIL_NOTE_MIN_HEIGHT, boxShadow: 'none' }}
           >
             <SkeletonGroup.Item className="h-3 w-20 rounded-md" />
             <SkeletonGroup.Item className="mt-3 h-4 w-full rounded-md" />
