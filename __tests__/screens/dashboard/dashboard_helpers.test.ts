@@ -732,6 +732,34 @@ describe('computeLiabilitiesBreakdown', () => {
   });
 });
 
+// #259 C7 / tariq F1: neither helper takes a provenance gate, and this pins
+// why that is safe. An EGP-only accounts set has nothing to convert, so
+// `rate` is arithmetically inert for it — the same output at a plausible
+// rate and at one three orders of magnitude smaller. If either helper ever
+// grows a rate gate, this reds.
+describe('computeLiquidityBreakdown and computeLiabilitiesBreakdown are rate-independent when nothing foreign remains (#259 C7)', () => {
+  it('return the same result at rate = 50 and rate = 0.0001', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', type: AccountType.Bank, current_balance: 5000 }),
+      makeAccount({ id: '2', type: AccountType.CreditCard, current_balance: 1200 }),
+      makeAccount({
+        id: '3',
+        type: AccountType.PhysicalWallet,
+        currency: Currency.USD,
+        current_balance: 40,
+        is_archived: 1,
+      }),
+    ];
+
+    expect(computeLiquidityBreakdown(accounts, 0.0001)).toEqual(
+      computeLiquidityBreakdown(accounts, 50),
+    );
+    expect(computeLiabilitiesBreakdown(accounts, 0.0001)).toEqual(
+      computeLiabilitiesBreakdown(accounts, 50),
+    );
+  });
+});
+
 describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
   // 9.51 USD at 40.01 converts to 380.4951, whose 2 dp rounding is 380.50 — and
   // `formatAmount` renders at zero decimals, half-expand, so the two sides of
@@ -756,8 +784,12 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
       computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
     const rows = computeLiabilitiesBreakdown(accounts, RATE);
-    // `net_worth_breakdown_sheet.tsx:143` — the footer is a raw reduce over the
-    // rows, so it inherits whatever the rows carry.
+    // The component footer now renders `netWorth.liabilitiesEgp` directly —
+    // the `net_worth_breakdown_sheet.tsx` reduce this mirrored is deleted
+    // (#259 C5). This reduce is no longer a mirror of component code: it is
+    // the suite's OWN rows-sum-to-header agreement check (MA-013), proving the
+    // rows and the header total agree independently of how the header itself
+    // is computed.
     const totalDebt = rows.reduce((sum, row) => sum + row.balanceEgp, 0);
 
     expect(formatAmount(liabilitiesEgp)).toBe('381');

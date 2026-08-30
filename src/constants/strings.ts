@@ -311,6 +311,7 @@ export const Strings = {
   dashboardBreakdownLiquidCaption: 'Bank, Smart Wallet, Cash',
   dashboardBreakdownReserveCaption: 'Savings',
   dashboardBreakdownTotalDebt: 'Total debt',
+  dashboardBreakdownInCredit: 'In credit',
   netWorthBreakdownUsdUnavailable: '— USD',
   netWorthBreakdownUsdApprox: (amount: string) => `≈ ${amount}`,
 
