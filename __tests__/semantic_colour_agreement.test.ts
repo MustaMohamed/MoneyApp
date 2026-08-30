@@ -74,4 +74,8 @@ describe('semantic colour agreement — theme.ts vs theme_tokens.ts vs global.cs
     // #E8B130 -> 232, 177, 48
     expect(Colors.dark.warningBg).toBe('rgba(232, 177, 48, 0.12)');
   });
+
+  it('goldTint is cairoGold at the eye-tuned dark-bg alpha (#253)', () => {
+    expect(Colors.dark.goldTint).toBe(`${Colors.shared.cairoGold}22`);
+  });
 });

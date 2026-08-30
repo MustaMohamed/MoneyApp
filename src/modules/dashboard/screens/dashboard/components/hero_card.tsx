@@ -148,7 +148,7 @@ export function HeroCard({
             style={{
               width: ms(24),
               height: ms(24),
-              backgroundColor: Colors.shared.cairoGold + '22',
+              backgroundColor: Colors.dark.goldTint,
             }}
           >
             <MaterialCommunityIcons name="wallet" size={ms(14)} color={Colors.shared.cairoGold} />
@@ -165,7 +165,7 @@ export function HeroCard({
               gap: ms(4),
               paddingHorizontal: ms(8),
               paddingVertical: ms(3),
-              backgroundColor: Colors.shared.cairoGold + '22',
+              backgroundColor: Colors.dark.goldTint,
               borderWidth: 1,
               borderColor: Colors.shared.cairoGold,
             }}

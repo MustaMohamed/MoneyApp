@@ -41,7 +41,7 @@ export function AddCard({ width, onPress }: AddCardProps) {
               borderRadius: ms(22),
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: ACCENT + '22',
+              backgroundColor: Colors.dark.goldTint,
             }}
           >
             <MaterialCommunityIcons name="plus" size={ms(25)} color={ACCENT} />

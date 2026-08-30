@@ -22,7 +22,7 @@ export function SectionHeader({ title, count }: SectionHeaderProps) {
         <View
           className="rounded-full px-2 py-0.5"
           style={{
-            backgroundColor: `${Colors.shared.cairoGold}22`,
+            backgroundColor: Colors.dark.goldTint,
           }}
         >
           <Typography
