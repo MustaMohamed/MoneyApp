@@ -98,6 +98,7 @@ const baseProps = {
     netWorthUsd: 176,
   } as const,
   rate: 49.06,
+  isRateUsable: true,
   isManualOverride: false,
   assetsCount: 1,
   liabilitiesCount: 0,
@@ -155,6 +156,26 @@ describe('HeroCard skeleton loading', () => {
 const rateNeededProps = {
   ...baseProps,
   netWorth: { kind: 'rate-needed', foreignCount: 2 } as const,
+  isRateUsable: false,
+};
+
+// #257: an EGP-only portfolio whose rate has never been verified. `kind` stays
+// 'amount' — nothing here is foreign, so `computeNetWorth` does not refuse —
+// but `isRateUsable` is false, so the ~USD fields are undefined. This is the
+// gap the old `netWorth.kind === 'rate-needed'` gate missed: that check let
+// the pill print the placeholder rate as fact for every EGP-only user who had
+// never fetched one.
+const egpOnlyUnverifiedProps = {
+  ...baseProps,
+  netWorth: {
+    kind: 'amount',
+    assetsEgp: 8650,
+    liabilitiesEgp: 0,
+    netWorthEgp: 8650,
+    assetsUsd: undefined,
+    netWorthUsd: undefined,
+  } as const,
+  isRateUsable: false,
 };
 
 describe('HeroCard on the rate-needed refusal', () => {
@@ -184,5 +205,17 @@ describe('HeroCard on the rate-needed refusal', () => {
     const { queryByTestId } = await render(<HeroCard {...baseProps} isLoading={false} />);
 
     expect(queryByTestId('dashboard-hero-press-target')).not.toBeNull();
+  });
+});
+
+describe('HeroCard on an EGP-only portfolio with an unverified rate (#257)', () => {
+  it('shows no rate pill, the absent-USD placeholder, and the EGP amount', async () => {
+    const { queryByTestId, getByText } = await render(
+      <HeroCard {...egpOnlyUnverifiedProps} isLoading={false} />,
+    );
+
+    expect(queryByTestId('dashboard-hero-rate-pill')).toBeNull();
+    expect(getByText(Strings.netWorthBreakdownUsdUnavailable)).toBeTruthy();
+    expect(getByText(/8,650/)).toBeTruthy();
   });
 });
