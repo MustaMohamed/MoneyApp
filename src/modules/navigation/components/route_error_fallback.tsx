@@ -1,8 +1,7 @@
 import { type ErrorBoundaryProps } from 'expo-router';
 
+import { ErrorState } from '@/components/ui/error_state';
 import { Strings } from '@/constants/strings';
-
-import { ErrorState } from './error_state';
 
 export function RouteErrorFallback({ retry, error }: ErrorBoundaryProps) {
   console.error('[routeErrorFallback] render-phase error caught by boundary:', error);
