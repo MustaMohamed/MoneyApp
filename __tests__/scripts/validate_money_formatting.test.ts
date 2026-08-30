@@ -157,12 +157,15 @@ afterEach(() => {
 // the parent empty, i.e. this was the last process out. ENOTEMPTY means a concurrent
 // process's pid dir is still under the parent — exactly the case where the parent must
 // survive, so the removal is dropped rather than reintroducing the cross-process race
-// this per-pid layout exists to kill.
+// this per-pid layout exists to kill. ENOENT means a sibling's afterAll won the same race
+// a moment earlier and already removed the parent — also not this process's problem, so
+// it's swallowed the same way; only an unexpected code still throws.
 afterAll(() => {
   try {
     fs.rmdirSync(fixtureParent);
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOTEMPTY') throw err;
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== 'ENOTEMPTY' && code !== 'ENOENT') throw err;
   }
 });
 

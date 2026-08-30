@@ -9,9 +9,9 @@ const SCHEMA_SQL = MIGRATIONS.map((m) => m.up).join('\n');
 // values. We run the same SCHEMA_SQL against an in-memory better-sqlite3
 // instance, since we can't reach the on-device expo-sqlite from tests.
 
-const openDbs: InstanceType<typeof Database>[] = [];
+const openDbs: ReturnType<typeof Database>[] = [];
 
-function withDb(): InstanceType<typeof Database> {
+function withDb(): ReturnType<typeof Database> {
   const db = new Database(':memory:');
   openDbs.push(db);
   db.exec(SCHEMA_SQL);
@@ -31,14 +31,18 @@ afterEach(() => {
       closeFailures.push(err);
     }
   }
-  // Always runs, even when a close() above threw: the per-handle proof must name every
-  // stranded handle, not just the ones that happened to close cleanly.
-  for (const db of drained) expect(db.open).toBe(false);
-  if (closeFailures.length > 0) {
-    throw new Error(
-      `db.close() failed for ${closeFailures.length} handle(s): ${closeFailures.map(String).join('; ')}`,
-    );
-  }
+  // One assertion, not a bare-boolean loop: it names which drained index(es) are still
+  // open AND surfaces every close() error's text in the same failure, so a stranded
+  // handle never reports as an anonymous `expect(db.open).toBe(false)` with the real
+  // cause silently dropped. Passes only when both are empty, so the throws below are
+  // unreachable on green — they exist to preserve stack fidelity on the failure path.
+  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
+  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
+    stranded: [],
+    closeErrors: [],
+  });
+  if (closeFailures.length === 1) throw closeFailures[0];
+  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
 });
 
 const VALID_INSERT = `
