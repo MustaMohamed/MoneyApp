@@ -312,14 +312,7 @@ describe('resolveHeroValueA11yLabel — one announcement, the same explicit deci
 const CAPTION_ROWS: readonly (readonly [ReadyFrame, number, number, string, string, string])[] = [
   ['F1', 3, 0, 'EGP', 'USD', 'All 3 accounts are in EGP, so nothing needed converting.'],
   ['F2', 3, 1, 'EGP', 'USD', 'Includes 1 USD account, converted using your saved rate.'],
-  [
-    'F3',
-    3,
-    1,
-    'EGP',
-    'USD',
-    'Your accounts are saved. Add a rate from the dashboard and this fills in.',
-  ],
+  ['F3', 3, 1, 'EGP', 'USD', 'Your accounts are saved. Set a rate in Settings and this fills in.'],
   [
     'F4',
     2,

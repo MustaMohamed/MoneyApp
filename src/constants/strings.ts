@@ -109,7 +109,7 @@ export const Strings = {
   n3EmptyCta: 'Add your first account', // mockup.html:2102
 
   // N4 Ready — mockup § F (F1-F9). Every value transcribed byte-exact from the
-  // cited mockup line, ASCII apostrophes included. Five declared deviations
+  // cited mockup line, ASCII apostrophes included. Six declared deviations
   // from the drawn strings are marked DEVIATION below.
   n4Eyebrow: 'Setup complete', // mockup.html:2326
   n4Headline: "You're ready.", // mockup.html:2328
@@ -117,7 +117,12 @@ export const Strings = {
     "Here's where you're starting from. Every number below comes from the opening balances you just entered.", // mockup.html:2329
   n4HeroLabel: 'Starting net position', // mockup.html:2333
   n4RateNeededValue: 'Exchange rate needed', // mockup.html:2429
-  n4CaptionRateNeeded: 'Your accounts are saved. Add a rate from the dashboard and this fills in.', // mockup.html:2430
+  // DEVIATION 7 (#261): mockup.html:2430 draws "Add a rate from the
+  // dashboard". The dashboard has no rate control of its own — it only
+  // deep-links to Settings (`goToSettings`, `dashboard.hook.ts:179`) — so the
+  // drawn copy cost the user two hops through a waypoint. This re-points the
+  // remedy at the one real control, Settings -> Currency (`currency.hook.ts:69-82`).
+  n4CaptionRateNeeded: 'Your accounts are saved. Set a rate in Settings and this fills in.', // mockup.html:2430
   n4CaptionNegative: 'Your card balances are bigger than your cash and bank accounts right now.', // mockup.html:2477
   n4CaptionZero: 'What you have and what you owe cancel out exactly.', // mockup.html:2524
   n4CaptionSingle:
@@ -317,8 +322,9 @@ export const Strings = {
 
   // The dashboard's rate refusal (#255). Modelled on N4's pair
   // (`n4RateNeededValue` / `n4CaptionRateNeeded`) so the two refusals read as
-  // one app; only the remedy differs, because the user is already past
-  // onboarding and the rate is set in Settings -> Currency from here.
+  // one app — both pairs now name the same door, Settings, as of #261. That
+  // coupling is deliberate: a copy change to one caption without the other is
+  // a review flag, not an independent edit.
   dashboardRateNeededValue: 'Exchange rate needed',
   dashboardRateNeededCaption: 'Your balances are saved. Set a rate in Settings and this fills in.',
 
