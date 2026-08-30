@@ -236,7 +236,7 @@ export default function CommitmentsScreen() {
       {state.presentation === 'coldError' ? (
         <LoadErrorAlert
           mode="fill"
-          fillPadding="px-6"
+          fillPadding="wide"
           title={Strings.commitmentsLoadError}
           retryLabel={Strings.commitmentsLoadRetry}
           onRetry={() => void onRefresh()}

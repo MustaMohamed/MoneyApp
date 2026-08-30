@@ -139,7 +139,7 @@ export default function BudgetScreen() {
       {state.presentation === 'coldError' ? (
         <LoadErrorAlert
           mode="fill"
-          fillPadding="px-6"
+          fillPadding="wide"
           title={Strings.budgetLoadError}
           retryLabel={Strings.budgetLoadRetry}
           onRetry={() => void refresh()}

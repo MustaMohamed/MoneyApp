@@ -1,4 +1,6 @@
 import {
+  EMPTY_STATE_SCREEN_LAYOUT,
+  ERROR_STATE_SCREEN_LAYOUT,
   STATE_SCREEN_LAYOUT,
   resolveStateScreenLayout,
 } from '@/components/ui/state_screen.geometry';
@@ -153,5 +155,21 @@ describe('resolveStateScreenLayout — key-set pins and frozen output', () => {
     expect(Object.isFrozen(layout.headline)).toBe(true);
     expect(Object.isFrozen(layout.body)).toBe(true);
     expect(Object.isFrozen(layout.action)).toBe(true);
+  });
+});
+
+describe('resolveStateScreenLayout — a real singleton, not a per-call rebuild', () => {
+  it('every call for a kind returns the exact same object reference', () => {
+    expect(resolveStateScreenLayout('error')).toBe(resolveStateScreenLayout('error'));
+    expect(resolveStateScreenLayout('empty')).toBe(resolveStateScreenLayout('empty'));
+  });
+
+  it('the resolver is a lookup onto the exported singletons, not a separate build', () => {
+    expect(resolveStateScreenLayout('error')).toBe(ERROR_STATE_SCREEN_LAYOUT);
+    expect(resolveStateScreenLayout('empty')).toBe(EMPTY_STATE_SCREEN_LAYOUT);
+  });
+
+  it('the two kinds are not the same object as each other', () => {
+    expect(ERROR_STATE_SCREEN_LAYOUT).not.toBe(EMPTY_STATE_SCREEN_LAYOUT);
   });
 });

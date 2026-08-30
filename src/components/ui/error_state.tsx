@@ -62,6 +62,11 @@ export function ErrorState({
   isActionDisabled = false,
   testID,
 }: ErrorStateProps) {
+  // Padding, margin and text-align come from LAYOUT (style), not className,
+  // for the opposite reason the icon glyph above stays on className: these
+  // are now runtime ms()-scaled numbers, and className is build-time only
+  // (ui.md:22) — a scaled value can never be a Tailwind class. Colour stays
+  // on className throughout, per the same rule.
   return (
     <Screen testID={testID}>
       <View style={LAYOUT.root}>

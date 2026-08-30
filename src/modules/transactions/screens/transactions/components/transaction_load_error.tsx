@@ -3,11 +3,11 @@ import { Strings } from '@/constants/strings';
 
 import {
   resolveTransactionLoadErrorTitle,
-  type TransactionLoadErrorVariant,
+  type TransactionLoadErrorTitleVariant,
 } from './transaction_load_error.helpers';
 
 interface TransactionLoadErrorProps {
-  variant: TransactionLoadErrorVariant;
+  variant: TransactionLoadErrorTitleVariant;
   onRetry: () => void;
 }
 

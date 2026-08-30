@@ -24,6 +24,21 @@ import { ms } from '@/utils/responsive';
  * where a value happens to coincide (`Size.iconHero` is also `ms(64)`).
  * `error.iconSize` is the one member that IS a scale token
  * (`Size.iconXl`, added in c1) because it feeds the icon's own `size` prop.
+ *
+ * The one sanctioned visual delta (§4.2 — device-QA item, not a bug):
+ * ErrorState's static Tailwind values become these `ms()`-scaled numbers, so
+ * off-baseline devices now draw a different size than before. At the
+ * jest/1.15-equivalent clamp: the icon circle (`size-16`, was a fixed 64)
+ * becomes 74, +10; the body/Button `max-w-80` cap (was a fixed 320) becomes
+ * 368 — the retry Button, which shares that cap, is ~48pt wider; the
+ * headline/body/action gaps (20/8/24) each grow by ~4. EmptyState's icon
+ * circle radius also changes identity: it was an independently-authored
+ * `ms(40)`, now it's the derived `iconCircle / 2` — equal at this clamp (46 =
+ * 46) but up to 0.5px apart at other device widths, which is the *fix*, not
+ * a new deviation: the independent `ms(40)` under-rounded relative to half
+ * the box at 5 of 15 plausible device widths, and RN clamps an over-large
+ * radius to half anyway, so the derived value is the one that was correct
+ * (findings/p8-cycle-1-c2.md item 5 / "not routed" item 1).
  */
 export const STATE_SCREEN_LAYOUT = {
   paddingHorizontal: Spacing.xl,
@@ -57,17 +72,15 @@ export interface StateScreenLayout {
 }
 
 /**
- * Composes one kind's frozen, spreadable style objects. Frozen because both
- * components consume the same object identity on every render (module-level
- * `resolveStateScreenLayout('error')` / `('empty')` call, not a per-render
- * one) — the `N4_SUMMARY_ROW_STYLE` precedent for why a stray mutation must
- * throw in dev rather than silently retune every instance at once.
+ * Builds one kind's frozen, spreadable style objects. Called exactly twice,
+ * below, at module load — never per render and never per call — so the two
+ * exported singletons are what every consumer actually shares.
  *
  * `iconCircle.borderRadius` is derived from `iconCircle`'s own width HERE,
  * never carried as a separate constant, so the circle can never go out of
  * round.
  */
-export function resolveStateScreenLayout(kind: StateScreenKind): StateScreenLayout {
+function buildStateScreenLayout(kind: StateScreenKind): StateScreenLayout {
   const config = STATE_SCREEN_LAYOUT[kind];
 
   const root: Readonly<ViewStyle> = Object.freeze({
@@ -105,5 +118,29 @@ export function resolveStateScreenLayout(kind: StateScreenKind): StateScreenLayo
       ? Object.freeze({ marginTop: config.actionGap, width: '100%', maxWidth: config.bodyMaxWidth })
       : Object.freeze({ marginTop: config.actionGap });
 
-  return { root, iconCircle, iconSize: config.iconSize, headline, body, action };
+  return Object.freeze({ root, iconCircle, iconSize: config.iconSize, headline, body, action });
+}
+
+/**
+ * The frozen singletons themselves — one object per kind, built once. Both
+ * ErrorState and EmptyState consume the same reference on every render
+ * (module-level `resolveStateScreenLayout('error'|'empty')` call, not a
+ * per-render one), the `N4_SUMMARY_ROW_STYLE` precedent for why a stray
+ * mutation must throw in dev rather than silently retune every instance at
+ * once. Exported directly (the `ready.geometry.ts` shape) as well as through
+ * the lookup below, so a consumer can import either the kind it always wants
+ * or the resolver when the kind is a runtime value.
+ */
+export const ERROR_STATE_SCREEN_LAYOUT: StateScreenLayout = buildStateScreenLayout('error');
+export const EMPTY_STATE_SCREEN_LAYOUT: StateScreenLayout = buildStateScreenLayout('empty');
+
+const STATE_SCREEN_LAYOUTS_BY_KIND: Readonly<Record<StateScreenKind, StateScreenLayout>> =
+  Object.freeze({
+    error: ERROR_STATE_SCREEN_LAYOUT,
+    empty: EMPTY_STATE_SCREEN_LAYOUT,
+  });
+
+/** A lookup, not a builder — returns the same frozen singleton every time. */
+export function resolveStateScreenLayout(kind: StateScreenKind): StateScreenLayout {
+  return STATE_SCREEN_LAYOUTS_BY_KIND[kind];
 }
