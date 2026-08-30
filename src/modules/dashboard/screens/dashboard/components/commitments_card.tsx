@@ -141,7 +141,7 @@ export function CommitmentsCard({
               style={{
                 width: ms(22),
                 height: ms(22),
-                backgroundColor: Colors.shared.cairoGold + '22',
+                backgroundColor: Colors.dark.goldTint,
               }}
             >
               <MaterialCommunityIcons
@@ -180,7 +180,7 @@ export function CommitmentsCard({
                 style={{
                   paddingHorizontal: ms(12),
                   paddingVertical: ms(3),
-                  backgroundColor: Colors.shared.cairoGold + '22',
+                  backgroundColor: Colors.dark.goldTint,
                 }}
               >
                 <Text

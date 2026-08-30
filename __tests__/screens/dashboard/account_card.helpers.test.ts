@@ -248,4 +248,15 @@ describe("buildInfoRows — credit card limit/available take the card's own curr
     expect(egpRows[1]?.value).toBe(Strings.cardOverLimit);
     expect(usdRows[1]?.value).toBe(Strings.cardOverLimit);
   });
+
+  // #264: the dashboard card had its own availableCreditColor copy, still on the
+  // unreconciled #D4830A warning — the same 20-50% band read one hex on the
+  // dashboard and another on the account detail screen. Now both consume the
+  // shared module (available_credit_color.ts), so this pins the wiring the old
+  // untested copy never had.
+  it('the Available row is warning-coloured in the 20-50% band', () => {
+    const rows = buildInfoRows(creditCard(Currency.EGP, 700, 1000), PLACEHOLDER_RATE, STATS, false);
+    expect(rows[1]?.value).toBe('300 EGP');
+    expect(rows[1]?.valueColor).toBe('#E8B130');
+  });
 });

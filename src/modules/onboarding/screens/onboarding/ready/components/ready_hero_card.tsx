@@ -65,9 +65,7 @@ export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
             borderRadius: N4_HERO_CHIP_SIZE / 2,
             alignItems: 'center',
             justifyContent: 'center',
-            // mockup.html:672, `color-mix(in srgb, var(--cairo-gold) 13%)` —
-            // the same 13.3% alpha the dashboard hero's 24pt wallet chip uses.
-            backgroundColor: Colors.shared.cairoGold + '22',
+            backgroundColor: Colors.dark.goldTint,
           }}
         >
           <MaterialCommunityIcons

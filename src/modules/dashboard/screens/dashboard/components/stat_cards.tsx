@@ -16,7 +16,7 @@ import { formatAmount, formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
-import { resolveMonthSpendUsdAmount } from './stat_cards.helpers';
+import { resolveMonthSpendUsdAmount, resolveNetWorthStatColor } from './stat_cards.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -152,17 +152,12 @@ export function StatCards({
   monthSpendLoading,
 }: StatCardsProps) {
   // The card's tint is the ONE net-worth derivation that survives the refusal,
-  // because the header chip renders in both states. Warning, not danger: nothing
-  // failed, and spec §7 forbids this diff touching any red treatment. Everything
-  // computed FROM the numbers lives in `NetWorthCardBody`, which only the amount
-  // path renders — arithmetic over absent fields on the refusal path is dead code
-  // a reader would mistake for a live one.
-  const netColor =
-    netWorth.kind === 'rate-needed'
-      ? SemanticTokens.warning
-      : netWorth.netWorthEgp < 0
-        ? Colors.dark.negative
-        : Colors.dark.positive;
+  // because the header chip renders in both states. Everything computed FROM the
+  // numbers lives in `NetWorthCardBody`, which only the amount path renders —
+  // arithmetic over absent fields on the refusal path is dead code a reader would
+  // mistake for a live one. The colour rule itself is `resolveNetWorthStatColor`'s
+  // docblock, not restated here.
+  const netColor = resolveNetWorthStatColor(netWorth);
   const monthIdx = parseInt(spendYearMonth.split('-')[1], 10) - 1;
   const monthLabel = SHORT_MONTHS[monthIdx] ?? '';
   const prevMonthLabel = SHORT_MONTHS[(monthIdx + 11) % 12] ?? '';

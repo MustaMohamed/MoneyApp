@@ -1,23 +1,10 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
+import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import { formatAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
-
-/**
- * Three-threshold utilisation color, identical to §5 AccountCard's private fn
- * (spec §4.5 / R4). Reimplemented locally — not imported across screen domains.
- *   > 50% available → positive · 20%–50% → warning · < 20% → negative
- */
-export function availableCreditColor(available: number, limit: number): string {
-  if (limit <= 0) return CoreTokens.text2;
-  const pct = available / limit;
-  if (pct > 0.5) return SemanticTokens.positive;
-  if (pct >= 0.2) return SemanticTokens.warning;
-  return SemanticTokens.negative;
-}
 
 export interface HeroCaption {
   text: string;
