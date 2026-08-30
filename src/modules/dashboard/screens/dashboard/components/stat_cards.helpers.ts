@@ -26,8 +26,8 @@ export function resolveMonthSpendUsdAmount(monthSpentUsd: number): { value: stri
  * The net-worth stat card's tint (docs/adr/2026-08-27-money-colour-vocabulary.md):
  * a net worth is a magnitude the user owns or owes, never coloured by sign — both a
  * positive and a negative net worth render gold, matching the same aggregate on
- * `hero_card.tsx` and the breakdown sheet's headline. `rate-needed` stays warning;
- * that state is actionable (no rate to compute from), not a signed amount.
+ * the breakdown sheet's headline. `rate-needed` stays warning; that state is
+ * actionable (no rate to compute from), not a signed amount.
  */
 export function resolveNetWorthStatColor(netWorth: DashboardNetWorth): string {
   return netWorth.kind === 'rate-needed' ? SemanticTokens.warning : Colors.dark.gold;

@@ -40,7 +40,6 @@ Standing non-HeroUI exceptions (layout/effect pieces HeroUI lacks): `Screen`/`Sc
 All values in `constants/theme.ts`, scaled with `ms()`/`msFont()`. Never hardcode hex/spacing/radius.
 
 - **Typography:** Sora (numbers, headings, CTAs) · Inter (body, labels, secondary). That split decides which family class a given element takes — anything rendering `formatAmount()`, a count, or a percentage is a number.
-- **Numbers:** comma-grouped — `122,300`. Every money string comes from a formatter in `src/utils/format_amount.ts` — never a hand-rolled one, hoisted or inline (M1). Rates go through `formatExchangeRate`, which owns the 2dp — no `rate.toFixed(2)`. Decimal counts are `.claude/rules/review.md` item 3's call.
-- **Money colour:** a magnitude the user owns or owes renders gold (`text-accent`) or neutral (`text-foreground`) — never by sign, never for being a liability. Red/warning are actionable-only (over limit, under 20% headroom, over budget/pace). Polarity in an aggregate is a composed sign (`−` U+2212), not colour. See `docs/adr/2026-08-27-money-colour-vocabulary.md`.
+- **Numbers:** comma-grouped — `122,300`. Every money string comes from a formatter in `src/utils/format_amount.ts` — never a hand-rolled one, hoisted or inline (M1). Rates go through `formatExchangeRate`, which owns the 2dp — no `rate.toFixed(2)`. Decimal counts are `.claude/rules/review.md` item 3's call. Money *colour* is `.claude/rules/review.md` item 3 too — that file's glob is the one that reaches the `.ts` resolvers this rule governs, not just the `.tsx` screens.
 - **CTA:** `Size.ctaHeight` (52) · `Radius.cta` (13) · gold gradient on midnight-blue text.
 - **Strings:** all user-visible copy in `constants/strings.ts`.

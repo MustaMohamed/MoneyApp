@@ -27,12 +27,16 @@ export const SemanticTokens = {
   positive: '#4CAF82',
   negative: '#E05A42',
   warning: '#E8B130',
-  info: '#4A7ABF',
+  // #499EE0 — must agree with global.css's `--info` (73 158 224) and
+  // InfoTokens[500] below; __tests__/semantic_colour_agreement.test.ts pins all
+  // three. Was `#4A7ABF`, a genuinely different blue, until P8 review caught it
+  // rendering beside `text-info` (global.css's value) in the same dashboard card.
+  info: '#499EE0',
 } as const;
 
 // §7: Transfer + CC Payment accent colors (must mirror global.css)
 export const InfoTokens = {
-  500: '#4A9EE0',
+  500: '#499EE0',
 } as const;
 
 export const AccentCCTokens = {

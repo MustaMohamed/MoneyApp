@@ -2,14 +2,17 @@
 
 - **Date:** 2026-08-27
 - **Status:** accepted (W2F P1 gate)
-- **Ticket:** #265 (with #264, #253)
-- **Applies to:** src/constants/theme.ts · src/constants/theme_tokens.ts · global.css · src/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.tsx · src/modules/dashboard/screens/dashboard/components/stat_cards.tsx · src/modules/accounts/constants/account_balance_color.ts
+- **Ticket:** W2F (issues #265, #264, #253)
+- **Applies to:** `src/constants/theme.ts`, `src/constants/theme_tokens.ts`, `global.css`,
+  `src/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.tsx`,
+  `src/modules/dashboard/screens/dashboard/components/stat_cards.tsx`,
+  `src/modules/accounts/constants/account_balance_color.ts`
 
 ## Decision
 
-1. **A monetary magnitude the user owns or owes renders gold (`text-accent`) or neutral (`text-foreground`)** per the #249/MA-014 contract — never coloured by sign, never coloured for being a liability.
+1. **A monetary magnitude the user owns or owes renders gold (`text-accent`) or neutral (`text-foreground`)** per the #249/MA-014 contract — never coloured by sign, never coloured for being a liability. This does not cover a *trend* indicator such as `stat_cards.tsx`'s month-spend delta chip, which pairs colour with a directional icon (up/down) rather than standing for an owned/owed amount — a different pattern, out of this rule's reach; #334 (adoption audit) is where it gets triaged if that should change.
 2. **Red and warning are reserved for actionable states**: over limit, under 20% headroom, over budget or pace. "This row is a debt" is not actionable and takes no colour.
-3. **Polarity is carried by a composed sign in aggregates** (net positions, deltas), not by colour. The canonical sign glyph is `−` (U+2212). Existing non-compliant sign sites are tracked by a filed sweep — its first target is the stat card's net-worth amount, which renders Intl's ASCII hyphen today; new or changed sites must comply.
+3. **Polarity is carried by a composed sign in aggregates** (net positions, deltas), not by colour. The canonical sign glyph is `−` (U+2212). Existing non-compliant sign sites are filed as #332 (the glyph-unification sweep) — its first target is the stat card's net-worth amount, which renders Intl's ASCII hyphen today; new or changed sites must comply.
 4. **One warning value: `#E8B130`**, in all three sources (`theme.ts`, `theme_tokens.ts`, `global.css`), with `warningBg` derived from it. The `#D4830A` fork was accidental (two independent introductions, 2026-05-11 vs 05-17, never reconciled) and produced a live defect: the same account's credit colour differed between the dashboard and its detail screen.
 
 ## Why
@@ -20,4 +23,4 @@ Four surfaces answered the money-colour question four ways (N4 gold-always; brea
 
 - Breakdown-sheet liability rows render neutral with their composed `−`; a negative net worth on the stat card renders like a positive one, sign in the glyph. Rate-needed warning states stay warning (actionable).
 - `Colors.light.warning` (`#B86E08`) remains an orphaned, unconsumed value — a light theme, if ever shipped, must re-derive its warning family from this rule rather than inherit the orphan.
-- Filed, not done here: the sign-glyph unification sweep (four live conventions today), the 21 non-gold alpha-concat sites, the app-wide adoption audit.
+- Filed, not done here: **#332** (the sign-glyph unification sweep — four live conventions today), **#333** (the 21 non-gold alpha-concat sites), **#334** (the app-wide adoption audit, including the trend-delta question noted under Decision 1).

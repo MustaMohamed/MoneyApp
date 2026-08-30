@@ -155,10 +155,8 @@ export function StatCards({
   // because the header chip renders in both states. Everything computed FROM the
   // numbers lives in `NetWorthCardBody`, which only the amount path renders —
   // arithmetic over absent fields on the refusal path is dead code a reader would
-  // mistake for a live one. Per the money-colour vocabulary
-  // (docs/adr/2026-08-27-money-colour-vocabulary.md), a net worth is a magnitude
-  // the user owns or owes — it no longer branches on sign; `rate-needed` stays
-  // warning, an actionable state.
+  // mistake for a live one. The colour rule itself is `resolveNetWorthStatColor`'s
+  // docblock, not restated here.
   const netColor = resolveNetWorthStatColor(netWorth);
   const monthIdx = parseInt(spendYearMonth.split('-')[1], 10) - 1;
   const monthLabel = SHORT_MONTHS[monthIdx] ?? '';

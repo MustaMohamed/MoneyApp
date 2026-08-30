@@ -244,6 +244,7 @@ function NetWorthBreakdownBody({
                     : undefined
                 }
                 value={row.balanceEgp}
+                valueColor={liabilityColors.value}
                 negative
               />
             ))}
