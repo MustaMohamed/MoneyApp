@@ -112,8 +112,19 @@ function checkCommandFrontmatter(file, text) {
 // larger token, not a path this doc is pointing at. `\b` stays: it is what the
 // word-initial alternatives are anchored on, and dropping it would newly match
 // `.claude/`, which is a different change with its own errors to answer for.
+//
+// The second alternative buys back the one citation form the first wrongly eats. A
+// relative link — `](../../docs/x.md)` from a rules file two levels down, the idiomatic
+// form there — puts the candidate after a `/` exactly like the URL does, so a
+// single-character lookbehind cannot tell them apart. Looking further back can: a run of
+// only `./` or `../` segments, itself starting at a non-path character, is a relative
+// citation; anything else before that slash is a longer path or a host. Measured over
+// the scanned corpus: 116 raw matches before the lookbehind, 113 with the first
+// alternative alone, 114 with both — and the one bought back is
+// `.claude/rules/review.md:22`. Residual, and it is the price of the second alternative:
+// a URL containing `/../` (`https://host/../docs/x`) matches again.
 const PATH_REF =
-  /(?<![A-Za-z0-9_./-])\b(?:src|__tests__|scripts|docs|node_modules|\.claude|\.github)\/[A-Za-z0-9_./@*<>{}[\]-]*[A-Za-z0-9_/]/g;
+  /(?:(?<![A-Za-z0-9_./-])|(?<=[^A-Za-z0-9_-](?:\.{1,2}\/){1,4}))\b(?:src|__tests__|scripts|docs|node_modules|\.claude|\.github)\/[A-Za-z0-9_./@*<>{}[\]-]*[A-Za-z0-9_/]/g;
 
 // `@/x` resolves to `src/x`, with or without an extension, or as a directory index.
 const ALIAS_REF = /@\/[A-Za-z0-9_/.]+/g;
