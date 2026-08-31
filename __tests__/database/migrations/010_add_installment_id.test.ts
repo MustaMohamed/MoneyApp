@@ -9,9 +9,39 @@ import { migration007 } from '@/database/migrations/007_create_commitment_paymen
 import { migration008 } from '@/database/migrations/008_add_commitment_payment_id';
 import { migration010 } from '@/database/migrations/010_add_installment_id';
 
+const openDbs: ReturnType<typeof Database>[] = [];
+
+// afterEach, not the sibling afterAll(close) spelling: a test that throws mid-body still
+// reaches this afterEach with its handle already pushed, so afterAll would leave it
+// stranded until the file's last test — afterEach drains after every test instead.
+afterEach(() => {
+  const drained = openDbs.splice(0);
+  const closeFailures: unknown[] = [];
+  for (const db of drained) {
+    try {
+      db.close();
+    } catch (err) {
+      closeFailures.push(err);
+    }
+  }
+  // One assertion, not a bare-boolean loop: it names which drained index(es) are still
+  // open AND surfaces every close() error's text in the same failure, so a stranded
+  // handle never reports as an anonymous `expect(db.open).toBe(false)` with the real
+  // cause silently dropped. Passes only when both are empty, so the throws below are
+  // unreachable on green — they exist to preserve stack fidelity on the failure path.
+  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
+  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
+    stranded: [],
+    closeErrors: [],
+  });
+  if (closeFailures.length === 1) throw closeFailures[0];
+  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
+});
+
 describe('migration010 — add installment_id', () => {
   function freshDb() {
     const db = new Database(':memory:');
+    openDbs.push(db);
     db.pragma('foreign_keys = OFF');
     db.exec(migration001.up);
     db.exec(migration003.up);
@@ -29,7 +59,6 @@ describe('migration010 — add installment_id', () => {
     const cols = db.prepare('PRAGMA table_info(transactions)').all() as { name: string }[];
     const names = cols.map((c) => c.name);
     expect(names).toContain('installment_id');
-    db.close();
   });
 
   it('installment_id is nullable', () => {
@@ -41,7 +70,6 @@ describe('migration010 — add installment_id', () => {
     }[];
     const col = cols.find((c) => c.name === 'installment_id');
     expect(col?.notnull).toBe(0);
-    db.close();
   });
 
   it('existing transactions get NULL after migration', () => {
@@ -60,7 +88,6 @@ describe('migration010 — add installment_id', () => {
       installment_id: string | null;
     };
     expect(row?.installment_id).toBeNull();
-    db.close();
   });
 
   it('allows inserts with installment_id set', () => {
@@ -79,7 +106,6 @@ describe('migration010 — add installment_id', () => {
       installment_id: string | null;
     };
     expect(row?.installment_id).toBe('inst-123');
-    db.close();
   });
 
   it('is idempotent across multiple migration runs', () => {
@@ -87,6 +113,5 @@ describe('migration010 — add installment_id', () => {
     db.exec(migration010.up);
     // The runner applies each migration once by version; a direct re-run throws duplicate-column.
     expect(() => db.exec(migration010.up)).toThrow(/duplicate column/i);
-    db.close();
   });
 });

@@ -5,14 +5,42 @@ import { migration004 } from '@/database/migrations/004_create_transactions';
 import { migration005 } from '@/database/migrations/005_add_transaction_native_amounts';
 import { migration018 } from '@/database/migrations/018_add_transaction_revolving_delta';
 
+const openDbs: ReturnType<typeof Database>[] = [];
+
 let db: ReturnType<typeof Database>;
 
 beforeEach(() => {
   db = new Database(':memory:');
+  openDbs.push(db);
   db.exec(MIGRATIONS.map((m) => m.up).join('\n'));
 });
 
-afterEach(() => db.close());
+// afterEach, not the sibling afterAll(close) spelling: a test that throws mid-body still
+// reaches this afterEach with its handle(s) already pushed, so afterAll would leave them
+// stranded until the file's last test — afterEach drains after every test instead.
+afterEach(() => {
+  const drained = openDbs.splice(0);
+  const closeFailures: unknown[] = [];
+  for (const db of drained) {
+    try {
+      db.close();
+    } catch (err) {
+      closeFailures.push(err);
+    }
+  }
+  // One assertion, not a bare-boolean loop: it names which drained index(es) are still
+  // open AND surfaces every close() error's text in the same failure, so a stranded
+  // handle never reports as an anonymous `expect(db.open).toBe(false)` with the real
+  // cause silently dropped. Passes only when both are empty, so the throws below are
+  // unreachable on green — they exist to preserve stack fidelity on the failure path.
+  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
+  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
+    stranded: [],
+    closeErrors: [],
+  });
+  if (closeFailures.length === 1) throw closeFailures[0];
+  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
+});
 
 describe('migration004 — transactions table', () => {
   it('creates the transactions table', () => {
@@ -114,6 +142,7 @@ describe('migration018 — exact revolving balance delta', () => {
 
   it('leaves legacy payments null when their exact capped delta cannot be reconstructed', () => {
     const legacyDb = new Database(':memory:');
+    openDbs.push(legacyDb);
     legacyDb.exec(
       MIGRATIONS.filter((migration) => migration.version < 18)
         .map((migration) => migration.up)
@@ -144,6 +173,5 @@ describe('migration018 — exact revolving balance delta', () => {
       .prepare('SELECT revolving_balance_delta FROM transactions WHERE id = ?')
       .get('payment') as { revolving_balance_delta: number | null };
     expect(row.revolving_balance_delta).toBeNull();
-    legacyDb.close();
   });
 });

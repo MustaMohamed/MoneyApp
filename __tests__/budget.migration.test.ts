@@ -2,9 +2,39 @@ import Database from 'better-sqlite3';
 
 import { MIGRATIONS } from '@/database/migrations';
 
+const openDbs: ReturnType<typeof Database>[] = [];
+
+// afterEach, not the sibling afterAll(close) spelling: a test that throws mid-body still
+// reaches this afterEach with its handle already pushed, so afterAll would leave it
+// stranded until the file's last test — afterEach drains after every test instead.
+afterEach(() => {
+  const drained = openDbs.splice(0);
+  const closeFailures: unknown[] = [];
+  for (const db of drained) {
+    try {
+      db.close();
+    } catch (err) {
+      closeFailures.push(err);
+    }
+  }
+  // One assertion, not a bare-boolean loop: it names which drained index(es) are still
+  // open AND surfaces every close() error's text in the same failure, so a stranded
+  // handle never reports as an anonymous `expect(db.open).toBe(false)` with the real
+  // cause silently dropped. Passes only when both are empty, so the throws below are
+  // unreachable on green — they exist to preserve stack fidelity on the failure path.
+  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
+  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
+    stranded: [],
+    closeErrors: [],
+  });
+  if (closeFailures.length === 1) throw closeFailures[0];
+  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
+});
+
 describe('budgets migration', () => {
   it('creates a named monthly budgets table with category/month/name uniqueness', () => {
     const db = new Database(':memory:');
+    openDbs.push(db);
     db.exec(MIGRATIONS.map((m) => m.up).join('\n'));
 
     const cols = db.prepare(`PRAGMA table_info(budgets)`).all() as { name: string }[];
@@ -33,12 +63,11 @@ describe('budgets migration', () => {
     ins.run('b1', 'cat_x', 'Monthly Food', 3000, '2026-05', NOW, NOW);
     ins.run('b2', 'cat_x', 'Trip Food', 1500, '2026-05', NOW, NOW);
     expect(() => ins.run('b3', 'cat_x', 'Monthly Food', 3500, '2026-05', NOW, NOW)).toThrow();
-
-    db.close();
   });
 
   it('migrates existing category/month budgets with the category name as budget name', () => {
     const db = new Database(':memory:');
+    openDbs.push(db);
     const migrationsThrough012 = MIGRATIONS.filter((migration) => migration.version <= 12);
     db.exec(migrationsThrough012.map((m) => m.up).join('\n'));
 
@@ -58,7 +87,5 @@ describe('budgets migration', () => {
     };
     expect(row.name).toBe('Food & Dining');
     expect(row.limit_amount).toBe(5000);
-
-    db.close();
   });
 });
