@@ -89,13 +89,13 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
     return { kind: 'rate-needed', foreignCount };
   }
 
-  let assetsEgp = 0;
-  let liabilitiesEgp = 0;
-  // Accumulated separately rather than derived as `assetsEgp - liabilitiesEgp`:
+  let assets = 0;
+  let liabilities = 0;
+  // Accumulated separately rather than derived as `assets - liabilities`:
   // subtracting two independently-rounded group totals cannot produce the `-0`
   // that a cancelling portfolio really lands on, and the two agree at 2 dp
   // everywhere else.
-  let netWorthEgp = 0;
+  let netWorth = 0;
 
   for (const a of activeAccounts) {
     const converted = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
@@ -106,40 +106,40 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
     const sign = resolveAccountAggregationSign(a.type);
 
     if (sign === 1) {
-      assetsEgp += rounded;
+      assets += rounded;
     } else {
-      // `liabilitiesEgp` is the OWED-FRAME total: positive when cards are
+      // `liabilities` is the OWED-FRAME total: positive when cards are
       // owed, negative when every card is in credit (#259 T4 pins
-      // `liabilitiesEgp === -300` on an all-credit portfolio). `stat_cards.tsx`
+      // `liabilities === -300` on an all-credit portfolio). `stat_cards.tsx`
       // reads it two ways: `Math.abs(...)` for its assets/liabilities
       // proportion bar (`stat_cards.tsx:333`) and the raw signed value,
       // un-re-signed, for its liabilities text (`:384`, `formatAmount`). The
       // sheet's header/footer also render it raw, and
       // `computeLiabilitiesBreakdown`'s rows below now carry the same
       // polarity.
-      liabilitiesEgp += rounded;
+      liabilities += rounded;
     }
-    netWorthEgp += sign * rounded;
+    netWorth += sign * rounded;
   }
 
   // Both numerators are the RAW accumulators, before the rounding and
-  // normalisation below: a cancelling portfolio's netWorthEgp accumulator is
+  // normalisation below: a cancelling portfolio's netWorth accumulator is
   // -2.7755575615628914e-17, which divides to -5.551115123125783e-19 and
   // rounds to -0. Dividing the already-normalised value would yield +0 and
   // make the suite's negative-zero assertion unfalsifiable.
   //
   // `undefined` when the rate is unusable, never `?? 0` and never a substituted
   // rate: `formatAmount(0)` renders a wrong number rather than an absent one.
-  const assetsUsd = rateUsable ? assetsEgp / rate : undefined;
-  const netWorthUsd = rateUsable ? netWorthEgp / rate : undefined;
+  const assetsUsd = rateUsable ? assets / rate : undefined;
+  const netWorthUsd = rateUsable ? netWorth / rate : undefined;
 
   // `normalizeNegativeZero` is the LAST operation before any of these reaches a
   // formatter — `Intl.NumberFormat` renders `-0` as "-0".
   return {
     kind: 'amount',
-    assetsEgp: normalizeNegativeZero(roundMoney(assetsEgp)),
-    liabilitiesEgp: normalizeNegativeZero(roundMoney(liabilitiesEgp)),
-    netWorthEgp: normalizeNegativeZero(roundMoney(netWorthEgp)),
+    assets: normalizeNegativeZero(roundMoney(assets)),
+    liabilities: normalizeNegativeZero(roundMoney(liabilities)),
+    netWorth: normalizeNegativeZero(roundMoney(netWorth)),
     assetsUsd: assetsUsd === undefined ? undefined : normalizeNegativeZero(roundMoney(assetsUsd)),
     netWorthUsd:
       netWorthUsd === undefined ? undefined : normalizeNegativeZero(roundMoney(netWorthUsd)),
@@ -158,14 +158,14 @@ export function groupAccountsByType(accounts: Account[]): Partial<Record<Account
 export interface AccountRow {
   id: string;
   name: string;
-  balanceEgp: number;
+  balance: number;
 }
 
 export interface LiquidityBreakdown {
-  liquidEgp: number;
+  liquid: number;
   liquidCount: number;
   liquidAccounts: AccountRow[];
-  reserveEgp: number;
+  reserve: number;
   reserveCount: number;
   reserveAccounts: AccountRow[];
 }
@@ -179,8 +179,8 @@ const LIQUID_TYPES: ReadonlySet<AccountType> = new Set([
 const RESERVE_TYPES: ReadonlySet<AccountType> = new Set([AccountType.PhysicalSavings]);
 
 export function computeLiquidityBreakdown(accounts: Account[], rate: number): LiquidityBreakdown {
-  let liquidEgp = 0;
-  let reserveEgp = 0;
+  let liquid = 0;
+  let reserve = 0;
   const liquidAccounts: AccountRow[] = [];
   const reserveAccounts: AccountRow[] = [];
 
@@ -190,31 +190,31 @@ export function computeLiquidityBreakdown(accounts: Account[], rate: number): Li
     // renders these rows directly beneath that function's totals, all at zero
     // decimals, so an unrounded 380.4951 here beside a rounded 380.50 there is
     // 380 and 381 on one screen for one account.
-    const balanceEgp = roundMoney(
+    const balance = roundMoney(
       a.currency === Currency.USD ? a.current_balance * rate : a.current_balance,
     );
     if (LIQUID_TYPES.has(a.type)) {
-      liquidEgp += balanceEgp;
-      liquidAccounts.push({ id: a.id, name: a.name, balanceEgp });
+      liquid += balance;
+      liquidAccounts.push({ id: a.id, name: a.name, balance });
     } else if (RESERVE_TYPES.has(a.type)) {
-      reserveEgp += balanceEgp;
-      reserveAccounts.push({ id: a.id, name: a.name, balanceEgp });
+      reserve += balance;
+      reserveAccounts.push({ id: a.id, name: a.name, balance });
     }
   }
 
-  liquidAccounts.sort((a, b) => b.balanceEgp - a.balanceEgp);
-  reserveAccounts.sort((a, b) => b.balanceEgp - a.balanceEgp);
+  liquidAccounts.sort((a, b) => b.balance - a.balance);
+  reserveAccounts.sort((a, b) => b.balance - a.balance);
 
   // Rounded once at the sum, completing `computeNetWorth`'s round-then-sum
   // contract rather than stopping half way through it. Ten 0.05 EGP wallets
   // accumulate to 0.49999999999999994, which the sheet's assets header renders
-  // as "1" (it reads the rounded `assetsEgp`) and this tier legend rendered as
+  // as "1" (it reads the rounded `assets`) and this tier legend rendered as
   // "0" directly beneath it.
   return {
-    liquidEgp: roundMoney(liquidEgp),
+    liquid: roundMoney(liquid),
     liquidCount: liquidAccounts.length,
     liquidAccounts,
-    reserveEgp: roundMoney(reserveEgp),
+    reserve: roundMoney(reserve),
     reserveCount: reserveAccounts.length,
     reserveAccounts,
   };
@@ -231,17 +231,17 @@ export function computeLiabilitiesBreakdown(accounts: Account[], rate: number): 
     if (a.type !== AccountType.CreditCard) continue;
     // Rounded per value, same contract and same reason as
     // `computeLiquidityBreakdown` above.
-    const balanceEgp = roundMoney(
+    const balance = roundMoney(
       a.currency === Currency.USD ? a.current_balance * rate : a.current_balance,
     );
     rows.push({
       id: a.id,
       name: a.name,
-      balanceEgp,
+      balance,
       statementDueDay: a.statement_due_day ?? null,
     });
   }
-  rows.sort((a, b) => b.balanceEgp - a.balanceEgp);
+  rows.sort((a, b) => b.balance - a.balance);
   return rows;
 }
 

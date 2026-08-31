@@ -42,14 +42,14 @@ interface TotalBalanceStripProps {
  * compiler requirement (an if/else-scoped const also compiles here).
  */
 function TotalBalanceStripAmount({
-  netWorth,
+  netWorth: amount,
 }: {
   netWorth: DashboardNetWorthAmount;
 }): React.ReactElement {
-  const assetsEgpParts = formatCurrencyParts(netWorth.assetsEgp, Currency.EGP);
+  const assetsParts = formatCurrencyParts(amount.assets, Currency.EGP);
   return (
     <RNText className="font-sora-bold text-accent mt-1 text-2xl">
-      {assetsEgpParts.value} <RNText className="text-muted text-base">{assetsEgpParts.code}</RNText>
+      {assetsParts.value} <RNText className="text-muted text-base">{assetsParts.code}</RNText>
     </RNText>
   );
 }

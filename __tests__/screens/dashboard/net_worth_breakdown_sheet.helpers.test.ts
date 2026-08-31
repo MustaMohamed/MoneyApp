@@ -39,7 +39,7 @@ describe('resolveBreakdownRowColors — money-colour vocabulary (docs/adr/2026-0
   });
 });
 
-// #259 C2/C3: `LiabilityRow.balanceEgp` is now signed (positive owed, negative
+// #259 C2/C3: `LiabilityRow.balance` is now signed (positive owed, negative
 // in credit) and this is the SINGLE site that composes a glyph onto it — the
 // `transaction_row.helpers.ts` `primaryAmountFor` shape. The escalation rows
 // (0.4, -0.4) and the true-zero row (-0) are load-bearing: below this file's
@@ -55,8 +55,8 @@ describe('formatLiabilityRowValue — the single composition point for a liabili
     [-0.4, '+0.40'],
     [-0, '0'],
     [0.001, '0.00'],
-  ] as const)('%s -> %s', (balanceEgp, expected) => {
-    expect(formatLiabilityRowValue(balanceEgp)).toBe(expected);
+  ] as const)('%s -> %s', (balance, expected) => {
+    expect(formatLiabilityRowValue(balance)).toBe(expected);
   });
 
   it('composes U+2212, never an ASCII hyphen, on an owed row', () => {
@@ -67,7 +67,7 @@ describe('formatLiabilityRowValue — the single composition point for a liabili
 
   it('agrees with the section header on the half-cent rounding case', () => {
     // 9.51 USD at 40.01 converts to 380.4951, rounds to 380.50, and displays
-    // as 381 — the same figure `dashboard_helpers.test.ts`'s `liabilitiesEgp`
+    // as 381 — the same figure `dashboard_helpers.test.ts`'s `liabilities`
     // pin asserts for the section header (untouched by this ticket). This is
     // the render-path successor to that pin, the old `:764` row.
     expect(formatLiabilityRowValue(roundMoney(9.51 * 40.01))).toBe('−381');
@@ -75,17 +75,17 @@ describe('formatLiabilityRowValue — the single composition point for a liabili
 });
 
 // #259 C6: the reserve clause is the load-bearing one in the {1000, -500}
-// row — the total is 500 > 0, so only `reserveEgp >= 0` fails there. Deleting
+// row — the total is 500 > 0, so only `reserve >= 0` fails there. Deleting
 // that clause alone would still hide the {-500, 1000} row (the liquid clause
 // catches it) but would wrongly show {1000, -500}, which is what makes this
 // row a pin rather than redundant with the first.
 describe('shouldShowProportionBar — the compound gate (#259 C6)', () => {
   it.each([
-    [{ liquidEgp: -500, reserveEgp: 1000 }, false],
-    [{ liquidEgp: 1000, reserveEgp: -500 }, false],
-    [{ liquidEgp: 0, reserveEgp: 0 }, false],
-    [{ liquidEgp: 500, reserveEgp: 500 }, true],
-    [{ liquidEgp: 0, reserveEgp: 0.01 }, true],
+    [{ liquid: -500, reserve: 1000 }, false],
+    [{ liquid: 1000, reserve: -500 }, false],
+    [{ liquid: 0, reserve: 0 }, false],
+    [{ liquid: 500, reserve: 500 }, true],
+    [{ liquid: 0, reserve: 0.01 }, true],
   ] as const)('%j -> %s', (parts, expected) => {
     expect(shouldShowProportionBar(parts)).toBe(expected);
   });

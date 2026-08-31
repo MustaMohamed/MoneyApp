@@ -104,9 +104,9 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     rateUpdatedAt: VERIFIED,
     expected: {
       kind: 'amount',
-      assetsEgp: 10000,
-      liabilitiesEgp: 0,
-      netWorthEgp: 10000,
+      assets: 10000,
+      liabilities: 0,
+      netWorth: 10000,
       assetsUsd: 200,
       netWorthUsd: 200,
     },
@@ -123,9 +123,9 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     rateUpdatedAt: null,
     expected: {
       kind: 'amount',
-      assetsEgp: 12000,
-      liabilitiesEgp: 0,
-      netWorthEgp: 12000,
+      assets: 12000,
+      liabilities: 0,
+      netWorth: 12000,
       assetsUsd: undefined,
       netWorthUsd: undefined,
     },
@@ -137,9 +137,9 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     rateUpdatedAt: null,
     expected: {
       kind: 'amount',
-      assetsEgp: 0,
-      liabilitiesEgp: 0,
-      netWorthEgp: 0,
+      assets: 0,
+      liabilities: 0,
+      netWorth: 0,
       assetsUsd: undefined,
       netWorthUsd: undefined,
     },
@@ -157,8 +157,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     // SECOND signal for `computeNetWorth`'s own archived filter, alongside the
     // archived-card row below. Delete that filter alone
     // (`dashboard.helpers.ts:63`) and the wallet enters the arithmetic at
-    // `1000 + roundMoney(500 * 50)`, so this row reports `assetsEgp` and
-    // `netWorthEgp` of 26000 against 1000 expected. It is INSENSITIVE to
+    // `1000 + roundMoney(500 * 50)`, so this row reports `assets` and
+    // `netWorth` of 26000 against 1000 expected. It is INSENSITIVE to
     // `countForeignAccounts`'s inline filter in isolation: delete that one alone
     // and this whole table stays green, with only `account_aggregation.test.ts`'s
     // "never counts an archived account" going red. Losing both filters would
@@ -182,9 +182,9 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     rateUpdatedAt: null,
     expected: {
       kind: 'amount',
-      assetsEgp: 1000,
-      liabilitiesEgp: 0,
-      netWorthEgp: 1000,
+      assets: 1000,
+      liabilities: 0,
+      netWorth: 1000,
       assetsUsd: undefined,
       netWorthUsd: undefined,
     },
@@ -200,9 +200,9 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     rateUpdatedAt: VERIFIED,
     expected: {
       kind: 'amount',
-      assetsEgp: 113860,
-      liabilitiesEgp: 8450,
-      netWorthEgp: 105410,
+      assets: 113860,
+      liabilities: 8450,
+      netWorth: 105410,
       assetsUsd: 2342.8,
       netWorthUsd: 2168.93,
     },
@@ -212,7 +212,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     // else in this table. Cards otherwise appear only in EGP and USD only in
     // wallets, so a body reading `currency === USD && type !== CreditCard`
     // passes every other row. No two fields of this row collide either: a missed
-    // conversion gives netWorthEgp 4900, a flipped sign 9860.
+    // conversion gives netWorth 4900, a flipped sign 9860.
     case: 'a USD CREDIT CARD — converted and subtracted on the same row',
     accounts: [
       makeAccount({ current_balance: 5000 }),
@@ -226,9 +226,9 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     rateUpdatedAt: VERIFIED,
     expected: {
       kind: 'amount',
-      assetsEgp: 5000,
-      liabilitiesEgp: 4860,
-      netWorthEgp: 140,
+      assets: 5000,
+      liabilities: 4860,
+      netWorth: 140,
       assetsUsd: 102.88,
       netWorthUsd: 2.88,
     },
@@ -240,9 +240,9 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     rateUpdatedAt: VERIFIED,
     expected: {
       kind: 'amount',
-      assetsEgp: 0,
-      liabilitiesEgp: 8450,
-      netWorthEgp: -8450,
+      assets: 0,
+      liabilities: 8450,
+      netWorth: -8450,
       assetsUsd: 0,
       netWorthUsd: -169,
     },
@@ -260,9 +260,9 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     rateUpdatedAt: VERIFIED,
     expected: {
       kind: 'amount',
-      assetsEgp: 1000,
-      liabilitiesEgp: 0,
-      netWorthEgp: 1000,
+      assets: 1000,
+      liabilities: 0,
+      netWorth: 1000,
       assetsUsd: 20,
       netWorthUsd: 20,
     },
@@ -289,9 +289,9 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     rateUpdatedAt: VERIFIED,
     expected: {
       kind: 'amount',
-      assetsEgp: 2,
-      liabilitiesEgp: 0,
-      netWorthEgp: 2,
+      assets: 2,
+      liabilities: 0,
+      netWorth: 2,
       assetsUsd: 1,
       netWorthUsd: 1,
     },
@@ -299,8 +299,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
   {
     // The ORDER is what produces the residue: 0.30 − 0.10 − 0.20 summed in
     // array order is -2.7755575615628914e-17, whose roundMoney is -0. A body
-    // that grouped or sorted the rows first, or that derived netWorthEgp as
-    // assetsEgp − liabilitiesEgp, would make this row a tautology — so
+    // that grouped or sorted the rows first, or that derived netWorth as
+    // assets − liabilities, would make this row a tautology — so
     // "accumulate in array order" is part of the contract.
     case: 'a portfolio that cancels out to a floating-point residue',
     accounts: [
@@ -312,9 +312,9 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     rateUpdatedAt: VERIFIED,
     expected: {
       kind: 'amount',
-      assetsEgp: 0.3,
-      liabilitiesEgp: 0.3,
-      netWorthEgp: 0,
+      assets: 0.3,
+      liabilities: 0.3,
+      netWorth: 0,
       assetsUsd: 0.01,
       netWorthUsd: 0,
     },
@@ -378,7 +378,7 @@ describe('computeNetWorth', () => {
   // the `rate > 0 ? value / rate : 0` fallback — no longer exists. What replaces
   // it is NOT a refusal: its fixture was a single EGP bank account at rate 0, so
   // `foreignCount` is 0, nothing needs converting, and the outcome is an amount
-  // (`assetsEgp: 5000`, `netWorthEgp: 5000`) whose `assetsUsd` and `netWorthUsd`
+  // (`assets: 5000`, `netWorth: 5000`) whose `assetsUsd` and `netWorthUsd`
   // are `undefined` because the rate is unusable. The EGP-only rows above assert
   // exactly that shape. Recorded in
   // `docs/adr/2026-08-19-dashboard-net-worth-refusal.md` §5; not deleted silently
@@ -437,9 +437,9 @@ describe('computeNetWorth — a manual rate carrying no marker', () => {
       computeNetWorth({ accounts, rate: 48, rateUpdatedAt: null, isManualOverride: true }),
     ).toStrictEqual({
       kind: 'amount',
-      assetsEgp: 5800,
-      liabilitiesEgp: 0,
-      netWorthEgp: 5800,
+      assets: 5800,
+      liabilities: 0,
+      netWorth: 5800,
       assetsUsd: 120.83,
       netWorthUsd: 120.83,
     });
@@ -457,10 +457,10 @@ describe('computeNetWorth — a manual rate carrying no marker', () => {
 
 describe('computeNetWorth — negative zero', () => {
   // Two independent -0 sites, and neither one's zero reaches the other (ADR
-  // 2026-08-18 §4), so both need their own assertion: the netWorthEgp
+  // 2026-08-18 §4), so both need their own assertion: the netWorth
   // accumulator lands on -2.7755575615628914e-17, and netWorthUsd divides that
   // RAW accumulator by the rate to -5.551115123125783e-19. roundMoney maps both
-  // to -0. Divide the already-normalised netWorthEgp instead and the second
+  // to -0. Divide the already-normalised netWorth instead and the second
   // assertion below can never fail.
   //
   // The marker must be VERIFIED, or `netWorthUsd` is `undefined` and the second
@@ -481,8 +481,8 @@ describe('computeNetWorth — negative zero', () => {
       }),
     );
 
-  it('normalises netWorthEgp to +0', () => {
-    expect(Object.is(result().netWorthEgp, 0)).toBe(true);
+  it('normalises netWorth to +0', () => {
+    expect(Object.is(result().netWorth, 0)).toBe(true);
   });
 
   it('normalises netWorthUsd to +0', () => {
@@ -492,7 +492,7 @@ describe('computeNetWorth — negative zero', () => {
   it('and therefore renders "0", which is what the user sees', () => {
     // A helper-level assertion alone does not catch the render: the bug is
     // Intl's, and it only appears once the number reaches the formatter.
-    expect(formatAmount(result().netWorthEgp)).toBe('0');
+    expect(formatAmount(result().netWorth)).toBe('0');
   });
 
   it('while a raw -0 still renders "-0" — the tripwire proving the three above can fail', () => {
@@ -528,7 +528,7 @@ describe('groupAccountsByType', () => {
 
 // The guard shape `account_aggregation.test.ts` puts on the sign table, applied
 // to the tier allowlists for the same hazard. `resolveAccountAggregationSign`
-// defaults a new `AccountType` to +1, so it joins `assetsEgp` automatically,
+// defaults a new `AccountType` to +1, so it joins `assets` automatically,
 // while `LIQUID_TYPES` and `RESERVE_TYPES` (`dashboard.helpers.ts`) are explicit
 // `Set` allowlists that would silently drop it: the sheet's assets header would
 // exceed liquid + reserve, the account count would undercount, and the tier
@@ -567,9 +567,9 @@ describe('computeLiquidityBreakdown', () => {
       makeAccount({ id: '5', type: AccountType.CreditCard, current_balance: 4080 }),
     ];
     const result = computeLiquidityBreakdown(accounts, 48.85);
-    expect(result.liquidEgp).toBe(32500);
+    expect(result.liquid).toBe(32500);
     expect(result.liquidCount).toBe(3);
-    expect(result.reserveEgp).toBe(10000);
+    expect(result.reserve).toBe(10000);
     expect(result.reserveCount).toBe(1);
   });
 
@@ -578,8 +578,8 @@ describe('computeLiquidityBreakdown', () => {
       makeAccount({ id: '1', type: AccountType.CreditCard, current_balance: 4080 }),
     ];
     const result = computeLiquidityBreakdown(accounts, 48.85);
-    expect(result.liquidEgp).toBe(0);
-    expect(result.reserveEgp).toBe(0);
+    expect(result.liquid).toBe(0);
+    expect(result.reserve).toBe(0);
   });
 
   it('excludes archived accounts (L-07)', () => {
@@ -588,7 +588,7 @@ describe('computeLiquidityBreakdown', () => {
       makeAccount({ id: '2', type: AccountType.Bank, current_balance: 2000 }),
     ];
     const result = computeLiquidityBreakdown(accounts, 48.85);
-    expect(result.liquidEgp).toBe(2000);
+    expect(result.liquid).toBe(2000);
     expect(result.liquidCount).toBe(1);
   });
 
@@ -602,16 +602,16 @@ describe('computeLiquidityBreakdown', () => {
       }),
     ];
     const result = computeLiquidityBreakdown(accounts, 48.85);
-    expect(result.liquidEgp).toBeCloseTo(4885, 0);
+    expect(result.liquid).toBeCloseTo(4885, 0);
   });
 
   it('returns zeros for empty input (L-02)', () => {
     const result = computeLiquidityBreakdown([], 48.85);
     expect(result).toEqual({
-      liquidEgp: 0,
+      liquid: 0,
       liquidCount: 0,
       liquidAccounts: [],
-      reserveEgp: 0,
+      reserve: 0,
       reserveCount: 0,
       reserveAccounts: [],
     });
@@ -644,7 +644,7 @@ describe('computeLiquidityBreakdown', () => {
       makeAccount({ id: '1', type: AccountType.Bank, current_balance: 1000 }),
     ];
     const result = computeLiquidityBreakdown(accounts, 48.85);
-    expect(result.reserveEgp).toBe(0);
+    expect(result.reserve).toBe(0);
     expect(result.reserveCount).toBe(0);
   });
 
@@ -653,8 +653,8 @@ describe('computeLiquidityBreakdown', () => {
       makeAccount({ id: '1', type: AccountType.PhysicalSavings, current_balance: 1000 }),
     ];
     const result = computeLiquidityBreakdown(accounts, 48.85);
-    expect(result.liquidEgp).toBe(0);
-    expect(result.reserveEgp).toBe(1000);
+    expect(result.liquid).toBe(0);
+    expect(result.reserve).toBe(1000);
   });
 
   // #259 C6 / S7: `shouldShowProportionBar` pins the pure predicate on its own
@@ -671,9 +671,9 @@ describe('computeLiquidityBreakdown', () => {
         current_balance: 0.02,
       }),
     ];
-    const { liquidEgp, reserveEgp } = computeLiquidityBreakdown(accounts, 0.0001);
+    const { liquid, reserve } = computeLiquidityBreakdown(accounts, 0.0001);
 
-    expect(shouldShowProportionBar({ liquidEgp, reserveEgp })).toBe(false);
+    expect(shouldShowProportionBar({ liquid, reserve })).toBe(false);
   });
 });
 
@@ -685,8 +685,8 @@ describe('computeLiabilitiesBreakdown', () => {
     ];
     const result = computeLiabilitiesBreakdown(accounts, 48.85);
     expect(result).toEqual([
-      { id: '2', name: 'Visa B', balanceEgp: 4080, statementDueDay: null },
-      { id: '1', name: 'Visa A', balanceEgp: 1000, statementDueDay: null },
+      { id: '2', name: 'Visa B', balance: 4080, statementDueDay: null },
+      { id: '1', name: 'Visa A', balance: 1000, statementDueDay: null },
     ]);
   });
 
@@ -735,7 +735,7 @@ describe('computeLiabilitiesBreakdown', () => {
       }),
     ];
     const [row] = computeLiabilitiesBreakdown(accounts, 48.85);
-    expect(row.balanceEgp).toBeCloseTo(4885, 0);
+    expect(row.balance).toBeCloseTo(4885, 0);
   });
 
   it('keeps a negative stored balance signed — an overpaid card is in credit, not a magnitude to launder (#259)', () => {
@@ -748,7 +748,7 @@ describe('computeLiabilitiesBreakdown', () => {
       }),
     ];
     const [row] = computeLiabilitiesBreakdown(accounts, 48.85);
-    expect(row.balanceEgp).toBe(-1000);
+    expect(row.balance).toBe(-1000);
   });
 
   it('keeps rows signed and sorted debt-first: an overpaid card sorts last (S5)', () => {
@@ -757,34 +757,34 @@ describe('computeLiabilitiesBreakdown', () => {
       makeAccount({ id: '2', name: 'Visa B', type: AccountType.CreditCard, current_balance: -300 }),
     ];
     const result = computeLiabilitiesBreakdown(accounts, 48.85);
-    expect(result.map((row) => row.balanceEgp)).toEqual([5000, -300]);
+    expect(result.map((row) => row.balance)).toEqual([5000, -300]);
   });
 });
 
-describe('computeNetWorth — liabilitiesEgp is the signed owed-frame total (#259 T4)', () => {
+describe('computeNetWorth — liabilities is the signed owed-frame total (#259 T4)', () => {
   it('nets an overpaid card against unpaid debt (S5)', () => {
     const accounts: Account[] = [
       makeAccount({ id: '1', type: AccountType.CreditCard, current_balance: 5000 }),
       makeAccount({ id: '2', type: AccountType.CreditCard, current_balance: -300 }),
     ];
-    const { liabilitiesEgp } = amount(
+    const { liabilities } = amount(
       computeNetWorth({ accounts, rate: 50, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
-    expect(liabilitiesEgp).toBe(4700);
-    expect(formatAmount(liabilitiesEgp)).toBe('4,700');
+    expect(liabilities).toBe(4700);
+    expect(formatAmount(liabilities)).toBe('4,700');
   });
 
   it('goes negative when every card is in credit (S5b)', () => {
     const accounts: Account[] = [
       makeAccount({ id: '1', type: AccountType.CreditCard, current_balance: -300 }),
     ];
-    const { liabilitiesEgp } = amount(
+    const { liabilities } = amount(
       computeNetWorth({ accounts, rate: 50, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
     // Intl's ASCII hyphen, pre-existing shape (the header reads this same
     // field today) — the glyph is #332's, out of scope here (spec §7, S5b).
-    expect(liabilitiesEgp).toBe(-300);
-    expect(formatAmount(liabilitiesEgp)).toBe('-300');
+    expect(liabilities).toBe(-300);
+    expect(formatAmount(liabilities)).toBe('-300');
   });
 });
 
@@ -836,20 +836,20 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
       }),
     ];
 
-    const { liabilitiesEgp } = amount(
+    const { liabilities } = amount(
       computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
     const rows = computeLiabilitiesBreakdown(accounts, RATE);
-    // The component footer now renders `netWorth.liabilitiesEgp` directly —
+    // The component footer now renders `netWorth.liabilities` directly —
     // the `net_worth_breakdown_sheet.tsx` reduce this mirrored is deleted
     // (#259 C5). This reduce is no longer a mirror of component code: it is
     // the suite's OWN rows-sum-to-header agreement check (MA-013), proving the
     // rows and the header total agree independently of how the header itself
     // is computed.
-    const totalDebt = rows.reduce((sum, row) => sum + row.balanceEgp, 0);
+    const totalDebt = rows.reduce((sum, row) => sum + row.balance, 0);
 
-    expect(formatAmount(liabilitiesEgp)).toBe('381');
-    expect(rows.map((row) => formatAmount(row.balanceEgp))).toEqual(['381']);
+    expect(formatAmount(liabilities)).toBe('381');
+    expect(rows.map((row) => formatAmount(row.balance))).toEqual(['381']);
     expect(formatAmount(totalDebt)).toBe('381');
   });
 
@@ -864,14 +864,14 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
       }),
     ];
 
-    const { assetsEgp } = amount(
+    const { assets } = amount(
       computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
-    const { liquidEgp, liquidAccounts } = computeLiquidityBreakdown(accounts, RATE);
+    const { liquid, liquidAccounts } = computeLiquidityBreakdown(accounts, RATE);
 
-    expect(formatAmount(assetsEgp)).toBe('381');
-    expect(formatAmount(liquidEgp)).toBe('381');
-    expect(liquidAccounts.map((account) => formatAmount(account.balanceEgp))).toEqual(['381']);
+    expect(formatAmount(assets)).toBe('381');
+    expect(formatAmount(liquid)).toBe('381');
+    expect(liquidAccounts.map((account) => formatAmount(account.balance))).toEqual(['381']);
   });
 
   // Rounding each value is only half the contract: ten 0.05 EGP balances are
@@ -888,27 +888,27 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
   it('assets: the liquid tier total is rounded, so the legend agrees with the header', () => {
     const accounts = tenAt5Piastres(AccountType.PhysicalWallet);
 
-    const { assetsEgp } = amount(
+    const { assets } = amount(
       computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
-    const { liquidEgp } = computeLiquidityBreakdown(accounts, RATE);
+    const { liquid } = computeLiquidityBreakdown(accounts, RATE);
 
-    expect(liquidEgp).toBe(0.5);
-    expect(formatAmount(assetsEgp)).toBe('1');
-    expect(formatAmount(liquidEgp)).toBe('1');
+    expect(liquid).toBe(0.5);
+    expect(formatAmount(assets)).toBe('1');
+    expect(formatAmount(liquid)).toBe('1');
   });
 
   it('assets: the reserve tier total is rounded on the same contract', () => {
     const accounts = tenAt5Piastres(AccountType.PhysicalSavings);
 
-    const { assetsEgp } = amount(
+    const { assets } = amount(
       computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
-    const { reserveEgp } = computeLiquidityBreakdown(accounts, RATE);
+    const { reserve } = computeLiquidityBreakdown(accounts, RATE);
 
-    expect(reserveEgp).toBe(0.5);
-    expect(formatAmount(assetsEgp)).toBe('1');
-    expect(formatAmount(reserveEgp)).toBe('1');
+    expect(reserve).toBe(0.5);
+    expect(formatAmount(assets)).toBe('1');
+    expect(formatAmount(reserve)).toBe('1');
   });
 });
 

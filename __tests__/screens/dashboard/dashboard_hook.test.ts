@@ -346,11 +346,11 @@ describe('useDashboard', () => {
     expect(result.current.state.statsMap).toBe(currentSnapshot?.statsMap);
     expect(result.current.state.netWorth).toMatchObject({
       kind: 'amount',
-      assetsEgp: 5000,
-      liabilitiesEgp: 1000,
-      netWorthEgp: 4000,
+      assets: 5000,
+      liabilities: 1000,
+      netWorth: 4000,
     });
-    expect(result.current.state.liquidity.liquidEgp).toBe(5000);
+    expect(result.current.state.liquidity.liquid).toBe(5000);
     expect(result.current.state.liabilities).toHaveLength(1);
     expect(result.current.state.groupedAccounts[AccountType.Bank]).toHaveLength(1);
     expect(result.current.state.monthSpend).toEqual({
@@ -454,11 +454,11 @@ describe('useDashboard', () => {
   it('re-derives currency values without starting a snapshot request', async () => {
     const { result, rerender } = await renderHook(() => useDashboard());
 
-    expect(amountNetWorth(result.current.state.netWorth).assetsEgp).toBe(5000);
+    expect(amountNetWorth(result.current.state.netWorth).assets).toBe(5000);
     currencyState.rate = 55;
     await rerender({});
 
-    expect(amountNetWorth(result.current.state.netWorth).assetsEgp).toBe(5500);
+    expect(amountNetWorth(result.current.state.netWorth).assets).toBe(5500);
     expect(ensureSnapshot).not.toHaveBeenCalled();
     expect(refreshSnapshot).not.toHaveBeenCalled();
   });
@@ -508,7 +508,7 @@ describe('useDashboard', () => {
     const { result } = await renderHook(() => useDashboard());
 
     expect(result.current.state.isRateUsable).toBe(true);
-    expect(amountNetWorth(result.current.state.netWorth).assetsEgp).toBe(5000);
+    expect(amountNetWorth(result.current.state.netWorth).assets).toBe(5000);
   });
 
   it('retains Dashboard navigation and UI actions', async () => {

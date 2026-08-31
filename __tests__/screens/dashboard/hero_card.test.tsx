@@ -85,15 +85,15 @@ jest.mock('heroui-native', () => {
 
 const baseProps = {
   // `liabilitiesCount: 0` below is what fixes the three values this fixture did
-  // not previously carry: with no liabilities, netWorthEgp === assetsEgp and
-  // netWorthUsd === assetsUsd. `assetsUsd` is NOT `assetsEgp / rate` (8650/49.06
+  // not previously carry: with no liabilities, netWorth === assets and
+  // netWorthUsd === assetsUsd. `assetsUsd` is NOT `assets / rate` (8650/49.06
   // is 176.31); that mismatch is pre-existing, no assertion reads the two as a
   // converted pair, and it stays.
   netWorth: {
     kind: 'amount',
-    assetsEgp: 8650,
-    liabilitiesEgp: 0,
-    netWorthEgp: 8650,
+    assets: 8650,
+    liabilities: 0,
+    netWorth: 8650,
     assetsUsd: 176,
     netWorthUsd: 176,
   } as const,
@@ -169,9 +169,9 @@ const egpOnlyUnverifiedProps = {
   ...baseProps,
   netWorth: {
     kind: 'amount',
-    assetsEgp: 8650,
-    liabilitiesEgp: 0,
-    netWorthEgp: 8650,
+    assets: 8650,
+    liabilities: 0,
+    netWorth: 8650,
     assetsUsd: undefined,
     netWorthUsd: undefined,
   } as const,

@@ -52,7 +52,7 @@ export function resolveBreakdownRowColors(kind: BreakdownRowKind): {
 }
 
 /**
- * A liability row's value cell — `LiabilityRow.balanceEgp` is signed
+ * A liability row's value cell — `LiabilityRow.balance` is signed
  * (positive owed, negative in credit; #259 C2), and this is the SINGLE site
  * that composes a glyph onto it. `printsAsZero` is checked before the sign:
  * a magnitude that rounds to a printed zero gets no glyph at all, the
@@ -67,18 +67,18 @@ export function resolveBreakdownRowColors(kind: BreakdownRowKind): {
  *
  * Precondition: the caller passes a `roundMoney`-quantised value —
  * `computeLiabilitiesBreakdown` is the only caller, and it rounds every
- * `balanceEgp` before this function ever sees it. A raw sub-cent magnitude
+ * `balance` before this function ever sees it. A raw sub-cent magnitude
  * (`-0.001`, say) is outside that contract: it is not a true zero by
  * `formatDisplayMagnitude`'s `1e-9` epsilon, so `printsAsZero` still trips
  * and this returns the bare `'0.00'` with no glyph — while the sheet's
- * caption ternary, reading the same raw `balanceEgp` independently, still
+ * caption ternary, reading the same raw `balance` independently, still
  * takes the `< 0` branch. "In credit" beside a value that reads as nothing
  * at all, from a value this function was never contracted to see.
  */
-export function formatLiabilityRowValue(balanceEgp: number): string {
-  const { text, printsAsZero } = formatDisplayMagnitude(balanceEgp, Currency.EGP);
+export function formatLiabilityRowValue(balance: number): string {
+  const { text, printsAsZero } = formatDisplayMagnitude(balance, Currency.EGP);
   if (printsAsZero) return text;
-  return `${balanceEgp < 0 ? '+' : '−'}${text}`;
+  return `${balance < 0 ? '+' : '−'}${text}`;
 }
 
 /**
@@ -89,14 +89,14 @@ export function formatLiabilityRowValue(balanceEgp: number): string {
  * bank can make one part negative while the total stays positive; without
  * this the bar rendered `flex: -0.5` on one segment.
  *
- * Takes `Pick<LiquidityBreakdown, 'liquidEgp' | 'reserveEgp'>`, not the full
+ * Takes `Pick<LiquidityBreakdown, 'liquid' | 'reserve'>`, not the full
  * breakdown: the predicate reads exactly two fields, and the narrow
  * signature keeps its test fixtures to two numbers. The total is derived
  * from the two picked fields, never taken as a third parameter — a caller
  * cannot pass a total that disagrees with its own parts.
  */
 export function shouldShowProportionBar(
-  parts: Pick<LiquidityBreakdown, 'liquidEgp' | 'reserveEgp'>,
+  parts: Pick<LiquidityBreakdown, 'liquid' | 'reserve'>,
 ): boolean {
-  return parts.liquidEgp >= 0 && parts.reserveEgp >= 0 && parts.liquidEgp + parts.reserveEgp > 0;
+  return parts.liquid >= 0 && parts.reserve >= 0 && parts.liquid + parts.reserve > 0;
 }

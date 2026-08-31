@@ -135,7 +135,7 @@ function NetWorthRefusalHeadline(): React.ReactElement {
  * declared once instead of drifting between two returns.
  */
 function NetWorthBreakdownBody({
-  netWorth,
+  netWorth: amount,
   liquidity,
   liabilities,
 }: {
@@ -143,18 +143,18 @@ function NetWorthBreakdownBody({
   liquidity: LiquidityBreakdown;
   liabilities: LiabilityRow[];
 }): React.ReactElement {
-  const assetsTotal = liquidity.liquidEgp + liquidity.reserveEgp;
+  const assetsTotal = liquidity.liquid + liquidity.reserve;
   // Gated on both parts being non-negative, not just the total being positive
   // (#259 C6) — see `shouldShowProportionBar`'s own comment for the overdrawn-
   // account defect this closes.
   const showProportionBar = shouldShowProportionBar(liquidity);
-  const liquidPct = showProportionBar ? liquidity.liquidEgp / assetsTotal : 0;
+  const liquidPct = showProportionBar ? liquidity.liquid / assetsTotal : 0;
   const reservePct = 1 - liquidPct;
   const showLiquid = liquidity.liquidCount > 0;
   const showReserve = liquidity.reserveCount > 0;
   const showLiabilities = liabilities.length > 0;
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
-  const netWorthEgpParts = formatCurrencyParts(netWorth.netWorthEgp, Currency.EGP);
+  const netWorthParts = formatCurrencyParts(amount.netWorth, Currency.EGP);
   const liquidColors = resolveBreakdownRowColors('liquid');
   const reserveColors = resolveBreakdownRowColors('reserve');
   const liabilityColors = resolveBreakdownRowColors('liability');
@@ -167,11 +167,11 @@ function NetWorthBreakdownBody({
           {Strings.dashboardBreakdownNetWorthLabel}
         </Text>
         <Text className="font-sora-bold mt-1" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
-          {netWorthEgpParts.value}{' '}
-          <Text className="font-inter-medium text-muted text-base">{netWorthEgpParts.code}</Text>
+          {netWorthParts.value}{' '}
+          <Text className="font-inter-medium text-muted text-base">{netWorthParts.code}</Text>
         </Text>
         <Text variant="caption" className="text-muted mt-1">
-          {resolveNetWorthUsdCaption(netWorth.netWorthUsd)}
+          {resolveNetWorthUsdCaption(amount.netWorthUsd)}
         </Text>
       </View>
 
@@ -182,10 +182,7 @@ function NetWorthBreakdownBody({
       <View className="px-4">
         <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
           {Strings.dashAssetsLabel} ·{' '}
-          {Strings.dashboardBreakdownAssetsHeader(
-            formatAmount(netWorth.assetsEgp),
-            assetsAccountCount,
-          )}
+          {Strings.dashboardBreakdownAssetsHeader(formatAmount(amount.assets), assetsAccountCount)}
         </Text>
         {showProportionBar && (
           <View
@@ -207,7 +204,7 @@ function NetWorthBreakdownBody({
               icon="wallet-outline"
               label={Strings.dashboardBreakdownLiquid}
               caption={Strings.dashboardBreakdownLiquidCaption}
-              value={formatAmount(liquidity.liquidEgp)}
+              value={formatAmount(liquidity.liquid)}
               count={liquidity.liquidCount}
             />
             {liquidity.liquidAccounts.map((acc) => (
@@ -222,7 +219,7 @@ function NetWorthBreakdownBody({
               icon="piggy-bank"
               label={Strings.dashboardBreakdownReserve}
               caption={Strings.dashboardBreakdownReserveCaption}
-              value={formatAmount(liquidity.reserveEgp)}
+              value={formatAmount(liquidity.reserve)}
               count={liquidity.reserveCount}
             />
             {liquidity.reserveAccounts.map((acc) => (
@@ -239,7 +236,7 @@ function NetWorthBreakdownBody({
             <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
               {Strings.dashLiabilitiesLabel} ·{' '}
               {Strings.dashboardBreakdownLiabilitiesHeader(
-                formatAmount(netWorth.liabilitiesEgp),
+                formatAmount(amount.liabilities),
                 liabilities.length,
               )}
             </Text>
@@ -254,13 +251,13 @@ function NetWorthBreakdownBody({
                   // true `-0` row (the only other non-positive case
                   // `roundMoney` can produce) fails `< 0` and keeps the
                   // due-caption below (#259 C2/C4).
-                  row.balanceEgp < 0
+                  row.balance < 0
                     ? Strings.dashboardBreakdownInCredit
                     : row.statementDueDay != null && row.statementDueDay > 0
                       ? `due ${nextDueDate(row.statementDueDay)}`
                       : undefined
                 }
-                value={formatLiabilityRowValue(row.balanceEgp)}
+                value={formatLiabilityRowValue(row.balance)}
                 valueColor={liabilityColors.value}
               />
             ))}
@@ -268,7 +265,7 @@ function NetWorthBreakdownBody({
             <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
               <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
               <Text className="font-sora-bold" style={{ color: Colors.dark.gold }}>
-                {formatAmount(netWorth.liabilitiesEgp)}
+                {formatAmount(amount.liabilities)}
               </Text>
             </View>
           </View>
@@ -289,7 +286,7 @@ interface LegendRowProps {
    * call sites, `formatLiabilityRowValue` (#259 C3) at the liability one,
    * which owns that row's signed glyph. A single `string` channel, not
    * `number | string`, keeps that true at the TYPE level: reverting the
-   * liability call site to a raw `row.balanceEgp` number is a compile error
+   * liability call site to a raw `row.balance` number is a compile error
    * here, not a silently unsigned row rendered through `formatAmount`.
    */
   value: string;
@@ -343,7 +340,7 @@ function AccountSubRow({ account }: { account: AccountRow }) {
         {account.name}
       </Text>
       <Text variant="caption" className="font-inter-medium text-foreground">
-        {formatAmount(account.balanceEgp)}
+        {formatAmount(account.balance)}
       </Text>
     </View>
   );

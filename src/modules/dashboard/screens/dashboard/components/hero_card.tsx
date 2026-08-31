@@ -92,18 +92,17 @@ function HeroCardSkeleton(): React.ReactElement {
  * compiles here).
  */
 function HeroCardAssetsAmount({
-  netWorth,
+  netWorth: amount,
 }: {
   netWorth: DashboardNetWorthAmount;
 }): React.ReactElement {
-  const assetsEgpParts = formatCurrencyParts(netWorth.assetsEgp, Currency.EGP);
+  const assetsParts = formatCurrencyParts(amount.assets, Currency.EGP);
   return (
     <Text
       className="font-sora-bold mt-3 mb-2 px-3"
       style={{ color: Colors.dark.gold, fontSize: ms(32) }}
     >
-      {assetsEgpParts.value}{' '}
-      <Text style={{ fontSize: ms(16), opacity: 0.8 }}>{assetsEgpParts.code}</Text>
+      {assetsParts.value} <Text style={{ fontSize: ms(16), opacity: 0.8 }}>{assetsParts.code}</Text>
     </Text>
   );
 }

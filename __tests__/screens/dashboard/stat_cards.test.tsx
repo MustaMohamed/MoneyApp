@@ -62,7 +62,7 @@ jest.mock('heroui-native', () => {
 });
 
 const baseProps = {
-  // `liabilitiesEgp` is the OWED-FRAME total (#259, reversing the "POSITIVE
+  // `liabilities` is the OWED-FRAME total (#259, reversing the "POSITIVE
   // magnitude" claim this comment used to make) — positive when cards are
   // owed, negative only when every card is in credit — so the old `-200`
   // literal is corrected here to an ordinary owed value, not carried in on
@@ -75,9 +75,9 @@ const baseProps = {
   // `StatCards` reads no USD field at all.
   netWorth: {
     kind: 'amount',
-    assetsEgp: 1200,
-    liabilitiesEgp: 200,
-    netWorthEgp: 1000,
+    assets: 1200,
+    liabilities: 200,
+    netWorth: 1000,
     assetsUsd: 30,
     netWorthUsd: 25,
   } as const,

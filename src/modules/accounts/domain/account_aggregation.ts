@@ -30,7 +30,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
  * The corollary is scoped to AGGREGATION: a summed TOTAL takes its sign from
  * this function, and no surface re-applies a minus to a total. Per-account
  * liability ROWS were the standing exception UNTIL #259 — deliberately
- * unsigned, with `computeLiabilitiesBreakdown` returning `Math.abs(balanceEgp)`
+ * unsigned, with `computeLiabilitiesBreakdown` returning `Math.abs(balance)`
  * and the sheet composing the leading minus glyph itself for every row. As of
  * #259 the rows carry the signed owed-frame value instead (positive owed,
  * negative in credit), and the double-minus this comment used to warn about
@@ -38,7 +38,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
  * `formatLiabilityRowValue` (`net_worth_breakdown_sheet.helpers.ts`) —
  * rather than by keeping the rows unsigned. That is scoped to the glyph, not
  * every sign-driven decision on the row: the sheet's "In credit" caption
- * reads `balanceEgp < 0` on its own, a second, independent read of the same
+ * reads `balance < 0` on its own, a second, independent read of the same
  * sign for a different purpose, not a second glyph site. The glyph itself
  * follows docs/adr/2026-08-27-money-colour-vocabulary.md §3; the aggregate
  * corollary above is unchanged.
@@ -73,9 +73,9 @@ export function normalizeNegativeZero(value: number): number {
 export type DashboardNetWorth =
   | {
       kind: 'amount';
-      assetsEgp: number;
-      liabilitiesEgp: number;
-      netWorthEgp: number;
+      assets: number;
+      liabilities: number;
+      netWorth: number;
       assetsUsd: number | undefined;
       netWorthUsd: number | undefined;
     }

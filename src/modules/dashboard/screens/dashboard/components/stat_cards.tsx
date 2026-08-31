@@ -320,7 +320,7 @@ function NetWorthRefusal(): React.ReactElement {
  * exist there.
  */
 function NetWorthCardBody({
-  netWorth,
+  netWorth: amount,
   netColor,
   assetsCount,
   liabilitiesCount,
@@ -330,15 +330,15 @@ function NetWorthCardBody({
   assetsCount: number;
   liabilitiesCount: number;
 }): React.ReactElement {
-  const total = netWorth.assetsEgp + Math.abs(netWorth.liabilitiesEgp);
-  const assetsPct = total > 0 ? netWorth.assetsEgp / total : 1;
-  const netWorthEgpParts = formatCurrencyParts(netWorth.netWorthEgp, Currency.EGP);
+  const total = amount.assets + Math.abs(amount.liabilities);
+  const assetsPct = total > 0 ? amount.assets / total : 1;
+  const netWorthParts = formatCurrencyParts(amount.netWorth, Currency.EGP);
 
   return (
     <>
       <Text className="font-sora-bold text-lg" style={{ color: netColor }} numberOfLines={1}>
-        {netWorthEgpParts.value}{' '}
-        <Text className="font-inter-medium text-muted text-xs">{netWorthEgpParts.code}</Text>
+        {netWorthParts.value}{' '}
+        <Text className="font-inter-medium text-muted text-xs">{netWorthParts.code}</Text>
       </Text>
       <View
         className="bg-default flex-row overflow-hidden rounded"
@@ -363,7 +363,7 @@ function NetWorthCardBody({
             </Text>
           </View>
           <Text className="font-sora-semibold text-foreground text-xs" numberOfLines={1}>
-            {formatAmount(netWorth.assetsEgp)}
+            {formatAmount(amount.assets)}
           </Text>
         </View>
         <View className="flex-1" style={{ flex: 1, gap: ms(4) }}>
@@ -381,7 +381,7 @@ function NetWorthCardBody({
             </Text>
           </View>
           <Text className="font-sora-semibold text-foreground text-xs" numberOfLines={1}>
-            {formatAmount(netWorth.liabilitiesEgp)}
+            {formatAmount(amount.liabilities)}
           </Text>
         </View>
       </View>
