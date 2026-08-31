@@ -23,6 +23,24 @@ filter, behind an unchanged return shape; chunk 2 is the refusal, the type chang
 surfaces. Sections 1 to 3 and 5 are chunk 1's decisions, section 4 is chunk 2's. The split is kept
 recorded here because section 3 is an argument *about* it.
 
+**Renamed 2026-08-31 (#351); recorded 2026-09-01 (#350).** `DashboardNetWorth`'s amount members were
+renamed: `assetsEgp → assets` · `liabilitiesEgp → liabilities` · `netWorthEgp → netWorth` ·
+`assetsUsd → assetsForeign` · `netWorthUsd → netWorthForeign`. That correspondence exists only in the
+#351 diff at `bc45450a`; the names as they stand now are
+`src/modules/accounts/domain/account_aggregation.ts:79-88`. This file is **not** rewritten in place —
+all 16 occurrences of the old names below stay. Two reasons. One of them quotes a deleted test's
+title verbatim (`returns netWorthUsd=0 when rate=0 to avoid division by zero`, in §5), and a renamed
+quotation cites a test that never existed. The rest of the file describes the code as it stood on
+2026-08-19, which is what a dated record is for. The same old names also survive in
+`docs/superpowers/` — 116 occurrences across 10 files — and stay there, unswept and unmarked:
+`reviews/2026-07-29-full-technical-audit.md:535` quotes shipped `dashboard.helpers.ts` verbatim as a
+finding's evidence, so a rename there would make the audit cite source that never existed, and
+`plans/2026-05-16-section-5-dashboard.md:1140` writes `assetsEgp` as a `TotalBalanceStrip` prop the
+component has never had (`total_balance_strip.tsx:27-37` takes `netWorth: DashboardNetWorth`,
+`baseCurrency`, `accountsCount`), so repairing field names there would leave a document that is stale
+in several other respects looking maintained. The bound on the cost: the old names exist nowhere in
+`src/` or `__tests__/`, so a name copied out of frozen history is a `tsc` error on first use.
+
 ## 1. Which of the four divergences this closes, and how
 
 | §5 divergence | Closed by |
@@ -334,7 +352,7 @@ Both were measured against the shipped `roundMoney` rather than asserted from me
   of the contract: a body that grouped or sorted rows first, or that derived `netWorthEgp` as
   `assetsEgp − liabilitiesEgp`, would make both rows tautologies.
 
-## 7. This repository is a shallow clone, and `git log` lies past its boundary
+## 7. The verification environment for this ticket was a shallow clone, and `git log` lied past its boundary
 
 The verification environment for this ticket is a shallow clone.
 `git rev-parse --is-shallow-repository` returns `true`, `.git/shallow` contains the single commit
@@ -354,3 +372,15 @@ Rules that follow, for anyone verifying here:
 - "No commit introduced X before Y" and "no user can have this data" are the two conclusions this
   trap produces, and they are the two that damage users when wrong. Neither may rest on a log read
   here.
+
+**Rescoped 2026-09-01 (#350).** The heading was rewritten to the past tense; the body above stays as
+written, because what it records is the trap, not the environment. The repository is not shallow
+today: `git rev-parse --is-shallow-repository` returns `false`,
+`"$(git rev-parse --git-common-dir)/shallow"` does not exist, and `git rev-list --count bc45450a`
+counts `302` — against the 66 above. The former boundary is reachable rather than absent:
+`git cat-file -t 3e5c9fb` returns `commit` and `git rev-list --count 3e5c9fb` returns `225`, so 224
+commits precede it. Measured on `main` at `bc45450a`, 2026-09-01; the count is pinned to that commit
+because `git rev-list --count HEAD` moves with every branch. The section survives its own
+obsolescence for two reasons. §4's retraction at `:192-198` — of the finding that a manual override
+without a marker was unreachable — rests on this trap being what produced it, so deleting §7 orphans
+that retraction. And the trap recurs: any shallow checkout reproduces it, CI's included.

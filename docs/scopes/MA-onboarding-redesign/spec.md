@@ -149,7 +149,7 @@ Separate revolving-balance field · inline "add a rate" action on N4 · two-page
 
 Replaces `computeTotalBalance` in `src/modules/onboarding/screens/onboarding/ready/ready.helpers.ts`, which today is `accounts.reduce((sum, a) => sum + a.current_balance, 0)` — currency-blind and sign-blind. That is the bug named in `scope.md` § *Why now*.
 
-**Inputs:** the non-archived account snapshot (`opening_balance`, `currency`, `type`), the base currency (`useOnboardingStore.baseCurrency`), and the exchange rate with its provenance (`useCurrencyStore.rate`, `useCurrencyStore.rate_updated_at`).
+**Inputs:** the non-archived account snapshot (`opening_balance`, `currency`, `type`), the base currency (`useOnboardingStore.baseCurrency`), and the exchange rate with its provenance (`useCurrencyStore.rate`, `useCurrencyStore.rate_updated_at`, `useCurrencyStore.isManualOverride` — *the third added 2026-09-01 (#350); see the gate correction below*).
 
 **`exchange_rate` is EGP per USD.** USD → EGP **multiplies**; EGP → USD **divides**. Never symmetric. This is the contract in the `money-rules` skill and in `resolveTransactionAmounts` (`src/modules/transactions/domain/transaction_amounts.ts:50-66`).
 
@@ -163,6 +163,28 @@ Starting net position = round2( Σ sign × round2(converted opening_balance) )
 `round2` is `roundMoney` from `src/utils/money.ts` — banker's rounding, half-even, 2 dp.
 
 **Rate validity gate.** A rate is required **only** when at least one account's currency differs from the base currency. The rate counts as usable when **`rate_updated_at !== null` AND `rate` is finite and > 0**. `useCurrencyStore`'s `INITIAL_STATE` is `{ rate: 50, rate_updated_at: null }` (`src/modules/currency/store/currency.store.ts:23-29`) — **50 is an unverified fallback and must never reach this number.** When conversion is required and the rate is not usable, the resolver returns the refusal outcome; it does not substitute a rate, zero, a partial total, or a direct sum of unlike currencies.
+
+**Corrected 2026-09-01 (#350) against the shipped code — the gate above is narrower than the one that shipped.** Provenance has two sufficient sources and either alone opens the gate: `rateUpdatedAt !== null`, the marker recording *when* the rate was written, or `isManualOverride`, the flag recording *that* the user typed it. `src/modules/accounts/domain/account_aggregation.ts:190-191`:
+
+```ts
+export function isRateUsable({ rate, rateUpdatedAt, isManualOverride }: RateProvenance): boolean {
+  return (rateUpdatedAt !== null || isManualOverride) && Number.isFinite(rate) && rate > 0;
+}
+```
+
+The refusal contract stated above is unchanged, and `50` is still refused, because the current `INITIAL_STATE` (`src/modules/currency/store/currency.store.ts:23-29`) carries neither source:
+
+```ts
+const INITIAL_STATE = {
+  rate: 50,
+  lastFetched: null as string | null,
+  isManualOverride: false,
+  rate_updated_at: null as string | null,
+  hasLoaded: false,
+};
+```
+
+Neither `test.each` table below is extended, and every row of both stays exactly as written: each corresponds to `isManualOverride: false`, which the two mirroring suites supply explicitly at the `it.each` call site covering every row beneath it — `__tests__/starting_net_position.test.ts:196` (`describe` at `:185`) and `__tests__/approximation_pill.test.ts:142` (`describe` at `:132`). Neither table can structurally express an override carrying no marker, which is the case the widening exists for; that row lives at `__tests__/accounts/account_aggregation.test.ts:96-99`. The live record of the gate is `docs/adr/2026-08-19-dashboard-net-worth-refusal.md` §4.
 
 **Never contribute:** `credit_limit`, `revolving_balance`, `minimum_payment`, `current_balance`. Opening balances only.
 
@@ -520,7 +542,7 @@ app.json                            unchanged keys, replaced asset files only
 | RHF (`useForm`) | The account draft and all validation. Committed colour lives here. **No account draft is duplicated into Zustand.** |
 | `useAccountStore` (`src/modules/accounts/store/account.store.ts`) | The persisted account snapshot. `addAccount` already awaits its own `loadAccounts()` before resolving (`account.store.ts:80-90`), so the snapshot is current when the save promise settles. |
 | `useOnboardingStore` | `baseCurrency`, `currentStep`, `complete`. Already generation-guarded (`onboarding.store.ts` `initGeneration`). |
-| `useCurrencyStore` | `rate`, `rate_updated_at`, `hasLoaded`. Read-only in this scope. |
+| `useCurrencyStore` | `rate`, `rate_updated_at`, `isManualOverride`, `hasLoaded`. Read-only in this scope. **`isManualOverride` added 2026-09-01 (#350)** — the second provenance source the rate gate reads. |
 | `account_color_sheet.state.ts` (`.state.ts`, UI state) | Sheet visibility and the **staged** colour only. Discarded on close; committed to RHF only by the sheet's CTA. |
 | Screen-local `.state.ts` per onboarding route | Status-track message and busy flag. |
 
@@ -559,7 +581,7 @@ Signatures are indicative; the exact shape is settled per task at step 4. They a
 | `ACCOUNT_PALETTE` | 32 entries: `{ family, familyLabel, tone: 'rich' \| 'soft', hex, tickColor }`. Derived from `AcctTokens`, module-scope frozen. Lookup by hex → label for the trigger row and the N3 dots. |
 | `createAddAccountSchema(accounts)` | Already exists at `src/modules/accounts/utils/add_account.schema.ts:8`. Extended with the credit rules in the table above. Still returns a Zod object; `AddAccountFormData` still `z.infer`red. |
 | `toNewAccountInput(data, { sortOrder })` | Pure `AddAccountFormData` → `NewAccountInput`. Owns `parseNonNegativeDecimal`, `roundMoney`, the credit-vs-non-credit `null` rules, and `interest_tracking` 0/1. Replaces the two duplicated `onSubmit` bodies. |
-| `resolveStartingNetPosition(input)` | Pure. `{ accounts, baseCurrency, rate, rateUpdatedAt }` → `{ kind: 'amount', value } \| { kind: 'rate-needed', foreignCount }`. The table above is its test suite. |
+| `resolveStartingNetPosition(input)` | Pure. `{ accounts, baseCurrency, rate, rateUpdatedAt, isManualOverride }` → `{ kind: 'amount', value } \| { kind: 'rate-needed', foreignCount }`. The table above is its test suite. **Corrected 2026-09-01 (#350) against the shipped code**: `StartingNetPositionInput extends RateProvenance` (`src/modules/onboarding/domain/starting_net_position.ts:31-35`, `src/modules/accounts/domain/account_aggregation.ts:108-120`), so the provenance flag is part of the input, not optional. |
 | `selectReadySummaryState(outcome, accounts, baseCurrency, rate)` | Pure. Outcome + snapshot → which of F1–F7, plus the resolved caption/pill copy. |
 | `Button` `loadingLabel?: string` | When `isLoading`, renders `loadingLabel ?? Strings.loading` and a `Spinner`. Every existing call site is unchanged by omission. |
 | `OnboardingShell` | **Corrected 2026-08-07 at MA-005 step 5 against the shipped MA-004 code** (`src/modules/onboarding/components/onboarding_shell/index.tsx:11-22`): `{ step, title?, onBack?, footnote, statusMessage?, cta, children }`. There is **no `statusTone`** — the tone is derived from message presence inside `resolveStatusTrack` (`onboarding_shell.geometry.ts:79-93`), so a message is the only thing that can turn the track red and an empty message preserves the footnote. `footnote` is **required**; the track is never empty. Owns all four tracks. N1 passes a brand header variant (omit `title`); a `title` without `onBack` renders a `w-9` spacer, not a chevron. |
