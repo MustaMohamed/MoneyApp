@@ -6,9 +6,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
-import { ms } from '@/utils/responsive';
 
 const LAYOUT = resolveStateScreenLayout('empty');
 
@@ -176,7 +175,7 @@ const styles = StyleSheet.create({
   ctaWrapper: {
     ...LAYOUT.action,
     width: '100%',
-    height: ms(52),
+    height: Size.ctaHeight,
     borderRadius: Radius.cta,
     overflow: 'hidden',
     justifyContent: 'center',
