@@ -10,6 +10,7 @@ import type {
 import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.hook';
 import { useDashboardState } from '@/modules/dashboard/screens/dashboard/dashboard.state';
 import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
@@ -54,6 +55,13 @@ jest.mock('@/modules/dashboard/screens/dashboard/dashboard.state', () => ({
 }));
 jest.mock('@/modules/currency/store/currency.store', () => ({
   useCurrencyStore: jest.fn(),
+}));
+// Mocked for CONTROL of the value, not for safety: `jest.setup.js:18` already
+// mocks `expo-sqlite`, `getDb()` is lazy, and the real store's initial
+// `baseCurrency` is `Currency.EGP` — so the suite would run without this. What
+// it buys is the USD-base test at the bottom of this file.
+jest.mock('@/modules/onboarding/store/onboarding.store', () => ({
+  useOnboardingStore: jest.fn(),
 }));
 jest.mock('@/modules/transactions/store/transaction.store', () => ({
   useTransactionStore: jest.fn(),
@@ -200,6 +208,10 @@ let currencyState: {
   rate_updated_at: string | null;
 };
 
+let onboardingState: {
+  baseCurrency: Currency;
+};
+
 let transactionStoreState: {
   mutationVersion: number;
 };
@@ -243,6 +255,9 @@ beforeEach(() => {
     // never set. Fixed ISO literal, never `new Date()`.
     rate_updated_at: '2026-07-20T09:00:00.000Z',
   };
+  onboardingState = {
+    baseCurrency: Currency.EGP,
+  };
   transactionStoreState = {
     mutationVersion: 0,
   };
@@ -250,6 +265,7 @@ beforeEach(() => {
   attachMockSelectorStore(useDashboardStore, () => dashboardStoreState);
   attachMockSelectorStore(useDashboardState, () => dashboardUiState);
   attachMockSelectorStore(useCurrencyStore, () => currencyState);
+  attachMockSelectorStore(useOnboardingStore, () => onboardingState);
   attachMockSelectorStore(useTransactionStore, () => transactionStoreState);
 });
 
@@ -387,6 +403,34 @@ describe('useDashboard', () => {
       hasSnapshot: true,
       cardLoading: false,
       isRefreshing: false,
+    });
+  });
+
+  // The one test that fails if this hook stops reading the onboarding store.
+  // Hardcoding `Currency.EGP` at the `computeNetWorth` call leaves the whole
+  // rest of the tree green — `dashboard_helpers.test.ts` drives the resolver
+  // directly and never learns where the hook got its base — so the store read
+  // needs an assertion of its own, and this is it.
+  //
+  // Same snapshot as the test above, same rate, only the published base differs:
+  // the USD bank's 100 stops being multiplied and the EGP card's 1000 starts
+  // being divided, so 5000/1000/4000 becomes 100/20/80. Nothing else in the
+  // fixture moves, which is what makes the base the only explanation.
+  it('reports the USD-base figures when the onboarding store publishes a USD base', async () => {
+    onboardingState.baseCurrency = Currency.USD;
+
+    const { result } = await renderHook(() => useDashboard());
+
+    expect(result.current.state.baseCurrency).toBe(Currency.USD);
+    expect(result.current.state.netWorth).toMatchObject({
+      kind: 'amount',
+      assets: 100,
+      liabilities: 20,
+      netWorth: 80,
+      // The foreign side flips with the base: EGP now, and multiplied rather
+      // than divided.
+      assetsForeign: 5000,
+      netWorthForeign: 4000,
     });
   });
 

@@ -76,6 +76,15 @@ function amount(outcome: DashboardNetWorth): Extract<DashboardNetWorth, { kind: 
 interface NetWorthRow {
   case: string;
   accounts: Account[];
+  /**
+   * A row field rather than a constant in the driver, so the table can carry
+   * both bases. The pre-existing rows all state `Currency.EGP` and keep
+   * byte-identical `expected` values, which is scenario 25's whole claim: under
+   * an EGP base the resolver's new body is behaviour-identical. Required, with
+   * no default — a driver-side `?? Currency.EGP` would be exactly the default
+   * spec §7 forbids.
+   */
+  baseCurrency: Currency;
   rate: number;
   rateUpdatedAt: string | null;
   expected: DashboardNetWorth;
@@ -86,8 +95,14 @@ interface NetWorthRow {
 // under test cannot fail. Mirrors the shape of
 // `__tests__/starting_net_position.test.ts`'s resolver table.
 //
-// EGP is this function's base currency (see its doc comment), so USD balances
-// MULTIPLY by the rate and the `~USD` fields divide.
+// The base is now a ROW field, and the two halves of the table are there to be
+// read against each other. Every row down to the spread states `Currency.EGP`
+// and keeps the `expected` value it had before `computeNetWorth` took a base at
+// all — under an EGP base the new body is behaviour-identical, and that is the
+// claim. The USD-base block after the spread is the new behaviour, and it is
+// where the direction flips: under EGP a USD balance MULTIPLIES and the foreign
+// fields divide; under USD an EGP balance DIVIDES and the foreign fields
+// multiply.
 //
 // EVERY row states `rateUpdatedAt` explicitly, including the rows that do not
 // need a rate: three of them carry `null` and still expect an amount, so
@@ -102,6 +117,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     accounts: [makeAccount({ current_balance: 10000 })],
     rate: 50,
     rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.EGP,
     expected: {
       kind: 'amount',
       assets: 10000,
@@ -121,6 +137,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     accounts: [makeAccount({ current_balance: 12000 })],
     rate: 50,
     rateUpdatedAt: null,
+    baseCurrency: Currency.EGP,
     expected: {
       kind: 'amount',
       assets: 12000,
@@ -135,6 +152,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     accounts: [],
     rate: 50,
     rateUpdatedAt: null,
+    baseCurrency: Currency.EGP,
     expected: {
       kind: 'amount',
       assets: 0,
@@ -180,6 +198,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     ],
     rate: 50,
     rateUpdatedAt: null,
+    baseCurrency: Currency.EGP,
     expected: {
       kind: 'amount',
       assets: 1000,
@@ -198,6 +217,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     ],
     rate: 48.6,
     rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.EGP,
     expected: {
       kind: 'amount',
       assets: 113860,
@@ -224,6 +244,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     ],
     rate: 48.6,
     rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.EGP,
     expected: {
       kind: 'amount',
       assets: 5000,
@@ -238,6 +259,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     accounts: [makeAccount({ type: AccountType.CreditCard, current_balance: 8450 })],
     rate: 50,
     rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.EGP,
     expected: {
       kind: 'amount',
       assets: 0,
@@ -258,6 +280,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     ],
     rate: 50,
     rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.EGP,
     expected: {
       kind: 'amount',
       assets: 1000,
@@ -287,6 +310,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     ],
     rate: 2,
     rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.EGP,
     expected: {
       kind: 'amount',
       assets: 2,
@@ -310,6 +334,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     ],
     rate: 50,
     rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.EGP,
     expected: {
       kind: 'amount',
       assets: 0.3,
@@ -327,6 +352,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     ],
     rate: 48.6,
     rateUpdatedAt: null,
+    baseCurrency: Currency.EGP,
     expected: { kind: 'rate-needed', foreignCount: 1 },
   },
   {
@@ -338,6 +364,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     ],
     rate: 48.6,
     rateUpdatedAt: null,
+    baseCurrency: Currency.EGP,
     expected: { kind: 'rate-needed', foreignCount: 2 },
   },
   ...([0, -1, NaN, Infinity] as const).map((rate) => ({
@@ -350,8 +377,202 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
     ],
     rate,
     rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.EGP,
     expected: { kind: 'rate-needed' as const, foreignCount: 1 },
   })),
+
+  // ─── USD base ──────────────────────────────────────────────────────────────
+  // Everything below is a user who chose USD at N1. `48.85` is the shared rate:
+  // 4885 EGP is exactly 100.00 USD at it, which is what lets the round-trip rows
+  // assert an exact figure rather than a rounded one.
+  {
+    // THE BUG, as one row. Two USD accounts under a USD base need no conversion,
+    // so the placeholder rate is irrelevant — yet before this ticket the gate
+    // compared every account against a hardcoded EGP and refused a total the
+    // portfolio never needed a rate for. `rateUpdatedAt: null` and
+    // `isManualOverride: false` are the fresh install; revert the base to a
+    // hardcoded EGP and this row alone reports `rate-needed`.
+    case: 'USD base, USD-only portfolio, no usable rate — stated, not refused',
+    accounts: [
+      makeAccount({ currency: Currency.USD, current_balance: 1000 }),
+      makeAccount({ currency: Currency.USD, current_balance: 500 }),
+    ],
+    rate: 50,
+    rateUpdatedAt: null,
+    baseCurrency: Currency.USD,
+    expected: {
+      kind: 'amount',
+      assets: 1500,
+      liabilities: 0,
+      netWorth: 1500,
+      // The rate is unusable, so the EGP equivalent is absent — the same second
+      // question the EGP-base rows above ask, with the currencies swapped.
+      assetsForeign: undefined,
+      netWorthForeign: undefined,
+    },
+  },
+  {
+    // The mirror of the row above, and what keeps it honest: under a USD base an
+    // EGP account IS foreign, so the refusal still fires. A body that dropped
+    // the gate rather than re-pointing it would pass the row above and fail here.
+    case: 'USD base, one EGP bank, no usable rate — still refused, because EGP is now the foreign side',
+    accounts: [makeAccount({ current_balance: 1000 })],
+    rate: 50,
+    rateUpdatedAt: null,
+    baseCurrency: Currency.USD,
+    expected: { kind: 'rate-needed', foreignCount: 1 },
+  },
+  {
+    // The divide branch, on a fixture that round-trips exactly: 4885 / 48.85 is
+    // 100 with no residue, and 100 × 48.85 is 4885 back. A body that multiplied
+    // here — the direction this function had for its whole life — would report
+    // 238,632.25.
+    case: 'USD base, one EGP bank — the divide branch, exact round trip',
+    accounts: [makeAccount({ current_balance: 4885 })],
+    rate: 48.85,
+    rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.USD,
+    expected: {
+      kind: 'amount',
+      assets: 100,
+      liabilities: 0,
+      netWorth: 100,
+      assetsForeign: 4885,
+      netWorthForeign: 4885,
+    },
+  },
+  {
+    // Round-then-sum, on the divide side. 100 / 48.85 is 2.0470829…, which
+    // rounds to 2.05, so two of them are 4.10. Sum-then-convert is 200 / 48.85 =
+    // 4.0942…, which rounds to 4.09 — the round-then-sum rule's first fixture
+    // under a divide, and it fails by a cent rather than not at all.
+    case: 'USD base, two EGP banks — each converted value is rounded BEFORE it is summed',
+    accounts: [
+      makeAccount({ current_balance: 100 }),
+      makeAccount({ id: 'acc-2', current_balance: 100 }),
+    ],
+    rate: 48.85,
+    rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.USD,
+    expected: {
+      kind: 'amount',
+      assets: 4.1,
+      liabilities: 0,
+      netWorth: 4.1,
+      assetsForeign: 200.28,
+      netWorthForeign: 200.28,
+    },
+  },
+  {
+    // The single-conversion pin, and the only row that separates it from a
+    // second per-account pass. Three 2.05 values: converting the 6.15 total once
+    // gives 300.4275 → 300.43, while converting each account again and summing
+    // gives 300.42. One cent, and nothing else in the suite reaches it.
+    case: 'USD base, three EGP banks — the foreign figure converts the TOTAL once, never per account',
+    accounts: [
+      makeAccount({ current_balance: 100 }),
+      makeAccount({ id: 'acc-2', current_balance: 100 }),
+      makeAccount({ id: 'acc-3', current_balance: 100 }),
+    ],
+    rate: 48.85,
+    rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.USD,
+    expected: {
+      kind: 'amount',
+      assets: 6.15,
+      liabilities: 0,
+      netWorth: 6.15,
+      assetsForeign: 300.43,
+      netWorthForeign: 300.43,
+    },
+  },
+  {
+    // The first half-cent tie on a DIVIDE anywhere in this suite: 45.01 / 2 is
+    // exactly 22.505, and banker's rounding takes the even cent, 22.50. Half-up
+    // would give 22.51. The multiply side has had this coverage since #255; the
+    // divide side had none until the branch existed.
+    case: 'USD base, an EGP bank landing on an exact half cent — banker’s rounding takes the even one',
+    accounts: [makeAccount({ current_balance: 45.01 })],
+    rate: 2,
+    rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.USD,
+    expected: {
+      kind: 'amount',
+      assets: 22.5,
+      liabilities: 0,
+      netWorth: 22.5,
+      assetsForeign: 45,
+      netWorthForeign: 45,
+    },
+  },
+  {
+    // The sign path under a divide. Both accounts convert, and the card is
+    // subtracted after its own conversion — a body that signed before converting
+    // would still land on -100 here, but one that skipped the card's conversion
+    // reports -9670.
+    case: 'USD base, an EGP bank and a larger EGP card — the sign path under a divide',
+    accounts: [
+      makeAccount({ current_balance: 4885 }),
+      makeAccount({ id: 'acc-2', type: AccountType.CreditCard, current_balance: 9770 }),
+    ],
+    rate: 48.85,
+    rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.USD,
+    expected: {
+      kind: 'amount',
+      assets: 100,
+      liabilities: 200,
+      netWorth: -100,
+      assetsForeign: 4885,
+      netWorthForeign: -4885,
+    },
+  },
+  {
+    // Spec §3B, the shared mixed-portfolio fixture, and the ONLY row mixing an
+    // identity-pair account (the USD bank, which must not be touched by the
+    // rate) with converted ones. Its two foreign figures are the numbers the two
+    // `≈` sites render, and they are DIFFERENT on purpose: 17,097.50 is the
+    // hero card's, which shows ASSETS, and 12,212.50 is the breakdown sheet's,
+    // which shows NET WORTH. Making them agree compiles. It is wrong.
+    case: 'USD base, the mixed portfolio — an identity-pair account beside three converted ones',
+    accounts: [
+      makeAccount({ current_balance: 4885 }),
+      makeAccount({ id: 'acc-2', type: AccountType.PhysicalSavings, current_balance: 9770 }),
+      makeAccount({ id: 'acc-3', currency: Currency.USD, current_balance: 50 }),
+      makeAccount({ id: 'acc-4', type: AccountType.CreditCard, current_balance: 4885 }),
+    ],
+    rate: 48.85,
+    rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.USD,
+    expected: {
+      kind: 'amount',
+      assets: 350,
+      liabilities: 100,
+      netWorth: 250,
+      assetsForeign: 17097.5,
+      netWorthForeign: 12212.5,
+    },
+  },
+  {
+    // The arithmetic half of the rate-plausibility scenario, which lives here
+    // rather than in the plausibility suite: a rate far outside `[1, 1000]` is
+    // FLAGGED at the field and never clamped or substituted, so this resolver
+    // divides by 0.0001 exactly as stored. 1 EGP at 0.0001 EGP/USD is 10,000
+    // USD — absurd, and asserted precisely because the warning changes no value.
+    case: 'USD base, an implausible stored rate — divided by unmodified, never clamped',
+    accounts: [makeAccount({ current_balance: 1 })],
+    rate: 0.0001,
+    rateUpdatedAt: VERIFIED,
+    baseCurrency: Currency.USD,
+    expected: {
+      kind: 'amount',
+      assets: 10000,
+      liabilities: 0,
+      netWorth: 10000,
+      assetsForeign: 1,
+      netWorthForeign: 1,
+    },
+  },
 ];
 
 describe('computeNetWorth', () => {
@@ -367,9 +588,9 @@ describe('computeNetWorth', () => {
   // `false` here is what keeps the null-marker rows above meaningful: with
   // `true` they would all state amounts and the refusal rows would go green for
   // the wrong reason.
-  it.each(NET_WORTH_ROWS)('$case', ({ accounts, rate, rateUpdatedAt, expected }) => {
+  it.each(NET_WORTH_ROWS)('$case', ({ accounts, baseCurrency, rate, rateUpdatedAt, expected }) => {
     expect(
-      computeNetWorth({ accounts, rate, rateUpdatedAt, isManualOverride: false }),
+      computeNetWorth({ accounts, baseCurrency, rate, rateUpdatedAt, isManualOverride: false }),
     ).toStrictEqual(expected);
   });
 
@@ -391,6 +612,7 @@ describe('computeNetWorth', () => {
       expect(() =>
         computeNetWorth({
           accounts: [makeAccount({ currency: unsupported, current_balance: 1000 })],
+          baseCurrency: Currency.EGP,
           rate: 48.6,
           rateUpdatedAt: VERIFIED,
           isManualOverride: false,
@@ -411,6 +633,7 @@ describe('computeNetWorth', () => {
               current_balance: 1000,
             }),
           ],
+          baseCurrency: Currency.EGP,
           rate: 48.6,
           rateUpdatedAt: VERIFIED,
           isManualOverride: false,
@@ -434,7 +657,13 @@ describe('computeNetWorth — a manual rate carrying no marker', () => {
 
   it('states the total, because the user supplied the rate', () => {
     expect(
-      computeNetWorth({ accounts, rate: 48, rateUpdatedAt: null, isManualOverride: true }),
+      computeNetWorth({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: 48,
+        rateUpdatedAt: null,
+        isManualOverride: true,
+      }),
     ).toStrictEqual({
       kind: 'amount',
       assets: 5800,
@@ -450,7 +679,13 @@ describe('computeNetWorth — a manual rate carrying no marker', () => {
     // the widening honest: what changed the answer above is the provenance, not
     // the number.
     expect(
-      computeNetWorth({ accounts, rate: 48, rateUpdatedAt: null, isManualOverride: false }),
+      computeNetWorth({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: 48,
+        rateUpdatedAt: null,
+        isManualOverride: false,
+      }),
     ).toStrictEqual({ kind: 'rate-needed', foreignCount: 1 });
   });
 });
@@ -475,6 +710,7 @@ describe('computeNetWorth — negative zero', () => {
     amount(
       computeNetWorth({
         accounts: negativeZeroAccounts,
+        baseCurrency: Currency.EGP,
         rate: 50,
         rateUpdatedAt: VERIFIED,
         isManualOverride: false,
@@ -497,6 +733,61 @@ describe('computeNetWorth — negative zero', () => {
 
   it('while a raw -0 still renders "-0" — the tripwire proving the three above can fail', () => {
     expect(formatAmount(-0)).toBe('-0');
+  });
+});
+
+// The same cancelling portfolio under the OTHER base, where the reciprocal
+// MULTIPLIES instead of dividing: the raw netWorth accumulator
+// -2.7755575615628914e-17 becomes -1.3877787807814457e-15, which roundMoney
+// still maps to -0. Under a divide the residue shrinks and under a multiply it
+// grows, so the guard reaching the foreign figure needs a fixture on each side;
+// the EGP-base describe above only ever exercised the divide.
+//
+// **Assert with `Object.is`, not `toBe`.** Probed at jest 29.7.0, both
+// `expect(-0).toBe(0)` and `expect(-0).toEqual(0)` already fail, so either
+// matcher would catch a raw -0 here — `Object.is` is what states the intent the
+// other two only imply, and it survives a matcher swap.
+//
+// This describe pins `normalizeNegativeZero` reaching the foreign figure, and
+// nothing else. It does NOT pin the raw-vs-normalised conversion input: that
+// rule is black-box unfalsifiable (measured at P5) and lives in the
+// `dashboard.helpers.ts` comment above the two conversions.
+describe('computeNetWorth — negative zero under a USD base, where the reciprocal multiplies', () => {
+  // Array ORDER is load-bearing, exactly as in the EGP-base describe: 0.30
+  // − 0.10 − 0.20 accumulated in this order is what produces the residue.
+  const cancellingAccounts = [
+    makeAccount({ current_balance: 15 }),
+    makeAccount({ type: AccountType.CreditCard, current_balance: 5 }),
+    makeAccount({ type: AccountType.CreditCard, current_balance: 10 }),
+  ];
+  const result = () =>
+    amount(
+      computeNetWorth({
+        accounts: cancellingAccounts,
+        baseCurrency: Currency.USD,
+        rate: 50,
+        rateUpdatedAt: VERIFIED,
+        isManualOverride: false,
+      }),
+    );
+
+  it('states the two group totals in the base currency', () => {
+    expect(result().assets).toBe(0.3);
+    expect(result().liabilities).toBe(0.3);
+  });
+
+  it('normalises netWorth to +0', () => {
+    expect(Object.is(result().netWorth, 0)).toBe(true);
+  });
+
+  it('normalises netWorthForeign to +0 after multiplying the raw accumulator', () => {
+    expect(Object.is(result().netWorthForeign, 0)).toBe(true);
+  });
+
+  it('converts the assets accumulator back to the original EGP figure', () => {
+    // 0.30 USD at 50 is the 15.00 EGP the bank account actually holds — the
+    // round trip, which a wrong direction would render as 0.01.
+    expect(result().assetsForeign).toBe(15);
   });
 });
 
@@ -549,6 +840,7 @@ describe('the tier allowlists classify every AccountType', () => {
     const { liquidCount, reserveCount } = computeLiquidityBreakdown(
       [makeAccount({ type: type as AccountType, current_balance: 100 })],
       50,
+      Currency.EGP,
     );
     let actual: 'liquid' | 'reserve' | 'excluded' = 'excluded';
     if (liquidCount === 1) actual = 'liquid';
@@ -566,7 +858,7 @@ describe('computeLiquidityBreakdown', () => {
       makeAccount({ id: '4', type: AccountType.PhysicalSavings, current_balance: 10000 }),
       makeAccount({ id: '5', type: AccountType.CreditCard, current_balance: 4080 }),
     ];
-    const result = computeLiquidityBreakdown(accounts, 48.85);
+    const result = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
     expect(result.liquid).toBe(32500);
     expect(result.liquidCount).toBe(3);
     expect(result.reserve).toBe(10000);
@@ -577,7 +869,7 @@ describe('computeLiquidityBreakdown', () => {
     const accounts: Account[] = [
       makeAccount({ id: '1', type: AccountType.CreditCard, current_balance: 4080 }),
     ];
-    const result = computeLiquidityBreakdown(accounts, 48.85);
+    const result = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
     expect(result.liquid).toBe(0);
     expect(result.reserve).toBe(0);
   });
@@ -587,7 +879,7 @@ describe('computeLiquidityBreakdown', () => {
       makeAccount({ id: '1', type: AccountType.Bank, current_balance: 1000, is_archived: 1 }),
       makeAccount({ id: '2', type: AccountType.Bank, current_balance: 2000 }),
     ];
-    const result = computeLiquidityBreakdown(accounts, 48.85);
+    const result = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
     expect(result.liquid).toBe(2000);
     expect(result.liquidCount).toBe(1);
   });
@@ -601,12 +893,12 @@ describe('computeLiquidityBreakdown', () => {
         current_balance: 100,
       }),
     ];
-    const result = computeLiquidityBreakdown(accounts, 48.85);
+    const result = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
     expect(result.liquid).toBeCloseTo(4885, 0);
   });
 
   it('returns zeros for empty input (L-02)', () => {
-    const result = computeLiquidityBreakdown([], 48.85);
+    const result = computeLiquidityBreakdown([], 48.85, Currency.EGP);
     expect(result).toEqual({
       liquid: 0,
       liquidCount: 0,
@@ -634,7 +926,7 @@ describe('computeLiquidityBreakdown', () => {
         current_balance: 3000,
       }),
     ];
-    const result = computeLiquidityBreakdown(accounts, 48.85);
+    const result = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
     expect(result.liquidAccounts.map((a) => a.name)).toEqual(['QNB', 'CIB', 'Cash']);
     expect(result.reserveAccounts.map((a) => a.name)).toEqual(['Savings']);
   });
@@ -643,7 +935,7 @@ describe('computeLiquidityBreakdown', () => {
     const accounts: Account[] = [
       makeAccount({ id: '1', type: AccountType.Bank, current_balance: 1000 }),
     ];
-    const result = computeLiquidityBreakdown(accounts, 48.85);
+    const result = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
     expect(result.reserve).toBe(0);
     expect(result.reserveCount).toBe(0);
   });
@@ -652,7 +944,7 @@ describe('computeLiquidityBreakdown', () => {
     const accounts: Account[] = [
       makeAccount({ id: '1', type: AccountType.PhysicalSavings, current_balance: 1000 }),
     ];
-    const result = computeLiquidityBreakdown(accounts, 48.85);
+    const result = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
     expect(result.liquid).toBe(0);
     expect(result.reserve).toBe(1000);
   });
@@ -671,7 +963,7 @@ describe('computeLiquidityBreakdown', () => {
         current_balance: 0.02,
       }),
     ];
-    const { liquid, reserve } = computeLiquidityBreakdown(accounts, 0.0001);
+    const { liquid, reserve } = computeLiquidityBreakdown(accounts, 0.0001, Currency.EGP);
 
     expect(shouldShowProportionBar({ liquid, reserve })).toBe(false);
   });
@@ -683,7 +975,7 @@ describe('computeLiabilitiesBreakdown', () => {
       makeAccount({ id: '1', name: 'Visa A', type: AccountType.CreditCard, current_balance: 1000 }),
       makeAccount({ id: '2', name: 'Visa B', type: AccountType.CreditCard, current_balance: 4080 }),
     ];
-    const result = computeLiabilitiesBreakdown(accounts, 48.85);
+    const result = computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP);
     expect(result).toEqual([
       { id: '2', name: 'Visa B', balance: 4080, statementDueDay: null },
       { id: '1', name: 'Visa A', balance: 1000, statementDueDay: null },
@@ -700,7 +992,7 @@ describe('computeLiabilitiesBreakdown', () => {
         statement_due_day: 28,
       }),
     ];
-    const [row] = computeLiabilitiesBreakdown(accounts, 48.85);
+    const [row] = computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP);
     expect(row.statementDueDay).toBe(28);
   });
 
@@ -708,7 +1000,7 @@ describe('computeLiabilitiesBreakdown', () => {
     const accounts: Account[] = [
       makeAccount({ id: '1', type: AccountType.Bank, current_balance: 1000 }),
     ];
-    expect(computeLiabilitiesBreakdown(accounts, 48.85)).toEqual([]);
+    expect(computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP)).toEqual([]);
   });
 
   it('excludes archived credit cards (L-07)', () => {
@@ -721,7 +1013,7 @@ describe('computeLiabilitiesBreakdown', () => {
         is_archived: 1,
       }),
     ];
-    expect(computeLiabilitiesBreakdown(accounts, 48.85)).toEqual([]);
+    expect(computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP)).toEqual([]);
   });
 
   it('converts USD credit card balance to EGP via the rate (L-03)', () => {
@@ -734,7 +1026,7 @@ describe('computeLiabilitiesBreakdown', () => {
         current_balance: 100,
       }),
     ];
-    const [row] = computeLiabilitiesBreakdown(accounts, 48.85);
+    const [row] = computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP);
     expect(row.balance).toBeCloseTo(4885, 0);
   });
 
@@ -747,7 +1039,7 @@ describe('computeLiabilitiesBreakdown', () => {
         current_balance: -1000,
       }),
     ];
-    const [row] = computeLiabilitiesBreakdown(accounts, 48.85);
+    const [row] = computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP);
     expect(row.balance).toBe(-1000);
   });
 
@@ -756,8 +1048,54 @@ describe('computeLiabilitiesBreakdown', () => {
       makeAccount({ id: '1', name: 'Visa A', type: AccountType.CreditCard, current_balance: 5000 }),
       makeAccount({ id: '2', name: 'Visa B', type: AccountType.CreditCard, current_balance: -300 }),
     ];
-    const result = computeLiabilitiesBreakdown(accounts, 48.85);
+    const result = computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP);
     expect(result.map((row) => row.balance)).toEqual([5000, -300]);
+  });
+});
+
+// Spec §3B under a USD base, the same four accounts the `computeNetWorth` row
+// above uses. The point is that all three resolvers agree on one portfolio:
+// 150 + 200 liquid/reserve against that row's `assets: 350`, and one liability
+// row of 100 against its `liabilities: 100`. A breakdown still converting into
+// EGP while the headline converts into USD is the drift this pins — and it
+// renders as two currencies on one sheet, three lines apart.
+describe('the breakdown resolvers follow the base currency', () => {
+  const mixedPortfolio = (): Account[] => [
+    makeAccount({ id: 'bank', name: 'EGP Bank', current_balance: 4885 }),
+    makeAccount({
+      id: 'savings',
+      name: 'EGP Savings',
+      type: AccountType.PhysicalSavings,
+      current_balance: 9770,
+    }),
+    makeAccount({
+      id: 'usd-bank',
+      name: 'USD Bank',
+      currency: Currency.USD,
+      current_balance: 50,
+    }),
+    makeAccount({
+      id: 'card',
+      name: 'EGP Card',
+      type: AccountType.CreditCard,
+      current_balance: 4885,
+    }),
+  ];
+
+  it('splits liquid and reserve in the base currency, identity pair included', () => {
+    const { liquid, reserve } = computeLiquidityBreakdown(mixedPortfolio(), 48.85, Currency.USD);
+
+    // 4885 EGP divides to 100.00 and the USD bank's 50.00 passes through
+    // untouched — the identity pair inside a converting fold.
+    expect(liquid).toBe(150);
+    expect(reserve).toBe(200);
+  });
+
+  it('states each liability row in the base currency', () => {
+    const rows = computeLiabilitiesBreakdown(mixedPortfolio(), 48.85, Currency.USD);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].balance).toBe(100);
   });
 });
 
@@ -768,7 +1106,13 @@ describe('computeNetWorth — liabilities is the signed owed-frame total (#259 T
       makeAccount({ id: '2', type: AccountType.CreditCard, current_balance: -300 }),
     ];
     const { liabilities } = amount(
-      computeNetWorth({ accounts, rate: 50, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+      computeNetWorth({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: 50,
+        rateUpdatedAt: VERIFIED,
+        isManualOverride: false,
+      }),
     );
     expect(liabilities).toBe(4700);
     expect(formatAmount(liabilities)).toBe('4,700');
@@ -779,7 +1123,13 @@ describe('computeNetWorth — liabilities is the signed owed-frame total (#259 T
       makeAccount({ id: '1', type: AccountType.CreditCard, current_balance: -300 }),
     ];
     const { liabilities } = amount(
-      computeNetWorth({ accounts, rate: 50, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+      computeNetWorth({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: 50,
+        rateUpdatedAt: VERIFIED,
+        isManualOverride: false,
+      }),
     );
     // Intl's ASCII hyphen, pre-existing shape (the header reads this same
     // field today) — the glyph is #332's, out of scope here (spec §7, S5b).
@@ -807,11 +1157,11 @@ describe('computeLiquidityBreakdown and computeLiabilitiesBreakdown are rate-ind
       }),
     ];
 
-    expect(computeLiquidityBreakdown(accounts, 0.0001)).toEqual(
-      computeLiquidityBreakdown(accounts, 50),
+    expect(computeLiquidityBreakdown(accounts, 0.0001, Currency.EGP)).toEqual(
+      computeLiquidityBreakdown(accounts, 50, Currency.EGP),
     );
-    expect(computeLiabilitiesBreakdown(accounts, 0.0001)).toEqual(
-      computeLiabilitiesBreakdown(accounts, 50),
+    expect(computeLiabilitiesBreakdown(accounts, 0.0001, Currency.EGP)).toEqual(
+      computeLiabilitiesBreakdown(accounts, 50, Currency.EGP),
     );
   });
 });
@@ -837,9 +1187,15 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
     ];
 
     const { liabilities } = amount(
-      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+      computeNetWorth({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: RATE,
+        rateUpdatedAt: VERIFIED,
+        isManualOverride: false,
+      }),
     );
-    const rows = computeLiabilitiesBreakdown(accounts, RATE);
+    const rows = computeLiabilitiesBreakdown(accounts, RATE, Currency.EGP);
     // The component footer now renders `netWorth.liabilities` directly —
     // the `net_worth_breakdown_sheet.tsx` reduce this mirrored is deleted
     // (#259 C5). This reduce is no longer a mirror of component code: it is
@@ -865,9 +1221,15 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
     ];
 
     const { assets } = amount(
-      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+      computeNetWorth({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: RATE,
+        rateUpdatedAt: VERIFIED,
+        isManualOverride: false,
+      }),
     );
-    const { liquid, liquidAccounts } = computeLiquidityBreakdown(accounts, RATE);
+    const { liquid, liquidAccounts } = computeLiquidityBreakdown(accounts, RATE, Currency.EGP);
 
     expect(formatAmount(assets)).toBe('381');
     expect(formatAmount(liquid)).toBe('381');
@@ -889,9 +1251,15 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
     const accounts = tenAt5Piastres(AccountType.PhysicalWallet);
 
     const { assets } = amount(
-      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+      computeNetWorth({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: RATE,
+        rateUpdatedAt: VERIFIED,
+        isManualOverride: false,
+      }),
     );
-    const { liquid } = computeLiquidityBreakdown(accounts, RATE);
+    const { liquid } = computeLiquidityBreakdown(accounts, RATE, Currency.EGP);
 
     expect(liquid).toBe(0.5);
     expect(formatAmount(assets)).toBe('1');
@@ -902,9 +1270,15 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
     const accounts = tenAt5Piastres(AccountType.PhysicalSavings);
 
     const { assets } = amount(
-      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+      computeNetWorth({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: RATE,
+        rateUpdatedAt: VERIFIED,
+        isManualOverride: false,
+      }),
     );
-    const { reserve } = computeLiquidityBreakdown(accounts, RATE);
+    const { reserve } = computeLiquidityBreakdown(accounts, RATE, Currency.EGP);
 
     expect(reserve).toBe(0.5);
     expect(formatAmount(assets)).toBe('1');

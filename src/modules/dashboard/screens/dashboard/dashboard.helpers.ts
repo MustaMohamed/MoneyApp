@@ -1,6 +1,8 @@
+import { foreignCurrencyFor } from '@/constants/currency';
 import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import {
   assertSupportedCurrency,
+  convertCurrency,
   countForeignAccounts,
   type DashboardNetWorth,
   isRateUsable,
@@ -21,22 +23,17 @@ import { roundMoney } from '@/utils/money';
  * `round2( Σ sign × round2(converted current_balance) )`, over non-archived
  * accounts, in array order.
  *
- * **EGP is the storage currency; `base_currency` is a reporting currency this
- * function does not yet honour.** The gate-1 product decision recorded at
+ * **EGP is the storage currency; `baseCurrency` is the reporting currency, and
+ * this function honours it.** The gate-1 product decision recorded at
  * `docs/scopes/MA-onboarding-redesign/scope.md:46` treats the N1 currency
- * choice as a display promise, not an architecture change — honest under the
- * current EGP-storage app, but a promise this function does not keep: it
- * hardcodes `Currency.EGP` as both the summation target and the rate-gate
- * reference (see below), takes no `baseCurrency` parameter, and every output
- * field is named `*Egp`, though `base_currency` is written at
- * `onboarding.repository.ts:34` and read nowhere on this path. So USD
- * balances MULTIPLY by the rate (`exchange_rate` is EGP per USD) and the two
- * `*Usd` fields divide, regardless of which currency the user chose at N1. A
- * USD-base user with a USD-only portfolio and no saved rate is refused a
- * total for a conversion their portfolio does not need. Closing the gap needs
- * a `baseCurrency` parameter, a shared conversion with N4's resolver, and the
- * `*Egp`-named fields and their consuming labels renamed — audit M28's work,
- * not done here.
+ * choice as a display promise; this resolver used to hardcode `Currency.EGP` as
+ * both the summation target and the rate-gate reference, so a USD-base user
+ * with a USD-only portfolio and no saved rate was refused a total for a
+ * conversion their portfolio does not need. `baseCurrency` now decides all
+ * three: what the accounts are summed INTO, which accounts count as foreign,
+ * and which way each conversion runs. Every direction goes through
+ * `convertCurrency` — shared with N4's `resolveStartingNetPosition`, so the two
+ * cannot drift again (ADR `2026-08-18` §5, audit M28).
  *
  * Reads `current_balance`, unlike N4's `resolveStartingNetPosition`, which
  * reads `opening_balance` — that difference is deliberate and unchanged here.
@@ -57,31 +54,29 @@ import { roundMoney } from '@/utils/money';
  * foreign. Required and unusable is the `rate-needed` outcome — never a
  * substituted rate, a zero, or a partial total.
  *
- * Whether the EGP total can be stated and whether the `~USD` equivalent can be
- * stated are two questions with two answers. The EGP total needs a rate only
- * when something is foreign; the `~USD` equivalent needs a verified rate ALWAYS,
- * because the conversion is the whole point of it. So on the amount path
+ * Whether the base total can be stated and whether the foreign equivalent can be
+ * stated are two questions with two answers. The base total needs a rate only
+ * when something is foreign; the foreign equivalent needs a verified rate
+ * ALWAYS, because the conversion is the whole point of it. So on the amount path
  * `assetsForeign` and `netWorthForeign` are `undefined` exactly when the rate is
  * unusable.
  */
 export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
-  const { accounts, rate } = input;
+  const { accounts, baseCurrency, rate } = input;
 
+  assertSupportedCurrency(baseCurrency);
   // Archived rows are dropped BEFORE every other step, the foreign count
-  // included: an archived USD wallet must not force a refusal on a portfolio
+  // included: an archived foreign wallet must not force a refusal on a portfolio
   // that has nothing left to convert.
   const activeAccounts = accounts.filter((a) => !a.is_archived);
   for (const a of activeAccounts) {
     assertSupportedCurrency(a.currency);
   }
 
-  // `Currency.EGP` is named here rather than taken as a parameter: this
-  // function still treats EGP as the only base it aggregates against.
-  // `base_currency` is a reporting currency per the gate-1 decision
-  // (`docs/scopes/MA-onboarding-redesign/scope.md:46`), which this function
-  // does not yet honour — a USD-base user is gated on a currency they did not
-  // choose. Audit M28 owns closing this gap.
-  const foreignCount = countForeignAccounts(activeAccounts, Currency.EGP);
+  // The gate's reference is the user's OWN base, not a hardcoded EGP: a USD-base
+  // user holding only USD accounts has nothing to convert, so an unverified rate
+  // is irrelevant to them. Gating them on EGP is the bug this closes.
+  const foreignCount = countForeignAccounts(activeAccounts, baseCurrency);
   // `input` itself, not a re-assembled literal: `NetWorthInput` extends
   // `RateProvenance`, so a provenance field added there cannot be dropped here.
   const rateUsable = isRateUsable(input);
@@ -98,10 +93,17 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
   let netWorth = 0;
 
   for (const a of activeAccounts) {
-    const converted = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
+    const converted = convertCurrency({
+      amount: a.current_balance,
+      from: a.currency,
+      to: baseCurrency,
+      rate,
+    });
     // Round each converted value, then round once more at the sum — never
     // sum-then-round: 0.502 USD at rate 2 is 1.004, so two of them are 2.00
-    // round-then-sum and 2.01 sum-then-round.
+    // round-then-sum and 2.01 sum-then-round. Unchanged by the divide branch:
+    // two EGP 100.00 accounts at 48.85 are 2.05 + 2.05 = 4.10 round-then-sum
+    // and 4.09 sum-then-round.
     const rounded = roundMoney(converted);
     const sign = resolveAccountAggregationSign(a.type);
 
@@ -122,16 +124,42 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
     netWorth += sign * rounded;
   }
 
-  // Both numerators are the RAW accumulators, before the rounding and
-  // normalisation below: a cancelling portfolio's netWorth accumulator is
-  // -2.7755575615628914e-17, which divides to -5.551115123125783e-19 and
-  // rounds to -0. Dividing the already-normalised value would yield +0 and
-  // make the suite's negative-zero assertion unfalsifiable.
+  // ONE conversion of the accumulated total, in the direction
+  // `baseCurrency -> foreignCurrencyFor(baseCurrency)` — never a second
+  // per-account pass. The two differ by a cent and the suite pins it: three EGP
+  // 100.00 accounts under a USD base at 48.85 convert to 2.05 each, and
+  // 6.15 × 48.85 = 300.4275 rounds to 300.43 while three separate
+  // roundMoney(2.05 × 48.85) sum to 300.42.
+  //
+  // **Both inputs are the RAW accumulators — before `roundMoney` and before
+  // `normalizeNegativeZero` below — and that rule has NO TEST and cannot get
+  // one.** Measured at P5: converting the normalised value instead leaves the
+  // whole tree green, and brute force over 10 rates × 2-6 accounts ×
+  // 0.01-2000.00 found no fixture where
+  // `roundMoney(acc × rate) ≠ roundMoney(roundMoney(acc) × rate)`. It is
+  // black-box unfalsifiable, so this comment is the ONLY artifact carrying it:
+  // it is a diff-review invariant, not redundant prose, and deleting it loses
+  // the rule with CI green.
+  //
+  // The shape of the residue it protects flips with the base, which is why the
+  // reciprocal argument has to be stated for both directions rather than for
+  // the divide alone. A cancelling portfolio's netWorth accumulator is
+  // -2.7755575615628914e-17. Under an EGP base that DIVIDES by the rate, to
+  // -5.551115123125783e-19; under a USD base it MULTIPLIES, to
+  // -1.3877787807814457e-15. Both round to -0, and the normalisation below
+  // maps that to +0. Feed the already-normalised value in and both land on +0
+  // before `roundMoney` ever sees them, which makes the suite's negative-zero
+  // assertion on the foreign figure pass no matter what the guard does.
   //
   // `undefined` when the rate is unusable, never `?? 0` and never a substituted
   // rate: `formatAmount(0)` renders a wrong number rather than an absent one.
-  const assetsForeign = rateUsable ? assets / rate : undefined;
-  const netWorthForeign = rateUsable ? netWorth / rate : undefined;
+  const foreignCurrency = foreignCurrencyFor(baseCurrency);
+  const assetsForeign = rateUsable
+    ? convertCurrency({ amount: assets, from: baseCurrency, to: foreignCurrency, rate })
+    : undefined;
+  const netWorthForeign = rateUsable
+    ? convertCurrency({ amount: netWorth, from: baseCurrency, to: foreignCurrency, rate })
+    : undefined;
 
   // `normalizeNegativeZero` is the LAST operation before any of these reaches a
   // formatter — `Intl.NumberFormat` renders `-0` as "-0".
@@ -181,7 +209,11 @@ const LIQUID_TYPES: ReadonlySet<AccountType> = new Set([
 
 const RESERVE_TYPES: ReadonlySet<AccountType> = new Set([AccountType.PhysicalSavings]);
 
-export function computeLiquidityBreakdown(accounts: Account[], rate: number): LiquidityBreakdown {
+export function computeLiquidityBreakdown(
+  accounts: Account[],
+  rate: number,
+  baseCurrency: Currency,
+): LiquidityBreakdown {
   let liquid = 0;
   let reserve = 0;
   const liquidAccounts: AccountRow[] = [];
@@ -189,12 +221,13 @@ export function computeLiquidityBreakdown(accounts: Account[], rate: number): Li
 
   for (const a of accounts) {
     if (a.is_archived) continue;
-    // Rounded per value on `computeNetWorth`'s contract. The breakdown sheet
-    // renders these rows directly beneath that function's totals, all at zero
+    // Rounded per value on `computeNetWorth`'s contract, and converted through
+    // the same `convertCurrency`. The breakdown sheet renders these rows
+    // directly beneath that function's totals, all at the base currency's
     // decimals, so an unrounded 380.4951 here beside a rounded 380.50 there is
     // 380 and 381 on one screen for one account.
     const balance = roundMoney(
-      a.currency === Currency.USD ? a.current_balance * rate : a.current_balance,
+      convertCurrency({ amount: a.current_balance, from: a.currency, to: baseCurrency, rate }),
     );
     if (LIQUID_TYPES.has(a.type)) {
       liquid += balance;
@@ -227,15 +260,19 @@ export interface LiabilityRow extends AccountRow {
   statementDueDay: number | null;
 }
 
-export function computeLiabilitiesBreakdown(accounts: Account[], rate: number): LiabilityRow[] {
+export function computeLiabilitiesBreakdown(
+  accounts: Account[],
+  rate: number,
+  baseCurrency: Currency,
+): LiabilityRow[] {
   const rows: LiabilityRow[] = [];
   for (const a of accounts) {
     if (a.is_archived) continue;
     if (a.type !== AccountType.CreditCard) continue;
-    // Rounded per value, same contract and same reason as
-    // `computeLiquidityBreakdown` above.
+    // Rounded per value and converted through `convertCurrency`, same contract
+    // and same reason as `computeLiquidityBreakdown` above.
     const balance = roundMoney(
-      a.currency === Currency.USD ? a.current_balance * rate : a.current_balance,
+      convertCurrency({ amount: a.current_balance, from: a.currency, to: baseCurrency, rate }),
     );
     rows.push({
       id: a.id,

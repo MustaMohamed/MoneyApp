@@ -63,12 +63,18 @@ export function normalizeNegativeZero(value: number): number {
  * computed. Mirrors `StartingNetPosition` deliberately — a reader comparing the
  * two should find the same shape.
  *
- * `assetsForeign` and `netWorthForeign` are `undefined` exactly when the rate is not
- * usable. That is a SECOND, independent question from the EGP total: the EGP
- * total needs a rate only when something is foreign, while the `~USD`
- * equivalent needs a verified rate always, because the conversion is the whole
- * point of it (spec §3a). They are `undefined` rather than `null` because
- * neither is DB-mapped (CLAUDE.md's null-versus-undefined rule).
+ * `assetsForeign` and `netWorthForeign` carry the same two figures expressed in
+ * `foreignCurrencyFor(baseCurrency)` — the OTHER of the app's two currencies,
+ * whichever the user chose at N1. They are named for that ROLE and not for a
+ * currency: under an EGP base they hold USD, under a USD base they hold EGP,
+ * and a `*Usd` name was wrong in the second case.
+ *
+ * They are `undefined` exactly when the rate is not usable. That is a SECOND,
+ * independent question from the base total: the base total needs a rate only
+ * when something is foreign, while the foreign equivalent needs a verified rate
+ * always, because the conversion is the whole point of it (spec §3a). They are
+ * `undefined` rather than `null` because neither is DB-mapped (CLAUDE.md's
+ * null-versus-undefined rule).
  */
 export type DashboardNetWorth =
   | {
@@ -116,15 +122,25 @@ export interface RateProvenance {
 
 /**
  * A single object parameter rather than positional arguments, matching
- * `StartingNetPositionInput` so the two resolvers read alike. There is no
- * `baseCurrency` field: EGP is the storage currency, and `base_currency` is a
- * reporting currency per the gate-1 decision at
- * `docs/scopes/MA-onboarding-redesign/scope.md:46` that `computeNetWorth`
- * does not yet honour — a gap audit M28 owns, not a choice this shape makes.
+ * `StartingNetPositionInput` so the two resolvers read alike — including the
+ * `baseCurrency` field, which closes the divergence ADR
+ * `2026-08-18-starting-net-position.md` §5 recorded and audit M28 owned.
+ *
+ * EGP remains the STORAGE currency; `base_currency` is the REPORTING currency
+ * the user chose at N1 (`docs/scopes/MA-onboarding-redesign/scope.md:46`), and
+ * this resolver now honours it: the summation target, the rate gate's
+ * reference, and the direction of every conversion all follow it.
+ *
+ * **Required, with no default and not optional**, and that is the enforcement
+ * rather than a style preference. A default would let a caller that never
+ * learned about base currency keep compiling while silently aggregating against
+ * EGP — the one identified way back into the bug this closes. `tsc` failing at
+ * every call site is what the rule looks like working.
  */
 export interface NetWorthInput extends RateProvenance {
   /** May contain archived rows — the resolver filters them itself. */
   accounts: Account[];
+  baseCurrency: Currency;
 }
 
 /**
