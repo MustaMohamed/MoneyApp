@@ -1,10 +1,13 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
+import { Currency } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
+import { OnboardingRepository } from '@/modules/onboarding/repositories/onboarding.repository';
 import { AppSettingsRepository } from '@/repositories/app_settings.repository';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
+const secureStore = jest.requireMock<{ __reset: () => void }>('expo-secure-store');
 let realDb: ReturnType<typeof Database>;
 
 beforeAll(() => {
@@ -75,5 +78,50 @@ describe('AppSettingsRepository.setMany', () => {
 
     expect(await repo.get('usd_rate')).toBe('49');
     expect(await repo.get('usd_rate_manual_override')).toBe('true');
+  });
+});
+
+// Scenario 27, and it lives in THIS suite rather than
+// `onboarding.repository.test.ts` because that one injects a mock settings
+// repository — a fallback tested against a mock would pass with the real read
+// deleted. Here the row goes through `MIGRATIONS` into a real engine.
+//
+// `setBaseCurrency` has written `app_settings.base_currency` since #23 and
+// nothing ever read it back. This gives the write-only row its first reader,
+// covering the one failure mode the dashboard's store read accepts: SecureStore
+// loses the key (a restore onto a new device, a keychain reset) and the user
+// silently reverts to an EGP base they did not choose.
+describe('OnboardingRepository.load — the base currency survives a lost keychain', () => {
+  const onboardingRepo = new OnboardingRepository(repo);
+
+  beforeEach(() => {
+    // Empty the SecureStore fake rather than stubbing its resolved value: the
+    // fallback must fire because the key is genuinely absent, which is the
+    // real failure mode, not because a mock was told to answer null.
+    secureStore.__reset();
+  });
+
+  it('falls back to app_settings.base_currency before defaulting to EGP', async () => {
+    await repo.set('base_currency', Currency.USD);
+
+    await expect(onboardingRepo.load()).resolves.toMatchObject({
+      baseCurrency: Currency.USD,
+    });
+  });
+
+  it('still defaults to EGP when neither source has a value', async () => {
+    // The row above is only meaningful beside this one: a body returning USD
+    // unconditionally would pass it.
+    await expect(onboardingRepo.load()).resolves.toMatchObject({
+      baseCurrency: Currency.EGP,
+    });
+  });
+
+  it('ignores a settings value that is not a currency code', async () => {
+    await repo.set('base_currency', 'GBP');
+
+    await expect(onboardingRepo.load()).resolves.toMatchObject({
+      baseCurrency: Currency.EGP,
+    });
   });
 });

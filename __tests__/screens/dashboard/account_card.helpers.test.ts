@@ -29,23 +29,28 @@ const egpBank = (balance: number): Account =>
     opening_balance: balance,
   });
 
-const labels = (account: Account, isRateUsable: boolean): string[] =>
-  buildInfoRows(account, PLACEHOLDER_RATE, STATS, isRateUsable).map((row) => row.label);
+// `baseCurrency` is stated at every call, never defaulted here: the production
+// signature refuses a default (spec §7) and a convenience default in this helper
+// would be the one place the rule could be quietly re-opened.
+const labels = (account: Account, isRateUsable: boolean, baseCurrency: Currency): string[] =>
+  buildInfoRows(account, PLACEHOLDER_RATE, STATS, isRateUsable, baseCurrency).map(
+    (row) => row.label,
+  );
 
 describe('buildInfoRows — the converted row follows the rate gate', () => {
   it('converts a USD balance when the rate is usable', () => {
-    const rows = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, true);
+    const rows = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, true, Currency.EGP);
 
-    expect(labels(usdBank(100), true)).toContain(Strings.cardInEgpLabel);
+    expect(labels(usdBank(100), true, Currency.EGP)).toContain(Strings.cardInEgpLabel);
     expect(rows.at(-1)?.value).toBe('5,000 EGP');
   });
 
   it('renders no converted row when the rate is unusable', () => {
     // The defect: `$100` rendered as `5,000 EGP` directly beneath a
     // `TotalBalanceStrip` that had just refused to state a total at this rate.
-    const rows = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, false);
+    const rows = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, false, Currency.EGP);
 
-    expect(labels(usdBank(100), false)).not.toContain(Strings.cardInEgpLabel);
+    expect(labels(usdBank(100), false, Currency.EGP)).not.toContain(Strings.cardInEgpLabel);
     expect(rows.map((row) => row.value)).not.toContain('5,000 EGP');
   });
 
@@ -57,8 +62,8 @@ describe('buildInfoRows — the converted row follows the rate gate', () => {
     const native = [Strings.cardMonthInLabel, Strings.cardMonthOutLabel];
     const nativeValues = ['0.00 USD', '0.00 USD'];
 
-    const withRate = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, true);
-    const withoutRate = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, false);
+    const withRate = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, true, Currency.EGP);
+    const withoutRate = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, false, Currency.EGP);
 
     expect(withRate.slice(0, 2).map((row) => row.label)).toEqual(native);
     expect(withRate.slice(0, 2).map((row) => row.value)).toEqual(nativeValues);
@@ -68,9 +73,30 @@ describe('buildInfoRows — the converted row follows the rate gate', () => {
 
   it('leaves an EGP account identical in both states', () => {
     // Nothing on an EGP card is converted, so the gate must not reach it.
-    expect(buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS, false)).toEqual(
-      buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS, true),
+    expect(buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS, false, Currency.EGP)).toEqual(
+      buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS, true, Currency.EGP),
     );
+  });
+});
+
+// A second, independent gate on the same row, and it is a GATE rather than a
+// follow: under a USD base the card is already in the user's base currency, so
+// the equivalent row would restate the amount above it in the same currency.
+// The mirror — an EGP card under a USD base wanting an "In USD" row — is new
+// surface and is filed, not built (spec §7, follow-up 3), which is why the row
+// keeps its `cardInEgpLabel` and its hardcoded `Currency.EGP`.
+describe('buildInfoRows — the converted row is suppressed in the base currency', () => {
+  it('drops the row for a USD card under a USD base, rate usable or not', () => {
+    expect(labels(usdBank(100), true, Currency.USD)).not.toContain(Strings.cardInEgpLabel);
+  });
+
+  it('keeps the row for a USD card under an EGP base with a usable rate', () => {
+    // The row above is only meaningful beside this one: a body that dropped the
+    // row unconditionally would pass the first assertion on its own.
+    const rows = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, true, Currency.EGP);
+
+    expect(rows.map((row) => row.label)).toContain(Strings.cardInEgpLabel);
+    expect(rows.at(-1)?.value).toBe('5,000 EGP');
   });
 });
 
@@ -109,7 +135,13 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
     ['USD', Currency.USD, '640.25 USD'],
     ['EGP', Currency.EGP, '640 EGP'],
   ])('PhysicalWallet month_out (:107) — %s direction', (_dir, currency, expected) => {
-    const rows = buildInfoRows(physicalWallet(currency), PLACEHOLDER_RATE, STATS_CENTS, false);
+    const rows = buildInfoRows(
+      physicalWallet(currency),
+      PLACEHOLDER_RATE,
+      STATS_CENTS,
+      false,
+      Currency.EGP,
+    );
     expect(rows[0]?.value).toBe(expected);
   });
 
@@ -117,7 +149,13 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
     ['USD', Currency.USD, '12.05 USD'],
     ['EGP', Currency.EGP, '12 EGP'],
   ])('PhysicalWallet week_out (:116) — %s direction', (_dir, currency, expected) => {
-    const rows = buildInfoRows(physicalWallet(currency), PLACEHOLDER_RATE, STATS_CENTS, false);
+    const rows = buildInfoRows(
+      physicalWallet(currency),
+      PLACEHOLDER_RATE,
+      STATS_CENTS,
+      false,
+      Currency.EGP,
+    );
     expect(rows[2]?.value).toBe(expected);
   });
 
@@ -132,6 +170,7 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
         PLACEHOLDER_RATE,
         STATS_WEEK_CENTS,
         false,
+        Currency.EGP,
       );
       expect(rows[2]?.value).toBe(expected);
     },
@@ -141,7 +180,13 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
     ['USD', Currency.USD, '389.50 USD'],
     ['EGP', Currency.EGP, '390 EGP'],
   ])('PhysicalSavings monthStart (:130) — %s direction', (_dir, currency, expected) => {
-    const rows = buildInfoRows(physicalSavings(currency), PLACEHOLDER_RATE, STATS_CENTS, false);
+    const rows = buildInfoRows(
+      physicalSavings(currency),
+      PLACEHOLDER_RATE,
+      STATS_CENTS,
+      false,
+      Currency.EGP,
+    );
     expect(rows[0]?.value).toBe(expected);
   });
 
@@ -151,18 +196,24 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
   ])(
     'PhysicalSavings change (:134), composed sign kept — %s direction',
     (_dir, currency, expected) => {
-      const rows = buildInfoRows(physicalSavings(currency), PLACEHOLDER_RATE, STATS_CENTS, false);
+      const rows = buildInfoRows(
+        physicalSavings(currency),
+        PLACEHOLDER_RATE,
+        STATS_CENTS,
+        false,
+        Currency.EGP,
+      );
       expect(rows[1]?.value).toBe(expected);
     },
   );
 
   it('Bank + USD month_in (:149) takes CURRENCY_CONFIG decimals', () => {
-    const rows = buildInfoRows(usdBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false);
+    const rows = buildInfoRows(usdBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false, Currency.EGP);
     expect(rows[0]?.value).toBe('1,250.75 USD');
   });
 
   it('Bank + USD month_out (:154) takes CURRENCY_CONFIG decimals', () => {
-    const rows = buildInfoRows(usdBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false);
+    const rows = buildInfoRows(usdBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false, Currency.EGP);
     expect(rows[1]?.value).toBe('640.25 USD');
   });
 
@@ -173,7 +224,7 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
   // because that call's output is identical to the old `` `${formatAmount(x)} ${cur}` ``
   // template for EGP.
   it('Bank + EGP month_in/month_out — unchanged, out of scope (spec row 29)', () => {
-    const rows = buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false);
+    const rows = buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false, Currency.EGP);
     expect(rows[0]?.value).toBe('1,251 EGP');
     expect(rows[1]?.value).toBe('640 EGP');
   });
@@ -189,12 +240,14 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
         PLACEHOLDER_RATE,
         STATS_CENTS,
         false,
+        Currency.EGP,
       );
       const egpRows = buildInfoRows(
         physicalWallet(Currency.EGP),
         PLACEHOLDER_RATE,
         STATS_CENTS,
         false,
+        Currency.EGP,
       );
       // month_out: 640.25 / 20 days = 32.0125 -> '32.0' at the explicit 1dp this site keeps.
       expect(usdRows[1]?.value).toBe('32.0 USD');
@@ -221,13 +274,25 @@ describe("buildInfoRows — credit card limit/available take the card's own curr
     });
 
   it('a USD card now renders limit and available credit in USD, not EGP', () => {
-    const rows = buildInfoRows(creditCard(Currency.USD, 200, 1000), PLACEHOLDER_RATE, STATS, false);
+    const rows = buildInfoRows(
+      creditCard(Currency.USD, 200, 1000),
+      PLACEHOLDER_RATE,
+      STATS,
+      false,
+      Currency.EGP,
+    );
     expect(rows[0]?.value).toBe('1,000.00 USD');
     expect(rows[1]?.value).toBe('800.00 USD');
   });
 
   it('an EGP card renders limit and available credit unchanged', () => {
-    const rows = buildInfoRows(creditCard(Currency.EGP, 200, 1000), PLACEHOLDER_RATE, STATS, false);
+    const rows = buildInfoRows(
+      creditCard(Currency.EGP, 200, 1000),
+      PLACEHOLDER_RATE,
+      STATS,
+      false,
+      Currency.EGP,
+    );
     expect(rows[0]?.value).toBe('1,000 EGP');
     expect(rows[1]?.value).toBe('800 EGP');
   });
@@ -238,12 +303,14 @@ describe("buildInfoRows — credit card limit/available take the card's own curr
       PLACEHOLDER_RATE,
       STATS,
       false,
+      Currency.EGP,
     );
     const usdRows = buildInfoRows(
       creditCard(Currency.USD, 1500, 1000),
       PLACEHOLDER_RATE,
       STATS,
       false,
+      Currency.EGP,
     );
     expect(egpRows[1]?.value).toBe(Strings.cardOverLimit);
     expect(usdRows[1]?.value).toBe(Strings.cardOverLimit);
@@ -255,7 +322,13 @@ describe("buildInfoRows — credit card limit/available take the card's own curr
   // shared module (available_credit_color.ts), so this pins the wiring the old
   // untested copy never had.
   it('the Available row is warning-coloured in the 20-50% band', () => {
-    const rows = buildInfoRows(creditCard(Currency.EGP, 700, 1000), PLACEHOLDER_RATE, STATS, false);
+    const rows = buildInfoRows(
+      creditCard(Currency.EGP, 700, 1000),
+      PLACEHOLDER_RATE,
+      STATS,
+      false,
+      Currency.EGP,
+    );
     expect(rows[1]?.value).toBe('300 EGP');
     expect(rows[1]?.valueColor).toBe('#E8B130');
   });

@@ -8,7 +8,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import { AccountType } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
 import { Spacing } from '@/constants/theme';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -56,6 +56,8 @@ function AccountCarouselSeparator(): React.ReactElement {
 interface AccountCarouselProps {
   type: AccountType;
   accounts: Account[];
+  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  baseCurrency: Currency;
   rate: number;
   /** Rate provenance, decided once in `dashboard.hook.ts` and passed through. */
   isRateUsable: boolean;
@@ -67,6 +69,7 @@ interface AccountCarouselProps {
 export function AccountCarousel({
   type,
   accounts,
+  baseCurrency,
   rate,
   isRateUsable,
   statsMap,
@@ -93,6 +96,7 @@ export function AccountCarousel({
       item.kind === 'account' ? (
         <AccountCard
           account={item.account}
+          baseCurrency={baseCurrency}
           rate={rate}
           isRateUsable={isRateUsable}
           stats={statsMap[item.account.id]}
@@ -102,7 +106,10 @@ export function AccountCarousel({
       ) : (
         <AddCard onPress={onAddPress} width={cardWidth} />
       ),
-    [accountPressHandlers, cardWidth, isRateUsable, onAddPress, rate, statsMap],
+    // `baseCurrency` belongs in this array: without it the memoised renderItem
+    // keeps rendering the previous base after a change, and the two branches
+    // below disagree — the ScrollView one has no memo at all.
+    [accountPressHandlers, baseCurrency, cardWidth, isRateUsable, onAddPress, rate, statsMap],
   );
   const getItemLayout = useCallback(
     (_data: ArrayLike<AccountCarouselItem> | null | undefined, index: number) =>
@@ -148,6 +155,7 @@ export function AccountCarousel({
         <AccountCard
           key={account.id}
           account={account}
+          baseCurrency={baseCurrency}
           rate={rate}
           isRateUsable={isRateUsable}
           stats={statsMap[account.id]}

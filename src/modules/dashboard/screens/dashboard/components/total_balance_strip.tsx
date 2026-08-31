@@ -31,6 +31,8 @@ interface TotalBalanceStripProps {
    * in a signature do not narrow each other.
    */
   netWorth: DashboardNetWorth;
+  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  baseCurrency: Currency;
   accountsCount: number;
 }
 
@@ -42,19 +44,25 @@ interface TotalBalanceStripProps {
  * compiler requirement (an if/else-scoped const also compiles here).
  */
 function TotalBalanceStripAmount({
-  netWorth,
+  netWorth: amount,
+  baseCurrency,
 }: {
   netWorth: DashboardNetWorthAmount;
+  baseCurrency: Currency;
 }): React.ReactElement {
-  const assetsEgpParts = formatCurrencyParts(netWorth.assetsEgp, Currency.EGP);
+  const assetsParts = formatCurrencyParts(amount.assets, baseCurrency);
   return (
     <RNText className="font-sora-bold text-accent mt-1 text-2xl">
-      {assetsEgpParts.value} <RNText className="text-muted text-base">{assetsEgpParts.code}</RNText>
+      {assetsParts.value} <RNText className="text-muted text-base">{assetsParts.code}</RNText>
     </RNText>
   );
 }
 
-export function TotalBalanceStrip({ netWorth, accountsCount }: TotalBalanceStripProps) {
+export function TotalBalanceStrip({
+  netWorth,
+  baseCurrency,
+  accountsCount,
+}: TotalBalanceStripProps) {
   return (
     <View className="border-border mx-4 mt-2 mb-2 overflow-hidden rounded-2xl border">
       <LinearGradient
@@ -92,7 +100,7 @@ export function TotalBalanceStrip({ netWorth, accountsCount }: TotalBalanceStrip
               </RNText>
             </View>
           ) : (
-            <TotalBalanceStripAmount netWorth={netWorth} />
+            <TotalBalanceStripAmount netWorth={netWorth} baseCurrency={baseCurrency} />
           )}
         </View>
         <View style={{ alignItems: 'flex-end' }}>

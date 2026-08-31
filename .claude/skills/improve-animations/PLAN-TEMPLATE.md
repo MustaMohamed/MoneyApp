@@ -17,7 +17,7 @@ What is wrong, where, and why it matters to how the product feels. Cite every
 location as `path/to/file.tsx:123` and include the current code verbatim:
 
 ​```css
-/* src/components/dropdown.css:14 — current */
+/* src/<path>/dropdown.css:14 — current */
 .dropdown { transition: all 400ms ease-in; }
 ​```
 
@@ -39,7 +39,7 @@ configs, media queries. Never "use a nicer easing":
 How this codebase already does it, with one exemplar the executor should
 imitate (token names, file placement, prop patterns):
 
-- Easing tokens live in `src/styles/tokens.css`; add new curves there, e.g. `--ease-out: cubic-bezier(0.23, 1, 0.32, 1);`
+- Easing tokens live in `src/<path>/tokens.css`; add new curves there, e.g. `--ease-out: cubic-bezier(0.23, 1, 0.32, 1);`
 - <exemplar file:line that already does this correctly>
 
 ## Steps

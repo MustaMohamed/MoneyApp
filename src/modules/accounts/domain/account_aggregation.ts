@@ -30,7 +30,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
  * The corollary is scoped to AGGREGATION: a summed TOTAL takes its sign from
  * this function, and no surface re-applies a minus to a total. Per-account
  * liability ROWS were the standing exception UNTIL #259 — deliberately
- * unsigned, with `computeLiabilitiesBreakdown` returning `Math.abs(balanceEgp)`
+ * unsigned, with `computeLiabilitiesBreakdown` returning `Math.abs(balance)`
  * and the sheet composing the leading minus glyph itself for every row. As of
  * #259 the rows carry the signed owed-frame value instead (positive owed,
  * negative in credit), and the double-minus this comment used to warn about
@@ -38,7 +38,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
  * `formatLiabilityRowValue` (`net_worth_breakdown_sheet.helpers.ts`) —
  * rather than by keeping the rows unsigned. That is scoped to the glyph, not
  * every sign-driven decision on the row: the sheet's "In credit" caption
- * reads `balanceEgp < 0` on its own, a second, independent read of the same
+ * reads `balance < 0` on its own, a second, independent read of the same
  * sign for a different purpose, not a second glyph site. The glyph itself
  * follows docs/adr/2026-08-27-money-colour-vocabulary.md §3; the aggregate
  * corollary above is unchanged.
@@ -63,21 +63,27 @@ export function normalizeNegativeZero(value: number): number {
  * computed. Mirrors `StartingNetPosition` deliberately — a reader comparing the
  * two should find the same shape.
  *
- * `assetsUsd` and `netWorthUsd` are `undefined` exactly when the rate is not
- * usable. That is a SECOND, independent question from the EGP total: the EGP
- * total needs a rate only when something is foreign, while the `~USD`
- * equivalent needs a verified rate always, because the conversion is the whole
- * point of it (spec §3a). They are `undefined` rather than `null` because
- * neither is DB-mapped (CLAUDE.md's null-versus-undefined rule).
+ * `assetsForeign` and `netWorthForeign` carry the same two figures expressed in
+ * `foreignCurrencyFor(baseCurrency)` — the OTHER of the app's two currencies,
+ * whichever the user chose at N1. They are named for that ROLE and not for a
+ * currency: under an EGP base they hold USD, under a USD base they hold EGP,
+ * and a `*Usd` name was wrong in the second case.
+ *
+ * They are `undefined` exactly when the rate is not usable. That is a SECOND,
+ * independent question from the base total: the base total needs a rate only
+ * when something is foreign, while the foreign equivalent needs a verified rate
+ * always, because the conversion is the whole point of it (spec §3a). They are
+ * `undefined` rather than `null` because neither is DB-mapped (CLAUDE.md's
+ * null-versus-undefined rule).
  */
 export type DashboardNetWorth =
   | {
       kind: 'amount';
-      assetsEgp: number;
-      liabilitiesEgp: number;
-      netWorthEgp: number;
-      assetsUsd: number | undefined;
-      netWorthUsd: number | undefined;
+      assets: number;
+      liabilities: number;
+      netWorth: number;
+      assetsForeign: number | undefined;
+      netWorthForeign: number | undefined;
     }
   | { kind: 'rate-needed'; foreignCount: number };
 
@@ -116,15 +122,25 @@ export interface RateProvenance {
 
 /**
  * A single object parameter rather than positional arguments, matching
- * `StartingNetPositionInput` so the two resolvers read alike. There is no
- * `baseCurrency` field: EGP is the storage currency, and `base_currency` is a
- * reporting currency per the gate-1 decision at
- * `docs/scopes/MA-onboarding-redesign/scope.md:46` that `computeNetWorth`
- * does not yet honour — a gap audit M28 owns, not a choice this shape makes.
+ * `StartingNetPositionInput` so the two resolvers read alike — including the
+ * `baseCurrency` field, which closes the divergence ADR
+ * `2026-08-18-starting-net-position.md` §5 recorded and audit M28 owned.
+ *
+ * EGP remains the STORAGE currency; `base_currency` is the REPORTING currency
+ * the user chose at N1 (`docs/scopes/MA-onboarding-redesign/scope.md:46`), and
+ * this resolver now honours it: the summation target, the rate gate's
+ * reference, and the direction of every conversion all follow it.
+ *
+ * **Required, with no default and not optional**, and that is the enforcement
+ * rather than a style preference. A default would let a caller that never
+ * learned about base currency keep compiling while silently aggregating against
+ * EGP — the one identified way back into the bug this closes. `tsc` failing at
+ * every call site is what the rule looks like working.
  */
 export interface NetWorthInput extends RateProvenance {
   /** May contain archived rows — the resolver filters them itself. */
   accounts: Account[];
+  baseCurrency: Currency;
 }
 
 /**
@@ -225,4 +241,45 @@ export function assertSupportedCurrency(currency: Currency): void {
   if (!isSupportedCurrency(currency)) {
     throw new AccountAggregationError(`Unsupported currency: ${currency}`);
   }
+}
+
+/**
+ * The one bidirectional conversion, shared by `computeNetWorth`, the two
+ * dashboard breakdown resolvers, `resolveStartingNetPosition` and N4's
+ * approximation pill. Before it, each of those carried its own copy of the
+ * direction check, and `computeNetWorth`'s copy multiplied unconditionally.
+ *
+ * `exchange_rate` is EGP per USD, so the asymmetry is the whole point:
+ * `USD -> EGP` MULTIPLIES and `EGP -> USD` DIVIDES. A flat `amount × rate` is
+ * correct in exactly one of the four pairs. `resolveTransactionAmounts` is the
+ * authority for that asymmetry on the write path; this is its aggregation-side
+ * counterpart.
+ *
+ * An object parameter, not four positionals: `from` and `to` are the same type,
+ * so a transposed pair would compile silently, and the direction is the one
+ * thing this function exists to get right.
+ *
+ * The identity pair returns `amount` untouched and never reads `rate` — an
+ * EGP-only portfolio under an EGP base converts nothing, so an unusable rate
+ * must be arithmetically inert rather than a division by a placeholder.
+ *
+ * **Does not round, and must not import `@/utils/money`.** Rounding is the
+ * caller's, at the fold, once — `round2(Σ sign × round2(converted))`. Rounding
+ * here would round twice on every path and change the fold's answer at the
+ * half-cent (ADR 2026-08-22).
+ */
+export function convertCurrency(input: {
+  amount: number;
+  from: Currency;
+  to: Currency;
+  rate: number;
+}): number {
+  const { amount, from, to, rate } = input;
+  assertSupportedCurrency(from);
+  assertSupportedCurrency(to);
+
+  if (from === to) {
+    return amount;
+  }
+  return from === Currency.USD ? amount * rate : amount / rate;
 }

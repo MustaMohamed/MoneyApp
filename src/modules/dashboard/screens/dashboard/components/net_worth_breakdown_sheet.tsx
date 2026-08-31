@@ -13,7 +13,7 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatAmount, formatCurrencyParts } from '@/utils/format_amount';
+import { formatCurrencyParts } from '@/utils/format_amount';
 import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
@@ -21,7 +21,7 @@ import type { AccountRow, LiabilityRow, LiquidityBreakdown } from '../dashboard.
 import {
   formatLiabilityRowValue,
   resolveBreakdownRowColors,
-  resolveNetWorthUsdCaption,
+  resolveNetWorthForeignCaption,
   shouldShowProportionBar,
 } from './net_worth_breakdown_sheet.helpers';
 
@@ -36,6 +36,8 @@ interface NetWorthBreakdownSheetProps {
    * in a signature do not narrow each other.
    */
   netWorth: DashboardNetWorth;
+  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  baseCurrency: Currency;
   liquidity: LiquidityBreakdown;
   liabilities: LiabilityRow[];
 }
@@ -46,25 +48,29 @@ interface NetWorthBreakdownSheetProps {
  * `computeLiabilitiesBreakdown`, is why neither helper needs one (#259 C7):
  *
  * - the body renders iff `netWorth.kind === 'amount'` (below), which is
- *   `foreignCount === 0 || rateUsable` (`dashboard.helpers.ts:84-90`);
- * - both helpers multiply by `rate` only when `a.currency === Currency.USD`,
- *   and `Currency` has exactly two members (`enums.ts:16-19`);
- * - so the only path a gate inside either helper could fire on is
- *   EGP-only-unverified — where the rate is arithmetically inert (nothing to
- *   convert) and the gate would blank a correct breakdown instead of guarding
- *   anything. `liquidity`/`liabilities` are non-optional props: there is no
- *   third, gated state for either to represent.
+ *   `foreignCount === 0 || rateUsable` (`dashboard.helpers.ts:79-85`);
+ * - both helpers convert through `convertCurrency` against `baseCurrency`
+ *   (`dashboard.helpers.ts:230`, `:275`), and that returns the amount untouched
+ *   whenever `from === to` (`account_aggregation.ts:281-283`);
+ * - `foreignCount === 0` means every non-archived account already holds the
+ *   base currency (`countForeignAccounts`, `account_aggregation.ts:202-205`),
+ *   so the only path a gate inside either helper could fire on is
+ *   base-only-unverified — where every conversion is the identity, the rate is
+ *   arithmetically inert, and the gate would blank a correct breakdown instead
+ *   of guarding anything. `liquidity`/`liabilities` are non-optional props:
+ *   there is no third, gated state for either to represent.
  *
  * The pin for this argument is the rate-independence test in
  * `dashboard_helpers.test.ts` (T6): both helpers return deeply equal results
- * for the same EGP-only accounts at `rate = 50` and `rate = 0.0001`. Body
- * suppression above stands as the second guard behind the non-tappable hero
- * (`hero_card.tsx`'s refusal-path comment).
+ * for the same base-currency-only accounts at `rate = 50` and `rate = 0.0001`.
+ * Body suppression above stands as the second guard behind the non-tappable
+ * hero (`hero_card.tsx`'s refusal-path comment).
  */
 export function NetWorthBreakdownSheet({
   isOpen,
   onOpenChange,
   netWorth,
+  baseCurrency,
   liquidity,
   liabilities,
 }: NetWorthBreakdownSheetProps) {
@@ -82,6 +88,7 @@ export function NetWorthBreakdownSheet({
         ) : (
           <NetWorthBreakdownBody
             netWorth={netWorth}
+            baseCurrency={baseCurrency}
             liquidity={liquidity}
             liabilities={liabilities}
           />
@@ -135,26 +142,34 @@ function NetWorthRefusalHeadline(): React.ReactElement {
  * declared once instead of drifting between two returns.
  */
 function NetWorthBreakdownBody({
-  netWorth,
+  netWorth: amount,
+  baseCurrency,
   liquidity,
   liabilities,
 }: {
   netWorth: DashboardNetWorthAmount;
+  baseCurrency: Currency;
   liquidity: LiquidityBreakdown;
   liabilities: LiabilityRow[];
 }): React.ReactElement {
-  const assetsTotal = liquidity.liquidEgp + liquidity.reserveEgp;
+  const assetsTotal = liquidity.liquid + liquidity.reserve;
   // Gated on both parts being non-negative, not just the total being positive
   // (#259 C6) — see `shouldShowProportionBar`'s own comment for the overdrawn-
   // account defect this closes.
   const showProportionBar = shouldShowProportionBar(liquidity);
-  const liquidPct = showProportionBar ? liquidity.liquidEgp / assetsTotal : 0;
+  const liquidPct = showProportionBar ? liquidity.liquid / assetsTotal : 0;
   const reservePct = 1 - liquidPct;
   const showLiquid = liquidity.liquidCount > 0;
   const showReserve = liquidity.reserveCount > 0;
   const showLiabilities = liabilities.length > 0;
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
-  const netWorthEgpParts = formatCurrencyParts(netWorth.netWorthEgp, Currency.EGP);
+  const netWorthParts = formatCurrencyParts(amount.netWorth, baseCurrency);
+  // `{ value, code }` from one call each: the two section headers need the code
+  // as well as the number, and taking both from the formatter keeps
+  // `CURRENCY_CONFIG` out of this `.tsx` — the code and the decimals then cannot
+  // disagree about which currency this sheet is reporting in.
+  const assetsParts = formatCurrencyParts(amount.assets, baseCurrency);
+  const liabilitiesParts = formatCurrencyParts(amount.liabilities, baseCurrency);
   const liquidColors = resolveBreakdownRowColors('liquid');
   const reserveColors = resolveBreakdownRowColors('reserve');
   const liabilityColors = resolveBreakdownRowColors('liability');
@@ -167,11 +182,11 @@ function NetWorthBreakdownBody({
           {Strings.dashboardBreakdownNetWorthLabel}
         </Text>
         <Text className="font-sora-bold mt-1" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
-          {netWorthEgpParts.value}{' '}
-          <Text className="font-inter-medium text-muted text-base">{netWorthEgpParts.code}</Text>
+          {netWorthParts.value}{' '}
+          <Text className="font-inter-medium text-muted text-base">{netWorthParts.code}</Text>
         </Text>
         <Text variant="caption" className="text-muted mt-1">
-          {resolveNetWorthUsdCaption(netWorth.netWorthUsd)}
+          {resolveNetWorthForeignCaption(amount.netWorthForeign, baseCurrency)}
         </Text>
       </View>
 
@@ -183,7 +198,8 @@ function NetWorthBreakdownBody({
         <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
           {Strings.dashAssetsLabel} ·{' '}
           {Strings.dashboardBreakdownAssetsHeader(
-            formatAmount(netWorth.assetsEgp),
+            assetsParts.value,
+            assetsParts.code,
             assetsAccountCount,
           )}
         </Text>
@@ -207,11 +223,11 @@ function NetWorthBreakdownBody({
               icon="wallet-outline"
               label={Strings.dashboardBreakdownLiquid}
               caption={Strings.dashboardBreakdownLiquidCaption}
-              value={formatAmount(liquidity.liquidEgp)}
+              value={formatCurrencyParts(liquidity.liquid, baseCurrency).value}
               count={liquidity.liquidCount}
             />
             {liquidity.liquidAccounts.map((acc) => (
-              <AccountSubRow key={acc.id} account={acc} />
+              <AccountSubRow key={acc.id} account={acc} baseCurrency={baseCurrency} />
             ))}
           </>
         )}
@@ -222,11 +238,11 @@ function NetWorthBreakdownBody({
               icon="piggy-bank"
               label={Strings.dashboardBreakdownReserve}
               caption={Strings.dashboardBreakdownReserveCaption}
-              value={formatAmount(liquidity.reserveEgp)}
+              value={formatCurrencyParts(liquidity.reserve, baseCurrency).value}
               count={liquidity.reserveCount}
             />
             {liquidity.reserveAccounts.map((acc) => (
-              <AccountSubRow key={acc.id} account={acc} />
+              <AccountSubRow key={acc.id} account={acc} baseCurrency={baseCurrency} />
             ))}
           </>
         )}
@@ -239,7 +255,8 @@ function NetWorthBreakdownBody({
             <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
               {Strings.dashLiabilitiesLabel} ·{' '}
               {Strings.dashboardBreakdownLiabilitiesHeader(
-                formatAmount(netWorth.liabilitiesEgp),
+                liabilitiesParts.value,
+                liabilitiesParts.code,
                 liabilities.length,
               )}
             </Text>
@@ -254,13 +271,13 @@ function NetWorthBreakdownBody({
                   // true `-0` row (the only other non-positive case
                   // `roundMoney` can produce) fails `< 0` and keeps the
                   // due-caption below (#259 C2/C4).
-                  row.balanceEgp < 0
+                  row.balance < 0
                     ? Strings.dashboardBreakdownInCredit
                     : row.statementDueDay != null && row.statementDueDay > 0
                       ? `due ${nextDueDate(row.statementDueDay)}`
                       : undefined
                 }
-                value={formatLiabilityRowValue(row.balanceEgp)}
+                value={formatLiabilityRowValue(row.balance, baseCurrency)}
                 valueColor={liabilityColors.value}
               />
             ))}
@@ -268,7 +285,7 @@ function NetWorthBreakdownBody({
             <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
               <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
               <Text className="font-sora-bold" style={{ color: Colors.dark.gold }}>
-                {formatAmount(netWorth.liabilitiesEgp)}
+                {liabilitiesParts.value}
               </Text>
             </View>
           </View>
@@ -285,12 +302,13 @@ interface LegendRowProps {
   caption?: string;
   /**
    * Pre-formatted display text — every call site renders through a formatter
-   * before this prop sees the value: `formatAmount` at the liquid/reserve
-   * call sites, `formatLiabilityRowValue` (#259 C3) at the liability one,
+   * before this prop sees the value: `formatCurrencyParts(v, baseCurrency)` at
+   * the liquid/reserve call sites, `formatLiabilityRowValue` (#259 C3) at the
+   * liability one,
    * which owns that row's signed glyph. A single `string` channel, not
    * `number | string`, keeps that true at the TYPE level: reverting the
-   * liability call site to a raw `row.balanceEgp` number is a compile error
-   * here, not a silently unsigned row rendered through `formatAmount`.
+   * liability call site to a raw `row.balance` number is a compile error
+   * here, not a silently unsigned row rendered through a bare magnitude.
    */
   value: string;
   count?: number;
@@ -333,7 +351,7 @@ function LegendRow({ color, icon, label, caption, value, count, valueColor }: Le
 // LegendRow's label starts at: icon width (ms(16)) + icon→label gap (ms(10)) = ms(26).
 const SUB_ROW_INDENT = ms(27.5);
 
-function AccountSubRow({ account }: { account: AccountRow }) {
+function AccountSubRow({ account, baseCurrency }: { account: AccountRow; baseCurrency: Currency }) {
   return (
     <View
       className="flex-row justify-between"
@@ -343,7 +361,7 @@ function AccountSubRow({ account }: { account: AccountRow }) {
         {account.name}
       </Text>
       <Text variant="caption" className="font-inter-medium text-foreground">
-        {formatAmount(account.balanceEgp)}
+        {formatCurrencyParts(account.balance, baseCurrency).value}
       </Text>
     </View>
   );

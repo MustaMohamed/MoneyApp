@@ -307,18 +307,25 @@ export const Strings = {
   dashboardAccountsLabel: 'Accounts',
   dashboardBreakdownTitle: 'Net Worth',
   dashboardBreakdownNetWorthLabel: 'Net Worth',
-  dashboardBreakdownAssetsHeader: (egp: string, count: number) =>
-    `${egp} EGP · ${count} ${count === 1 ? 'acct' : 'accts'}`,
-  dashboardBreakdownLiabilitiesHeader: (egp: string, count: number) =>
-    `${egp} EGP · ${count} ${count === 1 ? 'card' : 'cards'}`,
+  // The currency code is a PARAMETER, not a literal in the template: these
+  // headers sit directly under a total the user chose the currency of, and a
+  // hardcoded `EGP` beside a USD figure is the defect. Precedent
+  // `n4CaptionAllBase` below. Byte-identical at `code === 'EGP'`.
+  dashboardBreakdownAssetsHeader: (amount: string, code: string, count: number) =>
+    `${amount} ${code} · ${count} ${count === 1 ? 'acct' : 'accts'}`,
+  dashboardBreakdownLiabilitiesHeader: (amount: string, code: string, count: number) =>
+    `${amount} ${code} · ${count} ${count === 1 ? 'card' : 'cards'}`,
   dashboardBreakdownLiquid: 'Liquid',
   dashboardBreakdownReserve: 'Reserve',
   dashboardBreakdownLiquidCaption: 'Bank, Smart Wallet, Cash',
   dashboardBreakdownReserveCaption: 'Savings',
   dashboardBreakdownTotalDebt: 'Total debt',
   dashboardBreakdownInCredit: 'In credit',
-  netWorthBreakdownUsdUnavailable: '— USD',
-  netWorthBreakdownUsdApprox: (amount: string) => `≈ ${amount}`,
+  // Same reason, one level down: this is the placeholder for the ≈ figure,
+  // which is stated in the OTHER currency from the base — so it is `— EGP` for
+  // a USD-base user and `— USD` for an EGP-base one.
+  netWorthBreakdownForeignUnavailable: (code: string) => `— ${code}`,
+  netWorthBreakdownForeignApprox: (amount: string) => `≈ ${amount}`,
 
   // The dashboard's rate refusal (#255). Modelled on N4's pair
   // (`n4RateNeededValue` / `n4CaptionRateNeeded`) so the two refusals read as
@@ -1153,7 +1160,19 @@ export const Strings = {
 
   // §4 Currency screen additions
   currencyFetchError: 'Could not update rate. Try again.',
-  currencyFooterNote: 'All balances and analytics are shown in Egyptian Pound (EGP).',
+  // Distinct from `currencySaveError` above on purpose: nothing failed and the
+  // value saved, so "Could not save rate. Try again." would be false. One string
+  // covers both ends of the band — `isRateImplausible` has no directional branch
+  // and the app has no live quote, so "too high" would claim knowledge it does
+  // not have.
+  currencyRateImplausibleWarning: 'This rate is far outside the usual range.',
+  // The base currency is a PARAMETER, not a literal: this note names the
+  // currency every figure in the app is reported in, and after #269 that is the
+  // user's own base rather than EGP. The caller resolves `CURRENCY_CONFIG`, so
+  // this file gains no import. Precedent `n4CaptionAllBase` above.
+  // Byte-identical to the old constant at `('Egyptian Pound', 'EGP')`.
+  currencyFooterNote: (name: string, code: string) =>
+    `All balances and analytics are shown in ${name} (${code}).`,
 
   // §4 Category additions
   categoriesReassignSubtitle: (count: number) =>

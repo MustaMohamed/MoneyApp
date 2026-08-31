@@ -13,8 +13,18 @@ import { useCurrencyScreen } from './currency.hook';
 
 export default function CurrencyScreen() {
   const { state, form, handleFetchRate, handleSaveManualRate } = useCurrencyScreen();
-  const { rate, isManualOverride, isFetching, isSaving, fetchError, saveError, formattedDate } =
-    state;
+  const {
+    rate,
+    isManualOverride,
+    isFetching,
+    isSaving,
+    fetchError,
+    rateWarning,
+    isStoredRateImplausible,
+    saveError,
+    formattedDate,
+    footerNote,
+  } = state;
   const {
     control,
     formState: { errors },
@@ -66,9 +76,16 @@ export default function CurrencyScreen() {
 
         <FormErrorText message={fetchError} className="mx-4 mt-2" />
 
-        {/* Manual override — HeroUI Accordion */}
+        {/* Manual override — HeroUI Accordion. Opens on mount when the STORED
+            rate is out of band: the warning lives in this section's content, so
+            collapsed-by-default meant a mount-time warning nobody could see.
+            Uncontrolled on purpose — `defaultValue` is read once, so a user who
+            collapses this stays collapsed. */}
         <View className="mx-4 mt-2">
-          <Accordion variant="surface">
+          <Accordion
+            variant="surface"
+            defaultValue={isStoredRateImplausible ? 'manual-override' : undefined}
+          >
             <Accordion.Item value="manual-override">
               <Accordion.Trigger>
                 <View style={{ flex: 1 }}>
@@ -99,6 +116,15 @@ export default function CurrencyScreen() {
                     />
                   )}
                 />
+                {/* Warning, not danger: nothing failed, the value saves either
+                    way, and this describes the number in the field above it.
+                    `FormErrorText` is the danger channel and would read as a
+                    rejection. */}
+                {rateWarning !== '' && (
+                  <Typography className="text-warning font-inter mt-1 text-sm">
+                    {rateWarning}
+                  </Typography>
+                )}
                 {/* Save Rate button — primary (gold gradient) */}
                 <View className="mt-4">
                   <Button
@@ -119,9 +145,11 @@ export default function CurrencyScreen() {
           </Accordion>
         </View>
 
-        {/* Footer note — EGP immutability */}
+        {/* Footer note — names the base currency every figure is reported in,
+            and that it is fixed. Composed in the hook from the onboarding
+            store's base; this screen never reads a store. */}
         <Typography className="text-muted font-inter mx-6 mt-6 mb-8 text-center text-xs">
-          {Strings.currencyFooterNote}
+          {footerNote}
         </Typography>
       </ScreenScroll>
     </Screen>

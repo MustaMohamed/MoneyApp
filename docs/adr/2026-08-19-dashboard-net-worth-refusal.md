@@ -87,6 +87,17 @@ That is audit M28's work, tracked separately. This section is left in place as t
 approved and why the divide branch was withdrawn then; the withdrawal of that P1 item stands, the
 "precondition, not a bug" framing for it does not.
 
+**Superseded 2026-08-31 (#269).** The gap the paragraph above leaves open is closed, and the "EGP base
+is a precondition" invariant this section wrote onto the function no longer holds. `NetWorthInput`
+carries `baseCurrency`, required and with no default; `computeNetWorth` sums into it, gates the rate
+against it, and converts through the shared `convertCurrency` that N4's resolver also calls. The
+USD-base user with a USD-only portfolio and no saved rate is no longer refused a total for a
+conversion their portfolio does not need — that fixture is the first row of the USD-base block in
+`__tests__/screens/dashboard/dashboard_helpers.test.ts`. The `*Egp` field names and their label sites
+went with it. This section stays as the record of what P1 approved and why the divide branch waited;
+both the withdrawal and the precondition are history now, not contract. Details in
+`docs/adr/2026-08-31-base-currency-and-rate-plausibility.md`.
+
 ## 3. Chunk 1 keeps the return shape unchanged
 
 The sign, rounding and archived work ships behind an identical five-field `NetWorthResult` and an

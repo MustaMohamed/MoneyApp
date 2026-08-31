@@ -169,6 +169,7 @@ export default function DashboardScreen() {
                     <Animated.View style={heroStyle}>
                       <HeroCard
                         netWorth={state.netWorth}
+                        baseCurrency={state.baseCurrency}
                         rate={state.rate}
                         isRateUsable={state.isRateUsable}
                         isManualOverride={state.isManualOverride}
@@ -182,6 +183,7 @@ export default function DashboardScreen() {
                     <Animated.View entering={statsEntering}>
                       <StatCards
                         netWorth={state.netWorth}
+                        baseCurrency={state.baseCurrency}
                         assetsCount={state.accountCounts.assets}
                         liabilitiesCount={state.accountCounts.liabilities}
                         monthSpentEgp={state.monthSpend.currentEgp}
@@ -224,6 +226,7 @@ export default function DashboardScreen() {
                   <>
                     <TotalBalanceStrip
                       netWorth={state.netWorth}
+                      baseCurrency={state.baseCurrency}
                       accountsCount={totalAccountsCount}
                     />
                     {visibleTypes.map((type, index) => (
@@ -235,6 +238,7 @@ export default function DashboardScreen() {
                         <AccountCarousel
                           type={type}
                           accounts={state.groupedAccounts[type] ?? []}
+                          baseCurrency={state.baseCurrency}
                           rate={state.rate}
                           isRateUsable={state.isRateUsable}
                           statsMap={state.statsMap}
@@ -267,6 +271,7 @@ export default function DashboardScreen() {
           if (!open) setBreakdownVisible(false);
         }}
         netWorth={state.netWorth}
+        baseCurrency={state.baseCurrency}
         liquidity={state.liquidity}
         liabilities={state.liabilities}
       />

@@ -9,6 +9,7 @@ import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/b
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { DashboardLoadInput } from '@/modules/dashboard/repositories/dashboard.repository';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { formatMonthYear } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
@@ -72,6 +73,21 @@ export function useDashboard() {
       rateUpdatedAt: state.rate_updated_at,
     })),
   );
+  // The base currency enters the dashboard HERE and nowhere else, then travels
+  // down as a parameter — no `domain/` file imports a store. A plain selector,
+  // not `useShallow`: it is a single scalar, matching `welcome.hook.ts:14` and
+  // `ready.hook.ts:19`.
+  //
+  // A screen-entry hook reads the store; a shared component hook takes the value
+  // as a parameter (`use_account_form.hook.ts:14-19`, whose two hosts disagree
+  // on the value). This hook backs a one-line route re-export and has no host to
+  // pass from.
+  //
+  // No new loading state is needed: `use_layout_init.hook.ts:38` awaits
+  // `initOnboarding()` inside its startup `Promise.all`, and `_layout.tsx:78`
+  // renders `<Stack>` only at `status === 'ready'`, so the store is hydrated
+  // before this screen mounts.
+  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
   const { isBreakdownVisible, selectedSegment } = useDashboardState(
     useShallow((state) => ({
       isBreakdownVisible: state.isBreakdownVisible,
@@ -151,8 +167,8 @@ export function useDashboard() {
   const previousYearMonth = matchingSnapshot?.previousYearMonth ?? shiftYearMonth(yearMonth, -1);
 
   const netWorth = useMemo(
-    () => computeNetWorth({ accounts, rate, rateUpdatedAt, isManualOverride }),
-    [accounts, isManualOverride, rate, rateUpdatedAt],
+    () => computeNetWorth({ accounts, baseCurrency, rate, rateUpdatedAt, isManualOverride }),
+    [accounts, baseCurrency, isManualOverride, rate, rateUpdatedAt],
   );
   // Decided ONCE, here, and passed down to every surface that converts. The
   // account cards used to answer this question for themselves — their "In EGP"
@@ -161,8 +177,14 @@ export function useDashboard() {
   // provenance as `rate > 0` at a display layer is the defect class #255 exists
   // to remove: `INITIAL_STATE.rate` is 50.
   const rateUsable = isRateUsable({ rate, rateUpdatedAt, isManualOverride });
-  const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);
-  const liabilities = useMemo(() => computeLiabilitiesBreakdown(accounts, rate), [accounts, rate]);
+  const liquidity = useMemo(
+    () => computeLiquidityBreakdown(accounts, rate, baseCurrency),
+    [accounts, baseCurrency, rate],
+  );
+  const liabilities = useMemo(
+    () => computeLiabilitiesBreakdown(accounts, rate, baseCurrency),
+    [accounts, baseCurrency, rate],
+  );
   const groupedAccounts = useMemo(() => groupAccountsByType(accounts), [accounts]);
   const accountCounts = useMemo(() => computeDashboardAccountCounts(accounts), [accounts]);
   const commitments = useMemo(
@@ -185,6 +207,7 @@ export function useDashboard() {
     state: {
       presentation,
       accounts,
+      baseCurrency,
       rate,
       isRateUsable: rateUsable,
       isManualOverride,

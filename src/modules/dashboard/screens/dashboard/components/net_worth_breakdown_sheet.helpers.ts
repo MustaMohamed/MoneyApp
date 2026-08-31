@@ -1,3 +1,4 @@
+import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
@@ -7,17 +8,33 @@ import type { LiquidityBreakdown } from '../dashboard.helpers';
 
 /**
  * Exported for `__tests__/screens/dashboard/net_worth_breakdown_sheet.helpers.test.ts` —
- * net_worth_breakdown_sheet.tsx:164 was inline JSX with no test seam.
+ * the sheet's ≈ caption was inline JSX with no test seam.
+ *
+ * This caption renders NET WORTH. `hero_card.tsx`'s ≈ pill renders ASSETS, in the
+ * same currency and from the same portfolio — 12,212.50 against 17,097.50 on the
+ * §3B fixture. **They are not meant to agree**, and pointing either at the
+ * other's field compiles, with no type error and no failing test.
+ *
+ * The currency is `foreignCurrencyFor(base)`, resolved by the caller: the ≈
+ * figure is the total expressed in the OTHER of the app's two currencies, so it
+ * is EGP for a USD-base user. A hardcoded `Currency.USD` here printed a USD code
+ * over an EGP number.
  *
  * Keyed on the FIELD being absent, not on `rate > 0`: `INITIAL_STATE.rate` is 50, so the old
  * check printed a confident `≈ N USD` computed from the placeholder for every user who had
- * never fetched a rate. No `?? 0` — `formatAmount(0)` renders `≈ 0.00 USD`, a wrong number
- * rather than an absent one.
+ * never fetched a rate. No `?? 0` — a formatted 0 is a wrong number rather than
+ * an absent one.
  */
-export function resolveNetWorthUsdCaption(netWorthUsd: number | undefined): string {
-  return netWorthUsd === undefined
-    ? Strings.netWorthBreakdownUsdUnavailable
-    : Strings.netWorthBreakdownUsdApprox(formatCurrencyAmount(netWorthUsd, Currency.USD));
+export function resolveNetWorthForeignCaption(
+  netWorthForeign: number | undefined,
+  baseCurrency: Currency,
+): string {
+  const foreignCurrency = foreignCurrencyFor(baseCurrency);
+  return netWorthForeign === undefined
+    ? Strings.netWorthBreakdownForeignUnavailable(CURRENCY_CONFIG[foreignCurrency].code)
+    : Strings.netWorthBreakdownForeignApprox(
+        formatCurrencyAmount(netWorthForeign, foreignCurrency),
+      );
 }
 
 export type BreakdownRowKind = 'liquid' | 'reserve' | 'liability';
@@ -52,33 +69,37 @@ export function resolveBreakdownRowColors(kind: BreakdownRowKind): {
 }
 
 /**
- * A liability row's value cell — `LiabilityRow.balanceEgp` is signed
+ * A liability row's value cell — `LiabilityRow.balance` is signed
  * (positive owed, negative in credit; #259 C2), and this is the SINGLE site
  * that composes a glyph onto it. `printsAsZero` is checked before the sign:
  * a magnitude that rounds to a printed zero gets no glyph at all, the
  * `transaction_row.helpers.ts` `primaryAmountFor` shape. U+2212 `−`, never an
  * ASCII hyphen, when owed; ASCII `+` in credit — no space either side.
  *
- * Pure `(number) => string`: no `LiabilityRow` in the signature, no React
- * import in this file. `-0` is admitted deliberately (C2) — do not add a
+ * Pure `(number, Currency) => string`: no `LiabilityRow` in the signature, no
+ * React import in this file. The currency is the BASE, not a hardcoded EGP —
+ * these rows are stated in whatever `computeLiabilitiesBreakdown` converted
+ * them into, and a hardcoded EGP printed a USD-base row's cents away.
+ *
+ * `-0` is admitted deliberately (C2) — do not add a
  * `normalizeNegativeZero` call here; `-0 < 0` is false, so it takes the
  * `−` branch, and `formatDisplayMagnitude`'s true-zero test already routes
  * it to the unsigned `printsAsZero` return before the sign check runs.
  *
  * Precondition: the caller passes a `roundMoney`-quantised value —
  * `computeLiabilitiesBreakdown` is the only caller, and it rounds every
- * `balanceEgp` before this function ever sees it. A raw sub-cent magnitude
+ * `balance` before this function ever sees it. A raw sub-cent magnitude
  * (`-0.001`, say) is outside that contract: it is not a true zero by
  * `formatDisplayMagnitude`'s `1e-9` epsilon, so `printsAsZero` still trips
  * and this returns the bare `'0.00'` with no glyph — while the sheet's
- * caption ternary, reading the same raw `balanceEgp` independently, still
+ * caption ternary, reading the same raw `balance` independently, still
  * takes the `< 0` branch. "In credit" beside a value that reads as nothing
  * at all, from a value this function was never contracted to see.
  */
-export function formatLiabilityRowValue(balanceEgp: number): string {
-  const { text, printsAsZero } = formatDisplayMagnitude(balanceEgp, Currency.EGP);
+export function formatLiabilityRowValue(balance: number, baseCurrency: Currency): string {
+  const { text, printsAsZero } = formatDisplayMagnitude(balance, baseCurrency);
   if (printsAsZero) return text;
-  return `${balanceEgp < 0 ? '+' : '−'}${text}`;
+  return `${balance < 0 ? '+' : '−'}${text}`;
 }
 
 /**
@@ -89,14 +110,14 @@ export function formatLiabilityRowValue(balanceEgp: number): string {
  * bank can make one part negative while the total stays positive; without
  * this the bar rendered `flex: -0.5` on one segment.
  *
- * Takes `Pick<LiquidityBreakdown, 'liquidEgp' | 'reserveEgp'>`, not the full
+ * Takes `Pick<LiquidityBreakdown, 'liquid' | 'reserve'>`, not the full
  * breakdown: the predicate reads exactly two fields, and the narrow
  * signature keeps its test fixtures to two numbers. The total is derived
  * from the two picked fields, never taken as a third parameter — a caller
  * cannot pass a total that disagrees with its own parts.
  */
 export function shouldShowProportionBar(
-  parts: Pick<LiquidityBreakdown, 'liquidEgp' | 'reserveEgp'>,
+  parts: Pick<LiquidityBreakdown, 'liquid' | 'reserve'>,
 ): boolean {
-  return parts.liquidEgp >= 0 && parts.reserveEgp >= 0 && parts.liquidEgp + parts.reserveEgp > 0;
+  return parts.liquid >= 0 && parts.reserve >= 0 && parts.liquid + parts.reserve > 0;
 }

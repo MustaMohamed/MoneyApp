@@ -85,6 +85,17 @@ the sum, filters archived rows itself, and refuses rather than falling back.
 The two are not reconciled here. **#249 owns that**, and this file is the argument it should be
 reconciled toward — not evidence that N4 is the odd one out.
 
+**Superseded 2026-08-31 (#269).** They are reconciled, and toward this file, as predicted. Every
+divergence listed above is gone: `computeNetWorth` takes a required `baseCurrency`, divides when the
+base is USD, and shares the conversion itself — `convertCurrency` in the accounts domain, which
+replaced this resolver's private `convertToBaseCurrency` and is now the single encoding of the
+`USD -> EGP` multiply / `EGP -> USD` divide asymmetry for both. Rounding per value and again at the
+sum, the archived filter, and the refusal over a fallback had already converged before this ticket;
+the base currency and the direction were the remainder. The rounding law this section's §4 states now
+covers the divide branch too, which is the one thing that genuinely extended rather than moved. This
+section stays as the record of the divergence and of who was right about it. Details in
+`docs/adr/2026-08-31-base-currency-and-rate-plausibility.md`.
+
 ## 6. Recorded deviation: EGP at two decimals on this screen
 
 N4 renders EGP amounts with an explicit two decimals (`N4_HERO_AMOUNT_DECIMALS`), while

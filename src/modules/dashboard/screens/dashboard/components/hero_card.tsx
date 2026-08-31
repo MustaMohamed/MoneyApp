@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
+import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Type } from '@/constants/theme';
@@ -32,6 +33,8 @@ interface HeroCardProps {
    * in a signature do not narrow each other.
    */
   netWorth: DashboardNetWorth;
+  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  baseCurrency: Currency;
   rate: number;
   /** Decided by the domain gate in `dashboard.hook.ts`, never re-derived here. */
   isRateUsable: boolean;
@@ -92,24 +95,26 @@ function HeroCardSkeleton(): React.ReactElement {
  * compiles here).
  */
 function HeroCardAssetsAmount({
-  netWorth,
+  netWorth: amount,
+  baseCurrency,
 }: {
   netWorth: DashboardNetWorthAmount;
+  baseCurrency: Currency;
 }): React.ReactElement {
-  const assetsEgpParts = formatCurrencyParts(netWorth.assetsEgp, Currency.EGP);
+  const assetsParts = formatCurrencyParts(amount.assets, baseCurrency);
   return (
     <Text
       className="font-sora-bold mt-3 mb-2 px-3"
       style={{ color: Colors.dark.gold, fontSize: ms(32) }}
     >
-      {assetsEgpParts.value}{' '}
-      <Text style={{ fontSize: ms(16), opacity: 0.8 }}>{assetsEgpParts.code}</Text>
+      {assetsParts.value} <Text style={{ fontSize: ms(16), opacity: 0.8 }}>{assetsParts.code}</Text>
     </Text>
   );
 }
 
 export function HeroCard({
   netWorth,
+  baseCurrency,
   rate,
   isRateUsable,
   isManualOverride,
@@ -119,6 +124,7 @@ export function HeroCard({
   onPress,
 }: HeroCardProps) {
   const totalAccounts = assetsCount + liabilitiesCount;
+  const foreignCurrency = foreignCurrencyFor(baseCurrency);
 
   return (
     /*
@@ -225,7 +231,7 @@ export function HeroCard({
               </Text>
             </>
           ) : (
-            <HeroCardAssetsAmount netWorth={netWorth} />
+            <HeroCardAssetsAmount netWorth={netWorth} baseCurrency={baseCurrency} />
           )}
 
           <View
@@ -245,26 +251,41 @@ export function HeroCard({
                 size={ms(11)}
                 color={Colors.dark.text1}
               />
-              {/* Keyed on the FIELD being absent, not on `rate > 0`:
+              {/* This pill renders ASSETS. The breakdown sheet's ≈ caption
+                  renders NET WORTH, from the same portfolio in the same
+                  currency — 17,097.50 here against 12,212.50 there on the §3B
+                  fixture — and the two are NOT meant to agree. Pointing this at
+                  `netWorthForeign` to reconcile them compiles, with no type
+                  error and no failing test.
+
+                  The currency is `foreignCurrencyFor(baseCurrency)`, so it is
+                  EGP for a USD-base user; the hardcoded `Currency.USD` this
+                  replaces printed a USD code over an EGP number.
+
+                  Keyed on the FIELD being absent, not on `rate > 0`:
                   `INITIAL_STATE.rate` is 50, so the old check printed a
                   confident `~ N USD` computed from the placeholder for every
-                  user who had never fetched a rate. No `?? 0` — `formatAmount(0)`
+                  user who had never fetched a rate. No `?? 0` — a formatted 0
                   is a wrong number, not an absent one. */}
               <Text className="text-foreground text-xs">
-                {netWorth.kind === 'amount' && netWorth.assetsUsd !== undefined
-                  ? formatCurrencyAmount(netWorth.assetsUsd, Currency.USD)
-                  : Strings.netWorthBreakdownUsdUnavailable}
+                {netWorth.kind === 'amount' && netWorth.assetsForeign !== undefined
+                  ? formatCurrencyAmount(netWorth.assetsForeign, foreignCurrency)
+                  : Strings.netWorthBreakdownForeignUnavailable(
+                      CURRENCY_CONFIG[foreignCurrency].code,
+                    )}
               </Text>
             </View>
             {/* Gated on the `isRateUsable` prop, decided once in
                 `dashboard.hook.ts` and never re-derived here — the
-                `account_card.tsx:156-170` adoption pattern. `isRateUsable` is
-                false on every `rate-needed` outcome (`dashboard.helpers.ts:87-90`),
+                `account_card.tsx:157-178` adoption pattern. `isRateUsable` is
+                false on every `rate-needed` outcome (`dashboard.helpers.ts:82-85`),
                 so this agrees with the old `netWorth.kind === 'rate-needed'`
-                check on that path; they diverge on an EGP-only portfolio whose
-                rate was never verified — `kind` is still 'amount' there, so the
-                old check printed the unverified rate as fact. That gap is
-                #257. */}
+                check on that path; they diverge on a portfolio holding nothing
+                but base-currency accounts and no verified rate — `kind` is
+                still 'amount' there, so the old check printed the unverified
+                rate as fact. Under an EGP base that is the EGP-only portfolio;
+                under a USD base those same accounts are all foreign and `kind`
+                is 'rate-needed', where the two agree. That gap is #257. */}
             {isRateUsable ? (
               <View
                 testID="dashboard-hero-rate-pill"

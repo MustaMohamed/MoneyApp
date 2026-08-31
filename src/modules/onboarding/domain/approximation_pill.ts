@@ -1,6 +1,9 @@
 import { foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
-import { countForeignAccounts } from '@/modules/accounts/domain/account_aggregation';
+import {
+  convertCurrency,
+  countForeignAccounts,
+} from '@/modules/accounts/domain/account_aggregation';
 import {
   type StartingNetPosition,
   type StartingNetPositionInput,
@@ -51,13 +54,18 @@ export function selectApproximationPill(
     return { ratePill: undefined, approxPill: undefined };
   }
 
-  const isEgpBase = input.baseCurrency === Currency.EGP;
-  const converted = isEgpBase ? outcome.value / input.rate : outcome.value * input.rate;
+  const foreignCurrency = foreignCurrencyFor(input.baseCurrency);
+  const converted = convertCurrency({
+    amount: outcome.value,
+    from: input.baseCurrency,
+    to: foreignCurrency,
+    rate: input.rate,
+  });
 
   return {
     ratePill: { rate: input.rate },
     approxPill: {
-      currency: foreignCurrencyFor(input.baseCurrency),
+      currency: foreignCurrency,
       value: normalizeNegativeZero(roundMoney(converted)),
     },
   };

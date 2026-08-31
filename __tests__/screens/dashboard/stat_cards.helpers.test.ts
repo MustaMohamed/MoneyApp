@@ -24,13 +24,13 @@ describe('resolveMonthSpendUsdAmount — stat_cards.tsx:249', () => {
 // to compute from). Fails at base 618517dc: the old branch returned Colors.dark.negative
 // for the amount-at--5000 case.
 describe('resolveNetWorthStatColor — stat_cards.tsx netColor', () => {
-  const amountNetWorth = (netWorthEgp: number): DashboardNetWorth => ({
+  const amountNetWorth = (netWorth: number): DashboardNetWorth => ({
     kind: 'amount',
-    assetsEgp: 10000,
-    liabilitiesEgp: 10000 - netWorthEgp,
-    netWorthEgp,
-    assetsUsd: undefined,
-    netWorthUsd: undefined,
+    assets: 10000,
+    liabilities: 10000 - netWorth,
+    netWorth,
+    assetsForeign: undefined,
+    netWorthForeign: undefined,
   });
 
   it('rate-needed stays warning', () => {
