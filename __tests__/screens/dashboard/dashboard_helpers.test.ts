@@ -4,6 +4,7 @@ import {
   type DashboardNetWorth,
 } from '@/modules/accounts/domain/account_aggregation';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { shouldShowProportionBar } from '@/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.helpers';
 import {
   buildDashboardBudgetSummary,
   computeDashboardAccountCounts,
@@ -654,6 +655,25 @@ describe('computeLiquidityBreakdown', () => {
     const result = computeLiquidityBreakdown(accounts, 48.85);
     expect(result.liquidEgp).toBe(0);
     expect(result.reserveEgp).toBe(1000);
+  });
+
+  // #259 C6 / S7: `shouldShowProportionBar` pins the pure predicate on its own
+  // fixtures (net_worth_breakdown_sheet.helpers.test.ts); this is the
+  // real-path proof that a sub-1.0 rate can actually collapse both parts to
+  // zero through this function's own rounding, not just in a hand-built parts
+  // object.
+  it('collapses to false through the bar gate when a sub-1.0 rate rounds every part to zero (S7)', () => {
+    const accounts: Account[] = [
+      makeAccount({
+        id: '1',
+        type: AccountType.Bank,
+        currency: Currency.USD,
+        current_balance: 0.02,
+      }),
+    ];
+    const { liquidEgp, reserveEgp } = computeLiquidityBreakdown(accounts, 0.0001);
+
+    expect(shouldShowProportionBar({ liquidEgp, reserveEgp })).toBe(false);
   });
 });
 

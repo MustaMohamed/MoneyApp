@@ -207,7 +207,7 @@ function NetWorthBreakdownBody({
               icon="wallet-outline"
               label={Strings.dashboardBreakdownLiquid}
               caption={Strings.dashboardBreakdownLiquidCaption}
-              value={liquidity.liquidEgp}
+              value={formatAmount(liquidity.liquidEgp)}
               count={liquidity.liquidCount}
             />
             {liquidity.liquidAccounts.map((acc) => (
@@ -222,7 +222,7 @@ function NetWorthBreakdownBody({
               icon="piggy-bank"
               label={Strings.dashboardBreakdownReserve}
               caption={Strings.dashboardBreakdownReserveCaption}
-              value={liquidity.reserveEgp}
+              value={formatAmount(liquidity.reserveEgp)}
               count={liquidity.reserveCount}
             />
             {liquidity.reserveAccounts.map((acc) => (
@@ -284,15 +284,15 @@ interface LegendRowProps {
   label: string;
   caption?: string;
   /**
-   * A number renders through `formatAmount` here, unsigned — the liquid and
-   * reserve call sites. A string arrives pre-composed by the caller and
-   * renders verbatim — the liability call site, whose sign and glyph come
-   * from `formatLiabilityRowValue`, the single composition point for that
-   * row (#259 C3). One required channel rather than an optional `valueText`
-   * beside a still-required `value: number`: that shape would force every
-   * liability row to also pass a number nothing reads.
+   * Pre-formatted display text — every call site renders through a formatter
+   * before this prop sees the value: `formatAmount` at the liquid/reserve
+   * call sites, `formatLiabilityRowValue` (#259 C3) at the liability one,
+   * which owns that row's signed glyph. A single `string` channel, not
+   * `number | string`, keeps that true at the TYPE level: reverting the
+   * liability call site to a raw `row.balanceEgp` number is a compile error
+   * here, not a silently unsigned row rendered through `formatAmount`.
    */
-  value: number | string;
+  value: string;
   count?: number;
   valueColor?: string;
 }
@@ -323,7 +323,7 @@ function LegendRow({ color, icon, label, caption, value, count, valueColor }: Le
         </View>
       </View>
       <Text className="font-sora-semibold" style={valueColor ? { color: valueColor } : undefined}>
-        {typeof value === 'number' ? formatAmount(value) : value}
+        {value}
       </Text>
     </View>
   );

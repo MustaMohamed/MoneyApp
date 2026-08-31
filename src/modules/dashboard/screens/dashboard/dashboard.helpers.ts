@@ -111,7 +111,10 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
       // `liabilitiesEgp` is the OWED-FRAME total: positive when cards are
       // owed, negative when every card is in credit (#259 T4 pins
       // `liabilitiesEgp === -300` on an all-credit portfolio). `stat_cards.tsx`
-      // and the sheet's header/footer render it without re-signing, and
+      // reads it two ways: `Math.abs(...)` for its assets/liabilities
+      // proportion bar (`stat_cards.tsx:333`) and the raw signed value,
+      // un-re-signed, for its liabilities text (`:384`, `formatAmount`). The
+      // sheet's header/footer also render it raw, and
       // `computeLiabilitiesBreakdown`'s rows below now carry the same
       // polarity.
       liabilitiesEgp += rounded;

@@ -34,11 +34,14 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
  * and the sheet composing the leading minus glyph itself for every row. As of
  * #259 the rows carry the signed owed-frame value instead (positive owed,
  * negative in credit), and the double-minus this comment used to warn about
- * is prevented by a single composition point — `formatLiabilityRowValue`
- * (`net_worth_breakdown_sheet.helpers.ts`) — rather than by keeping the rows
- * unsigned. Per-row polarity is composed there, per
- * docs/adr/2026-08-27-money-colour-vocabulary.md §3; the aggregate corollary
- * above is unchanged.
+ * is prevented by a single composition point for the row's GLYPH —
+ * `formatLiabilityRowValue` (`net_worth_breakdown_sheet.helpers.ts`) —
+ * rather than by keeping the rows unsigned. That is scoped to the glyph, not
+ * every sign-driven decision on the row: the sheet's "In credit" caption
+ * reads `balanceEgp < 0` on its own, a second, independent read of the same
+ * sign for a different purpose, not a second glyph site. The glyph itself
+ * follows docs/adr/2026-08-27-money-colour-vocabulary.md §3; the aggregate
+ * corollary above is unchanged.
  */
 export function resolveAccountAggregationSign(type: AccountType): 1 | -1 {
   return type === AccountType.CreditCard ? -1 : 1;

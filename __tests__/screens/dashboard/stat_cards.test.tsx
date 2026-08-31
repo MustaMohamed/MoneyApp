@@ -62,12 +62,14 @@ jest.mock('heroui-native', () => {
 });
 
 const baseProps = {
-  // `liabilitiesEgp` is a POSITIVE magnitude — `computeNetWorth` returns it as
-  // one and `dashboard.helpers.ts` says so — so the old `-200` literal is
-  // corrected here rather than carried into the type that now states the
-  // contract. Verified inert: `stat_cards.tsx` reads the field as
-  // `Math.abs(...)` for the proportion bar, and the one assertion naming the
-  // rendered string runs with `netWorthLoading` set, where neither value renders.
+  // `liabilitiesEgp` is the OWED-FRAME total (#259, reversing the "POSITIVE
+  // magnitude" claim this comment used to make) — positive when cards are
+  // owed, negative only when every card is in credit — so the old `-200`
+  // literal is corrected here to an ordinary owed value, not carried in on
+  // the strength of a contract that no longer forbids negative. Verified
+  // inert: `stat_cards.tsx` reads the field as `Math.abs(...)` for the
+  // proportion bar, and the one assertion naming the rendered string runs
+  // with `netWorthLoading` set, where neither value renders.
   // The two USD values are 1200 and 1000 at a rate of 40, chosen so neither
   // collides with a string an existing query matches; nothing asserts them —
   // `StatCards` reads no USD field at all.

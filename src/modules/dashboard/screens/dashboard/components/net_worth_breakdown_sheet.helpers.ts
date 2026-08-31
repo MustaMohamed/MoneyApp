@@ -64,6 +64,16 @@ export function resolveBreakdownRowColors(kind: BreakdownRowKind): {
  * `normalizeNegativeZero` call here; `-0 < 0` is false, so it takes the
  * `−` branch, and `formatDisplayMagnitude`'s true-zero test already routes
  * it to the unsigned `printsAsZero` return before the sign check runs.
+ *
+ * Precondition: the caller passes a `roundMoney`-quantised value —
+ * `computeLiabilitiesBreakdown` is the only caller, and it rounds every
+ * `balanceEgp` before this function ever sees it. A raw sub-cent magnitude
+ * (`-0.001`, say) is outside that contract: it is not a true zero by
+ * `formatDisplayMagnitude`'s `1e-9` epsilon, so `printsAsZero` still trips
+ * and this returns the bare `'0.00'` with no glyph — while the sheet's
+ * caption ternary, reading the same raw `balanceEgp` independently, still
+ * takes the `< 0` branch. "In credit" beside a value that reads as nothing
+ * at all, from a value this function was never contracted to see.
  */
 export function formatLiabilityRowValue(balanceEgp: number): string {
   const { text, printsAsZero } = formatDisplayMagnitude(balanceEgp, Currency.EGP);

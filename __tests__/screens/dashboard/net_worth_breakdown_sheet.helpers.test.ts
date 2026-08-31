@@ -1,12 +1,9 @@
-import { AccountType, Currency } from '@/constants/enums';
-import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   formatLiabilityRowValue,
   resolveBreakdownRowColors,
   resolveNetWorthUsdCaption,
   shouldShowProportionBar,
 } from '@/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.helpers';
-import { computeLiquidityBreakdown } from '@/modules/dashboard/screens/dashboard/dashboard.helpers';
 import { roundMoney } from '@/utils/money';
 
 // #277 spec §6.4: USD-only by construction (a literal `USD` node sits beside this amount),
@@ -77,28 +74,6 @@ describe('formatLiabilityRowValue — the single composition point for a liabili
   });
 });
 
-const makeTestAccount = (overrides: Partial<Account> = {}): Account => ({
-  id: 'acc-1',
-  name: 'Test',
-  type: AccountType.Bank,
-  currency: Currency.EGP,
-  opening_balance: 0,
-  current_balance: 0,
-  color: null,
-  credit_limit: null,
-  revolving_balance: null,
-  minimum_payment: null,
-  statement_due_day: null,
-  interest_tracking: 0,
-  apr: null,
-  is_archived: 0,
-  balance_review_required: 0,
-  sort_order: 0,
-  created_at: '2026-01-01T00:00:00.000Z',
-  updated_at: '2026-01-01T00:00:00.000Z',
-  ...overrides,
-});
-
 // #259 C6: the reserve clause is the load-bearing one in the {1000, -500}
 // row — the total is 500 > 0, so only `reserveEgp >= 0` fails there. Deleting
 // that clause alone would still hide the {-500, 1000} row (the liquid clause
@@ -113,19 +88,5 @@ describe('shouldShowProportionBar — the compound gate (#259 C6)', () => {
     [{ liquidEgp: 0, reserveEgp: 0.01 }, true],
   ] as const)('%j -> %s', (parts, expected) => {
     expect(shouldShowProportionBar(parts)).toBe(expected);
-  });
-
-  it('collapses to false when a sub-1.0 rate rounds every part to zero (S7)', () => {
-    const accounts: Account[] = [
-      makeTestAccount({
-        id: '1',
-        type: AccountType.Bank,
-        currency: Currency.USD,
-        current_balance: 0.02,
-      }),
-    ];
-    const { liquidEgp, reserveEgp } = computeLiquidityBreakdown(accounts, 0.0001);
-
-    expect(shouldShowProportionBar({ liquidEgp, reserveEgp })).toBe(false);
   });
 });
