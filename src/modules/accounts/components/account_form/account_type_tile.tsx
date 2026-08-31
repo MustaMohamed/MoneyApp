@@ -23,14 +23,7 @@ export interface AccountTypeTileProps {
   option: TypeOption;
 }
 
-/**
- * Invariant on every tile in every state (MA-009 plan decision 3 / step 7).
- * All four layout properties below are load-bearing, not redundant: the
- * wrapper's own `.radio-group__item` class is
- * `flex-direction: row; justify-content: space-between` — the exact
- * opposite of a tile — and `style` beats `className` in RN, so each has to
- * be stated explicitly to win (radio-group.css:5-10).
- */
+/** HeroUI's `.radio-group__item` is row/space-between and `style` beats `className` in RN. */
 const TILE_BOX_STYLE: ViewStyle = {
   flex: 1,
   height: ACCOUNT_TYPE_TILE_HEIGHT,
@@ -44,30 +37,9 @@ const TILE_BOX_STYLE: ViewStyle = {
   padding: Spacing.xs,
 };
 
-/**
- * Corner glow — HeroShell's own formula (decision 7), now read from the
- * module every hero-treatment consumer shares (debt:quality #228 / MA-009
- * post-approval fix F3) instead of restating HeroShell's default colour and
- * opacity as bare literals here. Computed once at module load, not per
- * render.
- */
 const GLOW_STYLE = heroGlowStyle({ size: ms(74), offset: ms(22) });
 
-/**
- * One tile in the 3-column, 5-tile account-type grid (mockup C1, 114x76).
- * Selection changes `borderColor`, the gradient + glow, the icon-chip fill
- * and the label colour — nothing in `TILE_BOX_STYLE`, which is why grid
- * position and tile size cannot move when the user picks a different type.
- *
- * The gradient and glow are direct (non-animated) siblings of the content,
- * not children of the scaling `Animated.View` below — RN positions an
- * absolutely-positioned child against its direct parent's padding box, so
- * placing them here lets the fill bleed to the tile's own edges exactly as
- * `.tile.on`'s CSS `background` does in the mockup. The spring pop only
- * scales the foreground content (icon chip + label); the outer Pressable
- * that carries `TILE_BOX_STYLE` is never touched by the animated style, so
- * the tile's own layout contribution is untouched by the animation too.
- */
+/** The gradient and glow must be direct siblings, not children of the scaling `Animated.View`. */
 export function AccountTypeTile({ option }: AccountTypeTileProps) {
   const { tileAnim, triggerTileTap } = useAccountTypeTileAnim();
 
@@ -113,16 +85,7 @@ export function AccountTypeTile({ option }: AccountTypeTileProps) {
                 color={isSelected ? Colors.dark.gold : CoreTokens.text2}
               />
             </View>
-            {/* text-foreground on both branches (impl review round 1, D4):
-                spec.md:122 requires full-strength for anything a user must
-                read, and the label is the only thing distinguishing a tile
-                from the other four — never a "genuinely redundant" label.
-                Selection reads from the gradient, glow, gold icon and
-                border, not from dimming the other four; hierarchy between
-                selected/unselected comes from weight, per decision 8. cn()
-                now joins two real class fragments instead of resolving a
-                single already-computed string (MA-009 post-approval fix
-                F8, debt:quality #228's step-7 nit). */}
+            {/* Full-strength both branches; selection shows in the gradient, not dimming. */}
             <Typography
               className={cn('text-foreground', isSelected ? 'font-inter-semibold' : 'font-inter')}
               style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}

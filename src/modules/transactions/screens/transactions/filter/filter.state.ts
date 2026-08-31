@@ -12,14 +12,7 @@ interface FilterStateShape {
 type FilterState = FilterStateShape & {
   open: () => void;
   close: () => void;
-  /**
-   * Toggles the given section open/closed using a functional updater so the
-   * current value of openSection is read at call time, not at render time.
-   * This prevents the stale-closure bug where a second tap on an already-open
-   * header re-opens it because the arrow function in JSX captured an outdated
-   * openSection value from the previous render. Use this from JSX — there is
-   * no plain `setOpenSection` setter to invite the bug back.
-   */
+  /** Functional updater, so a JSX arrow cannot capture a stale `openSection`. */
   toggleSection: (target: AccordionSection) => void;
   reset: () => void;
 };

@@ -1,19 +1,9 @@
 import { renderHook } from '@testing-library/react-native';
 
-/**
- * Mocking react-native-reanimated the way __tests__/account_type_tile_anim
- * .test.ts:14-24 does — the library's own mock leaves useReducedMotion
- * unimplemented ("ADD ME IF NEEDED"). FadeInDown is stubbed as a chainable
- * builder whose methods all return `this`, so it survives any call-chain
- * order: `.duration(500).delay(d).withInitialValues(...)` needs three links
- * to resolve, and only `delay` needs to actually carry a value forward.
- */
+// Reanimated's own mock leaves `useReducedMotion` unimplemented, so stub the module here.
 const mockUseReducedMotion = jest.fn();
 const mockFirstMount = jest.fn();
-// Every link records its argument. The earlier stub returned `this` from
-// duration() and withInitialValues() and carried only the delay forward, so
-// 2 of the 3 chain parameters were unasserted: deleting `.withInitialValues`
-// left the suite green while the screen animated from FadeInDown's preset 25.
+// Each link records its argument; returning `this` would leave chain parameters unasserted.
 const builder = {
   duration(durationMs: number) {
     return { ...this, durationMs };
@@ -60,7 +50,7 @@ describe('useWelcomeAnim — spec.md § Motion budget', () => {
     expect(entries).toHaveLength(4);
     for (const entry of entries) {
       expect(entry.durationMs).toBe(500);
-      // The spec's small lift, not FadeInDown's preset 25.
+      // Not FadeInDown's preset 25.
       expect(entry.initialValues).toEqual({ translateY: ms(10) });
     }
   });

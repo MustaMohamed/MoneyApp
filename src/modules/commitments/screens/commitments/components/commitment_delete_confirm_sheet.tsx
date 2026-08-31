@@ -9,11 +9,7 @@ interface Props {
   onConfirm: () => void;
 }
 
-/**
- * Destructive ConfirmSheet for commitment deactivation via the swipe-delete action.
- * Uses deactivateCommitment semantics (soft-delete; history preserved).
- * Copy reuses commitmentsDeactivate* strings — same action, same messaging.
- */
+/** Swipe-delete means deactivate: a soft delete that preserves commitment history. */
 export function CommitmentDeleteConfirmSheet({
   isOpen,
   busy,

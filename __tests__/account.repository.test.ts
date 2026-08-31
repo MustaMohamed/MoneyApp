@@ -1,6 +1,3 @@
-// TC-09 / TC-10 / TC-11 / TC-12 — AccountRepository owns UUID generation,
-// timestamp stamping, field defaults, and query delegation.
-
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
@@ -335,8 +332,6 @@ describe('AccountRepository.adjustBalance — TC-M15-03', () => {
     expect(row).toEqual({ current_balance: 750, balance_review_required: 0 });
   });
 
-  // MA-019 D3: the manual-adjust write path had no roundMoney anywhere on it,
-  // so a sub-cent value reached a REAL column every aggregation treats as 2dp.
   async function adjustedBalance(newBalance: number): Promise<number> {
     await repo.add({ ...baseInput, opening_balance: 1000 });
     const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
@@ -360,8 +355,6 @@ describe('AccountRepository.adjustBalance — TC-M15-03', () => {
     await expect(adjustedBalance(0.015)).resolves.toBe(0.02);
   });
 
-  // B1-03 end to end — the parser's output has to survive adjustBalance and
-  // land in the column. This assertion replaced emulator walk steps 6-7.
   it('B1-03: a comma-grouped typed amount reaches current_balance intact', async () => {
     const parsed = parseAdjustInput('1,234.56');
     expect(parsed.ok).toBe(true);

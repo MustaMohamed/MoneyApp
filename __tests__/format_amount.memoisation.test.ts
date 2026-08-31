@@ -1,12 +1,4 @@
-// #274: formatAmount memoises its Intl.NumberFormat instances, keyed on `decimals`. Gets its
-// own file so the module registry is fresh per test (jest.resetModules() + a per-test
-// require) — sharing a registry with format_amount.test.ts would let one test's warm cache
-// leak into another's construction count.
-//
-// Totality invariant this suite pins: `decimals` is the only varying constructor argument.
-// format_amount.ts hardcodes the locale as the string literal 'en-US' — it is not a runtime
-// input — so a `decimals`-only cache key is complete over everything the constructor varies
-// on. If a locale ever becomes a parameter, this key must grow with it.
+// Own file: `jest.resetModules()` gives a cold cache; `decimals` is the only varying key.
 
 describe('formatAmount — Intl.NumberFormat memoisation', () => {
   const RealNumberFormat = Intl.NumberFormat;
@@ -40,8 +32,7 @@ describe('formatAmount — Intl.NumberFormat memoisation', () => {
     formatAmount(1, 0);
     formatAmount(1, 0);
 
-    // Unmemoised, 5 calls construct 5 formatters (the base behaviour this gate catches a
-    // regression back to). Memoised, 2 distinct `decimals` keys construct exactly 2.
+    // Unmemoised, these 5 calls construct 5 formatters; memoised, 2 distinct keys construct 2.
     expect(constructionCount).toBe(2);
   });
 
@@ -49,8 +40,7 @@ describe('formatAmount — Intl.NumberFormat memoisation', () => {
     const { formatAmount } =
       require('@/utils/format_amount') as typeof import('@/utils/format_amount');
 
-    // First call per key is the cache-miss branch; the repeats are the cache-hit branch —
-    // both sides of the `cached !== undefined` check get exercised here.
+    // First call per key is the cache-miss branch; the repeats are the cache-hit branch.
     expect(formatAmount(1, 0)).toBe('1');
     expect(formatAmount(1, 2)).toBe('1.00');
     expect(formatAmount(1, 0)).toBe('1');

@@ -59,16 +59,7 @@ export function useTransactionDatePicker(
     onChange(nextDate);
   }
 
-  // datetimepicker 9 split the old single `onChange` in two. Both halves must still
-  // close the picker: under `onChange` that close ran before the
-  // `event.type === 'set'` check, so it happened on cancel too, and dropping it from
-  // the dismiss path would strand the store with the picker marked open — invisible,
-  // since the native dialog has already gone.
-  //
-  // The explicit owner check is only on the select half, where it gates the caller's
-  // `onChange`. The dismiss half does not need one: `closeAndroid` already no-ops
-  // unless `activeOwnerId` matches, so a stale owner's dismissal cannot close a
-  // newer owner's picker.
+  // Both datetimepicker 9 halves must close the picker, or the store stays marked open.
   function selectAndroid(_event: DateTimePickerChangeEvent, date: Date) {
     if (useDatePickerSheetState.getState().activeOwnerId !== ownerId) return;
     closeAndroid(ownerId);

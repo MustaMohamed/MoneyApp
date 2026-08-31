@@ -1,19 +1,7 @@
 import { Strings } from '@/constants/strings';
 import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
 
-/**
- * The one account-colour source. 16 families x rich/soft, derived from
- * AcctTokens rather than copied, so a token change cannot leave the picker
- * painting a colour the rest of the app does not store.
- *
- * Array order is the sheet's column order (mockup D1/D2): 16 rich entries in
- * AcctTokens declaration order, then the same 16 families in soft.
- *
- * One older colour list still exists and is NOT touched here — AccountColors
- * in constants/theme.ts. The two ACCOUNT_COLORS arrays that used to live in
- * the Settings and onboarding add-account hooks are gone as of MA-007/008;
- * both hosts now render this palette through AccountColorField's sheet.
- */
+// Array order is the sheet's column order: 16 rich in `AcctTokens` order, then the same 16 soft.
 
 export type AccountColorFamily = keyof typeof AcctTokens;
 export type AccountColorTone = 'rich' | 'soft';
@@ -22,7 +10,7 @@ export type AccountColorEntry = {
   family: AccountColorFamily;
   familyLabel: string;
   tone: AccountColorTone;
-  /** Display name for the tone — the sheet and the trigger row never build this string. */
+  /** Display name for the tone; the sheet and the trigger row never build this string. */
   toneLabel: string;
   hex: string;
   /** Colour a check glyph must be drawn in to stay legible on `hex`. */
@@ -53,7 +41,7 @@ const TONE_LABELS: Record<AccountColorTone, string> = {
   soft: Strings.accountColorToneSoft,
 };
 
-/** The only two colours a tick is ever drawn in — mockup --foreground / --accent-foreground. */
+/** The only two colours a tick is ever drawn in: mockup --foreground / --accent-foreground. */
 const TICK_LIGHT = CoreTokens.text1; // #F0EBE3
 const TICK_DARK = CoreTokens.bg; // #0F1923
 
@@ -79,16 +67,11 @@ export function contrastRatio(a: string, b: string): number {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
 
-/** Whichever of the two tick colours is more legible on this swatch. */
 function pickTickColor(hex: string): string {
   return contrastRatio(hex, TICK_LIGHT) >= contrastRatio(hex, TICK_DARK) ? TICK_LIGHT : TICK_DARK;
 }
 
-// The type predicate, not `as AccountColorFamily[]`: `typescript/no-unsafe-type-
-// assertion` is "error" for src/ (.oxlintrc.json) and rejects the assertion form
-// with "type '(...)[]' is more narrow than the original type". Measured, and
-// there is no `Object.keys(...) as X[]` precedent anywhere in src/ to follow.
-// The palette-order test below is what proves this covers all 16 families.
+// Type predicate, not `as`: `typescript/no-unsafe-type-assertion` is an error for `src/`.
 const FAMILIES = Object.keys(AcctTokens).filter(
   (key): key is AccountColorFamily => key in AcctTokens,
 );
@@ -119,10 +102,4 @@ export function findAccountColor(hex: string): AccountColorEntry | undefined {
   return BY_HEX.get(hex.toUpperCase());
 }
 
-/**
- * The colour an account falls back to when it has none. Both Accounts-module
- * form paths and the detail screen's `?? ` fallback read this one constant —
- * before MA-006 the detail screen fell back to AccountColors[0] in
- * constants/theme.ts while drawing swatches from a different list.
- */
 export const DEFAULT_ACCOUNT_COLOR: string = AcctTokens.midnight.rich;

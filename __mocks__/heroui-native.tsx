@@ -1,8 +1,6 @@
 import React from 'react';
 import { View, Pressable, Text } from 'react-native';
 
-/** Minimal mock for heroui-native — satisfies Sheet tests. */
-
 export const cn = (...args: (string | undefined | null | false)[]) =>
   args.filter(Boolean).join(' ');
 

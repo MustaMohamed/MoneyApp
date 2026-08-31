@@ -19,8 +19,7 @@ export default function AddAccountScreen() {
       step={2}
       title={Strings.n2HeaderTitle}
       onBack={() => {
-        // onBack catches its own failure inside runOnboardingTransition and
-        // resolves; void discards no rejection.
+        // onBack resolves on failure inside runOnboardingTransition; void discards no rejection.
         void onBack();
       }}
       footnote={Strings.n2Footnote}

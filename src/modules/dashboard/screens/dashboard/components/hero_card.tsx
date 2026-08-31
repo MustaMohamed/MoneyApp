@@ -27,13 +27,9 @@ const DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT = ms(35);
 const DASHBOARD_HERO_PILL_SKELETON_HEIGHT = ms(20);
 
 interface HeroCardProps {
-  /**
-   * One object, not loose numbers: a discriminated union narrows only when the
-   * discriminant and the fields arrive together, and sibling props destructured
-   * in a signature do not narrow each other.
-   */
+  /** One object, not loose props: narrowing needs the discriminant and fields together. */
   netWorth: DashboardNetWorth;
-  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  /** Read once in `dashboard.hook.ts` and passed down, never from a store here. */
   baseCurrency: Currency;
   rate: number;
   /** Decided by the domain gate in `dashboard.hook.ts`, never re-derived here. */
@@ -86,14 +82,6 @@ function HeroCardSkeleton(): React.ReactElement {
   );
 }
 
-/**
- * The amount path's headline, kept as a subcomponent rather than inline so the two
- * `formatCurrencyParts` calls the value/code split needs collapse to one. Matches
- * `stat_cards.tsx`'s `NetWorthCardBody` and `net_worth_breakdown_sheet.tsx`'s
- * `NetWorthBreakdownBody` — the established shape for a `DashboardNetWorthAmount`-narrowed
- * subcomponent in this codebase, not a compiler requirement (an if/else-scoped const also
- * compiles here).
- */
 function HeroCardAssetsAmount({
   netWorth: amount,
   baseCurrency,
@@ -127,22 +115,7 @@ export function HeroCard({
   const foreignCurrency = foreignCurrencyFor(baseCurrency);
 
   return (
-    /*
-     * The hero is NOT tappable on the refusal path: the breakdown sheet cannot
-     * honestly show a breakdown when the headline refused to state a total, so
-     * it does not open at all. Rendering the sheet's EGP-only rows instead is
-     * not the alternative — a refusal only fires when at least one non-archived
-     * account is foreign, so those rows would be a partial total over an
-     * incomplete account set, which spec §7 prohibits by name.
-     *
-     * `NetWorthBreakdownSheet` still suppresses its body on `rate-needed`. With
-     * the sheet unreachable in that state that suppression becomes a SECOND
-     * guard rather than the primary one, and it stays: the sheet's prop is
-     * public and nothing in its own file makes the state impossible.
-     *
-     * `HeroShell` drops the `Pressable` wrapper entirely when `onPress` is
-     * undefined, so this also removes the button role and the press feedback.
-     */
+    // Not tappable on the refusal path: there is no honest breakdown of a refused total.
     <HeroShell
       onPress={netWorth.kind === 'rate-needed' ? undefined : onPress}
       accessibilityLabel={Strings.dashAvailableToSpend}
@@ -204,10 +177,7 @@ export function HeroCard({
         <>
           {netWorth.kind === 'rate-needed' ? (
             <>
-              {/* Warning, not danger — nothing failed and nothing is broken.
-                  No number, no dash-as-number, no partial total, no substituted
-                  rate: `INITIAL_STATE.rate` is an unverified guess. Mirrors
-                  `ready_hero_card.tsx`'s refusal so the two read as one app. */}
+              {/* Warning, not danger: nothing failed, and no number or rate is substituted. */}
               <View
                 className="mt-3 mb-1 flex-row items-center px-3"
                 style={{ flexDirection: 'row', gap: ms(8) }}
@@ -251,22 +221,7 @@ export function HeroCard({
                 size={ms(11)}
                 color={Colors.dark.text1}
               />
-              {/* This pill renders ASSETS. The breakdown sheet's ≈ caption
-                  renders NET WORTH, from the same portfolio in the same
-                  currency — 17,097.50 here against 12,212.50 there on the §3B
-                  fixture — and the two are NOT meant to agree. Pointing this at
-                  `netWorthForeign` to reconcile them compiles, with no type
-                  error and no failing test.
-
-                  The currency is `foreignCurrencyFor(baseCurrency)`, so it is
-                  EGP for a USD-base user; the hardcoded `Currency.USD` this
-                  replaces printed a USD code over an EGP number.
-
-                  Keyed on the FIELD being absent, not on `rate > 0`:
-                  `INITIAL_STATE.rate` is 50, so the old check printed a
-                  confident `~ N USD` computed from the placeholder for every
-                  user who had never fetched a rate. No `?? 0` — a formatted 0
-                  is a wrong number, not an absent one. */}
+              {/* Assets, not net worth: the sheet's ≈ caption differs on purpose. */}
               <Text className="text-foreground text-xs">
                 {netWorth.kind === 'amount' && netWorth.assetsForeign !== undefined
                   ? formatCurrencyAmount(netWorth.assetsForeign, foreignCurrency)
@@ -275,17 +230,6 @@ export function HeroCard({
                     )}
               </Text>
             </View>
-            {/* Gated on the `isRateUsable` prop, decided once in
-                `dashboard.hook.ts` and never re-derived here — the
-                `account_card.tsx:157-178` adoption pattern. `isRateUsable` is
-                false on every `rate-needed` outcome (`dashboard.helpers.ts:82-85`),
-                so this agrees with the old `netWorth.kind === 'rate-needed'`
-                check on that path; they diverge on a portfolio holding nothing
-                but base-currency accounts and no verified rate — `kind` is
-                still 'amount' there, so the old check printed the unverified
-                rate as fact. Under an EGP base that is the EGP-only portfolio;
-                under a USD base those same accounts are all foreign and `kind`
-                is 'rate-needed', where the two agree. That gap is #257. */}
             {isRateUsable ? (
               <View
                 testID="dashboard-hero-rate-pill"

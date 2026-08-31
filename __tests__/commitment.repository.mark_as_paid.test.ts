@@ -1,24 +1,3 @@
-/**
- * commitment.repository.mark_as_paid.test.ts
- *
- * Bridges better-sqlite3 into the mocked expo-sqlite surface the way
- * `__tests__/transaction.repository.test.ts` does, following the pattern of
- * `__tests__/commitment_housekeeping.repository.test.ts` — but that suite's
- * fakeDb maps only `getAllAsync`/`runAsync`/`withExclusiveTransactionAsync`
- * and hands the db to the caller as a `fakeDb` parameter. `markCommitmentAsPaid`
- * uses `withTransactionAsync` (commitment_payments.ts) and
- * `CommitmentRepository.markAsPaid` calls `getDb()` itself rather than taking
- * a db parameter, so both gaps are closed here: `withTransactionAsync` is
- * mapped to real BEGIN/COMMIT/ROLLBACK, and the bridge is installed through
- * the mocked `@/database/client` module.
- *
- * This is the row-18 assertion the ticket's own diagnosis says does not exist
- * anywhere in the tree: `commitment_payments.amount_paid` was written from
- * `details.amount_paid` (raw) while `transactions.amount` was written from
- * `amounts.accountNativeAmount` (rounded) — two different numbers for one
- * payment. Reading both rows back in the same transaction's aftermath is the
- * only way to prove they now reconcile.
- */
 import Database from 'better-sqlite3';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
@@ -184,10 +163,6 @@ afterAll(() => {
 });
 
 describe('CommitmentRepository.markAsPaid — the write path reconciles', () => {
-  // Row 18, the ticket's highest-value assertion. Gate: revert markAsPaid to
-  // pass `details` straight through to markCommitmentAsPaid (delete the
-  // `paidDetails` rebinding) and `payment.amount_paid` reads back 10.999
-  // while `tx.amount` still reads 11 — two different numbers for one payment.
   it('EGP commitment / EGP account: 10.999 persists as 11 in the payment row, the transaction, and the account balance', async () => {
     insertCommitment(commitmentRow('commitment-egp', Currency.EGP, 10.999));
     insertPayment('payment-egp', 'commitment-egp', Currency.EGP, 10.999);
@@ -215,9 +190,7 @@ describe('CommitmentRepository.markAsPaid — the write path reconciles', () => 
     expect(account.current_balance).toBe(989);
   });
 
-  // Row 19 plus the remaining two currency pairs. `amount_paid` is always the
-  // commitment-currency figure; `tx.amount` is the account-native figure —
-  // they are *supposed* to differ across currencies (ADR §3 row 2).
+  // `amount_paid` is the commitment-currency figure, `tx.amount` the account-native one.
   it.each([
     [Currency.EGP, Currency.EGP, 'acc_egp', undefined, 11, 11],
     [Currency.USD, Currency.EGP, 'acc_egp', 48, 11, 528],

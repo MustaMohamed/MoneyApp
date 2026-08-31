@@ -31,24 +31,7 @@ export function useIncomeSheet() {
     });
   const amountText = watch('amountText');
 
-  // Compared against the same formatter the prefill writes, not `String()`. The
-  // note is "this text came from the suggestion", so the two have to be
-  // produced identically -- with `String()` here the note would silently stop
-  // rendering for exactly the values the prefill fix is about (a stored 1e-7
-  // prefills as '0.0000001' and would never equal '1e-7').
-  //
-  // The blank guard is on the TEXT rather than on `suggestion !== null`, and
-  // that is the widening the formatter's postcondition requires. '' now has two
-  // producers: a null suggestion, and one the formatter declines to render --
-  // `getTrailingIncomeSuggestion` averages `transactions.egp_amount`, another
-  // bare `REAL NOT NULL` (`004:9`), so a negative average reaches here and
-  // formats to ''. Either way '' is not text that came from anywhere, and an
-  // untouched empty field must not claim it did. Guarding the text covers both
-  // and cannot fall behind a third producer.
-  //
-  // Derived from the RHF value the Controller renders, never from the draft
-  // store: the Controller's value is what is on screen, and the note is a claim
-  // about what the user is looking at.
+  // Must use the same formatter the prefill writes, or a stored 1e-7 never compares equal.
   const suggestionText = formatStoredMoneyText(state.suggestion);
   const isPrefilledFromSuggestion = suggestionText !== '' && amountText === suggestionText;
 
@@ -59,17 +42,7 @@ export function useIncomeSheet() {
 
   const setAmountText = useCallback(
     (text: string) => {
-      // Classified before both writes, so a refused keystroke leaves the draft
-      // store and the RHF field agreeing on the old text rather than drifting
-      // apart, and an accepted one writes the same masked string to both. A
-      // typed comma arrives here as a decimal point; a comma in a paste-shaped
-      // delta arrives as `undefined` and writes nothing.
-      //
-      // The prior held text comes from `getValues`, not the watched value:
-      // closing over `amountText` would put it in this callback's dependency
-      // array and churn the callback's identity on every keystroke. It must be
-      // the RHF value and not the draft store, for the reason recorded above --
-      // the Controller's value is what is on screen.
+      // Prior text from `getValues`, not the watched value, to keep the callback identity stable.
       const masked = maskFieldText('amount', getValues('amountText'), text);
       if (masked === undefined) return;
       setDraftAmountText(masked);

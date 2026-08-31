@@ -14,8 +14,6 @@ interface Row {
   spinnerColor: string | undefined;
 }
 
-// Row 3 proves omission preserves today's behaviour byte for byte (button.tsx:31).
-// Row 5 catches a gold spinner on a red destructive button.
 const rows: Row[] = [
   {
     variant: 'primary',

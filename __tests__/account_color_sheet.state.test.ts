@@ -33,8 +33,6 @@ describe('useAccountColorSheetState', () => {
   });
 
   it('close discards the staged colour', () => {
-    // The discard contract: the close control and swipe-down both land here,
-    // and neither writes to the form. The next open re-seeds from RHF.
     useAccountColorSheetState.getState().open(ADD, AcctTokens.nile.rich);
     useAccountColorSheetState.getState().stage(AcctTokens.sand.soft);
     useAccountColorSheetState.getState().close();

@@ -1,4 +1,3 @@
-// Backward-compat stub — canonical in modules/budget/
 export {
   getCategorySpendByMonth,
   getTrailingIncomeSuggestion,

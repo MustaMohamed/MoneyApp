@@ -14,9 +14,8 @@ export default function AboutScreen() {
   return (
     <Screen edges={['bottom']}>
       <ScreenScroll contentContainerStyle={{ paddingBottom: 48 }}>
-        {/* App info card */}
         <View className="bg-surface border-border mx-4 mt-6 items-center rounded-2xl border p-6">
-          {/* App icon placeholder — replace with Image when asset exists */}
+          {/* Placeholder: swap for an Image once the icon asset exists */}
           <View className="bg-default border-border mb-4 h-20 w-20 items-center justify-center rounded-2xl border">
             <MaterialCommunityIcons name="chart-line" size={40} color={Colors.shared.cairoGold} />
           </View>
@@ -31,7 +30,6 @@ export default function AboutScreen() {
           </Text>
         </View>
 
-        {/* Data locality notice */}
         <View className="bg-surface border-border mx-4 mt-4 rounded-xl border px-4 py-4">
           <Text className="text-muted font-inter text-center text-sm leading-5">
             {Strings.aboutDataNotice}

@@ -21,11 +21,7 @@ describe('useAccountFormState', () => {
   });
 
   it('a second beginSave() while saving returns false and does not clear errorMessage', () => {
-    // Simulates the true re-entry case: saving already true with a stale
-    // errorMessage still on screen. Direct setState because the public
-    // actions cannot reach "saving && errorMessage set" at the same time —
-    // that is exactly the branch under test: the early-return path must be
-    // a no-op on state, not merely "returns false".
+    // Direct `setState`: the public actions cannot reach saving with a stale `errorMessage`.
     useAccountFormState.setState({ saving: true, errorMessage: 'boom' });
 
     expect(useAccountFormState.getState().beginSave()).toBe(false);

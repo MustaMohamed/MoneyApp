@@ -17,30 +17,12 @@ export interface CreditCardSlotProps {
   isCreditCard: boolean;
 }
 
-/**
- * The reserved credit-card slot (mockup C1 → C5) — the single unconditional
- * node of MA-009 plan decision 3. Rendered in exactly the same position by
- * every caller of this component regardless of `isCreditCard`; only the
- * content inside swaps, which is what makes "the real fields open exactly
- * where the hint was" structural rather than visual.
- */
+/** Same tree position either way, so the real fields open exactly where the hint was. */
 export function CreditCardSlot({ form, isCreditCard }: CreditCardSlotProps) {
   if (!isCreditCard) {
     return (
       <Box
-        // Distinct `key` per branch (MA-009 post-approval fix F5): both
-        // branches return a Box at the same tree position, so without one
-        // React reuses a single host View and only updates its style in
-        // place — the exact mechanism behind D2's dashed-border leak
-        // (Android does not reset a style property that is simply absent
-        // from the new object). A `key` per branch makes React unmount the
-        // old host view and mount a fresh one on every type switch instead,
-        // so no property from either branch — not just borderStyle, the one
-        // D2 caught — can ever carry over onto the other. Invisible to the
-        // user: every *child* in both branches was already fully remounted
-        // on a type switch (the two branches render structurally different
-        // content), this only extends the same discipline to the outer
-        // wrapper.
+        // Distinct `key` remounts the Box; Android keeps a style prop the new object omits.
         key="hint"
         style={{
           minHeight: CREDIT_SLOT_MIN_HEIGHT,
@@ -55,10 +37,7 @@ export function CreditCardSlot({ form, isCreditCard }: CreditCardSlotProps) {
         className="border-separator"
       >
         <MaterialCommunityIcons name="credit-card" size={Size.iconMd} color={CoreTokens.text3} />
-        {/* Full-strength, not the mockup's --content-secondary — decision 8
-            generalised: this hint is the only content in the box and is
-            exactly the kind of copy a user must read (spec.md:122), the
-            same shape as a field's helper-rail copy. */}
+        {/* Not the mockup's `--content-secondary`: this hint is copy the user must read. */}
         <Typography
           className="font-inter text-foreground"
           style={{ flex: 1, fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
@@ -71,14 +50,8 @@ export function CreditCardSlot({ form, isCreditCard }: CreditCardSlotProps) {
 
   return (
     <Box
-      // See the hint branch's comment above — the same distinct-key fix.
       key="credit"
-      // borderStyle stated explicitly, not omitted: both branches return a
-      // Box at the same tree position, so React reuses one host View, and
-      // Android does not reset borderStyle when a style property is simply
-      // absent from the new object (impl review round 1, D2 — the open slot
-      // was inheriting the hint branch's dashed border on every reachable
-      // path, since Bank is the default type).
+      // `borderStyle` is explicit: Android does not reset a property absent from the new object.
       style={{ borderWidth: 1, borderStyle: 'solid', borderRadius: Radius.md, overflow: 'hidden' }}
       className="border-separator"
     >

@@ -1,15 +1,4 @@
-// Invariant: no tracked src/ .ts/.tsx file outside the literal allowlist below constructs
-// an `Intl.NumberFormat`, and every allowlist entry names a file that still does. Steady
-// state today (post-MA-016): one sanctioned entry — `format_amount.ts`, the app's one
-// legitimate constructor — and zero `issue` entries; #270's original 12-file cleanup
-// register emptied out as MA-016 and its predecessors fixed each site in turn.
-//
-// `issue` is not dead — it is the re-arming mechanism for the *next* such campaign, not
-// this one's leftovers. To temporarily allowlist a newly discovered violation, add
-// `{ path, issue: <N> }`; the PR that fixes that file must delete its entry in the same
-// commit, or this check goes red on the stale half (pass 2, below). A zero count here is
-// the register being empty because the last campaign finished clean, not evidence the
-// mechanism is unused.
+// Add `{ path, issue: <N> }` to temporarily allowlist a violation; the fixing PR must delete it.
 const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -17,21 +6,11 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const errors = [];
 
-// No `g` flag: with one, RegExp#test carries lastIndex between calls and silently skips
-// roughly every other match. The paren is load-bearing, not `new` — `Intl.NumberFormat(...)`
-// without `new` is legal and returns a working formatter, so a pattern anchored on `new`
-// is evaded by deleting four characters. The negative lookbehind keeps `SomeIntl.NumberFormat(`
-// from matching; comments are stripped before matching (stripComments, below) — a prose
-// mention of the constructor no longer needs a paren-less workaround to stay out of the allowlist.
+// No `g` flag (`test` carries `lastIndex`); matches on the paren since `new` is optional.
 const CONSTRUCTOR = /(?<![\w.])Intl\.NumberFormat\s*\(/;
 
-// ASCII ascending by path — this is git ls-files order, so a reviewer can diff this against
-// a fresh grep by eye, and #270's single-entry deletions stay single-line diffs. Entries with
-// an `issue` may only ever be deleted, never added without a gate.
-const ALLOWLIST = [
-  // Sanctioned: the single legitimate constructor. No `issue` — this entry is permanent.
-  { path: 'src/utils/format_amount.ts' },
-];
+// ASCII ascending by path, matching `git ls-files` order.
+const ALLOWLIST = [{ path: 'src/utils/format_amount.ts' }];
 
 const listing = spawnSync(
   'git',
@@ -42,10 +21,7 @@ const listing = spawnSync(
   },
 );
 
-// Checked before any use of `stdout` — on the error path (git missing from PATH, cwd gone)
-// spawnSync returns `{ status: null, stdout: undefined }` despite `stdout`'s non-nullable
-// type with `encoding: 'utf8'`. Accessing `.split` on that path throws a TypeError stack
-// instead of this message, so the status/error check must precede the split, not follow it.
+// `spawnSync` returns `stdout: undefined` on failure, so this must precede the split below.
 if (listing.error || listing.status !== 0) {
   errors.push(
     `git ls-files failed to run — run from a git checkout of MoneyApp (${listing.error?.message ?? `exit code ${String(listing.status)}`})`,
@@ -56,8 +32,7 @@ if (listing.error || listing.status !== 0) {
 
 const files = listing.stdout.split('\n').filter(Boolean);
 
-// A broken pathspec must not silently pass with zero files scanned — that is the failure
-// mode this repo keeps shipping.
+// A broken pathspec would otherwise pass silently with zero files scanned.
 if (files.length === 0) {
   errors.push('git ls-files returned no files — run from a git checkout of MoneyApp');
   console.error(errors.join('\n'));
@@ -81,23 +56,7 @@ function firstConstructorLine(relPath) {
   return result;
 }
 
-// Comment stripping runs before matching, so prose *about* a constructor cannot mimic one and
-// a constructor hidden inside a comment cannot escape detection. Block-comment state carries
-// across lines; quote state (`'`, `"`, backtick) ALSO carries across lines — a backtick
-// template literal is valid, ordinary JS across several physical lines, and treating an
-// interior line's `/*` as a real comment-opener (the bug this replaced) can blank a real
-// constructor below it: a silent false negative. At the end of a line, quote state is reset
-// unless it is a backtick — single/double-quoted strings do not legitimately span lines, so
-// closing them at line-end is a safe simplification; keeping backtick state open is not.
-// This can produce a loud false positive (a `` ` `` inside what reads as a regex character
-// class opens quote state that a same-line trailing comment then rides past, uncommented —
-// see validate_money_formatting.test.ts's pinned case) but never a silent false negative:
-// string content is preserved (`result += ch`), never blanked, so a real constructor is
-// never swallowed by quote state, only possibly mis-flagged — the accepted direction
-// (P8 cycle 1 item 8, deep-mode verifier CONFIRMED). A backslash inside a quote escapes
-// the next character, so an escaped quote (`\'`) cannot close the string early either.
-// Lines are blanked, not deleted, so every line's index — and therefore every reported
-// line number — is unchanged.
+// Lines are blanked, not dropped, so line numbers stay valid; backtick quote state spans lines.
 function stripComments(lines) {
   let inBlockComment = false;
   let quote = null;
@@ -142,7 +101,6 @@ function stripComments(lines) {
 
 const allowlistPaths = new Set(ALLOWLIST.map((entry) => entry.path));
 
-// Pass 1 — violations: any scanned file that constructs and is not allowlisted.
 for (const file of files) {
   const line = firstConstructorLine(file);
   if (line !== undefined && !allowlistPaths.has(file)) {
@@ -152,10 +110,7 @@ for (const file of files) {
   }
 }
 
-// Pass 2 — stale entries: symmetric to pass 1, so the allowlist cannot become a permanent
-// amnesty. "gone" is checked by list membership plus a disk check (a tracked file removed
-// from the working tree but not yet staged is still listed by git ls-files); "fixed" is
-// whatever remains once "gone" is ruled out.
+// The disk check catches a tracked file deleted from the working tree but still in `ls-files`.
 for (const entry of ALLOWLIST) {
   const isGone = !fileSet.has(entry.path) || !fs.existsSync(path.join(root, entry.path));
   if (isGone) {

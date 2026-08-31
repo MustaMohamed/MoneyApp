@@ -1,7 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
 import { OnboardingStep } from '@/constants/enums';
-// Import after mocks are in place
 import { useOnboardingStore } from '@/store/onboarding.store';
 
 jest.mock('expo-secure-store', () => ({
@@ -9,9 +8,7 @@ jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
-// Minimal repo stub — the onboarding singleton calls AppSettingsRepository internally
-// via the store singleton, but the store singleton is created at module load time.
-// We mock the repository to avoid SQLite in tests.
+// Stub the repository so the store singleton, built at module load, never reaches SQLite.
 jest.mock('@/repositories/app_settings.repository', () => ({
   AppSettingsRepository: jest.fn().mockImplementation(() => ({
     get: jest.fn().mockResolvedValue(null),
@@ -57,7 +54,6 @@ describe('onboardingStore.load — legacy O* migration', () => {
     const result = await useOnboardingStore.getState().init();
 
     expect(result.step).toBe(OnboardingStep.N3);
-    // setItemAsync should NOT have been called for the restart (it may be called by other store actions but not specifically for force-restart)
     const didRestart = mockSetItemAsync.mock.calls.some(
       ([, value]) => String(value) === String(OnboardingStep.N1),
     );

@@ -4,10 +4,6 @@ import {
   resolveNetWorthStatColor,
 } from '@/modules/dashboard/screens/dashboard/components/stat_cards.helpers';
 
-// #277 spec §6.4: USD-only by construction (a literal `USD` node sits beside this amount),
-// so it carries two USD fixtures instead of two currency directions (F2). Extracted in the
-// { value, code } shape c5 keeps -- exactly formatCurrencyParts's own return shape -- so
-// c5's adoption (06e4d7b) was a body swap with zero test churn.
 describe('resolveMonthSpendUsdAmount — stat_cards.tsx:249', () => {
   it('shows cents on a non-whole USD month spend — base value: 1,251, head: 1,250.75', () => {
     expect(resolveMonthSpendUsdAmount(1250.75)).toEqual({ value: '1,250.75', code: 'USD' });
@@ -18,11 +14,6 @@ describe('resolveMonthSpendUsdAmount — stat_cards.tsx:249', () => {
   });
 });
 
-// #265 / the ADR: a net worth is a magnitude the user owns or owes — it stops being
-// coloured by sign, so a negative net worth stops reading as a red/danger state and
-// renders identically to a positive one. rate-needed stays warning (actionable: no rate
-// to compute from). Fails at base 618517dc: the old branch returned Colors.dark.negative
-// for the amount-at--5000 case.
 describe('resolveNetWorthStatColor — stat_cards.tsx netColor', () => {
   const amountNetWorth = (netWorth: number): DashboardNetWorth => ({
     kind: 'amount',

@@ -1,16 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-/**
- * Impl review round 1, D6: neither the plan nor `## Emulator verification`'s
- * skip of the reduced-motion walk was backed by a test — this is that test.
- * `react-native-reanimated/mock` deliberately leaves `useReducedMotion`
- * unimplemented ("ADD ME IF NEEDED"), so it is stubbed here directly; the
- * spring primitives are call-recording fakes rather than real physics,
- * because the only thing observable in a jest environment is whether the
- * write path (`scale.value = withSequence(...)`) runs at all.
- */
-// Jest's mock-hoisting guard only allows out-of-scope variables named
-// `mock*` (case-insensitive) inside a jest.mock() factory.
+// Reanimated's mock lacks `useReducedMotion`; jest.mock factories need `mock*` names.
 const mockUseReducedMotion = jest.fn();
 const mockWithSpring = jest.fn((value: number, _config?: unknown) => value);
 const mockWithSequence = jest.fn((...values: number[]) => values[values.length - 1]);
@@ -40,9 +30,7 @@ describe('useAccountTypeTileAnim — spec.md § Motion budget', () => {
       result.current.triggerTileTap();
     });
 
-    // The only statement that can write scale.value is
-    // `scale.value = withSequence(withSpring(...), withSpring(...))` — if
-    // withSequence/withSpring were never called, that assignment never ran.
+    // `scale.value` is only written via `withSequence(withSpring(...))`; no calls means no write.
     expect(mockWithSequence).not.toHaveBeenCalled();
     expect(mockWithSpring).not.toHaveBeenCalled();
     expect(result.current.tileAnim).toEqual({ transform: [{ scale: 1 }] });

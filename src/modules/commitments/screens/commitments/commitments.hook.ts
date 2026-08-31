@@ -185,8 +185,6 @@ export function useCommitments() {
   const hasListFilters =
     statusFilter !== 'all' || searchQuery.trim().length > 0 || activeFilterCount > 0;
 
-  // Group totals by currency. For paid: actual paid amount; for variable+unpaid with no
-  // estimate: skipped (excluded). Skipped payments excluded entirely.
   const totalsByCurrency = useMemo(() => {
     const totals = new Map<Currency, number>();
     for (const p of activePayments) {
@@ -297,9 +295,7 @@ export function useCommitments() {
       loadError,
       presentation: resolveCommitmentsPresentation({ hasMatchingSnapshot, loadError }),
       hasLoaded: hasMatchingSnapshot,
-      // hasCommitments is month-independent (all commitments, any month). isEmpty is
-      // per-selected-month. The list shows the full welcome empty state only when there
-      // are no commitments at all; an empty *month* keeps the nav/filters mounted.
+      // Month-independent, unlike `isEmpty`: an empty month keeps the nav and filters mounted.
       hasCommitments: activeCommitments.length > 0,
       statusFilter,
       searchQuery,

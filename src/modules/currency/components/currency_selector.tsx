@@ -9,11 +9,7 @@ export interface CurrencySelectorProps {
   value: Currency;
   onChange: (currency: Currency) => void;
   isDisabled?: boolean;
-  /**
-   * Fixed width per segment — MA-009's compact currency cell next to the
-   * balance field (decision 1). Omitted by every other consumer, which
-   * keeps today's full-width two-segment control.
-   */
+  /** Fixed width per segment; when omitted the control stays full-width. */
   segmentWidth?: number;
 }
 

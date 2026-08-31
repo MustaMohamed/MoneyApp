@@ -12,13 +12,7 @@ export interface OnboardingFooterProps {
   cta: ReactNode;
 }
 
-/**
- * Status track above the primary action. The CTA slot is
- * ONBOARDING_SHELL_TRACKS.cta (52) while the button drawn inside it stays
- * HeroUI's own 48 — see spec.md § "Known design/codebase disagreements" item
- * 6. The footer reserves the slot and centres the button in it, which is what
- * actually keeps the zero-shift contract: the slot never resizes.
- */
+/** Fixed 52 slot (`ONBOARDING_SHELL_TRACKS.cta`) never resizes; the button inside stays 48. */
 export function OnboardingFooter({ footnote, message, cta }: OnboardingFooterProps) {
   return (
     <View

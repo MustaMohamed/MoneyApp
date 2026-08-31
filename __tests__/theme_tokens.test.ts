@@ -54,9 +54,7 @@ describe('theme_tokens', () => {
   });
 
   it('all 32 AcctTokens swatches are distinct colours', () => {
-    // A duplicated hex makes two families indistinguishable in the 32-swatch
-    // sheet and makes the hex->family lookup in account_palette.ts ambiguous.
-    // The length assertion above cannot catch a copy-paste; this one can.
+    // A duplicate hex makes the hex to family lookup in `account_palette.ts` ambiguous.
     const swatches = Object.values(AcctTokens).flatMap((s) => [s.rich, s.soft]);
     expect(new Set(swatches.map((h) => h.toUpperCase())).size).toBe(swatches.length);
   });

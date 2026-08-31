@@ -1,19 +1,4 @@
-/**
- * commitments_detail.hook.test.ts
- *
- * Background: detail.hook.ts calls setViewState inside a useEffect on mount.
- * In the React test renderer, this fires synchronously within renderHook's
- * act(). Any real Zustand store + useShallow:(sel)=>sel passthrough produces
- * a new object reference every call → useSyncExternalStore "unstable snapshot"
- * → "Maximum update depth exceeded".
- *
- * Fix 1 relocated useCommitmentDetailScreenData to detail.state.ts (exported).
- * That store's behavior is verified in commitments_detail_screen_data.state.test.ts.
- *
- * This file tests the hook's public API surface with both detail.state stores
- * mocked to stable values, exercising the hook's real logic (useMemo derivations,
- * action callbacks shapes).
- */
+// Stores are mocked: a real one plus the `useShallow` passthrough loops on an unstable snapshot.
 
 import { act, renderHook } from '@testing-library/react-native';
 

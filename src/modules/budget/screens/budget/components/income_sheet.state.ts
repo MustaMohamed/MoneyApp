@@ -50,16 +50,7 @@ export const useIncomeSheetState = createMoneyAppSelectors(
         monthLabel,
         saving: false,
         errorMessage: undefined,
-        // Not `String(...)`: a stored value whose `String()` is exponent form
-        // fills the field with text `DECIMAL_PATTERN` rejects, so the sheet
-        // opens on an amount it will not let the user save back.
-        // Reachable at the low end -- `expected_income`'s CHECK is only
-        // `> 0 AND <= 9007199254740991` (migrations/016:6-10), and 016's own
-        // backfill inserts `CAST(TRIM(value) AS REAL)` from a legacy
-        // `app_settings` string under GLOB guards that admit '0.0000001',
-        // where the form's 0.01 floor (`parsePositiveDecimal`) never runs.
-        // `String(1e-7)` is '1e-7'. `formatStoredMoneyText(null)` is '', which
-        // is why the nested ternary collapses to one `??`.
+        // Not `String(...)`: exponent form fills the field with text `DECIMAL_PATTERN` rejects.
         amountText: formatStoredMoneyText(currentIncome ?? suggestion),
       });
     },

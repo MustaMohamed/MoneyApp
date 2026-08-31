@@ -74,7 +74,6 @@ export default function BudgetScreen() {
     />
   );
 
-  // Payload carries both id and name so the confirm sheet can display the category name
   const {
     pendingPayload: pendingDelete,
     busy: deleteBusy,
@@ -92,7 +91,6 @@ export default function BudgetScreen() {
     cancel: cancelPlanDelete,
   } = useConfirmAction<{ id: string; name: string }>(removeSpendingPlanForMonth);
 
-  // Close any open swipe row when the user navigates away from this screen
   useFocusEffect(
     useCallback(() => {
       return () => closeAllRows();

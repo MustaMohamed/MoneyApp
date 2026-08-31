@@ -16,8 +16,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import { AccountCard } from './account_card';
 import { AddCard } from './add_card';
 
-// Cards take 55% of screen width so one card dominates the viewport and the
-// next card peeks at the edge — invites horizontal scroll without losing focus.
+// 55% of screen width so one card dominates and the next peeks at the edge.
 const CARD_WIDTH_RATIO = 0.55;
 
 export type AccountCarouselItem =
@@ -56,7 +55,7 @@ function AccountCarouselSeparator(): React.ReactElement {
 interface AccountCarouselProps {
   type: AccountType;
   accounts: Account[];
-  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  /** Read once in `dashboard.hook.ts` and passed down; never from a store here. */
   baseCurrency: Currency;
   rate: number;
   /** Rate provenance, decided once in `dashboard.hook.ts` and passed through. */
@@ -106,9 +105,7 @@ export function AccountCarousel({
       ) : (
         <AddCard onPress={onAddPress} width={cardWidth} />
       ),
-    // `baseCurrency` belongs in this array: without it the memoised renderItem
-    // keeps rendering the previous base after a change, and the two branches
-    // below disagree — the ScrollView one has no memo at all.
+    // Without `baseCurrency` here the memoised renderItem keeps rendering the previous base.
     [accountPressHandlers, baseCurrency, cardWidth, isRateUsable, onAddPress, rate, statsMap],
   );
   const getItemLayout = useCallback(

@@ -430,10 +430,7 @@ describe('CommitmentRepository.markAsPaid', () => {
     ).mock.calls[0];
     expect(calledDb).toBe(mockDb);
     expect(calledPaymentId).toBe('p-1');
-    // No longer the same object reference as `details` — markAsPaid rebuilds
-    // it around the resolver's rounded `paymentAmount` (ADR: money-rounding-
-    // layer §3 row 2). Values match here because 250 is already 2dp; the
-    // rounding itself is pinned by the row below.
+    // Not the same reference as `details`; `toEqual` matches only because 250 is already 2dp.
     expect(calledDetails).toEqual(details);
     expect(calledTx.id).toBe('test-uuid-1234');
     expect(calledTx.type).toBe(TransactionType.Expense);
@@ -490,9 +487,6 @@ describe('CommitmentRepository.markAsPaid', () => {
   );
 
   it('hands markCommitmentAsPaid the resolver-rounded amount_paid, not the raw input', async () => {
-    // The gate: delete the `paidDetails` rebinding in markAsPaid (i.e. pass
-    // `details` straight through again) and this assertion goes red because
-    // calledDetails.amount_paid reverts to the raw 10.999.
     await repo.markAsPaid(
       'p-1',
       { ...details, amount_paid: 10.999 },
@@ -503,9 +497,6 @@ describe('CommitmentRepository.markAsPaid', () => {
     expect(calledDetails.amount_paid).toBe(11);
   });
 
-  // #308: the store's optimistic patch used to hold the raw input, so the
-  // in-memory value disagreed with the row until a background refresh landed.
-  // markAsPaid now returns the amounts it already resolved for the write.
   it('returns the resolved amounts so the caller can bind the rounded value', async () => {
     const returned = await repo.markAsPaid(
       'p-1',

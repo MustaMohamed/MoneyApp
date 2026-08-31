@@ -117,8 +117,7 @@ export function useCategories() {
       if (editingCategory) {
         await updateCategory(editingCategory.id, data);
       } else {
-        // addCategory throws 'already exists' on name+type collision — caller catches
-        // and surfaces as categoriesErrNameDuplicate form error (TC-06)
+        // `addCategory` throws 'already exists' on a name+type collision; the caller surfaces it.
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- else-branch means editingCategory is null, so data is always NewCategoryInput
         await addCategory(data as NewCategoryInput);
       }
@@ -127,20 +126,7 @@ export function useCategories() {
     [addCategory, closeSheet, editingCategory, updateCategory],
   );
 
-  /**
-   * Replaces the M2a stub `hasTransactions = false`.
-   *
-   * Flow:
-   *  1. Set isDeleting = true (disables delete affordance on CategoryRow)
-   *  2. Query real transaction count from DB
-   *  3. Store the count in linkedCount (used as subtitle in ReassignCategorySheet)
-   *  4. Branch: count === 0 → DeleteConfirmationDialog
-   *             count  > 0 → ReassignCategorySheet
-   *  5. Set isDeleting = false in `finally` (TC-09 partial-failure safety)
-   *
-   * Note: PROTECTED_CATEGORY_IDS guard is enforced in CategoryRow — this
-   * handler will never be called for protected IDs.
-   */
+  /** The protected-ID guard lives in `CategoryRow`; this never sees a protected ID. */
   const handleDeletePress = useCallback(
     async (category: Category) => {
       setIsDeleting(true);
@@ -171,13 +157,7 @@ export function useCategories() {
     closeDeleteFlow();
   }, [categoryToDelete, closeDeleteFlow, deleteCategory]);
 
-  /**
-   * Called from ReassignCategorySheet on confirm.
-   * repository.reassignAndDelete() is atomic (withTransactionAsync) and will
-   * throw if the DB transaction rolls back (TC-09). That throw propagates to
-   * the caller (ReassignCategorySheet) which is responsible for surfacing the
-   * error to the user.
-   */
+  /** `reassignAndDelete` is atomic and throws on rollback; the caller surfaces the error. */
   const handleReassignConfirm = useCallback(
     async (toId: string) => {
       if (!categoryToDelete) return;
@@ -187,21 +167,11 @@ export function useCategories() {
     [categoryToDelete, closeDeleteFlow, reassignAndDelete],
   );
 
-  /**
-   * Options for the reassign picker — all categories of the same type except:
-   * - the category being deleted (would be a no-op and is being removed)
-   *
-   * Protected categories (cat_other_expense, cat_other_income) ARE valid
-   * reassignment targets and are intentionally included here per Layla §2.2.
-   * The picker always has at least one option because the protected "Other"
-   * category can never be deleted.
-   */
+  /** The protected "Other" categories are valid reassign targets, so they stay in the list. */
   const reassignOptions = useMemo(
     () =>
       categories.filter(
-        // Only the first access needs `?.`. Category.type is required, so a null
-        // categoryToDelete makes that comparison false and `&&` short-circuits —
-        // which is why TypeScript narrows it to non-null on the right-hand side.
+        // Only the first access needs `?.`; `&&` short-circuits and narrows the right-hand side.
         (c) => c.type === categoryToDelete?.type && c.id !== categoryToDelete.id,
       ),
     [categories, categoryToDelete],

@@ -37,24 +37,11 @@
     --focus: #d4a44c;
     --link: #d4a44c;
 
-    /* §7: Transfer + CC Payment accent colors (promoted from hardcoded hex) */
-    --info: 73 158 224; /* #499EE0 — Transfer accent */
-    --accent-cc: 155 115 212; /* #9B73D4 — CC Payment accent */
+    --info: 73 158 224; /* #499EE0, Transfer accent */
+    --accent-cc: 155 115 212; /* #9B73D4, CC Payment accent */
 
-    /*
-     * HeroUI Native's font contract. Its component CSS resolves type through
-     * `font-family: var(--font-<weight>)` — 33 call sites across 19 components
-     * since 1.0.7 — so these must exist or every HeroUI primitive renders
-     * unweighted. Body/label surfaces, hence Inter per Cairo Nights.
-     *
-     * Deliberately NOT in `@theme inline`. Tailwind resolves `font-<x>` against
-     * the family namespace before the weight namespace, so declaring these as
-     * theme tokens would turn `font-semibold` / `font-bold` / `font-medium`
-     * into family utilities and silently re-point ~211 existing usages — 60 of
-     * which pair a family class with a weight class, where the hijacked weight
-     * class would override the intended Sora. As plain custom properties they
-     * satisfy `var()` without generating a single utility.
-     */
+    /* HeroUI resolves type via `font-family: var(--font-<weight>)`; these must exist. */
+    /* Not in `@theme inline`: Tailwind would turn `font-semibold` into a family utility. */
     --font-normal: Inter_400Regular;
     --font-medium: Inter_500Medium;
     --font-semibold: Inter_600SemiBold;
@@ -95,24 +82,11 @@
     --focus: #d4a44c;
     --link: #d4a44c;
 
-    /* §7: Transfer + CC Payment accent colors (promoted from hardcoded hex) */
-    --info: 73 158 224; /* #499EE0 — Transfer accent */
-    --accent-cc: 155 115 212; /* #9B73D4 — CC Payment accent */
+    --info: 73 158 224; /* #499EE0, Transfer accent */
+    --accent-cc: 155 115 212; /* #9B73D4, CC Payment accent */
 
-    /*
-     * HeroUI Native's font contract. Its component CSS resolves type through
-     * `font-family: var(--font-<weight>)` — 33 call sites across 19 components
-     * since 1.0.7 — so these must exist or every HeroUI primitive renders
-     * unweighted. Body/label surfaces, hence Inter per Cairo Nights.
-     *
-     * Deliberately NOT in `@theme inline`. Tailwind resolves `font-<x>` against
-     * the family namespace before the weight namespace, so declaring these as
-     * theme tokens would turn `font-semibold` / `font-bold` / `font-medium`
-     * into family utilities and silently re-point ~211 existing usages — 60 of
-     * which pair a family class with a weight class, where the hijacked weight
-     * class would override the intended Sora. As plain custom properties they
-     * satisfy `var()` without generating a single utility.
-     */
+    /* HeroUI resolves type via `font-family: var(--font-<weight>)`; these must exist. */
+    /* Not in `@theme inline`: Tailwind would turn `font-semibold` into a family utility. */
     --font-normal: Inter_400Regular;
     --font-medium: Inter_500Medium;
     --font-semibold: Inter_600SemiBold;
@@ -155,22 +129,16 @@
   --color-info: rgb(var(--info));
   --color-accent-cc: rgb(var(--accent-cc));
 
-  /* Gold gradient stops — not in HeroUI's semantic slots, used by Button + screens */
+  /* Gold gradient stops, outside HeroUI's semantic slots. */
   --color-gold-400: #e0b968;
   --color-gold-500: #d4a44c;
   --color-gold-600: #c9973a;
   --color-gold-700: #a47c2c;
 
-  /* Semantic aliases matching NativeWind-era class names used in §2 screens */
   --color-negative: var(--danger);
 
-  /*
-   * Font families. React Native registers each loaded face as its own family —
-   * there is no "Sora at weight 600", only a font literally named
-   * Sora_600SemiBold — so weight is part of the family token, not a separate
-   * `font-weight` declaration. Every name here must match a face loaded in
-   * src/app/_layout.tsx and mirrored in constants/theme.ts `FontFamily`.
-   */
+  /* RN registers each face as its own family, so weight is part of the family token. */
+  /* Every name must match a face loaded in `src/app/_layout.tsx` and `constants/theme.ts`. */
   --font-sora: Sora_400Regular;
   --font-sora-semibold: Sora_600SemiBold;
   --font-sora-bold: Sora_700Bold;

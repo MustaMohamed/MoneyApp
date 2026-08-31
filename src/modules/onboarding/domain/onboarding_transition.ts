@@ -11,18 +11,7 @@ export interface OnboardingTransitionApi {
   invalidate: () => void;
 }
 
-/**
- * `resolve` is a thunk, not a precomputed step, so a screen whose account
- * count changes inside its own write (N2's save) can call it *after* the
- * write instead of at render time — see MA-005 plan Decision 2 row 2 for the
- * hard-loop this closes. `isCurrent` lets a persist body with more than one
- * `await` bail between them without writing a step for a session that has
- * already moved on.
- *
- * Returning `undefined` means "do not navigate and do not treat this as a
- * step write" — the concrete shape of "a save cannot be undone by a route
- * that has already gone".
- */
+/** `resolve` is a thunk so it can run after the write; `undefined` means do not navigate. */
 export type OnboardingTransitionPersist = (
   resolve: () => OnboardingStep,
   isCurrent: () => boolean,
@@ -33,18 +22,13 @@ export interface RunOnboardingTransitionParams {
   api: OnboardingTransitionApi;
   navigate: (href: Href) => void;
   desiredStep: OnboardingStep;
-  /** () => number, not a captured value — read at call time, never at render. */
+  /** Read at call time, never captured at render. */
   readAccountCount: () => number;
   persist: OnboardingTransitionPersist;
   errorMessage: string;
 }
 
-/**
- * Shared persist-then-replace runner for every onboarding step transition.
- * Order matters and is exactly what MA-005's tests assert: persist, then on
- * rejection fail and stop, then on success navigate only if the session is
- * still the one that started and the write actually resolved a step.
- */
+/** Persist, then navigate only if the session is still current and the write resolved a step. */
 export async function runOnboardingTransition({
   session,
   api,

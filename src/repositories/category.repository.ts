@@ -1,4 +1,4 @@
-// Backward-compat stub — canonical in modules/categories/.
+// Backward-compat stub; canonical in `modules/categories/`.
 export { CategoryRepository } from '@/modules/categories/repositories/category.repository';
 export type {
   ICategoryRepository,

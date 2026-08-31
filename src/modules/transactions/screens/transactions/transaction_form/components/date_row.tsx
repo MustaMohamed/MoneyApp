@@ -1,4 +1,3 @@
-// modules/transactions/screens/transactions/transaction_form/components/date_row.tsx
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { PressableFeedback } from 'heroui-native';

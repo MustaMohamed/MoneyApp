@@ -1,10 +1,4 @@
-// Seeded IDs per spec §4.5.
-// Need: Housing, Groceries, Transport, Car, Utilities, Phone & Internet,
-//       Health, Bills, Education, Family, Debt Payment, Bank Fees
-// Want: Food & Dining, Dining Out, Subscriptions, Shopping, Clothes,
-//       Gifts, Entertainment, Charity
-// Savings: (only the new cat_savings seeded here)
-// NULL: Money Transfer, Other (no UPDATE needed — NULL is the column default)
+// Money Transfer and Other stay NULL; that is the column default, so no UPDATE.
 
 export const migration012 = {
   version: 12,

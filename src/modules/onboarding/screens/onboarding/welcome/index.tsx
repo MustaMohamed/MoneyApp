@@ -37,9 +37,7 @@ export default function WelcomeScreen() {
           isDisabled={state.busy}
           isLoading={state.busy}
           onPress={() => {
-            // onContinue catches its own failure inside
-            // runOnboardingTransition and resolves; void discards no
-            // rejection.
+            // `onContinue` catches its own failure and resolves; `void` discards no rejection.
             void onContinue();
           }}
         />

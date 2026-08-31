@@ -180,10 +180,6 @@ describe('formatCommitmentAmount', () => {
     expect(text).toBeUndefined();
   });
 
-  // MA-016 P8 F-2 (@sarah's ratified condition): pins the ADR's worked example (b) row
-  // value — three 249.50 EGP commitments each render "250 EGP" — the row half of the
-  // rows-vs-header approximation the ticket accepts. See
-  // docs/adr/2026-08-21-currency-aware-display-decimals.md §1.
   it('EGP payment at 249.50: renders "250 EGP", the ADR worked-example row value', () => {
     const text = formatCommitmentAmount(
       mkPayment({
@@ -196,12 +192,6 @@ describe('formatCommitmentAmount', () => {
     expect(text).toBe('250 EGP');
   });
 
-  // MA-016 second amendment round (@layla): formatCommitmentAmount never routed through
-  // formatDisplayMagnitude, so a 0.40 EGP commitment read "0 EGP" here while the identical
-  // magnitude on a transaction row already escalated to "0.40 EGP" — the same defect
-  // class the composed-sign sites were fixed for, just unreached on this surface. Fixed by
-  // routing through the shared magnitude/escalate rule (the m0/escalate half only — no
-  // sign here to compose in the first place).
   it('EGP payment at 0.40: escalates to "0.40 EGP" instead of rounding away to "0 EGP"', () => {
     const text = formatCommitmentAmount(
       mkPayment({

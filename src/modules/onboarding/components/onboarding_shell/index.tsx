@@ -14,36 +14,17 @@ export interface OnboardingShellProps {
   /** Omit for the N1 brand header. */
   title?: string;
   onBack?: () => void;
-  /** Idle copy. Required — the track is never empty. */
+  /** Idle copy; the status track is never empty. */
   footnote: string;
   /** When set, replaces the footnote in the identical box. */
   statusMessage?: string;
   cta: ReactNode;
   children: ReactNode;
-  /** N1's ambient wash. Rendered as a sibling behind Screen, not inside it —
-   * see MA-010 decision D4. Omitted on every other route. */
+  /** N1's ambient wash, rendered as a sibling behind `Screen`, not inside it. */
   background?: ReactNode;
 }
 
-/**
- * The shared chrome for all four onboarding routes: a fixed-height header, a
- * fixed-height progress rail, a flexible content viewport, and a footer built
- * from a permanently mounted status track above the primary action.
- *
- * `cta` is a node rather than a prop bundle so each route keeps the
- * Animated.View it wraps its button in today, and later motion work can
- * change that wrapper without touching the shell.
- *
- * `background` is hoisted one level above `Screen` rather than rendered
- * inside it (MA-010 decision D4): RN positions an absolutely-positioned
- * child against its parent's *padding box*, and `Screen` applies the
- * safe-area insets as padding, so a wash mounted inside it would start below
- * the status-bar inset and leave a visible seam under Android's edge-to-edge.
- * The host View here carries `bg-background` instead (`Screen` bakes that
- * class into its own `className` — screen.tsx:48 — so it is not passed down),
- * and `Screen` itself goes transparent via `style`, which wins over
- * `className` in RN (the mechanism account_type_tile.tsx:29-33 documents).
- */
+// `Screen` applies safe-area insets as padding, so a wash inside it would start below the inset.
 export function OnboardingShell({
   step,
   title,

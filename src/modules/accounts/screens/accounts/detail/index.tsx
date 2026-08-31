@@ -179,8 +179,7 @@ export default function AccountDetailScreen() {
         onOpenChange={(open) => {
           if (!open) setAdjustVisible(false);
         }}
-        // Handed over whole rather than wrapped in `void`: the sheet awaits it,
-        // and discarding the promise here is what made a failed adjust silent.
+        // The sheet awaits this promise; wrapping it in `void` makes a failed adjust silent.
         onSave={handleAdjustBalance}
         isLoading={isAdjusting}
       />

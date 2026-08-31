@@ -199,7 +199,6 @@ describe('getCommitments', () => {
     expect(ids).toContain('com-active-1');
     expect(ids).toContain('com-active-2');
     expect(ids).not.toContain('com-inactive');
-    // DESC order: c2 (Feb) should be first
     expect(ids[0]).toBe('com-active-2');
   });
 

@@ -1,15 +1,4 @@
-/**
- * Module-level singleton tracking the currently-open SwipeableRow.
- *
- * Design: plain pub/sub with no React dependency. Components subscribe on
- * mount and unsubscribe on unmount. Opening a row notifies all subscribers
- * with the new id; closing notifies with null. Components compare the
- * notified id with their own rowId to decide whether to close.
- *
- * Why not Zustand? The registry is called synchronously from gesture
- * callbacks and Reanimated worklets — Zustand's async setState would
- * introduce frame-level jank. A plain module variable is instantaneous.
- */
+// Called synchronously from gesture callbacks and worklets, so keep it a plain module variable.
 
 type Subscriber = (activeId: string | null) => void;
 
@@ -20,33 +9,24 @@ function notify(id: string | null): void {
   subscribers.forEach((cb) => cb(id));
 }
 
-/** Mark row `id` as open. Notifies all subscribers. */
 export function openRow(id: string): void {
   activeRowId = id;
   notify(id);
 }
 
-/**
- * Mark row `id` as closed. No-op if `id` is not the currently-open row
- * (prevents a row from closing another row that opened after it).
- */
+/** No-op unless `id` is the open row, so a stale row cannot close its successor. */
 export function closeRow(id: string): void {
   if (activeRowId !== id) return;
   activeRowId = null;
   notify(null);
 }
 
-/** Close whichever row is open, if any. Used on scroll / screen blur. */
 export function closeAllRows(): void {
   if (activeRowId === null) return;
   activeRowId = null;
   notify(null);
 }
 
-/**
- * Subscribe to registry changes. Callback receives the new active row id
- * (or null when closed). Returns an unsubscribe function.
- */
 export function subscribeToRegistry(cb: Subscriber): () => void {
   subscribers.add(cb);
   return () => {
@@ -54,7 +34,7 @@ export function subscribeToRegistry(cb: Subscriber): () => void {
   };
 }
 
-/** Read the current active row id (for non-reactive imperative checks). */
+/** Non-reactive read for imperative checks. */
 export function getActiveRowId(): string | null {
   return activeRowId;
 }

@@ -20,8 +20,7 @@ interface AdjustBalanceSheetProps {
   currentBalance: number;
   currency: Currency;
   onOpenChange: (open: boolean) => void;
-  // Promise-returning on purpose: `handleSave` awaits it and catches, so the
-  // caller's rejection is surfaced here instead of escaping a void handler.
+  // Promise-returning on purpose: `handleSave` awaits and catches, so rejections surface here.
   onSave: (newBalance: number) => void | Promise<void>;
   isLoading: boolean;
 }
@@ -43,7 +42,6 @@ export function AdjustBalanceSheet({
 
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
-  // Seed the input from the current balance whenever the sheet opens.
   useEffect(() => {
     if (isOpen) {
       initialize(currentBalance);
@@ -56,20 +54,12 @@ export function AdjustBalanceSheet({
       setError(Strings.errBalanceInvalid);
       return;
     }
-    // Clear the parse error before the write, so a save failure replaces it
-    // rather than sitting under it.
+    // Clear the parse error before the write so a save failure replaces it.
     setError('');
     try {
       await onSave(result.value);
     } catch {
-      // `account.store` logs and rethrows and the screen hook lets it through,
-      // so this sheet — still on screen, with the failed value still in it — is
-      // what tells the user. Mirrors the pay sheet's D7 catch, and keeps the
-      // error copy in the component that owns the channel it renders through
-      // (.claude/rules/state.md). Distinct from errBalanceInvalid on purpose:
-      // that one asks the user to change what they typed, this one to retry it.
-      // The `await` above is load-bearing — drop it and the rejection leaves
-      // this try as an unhandled one and the catch can never run.
+      // The `await` above is load-bearing; without it the rejection escapes this try.
       setError(Strings.adjustBalanceSaveError);
     }
   };

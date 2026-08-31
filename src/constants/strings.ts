@@ -21,13 +21,9 @@ export const Strings = {
 
   // Add Account
   o4SectionName: 'ACCOUNT NAME',
-  // CurrencySelector's a11y label inside AccountForm (both Settings' and
-  // onboarding N2's hosts) — not base-currency copy, filed here with the
-  // rest of the account form's strings instead.
   accountCurrencyA11y: 'Account currency',
 
-  // Account form — MA-009, mockup § C (C1-C6). Shared by both entry points —
-  // Settings' Add Account screen renders every one of these too.
+  // Account form
   accountTypeLabel: 'Account type',
   accountNameLabel: 'Account name',
   accountNameHelper: 'Must be different from your other account names.',
@@ -35,10 +31,6 @@ export const Strings = {
   accountBalanceLabel: 'Opening balance',
   accountBalanceHelper: "Today's balance.",
   accountBalancePlaceholder: '0.00',
-  // The currency cell's visible field label (mockup C1 draws "Currency"
-  // repeatedly — mockup.html:1362,1422,1480,1531,1587,1674). Distinct from
-  // accountCurrencyA11y above, which stays the selector's own a11y label
-  // (impl review round 1, D7 — that key was double-booked as both).
   accountCurrencyLabel: 'Currency',
   accountOwedLabel: 'Amount currently owed',
   accountOwedHelper: 'Enter 0 if the card is paid off.',
@@ -66,12 +58,10 @@ export const Strings = {
   errDueDayRange: 'Enter a day from 1 to 31.',
   errAmountInvalid: 'Numbers only.',
   errNameDuplicateNamed: (name: string) => `You already have an account called "${name}".`,
-  // N2's CTA — spec.md:81, mockup C1-C6. Settings keeps its own u4Cta
-  // ('Save Account'); "and continue" means nothing there.
+  // N2's CTA; Settings' Add Account uses `u4Cta` instead.
   n2Cta: 'Save and continue',
 
-  // N1 Welcome — Broadsheet composition, mockup § B (B1-B5). Every value
-  // transcribed verbatim from mockup.html; the line number is the source.
+  // N1 Welcome; copy is verbatim from mockup.html at the cited line.
   n1GhostNumeral: '01', // mockup.html:1035
   n1Eyebrow: 'Private by design', // mockup.html:1037
   n1HeadlineLine1: 'Your money.', // mockup.html:1039
@@ -87,14 +77,10 @@ export const Strings = {
   n1Trust: 'Your data never leaves this device. There is no cloud account to create.', // mockup.html:1075
   n1Cta: 'Continue', // mockup.html:1080
 
-  // N3 Add more accounts — Broadsheet composition, mockup § E (E1-E5). Every
-  // value transcribed verbatim from mockup.html; the line number is the source.
+  // N3 Add more accounts; copy is verbatim from mockup.html at the cited line.
   n3GhostNumeral: '03', // mockup.html:2010
   n3SuccessChip: 'First account saved', // mockup.html:2012
-  // Two keys, not one carrying a '\n' (spec §5.6, amended after c1's review):
-  // a baked break cannot reflow at large font scale or on a narrow device.
-  // MA-010 ships the same Broadsheet headline as a matched pair, composed in
-  // welcome_headline.tsx.
+  // Two keys, not one carrying a '\n': a baked break cannot reflow at large font scale.
   n3HeadlineLine1: 'Anything else', // mockup.html:2014
   n3HeadlineLine2: 'to add?', // mockup.html:2014
   n3Body:
@@ -108,20 +94,13 @@ export const Strings = {
   n3EmptyFootnote: 'Your currency choice was saved.', // mockup.html:2101
   n3EmptyCta: 'Add your first account', // mockup.html:2102
 
-  // N4 Ready — mockup § F (F1-F9). Every value transcribed byte-exact from the
-  // cited mockup line, ASCII apostrophes included. Six declared deviations
-  // from the drawn strings are marked DEVIATION below.
+  // N4 Ready; copy is verbatim from mockup.html at the cited line.
   n4Eyebrow: 'Setup complete', // mockup.html:2326
   n4Headline: "You're ready.", // mockup.html:2328
   n4Body:
     "Here's where you're starting from. Every number below comes from the opening balances you just entered.", // mockup.html:2329
   n4HeroLabel: 'Starting net position', // mockup.html:2333
   n4RateNeededValue: 'Exchange rate needed', // mockup.html:2429
-  // DEVIATION 7 (#261): mockup.html:2430 draws "Add a rate from the
-  // dashboard". The dashboard has no rate control of its own — it only
-  // deep-links to Settings (`goToSettings`, `dashboard.hook.ts:179`) — so the
-  // drawn copy cost the user two hops through a waypoint. This re-points the
-  // remedy at the one real control, Settings -> Currency (`currency.hook.ts:69-82`).
   n4CaptionRateNeeded: 'Your accounts are saved. Set a rate in Settings and this fills in.', // mockup.html:2430
   n4CaptionNegative: 'Your card balances are bigger than your cash and bank accounts right now.', // mockup.html:2477
   n4CaptionZero: 'What you have and what you owe cancel out exactly.', // mockup.html:2524
@@ -131,43 +110,23 @@ export const Strings = {
   n4RowAccounts: 'Accounts', // mockup.html:2348
   n4RowPrivacy: 'Privacy', // mockup.html:2352
   n4RowPrivacyValue: 'On device', // mockup.html:2353
-  // DEVIATION 4 (reversed by the user, 2026-08-18): the mockup draws lower-case
-  // `Open my dashboard` (mockup.html:2359) and the plan proposed adopting it.
-  // The user ruled the shipped title case stays — this key is byte-identical to
-  // the `o6Cta` it replaces, so the KEY renames and the COPY does not move.
-  // `n4CompleteError` (N-shell block) still says "tap Open my dashboard"; it is
-  // left exactly as shipped (deviation 5), so the casing differs by one letter.
   n4Cta: 'Open My Dashboard',
 
-  // DEVIATION 1: parameterises the currency code rather than hard-coding EGP.
-  // The mockup draws the EGP-base case only, but a USD-base user whose accounts
-  // are all USD lands on F1 too, and "in EGP" would be false. Byte-identical to
-  // mockup.html:2335 when `code === 'EGP'`.
   n4CaptionAllBase: (n: number, code: string) =>
     `All ${n} accounts are in ${code}, so nothing needed converting.`,
-  // DEVIATION 2: parameterises the foreign code, and pluralises `account` — a
-  // pluralisation point the spec does not name, switching on foreignCount, not
-  // accountCount. Without it two foreign accounts read "Includes 2 USD
-  // account", the exact "1 accounts" tell this ticket exists to remove.
+  // `n` is the foreign-account count, not the total account count.
   n4CaptionConverted: (n: number, code: string) =>
     `Includes ${n} ${code} account${n === 1 ? '' : 's'}, converted using your saved rate.`, // mockup.html:2382
-  // DEVIATION 6: pluralises the credit-card-only caption. The mockup draws the
-  // one-card sentence only (mockup.html:2618), but `resolveFrame` returns F7
-  // for ANY all-credit-card set and N3 caps nothing — two cards otherwise read
-  // "Your only account is a credit card" above a "2 accounts" pill. Gating F7
-  // on a single card is not the fix: two cards would fall to F4, whose caption
-  // names cash and bank accounts that do not exist. The singular is byte-
-  // identical to mockup.html:2618.
   n4CaptionCreditOnly: (n: number) =>
     n === 1
       ? 'Your only account is a credit card, so this is what you owe. Add a bank or cash account for the full picture.'
       : 'Your accounts are all credit cards, so this is what you owe. Add a bank or cash account for the full picture.',
   n4PillAccounts: (n: number) => (n === 1 ? '1 account' : `${n} accounts`), // mockup.html:2337 / :2573
   n4PillOpeningBal: (n: number) => (n === 1 ? 'opening balance' : 'opening balances'), // mockup.html:2338 / :2574
-  // DEVIATION 3: pluralises the verb (`2 need a rate`), also on foreignCount.
+  // `n` is the foreign-account count, not the total account count.
   n4PillNeedsRate: (n: number) => (n === 1 ? '1 needs a rate' : `${n} need a rate`), // mockup.html:2433
 
-  // N-shell — MA-004. Mockup § A (A1-A3) and the per-route frames B1/C1/E1/F1.
+  // N-shell
   onboardingStepOf: (step: number) => `Step ${step} of 4`,
   onboardingProgressA11y: (step: number, name: string) => `Step ${step} of 4, ${name}`,
   n1StepName: 'Choose your currency',
@@ -193,10 +152,6 @@ export const Strings = {
   n3StepSaveError: "Couldn't move on. Your accounts are saved — tap Review setup to try again.",
   n4CompleteError:
     "Couldn't finish setup. Your accounts are saved — tap Open my dashboard to try again.",
-  // Not one of the plan's six named keys — needed for the four back-chevron
-  // writes (N2/N3 → N1, N4 → N3), which the plan specifies functionally
-  // (Decision 4) but does not give copy for. Reused across all of them
-  // rather than one key per screen, since the failure mode is identical.
   onboardingBackSaveError: "Couldn't go back. Tap the back arrow to try again.",
 
   // O4 validation errors
@@ -206,9 +161,6 @@ export const Strings = {
   errBalanceInvalid: 'Please enter a valid amount',
   errCreditLimitRequired: 'Credit limit is required for credit cards',
   errAprRequired: "Please enter your card's APR",
-  // APR bound — ruled, spec.md § "Financial Logic — APR bound — ruled".
-  // Same voice as errDueDayRange/errCreditLimitPositive: short, imperative,
-  // states the accepted range, no exclamation, trailing period.
   errAprRange: 'Enter a rate from 0 to 100.',
   errAccountSaveFailed: "Couldn't save that account. Tap Save Account to try again.",
 
@@ -225,8 +177,7 @@ export const Strings = {
   typePhysicalSavings: 'Savings',
   typeCreditCard: 'Credit Card',
 
-  // Account colour families — the 32-swatch palette. Names are locked design
-  // (assets/locked-design-2026-07-23.md), not new copy.
+  // Account colour families; names are locked design in `assets/locked-design-2026-07-23.md`.
   accountColorMidnight: 'Royal Midnight',
   accountColorGold: 'Cairo Gold',
   accountColorNile: 'Nile Teal',
@@ -244,7 +195,7 @@ export const Strings = {
   accountColorCoral: 'Coral',
   accountColorGraphite: 'Graphite',
 
-  // Account colour sheet — MA-006, mockup § D (D1, D2) and C1's trigger row
+  // Account colour sheet
   accountColorSheetTitle: 'Account colour',
   accountColorSheetCta: 'Use this colour',
   accountColorToneRich: 'Rich',
@@ -258,18 +209,14 @@ export const Strings = {
   accountColorTriggerA11y: (family: string, tone: string) =>
     `Account colour: ${family}, ${tone.toLowerCase()}`,
 
-  // Ready — the rest of this block retired with MA-012's N4 rebuild, which
-  // owns its copy under `n4*`. `o6AccountsUnit` is NOT N4's: the dashboard
-  // hero card renders "{n} accounts" through it, so it stays here rather than
-  // going with the block it was grouped into.
+  // Rendered by the dashboard hero card, not N4, despite the onboarding prefix.
   o6AccountsUnit: 'accounts',
 
   // Placeholder dashboard
   placeholderTitle: 'Dashboard coming soon',
   placeholderSubtitle: 'M1 complete — M1.5 next.',
 
-  // Dashboard (U2)
-  // Account card info rows
+  // Dashboard (U2): account card info rows
   cardLimitLabel: 'Limit',
   cardAvailableLabel: 'Available',
   cardMinPayLabel: 'Min Pay',
@@ -297,7 +244,7 @@ export const Strings = {
   dashMonthSpentTxsUnit: 'txs',
   dashSeeAll: 'See all',
 
-  // §5 Dashboard v2 — segments + breakdown sheet
+  // §5 Dashboard v2: segments + breakdown sheet
   dashboardSegmentOverview: 'Overview',
   dashboardSegmentAccounts: 'Accounts',
   dashboardLoadError: 'Could not load dashboard.',
@@ -307,10 +254,6 @@ export const Strings = {
   dashboardAccountsLabel: 'Accounts',
   dashboardBreakdownTitle: 'Net Worth',
   dashboardBreakdownNetWorthLabel: 'Net Worth',
-  // The currency code is a PARAMETER, not a literal in the template: these
-  // headers sit directly under a total the user chose the currency of, and a
-  // hardcoded `EGP` beside a USD figure is the defect. Precedent
-  // `n4CaptionAllBase` below. Byte-identical at `code === 'EGP'`.
   dashboardBreakdownAssetsHeader: (amount: string, code: string, count: number) =>
     `${amount} ${code} · ${count} ${count === 1 ? 'acct' : 'accts'}`,
   dashboardBreakdownLiabilitiesHeader: (amount: string, code: string, count: number) =>
@@ -321,17 +264,11 @@ export const Strings = {
   dashboardBreakdownReserveCaption: 'Savings',
   dashboardBreakdownTotalDebt: 'Total debt',
   dashboardBreakdownInCredit: 'In credit',
-  // Same reason, one level down: this is the placeholder for the ≈ figure,
-  // which is stated in the OTHER currency from the base — so it is `— EGP` for
-  // a USD-base user and `— USD` for an EGP-base one.
+  // `code` is the other currency from the base, not the base itself.
   netWorthBreakdownForeignUnavailable: (code: string) => `— ${code}`,
   netWorthBreakdownForeignApprox: (amount: string) => `≈ ${amount}`,
 
-  // The dashboard's rate refusal (#255). Modelled on N4's pair
-  // (`n4RateNeededValue` / `n4CaptionRateNeeded`) so the two refusals read as
-  // one app — both pairs now name the same door, Settings, as of #261. That
-  // coupling is deliberate: a copy change to one caption without the other is
-  // a review flag, not an independent edit.
+  // Change with N4's `n4RateNeededValue` / `n4CaptionRateNeeded`; both name Settings.
   dashboardRateNeededValue: 'Exchange rate needed',
   dashboardRateNeededCaption: 'Your balances are saved. Set a rate in Settings and this fills in.',
 
@@ -354,13 +291,13 @@ export const Strings = {
   accountBalanceReviewConfirm: 'Balance is correct',
   accountBalanceReviewError: 'Could not confirm this balance. Please try again.',
 
-  // §9 Account Detail — balance hero captions
+  // §9 Account Detail: balance hero captions
   accountHeroOpening: (amount: string, currency: string) => `Opening ${amount} ${currency}`,
   accountHeroAdjusted: 'adjusted',
   accountHeroAvailable: (avail: string, currency: string, limit: string) =>
     `Available ${avail} ${currency} of ${limit}`,
 
-  // Add Account screen (U4 — main app)
+  // Add Account screen (U4, main app)
   u4Title: 'Add Account',
   u4Cta: 'Save Account',
   u4CtaBusy: 'Saving…',
@@ -370,9 +307,7 @@ export const Strings = {
   adjustBalanceLabel: 'New Balance',
   adjustBalanceSave: 'Save Balance',
   adjustBalanceCancel: 'Cancel',
-  // Distinct from errBalanceInvalid on purpose: that one asks the user to fix
-  // what they typed, this one asks them to try the same value again. Voice
-  // follows its neighbours accountBalanceReviewError and commitmentsPayError.
+  // Not `errBalanceInvalid`: that one asks the user to fix the value, this one to retry it.
   adjustBalanceSaveError: 'Could not save this balance. Please try again.',
 
   // Settings Main (U23)
@@ -524,14 +459,7 @@ export const Strings = {
   budgetPlanAllocationHelper: (allocated: string, total: string, buffer: string) =>
     `${allocated} of ${total} allocated · ${buffer} buffer`,
   budgetPlanAllocationOver: 'Allocations exceed the plan total.',
-  // Two messages for one rule, deliberately. budgetPlanAllocationInvalid is the
-  // sheet footer's, raised by spendingPlanInputSchema's refine, which has no row
-  // context and needs the whole sentence. budgetPlanAllocationBelowMin is the
-  // per-row one, and the row is a 128px column: the full sentence truncated to
-  // 'Each allocati…', which says nothing the red border did not. Both legal
-  // repairs stay named -- a deliberate 0 is a valid allocation ('tracking this
-  // category, allocating nothing'), so 'Min 0.01' alone would read complete and
-  // be wrong. No trailing period, matching budgetAmountInvalid above.
+  // Two strings for one rule: the row is a 128px column and truncates the sentence.
   budgetPlanAllocationInvalid: 'Each allocation must be 0 or at least 0.01.',
   budgetPlanAllocationBelowMin: '0 or min 0.01',
   budgetPlanExpenseCategoriesOnly: 'Select expense categories only.',
@@ -663,7 +591,7 @@ export const Strings = {
   budgetCopyToggleA11y: (name: string) => `Toggle ${name}`,
   loadingBudgetA11y: 'Loading budget',
 
-  // Budget — 50/30/20 lens
+  // Budget: 50/30/20 lens
   budget5030TabCategories: 'Categories',
   budget5030TabLens: '50/30/20',
   budget5030MonthlyIncome: 'Monthly income',
@@ -963,15 +891,13 @@ export const Strings = {
   filterCategoryTypeExpense: 'Expense',
   filterCategoryTypeIncome: 'Income',
 
-  // Commitments — C1 List
+  // Commitments: C1 List
   commitmentsTitle: 'Commitments',
   loadingCommitmentsA11y: 'Loading commitments',
   searchCommitmentsPlaceholder: 'Search commitments…',
   commitmentsPaidSummary: 'Paid this month',
   commitmentsTotalCommitted: 'Total committed',
-  // Not commitments-specific — formatCurrencyTotals (format_amount.ts) is a shared
-  // multi-currency join; both its current callers (this list's summary header and the
-  // dashboard commitments card) happen to sit here.
+  // Not commitments-specific: `formatCurrencyTotals` in `format_amount.ts` is the shared join.
   currencyTotalsSeparator: '  ·  ',
   currencyTotalsUnavailable: '—',
   commitmentsOverdue: 'Overdue',
@@ -980,12 +906,12 @@ export const Strings = {
   commitmentsPaid: 'Paid',
   commitmentsSkipped: 'Skipped',
 
-  // Commitments — Empty state
+  // Commitments: Empty state
   commitmentsEmptyTitle: 'No commitments yet',
   commitmentsEmptySub: 'Add rent, subscriptions, or any regular payment',
   commitmentsEmptyCta: 'Add Commitment',
 
-  // Commitments — C2 Add / C3 Edit
+  // Commitments: C2 Add / C3 Edit
   commitmentsAddTitle: 'New Commitment',
   commitmentsEditTitle: 'Edit Commitment',
   commitmentsFieldName: 'Name',
@@ -1015,7 +941,7 @@ export const Strings = {
   commitmentsOptional: '(optional)',
   commitmentsDone: 'Done',
 
-  // Commitments — validation errors
+  // Commitments: validation errors
   commitmentsErrNameRequired: 'Name is required',
   commitmentsErrNameMax: 'Name must be 50 characters or less',
   commitmentsErrAmountRequired: 'Amount is required for fixed commitments',
@@ -1027,7 +953,7 @@ export const Strings = {
   commitmentsErrEveryMin: 'Must be at least 1',
   commitmentsErrEveryMax: 'Must be 365 or less',
 
-  // Commitments — placeholders
+  // Commitments: placeholders
   commitmentsNamePlaceholder: 'e.g. Rent',
   commitmentsAmountPlaceholder: '0.00',
   commitmentDateInputFormat: 'YYYY-MM-DD',
@@ -1035,7 +961,7 @@ export const Strings = {
   commitmentsFieldEstimatedAmount: 'Estimated Amount',
   commitmentsEstimatedAmountPlaceholder: 'e.g. 500',
 
-  // Commitments — C4 Detail
+  // Commitments: C4 Detail
   commitmentsDetailRecurrence: 'Recurrence',
   commitmentsDetailStartDate: 'Start Date',
   commitmentsDetailDefaultAccount: 'Default Account',
@@ -1058,42 +984,26 @@ export const Strings = {
   commitmentsLoadRetry: 'Retry',
   commitmentsSaveError: 'Could not save this commitment. Please try again.',
 
-  // Commitments — C5 Pay Sheet
+  // Commitments: C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,
   commitmentsPayAmount: 'Amount',
   commitmentsPayAccount: 'Pay from Account',
   commitmentsPayDate: 'Payment Date',
-  // §8: pay sheet date field upgraded from free-text to a date picker (OQ-2).
-  // commitmentsPayDate (the field label) already exists and is reused. This is
-  // the placeholder shown on the picker trigger when no date is chosen yet —
-  // reuses the existing long-date format produced by formatLongDate at runtime,
-  // so this key is only the fallback empty-state hint.
   commitmentsPayDatePlaceholder: 'Select date',
   commitmentsPayNotes: 'Notes',
   commitmentsPayConfirm: 'Confirm Payment',
   commitmentsPayErrAmountRequired: 'Amount is required',
   commitmentsPayErrAmountMin: 'Amount must be at least 0.01',
   commitmentsPayErrAccountRequired: 'Select an account',
-  // W1B — the rate row's purpose caption for a payment that crosses no
-  // currency (USD commitment, USD account). The rate is still required there
-  // because egp_amount is the ledger's storage currency, and a demanded field
-  // with no visible reason reads as a bug. Renders above the source line, so
-  // the "last updated" freshness stays where it is.
+  // A rate is required even when no currency crosses; the ledger stores `egp_amount`.
   commitmentsPayRatePurposeEgp: 'Used to record this payment in EGP',
-  // W1B — the account_id membership refine. A plain empty selection keeps
-  // commitmentsPayErrAccountRequired above; this one is for an id the loaded
-  // (non-archived) list no longer holds, which the write path rejects.
+  // For an account id the loaded non-archived list no longer holds, not an empty selection.
   commitmentsPayErrAccountUnavailable: 'This account is no longer available. Pick another.',
-  // W1B — the converted amount rounds below MIN_MONEY_AMOUNT in the paying
-  // account's currency. Replaces the generic save banner with the reason, on
-  // the field that owns it. Function-valued because the shortfall is in the
-  // ACCOUNT's currency, and it is not always USD: a USD commitment paid from an
-  // EGP account at an override rate of 0.01 puts 0.50 USD under the floor in
-  // EGP, which a hardcoded "USD" mislabels.
+  // The shortfall is in the paying account's currency, which is not always USD.
   commitmentsPayErrConvertedBelowMin: (currency: string) =>
     `Converts to less than 0.01 ${currency} at this rate`,
 
-  // Commitments — Deactivate
+  // Commitments: Deactivate
   commitmentsDeactivate: 'Deactivate Commitment',
   commitmentsDeactivateTitle: 'Deactivate this commitment?',
   commitmentsDeactivateBody:
@@ -1103,14 +1013,14 @@ export const Strings = {
   commitmentsDeactivateError: 'Could not deactivate this commitment. Please try again.',
   commitmentsPayError: 'Could not save this payment. Please try again.',
 
-  // Commitments — status badges
+  // Commitments: status badges
   commitmentsStatusOverdue: 'Overdue',
   commitmentsStatusDue: 'Due',
   commitmentsStatusUpcoming: 'Upcoming',
   commitmentsStatusPaid: 'Paid',
   commitmentsStatusSkipped: 'Skipped',
 
-  // Commitments — recurrence / duration labels
+  // Commitments: recurrence / duration labels
   commitmentsRecurrenceEveryN: (n: number, period: string) =>
     n === 1 ? `Every ${period}` : `Every ${n} ${period}s`,
   commitmentsRecurrencePeriodDay: 'day',
@@ -1125,7 +1035,7 @@ export const Strings = {
   commitmentsDurationUntilDateOf: (date: string) => `Until ${date}`,
   commitmentsDetailNotFound: 'Commitment not found',
 
-  // Dashboard — commitments card
+  // Dashboard: commitments card
   dashboardCommitmentsTitle: 'Commitments',
   dashboardCommitmentsPaid: (paid: number, total: number) => `${paid} of ${total} paid`,
   dashboardCommitmentsOverdue: (count: number) => `${count} overdue`,
@@ -1146,7 +1056,7 @@ export const Strings = {
   emptyCommitmentsMonthDescription:
     'No commitments scheduled for this month. Use the arrows above to browse other months.',
 
-  // §4 Settings root — row descriptions
+  // §4 Settings root: row descriptions
   settingsCurrencyDescription: 'Set your default currency and exchange rate',
   settingsCategoriesDescription: 'Manage your expense and income categories',
   settingsAboutDescription: 'App version and information',
@@ -1160,17 +1070,8 @@ export const Strings = {
 
   // §4 Currency screen additions
   currencyFetchError: 'Could not update rate. Try again.',
-  // Distinct from `currencySaveError` above on purpose: nothing failed and the
-  // value saved, so "Could not save rate. Try again." would be false. One string
-  // covers both ends of the band — `isRateImplausible` has no directional branch
-  // and the app has no live quote, so "too high" would claim knowledge it does
-  // not have.
+  // The rate did save; `isRateImplausible` has no direction, so one string covers both ends.
   currencyRateImplausibleWarning: 'This rate is far outside the usual range.',
-  // The base currency is a PARAMETER, not a literal: this note names the
-  // currency every figure in the app is reported in, and after #269 that is the
-  // user's own base rather than EGP. The caller resolves `CURRENCY_CONFIG`, so
-  // this file gains no import. Precedent `n4CaptionAllBase` above.
-  // Byte-identical to the old constant at `('Egyptian Pound', 'EGP')`.
   currencyFooterNote: (name: string, code: string) =>
     `All balances and analytics are shown in ${name} (${code}).`,
 
@@ -1178,7 +1079,7 @@ export const Strings = {
   categoriesReassignSubtitle: (count: number) =>
     count === 1 ? '1 transaction will be moved' : `${count} transactions will be moved`,
 
-  // §4 EmptyState — categories variant
+  // §4 EmptyState: categories variant
   emptyStateCategoriesHeadline: 'No categories yet',
   emptyStateCategoriesDescription: 'Your categories will appear here.',
 
@@ -1191,7 +1092,7 @@ export const Strings = {
   monthPickerPreviousYearA11y: 'Previous year',
   monthPickerNextYearA11y: 'Next year',
 
-  // §6 Transactions — Totals strip
+  // §6 Transactions: Totals strip
   totalsExpenseShareA11y: (pct: number) => `Expenses are ${pct}% of income`,
   totalsIncome: 'Income',
   totalsExpense: 'Expense',
@@ -1207,13 +1108,13 @@ export const Strings = {
   transactionsLoadMoreError: 'Could not load more transactions.',
   transactionsLoadRetry: 'Retry',
 
-  // §6 Transactions — Type badges
+  // §6 Transactions: Type badges
   typeBadgeCommitment: 'Commitment',
   transactionBudgetAssigned: 'Budget assigned',
   typeBadgeGoal: 'Goal',
   typeBadgeBill: 'Bill',
 
-  // §6 Transactions — Filter sheet additions
+  // §6 Transactions: Filter sheet additions
   filterSummaryAccountsEmpty: 'All accounts',
   filterSummaryCategoriesEmpty: 'All categories',
   filterSummaryAmountEmpty: 'Any amount',
@@ -1235,7 +1136,7 @@ export const Strings = {
   commitmentFilterAmountCurrencyAccessibility: 'Commitment amount currency',
   transactionTypeFilterAccessibility: 'Transaction type filter',
 
-  // §6 Transactions — Detail flow (TransferFlowCard labels)
+  // §6 Transactions: Detail flow (TransferFlowCard labels)
   detailFlowFromLabel: 'From',
   detailFlowToLabel: 'To',
   detailFlowCategoryLabel: 'Category',
@@ -1243,7 +1144,7 @@ export const Strings = {
   detailOpenAccountAccessibility: (name: string, amount: string) =>
     `${name}, ${amount}, open account detail`,
 
-  // §6 Transactions — Detail screen V2 actions + states
+  // §6 Transactions: Detail screen V2 actions + states
   detailDeleteButton: 'Delete',
   detailEditButton: 'Edit Transaction',
   detailNotFoundTitle: 'Transaction not found',
@@ -1265,12 +1166,12 @@ export const Strings = {
   addTxEgpPreview: '≈ {amount} EGP',
   addTxBudgetOptionAccessibility: (name: string, amount: string) => `${name}, ${amount} EGP`,
 
-  // Swipe actions — shared labels
+  // Swipe actions: shared labels
   swipeEdit: 'Edit',
   swipeDelete: 'Delete',
   swipeSkip: 'Skip',
 
-  // Budget — swipe delete confirm
+  // Budget: swipe delete confirm
   budgetDeleteConfirmTitle: 'Remove budget?',
   budgetDeleteConfirmBody: (name: string) =>
     `Remove ${name}? Its transactions stay in the category and their spending becomes unassigned.`,

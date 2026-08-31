@@ -11,9 +11,7 @@ interface BandRow {
   implausible: boolean;
 }
 
-// Scenario 18. The band is INCLUSIVE at both ends, so each endpoint is paired
-// with the value just outside it: those two rows are what flip if `<` ever
-// becomes `<=`, which is the only silent way this predicate can change meaning.
+// The band is inclusive at both ends, so each endpoint is paired with the value just outside it.
 const BAND_ROWS: readonly BandRow[] = [
   { case: 'four orders of magnitude below the band', rate: 0.0001, implausible: true },
   { case: 'the sub-cent rate #327 still parses and saves', rate: 0.005, implausible: true },
@@ -35,9 +33,6 @@ describe('isRateImplausible', () => {
     expect(isRateImplausible(rate)).toBe(implausible);
   });
 
-  // Scenario 19. Asserted on the thrown TYPE, never on a `false` return: a
-  // predicate that answers "plausible" for `NaN` reports nothing wrong about a
-  // value that is wrong in a way this function cannot describe.
   it.each([
     { case: 'NaN', rate: NaN },
     { case: 'zero', rate: 0 },

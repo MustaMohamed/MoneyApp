@@ -17,11 +17,6 @@ export interface ButtonContent {
   spinnerColor?: string;
 }
 
-/**
- * Pure busy-button resolver. Split out of button.tsx so both Done-when cases
- * — the supplied loadingLabel and the omitted one — are provable without
- * rendering anything.
- */
 export function resolveButtonContent({
   variant,
   label,
@@ -34,11 +29,7 @@ export function resolveButtonContent({
 
   const text = loadingLabel ?? Strings.loading;
 
-  // The spinner's own default colour resolves to the theme accent gold, which
-  // is the exact fill of the primary CTA — a default-coloured spinner on the
-  // primary button is invisible. Do not delete this as "the redundant colour
-  // prop": it is what keeps the spinner visible on the two variants that paint
-  // a solid fill close to the spinner's own default.
+  // The spinner's default gold is the primary CTA's own fill, so it would be invisible there.
   if (variant === 'primary') {
     return { text, showSpinner: true, spinnerColor: Colors.dark.bg };
   }

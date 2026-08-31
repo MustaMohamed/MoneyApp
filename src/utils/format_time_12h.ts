@@ -1,9 +1,4 @@
-/**
- * Convert a SQLite-stored 'HH:MM:SS' (24-hour) time string to 12-hour 'H:MM AM/PM'.
- *
- * Hours: 1–12 with no leading zero. Minutes: zero-padded.
- * Seconds are dropped.
- */
+/** Takes stored 'HH:MM:SS'; emits 'H:MM AM/PM' with no leading zero hour and seconds dropped. */
 export function formatTime12h(time24: string): string {
   const [hStr, mStr] = time24.split(':');
   const hours24 = Number(hStr);

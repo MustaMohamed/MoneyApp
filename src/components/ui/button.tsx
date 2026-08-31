@@ -13,9 +13,9 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled
   label: string;
   isLoading?: boolean;
   isDisabled?: boolean;
-  /** RN convention. When set and isDisabled is not, maps to HeroUI Native's `isDisabled`. */
+  /** RN convention. When set and `isDisabled` is not, maps to HeroUI Native's `isDisabled`. */
   disabled?: boolean;
-  /** When isLoading, replaces Strings.loading. Omitted keeps today's default. */
+  /** When `isLoading`, replaces `Strings.loading` as the button text. */
   loadingLabel?: string;
   className?: string;
 }

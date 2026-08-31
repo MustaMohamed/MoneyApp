@@ -63,17 +63,7 @@ jest.mock('heroui-native', () => {
 });
 
 const baseProps = {
-  // `liabilities` is the OWED-FRAME total (#259, reversing the "POSITIVE
-  // magnitude" claim this comment used to make) — positive when cards are
-  // owed, negative only when every card is in credit — so the old `-200`
-  // literal is corrected here to an ordinary owed value, not carried in on
-  // the strength of a contract that no longer forbids negative. Verified
-  // inert: `stat_cards.tsx` reads the field as `Math.abs(...)` for the
-  // proportion bar, and the one assertion naming the rendered string runs
-  // with `netWorthLoading` set, where neither value renders.
-  // The two USD values are 1200 and 1000 at a rate of 40, chosen so neither
-  // collides with a string an existing query matches; nothing asserts them —
-  // `StatCards` reads no USD field at all.
+  // `liabilities` is the owed-frame total: positive when cards are owed, negative only in credit.
   netWorth: {
     kind: 'amount',
     assets: 1200,
@@ -82,9 +72,6 @@ const baseProps = {
     assetsForeign: 30,
     netWorthForeign: 25,
   } as const,
-  // EGP, so every existing assertion below keeps the rendering it was written
-  // against: this fixture follows the rename and the new required prop, and
-  // asserts nothing new. The USD-base rendering is the emulator's (spec §8).
   baseCurrency: Currency.EGP,
   assetsCount: 2,
   liabilitiesCount: 1,

@@ -19,9 +19,7 @@ export function useWelcome() {
   const statusMessage = useWelcomeTransitionState.useState.statusMessage();
   const busy = useWelcomeTransitionState.useState.busy();
 
-  // Belt and braces for an entry path that does not go through the runner —
-  // invalidate() already clears this on every successful exit, but a fresh
-  // mount should never be able to show a message from a previous visit.
+  // Redundant with `invalidate()` on exit, but a fresh mount must not show a stale message.
   useInit(() => useWelcomeTransitionState.getState().reset());
 
   const onContinue = async () => {
@@ -35,8 +33,7 @@ export function useWelcome() {
       desiredStep: OnboardingStep.N2,
       readAccountCount: () => useAccountStore.getState().accounts.length,
       persist: async (resolve) => {
-        // Nothing this write does changes the account count, so the
-        // destination can be resolved up front.
+        // This write cannot change the account count, so the destination resolves up front.
         const resolved = resolve();
         await setBaseCurrency(selected);
         await setStep(resolved);

@@ -1,17 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-/**
- * FAB — Floating Action Button.
- *
- * Persistent across all tabs. Hidden on /settings routes.
- * Tap = Add Transaction (primary). Long-press (500ms) = mini menu (Add Transaction / Add Account / Add Commitment).
- *
- * Ownership: consumed by app/(app)/(tabs)/_layout.tsx only.
- * Screens do not mount or control the FAB.
- *
- * TODO(S2): Migrate LongPressGestureHandler to Gesture.LongPress() (RNGH v2 declarative API).
- * The legacy handler API works but the modern API is preferred for new code.
- */
+// TODO(S2): migrate `LongPressGestureHandler` to the RNGH v2 `Gesture.LongPress()` API.
 import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import {
@@ -38,7 +27,7 @@ export interface FABProps {
   onAddTransaction: () => void;
   onAddAccount: () => void;
   onAddCommitment: () => void;
-  /** Pass true when pathname starts with /settings. */
+  /** Pass true when pathname starts with `/settings`. */
   hidden?: boolean;
   /** Bottom offset from the bottom of the screen in dp. Caller provides tab bar height + 16. */
   bottomOffset?: number;
@@ -58,11 +47,10 @@ export function FAB({
 }: FABProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Rotation for the + → × transform
   const rotation = useSharedValue(0);
   const scrimOpacity = useSharedValue(0);
 
-  // Per-item animation values — declared at top level (no hooks in loops/conditionals)
+  // Declared one by one at top level: no hooks in loops or conditionals.
   const item0TranslateY = useSharedValue(20);
   const item0Opacity = useSharedValue(0);
   const item1TranslateY = useSharedValue(20);
@@ -78,7 +66,6 @@ export function FAB({
     opacity: scrimOpacity.value,
   }));
 
-  // All three item animated styles declared unconditionally at top level
   const item0Style = useAnimatedStyle(() => ({
     transform: [{ translateY: item0TranslateY.value }],
     opacity: item0Opacity.value,
@@ -108,7 +95,7 @@ export function FAB({
       translateY.value = withDelay(index * 40, withSpring(0, { mass: 0.8, stiffness: 180 }));
       opacity.value = withDelay(index * 40, withTiming(1, { duration: 150 }));
     });
-    // Shared values from useSharedValue are stable refs — empty deps array is correct.
+    // `useSharedValue` values are stable refs, so an empty deps array is correct.
   }, []); // oxlint-disable-line react-hooks/exhaustive-deps
 
   const closeMenu = useCallback(() => {
@@ -122,9 +109,9 @@ export function FAB({
       );
       opacity.value = withDelay(reverseIndex * 40, withTiming(0, { duration: 150 }));
     });
-    // Delay state change to let close animation finish (see CLOSE_DURATION_MS).
+    // Delay state change to let close animation finish (see `CLOSE_DURATION_MS`).
     setTimeout(() => setMenuOpen(false), CLOSE_DURATION_MS);
-    // Shared values from useSharedValue are stable refs — empty deps array is correct.
+    // `useSharedValue` values are stable refs, so an empty deps array is correct.
   }, []); // oxlint-disable-line react-hooks/exhaustive-deps
 
   const onLongPress = useCallback(
@@ -173,15 +160,12 @@ export function FAB({
   ];
 
   return (
-    // Outer wrapper covers the full screen so the scrim can fill it.
-    // pointerEvents="box-none" lets touches pass through to tabs/content
-    // when the menu is closed; the scrim itself captures taps when open.
+    // `box-none` lets touches through to the tabs when closed; the scrim captures them when open.
     <View
       testID="fab-root"
       style={[StyleSheet.absoluteFill, hidden && styles.hidden]}
       pointerEvents={hidden ? 'none' : 'box-none'}
     >
-      {/* Scrim — full-screen overlay, tapping dismisses the menu */}
       <Animated.View
         style={[StyleSheet.absoluteFill, styles.scrim, scrimStyle]}
         pointerEvents={menuOpen ? 'auto' : 'none'}
@@ -189,13 +173,11 @@ export function FAB({
         <Pressable style={StyleSheet.absoluteFill} onPress={closeMenu} />
       </Animated.View>
 
-      {/* FAB column — positioned at bottom-center, holds menu items + FAB circle */}
       <View
         testID="fab-container"
         style={[styles.container, { bottom: bottomOffset }]}
         pointerEvents="box-none"
       >
-        {/* Mini menu items — rendered above FAB; item 0 bottom, item 2 top */}
         {menuOpen &&
           menuItems.map((item, index) => {
             const { animStyle } = itemAnimValues[index];
@@ -222,7 +204,6 @@ export function FAB({
             );
           })}
 
-        {/* FAB button — primary action on tap, mini menu on long-press */}
         {/* oxlint-disable-next-line typescript/no-deprecated -- Gesture.LongPress() requires GestureDetector which conflicts with the nested Pressable onPress handler; full migration deferred to §9 RNGH cleanup */}
         <LongPressGestureHandler onHandlerStateChange={onLongPress} minDurationMs={500}>
           <Pressable
@@ -253,17 +234,13 @@ export function FAB({
 }
 
 const styles = StyleSheet.create({
-  // Outer shell — full-screen, used to anchor the scrim
   hidden: {
     opacity: 0,
   },
-  // Scrim — full-screen dark overlay behind the menu
   scrim: {
-    // Colors.shared.midnightBlue matches brand; scrim uses same hue at 50% opacity
     backgroundColor: Colors.shared.midnightBlue,
     zIndex: -1,
   },
-  // FAB column — auto-sized, positioned bottom-center
   container: {
     position: 'absolute',
     alignSelf: 'center',
@@ -294,7 +271,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
     elevation: 4,
-    // Colors.shared.midnightBlue as shadow color — consistent with brand palette
     shadowColor: Colors.shared.midnightBlue,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,

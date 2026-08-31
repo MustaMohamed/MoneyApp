@@ -1,6 +1,3 @@
-// Mocks for native modules used across tests. Individual test files can
-// override these or supply richer fakes via jest.mock().
-
 jest.mock('expo-secure-store', () => {
   const store = new Map();
   return {
@@ -16,12 +13,7 @@ jest.mock('expo-secure-store', () => {
 });
 
 jest.mock('expo-sqlite', () => {
-  // Tests that need real SQL should pull this mock's jest.fn()s via
-  // src/test_helpers/sqlite.ts's getExpoSQLiteTestDatabase() and wire their
-  // mockImplementation to a real better-sqlite3 instance — see the moneyapp-testing
-  // skill and __tests__/transaction.repository.test.ts for the canonical usage.
-  // Default here is a thin call-recording mock so unit tests don't crash if they
-  // incidentally touch the DB.
+  // Tests needing real SQL rewire these jest.fn()s to better-sqlite3 via `@/test_helpers/sqlite`.
   const calls = [];
   const fakeDb = {
     execAsync: jest.fn(async (sql) => {
@@ -183,8 +175,6 @@ jest.mock('heroui-native', () => {
 
   const Separator = (props) => React.createElement(View, { testID: 'separator', ...props });
 
-  // BottomSheet compound component mock.
-  // Renders children when isOpen=true; calls onOpenChange(false) via Close.
   const BottomSheetPortal = ({ children }) => React.createElement(React.Fragment, null, children);
   const BottomSheetOverlay = () => null;
   const BottomSheetContent = ({ children }) =>

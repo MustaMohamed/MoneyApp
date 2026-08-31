@@ -7,14 +7,7 @@ import { AcctTokens } from '@/constants/theme_tokens';
 
 import { resolveAmbientWashGeometry } from './onboarding_shell.geometry';
 
-/**
- * N1's two-hue ambient wash — mockup.html:428-433 (`.aurora`). The screen's
- * base canvas colour, not a material sitting on top of one: no blur, no
- * translucency, no white edge highlight, no animation. Rendered by the shell
- * as a sibling *outside* Screen's padded box (MA-010 decision D4) so it
- * reaches the status-bar strip with no horizontal seam, and hidden from
- * assistive tech — it carries no information a screen reader could use.
- */
+/** mockup.html:428-433 (`.aurora`); the shell renders it outside Screen's padded box. */
 export const OnboardingAmbientWash = React.memo(function OnboardingAmbientWash() {
   const { width, height } = useWindowDimensions();
   const { gold, teal } = resolveAmbientWashGeometry(width, height);
@@ -54,7 +47,7 @@ export const OnboardingAmbientWash = React.memo(function OnboardingAmbientWash()
           <Stop offset="0.62" stopColor={AcctTokens.nile.rich} stopOpacity={0} />
         </RadialGradient>
       </Defs>
-      {/* No base rect — the host View paints bg-background underneath both. */}
+      {/* No base rect: the host View paints bg-background underneath both. */}
       <Rect x={0} y={0} width={width} height={height} fill="url(#ambient-wash-gold)" />
       <Rect x={0} y={0} width={width} height={height} fill="url(#ambient-wash-teal)" />
     </Svg>

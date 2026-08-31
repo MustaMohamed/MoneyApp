@@ -4,10 +4,7 @@ import { MIGRATIONS } from '@/database/migrations';
 
 const SCHEMA_SQL = MIGRATIONS.map((m) => m.up).join('\n');
 
-// TC-15 — verify the DDL we ship in production produces the expected
-// table shape and that the CHECK constraints actually reject invalid
-// values. We run the same SCHEMA_SQL against an in-memory better-sqlite3
-// instance, since we can't reach the on-device expo-sqlite from tests.
+// expo-sqlite is unreachable from tests, so the shipped DDL runs on in-memory better-sqlite3.
 
 const openDbs: ReturnType<typeof Database>[] = [];
 
@@ -18,9 +15,7 @@ function withDb(): ReturnType<typeof Database> {
   return db;
 }
 
-// afterEach, not the sibling afterAll(close) spelling: a test that throws mid-body still
-// reaches this afterEach with its handle(s) already pushed, so afterAll would leave them
-// stranded until the file's last test — afterEach drains after every test instead.
+// afterEach, not afterAll: a test that throws mid-body would otherwise strand its handles.
 afterEach(() => {
   const drained = openDbs.splice(0);
   const closeFailures: unknown[] = [];
@@ -31,11 +26,7 @@ afterEach(() => {
       closeFailures.push(err);
     }
   }
-  // One assertion, not a bare-boolean loop: it names which drained index(es) are still
-  // open AND surfaces every close() error's text in the same failure, so a stranded
-  // handle never reports as an anonymous `expect(db.open).toBe(false)` with the real
-  // cause silently dropped. Passes only when both are empty, so the throws below are
-  // unreachable on green — they exist to preserve stack fidelity on the failure path.
+  // The expect covers both lists; the throws below only preserve stack fidelity on failure.
   const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
   expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
     stranded: [],

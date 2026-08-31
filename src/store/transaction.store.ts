@@ -1,4 +1,4 @@
-// Backward-compat stub — the canonical implementation lives in modules/transactions/.
+// Backward-compat stub; the canonical implementation lives in `modules/transactions/`.
 export {
   createTransactionStore,
   useTransactionStore,

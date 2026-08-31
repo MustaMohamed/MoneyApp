@@ -1,13 +1,6 @@
 import { renderHook } from '@testing-library/react-native';
 
-/**
- * Same stub shape as `onboarding_more_accounts.anim.test.ts` — the library's
- * own mock leaves `useReducedMotion` unimplemented ("ADD ME IF NEEDED"), and
- * every link of the builder chain records its argument. An earlier version of
- * that stub carried only `delay` forward, so 2 of the 3 chain parameters went
- * unasserted and deleting `.withInitialValues` left the suite green while the
- * screen rose from FadeInDown's preset 25 (issue #233).
- */
+// Reanimated's own jest mock leaves `useReducedMotion` unimplemented, so stub the chain here.
 const mockUseReducedMotion = jest.fn();
 const mockFirstMount = jest.fn();
 const builder = {
@@ -43,11 +36,7 @@ describe('useReadyAnim — mockup § F, `.rise-1` / `.rise-2` / `.rise-3`', () =
     mockFirstMount.mockReturnValue(true);
     const { result } = await renderHook(() => useReadyAnim());
     const entries = Object.values(result.current) as unknown as { delayMs: number }[];
-    // Literals, not RISE_DELAYS_MS[i] — restating the constant one line from
-    // its definition is the vacuous shape the spec names. Three blocks: the
-    // intro, the hero card and the summary group. The CTA is not one of them
-    // (mockup.html:2325/2332/2342 mark exactly three); the footer is a fixed
-    // track and does not enter.
+    // Three entries: intro, hero card, summary group (mockup.html:2325/2332/2342); CTA excluded.
     expect(entries).toHaveLength(3);
     expect(entries.map((entry) => entry.delayMs)).toEqual([0, 120, 240]);
   });
@@ -63,7 +52,7 @@ describe('useReadyAnim — mockup § F, `.rise-1` / `.rise-2` / `.rise-3`', () =
     expect(entries).toHaveLength(3);
     for (const entry of entries) {
       expect(entry.durationMs).toBe(500);
-      // The spec's small lift, not FadeInDown's preset 25.
+      // Without `withInitialValues`, FadeInDown enters from its preset translateY of 25.
       expect(entry.initialValues).toEqual({ translateY: ms(10) });
     }
   });

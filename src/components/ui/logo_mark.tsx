@@ -8,30 +8,14 @@ import { AccentTokens, AcctTokens, GoldTokens } from '@/constants/theme_tokens';
 import { resolveLogoMarkA11y } from './logo_mark.a11y';
 
 export interface LogoMarkProps {
-  /** Edge length in dp. Default Size.logoMark (30) — the mockup's header size. */
+  /** Edge length in dp. Default `Size.logoMark` (30), the mockup's header size. */
   size?: number;
-  /**
-   * Screen-reader name. **Omit it** wherever a `MoneyApp` wordmark sits beside
-   * the mark — that is the N1 header, and naming both announces the app twice.
-   */
+  /** Omit wherever a `MoneyApp` wordmark sits beside the mark, or it announces the app twice. */
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
 
-/**
- * The Cross Fan mark at compact size — mockup `assets/mockup.html:879-885`,
- * symbol `#mark`, transcribed 1:1 including its 40x40 viewBox.
- *
- * This is NOT a scale-down of the launcher tile. The tile's cards are three
- * differently sized landscape rects with a drop shadow; the approved compact
- * mark is three identical portrait cards in flat token colours. Card order,
- * angles (+8 / -8 / +1.5) and the folded symbol are preserved, which is what
- * locked-design-2026-07-23.md:126-129 requires of a derived compact variant.
- *
- * The accessibility props sit on a wrapper View rather than on the Svg, the same
- * shape display_headline.tsx:31-32 ships — an ordinary View's accessibility is
- * not in question, and this task has no emulator run to catch a surprise.
- */
+/** Transcribed 1:1 from `assets/mockup.html:879-885` symbol `#mark`, 40x40 viewBox included. */
 export function LogoMark({ size = Size.logoMark, accessibilityLabel, style }: LogoMarkProps) {
   const a11y = resolveLogoMarkA11y(accessibilityLabel);
 
@@ -74,9 +58,7 @@ export function LogoMark({ size = Size.logoMark, accessibilityLabel, style }: Lo
           strokeLinejoin="round"
           transform="rotate(1.5 20 21)"
         />
-        {/* The nudge, scope.md decision 3: the teal dot sits on the card corner,
-            not over the stem. Dot-over-stem is the anatomy of a lowercase "i"
-            and read as "Mi" at launcher size. Do not move it back. */}
+        {/* The teal dot sits on the card corner: over the stem it reads as "Mi". */}
         <Circle cx={30.2} cy={8.6} r={2.7} fill={AccentTokens.nile} />
       </Svg>
     </View>

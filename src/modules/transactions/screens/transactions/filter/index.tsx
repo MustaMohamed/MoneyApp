@@ -1,4 +1,3 @@
-// modules/transactions/screens/transactions/filter/index.tsx
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React from 'react';
 

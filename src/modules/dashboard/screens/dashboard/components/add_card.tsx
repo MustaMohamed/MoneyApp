@@ -27,7 +27,6 @@ export function AddCard({ width, onPress }: AddCardProps) {
         className="border-border overflow-hidden rounded-2xl border p-0"
         style={{ flex: 1, boxShadow: 'none' }}
       >
-        {/* Accent bar — mirrors AccountCard's account-color accent */}
         <View style={{ height: ms(3), width: '100%', backgroundColor: ACCENT }} />
 
         <View

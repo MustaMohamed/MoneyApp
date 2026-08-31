@@ -47,7 +47,7 @@ export interface NewTransactionInput {
   type: TransactionType;
   amount: number;
   currency: Currency;
-  /** EGP equivalent — amount for EGP accounts, amount × rate for USD accounts. */
+  /** EGP equivalent: amount for EGP accounts, amount × rate for USD accounts. */
   egp_amount: number;
   /** Amount received by the destination account in its native currency. */
   to_amount?: number;

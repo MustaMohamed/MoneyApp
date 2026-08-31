@@ -60,14 +60,6 @@ describe('transaction form helpers', () => {
     );
   });
 
-  // P8 c1 finding item 1: the mapper matches the discriminant, not the error
-  // class — only `reason === 'unstorable'` (the resolver's output guard)
-  // maps to the named string, never `error.message`. Both directions
-  // asserted: an arbitrary message is ignored on the discriminated cause,
-  // and an undiscriminated TransactionAmountError — every other throw in
-  // transaction_amounts.ts (missing destination, non-positive amount,
-  // missing rate) — falls through to the generic banner rather than
-  // surfacing an internal domain literal as user copy.
   it('maps the discriminated output-guard cause to the named constant, ignoring its own message', () => {
     expect(
       resolveTransactionSaveError(

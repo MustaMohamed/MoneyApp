@@ -4,9 +4,6 @@ import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-// PROTECTED_CATEGORY_IDS intentionally not imported here — UI protection gate
-// now uses category.is_default === 1 (see: fix/section-4-lock-all-defaults).
-// The constant remains in constants/enums.ts as a documented historical artifact.
 import { Colors, Radius, Size, Spacing } from '@/constants/theme';
 import type { Category } from '@/modules/categories/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';

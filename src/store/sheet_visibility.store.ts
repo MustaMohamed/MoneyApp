@@ -13,10 +13,7 @@ export const useSheetVisibilityStore = create<SheetVisibilityStore>((set) => ({
   increment: () => set((s) => ({ count: s.count + 1 })),
   decrement: () =>
     set((s) => {
-      // Floor at 0 so a leaked decrement (Sheet unmounted-twice, double-cleanup,
-      // etc.) doesn't pin the counter at a negative value and break un-hiding
-      // the FAB forever. Warn in dev so the underlying leak is at least visible
-      // — silent floor would let the bug hide indefinitely.
+      // Floor at 0: a leaked decrement would pin the count negative and never un-hide the FAB.
       if (__DEV__ && s.count === 0) {
         console.warn(
           '[sheet_visibility] decrement called while count is already 0 — ' +
@@ -29,7 +26,6 @@ export const useSheetVisibilityStore = create<SheetVisibilityStore>((set) => ({
   reset: () => set(INITIAL_STATE),
 }));
 
-/** Returns true when at least one Sheet is currently open. */
 export function useAnySheetOpen(): boolean {
   return useSheetVisibilityStore((s) => s.count > 0);
 }

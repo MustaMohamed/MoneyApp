@@ -344,7 +344,6 @@ describe('useEditTransaction', () => {
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     expect(result.current.state.type).toBe(TransactionType.Expense);
     expect(result.current.state.selectedAccount?.id).toBe('a1');
-    // No setType / selectAccount / selectToAccount exports
     expect(result.current).not.toHaveProperty('setType');
     expect(result.current).not.toHaveProperty('selectAccount');
     expect(result.current).not.toHaveProperty('selectToAccount');
@@ -517,15 +516,6 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
     expect(result.current.state.errors.amount).toBeUndefined();
   });
 
-  // The §0.2 ruling's gate: a pre-existing sub-cent row opened in the edit
-  // form seeds `amountStr` from storage (edit_transaction.store.ts:33,
-  // `amountStr: String(tx.amount)`), never through AmountHero.sanitize
-  // (onChangeText only) — so a stored 0.005 reaches the raw-value floor
-  // untouched. This must render "Amount must be at least 0.01", not "Enter
-  // an amount": the amount is present and typed, just below the floor.
-  // Swap `parseDecimalText` back to `parseNonNegativeDecimal` at
-  // edit_transaction.hook.ts's handleSave and this goes red on the message
-  // (addTxErrAmountRequired instead of addTxErrAmountZero).
   it('rejects a stored 0.005 on Save without the amount field ever being touched', async () => {
     const subCentTx = makeTestTransaction({
       ...mockTxExpense,
@@ -541,15 +531,7 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
     expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountZero);
   });
 
-  // W2E c3, §8/§8.9's e2e round-trip: the fix's actual target case, where the
-  // sub-cent test above coincidentally passed even against the old
-  // `String(tx.amount)` (`String(0.005) === '0.005'` by luck). `1e-7` is what
-  // `String()` renders as exponential text (`'1e-7'`) — unparseable by
-  // `DECIMAL_PATTERN` — so a bare `String()` prefill opened this field on
-  // text no keystroke could even repair. `formatStoredMoneyText` renders it
-  // as `'0.0000001'` instead, which is present, typed, and just below the
-  // floor — this pins that it fails Save the same way the sub-cent case
-  // does, not silently and not with "Enter an amount".
+  // `String(1e-7)` is exponential text that `DECIMAL_PATTERN` cannot parse; the prefill formats it.
   it('rejects a stored 1e-7 on Save as the floor message, never as unparseable text', async () => {
     const exponentialTx = makeTestTransaction({
       ...mockTxExpense,
@@ -557,8 +539,6 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
     });
     useEditTransactionStore.getState().loadFromTx(exponentialTx);
     const updateTx = installMockUpdateTransaction();
-    // The prefill itself, not just the Save outcome: `'0.0000001'` is what
-    // `formatStoredMoneyText` renders and what the field can hold at all.
     expect(useEditTransactionStore.getState().amountStr).toBe('0.0000001');
     const { result } = await renderHook(() =>
       useEditTransaction(exponentialTx, jest.fn(), jest.fn()),

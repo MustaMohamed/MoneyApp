@@ -32,27 +32,7 @@ export async function getAccountsByIdsIncludingArchived(
   );
 }
 
-/**
- * The only write that moves `revolving_balance` (issue #311). Its invariant is
- * `0 <= revolving_balance <= current_balance` for a credit card, and it is
- * recorded here rather than enforced, deliberately:
- *
- * - Reversals are symmetric. `invertAccountDeltas` and `mergeAccountDeltas`
- *   (`transaction_policy.ts:240,:248`) negate and sum the same field, so an
- *   applied delta and its inverse cancel exactly.
- * - Every current flow's revolving delta is 0. The column is pinned to 0 for a
- *   credit card at creation and `null` for every other type
- *   (`account_form.helpers.ts:79`), and nothing since writes a nonzero one, so
- *   the second branch below does not run today.
- * - The negative case already has a guard that refuses the command rather than
- *   rewriting it (`validateResultingCardBalances`,
- *   `transaction_policy.ts:295-297`).
- *
- * A clamp here would be an unreachable branch that silently rewrote a value
- * the caller asked to persist, which is the equivalent-mutant class #307 ruled
- * against. If a flow ever writes a nonzero revolving delta, the guard above is
- * where the invariant gets enforced, not this function.
- */
+/** `0 <= revolving_balance <= current_balance` is guarded in `transaction_policy.ts`, not here. */
 export async function applyAccountDelta(
   db: SQLiteDatabase,
   delta: AccountDelta,

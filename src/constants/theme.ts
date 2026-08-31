@@ -2,14 +2,7 @@ import { Platform } from 'react-native';
 
 import { ms, msFont } from '@/utils/responsive';
 
-/**
- * Design tokens for the Cairo Nights system.
- *
- * Numeric values (Spacing, Radius, Type, Size) are scaled responsively
- * from the iPhone 14 baseline (390pt). See utils/responsive.ts.
- *
- * See docs/design-system.md for the full reference + before/after table.
- */
+// Numeric tokens are scaled from the 390pt iPhone 14 baseline by `utils/responsive.ts`.
 
 export const Colors = {
   dark: {
@@ -26,11 +19,7 @@ export const Colors = {
     warning: '#E8B130',
     dangerBg: 'rgba(224, 90, 66, 0.12)',
     warningBg: 'rgba(232, 177, 48, 0.12)',
-    // `Colors.shared.cairoGold` + 13.3% alpha (`22` hex) — mockup.html:672,
-    // `color-mix(in srgb, var(--cairo-gold) 13%)`, the same alpha the dashboard
-    // hero's 24pt wallet chip used before this token existed. Eye-tuned for the
-    // near-black dark bg; a real light theme would need to re-derive it, not
-    // reuse this value (#253).
+    // `Colors.shared.cairoGold` at 13.3% alpha (`22` hex), mockup.html:672, tuned for the dark bg.
     goldTint: '#C9973A22',
     overlayWhite7: 'rgba(255, 255, 255, 0.07)',
     // Budget 5-band colour scale
@@ -52,7 +41,7 @@ export const Colors = {
     positive: '#3D7A5F',
     negative: '#C0442A',
     warning: '#B86E08',
-    // Budget 5-band colour scale (light analogues — tunable at device QA)
+    // Budget 5-band colour scale (light analogues)
     budgetUnder: '#4A86C0',
     budgetSteady: '#3A8F65',
     budgetWatch: '#B8922A',
@@ -67,9 +56,6 @@ export const Colors = {
     heroGrad1: '#1A2948',
     heroGrad2: '#223060',
     heroGrad3: '#192A4A',
-    // A named token for a colour with no theme meaning — routes a bare
-    // 'transparent' string literal through constants/theme.ts the way every
-    // other colour in this file already is (MA-009 post-approval fix F7).
     transparent: 'transparent',
   },
 } as const;
@@ -85,7 +71,7 @@ export const FontFamily = {
   interBold: 'Inter_700Bold',
 } as const;
 
-/** Typography scale — font sizes only. Use FontFamily separately. */
+/** Font sizes only; families are in `FontFamily`. */
 export const Type = {
   chipMeta: msFont(7.5),
   chip: msFont(9),
@@ -105,38 +91,20 @@ export const Type = {
   summary: msFont(31),
   detailHero: msFont(30),
   amountEntry: msFont(40),
-  /** N1 headline — mockup § B, `.b-headline`, 42px. */
+  /** N1 headline, mockup § B, `.b-headline`, 42px. */
   display: msFont(42),
 } as const;
 
-/**
- * Derived line-height for a `Type` font size token. HeroUI `Typography` /
- * `Label.Text` keep their className's own line-height when a `style`
- * override sets `fontSize` alone — `style` only wins on the properties it
- * states — so every `fontSize` override anywhere in this codebase has to
- * pair an explicit `lineHeight` or the two drift apart (MA-009 impl review
- * D3: an 11px label-row mismatch from exactly this omission, found once the
- * pairing was missed by hand). `1.3` is the ratio the account-form module
- * had already converged on at 6 of its 8 hand-written sites before this
- * helper existed; centralising it here is what stops a second multiplier
- * (`* 1.35`, applied to the same `Type.caption` token in two other files)
- * from drifting in beside it undetected (debt:quality #229 / MA-009
- * post-approval fix F4). Not for `FieldMessageRail`'s own text, which pairs
- * a deliberately *unscaled* 20 against HeroUI `FieldError`'s own unscaled
- * CSS line-height (`account_form.geometry.ts`'s `FIELD_MESSAGE_TEXT_LINE_
- * HEIGHT`) — this ratio would break that equality off scale 1.0.
- */
+// A `style` `fontSize` override keeps the className's line-height, so always pair `lineHeightFor`.
 const TYPE_LINE_HEIGHT_RATIO = 1.3;
 export function lineHeightFor(fontSize: number): number {
   return Math.round(fontSize * TYPE_LINE_HEIGHT_RATIO);
 }
 
-/** Tracking values for compact labels and eyebrow copy. */
 export const LetterSpacing = {
   eyebrow: ms(0.3),
 } as const;
 
-/** Vertical / horizontal spacing scale. */
 export const Spacing = {
   xxxxs: ms(1),
   xxxs: ms(2),
@@ -149,7 +117,6 @@ export const Spacing = {
   xxl: ms(32),
 } as const;
 
-/** Border radius scale. */
 export const Radius = {
   xs: ms(2),
   sm: ms(8),
@@ -160,24 +127,14 @@ export const Radius = {
   cta: ms(13),
 } as const;
 
-/**
- * Component-level sizes (heights, icon containers, dot diameters, etc.).
- * Touch targets fall through to TouchSize so they don't shrink below
- * platform-recommended minimums.
- */
+/** Touch targets use `TouchSize` instead, so they never fall below the platform floor. */
 export const Size = {
   ctaHeight: ms(52),
   headerHeight: ms(56),
-  // Bottom-tab-bar content height (excludes safe-area inset). iOS ~49pt, Android ~56dp.
-  // Estimate only — does NOT track landscape collapse (~32pt on iOS) or scaled
-  // tabBarLabelStyle (accessibility text sizes can push this past 56). The FAB
-  // offset adds a 16dp gap on top so small overshoot is visually harmless. If a
-  // future screen needs an accurate value, expose useBottomTabBarHeight() (from
-  // 'expo-router/js-tabs' since SDK 56 — @react-navigation/bottom-tabs is no
-  // longer a dependency) via context from a wrapper inside a <Tabs.Screen>.
+  // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
   backBtn: ms(40),
-  /** Compact brand mark — mockup § B header, `<svg width="30" height="30">`. */
+  /** Compact brand mark, mockup § B header, `<svg width="30" height="30">`. */
   logoMark: ms(30),
   compactChipHeight: ms(28),
   spendingPlanChipHeight: ms(25),
@@ -210,7 +167,7 @@ export const Size = {
   iconSm: ms(18),
   iconMd: ms(22),
   iconLg: ms(26),
-  /** Deliberately the same ms(30) as `logoMark` above — icon vocabulary, not the brand mark; don't dedupe. */
+  /** Same ms(30) as `logoMark` by design; icon vocabulary, not the brand mark. Do not dedupe. */
   iconXl: ms(30),
   emptyStateIcon: ms(56),
   iconHero: ms(64),
@@ -229,31 +186,20 @@ export const Size = {
   sheetHandle: { width: ms(36), height: ms(4) },
   dialogButton: ms(44),
   hairline: ms(1),
-  // Zero-shift contract — spec.md § "The zero-shift contract". These six are
-  // fixed tracks that must not change height when their contents swap.
+  // Fixed tracks that must not change height when their contents swap.
   fieldMessageTrack: ms(20), // helper <-> error rail under every field
-  summaryValueSlot: ms(52), // N4 value slot, sized for Type.amountEntry (40)
+  summaryValueSlot: ms(52), // N4 value slot, sized for `Type.amountEntry` (40)
   summaryCaptionSlot: ms(34), // N4 two-line caption
-  summaryPillTrack: ms(24), // N4 pill row — ONE line
+  summaryPillTrack: ms(24), // N4 pill row, one line
   statusTrack: ms(34), // footer footnote <-> error track
-  progressRail: ms(55), // onboarding progress rail — bar + step label, fixed
-  // Field height. UNSCALED, matching HeroUI Input's own `min-height: 48`
-  // (heroui-native/src/styles/components/input.css:9 — spacing 0.25rem x 12).
-  // Deliberately not ms()-scaled: see @sarah's ruling, note 5 below.
+  progressRail: ms(55), // onboarding progress rail, bar plus step label
+  // Unscaled, to match HeroUI Input's own `min-height: 48`.
   fieldHeight: 48,
-  // FieldMessageRail's own paddingTop, nudging its text down from the box's
-  // top edge — not one of the five zero-shift tracks above (this pads
-  // *inside* a track, it doesn't set one). ms(3) rounds back to 3 at every
-  // scale this app clamps to ([0.85, 1.15] — Math.round(3 * 0.85) =
-  // Math.round(3 * 1.15) = 3), so routing the old bare `3` through ms()
-  // costs nothing visually (MA-009 post-approval fix F7).
+  // Padding inside `FieldMessageRail`, not one of the fixed tracks above.
   fieldRailTextInset: ms(3),
 } as const;
 
-/**
- * Touch-target floor. Apple HIG recommends 44pt; Material 48dp. We pick
- * 44 as the cross-platform floor and never scale it below that.
- */
+/** Cross-platform floor of 44: Apple HIG recommends 44pt, Material 48dp. Never scaled. */
 export const TouchSize = {
   min: 44,
 } as const;

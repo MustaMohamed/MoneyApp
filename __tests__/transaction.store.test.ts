@@ -457,7 +457,6 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
     const repo = makeRepo();
     const tx = makeTransaction({ id: 'tx-new' });
     repo.add = jest.fn<Promise<Transaction>, [NewTransactionInput]>(async () => tx);
-    // First call (setQuery) succeeds; subsequent calls (post-add refresh) reject.
     let callCount = 0;
     repo.getAll = jest.fn(async () => {
       if (callCount++ === 0) return [];
@@ -691,7 +690,6 @@ describe('transactionStore — race guard', () => {
     const slow = useStore.getState().setQuery({ search: 'a' });
     const fast = useStore.getState().setQuery({ search: 'ab' });
 
-    // Resolve the fresher request first, then the stale one.
     secondDef.resolve([makeTransaction({ id: 'fresh' })]);
     await fast;
     firstDef.resolve([makeTransaction({ id: 'stale' })]);
@@ -712,15 +710,10 @@ describe('transactionStore — race guard', () => {
     const stale = useStore.getState().setQuery({ search: 'a' });
     const fresh = useStore.getState().setQuery({ search: 'ab' });
 
-    // The newer request resolves first and clears loading.
     secondDef.resolve([makeTransaction({ id: 'fresh' })]);
     await fresh;
     expect(useStore.getState().status).toBe('ready');
 
-    // Now have the older request reject (e.g. its DB call timed out). The
-    // catch path's request guard must be FALSE, so it must not touch the
-    // status or transactions — those belong to the newer
-    // request that already settled.
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     firstDef.reject(new Error('stale db error'));
     await expect(stale).rejects.toThrow('stale db error');

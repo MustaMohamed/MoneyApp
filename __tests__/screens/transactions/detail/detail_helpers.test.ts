@@ -66,10 +66,7 @@ function transaction(overrides: Partial<Transaction>): Transaction {
 }
 
 describe('getAccountTypeIcon', () => {
-  // Locks the account-type → glyph mapping for the Detail screen's Account
-  // row. Mirrors the dashboard's account_card.tsx mapping; a divergence here
-  // means the same account would render with two different icons in two
-  // different surfaces — exactly the bug this fix exists to prevent.
+  // Mirrors the account-type to glyph mapping in the dashboard's `account_card.tsx`.
   const cases: Array<[AccountType, string]> = [
     [AccountType.Bank, 'bank'],
     [AccountType.SmartWallet, 'cellphone-nfc'],
@@ -85,16 +82,12 @@ describe('getAccountTypeIcon', () => {
   }
 
   it('falls back to "card-bulleted-outline" when type is undefined', () => {
-    // The account is looked up via accountsById.get(tx.account_id); if a
-    // historical transaction references an account that no longer exists,
-    // the lookup yields undefined and we must not crash. Old hardcoded
-    // glyph is the safe default.
+    // A transaction referencing an account that no longer exists yields undefined from the lookup.
     expect(getAccountTypeIcon(undefined)).toBe('card-bulleted-outline');
   });
 
   it('falls back to "card-bulleted-outline" for unknown values', () => {
-    // Defensive — the DB has CHECK constraints but legacy rows from an
-    // older enum could still appear.
+    // CHECK constraints aside, legacy rows from an older enum could still reach here.
     expect(getAccountTypeIcon('legacy_type_xyz')).toBe('card-bulleted-outline');
   });
 });
@@ -131,12 +124,7 @@ describe('resolveDetailViewState', () => {
 });
 
 describe('buildTransactionDetailPresentation', () => {
-  // #282: fromAmountText/toAmountText are now transferCellAmountText's whole
-  // {display, accessible} object — the same value TransferFlowCard renders, not a
-  // parallel recomputation it can silently diverge from. The 0.40 EGP leg pins the
-  // composed-sign escalation (a rounded-away magnitude must not go signless) on the
-  // "from" cell, and the USD leg keeps the native-per-side currency coverage the
-  // original fixture had.
+  // The pair is what `TransferFlowCard` renders, not a recomputation it can diverge from.
   it('exposes native send and receive values for a transfer, as the rendered display/accessible pair', () => {
     const source = account({ currency: Currency.EGP });
     const destination = account({
@@ -214,11 +202,6 @@ describe('buildTransactionDetailPresentation', () => {
     });
   });
 
-  // MA-016 P8 cycle 2 B-2: restores the presentation assertion F-4 deleted along with
-  // its byte-identical twin (`expect(formatCurrencyAmount(1200, Currency.USD))`).
-  // originalAmountText is one of MA-016's own changed surfaces (0dp -> 2dp) and the
-  // only assertion of it anywhere — without this row, reverting the change on
-  // detail.helpers.ts's originalAmountText line back to 0dp leaves the suite green.
   it('renders the USD original amount at the config default', () => {
     const { originalAmountText } = buildTransactionDetailPresentation({
       tx: transaction({ amount: 1200 }),
@@ -227,11 +210,7 @@ describe('buildTransactionDetailPresentation', () => {
     expect(originalAmountText).toBe('1,200.00 USD');
   });
 
-  // MA-016 P8 F-1: signedAmount composes its own sign and passes a positive magnitude
-  // to formatCurrencyAmount, so formatAmount's -0 guard never sees it — a genuine 0.40
-  // EGP expense rounded to "0" at EGP's 0dp precision and displayed as "-0", the guard's
-  // target string with no way to distinguish it from a true zero. See
-  // docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
+  // The sign is composed, so `formatAmount`'s -0 guard never sees a rounded-away magnitude.
   it('escalates to 2dp rather than print a sign beside a rounded-away magnitude', () => {
     expect(
       buildTransactionDetailPresentation({
@@ -256,9 +235,7 @@ describe('buildTransactionDetailPresentation', () => {
       account: account({ currency: Currency.USD }),
     });
     expect(exchangeRateText).toBe('1 USD = 48.60 EGP');
-    // formatCurrencyAmount routes EGP through CURRENCY_CONFIG's 0dp default — the wrong
-    // decimals for a rate. If exchangeRateText were ever rewired to call it, this would
-    // silently drop to '49 EGP' while the assertion above kept a stale expectation green.
+    // `formatCurrencyAmount` gives EGP 0dp, the wrong decimals for a rate; this pins that.
     expect(formatCurrencyAmount(48.6, Currency.EGP)).toBe('49 EGP');
   });
 });

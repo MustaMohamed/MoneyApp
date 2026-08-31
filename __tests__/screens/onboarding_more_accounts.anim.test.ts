@@ -1,13 +1,6 @@
 import { renderHook } from '@testing-library/react-native';
 
-/**
- * Same stub shape as `onboarding_welcome.anim.test.ts` — the library's own
- * mock leaves `useReducedMotion` unimplemented ("ADD ME IF NEEDED"), and every
- * link of the builder chain records its argument. An earlier version of that
- * stub carried only `delay` forward, so 2 of the 3 chain parameters went
- * unasserted and deleting `.withInitialValues` left the suite green while the
- * screen rose from FadeInDown's preset 25 (issue #233).
- */
+// Reanimated's own jest mock leaves `useReducedMotion` unimplemented, so stub the chain here.
 const mockUseReducedMotion = jest.fn();
 const mockFirstMount = jest.fn();
 const builder = {
@@ -43,9 +36,7 @@ describe('useMoreAccountsAnim — spec §3 S6, S7', () => {
     mockFirstMount.mockReturnValue(true);
     const { result } = await renderHook(() => useMoreAccountsAnim(true));
     const entries = Object.values(result.current) as unknown as { delayMs: number }[];
-    // Literals, not RISE_DELAYS_MS[i] — restating the constant one line from
-    // its definition is the vacuous shape §8 names. Two blocks, not four: the
-    // list itself never animates (S6).
+    // Literals, not the delay constant; only two blocks animate because the list never does.
     expect(entries).toHaveLength(2);
     expect(entries.map((entry) => entry.delayMs)).toEqual([0, 120]);
   });
@@ -61,7 +52,7 @@ describe('useMoreAccountsAnim — spec §3 S6, S7', () => {
     expect(entries).toHaveLength(2);
     for (const entry of entries) {
       expect(entry.durationMs).toBe(500);
-      // The spec's small lift, not FadeInDown's preset 25.
+      // A 10pt lift, not FadeInDown's preset 25.
       expect(entry.initialValues).toEqual({ translateY: ms(10) });
     }
   });

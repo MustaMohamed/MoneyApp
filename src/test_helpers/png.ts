@@ -7,12 +7,7 @@ export interface DecodedPng {
   data: Buffer;
 }
 
-/**
- * Minimal PNG decoder for asset tests. Supports the only format this repo's
- * committed PNGs use: 8-bit, colour type 6 (RGBA), non-interlaced. Anything
- * else throws — a wrong-format asset must fail the suite, not slip through as
- * misread bytes. No dependency: `zlib` is a Node built-in.
- */
+/** Supports only 8-bit, colour type 6 (RGBA), non-interlaced PNGs; anything else throws. */
 export function decodePng(buf: Buffer): DecodedPng {
   if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error('not a PNG');
   let off = 8;

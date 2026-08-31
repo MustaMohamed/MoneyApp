@@ -85,11 +85,8 @@ describe('migration010 — add installment_id', () => {
   it('is idempotent across multiple migration runs', () => {
     const db = freshDb();
     db.exec(migration010.up);
-    // Re-running should not throw — version-based runner guards this, but
-    // exercise the SQL string standalone to confirm IF NOT EXISTS semantics.
+    // The runner applies each migration once by version; a direct re-run throws duplicate-column.
     expect(() => db.exec(migration010.up)).toThrow(/duplicate column/i);
-    // (We expect duplicate-column on direct re-run. The migration runner
-    // calls each migration once based on version table — safe by construction.)
     db.close();
   });
 });

@@ -804,9 +804,7 @@ describe('spending plan helpers', () => {
     });
   });
 
-  // The array parameter is the guard: it stops compiling the moment the
-  // signature is re-widened to accept a record keyed by category, which is
-  // what let an allocation on a deselected category count against the total.
+  // The array parameter is the guard: re-widening it to a per-category record stops compiling.
   it('marks allocations above the total as invalid', () => {
     expect(computeAllocationHelper(5000, [3000, 3000])).toEqual({
       allocated: 6000,
@@ -819,8 +817,7 @@ describe('spending plan helpers', () => {
     expect(computeAllocationHelper(100, [40, undefined]).allocated).toBe(40);
   });
 
-  // Float subtraction gives -0.4000000000000057 here; only the integer-cents
-  // basis reports the buffer the user is shown.
+  // Float subtraction gives -0.4000000000000057 here; only integer cents reports -0.4.
   it('reports an exact negative buffer when the allocations overshoot', () => {
     expect(computeAllocationHelper(100, [100.4]).buffer).toBe(-0.4);
   });
@@ -833,17 +830,12 @@ describe('spending plan helpers', () => {
     });
   });
 
-  // Regression pin, not a gate: -0 is unreachable under integer cents, since
-  // `a - b` with `a === b` is +0. Kept because a signed zero renders as
-  // "-0.00" and the display rule owns that.
+  // A signed zero renders as "-0.00"; under integer cents `a - b` with `a === b` gives +0.
   it('never reports a negative zero buffer', () => {
     expect(Object.is(computeAllocationHelper(100, [100]).buffer, 0)).toBe(true);
   });
 
-  // Regression pin, not a gate: green at base, because :530's filter already
-  // runs before the `?? 0` at :533. It becomes load-bearing once the sheet
-  // store holds text -- a NULL row that produced an entry would prefill '0'
-  // and convert "not decided" into "deliberate zero" on the next save.
+  // A NULL allocation means "not decided"; a zero allocation means a deliberate zero.
   it('gives a NULL allocation no row at all, and a zero allocation a row worth 0', () => {
     const row = buildSpendingPlanRows({
       plans: [

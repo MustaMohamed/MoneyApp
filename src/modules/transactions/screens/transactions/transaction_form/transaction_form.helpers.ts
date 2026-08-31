@@ -73,15 +73,7 @@ export function toTransactionTimestamp(now: Date): { date: string; time: string 
 }
 
 export function resolveTransactionSaveError(error: unknown): string {
-  // Matches the class where the resolver names a condition (ADR:
-  // parse-floor-money-only): only `reason === 'unstorable'` — the output
-  // guard — maps to a named string, and never `error.message`. Every other
-  // `TransactionAmountError` cause (missing destination, non-positive
-  // amount, missing rate) is undiscriminated on purpose — those are
-  // hardcoded domain literals (transaction_amounts.ts), not `strings.ts`
-  // keys, and falls through below to the generic banner rather than
-  // surfacing an internal literal as user copy, the exact assumption
-  // `AccountFormMappingError`'s docblock refuses.
+  // Only `reason === 'unstorable'` has user copy; other causes carry internal literals.
   if (error instanceof TransactionAmountError && error.reason === 'unstorable') {
     return Strings.addTxErrAmountUnstorable;
   }

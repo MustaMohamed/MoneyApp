@@ -1,15 +1,3 @@
-/**
- * Task 4 — reassignAndDelete atomicity fix
- *
- * Uses better-sqlite3 + the global expo-sqlite fake so that the repository's
- * `withTransactionAsync` wiring can be exercised with real SQL running against
- * an in-memory database. This mirrors the pattern established in
- * __tests__/transaction.repository.test.ts.
- *
- * TC-01: 47 transactions reassigned, balances/amounts untouched
- * TC-02: commitments.category_id also updated in the same transaction
- * TC-09: atomicity — withTransactionAsync rejection leaves DB unchanged
- */
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
@@ -20,15 +8,13 @@ import {
   type NewCategoryInput,
 } from '@/modules/categories/repositories/category.repository';
 
-// ----- UUID mock override so each category gets a deterministic unique id -----
-// Variable must start with 'mock' (case-insensitive) to be accessible inside jest.mock factory
+// The name must start with `mock` for jest to allow it inside the `jest.mock` factory.
 let mockUuidCounter = 0;
 jest.mock('react-native-uuid', () => ({
   __esModule: true,
   default: { v4: () => `cat-repo-test-${++mockUuidCounter}` },
 }));
 
-// ----- Database setup -----
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
 const NOW = '2026-01-01T00:00:00.000Z';
@@ -45,11 +31,7 @@ function seedAccount() {
     .run(NOW, NOW);
 }
 
-/**
- * Insert a custom (is_default=0) "from" category for use as the delete source.
- * We avoid deleting seeded (is_default=1) categories in tests because once
- * deleted they cannot be used as FK targets in subsequent tests within the same DB.
- */
+// Custom (`is_default=0`) so deleting it never removes an FK target a later test still needs.
 function insertFromCategory(id: string, type: 'expense' | 'income' = 'expense') {
   realDb
     .prepare(
@@ -92,25 +74,20 @@ beforeAll(() => {
   });
 
   mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    // Mirror the real expo-sqlite behaviour: run the callback and let it throw.
-    // TC-09 injects a rejection here to test that the error propagates correctly.
     await fn();
   });
 });
 
 beforeEach(() => {
   mockUuidCounter = 0;
-  // Clean up between tests — keep seeded (is_default = 1) categories so FK
-  // targets like 'cat_food' / 'cat_entertainment' remain valid.
+  // Seeded (`is_default = 1`) rows stay, so FK targets like `cat_food` remain valid.
   realDb.exec('DELETE FROM transactions');
   realDb.exec('DELETE FROM commitments');
   realDb.exec('DELETE FROM spending_plan_categories');
   realDb.exec('DELETE FROM spending_plans');
   realDb.exec('DELETE FROM categories WHERE is_default = 0');
 
-  // Reset withTransactionAsync to its normal behaviour and clear call history.
-  // Some TC-09 tests override it with mockRejectedValueOnce — clearMock restores
-  // the call count so that "toHaveBeenCalledTimes(1)" assertions are per-test.
+  // Clears the call count, so `toHaveBeenCalledTimes` assertions stay per-test.
   const mocked = (SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } }).__fakeDb;
   mocked.withTransactionAsync.mockClear();
   mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
@@ -124,10 +101,6 @@ afterAll(() => {
 });
 
 const repo = new CategoryRepository();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
 
 function insertTransaction(categoryId: string, suffix: string) {
   realDb
@@ -199,9 +172,6 @@ function insertPlan(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TC-01: 47 transactions reassigned, balances and amounts untouched
-// ─────────────────────────────────────────────────────────────────────────────
 describe('CategoryRepository.reassignAndDelete — TC-01 (transaction reassignment)', () => {
   it('moves spending plan assignments to the replacement category', async () => {
     insertFromCategory('from-plan-category');
@@ -273,12 +243,10 @@ describe('CategoryRepository.reassignAndDelete — TC-01 (transaction reassignme
   });
 
   it('moves 47 transactions from source to target category', async () => {
-    // Source: custom category (to be deleted), target: cat_food (seeded, persists)
     insertFromCategory('from-cat-01');
     for (let i = 0; i < 47; i++) {
       insertTransaction('from-cat-01', `tc01-a-${i}`);
     }
-    // 12 pre-existing transactions on target
     for (let i = 0; i < 12; i++) {
       insertTransaction('cat_food', `tc01-b-${i}`);
     }
@@ -289,7 +257,7 @@ describe('CategoryRepository.reassignAndDelete — TC-01 (transaction reassignme
     await repo.reassignAndDelete('from-cat-01', 'cat_food');
 
     expect(countTransactions('from-cat-01')).toBe(0);
-    expect(countTransactions('cat_food')).toBe(59); // 47 + 12 per TC-01
+    expect(countTransactions('cat_food')).toBe(59); // 47 + 12
   });
 
   it('does not change transaction amounts or egp_amounts (TC-01 assertion)', async () => {
@@ -302,7 +270,6 @@ describe('CategoryRepository.reassignAndDelete — TC-01 (transaction reassignme
 
     await repo.reassignAndDelete('from-cat-01b', 'cat_food');
 
-    // After reassign the transaction is now in cat_food — filter by what moved
     const after = realDb
       .prepare("SELECT amount, egp_amount FROM transactions WHERE id = 'tx-tc01c-1'")
       .all() as Array<{ amount: number; egp_amount: number }>;
@@ -368,12 +335,8 @@ describe('CategoryRepository.delete — spending plan integrity', () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TC-02: Commitments updated in the same transaction
-// ─────────────────────────────────────────────────────────────────────────────
 describe('CategoryRepository.reassignAndDelete — TC-02 (commitment cascade)', () => {
   it('updates commitments.category_id for linked commitments', async () => {
-    // 8 transactions + 2 commitments, reassign to seeded cat_entertainment
     insertFromCategory('from-cat-02a');
     for (let i = 0; i < 8; i++) {
       insertTransaction('from-cat-02a', `tc02-tx-${i}`);
@@ -424,9 +387,6 @@ describe('CategoryRepository.reassignAndDelete — TC-02 (commitment cascade)', 
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TC-09: Atomicity — withTransactionAsync rejection rolls back everything
-// ─────────────────────────────────────────────────────────────────────────────
 describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
   it('wraps all SQL in a single withTransactionAsync call', async () => {
     const mocked = (SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } })
@@ -437,7 +397,6 @@ describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
 
     await repo.reassignAndDelete('from-cat-09a', 'cat_food');
 
-    // Must be called exactly once per reassignAndDelete invocation
     expect(mocked.withTransactionAsync).toHaveBeenCalledTimes(1);
   });
 
@@ -447,7 +406,6 @@ describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
 
     insertFromCategory('from-cat-09b');
 
-    // Simulate a DB-level failure (the transaction wrapper itself throws)
     mocked.withTransactionAsync.mockRejectedValueOnce(new Error('DB write failed'));
 
     await expect(repo.reassignAndDelete('from-cat-09b', 'cat_food')).rejects.toThrow(
@@ -456,7 +414,6 @@ describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
   });
 
   it('DB state is either fully applied or fully reverted — never mid (TC-09)', async () => {
-    // Seed 47 transactions on a custom source category
     insertFromCategory('from-cat-09c');
     for (let i = 0; i < 47; i++) {
       insertTransaction('from-cat-09c', `tc09-mid-${i}`);
@@ -467,21 +424,16 @@ describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
     const mocked = (SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } })
       .__fakeDb;
 
-    // Simulate DB-level failure — the whole transaction is rolled back
-    // (withTransactionAsync itself rejects without executing the callback)
+    // The mock rejects without running the callback, so no statement is applied at all.
     mocked.withTransactionAsync.mockRejectedValueOnce(new Error('Simulated DB failure'));
 
     await expect(repo.reassignAndDelete('from-cat-09c', 'cat_food')).rejects.toThrow();
 
-    // DB must be in pre-operation state — never partially applied
     expect(countTransactions('from-cat-09c')).toBe(47);
     expect(countCategories('from-cat-09c')).toBe(1);
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CategoryRepository.add — name uniqueness within type (TC-06)
-// ─────────────────────────────────────────────────────────────────────────────
 describe('CategoryRepository.add — name uniqueness (TC-06)', () => {
   const myExpenseInput: NewCategoryInput = {
     name: 'My Expenses',
@@ -495,7 +447,6 @@ describe('CategoryRepository.add — name uniqueness (TC-06)', () => {
 
     await expect(repo.add({ ...myExpenseInput })).rejects.toThrow();
 
-    // DB must still have exactly 1 row with that name+type
     const count = (
       realDb
         .prepare(
@@ -509,7 +460,6 @@ describe('CategoryRepository.add — name uniqueness (TC-06)', () => {
   it('allows the same name under a different type (TC-06 cross-type)', async () => {
     await repo.add(myExpenseInput);
 
-    // Adding as income should succeed — different type, not a collision
     const result = await repo.add({
       name: 'My Expenses',
       type: CategoryType.Income,
@@ -522,9 +472,6 @@ describe('CategoryRepository.add — name uniqueness (TC-06)', () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CategoryRepository.update — type field immutability (TC-07)
-// ─────────────────────────────────────────────────────────────────────────────
 describe('CategoryRepository.update — type field immutability (TC-07)', () => {
   it('update() does not accept or apply a type field', async () => {
     const cat = await repo.add({
@@ -534,8 +481,6 @@ describe('CategoryRepository.update — type field immutability (TC-07)', () => 
       color: '#fff',
     });
 
-    // UpdateCategoryInput does not include type — TypeScript enforces this at compile time.
-    // At runtime, we verify the type column is unchanged after update.
     await repo.update(cat.id, { name: 'Salary Updated', icon: 'star', color: '#aaa' });
 
     const row = realDb.prepare('SELECT type FROM categories WHERE id = ?').get(cat.id) as {

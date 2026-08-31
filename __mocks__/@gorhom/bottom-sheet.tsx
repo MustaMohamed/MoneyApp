@@ -17,21 +17,6 @@ import {
 } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 
-/**
- * Jest mock for @gorhom/bottom-sheet.
- *
- * - BottomSheet: tracks open/closed state internally via useState.
- *   `index` prop is initial-only (mirrors real v5 behaviour).
- *   Imperative `snapToIndex(n)` / `close()` drive the open state AND
- *   record calls on the stable `bottomSheetMockMethods` spy handles
- *   so tests can assert them without needing access to the internal ref.
- * - BottomSheetView: passthrough View wrapper.
- * - BottomSheetScrollView: passthrough ScrollView wrapper.
- * - BottomSheetFlatList: passthrough FlatList wrapper.
- * - BottomSheetBackdrop: renders a pressable View with testID="bottom-sheet-backdrop".
- * - BottomSheetFooter: passthrough View wrapper for sticky footer content.
- */
-
 type BottomSheetProps = Pick<
   GorhomBottomSheetProps,
   | 'index'
@@ -51,14 +36,7 @@ export interface BottomSheetMockRef {
   snapToIndex: jest.Mock;
 }
 
-/**
- * Stable spy handles — allocated once per test file load.
- * Tests clear them in beforeEach and assert directly:
- *
- *   import { bottomSheetMockMethods } from '@gorhom/bottom-sheet';
- *   bottomSheetMockMethods.close.mockClear();
- *   expect(bottomSheetMockMethods.close).toHaveBeenCalledTimes(1);
- */
+/** Spies allocated once per test file load; clear them in `beforeEach`. */
 export const bottomSheetMockMethods: BottomSheetMockRef = {
   close: jest.fn(),
   snapToIndex: jest.fn(),
@@ -92,8 +70,7 @@ const BottomSheet = React.forwardRef<BottomSheetMockRef, BottomSheetProps>(
     },
     ref,
   ) => {
-    // Track open/closed state internally.
-    // `initialIndex` is the initial value only — imperative methods drive state.
+    // `index` is initial-only, as in real v5; imperative methods drive the open state.
     const numericInitialIndex = initialIndex ?? -1;
     const [isOpen, setIsOpen] = React.useState(numericInitialIndex >= 0);
     // Stable ref so useImperativeHandle doesn't recreate functions every render.

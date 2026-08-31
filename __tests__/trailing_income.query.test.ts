@@ -27,7 +27,6 @@ beforeAll(() => {
     return realDb.prepare(sql).all(...(params as never[]));
   });
 
-  // Seed: account + income transactions
   const now = '2026-05-01T00:00:00.000Z';
   realDb
     .prepare(
@@ -44,8 +43,7 @@ beforeAll(() => {
     )
     .run(now, now);
 
-  // Insert 3 months of income: Feb=10000, Mar=20000, Apr=30000
-  // currentYearMonth in tests = '2026-05' so all three are complete months
+  // Tests query at '2026-05', so Feb, Mar and Apr are all complete months.
   for (const [month, amount] of [
     ['2026-02', 10000],
     ['2026-03', 20000],
@@ -101,7 +99,7 @@ describe('getTrailingIncomeSuggestion', () => {
   });
 
   it('uses default window size of 3 when not specified', async () => {
-    // Default windowMonths = 3, avg(10000, 20000, 30000) = 20000
+    // avg(10000, 20000, 30000) = 20000
     const result = await getTrailingIncomeSuggestion(mockDb, '2026-05');
     expect(result).toBe(20000);
   });
@@ -113,7 +111,6 @@ describe('getTrailingIncomeSuggestion', () => {
   });
 
   it('returns null when no income transactions exist before the current month', async () => {
-    // No transactions before '2020-01'
     const result = await getTrailingIncomeSuggestion(mockDb, '2020-01', 3);
     expect(result).toBeNull();
   });

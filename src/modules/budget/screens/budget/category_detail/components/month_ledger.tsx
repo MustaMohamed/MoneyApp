@@ -8,7 +8,7 @@ import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 export function MonthLedger({ results }: { results: MonthResultVM[] }) {
-  // newest first
+  // `results` arrives oldest first, so the ledger renders newest first.
   const ordered = [...results].reverse();
   return (
     <View>

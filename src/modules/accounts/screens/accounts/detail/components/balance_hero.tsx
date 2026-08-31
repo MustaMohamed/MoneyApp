@@ -36,7 +36,6 @@ export function BalanceHero({ account }: BalanceHeroProps) {
   return (
     <HeroShell glowColor={color} style={{ marginTop: 8 }}>
       <View className="px-4 py-4">
-        {/* Label + type chip row */}
         <View style={{ flexDirection: 'row' }} className="items-center justify-between">
           <Typography className="text-foreground/70 font-inter text-[11px] tracking-wider uppercase">
             {Strings.accountDetailBalance}
@@ -49,7 +48,6 @@ export function BalanceHero({ account }: BalanceHeroProps) {
           />
         </View>
 
-        {/* Balance */}
         <Typography
           numberOfLines={1}
           className={`font-sora-bold mt-1 text-[20px] tabular-nums ${resolveAccountBalanceColorClass(account.type)}`}
@@ -57,7 +55,6 @@ export function BalanceHero({ account }: BalanceHeroProps) {
           {formatCurrencyAmount(account.current_balance, account.currency)}
         </Typography>
 
-        {/* Context caption */}
         <Typography
           className="text-foreground/55 font-inter mt-1 text-[11px]"
           style={caption.color ? { color: caption.color } : undefined}

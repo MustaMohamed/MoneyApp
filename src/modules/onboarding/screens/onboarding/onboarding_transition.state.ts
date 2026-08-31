@@ -22,15 +22,7 @@ export type OnboardingTransitionState = OnboardingTransitionStateShape & {
   reset: () => void;
 };
 
-/**
- * One instance per onboarding screen — never a single shared slot. During a
- * `replace` the outgoing and incoming routes are briefly both mounted, and a
- * shared slot written by more than one screen is the single-owner-lookup
- * defect `.claude/rules/state.md` calls out (audit L27). Shaped like
- * `src/modules/currency/screens/currency/currency.state.ts`: module factory +
- * `createMoneyAppSelectors` + `create`, with the monotonic counter living in
- * the factory's closure rather than in reactive state.
- */
+/** One instance per onboarding screen; a shared slot cross-clobbers during a route replace. */
 export function createOnboardingTransitionState() {
   let session = 0;
 

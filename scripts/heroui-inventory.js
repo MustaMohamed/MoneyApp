@@ -1,13 +1,3 @@
-/**
- * Prints what UI building blocks actually exist right now: the installed
- * heroui-native component catalog and the project's own wrappers.
- *
- * Exists so no document has to hand-maintain either list. A written catalog
- * goes stale on the next `npm i` and nobody notices; this cannot.
- *
- *   node scripts/heroui-inventory.js        # or: npm run ui:inventory
- */
-
 const fs = require('fs');
 const path = require('path');
 
@@ -51,10 +41,6 @@ console.log(
   }`,
 );
 
-// Project wrappers: the exported symbol is what a caller imports, so surface that
-// rather than the filename. Components and helpers are separated — the question this
-// list answers is "has someone already built this component?", and constants and
-// utility functions only add noise to it.
 const EXPORT_RE = /^export (?:default )?(?:function|const) ([A-Za-z][A-Za-z0-9_]*)/gm;
 // SCREAMING_SNAKE means constant; a bare acronym like FAB is still a component.
 const isConstant = (name) => /^[A-Z0-9]+(?:_[A-Z0-9]+)+$/.test(name);

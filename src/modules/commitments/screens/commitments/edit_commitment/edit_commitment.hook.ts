@@ -51,13 +51,11 @@ export function useEditCommitment() {
     defaultValues: commitment ? buildEditDefaults(commitment) : undefined,
   });
 
-  // Re-prefill if the underlying commitment reference changes
   useEffect(() => {
     if (!commitment) return;
     form.reset(buildEditDefaults(commitment));
   }, [commitment]); // oxlint-disable-line react-hooks/exhaustive-deps
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => reset();
   }, [reset]);
@@ -85,9 +83,7 @@ export function useEditCommitment() {
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
       reset();
-      // regeneratePayments invalidates the URL paymentId on the detail screen
-      // underneath, so pop to list instead of router.back() (which would land
-      // on a "Commitment not found" screen).
+      // regeneratePayments invalidates the paymentId underneath, so pop to the list, not back.
       router.dismissTo('/commitments');
     } catch {
       setSaveError(Strings.commitmentsSaveError);
@@ -109,7 +105,7 @@ export function useEditCommitment() {
       reset();
       router.replace('/commitments');
     } catch {
-      // error logged by store
+      // Error logged by store.
     } finally {
       setSaving(false);
     }

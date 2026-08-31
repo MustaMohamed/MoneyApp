@@ -38,7 +38,6 @@ export function computeDueDates(input: ComputeDueDatesInput): string[] {
       const d = Math.min(startDay, maxDay);
       date = `${y}-${pad(m)}-${pad(d)}`;
     } else {
-      // Years
       const y = startYear + every * i;
       const maxDay = daysInMonth(y, startMonth);
       const d = Math.min(startDay, maxDay);

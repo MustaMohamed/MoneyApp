@@ -87,8 +87,7 @@ describe('runOnboardingTransition', () => {
     const persist = jest.fn(() => pending.promise);
     const pending = deferred<OnboardingStep>();
 
-    // Mirrors the real caller shape: begin() first, only invoke the runner
-    // if it returned a session. This is where the re-entry guard lives.
+    // Mirrors the real caller: begin() first, run the runner only if it returned a session.
     const attempt = () => {
       const session = state.getState().begin();
       if (session === null) return Promise.resolve();
@@ -104,7 +103,7 @@ describe('runOnboardingTransition', () => {
     };
 
     const firstRun = attempt();
-    const secondRun = attempt(); // concurrent tap while the first is in flight
+    const secondRun = attempt();
 
     expect(persist).toHaveBeenCalledTimes(1);
     expect(navigate).not.toHaveBeenCalled();
@@ -155,7 +154,7 @@ describe('runOnboardingTransition', () => {
       desiredStep: OnboardingStep.N3,
       readAccountCount: () => 1,
       persist: async (resolve, isCurrent) => {
-        await Promise.resolve(); // first write
+        await Promise.resolve();
         state.getState().invalidate();
         if (!isCurrent()) return undefined;
         secondWrite();
@@ -174,10 +173,7 @@ describe('runOnboardingTransition', () => {
     const session = state.getState().begin();
     if (session === null) throw new Error('expected a session');
 
-    // Models the real account store: 0 before the insert's await settles,
-    // 1 once it has. A runner that computed `resolve()` itself before ever
-    // calling `persist` (i.e. "resolves before persist") would read this
-    // while it is still 0 and resolve to N2 instead of N3.
+    // Models the real account store: 0 until the insert's await settles, 1 after.
     let insertSettled = false;
     const readAccountCount = () => (insertSettled ? 1 : 0);
 
@@ -188,15 +184,13 @@ describe('runOnboardingTransition', () => {
       desiredStep: OnboardingStep.N3,
       readAccountCount,
       persist: async (resolve) => {
-        await Promise.resolve(); // simulates the insert
+        await Promise.resolve();
         insertSettled = true;
         return resolve();
       },
       errorMessage: 'error',
     });
 
-    // A runner that resolves before persist would read count 0 here and
-    // navigate to /(onboarding)/add_account (N2, row 4) instead.
     expect(navigate).toHaveBeenCalledWith(ONBOARDING_STEP_HREF[OnboardingStep.N3]);
   });
 });

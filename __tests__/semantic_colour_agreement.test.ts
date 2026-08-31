@@ -4,37 +4,11 @@ import { resolve } from 'node:path';
 import { Colors } from '@/constants/theme';
 import { CoreTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 
-/**
- * Cross-source agreement pin for #264: `theme.ts` (`Colors.dark`), `theme_tokens.ts`
- * (`SemanticTokens`/`CoreTokens`), and `global.css` each state these colours
- * independently, and nothing before this test caught them drifting apart — the
- * `warning` fork (`theme.ts`'s `#D4830A` vs everywhere else's `#E8B130`) shipped a
- * live dashboard-vs-detail mismatch.
- *
- * Derived from `Object.keys(SemanticTokens)` (the `typography_tokens.test.ts`
- * shape), not hand-enumerated: a first draft that hand-picked four keys missed a
- * live `info` fork (`SemanticTokens.info` `#4A7ABF` vs global.css's rendered
- * `#499EE0`, both consumed at `transactions_card.tsx:258,:264` beside the
- * `text-info` className rendering the other value in the same card) purely
- * because `info` wasn't one of the four cases someone thought to type. Iterating
- * every key SemanticTokens actually declares means a fifth token added there is
- * covered without anyone remembering to add a case.
- *
- * Same `readFileSync` + regex approach as `typography_tokens.test.ts`, the
- * precedent for reading `global.css` from a logic-only `.ts` suite — tests.md's
- * carve-out: a CSS-first token declaration is not the "file contents" M35 bans.
- */
-
 function globalCss(): string {
   return readFileSync(resolve(process.cwd(), 'global.css'), 'utf8');
 }
 
-/**
- * #rrggbb, lowercased, from either a `#hex` global.css value or a Tailwind-v4
- * `r g b` triple (the form `--info`/`--accent-cc` use so `rgb(var(--x))` can add
- * alpha) — `--info: 73 158 224;` is not the `#hex` shape the original version of
- * this file only handled.
- */
+/** global.css states colours as `#hex` or an `r g b` triple, so `rgb(var(--x))` can add alpha. */
 function normalizeCssColor(raw: string): string {
   const hex = /^#([0-9a-fA-F]{6})$/.exec(raw.trim());
   if (hex) return `#${hex[1]!.toLowerCase()}`;
@@ -61,18 +35,14 @@ function hexToRgbChannels(hex: string): [number, number, number] {
   return [parseInt(r!, 16), parseInt(g!, 16), parseInt(b!, 16)];
 }
 
-// theme.ts's `Colors.dark` key for a SemanticTokens key, where one exists. `info` has
-// none — no dashboard surface reads it through `Colors.dark` — so it's checked
-// against theme_tokens.ts and global.css only, below.
+// Partial because `info` has no `Colors.dark` key; it is checked against the other two sources.
 const DARK_KEY: Partial<Record<keyof typeof SemanticTokens, keyof typeof Colors.dark>> = {
   positive: 'positive',
   negative: 'negative',
   warning: 'warning',
 };
 
-// The global.css variable name for each SemanticTokens key. A `Record`, not a
-// lookup with a fallback: a token added to SemanticTokens without an entry here
-// is a compile error, not a silently-skipped case.
+// Total, so a token added to `SemanticTokens` without an entry here is a compile error.
 const CSS_VAR: Record<keyof typeof SemanticTokens, string> = {
   positive: 'success',
   negative: 'danger',
@@ -80,9 +50,7 @@ const CSS_VAR: Record<keyof typeof SemanticTokens, string> = {
   info: 'info',
 };
 
-// A type guard, not a cast: `Object.keys` only ever returns `string[]` by TS's own
-// rules, and every one of those strings genuinely is a `SemanticTokens` key at
-// runtime — this proves it instead of asserting it.
+// A guard rather than a cast: `Object.keys` is typed `string[]` even over a known object.
 function isSemanticTokenKey(key: string): key is keyof typeof SemanticTokens {
   return key in SemanticTokens;
 }
@@ -109,9 +77,7 @@ describe('semantic colour agreement — theme.ts vs theme_tokens.ts vs global.cs
   });
 
   it('text2 agrees across theme.ts, theme_tokens.ts, and global.css', () => {
-    // Not a SemanticTokens key (it's CoreTokens.text2), so outside the derived loop
-    // above — kept as its own case for the reason the loop exists: it is still a
-    // colour three sources declare independently.
+    // `text2` is a `CoreTokens` key, so the derived loop above cannot reach it.
     expect(Colors.dark.text2.toLowerCase()).toBe(CoreTokens.text2.toLowerCase());
 
     const cssValues = cssVarValues(css, 'content-secondary');
@@ -122,12 +88,6 @@ describe('semantic colour agreement — theme.ts vs theme_tokens.ts vs global.cs
   });
 
   it('InfoTokens[500] agrees with SemanticTokens.info — a fourth declaration the loop above cannot reach', () => {
-    // Found while fixing the info fork above: theme_tokens.ts states "info" twice —
-    // SemanticTokens.info (covered by the Object.keys loop) and InfoTokens[500] (a
-    // separate export, so outside that loop's reach) — and they had drifted by one
-    // hex digit (#4A9EE0 vs the corrected #499EE0), both consumed live
-    // (transactions/screens/transactions/index.tsx:48,
-    // transactions/detail/detail.helpers.ts:66,:172).
     expect(InfoTokens[500].toLowerCase()).toBe(SemanticTokens.info.toLowerCase());
   });
 

@@ -63,11 +63,6 @@ describe('useAccountForm', () => {
   });
 
   it('a re-tap after a completed save does nothing (MA-008 D10, T5)', async () => {
-    // Was: "a sequential re-tap after success inserts once but re-runs
-    // onSaved", asserting onSaved twice — that assertion encoded the defect.
-    // A completed session is terminal: submit() must not re-run onSaved a
-    // second time (two router.back() on Settings, a duplicate
-    // setStep+replace on N2).
     const onSaved = jest.fn();
     const { result } = await renderHook(() => useAccountForm(makeOptions({ onSaved })));
     await fillValidDraft(result);
@@ -107,12 +102,7 @@ describe('useAccountForm', () => {
   });
 
   it('the retry does not re-validate against the row it just inserted', async () => {
-    // D9: addAccount republishing mockAccounts reproduces the real store's
-    // own loadAccounts() republication (account.store.ts:82-91), which
-    // rebuilds the schema from an accounts array that now contains the row
-    // this very submit() just wrote. A retry that re-validates against that
-    // schema fails errNameDuplicate against its own account and never
-    // reaches onSaved — this is the defect D9 exists to close.
+    // Republishing `mockAccounts` reproduces the real store's own `loadAccounts()` republication.
     mockAddAccount.mockImplementation(async () => {
       mockAccounts = [...mockAccounts, { id: 'new', name: 'New Account' }];
     });
@@ -136,12 +126,7 @@ describe('useAccountForm', () => {
   });
 
   it('a declined onSaved leaves the session retryable (MA-008 D10, T3)', async () => {
-    // Passes already on the shipped branch — this is the net under the trap
-    // that killed the rejected design (option A, "latch on finishSave()").
-    // A decline (onSaved returns false) must NOT set `completed`, or a back
-    // transition that fails right after a decline leaves N2 permanently
-    // unsaveable (D10's "decline double-fault"). It is the only thing
-    // standing between a future refactor and that dead end.
+    // A decline (`onSaved` returns false) must not set `completed`, or N2 becomes unsaveable.
     const onSaved = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(undefined);
     const { result } = await renderHook(() => useAccountForm(makeOptions({ onSaved })));
     await fillValidDraft(result);
@@ -177,7 +162,7 @@ describe('useAccountForm', () => {
 
   it('a validation failure never enters the guard', async () => {
     const { result } = await renderHook(() => useAccountForm(makeOptions()));
-    // draft left blank — name and balance both fail validation.
+    // Draft left blank: name and balance both fail validation.
 
     await act(async () => {
       await result.current.submit();

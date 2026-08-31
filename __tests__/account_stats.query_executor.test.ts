@@ -200,9 +200,7 @@ describe('getAccountsStats — Sunday week-start branch', () => {
     // 2026-05-10 is a Sunday. weekStart should be Monday 2026-05-04.
     jest.setSystemTime(new Date('2026-05-10T12:00:00.000Z'));
 
-    // This call exercises computeDates() with a Sunday, covering the day===0 branch
     const stats = await getAccountsStats(mockDb, ['acc_bank']);
-    // Should return a zero-stats entry for acc_bank (no transactions in that week)
     expect(stats['acc_bank']).toBeDefined();
     expect(stats['acc_bank'].month_in).toBe(0);
   });
@@ -297,8 +295,7 @@ describe('getAccountsStats — Cairo local-calendar boundaries', () => {
 
 describe('getAccountsStats — weekStart before monthStart branch', () => {
   it('uses weekStart as earliest when weekStart < monthStart (e.g. beginning of month on Thursday)', async () => {
-    // 2026-05-01 is a Friday. Monday of that week = 2026-04-27, which is before monthStart (2026-05-01).
-    // So weekStart (04-27) < monthStart (05-01), making earliest = weekStart.
+    // 2026-05-01 is a Friday, so weekStart 2026-04-27 precedes monthStart and becomes earliest.
     jest.setSystemTime(new Date('2026-05-01T12:00:00.000Z'));
 
     const stats = await getAccountsStats(mockDb, ['acc_bank']);
@@ -316,8 +313,6 @@ describe('getAccountsStats — default zero stats for accounts with no transacti
 
 describe('getAccountsStats — null row fields fallback (??0 branches)', () => {
   it('returns 0 for any null aggregate field returned by DB (covers ??0 branches)', async () => {
-    // Override getAllAsync once to return a row with null fields
-    // (simulates a DB returning NULL aggregates)
     const mocked = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb;
 
     const original = mocked.getAllAsync.getMockImplementation();

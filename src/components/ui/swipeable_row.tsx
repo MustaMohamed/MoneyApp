@@ -1,22 +1,3 @@
-/**
- * SwipeableRow — shared swipe-actions primitive.
- *
- * Team Law 7 justification: HeroUI Native has no Swipeable/SwipeActions
- * primitive. This wraps an in-stack library (react-native-gesture-handler's
- * ReanimatedSwipeable) exactly as bottom_sheet.tsx wraps @gorhom/bottom-sheet.
- *
- * Usage:
- *   <SwipeableRow rowId={tx.id} actions={[editAction, deleteAction]}>
- *     <TransactionRow … />
- *   </SwipeableRow>
- *
- * - actions[0] renders closest to the row body (rightmost tile visually when
- *   the row is swiped left), actions[last] furthest away.
- * - Tile width = ACTION_TILE_WIDTH per action; total reveal = actions.length * tile width.
- * - disabled=true prevents the gesture (use while a mutation is in flight).
- * - accessibilityLabel describes the row for the a11y actions rotor.
- */
-
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useRef } from 'react';
@@ -38,10 +19,8 @@ type MaterialIconName = React.ComponentProps<typeof MaterialCommunityIcons>['nam
 
 export interface SwipeAction {
   key: string;
-  /** User-visible label from Strings. Shown under the icon. */
   label: string;
   icon: MaterialIconName;
-  /** Visual intent drives tile background and text/icon colour. */
   variant: 'neutral' | 'info' | 'destructive';
   onPress: () => void;
 }
@@ -51,9 +30,7 @@ export interface SwipeableRowProps {
   actions: SwipeAction[];
   /** Stable id for the one-open-at-a-time registry. Defaults to a random id. */
   rowId?: string;
-  /** Disables the swipe gesture (e.g. while a mutation is in flight). */
   disabled?: boolean;
-  /** Describes the row to screen readers for the accessibilityActions menu. */
   accessibilityLabel?: string;
 }
 
@@ -72,7 +49,7 @@ function tileBg(variant: SwipeAction['variant']): string {
 
 function tileIconColor(variant: SwipeAction['variant']): string {
   if (variant === 'neutral') return Colors.dark.text1;
-  return '#FFFFFF'; // info (blue) and destructive (red) both use white — semantic, not a theme token
+  return '#FFFFFF'; // White on the blue and red tiles is semantic, not a theme token.
 }
 
 function tileLabelColor(variant: SwipeAction['variant']): string {
@@ -81,7 +58,7 @@ function tileLabelColor(variant: SwipeAction['variant']): string {
 }
 
 let _idCounter = 0;
-// NOTE: callers MUST pass a stable rowId for all list rows; this counter is a last-resort fallback only and does not survive reloads/recycling.
+// Callers must pass a stable `rowId` for list rows; this fallback dies on reload or recycling.
 function genId(): string {
   _idCounter += 1;
   return `swipeable-row-${_idCounter}`;
@@ -98,8 +75,6 @@ export function SwipeableRow({
   const swipeableRef = useRef<SwipeableMethods>(null);
   const totalWidth = actions.length * ACTION_TILE_WIDTH;
 
-  // Close this row programmatically when the registry reports any id other than ours
-  // (covers both "another row opened" and "closeAll/null").
   useEffect(() => {
     const unsub = subscribeToRegistry((activeId) => {
       if (activeId !== rowId) swipeableRef.current?.close();
@@ -163,9 +138,7 @@ export function SwipeableRow({
     [actions, handleActionPress, totalWidth],
   );
 
-  // ReanimatedSwipeable does not forward accessibility props to its container.
-  // Wrap it in a View that carries the a11y actions so screen readers can
-  // reach Edit/Skip/Delete without needing to perform the swipe gesture.
+  // `ReanimatedSwipeable` does not forward accessibility props; the wrapper `View` carries them.
   return (
     <View
       accessible={true}
@@ -193,5 +166,5 @@ export function SwipeableRow({
   );
 }
 
-/** Convenience re-export: close all open rows (call from list onScrollBeginDrag). */
+/** Close every open row; call from a list's `onScrollBeginDrag`. */
 export { closeAllRows };

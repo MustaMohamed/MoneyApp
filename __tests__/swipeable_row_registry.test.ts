@@ -5,7 +5,6 @@ import {
   subscribeToRegistry,
 } from '@/utils/swipeable_row_registry';
 
-// Reset module state between tests
 beforeEach(() => {
   closeAllRows();
 });
@@ -26,7 +25,6 @@ describe('swipeable_row_registry', () => {
     const unsub = subscribeToRegistry((id) => ids.push(id));
     openRow('row-1');
     openRow('row-2');
-    // subscriber receives each new open
     expect(ids).toEqual(['row-1', 'row-2']);
     unsub();
   });
@@ -37,7 +35,7 @@ describe('swipeable_row_registry', () => {
       captured = id;
     });
     openRow('row-1');
-    captured = 'SENTINEL'; // reset after open
+    captured = 'SENTINEL';
     closeRow('row-1');
     expect(captured).toBeNull();
     unsub();
@@ -49,7 +47,7 @@ describe('swipeable_row_registry', () => {
     const unsub = subscribeToRegistry(() => {
       notified = true;
     });
-    closeRow('row-2'); // row-2 is not active
+    closeRow('row-2');
     expect(notified).toBe(false);
     unsub();
   });
@@ -71,7 +69,7 @@ describe('swipeable_row_registry', () => {
     openRow('row-1');
     unsub();
     openRow('row-2');
-    expect(ids).toEqual(['row-1']); // row-2 not received
+    expect(ids).toEqual(['row-1']);
   });
 
   it('multiple subscribers each receive notifications', () => {

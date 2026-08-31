@@ -72,10 +72,6 @@ export async function deleteCategory(db: SQLiteDatabase, id: string): Promise<vo
   await db.runAsync('DELETE FROM categories WHERE id = ?', [id]);
 }
 
-/**
- * Dead export — no longer called internally (repo uses withTransactionAsync).
- * Kept for potential future consumers; do not delete until confirmed unnecessary.
- */
 export async function reassignCategory(
   db: SQLiteDatabase,
   fromId: string,

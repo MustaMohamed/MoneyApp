@@ -16,9 +16,7 @@ describe('requiresExchangeRate', () => {
     expect(requiresExchangeRate(a, b)).toBe(expected);
   });
 
-  // The wide signature's whole point: a caller holding an optional currency
-  // passes it in unguarded. `undefined` compares unequal to USD, so it never
-  // demands a rate on its own, and never suppresses one the other side needs.
+  // `undefined` never demands a rate on its own, and never suppresses one the other side needs.
   it.each([
     [Currency.EGP, undefined, false],
     [Currency.USD, undefined, true],
@@ -124,9 +122,7 @@ describe('resolveTransactionAmounts', () => {
   });
 
   describe('rounds the input amount once, upstream of derivation (ADR: money-rounding-layer)', () => {
-    // The worked number is the gate: it fails if input.amount is used
-    // unrounded anywhere downstream, which the idempotence property below
-    // cannot detect (it holds identically when nothing is rounded at all).
+    // The worked number is the gate; the idempotence property below holds when nothing is rounded.
     it('10.005 USD @ rate 48 persists amount 10, egpAmount 480 — spec row 15', () => {
       expect(
         resolveTransactionAmounts({
@@ -186,8 +182,6 @@ describe('resolveTransactionAmounts', () => {
       expect(second).toEqual(first);
     });
 
-    // Layla row 23 — regression pin. Rounding runs before the positivity
-    // throw, so an amount that rounds to zero still throws.
     it('0.005 EGP rounds to 0 and throws, rather than persisting a zero amount', () => {
       expect(() =>
         resolveTransactionAmounts({
@@ -198,7 +192,6 @@ describe('resolveTransactionAmounts', () => {
       ).toThrow(TransactionAmountError);
     });
 
-    // Layla row 24 — the floor's own boundary does not throw.
     it('0.01 USD @ rate 48 does not throw and derives egpAmount 0.48', () => {
       expect(
         resolveTransactionAmounts({
@@ -211,13 +204,9 @@ describe('resolveTransactionAmounts', () => {
     });
   });
 
-  // §3.4 — the output guard `parseRateText`'s open bound leans on: no
-  // computed, rounded leg may reach a caller non-finite or above
-  // MAX_SAFE_INTEGER. Upper-bound precedent: budget_month_profiles.ts:27.
+  // No computed, rounded leg may reach a caller non-finite or above MAX_SAFE_INTEGER.
   describe('output guard (§3.4)', () => {
-    // 100 / 1e-10 = 1e12 would NOT trip the guard; 1e-16 clears
-    // MAX_SAFE_INTEGER (~9.007e15) by several orders of magnitude, which is
-    // what a rate this tiny needs now that parseRateText carries no bound.
+    // 1e-16 is needed: 100 / 1e-10 = 1e12 would not trip the guard, MAX_SAFE_INTEGER is ~9.007e15.
     it('a tiny rate dividing the destination leg throws, rather than persisting 1e18', () => {
       expect(() =>
         resolveTransactionAmounts({
@@ -230,9 +219,7 @@ describe('resolveTransactionAmounts', () => {
       ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
     });
 
-    // The pre-existing hole this guard also closes: a huge typed amount was
-    // never output-checked. The amount itself (1e14) clears its own bound;
-    // the egpAmount multiply leg is what overflows.
+    // 1e14 clears its own bound; the egpAmount multiply leg is what overflows.
     it('a huge amount multiplied by the rate throws on the egpAmount leg', () => {
       expect(() =>
         resolveTransactionAmounts({
@@ -244,8 +231,7 @@ describe('resolveTransactionAmounts', () => {
       ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
     });
 
-    // roundMoney(MAX_SAFE_INTEGER) is exact, so the boundary itself must not
-    // throw — the one input that reds a `>` → `>=` mutation in the guard.
+    // The boundary itself must not throw; this input reds a `>` to `>=` mutation in the guard.
     it('an amount exactly at MAX_SAFE_INTEGER does not throw', () => {
       expect(() =>
         resolveTransactionAmounts({
@@ -259,11 +245,7 @@ describe('resolveTransactionAmounts', () => {
 });
 
 describe('resolveCommitmentPaymentAmounts', () => {
-  // This resolver had zero tests before MA-018 c7 (git grep confirmed one
-  // production caller, no test file) — money.md's "worked numbers for all
-  // four currency pairs, plus the throw cases" is a new obligation here, not
-  // an extension. 10.999 is reused across all four pairs so the same input
-  // proves the fix at every branch of the resolver.
+  // 10.999 is reused across all four currency pairs so one input exercises every branch.
   it('EGP commitment / EGP account: 10.999 rounds to 11 before deriving anything', () => {
     expect(
       resolveCommitmentPaymentAmounts({
@@ -280,8 +262,6 @@ describe('resolveCommitmentPaymentAmounts', () => {
     });
   });
 
-  // ADR (money-rounding-layer) §3 row 2's own worked pin: rounding the input
-  // changes egp_amount for a sub-cent payment — 528.00, not 527.95.
   it('USD commitment / EGP account: 10.999 USD @ rate 48 persists egpAmount 528.00, not 527.95', () => {
     expect(
       resolveCommitmentPaymentAmounts({
@@ -351,9 +331,6 @@ describe('resolveCommitmentPaymentAmounts', () => {
     ).toThrow(TransactionAmountError);
   });
 
-  // Layla row 25 — regression pin, mirrors resolveTransactionAmounts row 23:
-  // rounding runs before the positivity throw, so an amount that rounds to
-  // zero still throws rather than persisting a zero payment.
   it('0.005 rounds to 0 and throws, rather than persisting a zero payment', () => {
     expect(() =>
       resolveCommitmentPaymentAmounts({
@@ -364,16 +341,7 @@ describe('resolveCommitmentPaymentAmounts', () => {
     ).toThrow(TransactionAmountError);
   });
 
-  // The half-even edge the pay sheet's converted line now renders directly:
-  // 1 / 40 is 0.025 exactly, and banker's rounding takes it DOWN to the even
-  // cent. A one-step `amt / rate` with Math.round would show 0.03 — a cent the
-  // write path never persists.
-  //
-  // 1.005 is the row that carries the kill, and 1.00 alone would not: at 1.00
-  // the INNER round is a no-op, so a reimplementation that divides once and
-  // rounds once still agrees. At 1.005 the resolver rounds the amount to 1.00
-  // and returns 0.02 where `roundMoney(1.005 / 40)` returns 0.03. Both inputs
-  // share one expectation, which is what makes the pair worth keeping.
+  // 1 / 40 is exactly 0.025 and half-even rounds down; 1.005 kills a divide-once-round-once path.
   it.each([[1], [1.005]])(
     'EGP commitment / USD account: %p EGP @ 40 converts to 0.02, not 0.03',
     (amount) => {
@@ -406,7 +374,6 @@ describe('resolveCommitmentPaymentAmounts', () => {
     expect(second).toEqual(first);
   });
 
-  // §3.4 — mirrors resolveTransactionAmounts' output guard block above.
   describe('output guard (§3.4)', () => {
     it('a tiny rate dividing accountNativeAmount throws, rather than persisting 1e18', () => {
       expect(() =>

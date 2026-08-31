@@ -31,20 +31,10 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
           testID={props.testID}
           value={value}
           onChangeText={(text) => {
-            // The field's own variant, never a literal and never a boolean
-            // derived here: this one component renders both the plan name and
-            // the plan total, so a mask applied to every keystroke would refuse
-            // every letter of a plan name with nothing on screen to say why.
-            // `value` is the prior held text the classifier diffs against --
-            // the Controller's own value, which is what is on screen.
+            // `maskFieldText` diffs the new text against `value`, the prior text on screen.
             const masked = maskFieldText(props.variant, value, text);
             if (masked === undefined) return;
-            // Mask, clear, write -- the order matters and is copied from
-            // `set_budget_sheet.tsx`: clearing above the guard would let a
-            // refused keystroke wipe an error the user still needs to read.
-            // Both fields clear it, not just the amount: one footer message
-            // serves the name, the total and every allocation row, so a subset
-            // would make the sheet's honesty depend on which field was touched.
+            // Clearing above the guard would let a refused keystroke wipe a live error.
             props.onEdit();
             onChange(masked);
           }}

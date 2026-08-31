@@ -36,14 +36,7 @@ interface StateRow {
   pills: readonly ReadyPill[];
 }
 
-// Every frame with the gate CLOSED, and every `amount` frame that is also
-// reachable with the gate OPEN. The gate-open rows on F4-F7 are the ones a
-// frame-keyed pill array cannot satisfy: frame selection evaluates F7/F6/F5/F4
-// before F2, so keying pills by frame drops the currency pills for exactly the
-// account sets rows 5, 7, 9 and 11 describe.
-//
-// Every expected value below is a LITERAL, computed against the shipped
-// roundMoney with round-then-sum in array order — never re-derived here.
+// Every expected value is a literal, round-then-sum in array order; never re-derive it here.
 const STATE_ROWS: readonly StateRow[] = [
   {
     case: '1 — F1, two EGP accounts, nothing converted',
@@ -227,10 +220,7 @@ const STATE_ROWS: readonly StateRow[] = [
     ],
   },
   {
-    // The glyph is keyed off the account COMPOSITION, not off the frame: this
-    // set is all credit cards AND needs a rate, and `resolveFrame` returns F3
-    // before it ever tests F7. A glyph read from `frame === 'F7'` renders
-    // `bank-outline` over a credit-card-only set here.
+    // The glyph keys off account composition, not the frame: `resolveFrame` returns F3 before F7.
     case: '12 — F3 over a credit-card-only set; the glyph still swaps',
     accounts: [cc(1350, Currency.USD)],
     base: Currency.EGP,
@@ -264,10 +254,7 @@ const STATE_ROWS: readonly StateRow[] = [
     ],
   },
   {
-    // F7 is not a single-card frame: `isCreditCardOnly` is `every`, so any
-    // all-credit-card set lands here, and N3 caps nothing. This row is what the
-    // caption's plural arm exists for — the frame and the glyph are unchanged
-    // while `accountCount` is 2.
+    // F7 is any all-credit-card set, not a single card: `isCreditCardOnly` is `every`.
     case: '14 — F7 with TWO credit cards and nothing else',
     accounts: [cc(8450), cc(2000)],
     base: Currency.EGP,
@@ -298,8 +285,6 @@ describe('selectReadySummaryState — frame selection and pill composition', () 
     expect(state.frame).toBe(row.frame);
     expect(state.accountCount).toBe(row.accountCount);
     expect(state.foreignCount).toBe(row.foreignCount);
-    // Published straight through from the input — every row's own `base` is
-    // the expected value, so all 14 exercise both base-currency directions.
     expect(state.baseCurrency).toBe(row.base);
     expect(state.foreignCurrency).toBe(row.foreignCurrency);
     expect(state.pillsVisible).toBe(row.pillsVisible);
@@ -309,9 +294,6 @@ describe('selectReadySummaryState — frame selection and pill composition', () 
 
 describe('selectReadySummaryState — the invariants the table encodes', () => {
   it('feeds one count to both pluralisation points on every gate-closed amount frame', () => {
-    // The literal rows already pin both counts; this states the rule they
-    // encode — `{n} accounts` and `opening balance(s)` switch on the SAME
-    // number — so a row added later cannot let them drift apart.
     const gateClosedAmountRows = STATE_ROWS.filter(
       (row) => !row.pillsVisible && row.frame !== 'F3',
     );
@@ -360,8 +342,7 @@ describe('selectReadySummaryState — the invariants the table encodes', () => {
 });
 
 describe('selectReadySummaryState — currencies outside EGP | USD throw', () => {
-  // This function composes both wrappers, so a swallow added in either is
-  // invisible without an assertion at this level too.
+  // Composes both wrappers, so a swallow in either is invisible without this assertion.
   it('throws rather than composing a frame out of an unsupported currency', () => {
     expect(() =>
       selectReadySummaryState({

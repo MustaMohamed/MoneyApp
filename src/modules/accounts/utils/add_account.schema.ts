@@ -35,9 +35,7 @@ export function createAddAccountSchema(accounts: Account[]) {
         });
       }
 
-      // Every credit rule below opens on this one branch, so a leftover
-      // credit draft can never block a save on a non-credit type — spec.md
-      // §296, MA-009 plan decision 4.
+      // All credit rules sit below this, so a leftover credit draft cannot block a non-credit save.
       if (data.selected_type !== AccountType.CreditCard) return;
 
       const creditLimitRaw = data.credit_limit?.trim();
@@ -54,8 +52,7 @@ export function createAddAccountSchema(accounts: Account[]) {
           message: Strings.errAmountInvalid,
         });
       } else if (parsePositiveDecimal(creditLimitRaw) === undefined) {
-        // Parsed, but not > 0. Debt above the limit is a separate, valid
-        // case (spec.md:291) — this rule only rejects a non-positive limit.
+        // Debt above the limit is valid; this rule only rejects a non-positive limit.
         ctx.addIssue({
           code: 'custom',
           path: ['credit_limit'],
@@ -73,8 +70,7 @@ export function createAddAccountSchema(accounts: Account[]) {
             message: Strings.errAmountInvalid,
           });
         } else {
-          // Only compare once the amount owed itself parses — an invalid
-          // balance is a balance error, not a minimum-payment one.
+          // Compare only once the balance parses; an invalid balance is not a min-payment error.
           const parsedBalance = parseNonNegativeDecimal(data.balance);
           if (parsedBalance !== undefined && parsedMinPayment > parsedBalance) {
             ctx.addIssue({
@@ -99,13 +95,7 @@ export function createAddAccountSchema(accounts: Account[]) {
         }
       }
 
-      // APR bound — ruled, spec.md § "Financial Logic — APR bound — ruled".
-      // Same three-branch shape as credit_limit above (required → parses →
-      // bounded), not due_day's combined single condition: the upper-bound
-      // failure is a distinct, more specific message than "not a number at
-      // all". A negative value never parses — DECIMAL_PATTERN admits no
-      // minus sign — so the range check only ever sees a value that already
-      // parsed as >= 0.
+      // `DECIMAL_PATTERN` admits no minus sign, so the range check only ever sees a value >= 0.
       if (data.interest_tracking) {
         const aprRaw = data.apr?.trim();
         if (!aprRaw) {
@@ -115,10 +105,7 @@ export function createAddAccountSchema(accounts: Account[]) {
           if (parsedApr === undefined) {
             ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAmountInvalid });
           } else if (parsedApr > 100) {
-            // 0 is explicitly valid — a 0% promotional-rate card is a real
-            // state, not "no rate entered" (ruled, not the credit_limit
-            // shape). 100 is a sanity ceiling calibrated for a high-rate
-            // market, not a claimed market maximum.
+            // 0 is valid (promotional-rate card); 100 is a sanity ceiling, not a market maximum.
             ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAprRange });
           }
         }

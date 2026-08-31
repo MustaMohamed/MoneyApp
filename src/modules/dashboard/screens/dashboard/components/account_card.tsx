@@ -24,10 +24,7 @@ const TYPE_ICONS: Record<AccountType, IconName> = {
   [AccountType.CreditCard]: 'credit-card',
 };
 
-// The PhysicalWallet avg/day row's explicit 1dp — finer than EGP's CURRENCY_CONFIG
-// default (0dp) so a small daily average doesn't round to "0". Pre-existing precision,
-// unchanged by #299; named per `.claude/rules/review.md` item 3 (never a bare literal
-// on a rewritten line) as it moves onto formatCurrencyAmount's own decimals param.
+// 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;
 
 function nextDueDate(dueDay: number): string {
@@ -47,19 +44,7 @@ interface InfoRow {
   icon?: 'up' | 'down';
 }
 
-/**
- * Exported for `__tests__/screens/dashboard/account_card.helpers.test.ts` — the
- * rows are the testable part of this card, and a logic-only `.ts` suite is what
- * `.claude/rules/tests.md` asks for. The precedent is `account_carousel.tsx`,
- * whose pure helpers are exported and covered the same way.
- *
- * `isRateUsable` arrives as a BOOLEAN, decided once by
- * `@/modules/accounts/domain/account_aggregation`'s `isRateUsable` in
- * `dashboard.hook.ts` and passed down. It is never re-derived here as
- * `rate > 0`: `useCurrencyStore`'s `INITIAL_STATE.rate` is 50, so `rate > 0` is
- * true for the placeholder, and re-deriving provenance at the display layer is
- * the defect class #255 exists to remove.
- */
+/** Never re-derive `isRateUsable` as `rate > 0`; the store's placeholder rate is 50. */
 export function buildInfoRows(
   account: Account,
   rate: number,
@@ -71,7 +56,6 @@ export function buildInfoRows(
   const cur = account.currency;
   const isUSD = cur === Currency.USD;
 
-  // ─── Credit Card ────────────────────────────────────────────────────────────
   if (account.type === AccountType.CreditCard) {
     const limit = account.credit_limit ?? 0;
     const balance = account.current_balance;
@@ -97,7 +81,6 @@ export function buildInfoRows(
     ];
   }
 
-  // ─── Physical Wallet (spending) ──────────────────────────────────────────────
   if (account.type === AccountType.PhysicalWallet) {
     const daysElapsed = Math.max(1, new Date().getDate());
     const avgDay = s.month_out / daysElapsed;
@@ -119,7 +102,6 @@ export function buildInfoRows(
     ];
   }
 
-  // ─── Physical Savings ────────────────────────────────────────────────────────
   if (account.type === AccountType.PhysicalSavings) {
     const change = s.month_in - s.month_out;
     const monthStart = account.current_balance - change;
@@ -138,7 +120,6 @@ export function buildInfoRows(
     ];
   }
 
-  // ─── Bank / SmartWallet ──────────────────────────────────────────────────────
   const weekNet = s.week_in - s.week_out;
   const weekNetColor = weekNet >= 0 ? Colors.dark.positive : Colors.dark.negative;
 
@@ -154,19 +135,7 @@ export function buildInfoRows(
         value: formatCurrencyAmount(s.month_out, cur),
         valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
       },
-      // The one row on this card that needs a rate, so the only one the gate
-      // touches. Without it the accounts tab contradicted itself: the strip
-      // above refused to state a total while every USD card below converted at
-      // the very rate the strip had just rejected, printing `$100` as
-      // `5,000 EGP` under "Exchange rate needed". The native-currency rows need
-      // no rate and are untouched.
-      //
-      // The second conjunct SUPPRESSES the row for a USD-base user, whose USD
-      // card needs no equivalent — it would restate the amount above it in the
-      // currency it is already in. This is a gate, not a follow: the row keeps
-      // its `cardInEgpLabel` and its `Currency.EGP`, because the mirror case
-      // (an EGP card under a USD base, wanting an "In USD" row) is new surface
-      // and is filed, not built (spec §7, follow-up 3).
+      // Hardcoded to EGP; an EGP card under a USD base gets no equivalent row.
       ...(isRateUsable && account.currency !== baseCurrency
         ? [
             {
@@ -200,7 +169,7 @@ export function buildInfoRows(
 
 interface AccountCardProps {
   account: Account;
-  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  /** Read once in `dashboard.hook.ts` and passed down; never from a store here. */
   baseCurrency: Currency;
   rate: number;
   /** Decided by the domain gate in `dashboard.hook.ts`, never re-derived here. */
@@ -241,13 +210,10 @@ export function AccountCard({
         className="border-border overflow-hidden rounded-2xl border p-0"
         style={{ boxShadow: 'none' }}
       >
-        {/* Accent bar — dynamic color stays inline */}
         <View style={{ height: ms(3), width: '100%', backgroundColor: color }} />
 
         <View style={{ paddingHorizontal: ms(12), paddingVertical: ms(9), gap: ms(6) }}>
-          {/* Card top */}
           <View style={{ gap: ms(5) }}>
-            {/* Name row */}
             <View
               style={{
                 flexDirection: 'row',
@@ -264,7 +230,6 @@ export function AccountCard({
               >
                 {account.name}
               </Text>
-              {/* Currency pill — border color is dynamic */}
               <View
                 className="rounded"
                 style={{
@@ -280,9 +245,7 @@ export function AccountCard({
               </View>
             </View>
 
-            {/* Balance row */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(6) }}>
-              {/* Icon box — dynamic background color stays inline */}
               <View
                 className="rounded"
                 style={{
@@ -308,10 +271,8 @@ export function AccountCard({
             </View>
           </View>
 
-          {/* Divider */}
           <View className="border-border border-t" style={{ height: Size.hairline }} />
 
-          {/* Info rows */}
           <View style={{ gap: ms(4) }}>
             {infoRows.map((row, i) => (
               <View
@@ -357,7 +318,6 @@ export function AccountCard({
             ))}
           </View>
 
-          {/* Credit progress bar */}
           {showProgress && (
             <View
               className="border-border overflow-hidden"

@@ -285,8 +285,7 @@ export function useBudget() {
     ],
   );
 
-  // Expense categories remain selectable even when they already have a budget,
-  // because phase 1 allows multiple named budgets per category/month.
+  // A category may hold several named budgets in one month, so budgeted ones stay selectable.
   const budgetableCategories = useMemo(
     () => categories.filter((c) => c.type === CategoryType.Expense),
     [categories],

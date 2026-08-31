@@ -48,16 +48,7 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
         <BottomSheetScrollView
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-4 pt-2"
-          // SHEET_FOOTER_CLEARANCE is a fixed constant sized for a bare CTA and
-          // nothing in the primitive measures the footer it is meant to clear, so
-          // the message this sheet puts above Save grows the footer against a
-          // reserve that does not move -- covering the bottom of the scroll view,
-          // which is the last allocation row the message is asking the user to
-          // fix. Paid here rather than in the constant: nine of its ten call
-          // sites ship a bare CTA and would take dead space for a message they
-          // never render. Spacing.xxl is two lines of the 11px message, so a
-          // wrapped one clears too, and the term is 0 on every frame where the
-          // footer is a bare CTA.
+          // `SHEET_FOOTER_CLEARANCE` fits a bare CTA; `Spacing.xxl` covers two 11px error lines.
           contentContainerStyle={{
             paddingBottom: SHEET_FOOTER_CLEARANCE + (state.submitError ? Spacing.xxl : 0),
           }}

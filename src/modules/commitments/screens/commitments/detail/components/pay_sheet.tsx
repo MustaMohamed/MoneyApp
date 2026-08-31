@@ -49,11 +49,7 @@ export function PaySheet({ commitment, payment }: Props) {
     payment?.status === CommitmentPaymentStatus.Skipped;
   const isVariable = commitment?.amount_type === AmountType.Variable;
 
-  // The RHF error wins the slot: after a submit the schema's own sub-floor
-  // mirror publishes the same message there, and before one the live flag is
-  // the only source of it. The currency named is the PAYING ACCOUNT's, which
-  // `convertedBelowMin` implies is resolved — the flag is only ever set from a
-  // resolution that had one.
+  // The RHF error wins the slot; the live flag is the only source of it before a submit.
   const amountError =
     form.formState.errors.amountText?.message ??
     (state.convertedBelowMin && state.selectedAccount
@@ -61,9 +57,7 @@ export function PaySheet({ commitment, payment }: Props) {
       : undefined);
   const accountError = form.formState.errors.account_id?.message;
   const rateError = form.formState.errors.exchange_rate?.message;
-  // Read during render for the same reason the hook does — a read from inside
-  // the `onChange` below would see the previous render's value, which after a
-  // failed submit is still `false`.
+  // Read during render; reading inside the `onChange` below sees the previous render's value.
   const isSubmitted = form.formState.isSubmitted;
 
   const paidDate = form.watch('paid_date');
@@ -125,7 +119,6 @@ export function PaySheet({ commitment, payment }: Props) {
             </Text>
           ) : null}
 
-          {/* Amount */}
           <View className="mb-3 gap-1">
             <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
               {Strings.commitmentsPayAmount}
@@ -162,7 +155,6 @@ export function PaySheet({ commitment, payment }: Props) {
             ) : null}
           </View>
 
-          {/* Pay-from account */}
           <View className="mb-3 gap-1">
             <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
               {Strings.commitmentsPayAccount}
@@ -206,17 +198,10 @@ export function PaySheet({ commitment, payment }: Props) {
             ) : null}
           </View>
 
-          {/* Exchange rate (conditional) */}
           {state.requiresRate ? (
             <ExchangeRateRow
               value={state.exchangeRateValue ?? ''}
-              // `shouldValidate` is gated on `isSubmitted`, not pinned false and not
-              // pinned true. The rate row is not a `Controller`, so `setValue` is the
-              // only thing that can revalidate it; pinned false leaves D6's required
-              // refine showing its error while the user is typing the fix, and pinned
-              // true would run that refine on a form nobody has submitted yet. The
-              // gate reproduces exactly what a registered field does under this
-              // form's `mode: 'onSubmit'` + `reValidateMode: 'onChange'`.
+              // Pinned false keeps a stale error; pinned true validates before any submit.
               onChange={(v) => form.setValue('exchange_rate', v, { shouldValidate: isSubmitted })}
               overrideEnabled={state.rateOverride}
               onToggleOverride={toggleRateOverride}
@@ -228,9 +213,7 @@ export function PaySheet({ commitment, payment }: Props) {
             />
           ) : null}
 
-          {/* Converted total — the hook's resolver output, gated on currency
-              inequality. No override on the decimals, so each currency renders
-              at its CURRENCY_CONFIG precision: `= 4,906 EGP`, `= 101.92 USD`. */}
+          {/* Converted total: decimals come from CURRENCY_CONFIG, with no override. */}
           {state.convertedTotal ? (
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }} className="mt-2">
               <Text className="font-sora-semibold text-foreground text-[15px]">
@@ -239,7 +222,6 @@ export function PaySheet({ commitment, payment }: Props) {
             </View>
           ) : null}
 
-          {/* Date — upgraded to date picker (OQ-2) */}
           <View className="mt-3 mb-3 gap-1">
             <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
               {Strings.commitmentsPayDate}
@@ -271,7 +253,6 @@ export function PaySheet({ commitment, payment }: Props) {
             ) : null}
           </View>
 
-          {/* Notes */}
           <View className="mb-3 gap-1">
             <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
               {Strings.commitmentsPayNotes}

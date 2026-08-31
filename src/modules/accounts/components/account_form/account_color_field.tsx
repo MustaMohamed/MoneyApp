@@ -18,12 +18,7 @@ export interface AccountColorFieldProps {
   onChange: (hex: string) => void;
 }
 
-/**
- * The row that opens the 32-colour sheet (mockup C1) and owns the sheet
- * itself. BottomSheet.Portal renders into the app-root PortalHost
- * (src/app/_layout.tsx:18,90), so mounting the sheet here — inside
- * ScreenScroll's content — is safe.
- */
+/** Safe to mount inside ScreenScroll: `BottomSheet.Portal` renders into the root PortalHost. */
 export function AccountColorField({ ownerId, value, onChange }: AccountColorFieldProps) {
   const model = resolveColorTriggerModel(value);
   const isOpen = useAccountColorSheetState((s) => s.openOwner === ownerId);

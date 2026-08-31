@@ -9,14 +9,10 @@ import {
 import { makeTestAccount } from '@/test_helpers/transaction';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
-// Time is an input, never `new Date()`. The gate reads only whether this marker
-// is null — a non-null value means the stored rate was actually verified.
+// The gate reads only whether this marker is null; non-null means the rate was verified.
 const RATE_VERIFIED_AT = '2026-08-01T09:00:00.000Z';
 
-// makeTestAccount defaults to EGP, `is_archived: 0` and BOTH balances 0, so each
-// fixture states only the fields its row is about — and leaving `current_balance`
-// at 0 is what makes a regression to the replaced column red the whole table
-// rather than a single row.
+// `makeTestAccount` defaults to EGP, `is_archived: 0` and both balances 0.
 const bank = (openingBalance: number, currency: Currency = Currency.EGP): Account =>
   makeTestAccount({ type: AccountType.Bank, currency, opening_balance: openingBalance });
 
@@ -47,10 +43,7 @@ interface ResolverRow {
   expected: StartingNetPosition;
 }
 
-// The scope spec's executable table, all 16 rows, in its order. Every `expected`
-// is a LITERAL: nothing here is re-derived through roundMoney or through the
-// resolver itself, because an assertion built from the code under test cannot
-// fail.
+// Every `expected` is a literal; an assertion re-derived through the code under test cannot fail.
 const RESOLVER_ROWS: readonly ResolverRow[] = [
   {
     case: '1 — two EGP accounts, base EGP; an unusable rate is irrelevant',
@@ -183,9 +176,6 @@ const RESOLVER_ROWS: readonly ResolverRow[] = [
 ];
 
 describe('resolveStartingNetPosition — the scope spec table, all 16 rows', () => {
-  // Every row is a NON-override rate — see the same note on `computeNetWorth`'s
-  // table. The override half of the gate is asserted in the
-  // "a manual rate carrying no marker" describe.
   it.each(RESOLVER_ROWS)('$case', ({ accounts, base, rate, rateUpdatedAt, expected }) => {
     expect(
       resolveStartingNetPosition({
@@ -200,13 +190,7 @@ describe('resolveStartingNetPosition — the scope spec table, all 16 rows', () 
 });
 
 describe('resolveStartingNetPosition — round-then-sum, with a fixture that can tell them apart', () => {
-  // Row 14 above is the scope spec's nominated sum-then-round catcher, and it
-  // does not catch it: 0.005 USD at rate 2 converts to exactly 0.01, so
-  // rounding each value and rounding the sum give the same 0.02. Measured by
-  // deleting the per-value roundMoney — all 16 rows stayed green. This fixture
-  // is the one that separates them: 0.502 USD at rate 2 converts to 1.004, so
-  // round-then-sum is 1.00 + 1.00 = 2.00 while sum-then-round is
-  // roundMoney(2.008) = 2.01.
+  // 0.502 USD at rate 2 converts to 1.004, so round-then-sum gives 2.00 and sum-then-round 2.01.
   it('rounds each converted value before summing, not the sum alone', () => {
     expect(
       resolveStartingNetPosition({
@@ -221,9 +205,7 @@ describe('resolveStartingNetPosition — round-then-sum, with a fixture that can
 });
 
 describe('resolveStartingNetPosition — a manual rate carrying no marker', () => {
-  // N4 shares `isRateUsable` with the dashboard, so it shares this: the user who
-  // saved a rate before `usd_rate_updated_at` existed (#23 to #85) carries the
-  // override flag and no marker, and no background fetch will ever write one.
+  // A manual override carries no marker, and no background fetch will ever write one.
   const accounts = [bank(1000), wal(100, Currency.USD)];
 
   it('states the position, because the user supplied the rate', () => {
@@ -252,11 +234,7 @@ describe('resolveStartingNetPosition — a manual rate carrying no marker', () =
 });
 
 describe('resolveStartingNetPosition — negative zero (spec §1.1)', () => {
-  // The fixture ORDER is what produces the residue, and that is the point:
-  // 0.30 − 0.10 − 0.20 summed in array order is -2.7755575615628914e-17, and
-  // roundMoney of that is -0 (measured against the shipped roundMoney). A
-  // resolver that sorted or regrouped the accounts before summing would make
-  // this row a tautology, so the contract is "reduce in array order".
+  // The fixture order produces the residue: 0.30 - 0.10 - 0.20 in array order rounds to -0.
   const NEGATIVE_ZERO_INPUT = {
     accounts: [bank(0.3), cc(0.1), cc(0.2)],
     baseCurrency: Currency.EGP,
@@ -270,8 +248,7 @@ describe('resolveStartingNetPosition — negative zero (spec §1.1)', () => {
   });
 
   it('and therefore renders "0.00 EGP", which is what the user sees', () => {
-    // A resolver-level assertion alone does not catch the render: the bug is
-    // Intl's, and it only appears once the number reaches the formatter.
+    // The bug is Intl's; it only appears once the number reaches the formatter.
     expect(
       formatCurrencyAmount(
         amountValue(resolveStartingNetPosition(NEGATIVE_ZERO_INPUT)),
@@ -286,9 +263,6 @@ describe('resolveStartingNetPosition — negative zero (spec §1.1)', () => {
   });
 });
 
-// `countForeignAccounts` moved to `@/modules/accounts/domain/account_aggregation`
-// in #255 chunk 2, and its three cases moved with it — see
-// `__tests__/accounts/account_aggregation.test.ts`.
 describe('selectActiveAccounts', () => {
   it('drops archived rows, whatever their currency or type', () => {
     const active = selectActiveAccounts([bank(1000), archived(cc(500)), archived(wal(7))]);
@@ -299,8 +273,7 @@ describe('selectActiveAccounts', () => {
 
 describe('resolveStartingNetPosition — archived rows the SQL filter would not have removed', () => {
   it('excludes an archived account that would otherwise change the answer', () => {
-    // Case 13 proves the filter exists; this proves it is load-bearing — the
-    // archived row here is large enough to flip the sign of the total.
+    // Case 13 proves the filter exists; here the archived row is large enough to flip the sign.
     expect(
       resolveStartingNetPosition({
         accounts: [bank(1000), archived(cc(50000))],
@@ -340,12 +313,7 @@ describe('resolveStartingNetPosition — currencies outside EGP | USD throw', ()
     ).toThrow(StartingNetPositionError);
   });
 
-  // The guard used to ask `CURRENCY_LOOKUP[currency] !== undefined`, which
-  // resolves through the prototype chain: `toString` is a member of
-  // `Object.prototype`, so a row carrying it passed the guard and was summed as
-  // if it were base currency. Still the DOMAIN'S OWN error type after the
-  // predicate was hoisted — that is what spec §6 requires and what this
-  // assertion pins.
+  // A prototype-chain lookup lets `toString` pass a currency guard, so it must still throw.
   it('throws on an Object.prototype member masquerading as a currency', () => {
     expect(() =>
       resolveStartingNetPosition({

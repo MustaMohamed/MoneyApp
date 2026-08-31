@@ -52,17 +52,13 @@ export function getActiveCommitmentDueDates(
   );
 }
 
-/**
- * Get payments for a given month (YYYY-MM format).
- * Returns payments whose due_date falls within the selected month.
- */
+/** `yearMonth` is `YYYY-MM`. */
 export async function getPaymentsByMonth(
   db: SQLiteDatabase,
   yearMonth: string,
 ): Promise<CommitmentPayment[]> {
   const monthStart = `${yearMonth}-01`;
 
-  // Compute first day of next month
   const [year, month] = yearMonth.split('-').map(Number);
   const nextMonth = month === 12 ? 1 : month + 1;
   const nextYear = month === 12 ? year + 1 : year;
@@ -76,7 +72,6 @@ export async function getPaymentsByMonth(
   );
 }
 
-/** Full payment history for a commitment (for C4 detail screen). */
 export async function getPaymentsByCommitment(
   db: SQLiteDatabase,
   commitmentId: string,
@@ -87,7 +82,6 @@ export async function getPaymentsByCommitment(
   );
 }
 
-/** Single payment lookup. */
 export async function getPaymentById(
   db: SQLiteDatabase,
   id: string,
@@ -99,7 +93,7 @@ export async function getPaymentById(
   return rows[0] ?? null;
 }
 
-/** Batch insert for payment generation (idempotent — uses INSERT OR IGNORE). */
+/** Idempotent: `INSERT OR IGNORE` skips payments whose id already exists. */
 export async function insertPaymentRows(
   db: SQLiteDatabase,
   payments: CommitmentPayment[],
@@ -123,7 +117,6 @@ export async function addPayments(
   });
 }
 
-/** Generic status update with optional extra fields. */
 export async function updatePaymentStatus(
   db: SQLiteDatabase,
   id: string,
@@ -175,10 +168,6 @@ export async function updatePaymentStatus(
   }
 }
 
-/**
- * Delete upcoming/due payments for a commitment (for edit regeneration).
- * Only deletes where status IN ('upcoming', 'due') — preserves paid/skipped.
- */
 export async function deleteUnpaidPaymentsByCommitment(
   db: SQLiteDatabase,
   commitmentId: string,
@@ -190,7 +179,6 @@ export async function deleteUnpaidPaymentsByCommitment(
   );
 }
 
-/** Get the most recent paid payment for a commitment (for account pre-fill). */
 export async function getLastPaidPayment(
   db: SQLiteDatabase,
   commitmentId: string,
@@ -205,7 +193,6 @@ export async function getLastPaidPayment(
   return rows[0] ?? null;
 }
 
-/** Count of paid payments for after_count auto-deactivation. */
 export async function getPaidCountByCommitment(
   db: SQLiteDatabase,
   commitmentId: string,
@@ -218,7 +205,6 @@ export async function getPaidCountByCommitment(
   return rows[0]?.count ?? 0;
 }
 
-/** Get all existing due dates for a commitment (for idempotent generation). */
 export async function getExistingDueDates(
   db: SQLiteDatabase,
   commitmentId: string,
@@ -238,14 +224,6 @@ export interface MarkAsPaidDetails {
   notes?: string;
 }
 
-/**
- * Atomic markAsPaid operation.
- * Within a single DB transaction:
- *   1. UPDATE commitment_payments: status='paid', paid_date, amount_paid, account_id, exchange_rate_snapshot, notes, updated_at
- *   2. INSERT into transactions (full Transaction row including commitment_payment_id)
- *   3. UPDATE accounts: deduct balance (use tx.amount for native face-value)
- *   4. UPDATE commitment_payments: set transaction_id = tx.id
- */
 export async function markCommitmentAsPaid(
   db: SQLiteDatabase,
   paymentId: string,
@@ -256,7 +234,6 @@ export async function markCommitmentAsPaid(
   const now = new Date().toISOString();
 
   await db.withTransactionAsync(async () => {
-    // 1. Mark payment as paid
     const paymentResult = await db.runAsync(
       `UPDATE commitment_payments SET
         status = 'paid',
@@ -271,10 +248,7 @@ export async function markCommitmentAsPaid(
          AND transaction_id IS NULL`,
       [
         details.paid_date,
-        // Invariant (ADR: money-rounding-layer §3 row 2): the caller
-        // (CommitmentRepository.markAsPaid) must hand in the resolver's
-        // rounded `paymentAmount` here, never the raw amount the pay sheet
-        // collected — this is the write the resolver's round exists to reach.
+        // The caller must pass the resolver's rounded amount, never the raw pay-sheet input.
         details.amount_paid,
         details.account_id,
         details.exchange_rate_snapshot ?? null,
@@ -292,15 +266,12 @@ export async function markCommitmentAsPaid(
       throw new Error(`Commitment payment cannot be marked as paid: ${paymentId}`);
     }
 
-    // 2. Insert the transaction row
     if ((await insertTransactionRow(db, tx)) !== 1) {
       throw new Error(`Commitment transaction was not inserted: ${tx.id}`);
     }
 
-    // 3. Apply the account-type-aware native-currency effect.
     await applyAccountDelta(db, accountDelta, now);
 
-    // 4. Link the transaction back to the payment
     const linkResult = await db.runAsync(
       'UPDATE commitment_payments SET transaction_id = ?, updated_at = ? WHERE id = ?',
       [tx.id, now, paymentId],

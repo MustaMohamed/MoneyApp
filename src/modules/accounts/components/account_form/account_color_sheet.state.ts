@@ -2,19 +2,7 @@ import { create } from 'zustand';
 
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-/**
- * Staged-colour state for the 32-colour sheet (MA-006). Shape follows
- * adjust_balance_sheet.state.ts (the same stage-then-confirm problem), with
- * one addition: the slot is keyed by owner. Two AccountColorFields can be
- * mounted at once (the Accounts stack keeps a pushed route's parent alive,
- * and MA-007/MA-008 add more consumers), and a shared `isOpen` boolean would
- * open both portals — .claude/rules/state.md rule 5, audit L27.
- *
- * Seeding happens in `open`, not a useEffect: the confirm handler writes RHF
- * while the sheet is still open for a frame, and an effect keyed off the
- * seed value would make a later change silently re-seed. An action removes
- * the question.
- */
+// Keyed by owner: two `AccountColorField`s can mount at once and a shared flag opens both.
 interface AccountColorSheetStateShape {
   openOwner: string | undefined;
   stagedColor: string | undefined;

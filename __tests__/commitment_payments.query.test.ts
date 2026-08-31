@@ -29,7 +29,6 @@ beforeAll(() => {
   realDb = new Database(':memory:');
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
 
-  // Seed accounts
   realDb
     .prepare(
       `INSERT OR IGNORE INTO accounts
@@ -42,7 +41,6 @@ beforeAll(() => {
     )
     .run(NOW, NOW, NOW, NOW, NOW, NOW);
 
-  // Seed categories
   realDb
     .prepare(
       `INSERT OR IGNORE INTO categories
@@ -51,7 +49,6 @@ beforeAll(() => {
     )
     .run(NOW, NOW);
 
-  // Seed commitments
   realDb
     .prepare(
       `INSERT OR IGNORE INTO commitments
@@ -161,13 +158,11 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
 
 describe('getPaymentsByMonth — December year-wrap', () => {
   it('correctly wraps from December to January of next year', async () => {
-    // December 2025 payment — should be returned for '2025-12'
     const decPayment = makePayment({
       id: 'pay-dec-1',
       due_date: '2025-12-15',
       status: CommitmentPaymentStatus.Upcoming,
     });
-    // January 2026 payment — should NOT be returned for '2025-12'
     const janPayment = makePayment({
       id: 'pay-jan-1',
       due_date: '2026-01-01',
@@ -503,14 +498,12 @@ describe('getPaidCountByCommitment', () => {
 
 describe('getPaidCountByCommitment — null row fallback', () => {
   it('returns 0 when the result rows have no count (handles ??0 path)', async () => {
-    // When there are no payments at all for this commitmentId, the COUNT query
-    // still returns a row with count=0, so the ?? path gives 0 as well.
+    // With no payments the COUNT query still returns a row with count 0, so `??` also yields 0.
     const count = await getPaidCountByCommitment(mockDb, 'commitment-no-payments');
     expect(count).toBe(0);
   });
 
   it('returns 0 when getAllAsync returns an empty array (rows[0] is undefined → ??0)', async () => {
-    // Override getAllAsync temporarily to return [] to hit the undefined path
     const mocked = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb;
 
     const original = mocked.getAllAsync.getMockImplementation();
@@ -570,7 +563,7 @@ describe('getPaymentsByCommitment', () => {
 
     const results = await getPaymentsByCommitment(mockDb, 'commitment1');
     expect(results).toHaveLength(2);
-    expect(results[0].id).toBe('pay-all-1'); // ASC order — soonest first
+    expect(results[0].id).toBe('pay-all-1');
     expect(results[1].id).toBe('pay-all-2');
   });
 });
@@ -631,7 +624,7 @@ describe('updatePaymentStatus', () => {
       .prepare('SELECT * FROM commitment_payments WHERE id = ?')
       .get('pay-upd-2') as Record<string, unknown>;
     expect(row.status).toBe('skipped');
-    // optional fields should remain null (COALESCE with null keeps existing)
+    // `COALESCE` with null keeps the existing value.
     expect(row.paid_date).toBeNull();
     expect(row.amount_paid).toBeNull();
   });
@@ -803,7 +796,6 @@ describe('markCommitmentAsPaid', () => {
       { accountId: 'acc1', currentBalance: -200, revolvingBalance: 0 },
     );
 
-    // Payment should be marked paid
     const payRow = realDb
       .prepare('SELECT * FROM commitment_payments WHERE id = ?')
       .get('pay-paid-egp') as Record<string, unknown>;
@@ -812,14 +804,12 @@ describe('markCommitmentAsPaid', () => {
     expect(payRow.amount_paid).toBe(200);
     expect(payRow.transaction_id).toBe('tx-paid-egp');
 
-    // Transaction should be inserted
     const txRow = realDb
       .prepare('SELECT * FROM transactions WHERE id = ?')
       .get('tx-paid-egp') as Record<string, unknown>;
     expect(txRow).toBeDefined();
     expect(txRow.amount).toBe(200);
 
-    // Account balance should be deducted by egp_amount (200)
     const accRow = realDb
       .prepare('SELECT current_balance FROM accounts WHERE id = ?')
       .get('acc1') as Record<string, unknown>;
@@ -843,7 +833,7 @@ describe('markCommitmentAsPaid', () => {
       egp_amount: 100,
       exchange_rate: null,
       account_id: 'acc1',
-      commitment_payment_id: null, // explicitly null — tests the ?? null branch
+      commitment_payment_id: null,
     });
 
     await markCommitmentAsPaid(
@@ -880,7 +870,7 @@ describe('markCommitmentAsPaid', () => {
       id: 'tx-paid-usd',
       amount: 500, // native value in the selected EGP account
       currency: Currency.EGP,
-      egp_amount: 500, // EGP equivalent deducted from EGP account
+      egp_amount: 500,
       exchange_rate: 50,
       account_id: 'acc1',
       commitment_payment_id: 'pay-paid-usd',
@@ -900,7 +890,6 @@ describe('markCommitmentAsPaid', () => {
       { accountId: 'acc1', currentBalance: -500, revolvingBalance: 0 },
     );
 
-    // Payment marked paid
     const payRow = realDb
       .prepare('SELECT * FROM commitment_payments WHERE id = ?')
       .get('pay-paid-usd') as Record<string, unknown>;
@@ -909,7 +898,6 @@ describe('markCommitmentAsPaid', () => {
     expect(payRow.notes).toBe('USD payment');
     expect(payRow.transaction_id).toBe('tx-paid-usd');
 
-    // Account balance deducted by egp_amount (500), NOT by face value (10)
     const accRow = realDb
       .prepare('SELECT current_balance FROM accounts WHERE id = ?')
       .get('acc1') as Record<string, unknown>;

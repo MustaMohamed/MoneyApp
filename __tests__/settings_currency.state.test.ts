@@ -72,8 +72,6 @@ describe('currencyScreenState setters', () => {
     expect(store.getState().saveError).toBe('');
   });
 
-  // Its own slot, not one of the two error slots: the warning coexists with a
-  // clean `saveError` because the value it describes saved without failing.
   it('setRateWarning stores and clears the warning without touching saveError', () => {
     const store = createCurrencyScreenState();
     store.getState().setRateWarning('This rate is far outside the usual range.');

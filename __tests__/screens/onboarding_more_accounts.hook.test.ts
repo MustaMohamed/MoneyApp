@@ -129,7 +129,6 @@ describe('useMoreAccounts', () => {
       continuePromise = result.current.handleContinue();
     });
 
-    // Tap "+ Add another account" while the N3 -> N4 step write is still in flight.
     await act(async () => {
       result.current.handleAddAnother();
     });
@@ -141,7 +140,6 @@ describe('useMoreAccounts', () => {
       await continuePromise;
     });
 
-    // Only the in-flight transition's own navigate lands, exactly once.
     expect(mockReplace.mock.calls).toEqual([['/(onboarding)/ready']]);
   });
 
@@ -150,9 +148,7 @@ describe('useMoreAccounts', () => {
     await act(() => {
       result.current.handleAddFirstAccount();
     });
-    // The bare string, not an object with params: add_account.hook.ts compares
-    // isAddingMore === 'true', and E3 means no account exists yet, so the
-    // first-account branch is the correct one (S14).
+    // Bare string, not params: `add_account.hook.ts` compares `isAddingMore === 'true'`.
     expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/add_account');
     expect(mockSetStep).not.toHaveBeenCalled();
   });
@@ -172,8 +168,6 @@ describe('useMoreAccounts', () => {
       continuePromise = result.current.handleContinue();
     });
 
-    // E3 keeps the header and its back chevron, so a transition can be in
-    // flight when this CTA is tapped (D1).
     await act(async () => {
       result.current.handleAddFirstAccount();
     });
@@ -185,7 +179,6 @@ describe('useMoreAccounts', () => {
       await continuePromise;
     });
 
-    // Only the in-flight transition's own navigate lands, exactly once.
     expect(mockReplace.mock.calls).toEqual([['/(onboarding)/ready']]);
   });
 

@@ -167,16 +167,6 @@ describe('useAccountDetail', () => {
     expect(mockSetConfirmingBalanceReview).not.toHaveBeenCalled();
   });
 
-  // ---------------------------------------------------------------------
-  // P8 cycle 3 — H2/H5. `handleAdjustBalance` was try/finally with no catch,
-  // and its one caller discarded the promise, so a store rethrow became an
-  // unhandled rejection: sheet still open, button idle, nothing said. The catch
-  // lives in AdjustBalanceSheet, which owns the error channel it renders
-  // through — see adjust_balance_sheet_save_error.test.tsx. What this hook owes
-  // that arrangement is a rejection that actually arrives, with the close
-  // skipped and the spinner released.
-  // ---------------------------------------------------------------------
-
   it('closes the adjust sheet on a successful balance adjust', async () => {
     mockAdjustBalance.mockResolvedValue(undefined);
     const { result } = await renderHook(() => useAccountDetail());
@@ -193,17 +183,14 @@ describe('useAccountDetail', () => {
     mockAdjustBalance.mockRejectedValue(failure);
     const { result } = await renderHook(() => useAccountDetail());
 
-    // Rejecting rather than resolving IS the assertion: the sheet's handleSave
-    // awaits this inside a try, so a swallowed rejection here would leave that
-    // catch permanently unreachable and the failure silent again.
+    // The sheet's `handleSave` awaits this inside a try, so a swallowed rejection is silent.
     await act(async () => {
       await expect(result.current.handleAdjustBalance(1500)).rejects.toBe(failure);
     });
 
-    // `setAdjustVisible(false)` sits after the throw, so the sheet stays open
-    // with the value the user typed still in it, ready to retry.
+    // `setAdjustVisible(false)` sits after the throw, so the sheet stays open for a retry.
     expect(mockSetAdjustVisible).not.toHaveBeenCalledWith(false);
-    // `finally` still runs — the Save Balance button must not stay spinning.
+    // `finally` still runs, so the Save Balance button must not stay spinning.
     expect(mockSetAdjusting).toHaveBeenLastCalledWith(false);
   });
 

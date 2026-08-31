@@ -431,12 +431,7 @@ export function planIntersectsMonth(
   return plan.start_date < range.endExclusive && plan.end_date >= range.start;
 }
 
-/**
- * The running-total line above the allocation rows. Takes a plain list of
- * amounts rather than a record keyed by category, so the caller has to decide
- * which categories are in play — an allocation left on a deselected category
- * cannot silently count against the total.
- */
+/** Takes plain amounts, not a per-category record, so a deselected category cannot count. */
 export function computeAllocationHelper(
   totalAmount: number | undefined,
   amounts: readonly (number | undefined)[],
@@ -444,12 +439,7 @@ export function computeAllocationHelper(
   const { allocated, buffer, isOver } = sumAllocations(amounts, totalAmount);
   return {
     allocated,
-    // Defensive rather than load-bearing: `a - b` with `a === b` is +0 under
-    // integer cents, so -0 is unreachable. Kept because signed zero is THIS
-    // layer's to own: `format_amount.ts:9-13` treats an exact -0 arriving at the
-    // formatter as a domain defect and deliberately leaves it on screen rather
-    // than laundering it, so the normalise has to happen here — last operation
-    // before display, as at `dashboard.helpers.ts:130-139`.
+    // Normalise here: the formatter leaves an exact -0 on screen rather than laundering it.
     buffer: buffer === undefined ? undefined : normalizeNegativeZero(buffer),
     isOver,
   };
@@ -530,11 +520,7 @@ export function buildSpendingPlanRows({
         0,
       );
       const allocationRows = plan.categories
-        // A type predicate, not a bare filter: `.filter` without one leaves
-        // `allocated_amount` as `number | null` and the `?? 0` below reads as
-        // load-bearing when it is unreachable. Under a text-holding sheet
-        // store that fallback would prefill '0' for a row nobody allocated,
-        // turning "not decided" into "deliberate zero" on the next save.
+        // Type predicate, not a bare filter: `?? 0` below is then unreachable, not load-bearing.
         .filter(
           (row): row is SpendingPlanCategory & { allocated_amount: number } =>
             row.allocated_amount !== null,

@@ -82,7 +82,6 @@ describe('migration005 — to_amount and minimum_payment_snapshot columns', () =
   });
 
   it('allows inserting a transaction row with the new columns', () => {
-    // Verify the columns exist and accept values.
     const now = new Date().toISOString();
     db.prepare(
       `INSERT INTO accounts (id,name,type,currency,opening_balance,current_balance,

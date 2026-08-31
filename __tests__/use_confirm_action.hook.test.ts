@@ -57,14 +57,12 @@ describe('useConfirmAction', () => {
       result.current.request('tx-99');
     });
 
-    // Start confirm — do not await yet
     let confirmPromise: Promise<void>;
     await act(() => {
       confirmPromise = result.current.confirm();
     });
     expect(result.current.busy).toBe(true);
 
-    // Resolve the async action
     await act(async () => {
       resolveFn();
       await confirmPromise;
@@ -90,7 +88,6 @@ describe('useConfirmAction', () => {
       p1 = result.current.confirm();
     });
 
-    // Second confirm while busy — must be a no-op
     await act(() => {
       void result.current.confirm();
     });
@@ -137,7 +134,6 @@ describe('useConfirmAction', () => {
   it('confirm() is a no-op when pendingPayload is null', async () => {
     const action = jest.fn();
     const { result } = await renderHook(() => useConfirmAction<string>(action));
-    // No request() called — pendingPayload is null
     await act(async () => {
       await result.current.confirm();
     });

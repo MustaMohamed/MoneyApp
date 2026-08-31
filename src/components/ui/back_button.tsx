@@ -1,13 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
-/**
- * BackButton — canonical 36×36 boxy back-button matching the N2 (onboarding) style.
- *
- * Props:
- *   onPress — navigation callback, required.
- *
- * Visual: w-9 h-9 rounded-[8px] bg-surface border border-border, chevron-left icon.
- */
 import React from 'react';
 
 import { Size } from '@/constants/theme';

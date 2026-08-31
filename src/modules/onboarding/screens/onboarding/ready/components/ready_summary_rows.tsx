@@ -14,19 +14,7 @@ export interface ReadySummaryRowsProps {
   baseCurrency: Currency;
 }
 
-/**
- * The three-row confirmation group under the hero — mockup.html:2342-2356,
- * `.lgrp`. Facts the user just supplied, restated once: what they chose, how
- * many accounts they saved, and where it all lives.
- *
- * `Accounts` renders the NON-archived count the hero was computed from, so the
- * row and the number above it can never disagree.
- *
- * `accessible` + one label per row makes a screen reader announce each row as
- * one thing instead of two. No `accessibilityRole`: `ListGroup.Item` is a
- * `Pressable` with no `onPress` here and must not announce as a button — the
- * same call `AccountRow` makes on N3.
- */
+/** No `accessibilityRole`: the item has no `onPress` and must not announce as a button. */
 export function ReadySummaryRows({ accountCount, baseCurrency }: ReadySummaryRowsProps) {
   const rows: readonly { label: string; value: string }[] = [
     { label: Strings.n4RowBaseCurrency, value: CURRENCY_CONFIG[baseCurrency].code },
@@ -38,10 +26,7 @@ export function ReadySummaryRows({ accountCount, baseCurrency }: ReadySummaryRow
     <ListCard>
       {rows.map((row, index) => (
         <React.Fragment key={row.label}>
-          {/* Full bleed, and drawn by the parent, exactly as N3 does it:
-              `thickness` pins Size.hairline over the variant class's
-              hairlineWidth(), which is ~0.33dp on a 3x device against the
-              group border's 1. */}
+          {/* `thickness` pins `Size.hairline` over the variant's ~0.33dp `hairlineWidth()`. */}
           {index > 0 ? <Separator thickness={Size.hairline} /> : null}
           <ListGroup.Item
             style={N4_SUMMARY_ROW_STYLE}

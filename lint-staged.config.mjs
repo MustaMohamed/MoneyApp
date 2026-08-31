@@ -1,7 +1,4 @@
-// Vendored Claude Code tooling (skills/agents) is checked into the repo but is
-// NOT project source. oxlint/oxfmt ignore these paths, so passing their files to
-// `oxlint --fix` yields an empty file set and a non-zero exit ("No files found to
-// lint"), which fails the pre-commit hook. Filter those paths out of every task.
+// oxlint ignores `/.claude/`, so a task with only those paths exits non-zero and fails the hook.
 const VENDORED_DIRS = ['/.claude/'];
 
 /** @param {string} file */

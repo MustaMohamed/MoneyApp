@@ -1,13 +1,6 @@
 import { getCategoryTransactionCount } from '@/database/categories';
 import { migration009 } from '@/database/migrations/009_add_other_income_category';
 
-/**
- * Task 4 — getCategoryTransactionCount query
- *
- * Thin-mock tests: we do NOT need a real DB for these — the function is a
- * single SELECT COUNT(*) with no side effects. The mock validates SQL shape
- * and the null-coalescing fallback.
- */
 const mockGetFirstAsync = jest.fn();
 const mockDb = {
   getFirstAsync: mockGetFirstAsync,

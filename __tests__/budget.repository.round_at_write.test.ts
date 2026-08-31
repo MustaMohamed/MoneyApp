@@ -1,14 +1,3 @@
-/**
- * budget.repository.round_at_write.test.ts
- *
- * c8: BudgetRepository.setExpectedIncome / .setBudget / .setSpendingPlan
- * round at the method's first statement (ADR: money-rounding-layer §3 rows
- * 4-6 -- class C, no derived sibling). Bridges better-sqlite3 into the
- * mocked expo-sqlite surface the way `budget.repository.copy_atomic.test.ts`
- * does (`withExclusiveTransactionAsync` mapped to real BEGIN EXCLUSIVE /
- * COMMIT / ROLLBACK), so every assertion reads the real column, never a
- * mocked call.
- */
 import Database from 'better-sqlite3';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
@@ -98,10 +87,6 @@ function readLimitAmount(id: string): number | null {
 }
 
 describe('BudgetRepository.setExpectedIncome — rounds at the first statement', () => {
-  // Scenario row 22. Gate: delete the `roundMoney` rebinding (bind `amount`
-  // straight into `setBudgetMonthIncome` again) and this reads back
-  // 12000.004, since `verified 12000.004 -> 12000` only holds with the
-  // rounding in place.
   it('12000.004 persists as 12000', async () => {
     const repo = new BudgetRepository();
     await repo.setExpectedIncome('2026-08', 12000.004);
@@ -110,18 +95,7 @@ describe('BudgetRepository.setExpectedIncome — rounds at the first statement',
   });
 });
 
-// W2E c2, #307's "second half" (§4/§8.8): the row layer already guards a
-// non-finite amount (`budget_month_profiles.ts:27-29`, since #161) -- this is
-// the missing test proving it, on the real column rather than a mock of the
-// function under test.
-//
-// P8 c2 cycle 1, F1: the rejection and the empty read alone are vacuous --
-// delete the `Number.isFinite` guard and this still passes, because
-// better-sqlite3 binds the unchecked NaN as NULL and the column's own NOT
-// NULL constraint throws instead, rolling the same transaction back to the
-// same empty table. The `runAsync` assertion is what the guard actually buys:
-// present, the throw happens before any SQL is issued for this table; absent,
-// `runAsync` is called (and only then does the constraint reject it).
+// Without the `runAsync` assertion the column's own NOT NULL constraint alone would pass this.
 describe('BudgetRepository.setExpectedIncome — rejects a non-finite amount before any row is written', () => {
   it('NaN throws before any SQL reaches budget_month_settings', async () => {
     const repo = new BudgetRepository();
@@ -134,9 +108,6 @@ describe('BudgetRepository.setExpectedIncome — rejects a non-finite amount bef
 });
 
 describe('BudgetRepository.setBudget — rounds at the first statement', () => {
-  // Scenario row 21. Gate: delete the `roundMoney` rebinding (bind
-  // `input.limit` straight into `setBudgetRow` again) and this reads back
-  // 500.555.
   it('500.555 persists as 500.56', async () => {
     const repo = new BudgetRepository();
     await repo.setBudget({
@@ -149,11 +120,7 @@ describe('BudgetRepository.setBudget — rounds at the first statement', () => {
     expect(readLimitAmount('generated-1')).toBe(500.56);
   });
 
-  // setLimit (:348) delegates to setBudget and must not round a second time
-  // -- roundMoney is idempotent, so a second call would be silently
-  // undetectable from the persisted value alone; asserted separately so the
-  // delegation itself (not just the arithmetic) cannot be silently replaced
-  // with a duplicate rounding call.
+  // `roundMoney` is idempotent, so a double rounding would be invisible in the persisted value.
   it('setLimit persists through the same rounding as setBudget', async () => {
     const repo = new BudgetRepository();
     await repo.setLimit('cat_food', 500.555, '2026-08');
@@ -167,15 +134,7 @@ function countBudgets(): number {
   return row.count;
 }
 
-// W2E c2, #307's "second half" (§4/§8.8): the row layer already guards a
-// non-finite limit (`budgets.ts:48-54`) -- this is the missing test proving
-// it, on the real column rather than a mock of the function under test.
-//
-// P8 c2 cycle 1, F1: same vacuous shape as the income test above -- delete
-// the guard and better-sqlite3's NULL-bound NaN still trips the `budgets`
-// table's own NOT NULL constraint, so the rejection and the empty count alone
-// prove nothing about this specific guard. `runAsync` not being called is
-// what the guard buys: it throws before `setBudgetRow` ever issues the INSERT.
+// Without the `runAsync` assertion the `budgets` NOT NULL constraint alone would pass this.
 describe('BudgetRepository.setBudget — rejects a non-finite limit before any row is written', () => {
   it('NaN throws before any SQL reaches budgets', async () => {
     const repo = new BudgetRepository();
@@ -218,17 +177,7 @@ function countSpendingPlans(): number {
 }
 
 describe('BudgetRepository.setSpendingPlan — rounds at the first statement, upstream of validation', () => {
-  // Scenario row 24. `1000.005` is the spec's own worked example, but its
-  // stated persisted value ("1000.01") does not match roundMoney: 1000.005 *
-  // 100 lands exactly on the IEEE-754 double 100000.5, and 100000 is even,
-  // so banker's rounding stays at 100000 -> 1000.00, not 1000.01 (the same
-  // class of arithmetic error c7 found in the ticket's "12.345 -> 12.35"
-  // example, which is actually 12.34). Verified with the shipped roundMoney
-  // before writing this assertion. The three allocations are chosen to
-  // raw-sum to the same 1000.005 and, after each is rounded independently,
-  // still reconcile to the rounded total with no residual -- proving the
-  // total is rounded on its own value, never summed-then-rounded from the
-  // allocations.
+  // 1000.005 * 100 is exactly 100000.5 and 100000 is even, so banker's rounding gives 1000.00.
   it('1000.005 total with three allocations summing to it persists total_amount = 1000.00, every allocation rounded independently', async () => {
     const repo = new BudgetRepository();
     await repo.setSpendingPlan({
@@ -246,13 +195,10 @@ describe('BudgetRepository.setSpendingPlan — rounds at the first statement, up
     expect(readTotalAmount('generated-1')).toBe(1000);
     expect(readAllocatedAmount('generated-1', 'cat_food')).toBe(400);
     expect(readAllocatedAmount('generated-1', 'cat_groceries')).toBe(300);
-    // 300.005 * 100 is also exactly 30000.5 in IEEE-754 double, and 30000 is
-    // even, so this rounds down to 300.00 too -- the allocations reconcile
-    // to the rounded total (400 + 300 + 300 = 1000) with no residual.
+    // 300.005 * 100 is exactly 30000.5 and 30000 is even, so this rounds down to 300.00 too.
     expect(readAllocatedAmount('generated-1', 'cat_dining_out')).toBe(300);
   });
 
-  // Scenario row 23.
   it('allocation rounding: 333.333 -> 333.33, undefined persists NULL (not 0), 0 persists 0', async () => {
     const repo = new BudgetRepository();
     await repo.setSpendingPlan({
@@ -268,10 +214,7 @@ describe('BudgetRepository.setSpendingPlan — rounds at the first statement, up
     });
 
     expect(readAllocatedAmount('generated-1', 'cat_food')).toBe(333.33);
-    // Read with an explicit `IS NULL` predicate, not just `?? null` on the
-    // JS side -- the column CHECK (`allocated_amount IS NULL OR
-    // allocated_amount >= 0`) accepts 0 happily, so a `roundMoney(null) ===
-    // 0` regression would still pass a loose `toBeFalsy` here.
+    // Explicit `IS NULL`: the column CHECK accepts 0, so a collapse to 0 passes a loose read.
     const isNullRow = realDb
       .prepare(
         'SELECT allocated_amount IS NULL AS is_null FROM spending_plan_categories WHERE plan_id = ? AND category_id = ?',
@@ -281,18 +224,7 @@ describe('BudgetRepository.setSpendingPlan — rounds at the first statement, up
     expect(readAllocatedAmount('generated-1', 'cat_dining_out')).toBe(0);
   });
 
-  // c1's ordering case. roundMoney is not additive: raw allocations
-  // [0.335, 0.335, 0.33] sum to exactly 1.00 against a raw total of 1.00,
-  // but each 0.335 rounds to 0.34 under banker's rounding (0.335 * 100 is
-  // exactly 33.5, 34 is even), so the rounded allocations sum to 1.01 --
-  // over the rounded total. Rounding upstream of validateSpendingPlanInput
-  // is what makes this rejected rather than silently persisted as a plan
-  // the app's own validator would reject.
-  // Until MA-020 these raw values also passed the hook's own pre-check,
-  // which compared raw floats; the hook now compares integer cents
-  // (34 + 34 + 33 = 101 > 100) and rejects them first. What this case
-  // covers is the repository's own guard -- all a non-sheet caller of
-  // setSpendingPlan has.
+  // `roundMoney` is not additive: these allocations round to 1.01 against a rounded total of 1.00.
   it('rejects when independently-rounded allocations exceed the rounded total, and writes nothing', async () => {
     const repo = new BudgetRepository();
 
@@ -314,13 +246,6 @@ describe('BudgetRepository.setSpendingPlan — rounds at the first statement, up
   });
 });
 
-// MA-020 c2. What the sheet does on an edit is: prefill each row's text with
-// formatStoredMoneyText, validate it with validateAllocationText, and
-// submit the parsed value. These cases run that chain against the real column
-// so "open the plan, press Save, change nothing" is asserted end to end rather
-// than reasoned about. None of them is a gate -- they are the guarantees the
-// `?? 0` finding needed, and they stay green only while the three states
-// (NULL, deliberate 0, a real amount) stay distinct.
 describe('BudgetRepository.setSpendingPlan — open then save unchanged', () => {
   const PLAN_ID = 'plan-existing';
   const START_DATE = '2026-08-20';
@@ -372,8 +297,7 @@ describe('BudgetRepository.setSpendingPlan — open then save unchanged', () => 
 
     await saveUnchanged();
 
-    // Read with an explicit IS NULL predicate, for the reason at :214-217: the
-    // column CHECK accepts 0 happily, so a collapse to 0 passes a loose read.
+    // Explicit `IS NULL`: the column CHECK accepts 0, so a collapse to 0 passes a loose read.
     const isNullRow = realDb
       .prepare(
         'SELECT allocated_amount IS NULL AS is_null FROM spending_plan_categories WHERE plan_id = ? AND category_id = ?',
@@ -383,10 +307,7 @@ describe('BudgetRepository.setSpendingPlan — open then save unchanged', () => 
     expect(readAllocatedAmount(PLAN_ID, 'cat_groceries')).toBe(0);
   });
 
-  // The standing round-at-write contract, not a Q7 defect: a legacy row above
-  // the floor but beyond 2dp is rounded by an unrelated save, exactly as a
-  // freshly typed 12.345 would be. Asserted explicitly so nobody later reads
-  // it as a regression and "fixes" it.
+  // Round-at-write is deliberate: an unrelated save rounds a legacy beyond-2dp row to 2dp.
   it('rounds a legacy sub-piastre allocation to 2dp on an unrelated save', async () => {
     seedPlan([{ categoryId: 'cat_food', allocatedAmount: 12.345 }]);
 
@@ -395,11 +316,7 @@ describe('BudgetRepository.setSpendingPlan — open then save unchanged', () => 
     expect(readAllocatedAmount(PLAN_ID, 'cat_food')).toBe(12.34);
   });
 
-  // Row 24's NaN -> NULL net, in jest rather than on the emulator. SQLite binds
-  // a JS NaN to a REAL column as NULL without complaint, so a NaN that reached
-  // the write path would read back as "unallocated" and look like a user
-  // choice. `text` would mean the raw field text leaked through the store
-  // inversion without ever being parsed.
+  // SQLite binds a JS NaN into a REAL column as NULL, so a NaN reads back as "unallocated".
   it('stores every allocation as REAL or NULL, never as text', async () => {
     const repo = new BudgetRepository();
     await repo.setSpendingPlan({

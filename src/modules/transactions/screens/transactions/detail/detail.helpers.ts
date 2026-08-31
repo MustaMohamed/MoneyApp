@@ -100,29 +100,13 @@ export interface TransactionDetailPresentation {
   } | null;
 }
 
-/** The two nodes a transfer flow cell renders: the signed display text and the
- * unsigned accessible text `Strings.detailOpenAccountAccessibility` composes into. */
+/** Signed display text, plus unsigned text `Strings.detailOpenAccountAccessibility` composes. */
 export interface TransferCellText {
   display: string;
   accessible: string;
 }
 
-/**
- * A transfer cell composes its own sign (`signPrefix`, direction-of-flow — not the
- * domain value's sign) beside a positive magnitude, the same shape as
- * `transactions.helpers.ts`'s `formatSignedAmount` and this file's own `signedAmount`.
- * It shares their composed-sign population and their fix: route the magnitude through
- * `formatDisplayMagnitude` so a rounded-away amount (e.g. 0.40 EGP at EGP's 0dp display
- * precision) never prints a sign beside a magnitude that reads "0" — and, per the same
- * rule's other branch, an exact-zero magnitude carries no sign at all. See
- * docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
- *
- * Lives here rather than in `TransferFlowCard` so `buildTransactionDetailPresentation`'s
- * output IS what the card renders — the two previously diverged because the card
- * recomputed this from raw amount/currency/sign instead of reading the presentation
- * field, which is #282: `detail_helpers.test.ts` asserted the (unread) field while the
- * card rendered its own recomputation, so the two could silently disagree.
- */
+/** `signPrefix` is direction of flow, and a magnitude that displays as zero carries no sign. */
 export function transferCellAmountText(
   amount: number,
   currency: Currency,
@@ -197,17 +181,7 @@ export function buildTransactionDetailPresentation({
   };
 }
 
-/**
- * Maps an account type to its MaterialCommunityIcons glyph used by the
- * transaction detail screen's Account row. Mirrors the dashboard's
- * `account_card.tsx` mapping so the same account renders with the same
- * icon everywhere — a credit card is a credit card whether you're on the
- * dashboard or inside a transaction.
- *
- * Falls back to a generic card icon when the account type is unknown
- * (defensive — shouldn't happen with our enum but the DB has historical
- * rows that may not match the current enum).
- */
+// Mirrors the dashboard `account_card.tsx` mapping so one account gets one icon everywhere.
 const ACCOUNT_TYPE_ICONS: Record<AccountType, IconName> = {
   [AccountType.Bank]: 'bank',
   [AccountType.SmartWallet]: 'cellphone-nfc',

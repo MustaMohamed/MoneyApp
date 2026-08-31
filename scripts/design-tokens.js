@@ -1,14 +1,4 @@
-/**
- * Emits the Cairo Nights design tokens as a self-contained CSS block for HTML
- * mockups, read live from global.css and constants/theme.ts.
- *
- * A mockup built on this cannot drift from the app: the colours are the same
- * variables the app renders with, and the sizes are the same numbers, at the
- * 390pt base width the tokens are authored against (ms() is identity there).
- *
- *   node scripts/design-tokens.js          # or: npm run design:tokens
- *   node scripts/design-tokens.js > /tmp/tokens.css
- */
+// Emits Cairo Nights tokens as a CSS block for HTML mockups: `npm run design:tokens`.
 
 const fs = require('fs');
 const path = require('path');
@@ -25,8 +15,7 @@ function readColors() {
     m[2].trim(),
   ]);
 
-  // The gold gradient stops live in @theme inline as literals, not in the dark
-  // variant — without them a mockup would have to hand-write the brand hex.
+  // The gold gradient stops are literals in `@theme inline`, not in the dark variant.
   const theme = /@theme inline \{([\s\S]*?)\n\}/.exec(css);
   if (theme) {
     for (const m of theme[1].matchAll(/^\s*(--color-[a-z0-9-]+):\s*(#[0-9a-fA-F]{3,8})\s*;/gm)) {
@@ -36,8 +25,7 @@ function readColors() {
   return vars;
 }
 
-// Token values are authored as ms(n) / msFont(n) and scale at runtime. At the
-// 390pt base width the scale factor is 1, so the literal is the mockup value.
+// At the 390pt base width the `ms()`/`msFont()` scale factor is 1, so the literal is the value.
 function readNumericGroup(source, name) {
   const block = new RegExp(`export const ${name} = \\{([\\s\\S]*?)\\n\\} as const`).exec(source);
   if (!block) return [];
@@ -46,10 +34,7 @@ function readNumericGroup(source, name) {
   ].map((m) => [m[1], m[2]]);
 }
 
-// Colors.shared and AcctTokens are nested objects of hex literals, so neither
-// readColors (global.css) nor readNumericGroup (ms()/msFont()) can see them.
-// Without these a mockup has to hand-copy the brand gradient stops and all 32
-// account swatches — which is exactly what the round-4 mockup had to do.
+// `Colors.shared` and `AcctTokens` are nested hex objects the other two readers cannot see.
 function readSharedColors(source) {
   const block = /\n {2}shared: \{([\s\S]*?)\n {2}\},/.exec(source);
   if (!block) throw new Error('theme.ts: could not find the Colors.shared block');

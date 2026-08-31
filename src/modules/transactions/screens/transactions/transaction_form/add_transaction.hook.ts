@@ -331,7 +331,6 @@ export function useAddTransaction(
     rate: form.formState.errors.exchangeRate?.message,
   };
 
-  // Clear type-dependent fields when type changes
   useEffect(() => {
     form.setValue('toAccountId', '');
     form.setValue('categoryId', '');

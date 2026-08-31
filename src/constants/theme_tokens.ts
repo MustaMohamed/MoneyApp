@@ -1,9 +1,4 @@
-// constants/theme_tokens.ts
-// Single source of truth for the Cairo Nights Extended palette.
-// Prefer Tailwind theme slots (bg-surface, text-muted, …) in className. Import
-// from here only where a raw colour value is required: props that take a colour
-// (LinearGradient, SVG, icon tint) and runtime style objects.
-// `Colors`/`Size`/`Type`/`Spacing` are a different file — constants/theme.ts.
+// Raw colour values only; prefer Tailwind theme slots in className. `Colors` is in `theme.ts`.
 
 export const CoreTokens = {
   bg: '#0F1923',
@@ -13,7 +8,7 @@ export const CoreTokens = {
   text1: '#F0EBE3',
   text2: '#6B7F99',
   text3: '#4A5568',
-  hint: '#4A5568', // alias of text3 — for "EGP pre-selected" / skippable copy
+  hint: '#4A5568', // Alias of `text3`, used for skippable copy
 } as const;
 
 export const GoldTokens = {
@@ -27,14 +22,11 @@ export const SemanticTokens = {
   positive: '#4CAF82',
   negative: '#E05A42',
   warning: '#E8B130',
-  // #499EE0 — must agree with global.css's `--info` (73 158 224) and
-  // InfoTokens[500] below; __tests__/semantic_colour_agreement.test.ts pins all
-  // three. Was `#4A7ABF`, a genuinely different blue, until P8 review caught it
-  // rendering beside `text-info` (global.css's value) in the same dashboard card.
+  // Must agree with `global.css` `--info` and `InfoTokens[500]`; a test pins all three.
   info: '#499EE0',
 } as const;
 
-// §7: Transfer + CC Payment accent colors (must mirror global.css)
+// Transfer and CC payment accents; must mirror `global.css`.
 export const InfoTokens = {
   500: '#499EE0',
 } as const;
@@ -43,8 +35,7 @@ export const AccentCCTokens = {
   500: '#9B73D4',
 } as const;
 
-// 4 standalone cultural accents.
-// plum and rose are NOT standalone accents — they exist only in AcctTokens below.
+// `plum` and `rose` are not standalone accents; they exist only in `AcctTokens`.
 export const AccentTokens = {
   nile: '#2D7D6E',
   spice: '#C45C2A',
@@ -52,9 +43,7 @@ export const AccentTokens = {
   sand: '#C9A876',
 } as const;
 
-// 16 families × Rich/Soft.
-// Rich = card/tile background.
-// Soft = list-row dot or avatar chip on surface/surfaceEl.
+// `rich` is a card or tile background; `soft` is a list-row dot or avatar chip.
 export const AcctTokens = {
   midnight: { rich: '#1B2B4B', soft: '#3D4E73' },
   gold: { rich: '#C9973A', soft: '#E0B968' },

@@ -11,30 +11,18 @@ import {
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { roundMoney } from '@/utils/money';
 
-/**
- * N4's starting net position — the corrected replacement for the currency-blind
- * and sign-blind `computeTotalBalance`.
- *
- * The outcome is a discriminated union so the refusal is unrepresentable as a
- * number: when conversion is required and no verified rate exists, there is no
- * value to hand a formatter, and `useCurrencyStore`'s `INITIAL_STATE.rate` of 50
- * is an unverified guess that must never reach the screen.
- *
- * Lives under `domain/` deliberately — `.claude/rules/money.md` globs the
- * `domain/` folders beneath `src/modules/`, so this is the path on which the
- * money rules auto-load (issue #244).
- */
+/** Refusal is a variant, not a number: an unverified rate must never reach a formatter. */
 export type StartingNetPosition =
   | { kind: 'amount'; value: number }
   | { kind: 'rate-needed'; foreignCount: number };
 
 export interface StartingNetPositionInput extends RateProvenance {
-  /** May contain archived rows — this resolver filters them itself. */
+  /** May contain archived rows; this resolver filters them itself. */
   accounts: readonly Account[];
   baseCurrency: Currency;
 }
 
-/** Shape mirrors `TransactionAmountError` — thrown type, never message text. */
+/** Shape mirrors `TransactionAmountError`; callers match the thrown type, never the message. */
 export class StartingNetPositionError extends Error {
   constructor(message: string) {
     super(message);
@@ -42,64 +30,21 @@ export class StartingNetPositionError extends Error {
   }
 }
 
-// The vocabulary and the prototype-safe membership test live once, in
-// `account_aggregation.ts` — this file used to carry a byte-identical copy of
-// both. What stays here is the error CLASS: spec §6 requires the thrown type to
-// name its own domain, so N4's refusal reads `StartingNetPositionError` while
-// the dashboard's reads `AccountAggregationError`.
 function assertSupportedCurrency(currency: Currency): void {
   if (!isSupportedCurrency(currency)) {
     throw new StartingNetPositionError(`Unsupported currency: ${currency}`);
   }
 }
 
-// Both now live in `@/modules/accounts/domain/account_aggregation` — the sign
-// rule has one owner for aggregations, and `normalizeNegativeZero` went with it
-// because the dashboard needs it and the import may only run
-// dashboard -> accounts. `normalizeNegativeZero` alone is re-exported: it is
-// what `approximation_pill.ts` imports, and keeping that importer unedited is
-// the whole purpose of the re-export. #255 chunk 2 may drop it once that
-// importer moves.
-//
-// `resolveAccountAggregationSign` is deliberately NOT re-exported. Both its
-// consumers already import it from the accounts path, and `.oxlintrc.json`
-// carries no import-path rule, so a re-export here would let the dashboard
-// reach the sign THROUGH the onboarding domain — the exact direction the hoist
-// exists to forbid.
-//
-// `countForeignAccounts` moved to the same accounts file in #255 chunk 2 and is
-// NOT re-exported either, for that same reason: `computeNetWorth` consumes it
-// now, so a re-export here would re-open the inverted direction through a
-// different door. `approximation_pill.ts` and `ready_summary_state.ts` import it
-// from the accounts path directly. `selectActiveAccounts` stays here — it has no
-// dashboard consumer.
+// Re-export only this one; a wider re-export lets dashboard reach accounts through onboarding.
 export { normalizeNegativeZero };
 
-/**
- * Archived rows never contribute. `getAccounts` already filters at SQL, but the
- * snapshot in `accountLookup` is populated by `getByIdsIncludingArchived` and
- * does carry them — so the filter belongs here too, where the number is made.
- */
+/** `accountLookup` carries archived rows, so the filter is needed here as well as in SQL. */
 export function selectActiveAccounts(accounts: readonly Account[]): readonly Account[] {
   return accounts.filter((account) => account.is_archived === 0);
 }
 
-/**
- * `round2( Σ sign × round2(converted opening_balance) )`, over non-archived
- * accounts, in array order.
- *
- * Reads `opening_balance` ONLY — `credit_limit`, `revolving_balance`,
- * `minimum_payment` and `current_balance` never contribute (business rule 6
- * makes the two balance columns equal at creation, so the swap away from
- * `current_balance` is invisible during onboarding).
- *
- * A rate counts as usable when it is finite and positive and its provenance is
- * known — a verification marker OR the user's own manual-override flag, the
- * disjunction `isRateUsable` owns for N4 and the dashboard alike. It is required
- * only when at least one account is foreign. Required and unusable is the
- * refusal outcome — never a substituted rate, a zero, a partial total, or a
- * direct sum of unlike currencies.
- */
+/** Sums `opening_balance` only; refuses when a foreign account has no usable rate. */
 export function resolveStartingNetPosition(input: StartingNetPositionInput): StartingNetPosition {
   const { accounts, baseCurrency, rate } = input;
 
@@ -110,15 +55,12 @@ export function resolveStartingNetPosition(input: StartingNetPositionInput): Sta
   }
 
   const foreignCount = countForeignAccounts(activeAccounts, baseCurrency);
-  // `input` itself, not a re-assembled literal — see `computeNetWorth`.
   const rateUsable = isRateUsable(input);
   if (foreignCount >= 1 && !rateUsable) {
     return { kind: 'rate-needed', foreignCount };
   }
 
-  // Round each converted value, then round once more at the sum — never
-  // sum-then-round (scope case 14). The reduce runs in array order, which is
-  // also what makes the -0 fixture in the suite reachable.
+  // Round each converted value, then round once more at the sum; never sum-then-round.
   const total = activeAccounts.reduce(
     (sum, account) =>
       sum +

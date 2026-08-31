@@ -1,22 +1,3 @@
-/**
- * Task 5 — Group C
- *
- * Store/state shape tests are in this file alongside hook integration tests.
- * jest.mock is hoisted, so shape tests use jest.requireActual() to access
- * the real Zustand store instances. Hook integration tests use the mocked
- * versions (standard pattern from settings_categories.hook.test.ts).
- *
- * Layla's acceptance criteria covered:
- * TC-01, TC-02 — reassign-sheet branch when count > 0
- * TC-03        — direct-delete branch when count = 0
- * TC-04        — PROTECTED_CATEGORY_IDS guard (edit/delete affordance)
- * TC-06        — name-duplicate error re-throw
- * TC-09        — reassignAndDelete error re-throw + isDeleting finally-block safety
- */
-
-// ---------------------------------------------------------------------------
-// Mock declarations — hoisted to top by Babel/jest
-// ---------------------------------------------------------------------------
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
@@ -29,9 +10,6 @@ jest.mock('@/modules/categories/screens/settings/categories/categories.store', (
   useCategoriesScreenStore: jest.fn(),
 }));
 
-// ---------------------------------------------------------------------------
-// Imports
-// ---------------------------------------------------------------------------
 import { act, renderHook } from '@testing-library/react-native';
 
 import { CategoryType, PROTECTED_CATEGORY_IDS } from '@/constants/enums';
@@ -40,7 +18,6 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Category } from '@/modules/categories/store/category.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-// Real Zustand stores — bypassing the mock for shape tests
 const realCategoriesStore = jest.requireActual<
   typeof import('@/modules/categories/screens/settings/categories/categories.store')
 >('@/modules/categories/screens/settings/categories/categories.store');
@@ -50,18 +27,12 @@ const realCategoriesState = jest.requireActual<
 const { useCategoriesScreenStore: realScreenStore } = realCategoriesStore;
 const { useCategoriesScreenState: realScreenState } = realCategoriesState;
 
-// Mocked versions for hook integration — cast through unknown to jest.Mock
 const mockedState = jest.requireMock<{ useCategoriesScreenState: jest.Mock }>(
   '@/modules/categories/screens/settings/categories/categories.state',
 ).useCategoriesScreenState;
 const mockedStore = jest.requireMock<{ useCategoriesScreenStore: jest.Mock }>(
   '@/modules/categories/screens/settings/categories/categories.store',
 ).useCategoriesScreenStore;
-
-// ---------------------------------------------------------------------------
-// useCategoriesScreenStore — linkedCount (Task 5.3)
-// These tests use the REAL store (via jest.requireActual)
-// ---------------------------------------------------------------------------
 
 describe('useCategoriesScreenStore — linkedCount', () => {
   beforeEach(() => {
@@ -99,11 +70,6 @@ describe('useCategoriesScreenStore — linkedCount', () => {
     expect(state.linkedCount).toBe(0);
   });
 });
-
-// ---------------------------------------------------------------------------
-// useCategoriesScreenState — isDeleting (Task 5.4)
-// These tests use the REAL state store (via jest.requireActual)
-// ---------------------------------------------------------------------------
 
 describe('useCategoriesScreenState — isDeleting', () => {
   beforeEach(() => {
@@ -148,15 +114,7 @@ describe('useCategoriesScreenState — isDeleting', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// TC-04: PROTECTED_CATEGORY_IDS constant — membership tests
-//
-// Note: As of the is_default reversal, the UI protection gate is now
-// category.is_default === 1, NOT membership in PROTECTED_CATEGORY_IDS.
-// PROTECTED_CATEGORY_IDS is retained as a documented historical artifact.
-// These tests verify the constant's own membership — separate from UI behavior.
-// ---------------------------------------------------------------------------
-
+// UI protection gates on `is_default === 1`, not on membership in `PROTECTED_CATEGORY_IDS`.
 describe('PROTECTED_CATEGORY_IDS constant membership (TC-04)', () => {
   const isInProtectedList = (id: string): boolean =>
     (PROTECTED_CATEGORY_IDS as readonly string[]).includes(id);
@@ -178,10 +136,6 @@ describe('PROTECTED_CATEGORY_IDS constant membership (TC-04)', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Integration — useCategories hook (Task 5.6)
-// ---------------------------------------------------------------------------
-
 const fakeExpenseCategory: Category = {
   id: 'cat_food',
   name: 'Food',
@@ -195,7 +149,6 @@ const fakeExpenseCategory: Category = {
   updated_at: '2026-01-01T00:00:00.000Z',
 };
 
-// Captured action fns so tests can inspect what was called
 let capturedSetIsDeleting: jest.Mock;
 let capturedSetLinkedCount: jest.Mock;
 let capturedSetShowDeleteConfirm: jest.Mock;
@@ -331,9 +284,7 @@ describe('useCategories — linkedCount + isDeleting in hook state', () => {
     capturedGetCategoryTransactionCount.mockRejectedValueOnce(new Error('DB error'));
     const { result } = await renderHook(() => useCategories());
 
-    // The hook has try/finally (no catch) so the error propagates, but
-    // setIsDeleting(false) is guaranteed to run in the finally block first.
-    // We use a try/catch here so we can assert after the rejection.
+    // The hook has no catch, so the rejection propagates; catch it here to assert afterwards.
     let thrown: Error | undefined;
     await act(async () => {
       try {
@@ -344,18 +295,12 @@ describe('useCategories — linkedCount + isDeleting in hook state', () => {
     });
 
     expect(thrown?.message).toBe('DB error');
-    // setIsDeleting must have been called true then false (finally)
     expect(capturedSetIsDeleting).toHaveBeenNthCalledWith(1, true);
     expect(capturedSetIsDeleting).toHaveBeenNthCalledWith(2, false);
-    // Neither sheet opens on error
     expect(capturedSetShowDeleteConfirm).not.toHaveBeenCalledWith(true);
     expect(capturedSetShowReassignSheet).not.toHaveBeenCalledWith(true);
   });
 });
-
-// ---------------------------------------------------------------------------
-// handleSave — name-duplicate error surface (TC-06)
-// ---------------------------------------------------------------------------
 
 describe('useCategories — handleSave name-duplicate error (TC-06)', () => {
   beforeEach(() => {
@@ -380,10 +325,6 @@ describe('useCategories — handleSave name-duplicate error (TC-06)', () => {
     ).rejects.toThrow('already exists');
   });
 });
-
-// ---------------------------------------------------------------------------
-// handleReassignConfirm — error surface (TC-09 partial failure)
-// ---------------------------------------------------------------------------
 
 describe('useCategories — handleReassignConfirm error propagation (TC-09)', () => {
   beforeEach(() => {
