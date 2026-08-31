@@ -231,6 +231,46 @@ describe('resolveTransactionAmounts', () => {
       ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
     });
 
+    // One leg over the bound with every other leg under it: the amount is
+    // 1e16 while the egpAmount multiply leg lands at 1e15 and clears its own
+    // bound. Reds only if the amount leg goes unguarded everywhere — the
+    // check above and the record guard each cover it today.
+    it('the amount leg alone overflowing throws, with every derived leg in range', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Expense,
+          amount: 1e16,
+          sourceCurrency: Currency.USD,
+          exchangeRate: 0.1,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
+    });
+
+    // Throw precedence. The storable check on the amount runs ahead of the
+    // destination and rate checks, so an input that trips both reports
+    // 'unstorable' — the one discriminated reason this module carries —
+    // rather than the undiscriminated message. Demoting that check to the
+    // return guard reds these two tests and nothing else in the suite.
+    it('an unstorable amount is reported as unstorable even when the destination currency is missing', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: 1e16,
+          sourceCurrency: Currency.EGP,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
+    });
+
+    it('an unstorable amount is reported as unstorable even when the rate is missing', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Expense,
+          amount: 1e16,
+          sourceCurrency: Currency.USD,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
+    });
+
     // The boundary itself must not throw; this input reds a `>` to `>=` mutation in the guard.
     it('an amount exactly at MAX_SAFE_INTEGER does not throw', () => {
       expect(() =>
@@ -240,6 +280,22 @@ describe('resolveTransactionAmounts', () => {
           sourceCurrency: Currency.EGP,
         }),
       ).not.toThrow();
+    });
+
+    // exchangeRate is passed through, not computed, so it sits outside the
+    // guard by ADR (parse-floor-money-only) §2 — a rate above
+    // MAX_SAFE_INTEGER still saves. Reds if the guard is widened to every
+    // field on the returned object.
+    it('an exchange rate above MAX_SAFE_INTEGER is passed through, not bounded', () => {
+      expect(
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: 500,
+          sourceCurrency: Currency.EGP,
+          destinationCurrency: Currency.USD,
+          exchangeRate: 1e20,
+        }),
+      ).toEqual({ amount: 500, egpAmount: 500, toAmount: 0, exchangeRate: 1e20 });
     });
   });
 });
@@ -397,6 +453,34 @@ describe('resolveCommitmentPaymentAmounts', () => {
       ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
     });
 
+    // The paymentAmount leg alone: 1e16 exceeds MAX_SAFE_INTEGER while
+    // egpAmount and accountNativeAmount both land at 1e15.
+    it('the paymentAmount leg alone overflowing throws, with every derived leg in range', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: 1e16,
+          commitmentCurrency: Currency.USD,
+          accountCurrency: Currency.EGP,
+          exchangeRate: 0.1,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
+    });
+
+    // A USD account splits the two derived legs: accountNativeAmount reuses
+    // the 1e14 payment amount while egpAmount multiplies to 1e17. The EGP
+    // account above cannot isolate egpAmount, because it binds
+    // accountNativeAmount to the same value.
+    it('the egpAmount leg overflowing throws when accountNativeAmount is in range', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: 1e14,
+          commitmentCurrency: Currency.USD,
+          accountCurrency: Currency.USD,
+          exchangeRate: 1000,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
+    });
+
     it('an amount exactly at MAX_SAFE_INTEGER does not throw', () => {
       expect(() =>
         resolveCommitmentPaymentAmounts({
@@ -405,6 +489,24 @@ describe('resolveCommitmentPaymentAmounts', () => {
           accountCurrency: Currency.EGP,
         }),
       ).not.toThrow();
+    });
+
+    // Mirrors the passthrough pin on resolveTransactionAmounts above.
+    it('an exchange rate above MAX_SAFE_INTEGER is passed through on a commitment payment', () => {
+      expect(
+        resolveCommitmentPaymentAmounts({
+          amount: 100,
+          commitmentCurrency: Currency.EGP,
+          accountCurrency: Currency.USD,
+          exchangeRate: 1e300,
+        }),
+      ).toEqual({
+        paymentAmount: 100,
+        accountNativeAmount: 0,
+        accountCurrency: Currency.USD,
+        egpAmount: 100,
+        exchangeRate: 1e300,
+      });
     });
   });
 });

@@ -39,6 +39,29 @@ function assertStorable(value: number): void {
   }
 }
 
+/**
+ * `assertStorable` over every money leg of a resolver's return, applied at
+ * that resolver's single exit. The type constraint is the mechanism: a field
+ * that is not `number | null` — a currency code, an optional — fails to
+ * compile inside the literal, so the guarded set is structural rather than a
+ * hand-maintained list of names, and a leg added inside the literal is
+ * guarded with no change here.
+ *
+ * Two things sit outside it, both deliberately. `assertStorable(amount)` at
+ * the top of each resolver is not redundant with the `amount` leg below: it
+ * owns throw precedence over the destination and rate checks, so an input
+ * that trips both reports `unstorable`. And a field added to a return's
+ * passthrough tail — beside `exchangeRate` — is still unguarded: six
+ * independent call sites narrow to those two tails, they do not close at
+ * compile time.
+ */
+function assertStorableLegs<T extends Record<string, number | null>>(legs: T): T {
+  for (const value of Object.values(legs)) {
+    if (value !== null) assertStorable(value);
+  }
+  return legs;
+}
+
 export function resolveTransactionAmounts(input: {
   type: TransactionType;
   amount: number;
@@ -74,21 +97,16 @@ export function resolveTransactionAmounts(input: {
     input.sourceCurrency === Currency.USD
       ? roundMoney(amount * (exchangeRate ?? 0))
       : roundMoney(amount);
-  assertStorable(egpAmount);
 
-  if (!hasDestination) {
-    return { amount, egpAmount, toAmount: null, exchangeRate };
-  }
-
-  const toAmount =
-    input.destinationCurrency === Currency.EGP
+  const toAmount = !hasDestination
+    ? null
+    : input.destinationCurrency === Currency.EGP
       ? egpAmount
       : input.sourceCurrency === Currency.USD
         ? roundMoney(amount)
         : roundMoney(egpAmount / (exchangeRate ?? 0));
-  assertStorable(toAmount);
 
-  return { amount, egpAmount, toAmount, exchangeRate };
+  return { ...assertStorableLegs({ amount, egpAmount, toAmount }), exchangeRate };
 }
 
 export function resolveCommitmentPaymentAmounts(input: {
@@ -116,20 +134,16 @@ export function resolveCommitmentPaymentAmounts(input: {
     input.commitmentCurrency === Currency.USD
       ? roundMoney(amount * (exchangeRate ?? 0))
       : roundMoney(amount);
-  assertStorable(egpAmount);
   const accountNativeAmount =
     input.accountCurrency === Currency.USD
       ? input.commitmentCurrency === Currency.USD
         ? roundMoney(amount)
         : roundMoney(egpAmount / (exchangeRate ?? 0))
       : egpAmount;
-  assertStorable(accountNativeAmount);
 
   return {
-    paymentAmount: amount,
-    accountNativeAmount,
+    ...assertStorableLegs({ paymentAmount: amount, accountNativeAmount, egpAmount }),
     accountCurrency: input.accountCurrency,
-    egpAmount,
     exchangeRate,
   };
 }
