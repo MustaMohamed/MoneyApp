@@ -48,9 +48,36 @@ export class OnboardingRepository implements IOnboardingRepository {
 
     const complete = completeRaw === 'true';
     const step = await this.normalizeStep(stepRaw);
-    const baseCurrency: Currency = isCurrency(currencyRaw) ? currencyRaw : Currency.EGP;
+    const baseCurrency = await this.resolveBaseCurrency(currencyRaw);
 
     return { complete, step, baseCurrency };
+  }
+
+  /**
+   * SecureStore first, `app_settings.base_currency` second, EGP last.
+   *
+   * `setBaseCurrency` has written both since #23 and nothing has ever read the
+   * settings row back. This is its first reader, and it covers the one failure
+   * mode the dashboard's store read accepts: SecureStore loses the key — a
+   * restore onto a new device, a keychain reset — and a user who chose USD is
+   * silently reverted to an EGP base they never picked, on a dashboard that now
+   * reports in whatever this returns.
+   *
+   * A FALLBACK, not a second source of truth: SecureStore wins whenever it has a
+   * value, and the settings row is only consulted when it does not. Both writes
+   * happen in one method, so they cannot disagree unless the first survived and
+   * the second did not — in which case this reads the survivor.
+   *
+   * The value is validated the same way as SecureStore's. `app_settings` is a
+   * free-form key/value table with no CHECK constraint, so an unrecognised code
+   * there falls through to EGP rather than reaching `computeNetWorth`, whose
+   * `assertSupportedCurrency` would throw with no error boundary to catch it.
+   */
+  private async resolveBaseCurrency(currencyRaw: string | null): Promise<Currency> {
+    if (isCurrency(currencyRaw)) return currencyRaw;
+
+    const settingsRaw = await this.settingsRepository.get('base_currency');
+    return isCurrency(settingsRaw) ? settingsRaw : Currency.EGP;
   }
 
   private async normalizeStep(stepRaw: string | null): Promise<OnboardingStep> {
