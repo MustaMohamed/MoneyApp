@@ -18,12 +18,7 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled
   disabled?: boolean;
   /** When `isLoading`, replaces `Strings.loading` as the button text. */
   loadingLabel?: string;
-  /**
-   * Mockup-flat primary: HeroUI's own flat accent fill at Radius.cta, no
-   * gradient overlay. Opt-in per redesigned screen (onboarding first) while the
-   * legacy gradient stays the app-wide default — spec.md § Known
-   * design/codebase disagreements item 1.
-   */
+  /** Flat accent fill at Radius.cta, no gradient — opt-in per redesigned screen (spec.md § Known disagreements 1). */
   flat?: boolean;
   className?: string;
 }

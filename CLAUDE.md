@@ -172,6 +172,7 @@ Until #195 this failed loudly: `app.plugin.js` requires `@expo/config-plugins` w
 
 ## Conventions
 
+- **Code comments: one line, and only when needed** — a comment states a constraint the code can't, in a single line. No multi-line comment blocks; anything longer belongs in the spec, an ADR, or a doc. A separate session sweeps existing comments down to this rule.
 - **HeroUI Native first (Team Law 7):** use a HeroUI primitive wherever one exists — never hand-roll or pull a third-party equivalent. A custom component a primitive could cover is a critical trigger. Mechanics, catalog, and the wrapper inventory: the `heroui-native` skill.
 - **null vs undefined:** `null` = DB-mapped nullable columns only. Absent values elsewhere = `undefined`.
 - **Enums:** string enums in `constants/enums.ts` — regular `enum`, not `const enum` (Babel incompatible). Values match SQLite CHECK strings. Validate with `z.nativeEnum()`.

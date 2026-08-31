@@ -130,10 +130,7 @@ export const Radius = {
 /** Touch targets use `TouchSize` instead, so they never fall below the platform floor. */
 export const Size = {
   ctaHeight: ms(52),
-  // Onboarding footer CTA slot. Raw 48, never ms(): it must equal HeroUI's
-  // own .button__root--size-md height (--spacing × 12 = 48dp, CSS px that do
-  // not width-scale), so the slot hugs the button at every device scale.
-  // Footer compaction 2026-09-01 — spec.md § Known disagreements item 6.
+  // Raw 48, never ms(): must equal HeroUI's .button__root--size-md height — CSS px don't width-scale.
   onboardingCtaTrack: 48,
   headerHeight: ms(56),
   // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
