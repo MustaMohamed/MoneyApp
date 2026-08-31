@@ -16,9 +16,12 @@ jest.mock('expo-secure-store', () => {
 });
 
 jest.mock('expo-sqlite', () => {
-  // Tests that need real SQL should override this mock with better-sqlite3
-  // (see __tests__/setup/sqliteFake.ts). Default is a thin call-recording
-  // mock so unit tests don't crash if they incidentally touch the DB.
+  // Tests that need real SQL should pull this mock's jest.fn()s via
+  // src/test_helpers/sqlite.ts's getExpoSQLiteTestDatabase() and wire their
+  // mockImplementation to a real better-sqlite3 instance — see the moneyapp-testing
+  // skill and __tests__/transaction.repository.test.ts for the canonical usage.
+  // Default here is a thin call-recording mock so unit tests don't crash if they
+  // incidentally touch the DB.
   const calls = [];
   const fakeDb = {
     execAsync: jest.fn(async (sql) => {

@@ -4,8 +4,11 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { getSetting, setSetting, setSettings } from '@/database/app_settings';
 import { MIGRATIONS } from '@/database/migrations';
 
+const openDbs: ReturnType<typeof Database>[] = [];
+
 function makeDb(): SQLiteDatabase {
   const raw = new Database(':memory:');
+  openDbs.push(raw);
   raw.exec(MIGRATIONS.map((m) => m.up).join('\n'));
   return {
     getFirstAsync: async <T>(sql: string, ...params: unknown[]) =>
@@ -16,6 +19,33 @@ function makeDb(): SQLiteDatabase {
     },
   } as unknown as SQLiteDatabase;
 }
+
+// afterEach, not the sibling afterAll(close) spelling: a test that throws mid-body still
+// reaches this afterEach with its handle already pushed, so afterAll would leave it
+// stranded until the file's last test — afterEach drains after every test instead.
+afterEach(() => {
+  const drained = openDbs.splice(0);
+  const closeFailures: unknown[] = [];
+  for (const db of drained) {
+    try {
+      db.close();
+    } catch (err) {
+      closeFailures.push(err);
+    }
+  }
+  // One assertion, not a bare-boolean loop: it names which drained index(es) are still
+  // open AND surfaces every close() error's text in the same failure, so a stranded
+  // handle never reports as an anonymous `expect(db.open).toBe(false)` with the real
+  // cause silently dropped. Passes only when both are empty, so the throws below are
+  // unreachable on green — they exist to preserve stack fidelity on the failure path.
+  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
+  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
+    stranded: [],
+    closeErrors: [],
+  });
+  if (closeFailures.length === 1) throw closeFailures[0];
+  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
+});
 
 describe('getSetting', () => {
   it('returns null when key does not exist', async () => {

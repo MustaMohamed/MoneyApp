@@ -5,11 +5,18 @@
  * scope, no `module.exports`. It is exercised the same way `npm run lint` runs it — as a
  * subprocess, over its stdout/stderr/exit-code contract, never via `require()`.
  *
- * Fixtures live under `<repoRoot>/.ma017-guard-fixtures/` (gitignored), never an OS temp
- * dir. The script derives `root` from its own `__dirname` and reads
+ * Fixtures live under `<repoRoot>/.ma017-guard-fixtures/<pid>/` (gitignored), never an OS
+ * temp dir. The script derives `root` from its own `__dirname` and reads
  * `path.join(root, relPath)` behind an `fs.existsSync` guard, so a fixture anywhere else
  * is invisible to it and pass 1 would silently find nothing. `src/` itself is never
- * mutated.
+ * mutated. The per-pid subdir keeps two concurrent test processes from racing each
+ * other's fixture writes and cleanup. A `beforeAll` sweep clears any sibling `<pid>/`
+ * dir a crashed run left behind (`process.kill(pid, 0)` throwing ESRCH means that pid
+ * is dead) plus this process's own dir if a recycled pid left one stale. An `afterAll`
+ * non-recursive `rmdirSync` then removes the gitignored `.ma017-guard-fixtures/` parent
+ * only when this process is the last one out — `ENOTEMPTY` means a live sibling still
+ * holds it, so the parent survives exactly when it must, without reintroducing the
+ * cross-process race this layout exists to kill.
  *
  * `git` is stubbed via PATH injection — one throwaway stub directory per scenario, so
  * stubs cannot leak between cases. The script's own `spawnSync('git', …)` always runs
@@ -54,7 +61,9 @@ import path from 'node:path';
 
 const repoRoot = path.join(__dirname, '..', '..');
 const scriptPath = path.join(repoRoot, 'scripts', 'validate-money-formatting.js');
-const fixtureRoot = path.join(repoRoot, '.ma017-guard-fixtures');
+const fixtureRel = `.ma017-guard-fixtures/${process.pid}`;
+const fixtureParent = path.join(repoRoot, '.ma017-guard-fixtures');
+const fixtureRoot = path.join(repoRoot, fixtureRel);
 
 const stubDirs: string[] = [];
 
@@ -94,7 +103,7 @@ function runGuardOverFixtures(fixtures: Fixture[]): {
 } {
   const relPaths = fixtures.map(({ name, content }) => {
     fs.writeFileSync(path.join(fixtureRoot, name), content);
-    return `.ma017-guard-fixtures/${name}`;
+    return `${fixtureRel}/${name}`;
   });
   const stubDir = makeStubGit(
     `#!/bin/sh\necho 'src/utils/format_amount.ts'\n${relPaths.map((p) => `echo '${p}'`).join('\n')}\nexit 0\n`,
@@ -102,6 +111,33 @@ function runGuardOverFixtures(fixtures: Fixture[]): {
   const result = runGuard(envWithStub(stubDir));
   return { result, relPaths };
 }
+
+// Orphan hygiene: a process that crashes mid-suite never reaches its own afterEach/afterAll,
+// so its `<pid>/` dir is permanent — and oxfmt does not honour .gitignore, so a stray dir
+// under `.ma017-guard-fixtures/` reds `format:check` with no diff. Sweep dead siblings
+// before this run starts: a dir name that parses as a pid and fails `process.kill(pid, 0)`
+// with ESRCH belongs to a process that no longer exists, so it's safe to remove; a dir
+// matching this process's own pid (a recycled pid reusing a dead process's number) is
+// cleared unconditionally, since it cannot belong to a still-running process by definition.
+beforeAll(() => {
+  if (!fs.existsSync(fixtureParent)) return;
+  for (const entry of fs.readdirSync(fixtureParent)) {
+    const pid = Number(entry);
+    if (!Number.isInteger(pid) || pid <= 0) continue;
+    const entryPath = path.join(fixtureParent, entry);
+    if (pid === process.pid) {
+      fs.rmSync(entryPath, { recursive: true, force: true });
+      continue;
+    }
+    try {
+      process.kill(pid, 0);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ESRCH') {
+        fs.rmSync(entryPath, { recursive: true, force: true });
+      }
+    }
+  }
+});
 
 // One cleanup lifetime for the whole fixture surface: the fixture root and the stub `git`
 // dirs are both per-case (beforeEach/afterEach), so a crashed case leaves nothing behind
@@ -114,6 +150,22 @@ afterEach(() => {
   fs.rmSync(fixtureRoot, { recursive: true, force: true });
   for (const dir of stubDirs.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// Non-recursive on purpose: this only succeeds once this process's own afterEach has left
+// the parent empty, i.e. this was the last process out. ENOTEMPTY means a concurrent
+// process's pid dir is still under the parent — exactly the case where the parent must
+// survive, so the removal is dropped rather than reintroducing the cross-process race
+// this per-pid layout exists to kill. ENOENT means a sibling's afterAll won the same race
+// a moment earlier and already removed the parent — also not this process's problem, so
+// it's swallowed the same way; only an unexpected code still throws.
+afterAll(() => {
+  try {
+    fs.rmdirSync(fixtureParent);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== 'ENOTEMPTY' && code !== 'ENOENT') throw err;
   }
 });
 
@@ -151,20 +203,20 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
   // substring, never as three separate `toContain` calls, because pass 2's "gone" line
   // also contains `src/utils/format_amount.ts`.
   it('names the planted violation with file, line, and the sanctioned-formatter pointer', () => {
-    const violationRel = '.ma017-guard-fixtures/violation.ts';
+    const violationRel = `${fixtureRel}/violation.ts`;
     fs.writeFileSync(path.join(fixtureRoot, 'violation.ts'), "new Intl.NumberFormat('en-US');\n");
     const stubDir = makeStubGit(`#!/bin/sh\necho '${violationRel}'\nexit 0\n`);
     const result = runGuard(envWithStub(stubDir));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      '.ma017-guard-fixtures/violation.ts:1: constructs an `Intl.NumberFormat` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)',
+      `${violationRel}:1: constructs an \`Intl.NumberFormat\` — use a formatter from src/utils/format_amount.ts instead (.claude/rules/review.md item 3)`,
     );
   });
 
   // Not in spec §4 rows 5-10 — kept because it pins the regex's own documented
   // invariant (script `:20-25`): the paren is load-bearing, not `new`.
   it('catches a bare Intl.NumberFormat construction with no `new`', () => {
-    const violationRel = '.ma017-guard-fixtures/violation_bare.ts';
+    const violationRel = `${fixtureRel}/violation_bare.ts`;
     fs.writeFileSync(path.join(fixtureRoot, 'violation_bare.ts'), "Intl.NumberFormat('en-US');\n");
     const stubDir = makeStubGit(`#!/bin/sh\necho '${violationRel}'\nexit 0\n`);
     const result = runGuard(envWithStub(stubDir));
@@ -175,7 +227,7 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
   // §4 row 8, pass 2's "gone" branch (`:161-166`). The stub lists only a clean fixture,
   // omitting `src/utils/format_amount.ts` entirely, so it reads as gone.
   it('flags a stale allowlist entry without flagging a violation', () => {
-    const cleanRel = '.ma017-guard-fixtures/clean.ts';
+    const cleanRel = `${fixtureRel}/clean.ts`;
     fs.writeFileSync(path.join(fixtureRoot, 'clean.ts'), 'export const nothingHere = 1;\n');
     const stubDir = makeStubGit(`#!/bin/sh\necho '${cleanRel}'\nexit 0\n`);
     const result = runGuard(envWithStub(stubDir));
