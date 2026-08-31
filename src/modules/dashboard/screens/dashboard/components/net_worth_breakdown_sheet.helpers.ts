@@ -76,8 +76,12 @@ export function resolveBreakdownRowColors(kind: BreakdownRowKind): {
  * `transaction_row.helpers.ts` `primaryAmountFor` shape. U+2212 `−`, never an
  * ASCII hyphen, when owed; ASCII `+` in credit — no space either side.
  *
- * Pure `(number) => string`: no `LiabilityRow` in the signature, no React
- * import in this file. `-0` is admitted deliberately (C2) — do not add a
+ * Pure `(number, Currency) => string`: no `LiabilityRow` in the signature, no
+ * React import in this file. The currency is the BASE, not a hardcoded EGP —
+ * these rows are stated in whatever `computeLiabilitiesBreakdown` converted
+ * them into, and a hardcoded EGP printed a USD-base row's cents away.
+ *
+ * `-0` is admitted deliberately (C2) — do not add a
  * `normalizeNegativeZero` call here; `-0 < 0` is false, so it takes the
  * `−` branch, and `formatDisplayMagnitude`'s true-zero test already routes
  * it to the unsigned `printsAsZero` return before the sign check runs.

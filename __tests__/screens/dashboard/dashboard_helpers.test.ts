@@ -620,6 +620,25 @@ describe('computeNetWorth', () => {
       ).toThrow(AccountAggregationError);
     });
 
+    // The base is asserted SEPARATELY from the account currencies, and this row
+    // is the only thing holding that assert in place. On the refusal path
+    // nothing else validates it: an unsupported base makes every account count
+    // as foreign, so with an unusable rate the function returns `rate-needed`
+    // and hands a code the schema forbids to `foreignCurrencyFor` — no throw,
+    // no test, silently. `resolveStartingNetPosition:119` asserts the base for
+    // the same reason.
+    it('throws on an unsupported BASE currency, before the accounts are read', () => {
+      expect(() =>
+        computeNetWorth({
+          accounts: [makeAccount({ current_balance: 1000 })],
+          baseCurrency: unsupported,
+          rate: 48.6,
+          rateUpdatedAt: null,
+          isManualOverride: false,
+        }),
+      ).toThrow(AccountAggregationError);
+    });
+
     // The guard used to ask `CURRENCY_LOOKUP[currency] !== undefined`, which
     // resolves through the prototype chain: `constructor` is a member of
     // `Object.prototype`, so a row carrying it passed the guard and was summed
