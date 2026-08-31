@@ -307,17 +307,24 @@ export const Strings = {
   dashboardAccountsLabel: 'Accounts',
   dashboardBreakdownTitle: 'Net Worth',
   dashboardBreakdownNetWorthLabel: 'Net Worth',
-  dashboardBreakdownAssetsHeader: (egp: string, count: number) =>
-    `${egp} EGP · ${count} ${count === 1 ? 'acct' : 'accts'}`,
-  dashboardBreakdownLiabilitiesHeader: (egp: string, count: number) =>
-    `${egp} EGP · ${count} ${count === 1 ? 'card' : 'cards'}`,
+  // The currency code is a PARAMETER, not a literal in the template: these
+  // headers sit directly under a total the user chose the currency of, and a
+  // hardcoded `EGP` beside a USD figure is the defect. Precedent
+  // `n4CaptionAllBase` below. Byte-identical at `code === 'EGP'`.
+  dashboardBreakdownAssetsHeader: (amount: string, code: string, count: number) =>
+    `${amount} ${code} · ${count} ${count === 1 ? 'acct' : 'accts'}`,
+  dashboardBreakdownLiabilitiesHeader: (amount: string, code: string, count: number) =>
+    `${amount} ${code} · ${count} ${count === 1 ? 'card' : 'cards'}`,
   dashboardBreakdownLiquid: 'Liquid',
   dashboardBreakdownReserve: 'Reserve',
   dashboardBreakdownLiquidCaption: 'Bank, Smart Wallet, Cash',
   dashboardBreakdownReserveCaption: 'Savings',
   dashboardBreakdownTotalDebt: 'Total debt',
   dashboardBreakdownInCredit: 'In credit',
-  netWorthBreakdownForeignUnavailable: '— USD',
+  // Same reason, one level down: this is the placeholder for the ≈ figure,
+  // which is stated in the OTHER currency from the base — so it is `— EGP` for
+  // a USD-base user and `— USD` for an EGP-base one.
+  netWorthBreakdownForeignUnavailable: (code: string) => `— ${code}`,
   netWorthBreakdownForeignApprox: (amount: string) => `≈ ${amount}`,
 
   // The dashboard's rate refusal (#255). Modelled on N4's pair

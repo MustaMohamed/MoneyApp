@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
+import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Type } from '@/constants/theme';
@@ -32,6 +33,8 @@ interface HeroCardProps {
    * in a signature do not narrow each other.
    */
   netWorth: DashboardNetWorth;
+  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  baseCurrency: Currency;
   rate: number;
   /** Decided by the domain gate in `dashboard.hook.ts`, never re-derived here. */
   isRateUsable: boolean;
@@ -93,10 +96,12 @@ function HeroCardSkeleton(): React.ReactElement {
  */
 function HeroCardAssetsAmount({
   netWorth: amount,
+  baseCurrency,
 }: {
   netWorth: DashboardNetWorthAmount;
+  baseCurrency: Currency;
 }): React.ReactElement {
-  const assetsParts = formatCurrencyParts(amount.assets, Currency.EGP);
+  const assetsParts = formatCurrencyParts(amount.assets, baseCurrency);
   return (
     <Text
       className="font-sora-bold mt-3 mb-2 px-3"
@@ -109,6 +114,7 @@ function HeroCardAssetsAmount({
 
 export function HeroCard({
   netWorth,
+  baseCurrency,
   rate,
   isRateUsable,
   isManualOverride,
@@ -118,6 +124,7 @@ export function HeroCard({
   onPress,
 }: HeroCardProps) {
   const totalAccounts = assetsCount + liabilitiesCount;
+  const foreignCurrency = foreignCurrencyFor(baseCurrency);
 
   return (
     /*
@@ -224,7 +231,7 @@ export function HeroCard({
               </Text>
             </>
           ) : (
-            <HeroCardAssetsAmount netWorth={netWorth} />
+            <HeroCardAssetsAmount netWorth={netWorth} baseCurrency={baseCurrency} />
           )}
 
           <View
@@ -244,15 +251,28 @@ export function HeroCard({
                 size={ms(11)}
                 color={Colors.dark.text1}
               />
-              {/* Keyed on the FIELD being absent, not on `rate > 0`:
+              {/* This pill renders ASSETS. The breakdown sheet's ≈ caption
+                  renders NET WORTH, from the same portfolio in the same
+                  currency — 17,097.50 here against 12,212.50 there on the §3B
+                  fixture — and the two are NOT meant to agree. Pointing this at
+                  `netWorthForeign` to reconcile them compiles, with no type
+                  error and no failing test.
+
+                  The currency is `foreignCurrencyFor(baseCurrency)`, so it is
+                  EGP for a USD-base user; the hardcoded `Currency.USD` this
+                  replaces printed a USD code over an EGP number.
+
+                  Keyed on the FIELD being absent, not on `rate > 0`:
                   `INITIAL_STATE.rate` is 50, so the old check printed a
                   confident `~ N USD` computed from the placeholder for every
-                  user who had never fetched a rate. No `?? 0` — `formatAmount(0)`
+                  user who had never fetched a rate. No `?? 0` — a formatted 0
                   is a wrong number, not an absent one. */}
               <Text className="text-foreground text-xs">
                 {netWorth.kind === 'amount' && netWorth.assetsForeign !== undefined
-                  ? formatCurrencyAmount(netWorth.assetsForeign, Currency.USD)
-                  : Strings.netWorthBreakdownForeignUnavailable}
+                  ? formatCurrencyAmount(netWorth.assetsForeign, foreignCurrency)
+                  : Strings.netWorthBreakdownForeignUnavailable(
+                      CURRENCY_CONFIG[foreignCurrency].code,
+                    )}
               </Text>
             </View>
             {/* Gated on the `isRateUsable` prop, decided once in

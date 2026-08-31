@@ -1,3 +1,4 @@
+import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
@@ -7,17 +8,33 @@ import type { LiquidityBreakdown } from '../dashboard.helpers';
 
 /**
  * Exported for `__tests__/screens/dashboard/net_worth_breakdown_sheet.helpers.test.ts` —
- * net_worth_breakdown_sheet.tsx:164 was inline JSX with no test seam.
+ * the sheet's ≈ caption was inline JSX with no test seam.
+ *
+ * This caption renders NET WORTH. `hero_card.tsx`'s ≈ pill renders ASSETS, in the
+ * same currency and from the same portfolio — 12,212.50 against 17,097.50 on the
+ * §3B fixture. **They are not meant to agree**, and pointing either at the
+ * other's field compiles, with no type error and no failing test.
+ *
+ * The currency is `foreignCurrencyFor(base)`, resolved by the caller: the ≈
+ * figure is the total expressed in the OTHER of the app's two currencies, so it
+ * is EGP for a USD-base user. A hardcoded `Currency.USD` here printed a USD code
+ * over an EGP number.
  *
  * Keyed on the FIELD being absent, not on `rate > 0`: `INITIAL_STATE.rate` is 50, so the old
  * check printed a confident `≈ N USD` computed from the placeholder for every user who had
- * never fetched a rate. No `?? 0` — `formatAmount(0)` renders `≈ 0.00 USD`, a wrong number
- * rather than an absent one.
+ * never fetched a rate. No `?? 0` — a formatted 0 is a wrong number rather than
+ * an absent one.
  */
-export function resolveNetWorthForeignCaption(netWorthForeign: number | undefined): string {
+export function resolveNetWorthForeignCaption(
+  netWorthForeign: number | undefined,
+  baseCurrency: Currency,
+): string {
+  const foreignCurrency = foreignCurrencyFor(baseCurrency);
   return netWorthForeign === undefined
-    ? Strings.netWorthBreakdownForeignUnavailable
-    : Strings.netWorthBreakdownForeignApprox(formatCurrencyAmount(netWorthForeign, Currency.USD));
+    ? Strings.netWorthBreakdownForeignUnavailable(CURRENCY_CONFIG[foreignCurrency].code)
+    : Strings.netWorthBreakdownForeignApprox(
+        formatCurrencyAmount(netWorthForeign, foreignCurrency),
+      );
 }
 
 export type BreakdownRowKind = 'liquid' | 'reserve' | 'liability';
@@ -75,8 +92,8 @@ export function resolveBreakdownRowColors(kind: BreakdownRowKind): {
  * takes the `< 0` branch. "In credit" beside a value that reads as nothing
  * at all, from a value this function was never contracted to see.
  */
-export function formatLiabilityRowValue(balance: number): string {
-  const { text, printsAsZero } = formatDisplayMagnitude(balance, Currency.EGP);
+export function formatLiabilityRowValue(balance: number, baseCurrency: Currency): string {
+  const { text, printsAsZero } = formatDisplayMagnitude(balance, baseCurrency);
   if (printsAsZero) return text;
   return `${balance < 0 ? '+' : '−'}${text}`;
 }

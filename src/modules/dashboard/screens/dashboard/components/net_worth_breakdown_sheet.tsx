@@ -13,7 +13,7 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatAmount, formatCurrencyParts } from '@/utils/format_amount';
+import { formatCurrencyParts } from '@/utils/format_amount';
 import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
@@ -36,6 +36,8 @@ interface NetWorthBreakdownSheetProps {
    * in a signature do not narrow each other.
    */
   netWorth: DashboardNetWorth;
+  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  baseCurrency: Currency;
   liquidity: LiquidityBreakdown;
   liabilities: LiabilityRow[];
 }
@@ -65,6 +67,7 @@ export function NetWorthBreakdownSheet({
   isOpen,
   onOpenChange,
   netWorth,
+  baseCurrency,
   liquidity,
   liabilities,
 }: NetWorthBreakdownSheetProps) {
@@ -82,6 +85,7 @@ export function NetWorthBreakdownSheet({
         ) : (
           <NetWorthBreakdownBody
             netWorth={netWorth}
+            baseCurrency={baseCurrency}
             liquidity={liquidity}
             liabilities={liabilities}
           />
@@ -136,10 +140,12 @@ function NetWorthRefusalHeadline(): React.ReactElement {
  */
 function NetWorthBreakdownBody({
   netWorth: amount,
+  baseCurrency,
   liquidity,
   liabilities,
 }: {
   netWorth: DashboardNetWorthAmount;
+  baseCurrency: Currency;
   liquidity: LiquidityBreakdown;
   liabilities: LiabilityRow[];
 }): React.ReactElement {
@@ -154,7 +160,13 @@ function NetWorthBreakdownBody({
   const showReserve = liquidity.reserveCount > 0;
   const showLiabilities = liabilities.length > 0;
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
-  const netWorthParts = formatCurrencyParts(amount.netWorth, Currency.EGP);
+  const netWorthParts = formatCurrencyParts(amount.netWorth, baseCurrency);
+  // `{ value, code }` from one call each: the two section headers need the code
+  // as well as the number, and taking both from the formatter keeps
+  // `CURRENCY_CONFIG` out of this `.tsx` — the code and the decimals then cannot
+  // disagree about which currency this sheet is reporting in.
+  const assetsParts = formatCurrencyParts(amount.assets, baseCurrency);
+  const liabilitiesParts = formatCurrencyParts(amount.liabilities, baseCurrency);
   const liquidColors = resolveBreakdownRowColors('liquid');
   const reserveColors = resolveBreakdownRowColors('reserve');
   const liabilityColors = resolveBreakdownRowColors('liability');
@@ -171,7 +183,7 @@ function NetWorthBreakdownBody({
           <Text className="font-inter-medium text-muted text-base">{netWorthParts.code}</Text>
         </Text>
         <Text variant="caption" className="text-muted mt-1">
-          {resolveNetWorthForeignCaption(amount.netWorthForeign)}
+          {resolveNetWorthForeignCaption(amount.netWorthForeign, baseCurrency)}
         </Text>
       </View>
 
@@ -182,7 +194,11 @@ function NetWorthBreakdownBody({
       <View className="px-4">
         <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
           {Strings.dashAssetsLabel} ·{' '}
-          {Strings.dashboardBreakdownAssetsHeader(formatAmount(amount.assets), assetsAccountCount)}
+          {Strings.dashboardBreakdownAssetsHeader(
+            assetsParts.value,
+            assetsParts.code,
+            assetsAccountCount,
+          )}
         </Text>
         {showProportionBar && (
           <View
@@ -204,11 +220,11 @@ function NetWorthBreakdownBody({
               icon="wallet-outline"
               label={Strings.dashboardBreakdownLiquid}
               caption={Strings.dashboardBreakdownLiquidCaption}
-              value={formatAmount(liquidity.liquid)}
+              value={formatCurrencyParts(liquidity.liquid, baseCurrency).value}
               count={liquidity.liquidCount}
             />
             {liquidity.liquidAccounts.map((acc) => (
-              <AccountSubRow key={acc.id} account={acc} />
+              <AccountSubRow key={acc.id} account={acc} baseCurrency={baseCurrency} />
             ))}
           </>
         )}
@@ -219,11 +235,11 @@ function NetWorthBreakdownBody({
               icon="piggy-bank"
               label={Strings.dashboardBreakdownReserve}
               caption={Strings.dashboardBreakdownReserveCaption}
-              value={formatAmount(liquidity.reserve)}
+              value={formatCurrencyParts(liquidity.reserve, baseCurrency).value}
               count={liquidity.reserveCount}
             />
             {liquidity.reserveAccounts.map((acc) => (
-              <AccountSubRow key={acc.id} account={acc} />
+              <AccountSubRow key={acc.id} account={acc} baseCurrency={baseCurrency} />
             ))}
           </>
         )}
@@ -236,7 +252,8 @@ function NetWorthBreakdownBody({
             <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
               {Strings.dashLiabilitiesLabel} ·{' '}
               {Strings.dashboardBreakdownLiabilitiesHeader(
-                formatAmount(amount.liabilities),
+                liabilitiesParts.value,
+                liabilitiesParts.code,
                 liabilities.length,
               )}
             </Text>
@@ -257,7 +274,7 @@ function NetWorthBreakdownBody({
                       ? `due ${nextDueDate(row.statementDueDay)}`
                       : undefined
                 }
-                value={formatLiabilityRowValue(row.balance)}
+                value={formatLiabilityRowValue(row.balance, baseCurrency)}
                 valueColor={liabilityColors.value}
               />
             ))}
@@ -265,7 +282,7 @@ function NetWorthBreakdownBody({
             <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
               <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
               <Text className="font-sora-bold" style={{ color: Colors.dark.gold }}>
-                {formatAmount(amount.liabilities)}
+                {liabilitiesParts.value}
               </Text>
             </View>
           </View>
@@ -282,12 +299,13 @@ interface LegendRowProps {
   caption?: string;
   /**
    * Pre-formatted display text — every call site renders through a formatter
-   * before this prop sees the value: `formatAmount` at the liquid/reserve
-   * call sites, `formatLiabilityRowValue` (#259 C3) at the liability one,
+   * before this prop sees the value: `formatCurrencyParts(v, baseCurrency)` at
+   * the liquid/reserve call sites, `formatLiabilityRowValue` (#259 C3) at the
+   * liability one,
    * which owns that row's signed glyph. A single `string` channel, not
    * `number | string`, keeps that true at the TYPE level: reverting the
    * liability call site to a raw `row.balance` number is a compile error
-   * here, not a silently unsigned row rendered through `formatAmount`.
+   * here, not a silently unsigned row rendered through a bare magnitude.
    */
   value: string;
   count?: number;
@@ -330,7 +348,7 @@ function LegendRow({ color, icon, label, caption, value, count, valueColor }: Le
 // LegendRow's label starts at: icon width (ms(16)) + icon→label gap (ms(10)) = ms(26).
 const SUB_ROW_INDENT = ms(27.5);
 
-function AccountSubRow({ account }: { account: AccountRow }) {
+function AccountSubRow({ account, baseCurrency }: { account: AccountRow; baseCurrency: Currency }) {
   return (
     <View
       className="flex-row justify-between"
@@ -340,7 +358,7 @@ function AccountSubRow({ account }: { account: AccountRow }) {
         {account.name}
       </Text>
       <Text variant="caption" className="font-inter-medium text-foreground">
-        {formatAmount(account.balance)}
+        {formatCurrencyParts(account.balance, baseCurrency).value}
       </Text>
     </View>
   );

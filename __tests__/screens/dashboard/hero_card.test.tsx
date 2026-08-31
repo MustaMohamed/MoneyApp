@@ -2,6 +2,7 @@ import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { HeroCard } from '@/modules/dashboard/screens/dashboard/components/hero_card';
 import { ms } from '@/utils/responsive';
@@ -97,6 +98,10 @@ const baseProps = {
     assetsForeign: 176,
     netWorthForeign: 176,
   } as const,
+  // EGP, so every existing assertion below keeps the rendering it was written
+  // against: this fixture follows the rename and the new required prop, and
+  // asserts nothing new. The USD-base rendering is the emulator's (spec §8).
+  baseCurrency: Currency.EGP,
   rate: 49.06,
   isRateUsable: true,
   isManualOverride: false,
@@ -215,7 +220,11 @@ describe('HeroCard on an EGP-only portfolio with an unverified rate (#257)', () 
     );
 
     expect(queryByTestId('dashboard-hero-rate-pill')).toBeNull();
-    expect(getByText(Strings.netWorthBreakdownForeignUnavailable)).toBeTruthy();
+    // The constant is a function now that the code is a parameter, so this
+    // fixed in place rather than being deleted: it is the only automated cover
+    // on the hero's absent-rate placeholder. The fixture is EGP-base, so the
+    // foreign side is USD and the rendered text is unchanged.
+    expect(getByText(Strings.netWorthBreakdownForeignUnavailable(Currency.USD))).toBeTruthy();
     expect(getByText(/8,650/)).toBeTruthy();
   });
 });

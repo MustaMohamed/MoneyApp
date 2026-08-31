@@ -2,6 +2,7 @@ import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 
+import { Currency } from '@/constants/enums';
 import { StatCards } from '@/modules/dashboard/screens/dashboard/components/stat_cards';
 import { ms } from '@/utils/responsive';
 
@@ -81,6 +82,10 @@ const baseProps = {
     assetsForeign: 30,
     netWorthForeign: 25,
   } as const,
+  // EGP, so every existing assertion below keeps the rendering it was written
+  // against: this fixture follows the rename and the new required prop, and
+  // asserts nothing new. The USD-base rendering is the emulator's (spec §8).
+  baseCurrency: Currency.EGP,
   assetsCount: 2,
   liabilitiesCount: 1,
   monthSpentEgp: 3000,

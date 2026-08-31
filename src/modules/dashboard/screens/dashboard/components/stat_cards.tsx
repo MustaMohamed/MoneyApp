@@ -12,7 +12,7 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatAmount, formatCurrencyParts } from '@/utils/format_amount';
+import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
@@ -48,6 +48,12 @@ interface StatCardsProps {
    * in a signature do not narrow each other.
    */
   netWorth: DashboardNetWorth;
+  /**
+   * Read once in `dashboard.hook.ts` and passed down. It reaches the net-worth
+   * card only: `monthSpentEgp` below is a ledger total in the storage currency,
+   * not a converted pair, and stays on `Currency.EGP` (spec §7).
+   */
+  baseCurrency: Currency;
   assetsCount: number;
   liabilitiesCount: number;
   monthSpentEgp: number;
@@ -141,6 +147,7 @@ function MonthSpendFooterSkeleton(): React.ReactElement {
 
 export function StatCards({
   netWorth,
+  baseCurrency,
   assetsCount,
   liabilitiesCount,
   monthSpentEgp,
@@ -202,6 +209,7 @@ export function StatCards({
         ) : (
           <NetWorthCardBody
             netWorth={netWorth}
+            baseCurrency={baseCurrency}
             netColor={netColor}
             assetsCount={assetsCount}
             liabilitiesCount={liabilitiesCount}
@@ -321,18 +329,20 @@ function NetWorthRefusal(): React.ReactElement {
  */
 function NetWorthCardBody({
   netWorth: amount,
+  baseCurrency,
   netColor,
   assetsCount,
   liabilitiesCount,
 }: {
   netWorth: DashboardNetWorthAmount;
+  baseCurrency: Currency;
   netColor: string;
   assetsCount: number;
   liabilitiesCount: number;
 }): React.ReactElement {
   const total = amount.assets + Math.abs(amount.liabilities);
   const assetsPct = total > 0 ? amount.assets / total : 1;
-  const netWorthParts = formatCurrencyParts(amount.netWorth, Currency.EGP);
+  const netWorthParts = formatCurrencyParts(amount.netWorth, baseCurrency);
 
   return (
     <>
@@ -363,7 +373,7 @@ function NetWorthCardBody({
             </Text>
           </View>
           <Text className="font-sora-semibold text-foreground text-xs" numberOfLines={1}>
-            {formatAmount(amount.assets)}
+            {formatCurrencyParts(amount.assets, baseCurrency).value}
           </Text>
         </View>
         <View className="flex-1" style={{ flex: 1, gap: ms(4) }}>
@@ -381,7 +391,7 @@ function NetWorthCardBody({
             </Text>
           </View>
           <Text className="font-sora-semibold text-foreground text-xs" numberOfLines={1}>
-            {formatAmount(amount.liabilities)}
+            {formatCurrencyParts(amount.liabilities, baseCurrency).value}
           </Text>
         </View>
       </View>

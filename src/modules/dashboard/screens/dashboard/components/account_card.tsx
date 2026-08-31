@@ -65,6 +65,7 @@ export function buildInfoRows(
   rate: number,
   stats: AccountStats | undefined,
   isRateUsable: boolean,
+  baseCurrency: Currency,
 ): InfoRow[] {
   const s = stats ?? { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
   const cur = account.currency;
@@ -159,7 +160,14 @@ export function buildInfoRows(
       // the very rate the strip had just rejected, printing `$100` as
       // `5,000 EGP` under "Exchange rate needed". The native-currency rows need
       // no rate and are untouched.
-      ...(isRateUsable
+      //
+      // The second conjunct SUPPRESSES the row for a USD-base user, whose USD
+      // card needs no equivalent — it would restate the amount above it in the
+      // currency it is already in. This is a gate, not a follow: the row keeps
+      // its `cardInEgpLabel` and its `Currency.EGP`, because the mirror case
+      // (an EGP card under a USD base, wanting an "In USD" row) is new surface
+      // and is filed, not built (spec §7, follow-up 3).
+      ...(isRateUsable && account.currency !== baseCurrency
         ? [
             {
               label: Strings.cardInEgpLabel,
@@ -192,6 +200,8 @@ export function buildInfoRows(
 
 interface AccountCardProps {
   account: Account;
+  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  baseCurrency: Currency;
   rate: number;
   /** Decided by the domain gate in `dashboard.hook.ts`, never re-derived here. */
   isRateUsable: boolean;
@@ -202,6 +212,7 @@ interface AccountCardProps {
 
 export function AccountCard({
   account,
+  baseCurrency,
   rate,
   isRateUsable,
   stats,
@@ -211,7 +222,7 @@ export function AccountCard({
   const color = account.color ?? AccountColors[0];
   const isCreditCard = account.type === AccountType.CreditCard;
   const icon = TYPE_ICONS[account.type];
-  const infoRows = buildInfoRows(account, rate, stats, isRateUsable);
+  const infoRows = buildInfoRows(account, rate, stats, isRateUsable, baseCurrency);
 
   const showProgress = isCreditCard && (account.credit_limit ?? 0) > 0;
   const limit = account.credit_limit ?? 0;
