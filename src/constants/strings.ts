@@ -1160,7 +1160,19 @@ export const Strings = {
 
   // §4 Currency screen additions
   currencyFetchError: 'Could not update rate. Try again.',
-  currencyFooterNote: 'All balances and analytics are shown in Egyptian Pound (EGP).',
+  // Distinct from `currencySaveError` above on purpose: nothing failed and the
+  // value saved, so "Could not save rate. Try again." would be false. One string
+  // covers both ends of the band — `isRateImplausible` has no directional branch
+  // and the app has no live quote, so "too high" would claim knowledge it does
+  // not have.
+  currencyRateImplausibleWarning: 'This rate is far outside the usual range.',
+  // The base currency is a PARAMETER, not a literal: this note names the
+  // currency every figure in the app is reported in, and after #269 that is the
+  // user's own base rather than EGP. The caller resolves `CURRENCY_CONFIG`, so
+  // this file gains no import. Precedent `n4CaptionAllBase` above.
+  // Byte-identical to the old constant at `('Egyptian Pound', 'EGP')`.
+  currencyFooterNote: (name: string, code: string) =>
+    `All balances and analytics are shown in ${name} (${code}).`,
 
   // §4 Category additions
   categoriesReassignSubtitle: (count: number) =>

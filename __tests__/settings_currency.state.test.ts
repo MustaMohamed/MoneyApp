@@ -20,6 +20,11 @@ describe('currencyScreenState initial state', () => {
     expect(store.getState().saveError).toBe('');
   });
 
+  it('starts with rateWarning as empty string', () => {
+    const store = createCurrencyScreenState();
+    expect(store.getState().rateWarning).toBe('');
+  });
+
   it('does not expose isManualPanelOpen (Accordion owns expansion state)', () => {
     const store = createCurrencyScreenState();
     expect(
@@ -67,6 +72,18 @@ describe('currencyScreenState setters', () => {
     expect(store.getState().saveError).toBe('');
   });
 
+  // Its own slot, not one of the two error slots: the warning coexists with a
+  // clean `saveError` because the value it describes saved without failing.
+  it('setRateWarning stores and clears the warning without touching saveError', () => {
+    const store = createCurrencyScreenState();
+    store.getState().setRateWarning('This rate is far outside the usual range.');
+    expect(store.getState().rateWarning).toBe('This rate is far outside the usual range.');
+    expect(store.getState().saveError).toBe('');
+
+    store.getState().setRateWarning('');
+    expect(store.getState().rateWarning).toBe('');
+  });
+
   it('does not expose setManualPanelOpen (Accordion owns expansion state)', () => {
     const store = createCurrencyScreenState();
     expect(
@@ -93,5 +110,12 @@ describe('currencyScreenState reset', () => {
     store.getState().reset();
     expect(store.getState().fetchError).toBe('');
     expect(store.getState().saveError).toBe('');
+  });
+
+  it('clears the rate warning on reset', () => {
+    const store = createCurrencyScreenState();
+    store.getState().setRateWarning('This rate is far outside the usual range.');
+    store.getState().reset();
+    expect(store.getState().rateWarning).toBe('');
   });
 });

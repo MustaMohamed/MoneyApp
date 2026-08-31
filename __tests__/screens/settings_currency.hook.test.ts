@@ -1,8 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
+import { Currency } from '@/constants/enums';
 import { useCurrencyScreen } from '@/modules/currency/screens/currency/currency.hook';
 import { useCurrencyScreenState } from '@/modules/currency/screens/currency/currency.state';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
@@ -13,6 +15,14 @@ jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: 
 jest.mock('@/modules/currency/screens/currency/currency.state', () => ({
   useCurrencyScreenState: jest.fn(),
 }));
+// Mocked for CONTROL of the base, not for safety — the real store's initial
+// `baseCurrency` is already `Currency.EGP`. What it buys is the USD footer-note
+// row below, which is the one test that fails if the hook hardcodes EGP.
+jest.mock('@/modules/onboarding/store/onboarding.store', () => ({
+  useOnboardingStore: jest.fn(),
+}));
+
+const IMPLAUSIBLE_WARNING = 'This rate is far outside the usual range.';
 
 function setup() {
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
@@ -26,10 +36,32 @@ function setup() {
     isFetching: false,
     isSaving: false,
     fetchError: '',
+    rateWarning: '',
     saveError: '',
     setFetching: jest.fn(),
     setSaving: jest.fn(),
     setFetchError: jest.fn(),
+    setRateWarning: jest.fn(),
+    setSaveError: jest.fn(),
+    reset: jest.fn(),
+  }));
+  attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
+    baseCurrency: Currency.EGP,
+  }));
+}
+
+/** The screen state with `setRateWarning` spied; everything else as `setup()`. */
+function attachScreenStateWithWarningSpy(setRateWarning: jest.Mock) {
+  attachMockSelectorStore(useCurrencyScreenState as unknown as jest.Mock, () => ({
+    isFetching: false,
+    isSaving: false,
+    fetchError: '',
+    rateWarning: '',
+    saveError: '',
+    setFetching: jest.fn(),
+    setSaving: jest.fn(),
+    setFetchError: jest.fn(),
+    setRateWarning,
     setSaveError: jest.fn(),
     reset: jest.fn(),
   }));
@@ -86,10 +118,12 @@ describe('useCurrencyScreen', () => {
       isFetching: false,
       isSaving: false,
       fetchError: '',
+      rateWarning: '',
       saveError: '',
       setFetching: jest.fn(),
       setSaving: jest.fn(),
       setFetchError: setFetchErrorMock,
+      setRateWarning: jest.fn(),
       setSaveError: jest.fn(),
       reset: jest.fn(),
     }));
@@ -114,10 +148,12 @@ describe('useCurrencyScreen', () => {
       isFetching: false,
       isSaving: false,
       fetchError: 'old error',
+      rateWarning: '',
       saveError: '',
       setFetching: jest.fn(),
       setSaving: jest.fn(),
       setFetchError: setFetchErrorMock,
+      setRateWarning: jest.fn(),
       setSaveError: jest.fn(),
       reset: jest.fn(),
     }));
@@ -175,10 +211,12 @@ describe('useCurrencyScreen', () => {
       isFetching: false,
       isSaving: false,
       fetchError: '',
+      rateWarning: '',
       saveError: '',
       setFetching: jest.fn(),
       setSaving: jest.fn(),
       setFetchError: jest.fn(),
+      setRateWarning: jest.fn(),
       setSaveError,
       reset: jest.fn(),
     }));
@@ -200,5 +238,113 @@ describe('useCurrencyScreen', () => {
     await waitFor(() =>
       expect(setSaveError).toHaveBeenCalledWith('Could not save rate. Try again.'),
     );
+  });
+});
+
+describe('useCurrencyScreen — the footer note follows the base currency', () => {
+  beforeEach(setup);
+
+  // The one row that fails if the hook hardcodes `Currency.EGP`. A pure-string
+  // test of `Strings.currencyFooterNote(...)` would pass with the hook hardcoded
+  // and pin nothing, so this asserts the published value.
+  it('names US Dollar (USD) when the onboarding store publishes a USD base', async () => {
+    attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
+      baseCurrency: Currency.USD,
+    }));
+    const { result } = await renderHook(() => useCurrencyScreen());
+    expect(result.current.state.footerNote).toBe(
+      'All balances and analytics are shown in US Dollar (USD).',
+    );
+  });
+
+  // Byte-identical to the constant this key replaced, which is what makes
+  // parameterising it a no-op for the entire current population.
+  it('is byte-identical to the pre-parameterisation constant at an EGP base', async () => {
+    const { result } = await renderHook(() => useCurrencyScreen());
+    expect(result.current.state.footerNote).toBe(
+      'All balances and analytics are shown in Egyptian Pound (EGP).',
+    );
+  });
+});
+
+describe('useCurrencyScreen — the rate plausibility warning', () => {
+  beforeEach(setup);
+
+  // Scenario 22: a rate stored below the band before this ticket surfaces on the
+  // next Settings mount, from `defaultValues: { rate: String(rate) }`. No
+  // migration, no repair, and no user input.
+  it('warns on mount about an already-stored out-of-band rate', async () => {
+    const setRateWarning = jest.fn();
+    attachScreenStateWithWarningSpy(setRateWarning);
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 0.0001,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate: jest.fn().mockResolvedValue(undefined),
+    }));
+
+    await renderHook(() => useCurrencyScreen());
+
+    expect(setRateWarning).toHaveBeenCalledWith(IMPLAUSIBLE_WARNING);
+  });
+
+  it('publishes no warning on mount for a rate inside the band', async () => {
+    const setRateWarning = jest.fn();
+    attachScreenStateWithWarningSpy(setRateWarning);
+
+    await renderHook(() => useCurrencyScreen());
+
+    expect(setRateWarning).toHaveBeenCalledWith('');
+    expect(setRateWarning).not.toHaveBeenCalledWith(IMPLAUSIBLE_WARNING);
+  });
+
+  // `shouldDirty` is what the Controller's `onChange` does on a real keystroke,
+  // and it is the gate that makes the DRAFT the subject rather than the stored
+  // rate — which is still a plausible 50 here.
+  it('warns about an out-of-band value typed over a plausible stored rate', async () => {
+    const setRateWarning = jest.fn();
+    attachScreenStateWithWarningSpy(setRateWarning);
+    const { result } = await renderHook(() => useCurrencyScreen());
+
+    await act(() => result.current.form.setValue('rate', '0.005', { shouldDirty: true }));
+
+    expect(setRateWarning).toHaveBeenLastCalledWith(IMPLAUSIBLE_WARNING);
+  });
+
+  it('clears the warning when the typed value comes back inside the band', async () => {
+    const setRateWarning = jest.fn();
+    attachScreenStateWithWarningSpy(setRateWarning);
+    const { result } = await renderHook(() => useCurrencyScreen());
+
+    await act(() => result.current.form.setValue('rate', '0.005', { shouldDirty: true }));
+    await act(() => result.current.form.setValue('rate', '48.85', { shouldDirty: true }));
+
+    expect(setRateWarning).toHaveBeenLastCalledWith('');
+  });
+
+  // Scenario 23, and the only cover on the background `refreshRateIfStale` path:
+  // the field is never touched, so the store's rate is the subject. This row
+  // fails if `rate` leaves the effect's dep array OR if the dirty gate leaves
+  // the expression — the second is the more likely edit, because dropping it
+  // looks like a simplification and mount still passes without it.
+  it('warns when the store rate changes out of band under an untouched field', async () => {
+    const setRateWarning = jest.fn();
+    attachScreenStateWithWarningSpy(setRateWarning);
+    const currencyState = {
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate: jest.fn().mockResolvedValue(undefined),
+    };
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => currencyState);
+    const { rerender } = await renderHook(() => useCurrencyScreen());
+    expect(setRateWarning).toHaveBeenLastCalledWith('');
+
+    currencyState.rate = 0.0001;
+    await act(() => rerender(undefined));
+
+    expect(setRateWarning).toHaveBeenLastCalledWith(IMPLAUSIBLE_WARNING);
   });
 });
