@@ -86,7 +86,7 @@ jest.mock('heroui-native', () => {
 const baseProps = {
   // `liabilitiesCount: 0` below is what fixes the three values this fixture did
   // not previously carry: with no liabilities, netWorth === assets and
-  // netWorthUsd === assetsUsd. `assetsUsd` is NOT `assets / rate` (8650/49.06
+  // netWorthForeign === assetsForeign. `assetsForeign` is NOT `assets / rate` (8650/49.06
   // is 176.31); that mismatch is pre-existing, no assertion reads the two as a
   // converted pair, and it stays.
   netWorth: {
@@ -94,8 +94,8 @@ const baseProps = {
     assets: 8650,
     liabilities: 0,
     netWorth: 8650,
-    assetsUsd: 176,
-    netWorthUsd: 176,
+    assetsForeign: 176,
+    netWorthForeign: 176,
   } as const,
   rate: 49.06,
   isRateUsable: true,
@@ -172,8 +172,8 @@ const egpOnlyUnverifiedProps = {
     assets: 8650,
     liabilities: 0,
     netWorth: 8650,
-    assetsUsd: undefined,
-    netWorthUsd: undefined,
+    assetsForeign: undefined,
+    netWorthForeign: undefined,
   } as const,
   isRateUsable: false,
 };
@@ -215,7 +215,7 @@ describe('HeroCard on an EGP-only portfolio with an unverified rate (#257)', () 
     );
 
     expect(queryByTestId('dashboard-hero-rate-pill')).toBeNull();
-    expect(getByText(Strings.netWorthBreakdownUsdUnavailable)).toBeTruthy();
+    expect(getByText(Strings.netWorthBreakdownForeignUnavailable)).toBeTruthy();
     expect(getByText(/8,650/)).toBeTruthy();
   });
 });

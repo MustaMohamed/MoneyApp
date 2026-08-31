@@ -14,10 +14,10 @@ import type { LiquidityBreakdown } from '../dashboard.helpers';
  * never fetched a rate. No `?? 0` — `formatAmount(0)` renders `≈ 0.00 USD`, a wrong number
  * rather than an absent one.
  */
-export function resolveNetWorthUsdCaption(netWorthUsd: number | undefined): string {
-  return netWorthUsd === undefined
-    ? Strings.netWorthBreakdownUsdUnavailable
-    : Strings.netWorthBreakdownUsdApprox(formatCurrencyAmount(netWorthUsd, Currency.USD));
+export function resolveNetWorthForeignCaption(netWorthForeign: number | undefined): string {
+  return netWorthForeign === undefined
+    ? Strings.netWorthBreakdownForeignUnavailable
+    : Strings.netWorthBreakdownForeignApprox(formatCurrencyAmount(netWorthForeign, Currency.USD));
 }
 
 export type BreakdownRowKind = 'liquid' | 'reserve' | 'liability';

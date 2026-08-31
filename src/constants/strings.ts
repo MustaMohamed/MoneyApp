@@ -317,8 +317,8 @@ export const Strings = {
   dashboardBreakdownReserveCaption: 'Savings',
   dashboardBreakdownTotalDebt: 'Total debt',
   dashboardBreakdownInCredit: 'In credit',
-  netWorthBreakdownUsdUnavailable: '— USD',
-  netWorthBreakdownUsdApprox: (amount: string) => `≈ ${amount}`,
+  netWorthBreakdownForeignUnavailable: '— USD',
+  netWorthBreakdownForeignApprox: (amount: string) => `≈ ${amount}`,
 
   // The dashboard's rate refusal (#255). Modelled on N4's pair
   // (`n4RateNeededValue` / `n4CaptionRateNeeded`) so the two refusals read as

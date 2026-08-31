@@ -21,7 +21,7 @@ import type { AccountRow, LiabilityRow, LiquidityBreakdown } from '../dashboard.
 import {
   formatLiabilityRowValue,
   resolveBreakdownRowColors,
-  resolveNetWorthUsdCaption,
+  resolveNetWorthForeignCaption,
   shouldShowProportionBar,
 } from './net_worth_breakdown_sheet.helpers';
 
@@ -171,7 +171,7 @@ function NetWorthBreakdownBody({
           <Text className="font-inter-medium text-muted text-base">{netWorthParts.code}</Text>
         </Text>
         <Text variant="caption" className="text-muted mt-1">
-          {resolveNetWorthUsdCaption(amount.netWorthUsd)}
+          {resolveNetWorthForeignCaption(amount.netWorthForeign)}
         </Text>
       </View>
 

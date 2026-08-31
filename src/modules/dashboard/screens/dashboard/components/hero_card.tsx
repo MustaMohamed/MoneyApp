@@ -250,9 +250,9 @@ export function HeroCard({
                   user who had never fetched a rate. No `?? 0` — `formatAmount(0)`
                   is a wrong number, not an absent one. */}
               <Text className="text-foreground text-xs">
-                {netWorth.kind === 'amount' && netWorth.assetsUsd !== undefined
-                  ? formatCurrencyAmount(netWorth.assetsUsd, Currency.USD)
-                  : Strings.netWorthBreakdownUsdUnavailable}
+                {netWorth.kind === 'amount' && netWorth.assetsForeign !== undefined
+                  ? formatCurrencyAmount(netWorth.assetsForeign, Currency.USD)
+                  : Strings.netWorthBreakdownForeignUnavailable}
               </Text>
             </View>
             {/* Gated on the `isRateUsable` prop, decided once in

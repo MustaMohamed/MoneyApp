@@ -2,6 +2,7 @@ import { AccountType, Currency } from '@/constants/enums';
 import {
   AccountAggregationError,
   assertSupportedCurrency,
+  convertCurrency,
   countForeignAccounts,
   isRateUsable,
   isSupportedCurrency,
@@ -179,5 +180,112 @@ describe('assertSupportedCurrency — the accounts domain throws its own type', 
     expect(() => assertSupportedCurrency('constructor' as unknown as Currency)).toThrow(
       AccountAggregationError,
     );
+  });
+});
+
+interface ConversionCase {
+  case: string;
+  amount: number;
+  rate: number;
+  expected: number;
+}
+
+// A `Record` over the enum in BOTH dimensions, for the reason `EXPECTED_SIGNS`
+// above states: a third `Currency` member is a TYPE ERROR here, not a pair that
+// compiles untested and silently takes the wrong arm of the direction check.
+//
+// The identity pairs carry a deliberately absurd rate of 999. That is what
+// ASSERTS the rate is ignored on them; a plausible rate would leave the claim
+// resting on the expected value happening to match either way.
+const CONVERSION_CASES: Record<Currency, Record<Currency, ConversionCase>> = {
+  [Currency.EGP]: {
+    [Currency.EGP]: {
+      case: 'EGP -> EGP returns the amount and never reads the rate',
+      amount: 1234.56,
+      rate: 999,
+      expected: 1234.56,
+    },
+    [Currency.USD]: {
+      case: 'EGP -> USD divides, because exchange_rate is EGP per USD',
+      amount: 4885,
+      rate: 48.85,
+      expected: 100,
+    },
+  },
+  [Currency.USD]: {
+    [Currency.EGP]: {
+      case: 'USD -> EGP multiplies',
+      amount: 100,
+      rate: 48.85,
+      expected: 4885,
+    },
+    [Currency.USD]: {
+      case: 'USD -> USD returns the amount and never reads the rate',
+      amount: 100.5,
+      rate: 999,
+      expected: 100.5,
+    },
+  },
+};
+
+describe('convertCurrency — the one bidirectional conversion both resolvers share', () => {
+  it.each(
+    Object.entries(CONVERSION_CASES).flatMap(([from, row]) =>
+      Object.entries(row).map(([to, entry]) => [from, to, entry] as const),
+    ),
+  )('%s -> %s', (from, to, entry) => {
+    expect(
+      convertCurrency({
+        amount: entry.amount,
+        from: from as Currency,
+        to: to as Currency,
+        rate: entry.rate,
+      }),
+    ).toBe(entry.expected);
+  });
+
+  // The `@/utils/money` prohibition, as an assertion rather than a comment:
+  // rounding belongs at the fold, once, so this function must hand back the
+  // full float. `roundMoney(100 / 3)` would be 33.33.
+  it('does not round — the caller owns that, at the fold', () => {
+    expect(convertCurrency({ amount: 100, from: Currency.EGP, to: Currency.USD, rate: 3 })).toBe(
+      33.333333333333336,
+    );
+  });
+
+  it('throws on an unsupported source currency', () => {
+    expect(() =>
+      convertCurrency({
+        amount: 100,
+        from: 'GBP' as unknown as Currency,
+        to: Currency.EGP,
+        rate: 48.85,
+      }),
+    ).toThrow(AccountAggregationError);
+  });
+
+  // Both ends are asserted, not just the source: a body validating `from` alone
+  // compiles, passes the row above, and converts into a currency the schema
+  // should never have allowed.
+  it('throws on an unsupported destination currency', () => {
+    expect(() =>
+      convertCurrency({
+        amount: 100,
+        from: Currency.EGP,
+        to: 'GBP' as unknown as Currency,
+        rate: 48.85,
+      }),
+    ).toThrow(AccountAggregationError);
+  });
+
+  it('throws on an Object.prototype member masquerading as a currency', () => {
+    expect(() =>
+      convertCurrency({
+        amount: 100,
+        from: 'constructor' as unknown as Currency,
+        to: Currency.EGP,
+        rate: 48.85,
+      }),
+    ).toThrow(AccountAggregationError);
   });
 });

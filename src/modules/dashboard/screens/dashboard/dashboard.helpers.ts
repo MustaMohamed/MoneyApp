@@ -61,7 +61,7 @@ import { roundMoney } from '@/utils/money';
  * stated are two questions with two answers. The EGP total needs a rate only
  * when something is foreign; the `~USD` equivalent needs a verified rate ALWAYS,
  * because the conversion is the whole point of it. So on the amount path
- * `assetsUsd` and `netWorthUsd` are `undefined` exactly when the rate is
+ * `assetsForeign` and `netWorthForeign` are `undefined` exactly when the rate is
  * unusable.
  */
 export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
@@ -130,8 +130,8 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
   //
   // `undefined` when the rate is unusable, never `?? 0` and never a substituted
   // rate: `formatAmount(0)` renders a wrong number rather than an absent one.
-  const assetsUsd = rateUsable ? assets / rate : undefined;
-  const netWorthUsd = rateUsable ? netWorth / rate : undefined;
+  const assetsForeign = rateUsable ? assets / rate : undefined;
+  const netWorthForeign = rateUsable ? netWorth / rate : undefined;
 
   // `normalizeNegativeZero` is the LAST operation before any of these reaches a
   // formatter — `Intl.NumberFormat` renders `-0` as "-0".
@@ -140,9 +140,12 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
     assets: normalizeNegativeZero(roundMoney(assets)),
     liabilities: normalizeNegativeZero(roundMoney(liabilities)),
     netWorth: normalizeNegativeZero(roundMoney(netWorth)),
-    assetsUsd: assetsUsd === undefined ? undefined : normalizeNegativeZero(roundMoney(assetsUsd)),
-    netWorthUsd:
-      netWorthUsd === undefined ? undefined : normalizeNegativeZero(roundMoney(netWorthUsd)),
+    assetsForeign:
+      assetsForeign === undefined ? undefined : normalizeNegativeZero(roundMoney(assetsForeign)),
+    netWorthForeign:
+      netWorthForeign === undefined
+        ? undefined
+        : normalizeNegativeZero(roundMoney(netWorthForeign)),
   };
 }
 

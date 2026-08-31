@@ -29,8 +29,8 @@ describe('resolveNetWorthStatColor — stat_cards.tsx netColor', () => {
     assets: 10000,
     liabilities: 10000 - netWorth,
     netWorth,
-    assetsUsd: undefined,
-    netWorthUsd: undefined,
+    assetsForeign: undefined,
+    netWorthForeign: undefined,
   });
 
   it('rate-needed stays warning', () => {

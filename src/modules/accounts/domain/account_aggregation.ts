@@ -63,7 +63,7 @@ export function normalizeNegativeZero(value: number): number {
  * computed. Mirrors `StartingNetPosition` deliberately — a reader comparing the
  * two should find the same shape.
  *
- * `assetsUsd` and `netWorthUsd` are `undefined` exactly when the rate is not
+ * `assetsForeign` and `netWorthForeign` are `undefined` exactly when the rate is not
  * usable. That is a SECOND, independent question from the EGP total: the EGP
  * total needs a rate only when something is foreign, while the `~USD`
  * equivalent needs a verified rate always, because the conversion is the whole
@@ -76,8 +76,8 @@ export type DashboardNetWorth =
       assets: number;
       liabilities: number;
       netWorth: number;
-      assetsUsd: number | undefined;
-      netWorthUsd: number | undefined;
+      assetsForeign: number | undefined;
+      netWorthForeign: number | undefined;
     }
   | { kind: 'rate-needed'; foreignCount: number };
 
@@ -225,4 +225,45 @@ export function assertSupportedCurrency(currency: Currency): void {
   if (!isSupportedCurrency(currency)) {
     throw new AccountAggregationError(`Unsupported currency: ${currency}`);
   }
+}
+
+/**
+ * The one bidirectional conversion, shared by `computeNetWorth`, the two
+ * dashboard breakdown resolvers, `resolveStartingNetPosition` and N4's
+ * approximation pill. Before it, each of those carried its own copy of the
+ * direction check, and `computeNetWorth`'s copy multiplied unconditionally.
+ *
+ * `exchange_rate` is EGP per USD, so the asymmetry is the whole point:
+ * `USD -> EGP` MULTIPLIES and `EGP -> USD` DIVIDES. A flat `amount × rate` is
+ * correct in exactly one of the four pairs. `resolveTransactionAmounts` is the
+ * authority for that asymmetry on the write path; this is its aggregation-side
+ * counterpart.
+ *
+ * An object parameter, not four positionals: `from` and `to` are the same type,
+ * so a transposed pair would compile silently, and the direction is the one
+ * thing this function exists to get right.
+ *
+ * The identity pair returns `amount` untouched and never reads `rate` — an
+ * EGP-only portfolio under an EGP base converts nothing, so an unusable rate
+ * must be arithmetically inert rather than a division by a placeholder.
+ *
+ * **Does not round, and must not import `@/utils/money`.** Rounding is the
+ * caller's, at the fold, once — `round2(Σ sign × round2(converted))`. Rounding
+ * here would round twice on every path and change the fold's answer at the
+ * half-cent (ADR 2026-08-22).
+ */
+export function convertCurrency(input: {
+  amount: number;
+  from: Currency;
+  to: Currency;
+  rate: number;
+}): number {
+  const { amount, from, to, rate } = input;
+  assertSupportedCurrency(from);
+  assertSupportedCurrency(to);
+
+  if (from === to) {
+    return amount;
+  }
+  return from === Currency.USD ? amount * rate : amount / rate;
 }

@@ -1,5 +1,6 @@
 import { Currency } from '@/constants/enums';
 import {
+  convertCurrency,
   countForeignAccounts,
   isRateUsable,
   isSupportedCurrency,
@@ -83,20 +84,6 @@ export function selectActiveAccounts(accounts: readonly Account[]): readonly Acc
   return accounts.filter((account) => account.is_archived === 0);
 }
 
-// `exchange_rate` is EGP per USD: USD -> EGP multiplies, EGP -> USD divides.
-// `resolveTransactionAmounts` is the authority for that asymmetry.
-function convertToBaseCurrency(
-  amount: number,
-  currency: Currency,
-  baseCurrency: Currency,
-  rate: number,
-): number {
-  if (currency === baseCurrency) {
-    return amount;
-  }
-  return currency === Currency.USD ? amount * rate : amount / rate;
-}
-
 /**
  * `round2( Σ sign × round2(converted opening_balance) )`, over non-archived
  * accounts, in array order.
@@ -137,7 +124,12 @@ export function resolveStartingNetPosition(input: StartingNetPositionInput): Sta
       sum +
       resolveAccountAggregationSign(account.type) *
         roundMoney(
-          convertToBaseCurrency(account.opening_balance, account.currency, baseCurrency, rate),
+          convertCurrency({
+            amount: account.opening_balance,
+            from: account.currency,
+            to: baseCurrency,
+            rate,
+          }),
         ),
     0,
   );

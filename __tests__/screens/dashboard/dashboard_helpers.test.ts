@@ -96,7 +96,7 @@ interface NetWorthRow {
 const NET_WORTH_ROWS: readonly NetWorthRow[] = [
   {
     // Row 1 keeps its USD numbers because its marker is VERIFIED — which is what
-    // makes `assetsUsd: 200` legitimate rather than a rate-50 guess asserted
+    // makes `assetsForeign: 200` legitimate rather than a rate-50 guess asserted
     // inside the suite meant to forbid guesses.
     case: 'an EGP-only portfolio with a verified rate; nothing is converted, the ~USD line still fills in',
     accounts: [makeAccount({ current_balance: 10000 })],
@@ -107,14 +107,14 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       assets: 10000,
       liabilities: 0,
       netWorth: 10000,
-      assetsUsd: 200,
-      netWorthUsd: 200,
+      assetsForeign: 200,
+      netWorthForeign: 200,
     },
   },
   {
     // The largest affected population: a fresh install that has never fetched a
     // rate. The EGP total is stated normally; the ~USD equivalent is ABSENT, not
-    // a placeholder-rate guess. Populate `assetsUsd` from `rate` unconditionally
+    // a placeholder-rate guess. Populate `assetsForeign` from `rate` unconditionally
     // and only this row and the two below it fail — repo policy forbids catching
     // it in a render test, so if this table does not catch it nothing does.
     case: 'an EGP-only portfolio whose rate was never verified; the ~USD fields are absent',
@@ -126,8 +126,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       assets: 12000,
       liabilities: 0,
       netWorth: 12000,
-      assetsUsd: undefined,
-      netWorthUsd: undefined,
+      assetsForeign: undefined,
+      netWorthForeign: undefined,
     },
   },
   {
@@ -140,8 +140,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       assets: 0,
       liabilities: 0,
       netWorth: 0,
-      assetsUsd: undefined,
-      netWorthUsd: undefined,
+      assetsForeign: undefined,
+      netWorthForeign: undefined,
     },
   },
   {
@@ -185,8 +185,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       assets: 1000,
       liabilities: 0,
       netWorth: 1000,
-      assetsUsd: undefined,
-      netWorthUsd: undefined,
+      assetsForeign: undefined,
+      netWorthForeign: undefined,
     },
   },
   {
@@ -203,8 +203,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       assets: 113860,
       liabilities: 8450,
       netWorth: 105410,
-      assetsUsd: 2342.8,
-      netWorthUsd: 2168.93,
+      assetsForeign: 2342.8,
+      netWorthForeign: 2168.93,
     },
   },
   {
@@ -229,8 +229,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       assets: 5000,
       liabilities: 4860,
       netWorth: 140,
-      assetsUsd: 102.88,
-      netWorthUsd: 2.88,
+      assetsForeign: 102.88,
+      netWorthForeign: 2.88,
     },
   },
   {
@@ -243,8 +243,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       assets: 0,
       liabilities: 8450,
       netWorth: -8450,
-      assetsUsd: 0,
-      netWorthUsd: -169,
+      assetsForeign: 0,
+      netWorthForeign: -169,
     },
   },
   {
@@ -263,8 +263,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       assets: 1000,
       liabilities: 0,
       netWorth: 1000,
-      assetsUsd: 20,
-      netWorthUsd: 20,
+      assetsForeign: 20,
+      netWorthForeign: 20,
     },
   },
   {
@@ -292,8 +292,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       assets: 2,
       liabilities: 0,
       netWorth: 2,
-      assetsUsd: 1,
-      netWorthUsd: 1,
+      assetsForeign: 1,
+      netWorthForeign: 1,
     },
   },
   {
@@ -315,8 +315,8 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
       assets: 0.3,
       liabilities: 0.3,
       netWorth: 0,
-      assetsUsd: 0.01,
-      netWorthUsd: 0,
+      assetsForeign: 0.01,
+      netWorthForeign: 0,
     },
   },
   {
@@ -355,7 +355,7 @@ const NET_WORTH_ROWS: readonly NetWorthRow[] = [
 ];
 
 describe('computeNetWorth', () => {
-  // `toStrictEqual`, not `toEqual`: an ABSENT `assetsUsd` key must not be
+  // `toStrictEqual`, not `toEqual`: an ABSENT `assetsForeign` key must not be
   // silently equal to an explicit `undefined` one, because the union declares
   // both USD fields as present-and-possibly-undefined.
   //
@@ -373,12 +373,12 @@ describe('computeNetWorth', () => {
     ).toStrictEqual(expected);
   });
 
-  // RETIRED here: `it('returns netWorthUsd=0 when rate=0 to avoid division by
+  // RETIRED here: `it('returns netWorthForeign=0 when rate=0 to avoid division by
   // zero')`, which asserted the contract this ticket reverses. What it guarded —
   // the `rate > 0 ? value / rate : 0` fallback — no longer exists. What replaces
   // it is NOT a refusal: its fixture was a single EGP bank account at rate 0, so
   // `foreignCount` is 0, nothing needs converting, and the outcome is an amount
-  // (`assets: 5000`, `netWorth: 5000`) whose `assetsUsd` and `netWorthUsd`
+  // (`assets: 5000`, `netWorth: 5000`) whose `assetsForeign` and `netWorthForeign`
   // are `undefined` because the rate is unusable. The EGP-only rows above assert
   // exactly that shape. Recorded in
   // `docs/adr/2026-08-19-dashboard-net-worth-refusal.md` §5; not deleted silently
@@ -440,8 +440,8 @@ describe('computeNetWorth — a manual rate carrying no marker', () => {
       assets: 5800,
       liabilities: 0,
       netWorth: 5800,
-      assetsUsd: 120.83,
-      netWorthUsd: 120.83,
+      assetsForeign: 120.83,
+      netWorthForeign: 120.83,
     });
   });
 
@@ -458,12 +458,12 @@ describe('computeNetWorth — a manual rate carrying no marker', () => {
 describe('computeNetWorth — negative zero', () => {
   // Two independent -0 sites, and neither one's zero reaches the other (ADR
   // 2026-08-18 §4), so both need their own assertion: the netWorth
-  // accumulator lands on -2.7755575615628914e-17, and netWorthUsd divides that
+  // accumulator lands on -2.7755575615628914e-17, and netWorthForeign divides that
   // RAW accumulator by the rate to -5.551115123125783e-19. roundMoney maps both
   // to -0. Divide the already-normalised netWorth instead and the second
   // assertion below can never fail.
   //
-  // The marker must be VERIFIED, or `netWorthUsd` is `undefined` and the second
+  // The marker must be VERIFIED, or `netWorthForeign` is `undefined` and the second
   // assertion becomes vacuous rather than falsifiable — the same trap, one level
   // up, as dividing the normalised value.
   const negativeZeroAccounts = [
@@ -485,8 +485,8 @@ describe('computeNetWorth — negative zero', () => {
     expect(Object.is(result().netWorth, 0)).toBe(true);
   });
 
-  it('normalises netWorthUsd to +0', () => {
-    expect(Object.is(result().netWorthUsd, 0)).toBe(true);
+  it('normalises netWorthForeign to +0', () => {
+    expect(Object.is(result().netWorthForeign, 0)).toBe(true);
   });
 
   it('and therefore renders "0", which is what the user sees', () => {
