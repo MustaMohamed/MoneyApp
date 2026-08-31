@@ -277,13 +277,15 @@ export function HeroCard({
             </View>
             {/* Gated on the `isRateUsable` prop, decided once in
                 `dashboard.hook.ts` and never re-derived here — the
-                `account_card.tsx:156-170` adoption pattern. `isRateUsable` is
-                false on every `rate-needed` outcome (`dashboard.helpers.ts:87-90`),
+                `account_card.tsx:157-178` adoption pattern. `isRateUsable` is
+                false on every `rate-needed` outcome (`dashboard.helpers.ts:82-85`),
                 so this agrees with the old `netWorth.kind === 'rate-needed'`
-                check on that path; they diverge on an EGP-only portfolio whose
-                rate was never verified — `kind` is still 'amount' there, so the
-                old check printed the unverified rate as fact. That gap is
-                #257. */}
+                check on that path; they diverge on a portfolio holding nothing
+                but base-currency accounts and no verified rate — `kind` is
+                still 'amount' there, so the old check printed the unverified
+                rate as fact. Under an EGP base that is the EGP-only portfolio;
+                under a USD base those same accounts are all foreign and `kind`
+                is 'rate-needed', where the two agree. That gap is #257. */}
             {isRateUsable ? (
               <View
                 testID="dashboard-hero-rate-pill"

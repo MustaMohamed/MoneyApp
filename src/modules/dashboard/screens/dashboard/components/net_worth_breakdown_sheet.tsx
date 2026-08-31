@@ -48,20 +48,23 @@ interface NetWorthBreakdownSheetProps {
  * `computeLiabilitiesBreakdown`, is why neither helper needs one (#259 C7):
  *
  * - the body renders iff `netWorth.kind === 'amount'` (below), which is
- *   `foreignCount === 0 || rateUsable` (`dashboard.helpers.ts:84-90`);
- * - both helpers multiply by `rate` only when `a.currency === Currency.USD`,
- *   and `Currency` has exactly two members (`enums.ts:16-19`);
- * - so the only path a gate inside either helper could fire on is
- *   EGP-only-unverified — where the rate is arithmetically inert (nothing to
- *   convert) and the gate would blank a correct breakdown instead of guarding
- *   anything. `liquidity`/`liabilities` are non-optional props: there is no
- *   third, gated state for either to represent.
+ *   `foreignCount === 0 || rateUsable` (`dashboard.helpers.ts:79-85`);
+ * - both helpers convert through `convertCurrency` against `baseCurrency`
+ *   (`dashboard.helpers.ts:230`, `:275`), and that returns the amount untouched
+ *   whenever `from === to` (`account_aggregation.ts:281-283`);
+ * - `foreignCount === 0` means every non-archived account already holds the
+ *   base currency (`countForeignAccounts`, `account_aggregation.ts:202-205`),
+ *   so the only path a gate inside either helper could fire on is
+ *   base-only-unverified — where every conversion is the identity, the rate is
+ *   arithmetically inert, and the gate would blank a correct breakdown instead
+ *   of guarding anything. `liquidity`/`liabilities` are non-optional props:
+ *   there is no third, gated state for either to represent.
  *
  * The pin for this argument is the rate-independence test in
  * `dashboard_helpers.test.ts` (T6): both helpers return deeply equal results
- * for the same EGP-only accounts at `rate = 50` and `rate = 0.0001`. Body
- * suppression above stands as the second guard behind the non-tappable hero
- * (`hero_card.tsx`'s refusal-path comment).
+ * for the same base-currency-only accounts at `rate = 50` and `rate = 0.0001`.
+ * Body suppression above stands as the second guard behind the non-tappable
+ * hero (`hero_card.tsx`'s refusal-path comment).
  */
 export function NetWorthBreakdownSheet({
   isOpen,
