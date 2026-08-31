@@ -70,6 +70,24 @@ export function useCurrencyScreen() {
     CURRENCY_CONFIG[baseCurrency].code,
   );
 
+  // The stored rate, judged at RENDER. `index.tsx` feeds this to the accordion's
+  // `defaultValue`, and `useControllableState` reads `defaultProp` exactly once
+  // into a `useState` — so this must NOT be `rateWarning !== ''`, which the
+  // effect below writes one tick later and which is therefore `''` at first
+  // render. That version compiles, type-checks, and captures collapsed every
+  // time.
+  //
+  // Safe to call here even though `isRateImplausible` throws on a non-finite or
+  // non-positive rate: no route mounts before hydration — `loadRate()` sits in
+  // the awaited `Promise.all` at `use_layout_init.hook.ts:38`, and
+  // `_layout.tsx:78-79` renders `<Stack>` only at `status === 'ready'`. The
+  // effect below makes the same call one tick later on the same value.
+  //
+  // Mount-only is the feature, not a limitation: `defaultProp` is never re-read,
+  // so a user who collapses the section stays collapsed and a later refresh does
+  // not spring it back open.
+  const isStoredRateImplausible = isRateImplausible(rate);
+
   const form = useZodForm(manualRateSchema, {
     defaultValues: { rate: String(rate) },
   });
@@ -93,10 +111,17 @@ export function useCurrencyScreen() {
   // No throw path: `parseRateText` returns `undefined` rather than a bad number,
   // and the store's `rate` is finite and positive by construction.
   //
-  // Known residual: a refresh landing under an unsaved out-of-band draft warns
-  // about the draft rather than the fetched value, which is visible in the card
-  // above. It reaches the button path here as well as the background one —
+  // Known residual, and narrowed rather than closed by the mount-open flag
+  // above: a refresh landing under an unsaved out-of-band draft warns about the
+  // draft rather than the fetched value, which is visible in the card above. It
+  // reaches the button path here as well as the background one —
   // `shouldRefreshRate`'s manual-override short-circuit only covers the second.
+  //
+  // The second half of it is deliberate. The accordion opens for an out-of-band
+  // rate at MOUNT only, so a refresh landing while the screen is already open
+  // leaves the warning behind a section the user may have collapsed. Not fixed
+  // and not to be: making the accordion controlled would re-open a section the
+  // user just closed, which is a worse answer than a warning they can reach.
   const rateField = useWatch({ control: form.control, name: 'rate' });
   const isRateFieldDirty = form.formState.dirtyFields.rate === true;
   useEffect(() => {
@@ -139,6 +164,7 @@ export function useCurrencyScreen() {
       isSaving,
       fetchError,
       rateWarning,
+      isStoredRateImplausible,
       saveError,
       formattedDate,
       footerNote,

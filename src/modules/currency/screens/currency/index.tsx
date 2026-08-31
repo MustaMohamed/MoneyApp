@@ -20,6 +20,7 @@ export default function CurrencyScreen() {
     isSaving,
     fetchError,
     rateWarning,
+    isStoredRateImplausible,
     saveError,
     formattedDate,
     footerNote,
@@ -75,9 +76,16 @@ export default function CurrencyScreen() {
 
         <FormErrorText message={fetchError} className="mx-4 mt-2" />
 
-        {/* Manual override — HeroUI Accordion */}
+        {/* Manual override — HeroUI Accordion. Opens on mount when the STORED
+            rate is out of band: the warning lives in this section's content, so
+            collapsed-by-default meant a mount-time warning nobody could see.
+            Uncontrolled on purpose — `defaultValue` is read once, so a user who
+            collapses this stays collapsed. */}
         <View className="mx-4 mt-2">
-          <Accordion variant="surface">
+          <Accordion
+            variant="surface"
+            defaultValue={isStoredRateImplausible ? 'manual-override' : undefined}
+          >
             <Accordion.Item value="manual-override">
               <Accordion.Trigger>
                 <View style={{ flex: 1 }}>

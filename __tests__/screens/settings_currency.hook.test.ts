@@ -347,4 +347,34 @@ describe('useCurrencyScreen — the rate plausibility warning', () => {
 
     expect(setRateWarning).toHaveBeenLastCalledWith(IMPLAUSIBLE_WARNING);
   });
+
+  // The two rows below pin the accordion's mount-open flag — what makes the
+  // warning above reachable without a tap. Asserted on the PUBLISHED value, not
+  // on `isRateImplausible` directly: a pure test of the predicate passes with the
+  // screen still collapsed.
+  //
+  // They are also what catches the one wrong implementation that compiles.
+  // `defaultValue` is read once at first render, when `rateWarning` is still `''`
+  // — which is exactly what the mocked screen state publishes here. Compute the
+  // flag from `rateWarning` rather than from the store's `rate` and the first row
+  // goes red.
+  it('publishes the mount-open flag for an out-of-band stored rate', async () => {
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 0.0001,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate: jest.fn().mockResolvedValue(undefined),
+    }));
+
+    const { result } = await renderHook(() => useCurrencyScreen());
+
+    expect(result.current.state.isStoredRateImplausible).toBe(true);
+  });
+
+  it('leaves the mount-open flag false for a stored rate inside the band', async () => {
+    const { result } = await renderHook(() => useCurrencyScreen());
+
+    expect(result.current.state.isStoredRateImplausible).toBe(false);
+  });
 });

@@ -17,19 +17,22 @@ nothing else about it changes.
 
 ## 1. Where base currency is read, and the rule that generalises it
 
-`useOnboardingStore((s) => s.baseCurrency)`, in exactly two hooks — `dashboard.hook.ts:90` and
-`currency.hook.ts` — passed downward as a parameter from there. **No `domain/` file imports a
-store.** `NetWorthInput.baseCurrency` and `buildInfoRows`'s fifth parameter are both required with
-no default: 12 failing `computeNetWorth({...})` literals and 25 failing breakdown call sites are
-what the enforcement looks like working, and a default is the one identified way to reopen the
-write path this ticket rules out.
+`useOnboardingStore((s) => s.baseCurrency)`, in five hooks, passed downward as a parameter from
+each. This ticket adds two — `dashboard.hook.ts:90` and `currency.hook.ts:37`; the other three are
+pre-existing onboarding screens: `welcome.hook.ts:14`, `add_account.hook.ts:21`, `ready.hook.ts:19`.
+`grep -rn "useOnboardingStore((s) => s.baseCurrency)" src/` returns exactly those five. **No
+`domain/` file imports a store.** `NetWorthInput.baseCurrency` and `buildInfoRows`'s fifth parameter
+are both required with no default: 12 failing `computeNetWorth({...})` literals and 25 failing
+breakdown call sites are what the enforcement looks like working, and a default is the one
+identified way to reopen the write path this ticket rules out.
 
-The discriminator, because two hooks reading a store is otherwise read as licence for any hook to:
+The discriminator, because five hooks reading a store is otherwise read as licence for any hook to:
 **a screen-entry hook reads the store; a shared component hook takes the value as a parameter.**
-`dashboard.hook.ts` and `currency.hook.ts` back one-line route re-exports and have no host to pass
-from. `use_account_form.hook.ts:14-19` has two hosts that disagree on the value — Settings passes
-`Currency.EGP`, onboarding passes the store's base — and its docblock already says the form never
-reads the onboarding store itself. That stays true.
+All five back one-line route re-exports under `src/app/` and have no host to pass from — five for
+five, which is what makes this a rule rather than a description of two files.
+`use_account_form.hook.ts:14-19` is the other side: two hosts that disagree on the value — Settings
+passes `Currency.EGP`, onboarding passes the store's base — and its docblock already says the form
+never reads the onboarding store itself. That stays true.
 
 Not done here: moving base currency out of `useOnboardingStore` entirely, which now covers four
 sites — the two this ticket adds plus audit M28's remaining two — and is sequenced before M28's.
