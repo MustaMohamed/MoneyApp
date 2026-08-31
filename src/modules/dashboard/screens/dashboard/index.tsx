@@ -170,6 +170,7 @@ export default function DashboardScreen() {
                       <HeroCard
                         netWorth={state.netWorth}
                         rate={state.rate}
+                        isRateUsable={state.isRateUsable}
                         isManualOverride={state.isManualOverride}
                         assetsCount={state.accountCounts.assets}
                         liabilitiesCount={state.accountCounts.liabilities}

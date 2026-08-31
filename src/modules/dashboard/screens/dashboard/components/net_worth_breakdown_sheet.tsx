@@ -19,8 +19,10 @@ import { ms } from '@/utils/responsive';
 
 import type { AccountRow, LiabilityRow, LiquidityBreakdown } from '../dashboard.helpers';
 import {
+  formatLiabilityRowValue,
   resolveBreakdownRowColors,
   resolveNetWorthUsdCaption,
+  shouldShowProportionBar,
 } from './net_worth_breakdown_sheet.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -39,19 +41,25 @@ interface NetWorthBreakdownSheetProps {
 }
 
 /**
- * On a `rate-needed` outcome this renders the refusal and NOTHING ELSE.
+ * On a `rate-needed` outcome this renders the refusal and NOTHING ELSE — and
+ * that suppression, not a gate inside `computeLiquidityBreakdown` or
+ * `computeLiabilitiesBreakdown`, is why neither helper needs one (#259 C7):
  *
- * `computeLiquidityBreakdown` and `computeLiabilitiesBreakdown` still take the
- * raw `rate` and never see `rateUpdatedAt` — chunk 1 rounded them, it did not
- * gate them — so rendering the body underneath a refused headline would print
- * `100 × 50 = 5000 EGP` computed from the placeholder rate the headline just
- * refused to use. Suppressing the body closes that incoherence without touching
- * either helper.
+ * - the body renders iff `netWorth.kind === 'amount'` (below), which is
+ *   `foreignCount === 0 || rateUsable` (`dashboard.helpers.ts:84-90`);
+ * - both helpers multiply by `rate` only when `a.currency === Currency.USD`,
+ *   and `Currency` has exactly two members (`enums.ts:16-19`);
+ * - so the only path a gate inside either helper could fire on is
+ *   EGP-only-unverified — where the rate is arithmetically inert (nothing to
+ *   convert) and the gate would blank a correct breakdown instead of guarding
+ *   anything. `liquidity`/`liabilities` are non-optional props: there is no
+ *   third, gated state for either to represent.
  *
- * What those two still owe is PROVENANCE gating: reading `rateUpdatedAt` and
- * refusing through `isRateUsable`, the way `computeNetWorth` does. #259 owns
- * that — its scope is widened from rounding contracts to name rate provenance
- * as well — and spec §3b holds this chunk to rounding only.
+ * The pin for this argument is the rate-independence test in
+ * `dashboard_helpers.test.ts` (T6): both helpers return deeply equal results
+ * for the same EGP-only accounts at `rate = 50` and `rate = 0.0001`. Body
+ * suppression above stands as the second guard behind the non-tappable hero
+ * (`hero_card.tsx`'s refusal-path comment).
  */
 export function NetWorthBreakdownSheet({
   isOpen,
@@ -136,12 +144,15 @@ function NetWorthBreakdownBody({
   liabilities: LiabilityRow[];
 }): React.ReactElement {
   const assetsTotal = liquidity.liquidEgp + liquidity.reserveEgp;
-  const liquidPct = assetsTotal > 0 ? liquidity.liquidEgp / assetsTotal : 0;
+  // Gated on both parts being non-negative, not just the total being positive
+  // (#259 C6) — see `shouldShowProportionBar`'s own comment for the overdrawn-
+  // account defect this closes.
+  const showProportionBar = shouldShowProportionBar(liquidity);
+  const liquidPct = showProportionBar ? liquidity.liquidEgp / assetsTotal : 0;
   const reservePct = 1 - liquidPct;
   const showLiquid = liquidity.liquidCount > 0;
   const showReserve = liquidity.reserveCount > 0;
   const showLiabilities = liabilities.length > 0;
-  const totalDebt = liabilities.reduce((sum, row) => sum + row.balanceEgp, 0);
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
   const netWorthEgpParts = formatCurrencyParts(netWorth.netWorthEgp, Currency.EGP);
   const liquidColors = resolveBreakdownRowColors('liquid');
@@ -176,7 +187,7 @@ function NetWorthBreakdownBody({
             assetsAccountCount,
           )}
         </Text>
-        {assetsTotal > 0 && (
+        {showProportionBar && (
           <View
             className="mb-2 overflow-hidden rounded"
             style={{ height: ms(6), flexDirection: 'row' }}
@@ -196,7 +207,7 @@ function NetWorthBreakdownBody({
               icon="wallet-outline"
               label={Strings.dashboardBreakdownLiquid}
               caption={Strings.dashboardBreakdownLiquidCaption}
-              value={liquidity.liquidEgp}
+              value={formatAmount(liquidity.liquidEgp)}
               count={liquidity.liquidCount}
             />
             {liquidity.liquidAccounts.map((acc) => (
@@ -211,7 +222,7 @@ function NetWorthBreakdownBody({
               icon="piggy-bank"
               label={Strings.dashboardBreakdownReserve}
               caption={Strings.dashboardBreakdownReserveCaption}
-              value={liquidity.reserveEgp}
+              value={formatAmount(liquidity.reserveEgp)}
               count={liquidity.reserveCount}
             />
             {liquidity.reserveAccounts.map((acc) => (
@@ -239,20 +250,25 @@ function NetWorthBreakdownBody({
                 icon="credit-card"
                 label={row.name}
                 caption={
-                  row.statementDueDay != null && row.statementDueDay > 0
-                    ? `due ${nextDueDate(row.statementDueDay)}`
-                    : undefined
+                  // The trigger reads the NUMBER, not the rendered text: a
+                  // true `-0` row (the only other non-positive case
+                  // `roundMoney` can produce) fails `< 0` and keeps the
+                  // due-caption below (#259 C2/C4).
+                  row.balanceEgp < 0
+                    ? Strings.dashboardBreakdownInCredit
+                    : row.statementDueDay != null && row.statementDueDay > 0
+                      ? `due ${nextDueDate(row.statementDueDay)}`
+                      : undefined
                 }
-                value={row.balanceEgp}
+                value={formatLiabilityRowValue(row.balanceEgp)}
                 valueColor={liabilityColors.value}
-                negative
               />
             ))}
             <View className="bg-separator mt-1 mb-2 h-px" />
             <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
               <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
               <Text className="font-sora-bold" style={{ color: Colors.dark.gold }}>
-                {formatAmount(totalDebt)}
+                {formatAmount(netWorth.liabilitiesEgp)}
               </Text>
             </View>
           </View>
@@ -267,22 +283,21 @@ interface LegendRowProps {
   icon?: IconName;
   label: string;
   caption?: string;
-  value: number;
+  /**
+   * Pre-formatted display text — every call site renders through a formatter
+   * before this prop sees the value: `formatAmount` at the liquid/reserve
+   * call sites, `formatLiabilityRowValue` (#259 C3) at the liability one,
+   * which owns that row's signed glyph. A single `string` channel, not
+   * `number | string`, keeps that true at the TYPE level: reverting the
+   * liability call site to a raw `row.balanceEgp` number is a compile error
+   * here, not a silently unsigned row rendered through `formatAmount`.
+   */
+  value: string;
   count?: number;
   valueColor?: string;
-  negative?: boolean;
 }
 
-function LegendRow({
-  color,
-  icon,
-  label,
-  caption,
-  value,
-  count,
-  valueColor,
-  negative,
-}: LegendRowProps) {
+function LegendRow({ color, icon, label, caption, value, count, valueColor }: LegendRowProps) {
   return (
     <View className="flex-row items-center justify-between py-2" style={{ flexDirection: 'row' }}>
       <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(10) }}>
@@ -308,7 +323,7 @@ function LegendRow({
         </View>
       </View>
       <Text className="font-sora-semibold" style={valueColor ? { color: valueColor } : undefined}>
-        {negative ? `−${formatAmount(value)}` : formatAmount(value)}
+        {value}
       </Text>
     </View>
   );

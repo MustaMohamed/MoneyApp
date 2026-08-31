@@ -4,6 +4,7 @@ import {
   type DashboardNetWorth,
 } from '@/modules/accounts/domain/account_aggregation';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { shouldShowProportionBar } from '@/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.helpers';
 import {
   buildDashboardBudgetSummary,
   computeDashboardAccountCounts,
@@ -655,6 +656,25 @@ describe('computeLiquidityBreakdown', () => {
     expect(result.liquidEgp).toBe(0);
     expect(result.reserveEgp).toBe(1000);
   });
+
+  // #259 C6 / S7: `shouldShowProportionBar` pins the pure predicate on its own
+  // fixtures (net_worth_breakdown_sheet.helpers.test.ts); this is the
+  // real-path proof that a sub-1.0 rate can actually collapse both parts to
+  // zero through this function's own rounding, not just in a hand-built parts
+  // object.
+  it('collapses to false through the bar gate when a sub-1.0 rate rounds every part to zero (S7)', () => {
+    const accounts: Account[] = [
+      makeAccount({
+        id: '1',
+        type: AccountType.Bank,
+        currency: Currency.USD,
+        current_balance: 0.02,
+      }),
+    ];
+    const { liquidEgp, reserveEgp } = computeLiquidityBreakdown(accounts, 0.0001);
+
+    expect(shouldShowProportionBar({ liquidEgp, reserveEgp })).toBe(false);
+  });
 });
 
 describe('computeLiabilitiesBreakdown', () => {
@@ -718,7 +738,7 @@ describe('computeLiabilitiesBreakdown', () => {
     expect(row.balanceEgp).toBeCloseTo(4885, 0);
   });
 
-  it('uses absolute value if a card balance is stored as negative (defensive)', () => {
+  it('keeps a negative stored balance signed — an overpaid card is in credit, not a magnitude to launder (#259)', () => {
     const accounts: Account[] = [
       makeAccount({
         id: '1',
@@ -728,7 +748,71 @@ describe('computeLiabilitiesBreakdown', () => {
       }),
     ];
     const [row] = computeLiabilitiesBreakdown(accounts, 48.85);
-    expect(row.balanceEgp).toBe(1000);
+    expect(row.balanceEgp).toBe(-1000);
+  });
+
+  it('keeps rows signed and sorted debt-first: an overpaid card sorts last (S5)', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', name: 'Visa A', type: AccountType.CreditCard, current_balance: 5000 }),
+      makeAccount({ id: '2', name: 'Visa B', type: AccountType.CreditCard, current_balance: -300 }),
+    ];
+    const result = computeLiabilitiesBreakdown(accounts, 48.85);
+    expect(result.map((row) => row.balanceEgp)).toEqual([5000, -300]);
+  });
+});
+
+describe('computeNetWorth — liabilitiesEgp is the signed owed-frame total (#259 T4)', () => {
+  it('nets an overpaid card against unpaid debt (S5)', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', type: AccountType.CreditCard, current_balance: 5000 }),
+      makeAccount({ id: '2', type: AccountType.CreditCard, current_balance: -300 }),
+    ];
+    const { liabilitiesEgp } = amount(
+      computeNetWorth({ accounts, rate: 50, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+    );
+    expect(liabilitiesEgp).toBe(4700);
+    expect(formatAmount(liabilitiesEgp)).toBe('4,700');
+  });
+
+  it('goes negative when every card is in credit (S5b)', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', type: AccountType.CreditCard, current_balance: -300 }),
+    ];
+    const { liabilitiesEgp } = amount(
+      computeNetWorth({ accounts, rate: 50, rateUpdatedAt: VERIFIED, isManualOverride: false }),
+    );
+    // Intl's ASCII hyphen, pre-existing shape (the header reads this same
+    // field today) — the glyph is #332's, out of scope here (spec §7, S5b).
+    expect(liabilitiesEgp).toBe(-300);
+    expect(formatAmount(liabilitiesEgp)).toBe('-300');
+  });
+});
+
+// #259 C7 / tariq F1: neither helper takes a provenance gate, and this pins
+// why that is safe. An EGP-only accounts set has nothing to convert, so
+// `rate` is arithmetically inert for it — the same output at a plausible
+// rate and at one three orders of magnitude smaller. If either helper ever
+// grows a rate gate, this reds.
+describe('computeLiquidityBreakdown and computeLiabilitiesBreakdown are rate-independent when nothing foreign remains (#259 C7)', () => {
+  it('return the same result at rate = 50 and rate = 0.0001', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', type: AccountType.Bank, current_balance: 5000 }),
+      makeAccount({ id: '2', type: AccountType.CreditCard, current_balance: 1200 }),
+      makeAccount({
+        id: '3',
+        type: AccountType.PhysicalWallet,
+        currency: Currency.USD,
+        current_balance: 40,
+        is_archived: 1,
+      }),
+    ];
+
+    expect(computeLiquidityBreakdown(accounts, 0.0001)).toEqual(
+      computeLiquidityBreakdown(accounts, 50),
+    );
+    expect(computeLiabilitiesBreakdown(accounts, 0.0001)).toEqual(
+      computeLiabilitiesBreakdown(accounts, 50),
+    );
   });
 });
 
@@ -756,8 +840,12 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
       computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
     const rows = computeLiabilitiesBreakdown(accounts, RATE);
-    // `net_worth_breakdown_sheet.tsx:143` — the footer is a raw reduce over the
-    // rows, so it inherits whatever the rows carry.
+    // The component footer now renders `netWorth.liabilitiesEgp` directly —
+    // the `net_worth_breakdown_sheet.tsx` reduce this mirrored is deleted
+    // (#259 C5). This reduce is no longer a mirror of component code: it is
+    // the suite's OWN rows-sum-to-header agreement check (MA-013), proving the
+    // rows and the header total agree independently of how the header itself
+    // is computed.
     const totalDebt = rows.reduce((sum, row) => sum + row.balanceEgp, 0);
 
     expect(formatAmount(liabilitiesEgp)).toBe('381');

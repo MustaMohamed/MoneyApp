@@ -33,6 +33,8 @@ interface HeroCardProps {
    */
   netWorth: DashboardNetWorth;
   rate: number;
+  /** Decided by the domain gate in `dashboard.hook.ts`, never re-derived here. */
+  isRateUsable: boolean;
   isManualOverride: boolean;
   assetsCount: number;
   liabilitiesCount: number;
@@ -109,6 +111,7 @@ function HeroCardAssetsAmount({
 export function HeroCard({
   netWorth,
   rate,
+  isRateUsable,
   isManualOverride,
   assetsCount,
   liabilitiesCount,
@@ -253,13 +256,16 @@ export function HeroCard({
                   : Strings.netWorthBreakdownUsdUnavailable}
               </Text>
             </View>
-            {/* The rate pill prints the very number the refusal exists to hide:
-                on `rate-needed` the only rate available is the unverified one
-                (`INITIAL_STATE.rate` is 50), so `1 USD = 50.00 EGP` would sit
-                one line under "Exchange rate needed". `ready_hero_card.tsx`,
-                the refusal this card mirrors, shows no rate at all in that
-                state. The amount path is untouched. */}
-            {netWorth.kind === 'rate-needed' ? null : (
+            {/* Gated on the `isRateUsable` prop, decided once in
+                `dashboard.hook.ts` and never re-derived here — the
+                `account_card.tsx:156-170` adoption pattern. `isRateUsable` is
+                false on every `rate-needed` outcome (`dashboard.helpers.ts:87-90`),
+                so this agrees with the old `netWorth.kind === 'rate-needed'`
+                check on that path; they diverge on an EGP-only portfolio whose
+                rate was never verified — `kind` is still 'amount' there, so the
+                old check printed the unverified rate as fact. That gap is
+                #257. */}
+            {isRateUsable ? (
               <View
                 testID="dashboard-hero-rate-pill"
                 className="flex-row items-center rounded-full px-2 py-1"
@@ -276,7 +282,7 @@ export function HeroCard({
                 />
                 <Text className="text-foreground text-xs">{formatExchangeRate(rate)}</Text>
               </View>
-            )}
+            ) : null}
             <View
               className="flex-row items-center rounded-full px-2 py-1"
               style={{
