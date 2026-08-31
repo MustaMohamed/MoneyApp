@@ -42,6 +42,7 @@ export default function ReadyScreen() {
       cta={
         <Button
           variant="primary"
+          flat
           label={Strings.n4Cta}
           onPress={() => {
             void handleComplete();
