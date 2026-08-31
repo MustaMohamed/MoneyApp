@@ -21,7 +21,7 @@ const ACCOUNT_BALANCE_COLOR_CLASS: Record<AccountType, AccountBalanceColorClass>
  *
  * `net_worth_breakdown_sheet.tsx`'s liability rows used to set `valueColor` to
  * a fixed `LIABILITY_COLOR` (`Colors.dark.negative`) on rows
- * `dashboard.helpers.ts:224`'s `computeLiabilitiesBreakdown` builds by
+ * `dashboard.helpers.ts:227`'s `computeLiabilitiesBreakdown` builds by
  * filtering `type !== AccountType.CreditCard` — an account's own balance
  * (signed since #259: positive owed, negative in credit — not the unsigned
  * magnitude the row carried when this paragraph was written), coloured from
