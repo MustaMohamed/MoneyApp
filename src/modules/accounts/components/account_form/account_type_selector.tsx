@@ -39,7 +39,11 @@ export function AccountTypeSelector({ form }: AccountTypeSelectorProps) {
         <Box key={rowIndex} style={{ flexDirection: 'row', gap: Spacing.xs }}>
           {row.map((option, cellIndex) =>
             option ? (
-              <AccountTypeTile key={option.type} option={option} />
+              <AccountTypeTile
+                key={option.type}
+                option={option}
+                isSelected={selectedType === option.type}
+              />
             ) : (
               // Yoga sizes `flex: 1` on the content box, so the pad needs the tiles' box metrics.
               <Box

@@ -53,6 +53,7 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
               placeholder={Strings.accountNamePlaceholder}
               maxLength={30}
               isInvalid={fieldState.invalid}
+              accessibilityLabel={Strings.accountNameLabel}
             />
           )}
         />
@@ -75,6 +76,7 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
                 placeholder={Strings.accountBalancePlaceholder}
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
+                accessibilityLabel={balanceField.label}
                 suffix={<BalanceCurrencySuffix control={control} />}
               />
             )}

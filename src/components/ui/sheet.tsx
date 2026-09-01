@@ -1,7 +1,7 @@
 // Scrollable content in a Sheet must use `BottomSheetScrollView`; RN `ScrollView` will not scroll.
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { BottomSheet } from 'heroui-native';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -89,6 +89,8 @@ export function Sheet({
   const increment = useSheetVisibilityStore((s) => s.increment);
   const decrement = useSheetVisibilityStore((s) => s.decrement);
   const insets = useSafeAreaInsets();
+  // Measured, not derived: the footer's height is inset- and content-dependent, and gorhom's dynamic sizing does not fully count an absolute footer.
+  const [footerHeight, setFooterHeight] = useState(0);
   const closeLifecycleRef = useRef(createSheetCloseLifecycle(isOpen));
   closeLifecycleRef.current = syncSheetCloseLifecycle(closeLifecycleRef.current, isOpen);
 
@@ -118,6 +120,7 @@ export function Sheet({
         <BottomSheetFooter {...props}>
           <View
             testID="sheet-footer"
+            onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
             style={{
               backgroundColor: Colors.dark.surface,
               borderTopWidth: StyleSheet.hairlineWidth,
@@ -139,7 +142,10 @@ export function Sheet({
   const contentSizingProps = fitContent
     ? {
         enableDynamicSizing: true as const,
-        contentContainerProps: { style: { padding: 0 } } as const,
+        // paddingBottom: the measured footer overlay depth, so fitContent content clears it exactly; consumers own only the visible gap above it.
+        contentContainerProps: {
+          style: { padding: 0, paddingBottom: footer !== undefined ? footerHeight : 0 },
+        },
       }
     : {
         snapPoints: resolveSnapPoints(size, snapPoints),

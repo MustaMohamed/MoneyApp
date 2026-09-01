@@ -4,6 +4,7 @@ import Animated from 'react-native-reanimated';
 import { Button } from '@/components/ui/button';
 import { ScreenScroll } from '@/components/ui/screen';
 import { Strings } from '@/constants/strings';
+import { Spacing } from '@/constants/theme';
 import { AccountForm } from '@/modules/accounts/components/account_form/account_form';
 import { OnboardingShell } from '@/modules/onboarding/components/onboarding_shell';
 
@@ -42,7 +43,7 @@ export default function AddAccountScreen() {
       }
     >
       <ScreenScroll
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingHorizontal: Spacing.md, paddingBottom: Spacing.xl }}
         keyboardShouldPersistTaps="handled"
       >
         <AccountForm form={form} ownerId="onboarding/add_account" />

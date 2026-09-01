@@ -13,7 +13,11 @@ export interface FormLabelTextProps {
 /** `style` overrides only the properties it sets, so pair every `fontSize` with a `lineHeight`. */
 export function FormLabelText({ label, tag, numberOfLines }: FormLabelTextProps) {
   return (
-    <Label style={{ flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.xs }}>
+    // accessible={false}: a do-nothing Pressable row must not announce as tappable — the field carries its own accessibilityLabel.
+    <Label
+      accessible={false}
+      style={{ flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.xs }}
+    >
       <Label.Text
         className="font-inter-semibold"
         style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail), flexShrink: 1 }}
