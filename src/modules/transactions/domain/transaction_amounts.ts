@@ -49,11 +49,13 @@ function assertStorable(value: number): void {
  *
  * Two things sit outside it, both deliberately. `assertStorable(amount)` at
  * the top of each resolver is not redundant with the `amount` leg below: it
- * owns throw precedence over the destination and rate checks, so an input
- * that trips both reports `unstorable`. And a field added to a return's
- * passthrough tail — beside `exchangeRate` — is still unguarded: six
- * independent call sites narrow to those two tails, they do not close at
- * compile time.
+ * owns throw precedence over the rate check, and over the destination check
+ * in `resolveTransactionAmounts` — the only one of the two resolvers that
+ * has one. An amount that is unstorable and also missing its rate or its
+ * destination reports `unstorable`, not the undiscriminated message. And a
+ * field added to a return's passthrough tail — beside `exchangeRate` — is
+ * still unguarded: six independent call sites narrow to those two tails,
+ * they do not close at compile time.
  */
 function assertStorableLegs<T extends Record<string, number | null>>(legs: T): T {
   for (const value of Object.values(legs)) {

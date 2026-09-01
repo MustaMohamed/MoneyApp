@@ -60,5 +60,6 @@ before this diff either.
   over the destination and rate errors, so an amount that is both unstorable and missing a
   destination or rate still reports `unstorable`. `exchangeRate` stays a passthrough outside the
   guard, per §2 — it is neither computed nor rounded. Residual: a field added to a return's
-  passthrough tail, beside `exchangeRate`, is still unguarded. The unguarded surface narrows from
-  six independent call sites to those two tails; it does not close at compile time.
+  passthrough tail — beside `exchangeRate` on the transaction return, beside `accountCurrency,
+  exchangeRate` on the commitment one — is still unguarded. The **hand-maintained** surface narrows
+  from six call sites to those two tails; it does not close at compile time.

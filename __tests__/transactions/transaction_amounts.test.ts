@@ -481,6 +481,24 @@ describe('resolveCommitmentPaymentAmounts', () => {
       ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
     });
 
+    // Throw precedence, mirroring the pair above on resolveTransactionAmounts.
+    // This resolver has no destination check, so the rate check is the only
+    // throw the storable check has to outrun: a USD commitment paid from a USD
+    // account needs a rate, and this input has none. Demoting the hand
+    // `assertStorable(amount)` at the top of this resolver into the return
+    // guard flips this input to 'A positive USD exchange rate is required' with
+    // `reason: undefined` — the generic save banner instead of the one
+    // discriminated message — and reds nothing else in the suite.
+    it('an unstorable payment amount is reported as unstorable even when the rate is missing', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: 1e16,
+          commitmentCurrency: Currency.USD,
+          accountCurrency: Currency.USD,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'unstorable' }));
+    });
+
     it('an amount exactly at MAX_SAFE_INTEGER does not throw', () => {
       expect(() =>
         resolveCommitmentPaymentAmounts({
