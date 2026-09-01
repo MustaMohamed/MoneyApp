@@ -28,7 +28,9 @@ beforeAll(() => {
 });
 ```
 
-Fixtures come from `@/test_helpers/transaction.ts` (`makeTestAccount`, `makeTestCategory`, `makeTestTransaction`, …). UUIDs: override the global mock with a counter so each insert is unique.
+Fixtures come from `@/test_helpers/transaction.ts` (`makeTestAccount`, `makeTestCategory`, `makeTestTransaction`, …) and `@/test_helpers/budget.ts` (`makeTestBudgetableCategory`, `makeTestBudgetEditTarget` — the `BudgetEditTargetVM`/`NamedBudgetVM` factory). Check both before hand-writing a multi-field literal. UUIDs: override the global mock with a counter so each insert is unique.
+
+Suites that open raw better-sqlite3 handles (migration and schema tests) must not close them as the last statement of the `it` — a test that throws mid-body strands the handle. Use `registerOpenDbsDrain()` from `@/test_helpers/sqlite_drain`: call it once at module scope, push every `new Database(':memory:')` onto the returned array, and its `afterEach` closes them all even on failure.
 
 ## Migration testing — the runner caveat
 
