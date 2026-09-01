@@ -51,7 +51,8 @@ interface Props {
   onRetryBudgetLookup: () => void;
   budgetError?: string;
   errorMessage?: string;
-  isUSD: boolean;
+  /** The rate demand flag (either side USD), not the source currency. */
+  requiresRate: boolean;
   exchangeRate: string;
   setExchangeRate: (v: string) => void;
   rateOverride: boolean;
@@ -126,7 +127,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     onRetryBudgetLookup,
     budgetError,
     errorMessage,
-    isUSD,
+    requiresRate,
     exchangeRate,
     setExchangeRate,
     rateOverride,
@@ -313,7 +314,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           </>
         ) : null}
 
-        {isUSD ? (
+        {requiresRate ? (
           <TransactionExchangeRateRow
             value={exchangeRate}
             onChange={setExchangeRate}

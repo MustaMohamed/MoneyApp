@@ -74,7 +74,7 @@ export function AddTransactionSession(props: AddTransactionSessionProps): React.
           onRetryBudgetLookup={hook.retryBudgetLookup}
           budgetError={hook.state.errors.budget}
           errorMessage={hook.state.errorMessage}
-          isUSD={hook.state.isUSD}
+          requiresRate={hook.state.requiresRate}
           exchangeRate={hook.state.exchangeRate}
           setExchangeRate={hook.setExchangeRate}
           rateOverride={hook.state.rateOverride}

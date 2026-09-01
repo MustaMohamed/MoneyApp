@@ -237,6 +237,41 @@ describe('useCurrencyScreen', () => {
   });
 });
 
+describe('useCurrencyScreen — the stored-rate prefill re-parses', () => {
+  beforeEach(setup);
+
+  // `String(1e-7)` is exponential text `parseRateText` rejects; the prefill must stay typeable.
+  it('prefills an exponential-band stored rate as positional text that saves back', async () => {
+    const setManualRate = jest.fn().mockResolvedValue(undefined);
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 1e-7,
+      lastFetched: null,
+      isManualOverride: true,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate,
+    }));
+    const { result } = await renderHook(() => useCurrencyScreen());
+
+    expect(result.current.form.getValues('rate')).toBe('0.0000001');
+
+    await act(async () => result.current.handleSaveManualRate());
+    expect(setManualRate).toHaveBeenCalledWith(1e-7);
+  });
+
+  it('prefills a sub-2 stored rate unchanged', async () => {
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 0.5,
+      lastFetched: null,
+      isManualOverride: true,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate: jest.fn().mockResolvedValue(undefined),
+    }));
+    const { result } = await renderHook(() => useCurrencyScreen());
+
+    expect(result.current.form.getValues('rate')).toBe('0.5');
+  });
+});
+
 describe('useCurrencyScreen — the footer note follows the base currency', () => {
   beforeEach(setup);
 

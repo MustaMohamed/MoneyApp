@@ -791,6 +791,9 @@ export const Strings = {
   addTxErrTransferNoCc: 'Use Credit Pay for credit card moves',
   addTxErrRateRequired: 'Enter the exchange rate',
   addTxErrRateInvalid: 'Enter a valid rate greater than 0',
+  // The shortfall is in the destination account's currency; same copy as the pay sheet's.
+  addTxErrConvertedBelowMin: (currency: string) =>
+    `Converts to less than 0.01 ${currency} at this rate`,
   addTxErrAmountUnstorable: "Amounts this large can't be stored",
   addTxErrCardCreditExceedsLiability: 'Card credit cannot exceed the current card balance',
   addTxErrCcPaymentExceedsLiability: 'Payment cannot exceed the current card balance',
@@ -1007,6 +1010,8 @@ export const Strings = {
   // The shortfall is in the paying account's currency, which is not always USD.
   commitmentsPayErrConvertedBelowMin: (currency: string) =>
     `Converts to less than 0.01 ${currency} at this rate`,
+  // Same copy as addTxErrAmountUnstorable on purpose: it is the identical assertStorable guard.
+  commitmentsPayErrAmountUnstorable: "Amounts this large can't be stored",
 
   // Commitments: Deactivate
   commitmentsDeactivate: 'Deactivate Commitment',

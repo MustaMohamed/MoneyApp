@@ -59,7 +59,25 @@ describe('AmountHero', () => {
     expect(onChange).toHaveBeenCalledWith('');
   });
 
-  it('keeps only one decimal separator and two fraction digits', async () => {
+  it('refuses untypeable text wholesale instead of splicing digits out of it', async () => {
+    useAddTransactionStore.getState().setAmountStr('12');
+    const onChange = jest.fn();
+    const { getByTestId } = await render(
+      <AmountHero
+        onChange={onChange}
+        type={TransactionType.Expense}
+        currency={Currency.EGP}
+        mode="add"
+      />,
+    );
+
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '1a2.345.6');
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('never truncates decimals: a prefilled 0.005 survives the next keystroke intact', async () => {
+    useAddTransactionStore.getState().setAmountStr('0.005');
     const onChange = jest.fn((value: string) =>
       useAddTransactionStore.getState().setAmountStr(value),
     );
@@ -72,13 +90,16 @@ describe('AmountHero', () => {
       />,
     );
 
-    await fireEvent.changeText(getByTestId('amount-hero-value'), '1a2.345.6');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '0.0051');
 
-    expect(onChange).toHaveBeenCalledWith('12.34');
+    expect(onChange).toHaveBeenCalledWith('0.0051');
   });
 
-  it('normalizes a leading decimal to a value accepted by submission parsing', async () => {
-    const onChange = jest.fn();
+  it('carries a comma keystroke to the decimal point, like every other money field', async () => {
+    useAddTransactionStore.getState().setAmountStr('1');
+    const onChange = jest.fn((value: string) =>
+      useAddTransactionStore.getState().setAmountStr(value),
+    );
     const { getByTestId } = await render(
       <AmountHero
         onChange={onChange}
@@ -88,8 +109,8 @@ describe('AmountHero', () => {
       />,
     );
 
-    await fireEvent.changeText(getByTestId('amount-hero-value'), '.5');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '1,');
 
-    expect(onChange).toHaveBeenCalledWith('0.5');
+    expect(onChange).toHaveBeenCalledWith('1.');
   });
 });

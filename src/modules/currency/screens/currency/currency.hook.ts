@@ -8,6 +8,7 @@ import { Strings } from '@/constants/strings';
 import { isRateImplausible } from '@/modules/currency/domain/rate_plausibility';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -66,7 +67,7 @@ export function useCurrencyScreen() {
   const isStoredRateImplausible = isRateImplausible(rate);
 
   const form = useZodForm(manualRateSchema, {
-    defaultValues: { rate: String(rate) },
+    defaultValues: { rate: formatStoredMoneyText(rate) },
   });
 
   // One writer for the warning slot: `fetchRate` has a background caller too, so subscribe here.

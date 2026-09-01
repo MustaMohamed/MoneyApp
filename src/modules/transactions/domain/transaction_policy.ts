@@ -1,4 +1,5 @@
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
+import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import { roundMoney } from '@/utils/money';
 
 export type TransactionReportingClass =
@@ -84,10 +85,6 @@ function isPositiveFinite(value: number): boolean {
 
 function normalizeMoney(value: number): number {
   return roundMoney(value) || 0;
-}
-
-function requiresDestination(type: TransactionType): boolean {
-  return type === TransactionType.Transfer || type === TransactionType.CCPayment;
 }
 
 export function resolveReportingClass(

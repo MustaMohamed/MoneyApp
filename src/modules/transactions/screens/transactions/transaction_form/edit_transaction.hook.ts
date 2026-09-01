@@ -20,6 +20,7 @@ import {
   type UpdateTransactionInput,
 } from '@/modules/transactions/store/transaction.store';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -28,6 +29,7 @@ import { buildDefaultsFromTx, type EditTransactionFormValues } from './edit_tran
 import { useEditTransactionState } from './edit_transaction.state';
 import { useEditTransactionStore } from './edit_transaction.store';
 import {
+  resolveDestinationFloorError,
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
 } from './transaction_form.helpers';
@@ -41,12 +43,21 @@ function createEditSchema(
   categories: Category[],
   requiresBudgetSelection: boolean,
   requiresRate: boolean,
+  sourceCurrency: Currency | undefined,
+  destinationCurrency: Currency | undefined,
+  readAmountText: () => string,
 ) {
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   return z
     .object({
       amount: z
-        .number({ error: Strings.addTxErrAmountRequired })
+        .number({
+          // The NaN sentinel carries no cause; the raw text splits empty from unparseable.
+          error: () =>
+            readAmountText().trim() === ''
+              ? Strings.addTxErrAmountRequired
+              : Strings.errAmountInvalid,
+        })
         .refine((v) => v >= MIN_MONEY_AMOUNT, Strings.addTxErrAmountZero),
       categoryId: isTransferOrCC ? z.string() : z.string().min(1, Strings.addTxErrCategoryRequired),
       budgetId: z.string(),
@@ -87,6 +98,18 @@ function createEditSchema(
             path: ['exchangeRate'],
           });
         }
+      }
+
+      // The destination leg can round below the money floor even when the entered amount clears it.
+      const destinationFloorError = resolveDestinationFloorError({
+        type,
+        amount: data.amount,
+        sourceCurrency,
+        destinationCurrency,
+        exchangeRateText: data.exchangeRate,
+      });
+      if (destinationFloorError) {
+        context.addIssue({ code: 'custom', message: destinationFloorError, path: ['amount'] });
       }
     });
 }
@@ -183,6 +206,8 @@ export function useEditTransaction(
   );
   const requiresBudgetSelection =
     semantics.usesBudget && availableBudgets.length > 1 && !budgetId && !preserveBudgetNull;
+  const sourceCurrency = selectedAccount?.currency;
+  const destinationCurrency = isTransferOrCC ? selectedToAccount?.currency : undefined;
   const schema = useMemo(
     () =>
       createEditSchema(
@@ -191,8 +216,20 @@ export function useEditTransaction(
         categories,
         requiresBudgetSelection,
         requiresRate,
+        sourceCurrency,
+        destinationCurrency,
+        // An accessor, not the value: the hook does not re-render on typing (by design).
+        () => useEditTransactionStore.getState().amountStr,
       ),
-    [categories, requiresBudgetSelection, requiresRate, semantics.categoryType, type],
+    [
+      categories,
+      destinationCurrency,
+      requiresBudgetSelection,
+      requiresRate,
+      semantics.categoryType,
+      sourceCurrency,
+      type,
+    ],
   );
 
   const form = useZodForm(schema, {
@@ -368,7 +405,7 @@ export function useEditTransaction(
   function toggleRateOverride() {
     const next = !rateOverride;
     setRateOverride(next);
-    if (!next) form.setValue('exchangeRate', String(rate));
+    if (!next) form.setValue('exchangeRate', formatStoredMoneyText(rate));
   }
 
   function selectCategory(category: Category) {
@@ -401,7 +438,7 @@ export function useEditTransaction(
       isCardCredit: semantics.isCardCredit,
       typeLabel: semantics.typeLabel,
       typeSupportingText: semantics.supportingText,
-      isUSD: requiresRate,
+      requiresRate,
       isTransferOrCC,
       errors,
       errorMessage,

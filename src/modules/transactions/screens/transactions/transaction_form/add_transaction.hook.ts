@@ -17,6 +17,7 @@ import {
 } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -24,6 +25,7 @@ import { useAddTransactionState } from './add_transaction.state';
 import { useAddTransactionStore } from './add_transaction.store';
 import { resolveBudgetAssignment } from './budget_assignment.helpers';
 import {
+  resolveDestinationFloorError,
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
   toTransactionTimestamp,
@@ -48,13 +50,20 @@ function createSchema(
   accounts: Account[],
   categories: Category[],
   hasMultipleBudgets: boolean,
+  readAmountText: () => string,
 ) {
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
 
   return z
     .object({
       amount: z
-        .number({ error: Strings.addTxErrAmountRequired })
+        .number({
+          // The NaN sentinel carries no cause; the raw text splits empty from unparseable.
+          error: () =>
+            readAmountText().trim() === ''
+              ? Strings.addTxErrAmountRequired
+              : Strings.errAmountInvalid,
+        })
         .refine((v) => v >= MIN_MONEY_AMOUNT, Strings.addTxErrAmountZero),
       accountId: z
         .string()
@@ -168,6 +177,18 @@ function createSchema(
           }
         }
       }
+
+      // The destination leg can round below the money floor even when the entered amount clears it.
+      const destinationFloorError = resolveDestinationFloorError({
+        type,
+        amount: data.amount,
+        sourceCurrency: acc?.currency,
+        destinationCurrency: toAcc?.currency,
+        exchangeRateText: data.exchangeRate,
+      });
+      if (destinationFloorError) {
+        ctx.addIssue({ code: 'custom', message: destinationFloorError, path: ['amount'] });
+      }
     });
 }
 
@@ -242,7 +263,15 @@ export function useAddTransaction(
     prerequisites?.status ?? (accountsLoaded && categoriesLoaded ? 'ready' : 'loading');
 
   const schema = useMemo(
-    () => createSchema(type, accounts, categories, availableBudgets.length > 1),
+    () =>
+      createSchema(
+        type,
+        accounts,
+        categories,
+        availableBudgets.length > 1,
+        // An accessor, not the value: the hook does not re-render on typing (by design).
+        () => useAddTransactionStore.getState().amountStr,
+      ),
     [accounts, availableBudgets.length, categories, type],
   );
 
@@ -257,7 +286,7 @@ export function useAddTransaction(
       budgetId: '',
       note: '',
       date: toTransactionTimestamp(new Date()).date,
-      exchangeRate: String(rate),
+      exchangeRate: formatStoredMoneyText(rate),
     },
   });
 
@@ -464,7 +493,7 @@ export function useAddTransaction(
   function toggleRateOverride() {
     const next = !rateOverride;
     setRateOverride(next);
-    if (!next) form.setValue('exchangeRate', String(rate));
+    if (!next) form.setValue('exchangeRate', formatStoredMoneyText(rate));
   }
 
   function selectAccount(account: Account) {
@@ -477,8 +506,15 @@ export function useAddTransaction(
       setBudgetId(undefined);
     }
     form.setValue('accountId', account.id);
-    if (account.currency === Currency.USD) {
-      form.setValue('exchangeRate', String(rate));
+    // A pick that turns the rate demand on seeds the global rate, unless the user typed their own.
+    if (
+      !rateOverride &&
+      requiresExchangeRate(
+        account.currency,
+        isTransferOrCC ? selectedToAccount?.currency : undefined,
+      )
+    ) {
+      form.setValue('exchangeRate', formatStoredMoneyText(rate));
       setRateOverride(false);
     }
     setShowAccountPicker(false);
@@ -487,8 +523,8 @@ export function useAddTransaction(
   function selectToAccount(account: Account) {
     clearError();
     form.setValue('toAccountId', account.id);
-    if (account.currency === Currency.USD && selectedAccount?.currency === Currency.EGP) {
-      form.setValue('exchangeRate', String(rate));
+    if (!rateOverride && requiresExchangeRate(selectedAccount?.currency, account.currency)) {
+      form.setValue('exchangeRate', formatStoredMoneyText(rate));
       setRateOverride(false);
     }
     setShowToPicker(false);
@@ -526,7 +562,7 @@ export function useAddTransaction(
       isCardCredit: semantics.isCardCredit,
       typeLabel: semantics.typeLabel,
       typeSupportingText: semantics.supportingText,
-      isUSD: requiresRate,
+      requiresRate,
       isTransferOrCC,
       errors,
       errorMessage,

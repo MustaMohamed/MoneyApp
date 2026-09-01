@@ -516,6 +516,33 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
     expect(result.current.state.errors.amount).toBeUndefined();
   });
 
+  // The mask lets partial text like `.5` stand; the schema owns refusing it at submit.
+  it('rejects a partial ".5" left in the field with the invalid copy, never a save', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await act(() => result.current.setAmountStr('.5'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.errAmountInvalid);
+  });
+
+  it('rejects a truly empty amount with the required copy, not the invalid one', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await act(() => result.current.setAmountStr(''));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountRequired);
+  });
+
   it('rejects a stored 0.005 on Save without the amount field ever being touched', async () => {
     const subCentTx = makeTestTransaction({
       ...mockTxExpense,
@@ -575,6 +602,104 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
         egp_amount: 480,
         exchange_rate: 48,
       }),
+    );
+  });
+});
+
+describe('useEditTransaction — rate prefills re-parse', () => {
+  // `String(1e-7)` is exponential text the rate field's own validator rejects on save.
+  it('prefills a stored exponential-band rate as positional text that saves', async () => {
+    const exponentialRateTx = makeTestTransaction({
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 0.5,
+      exchange_rate: 1e-7,
+    });
+    useEditTransactionStore.getState().loadFromTx(exponentialRateTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(exponentialRateTx, jest.fn(), jest.fn()),
+    );
+
+    expect(result.current.state.exchangeRate).toBe('0.0000001');
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(updateTx).toHaveBeenCalledWith('t1', expect.objectContaining({ exchange_rate: 1e-7 }));
+  });
+
+  it('prefills a sub-2 stored rate unchanged and converts with it', async () => {
+    const subTwoRateTx = makeTestTransaction({
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 5,
+      exchange_rate: 0.5,
+    });
+    useEditTransactionStore.getState().loadFromTx(subTwoRateTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(subTwoRateTx, jest.fn(), jest.fn()),
+    );
+
+    expect(result.current.state.exchangeRate).toBe('0.5');
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ egp_amount: 5, exchange_rate: 0.5 }),
+    );
+  });
+});
+
+describe('useEditTransaction — destination-leg floor', () => {
+  const transferTx = makeTestTransaction({
+    ...mockTxExpense,
+    id: 't-transfer',
+    type: TransactionType.Transfer,
+    account_id: mockAccountEGP.id,
+    to_account_id: mockAccountUSD.id,
+    category_id: null,
+    amount: 100,
+    egp_amount: 100,
+    to_amount: 2,
+    exchange_rate: 50,
+  });
+
+  beforeEach(() => useEditTransactionStore.getState().loadFromTx(transferTx));
+
+  it('transfer EGP → USD: refuses an edit to 0.2 at rate 50 as a field error', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(transferTx, jest.fn(), jest.fn()));
+    await act(() => result.current.setAmountStr('0.2'));
+    await act(() => result.current.setExchangeRate('50'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(
+      Strings.addTxErrConvertedBelowMin(Currency.USD),
+    );
+    expect(result.current.state.errorMessage).toBeUndefined();
+  });
+
+  it('transfer EGP → USD: 0.26 at rate 50 survives as to_amount 0.01', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(transferTx, jest.fn(), jest.fn()));
+    await act(() => result.current.setAmountStr('0.26'));
+    await act(() => result.current.setExchangeRate('50'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.amount).toBeUndefined();
+    expect(updateTx).toHaveBeenCalledWith(
+      't-transfer',
+      expect.objectContaining({ to_amount: 0.01 }),
     );
   });
 });

@@ -153,7 +153,7 @@ const paySheetState = {
   saving: false,
   accountPickerVisible: false,
   rateOverride: false,
-  saveError: false,
+  saveError: undefined,
   setVisible: jest.fn(),
   setSaving: jest.fn(),
   setAccountPickerVisible: jest.fn(),

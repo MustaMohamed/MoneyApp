@@ -17,6 +17,7 @@ import { AccountPickerSheet } from '@/modules/accounts/components/account_picker
 import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
+import { maskMoneyFieldText } from '@/utils/money_text';
 import { ms } from '@/utils/responsive';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -93,9 +94,7 @@ export function PaySheet({ commitment, payment }: Props) {
         footer={
           <>
             {state.saveError ? (
-              <Text className="font-inter text-danger text-[11px]">
-                {Strings.commitmentsPayError}
-              </Text>
+              <Text className="font-inter text-danger text-[11px]">{state.saveError}</Text>
             ) : null}
             <Button
               variant="primary"
@@ -131,7 +130,11 @@ export function PaySheet({ commitment, payment }: Props) {
                   render={({ field }) => (
                     <Input
                       value={field.value}
-                      onChangeText={field.onChange}
+                      // Same mask as AmountHero: gate keystrokes, never truncate a prefill.
+                      onChangeText={(text) => {
+                        const masked = maskMoneyFieldText(field.value, text);
+                        if (masked !== undefined) field.onChange(masked);
+                      }}
                       onFocus={onFocus}
                       onBlur={onBlur}
                       keyboardType="decimal-pad"

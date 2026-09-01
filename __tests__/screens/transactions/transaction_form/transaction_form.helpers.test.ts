@@ -1,7 +1,8 @@
-import { AccountType, CategoryType, TransactionType } from '@/constants/enums';
+import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
 import {
+  resolveDestinationFloorError,
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
   toTransactionTimestamp,
@@ -74,5 +75,114 @@ describe('transaction form helpers', () => {
         new TransactionAmountError('A positive USD exchange rate is required'),
       ),
     ).toBe(Strings.transactionSaveError);
+  });
+});
+
+describe('resolveDestinationFloorError', () => {
+  const floor = (input: {
+    type: TransactionType;
+    amount: number;
+    sourceCurrency: Currency | undefined;
+    destinationCurrency: Currency | undefined;
+    exchangeRateText: string;
+  }) => resolveDestinationFloorError(input);
+
+  it('refuses the divide branch when the leg rounds to zero: 0.2 EGP / 50 → 0.00 USD', () => {
+    expect(
+      floor({
+        type: TransactionType.Transfer,
+        amount: 0.2,
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.USD,
+        exchangeRateText: '50',
+      }),
+    ).toBe(Strings.addTxErrConvertedBelowMin(Currency.USD));
+  });
+
+  it('refuses the exact half-even tie: 0.25 EGP / 50 rounds down to 0.00 USD', () => {
+    expect(
+      floor({
+        type: TransactionType.CCPayment,
+        amount: 0.25,
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.USD,
+        exchangeRateText: '50',
+      }),
+    ).toBe(Strings.addTxErrConvertedBelowMin(Currency.USD));
+  });
+
+  it('passes one cent above the tie: 0.26 EGP / 50 → 0.01 USD', () => {
+    expect(
+      floor({
+        type: TransactionType.Transfer,
+        amount: 0.26,
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.USD,
+        exchangeRateText: '50',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('refuses the multiply branch too: 0.01 USD × 0.4 → 0.00 EGP', () => {
+    expect(
+      floor({
+        type: TransactionType.Transfer,
+        amount: 0.01,
+        sourceCurrency: Currency.USD,
+        destinationCurrency: Currency.EGP,
+        exchangeRateText: '0.4',
+      }),
+    ).toBe(Strings.addTxErrConvertedBelowMin(Currency.EGP));
+  });
+
+  it('USD → USD passes at the floor: the leg is the amount itself', () => {
+    expect(
+      floor({
+        type: TransactionType.Transfer,
+        amount: 0.01,
+        sourceCurrency: Currency.USD,
+        destinationCurrency: Currency.USD,
+        exchangeRateText: '50',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('EGP → EGP passes at the floor with no rate at all', () => {
+    expect(
+      floor({
+        type: TransactionType.Transfer,
+        amount: 0.01,
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.EGP,
+        exchangeRateText: '',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('stays silent for types without a destination leg', () => {
+    expect(
+      floor({
+        type: TransactionType.Expense,
+        amount: 0.2,
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.USD,
+        exchangeRateText: '50',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('stays silent while the destination, rate, or entered amount carry their own field errors', () => {
+    const base = {
+      type: TransactionType.Transfer,
+      amount: 0.2,
+      sourceCurrency: Currency.EGP,
+      destinationCurrency: Currency.USD,
+      exchangeRateText: '50',
+    };
+    expect(floor({ ...base, destinationCurrency: undefined })).toBeUndefined();
+    expect(floor({ ...base, exchangeRateText: '' })).toBeUndefined();
+    expect(floor({ ...base, exchangeRateText: '0' })).toBeUndefined();
+    expect(floor({ ...base, amount: 0.005 })).toBeUndefined();
+    expect(floor({ ...base, amount: Number.NaN })).toBeUndefined();
   });
 });

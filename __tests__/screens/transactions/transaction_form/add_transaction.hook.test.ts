@@ -436,10 +436,38 @@ describe('useAddTransaction — validation', () => {
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
+  // The mask lets partial text like `.5` stand; the schema owns refusing it at submit.
+  it('rejects a partial ".5" left in the field with the invalid copy, never a save', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr('.5'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.errAmountInvalid);
+  });
+
+  it('rejects a truly empty amount with the required copy, not the invalid one', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr(''));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountRequired);
+  });
+
   it('rejects amount=0', async () => {
     const onClose = jest.fn();
     const { result } = await renderHook(() => useAddTransaction(onClose));
-    // `amountStr` defaults to '0', so this case never sets one.
+    // Explicit '0': the store default is '', which is the required-copy case above.
+    await act(() => result.current.setAmountStr('0'));
     await act(() => result.current.selectAccount(mockAccountEGP));
     await act(() => result.current.selectCategory(mockCategoryExpense));
     await act(async () => {
@@ -681,6 +709,28 @@ describe('useAddTransaction — cross-currency math', () => {
     );
   });
 
+  it('transfer EGP → USD at a sub-2 rate: to_amount = amount / rate', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setType(TransactionType.Transfer));
+    await act(() => result.current.setAmountStr('1'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectToAccount(mockAccountUSD));
+    await act(() => result.current.setExchangeRate('0.5'));
+    await act(async () => {
+      await result.current.handleSave();
+    });
+    expect(addTx).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 1,
+        currency: Currency.EGP,
+        egp_amount: 1,
+        to_amount: 2, // 1 / 0.5
+        exchange_rate: 0.5,
+      }),
+    );
+  });
+
   it('cc_payment: converts an EGP payment to the USD card destination currency', async () => {
     const addTx = installMockAddTransaction();
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
@@ -700,6 +750,144 @@ describe('useAddTransaction — cross-currency math', () => {
         exchange_rate: 50,
       }),
     );
+  });
+});
+
+describe('useAddTransaction — destination-leg floor', () => {
+  it('transfer EGP → USD: refuses 0.2 at rate 50 as a field error, never the generic banner', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setType(TransactionType.Transfer));
+    await act(() => result.current.setAmountStr('0.2'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectToAccount(mockAccountUSD));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(
+      Strings.addTxErrConvertedBelowMin(Currency.USD),
+    );
+    expect(result.current.state.errorMessage).toBeUndefined();
+  });
+
+  it('cc_payment EGP → USD card: refuses the same shape on the payment leg', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setType(TransactionType.CCPayment));
+    await act(() => result.current.setAmountStr('0.01'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectToAccount(mockAccountCCUSD));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(
+      Strings.addTxErrConvertedBelowMin(Currency.USD),
+    );
+  });
+
+  it('transfer EGP → USD: 0.26 at rate 50 survives as to_amount 0.01', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setType(TransactionType.Transfer));
+    await act(() => result.current.setAmountStr('0.26'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectToAccount(mockAccountUSD));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.amount).toBeUndefined();
+    expect(addTx).toHaveBeenCalledWith(expect.objectContaining({ to_amount: 0.01 }));
+  });
+
+  it('transfer USD → EGP: refuses 0.01 at a sub-1 rate whose product rounds to 0.00 EGP', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setType(TransactionType.Transfer));
+    await act(() => result.current.setAmountStr('0.01'));
+    await act(() => result.current.selectAccount(mockAccountUSD));
+    await act(() => result.current.selectToAccount(mockAccountEGP));
+    // After both picks: the account picks reseed the field with the global rate.
+    await act(() => result.current.setExchangeRate('0.4'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(
+      Strings.addTxErrConvertedBelowMin(Currency.EGP),
+    );
+  });
+
+  it('transfer USD → USD: passes at the floor because the leg is the amount itself', async () => {
+    const mockAccountUSD2 = { ...mockAccountUSD, id: 'a5', name: 'USD Wallet' };
+    useAccountStore.setState({
+      accounts: [...useAccountStore.getState().accounts, mockAccountUSD2],
+    });
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setType(TransactionType.Transfer));
+    await act(() => result.current.setAmountStr('0.01'));
+    await act(() => result.current.selectAccount(mockAccountUSD));
+    await act(() => result.current.selectToAccount(mockAccountUSD2));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.amount).toBeUndefined();
+    expect(addTx).toHaveBeenCalledWith(expect.objectContaining({ to_amount: 0.01 }));
+  });
+});
+
+describe('useAddTransaction — rate seeding through the shared demand predicate', () => {
+  it('seeds the global rate when the destination pick alone creates the demand', async () => {
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setType(TransactionType.Transfer));
+    // No source picked yet: the old single-sided source check never fired here.
+    await act(() => result.current.setExchangeRate('49'));
+    await act(() => result.current.selectToAccount(mockAccountUSD));
+
+    expect(result.current.state.exchangeRate).toBe('50');
+  });
+
+  it('reseeds when an EGP source is picked into a USD destination demand', async () => {
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setType(TransactionType.Transfer));
+    await act(() => result.current.selectToAccount(mockAccountUSD));
+    await act(() => result.current.setExchangeRate('49'));
+    // The old check keyed on the picked account being USD, so an EGP source kept the stale text.
+    await act(() => result.current.selectAccount(mockAccountEGP));
+
+    expect(result.current.state.exchangeRate).toBe('50');
+  });
+
+  it('never clobbers a user-typed override, mirroring the pay sheet', async () => {
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.toggleRateOverride());
+    await act(() => result.current.setExchangeRate('47'));
+    await act(() => result.current.selectAccount(mockAccountUSD));
+
+    expect(result.current.state.exchangeRate).toBe('47');
+    expect(result.current.state.rateOverride).toBe(true);
+  });
+});
+
+describe('useAddTransaction — rate prefills re-parse', () => {
+  // `String(1e-7)` is exponential text `parseRateText` rejects; the seed must stay typeable.
+  it('seeds an exponential-band stored rate as positional text', async () => {
+    useCurrencyStore.setState({ rate: 1e-7, rate_updated_at: null });
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+
+    expect(result.current.state.exchangeRate).toBe('0.0000001');
+  });
+
+  it('reseeds the same positional text when the override toggles back off', async () => {
+    useCurrencyStore.setState({ rate: 1e-7, rate_updated_at: null });
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.toggleRateOverride());
+    await act(() => result.current.setExchangeRate('48'));
+    await act(() => result.current.toggleRateOverride());
+
+    expect(result.current.state.exchangeRate).toBe('0.0000001');
   });
 });
 
