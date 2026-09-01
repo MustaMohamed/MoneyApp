@@ -7,7 +7,7 @@ import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { AccountColors, Colors, Size, withAlpha } from '@/constants/theme';
+import { AccountColors, Colors, Size, lineHeightFor, withAlpha } from '@/constants/theme';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
@@ -260,7 +260,7 @@ export function AccountCard({
                 variant="title"
                 className="font-sora-bold text-foreground"
                 numberOfLines={1}
-                style={{ flex: 1, fontSize: msFont(17) }}
+                style={{ flex: 1, fontSize: msFont(17), lineHeight: lineHeightFor(msFont(17)) }}
               >
                 {account.name}
               </Text>
@@ -298,7 +298,7 @@ export function AccountCard({
                 variant="numMd"
                 numberOfLines={1}
                 className={resolveAccountBalanceColorClass(account.type)}
-                style={{ flex: 1, fontSize: msFont(17) }}
+                style={{ flex: 1, fontSize: msFont(17), lineHeight: lineHeightFor(msFont(17)) }}
               >
                 {ownedAmountText(account.current_balance, account.currency)}
               </Text>

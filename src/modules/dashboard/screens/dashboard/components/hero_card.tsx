@@ -8,7 +8,7 @@ import { Text } from '@/components/ui/text';
 import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Type } from '@/constants/theme';
+import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type {
   DashboardNetWorth,
@@ -90,9 +90,12 @@ function HeroCardAssetsAmount({
   return (
     <Text
       className="font-sora-bold mt-3 mb-2 px-3"
-      style={{ color: Colors.dark.gold, fontSize: ms(32) }}
+      style={{ color: Colors.dark.gold, fontSize: ms(32), lineHeight: lineHeightFor(ms(32)) }}
     >
-      {assetsParts.value} <Text style={{ fontSize: ms(16), opacity: 0.8 }}>{assetsParts.code}</Text>
+      {assetsParts.value}{' '}
+      <Text style={{ fontSize: ms(16), lineHeight: lineHeightFor(ms(16)), opacity: 0.8 }}>
+        {assetsParts.code}
+      </Text>
     </Text>
   );
 }
@@ -194,7 +197,7 @@ export function HeroCard({
                 />
                 <Text
                   className="text-warning font-sora-semibold flex-1"
-                  style={{ fontSize: Type.headline }}
+                  style={{ fontSize: Type.headline, lineHeight: lineHeightFor(Type.headline) }}
                 >
                   {Strings.dashboardRateNeededValue}
                 </Text>
