@@ -47,6 +47,36 @@ export function formatLiabilityRowValue(balance: number, baseCurrency: Currency)
   return signAmountText(text, balance < 0 ? PLUS_SIGN : MINUS_SIGN, printsAsZero);
 }
 
+/**
+ * A magnitude the user owns (ADR 2026-08-27 decision 1): unsigned at zero or positive, `−` only
+ * for a genuine negative (an overdrawn liquid/reserve total, an overdrawn account row, or the
+ * assets sum) — never `+`. Also absorbs the `-0` float-noise artifact `computeLiquidityBreakdown`'s
+ * per-total rounding can produce: `formatDisplayMagnitude`'s epsilon gate reads it as true zero,
+ * so the sheet's asset rows stop printing `-0` (#332).
+ */
+export function formatOwnedAmountParts(
+  value: number,
+  baseCurrency: Currency,
+): { value: string; code: string } {
+  const { text, printsAsZero } = formatDisplayMagnitude(value, baseCurrency);
+  return {
+    value: signAmountText(text, value < 0 ? MINUS_SIGN : '', printsAsZero),
+    code: CURRENCY_CONFIG[baseCurrency].code,
+  };
+}
+
+/** `amount.liabilities` shares `LiabilityRow.balance`'s owed-frame sign (positive owed, negative
+ * in credit) — the same composition point, with the currency code alongside for the header/footer. */
+export function formatLiabilityAmountParts(
+  value: number,
+  baseCurrency: Currency,
+): { value: string; code: string } {
+  return {
+    value: formatLiabilityRowValue(value, baseCurrency),
+    code: CURRENCY_CONFIG[baseCurrency].code,
+  };
+}
+
 /** An overdrawn account can make a part negative while the total stays positive. */
 export function shouldShowProportionBar(
   parts: Pick<LiquidityBreakdown, 'liquid' | 'reserve'>,

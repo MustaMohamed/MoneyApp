@@ -787,6 +787,28 @@ describe('computeLiquidityBreakdown', () => {
 
     expect(shouldShowProportionBar({ liquid, reserve })).toBe(false);
   });
+
+  it('sums three Bank balances to an exact -0 float-noise total, unnormalized (#332)', () => {
+    // 0.3 - 0.1 - 0.2 leaves a -2.78e-17 residual; roundMoney(that) is -0, not 0. This function
+    // does not normalize it — `formatOwnedAmountParts` at the render site absorbs it instead.
+    const accounts: Account[] = [
+      makeAccount({ id: '1', type: AccountType.Bank, current_balance: 0.3 }),
+      makeAccount({ id: '2', type: AccountType.Bank, current_balance: -0.1 }),
+      makeAccount({ id: '3', type: AccountType.Bank, current_balance: -0.2 }),
+    ];
+    const { liquid } = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
+
+    expect(Object.is(liquid, -0)).toBe(true);
+  });
+
+  it('rounds a single overdrawn sub-cent Bank balance to an exact -0 row (#332)', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', type: AccountType.Bank, current_balance: -0.001 }),
+    ];
+    const { liquidAccounts } = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
+
+    expect(Object.is(liquidAccounts[0]?.balance, -0)).toBe(true);
+  });
 });
 
 describe('computeLiabilitiesBreakdown', () => {

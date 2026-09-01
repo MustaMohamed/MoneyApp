@@ -13,13 +13,14 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatCurrencyParts } from '@/utils/format_amount';
 import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
 import type { AccountRow, LiabilityRow, LiquidityBreakdown } from '../dashboard.helpers';
 import {
+  formatLiabilityAmountParts,
   formatLiabilityRowValue,
+  formatOwnedAmountParts,
   resolveBreakdownRowColors,
   resolveNetWorthForeignCaption,
   shouldShowProportionBar,
@@ -123,9 +124,9 @@ function NetWorthBreakdownBody({
   const showReserve = liquidity.reserveCount > 0;
   const showLiabilities = liabilities.length > 0;
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
-  const netWorthParts = formatCurrencyParts(amount.netWorth, baseCurrency);
-  const assetsParts = formatCurrencyParts(amount.assets, baseCurrency);
-  const liabilitiesParts = formatCurrencyParts(amount.liabilities, baseCurrency);
+  const netWorthParts = formatOwnedAmountParts(amount.netWorth, baseCurrency);
+  const assetsParts = formatOwnedAmountParts(amount.assets, baseCurrency);
+  const liabilitiesParts = formatLiabilityAmountParts(amount.liabilities, baseCurrency);
   const liquidColors = resolveBreakdownRowColors('liquid');
   const reserveColors = resolveBreakdownRowColors('reserve');
   const liabilityColors = resolveBreakdownRowColors('liability');
@@ -176,7 +177,7 @@ function NetWorthBreakdownBody({
               icon="wallet-outline"
               label={Strings.dashboardBreakdownLiquid}
               caption={Strings.dashboardBreakdownLiquidCaption}
-              value={formatCurrencyParts(liquidity.liquid, baseCurrency).value}
+              value={formatOwnedAmountParts(liquidity.liquid, baseCurrency).value}
               count={liquidity.liquidCount}
             />
             {liquidity.liquidAccounts.map((acc) => (
@@ -191,7 +192,7 @@ function NetWorthBreakdownBody({
               icon="piggy-bank"
               label={Strings.dashboardBreakdownReserve}
               caption={Strings.dashboardBreakdownReserveCaption}
-              value={formatCurrencyParts(liquidity.reserve, baseCurrency).value}
+              value={formatOwnedAmountParts(liquidity.reserve, baseCurrency).value}
               count={liquidity.reserveCount}
             />
             {liquidity.reserveAccounts.map((acc) => (
@@ -301,7 +302,7 @@ function AccountSubRow({ account, baseCurrency }: { account: AccountRow; baseCur
         {account.name}
       </Text>
       <Text variant="caption" className="font-inter-medium text-foreground">
-        {formatCurrencyParts(account.balance, baseCurrency).value}
+        {formatOwnedAmountParts(account.balance, baseCurrency).value}
       </Text>
     </View>
   );
