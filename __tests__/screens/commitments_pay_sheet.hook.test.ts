@@ -1111,7 +1111,9 @@ describe('resolvePaySheetSaveError', () => {
 
   it('falls through an undiscriminated TransactionAmountError to the retry banner', () => {
     expect(
-      resolvePaySheetSaveError(new TransactionAmountError('A positive USD exchange rate is required')),
+      resolvePaySheetSaveError(
+        new TransactionAmountError('A positive USD exchange rate is required'),
+      ),
     ).toBe(Strings.commitmentsPayError);
   });
 

@@ -601,10 +601,7 @@ describe('useEditTransaction — rate prefills re-parse', () => {
     await act(async () => result.current.handleSave());
 
     expect(result.current.state.errors.rate).toBeUndefined();
-    expect(updateTx).toHaveBeenCalledWith(
-      't1',
-      expect.objectContaining({ exchange_rate: 1e-7 }),
-    );
+    expect(updateTx).toHaveBeenCalledWith('t1', expect.objectContaining({ exchange_rate: 1e-7 }));
   });
 
   it('prefills a sub-2 stored rate unchanged and converts with it', async () => {

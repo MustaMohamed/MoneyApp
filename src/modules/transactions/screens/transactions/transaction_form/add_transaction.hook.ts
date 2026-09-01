@@ -494,7 +494,10 @@ export function useAddTransaction(
     // A pick that turns the rate demand on seeds the global rate, unless the user typed their own.
     if (
       !rateOverride &&
-      requiresExchangeRate(account.currency, isTransferOrCC ? selectedToAccount?.currency : undefined)
+      requiresExchangeRate(
+        account.currency,
+        isTransferOrCC ? selectedToAccount?.currency : undefined,
+      )
     ) {
       form.setValue('exchangeRate', formatStoredMoneyText(rate));
       setRateOverride(false);

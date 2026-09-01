@@ -336,7 +336,8 @@ export function usePaySheet(
   function toggleRateOverride() {
     const next = !rateOverride;
     setRateOverride(next);
-    if (!next) form.setValue('exchange_rate', formatStoredMoneyText(rate), { shouldValidate: isSubmitted });
+    if (!next)
+      form.setValue('exchange_rate', formatStoredMoneyText(rate), { shouldValidate: isSubmitted });
   }
 
   return {
