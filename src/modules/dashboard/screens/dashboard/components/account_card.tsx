@@ -9,6 +9,7 @@ import { AccountColors, Colors, Size } from '@/constants/theme';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
+import { convertCurrency } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
@@ -123,6 +124,30 @@ export function buildInfoRows(
   const weekNet = s.week_in - s.week_out;
   const weekNetColor = weekNet >= 0 ? Colors.dark.positive : Colors.dark.negative;
 
+  // Fires whichever side of the base the account sits on (#349): `convertCurrency` picks the
+  // direction from `from`/`to`, and the base's own code drives both label and display decimals.
+  // One `roundMoney` at the call site; `convertCurrency` deliberately does not round (W4 ADR §3).
+  const baseEquivalentRows: InfoRow[] =
+    isRateUsable && account.currency !== baseCurrency
+      ? [
+          {
+            label: Strings.cardInBaseLabel(baseCurrency),
+            value: formatCurrencyAmount(
+              roundMoney(
+                convertCurrency({
+                  amount: account.current_balance,
+                  from: account.currency,
+                  to: baseCurrency,
+                  rate,
+                }),
+              ),
+              baseCurrency,
+            ),
+            valueColor: Colors.dark.gold,
+          },
+        ]
+      : [];
+
   if (isUSD) {
     return [
       {
@@ -135,16 +160,7 @@ export function buildInfoRows(
         value: formatCurrencyAmount(s.month_out, cur),
         valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
       },
-      // Hardcoded to EGP; an EGP card under a USD base gets no equivalent row.
-      ...(isRateUsable && account.currency !== baseCurrency
-        ? [
-            {
-              label: Strings.cardInEgpLabel,
-              value: formatCurrencyAmount(roundMoney(account.current_balance * rate), Currency.EGP),
-              valueColor: Colors.dark.gold,
-            },
-          ]
-        : []),
+      ...baseEquivalentRows,
     ];
   }
 
@@ -164,6 +180,7 @@ export function buildInfoRows(
       value: `${weekNet >= 0 ? '+' : ''}${formatCurrencyAmount(weekNet, cur)}`,
       valueColor: weekNetColor,
     },
+    ...baseEquivalentRows,
   ];
 }
 
