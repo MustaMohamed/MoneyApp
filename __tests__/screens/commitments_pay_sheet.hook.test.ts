@@ -12,7 +12,10 @@ import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
-import { usePaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.hook';
+import {
+  resolvePaySheetSaveError,
+  usePaySheet,
+} from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.hook';
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
@@ -43,7 +46,7 @@ let paySheetStateInner = {
   saving: false,
   accountPickerVisible: false,
   rateOverride: false,
-  saveError: false,
+  saveError: undefined as string | undefined,
 };
 const mockPaySheetState = {
   get visible() {
@@ -73,8 +76,8 @@ const mockPaySheetState = {
   setRateOverride: jest.fn((v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
   }),
-  setSaveError: jest.fn((v: boolean) => {
-    paySheetStateInner = { ...paySheetStateInner, saveError: v };
+  setSaveError: jest.fn((message?: string) => {
+    paySheetStateInner = { ...paySheetStateInner, saveError: message };
   }),
   reset: jest.fn(() => {
     paySheetStateInner = {
@@ -82,7 +85,7 @@ const mockPaySheetState = {
       saving: false,
       accountPickerVisible: false,
       rateOverride: false,
-      saveError: false,
+      saveError: undefined,
     };
   }),
 };
@@ -179,8 +182,8 @@ describe('usePaySheet', () => {
     mockPaySheetState.setRateOverride.mockImplementation((v: boolean) => {
       paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
     });
-    mockPaySheetState.setSaveError.mockImplementation((v: boolean) => {
-      paySheetStateInner = { ...paySheetStateInner, saveError: v };
+    mockPaySheetState.setSaveError.mockImplementation((message?: string) => {
+      paySheetStateInner = { ...paySheetStateInner, saveError: message };
     });
     mockPaySheetState.reset.mockImplementation(() => {
       paySheetStateInner = {
@@ -188,7 +191,7 @@ describe('usePaySheet', () => {
         saving: false,
         accountPickerVisible: false,
         rateOverride: false,
-        saveError: false,
+        saveError: undefined,
       };
     });
     mockAccounts = [];
@@ -487,10 +490,10 @@ describe('usePaySheet', () => {
     const { result, rerender } = await submitAmount('15');
 
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
-    expect(mockPaySheetState.setSaveError).toHaveBeenLastCalledWith(true);
+    expect(mockPaySheetState.setSaveError).toHaveBeenLastCalledWith(Strings.commitmentsPayError);
     // The mocked selector store does not subscribe, so the flag reaches state on the next render.
     await act(() => rerender(undefined));
-    expect(result.current.state.saveError).toBe(true);
+    expect(result.current.state.saveError).toBe(Strings.commitmentsPayError);
     expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(false);
   });
 
@@ -661,7 +664,7 @@ describe('usePaySheet', () => {
       await result.current.onSubmit();
     });
     await act(() => rerender(undefined));
-    expect(result.current.state.saveError).toBe(true);
+    expect(result.current.state.saveError).toBe(Strings.commitmentsPayError);
 
     mockPaySheetState.setSaveError.mockClear();
 
@@ -676,8 +679,8 @@ describe('usePaySheet', () => {
     });
     await act(() => rerender(undefined));
 
-    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(false);
-    expect(result.current.state.saveError).toBe(false);
+    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(undefined);
+    expect(result.current.state.saveError).toBeUndefined();
   });
 
   it('F3: clears the save error on a submit that fails validation', async () => {
@@ -685,7 +688,7 @@ describe('usePaySheet', () => {
     const { result, rerender } = await submitAmount('15');
     await act(() => rerender(undefined));
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
-    expect(result.current.state.saveError).toBe(true);
+    expect(result.current.state.saveError).toBe(Strings.commitmentsPayError);
 
     mockPaySheetState.setSaveError.mockClear();
 
@@ -701,8 +704,8 @@ describe('usePaySheet', () => {
     expect(result.current.form.getFieldState('amountText').error?.message).toBe(
       Strings.errAmountInvalid,
     );
-    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(false);
-    expect(result.current.state.saveError).toBe(false);
+    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(undefined);
+    expect(result.current.state.saveError).toBeUndefined();
   });
 
   // The rate row is not a `Controller`, so `setValue` is the only thing that can revalidate it.
@@ -944,7 +947,7 @@ describe('usePaySheet', () => {
     });
 
     // A huge finite amount clears the refine, so the resolver throws at `markAsPaid`, not here.
-    it('an oversized amount clears field validation; a markAsPaid rejection surfaces the banner with no write', async () => {
+    it('an oversized amount clears field validation; a markAsPaid rejection surfaces the unstorable copy with no write', async () => {
       mockAccounts = [egpAccount];
       mockMarkAsPaid.mockRejectedValueOnce(
         new TransactionAmountError('Computed amount exceeds the storable range', 'unstorable'),
@@ -963,8 +966,9 @@ describe('usePaySheet', () => {
       expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
       expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(false);
 
+      // Deterministic failure gets its own copy, not the retry-implying banner.
       await act(() => rerender(undefined));
-      expect(result.current.state.saveError).toBe(true);
+      expect(result.current.state.saveError).toBe(Strings.commitmentsPayErrAmountUnstorable);
     });
 
     it('saves the same amount when the rate leaves the converted value on the floor', async () => {
@@ -1095,5 +1099,24 @@ describe('usePaySheet', () => {
       expect(state.previewHidden).toBe(true);
       expect(state.purposeCaption).toBeUndefined();
     });
+  });
+});
+
+describe('resolvePaySheetSaveError', () => {
+  it("maps the discriminated 'unstorable' reason to its own copy, ignoring the message", () => {
+    expect(
+      resolvePaySheetSaveError(new TransactionAmountError('arbitrary internal text', 'unstorable')),
+    ).toBe(Strings.commitmentsPayErrAmountUnstorable);
+  });
+
+  it('falls through an undiscriminated TransactionAmountError to the retry banner', () => {
+    expect(
+      resolvePaySheetSaveError(new TransactionAmountError('A positive USD exchange rate is required')),
+    ).toBe(Strings.commitmentsPayError);
+  });
+
+  it('keeps the retry banner for everything else, where retrying is accurate', () => {
+    expect(resolvePaySheetSaveError(new Error('disk full'))).toBe(Strings.commitmentsPayError);
+    expect(resolvePaySheetSaveError(undefined)).toBe(Strings.commitmentsPayError);
   });
 });

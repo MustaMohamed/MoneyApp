@@ -94,9 +94,7 @@ export function PaySheet({ commitment, payment }: Props) {
         footer={
           <>
             {state.saveError ? (
-              <Text className="font-inter text-danger text-[11px]">
-                {Strings.commitmentsPayError}
-              </Text>
+              <Text className="font-inter text-danger text-[11px]">{state.saveError}</Text>
             ) : null}
             <Button
               variant="primary"

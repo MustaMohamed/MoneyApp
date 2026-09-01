@@ -53,6 +53,18 @@ function deriveResolution(
   }
 }
 
+/**
+ * Only `reason === 'unstorable'` is deterministic and gets its own copy, the shape
+ * `resolveTransactionSaveError` uses; everything else keeps the retry banner — a repository
+ * `TransactionValidationError` reaching here is a submit-time race where retrying is accurate.
+ */
+export function resolvePaySheetSaveError(error: unknown): string {
+  if (error instanceof TransactionAmountError && error.reason === 'unstorable') {
+    return Strings.commitmentsPayErrAmountUnstorable;
+  }
+  return Strings.commitmentsPayError;
+}
+
 // A factory, not a module constant: closing over the cross-currency flag would be a cycle.
 function createPaySheetSchema(commitment: Commitment | undefined, accounts: Account[]) {
   return z
@@ -258,8 +270,8 @@ export function usePaySheet(
           notes: undefined,
         });
         setRateOverride(false);
-        // Module-level flag outlives the sheet; a stale save error would greet the next open.
-        setSaveError(false);
+        // Module-level state outlives the sheet; a stale save error would greet the next open.
+        setSaveError(undefined);
       }
     }
 
@@ -274,7 +286,7 @@ export function usePaySheet(
   async function onValid(data: PaySheetFormValues) {
     if (!payment) return;
     setSaving(true);
-    setSaveError(false);
+    setSaveError(undefined);
     try {
       await markAsPaid(payment.id, {
         amount_paid: parseRequiredMoneyText(data.amountText, 'amountText'),
@@ -292,9 +304,9 @@ export function usePaySheet(
       void loadAccounts().catch((error: unknown) =>
         console.error('[paySheet] account revalidation failed:', error),
       );
-    } catch {
+    } catch (error) {
       // The store logs and rethrows; without this banner the failure is silent.
-      setSaveError(true);
+      setSaveError(resolvePaySheetSaveError(error));
     } finally {
       setSaving(false);
     }
@@ -302,7 +314,7 @@ export function usePaySheet(
 
   // RHF calls `onValid` only when validation passes, so a stale banner outlives a failed submit.
   function onInvalid() {
-    setSaveError(false);
+    setSaveError(undefined);
   }
 
   function selectAccount(account: Account) {

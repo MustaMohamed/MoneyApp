@@ -1010,6 +1010,8 @@ export const Strings = {
   // The shortfall is in the paying account's currency, which is not always USD.
   commitmentsPayErrConvertedBelowMin: (currency: string) =>
     `Converts to less than 0.01 ${currency} at this rate`,
+  // Same copy as addTxErrAmountUnstorable on purpose: it is the identical assertStorable guard.
+  commitmentsPayErrAmountUnstorable: "Amounts this large can't be stored",
 
   // Commitments: Deactivate
   commitmentsDeactivate: 'Deactivate Commitment',
