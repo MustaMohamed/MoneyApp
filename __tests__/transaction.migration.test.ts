@@ -4,8 +4,9 @@ import { MIGRATIONS } from '@/database/migrations';
 import { migration004 } from '@/database/migrations/004_create_transactions';
 import { migration005 } from '@/database/migrations/005_add_transaction_native_amounts';
 import { migration018 } from '@/database/migrations/018_add_transaction_revolving_delta';
+import { registerOpenDbsDrain } from '@/test_helpers/sqlite_drain';
 
-const openDbs: ReturnType<typeof Database>[] = [];
+const openDbs = registerOpenDbsDrain();
 
 let db: ReturnType<typeof Database>;
 
@@ -13,27 +14,6 @@ beforeEach(() => {
   db = new Database(':memory:');
   openDbs.push(db);
   db.exec(MIGRATIONS.map((m) => m.up).join('\n'));
-});
-
-// afterEach, not afterAll: a test that throws mid-body would otherwise strand its handles.
-afterEach(() => {
-  const drained = openDbs.splice(0);
-  const closeFailures: unknown[] = [];
-  for (const db of drained) {
-    try {
-      db.close();
-    } catch (err) {
-      closeFailures.push(err);
-    }
-  }
-  // The expect covers both lists; the throws below only preserve stack fidelity on failure.
-  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
-  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
-    stranded: [],
-    closeErrors: [],
-  });
-  if (closeFailures.length === 1) throw closeFailures[0];
-  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
 });
 
 describe('migration004 — transactions table', () => {

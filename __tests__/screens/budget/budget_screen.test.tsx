@@ -9,6 +9,7 @@ import type {
   CategoryBudgetRowVM,
   NamedBudgetVM,
 } from '@/modules/budget/screens/budget/budget_categories.types';
+import { makeTestBudgetEditTarget } from '@/test_helpers/budget';
 
 interface RefreshControlTestProps {
   refreshing: boolean;
@@ -506,23 +507,18 @@ const baseState: BudgetScreenState = {
 const mockedUseBudget = useBudget as jest.Mock;
 
 function namedBudget(id: string, name: string, planned: number): NamedBudgetVM {
-  return {
+  // The three positional args also derive the dependent fields the factory cannot default.
+  return makeTestBudgetEditTarget({
     id,
     name,
     planned,
-    spent: 0,
+    limit: planned,
     left: planned,
-    usedPct: 0,
-    categorySharePct: 1,
-    usedLabel: '0%',
-    shareLabel: '100% of category',
     spentPlannedLabel: `0 / ${planned} spent`,
     balanceAmountLabel: String(planned),
-    balanceMetaLabel: 'EGP left',
-    ringColor: Colors.dark.positive,
     accessibilityLabel: name,
     menuAccessibilityLabel: `Actions for ${name}`,
-  };
+  });
 }
 
 function categoryRow(

@@ -2,8 +2,9 @@ import Database from 'better-sqlite3';
 
 import { MIGRATIONS } from '@/database/migrations';
 import { migration015 } from '@/database/migrations/015_add_budget_id_to_transactions';
+import { registerOpenDbsDrain } from '@/test_helpers/sqlite_drain';
 
-const openDbs: ReturnType<typeof Database>[] = [];
+const openDbs = registerOpenDbsDrain();
 
 const NOW = '2026-07-14T00:00:00.000Z';
 
@@ -14,27 +15,6 @@ function createAccount(db: Database.Database) {
      VALUES ('acc','Cash','bank','EGP',0,0,0,0,0,?,?)`,
   ).run(NOW, NOW);
 }
-
-// afterEach, not afterAll: a test that throws mid-body still drains its handle here.
-afterEach(() => {
-  const drained = openDbs.splice(0);
-  const closeFailures: unknown[] = [];
-  for (const db of drained) {
-    try {
-      db.close();
-    } catch (err) {
-      closeFailures.push(err);
-    }
-  }
-  // The throws below are unreachable on green; they preserve stack fidelity when it fails.
-  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
-  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
-    stranded: [],
-    closeErrors: [],
-  });
-  if (closeFailures.length === 1) throw closeFailures[0];
-  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
-});
 
 describe('migration015 - named budget transaction assignment', () => {
   it('adds nullable budget_id and an index without changing existing rows', () => {

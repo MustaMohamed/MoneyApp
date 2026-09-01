@@ -1,8 +1,9 @@
 import Database from 'better-sqlite3';
 
 import { MIGRATIONS, type Migration } from '@/database/migrations';
+import { registerOpenDbsDrain } from '@/test_helpers/sqlite_drain';
 
-const openDbs: ReturnType<typeof Database>[] = [];
+const openDbs = registerOpenDbsDrain();
 
 const NOW = '2026-07-19T00:00:00.000Z';
 
@@ -75,27 +76,6 @@ function insertTransaction(
      VALUES (?, ?, 100, 'EGP', 100, ?, ?, '2026-07-01', '12:00:00', ?, ?)`,
   ).run(input.id, input.type, input.accountId, input.toAccountId ?? null, NOW, NOW);
 }
-
-// afterEach, not afterAll: a test that throws mid-body still drains its handle here.
-afterEach(() => {
-  const drained = openDbs.splice(0);
-  const closeFailures: unknown[] = [];
-  for (const db of drained) {
-    try {
-      db.close();
-    } catch (err) {
-      closeFailures.push(err);
-    }
-  }
-  // The throws below are unreachable on green; they preserve stack fidelity when it fails.
-  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
-  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
-    stranded: [],
-    closeErrors: [],
-  });
-  if (closeFailures.length === 1) throw closeFailures[0];
-  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
-});
 
 describe('migration017 - legacy credit-card balance review', () => {
   it('flags only credit cards with generic expense or income rows', () => {
