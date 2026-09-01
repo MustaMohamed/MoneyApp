@@ -8,6 +8,7 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
+import { maskMoneyFieldText } from '@/utils/money_text';
 
 import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
@@ -31,21 +32,6 @@ interface Props {
   mode: TransactionFormMode;
 }
 
-function sanitize(text: string): string {
-  const cleaned = text.replace(/[^0-9.]/g, '');
-  if (cleaned === '') return '';
-
-  const normalized = cleaned.startsWith('.') ? `0${cleaned}` : cleaned;
-  const parts = normalized.split('.');
-  if (parts.length === 1) return parts[0];
-
-  const integer = parts[0];
-  const decimals = parts.slice(1).join('').slice(0, 2);
-  return decimals.length === 0 && normalized.endsWith('.')
-    ? `${integer}.`
-    : `${integer}.${decimals}`;
-}
-
 export function AmountHero({ onChange, type, currency, mode }: Props): React.ReactElement {
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const amountStr = useTransactionAmount(mode);
@@ -61,7 +47,11 @@ export function AmountHero({ onChange, type, currency, mode }: Props): React.Rea
       <Input
         testID="amount-hero-value"
         value={amountStr}
-        onChangeText={(text) => onChange(sanitize(text))}
+        onChangeText={(text) => {
+          // Diffs against the text on screen; `undefined` refuses the edit and keeps it.
+          const masked = maskMoneyFieldText(amountStr, text);
+          if (masked !== undefined) onChange(masked);
+        }}
         onFocus={onFocus}
         onBlur={onBlur}
         keyboardType="decimal-pad"

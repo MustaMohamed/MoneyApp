@@ -182,16 +182,16 @@ async function renderOpenSheet() {
 describe('PaySheet converted-total preview', () => {
   it.each([
     ['1', 55],
-    ['1,234', 67870],
-    ['1,234.5', 67897.5],
-    ['1,234.56', 67900.8],
+    ['1234', 67870],
+    ['1234.5', 67897.5],
+    ['1234.56', 67900.8],
   ] as const)('shows the converted total for a readable amount "%s"', async (typed, expected) => {
     const { getByPlaceholderText, getByText } = await renderOpenSheet();
     await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), typed);
     expect(getByText(`= ${formatCurrencyAmount(expected, Currency.EGP)}`)).toBeTruthy();
   });
 
-  it.each([['1,'], ['1,2'], ['1,23'], ['1,234.'], ['12abc'], ['']] as const)(
+  it.each([['1.'], ['0'], ['']] as const)(
     'hides the converted total while the amount reads "%s"',
     async (typed) => {
       const { getByPlaceholderText, queryByText } = await renderOpenSheet();
@@ -201,6 +201,20 @@ describe('PaySheet converted-total preview', () => {
 
       await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), typed);
       expect(queryByText(CONVERTED_ROW)).toBeNull();
+    },
+  );
+
+  // The mask refuses untypeable and ambiguous comma text wholesale, keeping field and preview.
+  it.each([['12abc'], ['1,234']] as const)(
+    'keeps the preview when a refused edit "%s" leaves the field unchanged',
+    async (typed) => {
+      const { getByPlaceholderText, queryByText } = await renderOpenSheet();
+      await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), '1');
+      expect(queryByText(CONVERTED_ROW)).not.toBeNull();
+
+      await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), typed);
+      expect(queryByText(CONVERTED_ROW)).not.toBeNull();
+      expect(getByPlaceholderText(Strings.commitmentsAmountPlaceholder).props.value).toBe('1');
     },
   );
 

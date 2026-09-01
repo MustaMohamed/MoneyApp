@@ -436,6 +436,20 @@ describe('useAddTransaction — validation', () => {
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
+  // The mask lets partial text like `.5` stand; the schema owns refusing it at submit.
+  it('rejects a partial ".5" left in the field with a field error, never a save', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr('.5'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBeDefined();
+  });
+
   it('rejects amount=0', async () => {
     const onClose = jest.fn();
     const { result } = await renderHook(() => useAddTransaction(onClose));
