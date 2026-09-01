@@ -25,9 +25,9 @@
  *
  * Case 4 is the one that matters: import and call both survive and only a geometry value
  * is overridden locally. That is the realistic drift, and it is invisible to the import
- * check. Case 5 is its mirror — both components verbatim, including the two prose `ms()`
- * mentions (`empty_state.tsx`'s icon-circle comment, `error_state.tsx`'s className note) —
- * so comment-stripping is proven load-bearing for both files, not just the empty one.
+ * check. Case 5 is its mirror — both components verbatim, including `error_state.tsx`'s
+ * prose `ms()` mention in its className note — so comment-stripping is proven load-bearing
+ * against the real components, not only against a fixture.
  */
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import fs from 'node:fs';
@@ -199,10 +199,9 @@ describe('validate-state-screen-geometry.js — subprocess CLI contract (#338)',
     expect(result.stderr).not.toContain('does not call');
   });
 
-  // §3 row 5. Both components verbatim through the fakeroot. `empty_state.tsx` names
-  // `ms(80)` and `ms(40)` in its icon-circle comment and `error_state.tsx` names `ms()` in
-  // its className note — the only `ms(` in that file at all. Without comment-stripping the
-  // guard reds both files at base.
+  // §3 row 5. Both components verbatim through the fakeroot. `error_state.tsx` names `ms()`
+  // in its className note — the only `ms(` in either component, prose or code. Without
+  // comment-stripping the guard reds that file at base.
   it('exits 0 when the only `ms()` mentions are inside comments', () => {
     const result = runGuardAt(
       makeFakeRoot([

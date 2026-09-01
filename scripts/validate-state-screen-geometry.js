@@ -26,7 +26,7 @@
 // Excluding string literals needs a scanner this guard deliberately does not own. What closes
 // the hole is `tsc` in the same parity chain, not a second text check: neither fake declares
 // anything, so `npm run typecheck` exits 2. The import fake reds
-// `empty_state.tsx(16,16): error TS2304: Cannot find name 'resolveStateScreenLayout'.`; the call
+// `empty_state.tsx(13,16): error TS2304: Cannot find name 'resolveStateScreenLayout'.`; the call
 // fake reds seven `TS2304: Cannot find name 'LAYOUT'`, six of them inside `StyleSheet.create`.
 const fs = require('fs');
 const path = require('path');
@@ -66,9 +66,9 @@ for (const component of BOUND_COMPONENTS) {
   }
 
   // Comments are stripped before matching, so prose *about* the geometry cannot red the
-  // guard: `empty_state.tsx` names `ms(80)`/`ms(40)` in its icon-circle comment and
-  // `error_state.tsx` names `ms()` in its className note. Lines are blanked, not deleted, so
-  // the reported line number is the real file's.
+  // guard: `error_state.tsx` names `ms()` in its className note, and that is the only `ms(`
+  // in either component — prose or code. Lines are blanked, not deleted, so the reported
+  // line number is the real file's.
   const stripped = stripComments(fs.readFileSync(abs, 'utf8').split('\n'));
 
   // All three checks run for every component and every violation is collected — the process
