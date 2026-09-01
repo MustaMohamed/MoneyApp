@@ -2,15 +2,28 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { CategoryHistoryVM } from '@/modules/budget/screens/budget/budget.helpers';
-import { MINUS_SIGN, PLUS_SIGN, formatAmount, signAmountText } from '@/utils/format_amount';
+import {
+  MINUS_SIGN,
+  PLUS_SIGN,
+  formatAmount,
+  formatDisplayMagnitude,
+  signAmountText,
+} from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 export function StatTiles({ history }: { history: CategoryHistoryVM }) {
   const net = history.netBanked;
-  const netLabel = signAmountText(formatAmount(Math.abs(net)), net >= 0 ? PLUS_SIGN : MINUS_SIGN);
+  // Zero-gated (#332): `netBanked` is an unrounded running sum, and `-0` noise must read `0`.
+  const netMag = formatDisplayMagnitude(net, Currency.EGP);
+  const netLabel = signAmountText(
+    netMag.text,
+    net >= 0 ? PLUS_SIGN : MINUS_SIGN,
+    netMag.printsAsZero,
+  );
   return (
     <View style={styles.row}>
       <Tile

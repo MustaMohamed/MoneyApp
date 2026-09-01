@@ -11,7 +11,7 @@ import {
   HERO_GRADIENT_END,
   HERO_GRADIENT_START,
 } from '@/components/ui/hero_gradient';
-import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, Radius, Size, Spacing, Type, lineHeightFor, withAlpha } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
@@ -46,7 +46,7 @@ const TILE_UNSELECTED_COLORS: ViewStyle = {
 };
 const TILE_SELECTED_COLORS: ViewStyle = {
   // gold-400 at 46% — mockup's `color-mix(... 46%, transparent)` as an alpha suffix.
-  borderColor: `${GoldTokens[400]}75`,
+  borderColor: withAlpha(GoldTokens[400], '75'),
   backgroundColor: Colors.dark.surface,
 };
 

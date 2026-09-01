@@ -229,6 +229,16 @@ describe('buildTransactionDetailPresentation', () => {
     ).toBe('−1 EGP');
   });
 
+  // Pins the #318 delegation's third branch: a transfer takes the unsigned accessible text.
+  it('leaves a transfer amount unsigned', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: transaction({}),
+        account: account({}),
+      }),
+    ).toMatchObject({ amountText: '4,850 EGP' });
+  });
+
   it('keeps the rate at 2dp regardless of the EGP amount default — the tripwire that would catch a find-and-replace onto formatCurrencyAmount', () => {
     const { exchangeRateText } = buildTransactionDetailPresentation({
       tx: transaction({ exchange_rate: 48.6 }),

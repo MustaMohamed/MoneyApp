@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, Size, withAlpha } from '@/constants/theme';
@@ -11,12 +12,28 @@ import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/ac
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { MINUS_SIGN, PLUS_SIGN, formatCurrencyAmount, signAmountText } from '@/utils/format_amount';
+import {
+  MINUS_SIGN,
+  PLUS_SIGN,
+  formatCurrencyAmount,
+  formatDisplayMagnitude,
+  signAmountText,
+} from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 import { ms, msFont } from '@/utils/responsive';
 
 // 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;
+
+/** Zero-gated sign composition (#332): a net that prints as zero carries no sign either way. */
+function signedStatValue(value: number, currency: Currency): string {
+  const { text, printsAsZero } = formatDisplayMagnitude(value, currency);
+  return signAmountText(
+    `${text} ${CURRENCY_CONFIG[currency].code}`,
+    value >= 0 ? PLUS_SIGN : MINUS_SIGN,
+    printsAsZero,
+  );
+}
 
 function nextDueDate(dueDay: number): string {
   const today = new Date();
@@ -104,10 +121,7 @@ export function buildInfoRows(
       },
       {
         label: Strings.cardChangeLabel,
-        value: signAmountText(
-          formatCurrencyAmount(Math.abs(change), cur),
-          change >= 0 ? PLUS_SIGN : MINUS_SIGN,
-        ),
+        value: signedStatValue(change, cur),
         valueColor: changeColor,
         icon: change >= 0 ? 'up' : 'down',
       },
@@ -155,10 +169,7 @@ export function buildInfoRows(
     },
     {
       label: Strings.cardThisWeekLabel,
-      value: signAmountText(
-        formatCurrencyAmount(Math.abs(weekNet), cur),
-        weekNet >= 0 ? PLUS_SIGN : MINUS_SIGN,
-      ),
+      value: signedStatValue(weekNet, cur),
       valueColor: weekNetColor,
     },
   ];

@@ -61,7 +61,7 @@ export const Colors = {
 } as const;
 
 /** The alpha suffixes in use, as `#RRGGBBAA` hex pairs. New values are a deliberate edit here. */
-export type AlphaHex = '1A' | '1F' | '22' | '2E' | '40' | '55';
+export type AlphaHex = '1A' | '1F' | '22' | '2E' | '40' | '55' | '75' | 'CC';
 
 /**
  * `#RRGGBB` token or runtime colour (account swatch, category colour) + alpha pair → `#RRGGBBAA`.
