@@ -788,9 +788,12 @@ describe('computeLiquidityBreakdown', () => {
     expect(shouldShowProportionBar({ liquid, reserve })).toBe(false);
   });
 
-  it('sums three Bank balances to an exact -0 float-noise total, unnormalized (#332)', () => {
-    // 0.3 - 0.1 - 0.2 leaves a -2.78e-17 residual; roundMoney(that) is -0, not 0. This function
-    // does not normalize it — `formatOwnedAmountParts` at the render site absorbs it instead.
+  // Guard, not characterization (review.md's gate rule): before PR #375 r2's `normalizeNegativeZero`
+  // call, this asserted `Object.is(liquid, -0)` and passed identically at base and head, since
+  // computeLiquidityBreakdown was untouched by r1. r2 applies the same fix computeNetWorth already
+  // has at :77-79, so this now fails against the pre-r2 code (still -0) and passes against r2.
+  it('normalizes a three-Bank -0 float-noise total to 0, matching computeNetWorth (#332)', () => {
+    // 0.3 - 0.1 - 0.2 leaves a -2.78e-17 residual; roundMoney(that) is -0 before normalization.
     const accounts: Account[] = [
       makeAccount({ id: '1', type: AccountType.Bank, current_balance: 0.3 }),
       makeAccount({ id: '2', type: AccountType.Bank, current_balance: -0.1 }),
@@ -798,10 +801,15 @@ describe('computeLiquidityBreakdown', () => {
     ];
     const { liquid } = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
 
-    expect(Object.is(liquid, -0)).toBe(true);
+    expect(Object.is(liquid, 0)).toBe(true);
   });
 
-  it('rounds a single overdrawn sub-cent Bank balance to an exact -0 row (#332)', () => {
+  // Characterization, not guard (review.md's gate rule): r2's `normalizeNegativeZero` call is on
+  // the aggregate return (`liquid`/`reserve`) only, not the per-account `balance` computed above
+  // it in the loop — this passes identically at base and head. The `-0` here is real and permanent;
+  // `formatOwnedAmountParts` at the render site is what absorbs it, by design ("the format-layer
+  // absorption stays as defence").
+  it('leaves a single overdrawn sub-cent Bank row at an exact -0, undefended at this layer (#332)', () => {
     const accounts: Account[] = [
       makeAccount({ id: '1', type: AccountType.Bank, current_balance: -0.001 }),
     ];

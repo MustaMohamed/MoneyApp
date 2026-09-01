@@ -32,6 +32,14 @@ describe('resolveNetWorthForeignCaption — the sheet’s ≈ caption', () => {
   it('renders the absent-rate placeholder in EGP under a USD base', () => {
     expect(resolveNetWorthForeignCaption(undefined, Currency.USD)).toBe('— EGP');
   });
+
+  it("composes U+2212, never Intl's ASCII hyphen, for a negative net worth (PR #375 r1)", () => {
+    // netWorth -2,000 EGP @ 50 converts to -40.00 USD; the header already shows U+2212 via
+    // formatOwnedAmountParts, and this caption must match, not fall back to formatCurrencyAmount.
+    const caption = resolveNetWorthForeignCaption(-40, Currency.EGP);
+    expect(caption).toBe('≈ −40.00 USD');
+    expect(caption).not.toContain('-');
+  });
 });
 
 describe('the breakdown copy takes the currency code as a parameter', () => {
@@ -110,7 +118,10 @@ describe('formatLiabilityRowValue — the single composition point for a liabili
 // magnitudes the user owns (ADR decision 1): unsigned at zero/positive, `−` only if genuinely
 // negative — never `+`, unlike the owed-frame liability convention above.
 describe('formatOwnedAmountParts — the composition point for an owned magnitude (#332)', () => {
-  it('documents the bug this function fixes: plain formatAmount(-0) prints an ASCII "-0"', () => {
+  // Characterization, not guard (review.md's gate rule): `formatAmount` itself is untouched by
+  // this PR, so this passes identically at base and head — it documents why the fix below is
+  // needed, it does not prove the fix works.
+  it('characterizes the bug this function fixes: plain formatAmount(-0) prints an ASCII "-0"', () => {
     expect(formatAmount(-0)).toBe('-0');
   });
 
@@ -139,6 +150,8 @@ describe('formatOwnedAmountParts — the composition point for an owned magnitud
   it.each([
     [1500.5, '1,500.50'],
     [-1500.5, '−1,500.50'],
+    // Unsigned-zero convention: an exact zero is always '0', never the currency's own decimals.
+    [0, '0'],
   ] as const)('USD base: %s -> %s', (value, expected) => {
     expect(formatOwnedAmountParts(value, Currency.USD)).toEqual({ value: expected, code: 'USD' });
   });

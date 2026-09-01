@@ -14,7 +14,7 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatCurrencyAmount, formatExchangeRate } from '@/utils/format_amount';
+import { formatExchangeRate } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { formatOwnedAmountParts } from './net_worth_breakdown_sheet.helpers';
@@ -110,6 +110,12 @@ export function HeroCard({
 }: HeroCardProps) {
   const totalAccounts = assetsCount + liabilitiesCount;
   const foreignCurrency = foreignCurrencyFor(baseCurrency);
+  // `netWorth.assetsForeign` mirrors `assets`' sign, so it needs the same composition as the
+  // hero amount itself, not plain `formatCurrencyAmount`'s Intl ASCII hyphen (PR #375 r1).
+  const assetsForeignParts =
+    netWorth.kind === 'amount' && netWorth.assetsForeign !== undefined
+      ? formatOwnedAmountParts(netWorth.assetsForeign, foreignCurrency)
+      : undefined;
 
   return (
     // Not tappable on the refusal path: there is no honest breakdown of a refused total.
@@ -220,8 +226,8 @@ export function HeroCard({
               />
               {/* Assets, not net worth: the sheet's ≈ caption differs on purpose. */}
               <Text className="text-foreground text-xs">
-                {netWorth.kind === 'amount' && netWorth.assetsForeign !== undefined
-                  ? formatCurrencyAmount(netWorth.assetsForeign, foreignCurrency)
+                {assetsForeignParts !== undefined
+                  ? `${assetsForeignParts.value} ${assetsForeignParts.code}`
                   : Strings.netWorthBreakdownForeignUnavailable(
                       CURRENCY_CONFIG[foreignCurrency].code,
                     )}
