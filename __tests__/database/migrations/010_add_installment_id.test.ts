@@ -8,29 +8,9 @@ import { migration006 } from '@/database/migrations/006_create_commitments';
 import { migration007 } from '@/database/migrations/007_create_commitment_payments';
 import { migration008 } from '@/database/migrations/008_add_commitment_payment_id';
 import { migration010 } from '@/database/migrations/010_add_installment_id';
+import { registerOpenDbsDrain } from '@/test_helpers/sqlite_drain';
 
-const openDbs: ReturnType<typeof Database>[] = [];
-
-// afterEach, not afterAll: a test that throws mid-body still drains its handle here.
-afterEach(() => {
-  const drained = openDbs.splice(0);
-  const closeFailures: unknown[] = [];
-  for (const db of drained) {
-    try {
-      db.close();
-    } catch (err) {
-      closeFailures.push(err);
-    }
-  }
-  // The throws below are unreachable on green; they preserve stack fidelity when it fails.
-  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
-  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
-    stranded: [],
-    closeErrors: [],
-  });
-  if (closeFailures.length === 1) throw closeFailures[0];
-  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
-});
+const openDbs = registerOpenDbsDrain();
 
 describe('migration010 — add installment_id', () => {
   function freshDb() {

@@ -1,8 +1,9 @@
 import Database from 'better-sqlite3';
 
 import { MIGRATIONS, type Migration } from '@/database/migrations';
+import { registerOpenDbsDrain } from '@/test_helpers/sqlite_drain';
 
-const openDbs: ReturnType<typeof Database>[] = [];
+const openDbs = registerOpenDbsDrain();
 
 const NOW = '2026-07-16T00:00:00.000Z';
 
@@ -53,27 +54,6 @@ function createDatabaseThrough015(): Database.Database {
   );
   return db;
 }
-
-// afterEach, not afterAll: a test that throws mid-body still drains its handle here.
-afterEach(() => {
-  const drained = openDbs.splice(0);
-  const closeFailures: unknown[] = [];
-  for (const db of drained) {
-    try {
-      db.close();
-    } catch (err) {
-      closeFailures.push(err);
-    }
-  }
-  // The throws below are unreachable on green; they preserve stack fidelity when it fails.
-  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
-  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
-    stranded: [],
-    closeErrors: [],
-  });
-  if (closeFailures.length === 1) throw closeFailures[0];
-  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
-});
 
 describe('migration016 - budget month profiles', () => {
   it('creates month settings and category group snapshot tables with the approved schema', () => {
