@@ -215,7 +215,11 @@ function addTransactionFact(target: DashboardMonthFacts, row: DashboardTransacti
 
 function finishTransactionFacts(facts: DashboardMonthFacts): void {
   facts.totals.netEgp = facts.totals.incomeEgp - facts.totals.expenseEgp;
-  facts.spend.totalEgp = facts.totals.expenseEgp;
+  // Rounded and negative-zero-normalized before either leg is used for sign, delta, or display
+  // (#332) — same two-step as computeNetWorth (account_aggregation.ts:77-79). A credit-card refund
+  // month can net negative here; the sign is a domain state (spent vs refunded), not a display bug.
+  facts.spend.totalEgp = normalizeNegativeZero(roundMoney(facts.totals.expenseEgp));
+  facts.spend.usdNative = normalizeNegativeZero(roundMoney(facts.spend.usdNative));
 }
 
 export function reduceDashboardTransactionFacts(

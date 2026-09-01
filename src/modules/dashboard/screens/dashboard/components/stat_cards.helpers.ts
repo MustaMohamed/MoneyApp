@@ -5,10 +5,22 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatCurrencyParts } from '@/utils/format_amount';
 
-export function resolveMonthSpendUsdAmount(monthSpentUsd: number): { value: string; code: string } {
-  return formatCurrencyParts(monthSpentUsd, Currency.USD);
+export type MonthSpendLegState = 'spent' | 'refunded';
+
+export interface MonthSpendLeg {
+  state: MonthSpendLegState;
+  magnitude: number;
+}
+
+/**
+ * A credit-card refund month can net negative — there is no purchase-to-refund link in the
+ * schema, so period-net is the only implementable model (#332). `net` is a state, not a signed
+ * display value: `net >= 0` (zero included) is `spent`, `net < 0` is `refunded` at its magnitude.
+ * Only the magnitude is meant to reach a formatter — a negative number never reaches display.
+ */
+export function resolveMonthSpendLeg(net: number): MonthSpendLeg {
+  return net < 0 ? { state: 'refunded', magnitude: -net } : { state: 'spent', magnitude: net };
 }
 
 /**
@@ -16,11 +28,11 @@ export function resolveMonthSpendUsdAmount(monthSpentUsd: number): { value: stri
  * folded inside the EGP figure at each transaction's own historical rate — so nothing converts;
  * only the hierarchy follows the base.
  */
-export function resolveMonthSpendRows(
+export function resolveMonthSpendRows<T extends { value: string; code: string }>(
   baseCurrency: Currency,
-  egpParts: { value: string; code: string },
-  usdParts: { value: string; code: string },
-): ReadonlyArray<{ value: string; code: string }> {
+  egpParts: T,
+  usdParts: T,
+): ReadonlyArray<T> {
   return baseCurrency === Currency.USD ? [usdParts, egpParts] : [egpParts, usdParts];
 }
 

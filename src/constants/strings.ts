@@ -247,6 +247,8 @@ export const Strings = {
   dashLiabilitiesLabel: 'Liabilities',
   dashMonthSpentTitle: 'Spent This Month',
   dashMonthSpentTxsUnit: 'txs',
+  dashMonthSpentSpentLabel: 'Spent',
+  dashMonthSpentRefundedLabel: 'Refunded',
   dashSeeAll: 'See all',
 
   // §5 Dashboard v2: segments + breakdown sheet

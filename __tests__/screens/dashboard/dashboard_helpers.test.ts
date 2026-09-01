@@ -1172,6 +1172,63 @@ describe('reduceDashboardTransactionFacts', () => {
       currentCategorySpendEgp: {},
     });
   });
+
+  // Layla's rounding table (#332): finishTransactionFacts rounds and negative-zero-normalizes
+  // spend.totalEgp and spend.usdNative independently, before either leg reaches sign, delta, or
+  // display. Both legs driven from the same raw row so one table covers both.
+  describe('rounds and normalizes both spend legs (#332)', () => {
+    const ROUNDING_ROWS: ReadonlyArray<{ case: string; rawNet: number; expected: number }> = [
+      { case: 'ordinary positive', rawNet: 4500, expected: 4500 },
+      { case: 'refund month', rawNet: -500, expected: -500 },
+      { case: 'no activity', rawNet: 0, expected: 0 },
+      { case: 'SQLite SUM float noise', rawNet: -0.0000000004, expected: 0 },
+      { case: 'half-even, truncated cent even', rawNet: -12.345, expected: -12.34 },
+      { case: 'half-even, truncated cent odd', rawNet: -12.335, expected: -12.34 },
+    ];
+
+    it.each(ROUNDING_ROWS)(
+      '$case: rawNet $rawNet -> $expected on spend.totalEgp and spend.usdNative',
+      ({ rawNet, expected }) => {
+        const reduced = reduceDashboardTransactionFacts(
+          [
+            {
+              year_month: '2026-07',
+              category_id: null,
+              income_egp: 0,
+              expense_egp: rawNet,
+              usd_native: rawNet,
+              transaction_count: 1,
+            },
+          ],
+          '2026-07',
+          '2026-06',
+        );
+
+        expect(reduced.currentMonth.spend.totalEgp).toBe(expected);
+        expect(reduced.currentMonth.spend.usdNative).toBe(expected);
+      },
+    );
+
+    it('normalizes SQLite SUM float noise to +0, not -0, on both legs', () => {
+      const reduced = reduceDashboardTransactionFacts(
+        [
+          {
+            year_month: '2026-07',
+            category_id: null,
+            income_egp: 0,
+            expense_egp: -0.0000000004,
+            usd_native: -0.0000000004,
+            transaction_count: 1,
+          },
+        ],
+        '2026-07',
+        '2026-06',
+      );
+
+      expect(Object.is(reduced.currentMonth.spend.totalEgp, -0)).toBe(false);
+      expect(Object.is(reduced.currentMonth.spend.usdNative, -0)).toBe(false);
+    });
+  });
 });
 
 describe('buildDashboardBudgetSummary', () => {
