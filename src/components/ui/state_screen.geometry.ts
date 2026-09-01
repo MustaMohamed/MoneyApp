@@ -3,6 +3,23 @@ import type { TextStyle, ViewStyle } from 'react-native';
 import { Size, Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
+// Module-private. `satisfies` reds a re-split shared slot or a dropped member (#338), and
+// `as const satisfies` checks the literal without widening it.
+interface StateScreenKindGeometry {
+  iconCircle: number;
+  iconSize: number;
+  headlineGap: number;
+  bodyMaxWidth: number;
+  actionGap: number;
+}
+
+interface StateScreenGeometry {
+  paddingHorizontal: number;
+  bodyGap: number;
+  error: StateScreenKindGeometry;
+  empty: StateScreenKindGeometry;
+}
+
 export const STATE_SCREEN_LAYOUT = {
   paddingHorizontal: Spacing.xl,
   bodyGap: Spacing.xs,
@@ -20,7 +37,7 @@ export const STATE_SCREEN_LAYOUT = {
     bodyMaxWidth: ms(260),
     actionGap: Spacing.md,
   },
-} as const;
+} as const satisfies StateScreenGeometry;
 
 type StateScreenKind = 'error' | 'empty';
 

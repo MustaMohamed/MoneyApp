@@ -244,11 +244,18 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
   it('reaches pass 2 blinding directly through a copied script and a comment-only allowlisted fixture', () => {
     const fakeRoot = path.join(fixtureRoot, 'fakeroot');
     const fakeScriptsDir = path.join(fakeRoot, 'scripts');
+    const fakeLibDir = path.join(fakeScriptsDir, 'lib');
     const fakeUtilsDir = path.join(fakeRoot, 'src', 'utils');
     fs.mkdirSync(fakeScriptsDir, { recursive: true });
+    fs.mkdirSync(fakeLibDir, { recursive: true });
     fs.mkdirSync(fakeUtilsDir, { recursive: true });
     const copiedScriptPath = path.join(fakeScriptsDir, 'validate-money-formatting.js');
     fs.copyFileSync(scriptPath, copiedScriptPath);
+    // `require('./lib/strip-comments')` resolves beside the copy; without it this MODULE_NOT_FOUNDs.
+    fs.copyFileSync(
+      path.join(repoRoot, 'scripts', 'lib', 'strip-comments.js'),
+      path.join(fakeLibDir, 'strip-comments.js'),
+    );
     fs.writeFileSync(
       path.join(fakeUtilsDir, 'format_amount.ts'),
       "// new Intl.NumberFormat('en-US') lives here in prose only.\nexport const nothingHere = 1;\n",

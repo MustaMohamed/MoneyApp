@@ -71,3 +71,6 @@ app-example
 
 # scratch fixtures for __tests__/scripts/validate_money_formatting.test.ts
 .ma017-guard-fixtures/
+
+# scratch fixtures for __tests__/scripts/validate_state_screen_geometry.test.ts
+.s338-guard-fixtures/
