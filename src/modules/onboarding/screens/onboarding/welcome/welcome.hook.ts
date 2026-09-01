@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Currency, OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { runOnboardingTransition } from '@/modules/onboarding/domain/onboarding_transition';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { useInit } from '@/utils/use_init.hook';
@@ -11,8 +12,8 @@ import { useInit } from '@/utils/use_init.hook';
 import { useWelcomeTransitionState } from './welcome.state';
 
 export function useWelcome() {
-  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
-  const setBaseCurrency = useOnboardingStore.getState().setBaseCurrency;
+  const baseCurrency = useBaseCurrencyStore((s) => s.baseCurrency);
+  const setBaseCurrency = useBaseCurrencyStore.getState().setBaseCurrency;
   const setStep = useOnboardingStore.getState().setStep;
   const router = useRouter();
   const [selected, setSelected] = useState<Currency>(baseCurrency);

@@ -8,6 +8,7 @@ const mockRunMigrations = jest.fn<Promise<void>, [unknown]>();
 const mockInitOnboarding = jest.fn<Promise<{ complete: boolean; step: string }>, []>();
 const mockLoadAccounts = jest.fn<Promise<void>, []>();
 const mockLoadRate = jest.fn<Promise<void>, []>();
+const mockLoadBaseCurrency = jest.fn<Promise<void>, []>();
 const mockEnsureHousekeepingCurrent = jest.fn<Promise<void>, []>();
 
 jest.mock('@/database/client', () => ({
@@ -27,6 +28,11 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 jest.mock('@/modules/currency/store/currency.store', () => ({
   useCurrencyStore: {
     getState: () => ({ loadRate: () => mockLoadRate() }),
+  },
+}));
+jest.mock('@/modules/currency/store/base_currency.store', () => ({
+  useBaseCurrencyStore: {
+    getState: () => ({ load: () => mockLoadBaseCurrency() }),
   },
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -66,6 +72,7 @@ describe('useAppInit', () => {
     mockInitOnboarding.mockResolvedValue({ complete: false, step: 'N1' });
     mockLoadAccounts.mockResolvedValue(undefined);
     mockLoadRate.mockResolvedValue(undefined);
+    mockLoadBaseCurrency.mockResolvedValue(undefined);
     mockEnsureHousekeepingCurrent.mockResolvedValue(undefined);
   });
 
@@ -83,6 +90,7 @@ describe('useAppInit', () => {
     expect(mockInitOnboarding).toHaveBeenCalledTimes(1);
     expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
     expect(mockLoadRate).toHaveBeenCalledTimes(1);
+    expect(mockLoadBaseCurrency).toHaveBeenCalledTimes(1);
 
     currency.resolve();
     await flushStartup();
@@ -96,6 +104,7 @@ describe('useAppInit', () => {
     ['onboarding', () => mockInitOnboarding.mockRejectedValueOnce(new Error('onboarding'))],
     ['accounts', () => mockLoadAccounts.mockRejectedValueOnce(new Error('accounts'))],
     ['currency', () => mockLoadRate.mockRejectedValueOnce(new Error('currency'))],
+    ['base currency', () => mockLoadBaseCurrency.mockRejectedValueOnce(new Error('base'))],
   ])('publishes fatalError when required %s initialization fails', async (_, fail) => {
     fail();
 

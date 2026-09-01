@@ -7,9 +7,9 @@ import { isRateUsable } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { DashboardLoadInput } from '@/modules/dashboard/repositories/dashboard.repository';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { formatMonthYear } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
@@ -70,7 +70,7 @@ export function useDashboard() {
     })),
   );
   // The base currency enters here and passes down as a parameter; `domain/` never imports a store.
-  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
+  const baseCurrency = useBaseCurrencyStore((s) => s.baseCurrency);
   const { isBreakdownVisible, selectedSegment } = useDashboardState(
     useShallow((state) => ({
       isBreakdownVisible: state.isBreakdownVisible,

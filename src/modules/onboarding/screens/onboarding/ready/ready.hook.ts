@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { runOnboardingTransition } from '@/modules/onboarding/domain/onboarding_transition';
 import { selectReadySummaryState } from '@/modules/onboarding/domain/ready_summary_state';
@@ -16,7 +17,7 @@ import { useReadyTransitionState } from './ready.state';
 
 export function useReady() {
   const router = useRouter();
-  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
+  const baseCurrency = useBaseCurrencyStore((s) => s.baseCurrency);
   const completeOnboarding = useOnboardingStore.getState().completeOnboarding;
   const setStep = useOnboardingStore.getState().setStep;
   const complete = useAsync(completeOnboarding);

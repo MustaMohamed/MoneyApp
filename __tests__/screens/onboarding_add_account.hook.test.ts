@@ -39,9 +39,9 @@ function setup(isAddingMore?: string) {
     addAccount: mockAddAccount,
     loadAccounts: mockLoadAccounts,
   }));
+  // `baseCurrency` now comes from the real `useBaseCurrencyStore`, initial state EGP (#348).
   const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
   const storeState = {
-    baseCurrency: Currency.EGP,
     setStep: mockSetStep,
   };
   (useOnboardingStore as jest.Mock).mockImplementation(

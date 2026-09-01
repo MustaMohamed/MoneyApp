@@ -1,16 +1,16 @@
 import { create } from 'zustand';
 
-import { Currency, OnboardingStep } from '@/constants/enums';
+import { OnboardingStep } from '@/constants/enums';
 import {
   onboardingRepository,
   type IOnboardingRepository,
 } from '@/modules/onboarding/repositories/onboarding.repository';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+// The base currency lives in `useBaseCurrencyStore` (#348): this flow ends, that value does not.
 const INITIAL_STATE = {
   complete: false,
   currentStep: OnboardingStep.N1,
-  baseCurrency: Currency.EGP,
 };
 
 export type OnboardingInitResult = {
@@ -20,7 +20,6 @@ export type OnboardingInitResult = {
 
 export type OnboardingStoreState = typeof INITIAL_STATE & {
   setStep: (step: OnboardingStep) => Promise<void>;
-  setBaseCurrency: (currency: Currency) => Promise<void>;
   completeOnboarding: () => Promise<void>;
   init: () => Promise<OnboardingInitResult>;
   reset: () => void;
@@ -43,16 +42,6 @@ export function createOnboardingStore(repository: IOnboardingRepository = onboar
         }
       },
 
-      setBaseCurrency: async (currency) => {
-        try {
-          await repository.setBaseCurrency(currency);
-          set({ baseCurrency: currency });
-        } catch (err) {
-          console.error('[onboardingStore] setBaseCurrency failed:', err);
-          throw err;
-        }
-      },
-
       completeOnboarding: async () => {
         try {
           await repository.complete();
@@ -70,7 +59,6 @@ export function createOnboardingStore(repository: IOnboardingRepository = onboar
           set({
             complete: nextState.complete,
             currentStep: nextState.step,
-            baseCurrency: nextState.baseCurrency,
           });
         }
 
