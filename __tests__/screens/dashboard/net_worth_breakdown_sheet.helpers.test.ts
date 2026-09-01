@@ -1,11 +1,14 @@
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import {
+  formatLiabilityAmountParts,
   formatLiabilityRowValue,
+  formatOwnedAmountParts,
   resolveBreakdownRowColors,
   resolveNetWorthForeignCaption,
   shouldShowProportionBar,
 } from '@/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.helpers';
+import { formatAmount } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 
 describe('resolveNetWorthForeignCaption — the sheet’s ≈ caption', () => {
@@ -28,6 +31,14 @@ describe('resolveNetWorthForeignCaption — the sheet’s ≈ caption', () => {
 
   it('renders the absent-rate placeholder in EGP under a USD base', () => {
     expect(resolveNetWorthForeignCaption(undefined, Currency.USD)).toBe('— EGP');
+  });
+
+  it("composes U+2212, never Intl's ASCII hyphen, for a negative net worth (PR #375 r1)", () => {
+    // netWorth -2,000 EGP @ 50 converts to -40.00 USD; the header already shows U+2212 via
+    // formatOwnedAmountParts, and this caption must match, not fall back to formatCurrencyAmount.
+    const caption = resolveNetWorthForeignCaption(-40, Currency.EGP);
+    expect(caption).toBe('≈ −40.00 USD');
+    expect(caption).not.toContain('-');
   });
 });
 
@@ -100,6 +111,62 @@ describe('formatLiabilityRowValue — the single composition point for a liabili
     [500, '−500.00'],
   ] as const)('USD base: %s -> %s', (balance, expected) => {
     expect(formatLiabilityRowValue(balance, Currency.USD)).toBe(expected);
+  });
+});
+
+// `amount.netWorth`/`amount.assets` and `LiquidityBreakdown.liquid`/`.reserve`/account rows are
+// magnitudes the user owns (ADR decision 1): unsigned at zero/positive, `−` only if genuinely
+// negative — never `+`, unlike the owed-frame liability convention above.
+describe('formatOwnedAmountParts — the composition point for an owned magnitude (#332)', () => {
+  // Characterization, not guard (review.md's gate rule): `formatAmount` itself is untouched by
+  // this PR, so this passes identically at base and head — it documents why the fix below is
+  // needed, it does not prove the fix works.
+  it('characterizes the bug this function fixes: plain formatAmount(-0) prints an ASCII "-0"', () => {
+    expect(formatAmount(-0)).toBe('-0');
+  });
+
+  it.each([
+    [500, '500'],
+    [-500, '−500'],
+    [-0, '0'],
+    [0, '0'],
+    [0.4, '0.40'],
+    [-0.4, '−0.40'],
+    [0.001, '0.00'],
+  ] as const)('%s -> %s', (value, expected) => {
+    expect(formatOwnedAmountParts(value, Currency.EGP)).toEqual({ value: expected, code: 'EGP' });
+  });
+
+  it('composes U+2212, never an ASCII hyphen, for a genuine negative', () => {
+    const { value } = formatOwnedAmountParts(-500, Currency.EGP);
+    expect(value.codePointAt(0)).toBe(0x2212);
+    expect(value).not.toContain('-');
+  });
+
+  it('never prefixes `+` for a positive magnitude, unlike the owed-frame convention', () => {
+    expect(formatOwnedAmountParts(500, Currency.EGP).value).not.toContain('+');
+  });
+
+  it.each([
+    [1500.5, '1,500.50'],
+    [-1500.5, '−1,500.50'],
+    // Unsigned-zero convention: an exact zero is always '0', never the currency's own decimals.
+    [0, '0'],
+  ] as const)('USD base: %s -> %s', (value, expected) => {
+    expect(formatOwnedAmountParts(value, Currency.USD)).toEqual({ value: expected, code: 'USD' });
+  });
+});
+
+describe('formatLiabilityAmountParts — the aggregate liabilities total, same owed-frame sign as a row (#332)', () => {
+  it.each([
+    [500, '−500'],
+    [-500, '+500'],
+    [-0, '0'],
+  ] as const)('%s -> %s', (value, expected) => {
+    expect(formatLiabilityAmountParts(value, Currency.EGP)).toEqual({
+      value: expected,
+      code: 'EGP',
+    });
   });
 });
 

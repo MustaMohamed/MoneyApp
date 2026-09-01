@@ -146,12 +146,15 @@ export function computeLiquidityBreakdown(
   liquidAccounts.sort((a, b) => b.balance - a.balance);
   reserveAccounts.sort((a, b) => b.balance - a.balance);
 
-  // Rounded once at the sum, completing the round-then-sum contract.
+  // Rounded once at the sum, completing the round-then-sum contract. Normalised the same way
+  // computeNetWorth's aggregates are (line 77-79): a float-noise sum can round to an exact `-0`,
+  // which `formatAmount` prints as Intl's "-0" (#332, #371's residual). The per-account `balance`
+  // above is untouched — its own `-0` (a sub-cent overdraft) stays a format-layer concern.
   return {
-    liquid: roundMoney(liquid),
+    liquid: normalizeNegativeZero(roundMoney(liquid)),
     liquidCount: liquidAccounts.length,
     liquidAccounts,
-    reserve: roundMoney(reserve),
+    reserve: normalizeNegativeZero(roundMoney(reserve)),
     reserveCount: reserveAccounts.length,
     reserveAccounts,
   };

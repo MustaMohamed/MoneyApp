@@ -23,6 +23,8 @@ import {
 import { roundMoney } from '@/utils/money';
 import { ms, msFont } from '@/utils/responsive';
 
+import { formatOwnedAmountParts } from './net_worth_breakdown_sheet.helpers';
+
 // 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;
 
@@ -34,6 +36,13 @@ function signedStatValue(value: number, currency: Currency): string {
     value >= 0 ? PLUS_SIGN : MINUS_SIGN,
     printsAsZero,
   );
+}
+
+/** `formatOwnedAmountParts` joined the way `formatCurrencyAmount` used to be (#332, PR #375 r2):
+ * the carousel headline balance and its base-equivalent row are both negative-capable (overdraft). */
+function ownedAmountText(value: number, currency: Currency): string {
+  const parts = formatOwnedAmountParts(value, currency);
+  return `${parts.value} ${parts.code}`;
 }
 
 function nextDueDate(dueDay: number): string {
@@ -140,7 +149,7 @@ export function buildInfoRows(
       ? [
           {
             label: Strings.cardInBaseLabel(baseCurrency),
-            value: formatCurrencyAmount(
+            value: ownedAmountText(
               roundMoney(
                 convertCurrency({
                   amount: account.current_balance,
@@ -291,7 +300,7 @@ export function AccountCard({
                 className={resolveAccountBalanceColorClass(account.type)}
                 style={{ flex: 1, fontSize: msFont(17) }}
               >
-                {formatCurrencyAmount(account.current_balance, account.currency)}
+                {ownedAmountText(account.current_balance, account.currency)}
               </Text>
             </View>
           </View>

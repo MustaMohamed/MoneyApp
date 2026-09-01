@@ -15,6 +15,10 @@ import type {
 import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
+import {
+  formatLiabilityRowValue,
+  formatOwnedAmountParts,
+} from './net_worth_breakdown_sheet.helpers';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 import {
   resolveMonthSpendRows,
@@ -331,7 +335,7 @@ function NetWorthCardBody({
   const showProportionBar = shouldShowNetWorthProportionBar(amount);
   const partsTotal = amount.assets + amount.liabilities;
   const assetsPct = showProportionBar ? amount.assets / partsTotal : 0;
-  const netWorthParts = formatCurrencyParts(amount.netWorth, baseCurrency);
+  const netWorthParts = formatOwnedAmountParts(amount.netWorth, baseCurrency);
 
   return (
     <>
@@ -364,7 +368,7 @@ function NetWorthCardBody({
             </Text>
           </View>
           <Text className="font-sora-semibold text-foreground text-xs" numberOfLines={1}>
-            {formatCurrencyParts(amount.assets, baseCurrency).value}
+            {formatOwnedAmountParts(amount.assets, baseCurrency).value}
           </Text>
         </View>
         <View className="flex-1" style={{ flex: 1, gap: ms(4) }}>
@@ -382,7 +386,7 @@ function NetWorthCardBody({
             </Text>
           </View>
           <Text className="font-sora-semibold text-foreground text-xs" numberOfLines={1}>
-            {formatCurrencyParts(amount.liabilities, baseCurrency).value}
+            {formatLiabilityRowValue(amount.liabilities, baseCurrency)}
           </Text>
         </View>
       </View>

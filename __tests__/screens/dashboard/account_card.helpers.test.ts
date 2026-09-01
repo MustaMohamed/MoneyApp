@@ -70,6 +70,15 @@ describe('buildInfoRows — the converted row follows the rate gate', () => {
   });
 });
 
+describe('buildInfoRows — the converted row composes U+2212 for an overdrawn account (#332, PR #375 r3)', () => {
+  it('renders the base-equivalent row with a composed minus, not an ASCII hyphen', () => {
+    const rows = buildInfoRows(usdBank(-100), PLACEHOLDER_RATE, STATS, true, Currency.EGP);
+    const converted = rows.at(-1)?.value;
+    expect(converted).toBe('−5,000 EGP');
+    expect(converted).not.toContain('-');
+  });
+});
+
 describe('buildInfoRows — the converted row is suppressed in the base currency', () => {
   it('drops the row for a USD card under a USD base, rate usable or not', () => {
     expect(labels(usdBank(100), true, Currency.USD)).not.toContain(
