@@ -1,6 +1,6 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 import { ms } from '@/utils/responsive';
 
@@ -129,7 +129,8 @@ export const N4_HERO_CURRENCY_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
   fontSize: Type.subhead,
   lineHeight: lineHeightFor(Type.subhead),
   letterSpacing: 0,
-  opacity: 0.8,
+  // The mockup's 0.8 baked into the colour (CC alpha): a nested Text ignores view-level `opacity`, so the old prop never rendered.
+  color: `${Colors.dark.gold}CC`,
 });
 
 /** mockup.html:688, `.hero-v .st`, the refusal line in the same slot. */
