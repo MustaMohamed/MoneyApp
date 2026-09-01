@@ -28,6 +28,7 @@ export default function AddAccountScreen() {
         <Animated.View style={btnAnim}>
           <Button
             variant="primary"
+            flat
             label={Strings.n2Cta}
             onPress={() => {
               triggerBtnPress();

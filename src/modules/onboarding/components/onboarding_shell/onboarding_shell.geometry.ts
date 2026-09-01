@@ -9,7 +9,7 @@ export const ONBOARDING_SHELL_TRACKS = {
   header: Size.headerHeight,
   progressRail: Size.progressRail,
   statusTrack: Size.statusTrack,
-  cta: Size.ctaHeight,
+  cta: Size.onboardingCtaTrack,
 } as const;
 
 /** Derived from the track so two lines fit: at scale 1.15, ms(34) = 39 but 2 * ms(17) = 40. */

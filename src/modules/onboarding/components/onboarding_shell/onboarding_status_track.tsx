@@ -6,7 +6,6 @@ import { View } from 'react-native';
 import { Colors, Spacing, Type } from '@/constants/theme';
 
 import {
-  ONBOARDING_SHELL_TRACKS,
   resolveStatusTrack,
   STATUS_GLYPH_BOX,
   STATUS_IDLE_DOT,
@@ -20,18 +19,17 @@ export interface OnboardingStatusTrackProps {
   message?: string;
 }
 
-/** `overflow: hidden` and `numberOfLines` clip at large font scales, never grow the footer. */
+/** Idle hugs one footnote line; an error may wrap to two, growing the footer upward — the CTA below never moves. */
 export function OnboardingStatusTrack({ footnote, message }: OnboardingStatusTrackProps) {
   const model = resolveStatusTrack(footnote, message);
 
   return (
     <View
       style={{
-        height: ONBOARDING_SHELL_TRACKS.statusTrack,
+        minHeight: STATUS_TRACK_LINE_HEIGHT,
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: Spacing.xs,
-        overflow: 'hidden',
       }}
       {...model.a11y}
     >

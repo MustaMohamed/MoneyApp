@@ -130,6 +130,8 @@ export const Radius = {
 /** Touch targets use `TouchSize` instead, so they never fall below the platform floor. */
 export const Size = {
   ctaHeight: ms(52),
+  // Raw 48, never ms(): must equal HeroUI's .button__root--size-md height — CSS px don't width-scale.
+  onboardingCtaTrack: 48,
   headerHeight: ms(56),
   // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
@@ -191,7 +193,7 @@ export const Size = {
   summaryValueSlot: ms(52), // N4 value slot, sized for `Type.amountEntry` (40)
   summaryCaptionSlot: ms(34), // N4 two-line caption
   summaryPillTrack: ms(24), // N4 pill row, one line
-  statusTrack: ms(34), // footer footnote <-> error track
+  statusTrack: ms(34), // footer footnote <-> error track — error-state max; idle hugs one line (2026-09-01 compaction)
   progressRail: ms(55), // onboarding progress rail, bar plus step label
   // Unscaled, to match HeroUI Input's own `min-height: 48`.
   fieldHeight: 48,

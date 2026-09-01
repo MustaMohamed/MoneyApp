@@ -32,6 +32,7 @@ export default function WelcomeScreen() {
       cta={
         <Button
           variant="primary"
+          flat
           label={Strings.n1Cta}
           loadingLabel={Strings.n1CtaBusy}
           isDisabled={state.busy}

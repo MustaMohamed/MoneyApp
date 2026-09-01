@@ -16,7 +16,7 @@ describe('onboarding shell geometry', () => {
     expect(ONBOARDING_SHELL_TRACKS.header).toBe(Size.headerHeight);
     expect(ONBOARDING_SHELL_TRACKS.progressRail).toBe(Size.progressRail);
     expect(ONBOARDING_SHELL_TRACKS.statusTrack).toBe(Size.statusTrack);
-    expect(ONBOARDING_SHELL_TRACKS.cta).toBe(Size.ctaHeight);
+    expect(ONBOARDING_SHELL_TRACKS.cta).toBe(Size.onboardingCtaTrack);
   });
 
   it('holds exactly two status lines at every scale', () => {

@@ -53,6 +53,7 @@ export default function MoreAccountsScreen() {
         cta={
           <Button
             variant="primary"
+            flat
             label={Strings.n3EmptyCta}
             onPress={handleAddFirstAccount}
             isDisabled={state.busy}
@@ -74,6 +75,7 @@ export default function MoreAccountsScreen() {
       cta={
         <Button
           variant="primary"
+          flat
           label={Strings.n3Cta}
           onPress={() => {
             void handleContinue();

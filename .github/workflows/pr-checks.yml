@@ -1,8 +1,8 @@
 name: PR Checks
 
 on:
+  # No branch filter: stacked PRs target a stack branch, and [main] silently gives them zero checks.
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 

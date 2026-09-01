@@ -12,15 +12,15 @@ export interface OnboardingFooterProps {
   cta: ReactNode;
 }
 
-/** Fixed 52 slot (`ONBOARDING_SHELL_TRACKS.cta`) never resizes; the button inside stays 48. */
+/** The CTA slot equals HeroUI's own 48 and never resizes — the zero-shift contract on the button (spec.md § Known disagreements 6). */
 export function OnboardingFooter({ footnote, message, cta }: OnboardingFooterProps) {
   return (
     <View
       className="border-separator border-t"
-      style={{ paddingTop: Spacing.sm, paddingHorizontal: Spacing.md, paddingBottom: Spacing.lg }}
+      style={{ paddingTop: Spacing.xxs, paddingHorizontal: Spacing.md, paddingBottom: Spacing.xs }}
     >
       <OnboardingStatusTrack footnote={footnote} message={message} />
-      <View style={{ height: Spacing.sm }} />
+      <View style={{ height: Spacing.xxs }} />
       <View style={{ height: ONBOARDING_SHELL_TRACKS.cta, justifyContent: 'center' }}>{cta}</View>
     </View>
   );
