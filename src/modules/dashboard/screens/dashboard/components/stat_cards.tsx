@@ -17,6 +17,7 @@ import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 import {
+  resolveMonthSpendRows,
   resolveMonthSpendUsdAmount,
   resolveNetWorthStatColor,
   shouldShowNetWorthProportionBar,
@@ -48,7 +49,7 @@ const SHORT_MONTHS = [
 interface StatCardsProps {
   /** One object: sibling props destructured in a signature do not narrow each other. */
   netWorth: DashboardNetWorth;
-  /** Net-worth card only; `monthSpentEgp` is a stored ledger total and stays on EGP. */
+  /** Reports the net-worth card and orders the month-spend rows; both spend totals stay native. */
   baseCurrency: Currency;
   assetsCount: number;
   liabilitiesCount: number;
@@ -173,6 +174,11 @@ export function StatCards({
       : 'trending-neutral';
   const monthSpendUsdParts = resolveMonthSpendUsdAmount(monthSpentUsd);
   const monthSpendEgpParts = formatCurrencyParts(monthSpentEgp, Currency.EGP);
+  const monthSpendRows = resolveMonthSpendRows(
+    baseCurrency,
+    monthSpendEgpParts,
+    monthSpendUsdParts,
+  );
 
   return (
     <View className="mx-4 mt-2 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
@@ -237,18 +243,16 @@ export function StatCards({
           </>
         ) : (
           <>
-            <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
-              {monthSpendEgpParts.value}{' '}
-              <Text className="font-inter-medium text-muted text-xs">
-                {monthSpendEgpParts.code}
+            {monthSpendRows.map((parts) => (
+              <Text
+                key={parts.code}
+                className="font-sora-bold text-foreground text-lg"
+                numberOfLines={1}
+              >
+                {parts.value}{' '}
+                <Text className="font-inter-medium text-muted text-xs">{parts.code}</Text>
               </Text>
-            </Text>
-            <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
-              {monthSpendUsdParts.value}{' '}
-              <Text className="font-inter-medium text-muted text-xs">
-                {monthSpendUsdParts.code}
-              </Text>
-            </Text>
+            ))}
             <View
               className="flex-row items-center justify-between"
               style={{ flexDirection: 'row', gap: ms(8) }}

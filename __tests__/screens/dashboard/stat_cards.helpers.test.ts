@@ -1,5 +1,7 @@
+import { Currency } from '@/constants/enums';
 import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
 import {
+  resolveMonthSpendRows,
   resolveMonthSpendUsdAmount,
   resolveNetWorthStatColor,
   shouldShowNetWorthProportionBar,
@@ -12,6 +14,20 @@ describe('resolveMonthSpendUsdAmount — stat_cards.tsx:249', () => {
 
   it('shows the row-12 whole-number shape — base value: 100, head: 100.00', () => {
     expect(resolveMonthSpendUsdAmount(100)).toEqual({ value: '100.00', code: 'USD' });
+  });
+});
+
+// Two native ledger totals, base-native first; values pass through untouched — no conversion.
+describe('resolveMonthSpendRows — base-first ordering (#347)', () => {
+  const egpParts = { value: '3,000', code: 'EGP' };
+  const usdParts = { value: '20.00', code: 'USD' };
+
+  it('keeps the EGP row first under an EGP base', () => {
+    expect(resolveMonthSpendRows(Currency.EGP, egpParts, usdParts)).toEqual([egpParts, usdParts]);
+  });
+
+  it('puts the USD row first under a USD base', () => {
+    expect(resolveMonthSpendRows(Currency.USD, egpParts, usdParts)).toEqual([usdParts, egpParts]);
   });
 });
 

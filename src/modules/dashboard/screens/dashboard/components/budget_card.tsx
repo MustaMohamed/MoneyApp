@@ -5,11 +5,12 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { budgetBandColor } from '@/modules/budget/screens/budget/budget.helpers';
-import { formatAmount } from '@/utils/format_amount';
+import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
@@ -112,15 +113,20 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
           <BudgetCardSkeleton />
         ) : (
           <>
+            {/* Budgets are EGP-only end to end (no currency column); the code is disclosure, not
+                conversion (#347). */}
             <View style={{ flexDirection: 'row', gap: ms(8), minHeight: VALUE_ROW_HEIGHT }}>
               <Figure
                 label={Strings.budgetSummaryBudgeted}
-                value={formatAmount(summary.budgeted)}
+                value={formatCurrencyAmount(summary.budgeted, Currency.EGP)}
               />
-              <Figure label={Strings.budgetSummarySpent} value={formatAmount(summary.spent)} />
+              <Figure
+                label={Strings.budgetSummarySpent}
+                value={formatCurrencyAmount(summary.spent, Currency.EGP)}
+              />
               <Figure
                 label={Strings.budgetSummaryLeft}
-                value={formatAmount(summary.left)}
+                value={formatCurrencyAmount(summary.left, Currency.EGP)}
                 valueClassName={summary.left < 0 ? 'text-danger' : 'text-success'}
               />
             </View>
