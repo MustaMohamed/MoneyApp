@@ -51,7 +51,8 @@ export function BudgetScreenSkeleton({
       <SkeletonGroup isLoading isSkeletonOnly>
         <Card
           testID="categories-summary-skeleton"
-          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"
+          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"
+          style={{ boxShadow: 'none' }}
         >
           <Card.Body className="px-2 py-1.5">
             <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />
@@ -156,7 +157,10 @@ function RuleLensSkeleton({
   return (
     <View testID="budget-screen-skeleton" accessibilityLabel={Strings.loadingBudgetA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
-        <Card className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none">
+        <Card
+          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"
+          style={{ boxShadow: 'none' }}
+        >
           <Card.Body className="px-2 py-1.5">
             <View className="flex-row items-center justify-between gap-2">
               <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />
@@ -199,7 +203,10 @@ function RuleLensSkeleton({
           <SkeletonGroup.Item className="h-[11px] w-24 rounded-md" />
           <SkeletonGroup.Item className="h-[11px] w-28 rounded-md" />
         </View>
-        <Card className="bg-surface border-border mx-4 rounded-2xl border p-0 shadow-none">
+        <Card
+          className="bg-surface border-border mx-4 rounded-2xl border p-0"
+          style={{ boxShadow: 'none' }}
+        >
           <Card.Body className="p-0">
             {Object.values(BudgetGroup).map((group) => (
               <View key={group}>
@@ -323,7 +330,8 @@ function PlansSkeleton({ rowCount }: { rowCount: number | undefined }): React.Re
       <SkeletonGroup isLoading isSkeletonOnly>
         <Card
           testID="plans-summary-skeleton"
-          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"
+          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"
+          style={{ boxShadow: 'none' }}
         >
           <Card.Body className="px-2 py-1.5">
             <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />

@@ -225,10 +225,11 @@ describe('budget categories presentation architecture', () => {
     expect(summaryParts).not.toContain('minimumFontScale');
     expect(skeleton).toContain('testID="categories-summary-skeleton"');
     expect(
-      skeleton.match(
-        /className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"/g,
-      ),
+      skeleton.match(/className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"/g),
     ).toHaveLength(3);
+    // className shadow-none loses to HeroUI's --surface-shadow token; only boxShadow kills it (#339).
+    expect(skeleton.match(/style=\{\{ boxShadow: 'none' \}\}/g)).toHaveLength(4);
+    expect(skeleton).not.toContain('shadow-none');
     expect(plansLens).toContain('<View className="mt-3 px-4">');
   });
 

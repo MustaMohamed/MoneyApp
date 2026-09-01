@@ -101,13 +101,18 @@ describe('spending plan presentation styling', () => {
 
     expect(detailSummary).toContain("import { Card, Chip } from 'heroui-native'");
     expect(detailSummary).toContain(
-      'className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"',
+      'className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"',
     );
+    // className shadow-none loses to HeroUI's --surface-shadow token; only boxShadow kills it (#339).
+    expect(detailSummary).toContain("style={{ boxShadow: 'none' }}");
+    expect(detailSummary).not.toContain('shadow-none');
     expect(detailSummary).toContain('<Card.Body className="px-2 py-1.5">');
     expect(detailSummary).not.toContain('<Surface');
     expect(detailSkeleton).toContain(
-      'className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0 shadow-none"',
+      'className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0"',
     );
+    expect(detailSkeleton).toContain("style={{ boxShadow: 'none' }}");
+    expect(detailSkeleton).not.toContain('shadow-none');
   });
 
   it('matches loaded plan geometry in overview and detail skeletons', () => {

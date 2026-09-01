@@ -14,7 +14,10 @@ interface SpendingPlanDetailSummaryProps {
 
 export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryProps) {
   return (
-    <Card className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none">
+    <Card
+      className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"
+      style={{ boxShadow: 'none' }}
+    >
       <Card.Body className="px-2 py-1.5">
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
