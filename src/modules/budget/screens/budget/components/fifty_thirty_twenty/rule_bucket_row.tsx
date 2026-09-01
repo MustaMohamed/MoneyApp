@@ -4,7 +4,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { BudgetGroup } from '@/constants/enums';
-import { Colors, Size, Type } from '@/constants/theme';
+import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { RuleBucketVM } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { RuleContributorRow } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_contributor_row';
@@ -43,14 +43,23 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
           <View className="px-1" style={{ flex: 1, minWidth: 0 }}>
             <View className="flex-row items-center gap-1.5">
               <Text
-                style={{ flexShrink: 1, fontSize: Type.body, minWidth: 0 }}
+                style={{
+                  flexShrink: 1,
+                  fontSize: Type.body,
+                  lineHeight: lineHeightFor(Type.body),
+                  minWidth: 0,
+                }}
                 className="font-sora-semibold text-foreground"
                 numberOfLines={1}
               >
                 {presentation.groupLabel}
               </Text>
               <Text
-                style={{ flexShrink: 0, fontSize: Type.micro }}
+                style={{
+                  flexShrink: 0,
+                  fontSize: Type.micro,
+                  lineHeight: lineHeightFor(Type.micro),
+                }}
                 className="font-sora text-content-secondary"
                 numberOfLines={1}
               >
@@ -63,7 +72,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
                 className="h-5 shrink-0 py-0"
               >
                 <Chip.Label
-                  style={{ fontSize: Type.chipMeta }}
+                  style={{ fontSize: Type.chipMeta, lineHeight: lineHeightFor(Type.chipMeta) }}
                   className="font-inter-bold uppercase"
                 >
                   {presentation.statusLabel}
@@ -71,7 +80,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
               </Chip>
             </View>
             <Text
-              style={{ fontSize: Type.micro }}
+              style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
               className="font-inter text-content-secondary mt-0.5"
               numberOfLines={1}
             >
@@ -80,14 +89,18 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
           </View>
           <View style={{ width: Size.budgetRuleValueColumn }} className="items-end">
             <Text
-              style={{ color: presentation.varianceColor, fontSize: Type.bodyStrong }}
+              style={{
+                color: presentation.varianceColor,
+                fontSize: Type.bodyStrong,
+                lineHeight: lineHeightFor(Type.bodyStrong),
+              }}
               className="font-sora-bold"
               numberOfLines={1}
             >
               {presentation.varianceLabel}
             </Text>
             <Text
-              style={{ fontSize: Type.chip }}
+              style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
               className="font-inter text-content-secondary text-right"
               numberOfLines={2}
             >
@@ -111,11 +124,14 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
         <View className="border-separator flex-row border-y px-2 py-1.5">
           {presentation.metrics.map((metric) => (
             <View key={metric.key} className="flex-1 items-center px-1">
-              <Text style={{ fontSize: Type.chip }} className="font-inter text-content-secondary">
+              <Text
+                style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+                className="font-inter text-content-secondary"
+              >
                 {metric.label}
               </Text>
               <Text
-                style={{ fontSize: Type.caption }}
+                style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
                 className="font-sora-semibold text-foreground mt-px text-center"
               >
                 {metric.value}
@@ -130,7 +146,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
             color={presentation.ringColor}
           />
           <Text
-            style={{ fontSize: Type.micro }}
+            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
             className="font-inter text-content-secondary flex-1"
           >
             {presentation.insightLabel}

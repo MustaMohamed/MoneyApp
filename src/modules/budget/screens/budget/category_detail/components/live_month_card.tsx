@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { MonthResultVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import { formatAmount } from '@/utils/format_amount';
@@ -56,19 +56,26 @@ const styles = StyleSheet.create({
   muted: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
+    lineHeight: lineHeightFor(Type.micro),
     color: Colors.dark.text1,
     opacity: 0.7,
   },
-  left: { fontFamily: FontFamily.soraSemi, fontSize: Type.body },
+  left: {
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.body,
+    lineHeight: lineHeightFor(Type.body),
+  },
   big: {
     fontFamily: FontFamily.soraBold,
     fontSize: Type.headline,
+    lineHeight: lineHeightFor(Type.headline),
     color: Colors.dark.text1,
     marginBottom: Spacing.sm,
   },
   of: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.caption,
+    lineHeight: lineHeightFor(Type.caption),
     color: Colors.dark.text1,
     opacity: 0.7,
   },

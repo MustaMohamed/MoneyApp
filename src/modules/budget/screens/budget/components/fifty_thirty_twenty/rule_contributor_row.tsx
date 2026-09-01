@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { Size, Type } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import type { BudgetRuleContributorVM } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -30,21 +30,24 @@ export function RuleContributorRow({ contributor }: RuleContributorRowProps) {
       </View>
       <View style={{ flex: 1 }}>
         <Text
-          style={{ fontSize: Type.caption }}
+          style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
           className="font-sora-semibold text-foreground"
           numberOfLines={1}
         >
           {contributor.name}
         </Text>
         {presentation.planShareLabel ? (
-          <Text style={{ fontSize: Type.micro }} className="font-inter text-content-secondary">
+          <Text
+            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+            className="font-inter text-content-secondary"
+          >
             {presentation.planShareLabel}
           </Text>
         ) : null}
       </View>
       <View className="max-w-[46%] items-end">
         <Text
-          style={{ fontSize: Type.caption }}
+          style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
           className="font-sora-semibold text-foreground text-right"
           numberOfLines={2}
         >
@@ -52,7 +55,7 @@ export function RuleContributorRow({ contributor }: RuleContributorRowProps) {
         </Text>
         {presentation.resultMetaLabel ? (
           <Text
-            style={{ fontSize: Type.chip }}
+            style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
             className="font-inter text-content-secondary text-right"
             numberOfLines={1}
           >

@@ -4,7 +4,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { NamedBudgetRow } from '@/modules/budget/screens/budget/components/named_budget_row';
@@ -53,7 +53,7 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
               <View className="flex-row items-start gap-1.5">
                 <Typography
                   numberOfLines={2}
-                  style={{ fontSize: Type.body }}
+                  style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
                   className="font-sora-semibold text-foreground flex-1"
                 >
                   {row.name}
@@ -69,25 +69,39 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
                 >
                   <Chip.Label
                     numberOfLines={1}
-                    style={{ color: row.ringColor, fontSize: Type.chipMeta }}
+                    style={{
+                      color: row.ringColor,
+                      fontSize: Type.chipMeta,
+                      lineHeight: lineHeightFor(Type.chipMeta),
+                    }}
                     className="font-inter-bold uppercase"
                   >
                     {row.statusLabel}
                   </Chip.Label>
                 </Chip>
               </View>
-              <Typography style={{ fontSize: Type.micro }} className="font-inter text-muted mt-0.5">
+              <Typography
+                style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+                className="font-inter text-muted mt-0.5"
+              >
                 {row.spentPlannedUsedLabel}
               </Typography>
             </View>
             <View className="items-end">
               <Typography
-                style={{ color: row.ringColor, fontSize: Type.bodyStrong }}
+                style={{
+                  color: row.ringColor,
+                  fontSize: Type.bodyStrong,
+                  lineHeight: lineHeightFor(Type.bodyStrong),
+                }}
                 className="font-sora-bold"
               >
                 {row.balanceAmountLabel}
               </Typography>
-              <Typography style={{ fontSize: Type.chip }} className="font-inter text-muted">
+              <Typography
+                style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+                className="font-inter text-muted"
+              >
                 {row.balanceMetaLabel}
               </Typography>
             </View>
@@ -128,7 +142,7 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
               </View>
             </View>
             <Typography
-              style={{ fontSize: Type.micro }}
+              style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
               className="font-inter-semibold text-foreground flex-1"
             >
               {Strings.budgetViewCategoryDetails(row.name)}

@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { CategoryHistoryVM } from '@/modules/budget/screens/budget/budget.helpers';
 import {
   MINUS_SIGN,
@@ -60,10 +60,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     alignItems: 'center',
   },
-  value: { fontFamily: FontFamily.soraBold, fontSize: Type.subhead, color: Colors.dark.text1 },
+  value: {
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.subhead,
+    lineHeight: lineHeightFor(Type.subhead),
+    color: Colors.dark.text1,
+  },
   label: {
     fontFamily: FontFamily.interRegular,
     fontSize: ms(9),
+    lineHeight: lineHeightFor(ms(9)),
     color: Colors.dark.text2,
     marginTop: ms(3),
   },
