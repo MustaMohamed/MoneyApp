@@ -286,6 +286,18 @@ describe('resolveTransactionAmounts', () => {
     // guard by ADR (parse-floor-money-only) §2 — a rate above
     // MAX_SAFE_INTEGER still saves. Reds if the guard is widened to every
     // field on the returned object.
+    //
+    // The `toAmount: 0` in the expectation is an unguarded residual, not a
+    // decided behaviour, and it is not an artefact of the absurd rate: at an
+    // ordinary rate 50, `{Transfer, 0.2, EGP -> USD}` returns `amount: 0.2`
+    // with `toAmount: 0` too. Nothing on the way to storage rejects it — no
+    // positive-value guard exists on the computed legs here;
+    // `validateNormalizedInput` (transaction.repository.ts:159) checks only
+    // currency match and `normalizedAmountsMatch`, which re-derives through
+    // this same resolver, so a zero leg reconciles by construction; and
+    // `to_amount` carries no CHECK constraint (migration 005 adds it as a
+    // bare REAL). Pre-existing and out of scope here (spec §7.6): this pin
+    // records the value, it does not endorse it.
     it('an exchange rate above MAX_SAFE_INTEGER is passed through, not bounded', () => {
       expect(
         resolveTransactionAmounts({
@@ -512,7 +524,16 @@ describe('resolveCommitmentPaymentAmounts', () => {
       ).not.toThrow();
     });
 
-    // Mirrors the passthrough pin on resolveTransactionAmounts above.
+    // Mirrors the passthrough pin on resolveTransactionAmounts above,
+    // `accountNativeAmount: 0` included: the same unguarded residual, equally
+    // independent of the absurd rate — a 0.20 EGP commitment paid from a USD
+    // account at rate 50 also returns `accountNativeAmount: 0`. What differs
+    // is downstream, and it is the schema's doing rather than this file's:
+    // `markAsPaid` binds this leg into the transaction row's `amount`
+    // (commitment.repository.ts:224), and that column is
+    // `CHECK(amount > 0)` (migration 004), so the zero fails at insert
+    // instead of persisting. The resolver still returns it. Recorded, not
+    // endorsed — same scope note as the pin above.
     it('an exchange rate above MAX_SAFE_INTEGER is passed through on a commitment payment', () => {
       expect(
         resolveCommitmentPaymentAmounts({

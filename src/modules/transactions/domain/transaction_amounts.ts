@@ -47,13 +47,25 @@ function assertStorable(value: number): void {
  * hand-maintained list of names, and a leg added inside the literal is
  * guarded with no change here.
  *
+ * The spread puts the guarded legs first, which reorders the keys of the
+ * object `resolveCommitmentPaymentAmounts` returns: `accountCurrency` lands
+ * fourth, behind the three guarded legs, where the hand-written literal it
+ * replaced had it third. Neither return may be read positionally — no
+ * `Object.values`, no `Object.entries` — because adding a leg reorders them
+ * again. Every consumer reads these fields by name today.
+ *
  * Two things sit outside it, both deliberately. `assertStorable(amount)` at
  * the top of each resolver is not redundant with the `amount` leg below: it
  * owns throw precedence over the rate check, and over the destination check
  * in `resolveTransactionAmounts` — the only one of the two resolvers that
  * has one. An amount that is unstorable and also missing its rate or its
- * destination reports `unstorable`, not the undiscriminated message. And a
- * field added to a return's passthrough tail — beside `exchangeRate` — is
+ * destination reports `unstorable`, not the undiscriminated message. It is
+ * also what makes the second check free rather than defensive: the guard
+ * receives that same `const amount` — as `amount` here, `paymentAmount`
+ * there — so once the top call has returned, that leg cannot fire on any
+ * input, and the duplicate costs one comparison. And a field added to a
+ * return's passthrough tail — beside `exchangeRate` on the transaction
+ * return, beside `accountCurrency, exchangeRate` on the commitment one — is
  * still unguarded: six independent call sites narrow to those two tails,
  * they do not close at compile time.
  */
