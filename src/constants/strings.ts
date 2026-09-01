@@ -57,7 +57,9 @@ export const Strings = {
   errMinPaymentExceedsOwed: 'More than you owe.',
   errDueDayRange: 'Enter a day from 1 to 31.',
   errAmountInvalid: 'Numbers only.',
-  errNameDuplicateNamed: (name: string) => `You already have an account called "${name}".`,
+  errAmountRequired: 'Enter an amount.',
+  // Typographic quotes — mockup.html:1412 draws them; straight quotes were a transcription drift.
+  errNameDuplicateNamed: (name: string) => `You already have an account called “${name}”.`,
   // N2's CTA; Settings' Add Account uses `u4Cta` instead.
   n2Cta: 'Save and continue',
 
@@ -173,7 +175,8 @@ export const Strings = {
   // Account types
   typeBank: 'Bank',
   typeSmartWallet: 'Smart Wallet',
-  typePhysicalWallet: 'Phys. Wallet',
+  // 'Cash Wallet' per mockup.html:1344 and locked-design-2026-07-23.md:162 — the shipped 'Phys. Wallet' abbreviation had no ruling behind it.
+  typePhysicalWallet: 'Cash Wallet',
   typePhysicalSavings: 'Savings',
   typeCreditCard: 'Credit Card',
 

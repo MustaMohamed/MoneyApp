@@ -99,8 +99,8 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
   });
 
   describe('balance', () => {
-    it('empty balance → errAmountInvalid', () => {
-      expect(fieldErrors(baseData({ balance: '' })).balance).toBe(Strings.errAmountInvalid);
+    it('empty balance → errAmountRequired', () => {
+      expect(fieldErrors(baseData({ balance: '' })).balance).toBe(Strings.errAmountRequired);
     });
 
     it('negative balance → errAmountInvalid', () => {

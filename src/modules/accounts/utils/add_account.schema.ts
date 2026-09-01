@@ -14,9 +14,13 @@ export function createAddAccountSchema(accounts: Account[]) {
   return z
     .object({
       name: z.string().min(1, Strings.errNameRequired).max(30, Strings.errNameTooLong),
-      balance: z.string().refine((v) => parseNonNegativeDecimal(v) !== undefined, {
-        message: Strings.errAmountInvalid,
-      }),
+      // Blank gets its own copy — 'Numbers only.' against an empty field read as a non sequitur (screen-review N2, nice 10).
+      balance: z
+        .string()
+        .min(1, Strings.errAmountRequired)
+        .refine((v) => v.length === 0 || parseNonNegativeDecimal(v) !== undefined, {
+          message: Strings.errAmountInvalid,
+        }),
       selected_type: z.enum(AccountType),
       selected_color: z.string(),
       currency: z.enum(Currency),

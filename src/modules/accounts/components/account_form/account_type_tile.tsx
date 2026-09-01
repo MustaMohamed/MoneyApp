@@ -5,11 +5,11 @@ import React from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { HeroGlow } from '@/components/ui/hero_glow';
 import {
   HERO_GRADIENT_COLORS,
   HERO_GRADIENT_END,
   HERO_GRADIENT_START,
-  heroGlowStyle,
 } from '@/components/ui/hero_gradient';
 import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
@@ -50,7 +50,9 @@ const TILE_SELECTED_COLORS: ViewStyle = {
   backgroundColor: Colors.dark.surface,
 };
 
-const GLOW_STYLE = heroGlowStyle({ size: ms(74), offset: ms(22) });
+// Glow geometry — mockup `.tile.on::before` (74x74 at -22/-22); the fade itself lives in HeroGlow.
+const GLOW_SIZE = ms(74);
+const GLOW_OFFSET = ms(22);
 
 /** The gradient and glow must be direct siblings, not children of the scaling `Animated.View`. */
 export function AccountTypeTile({ option, isSelected }: AccountTypeTileProps) {
@@ -73,7 +75,7 @@ export function AccountTypeTile({ option, isSelected }: AccountTypeTileProps) {
                 end={HERO_GRADIENT_END}
                 style={StyleSheet.absoluteFill}
               />
-              <View pointerEvents="none" style={GLOW_STYLE} />
+              <HeroGlow size={GLOW_SIZE} offset={GLOW_OFFSET} />
             </>
           ) : null}
           <Animated.View
