@@ -5,14 +5,14 @@ import React from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { HeroGlow } from '@/components/ui/hero_glow';
 import {
   HERO_GRADIENT_COLORS,
   HERO_GRADIENT_END,
   HERO_GRADIENT_START,
-  heroGlowStyle,
 } from '@/components/ui/hero_gradient';
 import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { CoreTokens } from '@/constants/theme_tokens';
+import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
 import type { TypeOption } from '../account_type_pill';
@@ -21,6 +21,8 @@ import { ACCOUNT_TYPE_TILE_HEIGHT } from './account_form.geometry';
 
 export interface AccountTypeTileProps {
   option: TypeOption;
+  /** From the selector's own watch — the container border can't reach the render-prop `isSelected`. */
+  isSelected: boolean;
 }
 
 /** HeroUI's `.radio-group__item` is row/space-between and `style` beats `className` in RN. */
@@ -37,10 +39,23 @@ const TILE_BOX_STYLE: ViewStyle = {
   padding: Spacing.xs,
 };
 
-const GLOW_STYLE = heroGlowStyle({ size: ms(74), offset: ms(22) });
+// Colour only, never layout: `.radio-group__item` supplies neither border colour nor fill, leaving RN's default black border (mockup `.tile`/`.tile.on`, mockup.html:497,509).
+const TILE_UNSELECTED_COLORS: ViewStyle = {
+  borderColor: Colors.dark.border,
+  backgroundColor: Colors.dark.surface,
+};
+const TILE_SELECTED_COLORS: ViewStyle = {
+  // gold-400 at 46% — mockup's `color-mix(... 46%, transparent)` as an alpha suffix.
+  borderColor: `${GoldTokens[400]}75`,
+  backgroundColor: Colors.dark.surface,
+};
+
+// Glow geometry — mockup `.tile.on::before` (74x74 at -22/-22); the fade itself lives in HeroGlow.
+const GLOW_SIZE = ms(74);
+const GLOW_OFFSET = ms(22);
 
 /** The gradient and glow must be direct siblings, not children of the scaling `Animated.View`. */
-export function AccountTypeTile({ option }: AccountTypeTileProps) {
+export function AccountTypeTile({ option, isSelected }: AccountTypeTileProps) {
   const { tileAnim, triggerTileTap } = useAccountTypeTileAnim();
 
   return (
@@ -48,7 +63,7 @@ export function AccountTypeTile({ option }: AccountTypeTileProps) {
       value={option.type}
       onPress={triggerTileTap}
       accessibilityLabel={option.label}
-      style={TILE_BOX_STYLE}
+      style={[TILE_BOX_STYLE, isSelected ? TILE_SELECTED_COLORS : TILE_UNSELECTED_COLORS]}
     >
       {({ isSelected }) => (
         <>
@@ -60,7 +75,7 @@ export function AccountTypeTile({ option }: AccountTypeTileProps) {
                 end={HERO_GRADIENT_END}
                 style={StyleSheet.absoluteFill}
               />
-              <View pointerEvents="none" style={GLOW_STYLE} />
+              <HeroGlow size={GLOW_SIZE} offset={GLOW_OFFSET} />
             </>
           ) : null}
           <Animated.View

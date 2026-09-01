@@ -6,6 +6,12 @@ import { Colors, Radius, Size } from '@/constants/theme';
 
 import { type SegmentedTabsScrollAlign, useSegmentedTabsScroll } from './tabs.hook';
 
+// `.tabs__list--variant-primary`'s own padding, unscaled CSS.
+const TABS_LIST_PADDING = 3;
+// The form vocabulary is small radii — inputs and tiles sit at Radius.md — so the solid-gold track overrides HeroUI's pill `--radius-3xl` (user ruling 2026-09-01); the fill is concentric inside the list padding.
+export const SOLID_GOLD_TRACK_RADIUS = Radius.md;
+export const SOLID_GOLD_SELECTED_RADIUS = Math.max(SOLID_GOLD_TRACK_RADIUS - TABS_LIST_PADDING, 0);
+
 export interface TabSegmentIcon {
   name: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   color: string;
@@ -67,10 +73,12 @@ export function SegmentedTabs<T extends string>({
 
   const triggers = segments.map((seg) => {
     const isSelected = value === seg.value;
-    const selectedRadius = isCompact ? Radius.lg : Radius.pill;
     const selectedSolidGoldStyle =
       isSolidGold && isSelected
-        ? { backgroundColor: Colors.shared.cairoGold, borderRadius: selectedRadius }
+        ? {
+            backgroundColor: Colors.shared.cairoGold,
+            borderRadius: isCompact ? Radius.lg : SOLID_GOLD_SELECTED_RADIUS,
+          }
         : undefined;
     const triggerStyle =
       segmentWidth && selectedSolidGoldStyle
@@ -125,7 +133,7 @@ export function SegmentedTabs<T extends string>({
         isSolidGold
           ? {
               backgroundColor: Colors.shared.cairoGold,
-              borderRadius: isCompact ? Radius.lg : Radius.pill,
+              borderRadius: isCompact ? Radius.lg : SOLID_GOLD_SELECTED_RADIUS,
             }
           : undefined
       }
@@ -140,7 +148,11 @@ export function SegmentedTabs<T extends string>({
       variant="primary"
       animation={animation}
     >
-      <Tabs.List className={cn(listClassName)} accessibilityLabel={accessibilityLabel}>
+      <Tabs.List
+        className={cn(listClassName)}
+        style={isSolidGold && !isCompact ? { borderRadius: SOLID_GOLD_TRACK_RADIUS } : undefined}
+        accessibilityLabel={accessibilityLabel}
+      >
         {isScrollable ? (
           <Tabs.ScrollView
             ref={scrollBehavior.scrollViewRef}
@@ -148,6 +160,10 @@ export function SegmentedTabs<T extends string>({
             onScroll={scrollBehavior.onScroll}
             onLayout={scrollBehavior.onLayout}
             scrollEventThrottle={scrollBehavior.scrollEventThrottle}
+            // The scroll view repeats the list's 3xl radius in its own CSS — keep it in step with the overridden track.
+            style={
+              isSolidGold && !isCompact ? { borderRadius: SOLID_GOLD_TRACK_RADIUS } : undefined
+            }
           >
             {indicator}
             {triggers}

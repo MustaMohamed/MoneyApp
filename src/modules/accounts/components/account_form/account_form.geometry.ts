@@ -14,6 +14,13 @@ export const FIELD_MESSAGE_RAIL_STYLE = {
 /** Unscaled, matching HeroUI `FieldError`'s own 20pt line-height so the rail cannot shift. */
 export const FIELD_MESSAGE_TEXT_LINE_HEIGHT = 20;
 
+/** Error-state alert glyph — mockup `.msg svg`: 13px box, 2px top inset, 5px gap (mockup.html:559-560). */
+export const FIELD_MESSAGE_GLYPH = {
+  size: ms(13),
+  topInset: ms(2),
+  gap: ms(5),
+} as const;
+
 /** 3-column, 5-tile, left-aligned account-type grid at 114 x 76 pt (spec.md:73,124). */
 export const ACCOUNT_TYPE_TILE_HEIGHT = ms(76);
 export const ACCOUNT_TYPE_GRID_COLUMNS = 3;

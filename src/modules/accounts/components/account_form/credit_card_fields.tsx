@@ -34,6 +34,7 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
                 onBlur={onBlur}
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
+                accessibilityLabel={Strings.accountCreditLimitLabel}
               />
             )}
           />
@@ -55,6 +56,7 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
                 onBlur={onBlur}
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
+                accessibilityLabel={Strings.accountMinPaymentLabel}
               />
             )}
           />
@@ -82,6 +84,7 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
                 keyboardType="number-pad"
                 maxLength={2}
                 isInvalid={fieldState.invalid}
+                accessibilityLabel={Strings.accountDueDayLabel}
               />
             )}
           />
@@ -130,6 +133,7 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
                 placeholder={Strings.accountAprPlaceholder}
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
+                accessibilityLabel={Strings.accountAprLabel}
               />
             )}
           />

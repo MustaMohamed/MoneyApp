@@ -4,7 +4,7 @@ import React, { useRef } from 'react';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { Sheet } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Spacing } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
@@ -60,14 +60,20 @@ export function AccountColorSheet({ isOpen, onOpenChange, onConfirm }: AccountCo
       title={Strings.accountColorSheetTitle}
       fitContent
       footer={
-        <Button variant="primary" label={Strings.accountColorSheetCta} onPress={handleConfirm} />
+        <Button
+          variant="primary"
+          flat
+          label={Strings.accountColorSheetCta}
+          onPress={handleConfirm}
+        />
       }
     >
       <Box
         style={{
           paddingHorizontal: Spacing.md,
           paddingTop: Spacing.xs,
-          paddingBottom: SHEET_FOOTER_CLEARANCE,
+          // Not SHEET_FOOTER_CLEARANCE (scrollables only): fitContent sizing counts the footer, so this is the visible grid-to-hairline gap (mockup § D).
+          paddingBottom: Spacing.xl,
         }}
       >
         <Box
