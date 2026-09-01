@@ -17,7 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/text';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
@@ -262,6 +262,7 @@ const styles = StyleSheet.create({
   menuLabel: {
     color: Colors.dark.text1,
     fontSize: Type.body,
+    lineHeight: lineHeightFor(Type.body),
     fontFamily: FontFamily.interMedium,
   },
   fab: {

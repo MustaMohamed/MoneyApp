@@ -46,6 +46,7 @@ export const FILTER_BADGE_STYLE = {
 } as const;
 
 const FILTER_BADGE_TEXT_STYLE = {
+  // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- lineHeight matches FILTER_BADGE_SIZE (the circular badge's own diameter, line 25) so the count centers inside it; lineHeightFor(Type.chip)'s 12px would not fill the 16px circle.
   fontSize: Type.chip,
   lineHeight: FILTER_BADGE_SIZE,
 } as const;

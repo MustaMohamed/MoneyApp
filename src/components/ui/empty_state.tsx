@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 
 // Ruled genuinely different from ErrorState, not merged (#290). Evidence and the
@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
   ctaLabel: {
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.bodyStrong,
+    lineHeight: lineHeightFor(Type.bodyStrong),
     color: Colors.shared.midnightBlue,
   },
   clearWrapper: {
@@ -205,6 +206,7 @@ const styles = StyleSheet.create({
   clearLabel: {
     fontFamily: FontFamily.interMedium,
     fontSize: Type.body,
+    lineHeight: lineHeightFor(Type.body),
     color: Colors.dark.gold,
   },
 });

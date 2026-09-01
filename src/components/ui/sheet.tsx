@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 
@@ -190,6 +190,7 @@ export function Sheet({
                 style={{
                   fontFamily: FontFamily.soraSemi,
                   fontSize: Type.subhead,
+                  lineHeight: lineHeightFor(Type.subhead),
                   color: Colors.dark.text1,
                 }}
               >
