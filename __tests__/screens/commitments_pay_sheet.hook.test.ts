@@ -617,6 +617,36 @@ describe('usePaySheet', () => {
     expect(result.current.form.getValues('exchange_rate')).toBe('48.6');
   });
 
+  // `String(1e-7)` is exponential text `parseRateText` rejects; the prefill must stay typeable.
+  it('prefills an exponential-band global rate as positional text the schema accepts', async () => {
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 1e-7,
+      isManualOverride: false,
+      rate_updated_at: null,
+    }));
+    mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
+    paySheetStateInner = { ...paySheetStateInner, visible: true };
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(async () => {});
+
+    expect(result.current.form.getValues('exchange_rate')).toBe('0.0000001');
+  });
+
+  it('reseeds positional text when the override toggles back off at that rate', async () => {
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 1e-7,
+      isManualOverride: false,
+      rate_updated_at: null,
+    }));
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => result.current.toggleRateOverride());
+    await act(() => result.current.form.setValue('exchange_rate', '48.6'));
+    await act(() => result.current.toggleRateOverride());
+
+    expect(result.current.form.getValues('exchange_rate')).toBe('0.0000001');
+  });
+
   // The save-error flag lives in a module-level store, so it survives a dismiss.
   it('F3: clears a stale save error when the sheet is reopened after a dismiss', async () => {
     mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];

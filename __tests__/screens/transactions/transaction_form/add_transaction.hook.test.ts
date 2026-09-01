@@ -681,6 +681,28 @@ describe('useAddTransaction — cross-currency math', () => {
     );
   });
 
+  it('transfer EGP → USD at a sub-2 rate: to_amount = amount / rate', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setType(TransactionType.Transfer));
+    await act(() => result.current.setAmountStr('1'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectToAccount(mockAccountUSD));
+    await act(() => result.current.setExchangeRate('0.5'));
+    await act(async () => {
+      await result.current.handleSave();
+    });
+    expect(addTx).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 1,
+        currency: Currency.EGP,
+        egp_amount: 1,
+        to_amount: 2, // 1 / 0.5
+        exchange_rate: 0.5,
+      }),
+    );
+  });
+
   it('cc_payment: converts an EGP payment to the USD card destination currency', async () => {
     const addTx = installMockAddTransaction();
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
@@ -818,6 +840,26 @@ describe('useAddTransaction — rate seeding through the shared demand predicate
 
     expect(result.current.state.exchangeRate).toBe('47');
     expect(result.current.state.rateOverride).toBe(true);
+  });
+});
+
+describe('useAddTransaction — rate prefills re-parse', () => {
+  // `String(1e-7)` is exponential text `parseRateText` rejects; the seed must stay typeable.
+  it('seeds an exponential-band stored rate as positional text', async () => {
+    useCurrencyStore.setState({ rate: 1e-7, rate_updated_at: null });
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+
+    expect(result.current.state.exchangeRate).toBe('0.0000001');
+  });
+
+  it('reseeds the same positional text when the override toggles back off', async () => {
+    useCurrencyStore.setState({ rate: 1e-7, rate_updated_at: null });
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.toggleRateOverride());
+    await act(() => result.current.setExchangeRate('48'));
+    await act(() => result.current.toggleRateOverride());
+
+    expect(result.current.state.exchangeRate).toBe('0.0000001');
   });
 });
 

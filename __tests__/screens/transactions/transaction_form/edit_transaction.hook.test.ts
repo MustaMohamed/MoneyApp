@@ -579,6 +579,60 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
   });
 });
 
+describe('useEditTransaction — rate prefills re-parse', () => {
+  // `String(1e-7)` is exponential text the rate field's own validator rejects on save.
+  it('prefills a stored exponential-band rate as positional text that saves', async () => {
+    const exponentialRateTx = makeTestTransaction({
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 0.5,
+      exchange_rate: 1e-7,
+    });
+    useEditTransactionStore.getState().loadFromTx(exponentialRateTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(exponentialRateTx, jest.fn(), jest.fn()),
+    );
+
+    expect(result.current.state.exchangeRate).toBe('0.0000001');
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(updateTx).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ exchange_rate: 1e-7 }),
+    );
+  });
+
+  it('prefills a sub-2 stored rate unchanged and converts with it', async () => {
+    const subTwoRateTx = makeTestTransaction({
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 5,
+      exchange_rate: 0.5,
+    });
+    useEditTransactionStore.getState().loadFromTx(subTwoRateTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(subTwoRateTx, jest.fn(), jest.fn()),
+    );
+
+    expect(result.current.state.exchangeRate).toBe('0.5');
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ egp_amount: 5, exchange_rate: 0.5 }),
+    );
+  });
+});
+
 describe('useEditTransaction — destination-leg floor', () => {
   const transferTx = makeTestTransaction({
     ...mockTxExpense,

@@ -17,6 +17,7 @@ import {
 } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -270,7 +271,7 @@ export function useAddTransaction(
       budgetId: '',
       note: '',
       date: toTransactionTimestamp(new Date()).date,
-      exchangeRate: String(rate),
+      exchangeRate: formatStoredMoneyText(rate),
     },
   });
 
@@ -477,7 +478,7 @@ export function useAddTransaction(
   function toggleRateOverride() {
     const next = !rateOverride;
     setRateOverride(next);
-    if (!next) form.setValue('exchangeRate', String(rate));
+    if (!next) form.setValue('exchangeRate', formatStoredMoneyText(rate));
   }
 
   function selectAccount(account: Account) {
@@ -495,7 +496,7 @@ export function useAddTransaction(
       !rateOverride &&
       requiresExchangeRate(account.currency, isTransferOrCC ? selectedToAccount?.currency : undefined)
     ) {
-      form.setValue('exchangeRate', String(rate));
+      form.setValue('exchangeRate', formatStoredMoneyText(rate));
       setRateOverride(false);
     }
     setShowAccountPicker(false);
@@ -505,7 +506,7 @@ export function useAddTransaction(
     clearError();
     form.setValue('toAccountId', account.id);
     if (!rateOverride && requiresExchangeRate(selectedAccount?.currency, account.currency)) {
-      form.setValue('exchangeRate', String(rate));
+      form.setValue('exchangeRate', formatStoredMoneyText(rate));
       setRateOverride(false);
     }
     setShowToPicker(false);

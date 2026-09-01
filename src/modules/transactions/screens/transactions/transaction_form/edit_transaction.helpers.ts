@@ -1,4 +1,5 @@
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { formatStoredMoneyText } from '@/utils/money_text';
 
 export type EditTransactionFormValues = {
   amount: number;
@@ -21,6 +22,6 @@ export function buildDefaultsFromTx(
     note: tx.note ?? '',
     date: tx.transaction_date,
     time: tx.transaction_time,
-    exchangeRate: String(tx.exchange_rate ?? fallbackRate),
+    exchangeRate: formatStoredMoneyText(tx.exchange_rate ?? fallbackRate),
   };
 }

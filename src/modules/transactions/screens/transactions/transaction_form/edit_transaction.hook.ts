@@ -20,6 +20,7 @@ import {
   type UpdateTransactionInput,
 } from '@/modules/transactions/store/transaction.store';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -395,7 +396,7 @@ export function useEditTransaction(
   function toggleRateOverride() {
     const next = !rateOverride;
     setRateOverride(next);
-    if (!next) form.setValue('exchangeRate', String(rate));
+    if (!next) form.setValue('exchangeRate', formatStoredMoneyText(rate));
   }
 
   function selectCategory(category: Category) {

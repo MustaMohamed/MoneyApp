@@ -253,7 +253,7 @@ export function usePaySheet(
             commitment.currency,
             accounts.find((account) => account.id === prefillAccountId)?.currency,
           )
-            ? String(rate)
+            ? formatStoredMoneyText(rate)
             : undefined,
           notes: undefined,
         });
@@ -314,7 +314,7 @@ export function usePaySheet(
       requiresExchangeRate(commitment.currency, account.currency)
     ) {
       // Gate on `isSubmitted`: seeding clears a rate error but must not raise one pre-submit.
-      form.setValue('exchange_rate', String(rate), { shouldValidate: isSubmitted });
+      form.setValue('exchange_rate', formatStoredMoneyText(rate), { shouldValidate: isSubmitted });
       setRateOverride(false);
     }
     setAccountPickerVisible(false);
@@ -324,7 +324,7 @@ export function usePaySheet(
   function toggleRateOverride() {
     const next = !rateOverride;
     setRateOverride(next);
-    if (!next) form.setValue('exchange_rate', String(rate), { shouldValidate: isSubmitted });
+    if (!next) form.setValue('exchange_rate', formatStoredMoneyText(rate), { shouldValidate: isSubmitted });
   }
 
   return {
