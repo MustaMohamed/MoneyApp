@@ -162,7 +162,7 @@ describe('oxlint-plugin-moneyapp.js — font-size-pairs-line-height (W1D c2, #23
     expect(actual).toEqual(expected);
   });
 
-  it('is wired into the repo config at severity warning', () => {
+  it('is wired into the repo config at severity error (#324: backlog burned to zero)', () => {
     const output = runOxlint([
       '-c',
       repoConfigPath,
@@ -172,6 +172,6 @@ describe('oxlint-plugin-moneyapp.js — font-size-pairs-line-height (W1D c2, #23
     ]);
     const diagnostic = output.diagnostics.find((d) => d.code === RULE_CODE);
     expect(diagnostic).toBeDefined();
-    expect(diagnostic?.severity).toBe('warning');
+    expect(diagnostic?.severity).toBe('error');
   });
 });
