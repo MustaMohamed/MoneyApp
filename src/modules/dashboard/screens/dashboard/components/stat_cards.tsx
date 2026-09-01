@@ -21,8 +21,8 @@ import {
 } from './net_worth_breakdown_sheet.helpers';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 import {
+  resolveMonthSpendLeg,
   resolveMonthSpendRows,
-  resolveMonthSpendUsdAmount,
   resolveNetWorthStatColor,
   shouldShowNetWorthProportionBar,
 } from './stat_cards.helpers';
@@ -176,8 +176,18 @@ export function StatCards({
     : deltaNegative
       ? 'trending-up'
       : 'trending-neutral';
-  const monthSpendUsdParts = resolveMonthSpendUsdAmount(monthSpentUsd);
-  const monthSpendEgpParts = formatCurrencyParts(monthSpentEgp, Currency.EGP);
+  // A negative net never reaches the formatter here (#332): the sign resolves to a state
+  // (spent/refunded) and only the magnitude is formatted.
+  const monthSpendEgpLeg = resolveMonthSpendLeg(monthSpentEgp);
+  const monthSpendUsdLeg = resolveMonthSpendLeg(monthSpentUsd);
+  const monthSpendEgpParts = {
+    ...formatCurrencyParts(monthSpendEgpLeg.magnitude, Currency.EGP),
+    state: monthSpendEgpLeg.state,
+  };
+  const monthSpendUsdParts = {
+    ...formatCurrencyParts(monthSpendUsdLeg.magnitude, Currency.USD),
+    state: monthSpendUsdLeg.state,
+  };
   const monthSpendRows = resolveMonthSpendRows(
     baseCurrency,
     monthSpendEgpParts,
@@ -256,9 +266,16 @@ export function StatCards({
                 key={parts.code}
                 className="font-sora-bold text-foreground text-lg"
                 numberOfLines={1}
+                accessibilityLabel={`${parts.value} ${parts.code} ${parts.state}`}
               >
                 {parts.value}{' '}
                 <Text className="font-inter-medium text-muted text-xs">{parts.code}</Text>
+                {parts.state === 'refunded' && (
+                  <Text className="font-inter-medium text-muted text-xs">
+                    {' '}
+                    {Strings.dashMonthSpentRefundedLabel}
+                  </Text>
+                )}
               </Text>
             ))}
             <View
