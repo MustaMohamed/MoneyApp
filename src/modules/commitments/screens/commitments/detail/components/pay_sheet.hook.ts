@@ -139,9 +139,7 @@ function createPaySheetSchema(commitment: Commitment | undefined, accounts: Acco
       if (acc && convertedBelowMin) {
         ctx.addIssue({
           code: 'custom',
-          message: Strings.commitmentsPayErrConvertedBelowMin(
-            resolved?.accountCurrency ?? acc.currency,
-          ),
+          message: Strings.commitmentsPayErrConvertedBelowMin(acc.currency),
           path: ['amountText'],
         });
       }

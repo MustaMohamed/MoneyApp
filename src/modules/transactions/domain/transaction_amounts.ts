@@ -64,8 +64,11 @@ function assertStorable(value: number): void {
  * positionally — no `Object.values` or `Object.entries` over a returned
  * `TransactionAmounts` or `CommitmentPaymentAmounts` — because adding a leg
  * reorders them again. Every consumer reads these fields by name today. That
- * binds the returns, not this function: the `Object.values` below walks the
- * guard's own input record, where the order carries nothing.
+ * binds the returns, not this function: the `Object.entries` below walks the
+ * guard's own input record, and there the order is load-bearing — each key's
+ * `assertStorable` runs before the next key's zero-destination check, so
+ * whichever offending leg comes first in the literal, an overflow ahead of
+ * `destinationKey` or `destinationKey` itself, is the reason reported.
  *
  * Two things sit outside it, both deliberately. `assertStorable(amount)` at
  * the top of each resolver is not redundant with the `amount` leg below: it
