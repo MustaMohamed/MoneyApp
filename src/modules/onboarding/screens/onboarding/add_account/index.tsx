@@ -12,13 +12,14 @@ import { useAddAccountAnim } from './add_account.anim';
 import { useAddAccount } from './add_account.hook';
 
 export default function AddAccountScreen() {
-  const { form, handleSave, onBack, state } = useAddAccount();
+  const { form, handleSave, onBack, isAddingMore, state } = useAddAccount();
   const { btnAnim, triggerBtnPress } = useAddAccountAnim();
 
   return (
     <OnboardingShell
-      step={2}
-      title={Strings.n2HeaderTitle}
+      // Add-more keeps N3's chrome: the persisted step never moved off N3 (mockup.html:2046), so "first account" / step 2 would contradict it.
+      step={isAddingMore ? 3 : 2}
+      title={isAddingMore ? Strings.n2AddMoreHeaderTitle : Strings.n2HeaderTitle}
       onBack={() => {
         // onBack resolves on failure inside runOnboardingTransition; void discards no rejection.
         void onBack();

@@ -161,8 +161,9 @@ export function EmptyState({ variant, onAction }: EmptyStateProps) {
 const styles = StyleSheet.create({
   root: LAYOUT.root,
   iconCircle: {
+    // Mockup `.ei` draws --surface-secondary (mockup.html:777); plain surface vanished against surface-hosted screens.
     ...LAYOUT.iconCircle,
-    backgroundColor: Colors.dark.surface,
+    backgroundColor: Colors.dark.surfaceEl,
   },
   headline: {
     ...LAYOUT.headline,

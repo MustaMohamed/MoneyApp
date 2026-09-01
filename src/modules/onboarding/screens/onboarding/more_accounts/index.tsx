@@ -156,14 +156,21 @@ export default function MoreAccountsScreen() {
               ))}
             </ListCard>
 
+            {/* The ratified 48 CTA track (spec disagreements 6), not ms(52) — same shape as the footer's. */}
             <View
               style={{
-                height: Size.ctaHeight,
+                height: Size.onboardingCtaTrack,
                 justifyContent: 'center',
                 marginTop: Spacing.md,
               }}
             >
-              <Button variant="secondary" label={Strings.n3AddAnother} onPress={handleAddAnother} />
+              <Button
+                variant="secondary"
+                flat
+                icon="plus"
+                label={Strings.n3AddAnother}
+                onPress={handleAddAnother}
+              />
             </View>
           </Animated.View>
         </ScreenScroll>

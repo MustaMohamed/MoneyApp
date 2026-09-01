@@ -80,6 +80,7 @@ export function useAddAccount() {
     form,
     handleSave,
     onBack,
+    isAddingMore,
     state: { statusMessage: transitionStatusMessage || state.errorMessage, saving: state.saving },
   };
 }
