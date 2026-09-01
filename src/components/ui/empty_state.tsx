@@ -9,6 +9,8 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 
+// Ruled genuinely different from ErrorState, not merged (#290). Evidence and the
+// rejected merge shape: docs/adr/2026-09-01-empty-error-state-stay-separate.md
 const LAYOUT = resolveStateScreenLayout('empty');
 
 export type EmptyStateVariant =
