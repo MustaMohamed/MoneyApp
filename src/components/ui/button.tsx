@@ -9,6 +9,9 @@ import { GoldTokens } from '@/constants/theme_tokens';
 
 import { resolveButtonContent } from './button.content';
 
+// CTAs are Sora (.claude/rules/ui.md; mockup `.cta` uses the display face at 600) — HeroUI's own label ships Inter medium.
+const CTA_LABEL_FONT = 'font-sora-semibold';
+
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -58,7 +61,7 @@ export function Button({
         style={{ borderRadius: Radius.cta }}
       >
         {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
-        <HButton.Label>{text}</HButton.Label>
+        <HButton.Label className={CTA_LABEL_FONT}>{text}</HButton.Label>
       </HButton>
     );
   }
@@ -80,7 +83,9 @@ export function Button({
           pointerEvents="none"
         />
         {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
-        <HButton.Label className="text-accent-foreground">{text}</HButton.Label>
+        <HButton.Label className={cn(CTA_LABEL_FONT, 'text-accent-foreground')}>
+          {text}
+        </HButton.Label>
       </HButton>
     );
   }
@@ -101,7 +106,7 @@ export function Button({
       {icon ? (
         <MaterialCommunityIcons name={icon} size={Size.iconSm} color={Colors.dark.text1} />
       ) : null}
-      <HButton.Label className={flatSecondary ? 'text-foreground' : undefined}>
+      <HButton.Label className={cn(CTA_LABEL_FONT, flatSecondary ? 'text-foreground' : undefined)}>
         {text}
       </HButton.Label>
     </HButton>

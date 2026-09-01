@@ -138,6 +138,8 @@ export const Strings = {
   n1HeaderWordmark: 'MoneyApp',
   n1HeaderSetup: 'Setup',
   n2HeaderTitle: 'Add your first account', // mockup.html:1334
+  // Byte-identical to n3AddAnother and deliberately its own key — header title vs button label (the n3ListLabel/n3HeaderTitle precedent).
+  n2AddMoreHeaderTitle: 'Add another account',
   n3HeaderTitle: 'Your accounts', // mockup.html:2004
   n4HeaderTitle: 'Ready to start', // mockup.html:2319
   n1Footnote: 'You can change this later in Settings.',

@@ -19,7 +19,7 @@ export default function AddAccountScreen() {
     <OnboardingShell
       // Add-more keeps N3's chrome: the persisted step never moved off N3 (mockup.html:2046), so "first account" / step 2 would contradict it.
       step={isAddingMore ? 3 : 2}
-      title={isAddingMore ? Strings.n3AddAnother : Strings.n2HeaderTitle}
+      title={isAddingMore ? Strings.n2AddMoreHeaderTitle : Strings.n2HeaderTitle}
       onBack={() => {
         // onBack resolves on failure inside runOnboardingTransition; void discards no rejection.
         void onBack();
