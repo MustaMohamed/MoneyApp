@@ -35,6 +35,7 @@ export function resolveDisplayHeadlineGeometry(
   const baselineY = Math.ceil(fontSize * SORA_ASCENT_EM);
   const boxHeight = baselineY + Math.ceil(fontSize * SORA_DESCENT_EM);
   return {
+    // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- SVG geometry, not an RN TextStyle: DisplayHeadlineGeometry has no lineHeight field by design (boxHeight/baselineY carry the SVG viewport instead).
     fontSize,
     boxHeight,
     baselineY,
@@ -57,6 +58,7 @@ export function resolveDisplayHeadlineTextStyle(
 ): DisplayHeadlineTextStyle {
   const g = resolveDisplayHeadlineGeometry(scaledFontSize, fontScale, maxFontScale);
   return {
+    // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- DISPLAY_HEADLINE_LINE_HEIGHT is the mockup's own 1.05 `.b-headline` ratio (line 5-6), literal-locked by display_headline_geometry.test.ts:85-92, not lineHeightFor's 1.3.
     fontSize: g.fontSize,
     lineHeight: Math.round(g.fontSize * DISPLAY_HEADLINE_LINE_HEIGHT),
     letterSpacing: g.letterSpacing,

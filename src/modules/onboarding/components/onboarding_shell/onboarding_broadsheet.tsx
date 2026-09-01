@@ -51,6 +51,7 @@ export const GhostNumeral = React.memo(function GhostNumeral({ value }: GhostNum
         position: 'absolute',
         top: -ms(30),
         right: -ms(16),
+        // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- 1:1 lineHeight is deliberate: lineHeightFor's 1.3 ratio would add vertical space that breaks the "bleed past the top-right corner" positioning documented above.
         fontSize: ms(168),
         lineHeight: ms(168),
         letterSpacing: -ms(6),

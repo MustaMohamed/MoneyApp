@@ -24,6 +24,7 @@ import { useMoreAccounts } from './more_accounts.hook';
 
 /** mockup.html:2014, `.b-headline`; `Math.round` matches `lineHeightFor`'s own rounding. */
 const N3_HEADLINE_TEXT_STYLE = {
+  // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- N3_HEADLINE_LINE_HEIGHT_RATIO (1.12, more_accounts.geometry.ts:34) is the mockup's own `.b-headline` ratio, the same pattern as N4's ready.geometry.ts, not lineHeightFor's 1.3.
   fontSize: Type.hero,
   lineHeight: Math.round(Type.hero * N3_HEADLINE_LINE_HEIGHT_RATIO),
   letterSpacing: Type.hero * N3_HEADLINE_TRACKING_EM,

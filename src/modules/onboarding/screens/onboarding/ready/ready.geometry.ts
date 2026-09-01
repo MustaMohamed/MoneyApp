@@ -92,6 +92,7 @@ export const N4_SUMMARY_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({
 
 /** mockup.html:409-411, `.b-headline`, with the inline type-size override at :2328. */
 export const N4_HEADLINE_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
+  // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- the 1.05 ratio is screen-local and literal-locked by onboarding_ready.geometry.test.ts:71-80, not lineHeightFor's 1.3.
   fontSize: Type.hero,
   lineHeight: Math.round(Type.hero * N4_HEADLINE_LINE_HEIGHT_RATIO),
   letterSpacing: Type.hero * BROADSHEET_HEADLINE_TRACKING_EM,

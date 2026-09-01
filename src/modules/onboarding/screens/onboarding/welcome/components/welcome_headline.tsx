@@ -35,6 +35,7 @@ export function WelcomeHeadline() {
           allowFontScaling={false}
           className="text-foreground font-sora-bold"
           style={{
+            // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- resolveDisplayHeadlineTextStyle's lineHeight is the mockup's literal-locked 1.05 ratio (display_headline.geometry.ts), matched to DisplayHeadline's SVG line 2 below.
             fontSize: line1Style.fontSize,
             lineHeight: line1Style.lineHeight,
             letterSpacing: line1Style.letterSpacing,
