@@ -14,7 +14,10 @@ export function CategoryDetailSkeleton({ onBack }: { onBack: () => void }): Reac
       </View>
 
       <View style={{ paddingHorizontal: Spacing.md }}>
-        <Card className="bg-surface border-border mt-2 rounded-lg border p-0 shadow-none">
+        <Card
+          className="bg-surface border-border mt-2 rounded-lg border p-0"
+          style={{ boxShadow: 'none' }}
+        >
           <Card.Body className="gap-2 p-4">
             <View className="flex-row items-center justify-between">
               <SkeletonGroup.Item className="h-[14px] w-24 rounded-lg" />

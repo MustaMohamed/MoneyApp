@@ -1,10 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ListGroup, Typography } from 'heroui-native';
-import React from 'react';
 import { View } from 'react-native';
 
+import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
-import { AccountType } from '@/constants/enums';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { formatCurrencyParts } from '@/utils/format_amount';
@@ -16,16 +15,6 @@ import {
   resolveAccountRowA11yLabel,
   resolveAccountRowDotColor,
 } from '../more_accounts.geometry';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const TYPE_ICONS: Record<AccountType, IconName> = {
-  [AccountType.Bank]: 'bank',
-  [AccountType.SmartWallet]: 'cellphone-nfc',
-  [AccountType.PhysicalWallet]: 'wallet',
-  [AccountType.PhysicalSavings]: 'piggy-bank',
-  [AccountType.CreditCard]: 'credit-card',
-};
 
 /** `accessible` announces the row once; no `accessibilityRole`, it is not pressable here. */
 export function AccountRow({ account }: { account: Account }) {
@@ -69,7 +58,7 @@ export function AccountRow({ account }: { account: Account }) {
           }}
         >
           <MaterialCommunityIcons
-            name={TYPE_ICONS[account.type]}
+            name={ACCOUNT_TYPE_ICONS[account.type]}
             size={N3_ROW_TYPE_GLYPH}
             color={Colors.dark.text2}
           />

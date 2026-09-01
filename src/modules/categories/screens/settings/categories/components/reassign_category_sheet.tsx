@@ -7,7 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/components/ui/button';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
-import { Colors, Radius, Size, Spacing } from '@/constants/theme';
+import { Colors, Radius, Size, Spacing, withAlpha } from '@/constants/theme';
 import type { Category } from '@/modules/categories/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
@@ -107,7 +107,7 @@ export function ReassignCategorySheet({
             accessibilityRole="radio"
             accessibilityState={{ selected: selectedId === item.id }}
           >
-            <View style={[styles.iconBox, { backgroundColor: item.color + '22' }]}>
+            <View style={[styles.iconBox, { backgroundColor: withAlpha(item.color, '22') }]}>
               <MaterialCommunityIcons
                 name={toIconName(item.icon, 'tag-outline')}
                 size={Size.iconXs}

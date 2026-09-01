@@ -1,37 +1,24 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import type React from 'react';
-
+import { ACCOUNT_TYPE_ICONS, type AccountTypeIconName } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { AccountType } from '@/constants/enums';
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
 export type TypeOption = {
   type: AccountType;
-  icon: IconName;
+  icon: AccountTypeIconName;
   label: string;
 };
 
-export const TYPE_OPTIONS: TypeOption[] = [
-  { type: AccountType.Bank, icon: 'bank', label: ACCOUNT_TYPE_LABELS[AccountType.Bank] },
-  {
-    type: AccountType.SmartWallet,
-    icon: 'cellphone-nfc',
-    label: ACCOUNT_TYPE_LABELS[AccountType.SmartWallet],
-  },
-  {
-    type: AccountType.PhysicalWallet,
-    icon: 'wallet',
-    label: ACCOUNT_TYPE_LABELS[AccountType.PhysicalWallet],
-  },
-  {
-    type: AccountType.PhysicalSavings,
-    icon: 'piggy-bank',
-    label: ACCOUNT_TYPE_LABELS[AccountType.PhysicalSavings],
-  },
-  {
-    type: AccountType.CreditCard,
-    icon: 'credit-card',
-    label: ACCOUNT_TYPE_LABELS[AccountType.CreditCard],
-  },
+/** Explicit order — this is the account-form grid order, not the enum's. */
+const TYPE_ORDER: AccountType[] = [
+  AccountType.Bank,
+  AccountType.SmartWallet,
+  AccountType.PhysicalWallet,
+  AccountType.PhysicalSavings,
+  AccountType.CreditCard,
 ];
+
+export const TYPE_OPTIONS: TypeOption[] = TYPE_ORDER.map((type) => ({
+  type,
+  icon: ACCOUNT_TYPE_ICONS[type],
+  label: ACCOUNT_TYPE_LABELS[type],
+}));

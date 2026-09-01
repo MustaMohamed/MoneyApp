@@ -10,7 +10,7 @@ import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Type } from '@/constants/theme';
+import { Colors, FontFamily, Type, withAlpha } from '@/constants/theme';
 import {
   useSetBudgetSheet,
   type SetBudgetSheetOptions,
@@ -84,7 +84,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                   <View className="flex-row items-center gap-1">
                     <View
                       className="h-7 w-7 items-center justify-center rounded-md"
-                      style={{ backgroundColor: `${state.selectedCategory.color}22` }}
+                      style={{ backgroundColor: withAlpha(state.selectedCategory.color, '22') }}
                     >
                       <MaterialCommunityIcons
                         name={toIconName(state.selectedCategory.icon, 'tag-outline')}

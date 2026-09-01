@@ -51,7 +51,8 @@ export function BudgetScreenSkeleton({
       <SkeletonGroup isLoading isSkeletonOnly>
         <Card
           testID="categories-summary-skeleton"
-          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"
+          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"
+          style={{ boxShadow: 'none' }}
         >
           <Card.Body className="px-2 py-1.5">
             <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />
@@ -156,7 +157,10 @@ function RuleLensSkeleton({
   return (
     <View testID="budget-screen-skeleton" accessibilityLabel={Strings.loadingBudgetA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
-        <Card className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none">
+        <Card
+          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"
+          style={{ boxShadow: 'none' }}
+        >
           <Card.Body className="px-2 py-1.5">
             <View className="flex-row items-center justify-between gap-2">
               <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />
@@ -199,7 +203,10 @@ function RuleLensSkeleton({
           <SkeletonGroup.Item className="h-[11px] w-24 rounded-md" />
           <SkeletonGroup.Item className="h-[11px] w-28 rounded-md" />
         </View>
-        <Card className="bg-surface border-border mx-4 rounded-2xl border p-0 shadow-none">
+        <Card
+          className="bg-surface border-border mx-4 rounded-2xl border p-0"
+          style={{ boxShadow: 'none' }}
+        >
           <Card.Body className="p-0">
             {Object.values(BudgetGroup).map((group) => (
               <View key={group}>
@@ -275,7 +282,9 @@ function CategoryRowSkeleton({ index }: { index: number }): React.ReactElement {
   return (
     <View
       testID="budget-row-skeleton"
-      className="border-separator min-h-[58px] flex-row items-center gap-2.5 border-b px-4 py-2"
+      className="border-separator flex-row items-center gap-2.5 border-b px-4 py-2"
+      // Runtime token: an arbitrary Tailwind value cannot carry `ms()` scaling.
+      style={{ minHeight: Size.listRowHeight }}
     >
       <View className="items-center" style={{ width: Size.budgetCategoryColumn }}>
         <SkeletonGroup.Item className="h-[42px] w-[42px] rounded-full" />
@@ -321,7 +330,8 @@ function PlansSkeleton({ rowCount }: { rowCount: number | undefined }): React.Re
       <SkeletonGroup isLoading isSkeletonOnly>
         <Card
           testID="plans-summary-skeleton"
-          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"
+          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"
+          style={{ boxShadow: 'none' }}
         >
           <Card.Body className="px-2 py-1.5">
             <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />

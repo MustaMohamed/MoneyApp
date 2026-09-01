@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
-import { Size, Type } from '@/constants/theme';
+import { Size, Type, withAlpha } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -45,8 +45,8 @@ export function DetailHero({
           <View
             className="rounded-full border px-2.5 py-0.5"
             style={{
-              borderColor: `${heroColor}55`,
-              backgroundColor: `${heroColor}1A`,
+              borderColor: withAlpha(heroColor, '55'),
+              backgroundColor: withAlpha(heroColor, '1A'),
             }}
           >
             <Text
@@ -68,9 +68,9 @@ export function DetailHero({
           <View
             className="mt-4 flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
             style={{
-              backgroundColor: `${categoryColor}1F`,
+              backgroundColor: withAlpha(categoryColor, '1F'),
               borderWidth: 1,
-              borderColor: `${categoryColor}40`,
+              borderColor: withAlpha(categoryColor, '40'),
             }}
           >
             <MaterialCommunityIcons

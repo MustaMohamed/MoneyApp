@@ -5,7 +5,7 @@ import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
 import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, withAlpha } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import { toIconName } from '@/utils/icon_name_guard';
 
@@ -23,7 +23,7 @@ interface Props {
 
 export function DetailHero({ commitment, category, payment, recurrenceLabel }: Props) {
   const iconColor = category?.color ?? Colors.dark.gold;
-  const tintBg = iconColor.length === 7 ? `${iconColor}2E` : iconColor;
+  const tintBg = iconColor.length === 7 ? withAlpha(iconColor, '2E') : iconColor;
   const currency = payment?.currency ?? commitment.currency;
   const amountText =
     formatCommitmentAmount(payment, commitment) ??

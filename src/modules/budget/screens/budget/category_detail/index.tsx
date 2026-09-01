@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Spacing, Type, withAlpha } from '@/constants/theme';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category_detail/components/category_detail_skeleton';
 import { LiveMonthCard } from '@/modules/budget/screens/budget/category_detail/components/live_month_card';
@@ -51,7 +51,7 @@ export default function CategoryBudgetDetailScreen() {
     <Screen>
       <View style={styles.header}>
         <BackButton onPress={goBack} />
-        <View style={[styles.icon, { backgroundColor: `${state.color}22` }]}>
+        <View style={[styles.icon, { backgroundColor: withAlpha(state.color, '22') }]}>
           <MaterialCommunityIcons
             name={toIconName(state.icon, 'tag-outline')}
             size={ms(16)}

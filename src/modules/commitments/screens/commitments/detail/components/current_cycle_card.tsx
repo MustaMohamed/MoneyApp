@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { withAlpha } from '@/constants/theme';
 import { formatShortDate } from '@/utils/format_date';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -57,7 +58,7 @@ export function CurrentCycleCard({ payment, commitment, onMarkAsPaid, onSkip }: 
           </View>
           <View
             style={{
-              backgroundColor: `${statusColor}22`,
+              backgroundColor: withAlpha(statusColor, '22'),
               flexDirection: 'row',
               alignItems: 'center',
             }}

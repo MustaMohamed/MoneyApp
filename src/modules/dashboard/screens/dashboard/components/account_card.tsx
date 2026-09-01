@@ -3,30 +3,38 @@ import { Card, PressableFeedback } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { AccountColors, Colors, Size } from '@/constants/theme';
+import { AccountColors, Colors, Size, withAlpha } from '@/constants/theme';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import { convertCurrency } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import {
+  MINUS_SIGN,
+  PLUS_SIGN,
+  formatCurrencyAmount,
+  formatDisplayMagnitude,
+  signAmountText,
+} from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 import { ms, msFont } from '@/utils/responsive';
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const TYPE_ICONS: Record<AccountType, IconName> = {
-  [AccountType.Bank]: 'bank',
-  [AccountType.SmartWallet]: 'cellphone-nfc',
-  [AccountType.PhysicalWallet]: 'wallet',
-  [AccountType.PhysicalSavings]: 'piggy-bank',
-  [AccountType.CreditCard]: 'credit-card',
-};
-
 // 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;
+
+/** Zero-gated sign composition (#332): a net that prints as zero carries no sign either way. */
+function signedStatValue(value: number, currency: Currency): string {
+  const { text, printsAsZero } = formatDisplayMagnitude(value, currency);
+  return signAmountText(
+    `${text} ${CURRENCY_CONFIG[currency].code}`,
+    value >= 0 ? PLUS_SIGN : MINUS_SIGN,
+    printsAsZero,
+  );
+}
 
 function nextDueDate(dueDay: number): string {
   const today = new Date();
@@ -114,7 +122,7 @@ export function buildInfoRows(
       },
       {
         label: Strings.cardChangeLabel,
-        value: `${change >= 0 ? '+' : ''}${formatCurrencyAmount(change, cur)}`,
+        value: signedStatValue(change, cur),
         valueColor: changeColor,
         icon: change >= 0 ? 'up' : 'down',
       },
@@ -177,7 +185,7 @@ export function buildInfoRows(
     },
     {
       label: Strings.cardThisWeekLabel,
-      value: `${weekNet >= 0 ? '+' : ''}${formatCurrencyAmount(weekNet, cur)}`,
+      value: signedStatValue(weekNet, cur),
       valueColor: weekNetColor,
     },
     ...baseEquivalentRows,
@@ -207,7 +215,7 @@ export function AccountCard({
 }: AccountCardProps) {
   const color = account.color ?? AccountColors[0];
   const isCreditCard = account.type === AccountType.CreditCard;
-  const icon = TYPE_ICONS[account.type];
+  const icon = ACCOUNT_TYPE_ICONS[account.type];
   const infoRows = buildInfoRows(account, rate, stats, isRateUsable, baseCurrency);
 
   const showProgress = isCreditCard && (account.credit_limit ?? 0) > 0;
@@ -251,7 +259,7 @@ export function AccountCard({
                 className="rounded"
                 style={{
                   borderWidth: 1,
-                  borderColor: color + '55',
+                  borderColor: withAlpha(color, '55'),
                   paddingHorizontal: ms(6),
                   paddingVertical: ms(2),
                 }}
@@ -272,7 +280,7 @@ export function AccountCard({
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  backgroundColor: color + '22',
+                  backgroundColor: withAlpha(color, '22'),
                 }}
               >
                 <MaterialCommunityIcons name={icon} size={ms(15)} color={color} />

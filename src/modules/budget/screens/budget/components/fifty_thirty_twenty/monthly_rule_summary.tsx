@@ -22,7 +22,10 @@ export function MonthlyRuleSummary({ vm, onEditIncome }: MonthlyRuleSummaryProps
   const presentation = summary.presentation;
 
   return (
-    <Card className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none">
+    <Card
+      className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"
+      style={{ boxShadow: 'none' }}
+    >
       <Card.Body className="px-2 py-1.5">
         <BudgetSummaryHeader
           eyebrowLabel={presentation.eyebrowLabel}

@@ -3,6 +3,8 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { withAlpha } from '@/constants/theme';
+
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 export interface StatusBadgeProps {
@@ -18,7 +20,11 @@ const LABEL_CLASS = { sm: 'font-inter text-[10px]', md: 'font-inter text-[11px]'
 export function StatusBadge({ label, color, icon, size = 'sm' }: StatusBadgeProps) {
   return (
     <View
-      style={{ backgroundColor: `${color}22`, flexDirection: 'row', alignItems: 'center' }}
+      style={{
+        backgroundColor: withAlpha(color, '22'),
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
       className="gap-0.5 rounded-full px-1.5 py-0.5"
     >
       {icon != null ? (

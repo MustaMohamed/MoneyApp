@@ -225,11 +225,30 @@ describe('budget categories presentation architecture', () => {
     expect(summaryParts).not.toContain('minimumFontScale');
     expect(skeleton).toContain('testID="categories-summary-skeleton"');
     expect(
-      skeleton.match(
-        /className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"/g,
-      ),
+      skeleton.match(/className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"/g),
     ).toHaveLength(3);
+    // className shadow-none loses to HeroUI's --surface-shadow token; only boxShadow kills it (#339).
+    expect(skeleton.match(/style=\{\{ boxShadow: 'none' \}\}/g)).toHaveLength(4);
+    expect(skeleton).not.toContain('shadow-none');
     expect(plansLens).toContain('<View className="mt-3 px-4">');
+  });
+
+  // #339: className shadow-none loses to HeroUI's --surface-shadow token; boxShadow is the only
+  // working kill, and the regression is CI-invisible without this source assertion.
+  it('kills the Card surface shadow with boxShadow at every Budget Card site', () => {
+    const cardSites = [
+      'src/modules/budget/screens/budget/components/summary_card.tsx',
+      'src/modules/budget/screens/budget/components/spending_plans_summary.tsx',
+      'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
+      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/monthly_rule_summary.tsx',
+      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_ledger.tsx',
+      'src/modules/budget/screens/budget/category_detail/components/category_detail_skeleton.tsx',
+    ];
+    for (const path of cardSites) {
+      const text = source(path);
+      expect(text).toContain("style={{ boxShadow: 'none' }}");
+      expect(text).not.toContain('shadow-none');
+    }
   });
 
   it('only makes unassigned income actionable when income is not configured', () => {

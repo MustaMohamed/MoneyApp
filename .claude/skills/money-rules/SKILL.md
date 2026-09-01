@@ -43,7 +43,7 @@ Banker's rounding (round-half-even) to 2 dp. Apply to **every persisted monetary
 
 ## Formatting — `src/utils/format_amount.ts`
 
-All eight exports, as of this commit:
+All twelve exports, as of this commit:
 
 | Export | What it is |
 |---|---|
@@ -55,6 +55,9 @@ All eight exports, as of this commit:
 | `formatExchangeRate(rate)` | `48.60 EGP/USD`; owns rate precision — `.claude/rules/ui.md` names it canonical for rates |
 | `formatExchangeRateSentence(rate)` | `1 USD = 48.60 EGP`; the labelled-row long form beside a rate chip's compact `formatExchangeRate` |
 | `EXCHANGE_RATE_DECIMALS` | the 2 dp that `formatExchangeRate` and `formatExchangeRateSentence` apply |
+| `signAmountText(text, sign, printsAsZero = false)` | the one sign composition point (#332): prefixes the glyph onto formatted text; a text that prints as zero takes no sign |
+| `MINUS_SIGN` / `PLUS_SIGN` | the canonical glyphs — `−` is U+2212 per the 2026-08-27 money-colour ADR decision 3, never the ASCII hyphen |
+| `AmountSign` (type) | `MINUS_SIGN \| PLUS_SIGN \| ''` — sites with a fixed direction take `Exclude<AmountSign, ''>` |
 
 Decimals for an amount come from `CURRENCY_CONFIG` (`src/constants/currency.ts` — EGP 0, USD 2; plain `formatAmount` defaults to 0 dp and truncates cents if you skip `formatCurrencyAmount` — audit M22). A screen may override only by passing a **named constant** to a formatter's own `decimals` parameter — never a bare literal — recorded in an ADR. Shipped precedent: `N4_HERO_AMOUNT_DECIMALS` (`src/modules/onboarding/screens/onboarding/ready/ready.geometry.ts`), approved at `docs/adr/2026-08-18-starting-net-position.md` §6. This must not contradict `.claude/rules/review.md` item 3, which is the authority on decimal counts.
 

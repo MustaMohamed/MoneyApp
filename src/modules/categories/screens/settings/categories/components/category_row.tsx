@@ -4,7 +4,7 @@ import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { Colors, Radius, Size, Spacing } from '@/constants/theme';
+import { Colors, Radius, Size, Spacing, withAlpha } from '@/constants/theme';
 import type { Category } from '@/modules/categories/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
@@ -32,7 +32,7 @@ function CategoryRowComponent({
   return (
     <View style={[styles.row, isLast && styles.rowLast]}>
       <View style={styles.left}>
-        <View style={[styles.iconBox, { backgroundColor: category.color + '22' }]}>
+        <View style={[styles.iconBox, { backgroundColor: withAlpha(category.color, '22') }]}>
           <MaterialCommunityIcons
             name={toIconName(category.icon, 'tag-outline')}
             size={Size.iconSm}

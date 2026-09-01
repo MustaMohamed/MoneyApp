@@ -6,7 +6,7 @@ import { View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Size } from '@/constants/theme';
+import { Colors, Size, withAlpha } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type {
   DashboardNetWorth,
@@ -190,7 +190,7 @@ export function StatCards({
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
           <View
             className="items-center justify-center rounded-full"
-            style={{ width: ms(20), height: ms(20), backgroundColor: netColor + '22' }}
+            style={{ width: ms(20), height: ms(20), backgroundColor: withAlpha(netColor, '22') }}
           >
             <MaterialCommunityIcons name="scale-balance" size={ms(13)} color={netColor} />
           </View>
@@ -221,7 +221,11 @@ export function StatCards({
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
           <View
             className="items-center justify-center rounded-full"
-            style={{ width: ms(20), height: ms(20), backgroundColor: Colors.dark.negative + '22' }}
+            style={{
+              width: ms(20),
+              height: ms(20),
+              backgroundColor: withAlpha(Colors.dark.negative, '22'),
+            }}
           >
             <MaterialCommunityIcons name="cash-minus" size={ms(13)} color={Colors.dark.negative} />
           </View>
@@ -265,7 +269,7 @@ export function StatCards({
                     gap: ms(3),
                     paddingHorizontal: ms(8),
                     paddingVertical: ms(2),
-                    backgroundColor: deltaColor + '22',
+                    backgroundColor: withAlpha(deltaColor, '22'),
                   }}
                 >
                   <MaterialCommunityIcons name={deltaIcon} size={ms(11)} color={deltaColor} />

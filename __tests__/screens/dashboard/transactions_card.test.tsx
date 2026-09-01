@@ -81,7 +81,7 @@ describe('TransactionsCard', () => {
 
     expect(getByText(Strings.transactions)).toBeTruthy();
     expect(getByText('+1,000')).toBeTruthy();
-    expect(getByText('-301')).toBeTruthy();
+    expect(getByText('−301')).toBeTruthy();
     expect(getByText('+700')).toBeTruthy();
     expect(getByText(Strings.totalsVsPrev('June 2026'))).toBeTruthy();
     expect(queryAllByTestId('skeleton-item')).toHaveLength(0);
@@ -103,7 +103,7 @@ describe('TransactionsCard', () => {
     );
 
     expect(queryByText('+25,000')).toBeNull();
-    expect(queryByText('-13,000')).toBeNull();
+    expect(queryByText('−13,000')).toBeNull();
     expect(queryByText('+12,000')).toBeNull();
     expect(queryByTestId('skeleton-group')).toBeNull();
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);

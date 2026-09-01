@@ -22,7 +22,10 @@ export function RuleLedger({
   onManageGroup,
 }: RuleLedgerProps) {
   return (
-    <Card className="bg-surface border-border mx-4 rounded-2xl border p-0 shadow-none">
+    <Card
+      className="bg-surface border-border mx-4 rounded-2xl border p-0"
+      style={{ boxShadow: 'none' }}
+    >
       <Card.Body className="p-0">
         <Accordion
           selectionMode="single"

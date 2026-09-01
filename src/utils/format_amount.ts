@@ -10,6 +10,22 @@ const SIGNED_ZERO = /^-0(\.0+)?$/;
 // Rate precision; not interchangeable with `exchange_rate_row.tsx`'s amount-preview decimals.
 export const EXCHANGE_RATE_DECIMALS = 2;
 
+// ADR 2026-08-27 (money-colour vocabulary, decision 3): polarity is a composed sign, and the
+// canonical negative glyph is U+2212 — never the ASCII hyphen, whose advance width differs (#332).
+export const MINUS_SIGN = '−';
+export const PLUS_SIGN = '+';
+
+export type AmountSign = typeof MINUS_SIGN | typeof PLUS_SIGN | '';
+
+/**
+ * The one composition point for a sign glyph (#332). Callers format an unsigned magnitude
+ * (`Math.abs` or `formatDisplayMagnitude`) and pick the sign from their own polarity rule;
+ * text that prints as zero carries no sign.
+ */
+export function signAmountText(text: string, sign: AmountSign, printsAsZero = false): string {
+  return printsAsZero ? text : `${sign}${text}`;
+}
+
 // Keep the `new Intl.NumberFormat(` below on one line; `validate-money-formatting.js` scans lines.
 // Keyed on `decimals` alone, total only because the locale below is a literal, not a parameter.
 const FORMATTERS = new Map<number, Intl.NumberFormat>();

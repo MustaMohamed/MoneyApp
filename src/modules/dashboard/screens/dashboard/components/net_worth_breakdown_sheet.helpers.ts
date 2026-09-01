@@ -2,7 +2,13 @@ import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { formatCurrencyAmount, formatDisplayMagnitude } from '@/utils/format_amount';
+import {
+  MINUS_SIGN,
+  PLUS_SIGN,
+  formatCurrencyAmount,
+  formatDisplayMagnitude,
+  signAmountText,
+} from '@/utils/format_amount';
 
 import type { LiquidityBreakdown } from '../dashboard.helpers';
 
@@ -38,8 +44,7 @@ export function resolveBreakdownRowColors(kind: BreakdownRowKind): {
 /** `balance` is signed: positive owed, negative in credit. Pass a `roundMoney`-quantised value. */
 export function formatLiabilityRowValue(balance: number, baseCurrency: Currency): string {
   const { text, printsAsZero } = formatDisplayMagnitude(balance, baseCurrency);
-  if (printsAsZero) return text;
-  return `${balance < 0 ? '+' : '−'}${text}`;
+  return signAmountText(text, balance < 0 ? PLUS_SIGN : MINUS_SIGN, printsAsZero);
 }
 
 /** An overdrawn account can make a part negative while the total stays positive. */

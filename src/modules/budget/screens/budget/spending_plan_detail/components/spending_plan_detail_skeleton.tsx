@@ -7,7 +7,10 @@ const CATEGORY_ROWS = [0, 1, 2];
 export function SpendingPlanDetailSkeleton(): React.ReactElement {
   return (
     <SkeletonGroup isLoading isSkeletonOnly>
-      <Card className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0 shadow-none">
+      <Card
+        className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0"
+        style={{ boxShadow: 'none' }}
+      >
         <Card.Body className="px-2 py-1.5">
           <View className="flex-row justify-between gap-3">
             <View className="flex-1 gap-1">
