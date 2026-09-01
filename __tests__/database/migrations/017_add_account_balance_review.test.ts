@@ -76,9 +76,7 @@ function insertTransaction(
   ).run(input.id, input.type, input.accountId, input.toAccountId ?? null, NOW, NOW);
 }
 
-// afterEach, not the sibling afterAll(close) spelling: a test that throws mid-body still
-// reaches this afterEach with its handle already pushed, so afterAll would leave it
-// stranded until the file's last test — afterEach drains after every test instead.
+// afterEach, not afterAll: a test that throws mid-body still drains its handle here.
 afterEach(() => {
   const drained = openDbs.splice(0);
   const closeFailures: unknown[] = [];
@@ -89,11 +87,7 @@ afterEach(() => {
       closeFailures.push(err);
     }
   }
-  // One assertion, not a bare-boolean loop: it names which drained index(es) are still
-  // open AND surfaces every close() error's text in the same failure, so a stranded
-  // handle never reports as an anonymous `expect(db.open).toBe(false)` with the real
-  // cause silently dropped. Passes only when both are empty, so the throws below are
-  // unreachable on green — they exist to preserve stack fidelity on the failure path.
+  // The throws below are unreachable on green; they preserve stack fidelity when it fails.
   const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
   expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
     stranded: [],
