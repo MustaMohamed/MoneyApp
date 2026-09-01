@@ -486,9 +486,12 @@ describe('resolveCommitmentPaymentAmounts', () => {
     // throw the storable check has to outrun: a USD commitment paid from a USD
     // account needs a rate, and this input has none. Demoting the hand
     // `assertStorable(amount)` at the top of this resolver into the return
-    // guard flips this input to 'A positive USD exchange rate is required' with
-    // `reason: undefined` — the generic save banner instead of the one
-    // discriminated message — and reds nothing else in the suite.
+    // guard flips this input from 'Computed amount exceeds the storable range'
+    // with `reason: 'unstorable'` to 'A positive USD exchange rate is required'
+    // with `reason: undefined`: the error stops carrying the discriminant that
+    // `resolveTransactionSaveError` maps. That is a contract change, not a
+    // user-visible one — no commitment call site reads `reason` today (spec §0
+    // C2). It reds nothing else in the suite.
     it('an unstorable payment amount is reported as unstorable even when the rate is missing', () => {
       expect(() =>
         resolveCommitmentPaymentAmounts({
