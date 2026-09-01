@@ -10,6 +10,11 @@
 // The `ms()` ban is total for these two files. Any future legitimately-scaled value there
 // must land in the geometry module or in `src/constants/theme.ts` — which is what the
 // message says, because that constraint is the point rather than a side effect.
+//
+// An unpaired `'` in JSX text (`Don't`) reads as a string opener to
+// `scripts/lib/strip-comments.js`, so the rest of that physical line — a trailing
+// `{/* … ms(80) … */}` included — survives stripping and reds the `ms()` check at a value
+// that exists only in prose: keep any comment naming `ms(` on a line of its own.
 const fs = require('fs');
 const path = require('path');
 const { stripComments } = require('./lib/strip-comments');
