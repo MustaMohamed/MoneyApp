@@ -3,6 +3,7 @@ import { Card, PressableFeedback } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, Size } from '@/constants/theme';
@@ -13,16 +14,6 @@ import type { Account } from '@/modules/accounts/store/account.store';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 import { ms, msFont } from '@/utils/responsive';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const TYPE_ICONS: Record<AccountType, IconName> = {
-  [AccountType.Bank]: 'bank',
-  [AccountType.SmartWallet]: 'cellphone-nfc',
-  [AccountType.PhysicalWallet]: 'wallet',
-  [AccountType.PhysicalSavings]: 'piggy-bank',
-  [AccountType.CreditCard]: 'credit-card',
-};
 
 // 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;
@@ -190,7 +181,7 @@ export function AccountCard({
 }: AccountCardProps) {
   const color = account.color ?? AccountColors[0];
   const isCreditCard = account.type === AccountType.CreditCard;
-  const icon = TYPE_ICONS[account.type];
+  const icon = ACCOUNT_TYPE_ICONS[account.type];
   const infoRows = buildInfoRows(account, rate, stats, isRateUsable, baseCurrency);
 
   const showProgress = isCreditCard && (account.credit_limit ?? 0) > 0;

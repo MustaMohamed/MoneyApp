@@ -1,6 +1,4 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import type React from 'react';
-
+import { ACCOUNT_TYPE_ICONS, type AccountTypeIconName } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
@@ -22,7 +20,7 @@ import { formatTransactionTitle } from '@/utils/format_transaction_title';
 import type { BadgeTone } from './components/detail_row';
 import type { TransactionDetailStatus } from './detail.state';
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = AccountTypeIconName;
 
 export type TransactionDetailViewState =
   | 'loading'
@@ -180,15 +178,6 @@ export function buildTransactionDetailPresentation({
         : null,
   };
 }
-
-// Mirrors the dashboard `account_card.tsx` mapping so one account gets one icon everywhere.
-const ACCOUNT_TYPE_ICONS: Record<AccountType, IconName> = {
-  [AccountType.Bank]: 'bank',
-  [AccountType.SmartWallet]: 'cellphone-nfc',
-  [AccountType.PhysicalWallet]: 'wallet',
-  [AccountType.PhysicalSavings]: 'piggy-bank',
-  [AccountType.CreditCard]: 'credit-card',
-};
 
 export function getAccountTypeIcon(type: string | undefined): IconName {
   if (type && type in ACCOUNT_TYPE_ICONS) {

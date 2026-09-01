@@ -275,7 +275,9 @@ function CategoryRowSkeleton({ index }: { index: number }): React.ReactElement {
   return (
     <View
       testID="budget-row-skeleton"
-      className="border-separator min-h-[58px] flex-row items-center gap-2.5 border-b px-4 py-2"
+      className="border-separator flex-row items-center gap-2.5 border-b px-4 py-2"
+      // Runtime token: an arbitrary Tailwind value cannot carry `ms()` scaling.
+      style={{ minHeight: Size.listRowHeight }}
     >
       <View className="items-center" style={{ width: Size.budgetCategoryColumn }}>
         <SkeletonGroup.Item className="h-[42px] w-[42px] rounded-full" />

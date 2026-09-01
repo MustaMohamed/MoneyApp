@@ -1,12 +1,10 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Typography } from 'heroui-native';
-import React from 'react';
 import { View } from 'react-native';
 
 import { HeroShell } from '@/components/ui/hero_shell';
 import { StatusBadge } from '@/components/ui/status_badge';
+import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
-import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
@@ -14,16 +12,6 @@ import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
 import { buildHeroCaption } from './balance_hero.helpers';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const TYPE_ICON: Record<AccountType, IconName> = {
-  [AccountType.Bank]: 'bank',
-  [AccountType.SmartWallet]: 'cellphone-nfc',
-  [AccountType.PhysicalWallet]: 'wallet',
-  [AccountType.PhysicalSavings]: 'piggy-bank',
-  [AccountType.CreditCard]: 'credit-card',
-};
 
 interface BalanceHeroProps {
   account: Account;
@@ -43,7 +31,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
           <StatusBadge
             label={ACCOUNT_TYPE_LABELS[account.type]}
             color={color}
-            icon={TYPE_ICON[account.type]}
+            icon={ACCOUNT_TYPE_ICONS[account.type]}
             size="sm"
           />
         </View>
