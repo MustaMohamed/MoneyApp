@@ -35,11 +35,17 @@ quotation cites a test that never existed. The rest of the file describes the co
 `docs/superpowers/` — 116 occurrences across 10 files — and stay there, unswept and unmarked:
 `reviews/2026-07-29-full-technical-audit.md:535` quotes shipped `dashboard.helpers.ts` verbatim as a
 finding's evidence, so a rename there would make the audit cite source that never existed, and
-`plans/2026-05-16-section-5-dashboard.md:1140` writes `assetsEgp` as a `TotalBalanceStrip` prop the
-component has never had (`total_balance_strip.tsx:27-37` takes `netWorth: DashboardNetWorth`,
-`baseCurrency`, `accountsCount`), so repairing field names there would leave a document that is stale
-in several other respects looking maintained. The bound on the cost: the old names exist nowhere in
-`src/` or `__tests__/`, so a name copied out of frozen history is a `tsc` error on first use.
+`plans/2026-05-16-section-5-dashboard.md:1140` writes `assetsEgp` as a `TotalBalanceStrip` prop, which
+that component really carried: `5c5d71b0:screens/dashboard_v2/components/total_balance_strip.tsx:11`
+declares `assetsEgp: number`, shipped 2026-05-17 (#69) and replaced by `netWorth: DashboardNetWorth`
+in `78167647` (2026-08-20, #260), which with `baseCurrency` and `accountsCount` is what
+`total_balance_strip.tsx:27-37` takes today. Correct-when-written is the stronger reason, not the
+weaker one: renaming the field would make a dated plan propose a signature that did not exist on its
+date, inside a document that names `dashboard_v2` on 98 lines (106 occurrences) against a directory
+`find src -type d -name '*_v2*'` no longer returns. Repairing its 60 field names would leave it
+current in one respect and stale in every other, looking maintained. The bound on the cost: the old
+names exist nowhere in `src/` or `__tests__/`, so a name copied out of frozen history is a `tsc`
+error on first use.
 
 ## 1. Which of the four divergences this closes, and how
 
