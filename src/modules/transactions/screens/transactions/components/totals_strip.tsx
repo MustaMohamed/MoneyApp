@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Type } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 import { ms } from '@/utils/responsive';
@@ -96,7 +96,7 @@ function MetricValue({
         flex: 1,
         textAlign: align,
         fontSize: Type.body,
-        lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.values,
+        lineHeight: lineHeightFor(Type.body),
       }}
       numberOfLines={1}
       adjustsFontSizeToFit
@@ -131,7 +131,7 @@ function DeltaValue({
       >
         <Text
           className="font-sora-bold text-foreground/40"
-          style={{ fontSize: Type.micro, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.deltas }}
+          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
         >
           —
         </Text>
@@ -148,7 +148,7 @@ function DeltaValue({
       />
       <Text
         className={`font-sora-bold ml-0.5 ${polarityClass(delta.polarity)}`}
-        style={{ fontSize: Type.micro, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.deltas }}
+        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
       >
         {delta.label}
       </Text>
@@ -321,7 +321,7 @@ export function TotalsStrip({
           >
             <Text
               className={`font-inter-bold ${presentation.captionClassName}`}
-              style={{ fontSize: Type.chip, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.caption }}
+              style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
               numberOfLines={1}
             >
               {presentation.caption}
@@ -329,7 +329,7 @@ export function TotalsStrip({
             {deltas && previousLabel ? (
               <Text
                 className="font-inter-bold text-foreground/45 uppercase"
-                style={{ fontSize: Type.chip, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.caption }}
+                style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
               >
                 {Strings.totalsVsPrev(previousLabel)}
               </Text>

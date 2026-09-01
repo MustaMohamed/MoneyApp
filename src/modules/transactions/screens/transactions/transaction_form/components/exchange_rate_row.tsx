@@ -6,7 +6,7 @@ import { FormErrorText } from '@/components/ui/form_error_text';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Type } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
@@ -76,19 +76,31 @@ export function ExchangeRateRow({
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <View style={{ flex: 1 }}>
-          <Text className="font-sora-semibold text-foreground" style={{ fontSize: Type.body }}>
+          <Text
+            className="font-sora-semibold text-foreground"
+            style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+          >
             {Strings.currencyRateLabel}
           </Text>
           {purposeCaption ? (
-            <Text className="font-inter text-muted mt-0.5" style={{ fontSize: Type.micro }}>
+            <Text
+              className="font-inter text-muted mt-0.5"
+              style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+            >
               {purposeCaption}
             </Text>
           ) : null}
-          <Text className="font-inter text-muted mt-0.5" style={{ fontSize: Type.micro }}>
+          <Text
+            className="font-inter text-muted mt-0.5"
+            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+          >
             {subtitle}
           </Text>
           {stale ? (
-            <Text className="font-inter text-warning mt-0.5" style={{ fontSize: Type.micro }}>
+            <Text
+              className="font-inter text-warning mt-0.5"
+              style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+            >
               {Strings.addTxRateStale}
             </Text>
           ) : null}
@@ -111,7 +123,7 @@ export function ExchangeRateRow({
         ) : (
           <Text
             className="font-sora-semibold text-foreground"
-            style={{ fontSize: Type.bodyStrong }}
+            style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
           >
             {value}
           </Text>
@@ -119,7 +131,10 @@ export function ExchangeRateRow({
       </PressableFeedback>
 
       {previewHidden ? null : (
-        <Text className="font-inter text-muted mt-2" style={{ fontSize: Type.caption }}>
+        <Text
+          className="font-inter text-muted mt-2"
+          style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
+        >
           {Strings.addTxEgpPreview.replace(
             '{amount}',
             previewEgpAmount === undefined
@@ -136,7 +151,10 @@ export function ExchangeRateRow({
             accessibilityRole="button"
             accessibilityLabel={Strings.addTxRateResetAccessibility}
           >
-            <Text className="font-inter text-accent" style={{ fontSize: Type.caption }}>
+            <Text
+              className="font-inter text-accent"
+              style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
+            >
               {Strings.addTxRateReset}
             </Text>
           </PressableFeedback>
@@ -153,7 +171,7 @@ export function ExchangeRateRow({
           message={error}
           numberOfLines={1}
           disableAnimation
-          style={{ fontSize: Type.micro }}
+          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
         />
       </View>
     </View>

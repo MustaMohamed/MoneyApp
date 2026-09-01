@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { TextStyle } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Type } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 
 interface FormPickerRowProps {
   testID: string;
@@ -43,13 +43,19 @@ export function FormPickerRow({
       >
         {prefix ? <ListGroup.ItemPrefix>{prefix}</ListGroup.ItemPrefix> : null}
         <ListGroup.ItemContent style={{ minWidth: 0 }}>
-          <ListGroup.ItemDescription className="font-inter" style={{ fontSize: Type.micro }}>
+          <ListGroup.ItemDescription
+            className="font-inter"
+            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+          >
             {label}
           </ListGroup.ItemDescription>
           <ListGroup.ItemTitle
             numberOfLines={1}
             className={cn('font-sora-semibold', valueClassName)}
-            style={[{ fontSize: Type.bodyStrong }, valueStyle]}
+            style={[
+              { fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) },
+              valueStyle,
+            ]}
           >
             {value}
           </ListGroup.ItemTitle>

@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Size, Type } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { DETAIL_NOTE_MIN_HEIGHT } from './detail_geometry';
@@ -34,12 +34,15 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
         </View>
         <Text
           className="font-inter-semibold text-foreground/55 tracking-wide uppercase"
-          style={{ fontSize: Type.overline }}
+          style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
         >
           {Strings.detailNote}
         </Text>
       </View>
-      <Text className="font-inter-medium text-foreground" style={{ fontSize: Type.meta }}>
+      <Text
+        className="font-inter-medium text-foreground"
+        style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+      >
         {trimmed}
       </Text>
     </Card>

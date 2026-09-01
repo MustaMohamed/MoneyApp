@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Size, Type } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 
@@ -37,7 +37,7 @@ function Cell({
     <View className="flex-1 items-center">
       <Text
         className="font-inter-semibold text-foreground/55 tracking-wide uppercase"
-        style={{ fontSize: Type.compactBadge }}
+        style={{ fontSize: Type.compactBadge, lineHeight: lineHeightFor(Type.compactBadge) }}
       >
         {label}
       </Text>
@@ -50,14 +50,14 @@ function Cell({
       </View>
       <Text
         className="font-inter-semibold text-foreground mt-1"
-        style={{ fontSize: Type.detail }}
+        style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail) }}
         numberOfLines={1}
       >
         {account.name}
       </Text>
       <Text
         className="font-sora-semibold text-foreground/85 mt-0.5"
-        style={{ fontSize: Type.micro }}
+        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
         numberOfLines={1}
       >
         {display}

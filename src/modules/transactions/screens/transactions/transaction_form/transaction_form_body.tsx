@@ -9,7 +9,7 @@ import { SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/component
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Type } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
@@ -93,7 +93,7 @@ function ValidationSlot({ testID, message, centered = false }: ValidationSlotPro
         numberOfLines={1}
         disableAnimation
         className={centered ? 'text-center' : undefined}
-        style={{ fontSize: Type.micro }}
+        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
       />
     </View>
   );
@@ -143,6 +143,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
+  const budgetValueFontSize = budgetLookupError ? Type.caption : Type.body;
 
   return (
     <View style={{ flex: 1 }}>
@@ -153,7 +154,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         isDisabled={locked}
       />
       <View className="border-separator min-h-8 justify-center border-b px-4 py-1.5">
-        <Text className="font-inter text-muted" style={{ fontSize: Type.micro }} numberOfLines={1}>
+        <Text
+          className="font-inter text-muted"
+          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+          numberOfLines={1}
+        >
           {typeSupportingText}
         </Text>
       </View>
@@ -286,7 +291,10 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 valueClassName={
                   budgetLookupError ? 'font-inter-medium text-danger' : 'text-foreground'
                 }
-                valueStyle={{ fontSize: budgetLookupError ? Type.caption : Type.body }}
+                valueStyle={{
+                  fontSize: budgetValueFontSize,
+                  lineHeight: lineHeightFor(budgetValueFontSize),
+                }}
                 prefix={
                   <MaterialCommunityIcons
                     name="wallet-outline"
@@ -332,7 +340,10 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} />
 
         <View className="bg-default rounded-md px-3 py-3">
-          <Text className="font-inter text-muted" style={{ fontSize: Type.micro }}>
+          <Text
+            className="font-inter text-muted"
+            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+          >
             {Strings.addTxNoteLabel}
           </Text>
           <Input
@@ -344,7 +355,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             onBlur={onInputBlur}
             variant="secondary"
             className="font-inter text-foreground min-h-8 rounded-none border-0 bg-transparent p-0"
-            style={{ fontSize: Type.body }}
+            style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
           />
         </View>
         <ValidationSlot testID="form-error-slot" message={errorMessage} />

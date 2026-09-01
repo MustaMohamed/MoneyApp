@@ -5,7 +5,7 @@ import { Platform, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Size, Type } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
@@ -41,12 +41,15 @@ export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement
         }}
       >
         <View>
-          <Text className="font-inter text-muted" style={{ fontSize: Type.micro }}>
+          <Text
+            className="font-inter text-muted"
+            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+          >
             {Strings.addTxDateLabel}
           </Text>
           <Text
             className="font-sora-semibold text-foreground"
-            style={{ fontSize: Type.bodyStrong }}
+            style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
           >
             {formatted}
           </Text>

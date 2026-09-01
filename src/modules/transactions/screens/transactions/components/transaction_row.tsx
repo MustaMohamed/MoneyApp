@@ -8,7 +8,7 @@ import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
 import { Strings } from '@/constants/strings';
-import { Size, Type } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
@@ -116,7 +116,7 @@ function TransactionRowComponent({
               <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1.5">
                 <Text
                   className="font-sora-bold text-foreground min-w-0 shrink"
-                  style={{ fontSize: Type.meta }}
+                  style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
                   numberOfLines={1}
                 >
                   {presentation.title}
@@ -125,7 +125,7 @@ function TransactionRowComponent({
                 {!isCommitmentOwned && presentation.ownershipLabel ? (
                   <Text
                     className="font-inter-bold text-info shrink-0"
-                    style={{ fontSize: Type.chip }}
+                    style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
                     numberOfLines={1}
                   >
                     {presentation.ownershipLabel}
@@ -134,7 +134,7 @@ function TransactionRowComponent({
               </View>
               <Text
                 className="font-inter-medium text-foreground/55 mt-0.5"
-                style={{ fontSize: Type.overline }}
+                style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
                 numberOfLines={1}
               >
                 {presentation.context}
@@ -147,7 +147,7 @@ function TransactionRowComponent({
                 {presentation.note ? (
                   <Text
                     className="font-inter text-muted italic"
-                    style={{ fontSize: Type.chip }}
+                    style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
                     numberOfLines={1}
                   >
                     {presentation.note}
@@ -161,7 +161,7 @@ function TransactionRowComponent({
             >
               <Text
                 className={`font-sora-bold ${presentation.amountClassName}`}
-                style={{ fontSize: Type.body }}
+                style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.72}
@@ -176,7 +176,7 @@ function TransactionRowComponent({
                 {presentation.secondaryAmount ? (
                   <Text
                     className="font-inter-medium text-foreground/60"
-                    style={{ fontSize: Type.overline }}
+                    style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
                     numberOfLines={1}
                     adjustsFontSizeToFit
                     minimumFontScale={0.75}
@@ -188,7 +188,10 @@ function TransactionRowComponent({
                   </Text>
                 ) : null}
               </View>
-              <Text className="font-inter text-foreground/40" style={{ fontSize: Type.overline }}>
+              <Text
+                className="font-inter text-foreground/40"
+                style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+              >
                 {presentation.timeText}
               </Text>
             </View>
