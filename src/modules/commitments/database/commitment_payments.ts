@@ -224,6 +224,7 @@ export interface MarkAsPaidDetails {
   notes?: string;
 }
 
+/** One transaction: mark paid, insert the tx row, apply the account delta, link the two. */
 export async function markCommitmentAsPaid(
   db: SQLiteDatabase,
   paymentId: string,

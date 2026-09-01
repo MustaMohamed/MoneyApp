@@ -50,7 +50,7 @@ export function resolveColorGridMetrics(input: ColorGridMetricsInput): ColorGrid
   };
 }
 
-// Portrait-locked, so this module-scope read is correct; do not swap in `useWindowDimensions`.
+/** Portrait-locked, so this module-scope read is correct; do not swap in `useWindowDimensions`. */
 export const ACCOUNT_COLOR_GRID_METRICS = resolveColorGridMetrics({
   screenWidth: Dimensions.get('window').width,
   horizontalPadding: Spacing.md,
@@ -80,7 +80,7 @@ const TONE_BLOCK_COPY: Record<AccountColorTone, { label: string; hint: string; c
     },
   };
 
-// Column pairing relies on the palette's two tone halves already being in identical family order.
+/** Column pairing needs the palette's two tone halves in identical family order. */
 export function resolveAccountColorGrid(
   palette: readonly AccountColorEntry[] = ACCOUNT_PALETTE,
 ): ColorGridBlock[] {
@@ -106,7 +106,7 @@ export interface ColorTriggerModel {
   a11yLabel: string;
 }
 
-// The miss branch is unreachable today; it stops a hand-edited hex white-screening the form.
+/** The miss branch is unreachable today; it stops a hand-edited hex white-screening the form. */
 export function resolveColorTriggerModel(hex: string): ColorTriggerModel {
   const entry = findAccountColor(hex);
   if (entry) {

@@ -11,7 +11,7 @@ export const HERO_GRADIENT_COLORS = [
 export const HERO_GRADIENT_START = { x: 0.1, y: 0 };
 export const HERO_GRADIENT_END = { x: 0.9, y: 1 };
 
-// Glow defaults taken from `HeroShell`'s props in `hero_shell.tsx`.
+/** Glow defaults taken from `HeroShell`'s props in `hero_shell.tsx`. */
 export const HERO_GLOW_DEFAULT_COLOR = Colors.dark.gold;
 export const HERO_GLOW_DEFAULT_OPACITY = 0.18;
 

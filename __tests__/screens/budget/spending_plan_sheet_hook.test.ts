@@ -168,7 +168,7 @@ describe('useSpendingPlanSheet', () => {
 
     await act(() => result.current.setAllocateByCategory(true));
     await act(() => result.current.setAllocationText('cat_food', '10'));
-    // Read before `submit()`, for the reason given above.
+    // Read before `submit()`: a successful save closes the sheet and resets the draft store.
     expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('10');
     await act(() => result.current.setAllocationText('cat_food', ''));
     expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('');
@@ -281,7 +281,7 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocateByCategory(true));
     await act(() => result.current.setAllocationText('cat_transport', '600'));
 
-    // Read before any submit, for the reason given above.
+    // Read before any submit: a successful save closes the sheet and resets the draft store.
     expect(result.current.state.allocationIsOver).toBe(false);
   });
 
@@ -299,7 +299,7 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocationText('cat_food', '1.5'));
     await act(() => result.current.setAllocationText('cat_food', '1.'));
 
-    // Read before `submit()`, for the reason given above.
+    // Read before `submit()`: a successful save closes the sheet and resets the draft store.
     expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('1.');
     expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
 
@@ -347,7 +347,7 @@ describe('useSpendingPlanSheet', () => {
       ['1.50', '1.50'],
     ] as const) {
       await act(() => result.current.setAllocationText('cat_food', delivered));
-      // Read before any submit, for the reason given above.
+      // Read before any submit: a successful save closes the sheet and resets the draft store.
       expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe(expected);
     }
 
@@ -370,7 +370,7 @@ describe('useSpendingPlanSheet', () => {
       await act(() => result.current.setAllocationText('cat_food', '1.5'));
       await act(() => result.current.setAllocationText('cat_food', delivered));
 
-      // Read before any submit, for the reason given above.
+      // Read before any submit: a successful save closes the sheet and resets the draft store.
       expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('1.5');
     },
   );
@@ -390,7 +390,7 @@ describe('useSpendingPlanSheet', () => {
       await act(() => result.current.setAllocationText('cat_food', '1'));
       await act(() => result.current.setAllocationText('cat_food', delivered));
 
-      // Read before any submit, for the reason given above.
+      // Read before any submit: a successful save closes the sheet and resets the draft store.
       expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('1');
     },
   );
@@ -404,7 +404,7 @@ describe('useSpendingPlanSheet', () => {
     );
 
     await act(() => result.current.setAllocateByCategory(true));
-    // Read before any submit, for the reason given above.
+    // Read before any submit: a successful save closes the sheet and resets the draft store.
     for (const [text, expected] of [
       ['0', '0'],
       ['0.', '0.'],
@@ -429,7 +429,7 @@ describe('useSpendingPlanSheet', () => {
     );
 
     await act(() => result.current.setAllocateByCategory(true));
-    // Read before any submit, for the reason given above.
+    // Read before any submit: a successful save closes the sheet and resets the draft store.
     for (const text of ['.', '.5', '.50']) {
       await act(() => result.current.setAllocationText('cat_food', text));
       expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe(text);
@@ -459,7 +459,7 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocationText('cat_food', '1.'));
     await act(() => result.current.setAllocationText('cat_transport', '40'));
 
-    // Read before any submit, for the reason given above.
+    // Read before any submit: a successful save closes the sheet and resets the draft store.
     expect(result.current.state.allocationHelperText).toBe(
       '40.00 of 100.00 allocated · 60.00 buffer',
     );
@@ -646,7 +646,7 @@ describe('useSpendingPlanSheet', () => {
       expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('40'),
     );
 
-    // Read before `submit()`, for the reason given above.
+    // Read before `submit()`: a successful save closes the sheet and resets the draft store.
     expect(useSpendingPlanSheetStore.getState().allocations.cat_transport ?? '').toBe('');
 
     await act(async () => result.current.submit());
@@ -709,7 +709,7 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocateByCategory(true));
     await act(() => result.current.setAllocationText('cat_food', text));
 
-    // Read before any submit, for the reason given above.
+    // Read before any submit: a successful save closes the sheet and resets the draft store.
     expect(result.current.state.allocationHelperText).toBe(expected);
     expect(result.current.state.allocationIsOver).toBe(false);
   });
@@ -726,7 +726,7 @@ describe('useSpendingPlanSheet', () => {
     await act(() => result.current.setAllocateByCategory(true));
     await act(() => result.current.setAllocationText('cat_food', '100.40'));
 
-    // Read before any submit, for the reason given above.
+    // Read before any submit: a successful save closes the sheet and resets the draft store.
     expect(result.current.state.allocationHelperText).toBe(
       '100.40 of 100.00 allocated · -0.40 buffer',
     );
@@ -744,7 +744,7 @@ describe('useSpendingPlanSheet', () => {
     );
 
     await act(() => result.current.setAllocateByCategory(true));
-    // Read before any submit, for the reason given above.
+    // Read before any submit: a successful save closes the sheet and resets the draft store.
     for (const [text, expected] of [
       ['4', '4.00 of 100.00 allocated · 96.00 buffer'],
       ['45', '45.00 of 100.00 allocated · 55.00 buffer'],

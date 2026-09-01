@@ -1,8 +1,6 @@
 import { Strings } from '@/constants/strings';
 import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
 
-// Array order is the sheet's column order: 16 rich in `AcctTokens` order, then the same 16 soft.
-
 export type AccountColorFamily = keyof typeof AcctTokens;
 export type AccountColorTone = 'rich' | 'soft';
 
@@ -90,6 +88,7 @@ function entriesForTone(tone: AccountColorTone): AccountColorEntry[] {
   });
 }
 
+// Array order is the sheet's column order: 16 rich in `AcctTokens` order, then the same 16 soft.
 export const ACCOUNT_PALETTE: readonly AccountColorEntry[] = Object.freeze([
   ...entriesForTone('rich'),
   ...entriesForTone('soft'),

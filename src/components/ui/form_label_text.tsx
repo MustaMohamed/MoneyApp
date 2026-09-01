@@ -10,7 +10,7 @@ export interface FormLabelTextProps {
   numberOfLines?: number;
 }
 
-// `style` overrides only the properties it sets, so pair every `fontSize` with a `lineHeight`.
+/** `style` overrides only the properties it sets, so pair every `fontSize` with a `lineHeight`. */
 export function FormLabelText({ label, tag, numberOfLines }: FormLabelTextProps) {
   return (
     <Label style={{ flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.xs }}>

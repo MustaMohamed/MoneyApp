@@ -1,6 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-// TODO(S2): migrate `LongPressGestureHandler` to the RNGH v2 `Gesture.LongPress()` API.
 import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import {
@@ -38,6 +37,8 @@ const FAB_SIZE = ms(56);
 // Duration for close animation: 3 items × 40ms stagger + ~150ms anim + 10ms buffer.
 const CLOSE_DURATION_MS = 280;
 
+// Mounted only by `app/(app)/(tabs)/_layout.tsx`; a screen must never mount its own.
+// TODO(S2): migrate `LongPressGestureHandler` to the RNGH v2 `Gesture.LongPress()` API.
 export function FAB({
   onAddTransaction,
   onAddAccount,

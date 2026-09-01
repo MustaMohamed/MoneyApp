@@ -24,7 +24,7 @@ export interface OnboardingShellProps {
   background?: ReactNode;
 }
 
-// `Screen` applies safe-area insets as padding, so a wash inside it would start below the inset.
+/** `Screen` applies safe-area insets as padding, so a wash inside would start below it. */
 export function OnboardingShell({
   step,
   title,

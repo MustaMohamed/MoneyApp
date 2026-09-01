@@ -4,12 +4,14 @@ import { Strings } from '@/constants/strings';
 
 // Strips the minus `Intl` prints for a nonzero magnitude rounding to zero; test after formatting.
 // An exact `-0` is a domain defect, so the `value !== 0` guard leaves it on screen.
+// Not `ZERO_AT_DISPLAY_PRECISION` minus a character: different layer, different population.
 const SIGNED_ZERO = /^-0(\.0+)?$/;
 
 // Rate precision; not interchangeable with `exchange_rate_row.tsx`'s amount-preview decimals.
 export const EXCHANGE_RATE_DECIMALS = 2;
 
 // Keep the `new Intl.NumberFormat(` below on one line; `validate-money-formatting.js` scans lines.
+// Keyed on `decimals` alone, total only because the locale below is a literal, not a parameter.
 const FORMATTERS = new Map<number, Intl.NumberFormat>();
 
 function formatterFor(decimals: number): Intl.NumberFormat {
@@ -54,6 +56,7 @@ export function formatCurrencyTotals(totals: Map<Currency, number>): string {
 const MONEY_ROUNDING_DECIMALS = 2;
 
 // Matches a magnitude that prints as zero at the site's precision; input is always `Math.abs()`'d.
+// Not `SIGNED_ZERO` plus a character: different layer, different population. Do not fold the two.
 const ZERO_AT_DISPLAY_PRECISION = /^0(\.0+)?$/;
 
 // Tells a true zero from float noise; unrelated to `roundMoney`'s 1e-9 despite the numeral.
@@ -70,6 +73,7 @@ export function formatDisplayMagnitude(
   const magnitude = Math.abs(value);
   const config = CURRENCY_CONFIG[currency];
   const atSitePrecision = formatAmount(magnitude, config.decimals);
+  // Escalate once, taking `roundMoney`'s 2dp precision but never its half-even mode.
   const text = ZERO_AT_DISPLAY_PRECISION.test(atSitePrecision)
     ? formatAmount(magnitude, MONEY_ROUNDING_DECIMALS)
     : atSitePrecision;

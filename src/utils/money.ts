@@ -1,4 +1,5 @@
 /** Amounts strictly between 0 and this are rejected on the raw value, never rounded up. */
+/** Same floor for EGP and USD; storage is 2dp for both, whatever `CURRENCY_CONFIG` displays. */
 export const MIN_MONEY_AMOUNT = 0.01;
 
 /** Banker's rounding (half-even) to 2dp; `null` passes through as the unallocated value. */

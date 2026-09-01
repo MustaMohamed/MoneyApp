@@ -20,6 +20,7 @@ export default function OnboardingLayout() {
   const segments = useSegments();
 
   // Without this, system back hits `exitApp()`: every route is a replace, so depth is 1.
+  // Route identity, not the persisted step: add-more N2 sits on `add_account` while step is N3.
   // Registered above the `complete` early return so the hook always runs.
   useEffect(() => {
     const subscription = BackHandler.addEventListener(

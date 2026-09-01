@@ -18,7 +18,7 @@ export interface CurrencyChoiceProps {
   onSelect: (value: Currency) => void;
 }
 
-// Selection changes colour only; `CURRENCY_ROW_STYLE` is shared by both states.
+/** Selection changes colour only; `CURRENCY_ROW_STYLE` is shared by both states. */
 export function CurrencyChoice({ selected, onSelect }: CurrencyChoiceProps) {
   return (
     <View>

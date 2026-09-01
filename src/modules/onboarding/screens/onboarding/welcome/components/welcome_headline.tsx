@@ -15,7 +15,7 @@ import {
 } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 
 // Line 1 uses line 2's geometry resolver with font scaling off, so the two lines stay matched.
-// No gap or margin between the lines: `DisplayHeadline`'s negative `topInset` owns the spacing.
+/** No gap between the lines: `DisplayHeadline`'s negative `topInset` owns the spacing. */
 export function WelcomeHeadline() {
   const { fontScale } = useWindowDimensions();
   const line1Style = resolveDisplayHeadlineTextStyle(
