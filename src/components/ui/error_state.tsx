@@ -11,6 +11,8 @@ import { Text } from '@/components/ui/text';
 // Without `withUniwind` the icon's `styleDefaults` win and its `className` colour is a no-op.
 const StateIcon = withUniwind(MaterialCommunityIcons);
 
+// Ruled genuinely different from EmptyState, not merged (#290). Evidence and the
+// rejected merge shape: docs/adr/2026-09-01-empty-error-state-stay-separate.md
 const LAYOUT = resolveStateScreenLayout('error');
 
 export interface ErrorStateProps {
