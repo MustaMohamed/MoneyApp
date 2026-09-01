@@ -1,8 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
-import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import type { BudgetEditTargetVM } from '@/modules/budget/screens/budget/budget.hook';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import {
   useSetBudgetSheet,
@@ -10,7 +8,7 @@ import {
 } from '@/modules/budget/screens/budget/components/set_budget_sheet.hook';
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
-import type { Category } from '@/modules/categories/entities/category.entity';
+import { makeTestBudgetEditTarget, makeTestBudgetableCategory } from '@/test_helpers/budget';
 import { MoneyTextMappingError, parseRequiredMoneyText } from '@/utils/money_text';
 
 // `useBottomSheetAwareHandlers` needs a mounted sheet context `renderHook` does not provide.
@@ -25,44 +23,9 @@ jest.mock('@/utils/money_text', () => {
 });
 const mockedParseRequiredMoneyText = parseRequiredMoneyText as jest.Mock;
 
-const categories: Category[] = [
-  {
-    id: 'housing',
-    name: 'Housing',
-    type: CategoryType.Expense,
-    icon: 'home',
-    color: '#6fa8dc',
-    is_default: 0,
-    sort_order: 0,
-    budget_group: null,
-    created_at: '',
-    updated_at: '',
-  },
-];
+const categories = [makeTestBudgetableCategory()];
 
-const existingBudget: BudgetEditTargetVM = {
-  id: 'budget-trip-food',
-  categoryId: 'housing',
-  categoryName: 'Housing',
-  categoryGroup: BudgetGroup.Need,
-  name: 'Alexandria Trip Food',
-  planned: 1500,
-  spent: 0,
-  left: 1500,
-  usedPct: 0,
-  categorySharePct: 1,
-  usedLabel: '0%',
-  shareLabel: '100% of category',
-  spentPlannedLabel: '0 / 1,500 spent',
-  balanceAmountLabel: '1,500',
-  balanceMetaLabel: 'EGP left',
-  ringColor: '#4CAF82',
-  accessibilityLabel: 'Alexandria Trip Food',
-  menuAccessibilityLabel: 'Actions for Alexandria Trip Food',
-  limit: 1500,
-  icon: 'home',
-  color: '#6fa8dc',
-};
+const existingBudget = makeTestBudgetEditTarget();
 
 beforeEach(() => {
   useSetBudgetSheetState.getState().reset();

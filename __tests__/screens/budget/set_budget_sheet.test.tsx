@@ -2,13 +2,14 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import type { PressableProps } from 'react-native';
 
-import { BudgetGroup, CategoryType } from '@/constants/enums';
+import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { makeTestBudgetEditTarget, makeTestBudgetableCategory } from '@/test_helpers/budget';
 import { ms } from '@/utils/responsive';
 
 let mockSetBudget: jest.Mock<Promise<void>, [unknown]>;
@@ -140,22 +141,7 @@ jest.mock('heroui-native', () => {
   };
 });
 
-const NOW = '2026-07-01T00:00:00.000Z';
-
-const categories: Category[] = [
-  {
-    id: 'housing',
-    name: 'Housing',
-    type: CategoryType.Expense,
-    icon: 'home',
-    color: '#6fa8dc',
-    is_default: 0,
-    sort_order: 0,
-    budget_group: null,
-    created_at: NOW,
-    updated_at: NOW,
-  },
-];
+const categories = [makeTestBudgetableCategory()];
 
 function deferred() {
   let resolve: (() => void) | undefined;
@@ -165,29 +151,7 @@ function deferred() {
   return { promise, resolve: () => resolve?.() };
 }
 
-const existingBudget = {
-  id: 'budget-trip-food',
-  categoryId: 'housing',
-  categoryName: 'Housing',
-  categoryGroup: BudgetGroup.Need,
-  name: 'Alexandria Trip Food',
-  planned: 1500,
-  spent: 0,
-  left: 1500,
-  usedPct: 0,
-  categorySharePct: 1,
-  usedLabel: '0%',
-  shareLabel: '100% of category',
-  spentPlannedLabel: '0 / 1,500 spent',
-  balanceAmountLabel: '1,500',
-  balanceMetaLabel: 'EGP left',
-  ringColor: '#4CAF82',
-  accessibilityLabel: 'Alexandria Trip Food',
-  menuAccessibilityLabel: 'Actions for Alexandria Trip Food',
-  limit: 1500,
-  icon: 'home',
-  color: '#6fa8dc',
-};
+const existingBudget = makeTestBudgetEditTarget();
 
 beforeEach(() => {
   useBudgetState.getState().reset();
