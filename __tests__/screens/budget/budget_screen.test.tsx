@@ -507,11 +507,12 @@ const baseState: BudgetScreenState = {
 const mockedUseBudget = useBudget as jest.Mock;
 
 function namedBudget(id: string, name: string, planned: number): NamedBudgetVM {
-  // The three positional args also derive the labels the factory cannot default.
+  // The three positional args also derive the dependent fields the factory cannot default.
   return makeTestBudgetEditTarget({
     id,
     name,
     planned,
+    limit: planned,
     left: planned,
     spentPlannedLabel: `0 / ${planned} spent`,
     balanceAmountLabel: String(planned),
