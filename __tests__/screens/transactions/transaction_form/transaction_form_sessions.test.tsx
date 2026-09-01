@@ -168,7 +168,7 @@ function createHookState(
       exchangeRate: '50',
       rateOverride: false,
       isCardCredit: false,
-      isUSD: false,
+      requiresRate: false,
       isTransferOrCC: false,
       errors: {
         amount: undefined,
@@ -239,7 +239,7 @@ function createEditHookState(
       exchangeRate: '50',
       rateOverride: false,
       isCardCredit: false,
-      isUSD: false,
+      requiresRate: false,
       isTransferOrCC: false,
       errors: {
         amount: undefined,

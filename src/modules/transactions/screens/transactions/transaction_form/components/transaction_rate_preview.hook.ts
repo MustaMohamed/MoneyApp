@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 
-import { type Currency, TransactionType } from '@/constants/enums';
+import type { Currency, TransactionType } from '@/constants/enums';
 import {
+  requiresDestination,
   requiresExchangeRate,
   resolveTransactionAmounts,
   TransactionAmountError,
@@ -28,7 +29,7 @@ export function useTransactionRatePreview(input: RatePreviewInput): number | und
   return useMemo(() => {
     if (sourceCurrency === undefined) return undefined;
 
-    const hasDestination = type === TransactionType.Transfer || type === TransactionType.CCPayment;
+    const hasDestination = requiresDestination(type);
     if (hasDestination && destinationCurrency === undefined) return undefined;
 
     const amount = parsePositiveDecimal(amountStr);

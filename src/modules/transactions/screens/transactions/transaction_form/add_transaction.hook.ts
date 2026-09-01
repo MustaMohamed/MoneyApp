@@ -24,6 +24,7 @@ import { useAddTransactionState } from './add_transaction.state';
 import { useAddTransactionStore } from './add_transaction.store';
 import { resolveBudgetAssignment } from './budget_assignment.helpers';
 import {
+  resolveDestinationFloorError,
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
   toTransactionTimestamp,
@@ -167,6 +168,18 @@ function createSchema(
             });
           }
         }
+      }
+
+      // The destination leg can round below the money floor even when the entered amount clears it.
+      const destinationFloorError = resolveDestinationFloorError({
+        type,
+        amount: data.amount,
+        sourceCurrency: acc?.currency,
+        destinationCurrency: toAcc?.currency,
+        exchangeRateText: data.exchangeRate,
+      });
+      if (destinationFloorError) {
+        ctx.addIssue({ code: 'custom', message: destinationFloorError, path: ['amount'] });
       }
     });
 }
@@ -477,7 +490,11 @@ export function useAddTransaction(
       setBudgetId(undefined);
     }
     form.setValue('accountId', account.id);
-    if (account.currency === Currency.USD) {
+    // A pick that turns the rate demand on seeds the global rate, unless the user typed their own.
+    if (
+      !rateOverride &&
+      requiresExchangeRate(account.currency, isTransferOrCC ? selectedToAccount?.currency : undefined)
+    ) {
       form.setValue('exchangeRate', String(rate));
       setRateOverride(false);
     }
@@ -487,7 +504,7 @@ export function useAddTransaction(
   function selectToAccount(account: Account) {
     clearError();
     form.setValue('toAccountId', account.id);
-    if (account.currency === Currency.USD && selectedAccount?.currency === Currency.EGP) {
+    if (!rateOverride && requiresExchangeRate(selectedAccount?.currency, account.currency)) {
       form.setValue('exchangeRate', String(rate));
       setRateOverride(false);
     }
@@ -526,7 +543,7 @@ export function useAddTransaction(
       isCardCredit: semantics.isCardCredit,
       typeLabel: semantics.typeLabel,
       typeSupportingText: semantics.supportingText,
-      isUSD: requiresRate,
+      requiresRate,
       isTransferOrCC,
       errors,
       errorMessage,

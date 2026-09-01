@@ -64,7 +64,7 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   budgetsLoading: false,
   onOpenBudgetPicker: jest.fn(),
   onRetryBudgetLookup: jest.fn(),
-  isUSD: false,
+  requiresRate: false,
   exchangeRate: '',
   setExchangeRate: jest.fn(),
   rateOverride: false,

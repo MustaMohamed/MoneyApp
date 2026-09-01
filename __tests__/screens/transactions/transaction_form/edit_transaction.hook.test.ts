@@ -578,3 +578,50 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
     );
   });
 });
+
+describe('useEditTransaction — destination-leg floor', () => {
+  const transferTx = makeTestTransaction({
+    ...mockTxExpense,
+    id: 't-transfer',
+    type: TransactionType.Transfer,
+    account_id: mockAccountEGP.id,
+    to_account_id: mockAccountUSD.id,
+    category_id: null,
+    amount: 100,
+    egp_amount: 100,
+    to_amount: 2,
+    exchange_rate: 50,
+  });
+
+  beforeEach(() => useEditTransactionStore.getState().loadFromTx(transferTx));
+
+  it('transfer EGP → USD: refuses an edit to 0.2 at rate 50 as a field error', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(transferTx, jest.fn(), jest.fn()));
+    await act(() => result.current.setAmountStr('0.2'));
+    await act(() => result.current.setExchangeRate('50'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(
+      Strings.addTxErrConvertedBelowMin(Currency.USD),
+    );
+    expect(result.current.state.errorMessage).toBeUndefined();
+  });
+
+  it('transfer EGP → USD: 0.26 at rate 50 survives as to_amount 0.01', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(transferTx, jest.fn(), jest.fn()));
+    await act(() => result.current.setAmountStr('0.26'));
+    await act(() => result.current.setExchangeRate('50'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.amount).toBeUndefined();
+    expect(updateTx).toHaveBeenCalledWith(
+      't-transfer',
+      expect.objectContaining({ to_amount: 0.01 }),
+    );
+  });
+});

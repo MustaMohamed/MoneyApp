@@ -21,6 +21,11 @@ export function requiresExchangeRate(a: Currency | undefined, b?: Currency): boo
   return a === Currency.USD || b === Currency.USD;
 }
 
+/** Transfer and CCPayment carry a destination leg; every caller shares this gate. */
+export function requiresDestination(type: TransactionType): boolean {
+  return type === TransactionType.Transfer || type === TransactionType.CCPayment;
+}
+
 /** Only the unstorable throw sets `reason`; `resolveTransactionSaveError` is its only reader. */
 export class TransactionAmountError extends Error {
   constructor(
@@ -93,8 +98,7 @@ export function resolveTransactionAmounts(input: {
   }
   assertStorable(amount);
 
-  const hasDestination =
-    input.type === TransactionType.Transfer || input.type === TransactionType.CCPayment;
+  const hasDestination = requiresDestination(input.type);
   if (hasDestination && input.destinationCurrency === undefined) {
     throw new TransactionAmountError('A destination currency is required');
   }
