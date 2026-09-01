@@ -2,6 +2,8 @@ import Database from 'better-sqlite3';
 
 import { MIGRATIONS, type Migration } from '@/database/migrations';
 
+const openDbs: ReturnType<typeof Database>[] = [];
+
 const NOW = '2026-07-16T00:00:00.000Z';
 
 interface TableInfoRow {
@@ -42,6 +44,7 @@ function getMigration016(): Migration | undefined {
 
 function createDatabaseThrough015(): Database.Database {
   const db = new Database(':memory:');
+  openDbs.push(db);
   db.pragma('foreign_keys = ON');
   db.exec(
     MIGRATIONS.filter(({ version }) => version <= 15)
@@ -50,6 +53,27 @@ function createDatabaseThrough015(): Database.Database {
   );
   return db;
 }
+
+// afterEach, not afterAll: a test that throws mid-body still drains its handle here.
+afterEach(() => {
+  const drained = openDbs.splice(0);
+  const closeFailures: unknown[] = [];
+  for (const db of drained) {
+    try {
+      db.close();
+    } catch (err) {
+      closeFailures.push(err);
+    }
+  }
+  // The throws below are unreachable on green; they preserve stack fidelity when it fails.
+  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
+  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
+    stranded: [],
+    closeErrors: [],
+  });
+  if (closeFailures.length === 1) throw closeFailures[0];
+  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
+});
 
 describe('migration016 - budget month profiles', () => {
   it('creates month settings and category group snapshot tables with the approved schema', () => {
@@ -96,8 +120,6 @@ describe('migration016 - budget month profiles', () => {
         to: 'id',
       }),
     );
-
-    db.close();
   });
 
   it('seeds a valid positive legacy income into the current local month', () => {
@@ -118,8 +140,6 @@ describe('migration016 - budget month profiles', () => {
     expect(row).toMatchObject({ year_month: currentMonth.value, expected_income: 25000.5 });
     expect(row.created_at).toEqual(expect.any(String));
     expect(row.updated_at).toEqual(expect.any(String));
-
-    db.close();
   });
 
   it.each(['0', '-500', '25000oops', 'not-a-number', '9007199254740992'])(
@@ -135,7 +155,6 @@ describe('migration016 - budget month profiles', () => {
       db.exec(migration.up);
 
       expect(db.prepare('SELECT * FROM budget_month_settings').all()).toEqual([]);
-      db.close();
     },
   );
 
@@ -166,8 +185,6 @@ describe('migration016 - budget month profiles', () => {
       { year_month: '2026-06', category_id: 'cat_housing', budget_group: 'need' },
       { year_month: '2026-07', category_id: 'cat_food', budget_group: 'want' },
     ]);
-
-    db.close();
   });
 
   it('does not snapshot a grouped income-category budget', () => {
@@ -196,8 +213,6 @@ describe('migration016 - budget month profiles', () => {
       )
       .all();
     expect(rows).toEqual([]);
-
-    db.close();
   });
 
   it('rejects nonnumeric, non-positive, non-finite, or unsafe income values', () => {
@@ -215,8 +230,6 @@ describe('migration016 - budget month profiles', () => {
     for (const income of [0, 'not-a-number', Number.POSITIVE_INFINITY, 9_007_199_254_740_992]) {
       expect(() => insertIncome.run(income, NOW, NOW)).toThrow();
     }
-
-    db.close();
   });
 
   it('rejects unsupported budget groups', () => {
@@ -234,7 +247,5 @@ describe('migration016 - budget month profiles', () => {
         )
         .run(NOW, NOW),
     ).toThrow();
-
-    db.close();
   });
 });

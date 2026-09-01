@@ -2,9 +2,33 @@ import Database from 'better-sqlite3';
 
 import { MIGRATIONS } from '@/database/migrations';
 
+const openDbs: ReturnType<typeof Database>[] = [];
+
+// afterEach, not afterAll: a test that throws mid-body still drains its handle here.
+afterEach(() => {
+  const drained = openDbs.splice(0);
+  const closeFailures: unknown[] = [];
+  for (const db of drained) {
+    try {
+      db.close();
+    } catch (err) {
+      closeFailures.push(err);
+    }
+  }
+  // The throws below are unreachable on green; they preserve stack fidelity when it fails.
+  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
+  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
+    stranded: [],
+    closeErrors: [],
+  });
+  if (closeFailures.length === 1) throw closeFailures[0];
+  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
+});
+
 describe('spending plans migration', () => {
   it('creates spending plan tables with category/date indexes', () => {
     const db = new Database(':memory:');
+    openDbs.push(db);
     db.exec(MIGRATIONS.map((migration) => migration.up).join('\n'));
 
     const planCols = db.prepare(`PRAGMA table_info(spending_plans)`).all() as { name: string }[];
@@ -24,12 +48,11 @@ describe('spending plans migration', () => {
     }[];
     expect(indexes.map((index) => index.name)).toContain('idx_spending_plan_categories_category');
     expect(indexes.map((index) => index.name)).toContain('idx_spending_plan_categories_plan');
-
-    db.close();
   });
 
   it('cascades plan categories when a plan is deleted', () => {
     const db = new Database(':memory:');
+    openDbs.push(db);
     db.pragma('foreign_keys = ON');
     db.exec(MIGRATIONS.map((migration) => migration.up).join('\n'));
 
@@ -52,7 +75,5 @@ describe('spending plans migration', () => {
       .prepare(`SELECT COUNT(*) AS count FROM spending_plan_categories`)
       .get() as { count: number };
     expect(remaining.count).toBe(0);
-
-    db.close();
   });
 });

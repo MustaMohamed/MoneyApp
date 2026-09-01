@@ -2,6 +2,8 @@ import Database from 'better-sqlite3';
 
 import { MIGRATIONS, type Migration } from '@/database/migrations';
 
+const openDbs: ReturnType<typeof Database>[] = [];
+
 const NOW = '2026-07-19T00:00:00.000Z';
 
 interface AccountReviewRow {
@@ -20,6 +22,7 @@ function migration017(): Migration {
 
 function createDatabaseThrough016(): Database.Database {
   const db = new Database(':memory:');
+  openDbs.push(db);
   db.pragma('foreign_keys = ON');
   db.exec(
     MIGRATIONS.filter(({ version }) => version <= 16)
@@ -72,6 +75,27 @@ function insertTransaction(
      VALUES (?, ?, 100, 'EGP', 100, ?, ?, '2026-07-01', '12:00:00', ?, ?)`,
   ).run(input.id, input.type, input.accountId, input.toAccountId ?? null, NOW, NOW);
 }
+
+// afterEach, not afterAll: a test that throws mid-body still drains its handle here.
+afterEach(() => {
+  const drained = openDbs.splice(0);
+  const closeFailures: unknown[] = [];
+  for (const db of drained) {
+    try {
+      db.close();
+    } catch (err) {
+      closeFailures.push(err);
+    }
+  }
+  // The throws below are unreachable on green; they preserve stack fidelity when it fails.
+  const stranded = drained.flatMap((db, i) => (db.open ? [i] : []));
+  expect({ stranded, closeErrors: closeFailures.map(String) }).toEqual({
+    stranded: [],
+    closeErrors: [],
+  });
+  if (closeFailures.length === 1) throw closeFailures[0];
+  if (closeFailures.length > 1) throw new AggregateError(closeFailures);
+});
 
 describe('migration017 - legacy credit-card balance review', () => {
   it('flags only credit cards with generic expense or income rows', () => {
@@ -126,7 +150,6 @@ describe('migration017 - legacy credit-card balance review', () => {
       { id: 'asset', balance_review_required: 0 },
       { id: 'payment-only', balance_review_required: 0 },
     ]);
-    db.close();
   });
 
   it('does not rewrite any historical balance field', () => {
@@ -157,7 +180,6 @@ describe('migration017 - legacy credit-card balance review', () => {
       )
       .get() as AccountReviewRow;
     expect(after).toEqual({ ...before, balance_review_required: 1 });
-    db.close();
   });
 
   it('defaults new accounts to not requiring review and enforces boolean values', () => {
@@ -178,6 +200,5 @@ describe('migration017 - legacy credit-card balance review', () => {
     expect(() =>
       db.prepare("UPDATE accounts SET balance_review_required = 2 WHERE id = 'new-card'").run(),
     ).toThrow();
-    db.close();
   });
 });
