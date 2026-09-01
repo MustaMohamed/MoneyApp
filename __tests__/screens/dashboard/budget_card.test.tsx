@@ -80,8 +80,8 @@ describe('BudgetCard', () => {
     );
 
     expect(queryByText('8,000 EGP')).toBeNull();
-    expect(queryByText('2,000')).toBeNull();
-    expect(queryByText('6,000')).toBeNull();
+    expect(queryByText('2,000 EGP')).toBeNull();
+    expect(queryByText('6,000 EGP')).toBeNull();
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
   });
 });
