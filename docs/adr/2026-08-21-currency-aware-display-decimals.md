@@ -41,6 +41,7 @@ between two display paths as rounding order, not drift, when the underlying data
 and only the render approximates. It is also not a new class of defect this ticket introduces —
 `stat_cards.tsx:336/362/380` renders a JS-accumulated `netWorthEgp` at 0dp EGP on one card on
 `main` today, with the identical shape.
+`netWorthEgp` was renamed `netWorth` by #351 on 2026-08-31; those line numbers are as of 2026-08-21.
 
 Two alternatives were considered and rejected:
 

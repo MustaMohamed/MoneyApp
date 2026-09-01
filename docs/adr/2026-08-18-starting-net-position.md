@@ -39,6 +39,24 @@ a first-time user reads as their net worth. Refusal is the contract, not a degra
 substituted rate, no zero, no partial total, no dash rendered where a number belongs. The screen keeps
 its CTA fully enabled and states, in a warning tone, that a rate is needed.
 
+**Superseded 2026-08-19 (#255); recorded 2026-09-01 (#350).** Provenance has two sufficient sources,
+and either alone opens the gate. `src/modules/accounts/domain/account_aggregation.ts:190-191`:
+
+```ts
+export function isRateUsable({ rate, rateUpdatedAt, isManualOverride }: RateProvenance): boolean {
+  return (rateUpdatedAt !== null || isManualOverride) && Number.isFinite(rate) && rate > 0;
+}
+```
+
+`isManualOverride` — `usd_rate_manual_override === 'true'`, the flag recording *that* the user typed
+the rate, where the marker records *when* one was written — is the second source. It is a required
+`boolean` on `RateProvenance` (`account_aggregation.ts:108-120`, the field at `:120`), so every caller
+states it. The refusal contract this section states is unchanged: required and unusable still yields
+`{ kind: 'rate-needed', foreignCount }`, with no substituted rate, no zero and no partial total. The
+placeholder `50` is still refused, because `INITIAL_STATE.isManualOverride` is `false`
+(`src/modules/currency/store/currency.store.ts:26`) and a first-time user has neither source. The live
+record is `docs/adr/2026-08-19-dashboard-net-worth-refusal.md` §4.
+
 ## 3. The accepted false-refusal population
 
 `parsePersistedTimestamp` returns `null` for any non-ISO string, independently of the rate value, and
@@ -50,6 +68,18 @@ That population is known and **accepted**. The direction of the failure is the s
 declines to show a number rather than showing one it cannot vouch for — and the remedy is a backfill
 migration, filed separately and out of scope here. **Do not loosen the gate to make those installs
 show a number**; loosening it re-admits the unverified `50`.
+
+**Superseded 2026-08-19 (#255); recorded 2026-09-01 (#350).** The sentence is superseded; its reason
+survives intact. The gate was widened, not loosened: `isRateUsable` now accepts `isManualOverride` —
+the flag recording that the user typed the rate themselves — as a second sufficient provenance source
+alongside the marker, which is how #255 reaches this population without migrating data. Loosening to
+`rate > 0` remains forbidden for exactly the reason stated above, and the widening does not re-admit
+the placeholder, because `INITIAL_STATE.isManualOverride` is `false`
+(`src/modules/currency/store/currency.store.ts:26`) and a fresh install carries neither source. No
+backfill migration is written or planned, which answers the remedy left open above: a backfill would
+have to stamp a verification time onto a rate whose real one is genuinely unknown — the substitution
+§2 forbids by name — while reading a flag that is already stored invents nothing. The live record is
+`docs/adr/2026-08-19-dashboard-net-worth-refusal.md` §4 (`:228-234`).
 
 ## 4. Round each converted value, then round the sum
 
