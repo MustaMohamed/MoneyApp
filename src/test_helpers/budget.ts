@@ -9,6 +9,8 @@ export function makeTestBudgetableCategory(overrides: Partial<Category> = {}): C
     id: 'housing',
     name: 'Housing',
     icon: 'home',
+    // Overrides makeTestCategory's BudgetGroup.Need default; set_budget_sheet.test.tsx's
+    // 'adds a named budget for the selected month' asserts setBudget gets no categoryGroup key.
     budget_group: null,
     ...overrides,
   });
