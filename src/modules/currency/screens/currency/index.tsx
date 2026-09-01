@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion, Card, Chip, Typography } from 'heroui-native';
 import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
@@ -7,7 +8,10 @@ import { FormErrorText } from '@/components/ui/form_error_text';
 import { Input } from '@/components/ui/input';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Strings } from '@/constants/strings';
-import { EXCHANGE_RATE_DECIMALS, formatAmount } from '@/utils/format_amount';
+import { Size } from '@/constants/theme';
+import { SemanticTokens } from '@/constants/theme_tokens';
+import { formatRateDisplayMagnitude } from '@/utils/format_amount';
+import { ms } from '@/utils/responsive';
 
 import { useCurrencyScreen } from './currency.hook';
 
@@ -29,6 +33,7 @@ export default function CurrencyScreen() {
     control,
     formState: { errors },
   } = form;
+  const { text: rateText, printsAsZero } = formatRateDisplayMagnitude(rate);
 
   return (
     <Screen edges={['bottom']}>
@@ -42,9 +47,9 @@ export default function CurrencyScreen() {
               {Strings.currencyRateLabel}
             </Typography>
             <Typography
-              className={`font-sora-bold text-4xl ${isManualOverride ? 'text-accent' : 'text-foreground'}`}
+              className={`font-sora-bold text-4xl ${printsAsZero ? 'text-warning' : isManualOverride ? 'text-accent' : 'text-foreground'}`}
             >
-              {formatAmount(rate, EXCHANGE_RATE_DECIMALS)}
+              {rateText}
             </Typography>
             <Typography className="text-muted font-inter mt-1 text-xs">
               {Strings.currencyRateSub}
@@ -112,9 +117,21 @@ export default function CurrencyScreen() {
                 />
                 {/* Warning, not danger: `FormErrorText` would read as a rejection. */}
                 {rateWarning !== '' && (
-                  <Typography className="text-warning font-inter mt-1 text-sm">
-                    {rateWarning}
-                  </Typography>
+                  <View
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: ms(6) }}
+                    className="mt-1"
+                    accessible
+                    accessibilityLabel={rateWarning}
+                  >
+                    <MaterialCommunityIcons
+                      name="alert-outline"
+                      size={Size.iconMd}
+                      color={SemanticTokens.warning}
+                    />
+                    <Typography className="text-warning font-inter flex-1 text-sm">
+                      {rateWarning}
+                    </Typography>
+                  </View>
                 )}
                 <View className="mt-4">
                   <Button

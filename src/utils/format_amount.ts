@@ -97,11 +97,41 @@ export function formatDisplayMagnitude(
   return { text, printsAsZero };
 }
 
+// Ceiling for rate-display escalation only; a rate has no rounding floor to escalate to once
+// (docs/adr/2026-08-26-parse-floor-money-only.md §2), so `formatDisplayMagnitude`'s single hop
+// doesn't apply here. 1e-7 needs 7dp to show a leading digit; this gives one digit of headroom.
+const RATE_DISPLAY_DECIMALS_CEILING = 8;
+
+/**
+ * Sibling to `formatDisplayMagnitude`, not a call into it: a rate isn't a `Currency` and carries
+ * no `roundMoney` floor, so instead of one fixed hop this escalates a decimal place at a time,
+ * from `EXCHANGE_RATE_DECIMALS` through `RATE_DISPLAY_DECIMALS_CEILING`, stopping at the first
+ * nonzero digit. `rate` must be finite and positive — a stored-rate invariant, not a display case.
+ */
+export function formatRateDisplayMagnitude(rate: number): {
+  text: string;
+  printsAsZero: boolean;
+} {
+  if (!Number.isFinite(rate) || rate <= 0) {
+    throw new RangeError(`Rate must be finite and positive: ${rate}`);
+  }
+  const magnitude = Math.abs(rate);
+  for (
+    let decimals = EXCHANGE_RATE_DECIMALS;
+    decimals <= RATE_DISPLAY_DECIMALS_CEILING;
+    decimals++
+  ) {
+    const candidate = formatAmount(magnitude, decimals);
+    if (!ZERO_AT_DISPLAY_PRECISION.test(candidate)) return { text: candidate, printsAsZero: false };
+  }
+  return { text: formatAmount(magnitude, RATE_DISPLAY_DECIMALS_CEILING), printsAsZero: true };
+}
+
 export function formatExchangeRate(rate: number): string {
-  return `${formatAmount(rate, EXCHANGE_RATE_DECIMALS)} EGP/USD`;
+  return `${formatRateDisplayMagnitude(rate).text} EGP/USD`;
 }
 
 /** Long form for a labelled row on its own line; a chip or pill uses `formatExchangeRate`. */
 export function formatExchangeRateSentence(rate: number): string {
-  return Strings.detailExchangeRateSentence(formatAmount(rate, EXCHANGE_RATE_DECIMALS));
+  return Strings.detailExchangeRateSentence(formatRateDisplayMagnitude(rate).text);
 }

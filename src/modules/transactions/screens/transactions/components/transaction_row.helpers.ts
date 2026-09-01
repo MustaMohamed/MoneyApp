@@ -8,12 +8,11 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
-  EXCHANGE_RATE_DECIMALS,
   MINUS_SIGN,
   PLUS_SIGN,
-  formatAmount,
   formatCurrencyAmount,
   formatDisplayMagnitude,
+  formatRateDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
 import { formatTime12h } from '@/utils/format_time_12h';
@@ -150,7 +149,7 @@ export function buildTransactionRowPresentation({
     rateText:
       tx.exchange_rate === null
         ? undefined
-        : `@ ${formatAmount(tx.exchange_rate, EXCHANGE_RATE_DECIMALS)}`,
+        : `@ ${formatRateDisplayMagnitude(tx.exchange_rate).text}`,
     // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- blank notes are intentionally omitted
     note: tx.note?.trim() || undefined,
     ownershipLabel,

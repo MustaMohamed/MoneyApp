@@ -9,6 +9,7 @@ import {
   formatDisplayMagnitude,
   formatExchangeRate,
   formatExchangeRateSentence,
+  formatRateDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
 
@@ -197,6 +198,47 @@ describe('formatDisplayMagnitude', () => {
   it('reports printsAsZero true for a magnitude the 2dp escalation ceiling still cannot show a nonzero digit for, on both currencies', () => {
     expect(formatDisplayMagnitude(0.001, Currency.EGP).printsAsZero).toBe(true);
     expect(formatDisplayMagnitude(0.001, Currency.USD).printsAsZero).toBe(true);
+  });
+});
+
+describe.each([
+  // [rate, expectedText, expectedPrintsAsZero]
+  [48.6, '48.60', false], // baseline, no escalation
+  [1, '1.00', false], // RATE_PLAUSIBLE_MIN boundary, no escalation
+  [0.01, '0.01', false], // exact 2dp floor, no escalation
+  [0.0049, '0.005', false], // just below the printed-zero threshold, escalates one step to 3dp
+  [0.005, '0.01', false], // issue's boundary value; rounds UP at the floor, not the zero bug
+  [0.0005, '0.001', false], // issue's second value; escalates to 3dp
+  [0.0000001, '0.0000001', false], // issue's third value; escalates to 7dp
+  [0.000000001, '0.00000000', true], // ceiling (8dp) exhausted, still zero; legitimate terminal state
+])('formatRateDisplayMagnitude(%p)', (rate, expectedText, expectedPrintsAsZero) => {
+  it(`-> { text: '${expectedText}', printsAsZero: ${expectedPrintsAsZero} }`, () => {
+    expect(formatRateDisplayMagnitude(rate)).toEqual({
+      text: expectedText,
+      printsAsZero: expectedPrintsAsZero,
+    });
+  });
+});
+
+describe.each([
+  [0, 'Rate must be finite and positive: 0'],
+  [-48.6, 'Rate must be finite and positive: -48.6'],
+  [NaN, 'Rate must be finite and positive: NaN'],
+  [Infinity, 'Rate must be finite and positive: Infinity'],
+])('formatRateDisplayMagnitude(%p) throws', (rate, expectedMessage) => {
+  it('throws RangeError', () => {
+    expect(() => formatRateDisplayMagnitude(rate)).toThrow(RangeError);
+    expect(() => formatRateDisplayMagnitude(rate)).toThrow(expectedMessage);
+  });
+});
+
+describe('formatRateDisplayMagnitude composition', () => {
+  it('formatExchangeRate escalates', () => {
+    expect(formatExchangeRate(0.0000001)).toBe('0.0000001 EGP/USD');
+  });
+
+  it('formatExchangeRateSentence escalates', () => {
+    expect(formatExchangeRateSentence(0.0005)).toBe('1 USD = 0.001 EGP');
   });
 });
 
