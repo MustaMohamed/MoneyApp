@@ -17,11 +17,17 @@
 // value that exists only in prose: keep any comment naming `ms(` on a line of its own.
 //
 // The reverse edge, accepted rather than fixed: `stripComments` removes comments, not string
-// contents, so the resolver-call check — a substring test — is also satisfied by the call text
-// sitting inside a string literal (`const hint = "see resolveStateScreenLayout('empty')";`).
-// Excluding string literals needs a scanner this guard deliberately does not own, and the hole
-// is narrow: the IMPORT check still demands a real import, and deleting the real call leaves
-// `LAYOUT` undefined at module scope, which `tsc` reds with TS2304 in the same parity chain.
+// contents, so BOTH text checks are satisfied by their own text sitting inside a string literal.
+// The call check is a substring test (`const hint = "see resolveStateScreenLayout('empty')";`),
+// and IMPORT is no stronger — its regex runs against the joined stripped source, so a component
+// whose real import line is replaced by a string literal holding that same import text still
+// matches, and this guard exits 0 printing `validated (2 components)`.
+//
+// Excluding string literals needs a scanner this guard deliberately does not own. What closes
+// the hole is `tsc` in the same parity chain, not a second text check: neither fake declares
+// anything, so `npm run typecheck` exits 2. The import fake reds
+// `empty_state.tsx(16,16): error TS2304: Cannot find name 'resolveStateScreenLayout'.`; the call
+// fake reds seven `TS2304: Cannot find name 'LAYOUT'`, six of them inside `StyleSheet.create`.
 const fs = require('fs');
 const path = require('path');
 const { stripComments } = require('./lib/strip-comments');

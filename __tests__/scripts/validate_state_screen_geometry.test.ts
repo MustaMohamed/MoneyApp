@@ -229,9 +229,11 @@ describe('validate-state-screen-geometry.js — subprocess CLI contract (#338)',
   // Not a §3 row — added at P8 for the raw-`ms()` check specifically. The guard's header
   // promises "every violation is collected", which was true of the import and call checks
   // and false of this one: it reported the first offending line and stopped, so an
-  // N-violation change cost N runs of the whole parity chain to surface them all. The
-  // length assertion is what fails on a regression to `findIndex` — both `toContain`s
-  // still pass when only the first line is printed.
+  // N-violation change cost N runs of the whole parity chain to surface them all. Reverting the
+  // guard to `findIndex` fails at the SECOND `toContain` below, not at the length assertion:
+  // only the first offending line is printed, so the second line's substring is absent and the
+  // length assertion never runs. The length assertion earns its own keep on the other side — it
+  // is what catches one offending line being reported twice.
   it('names every raw `ms()` line in a component, not only the first', () => {
     const anchor = "const LAYOUT = resolveStateScreenLayout('empty');\n";
     const mutated = replaceOnce(
