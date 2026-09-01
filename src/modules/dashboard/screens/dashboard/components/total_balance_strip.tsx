@@ -16,8 +16,9 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
+
+import { formatOwnedAmountParts } from './net_worth_breakdown_sheet.helpers';
 
 // Intentionally 2 of the 3 shared hero stops.
 const TOTAL_BALANCE_GRADIENT_COLORS = [HERO_GRADIENT_COLORS[0], HERO_GRADIENT_COLORS[1]] as const;
@@ -37,7 +38,7 @@ function TotalBalanceStripAmount({
   netWorth: DashboardNetWorthAmount;
   baseCurrency: Currency;
 }): React.ReactElement {
-  const assetsParts = formatCurrencyParts(amount.assets, baseCurrency);
+  const assetsParts = formatOwnedAmountParts(amount.assets, baseCurrency);
   return (
     <RNText className="font-sora-bold text-accent mt-1 text-2xl">
       {assetsParts.value} <RNText className="text-muted text-base">{assetsParts.code}</RNText>

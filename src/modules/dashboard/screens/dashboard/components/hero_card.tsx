@@ -14,13 +14,10 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import {
-  formatCurrencyAmount,
-  formatCurrencyParts,
-  formatExchangeRate,
-} from '@/utils/format_amount';
+import { formatCurrencyAmount, formatExchangeRate } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
+import { formatOwnedAmountParts } from './net_worth_breakdown_sheet.helpers';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 const DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT = ms(35);
@@ -89,7 +86,7 @@ function HeroCardAssetsAmount({
   netWorth: DashboardNetWorthAmount;
   baseCurrency: Currency;
 }): React.ReactElement {
-  const assetsParts = formatCurrencyParts(amount.assets, baseCurrency);
+  const assetsParts = formatOwnedAmountParts(amount.assets, baseCurrency);
   return (
     <Text
       className="font-sora-bold mt-3 mb-2 px-3"
