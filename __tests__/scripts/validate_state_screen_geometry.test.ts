@@ -18,7 +18,7 @@
  * `ms()` in either component reds this case and `npm run lint` together — that is the
  * invariant, not a defect in this suite.
  *
- * Cases 2-6 build a fakeroot instead, so `src/` is never mutated. The guard is copied into
+ * Cases 2-7 build a fakeroot instead, so `src/` is never mutated. The guard is copied into
  * `fakeroot/scripts/` — its `__dirname`-derived root then resolves to the fakeroot — and
  * `scripts/lib/strip-comments.js` is copied alongside, because the copy's
  * `require('./lib/strip-comments')` resolves relative to itself.
@@ -224,5 +224,37 @@ describe('validate-state-screen-geometry.js — subprocess CLI contract (#338)',
     const result = runGuardAt(guard);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(`${ERROR_REL}: listed in ${scriptRel} but does not exist`);
+  });
+
+  // Not a §3 row — added at P8 for the raw-`ms()` check specifically. The guard's header
+  // promises "every violation is collected", which was true of the import and call checks
+  // and false of this one: it reported the first offending line and stopped, so an
+  // N-violation change cost N runs of the whole parity chain to surface them all. The
+  // length assertion is what fails on a regression to `findIndex` — both `toContain`s
+  // still pass when only the first line is printed.
+  it('names every raw `ms()` line in a component, not only the first', () => {
+    const anchor = "const LAYOUT = resolveStateScreenLayout('empty');\n";
+    const mutated = replaceOnce(
+      readComponent(EMPTY_REL),
+      anchor,
+      `${anchor}const A = ms(11);\nconst B = ms(22);\n`,
+    );
+    const lines = mutated.split('\n');
+    const firstLine = lines.findIndex((line) => line.includes('const A = ms(11);')) + 1;
+    const secondLine = lines.findIndex((line) => line.includes('const B = ms(22);')) + 1;
+    expect(firstLine).toBeGreaterThan(0);
+    expect(secondLine).toBe(firstLine + 1);
+
+    const guard = makeFakeRoot([
+      { rel: EMPTY_REL, content: mutated },
+      { rel: ERROR_REL, content: readComponent(ERROR_REL) },
+    ]);
+    const result = runGuardAt(guard);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`${EMPTY_REL}:${firstLine}: raw \`ms()\` call`);
+    expect(result.stderr).toContain(`${EMPTY_REL}:${secondLine}: raw \`ms()\` call`);
+    expect(
+      result.stderr.split('\n').filter((line) => line.includes('raw `ms()` call')),
+    ).toHaveLength(2);
   });
 });

@@ -11,10 +11,17 @@
 // must land in the geometry module or in `src/constants/theme.ts` — which is what the
 // message says, because that constraint is the point rather than a side effect.
 //
-// An unpaired `'` in JSX text (`Don't`) reads as a string opener to
-// `scripts/lib/strip-comments.js`, so the rest of that physical line — a trailing
-// `{/* … ms(80) … */}` included — survives stripping and reds the `ms()` check at a value
-// that exists only in prose: keep any comment naming `ms(` on a line of its own.
+// An unpaired quote character in JSX text — `'` in `Don't`, `"` in `a 5" screen` — reads as a
+// string opener to `scripts/lib/strip-comments.js`, so the rest of that physical line — a
+// trailing `{/* … ms(80) … */}` included — survives stripping and reds the `ms()` check at a
+// value that exists only in prose: keep any comment naming `ms(` on a line of its own.
+//
+// The reverse edge, accepted rather than fixed: `stripComments` removes comments, not string
+// contents, so the resolver-call check — a substring test — is also satisfied by the call text
+// sitting inside a string literal (`const hint = "see resolveStateScreenLayout('empty')";`).
+// Excluding string literals needs a scanner this guard deliberately does not own, and the hole
+// is narrow: the IMPORT check still demands a real import, and deleting the real call leaves
+// `LAYOUT` undefined at module scope, which `tsc` reds with TS2304 in the same parity chain.
 const fs = require('fs');
 const path = require('path');
 const { stripComments } = require('./lib/strip-comments');
@@ -30,10 +37,14 @@ const BOUND_COMPONENTS = [
 // No `g` flag on either: with one, RegExp#test carries lastIndex between calls and silently
 // skips roughly every other match. IMPORT is tested against the whole joined source rather
 // than line by line, so `[^}]*` spans newlines and an oxfmt-wrapped named-import list still
-// matches. RAW_SCALE's negative lookbehind keeps `forms(`, `items(` and any `x.ms(` out, and
-// the required open paren is what keeps the bare `import { ms } …` line from ever matching.
+// matches. The `['"]` around the module specifier is not redundant with oxfmt normalising to
+// single quotes: `format:check` runs first in the parity chain, but a locally-edited file is
+// double-quoted until it is formatted, and this check's failure message sends the developer
+// looking for an import that is right there. RAW_SCALE's negative lookbehind keeps `forms(`,
+// `items(` and any `x.ms(` out, and the required open paren is what keeps the bare
+// `import { ms } …` line from ever matching.
 const IMPORT =
-  /import\s*\{[^}]*\bresolveStateScreenLayout\b[^}]*\}\s*from\s*'@\/components\/ui\/state_screen\.geometry'/;
+  /import\s*\{[^}]*\bresolveStateScreenLayout\b[^}]*\}\s*from\s*['"]@\/components\/ui\/state_screen\.geometry['"]/;
 const RAW_SCALE = /(?<![\w.])ms\s*\(/;
 
 for (const component of BOUND_COMPONENTS) {
@@ -67,12 +78,15 @@ for (const component of BOUND_COMPONENTS) {
     errors.push(`${component.path}: does not call \`${call}\` (#338)`);
   }
 
-  const rawScaleIndex = stripped.findIndex((line) => RAW_SCALE.test(line));
-  if (rawScaleIndex !== -1) {
-    errors.push(
-      `${component.path}:${rawScaleIndex + 1}: raw \`ms()\` call — state-screen geometry belongs in src/components/ui/state_screen.geometry.ts and other sizes in src/constants/theme.ts (#338)`,
-    );
-  }
+  // Every offending line, not just the first: an N-violation change otherwise costs N runs of
+  // the full parity chain to find them all, and the header above promises all of them.
+  stripped.forEach((line, index) => {
+    if (RAW_SCALE.test(line)) {
+      errors.push(
+        `${component.path}:${index + 1}: raw \`ms()\` call — state-screen geometry belongs in src/components/ui/state_screen.geometry.ts and other sizes in src/constants/theme.ts (#338)`,
+      );
+    }
+  });
 }
 
 if (errors.length > 0) {

@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "typecheck": "node scripts/generate-typed-routes.js && tsc --noEmit",
     "validate:agent-assets": "node scripts/validate-agent-assets.js",
-    "lint": "npm run validate:agent-assets && node scripts/validate-money-formatting.js && node scripts/validate-state-screen-geometry.js && oxlint --type-aware --type-check",
+    "lint": "npm run validate:agent-assets && node scripts/validate-money-formatting.js && oxlint --type-aware --type-check && node scripts/validate-state-screen-geometry.js",
     "lint:fix": "oxlint --type-aware --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
