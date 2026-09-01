@@ -26,11 +26,16 @@ export function requiresDestination(type: TransactionType): boolean {
   return type === TransactionType.Transfer || type === TransactionType.CCPayment;
 }
 
-/** Only the unstorable throw sets `reason`; `resolveTransactionSaveError` is its only reader. */
+/**
+ * Two throws set `reason`: `'unstorable'` (amount out of the storable range) and
+ * `'zero-destination'` (the destination leg rounds to 0 while the source is positive —
+ * ruling on #363). `resolveTransactionSaveError`, `resolveDestinationFloorError`, and
+ * `resolvePaySheetSaveError` are its readers.
+ */
 export class TransactionAmountError extends Error {
   constructor(
     message: string,
-    readonly reason?: 'unstorable',
+    readonly reason?: 'unstorable' | 'zero-destination',
   ) {
     super(message);
     this.name = 'TransactionAmountError';
@@ -77,10 +82,26 @@ function assertStorable(value: number): void {
  * return, beside `accountCurrency, exchangeRate` on the commitment one — is
  * still unguarded: six independent call sites narrow to those two tails,
  * they do not close at compile time.
+ *
+ * `destinationKey` names the one leg (`toAmount`, `accountNativeAmount`) that must not be
+ * exactly `0` — the ruling on #363. It checks the already-rounded value, not the boundary
+ * inequality that produced it (`.claude/rules/money.md`: round once, at this layer). Scoped to
+ * one named key rather than every leg, because `egpAmount` for a plain Expense/Income can
+ * legitimately underflow to `0` too (spec §7.6, out of scope here) and must not throw.
  */
-function assertStorableLegs<T extends Record<string, number | null>>(legs: T): T {
-  for (const value of Object.values(legs)) {
-    if (value !== null) assertStorable(value);
+function assertStorableLegs<T extends Record<string, number | null>>(
+  legs: T,
+  destinationKey?: keyof T,
+): T {
+  for (const [key, value] of Object.entries(legs)) {
+    if (value === null) continue;
+    assertStorable(value);
+    if (key === destinationKey && value === 0) {
+      throw new TransactionAmountError(
+        'The destination amount rounds to 0 at this exchange rate',
+        'zero-destination',
+      );
+    }
   }
   return legs;
 }
@@ -128,7 +149,10 @@ export function resolveTransactionAmounts(input: {
         ? roundMoney(amount)
         : roundMoney(egpAmount / (exchangeRate ?? 0));
 
-  return { ...assertStorableLegs({ amount, egpAmount, toAmount }), exchangeRate };
+  return {
+    ...assertStorableLegs({ amount, egpAmount, toAmount }, 'toAmount'),
+    exchangeRate,
+  };
 }
 
 export function resolveCommitmentPaymentAmounts(input: {
@@ -164,7 +188,10 @@ export function resolveCommitmentPaymentAmounts(input: {
       : egpAmount;
 
   return {
-    ...assertStorableLegs({ paymentAmount: amount, accountNativeAmount, egpAmount }),
+    ...assertStorableLegs(
+      { paymentAmount: amount, accountNativeAmount, egpAmount },
+      'accountNativeAmount',
+    ),
     accountCurrency: input.accountCurrency,
     exchangeRate,
   };
