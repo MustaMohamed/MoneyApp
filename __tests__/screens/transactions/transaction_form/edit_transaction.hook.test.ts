@@ -516,6 +516,33 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
     expect(result.current.state.errors.amount).toBeUndefined();
   });
 
+  // The mask lets partial text like `.5` stand; the schema owns refusing it at submit.
+  it('rejects a partial ".5" left in the field with the invalid copy, never a save', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await act(() => result.current.setAmountStr('.5'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.errAmountInvalid);
+  });
+
+  it('rejects a truly empty amount with the required copy, not the invalid one', async () => {
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await act(() => result.current.setAmountStr(''));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountRequired);
+  });
+
   it('rejects a stored 0.005 on Save without the amount field ever being touched', async () => {
     const subCentTx = makeTestTransaction({
       ...mockTxExpense,

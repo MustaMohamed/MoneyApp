@@ -45,12 +45,19 @@ function createEditSchema(
   requiresRate: boolean,
   sourceCurrency: Currency | undefined,
   destinationCurrency: Currency | undefined,
+  readAmountText: () => string,
 ) {
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   return z
     .object({
       amount: z
-        .number({ error: Strings.addTxErrAmountRequired })
+        .number({
+          // The NaN sentinel carries no cause; the raw text splits empty from unparseable.
+          error: () =>
+            readAmountText().trim() === ''
+              ? Strings.addTxErrAmountRequired
+              : Strings.errAmountInvalid,
+        })
         .refine((v) => v >= MIN_MONEY_AMOUNT, Strings.addTxErrAmountZero),
       categoryId: isTransferOrCC ? z.string() : z.string().min(1, Strings.addTxErrCategoryRequired),
       budgetId: z.string(),
@@ -211,6 +218,8 @@ export function useEditTransaction(
         requiresRate,
         sourceCurrency,
         destinationCurrency,
+        // An accessor, not the value: the hook does not re-render on typing (by design).
+        () => useEditTransactionStore.getState().amountStr,
       ),
     [
       categories,

@@ -437,7 +437,7 @@ describe('useAddTransaction — validation', () => {
   });
 
   // The mask lets partial text like `.5` stand; the schema owns refusing it at submit.
-  it('rejects a partial ".5" left in the field with a field error, never a save', async () => {
+  it('rejects a partial ".5" left in the field with the invalid copy, never a save', async () => {
     const addTx = installMockAddTransaction();
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
     await act(() => result.current.setAmountStr('.5'));
@@ -447,13 +447,27 @@ describe('useAddTransaction — validation', () => {
     await act(async () => result.current.handleSave());
 
     expect(addTx).not.toHaveBeenCalled();
-    expect(result.current.state.errors.amount).toBeDefined();
+    expect(result.current.state.errors.amount).toBe(Strings.errAmountInvalid);
+  });
+
+  it('rejects a truly empty amount with the required copy, not the invalid one', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr(''));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(result.current.state.errors.amount).toBe(Strings.addTxErrAmountRequired);
   });
 
   it('rejects amount=0', async () => {
     const onClose = jest.fn();
     const { result } = await renderHook(() => useAddTransaction(onClose));
-    // `amountStr` defaults to '0', so this case never sets one.
+    // Explicit '0': the store default is '', which is the required-copy case above.
+    await act(() => result.current.setAmountStr('0'));
     await act(() => result.current.selectAccount(mockAccountEGP));
     await act(() => result.current.selectCategory(mockCategoryExpense));
     await act(async () => {

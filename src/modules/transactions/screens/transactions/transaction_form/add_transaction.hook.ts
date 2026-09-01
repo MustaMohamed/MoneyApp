@@ -50,13 +50,20 @@ function createSchema(
   accounts: Account[],
   categories: Category[],
   hasMultipleBudgets: boolean,
+  readAmountText: () => string,
 ) {
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
 
   return z
     .object({
       amount: z
-        .number({ error: Strings.addTxErrAmountRequired })
+        .number({
+          // The NaN sentinel carries no cause; the raw text splits empty from unparseable.
+          error: () =>
+            readAmountText().trim() === ''
+              ? Strings.addTxErrAmountRequired
+              : Strings.errAmountInvalid,
+        })
         .refine((v) => v >= MIN_MONEY_AMOUNT, Strings.addTxErrAmountZero),
       accountId: z
         .string()
@@ -256,7 +263,15 @@ export function useAddTransaction(
     prerequisites?.status ?? (accountsLoaded && categoriesLoaded ? 'ready' : 'loading');
 
   const schema = useMemo(
-    () => createSchema(type, accounts, categories, availableBudgets.length > 1),
+    () =>
+      createSchema(
+        type,
+        accounts,
+        categories,
+        availableBudgets.length > 1,
+        // An accessor, not the value: the hook does not re-render on typing (by design).
+        () => useAddTransactionStore.getState().amountStr,
+      ),
     [accounts, availableBudgets.length, categories, type],
   );
 
