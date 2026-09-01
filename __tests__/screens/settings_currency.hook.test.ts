@@ -3,8 +3,8 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { Currency } from '@/constants/enums';
 import { useCurrencyScreen } from '@/modules/currency/screens/currency/currency.hook';
 import { useCurrencyScreenState } from '@/modules/currency/screens/currency/currency.state';
+import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
@@ -15,8 +15,8 @@ jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: 
 jest.mock('@/modules/currency/screens/currency/currency.state', () => ({
   useCurrencyScreenState: jest.fn(),
 }));
-jest.mock('@/modules/onboarding/store/onboarding.store', () => ({
-  useOnboardingStore: jest.fn(),
+jest.mock('@/modules/currency/store/base_currency.store', () => ({
+  useBaseCurrencyStore: jest.fn(),
 }));
 
 const IMPLAUSIBLE_WARNING = 'This rate is far outside the usual range.';
@@ -42,7 +42,7 @@ function setup() {
     setSaveError: jest.fn(),
     reset: jest.fn(),
   }));
-  attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
+  attachMockSelectorStore(useBaseCurrencyStore as unknown as jest.Mock, () => ({
     baseCurrency: Currency.EGP,
   }));
 }
@@ -240,8 +240,8 @@ describe('useCurrencyScreen', () => {
 describe('useCurrencyScreen — the footer note follows the base currency', () => {
   beforeEach(setup);
 
-  it('names US Dollar (USD) when the onboarding store publishes a USD base', async () => {
-    attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
+  it('names US Dollar (USD) when the base-currency store publishes a USD base', async () => {
+    attachMockSelectorStore(useBaseCurrencyStore as unknown as jest.Mock, () => ({
       baseCurrency: Currency.USD,
     }));
     const { result } = await renderHook(() => useCurrencyScreen());

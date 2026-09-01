@@ -35,14 +35,18 @@ describe('buildInfoRows — the converted row follows the rate gate', () => {
   it('converts a USD balance when the rate is usable', () => {
     const rows = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, true, Currency.EGP);
 
-    expect(labels(usdBank(100), true, Currency.EGP)).toContain(Strings.cardInEgpLabel);
+    expect(labels(usdBank(100), true, Currency.EGP)).toContain(
+      Strings.cardInBaseLabel(Currency.EGP),
+    );
     expect(rows.at(-1)?.value).toBe('5,000 EGP');
   });
 
   it('renders no converted row when the rate is unusable', () => {
     const rows = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, false, Currency.EGP);
 
-    expect(labels(usdBank(100), false, Currency.EGP)).not.toContain(Strings.cardInEgpLabel);
+    expect(labels(usdBank(100), false, Currency.EGP)).not.toContain(
+      Strings.cardInBaseLabel(Currency.EGP),
+    );
     expect(rows.map((row) => row.value)).not.toContain('5,000 EGP');
   });
 
@@ -68,14 +72,55 @@ describe('buildInfoRows — the converted row follows the rate gate', () => {
 
 describe('buildInfoRows — the converted row is suppressed in the base currency', () => {
   it('drops the row for a USD card under a USD base, rate usable or not', () => {
-    expect(labels(usdBank(100), true, Currency.USD)).not.toContain(Strings.cardInEgpLabel);
+    expect(labels(usdBank(100), true, Currency.USD)).not.toContain(
+      Strings.cardInBaseLabel(Currency.USD),
+    );
   });
 
   it('keeps the row for a USD card under an EGP base with a usable rate', () => {
     const rows = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, true, Currency.EGP);
 
-    expect(rows.map((row) => row.label)).toContain(Strings.cardInEgpLabel);
+    expect(rows.map((row) => row.label)).toContain(Strings.cardInBaseLabel(Currency.EGP));
     expect(rows.at(-1)?.value).toBe('5,000 EGP');
+  });
+});
+
+// New surface (#349): the EGP-account-under-USD-base direction divides, never multiplies, and the
+// row's label, code, and decimals all follow the base. `rate` is EGP per USD.
+describe('buildInfoRows — the base-equivalent row for an EGP card under a USD base (#349)', () => {
+  it('renders In USD with USD decimals — 1,000 EGP / 50 = 20.00, not 50,000', () => {
+    const rows = buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS, true, Currency.USD);
+
+    expect(rows.map((row) => row.label)).toContain(Strings.cardInBaseLabel(Currency.USD));
+    // A surviving multiply would print '50,000'; EGP's 0dp would print '20'.
+    expect(rows.at(-1)?.value).toBe('20.00 USD');
+  });
+
+  it('rounds once at the display site — 1,000 EGP / 48.85 = 20.470829… -> 20.47 USD', () => {
+    const rows = buildInfoRows(egpBank(1000), 48.85, STATS, true, Currency.USD);
+    expect(rows.at(-1)?.value).toBe('20.47 USD');
+  });
+
+  it('appends after This Week, leaving the three native rows unchanged', () => {
+    const rows = buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS, true, Currency.USD);
+    expect(rows.map((row) => row.label)).toEqual([
+      Strings.cardMonthInLabel,
+      Strings.cardMonthOutLabel,
+      Strings.cardThisWeekLabel,
+      Strings.cardInBaseLabel(Currency.USD),
+    ]);
+  });
+
+  it('renders no row when the rate is unusable', () => {
+    expect(labels(egpBank(1000), false, Currency.USD)).not.toContain(
+      Strings.cardInBaseLabel(Currency.USD),
+    );
+  });
+
+  it('still multiplies in the USD-to-EGP direction — 100.25 USD × 48.6 = 4,872 EGP', () => {
+    const rows = buildInfoRows(usdBank(100.25), 48.6, STATS, true, Currency.EGP);
+    // 4,872.15 rounds at 2dp then renders at EGP's 0dp.
+    expect(rows.at(-1)?.value).toBe('4,872 EGP');
   });
 });
 

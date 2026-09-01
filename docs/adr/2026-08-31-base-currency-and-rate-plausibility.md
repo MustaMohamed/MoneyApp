@@ -17,10 +17,12 @@ nothing else about it changes.
 
 ## 1. Where base currency is read, and the rule that generalises it
 
-`useOnboardingStore((s) => s.baseCurrency)`, in five hooks, passed downward as a parameter from
-each. This ticket adds two — `dashboard.hook.ts:90` and `currency.hook.ts:37`; the other three are
-pre-existing onboarding screens: `welcome.hook.ts:14`, `add_account.hook.ts:21`, `ready.hook.ts:19`.
-`grep -rn "useOnboardingStore((s) => s.baseCurrency)" src/` returns exactly those five. **No
+`useBaseCurrencyStore((s) => s.baseCurrency)` (`src/modules/currency/store/base_currency.store.ts`
+since #348; `useOnboardingStore` at the time of this decision), in five hooks, passed downward as a
+parameter from each. This ticket adds two — `dashboard.hook.ts:90` and `currency.hook.ts:37`; the
+other three are pre-existing onboarding screens: `welcome.hook.ts:14`, `add_account.hook.ts:21`,
+`ready.hook.ts:19`.
+`grep -rn "useBaseCurrencyStore((s) => s.baseCurrency)" src/` returns exactly those five. **No
 `domain/` file imports a store.** `NetWorthInput.baseCurrency` and `buildInfoRows`'s fifth parameter
 are both required with no default: 12 failing `computeNetWorth({...})` literals and 25 failing
 breakdown call sites are what the enforcement looks like working, and a default is the one
@@ -34,12 +36,13 @@ five, which is what makes this a rule rather than a description of two files.
 passes `Currency.EGP`, onboarding passes the store's base — and its docblock already says the form
 never reads the onboarding store itself. That stays true.
 
-Not done here: moving base currency out of `useOnboardingStore` entirely, filed as #348. Its scope
-is four sites — a different set from the five above, not a contradiction of it: this ticket's two,
-plus audit M28's two future sites (`settings/screens/settings/index.tsx:36` and
-`accounts/screens/accounts/add_account/add_account.hook.ts:11`), neither of which reads the store
+Not done here: moving base currency out of `useOnboardingStore` entirely, filed as #348 — **done
+since**: PR #370 moved the hydrated copy and its keychain-loss fallback to
+`useBaseCurrencyStore` and migrated all five readers, before audit M28's two future sites
+(`settings/screens/settings/index.tsx:36` and
+`accounts/screens/accounts/add_account/add_account.hook.ts:11`) were built; neither reads the store
 today. Both hardcode `Currency.EGP`, which is what makes them M28's to move rather than readers to
-count. Sequenced before M28's remaining remediation.
+count.
 
 ## 2. The fold under a divide, and the rule inside it that has no test
 
@@ -133,9 +136,11 @@ has no live quote, so "too high" or "too low" would claim knowledge it does not 
   only. Deliberately not filed: a controlled accordion would re-open a section the user has just
   closed, which is a worse answer than a warning they can reach.
 - **The carousel's "In EGP" row is gated, not mirrored.** An EGP card under a USD base gets no
-  "In USD" row; that is new surface, filed as #349 rather than built.
+  "In USD" row; that is new surface, filed as #349 rather than built. Closed by #349 (PR #370):
+  the row now fires on any base mismatch through `convertCurrency`.
 - **`stat_cards.tsx`'s month-spend card keeps its bare `formatAmount`.** A ledger total, not a
-  converted pair — filed as #347 with the budget card's three sites of the same class.
+  converted pair — filed as #347 with the budget card's three sites of the same class. Closed by
+  #347 (PR #370): rows order base-first, the budget card discloses its EGP code, nothing converts.
 - **The rate card prints `0.00` for any stored rate below 0.005**, directly above a warning naming
   that same rate implausible. Pre-existing — `index.tsx:48`'s
   `formatAmount(rate, EXCHANGE_RATE_DECIMALS)`, at `format_amount.ts:25`'s 2 — not

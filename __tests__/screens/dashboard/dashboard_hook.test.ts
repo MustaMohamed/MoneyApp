@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
+import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type {
   DashboardLoadInput,
@@ -10,7 +11,6 @@ import type {
 import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.hook';
 import { useDashboardState } from '@/modules/dashboard/screens/dashboard/dashboard.state';
 import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
@@ -57,8 +57,8 @@ jest.mock('@/modules/currency/store/currency.store', () => ({
   useCurrencyStore: jest.fn(),
 }));
 // Mocked to control `baseCurrency`, not for safety: the USD-base test below needs it.
-jest.mock('@/modules/onboarding/store/onboarding.store', () => ({
-  useOnboardingStore: jest.fn(),
+jest.mock('@/modules/currency/store/base_currency.store', () => ({
+  useBaseCurrencyStore: jest.fn(),
 }));
 jest.mock('@/modules/transactions/store/transaction.store', () => ({
   useTransactionStore: jest.fn(),
@@ -203,7 +203,7 @@ let currencyState: {
   rate_updated_at: string | null;
 };
 
-let onboardingState: {
+let baseCurrencyState: {
   baseCurrency: Currency;
 };
 
@@ -246,7 +246,7 @@ beforeEach(() => {
     // Required: without it the rate gate refuses, and `undefined !== null` would open it wrongly.
     rate_updated_at: '2026-07-20T09:00:00.000Z',
   };
-  onboardingState = {
+  baseCurrencyState = {
     baseCurrency: Currency.EGP,
   };
   transactionStoreState = {
@@ -256,7 +256,7 @@ beforeEach(() => {
   attachMockSelectorStore(useDashboardStore, () => dashboardStoreState);
   attachMockSelectorStore(useDashboardState, () => dashboardUiState);
   attachMockSelectorStore(useCurrencyStore, () => currencyState);
-  attachMockSelectorStore(useOnboardingStore, () => onboardingState);
+  attachMockSelectorStore(useBaseCurrencyStore, () => baseCurrencyState);
   attachMockSelectorStore(useTransactionStore, () => transactionStoreState);
 });
 
@@ -397,8 +397,8 @@ describe('useDashboard', () => {
     });
   });
 
-  it('reports the USD-base figures when the onboarding store publishes a USD base', async () => {
-    onboardingState.baseCurrency = Currency.USD;
+  it('reports the USD-base figures when the base-currency store publishes a USD base', async () => {
+    baseCurrencyState.baseCurrency = Currency.USD;
 
     const { result } = await renderHook(() => useDashboard());
 

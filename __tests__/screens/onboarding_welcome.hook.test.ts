@@ -11,6 +11,9 @@ jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({ replace: jest.fn() })),
 }));
 jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
+jest.mock('@/modules/currency/store/base_currency.store', () => ({
+  useBaseCurrencyStore: jest.fn(),
+}));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
   useAccountStore: jest.fn(),
@@ -23,8 +26,6 @@ const mockReplace = jest.fn();
 function setup({ baseCurrency = Currency.EGP, accounts = [] as unknown[] } = {}) {
   const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
   const storeState = {
-    baseCurrency,
-    setBaseCurrency: mockSetBaseCurrency,
     setStep: mockSetStep,
   };
   (useOnboardingStore as jest.Mock).mockImplementation(
@@ -32,6 +33,20 @@ function setup({ baseCurrency = Currency.EGP, accounts = [] as unknown[] } = {})
       selector ? selector(storeState) : storeState,
   );
   (useOnboardingStore as jest.Mock & { getState: jest.Mock }).getState = jest.fn(() => storeState);
+
+  // The hydrated copy moved to its own store (#348); the writer moved with it.
+  const { useBaseCurrencyStore } = require('@/modules/currency/store/base_currency.store');
+  const baseCurrencyState = {
+    baseCurrency,
+    setBaseCurrency: mockSetBaseCurrency,
+  };
+  (useBaseCurrencyStore as jest.Mock).mockImplementation(
+    (selector?: (state: typeof baseCurrencyState) => unknown) =>
+      selector ? selector(baseCurrencyState) : baseCurrencyState,
+  );
+  (useBaseCurrencyStore as jest.Mock & { getState: jest.Mock }).getState = jest.fn(
+    () => baseCurrencyState,
+  );
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({ accounts }));
   jest.spyOn(require('expo-router'), 'useRouter').mockReturnValue({ replace: mockReplace });
 }

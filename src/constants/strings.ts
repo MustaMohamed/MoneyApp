@@ -233,7 +233,7 @@ export const Strings = {
   cardMonthInLabel: 'Month In',
   cardMonthOutLabel: 'Month Out',
   cardThisWeekLabel: 'This Week',
-  cardInEgpLabel: 'In EGP',
+  cardInBaseLabel: (code: string) => `In ${code}`,
   cardMonthSpendLabel: 'Month Spend',
   cardAvgDayLabel: 'Avg/Day',
   cardWeekSpendLabel: 'Week Spend',

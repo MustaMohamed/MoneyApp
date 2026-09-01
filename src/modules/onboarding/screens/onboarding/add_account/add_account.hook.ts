@@ -5,6 +5,7 @@ import { Strings } from '@/constants/strings';
 import { useAccountFormState } from '@/modules/accounts/components/account_form/account_form.state';
 import { useAccountForm } from '@/modules/accounts/components/account_form/use_account_form.hook';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import {
   ONBOARDING_STEP_HREF,
   resolveOnboardingStep,
@@ -18,7 +19,7 @@ import { useAddAccountTransitionState } from './add_account.state';
 export function useAddAccount() {
   const router = useRouter();
   const isAddingMore = useLocalSearchParams<{ isAddingMore?: string }>().isAddingMore === 'true';
-  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
+  const baseCurrency = useBaseCurrencyStore((s) => s.baseCurrency);
   const setStep = useOnboardingStore.getState().setStep;
   const transitionStatusMessage = useAddAccountTransitionState.useState.statusMessage();
 

@@ -16,7 +16,12 @@ import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
-import { resolveMonthSpendUsdAmount, resolveNetWorthStatColor } from './stat_cards.helpers';
+import {
+  resolveMonthSpendRows,
+  resolveMonthSpendUsdAmount,
+  resolveNetWorthStatColor,
+  shouldShowNetWorthProportionBar,
+} from './stat_cards.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -44,7 +49,7 @@ const SHORT_MONTHS = [
 interface StatCardsProps {
   /** One object: sibling props destructured in a signature do not narrow each other. */
   netWorth: DashboardNetWorth;
-  /** Net-worth card only; `monthSpentEgp` is a stored ledger total and stays on EGP. */
+  /** Reports the net-worth card and orders the month-spend rows; both spend totals stay native. */
   baseCurrency: Currency;
   assetsCount: number;
   liabilitiesCount: number;
@@ -169,6 +174,11 @@ export function StatCards({
       : 'trending-neutral';
   const monthSpendUsdParts = resolveMonthSpendUsdAmount(monthSpentUsd);
   const monthSpendEgpParts = formatCurrencyParts(monthSpentEgp, Currency.EGP);
+  const monthSpendRows = resolveMonthSpendRows(
+    baseCurrency,
+    monthSpendEgpParts,
+    monthSpendUsdParts,
+  );
 
   return (
     <View className="mx-4 mt-2 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
@@ -233,18 +243,16 @@ export function StatCards({
           </>
         ) : (
           <>
-            <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
-              {monthSpendEgpParts.value}{' '}
-              <Text className="font-inter-medium text-muted text-xs">
-                {monthSpendEgpParts.code}
+            {monthSpendRows.map((parts) => (
+              <Text
+                key={parts.code}
+                className="font-sora-bold text-foreground text-lg"
+                numberOfLines={1}
+              >
+                {parts.value}{' '}
+                <Text className="font-inter-medium text-muted text-xs">{parts.code}</Text>
               </Text>
-            </Text>
-            <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
-              {monthSpendUsdParts.value}{' '}
-              <Text className="font-inter-medium text-muted text-xs">
-                {monthSpendUsdParts.code}
-              </Text>
-            </Text>
+            ))}
             <View
               className="flex-row items-center justify-between"
               style={{ flexDirection: 'row', gap: ms(8) }}
@@ -315,8 +323,10 @@ function NetWorthCardBody({
   assetsCount: number;
   liabilitiesCount: number;
 }): React.ReactElement {
-  const total = amount.assets + Math.abs(amount.liabilities);
-  const assetsPct = total > 0 ? amount.assets / total : 1;
+  // Gated on both parts being non-negative, not re-signed with `Math.abs` (#345).
+  const showProportionBar = shouldShowNetWorthProportionBar(amount);
+  const partsTotal = amount.assets + amount.liabilities;
+  const assetsPct = showProportionBar ? amount.assets / partsTotal : 0;
   const netWorthParts = formatCurrencyParts(amount.netWorth, baseCurrency);
 
   return (
@@ -325,13 +335,15 @@ function NetWorthCardBody({
         {netWorthParts.value}{' '}
         <Text className="font-inter-medium text-muted text-xs">{netWorthParts.code}</Text>
       </Text>
-      <View
-        className="bg-default flex-row overflow-hidden rounded"
-        style={{ flexDirection: 'row', height: ms(4) }}
-      >
-        <View style={{ flex: assetsPct, backgroundColor: Colors.dark.positive }} />
-        <View style={{ flex: 1 - assetsPct, backgroundColor: Colors.dark.negative }} />
-      </View>
+      {showProportionBar && (
+        <View
+          className="bg-default flex-row overflow-hidden rounded"
+          style={{ flexDirection: 'row', height: ms(4) }}
+        >
+          <View style={{ flex: assetsPct, backgroundColor: Colors.dark.positive }} />
+          <View style={{ flex: 1 - assetsPct, backgroundColor: Colors.dark.negative }} />
+        </View>
+      )}
       <View className="mt-1 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
         <View className="flex-1" style={{ flex: 1, gap: ms(4) }}>
           <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>

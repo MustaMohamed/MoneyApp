@@ -3,7 +3,7 @@ import * as SQLite from 'expo-sqlite';
 
 import { Currency } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
-import { OnboardingRepository } from '@/modules/onboarding/repositories/onboarding.repository';
+import { BaseCurrencyRepository } from '@/modules/currency/repositories/base_currency.repository';
 import { AppSettingsRepository } from '@/repositories/app_settings.repository';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
@@ -81,9 +81,9 @@ describe('AppSettingsRepository.setMany', () => {
   });
 });
 
-// Lives here, not in `onboarding.repository.test.ts`, which injects a mock settings repository.
-describe('OnboardingRepository.load — the base currency survives a lost keychain', () => {
-  const onboardingRepo = new OnboardingRepository(repo);
+// Lives here, not in `base_currency.repository.test.ts`, which injects a mock settings repository.
+describe('BaseCurrencyRepository.load — the base currency survives a lost keychain', () => {
+  const baseCurrencyRepo = new BaseCurrencyRepository(repo);
 
   beforeEach(() => {
     // Reset the fake rather than stubbing null, so the key is genuinely absent.
@@ -93,23 +93,17 @@ describe('OnboardingRepository.load — the base currency survives a lost keycha
   it('falls back to app_settings.base_currency before defaulting to EGP', async () => {
     await repo.set('base_currency', Currency.USD);
 
-    await expect(onboardingRepo.load()).resolves.toMatchObject({
-      baseCurrency: Currency.USD,
-    });
+    await expect(baseCurrencyRepo.load()).resolves.toBe(Currency.USD);
   });
 
   it('still defaults to EGP when neither source has a value', async () => {
     // Without this case, a body returning USD unconditionally would pass the one above.
-    await expect(onboardingRepo.load()).resolves.toMatchObject({
-      baseCurrency: Currency.EGP,
-    });
+    await expect(baseCurrencyRepo.load()).resolves.toBe(Currency.EGP);
   });
 
   it('ignores a settings value that is not a currency code', async () => {
     await repo.set('base_currency', 'GBP');
 
-    await expect(onboardingRepo.load()).resolves.toMatchObject({
-      baseCurrency: Currency.EGP,
-    });
+    await expect(baseCurrencyRepo.load()).resolves.toBe(Currency.EGP);
   });
 });

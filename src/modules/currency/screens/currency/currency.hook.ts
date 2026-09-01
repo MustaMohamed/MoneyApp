@@ -6,8 +6,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Strings } from '@/constants/strings';
 import { isRateImplausible } from '@/modules/currency/domain/rate_plausibility';
+import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -29,7 +29,7 @@ export function useCurrencyScreen() {
   );
   const fetchRate = useCurrencyStore.getState().fetchRate;
   const setManualRate = useCurrencyStore.getState().setManualRate;
-  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
+  const baseCurrency = useBaseCurrencyStore((s) => s.baseCurrency);
   const { isFetching, isSaving, fetchError, rateWarning, saveError } = useCurrencyScreenState(
     useShallow((s) => ({
       isFetching: s.isFetching,

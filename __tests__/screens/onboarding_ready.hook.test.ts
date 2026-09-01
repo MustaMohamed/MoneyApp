@@ -64,14 +64,13 @@ function setup() {
   const { useRouter } = require('expo-router');
   (useRouter as jest.Mock).mockReturnValue({ replace: mockReplace });
 
+  // Base currency comes from the real `useBaseCurrencyStore`, whose initial state is EGP (#348).
   const store = createOnboardingStore({
     setStep: mockSetStep,
-    setBaseCurrency: jest.fn().mockResolvedValue(undefined),
     complete: mockCompleteOnboarding,
     load: jest.fn().mockResolvedValue({
       complete: false,
       step: OnboardingStep.N4,
-      baseCurrency: Currency.EGP,
     }),
   });
   const mockedOnboardingStore = jest.mocked(useOnboardingStore);

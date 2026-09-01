@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-import { Currency, OnboardingStep } from '@/constants/enums';
+import { OnboardingStep } from '@/constants/enums';
 import { OnboardingRepository } from '@/modules/onboarding/repositories/onboarding.repository';
 import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
 
@@ -35,12 +35,6 @@ describe('OnboardingRepository', () => {
     expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_step', 'N2');
   });
 
-  it('persists base currency to SecureStore and app settings', async () => {
-    await repository.setBaseCurrency(Currency.USD);
-    expect(secure.setItemAsync).toHaveBeenCalledWith('base_currency', 'USD');
-    expect(settingsRepo.set.mock.calls).toEqual([['base_currency', 'USD']]);
-  });
-
   it('persists onboarding completion to SecureStore and app settings', async () => {
     await repository.complete();
     expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_complete', 'true');
@@ -51,19 +45,16 @@ describe('OnboardingRepository', () => {
     await expect(repository.load()).resolves.toEqual({
       complete: false,
       step: OnboardingStep.N1,
-      baseCurrency: Currency.EGP,
     });
   });
 
   it('loads persisted onboarding state', async () => {
     await secure.setItemAsync('onboarding_complete', 'true');
     await secure.setItemAsync('onboarding_step', 'N3');
-    await secure.setItemAsync('base_currency', 'USD');
 
     await expect(repository.load()).resolves.toEqual({
       complete: true,
       step: OnboardingStep.N3,
-      baseCurrency: Currency.USD,
     });
   });
 

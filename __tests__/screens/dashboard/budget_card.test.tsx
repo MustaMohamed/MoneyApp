@@ -58,9 +58,10 @@ describe('BudgetCard', () => {
     );
 
     expect(getByText(Strings.budgetTitle)).toBeTruthy();
-    expect(getByText('8,000')).toBeTruthy();
-    expect(getByText('2,000')).toBeTruthy();
-    expect(getByText('6,000')).toBeTruthy();
+    // `formatCurrencyAmount` now discloses the EGP code on all three figures (#347).
+    expect(getByText('8,000 EGP')).toBeTruthy();
+    expect(getByText('2,000 EGP')).toBeTruthy();
+    expect(getByText('6,000 EGP')).toBeTruthy();
     expect(getByText('2 categories')).toBeTruthy();
     expect(queryAllByTestId('skeleton-item')).toHaveLength(0);
 
@@ -78,9 +79,9 @@ describe('BudgetCard', () => {
       />,
     );
 
-    expect(queryByText('8,000')).toBeNull();
-    expect(queryByText('2,000')).toBeNull();
-    expect(queryByText('6,000')).toBeNull();
+    expect(queryByText('8,000 EGP')).toBeNull();
+    expect(queryByText('2,000 EGP')).toBeNull();
+    expect(queryByText('6,000 EGP')).toBeNull();
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
   });
 });
