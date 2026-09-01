@@ -2,6 +2,7 @@ import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggreg
 import {
   resolveMonthSpendUsdAmount,
   resolveNetWorthStatColor,
+  shouldShowNetWorthProportionBar,
 } from '@/modules/dashboard/screens/dashboard/components/stat_cards.helpers';
 
 describe('resolveMonthSpendUsdAmount — stat_cards.tsx:249', () => {
@@ -34,5 +35,29 @@ describe('resolveNetWorthStatColor — stat_cards.tsx netColor', () => {
 
   it('a positive net worth renders gold', () => {
     expect(resolveNetWorthStatColor(amountNetWorth(5000))).toBe('#D4A44C');
+  });
+});
+
+// Both wrong renders from #345, plus the {1000, -500} row that isolates the part-bound clause.
+describe('shouldShowNetWorthProportionBar — the compound gate (#345)', () => {
+  it('hides the bar for an all-credit zero-debt portfolio (was 100% negative colour)', () => {
+    // `Math.abs(-300)` made total 300 and assetsPct 0: a debt-free user saw an all-debt bar.
+    expect(shouldShowNetWorthProportionBar({ assets: 0, liabilities: -300 })).toBe(false);
+  });
+
+  it('hides the bar when an overdrawn bank pushes assets negative (was flex: -0.43)', () => {
+    // Bank -500, savings 200, CC 1000: assets -300, liabilities 1000, assetsPct -0.43.
+    expect(shouldShowNetWorthProportionBar({ assets: -300, liabilities: 1000 })).toBe(false);
+  });
+
+  it.each([
+    [{ assets: 1000, liabilities: -500 }, false],
+    [{ assets: -500, liabilities: 1000 }, false],
+    [{ assets: 0, liabilities: 0 }, false],
+    [{ assets: 500, liabilities: 500 }, true],
+    [{ assets: 0.01, liabilities: 0 }, true],
+    [{ assets: 0, liabilities: 0.01 }, true],
+  ] as const)('%j -> %s', (parts, expected) => {
+    expect(shouldShowNetWorthProportionBar(parts)).toBe(expected);
   });
 });
