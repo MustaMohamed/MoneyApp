@@ -31,10 +31,7 @@ export const useEditTransactionStore = createMoneyAppSelectors(
 
     loadFromTx: (tx) =>
       set({
-        // #301: the prefill has to equal what is stored, digit for digit, so a
-        // legacy sub-cent or exponential-notation amount fails Save with the
-        // floor message rather than opening on text `DECIMAL_PATTERN` can't
-        // even parse. `String(tx.amount)` did the latter for `1e-7`.
+        // Prefill must equal the stored amount digit for digit; `String(tx.amount)` emits '1e-7'.
         amountStr: formatStoredMoneyText(tx.amount),
         availableBudgets: [],
         budgetId: tx.budget_id ?? undefined,

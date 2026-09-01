@@ -1,4 +1,3 @@
-// modules/transactions/screens/transactions/detail/components/transfer_flow_card.tsx
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card, PressableFeedback } from 'heroui-native';
 import React from 'react';

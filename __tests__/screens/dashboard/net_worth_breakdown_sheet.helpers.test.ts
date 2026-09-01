@@ -8,10 +8,6 @@ import {
 } from '@/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.helpers';
 import { roundMoney } from '@/utils/money';
 
-// #277 spec §6.4 pinned this at two USD fixtures because the caption's currency
-// was a literal. It is `foreignCurrencyFor(base)` now, so the EGP-base rows below
-// keep the old assertions byte-identical and a USD-base block states the other
-// direction.
 describe('resolveNetWorthForeignCaption — the sheet’s ≈ caption', () => {
   it('shows cents on a non-whole USD net worth — base: 1,251, head: 1,250.75', () => {
     expect(resolveNetWorthForeignCaption(1250.75, Currency.EGP)).toBe('≈ 1,250.75 USD');
@@ -22,16 +18,10 @@ describe('resolveNetWorthForeignCaption — the sheet’s ≈ caption', () => {
   });
 
   it('renders the absent-rate placeholder unchanged when netWorthForeign is undefined', () => {
-    // Keyed on the FIELD being absent, not on `rate > 0` — see the comment this resolver
-    // carries. A `?? 0` here would silently print `≈ 0.00 USD` for a user who never fetched
-    // a rate.
+    // A `?? 0` here would print `≈ 0.00 USD` for a user who never fetched a rate.
     expect(resolveNetWorthForeignCaption(undefined, Currency.EGP)).toBe('— USD');
   });
 
-  // Scenario 12b. The number is the §3B fixture's `netWorthForeign`, which the
-  // `computeNetWorth` row in `dashboard_helpers.test.ts` states independently —
-  // and it is NOT the hero pill's 17,097.50, which shows assets. The two
-  // rendering different fields is correct, and reconciling them compiles.
   it('renders the EGP caption under a USD base — net worth, not assets', () => {
     expect(resolveNetWorthForeignCaption(12212.5, Currency.USD)).toBe('≈ 12,213 EGP');
   });
@@ -41,10 +31,6 @@ describe('resolveNetWorthForeignCaption — the sheet’s ≈ caption', () => {
   });
 });
 
-// Scenario 14. The two section headers stop hardcoding `EGP` in their template,
-// and the ≈ placeholder stops hardcoding `USD`. Byte-identical at the codes they
-// used to hardcode, which is the whole test: the change is a parameter, not a
-// rewording.
 describe('the breakdown copy takes the currency code as a parameter', () => {
   it('renders the assets header in the base currency', () => {
     expect(Strings.dashboardBreakdownAssetsHeader('350.00', Currency.USD, 2)).toBe(
@@ -70,9 +56,7 @@ describe('the breakdown copy takes the currency code as a parameter', () => {
   });
 });
 
-// #265 / the ADR: a breakdown row's legend colour identifies its kind (categorical), and
-// its value never carries a colour — a liability's magnitude is money owed, not an
-// actionable state. The §8.4 guard is `value: undefined` for every kind.
+// Legend colour identifies the kind; a value never carries colour, owed is not actionable.
 describe('resolveBreakdownRowColors — money-colour vocabulary (docs/adr/2026-08-27-money-colour-vocabulary.md)', () => {
   it.each([
     ['liability', { legend: '#E05A42', value: undefined }],
@@ -83,12 +67,7 @@ describe('resolveBreakdownRowColors — money-colour vocabulary (docs/adr/2026-0
   });
 });
 
-// #259 C2/C3: `LiabilityRow.balance` is now signed (positive owed, negative
-// in credit) and this is the SINGLE site that composes a glyph onto it — the
-// `transaction_row.helpers.ts` `primaryAmountFor` shape. The escalation rows
-// (0.4, -0.4) and the true-zero row (-0) are load-bearing: below this file's
-// change the old `net_worth_breakdown_sheet.tsx:311` composition rendered a
-// bare `−0` for 0.4 EGP, which this table pins as fixed, not incidental.
+// `LiabilityRow.balance` is signed: positive is owed, negative is in credit.
 describe('formatLiabilityRowValue — the single composition point for a liability row (#259 C3)', () => {
   it.each([
     [500, '−500'],
@@ -110,19 +89,11 @@ describe('formatLiabilityRowValue — the single composition point for a liabili
   });
 
   it('agrees with the section header on the half-cent rounding case', () => {
-    // 9.51 USD at 40.01 converts to 380.4951, rounds to 380.50, and displays
-    // as 381 — the same figure `dashboard_helpers.test.ts`'s `liabilities`
-    // pin asserts for the section header (untouched by this ticket). This is
-    // the render-path successor to that pin, the old `:764` row.
+    // 9.51 USD at 40.01 is 380.4951, rounds to 380.50, displays as 381.
     expect(formatLiabilityRowValue(roundMoney(9.51 * 40.01), Currency.EGP)).toBe('−381');
   });
 
-  // Scenario 13, at the ONE of its nine sites that has a logic seam. `1,500.50`
-  // under a USD base is the whole point: EGP's zero decimals print it as `1,500`
-  // and silently drop 50 cents, which is what the hardcoded `Currency.EGP` here
-  // did at the other currency. The other eight sites are inline `.tsx`
-  // expressions with no seam and belong to the emulator (spec §8) — adding a
-  // render suite for them is what `.claude/rules/tests.md:19` forbids.
+  // EGP's zero decimals would print 1,500.50 as `1,500` and drop the cents; USD keeps them.
   it.each([
     [1500.5, '−1,500.50'],
     [-1500.5, '+1,500.50'],
@@ -132,11 +103,7 @@ describe('formatLiabilityRowValue — the single composition point for a liabili
   });
 });
 
-// #259 C6: the reserve clause is the load-bearing one in the {1000, -500}
-// row — the total is 500 > 0, so only `reserve >= 0` fails there. Deleting
-// that clause alone would still hide the {-500, 1000} row (the liquid clause
-// catches it) but would wrongly show {1000, -500}, which is what makes this
-// row a pin rather than redundant with the first.
+// {1000, -500} totals 500 > 0, so only the `reserve >= 0` clause rejects it.
 describe('shouldShowProportionBar — the compound gate (#259 C6)', () => {
   it.each([
     [{ liquid: -500, reserve: 1000 }, false],

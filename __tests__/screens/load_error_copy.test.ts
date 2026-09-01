@@ -1,25 +1,8 @@
 import { Strings } from '@/constants/strings';
 
-// Logic-only drift guard for the nine-copy LoadErrorAlert fold (W2G #290
-// cluster 2, the `error_presentation_copy.test.ts` shape). Repo policy
-// forbids UI-component render tests, so this cannot prove any of the nine
-// callers actually renders its own title or retry label on screen — that is
-// the device-QA walk's job (gate 3). What this guards against is a title or
-// retry Strings key being deleted or emptied out from under its caller, a
-// screen's initial/refresh titles collapsing onto one string, and — the
-// point of the derivation below — a load-error string added to `strings.ts`
-// later and never added to this file, which a hand-typed array checked only
-// against its own length cannot catch (review.md's gate-that-cannot-fail
-// rule; the array literal WAS the length).
-//
-// Every value asserted here is copy the fold moved, never copy it changed
-// (spec §4.6: zero Strings edits) — this is a presence-and-distinctness
-// guard, not a wording test.
-
 type StringsKey = keyof typeof Strings;
 
-// Longest suffix first: 'TotalsLoadError' and 'LoadMoreError' both end in
-// 'LoadError', so trying the short form first would strip the wrong tail.
+// Longest suffix first: the short `LoadError` form would strip the wrong tail from the others.
 const TITLE_SUFFIXES = [
   'TotalsLoadError',
   'LoadMoreError',
@@ -29,9 +12,7 @@ const TITLE_SUFFIXES = [
   'LoadError',
 ] as const;
 
-/** The Strings key with its title suffix removed, e.g. `'categoriesLoadError'`
- * -> `'categories'`, `'detailRefreshErrorTitle'` -> `'detail'`. `undefined`
- * when `key` doesn't end in any load-error title shape at all. */
+/** The key with its load-error title suffix removed: `categoriesLoadError` -> `categories`. */
 function loadErrorStem(key: string): string | undefined {
   for (const suffix of TITLE_SUFFIXES) {
     if (key.endsWith(suffix)) return key.slice(0, -suffix.length);
@@ -43,15 +24,7 @@ function isStringsKey(key: string): key is StringsKey {
   return Object.prototype.hasOwnProperty.call(Strings, key);
 }
 
-/**
- * A title-shaped key is IN the load-error-alert family iff its screen stem
- * also carries a `<stem>LoadRetry` sibling — the actual runtime contract
- * every `LoadErrorAlert` caller has (a title always ships with a
- * `retryLabel`). This is what excludes `budgetPlansDetailLoadError`
- * (strings.ts:595): same `LoadError` suffix as the nine this ticket folded,
- * but no `budgetPlansDetailLoadRetry` sibling — a different screen this
- * ticket never touched, correctly left out without being named here.
- */
+// Every `LoadErrorAlert` title ships a retry label, so the sibling key is the family test.
 const derivedTitleKeys: StringsKey[] = (Object.keys(Strings) as StringsKey[]).filter((key) => {
   const stem = loadErrorStem(key);
   if (stem === undefined) return false;
@@ -63,8 +36,7 @@ const derivedRetryKeys: StringsKey[] = [
   ...new Set(
     derivedTitleKeys.map((key) => {
       const stem = loadErrorStem(key);
-      // Cannot be undefined — `key` only reached derivedTitleKeys via a
-      // successful loadErrorStem call above.
+      // Never undefined: `key` reached `derivedTitleKeys` only via a successful `loadErrorStem`.
       return `${stem}LoadRetry`;
     }),
   ),

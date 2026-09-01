@@ -81,23 +81,12 @@ describe('AppSettingsRepository.setMany', () => {
   });
 });
 
-// Scenario 27, and it lives in THIS suite rather than
-// `onboarding.repository.test.ts` because that one injects a mock settings
-// repository — a fallback tested against a mock would pass with the real read
-// deleted. Here the row goes through `MIGRATIONS` into a real engine.
-//
-// `setBaseCurrency` has written `app_settings.base_currency` since #23 and
-// nothing ever read it back. This gives the write-only row its first reader,
-// covering the one failure mode the dashboard's store read accepts: SecureStore
-// loses the key (a restore onto a new device, a keychain reset) and the user
-// silently reverts to an EGP base they did not choose.
+// Lives here, not in `onboarding.repository.test.ts`, which injects a mock settings repository.
 describe('OnboardingRepository.load — the base currency survives a lost keychain', () => {
   const onboardingRepo = new OnboardingRepository(repo);
 
   beforeEach(() => {
-    // Empty the SecureStore fake rather than stubbing its resolved value: the
-    // fallback must fire because the key is genuinely absent, which is the
-    // real failure mode, not because a mock was told to answer null.
+    // Reset the fake rather than stubbing null, so the key is genuinely absent.
     secureStore.__reset();
   });
 
@@ -110,8 +99,7 @@ describe('OnboardingRepository.load — the base currency survives a lost keycha
   });
 
   it('still defaults to EGP when neither source has a value', async () => {
-    // The row above is only meaningful beside this one: a body returning USD
-    // unconditionally would pass it.
+    // Without this case, a body returning USD unconditionally would pass the one above.
     await expect(onboardingRepo.load()).resolves.toMatchObject({
       baseCurrency: Currency.EGP,
     });

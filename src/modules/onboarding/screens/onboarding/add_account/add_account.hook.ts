@@ -22,61 +22,39 @@ export function useAddAccount() {
   const setStep = useOnboardingStore.getState().setStep;
   const transitionStatusMessage = useAddAccountTransitionState.useState.statusMessage();
 
-  // Belt and braces for an entry path that does not go through the runner —
-  // invalidate() already clears this on every successful exit, but a fresh
-  // mount (including the add-more re-entry via `replace`) should never be
-  // able to show a message from a previous visit.
+  // Redundant with `invalidate()` on exit; a fresh mount must not show a stale message.
   useInit(() => useAddAccountTransitionState.getState().reset());
 
   const { form, submit, state } = useAccountForm({
     initialCurrency: baseCurrency,
     saveErrorMessage: Strings.n2SaveError,
     onSaved: async () => {
-      // D4: a back that started inside the CTA's validation window is not
-      // covered by handleSave's pre-submit check. Return false — not throw,
-      // not void — this is exactly today's isCurrent() -> `return
-      // undefined`: the row stays on disk, no step is written, nothing
-      // navigates, no error is shown, and resolveOnboardingStep heals the
-      // step on next launch. Returning `false` (not void) tells
-      // useAccountForm this was a DECLINE, not a completion (D10), so the
-      // session stays retryable if the competing back transition then fails.
+      // `false`, not void, tells `useAccountForm` this was a decline, not a completion.
       if (useAddAccountTransitionState.getState().busy) return false;
 
-      // resolve AFTER the insert — useAccountForm calls onSaved only past
-      // markInserted(), so accounts.length already includes the new row.
-      // Reading it earlier reproduces MA-005 Decision 2 row 2's hard loop.
+      // Resolve after the insert: `onSaved` runs past `markInserted()`, so the new row is counted.
       const resolved = isAddingMore
         ? OnboardingStep.N3
         : resolveOnboardingStep(OnboardingStep.N3, useAccountStore.getState().accounts.length);
 
-      // Add-more: the persisted step never moved off N3, so there is nothing
-      // to write and only the route changes — identical to
-      // add_account.hook.ts:106 before this task.
+      // Add-more: the persisted step never moved off N3, so only the route changes.
       if (!isAddingMore) await setStep(resolved);
 
-      // No catch: a rejecting setStep propagates to useAccountForm's catch,
-      // which calls failSave(Strings.n2SaveError) and leaves `inserted`
-      // latched. Persist-before-navigate is structural — the replace below
-      // is unreachable from a failed write.
-      useAddAccountTransitionState.getState().invalidate(); // MA-005 Decision 3
+      // No catch: a `setStep` rejection propagates and the replace below never runs.
+      useAddAccountTransitionState.getState().invalidate();
       router.replace(ONBOARDING_STEP_HREF[resolved]);
     },
   });
 
   const handleSave = async () => {
-    // D3: the back path's guard, checked before validation so nothing moves.
+    // The back path's guard, checked before validation so nothing moves.
     if (useAddAccountTransitionState.getState().busy) return;
-    // D2: mirror of ready.hook.ts:57-61 — every writer of the single status
-    // track clears it when its own attempt starts. beginSave() clears only
-    // the form's channel, and the merge below always prefers the transition
-    // channel, so without this a failed back stays pinned over a failed
-    // save. Safe: the early return above means no back transition is live.
+    // Clear the transition channel first: the merge below prefers it, so a failed back would pin.
     useAddAccountTransitionState.getState().reset();
     await submit();
   };
 
   const onBack = async () => {
-    // D3: spec.md:81 — back is inert during the write.
     if (useAccountFormState.getState().saving) return;
     const session = useAddAccountTransitionState.getState().begin();
     if (session === null) return;
@@ -88,8 +66,7 @@ export function useAddAccount() {
       desiredStep: isAddingMore ? OnboardingStep.N3 : OnboardingStep.N1,
       readAccountCount: () => useAccountStore.getState().accounts.length,
       persist: async (resolve) => {
-        // Add-more mode: the persisted step never moved off N3 — nothing to
-        // write, only the route changes.
+        // Add-more: the persisted step never moved off N3, so only the route changes.
         if (isAddingMore) return OnboardingStep.N3;
         const resolved = resolve();
         await setStep(resolved);

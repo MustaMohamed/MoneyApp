@@ -128,14 +128,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
               />
             </DetailRowsCard>
 
-            {/*
-              Note lives in its OWN full-width card below the rows card —
-              mirrors the §7 list-row pattern where the note was lifted out of
-              the narrow middle column. A long note now wraps to as many
-              lines as it needs, instead of being chopped to two by the
-              DetailRow numberOfLines={2} ceiling. When the transaction has
-              no note, the card is omitted entirely (no empty placeholder).
-            */}
+            {/* Own card, not a `DetailRow`: a long note wraps instead of clipping to two lines. */}
             <NoteCard note={transaction.note} />
 
             {state.isCommitmentOwned ? (

@@ -36,13 +36,9 @@
     }
   },
   "rules": {
-    // The jest plugin is enabled for this rule alone: RNTL 14 made the async
-    // APIs return Promises, and `expect(p).resolves.X` without `await` passes
-    // silently. With ~70 `.resolves` sites now, that footgun needs a guard.
+    // RNTL 14 returns Promises, so an unawaited `expect(p).resolves.X` passes silently.
     "jest/valid-expect": "error",
-    // The plugin's other default-on rules would add 21 warnings unrelated to
-    // this change (17 require-to-throw-message, 3 no-conditional-expect,
-    // 1 expect-expect). Worth a look, but on their own branch.
+    // The jest plugin's other default-on rules add 21 warnings unrelated to this config.
     "jest/require-to-throw-message": "off",
     "jest/no-conditional-expect": "off",
     "jest/expect-expect": "off",
@@ -97,9 +93,7 @@
       "files": ["jest.setup.js", "__tests__/**/*.{ts,tsx,js}", "__mocks__/**/*.{ts,tsx,js}"],
       "rules": {
         "react/display-name": "off",
-        // Token-bound `toHaveStyle({ fontSize: Type.x })` assertions are exactly what
-        // tests.md:23 protects — real style objects, not test-only ones, are what this
-        // rule exists to check (set_budget_sheet.test.tsx:225,232,245 fire otherwise).
+        // Tests assert `toHaveStyle({ fontSize: Type.x })` on real style objects, which this flags.
         "moneyapp/font-size-pairs-line-height": "off",
         "typescript/no-unsafe-type-assertion": "warn",
         "typescript/no-explicit-any": "warn",
@@ -108,12 +102,7 @@
         "typescript/no-unsafe-member-access": "warn",
         "typescript/no-unsafe-call": "warn",
         "typescript/no-unsafe-argument": "warn",
-        // Off, not "warn": jest types requireMock/mockResolvedValue as `any`, so
-        // this rule's "the receiver accepts the original type" detection is
-        // structurally always true in tests and can only delete intent — it
-        // rewrote `as unknown as Response` to `as unknown`. It was also the sole
-        // source of a non-deterministic autofix (four identical --fix runs touched
-        // 3/5/6/4 different test files). Costs 7 real findings here; worth it.
+        // Jest types `requireMock` as `any`, so this rule only ever deletes intent in tests.
         "typescript/no-unnecessary-type-assertion": "off",
         "typescript/no-unnecessary-condition": "warn",
         "typescript/no-unsafe-enum-comparison": "warn",

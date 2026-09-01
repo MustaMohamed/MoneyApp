@@ -11,15 +11,10 @@ import {
   selectActiveAccounts,
 } from '@/modules/onboarding/domain/starting_net_position';
 
-/** The seven N4 display states, mockup frames F1-F7. F8 and F9 are completion states, not frames. */
+/** The seven N4 display states, mockup frames F1-F7. F8 and F9 are completion states. */
 export type ReadyFrame = 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F6' | 'F7';
 
-/**
- * Pill DESCRIPTORS, not copy: the screen maps each one onto `Strings`. Keeping
- * the strings out is what keeps this file free of the copy block, and it is
- * what the scope spec asks for — the caption and the pills are copy, the choice
- * between them is logic.
- */
+/** Pill descriptors, not copy: the screen maps each one onto `Strings`. */
 export type ReadyPill =
   | { kind: 'accounts'; count: number; glyph: 'bank-outline' | 'credit-card' }
   | { kind: 'opening-balances'; count: number }
@@ -29,43 +24,21 @@ export type ReadyPill =
 
 export interface ReadySummaryState {
   outcome: StartingNetPosition;
-  /** Drives the CAPTION and the value slot. It does not drive the pills. */
+  /** Drives the caption and the value slot. It does not drive the pills. */
   frame: ReadyFrame;
-  /** Non-archived accounts — the count both pluralisation points switch on. */
+  /** Non-archived accounts; the count both pluralisation points switch on. */
   accountCount: number;
   foreignCount: number;
-  /**
-   * The currency the user chose at N1, passed straight through from the
-   * input. Published so the hero card and the summary rows read one value
-   * instead of two independent copies of the same fact.
-   */
+  /** The base currency chosen at N1, passed straight through from the input. */
   baseCurrency: Currency;
-  /**
-   * The app has exactly two currencies, so "the other one" is unambiguous: an
-   * EGP base publishes USD and vice versa. A CODE lookup for the caption, not
-   * a money derivation — no amount is computed here, and it is published
-   * unconditionally so F1/F2's captions can read it even when the pill gate
-   * below is closed.
-   */
+  /** The app has exactly two currencies, so an EGP base publishes USD and vice versa. */
   foreignCurrency: Currency;
-  /**
-   * The currency-pill gate, INDEPENDENT of `frame`. Exported because it is the
-   * one flag that explains the composed `pills` array — it is the assertable
-   * form of "the currency pills replaced the opening-balances pill", and a
-   * regression to frame-keyed pills shows up here first. The screen renders
-   * `pills` and never branches on this flag.
-   */
+  /** The currency-pill gate, independent of `frame`; the screen renders `pills`, not this flag. */
   pillsVisible: boolean;
   pills: readonly ReadyPill[];
 }
 
-/**
- * The all-credit-card fact, hoisted out of `resolveFrame` because the accounts
- * pill's glyph needs the SAME expression. Keyed off it and never off the frame:
- * F3 is returned before F7 is even tested, so a credit-card-only set that also
- * needs a rate is on F3 while still being all credit cards — glyph logic that
- * reads `frame === 'F7'` renders a bank outline over it.
- */
+/** Glyph keys off this, never the frame: F3 preempts F7 for a card-only set that needs a rate. */
 function isCreditCardOnly(activeAccounts: readonly Account[]): boolean {
   return (
     activeAccounts.length >= 1 &&
@@ -73,11 +46,7 @@ function isCreditCardOnly(activeAccounts: readonly Account[]): boolean {
   );
 }
 
-/**
- * Frame selection, in evaluation order. The order is the contract: F3 precedes
- * every `amount` frame, and F7/F6 precede F4/F5/F1 so a single credit card
- * lands on F7 rather than F4.
- */
+/** Evaluation order is the contract: F3 precedes every `amount` frame, F7/F6 precede F4/F5/F1. */
 function resolveFrame(
   outcome: StartingNetPosition,
   activeAccounts: readonly Account[],
@@ -102,17 +71,7 @@ function resolveFrame(
   return foreignCount >= 1 ? 'F2' : 'F1';
 }
 
-/**
- * The whole N4 view model: the resolver's outcome, the frame, the two counts and
- * the composed pill row.
- *
- * Pill composition is keyed off the GATE, never off the frame. Frame selection
- * evaluates F7/F6/F5/F4 before F2, so keying pills by frame silently drops the
- * currency pills for any negative, zero, single-account or all-credit-card set
- * that also has a foreign account — rows P7 and P9 of the pill table. In every
- * `amount` frame the currency pills REPLACE the opening-balances pill; they
- * never merely add to it.
- */
+/** Pills key off the gate, never the frame; currency pills replace the opening-balances pill. */
 export function selectReadySummaryState(input: StartingNetPositionInput): ReadySummaryState {
   const outcome = resolveStartingNetPosition(input);
   const activeAccounts = selectActiveAccounts(input.accounts);
@@ -122,11 +81,7 @@ export function selectReadySummaryState(input: StartingNetPositionInput): ReadyS
   const creditCardOnly = isCreditCardOnly(activeAccounts);
   const frame = resolveFrame(outcome, activeAccounts, foreignCount, creditCardOnly);
 
-  // The gate — `outcome.kind === 'amount' && foreignCount >= 1` — is evaluated
-  // once, inside `selectApproximationPill`, which returns both pills or neither.
-  // `outcome` is handed over rather than re-resolved: the pill IS the hero value
-  // in the other currency, so the two must come from one resolve, not two that
-  // happen to agree.
+  // `outcome` is handed over, not re-resolved: the pill is the hero value in the other currency.
   const { ratePill, approxPill } = selectApproximationPill(input, outcome);
   const currencyPills: readonly ReadyPill[] | undefined =
     ratePill !== undefined && approxPill !== undefined
@@ -139,7 +94,7 @@ export function selectReadySummaryState(input: StartingNetPositionInput): ReadyS
   const accountsPill: ReadyPill = {
     kind: 'accounts',
     count: accountCount,
-    // The account COMPOSITION, never the frame — see `isCreditCardOnly`.
+    // The account composition, never the frame; see `isCreditCardOnly`.
     glyph: creditCardOnly ? 'credit-card' : 'bank-outline',
   };
 

@@ -332,7 +332,7 @@ export function useEditTransaction(
         budget_id: semantics.usesBudget ? data.budgetId || null : null,
         note: data.note.trim() || null,
         transaction_date: data.date,
-        transaction_time: initialTx.transaction_time, // preserved — no time UI
+        transaction_time: initialTx.transaction_time, // preserved, no time UI
       };
       await updateTransaction(initialTx.id, update);
       if (onSaved) {

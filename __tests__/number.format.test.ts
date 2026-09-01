@@ -1,8 +1,3 @@
-// TC-17 — number formatting. The app uses Intl.NumberFormat('en-US') so balances
-// always render as 122,300 (US comma grouping), never 1,22,300 (Indian grouping).
-// This test pins the locale on the production formatter so a future locale
-// change can't accidentally regress the format.
-
 const fmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 describe('number formatting — TC-17', () => {

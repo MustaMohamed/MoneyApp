@@ -1,4 +1,4 @@
-// backward-compat re-export — remove when all consumers are migrated to @/modules/accounts
+// Backward-compat re-export; remove when all consumers use `@/modules/accounts`.
 export {
   accountRepository,
   AccountRepository,

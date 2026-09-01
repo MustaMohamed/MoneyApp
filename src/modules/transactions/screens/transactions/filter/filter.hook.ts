@@ -47,7 +47,6 @@ export function useFilterSheet() {
   const appliedFilters = useTransactionsScreenStore.useState.appliedFilters();
   const setAppliedFilters = useTransactionsScreenStore.getState().setAppliedFilters;
 
-  // When the sheet opens, seed the draft from the currently applied filters.
   useEffect(() => {
     if (visible) {
       setDraft(appliedFilters);

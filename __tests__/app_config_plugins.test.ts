@@ -10,9 +10,7 @@ const pluginName = (p: unknown) => (Array.isArray(p) ? (p[0] as string) : (p as 
 
 describe('app.json plugin contract', () => {
   it('lists exactly these plugins, in this order', () => {
-    // Frozen deliberately. A legitimate plugin change updates this array in the
-    // same commit — which is the point: it makes the change deliberate instead
-    // of something `expo install --fix` did on the way past.
+    // Frozen deliberately: a legitimate plugin change updates this array in the same commit.
     expect(expo.plugins.map(pluginName)).toEqual([
       'expo-router',
       'expo-sqlite',
@@ -27,8 +25,7 @@ describe('app.json plugin contract', () => {
   });
 
   it('does not list @react-native-community/datetimepicker', () => {
-    // CLAUDE.md § Expo Dev Client. Listing it buys nothing (its plugin is a
-    // no-op with no options) and `expo install --fix` keeps re-adding it.
+    // Its plugin is a no-op with no options, and `expo install --fix` keeps re-adding it.
     expect(expo.plugins.map(pluginName)).not.toContain('@react-native-community/datetimepicker');
   });
 
@@ -51,13 +48,7 @@ describe('app.json plugin contract', () => {
       backgroundColor: '#0F1923',
       dark: { backgroundColor: '#0F1923' },
     });
-    // Derivation, so the bound is not folklore: expo-splash-screen composites the
-    // image into a centred imageWidth-dp box on a 288dp canvas
-    // (withAndroidSplashImages.js:100-124) and sets no
-    // windowSplashScreenIconBackgroundColor, which puts the icon on Android's
-    // "without icon background" spec — a 192dp visible circle, radius 96dp.
-    // A centred square of side w has half-diagonal w*sqrt(2)/2, so the corners
-    // clip past w = 2*96/sqrt(2) = 135.76dp. Expo's own default of 200 clips.
+    // Android's 192dp icon circle clips a centred square past 2*96/sqrt(2) = 135.76dp.
     expect(splash[1].imageWidth as number).toBeLessThanOrEqual(135);
   });
 });

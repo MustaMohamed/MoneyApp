@@ -9,13 +9,7 @@ import { ms } from '@/utils/responsive';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@/components/ui/hero_shell', () => ({
-  // The real `HeroShell` renders its `Pressable` wrapper ONLY when it is handed
-  // an `onPress`, and renders a plain card otherwise — so whether the card is
-  // tappable is exactly whether that prop arrived. The mock re-states that as a
-  // sentinel child rather than as a press, because RNTL's `fireEvent` resolves a
-  // handler on COMPOSITE ancestors too: pressing the mocked shell finds
-  // `HeroCard`'s own `onPress` prop and fires it whatever the shell received,
-  // which makes a press-based assertion vacuous here.
+  // A sentinel child, not a press: `fireEvent` resolves `HeroCard`'s own `onPress` on an ancestor.
   HeroShell: ({
     children,
     style,
@@ -85,11 +79,7 @@ jest.mock('heroui-native', () => {
 });
 
 const baseProps = {
-  // `liabilitiesCount: 0` below is what fixes the three values this fixture did
-  // not previously carry: with no liabilities, netWorth === assets and
-  // netWorthForeign === assetsForeign. `assetsForeign` is NOT `assets / rate` (8650/49.06
-  // is 176.31); that mismatch is pre-existing, no assertion reads the two as a
-  // converted pair, and it stays.
+  // `assetsForeign` is not `assets / rate`; no assertion reads the two as a converted pair.
   netWorth: {
     kind: 'amount',
     assets: 8650,
@@ -98,9 +88,6 @@ const baseProps = {
     assetsForeign: 176,
     netWorthForeign: 176,
   } as const,
-  // EGP, so every existing assertion below keeps the rendering it was written
-  // against: this fixture follows the rename and the new required prop, and
-  // asserts nothing new. The USD-base rendering is the emulator's (spec §8).
   baseCurrency: Currency.EGP,
   rate: 49.06,
   isRateUsable: true,
@@ -118,12 +105,6 @@ describe('HeroCard skeleton loading', () => {
 
     expect(getByText(Strings.dashAvailableToSpend)).toBeTruthy();
     expect(queryByText(/8,650/)).toBeNull();
-    // MA-016 P8 F-3: restores the content-absent-while-loading coverage a prior chunk-D
-    // dispatch wrongly deleted, believing the pill-presence assertions below carried the
-    // same property. They don't — those assert the SKELETON is present; these assert the
-    // real USD total and rate pill are NOT rendered underneath it. Testing by testID
-    // rather than the old text regex because this same commit moved the rate pill's copy
-    // from "1 USD = 49.06 EGP" to "49.06 EGP/USD" and the total to 2dp.
     expect(queryByTestId('dashboard-hero-rate-pill')).toBeNull();
     expect(queryByText(/176\.00 USD/)).toBeNull();
     expect(queryByText(`1 ${Strings.o6AccountsUnit}`)).toBeNull();
@@ -156,20 +137,14 @@ describe('HeroCard skeleton loading', () => {
   });
 });
 
-// Two USD wallets and no verified rate: `computeNetWorth` refuses, so the card
-// is handed a union member carrying no number at all.
+// No verified rate for two USD wallets, so `computeNetWorth` refuses and carries no number.
 const rateNeededProps = {
   ...baseProps,
   netWorth: { kind: 'rate-needed', foreignCount: 2 } as const,
   isRateUsable: false,
 };
 
-// #257: an EGP-only portfolio whose rate has never been verified. `kind` stays
-// 'amount' — nothing here is foreign, so `computeNetWorth` does not refuse —
-// but `isRateUsable` is false, so the ~USD fields are undefined. This is the
-// gap the old `netWorth.kind === 'rate-needed'` gate missed: that check let
-// the pill print the placeholder rate as fact for every EGP-only user who had
-// never fetched one.
+// An EGP-only portfolio: nothing is foreign, so `kind` stays 'amount' even with an unusable rate.
 const egpOnlyUnverifiedProps = {
   ...baseProps,
   netWorth: {
@@ -185,8 +160,7 @@ const egpOnlyUnverifiedProps = {
 
 describe('HeroCard on the rate-needed refusal', () => {
   it('shows no exchange rate under the refusal', async () => {
-    // The only rate available on this path is the unverified one the refusal
-    // exists to keep off the screen; `rate` is still 49.06 in the props.
+    // `rate` is still 49.06 here; the refusal keeps that unverified rate off the screen.
     const { queryByTestId } = await render(<HeroCard {...rateNeededProps} isLoading={false} />);
 
     expect(queryByTestId('dashboard-hero-rate-pill')).toBeNull();
@@ -220,10 +194,6 @@ describe('HeroCard on an EGP-only portfolio with an unverified rate (#257)', () 
     );
 
     expect(queryByTestId('dashboard-hero-rate-pill')).toBeNull();
-    // The constant is a function now that the code is a parameter, so this
-    // fixed in place rather than being deleted: it is the only automated cover
-    // on the hero's absent-rate placeholder. The fixture is EGP-base, so the
-    // foreign side is USD and the rendered text is unchanged.
     expect(getByText(Strings.netWorthBreakdownForeignUnavailable(Currency.USD))).toBeTruthy();
     expect(getByText(/8,650/)).toBeTruthy();
   });

@@ -42,17 +42,9 @@ const SHORT_MONTHS = [
 ] as const;
 
 interface StatCardsProps {
-  /**
-   * One object, not loose numbers: a discriminated union narrows only when the
-   * discriminant and the fields arrive together, and sibling props destructured
-   * in a signature do not narrow each other.
-   */
+  /** One object: sibling props destructured in a signature do not narrow each other. */
   netWorth: DashboardNetWorth;
-  /**
-   * Read once in `dashboard.hook.ts` and passed down. It reaches the net-worth
-   * card only: `monthSpentEgp` below is a ledger total in the storage currency,
-   * not a converted pair, and stays on `Currency.EGP` (spec §7).
-   */
+  /** Net-worth card only; `monthSpentEgp` is a stored ledger total and stays on EGP. */
   baseCurrency: Currency;
   assetsCount: number;
   liabilitiesCount: number;
@@ -158,12 +150,7 @@ export function StatCards({
   netWorthLoading,
   monthSpendLoading,
 }: StatCardsProps) {
-  // The card's tint is the ONE net-worth derivation that survives the refusal,
-  // because the header chip renders in both states. Everything computed FROM the
-  // numbers lives in `NetWorthCardBody`, which only the amount path renders —
-  // arithmetic over absent fields on the refusal path is dead code a reader would
-  // mistake for a live one. The colour rule itself is `resolveNetWorthStatColor`'s
-  // docblock, not restated here.
+  // Computed outside the narrowing because the tinted chip renders on the refusal path too.
   const netColor = resolveNetWorthStatColor(netWorth);
   const monthIdx = parseInt(spendYearMonth.split('-')[1], 10) - 1;
   const monthLabel = SHORT_MONTHS[monthIdx] ?? '';
@@ -185,7 +172,6 @@ export function StatCards({
 
   return (
     <View className="mx-4 mt-2 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
-      {/* Net Worth */}
       <View
         testID="dashboard-net-worth-card"
         className="bg-surface border-border flex-1 rounded-2xl border px-3 py-2"
@@ -217,7 +203,6 @@ export function StatCards({
         )}
       </View>
 
-      {/* Spent This Month */}
       <View
         testID="dashboard-month-spend-card"
         className="bg-surface border-border flex-1 rounded-2xl border px-3 py-2"
@@ -295,12 +280,7 @@ export function StatCards({
   );
 }
 
-/**
- * Rendered only on `kind === 'rate-needed'`. No number, no dash-as-number, no
- * partial total, no substituted rate — the union carries no value to render, by
- * construction. The remedy sentence lives on the hero card, which has the width
- * for it; this card is half a row wide and carries the state only.
- */
+/** On `rate-needed` nothing numeric renders: no dash, no partial total, no substituted rate. */
 function NetWorthRefusal(): React.ReactElement {
   return (
     <View
@@ -321,12 +301,7 @@ function NetWorthRefusal(): React.ReactElement {
   );
 }
 
-/**
- * The amount path's body. A subcomponent rather than an inline branch so the two
- * derivations below sit INSIDE the narrowing — computing an assets/liabilities
- * proportion on the refusal path would be dead arithmetic over fields that do not
- * exist there.
- */
+/** A subcomponent, not an inline branch, so the derivations sit inside the amount narrowing. */
 function NetWorthCardBody({
   netWorth: amount,
   baseCurrency,

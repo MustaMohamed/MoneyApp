@@ -35,13 +35,7 @@ const mockSetStep = jest.fn().mockResolvedValue(undefined);
 const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 const mockReplace = jest.fn();
 
-/**
- * The mixed fixture — one USD account among three, with a verified rate. It
- * lands on F2 with the currency-pill gate OPEN, which is the only shape that
- * exercises the resolver, the frame selector and the pill composition at once
- * through the hook. The literal values match row 2 of
- * `ready_summary_state.test.ts`.
- */
+// Mixed fixture; the literal values match row 2 of `ready_summary_state.test.ts`.
 const fakeAccounts = [
   makeTestAccount({ id: '1', type: AccountType.Bank, opening_balance: 48250 }),
   makeTestAccount({
@@ -118,8 +112,7 @@ describe('useReady', () => {
     expect(result.current.state.summary.accountCount).toBe(3);
     expect(result.current.state.summary.foreignCount).toBe(1);
     expect(result.current.state.summary.outcome).toEqual({ kind: 'amount', value: 105410 });
-    // The currency pills REPLACE the opening-balances pill; they never merely
-    // add to it. Asserted as the whole array, not a length or a spot-check.
+    // The currency pills replace the opening-balances pill; they never add to it.
     expect(result.current.state.summary.pills).toEqual([
       { kind: 'accounts', count: 3, glyph: 'bank-outline' },
       { kind: 'rate', rate: RATE },
@@ -134,10 +127,7 @@ describe('useReady', () => {
   });
 
   it('clears a status message left behind by a previous visit, on mount', async () => {
-    // The MA-005/L27 guard, and the case that dies when the `useInit(() =>
-    // ...reset())` line is deleted: the store is dirtied BEFORE the mount, so
-    // no in-render writer clears it. Without the guard the screen would open
-    // showing a message about an attempt the user has already left behind.
+    // The store is dirtied before the mount, so only the mount reset can clear it.
     useReadyTransitionState.setState({ statusMessage: 'stale' });
 
     const { result } = await renderHook(() => useReady());
@@ -163,9 +153,7 @@ describe('useReady', () => {
     mockCompleteOnboarding.mockReturnValueOnce(pending.promise);
     const { result } = await renderHook(() => useReady());
 
-    // Both taps fire with NO render in between — that is the whole point. A
-    // guard on complete.isLoading is React state and lags a render, so it
-    // survives an `act` boundary between the two calls and lets both through.
+    // Both taps fire with no render between them; a React-state guard would let both through.
     let firstCall!: Promise<void>;
     let secondCall!: Promise<void>;
     await act(() => {
@@ -202,10 +190,7 @@ describe('useReady', () => {
   });
 
   it('holds the CTA disabled while a BACK transition is in flight — busy without completing', async () => {
-    // The pair the CTA's `isDisabled={completing || busy}` exists for: during a
-    // back write `begin()` has already raised `busy` and every later tap is
-    // inert, while `completing` is still false. Binding the CTA to `completing`
-    // alone leaves it visually live over a dead handler.
+    // A back write raises `busy` while `completing` stays false; the CTA must disable on both.
     const pending = deferred<void>();
     mockSetStep.mockReturnValueOnce(pending.promise);
     const { result } = await renderHook(() => useReady());
@@ -234,7 +219,6 @@ describe('useReady', () => {
     });
 
     expect(result.current.state.statusMessage).toBe(Strings.n4CompleteError);
-    // F9 preserves the summary — no blank, no skeleton, no recompute.
     expect(result.current.state.summary.frame).toBe('F2');
     expect(result.current.state.summary.pills).toHaveLength(3);
   });
@@ -246,9 +230,7 @@ describe('useReady', () => {
     await act(async () => {
       await result.current.handleComplete();
     });
-    // Dropping settle() from the failure path latches busy true, and every
-    // later tap is swallowed by begin() — §7's "the same CTA retries" dies
-    // silently.
+    // Without `settle()` on the failure path `busy` latches true and every later tap is swallowed.
     expect(result.current.state.busy).toBe(false);
 
     await act(async () => {

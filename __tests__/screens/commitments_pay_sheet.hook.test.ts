@@ -1,13 +1,3 @@
-/**
- * commitments_pay_sheet.hook.test.ts
- *
- * Tests the pay-sheet hook's prefill, rateOverride flag, and the ISO paid_date
- * setter introduced in §8 (date-picker upgrade, OQ-2). Mirrors the mocking
- * style of commitments_detail.hook.test.ts: all external stores are mocked,
- * usePaySheetState is mocked with a stateful in-memory object so state
- * transitions can be tracked across act() calls.
- */
-
 import { act, renderHook } from '@testing-library/react-native';
 
 import {
@@ -47,8 +37,7 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   },
 }));
 
-// Stateful mock for usePaySheetState — holds the state in a mutable object
-// so act()-wrapped setters actually update what the hook reads.
+// Stateful mock so `act()`-wrapped setters actually update what the hook reads.
 let paySheetStateInner = {
   visible: false,
   saving: false,
@@ -122,10 +111,7 @@ const fixedCommitment: Commitment = {
   updated_at: '2026-01-01T00:00:00.000Z',
 };
 
-// W1B: the schema now refuses an `account_id` the store's loaded list does not
-// hold, so a fixture pair is needed wherever a submit is expected to reach the
-// store. The EGP pair also needs no rate, which is what lets the amount battery
-// below isolate the amount (spec §3 row 10).
+// The schema refuses an `account_id` the loaded list does not hold, so a submit needs this pair.
 const egpCommitment: Commitment = { ...fixedCommitment, currency: Currency.EGP };
 const egpAccount = { id: 'acc-egp', currency: Currency.EGP } as unknown as Account;
 const usdAccount = { id: 'acc-usd', currency: Currency.USD } as unknown as Account;
@@ -148,8 +134,6 @@ const duePayment: CommitmentPayment = {
   updated_at: '2026-01-01T00:00:00.000Z',
 };
 
-// Stable, capturable mocks: markAsPaid so we can assert the persisted snapshot,
-// and an injectable accounts list so requiresRate (currency mismatch) can be exercised.
 const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
 const mockLoadPaymentsForMonth = jest.fn().mockResolvedValue(undefined);
 const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
@@ -182,7 +166,7 @@ describe('usePaySheet', () => {
     setupStoreMocks();
     mockPaySheetState.reset();
     jest.clearAllMocks();
-    // Re-wire setters after clearAllMocks
+    // Re-wire setters after `clearAllMocks`.
     mockPaySheetState.setVisible.mockImplementation((v: boolean) => {
       paySheetStateInner = { ...paySheetStateInner, visible: v };
     });
@@ -207,7 +191,6 @@ describe('usePaySheet', () => {
         saveError: false,
       };
     });
-    // Reset the capturable store mocks
     mockAccounts = [];
     mockMarkAsPaid.mockClear();
     mockMarkAsPaid.mockResolvedValue(undefined);
@@ -215,25 +198,21 @@ describe('usePaySheet', () => {
     mockLoadPaymentsForMonth.mockResolvedValue(undefined);
     mockLoadAccounts.mockClear();
     mockLoadAccounts.mockResolvedValue(undefined);
-    // Re-setup store mocks after clearAllMocks
+    // Re-setup store mocks after `clearAllMocks`.
     setupStoreMocks();
   });
 
   it('prefills the fixed amount from amount_due when the sheet is visible on mount', async () => {
-    // Start with visible=true so the prefill useEffect fires on first render
+    // Start with `visible: true` so the prefill `useEffect` fires on first render.
     paySheetStateInner = { ...paySheetStateInner, visible: true };
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
-    // prefill runs in a useEffect; flush microtasks
+    // Prefill runs in a `useEffect`; flush microtasks.
     await act(async () => {});
     expect(result.current.form.getValues('amountText')).toBe('15');
     expect(result.current.form.getValues('paid_date')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  // §8.10 (W2E c3, #301): the one growing instance — housekeeping mints
-  // payment rows from legacy `commitments.amount`, so `amount_due` can already
-  // hold a sub-cent or exponential-notation value. `formatStoredMoneyText`
-  // (not `String(prefillAmount)`) is what makes the prefill re-parse to the
-  // number it came from, same contract as edit_transaction.store's §8.9.
+  // Housekeeping mints payments from legacy `commitments.amount`, so `amount_due` can be sub-cent.
   it.each([
     [0.005, '0.005'],
     [1e-7, '0.0000001'],
@@ -246,12 +225,6 @@ describe('usePaySheet', () => {
     expect(result.current.form.getValues('amountText')).toBe(expected);
   });
 
-  // §8.10's e2e round-trip: the fix's actual target case, storage through to
-  // the field's own error, not just the prefill text above. A stored
-  // amount_due of 1e-7 prefills as '0.0000001' and, left untouched, has to
-  // fail the same way a typed sub-cent amount does at A1-10 below — present,
-  // typed, below the floor — never as unparseable text a Save cannot even
-  // classify.
   it('rejects a prefilled amount_due of 1e-7 on submit as the floor message', async () => {
     mockAccounts = [egpAccount];
     paySheetStateInner = { ...paySheetStateInner, visible: true };
@@ -273,15 +246,12 @@ describe('usePaySheet', () => {
 
   it('starts with rateOverride false on open', async () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
-    // rateOverride starts false (initial state, sheet not yet opened)
     expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('toggleRateOverride flips the flag', async () => {
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
-    // Initial state: rateOverride = false
     expect(result.current.state.rateOverride).toBe(false);
-    // Toggle: calls setRateOverride(!false) = setRateOverride(true)
     await act(() => result.current.toggleRateOverride());
     expect(mockPaySheetState.setRateOverride).toHaveBeenCalledWith(true);
   });
@@ -292,8 +262,6 @@ describe('usePaySheet', () => {
     expect(result.current.form.getValues('paid_date')).toBe('2026-05-20');
   });
 
-  // Render-safety + default cases (folded in from the former pay_sheet.hook.test.ts
-  // during §8 cleanup — that file duplicated this hook's mock setup).
   it('renders without throwing when commitment and payment are undefined', async () => {
     await expect(renderHook(() => usePaySheet(undefined, undefined))).resolves.toBeDefined();
   });
@@ -340,9 +308,6 @@ describe('usePaySheet', () => {
     expect(arg.exchange_rate_snapshot).toBe(52);
   });
 
-  // c7 step 3: the floor is Layla row 25's resolver throw made unreachable
-  // from the UI. Gate: swap the `.refine` back to `.positive()` and this
-  // assertion goes red — markAsPaid gets called with the raw 0.005.
   it('rejects a sub-cent amount at the field and leaves markAsPaid uncalled', async () => {
     mockAccounts = [egpAccount];
     const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
@@ -355,17 +320,12 @@ describe('usePaySheet', () => {
       await result.current.onSubmit();
     });
     expect(mockMarkAsPaid).not.toHaveBeenCalled();
-    // formState.errors is a vacuous read under renderHook (MA-008 T6) — RHF
-    // only re-renders it once something has READ it during a render, which
-    // nothing here does. getFieldState reads the live field directly.
+    // `formState.errors` is vacuous under `renderHook`; `getFieldState` reads the live field.
     expect(result.current.form.getFieldState('amountText').error?.message).toBe(
       Strings.commitmentsPayErrAmountMin,
     );
   });
 
-  // No silent round-up: 0.006 rounds to 0.01, which a rounded-value check
-  // would accept. The floor compares the raw parsed value, so it must still
-  // reject and leave markAsPaid uncalled.
   it('rejects 0.006 (rounds to the floor but is below it raw) and leaves markAsPaid uncalled', async () => {
     mockAccounts = [egpAccount];
     const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
@@ -427,16 +387,7 @@ describe('usePaySheet', () => {
     consoleSpy.mockRestore();
   });
 
-  // MA-019 spec §3 A1/A2 — the contract for what a TYPED STRING produces.
-  // Before this ticket nothing on either path asserted that: every test
-  // entered an already-numeric value, so parseFloat's corruptions all
-  // survived a green CI.
-
-  // W1B (#312, spec §3 row 10): an EGP commitment paid from a loaded EGP
-  // account. Both halves are load-bearing for what this battery claims to
-  // isolate — the loaded account clears the membership refine, and the
-  // matching currency means no rate is demanded, so every row that reds here
-  // reds on the amount it typed and on nothing else.
+  // EGP commitment paid from a loaded EGP account, so a failure here is the typed amount only.
   async function submitAmount(typed: string) {
     mockAccounts = [egpAccount];
     const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
@@ -451,10 +402,7 @@ describe('usePaySheet', () => {
     return { result, rerender };
   }
 
-  // `expectedAmountPaid` is what the hook hands the STORE — the parsed,
-  // unrounded value. roundMoney runs later, inside the repository's resolver,
-  // which is why A1-16 is 10.999 here and 11 in the database (pinned by
-  // commitment.repository.mark_as_paid.test.ts).
+  // These are the unrounded values handed to the store; `roundMoney` runs later in the repository.
   it.each([
     ['A1-01', '12.34', 12.34],
     ['A1-02', '1,234.56', 1234.56],
@@ -486,13 +434,9 @@ describe('usePaySheet', () => {
     const { result } = await submitAmount(typed);
 
     expect(mockMarkAsPaid).not.toHaveBeenCalled();
-    // getFieldState, not formState.errors — the latter is a vacuous read under
-    // renderHook (MA-008 T6), as the comment above the 0.005 case records.
     expect(result.current.form.getFieldState('amountText').error?.message).toBe(message);
   });
 
-  // A USD commitment paid from an EGP account, so requiresRate is true and the
-  // rate field is the one under test.
   async function submitRate(typed: string) {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
     const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
@@ -512,9 +456,7 @@ describe('usePaySheet', () => {
   it.each([
     ['A2-01', '48.6', 48.6],
     ['A2-07', '1,234', 1234],
-    // W2E §3.2 row 8: rate text is unfloored (parseRateText), so a rate below
-    // MIN_MONEY_AMOUNT now accepts — the resolver output guard, not the
-    // parse floor, is what bounds a rate this small from here on.
+    // Rate text is unfloored by `parseRateText`, so a rate below `MIN_MONEY_AMOUNT` accepts.
     ['A2-09', '0.005', 0.005],
   ] as const)('%s: accepts "%s" and snapshots %p', async (_id, typed, expected) => {
     await submitRate(typed);
@@ -540,18 +482,13 @@ describe('usePaySheet', () => {
     },
   );
 
-  // D7: the catch was `catch { // error logged by store }`, so a failed save
-  // left the sheet open, the button idle and the user told nothing —
-  // .claude/rules/review.md class 1, reachable from the keyboard.
   it('surfaces a failed save and keeps the sheet open', async () => {
     mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
     const { result, rerender } = await submitAmount('15');
 
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
     expect(mockPaySheetState.setSaveError).toHaveBeenLastCalledWith(true);
-    // The mocked selector store does not subscribe, so the flag only reaches
-    // the hook's returned state on the next render — which is what the sheet
-    // renders the error row from.
+    // The mocked selector store does not subscribe, so the flag reaches state on the next render.
     await act(() => rerender(undefined));
     expect(result.current.state.saveError).toBe(true);
     expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(false);
@@ -576,15 +513,7 @@ describe('usePaySheet', () => {
     const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
     expect(arg.exchange_rate_snapshot).toBeUndefined();
   });
-  // ---------------------------------------------------------------------
-  // P8 cycle 1 — F1/F2/F3. Three regressions the rate-required superRefine
-  // introduced by requiring a value that nothing seeds, plus a stale error
-  // flag that outlives the sheet.
-  // ---------------------------------------------------------------------
 
-  // F1: picking an account that flips `requiresRate` on must bring the global
-  // rate with it. Without it the schema demands a rate the user was never
-  // offered a populated field for.
   it('F1: seeds the global rate when the picked account turns the requirement on', async () => {
     mockAccounts = [
       { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
@@ -608,9 +537,7 @@ describe('usePaySheet', () => {
     expect(mockPaySheetState.setRateOverride).toHaveBeenLastCalledWith(false);
   });
 
-  // F1, the half that is NOT the transaction form's condition: a USD
-  // commitment needs a rate whatever the account's currency is, so an EGP
-  // account has to seed too. A copied `account.currency === USD` guard reds here.
+  // A USD commitment needs a rate whatever the account's currency is.
   it('F1: seeds the global rate for a USD commitment paid from an EGP account', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
     const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
@@ -635,10 +562,7 @@ describe('usePaySheet', () => {
     expect(result.current.form.getValues('exchange_rate')).toBeUndefined();
   });
 
-  // G1: `AccountPickerSheet` fires `onSelect` for every row, the checked one
-  // included, so re-tapping the already-selected account is a tap that means
-  // nothing. Before the `!rateOverride` guard it re-seeded the global rate and
-  // cleared the override, discarding a rate the user had typed.
+  // `AccountPickerSheet` fires `onSelect` for every row, the already-checked one included.
   it('G1: keeps a typed override rate when the already-selected account is re-picked', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
     const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
@@ -661,9 +585,6 @@ describe('usePaySheet', () => {
     expect(result.current.state.rateOverride).toBe(true);
   });
 
-  // F2: "reset to global" has to hand the global rate back. Turning the
-  // override off after clearing the field used to leave '' in the form with
-  // no input on screen to correct it.
   it('F2: restores the global rate when the override is turned back off', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
     const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
@@ -675,7 +596,6 @@ describe('usePaySheet', () => {
     await act(() => rerender(undefined));
     expect(result.current.state.rateOverride).toBe(true);
 
-    // The user clears the field while the override is on.
     await act(() => {
       result.current.form.setValue('exchange_rate', '');
     });
@@ -697,9 +617,7 @@ describe('usePaySheet', () => {
     expect(result.current.form.getValues('exchange_rate')).toBe('48.6');
   });
 
-  // F3 sequence (a): fail -> dismiss -> reopen. The flag lives in a
-  // module-level store, so without a clear on open the banner renders on a
-  // different payment before the user has touched anything.
+  // The save-error flag lives in a module-level store, so it survives a dismiss.
   it('F3: clears a stale save error when the sheet is reopened after a dismiss', async () => {
     mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
     paySheetStateInner = { ...paySheetStateInner, visible: true };
@@ -707,7 +625,6 @@ describe('usePaySheet', () => {
 
     const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     await act(async () => {});
-    // The prefill supplies a complete, valid form: amount, account and rate.
     expect(result.current.form.getValues('exchange_rate')).toBe('55');
 
     await act(async () => {
@@ -718,12 +635,11 @@ describe('usePaySheet', () => {
 
     mockPaySheetState.setSaveError.mockClear();
 
-    // Swipe-down: the sheet closes without going through onValid's reset().
+    // Swipe-down: the sheet closes without going through `onValid`'s `reset()`.
     await act(() => result.current.setVisible(false));
     await act(async () => {
       rerender(undefined);
     });
-    // Reopened on a later payment.
     await act(() => result.current.setVisible(true));
     await act(async () => {
       rerender(undefined);
@@ -734,10 +650,6 @@ describe('usePaySheet', () => {
     expect(result.current.state.saveError).toBe(false);
   });
 
-  // F3 sequence (b): fail -> mistype -> submit. Validation rejects, so
-  // `onValid` never runs and nothing clears the flag; the sheet showed the
-  // field error and the save-failed banner together, for a submit that never
-  // reached the store.
   it('F3: clears the save error on a submit that fails validation', async () => {
     mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
     const { result, rerender } = await submitAmount('15');
@@ -755,7 +667,6 @@ describe('usePaySheet', () => {
     });
     await act(() => rerender(undefined));
 
-    // The second submit never reached the store.
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
     expect(result.current.form.getFieldState('amountText').error?.message).toBe(
       Strings.errAmountInvalid,
@@ -764,29 +675,19 @@ describe('usePaySheet', () => {
     expect(result.current.state.saveError).toBe(false);
   });
 
-  // ---------------------------------------------------------------------
-  // P8 cycle 3 — H1. The rate row is not a `Controller`, so `setValue` is the
-  // only thing that can revalidate it. Pinned `shouldValidate: false`, the
-  // required refine D6 added kept its error on screen while the user typed the
-  // fix; the amount field beside it, which goes through a `Controller`, cleared
-  // live. The gate is `isSubmitted`, which is what a registered field does
-  // under `mode: 'onSubmit'` + `reValidateMode: 'onChange'`.
-  // ---------------------------------------------------------------------
-
+  // The rate row is not a `Controller`, so `setValue` is the only thing that can revalidate it.
   it('H1: seeding the rate after a failed submit clears the rate error without a second submit', async () => {
     mockAccounts = [
       { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
       { id: 'acc-usd', currency: Currency.USD } as unknown as Account,
     ];
     const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
-    // An EGP commitment paid from an EGP account: no rate required yet.
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
       result.current.form.setValue('amountText', '15');
       result.current.form.setValue('paid_date', '2026-05-20');
     });
-    // Switch to the USD account WITHOUT the seed, so the submit below fails on
-    // the rate. `setValue` is the raw form write; `selectAccount` is the seed.
+    // `setValue` is the raw form write; `selectAccount` is what seeds the rate.
     await act(() => {
       result.current.form.setValue('account_id', 'acc-usd');
     });
@@ -801,9 +702,7 @@ describe('usePaySheet', () => {
       Strings.addTxErrRateRequired,
     );
 
-    // Re-picking the account seeds the global rate. That is the user fixing the
-    // field, so the error has to go with it — no second Save tap. The revalidate
-    // `setValue` schedules is async, hence the microtask flush.
+    // The revalidate `setValue` schedules is async, hence the microtask flush.
     await act(async () => {
       result.current.selectAccount(mockAccounts[1]);
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -814,12 +713,6 @@ describe('usePaySheet', () => {
     expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
   });
 
-  // H4. `toggleRateOverride` is the THIRD write to `exchange_rate` and had the
-  // same pinned-false default. Turning the override off after a failed submit is
-  // the user handing the field back to the global rate — the error it fixes has
-  // to go with it. Unlike the row's own onChange this site can only ever CLEAR
-  // one: `String(rate)` is a positive global rate, so no input reaches it that
-  // D6's refine would reject. Staleness only, which is exactly what is asserted.
   it('H4: turning the override off after a failed submit clears the stale rate error', async () => {
     mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
     const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
@@ -831,7 +724,6 @@ describe('usePaySheet', () => {
     await act(() => rerender(undefined));
     expect(result.current.state.requiresRate).toBe(true);
 
-    // Override on, then the field cleared — the shape F2 already covers.
     await act(() => result.current.toggleRateOverride());
     await act(() => rerender(undefined));
     await act(() => {
@@ -847,8 +739,7 @@ describe('usePaySheet', () => {
       Strings.addTxErrRateRequired,
     );
 
-    // "Reset to global" hands the rate back. The revalidate `setValue`
-    // schedules is async, hence the microtask flush.
+    // The revalidate `setValue` schedules is async, hence the microtask flush.
     await act(async () => {
       result.current.toggleRateOverride();
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -871,21 +762,12 @@ describe('usePaySheet', () => {
 
     expect(result.current.form.formState.isSubmitted).toBe(false);
     expect(result.current.form.getValues('exchange_rate')).toBe('55');
-    // Nothing raised, on any field. `setValue(name, …, { shouldValidate })`
-    // publishes errors only at `name`, so pinning true HERE would in fact be
-    // harmless — the seeded global rate is always positive, and the amount and
-    // account errors the superRefine also computes are discarded. That is why
-    // this case does not red under a pinned-true mutation and the row's own
-    // onChange does: there the user can type a rate that fails. The gate is
-    // kept at both sites so one write cannot drift from the other.
     expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
     expect(result.current.form.getFieldState('amountText').error).toBeUndefined();
     expect(result.current.form.getFieldState('account_id').error).toBeUndefined();
   });
 
-  // W1B — account membership, spec §3 rows 6/7. The store publishes
-  // non-archived accounts only, so "archived", "deleted" and "not loaded yet"
-  // are one shape at this layer: an id the list does not hold.
+  // The store publishes non-archived accounts only: archived, deleted and unloaded are one shape.
   describe('account membership', () => {
     async function submitWithAccountId(commitment: Commitment, accountId: string) {
       const { result } = await renderHook(() => usePaySheet(commitment, duePayment));
@@ -913,9 +795,6 @@ describe('usePaySheet', () => {
       );
     });
 
-    // The loading window is pinned deliberately: a commitment carrying an
-    // account_id, opened before the store has published its accounts, errors
-    // rather than submitting an id the write path cannot resolve.
     it('rejects a set account_id while the store list is still empty', async () => {
       const result = await submitWithAccountId(egpCommitment, 'acc-egp');
 
@@ -934,8 +813,6 @@ describe('usePaySheet', () => {
     });
 
     // An empty selection is the field's own `min(1)`, not the membership refine.
-    // Merging the two messages would tell a user who has picked nothing that
-    // their account is unavailable.
     it('keeps the plain required message when nothing is selected', async () => {
       mockAccounts = [egpAccount];
       const result = await submitWithAccountId(egpCommitment, '');
@@ -946,11 +823,7 @@ describe('usePaySheet', () => {
       );
     });
 
-    // The defect this refine exists for: `accounts.find(...)` returning
-    // undefined made `needsRate` false, so a USD commitment sailed through with
-    // no rate and failed at the store with the generic banner. The membership
-    // issue now precedes the rate demand, and the hook's own `requiresRate`
-    // stays false because its !selectedAccount guard is untouched.
+    // The membership issue precedes the rate demand, and `requiresRate` stays false without one.
     it('does not fall through to "no rate needed" when the account is missing from the list', async () => {
       mockAccounts = [egpAccount];
       const result = await submitWithAccountId(fixedCommitment, 'acc-gone');
@@ -963,9 +836,7 @@ describe('usePaySheet', () => {
       expect(result.current.form.getFieldState('exchange_rate').error).toBeUndefined();
     });
 
-    // Spec §3 row 7. `commitment.account_id` is a durable copy that outlives the
-    // account being archived, so prefilling it unchanged opens the sheet already
-    // invalid on a field the user never touched.
+    // `commitment.account_id` is a durable copy that outlives the account being archived.
     it('drops a prefilled account_id the list does not hold and falls back to the first account', async () => {
       mockAccounts = [egpAccount];
       paySheetStateInner = { ...paySheetStateInner, visible: true };
@@ -988,14 +859,8 @@ describe('usePaySheet', () => {
     });
   });
 
-  // W1B — the sub-floor mirror, spec §3 row 5.
   describe('sub-floor conversions', () => {
-    // Spec §3 row 5. 0.01 EGP at 49.06 is 0.00 USD: above the Amount field's own
-    // floor, below the floor in the currency actually debited. The write path
-    // refuses it at validateTransactionPolicy with the generic banner, so the
-    // schema mirrors the resolver to name the reason on the field instead.
-    // (The mockup's 0.40 EGP illustration does NOT reach this branch —
-    // roundMoney(0.40 / 49.06) is 0.01.)
+    // 0.01 EGP at 49.06 rounds to 0.00 USD: over the amount floor, under the debited one.
     it('blocks a save whose converted amount rounds below the money floor', async () => {
       mockAccounts = [usdAccount];
       const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
@@ -1015,11 +880,7 @@ describe('usePaySheet', () => {
       );
     });
 
-    // The other direction, and the reason the message is function-valued: a USD
-    // commitment paid from an EGP account at an override rate of 0.01 puts
-    // 0.50 USD under the floor in EGP — roundMoney(0.50 × 0.01) is 0.00. A
-    // hardcoded "USD" in that message names a currency this payment never
-    // debits. Nothing about the rate's plausibility gates the override.
+    // `roundMoney(0.50 * 0.01)` is 0.00, so the shortfall is in EGP, the currency debited.
     it('names the paying account currency, not USD, when the shortfall is in EGP', async () => {
       mockAccounts = [egpAccount];
       const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
@@ -1039,20 +900,10 @@ describe('usePaySheet', () => {
       );
     });
 
-    // §3.4's output guard, reached through deriveResolution rather than
-    // mirrored: a typed amount huge enough to overflow the resolver returns
-    // undefined, not a thrown error inside a render. A huge AMOUNT, not a
-    // tiny rate — until c1 step 7 un-floors rate text here (`:46`), a
-    // sub-floor rate still fails `parsePositiveDecimal` before ever reaching
-    // the resolver, which would make a tiny-rate case vacuous. Cross-currency
-    // (USD commitment paid from an EGP account) so convertedTotal is not
-    // undefined for the unrelated reason the same-currency `converts` gate
-    // (pay_sheet.hook.ts:251-259) already produces.
+    // An amount that overflows the resolver returns undefined instead of throwing in a render.
     it('shows no converted line for an amount that overflows the resolver output guard', async () => {
       mockAccounts = [egpAccount];
       const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
-      // If deriveResolution's guard were uncaught, this act() would throw —
-      // the render itself would crash, same as the rate-preview hook's case.
       await act(() => {
         result.current.form.setValue('account_id', egpAccount.id);
         result.current.form.setValue('amountText', '99999999999999999999');
@@ -1062,15 +913,7 @@ describe('usePaySheet', () => {
       expect(result.current.state.convertedTotal).toBeUndefined();
     });
 
-    // P8 c1 finding item 6: the submit-time half of the overflow path, which
-    // the preview test above only proves does not crash. The schema's
-    // amountText refine requires only `parsePositiveDecimal(s) !==
-    // undefined` — a huge finite number clears it — so submission reaches
-    // markAsPaid, which is where the real resolver's TransactionAmountError
-    // actually fires (commitment.repository.ts -> resolveCommitmentPaymentAmounts).
-    // Asserts store/banner STATE, not message text: field validation passes,
-    // the existing generic banner surfaces, and the sheet neither closes nor
-    // resets — the same "no write" evidence the failed-save test above uses.
+    // A huge finite amount clears the refine, so the resolver throws at `markAsPaid`, not here.
     it('an oversized amount clears field validation; a markAsPaid rejection surfaces the banner with no write', async () => {
       mockAccounts = [egpAccount];
       mockMarkAsPaid.mockRejectedValueOnce(
@@ -1094,8 +937,6 @@ describe('usePaySheet', () => {
       expect(result.current.state.saveError).toBe(true);
     });
 
-    // The same amount at a rate that leaves it on the floor saves. Without this
-    // row a refine that always raised would pass the case above.
     it('saves the same amount when the rate leaves the converted value on the floor', async () => {
       mockAccounts = [usdAccount];
       const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
@@ -1114,10 +955,7 @@ describe('usePaySheet', () => {
     });
   });
 
-  // W1B — the render facts the sheet used to compute in its own body
-  // (spec §3 rows 1-5, mockup frames 1-4). Every figure here is
-  // `resolveCommitmentPaymentAmounts` output, which is the point: the old
-  // `amountWatch * rateNum` was 2,407× out on row 2.
+  // Every expected figure here is `resolveCommitmentPaymentAmounts` output, not a re-derived one.
   describe('render facts', () => {
     async function renderPreview(
       commitment: Commitment,
@@ -1138,8 +976,6 @@ describe('usePaySheet', () => {
       return result.current.state;
     }
 
-    // Frame 1. Correct before this ticket too, by coincidence: multiplying is
-    // the right operation in exactly this one of the four currency pairs.
     it('row 1: a USD commitment paid from an EGP account converts by multiplying', async () => {
       const state = await renderPreview(fixedCommitment, egpAccount, '100', '49.06');
 
@@ -1150,10 +986,7 @@ describe('usePaySheet', () => {
       expect(state.purposeCaption).toBeUndefined();
     });
 
-    // Frame 2, the defect this ticket exists for: the shipped sheet rendered
-    // 5,000 × 49.06 = 245,300 USD against a 101.92 USD debit. The rate row's EGP
-    // preview is suppressed here because the entered amount already IS the EGP
-    // one, so the line would echo the Amount field a row above.
+    // The rate-row preview is hidden here because the entered amount already is the EGP one.
     it('row 2: an EGP commitment paid from a USD account converts by dividing', async () => {
       const state = await renderPreview(egpCommitment, usdAccount, '5000', '49.06');
 
@@ -1162,9 +995,7 @@ describe('usePaySheet', () => {
       expect(state.purposeCaption).toBeUndefined();
     });
 
-    // Frame 3. The rate stays demanded — egp_amount is the ledger's storage
-    // currency — so the line's gate cannot be `requiresRate`, and the row
-    // explains why a field is required for a payment that converts nothing.
+    // A rate is still demanded USD to USD because `egp_amount` is the ledger's storage currency.
     it('row 3: a USD commitment paid from a USD account shows no line and captions the rate', async () => {
       const state = await renderPreview(fixedCommitment, usdAccount, '100', '49.06');
 
@@ -1175,9 +1006,7 @@ describe('usePaySheet', () => {
       expect(state.purposeCaption).toBe(Strings.commitmentsPayRatePurposeEgp);
     });
 
-    // Row 4. `parsePositiveDecimal` is the gate: 0 and 0.004 are both refused,
-    // the latter because roundMoney(0.004) is 0 and the resolver throws on it —
-    // in a render, where a throw is a red screen.
+    // `roundMoney(0.004)` is 0 and the resolver throws on it, which in a render is a red screen.
     it.each([
       ['a typed zero', '0'],
       ['an amount under the floor', '0.004'],
@@ -1189,8 +1018,6 @@ describe('usePaySheet', () => {
       expect(state.previewEgpAmount).toBeUndefined();
     });
 
-    // Frame 4: no account, so no rate row and no line. The hook's own
-    // !selectedAccount guard is what keeps `requiresRate` false here.
     it('row 4: shows no line and demands no rate before an account is picked', async () => {
       mockAccounts = [egpAccount];
       const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
@@ -1203,8 +1030,7 @@ describe('usePaySheet', () => {
       expect(result.current.state.previewEgpAmount).toBeUndefined();
     });
 
-    // Row 5. 0.01 EGP at 49.06 resolves to 0.00 USD, so the line must not render
-    // a confident zero; the flag drives the Amount-field message instead.
+    // The line must not render a confident zero, so the flag drives the amount-field message.
     it('row 5: flags a converted amount below the floor instead of rendering it', async () => {
       const state = await renderPreview(egpCommitment, usdAccount, '0.01', '49.06');
 
@@ -1212,11 +1038,7 @@ describe('usePaySheet', () => {
       expect(state.convertedTotal).toBeUndefined();
     });
 
-    // Below the floor the rate row must go quiet too. This is the direction
-    // where it shows: a USD commitment paid from an EGP account has
-    // `previewHidden` false, so an unsuppressed `previewEgpAmount` of 0 renders
-    // `≈ 0.00 EGP` immediately above the error saying the amount is too small to
-    // debit — the same confident zero the converted line is forbidden to print.
+    // Below the floor the rate-row preview must go quiet too, not render a confident 0.00 EGP.
     it('row 5: suppresses the rate-row preview below the floor, not just the line', async () => {
       const state = await renderPreview(fixedCommitment, egpAccount, '0.50', '0.01');
 
@@ -1226,20 +1048,13 @@ describe('usePaySheet', () => {
       expect(state.convertedTotal).toBeUndefined();
     });
 
-    // The double round at the surface rather than at the resolver. 1.005 is the
-    // input that separates: the resolver rounds the amount to 1.00 first and
-    // returns 0.02, while a preview that divided once and rounded once would
-    // show `roundMoney(1.005 / 40)` = 0.03. A round 1.00 leaves that mutant
-    // alive, because there its inner round changes nothing.
+    // The resolver rounds the amount to 1.00 first, so 0.02, not `roundMoney(1.005 / 40)` = 0.03.
     it('renders the resolver rounding, not a re-derived one: 1.005 EGP at 40 is 0.02 USD', async () => {
       const state = await renderPreview(egpCommitment, usdAccount, '1.005', '40');
 
       expect(state.convertedTotal).toEqual({ amount: 0.02, currency: Currency.USD });
     });
 
-    // money.md's four-pair rule: EGP/EGP is the pair with no rate and no
-    // conversion, and it still has to produce a coherent set of facts — no line,
-    // no caption, and a preview that is suppressed rather than absent.
     it('row 1-4 fourth pair: EGP commitment paid from an EGP account converts nothing', async () => {
       const state = await renderPreview(egpCommitment, egpAccount, '5000');
 

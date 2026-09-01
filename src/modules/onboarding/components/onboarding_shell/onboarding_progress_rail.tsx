@@ -14,10 +14,7 @@ export interface OnboardingProgressRailProps {
   step: OnboardingStepIndex;
 }
 
-/**
- * Four segments in a stable grid, hidden from assistive tech — the label row
- * carries the meaning. Advancing changes a segment's colour, never its width.
- */
+/** Segments are hidden from assistive tech; the label row below carries the meaning. */
 export function OnboardingProgressRail({ step }: OnboardingProgressRailProps) {
   const model = resolveProgressRail(step);
 

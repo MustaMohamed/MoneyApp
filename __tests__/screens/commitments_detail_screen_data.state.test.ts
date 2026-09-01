@@ -1,9 +1,3 @@
-/**
- * Tests for the useCommitmentDetailScreenData store relocated from
- * detail.hook.ts into detail.state.ts as part of the Fix 1 CLAUDE.md
- * anatomy refactor. Verifies the store is exported and behaves correctly.
- */
-
 import { useCommitmentDetailScreenData } from '@/modules/commitments/screens/commitments/detail/detail.state';
 
 beforeEach(() => useCommitmentDetailScreenData.getState().reset());

@@ -5,8 +5,7 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-// Real `currentYearMonth` is used (reads the system clock); only the stores,
-// router, and focus effect are mocked so we can drive focus + time directly.
+// `currentYearMonth` is left unmocked, so `jest.setSystemTime` drives the month.
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 
@@ -215,7 +214,6 @@ describe('useBudget — month rollover', () => {
     const { result, rerender } = await renderHook(() => useBudget());
     expect(result.current.state.month).toBe('2026-05');
 
-    // A month boundary passes while the screen stays mounted.
     jest.setSystemTime(new Date('2026-06-15T12:00:00'));
     await act(async () => {
       capturedFocusCallback?.();

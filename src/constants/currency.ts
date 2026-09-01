@@ -16,13 +16,7 @@ export const CURRENCY_SEGMENTS: Array<{ value: Currency; label: string }> = [
   { value: Currency.USD, label: Currency.USD },
 ];
 
-/**
- * The app has exactly two currencies, so "the other one" is unambiguous: an
- * EGP base's foreign currency is USD and vice versa. Named once, beside the
- * table it complements, so onboarding's two independent selectors —
- * `selectReadySummaryState` and `selectApproximationPill` — stop encoding the
- * same flip on their own.
- */
+/** The app has exactly two currencies, so "the other one" is unambiguous. */
 export function foreignCurrencyFor(base: Currency): Currency {
   return base === Currency.EGP ? Currency.USD : Currency.EGP;
 }

@@ -6,11 +6,7 @@ interface SpendingPlanSheetStoreShape {
   startDate: string;
   endDate: string;
   selectedCategoryIds: string[];
-  // The raw text of each allocation field, not a parsed number: backspacing
-  // '1.5' to '1.' has to leave '1.' in the box rather than clearing it, and a
-  // typed '0.005' has to survive to the row validator instead of collapsing to
-  // undefined on the way in. Absence of a key and '' both mean "unallocated"
-  // and every reader treats them identically.
+  // Raw field text, not a parsed number; a missing key and '' both mean unallocated.
   allocations: Record<string, string>;
   allocateByCategory: boolean;
 }

@@ -43,9 +43,6 @@ describe('buildHeroCaption — non-CC types', () => {
     const cap = buildHeroCaption(
       mkAccount({ currency: Currency.USD, opening_balance: 100, current_balance: 100 }),
     );
-    // #277 base -> head: 'Opening 100 USD' -> 'Opening 100.00 USD'. Written to expect the
-    // 0dp bug before this ticket; USD's decimals now come from CURRENCY_CONFIG like every
-    // other site (spec §6.4).
     expect(cap.text).toBe('Opening 100.00 USD');
   });
 

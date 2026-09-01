@@ -4,12 +4,8 @@ import {
   resolveOnboardingStep,
 } from '@/modules/onboarding/domain/onboarding_route';
 
-// MA-005 plan Decision 0 — the twelve-row table, reproduced exactly. Every
-// row is here, including the eight pass-through cases: business rule 2
-// (force-close resumes from that step) is rows 1-4, 8, 9, 11, 12 holding.
 describe('resolveOnboardingStep', () => {
   it.each([
-    // #, persisted step, accountCount, resolves to
     [1, OnboardingStep.N1, 0, OnboardingStep.N1],
     [2, OnboardingStep.N1, 1, OnboardingStep.N1],
     [3, OnboardingStep.N1, 2, OnboardingStep.N1],

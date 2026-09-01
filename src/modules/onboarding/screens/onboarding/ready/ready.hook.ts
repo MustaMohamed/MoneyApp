@@ -25,30 +25,17 @@ export function useReady() {
     useShallow((s) => ({
       rate: s.rate,
       rateUpdatedAt: s.rate_updated_at,
-      // The second provenance source `isRateUsable` accepts. A manual rate
-      // saved before the marker existed carries this and nothing else.
+      // The second provenance source `isRateUsable` accepts.
       isManualOverride: s.isManualOverride,
     })),
   );
   const backStatusMessage = useReadyTransitionState.useState.statusMessage();
   const busy = useReadyTransitionState.useState.busy();
 
-  // Belt and braces for an entry path that does not go through the runner —
-  // invalidate() already clears this on every successful exit, but a fresh
-  // mount should never be able to show a message from a previous visit.
+  // A fresh mount must never show a status message left by a previous visit.
   useInit(() => useReadyTransitionState.getState().reset());
 
-  // Derived from store state and nothing else. That is what makes F9 work: a
-  // failed completion leaves the screen mounted with its summary intact because
-  // there is nothing to blank, skeleton or refetch. There is deliberately no
-  // loading branch and no early return above the animation hook (issue #247's
-  // shape).
-  //
-  // Memoised on the five inputs it actually reads, so the re-renders this screen
-  // takes for reasons of its own — `busy`, `completing`, the status track — do
-  // not re-run the resolver over the account list. The deps ARE the whole input
-  // object; adding a field to `StartingNetPositionInput` without adding it here
-  // is a stale summary.
+  // Deps must cover every `StartingNetPositionInput` field or the summary goes stale.
   const summary = useMemo(
     () =>
       selectReadySummaryState({ accounts, baseCurrency, rate, rateUpdatedAt, isManualOverride }),
@@ -56,35 +43,22 @@ export function useReady() {
   );
 
   const handleComplete = async () => {
-    // The double-tap guard is a SYNCHRONOUS store read, matching
-    // `useAddAccountTransitionState.getState().begin()` in
-    // `src/modules/onboarding/screens/onboarding/add_account/add_account.hook.ts`
-    // (NOT the same-named accounts-module hook at
-    // `src/modules/accounts/screens/accounts/add_account/add_account.hook.ts`,
-    // which has no transition state): complete.isLoading is React state and lags a
-    // render, so two taps in one frame both pass it. begin() checks and sets
-    // `busy` in one call, and clears the status track for the new attempt —
-    // every writer of that track clears it when its own attempt starts.
+    // `complete.isLoading` lags a render, so two taps in a frame both pass it; `begin()` is sync.
     const session = useReadyTransitionState.getState().begin();
     if (session === null) return;
 
     try {
       await complete();
     } catch {
-      // complete.isError is already set by useAsync and rendered through
-      // state.statusMessage below. The CTA is the retry; no second button
-      // appears.
+      // `complete.isError` is set by `useAsync` and rendered through `statusMessage` below.
     } finally {
-      // In BOTH paths, or `busy` latches true after a failure and every later
-      // tap is swallowed — the CTA must stay a live retry.
+      // Runs on both paths, or `busy` latches true after a failure and swallows every later tap.
       useReadyTransitionState.getState().settle(session);
     }
   };
 
   const onBack = async () => {
-    // No `if (complete.isLoading) return` guard: begin() below returns null
-    // while a completion holds `busy`, which makes back-during-completion
-    // inert through the same one re-entry guard.
+    // No `isLoading` guard: `begin()` returns null while a completion holds `busy`.
     const session = useReadyTransitionState.getState().begin();
     if (session === null) return;
 
@@ -107,11 +81,7 @@ export function useReady() {
     state: {
       summary,
       completing: complete.isLoading,
-      // backStatusMessage takes precedence: begin() clears it at the start of
-      // every back attempt AND of every completion attempt — so it is non-empty
-      // only in the window where the back write is the one that actually
-      // failed, and a completion attempted afterwards correctly overwrites it
-      // with n4CompleteError instead of leaving it pointing at the chevron.
+      // `begin()` clears this on every attempt, so non-empty means the back write is what failed.
       statusMessage:
         backStatusMessage !== ''
           ? backStatusMessage

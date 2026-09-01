@@ -5,12 +5,7 @@ import { BackButton } from '@/components/ui/back_button';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 
-/**
- * SettingsBackButton — wraps BackButton in a padded View so the boxy button
- * gets breathing room from the screen left edge (paddingLeft) and from the
- * title text (paddingRight). NativeStack does not expose headerLeftContainerStyle,
- * so we apply the inset here instead.
- */
+// NativeStack has no `headerLeftContainerStyle`, so the header inset is applied by this wrapper.
 function SettingsBackButton() {
   const router = useRouter();
   return (

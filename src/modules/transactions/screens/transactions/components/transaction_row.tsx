@@ -1,4 +1,3 @@
-// modules/transactions/screens/transactions/components/transaction_row.tsx
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
 import React, { useCallback, useMemo } from 'react';
@@ -85,11 +84,7 @@ function TransactionRowComponent({
       disabled={isCommitmentOwned}
       accessibilityLabel={presentation.accessibilityLabel}
     >
-      {/*
-        animation={false} disables PressableFeedback's built-in scale so it
-        does not conflict with the manual Reanimated scale from useRowPressScale.
-        onPressIn/onPressOut are forwarded by PressableFeedback to our callbacks.
-      */}
+      {/* animation={false} keeps PressableFeedback's own scale off the Reanimated one below. */}
       <PressableFeedback
         onPress={handlePress}
         onPressIn={onPressIn}

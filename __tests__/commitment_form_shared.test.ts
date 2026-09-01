@@ -125,13 +125,10 @@ describe('COMMITMENT_SCHEMA', () => {
     expect(result.success).toBe(false);
   });
 
-  // Layla row 14 — the floor's own boundary does not reject.
   it('passes when Fixed has amount 0.01 (the floor)', () => {
     expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0.01 }).success).toBe(true);
   });
 
-  // Layla row 15 — a gate, not just a boolean: swap the `.refine` back to
-  // `.positive()` and this goes green on 0.005 instead of red.
   it('fails when Fixed has amount 0.005 with the floor message', () => {
     const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0.005 });
     expect(result.success).toBe(false);
@@ -141,8 +138,7 @@ describe('COMMITMENT_SCHEMA', () => {
     }
   });
 
-  // No silent round-up: 0.006 rounds to 0.01 and a rounded-value check would
-  // pass it. The floor compares the raw parsed value, so it must still reject.
+  // The floor compares the raw parsed value, so 0.006 rejects even though it rounds to 0.01.
   it('fails when Fixed has amount 0.006 (rounds to the floor but is below it raw)', () => {
     const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0.006 });
     expect(result.success).toBe(false);
@@ -214,12 +210,6 @@ describe('buildEditDefaults', () => {
     expect(buildEditDefaults(MOCK_COMMITMENT).endAfterCount).toBeUndefined();
   });
 
-  // §8.11 (W2E c3, #301 ruling): edit-commitment needs no code — the numeric
-  // default plus the save-time refine (commitment_form.shared.ts:23-26)
-  // already implement "the floor error renders on Save only". This pins that:
-  // a legacy sub-cent (0.005) amount survives the mapping as a number, not
-  // rounded and not dropped, and it is COMMITMENT_SCHEMA's own refine that
-  // rejects it on the amount path — no mount-time trigger involved.
   it('carries a legacy sub-cent amount through as a number, rejected only by the schema refine on save', () => {
     const defaults = buildEditDefaults({ ...MOCK_COMMITMENT, amount: 0.005 });
     expect(defaults.amount).toBe(0.005);

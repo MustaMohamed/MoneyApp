@@ -1,4 +1,3 @@
-// modules/transactions/database/transactions.ts
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { Currency } from '@/constants/enums';
@@ -14,16 +13,7 @@ export interface MonthExpenseStats {
   count: number;
 }
 
-/**
- * Aggregate expense rows for one calendar month [yearMonth-01, nextMonth-01).
- * Returns:
- *  - totalEgp: SUM(egp_amount) across all currencies (each row's egp equivalent)
- *  - egpNative: SUM(amount) where currency='EGP' (true EGP-denominated spend)
- *  - usdNative: SUM(amount) where currency='USD' (true USD-denominated spend)
- *  - count: total expense rows
- * Card credits subtract from spend and remain included in the contributing row count.
- * Transfers, cash income, and CC payments are excluded.
- */
+/** Card credits subtract from spend yet count as rows; transfers and CC payments are excluded. */
 export async function getMonthExpenseStats(
   db: SQLiteDatabase,
   yearMonth: string,
@@ -306,11 +296,7 @@ export interface PeriodTotals {
   netEgp: number;
 }
 
-/**
- * Aggregate income and expense `egp_amount` for transactions in
- * `[from, to]` (inclusive on both ends). Excludes transfers and cc_payments
- * (they move money between user-owned accounts and do not change net worth).
- */
+/** Inclusive `[from, to]`; excludes transfers and cc_payments, which do not change net worth. */
 export async function getPeriodTotals(
   db: SQLiteDatabase,
   range: { from: string; to: string },

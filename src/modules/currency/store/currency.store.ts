@@ -56,9 +56,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
       await repo.setMany(entries);
       if (ownerLifecycle !== lifecycleGeneration) return false;
 
-      // The latest successfully committed rate remains authoritative. A newer
-      // operation may replace it later, but a newer failure cannot hide a
-      // durable commit from the current session.
+      // A committed rate stays authoritative; a later failure must not unpublish it.
       publish();
       return true;
     });

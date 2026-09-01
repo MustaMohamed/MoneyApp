@@ -33,7 +33,6 @@ export default function CurrencyScreen() {
   return (
     <Screen edges={['bottom']}>
       <ScreenScroll showsVerticalScrollIndicator={false}>
-        {/* Rate card */}
         <Card
           className="border-border mx-4 mt-4 rounded-2xl border p-0"
           style={{ boxShadow: 'none' }}
@@ -61,7 +60,6 @@ export default function CurrencyScreen() {
           </Card.Body>
         </Card>
 
-        {/* Refresh Rate button — secondary (outlined) */}
         <View className="mx-4 mt-3">
           <Button
             label={Strings.currencyFetchCta}
@@ -76,11 +74,7 @@ export default function CurrencyScreen() {
 
         <FormErrorText message={fetchError} className="mx-4 mt-2" />
 
-        {/* Manual override — HeroUI Accordion. Opens on mount when the STORED
-            rate is out of band: the warning lives in this section's content, so
-            collapsed-by-default meant a mount-time warning nobody could see.
-            Uncontrolled on purpose — `defaultValue` is read once, so a user who
-            collapses this stays collapsed. */}
+        {/* Uncontrolled on purpose: `defaultValue` is read once, so a manual collapse sticks. */}
         <View className="mx-4 mt-2">
           <Accordion
             variant="surface"
@@ -116,16 +110,12 @@ export default function CurrencyScreen() {
                     />
                   )}
                 />
-                {/* Warning, not danger: nothing failed, the value saves either
-                    way, and this describes the number in the field above it.
-                    `FormErrorText` is the danger channel and would read as a
-                    rejection. */}
+                {/* Warning, not danger: `FormErrorText` would read as a rejection. */}
                 {rateWarning !== '' && (
                   <Typography className="text-warning font-inter mt-1 text-sm">
                     {rateWarning}
                   </Typography>
                 )}
-                {/* Save Rate button — primary (gold gradient) */}
                 <View className="mt-4">
                   <Button
                     label={Strings.currencySaveCta}
@@ -145,9 +135,7 @@ export default function CurrencyScreen() {
           </Accordion>
         </View>
 
-        {/* Footer note — names the base currency every figure is reported in,
-            and that it is fixed. Composed in the hook from the onboarding
-            store's base; this screen never reads a store. */}
+        {/* Names the fixed base currency every figure is reported in; composed in the hook. */}
         <Typography className="text-muted font-inter mx-6 mt-6 mb-8 text-center text-xs">
           {footerNote}
         </Typography>

@@ -20,10 +20,6 @@ export function TransactionExchangeRateRow({
   destinationCurrency,
   ...props
 }: Props): React.ReactElement {
-  // The typed amount is subscribed to here rather than in the form hook — see
-  // `useTransactionRatePreview`'s note. `props.value` is the rate field's own
-  // string, so the preview still tracks a rate being edited keystroke for
-  // keystroke, as it did when this row did the arithmetic itself.
   const previewEgpAmount = useTransactionRatePreview({
     mode,
     type,

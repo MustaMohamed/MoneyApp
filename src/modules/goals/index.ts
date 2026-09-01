@@ -1,2 +1,1 @@
-// modules/goals/index.ts
-// Goals module — stub placeholder, full implementation pending
+// Stub module; goals are not implemented yet.

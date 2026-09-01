@@ -51,7 +51,7 @@ interface CommitmentFormBodyProps {
   onSubmit: () => void;
   title: string;
   locked?: boolean;
-  /** Optional slot rendered between the scroll content and the CTA footer — used by EditCommitmentScreen to render the Deactivate link inside the Screen layout. */
+  /** Rendered between the scroll content and the CTA footer, inside the `Screen` layout. */
   footerExtra?: React.ReactNode;
 }
 
@@ -94,9 +94,7 @@ export function CommitmentFormBody({
     () => categories.find((c) => c.id === categoryId),
     [categories, categoryId],
   );
-  // Commitments are recurring obligations (expenses) — never income. The picker
-  // only offers expense categories. selectedCategory above stays on the full list
-  // so a legacy commitment saved with an income category still shows its name.
+  // Commitments are expenses only; `selectedCategory` keeps the full list so legacy rows resolve.
   const expenseCategories = useMemo(
     () => categories.filter((c) => c.type === CategoryType.Expense),
     [categories],
@@ -146,12 +144,11 @@ export function CommitmentFormBody({
       form.setValue('recurrencePeriod', mapped.period, SET_OPTS);
       return;
     }
-    // Custom: nudge values away from preset shapes so detectPreset returns Custom.
-    // Keep current period; bump every to 2 (or 1 if every is already non-1).
+    // Nudge the values away from every preset shape so `detectPreset` returns Custom.
     if (recurrenceEvery === 1) {
       form.setValue('recurrenceEvery', 2, SET_OPTS);
     } else if (recurrencePeriod === RecurrencePeriod.Months) {
-      // Already non-1 months — switch period so detectPreset can't map back.
+      // Already non-1 months, so switch period instead; `detectPreset` cannot map it back.
       form.setValue('recurrencePeriod', RecurrencePeriod.Days, SET_OPTS);
     }
   }
@@ -196,7 +193,6 @@ export function CommitmentFormBody({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Name */}
         <View className="bg-default gap-1 rounded-2xl px-3 py-3">
           <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
             {Strings.commitmentsFieldName}
@@ -222,7 +218,6 @@ export function CommitmentFormBody({
           ) : null}
         </View>
 
-        {/* Amount Type toggle */}
         <View className="bg-default gap-2 rounded-2xl px-3 py-3">
           <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
             {Strings.commitmentsFieldAmountType}
@@ -241,9 +236,7 @@ export function CommitmentFormBody({
           />
         </View>
 
-        {/* Amount + Currency row */}
         <View style={{ flexDirection: 'row' }} className="gap-2">
-          {/* Amount field */}
           <View style={{ flex: 3 }} className="bg-default gap-1 rounded-2xl px-3 py-3">
             <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
               <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
@@ -282,7 +275,6 @@ export function CommitmentFormBody({
             ) : null}
           </View>
 
-          {/* Currency field */}
           <View style={{ flex: 2 }} className="bg-default gap-2 rounded-2xl px-3 py-3">
             <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
               {Strings.commitmentsFieldCurrency}
@@ -302,7 +294,6 @@ export function CommitmentFormBody({
           </View>
         </View>
 
-        {/* Category picker row */}
         <PressableFeedback
           onPress={() => setCategoryPickerVisible(true)}
           isDisabled={locked}
@@ -334,14 +325,12 @@ export function CommitmentFormBody({
           ) : null}
         </PressableFeedback>
 
-        {/* Recurrence */}
         <RecurrencePicker
           form={form}
           recurrencePreset={recurrencePreset}
           onPresetChange={handleRecurrencePresetChange}
         />
 
-        {/* Start Date */}
         <PressableFeedback
           onPress={openStartDatePicker}
           isDisabled={locked}
@@ -383,7 +372,6 @@ export function CommitmentFormBody({
           />
         ) : null}
 
-        {/* Default Account (optional) */}
         <PressableFeedback
           onPress={() => setAccountPickerVisible(true)}
           isDisabled={locked}
@@ -418,7 +406,6 @@ export function CommitmentFormBody({
           </View>
         </PressableFeedback>
 
-        {/* Duration */}
         <DurationPicker
           form={form}
           durationType={durationType}
@@ -430,7 +417,6 @@ export function CommitmentFormBody({
           }}
         />
 
-        {/* Notes (optional) */}
         <View className="bg-default gap-1 rounded-2xl px-3 py-3">
           <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
             <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
@@ -458,7 +444,6 @@ export function CommitmentFormBody({
 
       {footerExtra ?? null}
 
-      {/* CTA footer */}
       <View className="border-separator border-t px-4 pt-2 pb-6">
         <View
           style={{ minHeight: ms(16) }}

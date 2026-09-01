@@ -43,7 +43,7 @@ function checkFrontmatter(file, text) {
   }
 }
 
-// A rules file with malformed `paths` frontmatter never loads — silently. Fail loud here instead.
+// A rules file with malformed `paths` frontmatter never loads, silently, so fail loud here.
 function checkRulesFrontmatter(file, text, trackedFiles) {
   if (!text.startsWith('---\n')) {
     errors.push(`${rel(file)}: rules file must start with --- frontmatter containing a paths list`);
@@ -74,9 +74,7 @@ function checkRulesFrontmatter(file, text, trackedFiles) {
   checkGlobsMatchFiles(file, globs, trackedFiles);
 }
 
-// An agent told to run a command it has no Bash tool for cannot do its job, and the
-// failure is silent: it improvises something plausible instead. The mockup workflow
-// shipped broken this way — Marcus was required to run a generator he couldn't execute.
+// An agent told to run a command it has no Bash tool for fails silently and improvises instead.
 const SHELL_CMD = /`((?:npm|npx|node|git|bash|ls|cat|grep) [^`]+)`/g;
 
 function checkAgentToolsMatchProse(file, text) {
@@ -90,7 +88,7 @@ function checkAgentToolsMatchProse(file, text) {
   }
 }
 
-// Slash commands carry a description but no name — the filename is the command.
+// Slash commands carry a description but no name; the filename is the command.
 function checkCommandFrontmatter(file, text) {
   if (!text.startsWith('---\n') || text.indexOf('\n---\n', 4) === -1) {
     errors.push(`${rel(file)}: command must start with --- frontmatter containing a description`);
@@ -102,27 +100,8 @@ function checkCommandFrontmatter(file, text) {
   }
 }
 
-// Harness docs earn their value by pointing at real artifacts. A path that has moved
-// turns "copy this template" into a dead end the reader silently works around, so every
-// concrete repo path cited in a harness doc must resolve. Placeholders are skipped.
-// The lookbehind is what separates a citation from a substring. `\b` alone opens a
-// boundary after `/`, so `.../gesture-handler/docs/components/x/` inside a URL and the
-// prose "loads/scripts/paints" both read as repo paths and fail on a file that was
-// never claimed to exist. A candidate preceded by any of `[A-Za-z0-9_./-]` is part of a
-// larger token, not a path this doc is pointing at. `\b` stays: it is what the
-// word-initial alternatives are anchored on, and dropping it would newly match
-// `.claude/`, which is a different change with its own errors to answer for.
-//
-// The second alternative buys back the one citation form the first wrongly eats. A
-// relative link — `](../../docs/x.md)` from a rules file two levels down, the idiomatic
-// form there — puts the candidate after a `/` exactly like the URL does, so a
-// single-character lookbehind cannot tell them apart. Looking further back can: a run of
-// only `./` or `../` segments, itself starting at a non-path character, is a relative
-// citation; anything else before that slash is a longer path or a host. Measured over
-// the scanned corpus: 116 raw matches before the lookbehind, 113 with the first
-// alternative alone, 114 with both — and the one bought back is
-// `.claude/rules/review.md:22`. Residual, and it is the price of the second alternative:
-// a URL containing `/../` (`https://host/../docs/x`) matches again.
+// The lookbehind stops URL segments and prose like "loads/scripts/paints" reading as repo paths.
+// The second alternative admits relative citations like `](../../docs/x.md)` the first would eat.
 const PATH_REF =
   /(?:(?<![A-Za-z0-9_./-])|(?<=[^A-Za-z0-9_-](?:\.{1,2}\/){1,4}))\b(?:src|__tests__|scripts|docs|node_modules|\.claude|\.github)\/[A-Za-z0-9_./@*<>{}[\]-]*[A-Za-z0-9_/]/g;
 
@@ -134,9 +113,7 @@ function isPlaceholder(p) {
   return /[*<>{}[\]]/.test(p) || p.includes('...') || p.includes('YYYY');
 }
 
-// Code fences are NOT skipped: the one fenced block carrying real repo paths is
-// CLAUDE.md's structure tree, which is the highest-churn content in the harness —
-// exactly what must be checked. Generic snippets use placeholders and skip themselves.
+// Code fences are not skipped: CLAUDE.md's fenced structure tree is exactly what must be checked.
 function checkPathRefs(file, text) {
   for (const alias of new Set(text.match(ALIAS_REF) ?? [])) {
     if (isPlaceholder(alias)) continue;
@@ -153,7 +130,7 @@ function checkPathRefs(file, text) {
   }
 }
 
-// A paths: glob that matches nothing is a rule that silently never loads.
+// A `paths:` glob that matches nothing is a rule that silently never loads.
 function globToRegExp(glob) {
   let out = '';
   for (let i = 0; i < glob.length; i++) {
@@ -213,7 +190,6 @@ for (const dir of roots) {
   }
 }
 
-// CLAUDE.md is loaded into every session — hold it to the same reference standard.
 const claudeMd = path.join(root, 'CLAUDE.md');
 if (fs.existsSync(claudeMd)) checkPathRefs(claudeMd, fs.readFileSync(claudeMd, 'utf8'));
 

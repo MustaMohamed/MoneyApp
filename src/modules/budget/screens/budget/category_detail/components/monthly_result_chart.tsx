@@ -17,9 +17,7 @@ export function MonthlyResultChart({ results }: { results: MonthResultVM[] }) {
           const h = (Math.abs(r.delta) / maxAbs) * ms(48);
           const positive = r.delta >= 0;
           const directional = positive ? Colors.dark.positive : Colors.dark.negative;
-          // In-progress month: draw a HOLLOW bar so it never reads as a banked
-          // result. Neutral outline while nothing has been spent yet; it only
-          // takes the directional (green/red) outline once real spend lands.
+          // Hollow bar for in-progress months; the outline stays neutral until real spend lands.
           const outline = r.spent > 0 ? directional : Colors.dark.border;
           return (
             <View key={r.yearMonth} style={styles.col}>

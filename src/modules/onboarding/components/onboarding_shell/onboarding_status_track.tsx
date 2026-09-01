@@ -14,20 +14,13 @@ import {
 } from './onboarding_shell.geometry';
 
 export interface OnboardingStatusTrackProps {
-  /** Idle copy. Required — the track is never empty. */
+  /** Idle copy; the track is never empty. */
   footnote: string;
   /** When set, replaces the footnote in the identical box. */
   message?: string;
 }
 
-/**
- * Always mounted, never empty. Idle carries the screen's footnote; a failure
- * replaces that footnote in the identical box. overflow: hidden + numberOfLines
- * are what makes the box unmoveable — at large OS font scales the second line
- * clips rather than growing the footer, which is the fixed-track reading of
- * spec.md § "The zero-shift contract" (the "grows into the viewport" sentence
- * governs the field message rail, MA-009's, not this track).
- */
+/** `overflow: hidden` and `numberOfLines` clip at large font scales, never grow the footer. */
 export function OnboardingStatusTrack({ footnote, message }: OnboardingStatusTrackProps) {
   const model = resolveStatusTrack(footnote, message);
 

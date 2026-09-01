@@ -10,10 +10,6 @@ import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
-// Ruled genuinely different from ErrorState, not merged (#290) — canonical
-// statement of the four decisive facts and the rejected merge shape lives on
-// `error_state.tsx`'s matching comment, not duplicated here. Only the
-// geometry is shared, through `state_screen.geometry.ts`.
 const LAYOUT = resolveStateScreenLayout('empty');
 
 export type EmptyStateVariant =
@@ -100,13 +96,7 @@ const VARIANT_CONFIG: Record<
     ctaLabel: Strings.emptyBudgetCta,
     clearLabel: null,
   },
-  // N3's honest dead end — mockup § E, frame E3. `ctaLabel: null` is
-  // load-bearing: E3's action is Strings.n3EmptyCta in OnboardingShell's
-  // footer slot, and a second button inside the content area would be two
-  // CTAs on one screen. The icon circle stays this component's own ms(80)
-  // with an ms(40) glyph where the mockup's `.empty .ei` is 56/40 — a
-  // recorded deviation, because N3 gets one variant here, not a re-cut of
-  // the shared geometry.
+  // `ctaLabel` stays null: N3's action is `Strings.n3EmptyCta` in the `OnboardingShell` footer.
   onboardingAccounts: {
     icon: 'database-alert-outline', // mockup.html:2095
     headline: Strings.n3EmptyTitle,
@@ -121,7 +111,6 @@ export function EmptyState({ variant, onAction }: EmptyStateProps) {
 
   return (
     <View style={styles.root}>
-      {/* Icon circle */}
       <View style={styles.iconCircle}>
         <MaterialCommunityIcons
           name={config.icon}
@@ -130,17 +119,14 @@ export function EmptyState({ variant, onAction }: EmptyStateProps) {
         />
       </View>
 
-      {/* Headline */}
       <Text variant="h3" style={styles.headline}>
         {config.headline}
       </Text>
 
-      {/* Description */}
       <Text variant="hint" style={styles.description}>
         {config.description}
       </Text>
 
-      {/* CTA — gradient button for non-filtered variants */}
       {config.ctaLabel !== null && (
         <Pressable
           onPress={onAction}
@@ -159,7 +145,6 @@ export function EmptyState({ variant, onAction }: EmptyStateProps) {
         </Pressable>
       )}
 
-      {/* Clear Filters — text button for filtered variant */}
       {config.clearLabel !== null && (
         <Pressable
           onPress={onAction}

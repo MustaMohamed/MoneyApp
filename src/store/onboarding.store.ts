@@ -1,4 +1,4 @@
-// Backward-compat stub — canonical in modules/onboarding/
+// Backward-compat stub; canonical in `modules/onboarding/`.
 export {
   createOnboardingStore,
   useOnboardingStore,

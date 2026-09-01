@@ -34,11 +34,7 @@ export function AccountPickerSheet({
 }: Props): React.ReactElement {
   const data = excludeId ? accounts.filter((a) => a.id !== excludeId) : accounts;
 
-  // Fixed-snap scrollable picker — same pattern as CategoryPickerSheet.
-  // The legacy fitContent + manual list-height (windowHeight * 0.42) clipped
-  // the list on device because the dynamic content height didn't bound the
-  // scroll view. size="md" gives a stable mid-height snap and flex:1 lets the
-  // list scroll inside it without any manual height calculation.
+  // A dynamic sheet height does not bound the scroll view and clips the list; use a fixed snap.
   return (
     <Sheet
       isOpen={isOpen}

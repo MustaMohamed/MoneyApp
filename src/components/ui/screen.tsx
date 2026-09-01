@@ -57,9 +57,7 @@ export interface ScreenScrollProps extends ScrollViewProps {
   className?: string;
 }
 
-// ScrollView with flex: 1 + flexGrow on the content container baked in.
-// Same rationale as Screen — keeps the flex chain unbroken without relying
-// on className=flex-1 working on a wrapper.
+// A `flex-1` className does not hold the flex chain, so `flex` and `flexGrow` go in `style`.
 export function ScreenScroll({
   className,
   contentContainerStyle,

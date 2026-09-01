@@ -6,17 +6,7 @@ import {
 } from '@/components/ui/state_screen.geometry';
 import { Spacing } from '@/constants/theme';
 
-// Logic-only pin for the shared Empty/ErrorState geometry (W2G §4.2/§4.3,
-// #290 cluster 1). Repo policy forbids UI-component render tests, so this
-// cannot prove either component actually renders with these values — that is
-// the device-QA walk's job (gate 3). What this guards against is the two
-// components' geometry drifting apart again, or the shared slots re-splitting
-// into per-kind duplicates.
-//
-// jest-expo mocks the window at 750pt, so responsiveScale clamps to the 1.15
-// ceiling (onboarding_ready.geometry.test.ts:42-44) — every pinned number
-// below is that clamp's output, not the 390pt design value: `ms(64)` reads 74
-// here, not 64. A bare `toBe(64)` would fail under this suite.
+// jest-expo mocks a 750pt window, so `responsiveScale` clamps at 1.15: `ms(64)` reads 74 here.
 
 const errorLayout = resolveStateScreenLayout('error');
 const emptyLayout = resolveStateScreenLayout('empty');
@@ -108,9 +98,6 @@ describe('resolveStateScreenLayout — the icon circle never goes out of round',
 });
 
 describe('resolveStateScreenLayout — the action slot differs by kind', () => {
-  // ErrorState's Button is mandatory and full-width, bounded by the same
-  // maxWidth as the body copy; EmptyState's CTA (where it has one at all)
-  // sizes itself and only takes the top gap.
   it('error stretches full width, capped at the shared body max width', () => {
     expect(errorLayout.action.width).toBe('100%');
     expect(errorLayout.action.maxWidth).toBe(STATE_SCREEN_LAYOUT.error.bodyMaxWidth);

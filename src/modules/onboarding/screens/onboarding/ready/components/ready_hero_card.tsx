@@ -37,20 +37,7 @@ export interface ReadyHeroCardProps {
   summary: ReadySummaryState;
 }
 
-/**
- * N4's hero card — mockup.html:2332-2341, `.hero`. Four stacked slots with
- * FIXED heights, which is the whole zero-shift contract: the value slot holds
- * a 40px number in five states and a 22px refusal line in another, the caption
- * slot holds `N4_HERO_CAPTION_MAX_LINES` lines, and the card is the same height
- * in all nine.
- *
- * The gradient, the grid texture and the corner glow are `HeroShell`'s; this
- * component draws only what sits on top of them.
- *
- * No red, anywhere. The value is `text-accent` in every state including the
- * negative and zero frames — this screen deliberately does not adopt
- * `stat_cards.tsx`'s sign colouring, and it does not import the dashboard hero.
- */
+/** The value is `text-accent` in every state, including negative and zero; no red anywhere. */
 export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
   const { outcome, frame, accountCount, foreignCount, foreignCurrency, baseCurrency, pills } =
     summary;
@@ -85,9 +72,7 @@ export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
           accessible
           accessibilityLabel={Strings.n4RateNeededValue}
         >
-          {/* Warning, not danger — nothing failed, and the CTA stays enabled.
-              No number, no dash-as-number, no partial total, no substituted
-              rate: `INITIAL_STATE.rate` is an unverified guess. */}
+          {/* Warning, not danger: an unverified rate shows no number at all. */}
           <MaterialCommunityIcons
             name="alert-outline"
             size={Size.iconMd}
@@ -105,11 +90,7 @@ export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
       )}
 
       <View style={N4_HERO_CAPTION_SLOT_STYLE}>
-        {/* The caption's counterpart to the value's `numberOfLines={1}`, and
-            load-bearing for the same reason: the slot above is a fixed dp
-            height with `overflow: hidden`, so an uncapped overflowing line is
-            drawn and then sliced mid-glyph rather than ellipsised. The cap
-            itself is named beside that slot, as `N4_HERO_CAPTION_MAX_LINES`. */}
+        {/* The slot is fixed-height with `overflow: hidden`, so an uncapped line is sliced. */}
         <Typography
           className="text-foreground font-inter"
           style={N4_HERO_CAPTION_TEXT_STYLE}
@@ -135,17 +116,7 @@ export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
   );
 }
 
-/**
- * The amount, as the two nodes `.hero-v .n` and its nested `.cur`
- * (mockup.html:2334). `numberOfLines={1}` is `.hero-v`'s `white-space: nowrap`
- * (mockup.html:679), and it is load-bearing: the slot is a fixed height with
- * `overflow: hidden`, so without it a long amount wraps and gets sliced
- * mid-number instead of stepping down.
- *
- * The split, the step-down rung, the explicit decimals and the a11y label are
- * `ready.helpers.ts`'s — see `resolveHeroAmountParts`, `resolveHeroValueTextStyle`
- * and `resolveHeroValueA11yLabel` there for the reasoning.
- */
+/** `numberOfLines={1}` is load-bearing: the slot is fixed-height, so a wrapped amount is sliced. */
 function HeroValue({ value, baseCurrency }: { value: number; baseCurrency: Currency }) {
   const { value: amountString, code } = resolveHeroAmountParts(value, baseCurrency);
 
@@ -161,9 +132,7 @@ function HeroValue({ value, baseCurrency }: { value: number; baseCurrency: Curre
         numberOfLines={1}
       >
         {amountString}
-        {/* mockup.html:687 draws `.cur` at weight 600 inside the value's 700 —
-            one class carries family and weight together, so the nested node
-            names its own face rather than inheriting the bold one. */}
+        {/* One class carries family and weight, so the nested node names its own face. */}
         <Text className="font-sora-semibold" style={N4_HERO_CURRENCY_TEXT_STYLE}>
           {` ${code}`}
         </Text>

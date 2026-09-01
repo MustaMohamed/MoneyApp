@@ -42,8 +42,7 @@ export async function getBudgetRowsForCategoryMonth(
   );
 }
 
-// Preserve row identity on edits and natural-key copy-over updates so linked
-// transactions keep their budget_id foreign key assignment.
+// Both `ON CONFLICT` arms update in place so linked transactions keep their `budget_id`.
 export async function setBudgetRow(db: SQLiteDatabase, row: Budget): Promise<void> {
   if (
     typeof row.limit_amount !== 'number' ||

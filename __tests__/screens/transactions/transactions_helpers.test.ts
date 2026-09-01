@@ -174,11 +174,6 @@ describe('transactions summary presentation helpers', () => {
     expect(formatSignedAmount(-1200, 'net')).toBe('-1,200');
   });
 
-  // MA-016 P8 F-1: formatSignedAmount composes its own sign around Math.abs(value), so
-  // formatAmount's -0 guard never sees it — a net delta rounded to "0" at EGP's 0dp
-  // precision still carried whichever sign the metric branch computed, printing e.g. a
-  // "-0" net tile for a genuine 0.40 deficit, and — pre-existing — beside a true tie.
-  // See docs/adr/2026-08-21-currency-aware-display-decimals.md §2.1.
   it('escalates a net delta that rounds to zero at 0dp, so a deficit never reads as parity', () => {
     // income 100.20, expense 100.60 -> net -0.40
     expect(formatSignedAmount(-0.4, 'net')).toBe('-0.40');

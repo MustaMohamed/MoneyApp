@@ -22,12 +22,7 @@ import { useMoreAccountsAnim } from './more_accounts.anim';
 import { N3_HEADLINE_LINE_HEIGHT_RATIO, N3_HEADLINE_TRACKING_EM } from './more_accounts.geometry';
 import { useMoreAccounts } from './more_accounts.hook';
 
-/**
- * Both headline lines share one text style — the mockup draws them as a single
- * `.b-headline` split by a `<br>` (mockup.html:2014). `Math.round` matches
- * `lineHeightFor`'s own rounding (theme.ts:124-126) and avoids a sub-pixel
- * line box.
- */
+/** mockup.html:2014, `.b-headline`; `Math.round` matches `lineHeightFor`'s own rounding. */
 const N3_HEADLINE_TEXT_STYLE = {
   fontSize: Type.hero,
   lineHeight: Math.round(Type.hero * N3_HEADLINE_LINE_HEIGHT_RATIO),
@@ -43,19 +38,10 @@ export default function MoreAccountsScreen() {
   const { introEntering, listEntering } = useMoreAccountsAnim(accounts.length > 0);
 
   const onBackPress = () => {
-    // onBack and handleContinue below both catch their own failure inside
-    // runOnboardingTransition and resolve; void discards no rejection.
+    // `runOnboardingTransition` catches inside and resolves, so `void` discards no rejection.
     void onBack();
   };
 
-  /**
-   * E3, the honest dead end — mockup § E frame E3. No ghost numeral, no gold
-   * rule, no success chip and no headline block: the Broadsheet composition
-   * belongs to the populated screen (S14). The shell keeps its header, back
-   * chevron and progress rail. The early return sits after both hooks so the
-   * rules of hooks hold; the entering values simply go unused, which is what
-   * "E3 skips the animations" means — it has no blocks, not no hook.
-   */
   if (accounts.length === 0) {
     return (
       <OnboardingShell
@@ -103,7 +89,6 @@ export default function MoreAccountsScreen() {
         <ScreenScroll
           contentContainerStyle={{ paddingHorizontal: Spacing.md, paddingBottom: Spacing.lg }}
         >
-          {/* Block 1 — chip, gold rule, headline, body. */}
           <Animated.View entering={introEntering}>
             <SuccessChip label={Strings.n3SuccessChip} />
 
@@ -133,8 +118,6 @@ export default function MoreAccountsScreen() {
             </Typography>
           </Animated.View>
 
-          {/* Block 2 — count slab, list group, secondary action. The list
-              itself never animates (S6). */}
           <Animated.View entering={listEntering} style={{ marginTop: Spacing.lg }}>
             <View
               style={{
@@ -145,9 +128,7 @@ export default function MoreAccountsScreen() {
                 marginBottom: Spacing.xs,
               }}
             >
-              {/* n3ListLabel, not n3HeaderTitle — the two are byte-identical
-                  today and mean different things; the header title is passed
-                  to the shell above. */}
+              {/* `n3ListLabel`, not `n3HeaderTitle`: byte-identical today, different meanings. */}
               <Typography
                 className="text-content-secondary font-inter-semibold"
                 style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail) }}
@@ -163,43 +144,16 @@ export default function MoreAccountsScreen() {
             </View>
 
             <ListCard>
-              {/* Unvirtualized, deliberately (#248). AccountRow's render body makes three
-                  resolver calls per row — the direct `formatCurrencyParts` call,
-                  `resolveAccountRowA11yLabel`, and `resolveAccountRowDotColor`
-                  (`account_row.tsx:49,55,64`) — so N3's 1-5 accounts cost up to 15 calls
-                  today (3 × 5). `resolveAccountRowA11yLabel` makes a fourth call
-                  internally, a nested `formatCurrencyParts` (`more_accounts.geometry.ts:92`),
-                  so counted at the formatter level the per-row cost is 4, not 3. At the
-                  issue's stated 60-row scale that is 180 resolver calls (3 × 60) or 240
-                  total formatter-level calls (4 × 60) — either count is well short of the
-                  hundreds a virtualized list earns its keep at. (`formatCurrencyParts`'s
-                  `Intl.NumberFormat` is cached by `decimals`, `format_amount.ts:39-50`, so
-                  construction itself isn't a per-row cost — the calls above are.)
-                  A virtualized branch is also structurally unavailable here: this list
-                  lives inside `ScreenScroll`, a plain vertical `ScrollView`
-                  (`screen.tsx:64-78`), and a same-orientation `FlatList`/`FlashList` nested
-                  inside one triggers RN's nested-VirtualizedList warning and virtualizes
-                  nothing. The dashboard's account carousel virtualizes past a threshold
-                  (`shouldVirtualizeAccountCarousel`, `account_carousel.tsx:113-133`) but
-                  that precedent doesn't transfer: its list is horizontal, with no such
-                  host to nest inside. #248's other gap — no cap on account count — is
-                  retired deliberately by this comment, not closed by code. */}
+              {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
               {accounts.map((account, index) => (
                 <React.Fragment key={account.id}>
-                  {/* Full bleed, and drawn by the parent: with `index` gone from
-                      AccountRow the row cannot know it is first. `thickness`
-                      pins Size.hairline over the variant class's
-                      hairlineWidth(), which is ~0.33dp on a 3x device against
-                      the group border's 1. */}
+                  {/* `thickness` pins `Size.hairline` over `hairlineWidth()`, ~0.33dp at 3x. */}
                   {index > 0 ? <Separator thickness={Size.hairline} /> : null}
                   <AccountRow account={account} />
                 </React.Fragment>
               ))}
             </ListCard>
 
-            {/* 48pt button centred in a reserved 52 slot — the shape the scope
-                spec already settled for the footer CTA, reused rather than
-                forcing a height onto the primitive. */}
             <View
               style={{
                 height: Size.ctaHeight,

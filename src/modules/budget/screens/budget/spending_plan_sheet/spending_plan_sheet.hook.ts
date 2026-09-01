@@ -93,20 +93,13 @@ export function useSpendingPlanSheet({
     () => budgetableCategories.filter((category) => selectedCategoryIds.includes(category.id)),
     [budgetableCategories, selectedCategoryIds],
   );
-  // preview only. An unentered total stays `undefined` rather than being
-  // coerced to 0, which is what made an allocated plan read as over-allocated
-  // before a total was typed.
+  // An unentered total stays `undefined`, never coerced to 0.
   const totalAmount = parsePositiveDecimal(watch('totalText'));
-  // One verdict per row that the save will actually carry: mapped over the
-  // selected categories — the same expression the submit builds `categories`
-  // from — and empty while allocation is switched off, so a row the save
-  // ignores can neither count against the total nor block the save with an
-  // error attached to nothing on screen.
+  // Mapped over the same ids the submit sends, so a row the save ignores cannot block it.
   const allocationFields = allocateByCategory
     ? selectedCategoryIds.map((categoryId) => {
         const validation = validateAllocationText(allocations[categoryId] ?? '');
-        // @layla Q8: every row the validator rejects — blank, pattern-invalid
-        // and floor-violating alike — contributes 0, decided at this one call.
+        // Every row the validator rejects contributes 0 to the allocated total.
         return { categoryId, validation, amount: validation.ok ? validation.value : undefined };
       })
     : [];
@@ -114,9 +107,7 @@ export function useSpendingPlanSheet({
     totalAmount,
     allocationFields.map((field) => field.amount),
   );
-  // Derived per render from the store's text, never written back: an error
-  // string is not draft data. An incomplete decimal stays silent until a Save
-  // is blocked (spec §5.6's display rule).
+  // An incomplete decimal stays silent until a Save is blocked.
   const allocationErrors: Record<string, string | undefined> = Object.fromEntries(
     allocationFields.map(({ categoryId, validation }) => [
       categoryId,
@@ -138,10 +129,7 @@ export function useSpendingPlanSheet({
       return;
     }
     if (planSheetMode === 'edit' && editingPlan) {
-      // Not `String(editingPlan.totalAmount)`: the total goes through the same
-      // unbounded parser an allocation does, so a plan saved at 1e21 prefills
-      // as '1e+21' — text `DECIMAL_PATTERN` rejects, leaving a total the sheet
-      // will not save back (spec row 25, on this field).
+      // Not raw `String()`: a total of 1e21 prefills as '1e+21', which `DECIMAL_PATTERN` rejects.
       resetForm({
         nameText: editingPlan.name,
         totalText: formatStoredMoneyText(editingPlan.totalAmount),
@@ -177,47 +165,15 @@ export function useSpendingPlanSheet({
   const submit = handleSubmit(
     async (values) => {
       if (useSpendingPlanSheetState.getState().saving) return;
-      // The pre-flight is what stops a rejected row from being written as
-      // "unallocated". A row the validator rejects carries `amount: undefined`
-      // (see `allocationFields`), so `allocatedByCategoryId` yields `undefined`
-      // for it below and `allocated_amount` binds as NULL — which reads back as
-      // absent, not as a failure. Nothing downstream objects: `allocatedAmount`
-      // is `.optional()` in `spendingPlanInputSchema`, so absent is exactly what
-      // that schema permits. Without this early return a typed `0.005` saves as
-      // "no allocation" instead of blocking the save with its floor message.
-      // The rows checked are the ones the save carries, so an orphan allocation
-      // on a deselected category cannot block Save with an error attached to no
-      // visible row.
+      // Without this return a rejected row would save as NULL rather than blocking the save.
       if (allocationFields.some(({ validation }) => !validation.ok)) {
         const preflight = useSpendingPlanSheetState.getState();
         preflight.setAllocationSubmitAttempted(true);
-        // The row message alone is not a response to the tap. It renders in a
-        // 128px column inside the scroll view; Save is in the sheet's fixed
-        // footer, which does not scroll with it. With the offending row off
-        // screen, unmuting it changes nothing in the viewport and the button
-        // reads as dead.
-        //
-        // Setting it is also what clears a stale one — a repository failure
-        // from the previous attempt otherwise stays on screen describing a
-        // problem that is no longer what is blocking the save. One write does
-        // both, so there is no separate clear to forget.
-        //
-        // `budgetPlanAllocationInvalid` is the sheet-level wording for exactly
-        // this rule, already carried for `spendingPlanInputSchema`'s refine
-        // (see its note in `strings.ts`) — the same rule failing one layer
-        // earlier gets the same sentence, and no new string is introduced.
+        // Save sits in the fixed footer, so an off-screen row message alone reads as dead.
         preflight.setSubmitError(Strings.budgetPlanAllocationInvalid);
         return;
       }
-      // Hoisted out of the `input` literal below rather than folded into the
-      // save try/catch further down: that try also wraps `setSaving(true)`,
-      // and moving the parse into it would put a state change after
-      // validation could still fail this field. A schema/submit desync here
-      // (unreachable today — the refine below and this call share
-      // `parsePositiveDecimal`) reports through the same sheet-bottom
-      // message a repository failure uses, not the schema's own NaN issue
-      // text, and returns before `setSaving` runs, so there is no saving
-      // flag left dirty to clean up.
+      // Parsed before `setSaving(true)` so a failure returns with no saving flag left set.
       let totalAmount: number;
       try {
         totalAmount = parseRequiredMoneyText(values.totalText, 'totalText');
@@ -270,13 +226,7 @@ export function useSpendingPlanSheet({
       }
     },
     () => {
-      // `handleSubmit`'s onInvalid leg. RHF sets `isSubmitted` on any submit
-      // ATTEMPT, and spec §5.6 gives this flag the same semantics: an incomplete
-      // allocation row stays silent until a Save is blocked, whichever leg blocks
-      // it. Set only in the valid callback, it is narrower than the sentence it
-      // implements: a Save the plan total blocks never reaches that callback, so
-      // the half-typed row beside it stays mute while the sheet reports an error
-      // — two problems on screen and one message between them.
+      // Also set here: a Save blocked by the plan total never reaches the valid callback.
       useSpendingPlanSheetState.getState().setAllocationSubmitAttempted(true);
     },
   );
@@ -285,10 +235,7 @@ export function useSpendingPlanSheet({
     datePickerTarget === 'end'
       ? endDate || `${selectedMonth}-01`
       : startDate || `${selectedMonth}-01`;
-  // Hidden, not zeroed: the line is `undefined` exactly when
-  // `parsePositiveDecimal(totalText)` is, and `sumAllocations` returns
-  // `buffer: undefined` for exactly that input. The two clauses are one
-  // condition; narrowing either does not narrow the other.
+  // The two clauses below are one condition; narrowing either does not narrow the other.
   const { allocated, buffer } = allocationHelper;
   const helperText =
     buffer === undefined || totalAmount === undefined
@@ -332,37 +279,18 @@ export function useSpendingPlanSheet({
     setAllocateByCategory: (enabled: boolean) =>
       useSpendingPlanSheetStore.getState().setAllocateByCategory(enabled),
     setAllocationText: (categoryId: string, text: string) => {
-      // The prior held text is read back from the store rather than passed in:
-      // the row renders `props.values[category.id] ?? ''` from this same
-      // record, so this is what is on screen, and no prop is added to carry it.
-      //
-      // Refused or normalised, never truncated: a comma typed into the row
-      // becomes a decimal point, a comma arriving in a paste-shaped delta puts
-      // nothing in the field, and '0.005' survives to the row validator to
-      // produce its floor message instead of being rounded into '0.00' on the
-      // way in.
+      // The mask refuses or normalises, never truncates, so '0.005' reaches the row validator.
       const previous = useSpendingPlanSheetStore.getState().allocations[categoryId] ?? '';
       const masked = maskMoneyFieldText(previous, text);
       if (masked === undefined) return;
-      // Mask, clear, write. The footer message is a pre-flight verdict on text
-      // that has since changed, so an accepted edit retires it -- otherwise the
-      // sheet keeps claiming a block above Save, permanently in view, after the
-      // row that caused it was fixed. Clearing above the guard instead would let
-      // a refused keystroke wipe an error the user still needs to read.
+      // Clear after the mask guard, so a refused keystroke cannot wipe a visible error.
       useSpendingPlanSheetState.getState().setSubmitError(undefined);
       useSpendingPlanSheetStore.getState().setAllocation(categoryId, masked);
     },
-    // The same clear for the plan name and total, threaded to the one shared
-    // handler behind both Controllers. One footer message serves all three
-    // inputs; leaving two of them able to strand it would put the sheet's
-    // honesty on which field the user happened to touch.
     clearSubmitError: () => useSpendingPlanSheetState.getState().setSubmitError(undefined),
     openDatePicker: (target: SpendingPlanDatePickerTarget) =>
       useSpendingPlanSheetState.getState().openDatePicker(target),
-    // datetimepicker 9 split the old single `onChange` in two. Closing the picker
-    // was unconditional under `onChange` — it ran outside the `event.type === 'set'`
-    // check — so both halves must still close it, or cancelling leaves the picker
-    // mounted with no way back out.
+    // datetimepicker 9 split `onChange` in two; both legs must close or cancel leaves it mounted.
     selectDate: (
       target: SpendingPlanDatePickerTarget,
       _event: DateTimePickerChangeEvent,

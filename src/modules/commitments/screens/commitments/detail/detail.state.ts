@@ -6,8 +6,6 @@ import type { CommitmentPayment } from '../../../entities/commitment_payment.ent
 
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
 
-// --- UI interaction state (skip confirmation dialog) ---
-
 interface DetailStateShape {
   skipConfirmVisible: boolean;
 }
@@ -28,10 +26,6 @@ export const useCommitmentDetailState = createMoneyAppSelectors(
     reset: () => set(INITIAL_STATE),
   })),
 );
-
-// --- Screen-level data state (async-loaded payments + view state) ---
-// Relocated from detail.hook.ts to satisfy CLAUDE.md screens/ anatomy:
-// Zustand stores belong in *.state.ts, never in *.hook.ts.
 
 interface DetailScreenDataShape {
   allPayments: CommitmentPayment[];

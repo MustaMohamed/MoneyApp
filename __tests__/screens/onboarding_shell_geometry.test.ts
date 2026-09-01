@@ -12,13 +12,6 @@ import {
 import { ms } from '@/utils/responsive';
 
 describe('onboarding shell geometry', () => {
-  // What this test proves and does not: it binds ONBOARDING_SHELL_TRACKS to
-  // the tokens. It does NOT prove the four .tsx routes consume that constant
-  // — that link is closed by the emulator offset comparison (task § A) and by
-  // @impl-reviewer reading the diff for a literal where a track height
-  // belongs. A render suite would close it in CI, but .claude/rules/tests.md
-  // is "keep the files, don't add to them" for .tsx render suites, so a new
-  // one here would be against policy, not merely unfashionable.
   it('binds every track to its named token', () => {
     expect(ONBOARDING_SHELL_TRACKS.header).toBe(Size.headerHeight);
     expect(ONBOARDING_SHELL_TRACKS.progressRail).toBe(Size.progressRail);
@@ -97,7 +90,7 @@ describe('ambient wash geometry — mockup.html:428-433 (.aurora)', () => {
   it('places the gold ellipse above the top-left corner', () => {
     const { gold } = resolveAmbientWashGeometry(390, 844);
     expect(gold.cx).toBeCloseTo(39, 5); // 10% of width
-    expect(gold.cy).toBeCloseTo(-50.64, 5); // -6% of height — deliberately off-canvas
+    expect(gold.cy).toBeCloseTo(-50.64, 5); // -6% of height, deliberately off-canvas
     expect(gold.rx).toBe(ms(470));
     expect(gold.ry).toBe(ms(320));
   });

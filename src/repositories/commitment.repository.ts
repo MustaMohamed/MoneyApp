@@ -1,4 +1,4 @@
-// Backward-compat stub — canonical in modules/commitments/
+// Backward-compat stub; canonical in `modules/commitments/`.
 export {
   CommitmentRepository,
   commitmentRepository,

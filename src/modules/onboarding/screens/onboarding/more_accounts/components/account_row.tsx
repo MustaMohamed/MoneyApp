@@ -27,25 +27,9 @@ const TYPE_ICONS: Record<AccountType, IconName> = {
   [AccountType.CreditCard]: 'credit-card',
 };
 
-/**
- * One list row — mockup.html:2020-2023, `.lrow`. Three fixed columns: a flat
- * colour dot, the name over its account type, and the amount over its
- * currency code.
- *
- * The row carries no fill of its own: `ListGroup`'s Surface paints `--surface`
- * for the whole group and the row sits transparent on top (§5.3). It also
- * carries no `entering` and no `index` — the list never animates (S6, N-3), so
- * it cannot know whether it is first, which is why the divider is the parent's
- * to draw.
- *
- * `accessible` + one label makes a screen reader announce the row as one thing
- * instead of four. No `accessibilityRole`: `ListGroup.Item` is a `Pressable`
- * with no `onPress` here and must not announce as a button.
- */
+/** `accessible` announces the row once; no `accessibilityRole`, it is not pressable here. */
 export function AccountRow({ account }: { account: Account }) {
-  // Split into two nodes rather than routed through `formatCurrencyAmount`, which
-  // concatenates them, because the mockup stacks value over code (`.am > .v` then `.c`,
-  // mockup.html:626-628). Decimals still come from CURRENCY_CONFIG via `formatCurrencyParts`.
+  // Two nodes, not `formatCurrencyAmount`: the design stacks the value over the code.
   const { value, code } = formatCurrencyParts(account.current_balance, account.currency);
 
   return (
@@ -54,7 +38,7 @@ export function AccountRow({ account }: { account: Account }) {
       accessible
       accessibilityLabel={resolveAccountRowA11yLabel(account)}
     >
-      {/* Runtime hex — className is build-time only (.claude/rules/ui.md). */}
+      {/* Runtime hex: className is build-time only. */}
       <ListGroup.ItemPrefix
         style={{
           width: Size.colorDot,
@@ -75,9 +59,7 @@ export function AccountRow({ account }: { account: Account }) {
           {account.name}
         </ListGroup.ItemTitle>
 
-        {/* Not ListGroup.ItemDescription: its class is `color: var(--color-muted)`
-            (2.36:1), which the scope spec rules out for anything a user must
-            read, and a HeroText cannot host the leading glyph as a sibling. */}
+        {/* Not ItemDescription: its muted colour is 2.36:1 and cannot host the glyph sibling. */}
         <View
           style={{
             flexDirection: 'row',

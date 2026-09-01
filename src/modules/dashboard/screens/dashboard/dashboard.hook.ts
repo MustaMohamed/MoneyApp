@@ -64,29 +64,12 @@ export function useDashboard() {
   const { rate, isManualOverride, rateUpdatedAt } = useCurrencyStore(
     useShallow((state) => ({
       rate: state.rate,
-      // Both provenance fields feed `isRateUsable`, which accepts EITHER: the
-      // rate alone cannot tell a verified value from the placeholder, since
-      // `INITIAL_STATE.rate` is 50. `isManualOverride` was already selected here
-      // for `hero_card.tsx`'s manual badge; the gate is its second reader, not a
-      // new subscription.
+      // `INITIAL_STATE.rate` is 50, so provenance needs both fields, not the rate alone.
       isManualOverride: state.isManualOverride,
       rateUpdatedAt: state.rate_updated_at,
     })),
   );
-  // The base currency enters the dashboard HERE and nowhere else, then travels
-  // down as a parameter — no `domain/` file imports a store. A plain selector,
-  // not `useShallow`: it is a single scalar, matching `welcome.hook.ts:14` and
-  // `ready.hook.ts:19`.
-  //
-  // A screen-entry hook reads the store; a shared component hook takes the value
-  // as a parameter (`use_account_form.hook.ts:14-19`, whose two hosts disagree
-  // on the value). This hook backs a one-line route re-export and has no host to
-  // pass from.
-  //
-  // No new loading state is needed: `use_layout_init.hook.ts:38` awaits
-  // `initOnboarding()` inside its startup `Promise.all`, and `_layout.tsx:78`
-  // renders `<Stack>` only at `status === 'ready'`, so the store is hydrated
-  // before this screen mounts.
+  // The base currency enters here and passes down as a parameter; `domain/` never imports a store.
   const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
   const { isBreakdownVisible, selectedSegment } = useDashboardState(
     useShallow((state) => ({
@@ -170,12 +153,7 @@ export function useDashboard() {
     () => computeNetWorth({ accounts, baseCurrency, rate, rateUpdatedAt, isManualOverride }),
     [accounts, baseCurrency, isManualOverride, rate, rateUpdatedAt],
   );
-  // Decided ONCE, here, and passed down to every surface that converts. The
-  // account cards used to answer this question for themselves — their "In EGP"
-  // row converted unconditionally — which is how the accounts tab came to
-  // render `5,000 EGP` under a strip refusing to state a total. Re-deriving
-  // provenance as `rate > 0` at a display layer is the defect class #255 exists
-  // to remove: `INITIAL_STATE.rate` is 50.
+  // Decided once here and passed down; never re-derive provenance as `rate > 0` when displaying.
   const rateUsable = isRateUsable({ rate, rateUpdatedAt, isManualOverride });
   const liquidity = useMemo(
     () => computeLiquidityBreakdown(accounts, rate, baseCurrency),

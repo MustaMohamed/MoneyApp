@@ -200,9 +200,6 @@ describe('toNewAccountInput — rounding, roundMoney half-even', () => {
   });
 });
 
-// W2E §3.2 row 3 / §8.3 — apr now maps through optionalPercent
-// (parseDecimalText + roundMoney quantization), not optionalAmount: below
-// MIN_MONEY_AMOUNT is a valid, quantized percentage, not a rejected amount.
 describe('toNewAccountInput — apr, optionalPercent quantization (§3.3)', () => {
   const cc = (apr: string) =>
     baseData({
@@ -242,13 +239,6 @@ describe('toNewAccountInput — credit vs non-credit', () => {
     expect(result.apr).toBeNull();
   });
 
-  // interest_tracking now gates on isCC (spec.md:296 — "interest_tracking
-  // persists 0" on every non-credit type). MA-007 left this write ungated
-  // deliberately and named this task in its own comment; this test used to
-  // pin the ungated write and now pins the gate it was left for. Draft
-  // retention across a type switch (MA-009 plan decision 4) is exactly what
-  // makes a retained credit draft's interest_tracking=true reachable on a
-  // Bank save, so the gate has to hold here, not just in the UI.
   it('interest_tracking is gated by isCC — a retained credit draft never leaks true onto a non-credit save', () => {
     const data = baseData({ selected_type: AccountType.Bank, interest_tracking: true });
     expect(toNewAccountInput(data, { sortOrder: 0 }).interest_tracking).toBe(0);
@@ -302,11 +292,6 @@ describe('toNewAccountInput — blank vs explicit zero', () => {
   });
 });
 
-// @layla's ruling, spec.md § "revolving_balance at creation — ruled": a pure
-// derivation from `type` alone, never a validated user input, never mirrored
-// from opening_balance. Part A is her table verbatim; Parts B and C
-// (confirmation tests over the unmodified transactions domain) live in
-// __tests__/transactions/card_revolving_seed.test.ts.
 describe("toNewAccountInput — revolving_balance, @layla's Part A", () => {
   it.each([
     ['A1 New bank account', AccountType.Bank, 5000, null],
@@ -334,8 +319,6 @@ describe("toNewAccountInput — revolving_balance, @layla's Part A", () => {
     },
   );
 
-  // The assertion that fails if anyone re-derives revolving_balance from the
-  // balance — the outcome @layla explicitly rejected (spec.md:308).
   it('is independent of opening_balance — same type, any balance, identical result', () => {
     const results = ['0', '8450', '1,234,567.89'].map(
       (balance) =>
@@ -348,10 +331,6 @@ describe("toNewAccountInput — revolving_balance, @layla's Part A", () => {
   });
 });
 
-// Decision 4's persistence half: every credit-only column, including
-// interest_tracking, must come back null/0 on a non-credit save even when a
-// retained credit draft still carries values in RHF (the validation half is
-// the schema's off-type gating test).
 describe('toNewAccountInput — off-type leakage, every credit column', () => {
   it.each(Object.values(AccountType).filter((type) => type !== AccountType.CreditCard))(
     '%s with a full retained credit draft → every credit column absent',

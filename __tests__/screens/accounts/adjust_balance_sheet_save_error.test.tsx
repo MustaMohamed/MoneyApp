@@ -1,26 +1,3 @@
-/**
- * adjust_balance_sheet_save_error.test.tsx
- *
- * `AdjustBalanceSheet.handleSave`, and only that. P8 cycle 3 H2/H5: the screen
- * hook's `handleAdjustBalance` had no catch and its one caller discarded the
- * promise, so a repository failure became an unhandled rejection — the sheet
- * stayed open, the Save Balance button went idle, and nothing was said. The
- * catch belongs here rather than in the hook: this component owns the `error`
- * channel it renders through (.claude/rules/state.md), and the hook has exactly
- * one caller, this sheet's `onSave`.
- *
- * That placement is what makes the `await` on `onSave` load-bearing. Drop it and
- * the rejection leaves the try before it settles, the catch never runs, and the
- * failure is silent again — so the first case here reds on that mutation alone.
- *
- * `handleSave` lives in the render body of a `.tsx`, so no logic-only `.ts`
- * suite can reach it; same justification P9 accepted for
- * pay_sheet_converted_total.test.tsx. Mocking follows pay_sheet_rate_error:
- * `Input` and `FormErrorText` are stubbed to the props under test rather than to
- * `null`, because asserting a prop the stub throws away asserts nothing. The
- * error store is the real one — it is the channel being verified.
- */
-
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
@@ -63,8 +40,6 @@ jest.mock('@/components/ui/button', () => ({
     return <Text onPress={isDisabled ? undefined : onPress}>{label}</Text>;
   },
 }));
-// Reduced to the props these assertions read. The real Input drags in HeroUI's
-// TextField shell, none of which this suite is about.
 jest.mock('@/components/ui/input', () => ({
   Input: ({
     value,
@@ -124,8 +99,7 @@ describe('AdjustBalanceSheet save failure', () => {
     await waitFor(() =>
       expect(getByTestId('balance-error')).toHaveTextContent(Strings.adjustBalanceSaveError),
     );
-    // Not the parse error: that one asks the user to change what they typed,
-    // this one to retry the same value. Sharing a message would mis-instruct.
+    // The parse error asks the user to change the value; this one asks them to retry it.
     expect(getByTestId('balance-error')).not.toHaveTextContent(Strings.errBalanceInvalid);
   });
 
@@ -158,7 +132,6 @@ describe('AdjustBalanceSheet save failure', () => {
     await fireEvent.press(getByText(Strings.adjustBalanceSave));
     expect(getByTestId('balance-error')).toHaveTextContent(Strings.errBalanceInvalid);
 
-    // The user fixes the input; the write is what fails this time.
     await fireEvent.changeText(getByTestId('balance-input'), '31000');
     await fireEvent.press(getByText(Strings.adjustBalanceSave));
 

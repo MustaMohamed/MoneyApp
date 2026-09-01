@@ -1,13 +1,6 @@
 import { Dimensions, PixelRatio } from 'react-native';
 
-/**
- * Responsive sizing helpers.
- *
- * The design tokens in `constants/theme.ts` are specified at the iPhone 14
- * point width (390pt). On other devices we scale linearly with the device
- * width, clamped to a sensible range so iPads and very small phones don't
- * drift into giant- or microscopic-text territory.
- */
+// Tokens in `constants/theme.ts` are authored at the iPhone 14 width (390pt) and scale from it.
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 390;
@@ -26,5 +19,5 @@ export function msFont(n: number): number {
   return PixelRatio.roundToNearestPixel(n * SCALE);
 }
 
-/** Raw scale factor (e.g. 0.92 on a small phone, 1.10 on a Pro Max). Exposed for edge cases. */
+/** Raw scale factor: 0.92 on a small phone, 1.10 on a Pro Max. */
 export const responsiveScale = SCALE;

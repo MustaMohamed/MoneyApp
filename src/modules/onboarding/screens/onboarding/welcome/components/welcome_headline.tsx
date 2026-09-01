@@ -14,19 +14,8 @@ import {
   GoldRule,
 } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 
-/**
- * Block 1 — eyebrow, gold rule, the two matched headline lines
- * (mockup.html:1036-1042). Line 1 is a plain RN `Text` drawn from the same
- * geometry resolver as line 2's SVG, with `allowFontScaling={false}`, so the
- * two lines scale linearly and identically (MA-010 decision D3) — the fix
- * for the 5.52dp native-vs-linear divergence MA-002 deferred.
- *
- * No `style` prop reaches `DisplayHeadline`, and no `gap`/margin sits
- * between the two lines (MA-010 decision D1): the component's own negative
- * `topInset` is what makes the SVG line occupy exactly one 1.05 line box
- * under line 1. Spacing above the headline is carried by this block's own
- * container, not by the headline component.
- */
+// Line 1 uses line 2's geometry resolver with font scaling off, so the two lines stay matched.
+/** No gap between the lines: `DisplayHeadline`'s negative `topInset` owns the spacing. */
 export function WelcomeHeadline() {
   const { fontScale } = useWindowDimensions();
   const line1Style = resolveDisplayHeadlineTextStyle(

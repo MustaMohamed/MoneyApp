@@ -9,21 +9,13 @@ import {
   type AccountColorTone,
 } from '@/modules/accounts/constants/account_palette';
 
-/**
- * Pure geometry, grid model and a11y-label resolvers for the 32-colour sheet
- * (MA-006). Every width-dependent value is a parameter, never a module-scope
- * token read, so a unit test can sweep screen widths despite jest-expo
- * pinning `Dimensions` to a single value. See plan step 3 for the reasoning.
- */
+// Keep width-dependent values as parameters: jest-expo pins `Dimensions`, so tests cannot sweep.
 
 // mockup D1/D2: eight columns, two rows per tone block.
 export const ACCOUNT_COLOR_GRID_COLUMNS = 8;
 export const ACCOUNT_COLOR_GRID_ROWS_PER_BLOCK = 2;
 
-// ms(3) and ms(2) are the identity at both ends of the [0.85, 1.15] clamp
-// (Math.round(3 * 0.85) = 3, Math.round(3 * 1.15) = 3, same for 2) — writing
-// them through ms() would be a literal wearing a token, the same reasoning
-// onboarding_shell.geometry.ts:26-32 already applied to Size.hairline.
+// `ms(3)` and `ms(2)` are the identity across the [0.85, 1.15] clamp, so these stay literals.
 export const ACCOUNT_COLOR_CELL_PADDING = 3;
 export const ACCOUNT_COLOR_CELL_RING_WIDTH = 2;
 
@@ -46,8 +38,7 @@ export interface ColorGridMetrics {
 
 export function resolveColorGridMetrics(input: ColorGridMetricsInput): ColorGridMetrics {
   const columns = input.columns ?? ACCOUNT_COLOR_GRID_COLUMNS;
-  // No Math.round on cellWidth — 41.25 is the mockup's number and RN lays out
-  // sub-pixel widths fine.
+  // No rounding: 41.25 is the mockup's number and RN lays out sub-pixel widths fine.
   const cellWidth =
     (input.screenWidth - 2 * input.horizontalPadding - (columns - 1) * input.gap) / columns;
   const hitSlopX = Math.floor(input.gap / 2);
@@ -59,12 +50,7 @@ export function resolveColorGridMetrics(input: ColorGridMetricsInput): ColorGrid
   };
 }
 
-/**
- * Portrait-locked (app.json "orientation": "portrait"), so a module-scope read
- * is correct and matches what utils/responsive.ts:12 already does. Do not swap
- * this for useWindowDimensions — a hook here would make the component the only
- * consumer of a value the test has to reach without rendering.
- */
+/** Portrait-locked, so this module-scope read is correct; do not swap in `useWindowDimensions`. */
 export const ACCOUNT_COLOR_GRID_METRICS = resolveColorGridMetrics({
   screenWidth: Dimensions.get('window').width,
   horizontalPadding: Spacing.md,
@@ -94,13 +80,7 @@ const TONE_BLOCK_COPY: Record<AccountColorTone, { label: string; hint: string; c
     },
   };
 
-/**
- * Chunks the palette into the two tone blocks the sheet renders, each split
- * into rows of ACCOUNT_COLOR_GRID_COLUMNS. Because the palette's two halves
- * are already in identical family order (account_palette.ts:101-104, proven
- * by account_palette.test.ts:50-62), an identical chunk of both halves is
- * what produces the column pairing the Done-when clause requires.
- */
+/** Column pairing needs the palette's two tone halves in identical family order. */
 export function resolveAccountColorGrid(
   palette: readonly AccountColorEntry[] = ACCOUNT_PALETTE,
 ): ColorGridBlock[] {
@@ -126,11 +106,7 @@ export interface ColorTriggerModel {
   a11yLabel: string;
 }
 
-/**
- * The miss branch is unreachable today (both creation paths write
- * AcctTokens.*.rich — see account_palette.test.ts:104-111) and exists so a
- * hand-edited row cannot white-screen the form.
- */
+/** The miss branch is unreachable today; it stops a hand-edited hex white-screening the form. */
 export function resolveColorTriggerModel(hex: string): ColorTriggerModel {
   const entry = findAccountColor(hex);
   if (entry) {

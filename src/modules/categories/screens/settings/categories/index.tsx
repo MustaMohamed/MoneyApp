@@ -86,7 +86,6 @@ export default function CategoriesScreen() {
 
   return (
     <Screen edges={['bottom']}>
-      {/* Tab switcher */}
       <View style={{ marginHorizontal: Spacing.sm, marginVertical: Spacing.sm }}>
         <SegmentedTabs<CategoryType>
           segments={[
@@ -101,7 +100,7 @@ export default function CategoriesScreen() {
         />
       </View>
 
-      {/* List or EmptyState — flex:1 via style (not className) per CLAUDE.md Android Fabric rule */}
+      {/* flex:1 via style, not className: Uniwind `flex-1` collapses on Android Fabric. */}
       <View style={{ flex: 1 }}>
         {presentation.content === 'initialError' ? (
           <CategoryLoadError onRetry={() => void retryLoad()} />
@@ -129,7 +128,6 @@ export default function CategoriesScreen() {
         ) : null}
       </View>
 
-      {/* Bottom CTA or limit message */}
       <View className="border-separator border-t px-4 pt-2 pb-6">
         {!state.isAtLimit ? (
           <Button label={Strings.categoriesAddBtn} variant="primary" onPress={openAddSheet} />
@@ -140,7 +138,6 @@ export default function CategoriesScreen() {
         )}
       </View>
 
-      {/* Sheets and dialogs */}
       <AddEditCategorySheet
         isOpen={state.showAddSheet}
         editingCategory={state.editingCategory}

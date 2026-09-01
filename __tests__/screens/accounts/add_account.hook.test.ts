@@ -5,11 +5,7 @@ import { useAddAccountApp } from '@/modules/accounts/screens/accounts/add_accoun
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-// Hoisted to module scope (MA-008 T1): the suite's previous
-// `useRouter: () => ({ push: jest.fn(), back: jest.fn() })` mints a new fn
-// per call, so a call-count assertion against it is vacuous — the same
-// lesson already applied to mockLoadAccounts below. jest allows referencing
-// `mock`-prefixed identifiers inside jest.mock's factory (babel-plugin-jest-hoist).
+// Module scope keeps one fn identity; jest.mock factories may only use `mock`-prefixed names.
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 
@@ -21,17 +17,10 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: jest.fn(),
 }));
 
-// Hoisted to module scope: attachMockSelectorStore's factory is re-invoked
-// on every getState() call, so a `jest.fn()` built inside the factory would
-// give the test and the hook two different references — a
-// `not.toHaveBeenCalled()` assertion against that would pass vacuously, even
-// with the redundant load still in place.
+// Module scope: `attachMockSelectorStore` re-runs its factory per `getState()`, minting new fns.
 const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 
-// MA-008 T1: must republish mockAccounts, mirroring the real store's own
-// loadAccounts() republication (account.store.ts:82-91) — otherwise a
-// second submit() re-validates against an empty accounts array and the test
-// proves nothing about the post-completion bypass.
+// `addAccount` must republish `mockAccounts`, as the real store's `loadAccounts()` does.
 const mockAddAccount = jest.fn();
 let mockAccounts: { id: string; name: string }[] = [];
 

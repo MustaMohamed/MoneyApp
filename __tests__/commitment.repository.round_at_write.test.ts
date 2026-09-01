@@ -1,12 +1,3 @@
-/**
- * commitment.repository.round_at_write.test.ts
- *
- * c7 step 5: CommitmentRepository.add / .update round `amount` at the
- * method's first statement (ADR: money-rounding-layer §3 row 3 — class B,
- * no derived sibling). Bridges better-sqlite3 into the mocked expo-sqlite
- * surface the way `__tests__/transaction.repository.test.ts` does, so the
- * assertion is against the real `commitments` column, not a mocked call.
- */
 import Database from 'better-sqlite3';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
@@ -88,8 +79,6 @@ function readAmount(id: string): number | null {
 }
 
 describe('CommitmentRepository.add — rounds at the first statement', () => {
-  // Row 20. Gate: delete the `roundMoney` rebinding in `add` (compose the
-  // commitment from `data` instead of `input`) and this reads back 500.555.
   it('500.555 persists as 500.56', async () => {
     const repo = new CommitmentRepository();
     await repo.add(baseInput);
@@ -132,9 +121,7 @@ describe('CommitmentRepository.update — rounds at the first statement', () => 
     };
     await repo.update(id, updateData);
 
-    // 12.345 * 100 is exactly 1234.5 in IEEE-754 double (verified), so
-    // roundMoney's banker's-rounding (round-half-even) resolves it to the
-    // nearest even cent: 1234 (even) over 1236, i.e. 12.34 — not 12.35.
+    // 12.345 * 100 is exactly 1234.5, and banker's rounding picks the even cent: 12.34, not 12.35.
     expect(readAmount(id)).toBe(12.34);
   });
 

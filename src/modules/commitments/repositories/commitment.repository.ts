@@ -248,8 +248,7 @@ export class CommitmentRepository implements ICommitmentRepository {
       minimumPaymentSnapshot: null,
       source: toAccountSnapshot(account),
     });
-    // The resolver's rounded return, not the raw `details.amount_paid` — see
-    // the invariant note at commitment_payments.ts's amount_paid write.
+    // Persist the resolver's rounded amount, not the raw `details.amount_paid`.
     const paidDetails = { ...details, amount_paid: amounts.paymentAmount };
     await markCommitmentAsPaid(db, paymentId, paidDetails, tx, accountDelta);
     return amounts;

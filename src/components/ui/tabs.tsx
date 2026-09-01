@@ -11,126 +11,36 @@ export interface TabSegmentIcon {
   color: string;
 }
 
-/**
- * Descriptor for a single segment in a `SegmentedTabs` control.
- *
- * Generic `T extends string` lets call-sites bind to a concrete enum/union
- * (e.g. `TabSegment<Currency>`, `TabSegment<CategoryType>`) so that
- * `onValueChange` is fully type-safe.
- */
 export interface TabSegment<T extends string = string> {
-  /** Value key passed to HeroUI Tabs — must be unique within the segment list. */
+  /** Value key passed to HeroUI Tabs; must be unique within the segment list. */
   value: T;
-  /** Visible label text — rendered byte-identical; no transformation applied. */
   label: string;
   /** Accessibility label for this trigger; defaults to `label`. */
   accessibilityLabel?: string;
-  /** Optional leading icon for compact filters. */
   icon?: TabSegmentIcon;
 }
 
-/**
- * Visual appearance of the selected indicator.
- *
- * - `'default'`    — HeroUI primary look: `bg-default` pill container,
- *                    `bg-segment` animated indicator (theme-driven).
- * - `'solid-gold'` — Cairo Nights gold indicator fill (`Colors.shared.cairoGold`)
- *                    with midnight-blue selected label. Used by the Expense/Income
- *                    category switcher and EGP/USD currency pickers.
- */
 export type SegmentedTabsVariant = 'default' | 'solid-gold';
 export type SegmentedTabsDensity = 'default' | 'compact';
 
 export interface SegmentedTabsProps<T extends string = string> {
-  /**
-   * Ordered list of segments. Label strings are passed through unchanged.
-   */
   segments: TabSegment<T>[];
-  /** Currently selected segment value — caller owns state. */
+  /** Currently selected segment value; the caller owns the state. */
   value: T;
-  /** Called when a trigger is pressed with the new value. */
   onValueChange: (value: T) => void;
-  /**
-   * Visual variant.
-   * @default 'default'
-   */
   variant?: SegmentedTabsVariant;
-  /**
-   * Layout mode.
-   * - `'fixed'`      — triggers share full width equally (`flex-1` per trigger).
-   *                    Use for 2–4 segments in a bounded container.
-   * - `'scrollable'` — triggers use intrinsic width inside a horizontal
-   *                    ScrollView. Selected trigger is auto-scrolled to center.
-   *                    Use for variable-count or many-segment strips (e.g. month
-   *                    navigator).
-   * @default 'fixed'
-   */
   layout?: 'fixed' | 'scrollable';
-  /**
-   * Scroll-alignment for `'scrollable'` layout. `'visible'` keeps the selected
-   * fixed-width segment fully visible with the smallest needed scroll.
-   * @default 'center'
-   */
+  /** Scroll alignment for `'scrollable'`; `'visible'` scrolls the least to reveal it. */
   scrollAlign?: SegmentedTabsScrollAlign;
-  /**
-   * Extra className forwarded to `Tabs.List` (e.g. margin, width overrides).
-   * Appended after the default list classes — Tailwind specificity rules apply.
-   */
   listClassName?: string;
-  /**
-   * Forward to HeroUI `Tabs` `animation` prop.
-   * Pass `'disable-all'` to suppress the spring indicator animation, matching
-   * the prior plain-Pressable surfaces that had no press feedback.
-   * @default undefined — HeroUI default spring animation
-   */
   animation?: 'disable-all';
-  /**
-   * `aria-label` / `accessibilityLabel` on the `Tabs.List` (tablist element).
-   * Provide when the surrounding UI does not make the control's purpose obvious.
-   */
   accessibilityLabel?: string;
-  /**
-   * Fixed width for each segment. Useful in scrollable rails where every item
-   * should occupy the same visual space.
-   */
   segmentWidth?: number;
-  /**
-   * Visual density for segment triggers.
-   * @default 'default'
-   */
   density?: SegmentedTabsDensity;
-  /**
-   * When true, all triggers are non-interactive — used for locked form fields.
-   * Selected indicator still shows.
-   */
+  /** Every trigger is non-interactive; the selected indicator still shows. */
   isDisabled?: boolean;
 }
 
-/**
- * Canonical segmented control wrapper over HeroUI Native `Tabs`.
- *
- * Purely presentational — props in, `onValueChange` out. Selection state lives
- * in the caller. Replaces bespoke `Pressable`-row segmented controls across the
- * app (SP-4, Wave 4).
- *
- * ## Solid-gold variant
- * `Tabs.Indicator` background-color is NOT in the Reanimated-animated property
- * set (only width/height/translateX/opacity are animated). Overriding it via
- * `style={{ backgroundColor: Colors.shared.cairoGold }}` is therefore safe.
- * Selected label text uses a per-trigger `style` override to midnight-blue
- * (`Colors.shared.midnightBlue`), determined by comparing `value === seg.value`
- * in the render map.
- *
- * ## Fallback (contingency — only if bg-color override fails at runtime)
- * If Unistyles className resolution causes `bg-segment` to win over the style
- * prop (unexpected, but possible in edge cases), set
- * `isAnimatedStyleActive={false}` on `Tabs.Indicator` and provide the full
- * position + background via a static `style` prop. This removes the spring
- * slide animation but keeps HeroUI Tabs as the substrate. Document the decision
- * in the PR description if the fallback is invoked.
- * NOTE: `useTabsIndicatorAnimation` is NOT exported from heroui-native and
- * cannot be used externally — the fallback is a static style only.
- */
 export function SegmentedTabs<T extends string>({
   segments,
   value,
@@ -173,8 +83,7 @@ export function SegmentedTabs<T extends string>({
       <Tabs.Trigger
         key={seg.value}
         value={seg.value}
-        // Fixed tabs share width; scrollable tabs use either segmentWidth or
-        // intrinsic width. Avoid flex-1 inside ScrollView content.
+        // Avoid flex-1 inside ScrollView content.
         className={cn(
           isScrollable ? undefined : 'flex-1',
           isCompact ? 'h-7 gap-0.5 rounded-full px-1.5 py-0' : undefined,
@@ -191,9 +100,7 @@ export function SegmentedTabs<T extends string>({
           />
         ) : null}
         <Tabs.Label
-          // solid-gold: override selected label to midnight-blue.
-          // HeroUI's tv() applies text-segment-foreground/text-muted via
-          // TriggerContext.isSelected — the style prop wins over className in RN.
+          // In RN the style prop wins over className, so it overrides the selected label color.
           numberOfLines={1}
           adjustsFontSizeToFit={isCompact || segmentWidth != null}
           minimumFontScale={0.85}
@@ -213,8 +120,7 @@ export function SegmentedTabs<T extends string>({
 
   const indicator = (
     <Tabs.Indicator
-      // solid-gold: override bg-segment → cairoGold.
-      // backgroundColor is not animated, so this style override is safe.
+      // `Tabs.Indicator` does not animate `backgroundColor`, so a style override is safe.
       style={
         isSolidGold
           ? {

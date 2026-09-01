@@ -29,33 +29,17 @@ export interface AccountColorSheetProps {
 const { cellWidth, cellHeight, hitSlopX } = ACCOUNT_COLOR_GRID_METRICS;
 const gridBlocks = resolveAccountColorGrid();
 
-/**
- * The 32-colour bottom sheet (MA-006). fitContent per plan step 0.1 — the
- * grid's content height is nearly fixed across supported widths, and every
- * `size` percentage clips it somewhere in that range. Nothing scrolls: no
- * @gorhom/bottom-sheet import appears in this file.
- */
+/** `fitContent` because the grid's height is fixed and every `size` percentage clips it. */
 export function AccountColorSheet({ isOpen, onOpenChange, onConfirm }: AccountColorSheetProps) {
   const stagedColor = useAccountColorSheetState((s) => s.stagedColor);
   const stage = useAccountColorSheetState.getState().stage;
 
-  // Keep the last staged colour visible while the sheet animates out. close()
-  // clears stagedColor synchronously in the store (its own unit-tested
-  // contract — account_color_sheet.state.test.ts), but the sheet keeps
-  // rendering for the length of the dismiss animation. Without this the grid
-  // deselects and the preview row falls into its findAccountColor miss
-  // branch mid-dismiss. Plan step 5 / plan review point 8.
+  // `close()` clears `stagedColor` at once, so hold it through the dismiss animation.
   const lastStagedRef = useRef<string | undefined>(stagedColor);
   if (stagedColor !== undefined) lastStagedRef.current = stagedColor;
   const staged = isOpen ? stagedColor : lastStagedRef.current;
 
-  // Commit from the live store, not from `staged` — `staged` is a display
-  // value that deliberately survives close() so the grid does not visibly
-  // deselect during the dismiss animation (see the ref above). The footer
-  // stays mounted and touchable for the length of that animation (heroui
-  // only early-returns the Overlay on !isOpen), so a tap landing there must
-  // still be guarded by the store's own cleared state, or a discarded colour
-  // can be committed. Round 1 implementation review, defect D1.
+  // Commit from the store, not `staged`: the footer stays tappable through the dismiss animation.
   const handleConfirm = () => {
     if (stagedColor !== undefined) onConfirm(stagedColor);
     onOpenChange(false);
@@ -86,7 +70,6 @@ export function AccountColorSheet({ isOpen, onOpenChange, onConfirm }: AccountCo
           paddingBottom: SHEET_FOOTER_CLEARANCE,
         }}
       >
-        {/* Preview row */}
         <Box
           style={{
             flexDirection: 'row',

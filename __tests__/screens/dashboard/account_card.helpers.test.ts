@@ -7,10 +7,7 @@ import { makeTestAccount } from '@/test_helpers/transaction';
 
 const STATS: AccountStats = { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
 
-// The rate the accounts tab actually refuses on: `useCurrencyStore`'s
-// `INITIAL_STATE.rate`. It is greater than zero, so any display-layer
-// `rate > 0` check would call it usable — which is exactly why provenance is
-// passed in rather than re-derived.
+// 50 is `INITIAL_STATE.rate`: greater than zero, so a bare `rate > 0` check would accept it.
 const PLACEHOLDER_RATE = 50;
 
 const usdBank = (balance: number): Account =>
@@ -29,9 +26,6 @@ const egpBank = (balance: number): Account =>
     opening_balance: balance,
   });
 
-// `baseCurrency` is stated at every call, never defaulted here: the production
-// signature refuses a default (spec §7) and a convenience default in this helper
-// would be the one place the rule could be quietly re-opened.
 const labels = (account: Account, isRateUsable: boolean, baseCurrency: Currency): string[] =>
   buildInfoRows(account, PLACEHOLDER_RATE, STATS, isRateUsable, baseCurrency).map(
     (row) => row.label,
@@ -46,8 +40,6 @@ describe('buildInfoRows — the converted row follows the rate gate', () => {
   });
 
   it('renders no converted row when the rate is unusable', () => {
-    // The defect: `$100` rendered as `5,000 EGP` directly beneath a
-    // `TotalBalanceStrip` that had just refused to state a total at this rate.
     const rows = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, false, Currency.EGP);
 
     expect(labels(usdBank(100), false, Currency.EGP)).not.toContain(Strings.cardInEgpLabel);
@@ -55,10 +47,6 @@ describe('buildInfoRows — the converted row follows the rate gate', () => {
   });
 
   it('leaves the native-currency rows alone in both states', () => {
-    // Only the converted row is gated. Month in/out are USD figures that need
-    // no rate, and dropping them would be a second defect. Strengthened per
-    // spec §6.4: this test asserted row.label and never row.value — it
-    // would have passed on the 0dp bug just as readily as on the fix.
     const native = [Strings.cardMonthInLabel, Strings.cardMonthOutLabel];
     const nativeValues = ['0.00 USD', '0.00 USD'];
 
@@ -72,27 +60,18 @@ describe('buildInfoRows — the converted row follows the rate gate', () => {
   });
 
   it('leaves an EGP account identical in both states', () => {
-    // Nothing on an EGP card is converted, so the gate must not reach it.
     expect(buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS, false, Currency.EGP)).toEqual(
       buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS, true, Currency.EGP),
     );
   });
 });
 
-// A second, independent gate on the same row, and it is a GATE rather than a
-// follow: under a USD base the card is already in the user's base currency, so
-// the equivalent row would restate the amount above it in the same currency.
-// The mirror — an EGP card under a USD base wanting an "In USD" row — is new
-// surface and is filed, not built (spec §7, follow-up 3), which is why the row
-// keeps its `cardInEgpLabel` and its hardcoded `Currency.EGP`.
 describe('buildInfoRows — the converted row is suppressed in the base currency', () => {
   it('drops the row for a USD card under a USD base, rate usable or not', () => {
     expect(labels(usdBank(100), true, Currency.USD)).not.toContain(Strings.cardInEgpLabel);
   });
 
   it('keeps the row for a USD card under an EGP base with a usable rate', () => {
-    // The row above is only meaningful beside this one: a body that dropped the
-    // row unconditionally would pass the first assertion on its own.
     const rows = buildInfoRows(usdBank(100), PLACEHOLDER_RATE, STATS, true, Currency.EGP);
 
     expect(rows.map((row) => row.label)).toContain(Strings.cardInEgpLabel);
@@ -101,8 +80,7 @@ describe('buildInfoRows — the converted row is suppressed in the base currency
 });
 
 describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG decimals', () => {
-  // Non-zero-cent fixture, distinct from STATS (which several tests above depend on
-  // staying all-zero). Used for the month_out/week_out/monthStart/change/month_in sites.
+  // Separate from `STATS` because several tests above depend on that fixture staying all-zero.
   const STATS_CENTS: AccountStats = {
     month_in: 1250.75,
     month_out: 640.25,
@@ -110,9 +88,6 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
     week_out: 12.05,
   };
 
-  // A second, independent cents value on the week_out line (:116) — the fixture F2/A2 adds
-  // to restore the guarded count to 28: the PhysicalWallet branch is rewritten by c4, so
-  // both directions are reachable here even though week_out already has a fixture above.
   const STATS_WEEK_CENTS: AccountStats = { ...STATS, week_out: 3.5 };
 
   const physicalWallet = (currency: Currency): Account =>
@@ -217,12 +192,6 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
     expect(rows[1]?.value).toBe('640.25 USD');
   });
 
-  // Bank + EGP: named unchanged pins, spec row 29 — NOT guarded by either mutation. The
-  // `if (isUSD)` branch above returns first, so the EGP direction of the *labels* at
-  // :154/:159 never executes; these EGP amounts come out of the :184/:189 branch, which
-  // #299 did rewrite onto `formatCurrencyAmount(x, cur)` — the values below are unchanged
-  // because that call's output is identical to the old `` `${formatAmount(x)} ${cur}` ``
-  // template for EGP.
   it('Bank + EGP month_in/month_out — unchanged, out of scope (spec row 29)', () => {
     const rows = buildInfoRows(egpBank(1000), PLACEHOLDER_RATE, STATS_CENTS, false, Currency.EGP);
     expect(rows[0]?.value).toBe('1,251 EGP');
@@ -230,9 +199,7 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
   });
 
   it('pins avgDay (:112) at its explicit 1dp on a frozen clock — unchanged (spec row 28)', () => {
-    // account_card.tsx:102 reads new Date().getDate() directly; buildInfoRows takes no
-    // clock parameter, so the clock is frozen for this test only rather than widening the
-    // function's signature. Local-time constructor so getDate() === 20 in any timezone.
+    // Local-time constructor so `getDate()` is 20 in any timezone.
     jest.useFakeTimers({ now: new Date(2026, 7, 20, 12, 0, 0) });
     try {
       const usdRows = buildInfoRows(
@@ -258,11 +225,6 @@ describe('buildInfoRows — #277 the six zero-decimal sites take CURRENCY_CONFIG
   });
 });
 
-// #299: the credit-card limit/available rows (:86,:90) adopt formatCurrencyAmount and take
-// the card's OWN currency instead of a hardcoded EGP suffix — the #287 defect, where a USD
-// card's limit and available credit rendered as `NNN EGP`. EGP is the coincidence-correct
-// currency for every fixture elsewhere in this file, so this branch had zero coverage of
-// the USD direction before now.
 describe("buildInfoRows — credit card limit/available take the card's own currency (#287 fix)", () => {
   const creditCard = (currency: Currency, balance: number, limit: number | null): Account =>
     makeTestAccount({
@@ -316,11 +278,6 @@ describe("buildInfoRows — credit card limit/available take the card's own curr
     expect(usdRows[1]?.value).toBe(Strings.cardOverLimit);
   });
 
-  // #264: the dashboard card had its own availableCreditColor copy, still on the
-  // unreconciled #D4830A warning — the same 20-50% band read one hex on the
-  // dashboard and another on the account detail screen. Now both consume the
-  // shared module (available_credit_color.ts), so this pins the wiring the old
-  // untested copy never had.
   it('the Available row is warning-coloured in the 20-50% band', () => {
     const rows = buildInfoRows(
       creditCard(Currency.EGP, 700, 1000),

@@ -10,9 +10,6 @@ export const heroEntering = FadeInDown.duration(300);
 export const rowsEntering = FadeInUp.delay(150).duration(300);
 export const actionEntering = FadeInUp.delay(250).duration(300);
 
-/**
- * Press feedback for the Delete button in the action row.
- */
 export function useDeletePressScale() {
   const scale = useSharedValue(1);
   return {

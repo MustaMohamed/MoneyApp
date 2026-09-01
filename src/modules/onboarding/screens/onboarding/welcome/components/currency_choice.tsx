@@ -18,12 +18,7 @@ export interface CurrencyChoiceProps {
   onSelect: (value: Currency) => void;
 }
 
-/**
- * Block 3 — the two currency radio rows (mockup.html:1053-1069). Selection
- * changes colour only, never the row's own geometry (MA-010 decision D7):
- * `CURRENCY_ROW_STYLE` is shared literally between both states, and the
- * `isSelected` branch below sets only `borderColor` and the fill class.
- */
+/** Selection changes colour only; `CURRENCY_ROW_STYLE` is shared by both states. */
 export function CurrencyChoice({ selected, onSelect }: CurrencyChoiceProps) {
   return (
     <View>
@@ -40,8 +35,6 @@ export function CurrencyChoice({ selected, onSelect }: CurrencyChoiceProps) {
       <RadioGroup
         value={selected}
         onValueChange={(value) =>
-          // RadioGroup is generic over string; every value it can carry here
-          // comes from CURRENCY_OPTIONS' own Currency values, so this is sound.
           // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- RadioGroup's onValueChange is (string)=>void; values only ever come from CURRENCY_OPTIONS' Currency entries
           onSelect(value as Currency)
         }
@@ -49,12 +42,7 @@ export function CurrencyChoice({ selected, onSelect }: CurrencyChoiceProps) {
         style={{ gap: Spacing.xs }}
       >
         {CURRENCY_OPTIONS.map((option) => {
-          // Computed from this component's own `selected` prop rather than
-          // read from the render-prop: RadioGroup.Item's own className/style
-          // are fixed at JSX-authoring time, before the render-prop callback
-          // ever runs, so the row's own border+fill (as opposed to the
-          // symbol chip's, which the children below own) has to be decided
-          // out here to reach the Item itself.
+          // `RadioGroup.Item`'s style is fixed at JSX time, before the render-prop runs.
           const isSelected = option.value === selected;
 
           return (
@@ -69,12 +57,7 @@ export function CurrencyChoice({ selected, onSelect }: CurrencyChoiceProps) {
               accessibilityLabel={resolveCurrencyOptionA11y(option).accessibilityLabel}
             >
               <View
-                // Unselected fill is bg-background, not bg-surface: the chip is
-                // drawn a step darker than the row it sits in (mockup.html:457,
-                // `.opt-sym { background: var(--background) }` against `.opt`'s
-                // `--surface`). Matching the row would leave only the hairline
-                // describing the panel. Selected, the two deliberately converge
-                // on --accent-soft (mockup.html:460-463).
+                // Chip fill is a step darker than the row (`--background` vs `--surface`).
                 className={
                   isSelected ? 'border-accent bg-accent/15' : 'border-border bg-background'
                 }
@@ -112,9 +95,6 @@ export function CurrencyChoice({ selected, onSelect }: CurrencyChoiceProps) {
                 >
                   {option.label}
                 </Typography>
-                {/* Full-strength, not text-content-secondary — MA-010 decision
-                    D5. This sentence is what "choosing this currency" means,
-                    not a redundant label. */}
                 <Typography
                   className="text-foreground font-inter"
                   style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}

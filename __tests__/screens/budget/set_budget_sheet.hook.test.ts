@@ -13,22 +13,12 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { MoneyTextMappingError, parseRequiredMoneyText } from '@/utils/money_text';
 
-// `useSetBudgetSheet` (unlike `useSetBudgetSheetSave` above) calls
-// `useBottomSheetAwareHandlers`, which needs a mounted bottom-sheet context
-// this headless `renderHook` does not provide -- same mock
-// `spending_plan_sheet_hook.test.ts:41-43` uses for the same reason, byte for
-// byte. Not the `.tsx` render suite for this sheet: it mocks a broader
-// surface of `@/components/ui/sheet` (footer clearance, the `Sheet`
-// component itself) that a headless hook test does not need, and copying it
-// would carry that extra surface along for no reason.
+// `useBottomSheetAwareHandlers` needs a mounted sheet context `renderHook` does not provide.
 jest.mock('@/components/ui/sheet', () => ({
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
 }));
 
-// A blanket `jest.mock` would break `formatStoredMoneyText`, which this
-// hook's own prefill (`resetForm`'s `limitText`, tested elsewhere) and this
-// file's new desync case both depend on staying real. Spread the actual
-// module and wrap only the parse under test (moneyapp-testing mock boundary).
+// A blanket mock would break `formatStoredMoneyText`, which the prefill needs real.
 jest.mock('@/utils/money_text', () => {
   const actual = jest.requireActual('@/utils/money_text');
   return { ...actual, parseRequiredMoneyText: jest.fn(actual.parseRequiredMoneyText) };
@@ -120,12 +110,6 @@ describe('useSetBudgetSheetSave', () => {
   });
 });
 
-// W2E c2, §4/§8.7. `budgetFormSchema`'s refine and `submit` share
-// `parsePositiveDecimal`, so there is no `setValue` on this hook's public
-// surface to drive an invalid-but-schema-accepted submit directly -- the
-// edit-mode prefill (`resetForm` off `editingRow.limit`, already schema-valid
-// text) is what lets these two cases run through the real `useZodForm`
-// without rendering the `.tsx` sheet.
 describe('useSetBudgetSheet', () => {
   it('parses the limit exactly once on a valid edit-mode submit', async () => {
     const setBudget = jest.fn().mockResolvedValue(undefined);
@@ -144,9 +128,6 @@ describe('useSetBudgetSheet', () => {
     expect(input.limit).toBe(1500);
   });
 
-  // Reds if `parsePositiveDecimal(values.limitText) ?? Number.NaN` is
-  // restored: the mocked helper would never be called, `setBudget` would run
-  // with NaN, and both assertions below would fail.
   it('surfaces the save error and does not save on a schema/submit desync', async () => {
     const setBudget = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setBudget });

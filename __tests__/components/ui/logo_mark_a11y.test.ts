@@ -10,9 +10,7 @@ describe('logo mark accessibility', () => {
   });
 
   it('is silent by default', () => {
-    // The N1 header renders the `MoneyApp` wordmark beside the mark. Naming both
-    // announces the app twice. Decorative is the default because that is the
-    // only call site this scope has.
+    // The N1 header already shows the `MoneyApp` wordmark; naming both announces the app twice.
     const a11y = resolveLogoMarkA11y();
     expect(a11y.container.accessible).toBe(false);
     expect(a11y.container).not.toHaveProperty('accessibilityLabel');

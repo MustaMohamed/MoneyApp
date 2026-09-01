@@ -1,4 +1,3 @@
-// modules/transactions/screens/transactions/transaction_form/transaction_form_body.tsx
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Input, Spinner } from 'heroui-native';
@@ -167,7 +166,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* From account */}
         <View>
           <FormPickerRow
             testID="from-account-row"
@@ -198,7 +196,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           <ValidationSlot testID="account-error-slot" message={accountError} />
         </View>
 
-        {/* To account */}
         {isTransferOrCC ? (
           <>
             <View>
@@ -233,7 +230,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           </>
         ) : null}
 
-        {/* Category (expense/income only) */}
         {!isTransferOrCC ? (
           <>
             <View>
@@ -334,7 +330,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
 
         <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} />
 
-        {/* Note */}
         <View className="bg-default rounded-md px-3 py-3">
           <Text className="font-inter text-muted" style={{ fontSize: Type.micro }}>
             {Strings.addTxNoteLabel}

@@ -1,8 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-// Net spend per (category, calendar month) for the requested months. Card credits
-// subtract from expense rows. Commitment-payment expense rows remain included. Shape:
-//   { [categoryId]: { [yearMonth]: number } }
+// Net spend per (category, month); credits on credit-card accounts subtract from expenses.
 export async function getCategorySpendByMonth(
   db: SQLiteDatabase,
   yearMonths: string[],
@@ -34,8 +32,7 @@ export async function getCategorySpendByMonth(
   return out;
 }
 
-// Spend attributed to named monthly budgets. Corrupted assignments are ignored unless
-// transaction type, category, and calendar month all match the referenced budget.
+// A transaction counts only when its type, category and month all match the budget it names.
 export async function getBudgetSpendByMonth(
   db: SQLiteDatabase,
   yearMonths: string[],
@@ -65,13 +62,7 @@ export async function getBudgetSpendByMonth(
   return Object.fromEntries(rows.map((row) => [row.budget_id, Math.max(0, row.spent)]));
 }
 
-/**
- * Returns the rounded average monthly income over the last N complete months
- * (relative to `currentYearMonth`, which is the current "YYYY-MM" string).
- * Income = cash income on non-credit-card accounts. Card credits are expense offsets.
- * A "complete month" is any month strictly before currentYearMonth.
- * Returns null when there is no qualifying income history.
- */
+/** Averages non-card cash income over the N months strictly before `currentYearMonth`. */
 export async function getTrailingIncomeSuggestion(
   db: SQLiteDatabase,
   currentYearMonth: string,

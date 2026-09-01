@@ -14,20 +14,11 @@ export interface HeroCaption {
   color?: string;
 }
 
-/**
- * Type-aware context caption beneath the balance (spec §2.3).
- * - Non-CC: `Opening {opening} {currency}`, with `adjusted=true` when current !== opening.
- * - CC with credit_limit > 0: `Available {max(0, limit - balance)} {currency} of {limit}`,
- *   colored by utilisation.
- * - CC with null/0 credit_limit: falls back to the Opening caption (no divide-by-zero).
- */
 export function buildHeroCaption(account: Account): HeroCaption {
   const currency = account.currency;
   const isCC = account.type === AccountType.CreditCard;
   const limit = account.credit_limit ?? 0;
-  // Not formatCurrencyAmount: Strings.accountHeroAvailable/accountHeroOpening interpolate
-  // the currency themselves, so `formatCurrencyAmount(...)` as the `amount` arg would ship
-  // "Opening 30,000 EGP EGP" (spec §6.2's own correction).
+  // `Strings.accountHero*` interpolate the currency, so `formatCurrencyAmount` would double it.
   const decimals = CURRENCY_CONFIG[currency].decimals;
 
   if (isCC && limit > 0) {

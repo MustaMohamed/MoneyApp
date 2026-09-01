@@ -1,20 +1,3 @@
-/**
- * pay_sheet_rate_error.test.tsx
- *
- * The rate row's `onChange` binding, and only that. P8 cycle 3 H1: the rate row
- * is not a `<Controller>`, so `form.setValue` is the only thing that can
- * revalidate the field. Pinned `shouldValidate: false`, the required refine that
- * landed with D6 kept "Enter the exchange rate" — and the red border — on screen
- * while the user typed the fix, until Save was tapped a second time. The Amount
- * field beside it, which does go through a `<Controller>`, cleared live.
- *
- * The binding is in the render body of pay_sheet.tsx, so no logic-only `.ts`
- * suite can reach it — the same reason pay_sheet_converted_total.test.tsx is a
- * render suite. Mocking style follows that file; `ExchangeRateRow` is stubbed to
- * the two props under test (`onChange`, `error`) rather than to `null`, because
- * asserting a prop the stub throws away would assert nothing.
- */
-
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
@@ -83,9 +66,6 @@ jest.mock('@/components/ui/button', () => ({
 jest.mock('@/modules/accounts/components/account_picker_sheet', () => ({
   AccountPickerSheet: () => null,
 }));
-// Reduced to the two props under test. Rendering the real row would drag in its
-// override toggle, its staleness warning and its own preview — none of which
-// this suite asserts, and the first two of which are #278/G13's.
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row',
   () => ({
@@ -121,8 +101,7 @@ jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet
 
 const RATE = 55;
 
-// A USD commitment paid from an EGP account: `requiresRate` is on, so the rate
-// row renders and the schema's required refine applies to it.
+// A USD commitment paid from an EGP account, so `requiresRate` is on and the rate row renders.
 const payAccount = {
   id: 'acc-egp',
   name: 'Bank',
@@ -206,8 +185,7 @@ beforeEach(() => {
 
 async function renderOpenSheet() {
   const utils = await render(<PaySheet commitment={variableCommitment} payment={duePayment} />);
-  // The prefill effect is async (it may consult getLastPaidPayment) and is what
-  // seeds the exchange rate.
+  // The prefill effect that seeds the exchange rate is async, hence the wait.
   await waitFor(() => expect(utils.getByTestId('pay-sheet')).toBeTruthy());
   return utils;
 }
@@ -216,7 +194,6 @@ describe('PaySheet exchange-rate error', () => {
   it('clears the rate error as soon as a valid rate is typed, with no second Save', async () => {
     const { getByTestId, getByText, queryByTestId } = await renderOpenSheet();
 
-    // Empty the rate the prefill seeded, then submit: the refine fires.
     await fireEvent.changeText(getByTestId('rate-input'), '');
     await fireEvent.press(getByText(Strings.commitmentsPayConfirm));
     await waitFor(() =>
@@ -224,7 +201,6 @@ describe('PaySheet exchange-rate error', () => {
     );
     expect(mockMarkAsPaid).not.toHaveBeenCalled();
 
-    // Typing the fix must clear it without pressing Save again.
     await fireEvent.changeText(getByTestId('rate-input'), '48.6');
     await waitFor(() => expect(queryByTestId('rate-error')).toBeNull());
   });
@@ -238,9 +214,7 @@ describe('PaySheet exchange-rate error', () => {
       expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateRequired),
     );
 
-    // "48." is present but unreadable, so the required message must give way to
-    // the invalid one. A fix that merely cleared the error would leave the row
-    // silent on input the save will still refuse.
+    // "48." is present but unreadable, so the required message must give way to the invalid one.
     await fireEvent.changeText(getByTestId('rate-input'), '48.');
     await waitFor(() =>
       expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateInvalid),
@@ -250,8 +224,6 @@ describe('PaySheet exchange-rate error', () => {
   it('raises no rate error while typing before the first Save', async () => {
     const { getByTestId, queryByTestId } = await renderOpenSheet();
 
-    // A pinned `shouldValidate: true` would run the whole superRefine here and
-    // put "Enter the exchange rate" under a field the user is still filling in.
     await fireEvent.changeText(getByTestId('rate-input'), '');
     expect(queryByTestId('rate-error')).toBeNull();
     await fireEvent.changeText(getByTestId('rate-input'), '4');

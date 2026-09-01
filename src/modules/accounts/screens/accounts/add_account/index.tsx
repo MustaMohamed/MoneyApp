@@ -27,7 +27,6 @@ export default function AddAccountAppScreen() {
         <AccountForm form={form} ownerId="accounts/add_account" />
       </ScreenScroll>
 
-      {/* CTA bar */}
       <Box className="border-separator border-t px-4 pt-2 pb-6">
         <FormErrorText message={state.errorMessage} />
         <Animated.View style={btnAnim}>

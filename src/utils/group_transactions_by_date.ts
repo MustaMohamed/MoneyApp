@@ -8,13 +8,7 @@ export interface TransactionSection {
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-/**
- * Group a date-sorted (DESC) Transaction[] into sections keyed by a
- * human-readable label. The input is expected to already be ordered DESC by
- * (transaction_date, transaction_time) — this helper does not re-sort.
- *
- * @param now optional reference date for testing determinism
- */
+/** Input must already be sorted DESC by `transaction_date`; this helper does not re-sort. */
 export function groupTransactionsByDate(
   txs: Transaction[],
   now: Date = new Date(),

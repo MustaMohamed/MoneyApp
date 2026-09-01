@@ -41,9 +41,7 @@ interface PillRow {
   expected: ApproximationPill;
 }
 
-// The scope spec's pill table, P1-P9 in its order, plus P10 (the pill's own -0,
-// which the nine drawn rows cannot reach). Every `expected` is a LITERAL —
-// nothing is recomputed through roundMoney or through the resolver.
+// Every `expected` is a literal; nothing is recomputed through `roundMoney` or the resolver.
 const HIDDEN: ApproximationPill = { ratePill: undefined, approxPill: undefined };
 
 const PILL_ROWS: readonly PillRow[] = [
@@ -131,8 +129,7 @@ const PILL_ROWS: readonly PillRow[] = [
 
 describe('selectApproximationPill — the scope spec table, P1-P9, plus P10', () => {
   it.each(PILL_ROWS)('$case', ({ accounts, base, rate, rateUpdatedAt, expected }) => {
-    // toStrictEqual, not toEqual: toEqual ignores explicitly-undefined keys, so
-    // an implementation returning `{}` for a hidden pill would pass it.
+    // `toStrictEqual`, not `toEqual`: `toEqual` ignores undefined keys, so `{}` would pass.
     expect(
       selectApproximationPill({
         accounts,
@@ -154,10 +151,7 @@ describe('selectApproximationPill — zero and negative zero', () => {
     isManualOverride: false,
   };
 
-  // P10 is the row that dies when `normalizeNegativeZero` is deleted from THIS
-  // function: P9's net is exactly +0, so it passes either way, while P10's net
-  // is -0.01 and roundMoney(-0.01 / 48.6) is -0. The resolver's own -0 fixture
-  // cannot cover this call site, and vice versa.
+  // Only P10 fails if `normalizeNegativeZero` is dropped here; P9's net is +0 either way.
   const p10Input: StartingNetPositionInput = {
     accounts: [bank(1000, Currency.USD), cc(48600.01)],
     baseCurrency: Currency.EGP,
@@ -186,8 +180,7 @@ describe('selectApproximationPill — zero and negative zero', () => {
 });
 
 describe('selectApproximationPill — currencies outside EGP | USD throw', () => {
-  // Asserted here rather than inherited from the resolver's own suite: a
-  // try/catch swallow added inside this wrapper would be invisible to it.
+  // Repeated here because a try/catch swallow in this wrapper would be invisible to the resolver.
   it('throws instead of degrading into a hidden pill', () => {
     expect(() =>
       selectApproximationPill({

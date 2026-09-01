@@ -61,7 +61,7 @@ describe('categoryStore.loadCategories', () => {
     const repo = makeRepo();
     const store = createCategoryStore(repo).getState();
     await store.loadCategories();
-    expect(createCategoryStore(repo).getState().categories).toHaveLength(0); // fresh store
+    expect(createCategoryStore(repo).getState().categories).toHaveLength(0);
   });
 
   it('calls repo.getAll()', async () => {

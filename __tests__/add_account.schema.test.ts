@@ -53,8 +53,6 @@ function fieldErrors(
 
 const NON_CREDIT_TYPES = Object.values(AccountType).filter((t) => t !== AccountType.CreditCard);
 
-// MA-007's rejected/accepted case table (spec.md:298), applied to every new
-// amount field this task adds to the credit block.
 const REJECTED_AMOUNTS = [
   '5abc',
   '5.5.5',
@@ -72,11 +70,7 @@ const ACCEPTED_AMOUNTS: Array<[string, number]> = [
   ['5,000', 5000],
   ['  7  ', 7],
 ];
-// apr's own accepted sweep, distinct from ACCEPTED_AMOUNTS above: apr is now
-// bounded 0-100 inclusive (spec.md § "Financial Logic — APR bound — ruled"),
-// so '5,000' (which parses to 5000) is no longer an accepted apr value even
-// though it still is for credit_limit and min_payment, which have no upper
-// bound.
+// `apr` is bounded 0-100, so '5,000' is accepted for `credit_limit` and `min_payment` only.
 const APR_ACCEPTED_AMOUNTS: Array<[string, number]> = [['  7  ', 7]];
 
 describe('createAddAccountSchema — add_account Zod schema', () => {
@@ -211,7 +205,6 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     });
   });
 
-  // The credit-rule accept/reject table — MA-009 plan step 3, spec.md:284-296.
   describe('credit card fields — the MA-009 accept/reject table', () => {
     const cc = (overrides: Record<string, unknown> = {}) =>
       baseData({
@@ -295,8 +288,6 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
       );
     });
 
-    // W2E §3.2 row 1: apr text is unfloored (parseDecimalText), so a value
-    // below MIN_MONEY_AMOUNT now parses and clears the 0-100 range check.
     it.each(['0.005', '0.004'])(
       '#15b apr %p, interest on → accept — below the money floor, still a valid percentage',
       (apr) => {
@@ -318,8 +309,6 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
       expect(fieldErrors(cc({ interest_tracking: false, apr: 'abc' }))).toEqual({});
     });
 
-    // APR bound — ruled, spec.md § "Financial Logic — APR bound — ruled".
-    // R1-R9 (#19-#27), continuing this table's numbering.
     it('R1 (#19) apr 0, interest on → accept — a real 0% promotional-rate state, confirms existing behaviour', () => {
       expect(fieldErrors(cc({ interest_tracking: true, apr: '0' }))).toEqual({});
     });
@@ -365,7 +354,6 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     });
   });
 
-  // Decision 4's trap: a stale credit draft must never block a non-credit save.
   describe('off-type gating — every credit rule opens on selected_type === CreditCard', () => {
     it.each(NON_CREDIT_TYPES)(
       '%s with every credit field invalid → accept, zero issues',
@@ -385,8 +373,6 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     );
   });
 
-  // The parser case table, applied to the three new credit amount fields plus
-  // due_day (which additionally rejects anything parseable but out of range).
   describe('the MA-007 parser case table, applied to the new amount fields', () => {
     describe('credit_limit', () => {
       it.each(REJECTED_AMOUNTS)('%p → errAmountInvalid', (value) => {
@@ -459,9 +445,6 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
       });
 
       it('"5,000" parses but is above the 0-100 bound → errAprRange, not accepted', () => {
-        // The one member of the generic ACCEPTED_AMOUNTS sweep that apr no
-        // longer accepts, now that it is bounded — proves the bound applies
-        // even to well-formed numbers, not only to the reported 9999 case.
         expect(
           fieldErrors(
             baseData({
@@ -512,10 +495,6 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
         ).toBeUndefined();
       });
 
-      // W2E §3.2 row 2: due_day text is unfloored too, but the observable
-      // behavior is unchanged — parseDecimalText('0.005') now parses to
-      // 0.005 instead of undefined, and the non-integer check rejects it
-      // with the same errDueDayRange message either way.
       it('"0.005" parses but is non-integer → errDueDayRange, same as an unparseable value', () => {
         expect(
           fieldErrors(

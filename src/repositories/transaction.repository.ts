@@ -1,4 +1,4 @@
-// Backward-compat stub — canonical in modules/transactions/.
+// Backward-compat stub; canonical in `modules/transactions/`.
 export { TransactionRepository } from '@/modules/transactions/repositories/transaction.repository';
 export type {
   ITransactionRepository,

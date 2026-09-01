@@ -1,7 +1,5 @@
 import '../../global.css';
-// Per-face imports, not the package root. Each package's index re-exports every
-// weight it ships (20 for Inter, 8 for Sora), and Metro pulls the whole graph —
-// so importing from the root bundles ~26 .ttf files to use 8.
+// Import per face: the package root re-exports every weight, bundling ~26 .ttf files to use 8.
 import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
@@ -85,8 +83,7 @@ export default function RootLayout() {
               />
             ) : null}
           </ThemeProvider>
-          {/* HeroUINativeProviderRaw omits the PortalHost; HeroUI BottomSheet
-              (and any portal-based overlay) renders into this host. */}
+          {/* `HeroUINativeProviderRaw` omits the `PortalHost`; portal overlays render here. */}
           <PortalHost />
         </HeroUINativeProviderRaw>
       </SafeAreaProvider>

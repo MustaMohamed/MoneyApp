@@ -1,8 +1,6 @@
 import { Strings } from '@/constants/strings';
 import { resolveTransactionLoadErrorTitle } from '@/modules/transactions/screens/transactions/components/transaction_load_error.helpers';
 
-// Every variant reaches its own exact Strings title — the branch coverage no
-// render suite can reach under the no-render-tests policy.
 const ROWS = [
   ['initial', Strings.transactionsLoadError],
   ['refresh', Strings.transactionsRefreshError],

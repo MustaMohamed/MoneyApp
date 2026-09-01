@@ -1,4 +1,3 @@
-// Backward-compat stub — the canonical queries live in modules/transactions/.
 export {
   getMonthExpenseStats,
   insertTransactionRow,

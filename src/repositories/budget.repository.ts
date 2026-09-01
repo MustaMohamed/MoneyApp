@@ -1,4 +1,4 @@
-// Backward-compat stub — canonical in modules/budget/
+// Backward-compat stub; canonical in `modules/budget/`.
 export {
   budgetRepository,
   BudgetRepository,

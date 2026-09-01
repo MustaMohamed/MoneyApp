@@ -73,8 +73,6 @@ function snapshot(
   return { loadedMonth: month, commitments, payments };
 }
 
-// The resolver's return, which markAsPaid now hands back so the store's
-// optimistic patch holds the rounded value the database holds (#308).
 function paymentAmounts(
   overrides: Partial<CommitmentPaymentAmounts> = {},
 ): CommitmentPaymentAmounts {
@@ -608,8 +606,6 @@ describe('commitment store mutation invalidation', () => {
     await flushMicrotasks();
   });
 
-  // #308 S-01: the store patched `details.amount_paid` — the raw input — so it
-  // disagreed with the database, which holds the resolver's rounded value.
   it('S-01: patches the amount the repository resolved, not the raw input', async () => {
     const refresh = deferred<void>();
     const repository = makeRepository({
@@ -627,20 +623,10 @@ describe('commitment store mutation invalidation', () => {
     await flushMicrotasks();
   });
 
-  // #308 S-03 was rewritten at W1B (#312), not deleted outright. Its
-  // `loadError` and revalidation-log assertions are genuinely redundant — the
-  // failed-load, failed-add and failed-persist cases carry both. Its THIRD
-  // assertion was not: S-01 above reads the amount while the refresh promise
-  // is still pending, and the failed-revalidation battery never reads the
-  // amount at all and uses a fixture where raw equals resolved. So nothing
-  // proved the resolved value SURVIVES a revalidation that rejects, which is
-  // the whole reason the optimistic patch has to be the resolver's number.
-  // That single case is what this is:
   it('keeps the resolved amount after the background revalidation rejects', async () => {
     const refreshError = new Error('post-pay refresh failed');
     const repository = makeRepository({
-      // 10.999 in, 11 out — raw and resolved differ, so a patch that kept the
-      // raw input is distinguishable from one that kept the resolver's value.
+      // 10.999 in, 11 out, so a patch keeping the raw input is distinguishable from the resolved.
       markAsPaid: jest.fn().mockResolvedValue(paymentAmounts({ paymentAmount: 11 })),
     });
     const store = createCommitmentStore(repository);
@@ -651,8 +637,7 @@ describe('commitment store mutation invalidation', () => {
     await store.getState().markAsPaid('payment', { ...paymentDetails, amount_paid: 10.999 });
     await flushMicrotasks();
 
-    // revalidateAfterMutation is fire-and-forget with a log-only catch, so
-    // there is no second chance: this patch is what the user keeps looking at.
+    // `revalidateAfterMutation` is fire-and-forget with a log-only catch, so this patch is final.
     expect(store.getState().payments[0].amount_paid).toBe(11);
     consoleSpy.mockRestore();
   });

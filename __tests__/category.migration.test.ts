@@ -52,7 +52,7 @@ describe('migration003 — categories table', () => {
   });
 
   it('is idempotent — running migration twice does not duplicate rows', () => {
-    db.exec(migration003.up); // run again
+    db.exec(migration003.up);
     const count = (db.prepare('SELECT COUNT(*) as n FROM categories').get() as { n: number }).n;
     expect(count).toBe(27);
   });

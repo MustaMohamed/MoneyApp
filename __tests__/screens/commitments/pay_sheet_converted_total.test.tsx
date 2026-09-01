@@ -1,19 +1,3 @@
-/**
- * pay_sheet_converted_total.test.tsx
- *
- * The converted-total preview's render gate as the SHEET binds it: the row
- * appears and disappears with what the Amount field holds. W1B moved the
- * derivation into `usePaySheet` (debt D2 paid off), so the arithmetic, the
- * currency label, the sub-floor case and the rate-row facts are asserted in
- * the logic-only `commitments_pay_sheet.hook.test.ts` instead. What stays here
- * is the render-to-gate wiring nothing else covers.
- *
- * Amended, not extended (`.claude/rules/tests.md`): no case was added, and the
- * typed-zero case at the bottom reverses under the new floor gate. Mocking
- * style follows set_budget_sheet.test.tsx: the sheet chrome, the icons and the
- * sibling sheets are stubbed, the hook under test is real.
- */
-
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
@@ -83,8 +67,6 @@ jest.mock('@/components/ui/button', () => ({
 jest.mock('@/modules/accounts/components/account_picker_sheet', () => ({
   AccountPickerSheet: () => null,
 }));
-// Stubbed on purpose: the rate row's own preview is the half of this defect
-// that stays filed as debt, so asserting it here would assert the wrong thing.
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row',
   () => ({ ExchangeRateRow: () => null }),
@@ -109,9 +91,7 @@ jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet
 
 const RATE = 55;
 
-// A USD commitment paid from an EGP account: `requiresRate` is on, the
-// prefill seeds the rate from the store, and the preview's currency is the
-// pay-from account's.
+// The preview renders in the pay-from account's currency, not the commitment's.
 const payAccount = {
   id: 'acc-egp',
   name: 'Bank',
@@ -189,23 +169,17 @@ beforeEach(() => {
   attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => paySheetState);
 });
 
-// Anything the row can render starts with "= ". Matching the prefix rather
-// than a value is what makes the HIDDEN rows assertable at all.
+// Matching the "= " prefix rather than a value is what makes a hidden row assertable.
 const CONVERTED_ROW = /^=\s/;
 
 async function renderOpenSheet() {
   const utils = await render(<PaySheet commitment={variableCommitment} payment={duePayment} />);
-  // The prefill effect is async (it may consult getLastPaidPayment) and is
-  // what seeds the exchange rate the preview multiplies by.
+  // The prefill effect is async and seeds the exchange rate the preview multiplies by.
   await waitFor(() => expect(utils.getByTestId('pay-sheet')).toBeTruthy());
   return utils;
 }
 
 describe('PaySheet converted-total preview', () => {
-  // Spec §3 A3 accepted HIDING for input the parser cannot read on the rate
-  // side. Coercing the amount to 0 did the opposite: four of the nine states
-  // of typing "1,234.56" one keystroke at a time rendered a confidently
-  // formatted "= 0 EGP" beside an Amount field reading "1,23".
   it.each([
     ['1', 55],
     ['1,234', 67870],
@@ -221,8 +195,7 @@ describe('PaySheet converted-total preview', () => {
     'hides the converted total while the amount reads "%s"',
     async (typed) => {
       const { getByPlaceholderText, queryByText } = await renderOpenSheet();
-      // Reach a state where the row IS showing, so the assertion below is a
-      // transition and not a row that never rendered.
+      // Reach a state where the row shows, so the assertion below is a transition.
       await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), '1');
       expect(queryByText(CONVERTED_ROW)).not.toBeNull();
 
@@ -231,12 +204,7 @@ describe('PaySheet converted-total preview', () => {
     },
   );
 
-  // Reversed at W1B, deliberately and with the spec's sanction (§3 row 4).
-  // The gate is now the resolver's own floor — `parsePositiveDecimal`, which
-  // refuses 0 — because the resolver throws on an amount that rounds to zero
-  // and cannot be called speculatively from a render. "= 0 EGP" was true but
-  // useless: nothing is being paid, and the old assertion was written to stop
-  // the gate widening into unreadable input, which the rows above still guard.
+  // `parsePositiveDecimal` refuses 0, so the resolver throws and cannot be called from a render.
   it('hides the converted total for a typed zero', async () => {
     const { getByPlaceholderText, queryByText } = await renderOpenSheet();
     await fireEvent.changeText(getByPlaceholderText(Strings.commitmentsAmountPlaceholder), '1');

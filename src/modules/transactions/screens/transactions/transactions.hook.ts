@@ -403,7 +403,6 @@ export function useTransactions() {
 
   const goToEdit = useCallback(
     (id: string) => {
-      // Find the full tx object from the already-loaded sections data.
       // Edit uses the global transaction form host without changing routes.
       const tx = currentTransactions.find((t) => t.id === id);
       if (!tx) {

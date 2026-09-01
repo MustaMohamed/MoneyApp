@@ -243,8 +243,7 @@ describe('TransactionsScreen', () => {
     await fireEvent(getByTestId('transactions-list'), 'scrollEndDrag', event);
     await fireEvent(getByTestId('transactions-list'), 'momentumScrollEnd', event);
 
-    // RNTL 14 builds a full synthetic event and deep-merges the passed props into
-    // it, so the handler no longer receives exactly `event` — match partially.
+    // RNTL 14 deep-merges the passed props into a full synthetic event, so match partially.
     const received = expect.objectContaining({
       nativeEvent: expect.objectContaining(event.nativeEvent),
     });

@@ -1,4 +1,3 @@
-// modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row.tsx
 import { Input, PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
@@ -13,9 +12,7 @@ import { ms } from '@/utils/responsive';
 
 const STALE_THRESHOLD_DAYS = 30;
 const RATE_PREVIEW_AMOUNT_DECIMALS = 2;
-// What the preview reads when the EGP value is not derivable from what is on
-// screen yet — an unreadable amount or rate. Distinct from `previewHidden`,
-// which removes the line entirely because the surface has nothing to preview.
+// Shown when the EGP value is not derivable yet; `previewHidden` removes the line instead.
 const PREVIEW_PLACEHOLDER = '—';
 
 function isStale(rateUpdatedAt: string | null): boolean {
@@ -40,27 +37,11 @@ interface Props {
   overrideEnabled: boolean;
   onToggleOverride: () => void;
   rateUpdatedAt: string | null;
-  /**
-   * The entered amount in EGP, already resolved by
-   * `resolveTransactionAmounts` / `resolveCommitmentPaymentAmounts`. This row
-   * holds no arithmetic: it multiplied `amount * rate` itself until W1B, which
-   * is the wrong operation whenever the amount is already EGP. `undefined`
-   * renders the placeholder and covers two cases: not derivable from what is
-   * on screen yet, and derivable but below the money floor, where a confident
-   * `≈ 0.00 EGP` would sit above an Amount field already saying the payment is
-   * too small to debit.
-   */
+  /** Pre-resolved EGP amount; this row does no arithmetic. `undefined` shows the placeholder. */
   previewEgpAmount: number | undefined;
-  /**
-   * Drop the preview line altogether. The pay sheet sets it for an EGP
-   * commitment, where the line would echo the Amount field one row above
-   * (mockup frame 2). Never inferred from `previewEgpAmount` being absent —
-   * that renders the placeholder, for either of the two reasons above, and
-   * "no line at all" has to stay distinguishable from "a line reading —".
-   */
+  /** Drop the preview line entirely; distinct from `previewEgpAmount` being absent. */
   previewHidden?: boolean;
-  /** Extra subtitle above the rate's source line, saying why a rate is
-   * required for a payment that converts nothing (mockup frame 3). */
+  /** Subtitle saying why a rate is required for a payment that converts nothing. */
   purposeCaption?: string;
   error?: string;
 }

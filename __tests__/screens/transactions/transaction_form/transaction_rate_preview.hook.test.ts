@@ -1,16 +1,3 @@
-/**
- * transaction_rate_preview.hook.test.ts
- *
- * The `≈ … EGP` figure under the transaction form's rate row. It used to be
- * `roundMoney(amount * rate)` inside `ExchangeRateRow`, which is the wrong
- * operation whenever the typed amount is ALREADY EGP: a 5,000 EGP transfer
- * into a USD account previewed 245,300 EGP. W1B moved the derivation to
- * `resolveTransactionAmounts` and the subscription to this hook.
- *
- * Logic-only, real stores: `useTransactionAmount` reads the add/edit stores
- * directly, and mocking them would mock the thing under test.
- */
-
 import { renderHook } from '@testing-library/react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
@@ -46,8 +33,7 @@ async function preview(input: {
 }
 
 describe('useTransactionRatePreview', () => {
-  // The case the ticket exists for. The amount is already EGP, so its EGP
-  // value is itself — the rate converts the DESTINATION leg, not this figure.
+  // The rate converts the destination leg, so an EGP source previews its own amount.
   it('renders the identity amount for an EGP source paid into a USD account', async () => {
     expect(
       await preview({
@@ -74,8 +60,7 @@ describe('useTransactionRatePreview', () => {
     );
   });
 
-  // Each row is one of the resolver's throw conditions, guarded rather than
-  // caught: reaching the resolver with any of them throws inside a render.
+  // Each row is a resolver throw condition the hook guards; reaching the resolver throws in render.
   it.each([
     ['nothing typed yet', { amount: '' }],
     ['an amount the parser cannot read', { amount: '1,23' }],
@@ -90,12 +75,7 @@ describe('useTransactionRatePreview', () => {
     expect(await preview(input)).toBeUndefined();
   });
 
-  // §3.4's guard, reached through the resolver rather than mirrored: a typed
-  // amount huge enough to overflow the resolver's output guard returns the
-  // placeholder, not a thrown error inside a render. Driven with a huge
-  // AMOUNT rather than a tiny rate: until c1 step 7 un-floors rate text here
-  // (`:52`), a sub-floor rate still fails `parsePositiveDecimal` before ever
-  // reaching the resolver, which would make this case vacuous.
+  // A huge amount, not a tiny rate: a sub-floor rate fails `parsePositiveDecimal` first.
   it('has no preview for an amount that overflows the resolver output guard', async () => {
     expect(
       await preview({
@@ -121,8 +101,6 @@ describe('useTransactionRatePreview', () => {
     expect(result.current).toBeUndefined();
   });
 
-  // `mode` picks the store, and the edit form's amount lives in its own.
-  // Reading the add store in edit mode would preview a stale or empty amount.
   it('reads the edit store in edit mode', async () => {
     useAddTransactionStore.getState().setAmountStr('999');
     useEditTransactionStore.getState().setAmountStr('100');

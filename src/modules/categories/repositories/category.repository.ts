@@ -49,8 +49,7 @@ export class CategoryRepository implements ICategoryRepository {
     const existing = await getCategoriesByType(db, data.type);
     const maxOrder = existing.reduce((max, c) => Math.max(max, c.sort_order), -1);
 
-    // Name uniqueness check scoped to (name, type) — backstop in case the Zod
-    // schema in the UI layer is bypassed.
+    // Backstop for the UI's Zod check: uniqueness is scoped to (name, type).
     const trimmedName = data.name.trim();
     const duplicate = existing.find(
       (c) => c.name.trim().toLowerCase() === trimmedName.toLowerCase(),
@@ -88,16 +87,7 @@ export class CategoryRepository implements ICategoryRepository {
     });
   }
 
-  /**
-   * Atomically reassigns all transactions and commitments from `fromId` to
-   * `toId`, then deletes the source category. All three SQL statements run
-   * inside a single `db.withTransactionAsync` so a failure at any step leaves
-   * the database in its pre-operation state (TC-09).
-   *
-   * Commitments are included because `commitments.category_id` is NOT NULL and
-   * has no FK ON DELETE behaviour — leaving it pointing at a deleted category
-   * would create a dangling reference (TC-02 / Layla §3.4).
-   */
+  /** Commitments are reassigned: `commitments.category_id` is NOT NULL with no FK ON DELETE. */
   async reassignAndDelete(fromId: string, toId: string): Promise<void> {
     const db = await getDb();
     await db.withTransactionAsync(async () => {

@@ -9,10 +9,7 @@ interface SpendingPlanSheetStateShape {
   datePickerTarget: SpendingPlanDatePickerTarget | undefined;
   submitError: string | undefined;
   saving: boolean;
-  // Unmutes the allocation rows whose text is an incomplete decimal ('1.').
-  // Those stay silent while typing -- '0.40' passes through '0.' on the way in
-  // -- and explain themselves the moment a Save is refused. Same semantics as
-  // RHF's isSubmitted, which is the house answer to this question.
+  // An allocation row holding an incomplete decimal ('1.') stays silent until a save is refused.
   allocationSubmitAttempted: boolean;
 }
 

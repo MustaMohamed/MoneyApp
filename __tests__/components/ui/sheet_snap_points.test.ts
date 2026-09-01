@@ -1,14 +1,6 @@
-/**
- * Sheet snap-point resolver — pure-function tests.
- *
- * resolveSnapPoints is exported from components/ui/sheet.tsx
- * (the HeroUI-backed Sheet primitive).
- */
 import { resolveSnapPoints } from '@/components/ui/sheet';
 
 describe('resolveSnapPoints', () => {
-  // --- 7-step scale (user-defined heights) ---
-
   it('xxs preset resolves to 25%', () => {
     expect(resolveSnapPoints('xxs', undefined)).toEqual(['25%']);
   });
@@ -37,13 +29,9 @@ describe('resolveSnapPoints', () => {
     expect(resolveSnapPoints('xxl', undefined)).toEqual(['95%']);
   });
 
-  // --- default fallback ---
-
   it('defaults to lg (75%) when size is undefined', () => {
     expect(resolveSnapPoints(undefined, undefined)).toEqual(['75%']);
   });
-
-  // --- explicit snapPoints override ---
 
   it('explicit snapPoints override size', () => {
     expect(resolveSnapPoints('sm', ['40%'])).toEqual(['40%']);
@@ -60,8 +48,6 @@ describe('resolveSnapPoints', () => {
   it('explicit snapPoints override new xl size', () => {
     expect(resolveSnapPoints('xl', ['80%'])).toEqual(['80%']);
   });
-
-  // --- snapPoints accept size tokens (new) ---
 
   it('snapPoints size token resolves to its percentage', () => {
     expect(resolveSnapPoints(undefined, ['sm'])).toEqual(['45%']);

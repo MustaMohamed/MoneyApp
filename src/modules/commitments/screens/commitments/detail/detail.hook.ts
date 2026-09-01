@@ -86,23 +86,19 @@ export function useCommitmentDetail() {
   const setAllPayments = useCommitmentDetailScreenData.getState().setAllPayments;
   const setViewState = useCommitmentDetailScreenData.getState().setViewState;
 
-  // Find payment from store's monthly payments
   const payment = useMemo(() => payments.find((p) => p.id === paymentId), [payments, paymentId]);
 
-  // Find commitment from store
   const commitment = useMemo(
     () => (payment ? commitments.find((c) => c.id === payment.commitment_id) : undefined),
     [payment, commitments],
   );
 
-  // Derive viewState
   const viewState: DetailViewState = useMemo(() => {
     if (screenViewState === 'loading') return 'loading';
     if (!commitment) return 'notFound';
     return 'ready';
   }, [screenViewState, commitment]);
 
-  // Load all payments for this commitment from repo
   useEffect(() => {
     if (!commitment) {
       setViewState('notFound');
@@ -126,9 +122,8 @@ export function useCommitmentDetail() {
       cancelled = true;
     };
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [commitment?.id, payments, setAllPayments, setViewState]); // commitment?.id captures identity changes; full object dep would cause spurious re-fetches
+  }, [commitment?.id, payments, setAllPayments, setViewState]); // object dep re-fetches spuriously
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       resetUi();

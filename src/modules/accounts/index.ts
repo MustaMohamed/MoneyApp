@@ -1,5 +1,4 @@
-// Public API — store, UI components, shared types only.
-// AccountRepository and database helpers are internal; access account data through the store.
+// AccountRepository is internal; access account data through the store.
 export { createAccountStore, EMPTY_ACCOUNTS, useAccountStore } from './store/account.store';
 export type {
   Account,

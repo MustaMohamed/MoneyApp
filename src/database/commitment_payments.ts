@@ -1,4 +1,3 @@
-// Backward-compat stub — canonical in modules/commitments/
 export {
   getPaymentsByMonth,
   getPaymentsByCommitment,

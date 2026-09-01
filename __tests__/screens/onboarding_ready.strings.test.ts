@@ -1,20 +1,5 @@
 import { Strings } from '@/constants/strings';
 
-/**
- * N4's six parameterised copy functions — mockup § F (F1-F9).
- *
- * These are the only place the plural FORMS live. Steps 3 and 13 assert pill
- * descriptors (`{ kind, count }`) and the screen has no render suite, so
- * deleting the ternary from `n4PillAccounts` would ship "1 accounts" — the
- * exact tell §4.2 and mockup F6 exist to prevent — with every other suite in
- * the tree still green.
- *
- * Every expected string is a LITERAL, never rebuilt from the same template the
- * implementation uses, and both sides of each `n === 1` boundary are asserted.
- * `n4CaptionAllBase(3, 'EGP')` doubles as the byte-exact check against
- * mockup.html:2335, which is what keeps the "byte-identical when code === EGP"
- * claim on that function's parameterisation deviation honest.
- */
 describe('N4 pill copy — both pluralisation points', () => {
   it.each([
     ['n4PillAccounts', 1, '1 account'],
@@ -47,11 +32,6 @@ describe('N4 hero captions — the parameterised codes and their plural points',
     );
   });
 
-  // The fourth plural point. `resolveFrame` returns F7 for ANY all-credit-card
-  // set and N3 caps nothing, so two cards reach this caption through the normal
-  // flow; without the ternary they read "Your only account is a credit card"
-  // directly above a "2 accounts" pill. The n === 1 arm is byte-identical to
-  // mockup.html:2618 — that is what keeps DEVIATION 6's claim honest.
   it('pluralises the credit-card-only caption on accountCount', () => {
     expect(Strings.n4CaptionCreditOnly(1)).toBe(
       'Your only account is a credit card, so this is what you owe. Add a bank or cash account for the full picture.',

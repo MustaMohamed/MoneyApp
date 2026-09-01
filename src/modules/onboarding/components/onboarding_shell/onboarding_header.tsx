@@ -16,14 +16,6 @@ export interface OnboardingHeaderProps {
   onBack?: () => void;
 }
 
-/**
- * Onboarding's own header, not a change to StackHeader. StackHeader renders
- * its back button unconditionally and has no brand variant; onboarding needs
- * both a brand variant (N1) and an absent back affordance (N3/N4 in this
- * task — their back semantics are MA-005's). Teaching the shared header two
- * onboarding-only shapes would push them onto every other screen that uses
- * it. Primitives reused verbatim from stack_header.tsx.
- */
 export function OnboardingHeader({ title, onBack }: OnboardingHeaderProps) {
   return (
     <View
@@ -61,10 +53,7 @@ export function OnboardingHeader({ title, onBack }: OnboardingHeaderProps) {
         </>
       ) : (
         <>
-          {/* .brand groups the mark + wordmark (mockup.html:292-294,1027-1028); a
-              third flat sibling here would let the root's justify-between spread
-              Setup and the wordmark evenly, floating MoneyApp into the header's
-              centre instead of leaving it beside the mark. */}
+          {/* Grouping the mark and wordmark stops `justify-between` centring the wordmark. */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
             <LogoMark />
             <Typography className="font-sora-bold" style={{ fontSize: Type.subhead }}>

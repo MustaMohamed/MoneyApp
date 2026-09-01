@@ -161,7 +161,6 @@ describe('TransactionRepository.add', () => {
     const before = new Date().toTimeString().slice(0, 8);
     const tx = await repo.add(withoutTime);
     const after = new Date().toTimeString().slice(0, 8);
-    // The stored time string should be between before and after (inclusive)
     expect(tx.transaction_time >= before).toBe(true);
     expect(tx.transaction_time <= after).toBe(true);
   });
@@ -216,10 +215,7 @@ describe('TransactionRepository.add', () => {
   });
 
   it('rejects a raw amount beside a correctly-rounded egp_amount sibling — the reconciliation guard', async () => {
-    // amount should be roundMoney(10.005) = 10, deriving egp_amount = 10 x 48 = 480.
-    // Persisting the raw 10.005 beside the correctly-derived 480 is exactly the
-    // drift the layer rounds once, upstream, to prevent. Delete the `input.amount
-    // === expected.amount` conjunct and this goes green — that is the gate.
+    // `roundMoney(10.005)` is 10, so the derived `egp_amount` is 10 x 48 = 480.
     await expect(
       repo.add({
         ...baseInput,
@@ -644,8 +640,7 @@ describe('Case E — reversal symmetry (delete restores all balances)', () => {
   });
 
   it('deleting CC payment (Case C shape: ≤ min, no revolving change) leaves revolving at 5000', async () => {
-    // Inverse of Case C: payment 300 ≤ minimum 500 leaves revolving at 5000 (no principal change).
-    // Deleting it must keep revolving at 5000 — there is nothing to "credit back" since revolving never moved.
+    // Payment 300 <= minimum 500 never moved revolving, so the delete has nothing to credit back.
     const tx = await repo.add({
       type: TransactionType.CCPayment,
       amount: 300,
@@ -665,8 +660,7 @@ describe('Case E — reversal symmetry (delete restores all balances)', () => {
   });
 
   it('deleting CC payment (Case D shape: > min, partial revolving reduction) restores revolving from 4700 to 5000', async () => {
-    // Inverse of Case D: payment 800 > minimum 500 reduces revolving from 5000 → 4700 (300 excess).
-    // Deleting it must restore revolving back to 5000.
+    // Payment 800 > minimum 500 reduces revolving by the 300 excess, from 5000 to 4700.
     const tx = await repo.add({
       type: TransactionType.CCPayment,
       amount: 800,
@@ -957,11 +951,6 @@ describe('commitment-owned transaction mutations', () => {
   });
 });
 
-// MA-018 c6 step 8 — the ticket's own deliverable: no test anywhere exercised
-// a fractional amount through any write path. These drive the hooks' own
-// three-line mapping (resolveTransactionAmounts -> repo.add / repo.update)
-// against a real database and read all three numbers back, proving they
-// reconcile — not just that a mocked call received the right shape.
 describe('MA-018 c6 — full-cycle write path: amount, egp_amount and the balance reconcile', () => {
   it('repo.add: 10.005 USD @ rate 48 persists amount 10, egp_amount 480, and moves acc_usd by exactly 10 (row 15)', async () => {
     const amounts = resolveTransactionAmounts({
@@ -991,8 +980,7 @@ describe('MA-018 c6 — full-cycle write path: amount, egp_amount and the balanc
   });
 
   it('repo.update: re-deriving 10.005 USD @ rate 48 persists amount 10, egp_amount 480, and the account ends moved by exactly 10 (row 16)', async () => {
-    // Seed with an unrelated raw fractional amount so the update path is
-    // proven independently, not by re-reading a value add() already wrote.
+    // Seed with a different fractional amount so the update path is not re-reading add()'s value.
     const seedAmounts = resolveTransactionAmounts({
       type: TransactionType.Expense,
       amount: 5.005,
@@ -1030,8 +1018,7 @@ describe('MA-018 c6 — full-cycle write path: amount, egp_amount and the balanc
       .get(tx.id) as { amount: number; egp_amount: number };
     expect(row.amount).toBe(10);
     expect(row.egp_amount).toBe(480);
-    // Total movement from the pristine acc_usd balance (0) is exactly the
-    // final amount, regardless of the seeded intermediate value.
+    // acc_usd starts at 0, so the final balance is the final amount, not a delta from the seed.
     expect(accountBalance('acc_usd')).toBe(-10);
   });
 });

@@ -30,42 +30,15 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 interface NetWorthBreakdownSheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  /**
-   * One object, not loose numbers: a discriminated union narrows only when the
-   * discriminant and the fields arrive together, and sibling props destructured
-   * in a signature do not narrow each other.
-   */
+  /** Keep as one object: sibling props destructured in a signature do not narrow each other. */
   netWorth: DashboardNetWorth;
-  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  /** Read once in `dashboard.hook.ts` and passed down; never read a store here. */
   baseCurrency: Currency;
   liquidity: LiquidityBreakdown;
   liabilities: LiabilityRow[];
 }
 
-/**
- * On a `rate-needed` outcome this renders the refusal and NOTHING ELSE — and
- * that suppression, not a gate inside `computeLiquidityBreakdown` or
- * `computeLiabilitiesBreakdown`, is why neither helper needs one (#259 C7):
- *
- * - the body renders iff `netWorth.kind === 'amount'` (below), which is
- *   `foreignCount === 0 || rateUsable` (`dashboard.helpers.ts:79-85`);
- * - both helpers convert through `convertCurrency` against `baseCurrency`
- *   (`dashboard.helpers.ts:230`, `:275`), and that returns the amount untouched
- *   whenever `from === to` (`account_aggregation.ts:281-283`);
- * - `foreignCount === 0` means every non-archived account already holds the
- *   base currency (`countForeignAccounts`, `account_aggregation.ts:202-205`),
- *   so the only path a gate inside either helper could fire on is
- *   base-only-unverified — where every conversion is the identity, the rate is
- *   arithmetically inert, and the gate would blank a correct breakdown instead
- *   of guarding anything. `liquidity`/`liabilities` are non-optional props:
- *   there is no third, gated state for either to represent.
- *
- * The pin for this argument is the rate-independence test in
- * `dashboard_helpers.test.ts` (T6): both helpers return deeply equal results
- * for the same base-currency-only accounts at `rate = 50` and `rate = 0.0001`.
- * Body suppression above stands as the second guard behind the non-tappable
- * hero (`hero_card.tsx`'s refusal-path comment).
- */
+/** On `rate-needed` the body is suppressed here, so neither breakdown helper needs a gate. */
 export function NetWorthBreakdownSheet({
   isOpen,
   onOpenChange,
@@ -98,12 +71,7 @@ export function NetWorthBreakdownSheet({
   );
 }
 
-/**
- * Warning, not danger — nothing failed. No number, no dash-as-number, no partial
- * total, no substituted rate: the union carries no value on this path, by
- * construction. Mirrors `ready_hero_card.tsx`'s refusal so the two read as one
- * app.
- */
+/** Warning, not danger: nothing failed, so no number, partial total, or substituted rate shows. */
 function NetWorthRefusalHeadline(): React.ReactElement {
   return (
     <View className="px-4 pt-2">
@@ -135,12 +103,6 @@ function NetWorthRefusalHeadline(): React.ReactElement {
   );
 }
 
-/**
- * The amount path's body, kept as a subcomponent rather than an early return:
- * the eight derivations below then sit INSIDE the narrowing, and the `Sheet`'s
- * five configuration props and the scroll view's `contentContainerStyle` are
- * declared once instead of drifting between two returns.
- */
 function NetWorthBreakdownBody({
   netWorth: amount,
   baseCurrency,
@@ -153,9 +115,7 @@ function NetWorthBreakdownBody({
   liabilities: LiabilityRow[];
 }): React.ReactElement {
   const assetsTotal = liquidity.liquid + liquidity.reserve;
-  // Gated on both parts being non-negative, not just the total being positive
-  // (#259 C6) — see `shouldShowProportionBar`'s own comment for the overdrawn-
-  // account defect this closes.
+  // Gated on both parts being non-negative, not just the total being positive.
   const showProportionBar = shouldShowProportionBar(liquidity);
   const liquidPct = showProportionBar ? liquidity.liquid / assetsTotal : 0;
   const reservePct = 1 - liquidPct;
@@ -164,10 +124,6 @@ function NetWorthBreakdownBody({
   const showLiabilities = liabilities.length > 0;
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
   const netWorthParts = formatCurrencyParts(amount.netWorth, baseCurrency);
-  // `{ value, code }` from one call each: the two section headers need the code
-  // as well as the number, and taking both from the formatter keeps
-  // `CURRENCY_CONFIG` out of this `.tsx` — the code and the decimals then cannot
-  // disagree about which currency this sheet is reporting in.
   const assetsParts = formatCurrencyParts(amount.assets, baseCurrency);
   const liabilitiesParts = formatCurrencyParts(amount.liabilities, baseCurrency);
   const liquidColors = resolveBreakdownRowColors('liquid');
@@ -176,7 +132,6 @@ function NetWorthBreakdownBody({
 
   return (
     <>
-      {/* Net Worth headline */}
       <View className="px-4 pt-2">
         <Text variant="hint" className="text-muted text-xs tracking-wide uppercase">
           {Strings.dashboardBreakdownNetWorthLabel}
@@ -190,10 +145,8 @@ function NetWorthBreakdownBody({
         </Text>
       </View>
 
-      {/* Divider */}
       <View className="bg-separator mx-4 my-4 h-px" />
 
-      {/* Assets */}
       <View className="px-4">
         <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
           {Strings.dashAssetsLabel} ·{' '}
@@ -267,10 +220,7 @@ function NetWorthBreakdownBody({
                 icon="credit-card"
                 label={row.name}
                 caption={
-                  // The trigger reads the NUMBER, not the rendered text: a
-                  // true `-0` row (the only other non-positive case
-                  // `roundMoney` can produce) fails `< 0` and keeps the
-                  // due-caption below (#259 C2/C4).
+                  // A true `-0` fails `< 0`, so it keeps the due caption.
                   row.balance < 0
                     ? Strings.dashboardBreakdownInCredit
                     : row.statementDueDay != null && row.statementDueDay > 0
@@ -300,16 +250,7 @@ interface LegendRowProps {
   icon?: IconName;
   label: string;
   caption?: string;
-  /**
-   * Pre-formatted display text — every call site renders through a formatter
-   * before this prop sees the value: `formatCurrencyParts(v, baseCurrency)` at
-   * the liquid/reserve call sites, `formatLiabilityRowValue` (#259 C3) at the
-   * liability one,
-   * which owns that row's signed glyph. A single `string` channel, not
-   * `number | string`, keeps that true at the TYPE level: reverting the
-   * liability call site to a raw `row.balance` number is a compile error
-   * here, not a silently unsigned row rendered through a bare magnitude.
-   */
+  /** Pre-formatted text; the liability row's sign comes from `formatLiabilityRowValue`. */
   value: string;
   count?: number;
   valueColor?: string;
@@ -347,8 +288,7 @@ function LegendRow({ color, icon, label, caption, value, count, valueColor }: Le
   );
 }
 
-// Account sub-rows align horizontally with the LegendRow label above them.
-// LegendRow's label starts at: icon width (ms(16)) + icon→label gap (ms(10)) = ms(26).
+// Aligns to the `LegendRow` label: icon width `ms(16)` + icon-to-label gap `ms(10)`.
 const SUB_ROW_INDENT = ms(27.5);
 
 function AccountSubRow({ account, baseCurrency }: { account: AccountRow; baseCurrency: Currency }) {

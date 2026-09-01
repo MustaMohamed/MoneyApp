@@ -48,8 +48,7 @@ jest.mock('@/components/ui/button', () => ({
     const ReactLocal = jest.requireActual<typeof import('react')>('react');
     const { View: RNView, Text: RNText } =
       jest.requireActual<typeof import('react-native')>('react-native');
-    // The label goes inside <Text>: a bare string child of <View> is an
-    // Invariant Violation at RN runtime, which RNTL 14 now enforces in tests too.
+    // A bare string child of <View> is an RN Invariant Violation, so the label goes in <Text>.
     return ReactLocal.createElement(
       RNView,
       { ...props, accessibilityLabel: label },
@@ -149,11 +148,7 @@ describe('transaction date picker', () => {
     expect(screen.queryByTestId('date-picker-android')).toBeNull();
   });
 
-  // datetimepicker 9 moved Android cancel off `onChange({ type: 'dismissed' })` and
-  // onto its own `onDismiss()`. Under the old shape a single handler closed the
-  // picker for both outcomes; now that is two code paths, and a dismiss path that
-  // forgot to close would strand the store with the picker marked open — invisible
-  // on screen, because the native dialog has already gone.
+  // datetimepicker reports Android cancel on `onDismiss()`, not `onChange({ type: 'dismissed' })`.
   it('closes the Android picker on dismiss without applying a date', async () => {
     setPlatform('android');
     const onChange = jest.fn();
@@ -215,10 +210,7 @@ describe('transaction date picker', () => {
     );
   });
 
-  // The owner check on the select half is load-bearing: it gates the caller's
-  // onChange, so a late selection from a picker whose owner has been superseded must
-  // not write into the new owner's form. (The dismiss half needs no such check —
-  // closeAndroid already no-ops unless activeOwnerId matches.)
+  // The owner check gates onChange: a superseded picker must not write the new owner's form.
   it('ignores an Android selection from an owner that no longer holds the picker', async () => {
     setPlatform('android');
     const staleOnChange = jest.fn();
@@ -227,7 +219,6 @@ describe('transaction date picker', () => {
     );
 
     await fireEvent.press(screen.getByTestId('date-row'));
-    // A different owner takes over while the stale picker is still mounted.
     useDatePickerSheetState.getState().openAndroid('edit-new', '2026-07-15');
 
     await fireEvent(

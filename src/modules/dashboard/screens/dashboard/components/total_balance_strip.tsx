@@ -19,30 +19,17 @@ import type {
 import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
-// This strip only ever painted 2 of HeroShell's 3 gradient stops — kept
-// exactly as-is (debt:quality #228 / MA-009 post-approval fix F3 only asks
-// this site to read the shared source, not to adopt the third stop).
+// Intentionally 2 of the 3 shared hero stops.
 const TOTAL_BALANCE_GRADIENT_COLORS = [HERO_GRADIENT_COLORS[0], HERO_GRADIENT_COLORS[1]] as const;
 
 interface TotalBalanceStripProps {
-  /**
-   * One object, not loose numbers: a discriminated union narrows only when the
-   * discriminant and the fields arrive together, and sibling props destructured
-   * in a signature do not narrow each other.
-   */
+  /** One object: a union narrows only when discriminant and fields arrive together. */
   netWorth: DashboardNetWorth;
-  /** Read once in `dashboard.hook.ts` and passed down — never from a store here. */
+  /** Read once in `dashboard.hook.ts` and passed down, never from a store here. */
   baseCurrency: Currency;
   accountsCount: number;
 }
 
-/**
- * The amount path's headline, kept as a subcomponent rather than inline so the two
- * `formatCurrencyParts` calls the value/code split needs collapse to one. Matches
- * `stat_cards.tsx`'s `NetWorthCardBody` and `hero_card.tsx`'s `HeroCardAssetsAmount` — the
- * established shape for a `DashboardNetWorthAmount`-narrowed subcomponent here, not a
- * compiler requirement (an if/else-scoped const also compiles here).
- */
 function TotalBalanceStripAmount({
   netWorth: amount,
   baseCurrency,
@@ -82,8 +69,7 @@ export function TotalBalanceStrip({
             {Strings.dashboardTotalBalance}
           </RNText>
           {netWorth.kind === 'rate-needed' ? (
-            // Warning, not danger, and no number of any kind — the union carries
-            // none on this path. The remedy sentence lives on the hero card.
+            // Warning, not danger, and no number: the union carries none on this path.
             <View
               className="mt-1 flex-row items-center"
               style={{ flexDirection: 'row', gap: ms(6) }}

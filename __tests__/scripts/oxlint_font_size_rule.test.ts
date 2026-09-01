@@ -1,50 +1,5 @@
-/**
- * CLI-driven contract tests for scripts/oxlint-plugin-moneyapp.js (W1D c2, #230).
- *
- * RuleTester cannot run under this repo's jest: oxlint is ESM and depends on
- * `import.meta.url` plus native (Rust) bindings jest's CJS transform cannot host — H1 at
- * P5. This suite instead drives the real `oxlint` binary as a subprocess, over its
- * stdout/exit-code contract — `node_modules/.bin/oxlint` directly, the same binary
- * `npm run lint` invokes (measured: going through `npx oxlint` instead costs +322ms/spawn
- * for a resolve this repo's own lint script never pays).
- *
- * Fixtures are written at test time, never tracked: a tracked fixture would enter
- * `npm run typecheck` (tsconfig's `**\/*.ts` has no exclude), `oxfmt --check`, and the
- * repo's own lint count. The first attempt at this suite put fixtures in a gitignored
- * `<repoRoot>/.w1d-rule-fixtures/`, mirroring `.ma017-guard-fixtures/`'s pattern
- * (`.gitignore:73`) — measured to fail: oxlint 1.77.0's file walker respects `.gitignore`
- * unconditionally (confirmed by toggling the entry alone; `--help` documents `--no-ignore`
- * as covering only `.eslintignore` / `--ignore-path` / `--ignore-pattern`, never VCS ignore
- * files, and there is no flag that does — so `--no-ignore` is dropped below too, it never
- * did anything for a tmpdir target). Fixtures instead live under a fresh `os.tmpdir()`
- * directory per test, precisely BECAUSE that walker respects `.gitignore` unconditionally:
- * a directory outside the repo has no `.gitignore` ancestry to be subject to it at all —
- * created `beforeEach`, removed `afterEach`, exactly how this suite's sibling
- * (validate_money_formatting.test.ts) already places its ephemeral `git`-stub directories.
- *
- * One spawn over the whole fixture directory, `-c <fixture config> -f json <fixtureRoot>`,
- * asserts the EXACT set of `(filename, labels[0].span.line, code)` — the
- * `-f json` diagnostic shape measured directly: `code` is `moneyapp(font-size-pairs-
- * line-height)` (oxlint's `plugin(rule)` form, not the config's `plugin/rule` slash form),
- * and the reported line is `labels[0].span.line`. `number_of_files` is asserted equal to
- * the fixture count in the same spawn, so a lint-nothing run (the exact failure mode this
- * design replaced) reds on both counts, and the valid fixtures' silence is proven by the
- * same run rather than a separate, vacuous one. The fixture config sets `categories:
- * { correctness: "off" }` so only this one plugin rule is active — oxlint's default
- * category set (e.g. `no-unused-vars`) would otherwise fire on unused fixture bindings and
- * break the exact-set assertion; measured: with categories left at their default, a plain
- * two-line fixture file produced two additional `eslint(no-unused-vars)` diagnostics.
- *
- * Config-drift pin (L8b): `--print-config` resolves ZERO external-plugin rules regardless
- * of how many are configured (measured: `npx oxlint --print-config -c .oxlintrc.json`
- * against this repo returns 168 rules and none of the 3 configured `expo/*` ones) — so it
- * cannot pin that this rule is actually wired into the repo's own `.oxlintrc.json`. A
- * second spawn instead lints one invalid fixture with the repo's real config (`-c`
- * pointing at `.oxlintrc.json` explicitly, never relying on cwd-based discovery) and
- * asserts the diagnostic's `severity` field reads `"warning"` — proving plugin load, rule
- * id, and configured severity together, red if anyone deletes the rule from either the
- * plugin or `.oxlintrc.json`.
- */
+// Fixtures live under `os.tmpdir()`: oxlint's file walker respects `.gitignore` unconditionally.
+// The fixture config turns `correctness` off; default rules fire on unused fixture bindings.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -63,14 +18,6 @@ interface Fixture {
   line?: number;
 }
 
-// Invalid (7): inline unpaired · array-with-identifier (Decision 1: array members never
-// satisfy pairing) · module-level constant unpaired · numeric lineHeight · ms() lineHeight
-// · fontSize line carrying a trailing comment (L6, proves AST detection over raw text) · a
-// multi-line reflowed object (L6). Valid (6): the lineHeightFor pairing · the
-// FIELD_MESSAGE_TEXT_LINE_HEIGHT carve-out (a) · carve-out (b), one fixture per kept
-// NAV_OPTION_STYLE_KEYS entry (headerTitleStyle, headerLargeTitleStyle, tabBarLabelStyle —
-// P8 trimmed the set to these three TextStyle-capable keys) · an object with no fontSize
-// at all.
 const FIXTURES: Fixture[] = [
   {
     name: 'inline_unpaired.ts',
@@ -156,16 +103,7 @@ function runOxlint(args: string[]): OxlintJsonOutput {
     encoding: 'utf8',
     timeout: 30000,
   });
-  // `result.error` only covers the child process failing to spawn at all (bad binary path,
-  // permissions) — not the failure this guards, which is a real spawn that runs and exits
-  // non-JSON. Measured: a plugin syntax error makes oxlint print "Failed to load JS
-  // plugin: ..." plus the underlying SyntaxError and stack to STDOUT as plain text (not
-  // stderr, and not `-f json`'s shape) and exit 1; `result.stdout` is non-empty, so a bare
-  // `!result.stdout` check would not catch it either. `JSON.parse` throwing is the only
-  // reliable signal — wrap it and surface both streams, so a failure here reads as
-  // oxlint's real message instead of jest's opaque `Unexpected token ... is not valid
-  // JSON`. Mirrors scripts/validate-money-formatting.js:45-52's own
-  // error-before-`stdout`-use guard, adapted to a failure mode measured on THIS binary.
+  // A plugin load error prints text to stdout and exits 1; only `JSON.parse` throwing sees it.
   if (result.error) {
     throw new Error(`oxlint failed to spawn: ${result.error.message}`);
   }

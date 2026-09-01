@@ -13,10 +13,7 @@ const ICON_SIZE = ms(28);
 
 interface ConfirmSheetProps {
   isOpen: boolean;
-  /**
-   * Called on ALL close paths (swipe, overlay, close button, programmatic).
-   * When busy=true this is a no-op — the sheet cannot be closed.
-   */
+  /** Called on every close path (swipe, overlay, button, programmatic); a no-op while busy. */
   onOpenChange: (open: boolean) => void;
   title: string;
   body: string;
@@ -26,12 +23,6 @@ interface ConfirmSheetProps {
   onCancel: () => void;
   busy?: boolean;
   errorMessage?: string;
-  /**
-   * When true: trash-can icon in dangerBg circle + danger (red) confirm button.
-   * Default false — retains the existing amber warning-circle + primary button.
-   * Existing callers (commitments SkipConfirmSheet) are untouched because they
-   * do not pass this prop.
-   */
   destructive?: boolean;
 }
 
@@ -48,11 +39,6 @@ export function ConfirmSheet({
   errorMessage,
   destructive = false,
 }: ConfirmSheetProps) {
-  // Q2 guard: when busy, suppress all close paths so the sheet stays open
-  // while an async operation is in flight. Same semantics as the legacy
-  // onClose={() => {}} guard — now applied to all-path onOpenChange.
-  // Callers are responsible for wiring cancel logic into onOpenChange
-  // (e.g. onOpenChange={(open) => { if (!open) onCancel(); }}).
   const handleOpenChange = (open: boolean) => {
     if (busy) return;
     onOpenChange(open);
@@ -63,15 +49,11 @@ export function ConfirmSheet({
   const iconName = destructive ? 'trash-can-outline' : 'alert-circle-outline';
 
   return (
-    // fitContent: sheet hugs content height — no wasted space for a ~120px
-    // decision sheet. No title prop: we render our own centered header below.
-    // No X close button: Cancel + swipe + overlay-tap handle all dismiss paths.
     <Sheet isOpen={isOpen} onOpenChange={handleOpenChange} fitContent>
       <View
         className="items-center"
         style={{ paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl, paddingBottom: Spacing.lg }}
       >
-        {/* Icon in tinted circular container — warning (amber) or danger (red) */}
         <View
           style={{
             width: ICON_CONTAINER_SIZE,
@@ -86,7 +68,6 @@ export function ConfirmSheet({
           <MaterialCommunityIcons name={iconName} size={ICON_SIZE} color={iconColor} />
         </View>
 
-        {/* Title — Sora semibold, centered */}
         <Text
           style={{
             fontFamily: FontFamily.soraSemi,
@@ -99,7 +80,6 @@ export function ConfirmSheet({
           {title}
         </Text>
 
-        {/* Body — Inter, muted, centered */}
         <Text
           style={{
             fontFamily: FontFamily.interRegular,
@@ -121,7 +101,6 @@ export function ConfirmSheet({
           </Alert>
         ) : null}
 
-        {/* Cancel / Confirm button row */}
         <View style={{ flexDirection: 'row', marginTop: Spacing.lg }} className="gap-3">
           <View style={{ flex: 1 }}>
             <Button variant="ghost" label={cancelLabel} onPress={onCancel} isDisabled={busy} />

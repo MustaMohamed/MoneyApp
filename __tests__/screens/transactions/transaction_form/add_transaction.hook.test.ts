@@ -439,7 +439,7 @@ describe('useAddTransaction — validation', () => {
   it('rejects amount=0', async () => {
     const onClose = jest.fn();
     const { result } = await renderHook(() => useAddTransaction(onClose));
-    // amountStr defaults to '0', accountId selected
+    // `amountStr` defaults to '0', so this case never sets one.
     await act(() => result.current.selectAccount(mockAccountEGP));
     await act(() => result.current.selectCategory(mockCategoryExpense));
     await act(async () => {
@@ -705,14 +705,7 @@ describe('useAddTransaction — cross-currency math', () => {
 
 describe('useAddTransaction — rounding', () => {
   it("applies banker's rounding to egp_amount on cross-currency expense", async () => {
-    // Plan test entered `3.275` via numpad, but the cap to 2 decimal places
-    // lives in AmountHero.sanitize (amount_hero.tsx), not the store — the
-    // store itself is a bare `set` — so the `5` digit is silently dropped
-    // at the keystroke, giving `3.27`.
-    // Adjusted case: amount=1 (integer, no decimal issues), rate=30.005.
-    //   1 × 30.005 = 30.005 → scaled=3000.5, truncated=3000 (even).
-    //   Banker's rounding: stays at 3000 → 30.00.
-    //   Regular Math.round(3000.5) = 3001 → 30.01 (would fail without roundMoney).
+    // 1 × 30.005 = 30.005; banker's rounding keeps 30.00 where `Math.round` gives 30.01.
     useCurrencyStore.setState({
       rate: 30.005,
       rate_updated_at: null,
@@ -725,7 +718,6 @@ describe('useAddTransaction — rounding', () => {
     await act(async () => {
       await result.current.handleSave();
     });
-    // amount = 1, rate = 30.005 → 30.005 → banker's rounds to 30.00 (even)
     expect(addTx).toHaveBeenCalledWith(
       expect.objectContaining({
         egp_amount: 30.0,
@@ -752,7 +744,6 @@ describe('useAddTransaction — auto-now time', () => {
     expect(addTx).toHaveBeenCalled();
     const arg = addTx.mock.calls[0][0];
     expect(arg.transaction_time).toBe('09:05:30');
-    // No setTime exposed
     expect(result.current).not.toHaveProperty('setTime');
   });
 });

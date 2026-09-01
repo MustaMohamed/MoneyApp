@@ -1,4 +1,3 @@
-// Backward-compat stub — canonical in modules/accounts/.
 export {
   getAccounts,
   addAccount,

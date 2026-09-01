@@ -124,7 +124,6 @@ describe('getTransactions — accountIds filter', () => {
       to_account_id: 'acc_b',
       category_id: null,
     });
-    // Filtering by acc_b alone should still match this transfer.
     const out = await getTransactions(mockDb, { accountIds: ['acc_b'] });
     expect(out.map((t) => t.id)).toEqual(['xfer1']);
   });
@@ -314,9 +313,6 @@ describe('getTransactions — expanded search projection', () => {
     ]);
   });
 
-  // W2E §3.2 row 6 / §8.5: the numeric search parse is unfloored
-  // (parseDecimalText), so a legacy sub-cent row (#302 residual) is
-  // searchable by its exact stored amount again.
   it('finds a stored sub-cent legacy row by its exact amount', async () => {
     await insert({ id: 'sub-cent', amount: 0.005, egp_amount: 0.005 });
     await insert({ id: 'different-amount', amount: 150, egp_amount: 150 });
@@ -356,7 +352,6 @@ describe('getTransactions — expanded search projection', () => {
 
 describe('getTransactions — combined axes', () => {
   it('AND-composes type, account, category, date, and amount', async () => {
-    // Match target: expense, acc_a, cat_food, 2026-05-10, EGP 100
     await insert({
       id: 'match',
       type: TransactionType.Expense,
@@ -366,14 +361,12 @@ describe('getTransactions — combined axes', () => {
       amount: 100,
       currency: Currency.EGP,
     });
-    // Same date but wrong account
     await insert({
       id: 'wrong_acc',
       account_id: 'acc_b',
       transaction_date: '2026-05-10',
       amount: 100,
     });
-    // Right account but outside date range
     await insert({
       id: 'wrong_date',
       account_id: 'acc_a',

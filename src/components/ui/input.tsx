@@ -18,14 +18,7 @@ export interface InputProps extends HInputProps {
   errorMessage?: string;
   isRequired?: boolean;
   suffix?: ReactNode;
-  /**
-   * Caps `errorMessage` at N lines. Needed whenever the field sits in a
-   * fixed-height slot: `FieldError` is a sibling of the input inside
-   * `HTextField`'s column, so an uncapped message both wraps past the reserved
-   * height and, in a column with no width of its own, sets that column's
-   * intrinsic width. Left uncapped by default — wrapping is the right behaviour
-   * for a field that is free to grow.
-   */
+  /** Caps `errorMessage` at N lines; uncapped it wraps and widens a fixed-height slot. */
   errorNumberOfLines?: number;
 }
 

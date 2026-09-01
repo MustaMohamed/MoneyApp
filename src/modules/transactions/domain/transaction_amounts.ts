@@ -16,32 +16,12 @@ export interface CommitmentPaymentAmounts {
   exchangeRate: number | null;
 }
 
-/**
- * Does a movement between these two currencies need a USD exchange rate?
- * True when either side is USD — the storage-currency rule, since `egp_amount`
- * is the ledger's own currency and a USD leg has to be converted to reach it.
- *
- * Wide on purpose: `undefined` compares unequal to `Currency.USD`, so a caller
- * holding an optional currency passes it straight in. **Callers own presence
- * semantics.** This answers the currency question only — it cannot express
- * "no account has been picked yet", and returns `true` for `(USD, undefined)`.
- * `usePaySheet`'s `requiresRate` keeps its own `!commitment || !selectedAccount`
- * guard in front of this call for exactly that reason.
- */
+/** True when either side is USD. `(USD, undefined)` is true, so callers own presence checks. */
 export function requiresExchangeRate(a: Currency | undefined, b?: Currency): boolean {
   return a === Currency.USD || b === Currency.USD;
 }
 
-/**
- * `reason` names the ONE throw cause a caller may need to react to
- * differently: `assertStorable`'s output-guard failure. Every other throw in
- * this file — missing destination, non-positive amount, missing rate — is a
- * bare domain literal with no discriminant, exactly like it was before this
- * class carried one: nothing downstream reacts to those individually, so
- * nothing here should suggest they are named surfaces. Only
- * `resolveTransactionSaveError` reads `reason`, and only to pick the one
- * mapped string; it is not a public error-code enum.
- */
+/** Only the unstorable throw sets `reason`; `resolveTransactionSaveError` is its only reader. */
 export class TransactionAmountError extends Error {
   constructor(
     message: string,
@@ -52,17 +32,7 @@ export class TransactionAmountError extends Error {
   }
 }
 
-/**
- * Every computed, rounded leg passes through here before a resolver can
- * return it. The invariant (ADR: parse-floor-money-only): no computed money
- * value above `MAX_SAFE_INTEGER` or non-finite ever reaches a `db.runAsync`
- * bind. `parseRateText` (parse_decimal.ts) carries no magnitude bound at
- * parse — this is the net that makes that safe. `>`, not `>=`: the boundary
- * value itself is still representable (upper-bound precedent:
- * budget_month_profiles.ts's income guard). Throws a bare domain literal,
- * like every other throw in this file — `resolveTransactionSaveError` maps
- * user copy from `reason`, never from this message.
- */
+// Nothing non-finite or above `MAX_SAFE_INTEGER` reaches SQLite; the bound itself is storable.
 function assertStorable(value: number): void {
   if (!Number.isFinite(value) || value > Number.MAX_SAFE_INTEGER) {
     throw new TransactionAmountError('Computed amount exceeds the storable range', 'unstorable');

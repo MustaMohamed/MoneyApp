@@ -42,12 +42,7 @@ describe('display headline geometry', () => {
     const a11y = resolveDisplayHeadlineA11y('Finally clear.');
     expect(a11y.container.accessibilityLabel).toBe('Finally clear.');
     expect(a11y.container.accessible).toBe(true);
-    // "header", not "image" — @marcus, 2026-08-06. The role describes what the
-    // element is to a user, not how it is drawn. RN maps "image" to a
-    // roleDescription of "Image" (ReactAccessibilityDelegate.kt:657-659), which
-    // TalkBack appends after the words; "header" sets isHeading (:674-676) and
-    // leaves the announcement as the copy alone — identical for both treatments,
-    // which is this task's own requirement.
+    // RN's "image" role makes TalkBack append "Image"; "header" only sets isHeading.
     expect(a11y.container.accessibilityRole).toBe('header');
     // The drawing must not surface a second node carrying the same string.
     expect(a11y.graphic.importantForAccessibility).toBe('no-hide-descendants');
@@ -93,11 +88,7 @@ describe('display headline — the plain-text sibling line (MA-010 decision D3)'
     expect(text.lineHeight).toBe(svg.boxHeight + svg.topInset);
   });
 
-  // Both sides of the assertion above derive from DISPLAY_HEADLINE_LINE_HEIGHT,
-  // so it pins that the two lines share one box but not what that box measures.
-  // These literals are the arithmetic itself: round(42 * 1.05) and, above the
-  // ceiling, round(42 * 1.3 * 1.05). Without them, changing the constant moves
-  // the shipped line height with nothing red.
+  // Literals, not the constant: round(42 x 1.05) and round(42 x 1.3 x 1.05) at the ceiling.
   it('measures round(fontSize x 1.05) in dp, clamped at the ceiling', () => {
     expect(resolveDisplayHeadlineTextStyle(42, 1).lineHeight).toBe(44);
     expect(resolveDisplayHeadlineTextStyle(42, 2, DISPLAY_HEADLINE_MAX_FONT_SCALE).lineHeight).toBe(

@@ -177,14 +177,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                     <Input
                       value={value}
                       onChangeText={(text) => {
-                        // Masked before `clearError()` as well as before
-                        // `onChange`, so a refused keystroke cannot wipe a save
-                        // error the user still needs to read. Only this
-                        // Controller is masked: the name field above is
-                        // character-identical to what this handler was, which
-                        // is exactly what makes it easy to mask by accident,
-                        // and a masked name field refuses every letter of a
-                        // budget name.
+                        // Mask before `clearError`: a refused keystroke must not wipe the error.
                         const masked = maskFieldText('amount', value, text);
                         if (masked === undefined) return;
                         clearError();

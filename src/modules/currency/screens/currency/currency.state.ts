@@ -6,7 +6,7 @@ interface CurrencyScreenStateShape {
   isFetching: boolean;
   isSaving: boolean;
   fetchError: string;
-  /** Nothing failed and the value saved — this is not one of the two error slots. */
+  /** Not one of the two error slots: the rate is implausible but nothing failed. */
   rateWarning: string;
   saveError: string;
 }

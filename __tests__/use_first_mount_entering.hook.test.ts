@@ -3,11 +3,8 @@ import { createElement, StrictMode, type PropsWithChildren } from 'react';
 
 import { useFirstMountEntering } from '@/utils/use_first_mount_entering.hook';
 
-// The hook's "seen" set is module state, not reset between tests in this
-// file — each case below uses its own key so no test can observe another's
-// claim.
+// The seen-set is module state, never reset between tests, so each case uses its own key.
 
-// Wrapper pattern from transaction_form_prerequisites.test.ts.
 function StrictModeWrapper({ children }: PropsWithChildren): React.ReactElement {
   return createElement(StrictMode, null, children);
 }
@@ -52,8 +49,7 @@ describe('useFirstMountEntering — claim gating (#247)', () => {
 
   it('a mid-mount claim=false flip does not change an already-latched false value', async () => {
     const key = 'latched-false';
-    // Claim the key on an earlier mount so this instance's first render finds
-    // it already seen.
+    // Claim the key on an earlier mount so this instance's first render finds it seen.
     await renderHook(() => useFirstMountEntering(key));
 
     const { result, rerender } = await renderHook(
@@ -83,11 +79,8 @@ describe('useFirstMountEntering — claim gating (#247)', () => {
     const { result } = await renderHook(() => useFirstMountEntering(key), {
       wrapper: StrictModeWrapper,
     });
-    // If the double-invoke re-decided on its second pass (finding `key` already
-    // in `seen` from the first), this would read `false` instead.
     expect(result.current).toBe(true);
 
-    // A fresh mount of the same key must see it already claimed, exactly once.
     const { result: second } = await renderHook(() => useFirstMountEntering(key));
     expect(second.current).toBe(false);
   });

@@ -112,12 +112,7 @@ export function useAccountDetail() {
     setAdjusting(true);
     try {
       await adjustBalance(id, newBalance);
-      // Deliberately after the await: a rejection skips it, so a failed adjust
-      // leaves the sheet open with the value the user typed still in it. The
-      // rejection itself propagates to `AdjustBalanceSheet.handleSave`, which
-      // awaits this and renders the message — error copy belongs to the
-      // component that owns the error channel (.claude/rules/state.md), and
-      // this handler has exactly one caller, the sheet.
+      // After the await on purpose: a rejection keeps the sheet open with the typed value intact.
       setAdjustVisible(false);
     } finally {
       setAdjusting(false);

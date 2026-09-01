@@ -51,10 +51,7 @@ function setup(isAddingMore?: string) {
   (useOnboardingStore as jest.Mock & { getState: jest.Mock }).getState = jest.fn(() => storeState);
 }
 
-// mockAddAccount republishes mockAccounts to reproduce the real store's own
-// loadAccounts() republication (account.store.ts:82-91) — the mechanism D9
-// exists for. Same name fillAndSubmit types, and `name` present so a second
-// validation's superRefine duplicate check doesn't throw on a missing field.
+// Republishes the list like the real store's `loadAccounts()`, so the duplicate-name check fires.
 function republishOnAdd() {
   mockAddAccount.mockImplementation(async () => {
     mockAccounts = [...mockAccounts, { id: 'new', name: 'CIB Savings' }];
@@ -143,12 +140,7 @@ describe('useAddAccount', () => {
     expect(mockSetStep).toHaveBeenCalledTimes(2);
     expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/more_accounts');
     expect(result.current.state.statusMessage).toBeFalsy();
-    // MA-008 T6: formState.errors is a vacuous read under renderHook — RHF
-    // only re-renders it once something has READ it during a render, and
-    // nothing does here. getFieldState reads the live field directly.
-    // Verified (2026-08-09): with D9's bypass removed, formState.errors.name
-    // stayed undefined while getFieldState('name').error reported
-    // "This name is already used" — the old assertion could not catch it.
+    // `formState.errors` is vacuous under `renderHook`; `getFieldState` reads the live field.
     expect(result.current.form.getFieldState('name').error).toBeUndefined();
   });
 

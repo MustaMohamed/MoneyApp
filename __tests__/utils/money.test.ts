@@ -83,10 +83,7 @@ describe('toCents', () => {
     expect(toCents(input)).toBe(expected);
   });
 
-  // The tie case, and the reason `toCents` rounds through the money layer's
-  // banker's rounding instead of being a bare `Math.round(x * 100)`: that
-  // literal gives 33 here and disagrees with the persisted value at every
-  // exact half-cent.
+  // A bare `Math.round(x * 100)` gives 33 here and disagrees with the persisted value.
   it('rounds an exact half-cent to even, not up (0.325 -> 32)', () => {
     expect(toCents(0.325)).toBe(32);
   });
@@ -117,8 +114,7 @@ describe('sumAllocations', () => {
     });
   });
 
-  // D-A5: cents never leave this function. A cents value reaching
-  // `formatAmount` is a 100x display bug.
+  // A cents value reaching `formatAmount` is a 100x display bug.
   it('reports `allocated` in whole currency units, never cents', () => {
     expect(sumAllocations([0.4], 100).allocated).toBe(0.4);
   });
@@ -127,8 +123,7 @@ describe('sumAllocations', () => {
     expect(sumAllocations([null, undefined, 0.05], 0.06).allocated).toBe(0.05);
   });
 
-  // D4: order independence. Under float accumulation this fails for ~11.86%
-  // of three-way triples, so the permutation set is fixed rather than random.
+  // Fixed permutations, not random: float accumulation fails ~11.86% of three-way triples.
   it('is order-independent across every permutation of the same allocations', () => {
     const permutations: number[][] = [
       [0.335, 0.12, 0.5049],

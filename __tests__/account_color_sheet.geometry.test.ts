@@ -12,13 +12,7 @@ import {
 import { ACCOUNT_PALETTE } from '@/modules/accounts/constants/account_palette';
 import { ms } from '@/utils/responsive';
 
-/**
- * Local replica of src/utils/responsive.ts:15-22. responsive.ts freezes SCALE
- * from Dimensions at import time and jest-expo pins that to 750pt (scale 1.15),
- * so importing Size/Spacing gives ONE scale and no sweep is possible. The
- * assertion in "the replica matches the shipped ms()" is what stops this
- * replica drifting from the real formula.
- */
+// jest-expo pins `Dimensions` to 750pt, so a width sweep needs this replica of `ms()`.
 const msAt = (n: number, width: number) =>
   Math.round(n * Math.min(Math.max(width / 390, 0.85), 1.15));
 
@@ -39,18 +33,12 @@ describe('the replica matches the shipped ms()', () => {
     expect(msAt(44, 750)).toBe(ms(44));
   });
 
-  // ADDED AT PLAN REVIEW (round 1). Without this the whole sweep below is
-  // self-referential: every number in it is computed from values the TEST
-  // supplies, so it would stay green if the shipped ACCOUNT_COLOR_GRID_METRICS
-  // were built from Spacing.lg, or from a 6-column default, or from a cell
-  // height that never touched TouchSize. These four assertions are the only
-  // thing tying the sweep to the grid the user actually taps.
+  // Without these the sweep below is self-referential: every number in it comes from the test.
   it('is anchored to the tokens the component actually feeds the resolver', () => {
     expect(Spacing.md).toBe(ms(16));
     expect(Spacing.xxs).toBe(ms(4));
     expect(Size.dialogButton).toBe(ms(44));
-    // jest-expo pins Dimensions to 750pt, which is the module-scope width
-    // ACCOUNT_COLOR_GRID_METRICS was computed at.
+    // 750pt is the module-scope width `ACCOUNT_COLOR_GRID_METRICS` was computed at.
     expect(ACCOUNT_COLOR_GRID_METRICS).toEqual(metricsAt(750));
   });
 });
@@ -69,10 +57,6 @@ describe('grid model', () => {
   });
 
   it('pairs each family tone-above-tone in the same column', () => {
-    // The Done-when clause and mockup D1's caption: "Column order is identical
-    // in both blocks." account_palette.test.ts already asserts the FLAT arrays
-    // agree; this asserts the wrap into 8 columns does not break the pairing,
-    // which is the thing a user sees.
     const [rich, soft] = resolveAccountColorGrid();
     expect(rich?.tone).toBe('rich');
     expect(soft?.tone).toBe('soft');
@@ -95,8 +79,7 @@ describe('accessible names', () => {
       expect(label).toContain(ACCOUNT_PALETTE[i]?.familyLabel);
       expect(label).toContain(ACCOUNT_PALETTE[i]?.tone);
     }
-    // Index 2 is nile rich — AcctTokens declaration order, midnight, gold, nile.
-    // This is spec.md:89's example string minus ", selected"; see plan step 0.2.
+    // Index 2 is nile rich, from `AcctTokens` declaration order: midnight, gold, nile.
     expect(labels[2]).toBe('Nile Teal, rich');
   });
 });
@@ -124,8 +107,7 @@ describe('cell geometry across supported widths', () => {
   });
 
   it('reproduces the mockup at the 390pt reference', () => {
-    // mockup.html:1952-1954 — "8 columns at 390pt with 16pt sheet padding and a
-    // 4pt gap gives a cell of 41.25 x 44 ... hitSlop 2 -> 45.25 x 44".
+    // `mockup.html:1952`: 8 columns at 390pt, 16pt padding, 4pt gap gives 41.25 x 44, hitSlop 2.
     const m = metricsAt(390);
     expect(m.cellWidth).toBeCloseTo(41.25, 5);
     expect(m.cellHeight).toBe(44);
@@ -134,11 +116,7 @@ describe('cell geometry across supported widths', () => {
   });
 
   it('records that the 44pt HORIZONTAL floor is unreachable below 390pt', () => {
-    // NOT A DIAL. Plan step 0.4: eight columns, 32 swatches and no scrolling
-    // cannot all hold at 320pt. This is the shortfall written down so it moves
-    // through review rather than through a silent layout edit. Loosening the
-    // grid to 6 columns or making it scroll is @marcus's call, not a fix for
-    // whoever is looking at a red test.
+    // Not a dial: eight columns, 32 swatches and no scrolling cannot all hold at 320pt.
     expect(metricsAt(320).effectiveWidth).toBeCloseTo(35.875, 5);
     expect(metricsAt(360).effectiveWidth).toBeCloseTo(41.75, 5);
     expect(metricsAt(375).effectiveWidth).toBeCloseTo(43.625, 5);

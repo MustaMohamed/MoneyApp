@@ -11,20 +11,7 @@ import { DETAIL_ACCOUNT_ROW_HEIGHT, DETAIL_ROW_HEIGHT } from './detail_geometry'
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-/**
- * Badge tone — selects the colour of the small pill on the right-hand side
- * of a DetailRow.
- *
- * `accent` (default) is the original gold treatment used by neutral badges
- * like the "Captured" tag on the exchange-rate row. The four type tones
- * (danger/success/info/accent-cc) match the §7 four-type colour system so
- * the category row can carry a type-tinted pill, matching the list row's
- * amount colour and the detail hero's amount + pill colour.
- *
- * Concrete class strings are fully spelled out so Tailwind's static
- * extraction picks them up — interpolated class names like
- * `bg-${tone}/15` would be tree-shaken away.
- */
+/** `BADGE_STYLES` spells class names in full so Tailwind's static extraction keeps them. */
 export type BadgeTone = 'accent' | 'danger' | 'success' | 'info' | 'accent-cc';
 
 interface BadgeStyle {

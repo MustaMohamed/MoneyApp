@@ -1,4 +1,3 @@
-// modules/transactions/store/transaction.store.ts
 import { create } from 'zustand';
 
 import { Currency, type TransactionType } from '@/constants/enums';

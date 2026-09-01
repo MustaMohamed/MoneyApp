@@ -67,7 +67,7 @@ describe('useDebouncedValue', () => {
     );
     await rerender({ v: 'b' });
     await unmount();
-    // No assertion needed — running pending timers must not throw / log.
+    // No assertion: the pending timer must not throw when it fires after unmount.
     await act(() => {
       jest.runAllTimers();
     });

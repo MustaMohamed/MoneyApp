@@ -18,12 +18,7 @@ import {
 
 type EnteringAnimation = React.ComponentProps<typeof Animated.View>['entering'];
 
-/**
- * HeroGridTexture — faint 26px grid overlay shared by every hero. The SVG
- * stroke colour/opacity is not className-able, so it is an inline literal
- * (the §5/§6 SVG exception). Single pattern id app-wide: only one hero
- * renders per screen, so there is no id collision.
- */
+/** Stroke colour and opacity take no `className`; one hero per screen, so the id is unique. */
 export function HeroGridTexture() {
   return (
     <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -46,22 +41,13 @@ export interface HeroShellProps {
   /** When set, the shell is a button (Pressable). */
   onPress?: () => void;
   accessibilityLabel?: string;
-  /**
-   * Extend/override the frame style. The frame defaults to mx16/mt16/border/
-   * rounded-16/overflow-hidden; pass e.g. `{ marginHorizontal: 0 }` when the
-   * parent container already insets the hero.
-   */
+  /** Frame override, e.g. `{ marginHorizontal: 0 }` when the parent already insets the hero. */
   style?: StyleProp<ViewStyle>;
   /** Reanimated entering animation (e.g. the commitment hero's `heroEntering`). */
   entering?: EnteringAnimation;
 }
 
-/**
- * Frame styled via `style` (not className): Uniwind does not reliably process
- * `className` on `Animated.View` (the commitment hero deliberately used inline
- * style for this reason). Literal 16s match the canonical dashboard hero's
- * `mx-4 mt-4 rounded-2xl` Tailwind values exactly.
- */
+// Uniwind mishandles `className` on `Animated.View`; the 16s mirror `mx-4 mt-4 rounded-2xl`.
 const frameStyle: ViewStyle = {
   marginHorizontal: 16,
   marginTop: 16,

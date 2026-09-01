@@ -6,7 +6,7 @@ let db: ReturnType<typeof Database>;
 
 beforeEach(() => {
   db = new Database(':memory:');
-  // FK enforcement off — migration tests check schema structure, not FK logic
+  // FK enforcement off: migration tests check schema structure, not FK logic.
   db.pragma('foreign_keys = OFF');
   for (const m of MIGRATIONS) db.exec(m.up);
 });
@@ -152,7 +152,6 @@ describe('migration007 — commitment_payments table', () => {
 
   it('accepts a valid payment row with nullable account_id', () => {
     const now = new Date().toISOString();
-    // Insert parent commitment first
     db.prepare(
       `INSERT INTO commitments (id,name,amount_type,currency,category_id,recurrence_every,recurrence_period,start_date,duration_type,is_active,created_at,updated_at)
        VALUES ('c1','Rent','fixed','EGP','cat1',1,'months','2026-01-01','forever',1,?,?)`,

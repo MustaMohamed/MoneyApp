@@ -15,28 +15,8 @@ export interface CreditCardFieldsProps {
   form: UseFormReturn<AddAccountFormData>;
 }
 
-/**
- * The credit-card-only fields — CreditCardSlot's open-state body (mockup
- * C5/C6). No entering animation on the APR reveal (MA-009 plan decision 11
- * — the scope's three-animation motion budget has no room for it): it
- * renders inside this same, already-mounted block, so the block only grows
- * downward and the header/rails/CTA above it never move.
- *
- * The "Adds an APR field…" caption is plain `Typography` at
- * `--foreground`, not HeroUI `Description` — decision 8 rules out
- * `Description` for any helper copy in this task, because
- * `description.css` paints `--color-muted` (2.36:1, decorative-only per
- * spec.md:120), and this caption is something a user must read, not a
- * genuinely redundant label.
- */
 export function CreditCardFields({ form }: CreditCardFieldsProps) {
   const { control } = form;
-  // Only interest_tracking is watched here — it decides whether the APR
-  // field mounts at all. Each Controller below reads its own
-  // `fieldState.invalid` and each FieldMessageRail owns its own
-  // `useFormState({ control, name })`, instead of this component threading
-  // a whole-form `errors` object down to every field (debt:perf #227 /
-  // MA-009 quality review Q1 — the same fix as account_form.tsx's).
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
 
   return (
@@ -86,13 +66,7 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
         </Box>
       </Box>
 
-      {/* Half width, but the same half the row above uses: two `flex: 1`
-          cells share `W - gap`, so a bare `width: '50%'` is `gap/2` wider
-          than the credit-limit column and its right edge overhangs it. The
-          empty second cell reproduces the row's own arithmetic instead of
-          approximating it. No box metrics on the pad (unlike the type
-          grid's) — neither cell here carries padding or a border, so both
-          resolve `flexBasis: 0` against the same content box. */}
+      {/* An empty second cell, not `width: '50%'`: two `flex: 1` cells share `W - gap`. */}
       <Box style={{ flexDirection: 'row', gap: Spacing.xs }}>
         <Box style={{ flex: 1 }}>
           <FormLabelText label={Strings.accountDueDayLabel} tag={Strings.fieldOptionalTag} />
