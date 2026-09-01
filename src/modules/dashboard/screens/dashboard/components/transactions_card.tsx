@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, withAlpha } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 import {
@@ -254,7 +254,7 @@ export function TransactionsCard({
               style={{
                 width: ms(22),
                 height: ms(22),
-                backgroundColor: SemanticTokens.info + '22',
+                backgroundColor: withAlpha(SemanticTokens.info, '22'),
               }}
             >
               <MaterialCommunityIcons

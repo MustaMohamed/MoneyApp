@@ -60,6 +60,17 @@ export const Colors = {
   },
 } as const;
 
+/** The alpha suffixes in use, as `#RRGGBBAA` hex pairs. New values are a deliberate edit here. */
+export type AlphaHex = '1A' | '1F' | '22' | '2E' | '40' | '55';
+
+/**
+ * `#RRGGBB` token or runtime colour (account swatch, category colour) + alpha pair → `#RRGGBBAA`.
+ * The one home for alpha composition — never hand-concatenate a suffix onto a hex (#333).
+ */
+export function withAlpha(hex: string, alpha: AlphaHex): string {
+  return `${hex}${alpha}`;
+}
+
 export const FontFamily = {
   soraRegular: 'Sora_400Regular',
   soraSemi: 'Sora_600SemiBold',

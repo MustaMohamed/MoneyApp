@@ -9,7 +9,7 @@ import { MonthFilter } from '@/components/ui/month_filter';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type, withAlpha } from '@/constants/theme';
 import type { BudgetCopyRowVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { formatAmount } from '@/utils/format_amount';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -197,7 +197,7 @@ export function BudgetCopySheet({
                         className="border-accent/70 bg-surface size-5 border"
                       />
                     </View>
-                    <View style={[styles.iconBox, { backgroundColor: `${row.color}22` }]}>
+                    <View style={[styles.iconBox, { backgroundColor: withAlpha(row.color, '22') }]}>
                       <MaterialCommunityIcons
                         name={toIconName(row.icon, 'tag-outline')}
                         size={ms(15)}

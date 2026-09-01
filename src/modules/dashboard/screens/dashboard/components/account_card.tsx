@@ -6,7 +6,7 @@ import { Text } from '@/components/ui/text';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { AccountColors, Colors, Size } from '@/constants/theme';
+import { AccountColors, Colors, Size, withAlpha } from '@/constants/theme';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
@@ -225,7 +225,7 @@ export function AccountCard({
                 className="rounded"
                 style={{
                   borderWidth: 1,
-                  borderColor: color + '55',
+                  borderColor: withAlpha(color, '55'),
                   paddingHorizontal: ms(6),
                   paddingVertical: ms(2),
                 }}
@@ -246,7 +246,7 @@ export function AccountCard({
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  backgroundColor: color + '22',
+                  backgroundColor: withAlpha(color, '22'),
                 }}
               >
                 <MaterialCommunityIcons name={icon} size={ms(15)} color={color} />
