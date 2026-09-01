@@ -3,10 +3,8 @@ import { join, resolve } from 'node:path';
 
 import { FontFamily } from '@/constants/theme';
 
-// `scripts/lib/strip-comments.js` is a plain CommonJS node script, not part of the `src/` TS graph.
-const { stripComments } = require('../scripts/lib/strip-comments') as {
-  stripComments: (lines: string[]) => string[];
-};
+// `scripts/lib/strip-comments.js` is a plain CommonJS node script; `strip-comments.d.ts` types it.
+import { stripComments } from '../scripts/lib/strip-comments';
 
 function source(path: string): string {
   return readFileSync(resolve(process.cwd(), path), 'utf8');

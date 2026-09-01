@@ -63,7 +63,7 @@ export function DetailHero({
           {tx.commitment_payment_id != null ? <TypeBadge type="commitment" size="md" /> : null}
         </View>
         <Text
-          className="font-sora-extrabold leading-none"
+          className="font-sora-extrabold"
           style={{
             color: heroColor,
             fontSize: Type.detailHero,

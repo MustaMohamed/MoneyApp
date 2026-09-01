@@ -60,7 +60,7 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
             {Strings.addTxBudgetEmptyTitle}
           </Text>
           <Text
-            className="font-inter text-muted mt-1 text-center leading-5"
+            className="font-inter text-muted mt-1 text-center"
             style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
           >
             {Strings.addTxBudgetEmptyBody}

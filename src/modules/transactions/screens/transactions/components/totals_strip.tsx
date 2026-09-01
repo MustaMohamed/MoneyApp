@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type } from '@/constants/theme';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 import { ms } from '@/utils/responsive';
@@ -95,8 +95,9 @@ function MetricValue({
       style={{
         flex: 1,
         textAlign: align,
+        // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- TRANSACTIONS_TOTALS_GEOMETRY.values is shared with this row's `height` and TotalsSkeleton's placeholder height, for loading/loaded parity and cross-column baseline alignment; not a lineHeightFor ratio choice.
         fontSize: Type.body,
-        lineHeight: lineHeightFor(Type.body),
+        lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.values,
       }}
       numberOfLines={1}
       adjustsFontSizeToFit
@@ -131,7 +132,11 @@ function DeltaValue({
       >
         <Text
           className="font-sora-bold text-foreground/40"
-          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+          style={{
+            // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- TRANSACTIONS_TOTALS_GEOMETRY.deltas is shared with this row's `height` and TotalsSkeleton's placeholder height, for loading/loaded parity and cross-column baseline alignment; not a lineHeightFor ratio choice.
+            fontSize: Type.micro,
+            lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.deltas,
+          }}
         >
           —
         </Text>
@@ -148,7 +153,11 @@ function DeltaValue({
       />
       <Text
         className={`font-sora-bold ml-0.5 ${polarityClass(delta.polarity)}`}
-        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+        style={{
+          // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- TRANSACTIONS_TOTALS_GEOMETRY.deltas is shared with this row's `height` and TotalsSkeleton's placeholder height, for loading/loaded parity and cross-column baseline alignment; not a lineHeightFor ratio choice.
+          fontSize: Type.micro,
+          lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.deltas,
+        }}
       >
         {delta.label}
       </Text>
@@ -321,7 +330,11 @@ export function TotalsStrip({
           >
             <Text
               className={`font-inter-bold ${presentation.captionClassName}`}
-              style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+              style={{
+                // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- TRANSACTIONS_TOTALS_GEOMETRY.caption is shared with this row's `height` and TotalsSkeleton's placeholder height, for loading/loaded parity and cross-column baseline alignment; not a lineHeightFor ratio choice.
+                fontSize: Type.chip,
+                lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.caption,
+              }}
               numberOfLines={1}
             >
               {presentation.caption}
@@ -329,7 +342,11 @@ export function TotalsStrip({
             {deltas && previousLabel ? (
               <Text
                 className="font-inter-bold text-foreground/45 uppercase"
-                style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+                style={{
+                  // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- same TRANSACTIONS_TOTALS_GEOMETRY.caption token as the caption above; the row's two columns must share a baseline.
+                  fontSize: Type.chip,
+                  lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.caption,
+                }}
               >
                 {Strings.totalsVsPrev(previousLabel)}
               </Text>
