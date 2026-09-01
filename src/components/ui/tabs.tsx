@@ -6,6 +6,9 @@ import { Colors, Radius, Size } from '@/constants/theme';
 
 import { type SegmentedTabsScrollAlign, useSegmentedTabsScroll } from './tabs.hook';
 
+// Concentric with the track: `.tabs__list--variant-primary` is `--radius-3xl` (24) with 3px padding, both unscaled CSS — the trigger root has no radius of its own.
+export const SOLID_GOLD_SELECTED_RADIUS = 21;
+
 export interface TabSegmentIcon {
   name: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   color: string;
@@ -67,10 +70,12 @@ export function SegmentedTabs<T extends string>({
 
   const triggers = segments.map((seg) => {
     const isSelected = value === seg.value;
-    const selectedRadius = isCompact ? Radius.lg : Radius.pill;
     const selectedSolidGoldStyle =
       isSolidGold && isSelected
-        ? { backgroundColor: Colors.shared.cairoGold, borderRadius: selectedRadius }
+        ? {
+            backgroundColor: Colors.shared.cairoGold,
+            borderRadius: isCompact ? Radius.lg : SOLID_GOLD_SELECTED_RADIUS,
+          }
         : undefined;
     const triggerStyle =
       segmentWidth && selectedSolidGoldStyle
@@ -125,7 +130,7 @@ export function SegmentedTabs<T extends string>({
         isSolidGold
           ? {
               backgroundColor: Colors.shared.cairoGold,
-              borderRadius: isCompact ? Radius.lg : Radius.pill,
+              borderRadius: isCompact ? Radius.lg : SOLID_GOLD_SELECTED_RADIUS,
             }
           : undefined
       }

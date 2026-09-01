@@ -1,7 +1,7 @@
 import { render, within } from '@testing-library/react-native';
 import type { ComponentProps, ReactNode } from 'react';
 
-import { SegmentedTabs } from '@/components/ui/tabs';
+import { SOLID_GOLD_SELECTED_RADIUS, SegmentedTabs } from '@/components/ui/tabs';
 import { Colors, Radius } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
@@ -217,7 +217,7 @@ describe('SegmentedTabs', () => {
 
     expect(getByTestId('tabs-trigger-all')).toHaveProp('style', {
       backgroundColor: Colors.shared.cairoGold,
-      borderRadius: Radius.pill,
+      borderRadius: SOLID_GOLD_SELECTED_RADIUS,
     });
     expect(getByTestId('tabs-trigger-overdue')).not.toHaveProp('style');
   });
@@ -235,7 +235,7 @@ describe('SegmentedTabs', () => {
 
     expect(getByTestId('tabs-indicator')).toHaveProp('style', {
       backgroundColor: Colors.shared.cairoGold,
-      borderRadius: Radius.pill,
+      borderRadius: SOLID_GOLD_SELECTED_RADIUS,
     });
   });
 
