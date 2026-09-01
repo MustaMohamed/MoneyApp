@@ -247,6 +247,7 @@ export const Strings = {
   dashLiabilitiesLabel: 'Liabilities',
   dashMonthSpentTitle: 'Spent This Month',
   dashMonthSpentTxsUnit: 'txs',
+  dashMonthSpentSpentLabel: 'Spent',
   dashMonthSpentRefundedLabel: 'Refunded',
   dashSeeAll: 'See all',
 

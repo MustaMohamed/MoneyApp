@@ -21,6 +21,7 @@ import {
 } from './net_worth_breakdown_sheet.helpers';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 import {
+  type MonthSpendLegState,
   resolveMonthSpendLeg,
   resolveMonthSpendRows,
   resolveNetWorthStatColor,
@@ -28,6 +29,13 @@ import {
 } from './stat_cards.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+// Single source for the spoken/rendered state word: the visible qualifier and the composed
+// accessibilityLabel both read this map, so they cannot diverge (PR #376 review).
+const MONTH_SPEND_STATE_LABEL: Record<MonthSpendLegState, string> = {
+  spent: Strings.dashMonthSpentSpentLabel,
+  refunded: Strings.dashMonthSpentRefundedLabel,
+};
 
 const DASHBOARD_NET_WORTH_VALUE_HEIGHT = ms(22);
 const DASHBOARD_NET_WORTH_PROGRESS_HEIGHT = ms(5);
@@ -266,14 +274,14 @@ export function StatCards({
                 key={parts.code}
                 className="font-sora-bold text-foreground text-lg"
                 numberOfLines={1}
-                accessibilityLabel={`${parts.value} ${parts.code} ${parts.state}`}
+                accessibilityLabel={`${parts.value} ${parts.code} ${MONTH_SPEND_STATE_LABEL[parts.state]}`}
               >
                 {parts.value}{' '}
                 <Text className="font-inter-medium text-muted text-xs">{parts.code}</Text>
                 {parts.state === 'refunded' && (
                   <Text className="font-inter-medium text-muted text-xs">
                     {' '}
-                    {Strings.dashMonthSpentRefundedLabel}
+                    {MONTH_SPEND_STATE_LABEL[parts.state]}
                   </Text>
                 )}
               </Text>
