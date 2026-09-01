@@ -7,7 +7,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Type } from '@/constants/theme';
+import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type {
   DashboardNetWorth,
@@ -92,7 +92,7 @@ function NetWorthRefusalHeadline(): React.ReactElement {
         />
         <Text
           className="text-warning font-sora-semibold flex-1"
-          style={{ fontSize: Type.headline }}
+          style={{ fontSize: Type.headline, lineHeight: lineHeightFor(Type.headline) }}
         >
           {Strings.dashboardRateNeededValue}
         </Text>
@@ -137,7 +137,10 @@ function NetWorthBreakdownBody({
         <Text variant="hint" className="text-muted text-xs tracking-wide uppercase">
           {Strings.dashboardBreakdownNetWorthLabel}
         </Text>
-        <Text className="font-sora-bold mt-1" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
+        <Text
+          className="font-sora-bold mt-1"
+          style={{ color: Colors.dark.gold, fontSize: ms(28), lineHeight: lineHeightFor(ms(28)) }}
+        >
           {netWorthParts.value}{' '}
           <Text className="font-inter-medium text-muted text-base">{netWorthParts.code}</Text>
         </Text>

@@ -5,7 +5,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Type } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 export interface StackHeaderProps {
@@ -35,7 +35,7 @@ export function StackHeader({ title, onBack, right }: StackHeaderProps) {
       </PressableFeedback>
       <Typography
         className="font-sora-semibold text-foreground flex-1 text-center"
-        style={{ fontSize: Type.title }}
+        style={{ fontSize: Type.title, lineHeight: lineHeightFor(Type.title) }}
         numberOfLines={1}
       >
         {title}

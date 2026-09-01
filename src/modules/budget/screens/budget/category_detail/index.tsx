@@ -8,7 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type, withAlpha } from '@/constants/theme';
+import {
+  Colors,
+  FontFamily,
+  Radius,
+  Spacing,
+  Type,
+  lineHeightFor,
+  withAlpha,
+} from '@/constants/theme';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category_detail/components/category_detail_skeleton';
 import { LiveMonthCard } from '@/modules/budget/screens/budget/category_detail/components/live_month_card';
@@ -114,6 +122,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: FontFamily.soraBold,
     fontSize: Type.title,
+    lineHeight: lineHeightFor(Type.title),
     color: Colors.dark.text1,
   },
   editBtn: { padding: ms(4) },
@@ -121,6 +130,7 @@ const styles = StyleSheet.create({
   section: {
     fontFamily: FontFamily.interMedium,
     fontSize: Type.micro,
+    lineHeight: lineHeightFor(Type.micro),
     color: Colors.dark.text2,
     textTransform: 'uppercase',
     letterSpacing: 0.7,

@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 import { LogoMark } from '@/components/ui/logo_mark';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { ONBOARDING_SHELL_TRACKS } from './onboarding_shell.geometry';
@@ -44,7 +44,7 @@ export function OnboardingHeader({ title, onBack }: OnboardingHeaderProps) {
           )}
           <Typography
             className="font-sora-semibold text-foreground flex-1 text-center"
-            style={{ fontSize: Type.title }}
+            style={{ fontSize: Type.title, lineHeight: lineHeightFor(Type.title) }}
             numberOfLines={1}
           >
             {title}
@@ -56,11 +56,17 @@ export function OnboardingHeader({ title, onBack }: OnboardingHeaderProps) {
           {/* Grouping the mark and wordmark stops `justify-between` centring the wordmark. */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
             <LogoMark />
-            <Typography className="font-sora-bold" style={{ fontSize: Type.subhead }}>
+            <Typography
+              className="font-sora-bold"
+              style={{ fontSize: Type.subhead, lineHeight: lineHeightFor(Type.subhead) }}
+            >
               {Strings.n1HeaderWordmark}
             </Typography>
           </View>
-          <Typography className="text-content-secondary" style={{ fontSize: Type.micro }}>
+          <Typography
+            className="text-content-secondary"
+            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+          >
             {Strings.n1HeaderSetup}
           </Typography>
         </>

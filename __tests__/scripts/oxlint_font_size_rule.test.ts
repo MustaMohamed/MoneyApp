@@ -65,6 +65,13 @@ const FIXTURES: Fixture[] = [
     content: 'export const style = { fontSize: 14, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT };\n',
   },
   {
+    // Only the exact identifier is recognized (ui.md: "the loud direction"); an alias still warns.
+    name: 'field_message_identifier_aliased.ts',
+    content:
+      'const ALIAS = FIELD_MESSAGE_TEXT_LINE_HEIGHT;\nexport const style = { fontSize: 14, lineHeight: ALIAS };\n',
+    line: 2,
+  },
+  {
     name: 'nav_option_header_title_style.ts',
     content:
       "export const screenOptions = {\n  headerTitleStyle: { fontFamily: 'Sora', fontSize: 17 },\n};\n",
@@ -162,7 +169,7 @@ describe('oxlint-plugin-moneyapp.js — font-size-pairs-line-height (W1D c2, #23
     expect(actual).toEqual(expected);
   });
 
-  it('is wired into the repo config at severity warning', () => {
+  it('is wired into the repo config at severity error (#324: backlog burned to zero)', () => {
     const output = runOxlint([
       '-c',
       repoConfigPath,
@@ -172,6 +179,6 @@ describe('oxlint-plugin-moneyapp.js — font-size-pairs-line-height (W1D c2, #23
     ]);
     const diagnostic = output.diagnostics.find((d) => d.code === RULE_CODE);
     expect(diagnostic).toBeDefined();
-    expect(diagnostic?.severity).toBe('warning');
+    expect(diagnostic?.severity).toBe('error');
   });
 });

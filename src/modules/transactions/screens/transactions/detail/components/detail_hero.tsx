@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
-import { Size, Type, withAlpha } from '@/constants/theme';
+import { Size, Type, lineHeightFor, withAlpha } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -51,7 +51,11 @@ export function DetailHero({
           >
             <Text
               className="font-inter-semibold"
-              style={{ color: heroColor, fontSize: Type.overline }}
+              style={{
+                color: heroColor,
+                fontSize: Type.overline,
+                lineHeight: lineHeightFor(Type.overline),
+              }}
             >
               {badgeLabel}
             </Text>
@@ -59,8 +63,12 @@ export function DetailHero({
           {tx.commitment_payment_id != null ? <TypeBadge type="commitment" size="md" /> : null}
         </View>
         <Text
-          className="font-sora-extrabold leading-none"
-          style={{ color: heroColor, fontSize: Type.detailHero }}
+          className="font-sora-extrabold"
+          style={{
+            color: heroColor,
+            fontSize: Type.detailHero,
+            lineHeight: lineHeightFor(Type.detailHero),
+          }}
         >
           {amountText}
         </Text>
@@ -80,7 +88,11 @@ export function DetailHero({
             />
             <Text
               className="font-inter-semibold"
-              style={{ color: categoryColor, fontSize: Type.micro }}
+              style={{
+                color: categoryColor,
+                fontSize: Type.micro,
+                lineHeight: lineHeightFor(Type.micro),
+              }}
             >
               {category.name}
             </Text>
@@ -88,11 +100,14 @@ export function DetailHero({
         ) : null}
         <Text
           className="font-inter-medium text-foreground/70 mt-2 text-center"
-          style={{ fontSize: Type.bodyStrong }}
+          style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
         >
           {title}
         </Text>
-        <Text className="font-inter text-foreground/55 mt-2" style={{ fontSize: Type.micro }}>
+        <Text
+          className="font-inter text-foreground/55 mt-2"
+          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+        >
           {dateTimeText}
         </Text>
       </View>

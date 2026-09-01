@@ -3,7 +3,7 @@ import { Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Type } from '@/constants/theme';
+import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
 
 export function UnassignedSpendingRow({ amountLabel }: { amountLabel: string }) {
   return (
@@ -15,16 +15,22 @@ export function UnassignedSpendingRow({ amountLabel }: { amountLabel: string }) 
       </View>
       <View style={{ flex: 1 }}>
         <Typography
-          style={{ fontSize: Type.micro }}
+          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
           className="font-inter-semibold text-foreground"
         >
           {Strings.budgetCategoriesUnassignedSpending}
         </Typography>
-        <Typography style={{ fontSize: Type.chip }} className="font-inter text-muted">
+        <Typography
+          style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+          className="font-inter text-muted"
+        >
           {Strings.budgetCategoriesUnassignedExplanation}
         </Typography>
       </View>
-      <Typography style={{ fontSize: Type.micro }} className="font-sora-semibold text-foreground">
+      <Typography
+        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+        className="font-sora-semibold text-foreground"
+      >
         {amountLabel}
       </Typography>
     </View>

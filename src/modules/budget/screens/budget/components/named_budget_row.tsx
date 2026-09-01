@@ -3,7 +3,7 @@ import { Chip, Menu, PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Size, TouchSize, Type } from '@/constants/theme';
+import { Colors, Size, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 
@@ -30,7 +30,7 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
             stroke={Size.budgetRingStroke}
           >
             <Typography
-              style={{ fontSize: Type.chipMeta }}
+              style={{ fontSize: Type.chipMeta, lineHeight: lineHeightFor(Type.chipMeta) }}
               className="font-inter-bold text-foreground"
             >
               {budget.usedLabel}
@@ -42,7 +42,7 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
           <View className="flex-row items-start gap-1.5">
             <Typography
               numberOfLines={2}
-              style={{ fontSize: Type.caption }}
+              style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
               className="font-sora-semibold text-foreground flex-1"
             >
               {budget.name}
@@ -58,26 +58,36 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
             >
               <Chip.Label
                 numberOfLines={1}
-                style={{ fontSize: Type.chipMeta }}
+                style={{ fontSize: Type.chipMeta, lineHeight: lineHeightFor(Type.chipMeta) }}
                 className="font-inter-semibold text-info"
               >
                 {budget.shareLabel}
               </Chip.Label>
             </Chip>
           </View>
-          <Typography style={{ fontSize: Type.micro }} className="font-inter text-muted mt-0.5">
+          <Typography
+            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+            className="font-inter text-muted mt-0.5"
+          >
             {budget.spentPlannedLabel}
           </Typography>
         </View>
 
         <View className="min-w-12 items-end">
           <Typography
-            style={{ color: budget.ringColor, fontSize: Type.meta }}
+            style={{
+              color: budget.ringColor,
+              fontSize: Type.meta,
+              lineHeight: lineHeightFor(Type.meta),
+            }}
             className="font-sora-bold"
           >
             {budget.balanceAmountLabel}
           </Typography>
-          <Typography style={{ fontSize: Type.chipMeta }} className="font-inter text-muted">
+          <Typography
+            style={{ fontSize: Type.chipMeta, lineHeight: lineHeightFor(Type.chipMeta) }}
+            className="font-inter text-muted"
+          >
             {budget.balanceMetaLabel}
           </Typography>
         </View>

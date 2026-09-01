@@ -4,7 +4,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { Size, Type } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { DETAIL_ACCOUNT_ROW_HEIGHT, DETAIL_ROW_HEIGHT } from './detail_geometry';
@@ -73,13 +73,13 @@ export function DetailRow({
       <ListGroup.ItemContent className="min-w-0">
         <ListGroup.ItemDescription
           className="font-inter-semibold text-foreground/55 tracking-wide uppercase"
-          style={{ fontSize: Type.overline }}
+          style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
         >
           {label}
         </ListGroup.ItemDescription>
         <ListGroup.ItemTitle
           className={`mt-0.5 ${muted ? 'font-inter text-foreground/60 italic' : 'font-inter-medium'}`}
-          style={{ fontSize: Type.meta }}
+          style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
           numberOfLines={1}
         >
           {value}
@@ -87,7 +87,7 @@ export function DetailRow({
         {sublabel || reserveSublabel ? (
           <ListGroup.ItemDescription
             className="font-inter text-foreground/55 mt-0.5"
-            style={{ fontSize: Type.overline }}
+            style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
             numberOfLines={1}
           >
             {sublabel ?? ' '}
@@ -99,7 +99,7 @@ export function DetailRow({
           <View className={`rounded-full border px-2 py-0.5 ${tone.bg} ${tone.border}`}>
             <Text
               className={`font-inter-semibold ${tone.text}`}
-              style={{ fontSize: Type.compactBadge }}
+              style={{ fontSize: Type.compactBadge, lineHeight: lineHeightFor(Type.compactBadge) }}
             >
               {badge}
             </Text>

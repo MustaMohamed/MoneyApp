@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { MonthResultVM } from '@/modules/budget/screens/budget/budget.helpers';
 import {
   MINUS_SIGN,
@@ -68,18 +68,24 @@ const styles = StyleSheet.create({
     width: ms(54),
     fontFamily: FontFamily.interSemi,
     fontSize: Type.body,
+    lineHeight: lineHeightFor(Type.body),
     color: Colors.dark.text1,
   },
   det: {
     flex: 1,
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
+    lineHeight: lineHeightFor(Type.micro),
     color: Colors.dark.text2,
   },
   delta: { paddingHorizontal: ms(9), paddingVertical: ms(2), borderRadius: Radius.sm },
   deltaPos: { backgroundColor: 'rgba(76,175,130,0.13)' },
   deltaNeg: { backgroundColor: 'rgba(224,90,66,0.13)' },
-  deltaText: { fontFamily: FontFamily.soraBold, fontSize: Type.caption },
+  deltaText: {
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.caption,
+    lineHeight: lineHeightFor(Type.caption),
+  },
   deltaTextPos: { color: Colors.dark.positive },
   deltaTextNeg: { color: Colors.dark.negative },
 });

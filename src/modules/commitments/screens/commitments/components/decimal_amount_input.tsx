@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
 
-import { Colors, FontFamily, Type } from '@/constants/theme';
+import { Colors, FontFamily, Type, lineHeightFor } from '@/constants/theme';
 
 import { useDecimalInputState } from './decimal_amount_input.state';
 
@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
   input: {
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.body,
+    lineHeight: lineHeightFor(Type.body),
     color: Colors.dark.text1,
     paddingVertical: 0,
   },

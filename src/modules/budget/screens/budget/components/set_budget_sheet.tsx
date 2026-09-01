@@ -10,7 +10,7 @@ import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Type, withAlpha } from '@/constants/theme';
+import { Colors, FontFamily, Type, lineHeightFor, withAlpha } from '@/constants/theme';
 import {
   useSetBudgetSheet,
   type SetBudgetSheetOptions,
@@ -68,7 +68,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
               <View className="bg-default border-border mb-3 flex-row items-center justify-between rounded-lg border px-2 py-2 opacity-70">
                 <Text
                   className="font-inter-semibold text-foreground"
-                  style={{ fontSize: Type.caption }}
+                  style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
                 >
                   {state.editingCategoryName ?? Strings.budgetPickCategory}
                 </Text>
@@ -94,7 +94,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                     </View>
                     <Text
                       className="font-inter-semibold text-foreground"
-                      style={{ fontSize: Type.caption }}
+                      style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
                     >
                       {state.selectedCategory.name}
                     </Text>
@@ -102,12 +102,15 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                 ) : (
                   <Text
                     className="font-inter-semibold text-muted"
-                    style={{ fontSize: Type.caption }}
+                    style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
                   >
                     {Strings.budgetPickCategory}
                   </Text>
                 )}
-                <Text className="font-inter text-muted" style={{ fontSize: Type.body }}>
+                <Text
+                  className="font-inter text-muted"
+                  style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+                >
                   {'›'}
                 </Text>
               </PressableFeedback>
@@ -142,6 +145,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                         flex: 1,
                         fontFamily: FontFamily.interSemi,
                         fontSize: Type.body,
+                        lineHeight: lineHeightFor(Type.body),
                         color: Colors.dark.text1,
                         height: ms(28),
                         padding: 0,
@@ -193,6 +197,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                         flex: 1,
                         fontFamily: FontFamily.soraBold,
                         fontSize: Type.bodyStrong,
+                        lineHeight: lineHeightFor(Type.bodyStrong),
                         color: Colors.dark.text1,
                         height: ms(28),
                         padding: 0,
@@ -203,7 +208,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                     />
                     <Text
                       className="font-inter-semibold text-muted"
-                      style={{ fontSize: Type.caption }}
+                      style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
                     >
                       {Strings.currencyEgp}
                     </Text>

@@ -6,7 +6,7 @@ import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSw
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { Text } from '@/components/ui/text';
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import {
   closeAllRows,
@@ -126,6 +126,7 @@ export function SwipeableRow({
               style={{
                 fontFamily: FontFamily.interMedium,
                 fontSize: Type.micro,
+                lineHeight: lineHeightFor(Type.micro),
                 color: tileLabelColor(action.variant),
               }}
             >

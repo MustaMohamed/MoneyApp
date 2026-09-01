@@ -4,7 +4,7 @@ import { Fragment, type ComponentProps } from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { Colors, LetterSpacing, Size, Type } from '@/constants/theme';
+import { Colors, LetterSpacing, Size, Type, lineHeightFor } from '@/constants/theme';
 
 interface BudgetSummaryHeaderProps {
   eyebrowLabel: string;
@@ -55,7 +55,11 @@ export function BudgetSummaryHeader({
     <>
       <View className="flex-row items-center justify-between gap-2">
         <Text
-          style={{ fontSize: Type.meta, letterSpacing: LetterSpacing.eyebrow }}
+          style={{
+            fontSize: Type.meta,
+            lineHeight: lineHeightFor(Type.meta),
+            letterSpacing: LetterSpacing.eyebrow,
+          }}
           className="font-inter-semibold text-content-secondary shrink uppercase"
           numberOfLines={1}
         >
@@ -63,7 +67,7 @@ export function BudgetSummaryHeader({
         </Text>
         {eyebrowTrailingLabel ? (
           <Text
-            style={{ fontSize: Type.meta }}
+            style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
             className="font-inter-semibold text-content-secondary shrink-0"
             numberOfLines={1}
           >
@@ -75,13 +79,17 @@ export function BudgetSummaryHeader({
       <View className="mt-0.5 min-h-8 flex-row items-center justify-between gap-3">
         {hasData ? (
           <Text
-            style={{ color: balanceColor, fontSize: Type.summary }}
+            style={{
+              color: balanceColor,
+              fontSize: Type.summary,
+              lineHeight: lineHeightFor(Type.summary),
+            }}
             className="font-sora-bold shrink"
             numberOfLines={2}
           >
             {balanceLabel}
             <Text
-              style={{ fontSize: Type.meta }}
+              style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
               className="font-inter-medium text-content-secondary"
             >
               {' '}
@@ -90,7 +98,7 @@ export function BudgetSummaryHeader({
           </Text>
         ) : (
           <Text
-            style={{ fontSize: Type.title }}
+            style={{ fontSize: Type.title, lineHeight: lineHeightFor(Type.title) }}
             className="font-sora-bold text-foreground flex-1"
             numberOfLines={2}
           >
@@ -101,7 +109,7 @@ export function BudgetSummaryHeader({
           <View className="shrink-0 flex-row items-center gap-1.5">
             {trailingLabel ? (
               <Text
-                style={{ fontSize: Type.meta }}
+                style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
                 className="font-inter-semibold text-content-secondary shrink"
                 numberOfLines={1}
               >
@@ -119,7 +127,10 @@ export function BudgetSummaryHeader({
                 size={Size.iconMicro}
                 color={Colors.dark.gold}
               />
-              <Text style={{ fontSize: Type.micro }} className="font-inter-semibold text-accent">
+              <Text
+                style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+                className="font-inter-semibold text-accent"
+              >
                 {trailingActionLabel}
               </Text>
             </PressableFeedback>
@@ -133,13 +144,16 @@ export function BudgetSummaryHeader({
             animation="disable-all"
             className="min-h-7 px-2 py-0"
           >
-            <Chip.Label style={{ fontSize: Type.meta }} className="font-inter-semibold capitalize">
+            <Chip.Label
+              style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+              className="font-inter-semibold capitalize"
+            >
               {trailingChipLabel}
             </Chip.Label>
           </Chip>
         ) : trailingLabel ? (
           <Text
-            style={{ fontSize: Type.meta }}
+            style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
             className="font-inter-semibold text-content-secondary shrink"
             numberOfLines={1}
           >
@@ -165,7 +179,7 @@ export function BudgetSummarySpentRow({
   return (
     <View className="mt-0.5 flex-row items-center justify-between gap-2">
       <Text
-        style={{ flex: 1, fontSize: Type.bodyStrong }}
+        style={{ flex: 1, fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
         className="font-inter-medium text-content-secondary"
         numberOfLines={2}
       >
@@ -176,7 +190,7 @@ export function BudgetSummarySpentRow({
         ) : null}
       </Text>
       <Text
-        style={{ fontSize: Type.bodyStrong }}
+        style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
         className="font-sora text-content-secondary shrink-0"
         numberOfLines={1}
       >
@@ -204,13 +218,13 @@ function BudgetSummaryMetric({ item }: { item: BudgetSummaryMetricItem }) {
   const content = (
     <>
       <Text
-        style={{ fontSize: Type.detail }}
+        style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail) }}
         className="font-inter text-content-secondary text-center"
       >
         {item.label}
       </Text>
       <Text
-        style={{ fontSize: Type.bodyStrong }}
+        style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
         className={
           item.tone === 'warning'
             ? 'font-sora-semibold text-warning mt-px text-center'
@@ -251,7 +265,7 @@ export function BudgetSummaryStatusRow({ items }: { items: BudgetSummaryStatusIt
             color={item.color}
           />
           <Text
-            style={{ fontSize: Type.detail }}
+            style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail) }}
             numberOfLines={2}
             className="font-inter-medium text-content-secondary shrink text-center"
           >

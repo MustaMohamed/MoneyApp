@@ -7,7 +7,7 @@ import { View } from 'react-native';
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Size, Spacing, Type } from '@/constants/theme';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { formatAmount } from '@/utils/format_amount';
@@ -55,13 +55,13 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
           </View>
           <Text
             className="font-sora-semibold text-foreground text-center"
-            style={{ fontSize: Type.bodyStrong }}
+            style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
           >
             {Strings.addTxBudgetEmptyTitle}
           </Text>
           <Text
-            className="font-inter text-muted mt-1 text-center leading-5"
-            style={{ fontSize: Type.caption }}
+            className="font-inter text-muted mt-1 text-center"
+            style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
           >
             {Strings.addTxBudgetEmptyBody}
           </Text>
@@ -98,12 +98,15 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
                   <View style={{ flex: 1 }}>
                     <Text
                       className="font-sora-semibold text-foreground"
-                      style={{ fontSize: Type.body }}
+                      style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
                       numberOfLines={1}
                     >
                       {budget.name}
                     </Text>
-                    <Text className="font-inter text-muted" style={{ fontSize: Type.micro }}>
+                    <Text
+                      className="font-inter text-muted"
+                      style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+                    >
                       {`${formatAmount(budget.limit_amount)} ${Strings.currencyEgp}`}
                     </Text>
                   </View>

@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Type } from '@/constants/theme';
+import { Colors, FontFamily, Type, lineHeightFor } from '@/constants/theme';
 import type { MonthResultVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { ms } from '@/utils/responsive';
 
@@ -75,11 +75,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: FontFamily.interRegular,
     fontSize: ms(9),
+    lineHeight: lineHeightFor(ms(9)),
     color: Colors.dark.text2,
   },
   legend: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
+    lineHeight: lineHeightFor(Type.micro),
     color: Colors.dark.text2,
     marginTop: ms(6),
   },

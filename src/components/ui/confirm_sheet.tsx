@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 const ICON_CONTAINER_SIZE = ms(56);
@@ -72,6 +72,7 @@ export function ConfirmSheet({
           style={{
             fontFamily: FontFamily.soraSemi,
             fontSize: Type.subhead,
+            lineHeight: lineHeightFor(Type.subhead),
             textAlign: 'center',
             marginBottom: Spacing.xs,
           }}
@@ -85,7 +86,7 @@ export function ConfirmSheet({
             fontFamily: FontFamily.interRegular,
             fontSize: Type.body,
             textAlign: 'center',
-            lineHeight: Type.body * 1.5,
+            lineHeight: lineHeightFor(Type.body),
           }}
           className="text-muted"
         >

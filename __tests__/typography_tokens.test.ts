@@ -3,6 +3,9 @@ import { join, resolve } from 'node:path';
 
 import { FontFamily } from '@/constants/theme';
 
+// `scripts/lib/strip-comments.js` is a plain CommonJS node script; `strip-comments.d.ts` types it.
+import { stripComments } from '../scripts/lib/strip-comments';
+
 function source(path: string): string {
   return readFileSync(resolve(process.cwd(), path), 'utf8');
 }
@@ -77,7 +80,10 @@ function sourceFiles(dir = 'src'): string[] {
 function fontClassesUsedInSource(): Set<string> {
   const used = new Set<string>();
   for (const file of sourceFiles()) {
-    for (const [cls] of source(file).matchAll(/\bfont-[a-zA-Z0-9-]+/g)) used.add(cls);
+    // Comments stripped first: an `oxlint-disable` citing `moneyapp/font-size-pairs-line-height`
+    // otherwise reads as a `font-size-pairs-line-height` Tailwind class.
+    const code = stripComments(source(file).split('\n')).join('\n');
+    for (const [cls] of code.matchAll(/\bfont-[a-zA-Z0-9-]+/g)) used.add(cls);
   }
   return used;
 }

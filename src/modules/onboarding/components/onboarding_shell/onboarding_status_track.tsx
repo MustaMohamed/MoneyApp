@@ -60,6 +60,7 @@ export function OnboardingStatusTrack({ footnote, message }: OnboardingStatusTra
       </View>
       <Typography
         numberOfLines={2}
+        // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- STATUS_TRACK_LINE_HEIGHT is Math.floor(Size.statusTrack / 2) (onboarding_shell.geometry.ts:16), sized so exactly two lines fit the fixed track at any device scale; lineHeightFor's 1.3 ratio would not guarantee that.
         style={{ fontSize: Type.caption, lineHeight: STATUS_TRACK_LINE_HEIGHT, flex: 1 }}
         className={cn(model.tone === 'error' ? 'text-danger' : 'text-content-secondary')}
       >

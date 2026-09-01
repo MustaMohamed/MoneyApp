@@ -9,7 +9,16 @@ import { MonthFilter } from '@/components/ui/month_filter';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type, withAlpha } from '@/constants/theme';
+import {
+  Colors,
+  FontFamily,
+  Radius,
+  Size,
+  Spacing,
+  Type,
+  lineHeightFor,
+  withAlpha,
+} from '@/constants/theme';
 import type { BudgetCopyRowVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { formatAmount } from '@/utils/format_amount';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -240,6 +249,7 @@ const styles = StyleSheet.create({
   sourceLabel: {
     fontFamily: FontFamily.interSemi,
     fontSize: Type.micro,
+    lineHeight: lineHeightFor(Type.micro),
     color: Colors.dark.gold,
     marginBottom: Spacing.xs,
   },
@@ -254,12 +264,14 @@ const styles = StyleSheet.create({
   routeArrow: {
     fontFamily: FontFamily.interSemi,
     fontSize: Type.body,
+    lineHeight: lineHeightFor(Type.body),
     color: Colors.dark.text2,
   },
   targetMonth: {
     flexShrink: 1,
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.caption,
+    lineHeight: lineHeightFor(Type.caption),
     color: Colors.dark.text1,
   },
   actionsRow: {
@@ -274,11 +286,13 @@ const styles = StyleSheet.create({
   textActionLabel: {
     fontFamily: FontFamily.interSemi,
     fontSize: Type.micro,
+    lineHeight: lineHeightFor(Type.micro),
     color: Colors.dark.gold,
   },
   selectedLabel: {
     fontFamily: FontFamily.interMedium,
     fontSize: Type.micro,
+    lineHeight: lineHeightFor(Type.micro),
     color: Colors.dark.text2,
   },
   list: {
@@ -317,17 +331,20 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontFamily: FontFamily.interSemi,
     fontSize: Type.body,
+    lineHeight: lineHeightFor(Type.body),
     color: Colors.dark.text1,
   },
   rowMeta: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
+    lineHeight: lineHeightFor(Type.micro),
     color: Colors.dark.text2,
     marginTop: ms(2),
   },
   rowAmount: {
     fontFamily: FontFamily.soraBold,
     fontSize: Type.subhead,
+    lineHeight: lineHeightFor(Type.subhead),
     color: Colors.dark.text1,
   },
   empty: {
@@ -339,11 +356,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontFamily: FontFamily.soraBold,
     fontSize: Type.subhead,
+    lineHeight: lineHeightFor(Type.subhead),
     color: Colors.dark.text1,
   },
   emptyBody: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
+    lineHeight: lineHeightFor(Type.micro),
     color: Colors.dark.text2,
     textAlign: 'center',
   },

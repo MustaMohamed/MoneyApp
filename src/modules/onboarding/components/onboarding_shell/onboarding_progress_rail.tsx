@@ -51,6 +51,7 @@ export function OnboardingProgressRail({ step }: OnboardingProgressRailProps) {
       >
         <Typography
           className="text-foreground font-inter-semibold"
+          // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- Size.compactBodyLineHeight (theme.ts:176) is a fixed 20px token shared by both rail labels, distinct from lineHeightFor(Type.caption)'s 16px.
           style={{ fontSize: Type.caption, lineHeight: Size.compactBodyLineHeight }}
           numberOfLines={1}
         >
@@ -58,6 +59,7 @@ export function OnboardingProgressRail({ step }: OnboardingProgressRailProps) {
         </Typography>
         <Typography
           className="text-content-secondary"
+          // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- same Size.compactBodyLineHeight token as the label above; the pair must match.
           style={{ fontSize: Type.caption, lineHeight: Size.compactBodyLineHeight }}
           numberOfLines={1}
         >

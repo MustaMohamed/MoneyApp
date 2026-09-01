@@ -21,7 +21,7 @@ import {
   RecurrencePeriod,
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
@@ -455,7 +455,7 @@ export function CommitmentFormBody({
             numberOfLines={1}
             disableAnimation
             className="text-center"
-            style={{ fontSize: Type.micro }}
+            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
           />
         </View>
         <Button

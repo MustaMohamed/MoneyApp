@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { Spacing, Type } from '@/constants/theme';
+import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 interface Props {
   label: string;
@@ -15,7 +15,7 @@ export function DateHeader({ label, contextLabel }: Props): React.ReactElement {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
         <Text
           className="font-inter-semibold text-muted flex-1 tracking-wide uppercase"
-          style={{ fontSize: Type.overline }}
+          style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
           numberOfLines={1}
         >
           {label}
@@ -23,7 +23,7 @@ export function DateHeader({ label, contextLabel }: Props): React.ReactElement {
         {contextLabel ? (
           <Text
             className="font-inter-bold text-accent max-w-[55%] text-right"
-            style={{ fontSize: Type.overline }}
+            style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
             numberOfLines={1}
           >
             {contextLabel}
