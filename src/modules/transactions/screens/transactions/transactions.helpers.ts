@@ -1,7 +1,12 @@
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
-import { formatDisplayMagnitude } from '@/utils/format_amount';
+import {
+  MINUS_SIGN,
+  PLUS_SIGN,
+  formatDisplayMagnitude,
+  signAmountText,
+} from '@/utils/format_amount';
 import { currentYearMonth, shiftYearMonth } from '@/utils/year_month';
 
 export { currentYearMonth };
@@ -57,9 +62,9 @@ export function polarityColor(metric: TotalsMetric, deltaPct: number): PolarityS
 
 export function formatSignedAmount(value: number, metric: TotalsMetric): string {
   const { text, printsAsZero } = formatDisplayMagnitude(value, Currency.EGP);
-  if (printsAsZero) return text;
-  if (metric === 'expense') return `${value < 0 ? '+' : '-'}${text}`;
-  return `${value >= 0 ? '+' : '-'}${text}`;
+  // Expense totals read as outflow, so a positive spend signs negative and a credit positive.
+  const positive = metric === 'expense' ? value < 0 : value >= 0;
+  return signAmountText(text, positive ? PLUS_SIGN : MINUS_SIGN, printsAsZero);
 }
 
 export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentation {

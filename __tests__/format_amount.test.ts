@@ -1,5 +1,7 @@
 import { Currency } from '@/constants/enums';
 import {
+  MINUS_SIGN,
+  PLUS_SIGN,
   formatAmount,
   formatCurrencyAmount,
   formatCurrencyParts,
@@ -7,6 +9,7 @@ import {
   formatDisplayMagnitude,
   formatExchangeRate,
   formatExchangeRateSentence,
+  signAmountText,
 } from '@/utils/format_amount';
 
 describe('formatAmount', () => {
@@ -215,5 +218,30 @@ describe('formatCurrencyTotals', () => {
 
   it('renders the em dash placeholder for an empty map', () => {
     expect(formatCurrencyTotals(new Map())).toBe('—');
+  });
+});
+
+describe('signAmountText — the one sign composition point (#332)', () => {
+  it('MINUS_SIGN is U+2212, not the ASCII hyphen (ADR 2026-08-27 decision 3)', () => {
+    expect(MINUS_SIGN.codePointAt(0)).toBe(0x2212);
+    expect(MINUS_SIGN).not.toBe('-');
+  });
+
+  it('prefixes the chosen glyph onto a formatted magnitude', () => {
+    expect(signAmountText('1,200 EGP', MINUS_SIGN)).toBe('−1,200 EGP');
+    expect(signAmountText('50.00 USD', PLUS_SIGN)).toBe('+50.00 USD');
+    expect(signAmountText('700', '')).toBe('700');
+  });
+
+  it('drops the sign when the text prints as zero', () => {
+    expect(signAmountText('0', MINUS_SIGN, true)).toBe('0');
+    expect(signAmountText('0.00 USD', PLUS_SIGN, true)).toBe('0.00 USD');
+  });
+
+  it('composes with formatDisplayMagnitude for both currencies', () => {
+    const egp = formatDisplayMagnitude(-1200, Currency.EGP);
+    expect(signAmountText(egp.text, MINUS_SIGN, egp.printsAsZero)).toBe('−1,200');
+    const usd = formatDisplayMagnitude(0.001, Currency.USD);
+    expect(signAmountText(usd.text, MINUS_SIGN, usd.printsAsZero)).toBe('0.00');
   });
 });

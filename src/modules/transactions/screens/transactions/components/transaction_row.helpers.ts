@@ -9,9 +9,12 @@ import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   EXCHANGE_RATE_DECIMALS,
+  MINUS_SIGN,
+  PLUS_SIGN,
   formatAmount,
   formatCurrencyAmount,
   formatDisplayMagnitude,
+  signAmountText,
 } from '@/utils/format_amount';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -78,10 +81,14 @@ function contextFor(
 
 function primaryAmountFor(tx: Transaction, cardCredit: boolean): string {
   const sign =
-    tx.type === TransactionType.Expense ? '−' : tx.type === TransactionType.Income ? '+' : '';
+    tx.type === TransactionType.Expense
+      ? MINUS_SIGN
+      : tx.type === TransactionType.Income
+        ? PLUS_SIGN
+        : '';
   const { text, printsAsZero } = formatDisplayMagnitude(tx.amount, tx.currency);
   const value = `${text} ${CURRENCY_CONFIG[tx.currency].code}`;
-  return printsAsZero ? value : `${cardCredit ? '+' : sign}${value}`;
+  return signAmountText(value, cardCredit ? PLUS_SIGN : sign, printsAsZero);
 }
 
 function destinationAmountFor(tx: Transaction, toAccount?: Account): string | undefined {

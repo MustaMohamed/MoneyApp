@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { MonthResultVM } from '@/modules/budget/screens/budget/budget.helpers';
-import { formatAmount } from '@/utils/format_amount';
+import { MINUS_SIGN, PLUS_SIGN, formatAmount, signAmountText } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 export function MonthLedger({ results }: { results: MonthResultVM[] }) {
@@ -24,7 +24,7 @@ export function MonthLedger({ results }: { results: MonthResultVM[] }) {
               <Text
                 style={[styles.deltaText, positive ? styles.deltaTextPos : styles.deltaTextNeg]}
               >
-                {`${positive ? '+' : ''}${formatAmount(r.delta)}`}
+                {signAmountText(formatAmount(Math.abs(r.delta)), positive ? PLUS_SIGN : MINUS_SIGN)}
               </Text>
             </View>
           </View>

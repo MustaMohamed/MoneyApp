@@ -5,12 +5,12 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { CategoryHistoryVM } from '@/modules/budget/screens/budget/budget.helpers';
-import { formatAmount } from '@/utils/format_amount';
+import { MINUS_SIGN, PLUS_SIGN, formatAmount, signAmountText } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 export function StatTiles({ history }: { history: CategoryHistoryVM }) {
   const net = history.netBanked;
-  const netLabel = `${net >= 0 ? '+' : ''}${formatAmount(net)}`;
+  const netLabel = signAmountText(formatAmount(Math.abs(net)), net >= 0 ? PLUS_SIGN : MINUS_SIGN);
   return (
     <View style={styles.row}>
       <Tile

@@ -11,7 +11,7 @@ import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/ac
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { MINUS_SIGN, PLUS_SIGN, formatCurrencyAmount, signAmountText } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 import { ms, msFont } from '@/utils/responsive';
 
@@ -104,7 +104,10 @@ export function buildInfoRows(
       },
       {
         label: Strings.cardChangeLabel,
-        value: `${change >= 0 ? '+' : ''}${formatCurrencyAmount(change, cur)}`,
+        value: signAmountText(
+          formatCurrencyAmount(Math.abs(change), cur),
+          change >= 0 ? PLUS_SIGN : MINUS_SIGN,
+        ),
         valueColor: changeColor,
         icon: change >= 0 ? 'up' : 'down',
       },
@@ -152,7 +155,10 @@ export function buildInfoRows(
     },
     {
       label: Strings.cardThisWeekLabel,
-      value: `${weekNet >= 0 ? '+' : ''}${formatCurrencyAmount(weekNet, cur)}`,
+      value: signAmountText(
+        formatCurrencyAmount(Math.abs(weekNet), cur),
+        weekNet >= 0 ? PLUS_SIGN : MINUS_SIGN,
+      ),
       valueColor: weekNetColor,
     },
   ];

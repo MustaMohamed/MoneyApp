@@ -167,16 +167,17 @@ describe('polarityColor', () => {
 });
 
 describe('transactions summary presentation helpers', () => {
-  it('formats signed current-period amounts by metric', () => {
+  it('formats signed current-period amounts by metric, negatives as U+2212 (#332, ADR d3)', () => {
     expect(formatSignedAmount(1000.4, 'income')).toBe('+1,000');
-    expect(formatSignedAmount(300.9, 'expense')).toBe('-301');
+    expect(formatSignedAmount(300.9, 'expense')).toBe('−301');
     expect(formatSignedAmount(699.5, 'net')).toBe('+700');
-    expect(formatSignedAmount(-1200, 'net')).toBe('-1,200');
+    expect(formatSignedAmount(-1200, 'net')).toBe('−1,200');
+    expect(formatSignedAmount(-1200, 'net')).not.toContain('-');
   });
 
   it('escalates a net delta that rounds to zero at 0dp, so a deficit never reads as parity', () => {
     // income 100.20, expense 100.60 -> net -0.40
-    expect(formatSignedAmount(-0.4, 'net')).toBe('-0.40');
+    expect(formatSignedAmount(-0.4, 'net')).toBe('−0.40');
   });
 
   it('escalates the opposite-signed net delta the same way', () => {

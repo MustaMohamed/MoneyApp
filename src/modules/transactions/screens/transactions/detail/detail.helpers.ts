@@ -9,9 +9,13 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
+  type AmountSign,
+  MINUS_SIGN,
+  PLUS_SIGN,
   formatCurrencyAmount,
   formatDisplayMagnitude,
   formatExchangeRateSentence,
+  signAmountText,
 } from '@/utils/format_amount';
 import { formatLongDate } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
@@ -108,24 +112,23 @@ export interface TransferCellText {
 export function transferCellAmountText(
   amount: number,
   currency: Currency,
-  signPrefix: '+' | '−',
+  signPrefix: Exclude<AmountSign, ''>,
 ): TransferCellText {
   const { text, printsAsZero } = formatDisplayMagnitude(amount, currency);
   const accessible = `${text} ${CURRENCY_CONFIG[currency].code}`;
-  return { display: printsAsZero ? accessible : `${signPrefix}${accessible}`, accessible };
+  return { display: signAmountText(accessible, signPrefix, printsAsZero), accessible };
 }
 
 function isCardCredit(tx: Transaction, account?: Account): boolean {
   return tx.type === TransactionType.Income && account?.type === AccountType.CreditCard;
 }
 
+/** Delegates to `transferCellAmountText` so the zero-aware sign rule has one home (#318). */
 function signedAmount(tx: Transaction): string {
-  const { text, printsAsZero } = formatDisplayMagnitude(tx.egp_amount, Currency.EGP);
-  const value = `${text} ${CURRENCY_CONFIG[Currency.EGP].code}`;
-  if (printsAsZero) return value;
-  if (tx.type === TransactionType.Expense) return `−${value}`;
-  if (tx.type === TransactionType.Income) return `+${value}`;
-  return value;
+  const sign = tx.type === TransactionType.Expense ? MINUS_SIGN : PLUS_SIGN;
+  const cell = transferCellAmountText(tx.egp_amount, Currency.EGP, sign);
+  const signed = tx.type === TransactionType.Expense || tx.type === TransactionType.Income;
+  return signed ? cell.display : cell.accessible;
 }
 
 export function buildTransactionDetailPresentation({
@@ -172,8 +175,8 @@ export function buildTransactionDetailPresentation({
         ? {
             fromAccount: account,
             toAccount,
-            fromAmountText: transferCellAmountText(tx.amount, tx.currency, '−'),
-            toAmountText: transferCellAmountText(destinationAmount, destinationCurrency, '+'),
+            fromAmountText: transferCellAmountText(tx.amount, tx.currency, MINUS_SIGN),
+            toAmountText: transferCellAmountText(destinationAmount, destinationCurrency, PLUS_SIGN),
           }
         : null,
   };
