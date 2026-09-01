@@ -10,6 +10,8 @@ import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
+import { resolveLiveMonthLeftPresentation } from './live_month_card.helpers';
+
 export function LiveMonthCard({
   result,
   daysLeft,
@@ -20,6 +22,7 @@ export function LiveMonthCard({
   color: string;
 }) {
   const pct = result.limit > 0 ? result.spent / result.limit : 0;
+  const left = resolveLiveMonthLeftPresentation(result.limit, result.spent);
   return (
     <HeroShell glowColor={color} style={{ marginHorizontal: 0 }}>
       <View style={styles.inner}>
@@ -32,8 +35,8 @@ export function LiveMonthCard({
                 : Strings.budgetCategoriesDaysLeft(daysLeft ?? 0)}
           </Text>
           <Text
-            style={styles.left}
-          >{`${formatAmount(result.limit - result.spent)} ${Strings.budgetSummaryLeft.toLowerCase()}`}</Text>
+            style={[styles.left, { color: left.color }]}
+          >{`${left.text} ${Strings.budgetSummaryLeft.toLowerCase()}`}</Text>
         </View>
         <Text style={styles.big}>
           {formatAmount(result.spent)}
@@ -56,7 +59,7 @@ const styles = StyleSheet.create({
     color: Colors.dark.text1,
     opacity: 0.7,
   },
-  left: { fontFamily: FontFamily.soraSemi, fontSize: Type.body, color: Colors.dark.positive },
+  left: { fontFamily: FontFamily.soraSemi, fontSize: Type.body },
   big: {
     fontFamily: FontFamily.soraBold,
     fontSize: Type.headline,
