@@ -53,6 +53,13 @@ before this diff either.
   not the field.
 - `parsePositiveDecimal`'s floor is now load-bearing *only* for money text; new non-money numeric
   fields must start from `parseDecimalText`.
-- The six `assertStorable` call sites in `transaction_amounts.ts` are hand-maintained, one per
-  computed leg — a seventh leg added to either resolver compiles unguarded unless someone adds the
-  call.
+- The computed legs in `transaction_amounts.ts` are guarded by `assertStorableLegs` at each
+  resolver's single exit (#329). Its type constraint admits only `number | null` fields, so a leg
+  added inside the guarded literal is guarded with no signature change and no name list to maintain.
+  Two hand `assertStorable` calls remain, one at the top of each resolver: they own throw precedence
+  over the destination and rate errors, so an amount that is both unstorable and missing a
+  destination or rate still reports `unstorable`. `exchangeRate` stays a passthrough outside the
+  guard, per §2 — it is neither computed nor rounded. Residual: a field added to a return's
+  passthrough tail — beside `exchangeRate` on the transaction return, beside `accountCurrency,
+  exchangeRate` on the commitment one — is still unguarded. The **hand-maintained** surface narrows
+  from six call sites to those two tails; it does not close at compile time.
