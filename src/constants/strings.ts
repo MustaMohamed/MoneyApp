@@ -795,6 +795,9 @@ export const Strings = {
   addTxErrConvertedBelowMin: (currency: string) =>
     `Converts to less than 0.01 ${currency} at this rate`,
   addTxErrAmountUnstorable: "Amounts this large can't be stored",
+  // Save-time fallback for the same 'zero-destination' throw addTxErrConvertedBelowMin already
+  // catches pre-submit; no currency here, this banner has no field to anchor one to (#363).
+  addTxErrDestinationTooSmall: 'Too small to convert at this rate',
   addTxErrCardCreditExceedsLiability: 'Card credit cannot exceed the current card balance',
   addTxErrCcPaymentExceedsLiability: 'Payment cannot exceed the current card balance',
   addTxInsufficientBalance: (name: string) => `Insufficient balance in ${name}`,
@@ -1012,6 +1015,10 @@ export const Strings = {
     `Converts to less than 0.01 ${currency} at this rate`,
   // Same copy as addTxErrAmountUnstorable on purpose: it is the identical assertStorable guard.
   commitmentsPayErrAmountUnstorable: "Amounts this large can't be stored",
+  // Same copy as addTxErrDestinationTooSmall on purpose: it is the identical zero-destination
+  // guard. The pre-submit field error reuses commitmentsPayErrConvertedBelowMin instead (#363);
+  // this is the save-time fallback for whatever still reaches save after that check passed.
+  commitmentsPayErrDestinationTooSmall: 'Too small to convert at this rate',
 
   // Commitments: Deactivate
   commitmentsDeactivate: 'Deactivate Commitment',

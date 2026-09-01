@@ -1109,6 +1109,16 @@ describe('resolvePaySheetSaveError', () => {
     ).toBe(Strings.commitmentsPayErrAmountUnstorable);
   });
 
+  // #363: whatever still reaches save after the schema's own zero-destination check already
+  // validated — e.g. state changed between validation and submit — gets its own copy too.
+  it("maps the discriminated 'zero-destination' reason to its own copy, ignoring the message", () => {
+    expect(
+      resolvePaySheetSaveError(
+        new TransactionAmountError('arbitrary internal text', 'zero-destination'),
+      ),
+    ).toBe(Strings.commitmentsPayErrDestinationTooSmall);
+  });
+
   it('falls through an undiscriminated TransactionAmountError to the retry banner', () => {
     expect(
       resolvePaySheetSaveError(

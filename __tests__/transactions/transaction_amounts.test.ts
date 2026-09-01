@@ -282,24 +282,11 @@ describe('resolveTransactionAmounts', () => {
       ).not.toThrow();
     });
 
-    // exchangeRate is passed through, not computed, so it sits outside the
-    // guard by ADR (parse-floor-money-only) §2 — a rate above
-    // MAX_SAFE_INTEGER still saves. Reds if the guard is widened to every
-    // field on the returned object.
-    //
-    // The `toAmount: 0` in the expectation is an unguarded residual, not a
-    // decided behaviour, and it is not an artefact of the absurd rate: at an
-    // ordinary rate 50, `{Transfer, 0.2, EGP -> USD}` returns `amount: 0.2`
-    // with `toAmount: 0` too. Nothing on the way to storage rejects it — no
-    // positive-value guard exists on the computed legs here;
-    // `validateNormalizedInput` (transaction.repository.ts:159) checks only
-    // currency match and `normalizedAmountsMatch`, which re-derives through
-    // this same resolver, so a zero leg reconciles by construction; and
-    // `to_amount` carries no CHECK constraint (migration 005 adds it as a
-    // bare REAL). Pre-existing and out of scope here (spec §7.6): this pin
-    // records the value, it does not endorse it.
-    it('an exchange rate above MAX_SAFE_INTEGER is passed through, not bounded', () => {
-      expect(
+    // Was "recorded, not endorsed": a `toAmount: 0` residual with `exchangeRate: 1e20` passed
+    // through unguarded. Layla's ruling on #363 turns that into a refusal — the destination leg
+    // rounding to 0 now throws before the absurd rate is ever reached, whatever the rate is.
+    it('an exchange rate above MAX_SAFE_INTEGER still refuses a zero destination leg', () => {
+      expect(() =>
         resolveTransactionAmounts({
           type: TransactionType.Transfer,
           amount: 500,
@@ -307,7 +294,135 @@ describe('resolveTransactionAmounts', () => {
           destinationCurrency: Currency.USD,
           exchangeRate: 1e20,
         }),
-      ).toEqual({ amount: 500, egpAmount: 500, toAmount: 0, exchangeRate: 1e20 });
+      ).toThrow(expect.objectContaining({ reason: 'zero-destination' }));
+    });
+  });
+
+  // Layla's ruling on #363: a computed destination leg that rounds to exactly 0 while the
+  // source amount is positive is refused, not floored or persisted. Case numbers match the
+  // ruling's table on the issue.
+  describe('destination leg refusal — ruling on #363', () => {
+    it('case 1: reported repro, Transfer, 0.2 EGP -> USD @ rate 50', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: 0.2,
+          sourceCurrency: Currency.EGP,
+          destinationCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'zero-destination' }));
+    });
+
+    it('case 2: same shape, CCPayment, 0.2 EGP -> USD @ rate 50', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.CCPayment,
+          amount: 0.2,
+          sourceCurrency: Currency.EGP,
+          destinationCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'zero-destination' }));
+    });
+
+    it('case 3: exact tie underflows under half-even, 0.25 EGP -> USD @ rate 50', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: 0.25,
+          sourceCurrency: Currency.EGP,
+          destinationCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'zero-destination' }));
+    });
+
+    it('case 4: one cent above the tie survives, 0.26 EGP -> USD @ rate 50', () => {
+      expect(
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: 0.26,
+          sourceCurrency: Currency.EGP,
+          destinationCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toEqual({ amount: 0.26, egpAmount: 0.26, toAmount: 0.01, exchangeRate: 50 });
+    });
+
+    it('case 5: multiply-branch underflow, 0.01 USD -> EGP @ rate 0.4', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: 0.01,
+          sourceCurrency: Currency.USD,
+          destinationCurrency: Currency.EGP,
+          exchangeRate: 0.4,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'zero-destination' }));
+    });
+
+    it('case 6: USD -> USD passthrough at the floor is unaffected', () => {
+      expect(
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: 0.01,
+          sourceCurrency: Currency.USD,
+          destinationCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toEqual({ amount: 0.01, egpAmount: 0.5, toAmount: 0.01, exchangeRate: 50 });
+    });
+
+    it('case 7: EGP -> EGP at the floor is unaffected', () => {
+      expect(
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: 0.01,
+          sourceCurrency: Currency.EGP,
+          destinationCurrency: Currency.EGP,
+        }),
+      ).toEqual({ amount: 0.01, egpAmount: 0.01, toAmount: 0.01, exchangeRate: null });
+    });
+
+    it('case 8: a zero amount still throws its pre-existing, undiscriminated message', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: 0,
+          sourceCurrency: Currency.EGP,
+          destinationCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toThrow('Transaction amount must be positive');
+    });
+
+    it('case 9: a negative amount still throws its pre-existing, undiscriminated message', () => {
+      expect(() =>
+        resolveTransactionAmounts({
+          type: TransactionType.Transfer,
+          amount: -5,
+          sourceCurrency: Currency.EGP,
+          destinationCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toThrow('Transaction amount must be positive');
+    });
+
+    // Out of scope by the ruling: no destination leg to hang the guard on for Expense/Income
+    // (`toAmount` is `null`, not `0`), so a plain USD amount can still underflow `egpAmount` to
+    // 0 with no throw. Same root as case 5, different column (`egp_amount` carries no CHECK
+    // either) — flagged for a follow-up ticket, not fixed here. This pin records the value, it
+    // does not endorse it.
+    it('case 10: Expense/Income egpAmount underflow is recorded, not endorsed (follow-up ticket)', () => {
+      expect(
+        resolveTransactionAmounts({
+          type: TransactionType.Expense,
+          amount: 0.01,
+          sourceCurrency: Currency.USD,
+          exchangeRate: 0.4,
+        }),
+      ).toEqual({ amount: 0.01, egpAmount: 0, toAmount: null, exchangeRate: 0.4 });
     });
   });
 });
@@ -524,31 +639,111 @@ describe('resolveCommitmentPaymentAmounts', () => {
       ).not.toThrow();
     });
 
-    // Mirrors the passthrough pin on resolveTransactionAmounts above,
-    // `accountNativeAmount: 0` included: the same unguarded residual, equally
-    // independent of the absurd rate — a 0.20 EGP commitment paid from a USD
-    // account at rate 50 also returns `accountNativeAmount: 0`. What differs
-    // is downstream, and it is the schema's doing rather than this file's:
-    // `markAsPaid` binds this leg into the transaction row's `amount`
-    // (commitment.repository.ts:224), and that column is
-    // `CHECK(amount > 0)` (migration 004), so the zero fails at insert
-    // instead of persisting. The resolver still returns it. Recorded, not
-    // endorsed — same scope note as the pin above.
-    it('an exchange rate above MAX_SAFE_INTEGER is passed through on a commitment payment', () => {
-      expect(
+    // Was "recorded, not endorsed": `accountNativeAmount: 0` passed through unguarded at an
+    // absurd rate. Layla's ruling on #363 turns that into a refusal — the destination leg
+    // rounding to 0 now throws before the rate itself is ever a factor.
+    it('an exchange rate above MAX_SAFE_INTEGER still refuses a zero destination leg', () => {
+      expect(() =>
         resolveCommitmentPaymentAmounts({
           amount: 100,
           commitmentCurrency: Currency.EGP,
           accountCurrency: Currency.USD,
           exchangeRate: 1e300,
         }),
+      ).toThrow(expect.objectContaining({ reason: 'zero-destination' }));
+    });
+  });
+
+  // Layla's ruling on #363, mirroring the resolveTransactionAmounts block above. Case numbers
+  // match the ruling's table on the issue.
+  describe('destination leg refusal — ruling on #363', () => {
+    it('case 11: reported repro, 0.2 EGP commitment paid from a USD account @ rate 50', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: 0.2,
+          commitmentCurrency: Currency.EGP,
+          accountCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'zero-destination' }));
+    });
+
+    it('case 12: exact tie underflows, 0.25 EGP commitment paid from a USD account @ rate 50', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: 0.25,
+          commitmentCurrency: Currency.EGP,
+          accountCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'zero-destination' }));
+    });
+
+    it('case 13: one cent above the tie survives, 0.26 EGP commitment @ rate 50', () => {
+      expect(
+        resolveCommitmentPaymentAmounts({
+          amount: 0.26,
+          commitmentCurrency: Currency.EGP,
+          accountCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
       ).toEqual({
-        paymentAmount: 100,
-        accountNativeAmount: 0,
+        paymentAmount: 0.26,
+        accountNativeAmount: 0.01,
         accountCurrency: Currency.USD,
-        egpAmount: 100,
-        exchangeRate: 1e300,
+        egpAmount: 0.26,
+        exchangeRate: 50,
       });
+    });
+
+    it('case 14: multiply-branch underflow, 0.01 USD commitment paid from an EGP account @ rate 0.4', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: 0.01,
+          commitmentCurrency: Currency.USD,
+          accountCurrency: Currency.EGP,
+          exchangeRate: 0.4,
+        }),
+      ).toThrow(expect.objectContaining({ reason: 'zero-destination' }));
+    });
+
+    it('case 15: an ordinary rate is unaffected, 10.999 USD commitment paid from an EGP account @ rate 48', () => {
+      expect(
+        resolveCommitmentPaymentAmounts({
+          amount: 10.999,
+          commitmentCurrency: Currency.USD,
+          accountCurrency: Currency.EGP,
+          exchangeRate: 48,
+        }),
+      ).toEqual({
+        paymentAmount: 11,
+        accountNativeAmount: 528,
+        accountCurrency: Currency.EGP,
+        egpAmount: 528,
+        exchangeRate: 48,
+      });
+    });
+
+    it('case 16: a zero amount still throws its pre-existing, undiscriminated message', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: 0,
+          commitmentCurrency: Currency.EGP,
+          accountCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toThrow('Payment amount must be positive');
+    });
+
+    it('case 17: a negative amount still throws its pre-existing, undiscriminated message', () => {
+      expect(() =>
+        resolveCommitmentPaymentAmounts({
+          amount: -5,
+          commitmentCurrency: Currency.EGP,
+          accountCurrency: Currency.USD,
+          exchangeRate: 50,
+        }),
+      ).toThrow('Payment amount must be positive');
     });
   });
 });

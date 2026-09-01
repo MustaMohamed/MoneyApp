@@ -113,15 +113,23 @@ export function resolveDestinationFloorError(input: {
       ? Strings.addTxErrConvertedBelowMin(destinationCurrency)
       : undefined;
   } catch (error) {
+    // The resolver now refuses a zero destination leg (#363) instead of returning `toAmount: 0`,
+    // so the check above never runs for that case — this keeps the same field-level copy live.
+    if (error instanceof TransactionAmountError && error.reason === 'zero-destination') {
+      return Strings.addTxErrConvertedBelowMin(destinationCurrency);
+    }
     if (error instanceof TransactionAmountError) return undefined;
     throw error;
   }
 }
 
 export function resolveTransactionSaveError(error: unknown): string {
-  // Only `reason === 'unstorable'` has user copy; other causes carry internal literals.
-  if (error instanceof TransactionAmountError && error.reason === 'unstorable') {
-    return Strings.addTxErrAmountUnstorable;
+  // Only `'unstorable'` and `'zero-destination'` have user copy; other causes carry internal
+  // literals. `resolveDestinationFloorError` already catches `'zero-destination'` pre-submit;
+  // this is the fallback for whatever reaches save anyway (e.g. state changed after validation).
+  if (error instanceof TransactionAmountError) {
+    if (error.reason === 'unstorable') return Strings.addTxErrAmountUnstorable;
+    if (error.reason === 'zero-destination') return Strings.addTxErrDestinationTooSmall;
   }
 
   const issues = error && typeof error === 'object' && 'issues' in error ? error.issues : undefined;

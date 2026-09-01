@@ -71,6 +71,17 @@ describe('useTransactionRatePreview', () => {
       'a transfer with no destination picked',
       { amount: '100', type: TransactionType.Transfer, destinationCurrency: undefined },
     ],
+    // #363: the resolver now refuses instead of returning `toAmount: 0`, so this blanks too.
+    [
+      'a transfer whose destination leg rounds to zero: 0.2 EGP / 50 -> 0.00 USD',
+      {
+        amount: '0.2',
+        type: TransactionType.Transfer,
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.USD,
+        exchangeRate: '50',
+      },
+    ],
   ] as const)('has no preview for %s', async (_label, input) => {
     expect(await preview(input)).toBeUndefined();
   });

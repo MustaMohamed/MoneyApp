@@ -69,6 +69,16 @@ describe('transaction form helpers', () => {
     ).toBe(Strings.addTxErrAmountUnstorable);
   });
 
+  // #363: whatever still reaches save after `resolveDestinationFloorError` already validated —
+  // e.g. state changed between validation and submit — gets its own copy, not the retry banner.
+  it('maps the discriminated zero-destination cause to its own copy, ignoring its own message', () => {
+    expect(
+      resolveTransactionSaveError(
+        new TransactionAmountError('arbitrary internal text', 'zero-destination'),
+      ),
+    ).toBe(Strings.addTxErrDestinationTooSmall);
+  });
+
   it('falls through an undiscriminated TransactionAmountError to the generic banner', () => {
     expect(
       resolveTransactionSaveError(
