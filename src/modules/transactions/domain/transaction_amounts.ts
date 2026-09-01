@@ -50,9 +50,12 @@ function assertStorable(value: number): void {
  * The spread puts the guarded legs first, which reorders the keys of the
  * object `resolveCommitmentPaymentAmounts` returns: `accountCurrency` lands
  * fourth, behind the three guarded legs, where the hand-written literal it
- * replaced had it third. Neither return may be read positionally — no
- * `Object.values`, no `Object.entries` — because adding a leg reorders them
- * again. Every consumer reads these fields by name today.
+ * replaced had it third. So no consumer of either return may read it
+ * positionally — no `Object.values` or `Object.entries` over a returned
+ * `TransactionAmounts` or `CommitmentPaymentAmounts` — because adding a leg
+ * reorders them again. Every consumer reads these fields by name today. That
+ * binds the returns, not this function: the `Object.values` below walks the
+ * guard's own input record, where the order carries nothing.
  *
  * Two things sit outside it, both deliberately. `assertStorable(amount)` at
  * the top of each resolver is not redundant with the `amount` leg below: it
@@ -63,7 +66,8 @@ function assertStorable(value: number): void {
  * also what makes the second check free rather than defensive: the guard
  * receives that same `const amount` — as `amount` here, `paymentAmount`
  * there — so once the top call has returned, that leg cannot fire on any
- * input, and the duplicate costs one comparison. And a field added to a
+ * input, and the duplicate costs one more call into `assertStorable` — both
+ * its predicates run, neither can fire. And a field added to a
  * return's passthrough tail — beside `exchangeRate` on the transaction
  * return, beside `accountCurrency, exchangeRate` on the commitment one — is
  * still unguarded: six independent call sites narrow to those two tails,
