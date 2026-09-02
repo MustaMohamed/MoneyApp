@@ -330,7 +330,7 @@ git commit -m "feat(workflow): /boundaries, phase 2 of the define workflow"
 Every task issue has this body. The reviewer rejects a draft that skips a heading or leaves Acceptance empty. No file paths, no code, no technical design; that is planning's job at delivery.
 
 ```markdown
-Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none · Size M
+Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none
 
 ## Task Definition
 Two or three lines. What this task is about, read first.
@@ -359,14 +359,13 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 | Depends on | `MA-nnn (#N)` list, or `nothing`; real dependencies only |
 | Verify | `emulator` when the task changes what a screen shows or what the app writes; else `none` |
 | Flags | any of `data-loss migration`, `money path`, `native change`, `user copy`; else `none`. These are CLAUDE.md's critical triggers, written where the merge gate reads them |
-| Size | `S`, `M`, or `L`; see splitting.md |
 
 Title `MA-nnn — <title>`, the number from `bash scripts/board.sh next-ma`.
 
 ## Filled example, MA-015
 
 ```markdown
-Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none · Size M
+Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none
 
 ## Task Definition
 An accounts list screen at `/accounts`, opened from a "see all" entry on the dashboard account carousel. Shows every active account; empty state included.
@@ -402,15 +401,7 @@ Accounts get a home of their own. Today they are reachable only by scrolling the
 `.claude/skills/tickets/references/splitting.md`:
 
 ````markdown
-# Size and splitting
-
-## Size
-
-| Size | Means | Example |
-|---|---|---|
-| S | one screen state, one rule, one fix | MA-013, the card background |
-| M | one screen with its data and tests, or one data layer | MA-015, the list screen |
-| L | too big for one PR; a parent. Sits at Todo, is never pulled, re-enters `/tickets` as its own parent | |
+# Splitting
 
 ## Three cuts, no preference order
 
@@ -425,19 +416,19 @@ Accounts get a home of their own. Today they are reachable only by scrolling the
 ## Limits on every cut
 
 - One outcome per task. Two outcomes are two tasks.
-- Leaves are S or M. An L is cut again with the same three rules, later, as its own parent.
+- A task is one PR a reviewer reads in one sitting. A bigger one is cut again here, or, the user's choice at stop 1, created at Todo for its own `/tickets` run later.
 - A chain's first link stands alone. A chain whose first link nobody can use is a layer cut and the reviewer rejects it.
 - Preludes are the one allowed non-user-visible task: a migration or data layer a later task needs, isolated because it carries sign-off or data-loss risk. A prelude names the task that consumes it. MA-020 is one.
 
 ## Order
 
-Dependencies first, then screens in navigation order, then interactions on those screens, destructive flows last. S tasks with no dependencies go first so the milestone shows progress on day one. Depends-on names real dependencies only; two tasks with no edge may run in parallel, so a lazy edge costs wall-clock.
+Dependencies first, then screens in navigation order, then interactions on those screens, destructive flows last. Tasks with no dependencies go first so the milestone shows progress on day one. Depends-on names real dependencies only; two tasks with no edge may run in parallel, so a lazy edge costs wall-clock.
 
 Cross-epic: two tasks in different epics of one milestone that touch the same module get an edge or a merge.
 
 ## Recursion
 
-The rules are the same at every level; only the parent changes. `/tickets <L task>` cuts that task into sub-issues with the next MA numbers, at Defined, and moves the L task to Ready For Development. A parent closes when its last child closes.
+The rules are the same at every level; only the parent changes. `/tickets <task>` cuts a task that was created at Todo for its own breakdown into sub-issues with the next MA numbers, at Defined, and moves that task to Ready For Development. A parent closes when its last child closes.
 
 ## The nine tickets on #378, as a worked check
 
@@ -457,12 +448,12 @@ Inputs in your prompt: the parent body, the draft tickets, the code map, the cut
 
 Check all seven, in order:
 
-1. **Coverage both ways.** Every Building bullet of the parent lands in exactly one task. Every task serves a Building bullet. For an L-task parent, read its Task Definition and Acceptance as the Building list.
+1. **Coverage both ways.** Every Building bullet of the parent lands in exactly one task. Every task serves a Building bullet. For a task parent, read its Task Definition and Acceptance as the Building list.
 2. **Rules.** Every Rule of the parent appears, in plain words, in the Rules of the ticket that owns it.
-3. **Size.** No leaf is L. No task has two outcomes.
+3. **One PR.** No task is bigger than one PR a reviewer reads in one sitting, unless the user chose it for its own later breakdown. No task has two outcomes.
 4. **Edges.** Every depends-on is real against the code map. Name any hidden dependency a depends-on line omits, and any listed dependency the code map does not support.
 5. **Cross-epic overlap.** No two open tasks on the milestone touch the same module without an edge between them.
-6. **Shape.** Header line with all five fields; the six headings present and filled; Acceptance non-empty; every Out of scope line names an owning task.
+6. **Shape.** Header line with all four fields; the six headings present and filled; Acceptance non-empty; every Out of scope line names an owning task.
 7. **The cut.** The cut the user chose is the cut applied. Every chain's first link stands alone.
 
 Evidence rule: every delta cites the ticket (its MA number) and the parent line, code-map entry or standard heading it conflicts with. No delta without evidence. Do not pad: a clean set gets an approve, not manufactured notes.
@@ -477,37 +468,37 @@ Return, in this order: verdict (`approve` | `deltas`); the deltas as a list, one
 ````markdown
 ---
 name: tickets
-description: "Use when a locked epic or an L task must be cut into tasks: '/tickets <parent>', 'break down epic N', 'create the tasks for N', or '/tickets N --rewrite' to bring existing children into the ticket standard. Phase 3 of the define workflow: propose the split, draft standard bodies, reviewer audit, create as sub-issues. Not for brainstorming scope (boundaries)."
+description: "Use when a locked epic or a task marked for its own breakdown must be cut into tasks: '/tickets <parent>', 'break down epic N', 'create the tasks for N', or '/tickets N --rewrite' to bring existing children into the ticket standard. Phase 3 of the define workflow: propose the split, draft standard bodies, reviewer audit, create as sub-issues. Not for brainstorming scope (boundaries)."
 argument-hint: "<parent issue number> [--rewrite]"
 ---
 
 # Tickets
 
-Phase 3 of the define workflow ([spec](../../../docs/superpowers/specs/2026-09-02-define-workflow-design.md)). Cuts a parent, an epic at Defined or an L task at Todo, into tasks in the ticket standard, as sub-issues on the parent's milestone. Two stops for the user: the split choice and the creation. Writes nothing to disk. The `unslop` skill binds every body.
+Phase 3 of the define workflow ([spec](../../../docs/superpowers/specs/2026-09-02-define-workflow-design.md)). Cuts a parent, an epic at Defined or a task at Todo, into tasks in the ticket standard, as sub-issues on the parent's milestone. Two stops for the user: the split choice and the creation. Writes nothing to disk. The `unslop` skill binds every body.
 
 ## Preconditions
 
-`bash scripts/board.sh get <n>` says Defined and the body starts with `Scope locked`, or the parent is a task whose header line says `Size L`. Anything else: say what you found and stop. `--rewrite` needs existing children: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq '.[].number'`.
+`bash scripts/board.sh get <n>` says Defined and the body starts with `Scope locked`, or the parent is a task at Todo, one created for its own breakdown. Anything else: say what you found and stop. `--rewrite` needs existing children: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq '.[].number'`.
 
 ## Steps
 
-1. **Read the parent and map the code.** `gh issue view <n>`; the milestone's other open tickets, `gh issue list --milestone "<m>" --state open`; one read-only scout (`subagent_type: Explore`) maps the modules the parent's Building list, or an L task's Task Definition, touches, so cuts follow real seams.
-2. **Stop 1, the split.** For each cut in [references/splitting.md](references/splitting.md) that fits, one candidate table: task titles, sizes, edges, how many run in parallel, longest chain. Recommended option first with the reason. A cut that does not fit gets one line saying why. Ask exactly: **"Which split?"** and wait.
-3. **Draft the bodies** for the chosen cut per [references/ticket-body.md](references/ticket-body.md), one per task. Rules are copied from the parent in plain words so every ticket stands alone. Out of scope names the owning task for each exclusion. Header line: `Part of #<n>`; real depends-on only; `Verify emulator` when the task changes what a screen shows or what the app writes; Flags from the header table; Size per splitting.md. Titles `MA-nnn — <title>`, numbered from `bash scripts/board.sh next-ma` upward in order.
+1. **Read the parent and map the code.** `gh issue view <n>`; the milestone's other open tickets, `gh issue list --milestone "<m>" --state open`; one read-only scout (`subagent_type: Explore`) maps the modules the parent's Building list, or a task's Task Definition, touches, so cuts follow real seams.
+2. **Stop 1, the split.** For each cut in [references/splitting.md](references/splitting.md) that fits, one candidate table: task titles, edges, how many run in parallel, longest chain, and any task proposed for its own later breakdown. Recommended option first with the reason. A cut that does not fit gets one line saying why. Ask exactly: **"Which split?"** and wait.
+3. **Draft the bodies** for the chosen cut per [references/ticket-body.md](references/ticket-body.md), one per task. Rules are copied from the parent in plain words so every ticket stands alone. Out of scope names the owning task for each exclusion. Header line: `Part of #<n>`; real depends-on only; `Verify emulator` when the task changes what a screen shows or what the app writes; Flags from the header table. Titles `MA-nnn — <title>`, numbered from `bash scripts/board.sh next-ma` upward in order.
 4. **Reviewer audit.** Dispatch one fresh subagent (`subagent_type: general-purpose`) with [references/reviewer-charter.md](references/reviewer-charter.md) verbatim, the parent body, the drafts, the scout's code map and the chosen cut. Apply its deltas. A delta you disagree with goes to the user at stop 2, never dropped silently.
-5. **Stop 2, the gate.** Show the ordered table (ID, title, size, depends-on), then every body. Ask exactly: **"Create these N tickets?"** (`--rewrite`: **"Update these N tickets?"**). Anything but yes: revise and ask again. A rejected list costs nothing on GitHub.
+5. **Stop 2, the gate.** Show the ordered table (ID, title, depends-on, and which are to be broken down later), then every body. Ask exactly: **"Create these N tickets?"** (`--rewrite`: **"Update these N tickets?"**). Anything but yes: revise and ask again. A rejected list costs nothing on GitHub.
 6. **Create**, per ticket, in order:
 
    ```bash
    gh issue create --title "MA-nnn — <title>" --label "module:<x>" --milestone "<m>" --body "$BODY"   # prints the URL; the number is its last segment
    bash scripts/board.sh link <parent> <child>
-   bash scripts/board.sh status <child> Defined        # Size L: Todo
+   bash scripts/board.sh status <child> Defined        # created for its own breakdown: Todo
    ```
 
    Then promote: every new leaf with no open depends-on gets `bash scripts/board.sh status <child> "Ready For Development"`. Finally `bash scripts/board.sh status <parent> "Ready For Development"`.
 
    `--rewrite`: `gh issue edit <child> --body "$BODY"` keeps number and title; then the same status writes.
-7. **Reply** with the numbers created, each with size and status, and which are pullable now.
+7. **Reply** with the numbers created, each with its status, and which are pullable now.
 
 ## Ordering
 
@@ -783,7 +774,7 @@ Work is defined on GitHub and delivered from GitHub. Nothing about a piece of wo
 
 **The board is the state.** Project #2, Status field: Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Defined means the ticket is in the standard shape. Ready For Development means pullable: every depends-on closed. Row order within a column is priority. `scripts/board.sh` is the one way to write the board. `status:*` labels no longer exist.
 
-**Hierarchy.** A milestone `MA-<module>-<goal>` groups any number of epics. An epic parents its tasks as sub-issues. A task sized L is a parent too and re-enters `/tickets`. A parent closes when its last child closes. The unit that gets a branch, a PR and `Closes #N` is the leaf task.
+**Hierarchy.** A milestone `MA-<module>-<goal>` groups any number of epics. An epic parents its tasks as sub-issues. A task I choose to break down further is created at Todo and re-enters `/tickets`. A parent closes when its last child closes. The unit that gets a branch, a PR and `Closes #N` is the leaf task.
 
 **Delivering a ticket is `/ship`**, unchanged until the delivery design replaces it. Its gates and hard rules stand: every merge is mine, every destructive repository operation is an explicit request from me.
 
@@ -904,5 +895,5 @@ These write to GitHub and one is irreversible, so they are not tasks in this pla
    ```
 
 3. Migrate #378: append a `## Links` section (`- none until MA-014`) after Rules in its body with `gh issue edit 378 --body "$BODY"`, then `bash scripts/board.sh status 378 Defined`.
-4. `/tickets 378 --rewrite`: the nine bodies to the ticket standard, sizes set, then statuses per the rule (MA-013, MA-014, MA-020 to Ready For Development, the rest Defined, #378 to Ready For Development). This is the skill's first run and its acceptance test.
+4. `/tickets 378 --rewrite`: the nine bodies to the ticket standard, then statuses per the rule (MA-013, MA-014, MA-020 to Ready For Development, the rest Defined, #378 to Ready For Development). This is the skill's first run and its acceptance test.
 5. Update the user-scope `recall` skill (`~/.claude/skills/recall/SKILL.md`) so it reads board Status, not `status:*` labels; it is outside the repo.

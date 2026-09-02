@@ -34,7 +34,7 @@ Work is defined on GitHub and delivered from GitHub. Nothing about a piece of wo
 
 **The board is the state.** Project #2, Status field: Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Defined means the ticket is in the standard shape. Ready For Development means pullable: every depends-on closed. Row order within a column is priority. `scripts/board.sh` is the one way to write the board. `status:*` labels no longer exist.
 
-**Hierarchy.** A milestone `MA-<module>-<goal>` groups any number of epics. An epic parents its tasks as sub-issues. A task sized L is a parent too and re-enters `/tickets`. A parent closes when its last child closes. The unit that gets a branch, a PR and `Closes #N` is the leaf task.
+**Hierarchy.** A milestone `MA-<module>-<goal>` groups any number of epics. An epic parents its tasks as sub-issues. A task I choose to break down further is created at Todo and re-enters `/tickets`. A parent closes when its last child closes. The unit that gets a branch, a PR and `Closes #N` is the leaf task.
 
 **Delivering a ticket is `/ship`**, unchanged until the delivery design replaces it. Its gates and hard rules stand: every merge is mine, every destructive repository operation is an explicit request from me.
 

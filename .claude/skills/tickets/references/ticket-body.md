@@ -3,7 +3,7 @@
 Every task issue has this body. The reviewer rejects a draft that skips a heading or leaves Acceptance empty. No file paths, no code, no technical design; that is planning's job at delivery.
 
 ```markdown
-Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none · Size M
+Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none
 
 ## Task Definition
 Two or three lines. What this task is about, read first.
@@ -32,14 +32,13 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 | Depends on | `MA-nnn (#N)` list, or `nothing`; real dependencies only |
 | Verify | `emulator` when the task changes what a screen shows or what the app writes; else `none` |
 | Flags | any of `data-loss migration`, `money path`, `native change`, `user copy`; else `none`. These are CLAUDE.md's critical triggers, written where the merge gate reads them |
-| Size | `S`, `M`, or `L`; see splitting.md |
 
 Title `MA-nnn — <title>`, the number from `bash scripts/board.sh next-ma`.
 
 ## Filled example, MA-015
 
 ```markdown
-Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none · Size M
+Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none
 
 ## Task Definition
 An accounts list screen at `/accounts`, opened from a "see all" entry on the dashboard account carousel. Shows every active account; empty state included.
