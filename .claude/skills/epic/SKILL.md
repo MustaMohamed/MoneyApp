@@ -6,7 +6,7 @@ argument-hint: "<goal in a sentence> [--milestone MA-<module>-<goal>]"
 
 # Epic
 
-Phase 1 of the define workflow ([spec](../../../docs/superpowers/specs/2026-09-02-define-workflow-design.md)). Turns a goal the user just stated into an epic issue on a milestone, at Todo. Writes nothing to disk. The `unslop` skill binds the body you write.
+Phase 1 of the define workflow. Turns a goal the user just stated into an epic issue on a milestone, at Todo. Writes nothing to disk. The `unslop` skill binds the body you write.
 
 ## Steps
 

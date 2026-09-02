@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# The one writer to Project #2 "MoneyApp". Ids come from
-# docs/superpowers/specs/2026-09-02-define-workflow-design.md §3; change them here only.
+# The one writer to Project #2 "MoneyApp". Field and option ids live here only.
 set -euo pipefail
 
 OWNER=MustaMohamed

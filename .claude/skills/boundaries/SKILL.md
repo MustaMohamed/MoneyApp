@@ -6,7 +6,7 @@ argument-hint: "<epic number>"
 
 # Boundaries
 
-Phase 2 of the define workflow ([spec](../../../docs/superpowers/specs/2026-09-02-define-workflow-design.md)). Interview the user from codebase evidence until the epic's Building, Not building and Rules stop moving, then lock the body. Main thread throughout: the interview cannot be delegated. Writes nothing to disk. The `unslop` skill binds the body.
+Phase 2 of the define workflow. Interview the user from codebase evidence until the epic's Building, Not building and Rules stop moving, then lock the body. Main thread throughout: the interview cannot be delegated. Writes nothing to disk. The `unslop` skill binds the body.
 
 ## Preconditions
 

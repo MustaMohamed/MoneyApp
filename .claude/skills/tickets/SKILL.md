@@ -6,7 +6,7 @@ argument-hint: "<parent issue number> [--rewrite]"
 
 # Tickets
 
-Phase 3 of the define workflow ([spec](../../../docs/superpowers/specs/2026-09-02-define-workflow-design.md)). Cuts a parent, an epic at Defined or a task at Todo, into tasks in the ticket standard, as sub-issues on the parent's milestone. Two stops for the user: the split choice and the creation. Writes nothing to disk. The `unslop` skill binds every body.
+Phase 3 of the define workflow. Cuts a parent, an epic at Defined or a task at Todo, into tasks in the ticket standard, as sub-issues on the parent's milestone. Two stops for the user: the split choice and the creation. Writes nothing to disk. The `unslop` skill binds every body.
 
 ## Preconditions
 
