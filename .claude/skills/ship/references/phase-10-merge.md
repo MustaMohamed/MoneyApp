@@ -24,11 +24,11 @@ Then wait. **The human merges — never the conductor**, regardless of how green
 ## After the merge (verify, then clean — artifacts deleted LAST, nothing written after)
 
 1. Confirm the PR is merged: `gh pr view <pr-url-from-state.md> --json state,mergedAt`. **Always pass the URL** — with no argument, `gh` resolves from the cwd's repo and current branch, which from the primary checkout is a different branch's PR (or none at all).
-2. GitHub: confirm the merge closed the issue — the PR's `Closes #N` does it, and closed **is** the done signal (`gh issue view <N> --json state`; close explicitly only if the closing keyword was missing). Leave the `status:*` label alone — it is inert once the issue is closed. Sub-ticket → its sub-issue; last sub-ticket, final chunk, or direct → the ticket's issue, and the parent issue if applicable.
+2. GitHub: confirm the merge closed the issue — the PR's `Closes #N` does it, and closed **is** the done signal (`gh issue view <N> --json state`; close explicitly only if the closing keyword was missing). Then `bash scripts/board.sh status <N> Done`, in case the project's close automation is off. Sub-ticket → its sub-issue; last sub-ticket, final chunk, or direct → the ticket's issue, and the parent issue if applicable.
 3. Final `state.md` entry (`P10: merged <sha>, cleaned`) — written now, **before** any deletion.
 4. Teardown, in order (commands in SKILL.md → Worktrees): review worktree, implementation worktree(s), local branch(es), `git worktree prune`.
 5. Artifacts, the terminal step: direct, final chunk, or parent-closing → delete `~/.ship/MoneyApp/MA-XXX/`; mid-split sub-ticket → keep the parent dir. Nothing writes to the directory after this; the durable record is the PR(s), the issue, and any committed ADRs.
-6. Next sub-ticket, if any: set its sub-issue to `status:implementing` via `gh issue edit` and enter phase 4 (its slice brief, its plan file, its branch, its worktrees).
+6. Next sub-ticket, if any: set its sub-issue to In Progress with `bash scripts/board.sh status <n> "In Progress"` and enter phase 4 (its slice brief, its plan file, its branch, its worktrees).
 
 ## Checklist
 
@@ -41,4 +41,4 @@ Then wait. **The human merges — never the conductor**, regardless of how green
 - [ ] Review + implementation worktrees removed, `worktree prune` run
 - [ ] Local branch(es) deleted
 - [ ] Artifacts deleted last (or parent-deferred / mid-chunk-deferred) — no writes after
-- [ ] Next sub-ticket set to `status:implementing` and started at P4 / next chunk started at P6, if any
+- [ ] Next sub-ticket set to In Progress on the board and started at P4 / next chunk started at P6, if any
