@@ -42,7 +42,7 @@ Chunking handles pure *size*; splitting handles *product shape*. A 1,500-LOC sin
 
 If the P2 gate approved "split" without the slice list, present it now: title, one-line outcome, acceptance-criteria mapping, order, and why this cut. Ask directly: **"Approve this split?"**
 
-Only after approval: create the sub-issues via `gh issue create` — one per slice, titled with the next globally-sequential MA numbers (highest across `docs/scopes/**` and `~/.ship/MoneyApp/` plus one), labeled `status:todo` — and record in `state.md` (`mode: split-parent`, `## Sub-tickets`) each sub-ticket's MA ID, issue number, order, **and slice brief** — one or two lines of outcome plus the `spec.md` sections/scenarios it owns. The brief is load-bearing: subagents cannot read GitHub issues, so `state.md` is the only place the planner and reviewers can learn which slice a sub-ticket covers.
+Only after approval: create the sub-issues via `gh issue create` — one per slice, titled with the next MA numbers (`bash scripts/board.sh next-ma`, once per slice in order) and put on the board at Todo (`bash scripts/board.sh status <n> Todo`) — and record in `state.md` (`mode: split-parent`, `## Sub-tickets`) each sub-ticket's MA ID, issue number, order, **and slice brief** — one or two lines of outcome plus the `spec.md` sections/scenarios it owns. The brief is load-bearing: subagents cannot read GitHub issues, so `state.md` is the only place the planner and reviewers can learn which slice a sub-ticket covers.
 
 ## Execution shape after this phase
 

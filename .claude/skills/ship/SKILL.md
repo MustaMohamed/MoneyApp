@@ -141,7 +141,7 @@ Violating the letter of these rules is violating their spirit.
 | "I'll update state.md at the end to save writes" | A crash loses the session; `state.md` is the only resume point. Write at every transition. |
 | "The subagent can update the issue label while it's at it" | Hard rule 1: issue writes are conductor-only — splitting issue ownership creates double-writes and races. |
 | "Spec is thin but the implementer can infer the rest" | Inference is where phase-6 bugs come from. Fix the spec; it's cheaper here than at P7. |
-| "CLAUDE.md's /scope team owns this kind of work — dispatch @dev / fix it myself" | That guidance governs the /scope workflow. Inside `/ship`, roles are fixed by phase: producers produce, reviewers review, the conductor conducts. |
+| "`@layla` is a project agent — dispatch her to implement / fix it myself" | `@layla` decides money rules; she does not implement. Inside `/ship`, roles are fixed by phase: producers produce, reviewers review, the conductor conducts. |
 | "I told the human I'm skipping the gates, so it's on the record" | Announcing a skip is not approval. Gates end with a question and wait for the answer. |
 | "Stacking chunk PRs beats waiting for merges" | CI runs only on main-targeting PRs, and every squash-merge forces child rebases. Work another disjoint chunk, or fold the tail into the final PR. |
 | "This reviewer re-found the ruled-on finding and sounds more certain" | Rule 10. Cite the ledger, move on. Three reviewers independently re-finding a ruled trade-off is review sensitivity working, not a new defect. |
@@ -215,12 +215,12 @@ git -C /Users/musta/Code/projects/practice/MoneyApp worktree prune
 
 ## GitHub issue touchpoints (conductor only, via `gh`)
 
-Read a ticket with `gh issue view <N>` (find N from an MA ID: `gh issue list --search "MA-XXX" --state all`); write status with `gh issue edit <N> --add-label ... --remove-label ...`. Exactly one `status:*` label at a time — replace, never add. **Closed is the done signal**; labels are inert once the issue is closed.
+Read a ticket with `gh issue view <N>` (find N from an MA ID: `gh issue list --search "MA-XXX" --state all`); write status to the board with `bash scripts/board.sh status <N> "<Status>"` (Project #2's Status field; `status:*` labels no longer exist). **Closed is the done signal**; the board column is inert once the issue is closed.
 
-- P1 start → ticket In Progress: replace the current `status:*` label with `status:implementing`.
-- P3 split → create sub-issues with the next MA numbers (`gh issue create`; PM-style bodies; acceptance criteria mapped to spec sections), labeled `status:todo`. Chunk modes create **nothing** on GitHub — chunks live in `task.md`.
-- Sub-ticket enters P4 (first, or the next after a merge) → that sub-issue to `status:implementing`.
-- P7 → PR opened via `gh pr create` (see phase 7): the PR body carries `Closes #<N>` only when its merge should close an issue — direct, chunk-single, split slices (their sub-issue), and the **final** chunk; non-final chunk PRs reference the issue without closing keywords. One status write follows: direct / final chunk / chunk-single → replace `status:implementing` with `status:in-review`; after a *non-final* chunk's PR the label stays `status:implementing` — In Review is reserved for the final chunk's PR.
+- P1 start → `bash scripts/board.sh status <N> "In Progress"`.
+- P3 split → create sub-issues with the next MA numbers (`gh issue create`; PM-style bodies; acceptance criteria mapped to spec sections), each put on the board at Todo (`bash scripts/board.sh status <n> Todo`). Chunk modes create **nothing** on GitHub — chunks live in `task.md`.
+- Sub-ticket enters P4 (first, or the next after a merge) → that sub-issue to `"In Progress"` on the board.
+- P7 → PR opened via `gh pr create` (see phase 7): the PR body carries `Closes #<N>` only when its merge should close an issue — direct, chunk-single, split slices (their sub-issue), and the **final** chunk; non-final chunk PRs reference the issue without closing keywords. One status write follows: direct / final chunk / chunk-single → `bash scripts/board.sh status <N> "In Review"`; after a *non-final* chunk's PR the board stays at In Progress — In Review is reserved for the final chunk's PR.
 - P8 triage defers a finding → conductor files the follow-up issue via `gh issue create` (PM-style body), records its number in the triage table. "Deferred" without an issue number is not a disposition.
 - P10 after merge → confirm `Closes #N` closed the issue (`gh issue view <N> --json state`); close explicitly only if the closing keyword was missing (chunk mode: after the **final** chunk merges; split: parent closes after the last sub-ticket).
 
@@ -243,7 +243,7 @@ On `/ship MA-XXX`:
 1. Locate `~/.ship/MoneyApp/MA-XXX/state.md`.
 2. If found: read it, announce the recorded phase, mode, active chunk/sub-ticket, and any pending gate or loop. **Chunk and split modes: also re-read the `task.md` chunk ledger** (boundaries, interfaces, disjoint/dependent markers) before continuing — `## Chunks` rows carry status; the ledger carries the meaning. Mid-loop resumes read the latest `findings/p8-cycle-<n>.md`. Load that phase's reference file, continue. Do not redo completed phases or merged chunks.
 3. If not found, check for a parent first: grep `~/.ship/MoneyApp/*/state.md` for `MA-XXX` and check the ticket's issue body/title for a parent reference (`gh issue view`). A hit means this is a sub-ticket — resume the parent's flow at this sub-ticket's recorded phase; never cold-start it.
-4. Only then treat it as new — after one guard: read the ticket's issue first (`gh issue view <N>`). If it is closed, or a merged PR already references it (`gh pr list --search "MA-XXX" --state merged`), report that instead of restarting; a completed ticket has no `state.md` because phase 10 deleted it. Otherwise: create the artifact directory and `state.md`, set `status:implementing`, enter phase 1.
+4. Only then treat it as new — after one guard: read the ticket's issue first (`gh issue view <N>`). If it is closed, or a merged PR already references it (`gh pr list --search "MA-XXX" --state merged`), report that instead of restarting; a completed ticket has no `state.md` because phase 10 deleted it. Otherwise: create the artifact directory and `state.md`, set the board to In Progress, enter phase 1.
 
 ## Red flags — stop and re-read Hard rules
 

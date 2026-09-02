@@ -1,13 +1,12 @@
 ---
 paths:
   - "src/**"
-  - "docs/scopes/**"
   - "__tests__/**"
 ---
 
 # MoneyApp defect checklist
 
-Five classes the 2026-07-29 audit proved recur in this codebase. **@dev checks these while writing and again during the step 6 self-review; @impl-reviewer checks every one against the diff at step 7.** Catching them before a reviewer is dispatched is the point of this file living in `.claude/rules/` rather than in a reviewer's prompt.
+Five classes the 2026-07-29 audit proved recur in this codebase. **The implementer checks these while writing and again in the self-review; the review battery checks every one against the diff.** Catching them before a reviewer is dispatched is the point of this file living in `.claude/rules/` rather than in a reviewer's prompt.
 
 1. **Silent async failure** — every async write path sets an error field the UI renders. No comment-only `catch {}`, no `void handler()` swallowing a rejection (H14/M42). The most repeated defect in this codebase.
 2. **Focus-reload churn** — `useFocusEffect` loaders have a staleness gate, nothing invalidates on blur, one coherent publication per load (M13/M32/L26).
@@ -16,14 +15,14 @@ Five classes the 2026-07-29 audit proved recur in this codebase. **@dev checks t
    - **Never construct an `Intl.NumberFormat`** outside `src/utils/format_amount.ts` (M1).
    - **A ≤1 EGP gap between two aggregation paths is rounding order, not drift** — persisted EGP is 2dp (`roundMoney`), displayed EGP defaults to 0dp. Worked cases in `docs/adr/2026-08-19-dashboard-net-worth-refusal.md`. Confirm by rounding both totals to 2dp before display truncation — rounding order differs by piastres there, a real defect by pounds.
    - **Money colour follows the vocabulary, not the sign.** A magnitude the user owns or owes renders gold (`text-accent`) or neutral (`text-foreground`) — never by sign, never for being a liability. Red/warning are actionable-only (over limit, under 20% headroom, over budget/pace). Polarity in an aggregate is a composed sign (`−` U+2212), not colour. See `docs/adr/2026-08-27-money-colour-vocabulary.md`. Lives here, not in `ui.md`: this file's glob (`src/**`) is the one that reaches the `.ts` resolvers that decide the colour (`theme.ts`, `*.helpers.ts`), not just the `.tsx` screens that render it.
-4. **Index-defeating SQL** — no function-wrapped indexed columns, no `(:p IS NULL OR col = :p)` chains, half-open date ranges (L2/L34). This class asks whether a query *can* use an index. **How many times it runs and over how many rows is step 9's**, `@quality-reviewer` — so a clean bill here is not a clean bill on cost.
+4. **Index-defeating SQL** — no function-wrapped indexed columns, no `(:p IS NULL OR col = :p)` chains, half-open date ranges (L2/L34). This class asks whether a query *can* use an index. **How many times it runs and over how many rows is the quality lens's**, so a clean bill here is not a clean bill on cost.
 5. **Derived state stored as durable state** — no time-relative value stamped into a column that also holds user actions (H1/H2).
 
 Audit IDs resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](../../docs/superpowers/reviews/2026-07-29-full-technical-audit.md).
 
 ## Gates
 
-Not audit-ID defect classes — process rules MA-016's own review found itself reproducing, over specs, task files, and jest invocations rather than over `src/`. That is why this section, and this file's path list, cover `docs/scopes/**` and `__tests__/**` too.
+Not audit-ID defect classes — process rules MA-016's own review found itself reproducing, over specs, tickets, and jest invocations rather than over `src/`. That is why this section, and this file's path list, cover `__tests__/**` too.
 
 - **A gate that cannot fail is not a gate.** Every acceptance command published in a spec or task must be demonstrated to produce a different result at base than at head — a command that passes in both states asserts nothing (the fifth recurrence of this exact defect across two tickets). Rule 1 subsumes rule 2 below, and both are kept: every one of MA-016's five failed gates would have been caught by this rule alone, applied at the point the command was published.
 - **Jest treats a path argument as a regex.** A path that matches nothing is a silent skip at exit 0, not a failure. `test -f` every jest path argument before it is published in a spec or task — a concrete recipe for the general rule above, worth keeping on its own because this exact failure mode (a renamed or moved suite, still cited by its old path) recurs independently of whether anyone thought to demonstrate the gate at base vs head.
