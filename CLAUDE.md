@@ -32,17 +32,17 @@ Work is defined on GitHub and delivered from GitHub. Nothing about a piece of wo
 
 **Defining work is three skills, before any code.** `/epic` turns a goal I state into an epic issue on a milestone, at Todo. `/boundaries <epic>` interviews me from codebase evidence, one question at a time, and locks the epic body: Goal, Building, Not building, Rules, Links, Open questions. `/tickets <parent>` cuts the parent into tasks in the ticket standard: proposes the split for me to choose, drafts the bodies, has a fresh reviewer audit them, and creates them as sub-issues on my approval. Each is standalone, takes an issue number, and reads its resume point from the parent's board Status. Standards, mechanics and the board ids live in the skills.
 
-**The board is the state.** Project #2, Status field: Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Defined means the ticket is in the standard shape. Ready For Development means pullable: every depends-on closed. Row order within a column is priority. `scripts/board.sh` is the one way to write the board. `status:*` labels no longer exist.
+**The board is the state.** Project #2, Status field: Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Defined means the ticket is in the standard shape. Ready For Development means pullable: every depends-on closed. Row order within a column is priority. `scripts/board.sh` is the one way to write the board. `status:*` labels are retired; never write one.
 
 **Hierarchy.** A milestone `MA-<module>-<goal>` groups any number of epics. An epic parents its tasks as sub-issues. A task I choose to break down further is created at Todo and re-enters `/tickets`. A parent closes when its last child closes. The unit that gets a branch, a PR and `Closes #N` is the leaf task.
 
-**Delivering a ticket is `/ship`**, unchanged until the delivery design replaces it. Its gates and hard rules stand: every merge is mine, every destructive repository operation is an explicit request from me.
+**Delivering a ticket is `/ship`**, as it stands until the delivery design replaces it. Its gates and hard rules stand: every merge is mine, every destructive repository operation is an explicit request from me.
 
 **CI parity before pushing to a PR branch**: run the chain in `Commands`. CI is the last line of defence, not the first.
 
 **Emulator verification** runs on tickets whose header line says `Verify emulator`, anything that changes what a screen shows or what the app writes. `/ship`'s implementer runs it at P6 and the review battery at P7; the `emulator-verify` skill carries the mechanics. It is a second net under the same defects: **device QA is unchanged**, on real hardware, and typography, shadows, gesture feel and performance are visible nowhere else.
 
-Gotcha: **device QA does not run in the worktree.** Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds; expo-router resolves zero routes. Check the PR branch out in the primary repo for device QA. Emulator verification *does* run in the worktree, and pays with a real `npm install`; give the worktree its own Metro port, because `adb reverse` is global per device and sharing 8081 silently serves the primary repo's bundle.
+Gotcha: **device QA does not run in the worktree.** A worktree whose `node_modules` is a symlink passes `tsc`, `jest`, and lint but breaks device builds; expo-router resolves zero routes. Check the PR branch out in the primary repo for device QA. Emulator verification *does* run in the worktree once it has a real `node_modules` (`/ship`'s APFS clone, or `npm ci`); give the worktree its own Metro port, because `adb reverse` is global per device and sharing 8081 silently serves the primary repo's bundle.
 
 **A Gradle build is not part of that price by default.** Ask `mqa needs-build`: only a native-surface change rebuilds, most task diffs are JS-only, and the branch under test reaches the device over Metro either way. Run the parity chain *before* building, so P6 and P7 share one APK instead of each making their own. And scope the walk: **if a unit test can assert it, the emulator must not.** All of this is in the `emulator-verify` skill, with the measurement behind it.
 
@@ -114,7 +114,7 @@ src/repositories/     backward-compat re-exports plus shared app settings repo
 src/database/         client.ts · migrations/ · compatibility query/entity stubs
 src/test_helpers/     test-only helpers imported through @/test_helpers
 src/screens/          legacy — one dev-only primitives screen; add nothing here
-src/utils/            responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
+src/utils/            shared helpers: money.ts · format_amount.ts · responsive.ts · *.hook.ts · schemas/
 __tests__/            snake_case tests — policy: logic-only .ts (legacy .tsx render tests exist, slated for cleanup)
 docs/adr/             architecture decision records — one dated file per decision
 docs/scopes/          frozen history — output of the retired /scope workflow, one folder per scope
@@ -140,11 +140,11 @@ Each folder: `index.tsx` (UI, no useState/useSharedValue) · `<name>.hook.ts` (l
 
 Gotcha: **`@react-native-community/datetimepicker` must stay OUT of `app.json` `plugins`, and `expo install --fix` keeps putting it back — and since #195 it no longer crashes when it does.** Listing it buys nothing: with no options passed the plugin is a no-op (`setAndroidColors` and `setAndroidPickerStyles` both return early on `!theme`). The two plugins `--fix` adds alongside it — `expo-image`, `expo-status-bar` — are fine to keep; they require `expo/config-plugins`, a subpath of a direct dependency, which resolves. **Always diff `app.json` after running `expo install --fix` — that is now the only guard.**
 
-Until #195 this failed loudly: `app.plugin.js` requires `@expo/config-plugins` without declaring it, and the lockfile carried six *nested* copies with no top-level entry, so the require threw `Cannot find module '@expo/config-plugins'` and took down `expo config`, `expo prebuild`, the `prebuild-check` CI job and every local dev build. That crash was accidentally the detector. #195 re-flattened the tree — one hoisted `@expo/config-plugins`, zero nested — so the require now resolves and `expo config` exits 0 with the plugin listed (verified on `main` after merge). The old text blamed SDK 57 for nesting; it was this lockfile's install-history sediment, not the SDK.
+Before #195 the plugin's undeclared `@expo/config-plugins` require crashed `expo config` and `expo prebuild`, which was accidentally the detector; #195 re-flattened the lockfile to one hoisted copy, so it now resolves and nothing warns.
 
 ## Conventions
 
-- **Code comments: one line, and only when needed** — a comment states a constraint the code can't, in a single line. No multi-line comment blocks; anything longer belongs in the spec, an ADR, or a doc. A separate session sweeps existing comments down to this rule.
+- **Code comments: one line, and only when needed** — a comment states a constraint the code can't, in a single line. No multi-line comment blocks; anything longer belongs in an ADR or a doc. The `no-comments` skill sweeps a scope back down to this rule.
 - **HeroUI Native first (Team Law 7):** use a HeroUI primitive wherever one exists — never hand-roll or pull a third-party equivalent. A custom component a primitive could cover is a critical trigger. Mechanics, catalog, and the wrapper inventory: the `heroui-native` skill.
 - **null vs undefined:** `null` = DB-mapped nullable columns only. Absent values elsewhere = `undefined`.
 - **Enums:** string enums in `constants/enums.ts` — regular `enum`, not `const enum` (Babel incompatible). Values match SQLite CHECK strings. Validate with `z.nativeEnum()`.
