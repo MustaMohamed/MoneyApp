@@ -1,6 +1,6 @@
 # Ticket standard
 
-Every task issue has this body. The reviewer rejects a draft that skips a heading or leaves Acceptance empty. No file paths, no code, no technical design; that is planning's job at delivery.
+Every task issue has this body. `/issue-review` rejects a body that skips a heading or leaves Acceptance empty. No file paths, no code, no technical design; that is planning's job at delivery.
 
 ```markdown
 Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none
@@ -31,7 +31,7 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 | Part of | the parent issue number |
 | Depends on | `MA-nnn (#N)` list, or `nothing`; real dependencies only |
 | Verify | `emulator` when the task changes what a screen shows or what the app writes; else `none` |
-| Flags | any of `data-loss migration`, `money path`, `native change`, `user copy`; else `none`. These are CLAUDE.md's critical triggers, written where the merge gate reads them |
+| Flags | any of `data-loss migration`, `money path`, `native change`, `user copy`, `secure store`; else `none`. These are CLAUDE.md's critical triggers, written where the merge gate reads them |
 
 Title `MA-nnn — <title>`, the number from `bash scripts/board.sh next-ma`.
 

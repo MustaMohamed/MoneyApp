@@ -14,7 +14,7 @@
 
 - One outcome per task. Two outcomes are two tasks.
 - A task is one PR a reviewer reads in one sitting. A bigger one is cut again here, or, the user's choice at stop 1, created at Todo for its own `/tickets` run later.
-- A chain's first link stands alone. A chain whose first link nobody can use is a layer cut and the reviewer rejects it.
+- A chain's first link stands alone. A chain whose first link nobody can use is a layer cut and `/issue-review` rejects it.
 - Preludes are the one allowed non-user-visible task: a migration or data layer a later task needs, isolated because it carries sign-off or data-loss risk. A prelude names the task that consumes it. MA-020 is one.
 
 ## Order

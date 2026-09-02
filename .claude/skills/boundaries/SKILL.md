@@ -33,4 +33,4 @@ Phase 2 of the define workflow. Interview the user from codebase evidence until 
 
 ## Reply after the lock
 
-The issue URL, the number of Rules, and `Next: /tickets <n>`.
+The issue URL, the number of Rules, and `Next: /issue-review <n>`, then `/tickets <n>`.

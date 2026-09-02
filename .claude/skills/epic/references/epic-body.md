@@ -1,6 +1,6 @@
 # Epic body standard
 
-The body of an epic issue. `/epic` writes Goal and Building only, with no lock line. `/boundaries` rewrites all six sections and adds the lock line. After the lock the body is never edited: a later correction is a comment on the epic plus a Rules edit on the owning ticket. If a decision is not in this body, it was not decided.
+The body of an epic issue. `/epic` writes Goal and Building only, with no lock line. `/boundaries` rewrites all six sections and adds the lock line. After the lock only `/issue-review` edits the body, and only until `/tickets` runs; once tickets exist a correction is a comment on the epic plus a Rules edit on the owning ticket. If a decision is not in this body, it was not decided.
 
 ```markdown
 Scope locked <YYYY-MM-DD>
@@ -24,4 +24,4 @@ One paragraph. What this feature is and why now.
 None at lock.
 ```
 
-Title `Epic: <feature name>`. Labels `epic` and `module:<x>` (none for a cross-module feature). Milestone: the one `/epic` chose. Board: Todo from `/epic`, Defined from `/boundaries`, Ready For Development from `/tickets`.
+Title `Epic: <feature name>`. Labels `epic` and `module:<x>` (none for a cross-module feature). Milestone: the one `/epic` chose. Board: Todo from `/epic`, Defined from `/boundaries`, Ready For Development from `/tickets`, Done from `bash scripts/board.sh promote` when its last child closes as completed.
