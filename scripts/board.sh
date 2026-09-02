@@ -28,6 +28,40 @@ item_id() {
     --jq ".items[] | select(.content.number == $1) | .id"
 }
 
+# Children at Defined whose Depends on are all closed -> Ready For Development; a parent whose children are all closed -> closed, Done, then the same one level up.
+promote() {
+  parent=$1
+  total=0
+  open=0
+  while IFS=$'\t' read -r num state; do
+    [ -n "$num" ] || continue
+    total=$((total + 1))
+    [ "$state" = "open" ] || continue
+    open=$((open + 1))
+    [ "$(bash "$0" get "$num")" = "Defined" ] || continue
+    deps=$(gh api "repos/$REPO/issues/$num" --jq .body | head -1 | grep -o 'Depends on .*' | sed 's/ · Verify.*//' || true)
+    if [ -z "$deps" ]; then
+      echo "#$num: no Depends on line, skipped" >&2
+      continue
+    fi
+    blocked=0
+    for dep in $(printf '%s\n' "$deps" | grep -oE '#[0-9]+' | tr -d '#' || true); do
+      [ "$(gh api "repos/$REPO/issues/$dep" --jq .state)" = "closed" ] || blocked=1
+    done
+    if [ "$blocked" -eq 0 ]; then
+      bash "$0" status "$num" "Ready For Development"
+    fi
+  done < <(gh api "repos/$REPO/issues/$parent/sub_issues" --paginate --jq '.[] | "\(.number)\t\(.state)"')
+  if [ "$total" -gt 0 ] && [ "$open" -eq 0 ] && [ "$(gh api "repos/$REPO/issues/$parent" --jq .state)" = "open" ]; then
+    gh issue close "$parent" --repo "$REPO" --comment "All sub-issues closed." >/dev/null
+    bash "$0" status "$parent" Done
+    gp=$(gh api "repos/$REPO/issues/$parent/parent" --jq .number 2>/dev/null || true)
+    if [ -n "$gp" ]; then
+      promote "$gp"
+    fi
+  fi
+}
+
 usage() {
   cat >&2 <<'EOF'
 usage: bash scripts/board.sh <command> ...
@@ -35,6 +69,7 @@ usage: bash scripts/board.sh <command> ...
   status <issue> <Status>      set the Status field; Status is the option name, quoted if it has spaces
   get <issue>                  print the issue's current Status name
   link <parent> <child>        make <child> a sub-issue of <parent>
+  promote <parent>             Defined children with every Depends on closed -> Ready For Development; all children closed -> parent closed and Done
   next-ma                      print the next MA-nnn (highest in any issue title, plus one)
 EOF
   exit 2
@@ -73,6 +108,10 @@ case "$cmd" in
     child_id=$(gh api "repos/$REPO/issues/$2" --jq .id)
     gh api -X POST "repos/$REPO/issues/$1/sub_issues" -F sub_issue_id="$child_id" >/dev/null
     echo "#$2 is a sub-issue of #$1"
+    ;;
+  promote)
+    [ $# -eq 1 ] || usage
+    promote "$1"
     ;;
   next-ma)
     [ $# -eq 0 ] || usage

@@ -2,7 +2,7 @@
 
 React Native (Expo) personal finance app — local-only, no bank connections.
 
-Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `emulator-verify` (drive the app on the emulator yourself), `epic` · `boundaries` · `tickets` (the define workflow, see *Workflow*), `ship` (ticket delivery, see *Workflow*), `moneyapp-expert-panel` (inline personas), `unslop` (the output contract — mandatory for all composed output; see *Answering me*).
+Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `emulator-verify` (drive the app on the emulator yourself), `epic` · `boundaries` · `tickets` · `issue-review` (the define workflow, see *Workflow*), `ship` (ticket delivery, see *Workflow*), `moneyapp-expert-panel` (inline personas), `unslop` (the output contract — mandatory for all composed output; see *Answering me*).
 
 Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](docs/superpowers/reviews/2026-07-29-full-technical-audit.md); remediation is tracked in [docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md](docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md).
 
@@ -30,7 +30,7 @@ Returns 3 today; it must not grow.
 
 Work is defined on GitHub and delivered from GitHub. Nothing about a piece of work lives on disk.
 
-**Defining work is three skills, before any code.** `/epic` turns a goal I state into an epic issue on a milestone, at Todo. `/boundaries <epic>` interviews me from codebase evidence, one question at a time, and locks the epic body: Goal, Building, Not building, Rules, Links, Open questions. `/tickets <parent>` cuts the parent into tasks in the ticket standard: proposes the split for me to choose, drafts the bodies, has a fresh reviewer audit them, and creates them as sub-issues on my approval. Each is standalone, takes an issue number, and reads its resume point from the parent's board Status. Standards, mechanics and the board ids live in the skills.
+**Defining work is four skills, before any code.** `/epic` turns a goal I state into an epic issue on a milestone, at Todo. `/boundaries <epic>` interviews me from codebase evidence, one question at a time, and locks the epic body: Goal, Building, Not building, Rules, Links, Open questions. `/tickets <parent>` cuts the parent into tasks in the ticket standard: proposes the split for me to choose, drafts the bodies, and creates them as sub-issues on my approval. `/issue-review <n>` runs after each lock and whenever I ask: fresh reviewers check the issue, or its children when it has any, against its Goal, its parent and the code, and edit the bodies on my approval. Each is standalone, takes an issue number, and reads its resume point from the board Status. Standards, mechanics and the board ids live in the skills.
 
 **The board is the state.** Project #2, Status field: Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Defined means the ticket is in the standard shape. Ready For Development means pullable: every depends-on closed. Row order within a column is priority. `scripts/board.sh` is the one way to write the board. `status:*` labels are retired; never write one.
 
@@ -48,7 +48,7 @@ Gotcha: **device QA does not run in the worktree.** A worktree whose `node_modul
 
 ## Team
 
-One dispatchable agent, `@layla` (`.claude/agents/layla.md`), for a money ruling that must be written into an issue. Five inline personas through the `moneyapp-expert-panel` skill, `[layla]` `[marcus]` `[sarah]` `[tariq]` `[dev]`: advisory, no files, no dispatch. `/ship` composes its own planner, implementer and review lenses; the define skills use read-only scouts and one fresh reviewer.
+One dispatchable agent, `@layla` (`.claude/agents/layla.md`), for a money ruling that must be written into an issue. Five inline personas through the `moneyapp-expert-panel` skill, `[layla]` `[marcus]` `[sarah]` `[tariq]` `[dev]`: advisory, no files, no dispatch. `/ship` composes its own planner, implementer and review lenses; the define skills use read-only scouts, and `/issue-review` dispatches fresh reviewers, one per group of tickets on a surface.
 
 Gotcha: **editing an agent definition is snapshotted at session start; creating a new one is not.** A *new* file in `.claude/agents/` registers and becomes dispatchable immediately, but *editing* an existing one does not affect subagents dispatched later in that same session. Restart the session before testing an agent change. Skills and path-scoped rules in `.claude/rules/` have neither problem; they load live, including inside subagents.
 
@@ -94,7 +94,7 @@ Gotcha: even pinned, `expo-doctor` validates against Expo's **live** requirement
 **After I merge a PR**, without being asked:
 
 1. `git checkout main` and pull.
-2. Confirm the merge closed the ticket: `Closes #N` does it, and closed **is** the done signal. `bash scripts/board.sh status <N> Done` in case the board automation is off.
+2. Confirm the merge closed the ticket: `Closes #N` does it, and closed **is** the done signal. `bash scripts/board.sh status <N> Done` in case the board automation is off. Then `bash scripts/board.sh promote <parent>`: it moves the children the close unblocked to Ready For Development, and closes a parent whose children are all closed, at every level up.
 3. Delete the merged local branch and `git remote prune origin`.
 4. Remove the ticket's worktree if it had one, and `git worktree prune`.
 5. **`npm ci` if the merge moved `package-lock.json`**, otherwise `node_modules` silently belongs to neither branch, and every later verification runs against a tree that matches nothing.

@@ -1,6 +1,6 @@
 # Ticket standard
 
-Every task issue has this body. The reviewer rejects a draft that skips a heading or leaves Acceptance empty. No file paths, no code, no technical design; that is planning's job at delivery.
+Every task issue has this body. `/issue-review` rejects a body that skips a heading or leaves Acceptance empty. No file paths, no code, no technical design; that is planning's job at delivery.
 
 ```markdown
 Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none
