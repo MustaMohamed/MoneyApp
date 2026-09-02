@@ -2,7 +2,7 @@
 
 React Native (Expo) personal finance app — local-only, no bank connections.
 
-Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `emulator-verify` (drive the app on the emulator yourself), `moneyapp-expert-panel` (inline personas), `unslop` (the output contract — mandatory for all composed output; see *Answering me*).
+Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `emulator-verify` (drive the app on the emulator yourself), `epic` · `boundaries` · `tickets` (the define workflow, see *Workflow*), `ship` (ticket delivery, see *Workflow*), `moneyapp-expert-panel` (inline personas), `unslop` (the output contract — mandatory for all composed output; see *Answering me*).
 
 Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](docs/superpowers/reviews/2026-07-29-full-technical-audit.md); remediation is tracked in [docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md](docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md).
 
@@ -16,92 +16,54 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 - Negative results are one line. No-finding sections get one line, not a heading.
 - Cut: restating the request, narrating tool calls, re-explaining, process commentary.
 
-MoneyApp specifics for the contract: `primitive`, `surface`, and `harness` are domain terms here, exempt from the jargon rule where they name the real thing. Method-certification baseline: `grep -roE "rather than assumed|rather than inferred|not inferred|not assumed" docs/scopes/ | wc -l` returns 36 today; it must not grow.
+MoneyApp specifics for the contract: `primitive`, `surface`, and `harness` are domain terms here, exempt from the jargon rule where they name the real thing. Method-certification baseline, over the live tree (`docs/scopes/` and `docs/superpowers/` are frozen history; this file and the `unslop` skill quote the banned phrases to ban them):
+
+```bash
+git grep -oE "rather than assumed|rather than inferred|not inferred|not assumed" -- . ':!docs/scopes' ':!docs/superpowers' ':!CLAUDE.md' ':!.claude/skills/unslop' | wc -l
+```
+
+Returns 3 today; it must not grow.
 
 ## Workflow
 
-**Always branch before any work. Never commit to `main`.** (`feat/x`, `refactor/x`, `fix/x`, `perf/x`; task branches add the ID — `feat/MA-042-slug`)
+**Always branch before any work. Never commit to `main`.** (`feat/x`, `refactor/x`, `fix/x`, `perf/x`; task branches add the ID: `feat/MA-042-slug`)
 
-**Autonomous team mode.** `/scope` runs a scope end to end. The user is consulted at exactly three gates plus the **critical triggers** below; between gate 2 and gate 3 the team runs without check-ins. Sarah approves plans on the user's behalf. **The merge and every destructive repository operation always require an explicit user request** — pushing a task branch and opening its PR are part of step 7 and are authorised by this workflow.
+Work is defined on GitHub and delivered from GitHub. Nothing about a piece of work lives on disk.
 
-**CI parity before pushing to a PR branch** — run the chain in `Commands`. CI is the last line of defence, not the first.
+**Defining work is three skills, before any code.** `/epic` turns a goal I state into an epic issue on a milestone, at Todo. `/boundaries <epic>` interviews me from codebase evidence, one question at a time, and locks the epic body: Goal, Building, Not building, Rules, Links, Open questions. `/tickets <parent>` cuts the parent into tasks in the ticket standard: proposes the split for me to choose, drafts the bodies, has a fresh reviewer audit them, and creates them as sub-issues on my approval. Each is standalone, takes an issue number, and reads its resume point from the parent's board Status. Standards, mechanics and the board ids live in the skills; the design is `docs/superpowers/specs/2026-09-02-define-workflow-design.md`.
 
-### The ten steps
+**The board is the state.** Project #2, Status field: Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Defined means the ticket is in the standard shape. Ready For Development means pullable: every depends-on closed. Row order within a column is priority. `scripts/board.sh` is the one way to write the board. `status:*` labels no longer exist.
 
-Everything for a scope lives in `docs/scopes/MA-<slug>/` — see [TEMPLATES.md](docs/scopes/TEMPLATES.md) for the file contracts and the ID scheme.
+**Hierarchy.** A milestone `MA-<module>-<goal>` groups any number of epics. An epic parents its tasks as sub-issues. A task sized L is a parent too and re-enters `/tickets`. A parent closes when its last child closes. The unit that gets a branch, a PR and `Closes #N` is the leaf task.
 
-| # | Step | Owner | Produces |
-|---|---|---|---|
-| 1 | Brainstorm | main thread + `[marcus]` `[layla]`, `@marcus` mockup | `scope.md`, `assets/` |
-| 2 | Spec and task breakdown | `@tariq` | `spec.md`, `tasks.md`, `tasks/MA-nnn.md` |
-| 3 | Task review and ordering | `@task-reviewer` | corrected, ordered `tasks.md` |
-| 4 | Plan | `@tariq` | `## Plan` in the task file |
-| 5 | Plan review | `@plan-reviewer` | `## Plan review` |
-| 6 | Implement, self-review, verify on emulator, commit | `@dev` | commits in an isolated worktree |
-| 7 | Local review + independent emulator run, then push and open PR with `Closes #N` | `@impl-reviewer`, then `@sarah` | `## Implementation review` |
-| 8 | PR review | `@pr-reviewer` | `## PR review` |
-| 9 | Quality and efficiency review | `@quality-reviewer` | `## Quality review`, `debt:*` issues |
-| 10 | Device QA and merge, then sync and clean | the user merges · `@sarah` cleans | merged PR, issue closed, local tree clean |
+**Delivering a ticket is `/ship`**, unchanged until the delivery design replaces it. Its gates and hard rules stand: every merge is mine, every destructive repository operation is an explicit request from me.
 
-Steps 4–9 run per task, in `tasks.md` order, one task at a time.
+**CI parity before pushing to a PR branch**: run the chain in `Commands`. CI is the last line of defence, not the first.
 
-🛑 **Gate 1** after step 1 — the user locks `scope.md`, mockup published as an artifact.
-🛑 **Gate 2** after step 3 — the user sees the ordered task list before any code exists.
-🛑 **Gate 3** after step 9 — the user walks device QA and merges, seeing the deferred debt alongside.
+**Emulator verification** runs on tickets whose header line says `Verify emulator`, anything that changes what a screen shows or what the app writes. `/ship`'s implementer runs it at P6 and the review battery at P7; the `emulator-verify` skill carries the mechanics. It is a second net under the same defects: **device QA is unchanged**, on real hardware, and typography, shadows, gesture feel and performance are visible nowhere else.
 
-**Step 10 does not end at the merge.** The moment I say a PR is merged, Sarah does all of this without being asked — a stale tree is how the next task gets planned against the wrong `main`:
+Gotcha: **device QA does not run in the worktree.** Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds; expo-router resolves zero routes. Check the PR branch out in the primary repo for device QA. Emulator verification *does* run in the worktree, and pays with a real `npm install`; give the worktree its own Metro port, because `adb reverse` is global per device and sharing 8081 silently serves the primary repo's bundle.
 
-1. `git checkout main` and pull.
-2. Confirm the merge closed the task's issue — `Closes #N` does it, and closed **is** the done signal. Leave the `status:*` label alone: `/status` treats a task issue with no label as a half-applied transition, and the label is inert once the issue is closed. No status is written to the repo; beyond the identifiers, the frontmatter carries only `branch:` and `pr:`.
-3. Delete the merged local branch and `git remote prune origin`.
-4. Remove the task's worktree if it had one, and `git worktree prune`.
-5. **`npm ci` if the merge moved `package-lock.json`** — otherwise `node_modules` silently belongs to neither branch, and every later verification runs against a tree that matches nothing.
-
-Gotcha: **squash-merged branches never appear in `git branch --merged`**, because the squash commit shares no history with them. Deleting on that basis leaves every task branch behind and forces `-D` later, on faith. Check `gh pr list --head <branch> --state all` and delete only what reads `MERGED`.
-
-**Status lives on the task's GitHub issue, not on disk.** Every task has one issue; the task file's frontmatter carries its number as `issue:`, and `tasks.md` links it. Sarah sets the `status:*` label before dispatching the next step — that write is what makes an interrupted scope resumable, and it costs no commit and no PR. `status:todo` · `status:planning` · `status:ready` · `status:implementing` · `status:in-review` · `status:quality-review` · `status:awaiting-human` · `status:blocked`; **`done` is the issue being closed**, which the merge does by itself via `Closes #N` in the PR body. Exactly one `status:*` label at a time — replace, never add. A `status:blocked` task halts the scope; never skip past it, the order encodes dependencies. Each review gate allows three rounds; the fourth blocks the task and reports.
-
-**Step 9 reviews how well the change is made**, not whether it works — duplication, query and render cost, dead surface, layer altitude. Step 7 forbids unplanned improvements ("an unplanned change is a finding even when it is an improvement"), which is right and leaves nobody to pick them up; step 9 is where that debt is paid back. Its findings are out of scope for the task that produced them by construction, so they are **filed as `debt:quality` / `debt:perf` issues, not requested as changes**. It blocks on exactly one thing: a *measured* regression this diff introduces.
-
-Gotcha: **a step-9 fix lands on a PR step 8 already approved.** That is the price of reviewing quality after the PR gate, and it is why the blocking entrance is that narrow. @pr-reviewer is not re-run — @sarah confirms CI, and step 8's round budget stays for step-8 disagreements.
-
-Gotcha: **status is now a network read.** With no GitHub reachable, a scope cannot resume — the task file no longer answers "where was I". That is the price of killing the drift that a status column kept producing, and it is the right trade because the state that matters is on GitHub anyway (branch, PR, merge). Never re-add a status field to the frontmatter or a Status column to `tasks.md` as a "cache"; two sources of truth is the thing being deleted here.
-
-**Emulator verification** runs on tasks whose frontmatter says `verify: emulator` — anything changing what a screen shows or what the app writes. `@dev` watches it run at step 6, `@impl-reviewer` drives it independently at step 7, and the `emulator-verify` skill carries the mechanics. It is a second net under the same defects: **gate 3 is unchanged**, on real hardware, and typography, shadows, gesture feel and performance are visible nowhere else.
-
-Gotcha: **device QA does not run in the worktree.** Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes. Check the PR branch out in the primary repo for step 10. Emulator verification *does* run there, and pays with a real `npm install`; give the worktree its own Metro port, because `adb reverse` is global per device and sharing 8081 silently serves the primary repo's bundle.
-
-**A Gradle build is not part of that price by default.** Ask `mqa needs-build` — only a native-surface change rebuilds, most task diffs are JS-only, and the branch under test reaches the device over Metro either way. Run the parity chain *before* building, so steps 6 and 7 share one APK instead of each making their own. And scope the walk: **if a unit test can assert it, the emulator must not.** All of this is in the `emulator-verify` skill, with the measurement behind it.
+**A Gradle build is not part of that price by default.** Ask `mqa needs-build`: only a native-surface change rebuilds, most task diffs are JS-only, and the branch under test reaches the device over Metro either way. Run the parity chain *before* building, so P6 and P7 share one APK instead of each making their own. And scope the walk: **if a unit test can assert it, the emulator must not.** All of this is in the `emulator-verify` skill, with the measurement behind it.
 
 ## Team
 
-Five personas plus five reviewers. Dispatch `@name` (subagent, `.claude/agents/`) for file-producing work; use `[name]` inline (`moneyapp-expert-panel` skill) for advisory consults. Detailed step mechanics live in Sarah's agent file.
+One dispatchable agent, `@layla` (`.claude/agents/layla.md`), for a money ruling that must be written into an issue. Five inline personas through the `moneyapp-expert-panel` skill, `[layla]` `[marcus]` `[sarah]` `[tariq]` `[dev]`: advisory, no files, no dispatch. `/ship` composes its own planner, implementer and review lenses; the define skills use read-only scouts and one fresh reviewer.
 
-- **sarah** — orchestration lead: sequences steps, approves plans, owns the status label on each task's issue and escalation
-- **marcus** — product designer: flows, screens, design system
-- **layla** — financial domain: formulas, rules, categories
-- **tariq** — technical lead: architecture, spec, task breakdown, plans
-- **dev** — implements per approved plan only; no code without a spec and a reviewer-approved plan
-- **task-reviewer · plan-reviewer · impl-reviewer · pr-reviewer · quality-reviewer** — each reviews only artifacts it did not author
+Gotcha: **editing an agent definition is snapshotted at session start; creating a new one is not.** A *new* file in `.claude/agents/` registers and becomes dispatchable immediately, but *editing* an existing one does not affect subagents dispatched later in that same session. Restart the session before testing an agent change. Skills and path-scoped rules in `.claude/rules/` have neither problem; they load live, including inside subagents.
 
-No agent reviews its own output; that is the point of the five. `@pr-reviewer` is deliberately restricted to what step 7 could not see — real-runner CI, drift against a moved `main`, the squashed commit, diff membership, step 7 escapes. Quality and efficiency are not on that list either; they are `@quality-reviewer`'s at step 9. If either stops finding anything outside its own list, collapse it into step 7 rather than keeping a ceremonial gate.
+### Critical triggers (wake me; everywhere else proceed)
 
-Domain sovereignty: product/UX → marcus · financial logic → layla · architecture → tariq · implementation → dev · review verdicts → the reviewer for that gate · sequencing → sarah. Vague request → push back and disambiguate before building. Routine disagreements: the responsible lead decides and records the rationale.
-
-Gotcha: **editing an agent definition is snapshotted at session start; creating a new one is not.** A *new* file in `.claude/agents/` registers and becomes dispatchable immediately, but *editing* an existing one does not affect subagents dispatched later in that same session — they still run the old definition, silently and convincingly. The dangerous combination is doing both at once: the new agent is live while the orchestrator that is supposed to dispatch it is not. Restart the session before testing any agent change. Path-scoped rules in `.claude/rules/` have neither problem; they load live, including inside subagents.
-
-### Critical triggers (wake the user; everywhere else proceed)
-
-1. Product/domain disagreement Marcus and Layla cannot resolve
-2. Cross-scope impact — a decision binds a future scope or task non-obviously
-3. High blast radius — feature-flag flip, V1 deletion, migration with data-loss risk
+1. Product/domain disagreement `[marcus]` and `[layla]` cannot resolve
+2. Cross-cutting impact: a decision binds later work non-obviously
+3. High blast radius: feature-flag flip, V1 deletion, migration with data-loss risk
 4. New dependency, native code change, anything outside the established stack
 5. User-facing copy with voice/branding weight (field labels and error messages stay team-decided)
-6. Scope balloon vs the original brief
+6. Scope balloon vs the locked epic
 7. Auth / secure store / data-loss surface
-8. Manual device QA — always
+8. Manual device QA: always, on real hardware, before any merge of a UI change
 
-Not critical (team decides): field-level UX, naming, file structure, test approach, code style, task order within a scope, hex→token swaps, a11y polish, minor dep bumps.
+Not critical (decide it and move): field-level UX, naming, file structure, test approach, code style, order of work within an epic, hex→token swaps, a11y polish, minor dep bumps.
 
 ## Tech Stack
 
@@ -129,6 +91,16 @@ npm run format:check \
 
 Gotcha: even pinned, `expo-doctor` validates against Expo's **live** requirement table, so it can go red with zero commits when Expo moves an SDK requirement. If it fails on a version you didn't touch, that's why — fix with `npx expo install --check` or `expo.install.exclude`. Keep the pinned tool version here and in `.github/workflows/pr-checks.yml` in sync; bump it deliberately.
 
+**After I merge a PR**, without being asked:
+
+1. `git checkout main` and pull.
+2. Confirm the merge closed the ticket: `Closes #N` does it, and closed **is** the done signal. `bash scripts/board.sh status <N> Done` in case the board automation is off.
+3. Delete the merged local branch and `git remote prune origin`.
+4. Remove the ticket's worktree if it had one, and `git worktree prune`.
+5. **`npm ci` if the merge moved `package-lock.json`**, otherwise `node_modules` silently belongs to neither branch, and every later verification runs against a tree that matches nothing.
+
+Gotcha: **squash-merged branches never appear in `git branch --merged`**, because the squash commit shares no history with them. Deleting on that basis leaves every task branch behind and forces `-D` later, on faith. Check `gh pr list --head <branch> --state all` and delete only what reads `MERGED`.
+
 ## Project Structure
 
 ```
@@ -145,7 +117,7 @@ src/screens/          legacy — one dev-only primitives screen; add nothing her
 src/utils/            responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
 __tests__/            snake_case tests — policy: logic-only .ts (legacy .tsx render tests exist, slated for cleanup)
 docs/adr/             architecture decision records — one dated file per decision
-docs/scopes/          workflow state: one folder per scope (see TEMPLATES.md)
+docs/scopes/          frozen history — output of the retired /scope workflow, one folder per scope
 docs/superpowers/     frozen history — specs, plans, reviews, QA from the pre-/scope flow
 ```
 
