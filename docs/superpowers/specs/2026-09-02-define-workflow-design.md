@@ -246,6 +246,10 @@ Edit:
 | `.claude/commands/qa.md:10`, `.claude/skills/device-qa/SKILL.md:16` | QA verdicts are a comment on the ticket, not a task file |
 | `.claude/rules/review.md:4,26` | drop the `docs/scopes/**` path glob; reword the task-file sentence |
 | `.claude/skills/ship/references/phase-3-mode-pick.md:45` | next MA number from GitHub, not `docs/scopes` |
+| `.claude/skills/ship/SKILL.md` §GitHub issue touchpoints and Resume, `references/phase-7-review-battery.md` step 1, `references/phase-10-merge.md` steps 2 and 6 | every `status:*` label write becomes a board Status write through `scripts/board.sh`: P1 start In Progress, split sub-issues Todo, PR opened In Review, merged Done. Without this, deleting the labels breaks the next `/ship` run at P1 |
+| `.claude/skills/ship/references/phase-6-implement.md:7`, `SKILL.md` rationalization table | the `/scope` persona sentence names `layla` as the one remaining agent, a consult, not an implementer |
+
+Board writes go through one script, `scripts/board.sh`, which carries the project and field ids from §3: `add <issue>`, `status <issue> <Status>`, `get <issue>`, `link <parent> <child>`, `next-ma`. The three skills and `/ship` call it; no skill embeds an option id.
 
 Keep: `docs/scopes/MA-onboarding-redesign/` as frozen history; `.claude/commands/ci.md`, `qa.md`; `scripts/validate-agent-assets.js` unchanged, it works with one agent file.
 
@@ -264,7 +268,7 @@ This is the first real run of `/tickets` and its acceptance test.
 ## 11. Out of scope
 
 - Delivery per ticket: planning, implementation, review, merge. `/ship` stays as is for that until its own redesign, which starts after these three skills have run once.
-- Adapting `/ship` to read the epic and ticket instead of asking.
+- Adapting `/ship` to read the epic and ticket instead of asking. Only its status writes move to the board (§9), nothing else in it changes.
 - Any change to the CI parity chain, the emulator skills, or `gh-stack`.
 - Deleting design and dev skills (`animate*`, `apple-design`, `pick-ui-library`, `prototype`, `write-swift`, `ask-sonner`, `emil-design-eng`); not workflow, not touched.
 
