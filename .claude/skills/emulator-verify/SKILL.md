@@ -83,8 +83,8 @@ focused field. Re-run `find` after every interaction rather than reusing an offs
 
 ## Running from a task worktree
 
-The ten-step workflow runs this twice on any task whose frontmatter says `verify: emulator`
-— `@dev` at step 6 as a self-check before committing, `@impl-reviewer` at step 7
+`/ship` runs this twice on any ticket whose header line says `Verify emulator`: the
+implementer at P6 as a self-check before committing, the review battery at P7
 independently, and the reviewer's run is the one that counts. Both happen in the task
 worktree, which needs three things the worktree does not have by default.
 
@@ -141,9 +141,9 @@ worktree, which needs three things the worktree does not have by default.
 **Run the CI parity chain first, then build once.** The chain ends in
 `expo prebuild --no-install`, which regenerates `android/` and deletes the built
 APK with it. The old advice here was to verify *before* the chain — which
-guaranteed that step 7 rebuilt everything step 6 had just built. Invert it:
-parity chain → `needs-build` → build if required → install once, and steps 6 and
-7 share that APK. The APK survives, because nothing after it regenerates
+guaranteed that P7 rebuilt everything P6 had just built. Invert it:
+parity chain → `needs-build` → build if required → install once, and P6 and
+P7 share that APK. The APK survives, because nothing after it regenerates
 `android/`.
 
 Cost, once ordered this way, is at most **one** Gradle build per task rather than

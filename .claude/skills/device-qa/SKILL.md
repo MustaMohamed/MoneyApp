@@ -13,7 +13,7 @@ Device QA is gate 3, the last user-facing gate before a merge: **only the user c
 
 1. **Scope it:** list the screens the change touches (from the diff), plus the *always-run* checks below.
 2. **Assemble the checklist:** relevant area matrices + always-run checks. Present it to the user as a numbered list they can walk top-to-bottom.
-3. **Record the verdict:** results land under `## Device QA` in the task file, `docs/scopes/MA-<scope>/tasks/MA-nnn.md` — per item: pass / fail (with what was seen) / skipped. A fail routes back to step 6 with the failing item as the repro. (Pre-`/scope` passes live in `docs/superpowers/qa/`; that folder is frozen history.)
+3. **Record the verdict:** results land as a `## Device QA` comment on the ticket's issue (`gh issue comment <n> --body-file -`), per item: pass / fail (with what was seen) / skipped. A fail routes back to the implementer with the failing item as the repro. (Older passes live in `docs/superpowers/qa/` and `docs/scopes/`; both are frozen history.)
 
 ## Always-run checks (every QA pass, ~2 min)
 
