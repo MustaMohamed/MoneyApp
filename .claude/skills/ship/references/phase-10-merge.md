@@ -24,7 +24,7 @@ Then wait. **The human merges — never the conductor**, regardless of how green
 ## After the merge (verify, then clean — artifacts deleted LAST, nothing written after)
 
 1. Confirm the PR is merged: `gh pr view <pr-url-from-state.md> --json state,mergedAt`. **Always pass the URL** — with no argument, `gh` resolves from the cwd's repo and current branch, which from the primary checkout is a different branch's PR (or none at all).
-2. GitHub: confirm the merge closed the issue — the PR's `Closes #N` does it, and closed **is** the done signal (`gh issue view <N> --json state`; close explicitly only if the closing keyword was missing). Then `bash scripts/board.sh status <N> Done`, in case the project's close automation is off. Sub-ticket → its sub-issue; last sub-ticket, final chunk, or direct → the ticket's issue, and the parent issue if applicable.
+2. GitHub: confirm the merge closed the issue — the PR's `Closes #N` does it, and closed **is** the done signal (`gh issue view <N> --json state`; close explicitly only if the closing keyword was missing). Then `bash scripts/board.sh status <N> Done`, in case the project's close automation is off, and `bash scripts/board.sh promote <parent>`, which moves what the close unblocked to Ready For Development and closes the parent when its last child closed as completed. Sub-ticket → its sub-issue; last sub-ticket, final chunk, or direct → the ticket's issue.
 3. Final `state.md` entry (`P10: merged <sha>, cleaned`) — written now, **before** any deletion.
 4. Teardown, in order (commands in SKILL.md → Worktrees): review worktree, implementation worktree(s), local branch(es), `git worktree prune`.
 5. Artifacts, the terminal step: direct, final chunk, or parent-closing → delete `~/.ship/MoneyApp/MA-XXX/`; mid-split sub-ticket → keep the parent dir. Nothing writes to the directory after this; the durable record is the PR(s), the issue, and any committed ADRs.
@@ -36,7 +36,7 @@ Then wait. **The human merges — never the conductor**, regardless of how green
 - [ ] CI was read (`gh pr checks <url>`) before the merge summary
 - [ ] Post-re-check commits disclosed (or none existed)
 - [ ] Accepted trade-offs + adjudications written into the PR description
-- [ ] Issue closed (sub/parent/final chunk as applicable) — verified, not assumed
+- [ ] Issue closed (sub/parent/final chunk as applicable) — verified, not assumed; `board.sh promote <parent>` run
 - [ ] Final `state.md` entry written before teardown
 - [ ] Review + implementation worktrees removed, `worktree prune` run
 - [ ] Local branch(es) deleted

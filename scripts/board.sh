@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The one writer to Project #2 "MoneyApp". Field and option ids live here only.
+# The one writer to Project #2 "MoneyApp", and the only closer of a parent whose children all closed as completed. Field and option ids live here only.
 set -euo pipefail
 
 OWNER=MustaMohamed
@@ -28,38 +28,92 @@ item_id() {
     --jq ".items[] | select(.content.number == $1) | .id"
 }
 
-# Children at Defined whose Depends on are all closed -> Ready For Development; a parent whose children are all closed -> closed, Done, then the same one level up.
+# Prints the issue numbers a ticket header depends on, "NONE" for "nothing", "MISSING" without the field, "UNPARSED" when the field has no (#N).
+deps_of() {
+  local field
+  case "$1" in *"Depends on "*) ;; *) echo MISSING; return ;; esac
+  field=$(printf '%s\n' "$1" | sed -n 's/.*Depends on \(.*\)$/\1/p' | sed 's/ · .*//')
+  if [ "$field" = "nothing" ]; then echo NONE; return; fi
+  field=$(printf '%s\n' "$field" | grep -oE '#[0-9]+' | tr -d '#' | tr '\n' ' ' || true)
+  if [ -z "${field// /}" ]; then echo UNPARSED; else echo "$field"; fi
+}
+
 promote() {
-  parent=$1
-  total=0
-  open=0
-  while IFS=$'\t' read -r num state; do
-    [ -n "$num" ] || continue
-    total=$((total + 1))
-    [ "$state" = "open" ] || continue
-    open=$((open + 1))
-    [ "$(bash "$0" get "$num")" = "Defined" ] || continue
-    deps=$(gh api "repos/$REPO/issues/$num" --jq .body | head -1 | grep -o 'Depends on .*' | sed 's/ · Verify.*//' || true)
-    if [ -z "$deps" ]; then
-      echo "#$num: no Depends on line, skipped" >&2
+  local parent=$1 items milestone children child_re extras candidates kind num state reason line deps dep dstate blocked status id gp
+  local total=0 open=0 completed=0 promoted=0 skipped=0 closed_cache=" " open_cache=" " US=$'\x1f'
+
+  children=$(gh api "repos/$REPO/issues/$parent/sub_issues" --paginate \
+    --jq '.[] | [.number, .state, (.state_reason // ""), ((.body // "") | split("\n")[0])] | map(tostring) | join("")') \
+    || { echo "board.sh: could not list the sub-issues of #$parent" >&2; exit 1; }
+  candidates=$(printf '%s\n' "$children" | sed $'/./s/^/child\x1f/')
+
+  milestone=$(gh api "repos/$REPO/issues/$parent" --jq '.milestone.title // ""')
+  if [ -n "$milestone" ] && [ -n "$children" ]; then
+    child_re=$(printf '%s\n' "$children" | cut -d "$US" -f1 | paste -s -d '|' -)
+    extras=$(gh issue list --repo "$REPO" --milestone "$milestone" --state open --limit 1000 --json number,body \
+      --jq '.[] | [.number, "open", "", ((.body // "") | split("\n")[0])] | map(tostring) | join("")' \
+      | grep -Ev "^($child_re|$parent)$US" | grep -E "Depends on .*#($child_re)([^0-9]|$)" || true)
+    [ -z "$extras" ] || candidates=$(printf '%s\n%s\n' "$candidates" "$(printf '%s\n' "$extras" | sed $'s/^/dep\x1f/')")
+  fi
+
+  items=$(gh project item-list "$PROJECT" --owner "$OWNER" --limit 500 --format json)
+
+  while IFS="$US" read -r kind num state reason line; do
+    case "$num" in ''|*[!0-9]*) continue ;; esac
+    if [ "$kind" = "child" ]; then
+      total=$((total + 1))
+      if [ "$state" != "open" ]; then
+        case "$reason" in ''|completed) completed=$((completed + 1)) ;; esac
+        continue
+      fi
+      open=$((open + 1))
+    fi
+    status=$(jq -r --argjson n "$num" '.items[] | select(.content.number == $n) | .status' <<<"$items")
+    if [ -z "$status" ]; then
+      echo "#$num: not on the board, skipped" >&2
+      skipped=$((skipped + 1))
       continue
     fi
+    case "$status" in Defined|Blocked) ;; *) continue ;; esac
+    deps=$(deps_of "$line")
+    case "$deps" in
+      MISSING) echo "#$num: no Depends on field, skipped" >&2; skipped=$((skipped + 1)); continue ;;
+      UNPARSED) echo "#$num: Depends on has no (#N), treated as blocked" >&2; skipped=$((skipped + 1)); continue ;;
+      NONE) deps="" ;;
+    esac
     blocked=0
-    for dep in $(printf '%s\n' "$deps" | grep -oE '#[0-9]+' | tr -d '#' || true); do
-      [ "$(gh api "repos/$REPO/issues/$dep" --jq .state)" = "closed" ] || blocked=1
+    for dep in $deps; do
+      case "$closed_cache" in *" $dep "*) continue ;; esac
+      case "$open_cache" in *" $dep "*) blocked=1; continue ;; esac
+      dstate=$(gh api "repos/$REPO/issues/$dep" --jq .state 2>/dev/null) || dstate=unknown
+      if [ "$dstate" = "closed" ]; then closed_cache="$closed_cache$dep "; else open_cache="$open_cache$dep "; blocked=1; fi
     done
-    if [ "$blocked" -eq 0 ]; then
-      bash "$0" status "$num" "Ready For Development"
+    [ "$blocked" -eq 0 ] || continue
+    if [ "$status" = "Blocked" ]; then
+      echo "#$num: Blocked with every dependency closed; move it by hand" >&2
+      continue
     fi
-  done < <(gh api "repos/$REPO/issues/$parent/sub_issues" --paginate --jq '.[] | "\(.number)\t\(.state)"')
-  if [ "$total" -gt 0 ] && [ "$open" -eq 0 ] && [ "$(gh api "repos/$REPO/issues/$parent" --jq .state)" = "open" ]; then
-    gh issue close "$parent" --repo "$REPO" --comment "All sub-issues closed." >/dev/null
-    bash "$0" status "$parent" Done
-    gp=$(gh api "repos/$REPO/issues/$parent/parent" --jq .number 2>/dev/null || true)
-    if [ -n "$gp" ]; then
-      promote "$gp"
-    fi
+    id=$(jq -r --argjson n "$num" '.items[] | select(.content.number == $n) | .id' <<<"$items")
+    gh project item-edit --project-id "$PROJECT_ID" --id "$id" \
+      --field-id "$STATUS_FIELD" --single-select-option-id "$(option_id "Ready For Development")" >/dev/null
+    echo "#$num -> Ready For Development"
+    promoted=$((promoted + 1))
+  done <<<"$candidates"
+
+  echo "#$parent: $total children, $open open, promoted $promoted, skipped $skipped"
+  [ "$total" -gt 0 ] && [ "$open" -eq 0 ] || return 0
+  if [ "$completed" -lt "$total" ]; then
+    echo "#$parent: every child is closed but $((total - completed)) not as completed; left open" >&2
+    return 0
   fi
+  if [ "$(gh api "repos/$REPO/issues/$parent" --jq .state)" = "open" ]; then
+    gh issue close "$parent" --repo "$REPO" --comment "All sub-issues completed." >/dev/null
+    echo "#$parent closed"
+  fi
+  [ "$(bash "$0" get "$parent")" = "Done" ] || bash "$0" status "$parent" Done
+  gp=$(gh api "repos/$REPO/issues/$parent/parent" --jq .number 2>/dev/null) || gp=""
+  case "$gp" in ''|*[!0-9]*) return 0 ;; esac
+  promote "$gp"
 }
 
 usage() {
@@ -69,7 +123,7 @@ usage: bash scripts/board.sh <command> ...
   status <issue> <Status>      set the Status field; Status is the option name, quoted if it has spaces
   get <issue>                  print the issue's current Status name
   link <parent> <child>        make <child> a sub-issue of <parent>
-  promote <parent>             Defined children with every Depends on closed -> Ready For Development; all children closed -> parent closed and Done
+  promote <parent>             Defined children, and milestone issues depending on them, with every Depends on closed -> Ready For Development; every child completed -> parent closed, Done, then one level up
   next-ma                      print the next MA-nnn (highest in any issue title, plus one)
 EOF
   exit 2
