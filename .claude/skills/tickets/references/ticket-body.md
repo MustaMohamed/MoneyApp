@@ -1,6 +1,6 @@
 # Ticket standard
 
-Every task issue has this body. `/issue-review` rejects a body that skips a heading or leaves Acceptance empty. No file paths, no code, no technical design; that is planning's job at delivery.
+Every task issue has this body. `/issue-review` rejects a body that skips a heading or leaves Acceptance empty. No file paths, no code, no technical design outside Context; design is planning's job at delivery.
 
 ```markdown
 Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none
@@ -22,13 +22,16 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 
 ## Out of scope
 - Short points naming what this task is not for, each with the owning task.
+
+## Context
+- What the code shows today, for whoever delivers this without the conversation: the screen or path, what happens now against what is wanted, reproduction steps, the files and symbols involved, prior art, the danger surfaces met. The one section where file paths belong. `/boundaries` on a task fills it; `/tickets` writes what its scout found, or `none`.
 ```
 
 ## Header line
 
 | Field | Values |
 |---|---|
-| Part of | the parent issue number |
+| Part of | the parent issue number, or `none` for a task recorded on its own |
 | Depends on | `MA-nnn (#N)` list, or `nothing`; real dependencies only |
 | Verify | `emulator` when the task changes what a screen shows or what the app writes; else `none` |
 | Flags | any of `data-loss migration`, `money path`, `native change`, `user copy`, `secure store`; else `none`. These are CLAUDE.md's critical triggers, written where the merge gate reads them |
@@ -66,4 +69,18 @@ Accounts get a home of their own. Today they are reachable only by scrolling the
 - Drag-to-reorder, MA-016
 - Archived section and unarchive, MA-017
 - Account detail redesign, MA-018
+
+## Context
+- none
+```
+
+## Context on a defect, MA-013
+
+```markdown
+## Context
+- Screen: the account-type grid in the add-account form, on both paths that render it, onboarding N2 and in-app add account. Tap a type tile; the lit tile reads like its neighbours.
+- Today: `src/modules/accounts/components/account_form/account_type_tile.tsx` gives the selected and unselected states the same `backgroundColor`, lines 43 to 51; the only active fill is a `LinearGradient` in the hero navy palette from `src/components/ui/hero_gradient.ts` over a surface a few percent darker, plus a `HeroGlow` clipped by the box's `overflow: hidden`.
+- Wanted: the lit tile per `docs/scopes/MA-onboarding-redesign/assets/mockup.html` lines 508 to 534, a gradient at 135 degrees with a 60% stop, corner glow, inset highlight and shadow.
+- Prior art: #226 created the tile, #359 last changed its selected colours. The house pattern for a lit selectable is `bg-accent/15` plus a gold border, `src/modules/onboarding/screens/onboarding/welcome/components/currency_choice.tsx`.
+- Danger: none of migrations, money, onboarding resume, routes or native config. `hero_gradient.ts` is shared by six screens; the fix stays in the tile's own constants. No test asserts the tile's selected background.
 ```

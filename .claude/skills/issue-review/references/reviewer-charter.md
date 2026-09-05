@@ -7,9 +7,9 @@ Inputs in your prompt: the bodies under review, each with its number, title and 
 Self, on every body:
 
 - **S1 Complete.** Every outcome the Goal implies is in Building or Not building (epic) or in Acceptance (ticket). Anything the code shows in the touched modules that the body neither builds nor excludes is a delta: an existing screen, flow, write or state the change will meet.
-- **S2 Outcomes, not solutions.** No component names, file paths, code or design in Building, Task Definition or Acceptance.
+- **S2 Outcomes, not solutions.** No component names, file paths, code or design in Building, Task Definition or Acceptance. A ticket's Context is where its file paths belong.
 - **S3 Assertable.** Each Rule and each Acceptance line is one sentence a test could assert. "Works correctly", "properly", "as expected" are deltas. Rules contradict neither each other nor CLAUDE.md's business rules.
-- **S4 Shape.** The body has every section the standard you were given requires, in its order, each filled: for an epic the lock line first and Open questions `None`; for a ticket the header line with all four fields and every Out of scope line naming a task on the milestone sheet. A link is a delta when it points at nothing on the sheet or in the repo.
+- **S4 Shape.** The body has every section the standard you were given requires, in its order, each filled: for an epic the lock line first and Open questions `None`; for a ticket the header line with all four fields and every Out of scope line naming a task on the milestone sheet. A link, or a Context path, is a delta when it points at nothing on the sheet or in the repo.
 - **S5 Triggers.** Which of CLAUDE.md's critical triggers the work implies. Epic: each named in Rules so `/tickets` carries it. Ticket: each in Flags, using only the values the standard's header table allows.
 - **S6 Overlap.** Epic only: every other epic on the milestone sheet that touches the same module has the overlap named in Not building with its owner.
 

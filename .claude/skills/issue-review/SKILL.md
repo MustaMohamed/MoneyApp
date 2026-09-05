@@ -6,7 +6,7 @@ argument-hint: "<issue number>"
 
 # Issue review
 
-The review step of the define workflow. Runs after `/boundaries` locks an epic, after `/tickets` creates its children, and again whenever a Defined issue should be checked. Every lens runs in a fresh subagent that did not write the bodies and is read-only on the repository, so the skill works in the session that drafted them. One stop for the user. Writes nothing to disk. The `unslop` skill binds every delta.
+The review step of the define workflow. Runs after `/boundaries` locks an epic or a task, after `/tickets` creates its children, and again whenever a Defined issue should be checked. Every lens runs in a fresh subagent that did not write the bodies and is read-only on the repository, so the skill works in the session that drafted them. One stop for the user. Writes nothing to disk. The `unslop` skill binds every delta.
 
 ## Preconditions
 
