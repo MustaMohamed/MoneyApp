@@ -45,7 +45,7 @@ Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the 
 
 - [ ] Flags listed verbatim in the summary; CI read after the last push; post-re-check commits disclosed or none
 - [ ] Trade-offs and adjudications in the PR body
-- [ ] Plan removed from the branch before the summary, `git ls-tree origin/main docs/plans/` stays empty after the merge
+- [ ] Plan removed from the branch before the summary; `git ls-tree origin/main docs/plans/MA-XXX.md` prints nothing after the merge
 - [ ] Merge verified by URL; issue closed; Done and `promote` run
 - [ ] `state.md` final line before teardown; worktrees, branch, prune; `npm ci` if the lockfile moved
 - [ ] Artifacts deleted last

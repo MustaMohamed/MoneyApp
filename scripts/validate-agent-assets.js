@@ -110,7 +110,7 @@ const ALIAS_REF = /@\/[A-Za-z0-9_/.]+/g;
 const ALIAS_SUFFIXES = ['', '.ts', '.tsx', '/index.ts', '/index.tsx'];
 
 function isPlaceholder(p) {
-  return /[*<>{}[\]]/.test(p) || p.includes('...') || p.includes('YYYY');
+  return /[*<>{}[\]]/.test(p) || p.includes('...') || p.includes('YYYY') || /MA-(XXX|nnn)/.test(p);
 }
 
 // Code fences are not skipped: CLAUDE.md's fenced structure tree is exactly what must be checked.
