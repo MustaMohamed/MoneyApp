@@ -20,7 +20,7 @@ The `unslop` skill binds the plan. A step is one row: file, change, test. Nothin
 - **Size.** Estimate the changed lines outside tests and generated files. Past ~400, or two product outcomes in one ticket, return one gap: "sized past one PR", with the seam you would cut at. Do not plan it.
 - **Contracts.** Which types, fields, tables, function signatures or events change, and who consumes them today (find-references). Which error paths exist and what the user sees on each. These are rows in the plan, not a section of prose.
 
-## Write `docs/plans/MA-XXX.md`
+## Write `.work/MA-XXX/plan.md`
 
 ```markdown
 # MA-XXX — <title>

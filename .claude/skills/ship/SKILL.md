@@ -41,10 +41,10 @@ cmp -s package-lock.json ../../../package-lock.json \
   && { test -d node_modules || cp -c -R ../../../node_modules node_modules; } \
   || npm ci
 gh issue view <n> --json body --jq .body > ~/.ship/MoneyApp/MA-XXX/issue.md
-cp docs/plans/MA-XXX.md ~/.ship/MoneyApp/MA-XXX/plan.md                     # dispatches read this copy; the branch copy leaves before the merge
+cp .work/MA-XXX/plan.md ~/.ship/MoneyApp/MA-XXX/plan.md                     # dispatches read this copy; the branch copy leaves before the merge
 ```
 
-The plan is `docs/plans/MA-XXX.md` at the branch's first commit, copied to `plan.md` for dispatches; it never reaches main (phase 5 removes it). The header line of `issue.md` drives three things: `Verify emulator` turns on the render pass (phase 1) and the render lens (phase 2); the Flags decide deep mode (below); Depends on is closed or the ticket would not be Planned.
+The plan is `.work/MA-XXX/plan.md` at the branch's first commit, copied to `plan.md` for dispatches; it never reaches main (phase 5 removes it). The header line of `issue.md` drives three things: `Verify emulator` turns on the render pass (phase 1) and the render lens (phase 2); the Flags decide deep mode (below); Depends on is closed or the ticket would not be Planned.
 
 ## Phases
 
@@ -83,7 +83,7 @@ Anything a later phase consumes lives in a file, not in conductor context.
 issue: #<n>
 branch: feat/MA-XXX-<slug>
 worktree: /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX
-plan: docs/plans/MA-XXX.md @ <sha>
+plan: .work/MA-XXX/plan.md @ <sha>
 verify: emulator | none · flags: <as on the ticket>
 phase: <1-5>
 deep_mode: no | yes (<trigger>)
