@@ -18,16 +18,16 @@ Delivery of one leaf task from Planned to Done, on the branch `/plan` created, t
    - **Ready For Development** → run the `plan` skill on `<n>` first, in this session, then phase 1 without stopping. Plan's two stops survive (a gap, a disputed finding); a ticket plan returns to Todo ends the run with plan's `Next:` line. The board is the composition switch.
    - **In Progress / In Review / Awaiting Human** with no `state.md` → another machine or session owns it; report the branch (`gh issue develop --list <n>`) and the PR (`gh pr list --head <branch> --state all`) and stop.
    - Anything else → say what you found and stop.
-3. `/ship` alone: the Planned column, else the Ready For Development column. Row order within a column is the priority and the CLI cannot read it; `gh project item-list` returns add order. One item: take it. More than one: list them and ask which, one question.
+3. `/ship` alone: the top Planned row, else the top Ready For Development row. `gh project item-list` returns items in the board's position order, which is the row order within a column (checked 2026-09-06: #382 listed before #381, which was created first), so the first match is the top row. Name it in the reply.
    ```bash
-   gh project item-list 2 --owner MustaMohamed --limit 500 --format json --jq '.items[] | select(.status == "Planned") | "\(.content.number) \(.content.title)"'
+   gh project item-list 2 --owner MustaMohamed --limit 500 --format json --jq '[.items[] | select(.status == "Planned") | .content.number] | first'
    ```
 
 **Setup** (conductor, once, then `state.md`):
 
 ```bash
 mkdir -p ~/.ship/MoneyApp/MA-XXX/findings/render
-BR=$(gh issue develop --list <n> | awk -F'\t' '{print $1}' | grep "^feat/MA-XXX-" | head -1)   # /plan's branch; empty → stop, the ticket was not planned here
+BR=$(gh issue develop --list <n> | awk -F'\t' '{print $1}' | grep "^feat/MA-XXX-" | head -1)   # prints name<TAB>url per linked branch; empty → stop, the ticket was not planned
 git -C /Users/musta/Code/projects/practice/MoneyApp fetch origin
 # Reuse the worktree /plan left; create it only when this machine has none:
 test -d /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX \
