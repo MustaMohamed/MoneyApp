@@ -1,12 +1,12 @@
 ---
 name: prep
-description: "Use when a ticket at Ready For Development needs its implementation plan before code: '/prep <n>', 'prep MA-013', 'prep N'. Also '/prep N --replan' to plan a Planned ticket again and '/prep N --amend' when the plan turned out wrong about the code. Creates the ticket branch, has a cold planner write docs/plans/MA-XXX.md, has a fresh reviewer check it, commits it on the branch and moves the ticket to Planned. Not for defining scope (boundaries), cutting tasks (tickets) or delivering (ship)."
+description: "Use when a ticket at Ready For Development needs its implementation plan before code: '/prep <n>', 'prep MA-013', 'prep N'. Also '/prep N --replan' to plan a Planned ticket again and '/prep N --amend' when the plan turned out wrong about the code. Creates the ticket branch, has a cold planner write .work/MA-XXX/plan.md, has a fresh reviewer check it, commits it on the branch and moves the ticket to Planned. Not for defining scope (boundaries), cutting tasks (tickets) or delivering (ship)."
 argument-hint: "<issue number> [--replan | --amend]"
 ---
 
 # Prep
 
-The first half of delivery. Takes one leaf task from Ready For Development to Planned: the ticket branch exists on GitHub, linked to the issue, and carries one commit, the reviewed plan at `docs/plans/MA-XXX.md`. `/ship` starts from that commit. The user has two stops here, both exceptional: a gap the ticket cannot answer, or a review finding the planner disputes. The `unslop` skill binds the plan and every return.
+The first half of delivery. Takes one leaf task from Ready For Development to Planned: the ticket branch exists on GitHub, linked to the issue, and carries one commit, the reviewed plan at `.work/MA-XXX/plan.md`. `/ship` starts from that commit. The user has two stops here, both exceptional: a gap the ticket cannot answer, or a review finding the planner disputes. The `unslop` skill binds the plan and every return.
 
 ## Preconditions
 
@@ -40,7 +40,7 @@ The issue body is in the ticket standard: header line `Part of · Depends on · 
 
    The planner needs LSP, and LSP needs a real `node_modules`: the APFS clone is ~10 s when the lockfile matches the primary checkout, `npm ci` otherwise. A symlink would do for the planner but breaks `/ship`'s builds later, and this worktree is the one `/ship` reuses. If the worktree already exists, reuse it; never re-run the create.
 
-3. **Dispatch the planner**, `subagent_type: general-purpose`, one message: [references/planner-charter.md](references/planner-charter.md) verbatim; the issue body verbatim, under a heading `## Ticket #<n>`; absolute paths to the worktree, `CLAUDE.md` in it, and the output file `<worktree>/docs/plans/MA-XXX.md`; the `.claude/rules/` files: `review.md` always, the others by the paths in Context, or by the modules Task Definition names when Context is `none`. `--amend`: also the current plan path and the discrepancy text verbatim, with the objective "amend the plan where the code contradicts it; leave every other step as it is". `--replan`: the old plan is deleted first.
+3. **Dispatch the planner**, `subagent_type: general-purpose`, one message: [references/planner-charter.md](references/planner-charter.md) verbatim; the issue body verbatim, under a heading `## Ticket #<n>`; absolute paths to the worktree, `CLAUDE.md` in it, and the output file `<worktree>/.work/MA-XXX/plan.md` (create `.work/MA-XXX/`); the `.claude/rules/` files: `review.md` always, the others by the paths in Context, or by the modules Task Definition names when Context is `none`. `--amend`: also the current plan path and the discrepancy text verbatim, with the objective "amend the plan where the code contradicts it; leave every other step as it is". `--replan`: the old plan is deleted first.
 
 4. **Gap list, the one stop.** A planner that returns gaps instead of a plan is a successful dispatch. Show the gaps as one list, each with the planner's question and your recommended answer first. Ask exactly: **"Answer these, or return the ticket?"** An answer becomes a body delta: apply it to Acceptance, Rules or Context with `gh issue edit <n> --body "$BODY"`, keeping the header line and the title, then re-dispatch the planner once. Gaps again, or the user returns it: `bash scripts/board.sh status <n> Todo`, `gh issue comment <n> --body "Returned from /prep: <the gap in one line>"`, remove the worktree and the branch (`git worktree remove`, `git push origin --delete <branch>`, `git branch -D <branch>`), and reply `Next: /boundaries <n>` or `/tickets <n>` for a ticket sized past one PR. `--amend`: gaps go to the user the same way, and the branch and worktree are never removed; they carry the implementer's commits. Nothing else is asked; the planner's self-assessment is reported, not gated.
 
@@ -49,7 +49,7 @@ The issue body is in the ticket standard: header line `Part of · Depends on · 
 6. **Commit, push, board.** Conductor only:
 
    ```bash
-   git -C <worktree> add docs/plans/MA-XXX.md
+   git -C <worktree> add .work/MA-XXX/plan.md
    git -C <worktree> commit -m "plan(MA-XXX): implementation plan"        # --amend: "plan(MA-XXX): amend, <why in five words>"; --replan: "plan(MA-XXX): replan"
    git -C <worktree> push -u origin feat/MA-XXX-<slug>
    gh issue comment <n> --body "Plan: <blob URL of the file at the pushed commit> · <k> steps · reviewed in <r> round(s)"

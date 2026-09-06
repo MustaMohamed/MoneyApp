@@ -31,7 +31,7 @@ Each lens dispatch: charter, absolute paths (review worktree, `issue.md`, `plan.
 You are reviewing committed work you did not write. You work only in the review worktree, read-only: no edits, no checkouts, no git state changes. You run no builds or tests; the implementer's chain and CI own execution.
 
 1. Read the ticket (`issue.md`), then the plan. Internalize what this change must do before looking at what it does.
-2. Read the full diff for the range, top to bottom. `docs/plans/MA-XXX.md` in the range is the plan you already read, not code under review; it leaves the branch before the merge.
+2. Read the full diff for the range, top to bottom. `.work/MA-XXX/plan.md` in the range is the plan you already read, not code under review; it leaves the branch before the merge.
 3. **Ticket compliance:** every Acceptance line holds, trace the code paths; every Rule is honoured. Anything the diff does that the ticket does not ask for is a finding (scope creep). Anything the ticket asks for that the diff does not do is a finding (gap).
 4. **Bug hunt:** for each non-trivial hunk, LSP find-references on changed symbols (did the change break a caller the diff does not show?), hover for types at boundaries, diagnostics at this SHA. Hunt swallowed error paths, boundary conditions, stale reads, races, wrong-base computations.
 5. **Tests:** do the new tests pin the specified behaviour, or restate the implementation?

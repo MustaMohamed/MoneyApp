@@ -36,7 +36,7 @@ Work is defined on GitHub and delivered from GitHub. Nothing about a piece of wo
 
 **Hierarchy.** A milestone `MA-<module>-<goal>` groups any number of epics. An epic parents its tasks as sub-issues. A task I choose to break down further is created at Todo and re-enters `/tickets`. A parent closes when its last child closes. The unit that gets a branch, a PR and `Closes #N` is the leaf task.
 
-**Delivering a ticket is two skills that compose on the board.** `/prep <n>` takes a leaf task from Ready For Development to Planned: it creates the ticket branch linked to the issue (`gh issue develop`), a cold planner writes `docs/plans/MA-XXX.md`, a fresh reviewer checks it against Acceptance and the code, and the plan is committed on the branch. `/ship <n>` takes it from Planned to Done: implement, review battery, triage and fix, re-check, merge; on a Ready For Development ticket it runs `/prep` first, and `/ship` alone pulls the top Planned row. The plan never reaches main: ship removes it in its last commit before the merge. One human gate, the merge; every destructive repository operation is an explicit request from me.
+**Delivering a ticket is two skills that compose on the board.** `/prep <n>` takes a leaf task from Ready For Development to Planned: it creates the ticket branch linked to the issue (`gh issue develop`), a cold planner writes `.work/MA-XXX/plan.md`, a fresh reviewer checks it against Acceptance and the code, and the plan is committed on the branch. `/ship <n>` takes it from Planned to Done: implement, review battery, triage and fix, re-check, merge; on a Ready For Development ticket it runs `/prep` first, and `/ship` alone pulls the top Planned row. The plan lives under `.work/`, the transient branch-only folder, never under `docs/`, and never reaches main: ship removes it in its last commit before the merge. One human gate, the merge; every destructive repository operation is an explicit request from me.
 
 **CI parity before pushing to a PR branch**: run the chain in `Commands`. CI is the last line of defence, not the first.
 
@@ -119,6 +119,7 @@ __tests__/            snake_case tests — policy: logic-only .ts (legacy .tsx r
 docs/adr/             architecture decision records — one dated file per decision
 docs/scopes/          frozen history — output of the retired /scope workflow, one folder per scope
 docs/superpowers/     frozen history — specs, plans, reviews, QA from the pre-/scope flow
+.work/<MA-id>/       transient, branch-only workflow files (the /prep plan); removed before merge, never on main
 ```
 
 New domain work belongs under `src/modules/<domain>/` using the existing module shape: `database/`, `repositories/`, `store/`, `screens/`, optional `components/`. No `data/` folder. Root `src/store/`, `src/repositories/`, and most `src/database/` domain files are compatibility surfaces — do not add new consumers.

@@ -17,14 +17,14 @@ Also pass: absolute paths to `issue.md`, `plan.md`, the worktree, and the branch
 ## Re-entry
 
 - **Fix dispatch (from phase 3):** same three layers; the charter's objective becomes "address exactly the findings in the file below, nothing else", with `findings/cycle-<n>.md` appended verbatim. Battery, commit and no-push rules unchanged.
-- **Discrepancy STOP:** the implementer returned that the plan is wrong about the code. First discard the dead attempt's uncommitted edits, `git -C <worktree> checkout -- . && git -C <worktree> clean -fd`, so the amend planner reads a clean tree and the next implementer starts from the last commit. Then run the `prep` skill with `--amend` and the discrepancy verbatim (it commits the amended plan and pushes), refresh `plan.md` with `cp <worktree>/docs/plans/MA-XXX.md ~/.ship/MoneyApp/MA-XXX/plan.md`, and re-dispatch the implementer.
+- **Discrepancy STOP:** the implementer returned that the plan is wrong about the code. First discard the dead attempt's uncommitted edits, `git -C <worktree> checkout -- . && git -C <worktree> clean -fd`, so the amend planner reads a clean tree and the next implementer starts from the last commit. Then run the `prep` skill with `--amend` and the discrepancy verbatim (it commits the amended plan and pushes), refresh `plan.md` with `cp <worktree>/.work/MA-XXX/plan.md ~/.ship/MoneyApp/MA-XXX/plan.md`, and re-dispatch the implementer.
 
 ## Charter (paste)
 
 You execute the plan. You do not design, re-plan, or expand scope.
 
 1. Read the required repo docs, the ticket, and the plan fully before touching code. Turn your steps into a short concrete edit list (files, symbols, test names) checked against the code as it is now: the plan gives interfaces and invariants, the current code wins on line-level detail. If the plan is wrong about the code (file moved, symbol renamed, approach impossible), STOP and return the discrepancy with `path:line`; do not improvise around it.
-2. Work only inside the worktree, on the named branch. Do not touch the plan file, `docs/plans/MA-XXX.md`.
+2. Work only inside the worktree, on the named branch. Do not touch the plan file, `.work/MA-XXX/plan.md`.
 3. Follow the plan's step order. Test-first where the plan says so.
 4. Match the surrounding code's idiom. When your instinct conflicts with `CLAUDE.md` or a rules file, the rules win.
 5. **Cadence:** targeted tests for the layer you touched after each step; the fast subset before each commit; the full parity chain exactly once, at step 7. Full-chain output is large; rereading it every step burns context for no signal.
