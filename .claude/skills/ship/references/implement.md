@@ -17,7 +17,7 @@ Also pass: absolute paths to `issue.md`, `plan.md`, the worktree, and the branch
 ## Re-entry
 
 - **Fix dispatch (from phase 3):** same three layers; the charter's objective becomes "address exactly the findings in the file below, nothing else", with `findings/cycle-<n>.md` appended verbatim. Battery, commit and no-push rules unchanged.
-- **Discrepancy STOP:** the implementer returned that the plan is wrong about the code. First discard the dead attempt's uncommitted edits, `git -C <worktree> checkout -- . && git -C <worktree> clean -fd`, so the amend planner reads a clean tree and the next implementer starts from the last commit. Then run the `plan` skill with `--amend` and the discrepancy verbatim (it commits the amended plan and pushes), refresh `plan.md` with `cp <worktree>/docs/plans/MA-XXX.md ~/.ship/MoneyApp/MA-XXX/plan.md`, and re-dispatch the implementer.
+- **Discrepancy STOP:** the implementer returned that the plan is wrong about the code. First discard the dead attempt's uncommitted edits, `git -C <worktree> checkout -- . && git -C <worktree> clean -fd`, so the amend planner reads a clean tree and the next implementer starts from the last commit. Then run the `prep` skill with `--amend` and the discrepancy verbatim (it commits the amended plan and pushes), refresh `plan.md` with `cp <worktree>/docs/plans/MA-XXX.md ~/.ship/MoneyApp/MA-XXX/plan.md`, and re-dispatch the implementer.
 
 ## Charter (paste)
 
@@ -37,4 +37,4 @@ Return, in the unslop shape: branch, commit SHAs, the chain's final output, rend
 
 ## Exit
 
-Committed and green → phase 2. Discrepancy → `plan --amend`, then re-dispatch. Record SHA and outcome in `state.md`.
+Committed and green → phase 2. Discrepancy → `prep --amend`, then re-dispatch. Record SHA and outcome in `state.md`.
