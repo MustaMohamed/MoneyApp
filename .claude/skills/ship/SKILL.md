@@ -1,12 +1,12 @@
 ---
 name: ship
-description: "Use when the user invokes /ship with an issue number or an MA id to deliver a planned ticket to a merged PR, '/ship' alone to pull the next ticket off the board, or asks to resume a ticket that has ~/.ship/MoneyApp/MA-XXX/state.md. The second half of delivery, after /plan: implement, review battery, triage and fix, re-check, merge. Not for planning (plan) or defining (boundaries, tickets)."
+description: "Use when the user invokes /ship with an issue number or an MA id to deliver a planned ticket to a merged PR, '/ship' alone to pull the next ticket off the board, or asks to resume a ticket that has ~/.ship/MoneyApp/MA-XXX/state.md. The second half of delivery, after /prep: implement, review battery, triage and fix, re-check, merge. Not for planning (prep) or defining (boundaries, tickets)."
 argument-hint: "[<issue number> | MA-XXX]"
 ---
 
 # Ship
 
-Delivery of one leaf task from Planned to Done, on the branch `/plan` created, through five phases. The main session is the conductor. Implementation, every review lens and every re-check run in fresh subagents that get file paths, never this conversation. The human has one gate, the merge; everything else the conductor decides, and disputes and caps go to the human as they arise.
+Delivery of one leaf task from Planned to Done, on the branch `/prep` created, through five phases. The main session is the conductor. Implementation, every review lens and every re-check run in fresh subagents that get file paths, never this conversation. The human has one gate, the merge; everything else the conductor decides, and disputes and caps go to the human as they arise.
 
 ## Entry
 
@@ -15,7 +15,7 @@ Delivery of one leaf task from Planned to Done, on the branch `/plan` created, t
 1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists: read it, announce phase, branch, PR and any open loop, load that phase's file, continue. Never redo a completed phase.
 2. Otherwise `bash scripts/board.sh get <n>`:
    - **Planned** → phase 1.
-   - **Ready For Development** → run the `plan` skill on `<n>` first, in this session, then phase 1 without stopping. Plan's two stops survive (a gap, a disputed finding); a ticket plan returns to Todo ends the run with plan's `Next:` line. The board is the composition switch.
+   - **Ready For Development** → run the `prep` skill on `<n>` first, in this session, then phase 1 without stopping. Prep's two stops survive (a gap, a disputed finding); a ticket plan returns to Todo ends the run with plan's `Next:` line. The board is the composition switch.
    - **In Progress / In Review / Awaiting Human** with no `state.md` → another machine or session owns it; report the branch (`gh issue develop --list <n>`) and the PR (`gh pr list --head <branch> --state all`) and stop.
    - Anything else → say what you found and stop.
 3. `/ship` alone: the top Planned row, else the top Ready For Development row. `gh project item-list` returns items in the board's position order, which is the row order within a column (checked 2026-09-06: #382 listed before #381, which was created first), so the first match is the top row. Name it in the reply.
@@ -29,11 +29,11 @@ Delivery of one leaf task from Planned to Done, on the branch `/plan` created, t
 mkdir -p ~/.ship/MoneyApp/MA-XXX/findings/render
 BR=$(gh issue develop --list <n> | awk -F'\t' '{print $1}' | grep "^feat/MA-XXX-" | head -1)   # prints name<TAB>url per linked branch; empty → stop, the ticket was not planned
 git -C /Users/musta/Code/projects/practice/MoneyApp fetch origin
-# Reuse the worktree /plan left; create it only when this machine has none:
+# Reuse the worktree /prep left; create it only when this machine has none:
 test -d /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX \
   || git -C /Users/musta/Code/projects/practice/MoneyApp worktree add .claude/worktrees/MA-XXX "$BR"
 cd /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX
-# Main moved since /plan: rebase, force-push, and re-comment the plan's blob URL at the new SHA
+# Main moved since /prep: rebase, force-push, and re-comment the plan's blob URL at the new SHA
 git merge-base --is-ancestor origin/main HEAD \
   || { git rebase origin/main && git push --force-with-lease && gh issue comment <n> --body "Plan: <new blob URL>, rebased onto main"; }
 test -L node_modules && rm -f node_modules                                  # a symlink into the primary is never kept
@@ -124,7 +124,7 @@ Log entries are facts: SHAs, verdicts, counts, decisions, eight lines at most ea
 | "The reviewer can just commit the trivial fix" | Then nobody independent re-checks it. Route to the implementer. |
 | "I'll update state.md at the end" | A crash loses the session; `state.md` is the only resume point. |
 | "This reviewer re-found the ruled finding and sounds certain" | Rule 8. Cite the ledger, move on. Three reviewers re-finding a ruled trade-off is sensitivity working, not a new defect. |
-| "The plan is wrong here, the implementer can improvise" | A discrepancy STOP is the plan skill's `--amend` path. Improvisation is where phase-2 findings come from. |
+| "The plan is wrong here, the implementer can improvise" | A discrepancy STOP is the prep skill's `--amend` path. Improvisation is where phase-2 findings come from. |
 | "CI is green, I can merge" | The human merges. Always. |
 
 ## Deep mode
@@ -143,7 +143,7 @@ Phase 2 findings pool into one triage (phase 3): CI read first, de-duplicate, cl
 
 ## Worktrees
 
-Implementation worktree: `.claude/worktrees/MA-XXX`, created by `/plan`, reused here. Review worktree: `.claude/worktrees/MA-XXX-review`, detached at the pushed SHA, one per battery, re-pointed for re-checks:
+Implementation worktree: `.claude/worktrees/MA-XXX`, created by `/prep`, reused here. Review worktree: `.claude/worktrees/MA-XXX-review`, detached at the pushed SHA, one per battery, re-pointed for re-checks:
 
 ```bash
 git -C /Users/musta/Code/projects/practice/MoneyApp worktree add --detach .claude/worktrees/MA-XXX-review <sha>
