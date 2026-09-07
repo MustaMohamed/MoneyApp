@@ -32,6 +32,7 @@ export function BalanceReviewAlert({
             <Button
               size="sm"
               variant="secondary"
+              flat
               label={Strings.accountBalanceReviewConfirm}
               onPress={onConfirm}
               isDisabled={isConfirming}
@@ -42,6 +43,7 @@ export function BalanceReviewAlert({
             <Button
               size="sm"
               variant="primary"
+              flat
               label={Strings.accountBalanceReviewAdjust}
               onPress={onAdjust}
               isDisabled={isConfirming}

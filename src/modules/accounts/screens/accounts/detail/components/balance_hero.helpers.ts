@@ -1,6 +1,7 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { SemanticTokens } from '@/constants/theme_tokens';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import { formatAmount } from '@/utils/format_amount';
 
@@ -22,7 +23,14 @@ export function buildHeroCaption(account: Account): HeroCaption {
   const decimals = CURRENCY_CONFIG[currency].decimals;
 
   if (isCC && limit > 0) {
-    const available = Math.max(0, limit - account.current_balance);
+    if (account.current_balance > limit) {
+      return {
+        text: Strings.accountHeroOverLimit,
+        adjusted: false,
+        color: SemanticTokens.negative,
+      };
+    }
+    const available = limit - account.current_balance;
     return {
       text: Strings.accountHeroAvailable(
         formatAmount(available, decimals),

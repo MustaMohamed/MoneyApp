@@ -33,7 +33,8 @@ const BADGE_STYLES: Record<BadgeTone, BadgeStyle> = {
 };
 
 interface Props {
-  icon: IconName;
+  /** Omit for a plain label-and-value row; the account detail's facts render without a tile. */
+  icon?: IconName;
   label: string;
   value: string;
   badge?: string;
@@ -61,15 +62,17 @@ export function DetailRow({
       className={`flex-row items-center gap-3 px-4 py-3 ${showDivider ? 'border-separator border-b' : ''}`}
       style={{ height: reserveSublabel ? DETAIL_ACCOUNT_ROW_HEIGHT : DETAIL_ROW_HEIGHT }}
     >
-      <ListGroup.ItemPrefix>
-        <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">
-          <MaterialCommunityIcons
-            name={icon}
-            size={Size.filterSegmentIcon}
-            color={CoreTokens.text1}
-          />
-        </View>
-      </ListGroup.ItemPrefix>
+      {icon ? (
+        <ListGroup.ItemPrefix>
+          <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">
+            <MaterialCommunityIcons
+              name={icon}
+              size={Size.filterSegmentIcon}
+              color={CoreTokens.text1}
+            />
+          </View>
+        </ListGroup.ItemPrefix>
+      ) : null}
       <ListGroup.ItemContent className="min-w-0">
         <ListGroup.ItemDescription
           className="font-inter-semibold text-foreground/55 tracking-wide uppercase"

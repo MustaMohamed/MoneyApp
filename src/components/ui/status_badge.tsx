@@ -3,13 +3,13 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { withAlpha } from '@/constants/theme';
-
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 export interface StatusBadgeProps {
   label: string;
-  color: string;
+  /** Opaque fill; the caller composites it so the painted fill is the one it tested for contrast. */
+  fill: string;
+  foreground: string;
   icon?: IconName;
   size?: 'sm' | 'md';
 }
@@ -17,20 +17,20 @@ export interface StatusBadgeProps {
 const ICON_SIZE = { sm: 10, md: 12 } as const;
 const LABEL_CLASS = { sm: 'font-inter text-[10px]', md: 'font-inter text-[11px]' } as const;
 
-export function StatusBadge({ label, color, icon, size = 'sm' }: StatusBadgeProps) {
+export function StatusBadge({ label, fill, foreground, icon, size = 'sm' }: StatusBadgeProps) {
   return (
     <View
       style={{
-        backgroundColor: withAlpha(color, '22'),
+        backgroundColor: fill,
         flexDirection: 'row',
         alignItems: 'center',
       }}
       className="gap-0.5 rounded-full px-1.5 py-0.5"
     >
       {icon != null ? (
-        <MaterialCommunityIcons name={icon} size={ICON_SIZE[size]} color={color} />
+        <MaterialCommunityIcons name={icon} size={ICON_SIZE[size]} color={foreground} />
       ) : null}
-      <Typography className={LABEL_CLASS[size]} style={{ color }}>
+      <Typography className={LABEL_CLASS[size]} style={{ color: foreground }}>
         {label}
       </Typography>
     </View>

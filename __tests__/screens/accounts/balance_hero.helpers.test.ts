@@ -1,4 +1,6 @@
 import { AccountType, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { SemanticTokens } from '@/constants/theme_tokens';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import { buildHeroCaption } from '@/modules/accounts/screens/accounts/detail/components/balance_hero.helpers';
 import type { Account } from '@/store/account.store';
@@ -92,11 +94,34 @@ describe('buildHeroCaption — credit cards', () => {
     expect(cap.text).toBe('Opening 500 EGP');
   });
 
-  it('clamps available at zero when balance exceeds limit', () => {
+  it('captions Over limit in the negative colour when the balance exceeds the limit', () => {
     const cap = buildHeroCaption(
       mkAccount({ type: AccountType.CreditCard, credit_limit: 1000, current_balance: 1500 }),
     );
+    expect(cap.text).toBe(Strings.accountHeroOverLimit);
+    expect(cap.color).toBe(SemanticTokens.negative);
+    expect(cap.adjusted).toBe(false);
+  });
+
+  it('captions Over limit on USD too', () => {
+    const cap = buildHeroCaption(
+      mkAccount({
+        currency: Currency.USD,
+        type: AccountType.CreditCard,
+        credit_limit: 500,
+        current_balance: 500.01,
+      }),
+    );
+    expect(cap.text).toBe(Strings.accountHeroOverLimit);
+    expect(cap.color).toBe(SemanticTokens.negative);
+  });
+
+  it('a balance exactly at the limit still reads Available 0', () => {
+    const cap = buildHeroCaption(
+      mkAccount({ type: AccountType.CreditCard, credit_limit: 1000, current_balance: 1000 }),
+    );
     expect(cap.text).toBe('Available 0 EGP of 1,000');
+    expect(cap.color).toBe(availableCreditColor(0, 1000));
   });
 
   it('#277: USD direction — both amounts on the caption take CURRENCY_CONFIG decimals', () => {

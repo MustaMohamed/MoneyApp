@@ -5,7 +5,7 @@ import React from 'react';
 import { StyleSheet, type PressableProps } from 'react-native';
 
 import { Colors, Radius, Size } from '@/constants/theme';
-import { GoldTokens } from '@/constants/theme_tokens';
+import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 
 import { resolveButtonContent } from './button.content';
 
@@ -26,6 +26,8 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled
   flat?: boolean;
   /** Leading glyph before the label — the flat secondary's plus (mockup `.cta.sec svg`); renders foreground. */
   icon?: keyof typeof MaterialCommunityIcons.glyphMap;
+  /** Destructive treatment; honoured on the flat secondary only (the account detail's Archive). */
+  tone?: 'danger';
   className?: string;
 }
 
@@ -39,6 +41,7 @@ export function Button({
   loadingLabel,
   flat,
   icon,
+  tone,
   className,
   ...props
 }: ButtonProps) {
@@ -91,6 +94,7 @@ export function Button({
   }
 
   const flatSecondary = flat === true && variant === 'secondary';
+  const isDanger = flatSecondary && tone === 'danger';
   return (
     <HButton
       variant={variant}
@@ -104,9 +108,18 @@ export function Button({
     >
       {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
       {icon ? (
-        <MaterialCommunityIcons name={icon} size={Size.iconSm} color={Colors.dark.text1} />
+        <MaterialCommunityIcons
+          name={icon}
+          size={Size.iconSm}
+          color={isDanger ? SemanticTokens.negative : Colors.dark.text1}
+        />
       ) : null}
-      <HButton.Label className={cn(CTA_LABEL_FONT, flatSecondary ? 'text-foreground' : undefined)}>
+      <HButton.Label
+        className={cn(
+          CTA_LABEL_FONT,
+          isDanger ? 'text-danger' : flatSecondary ? 'text-foreground' : undefined,
+        )}
+      >
         {text}
       </HButton.Label>
     </HButton>
