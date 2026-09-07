@@ -25,7 +25,7 @@ Cross-epic: two tasks in different epics of one milestone that touch the same mo
 
 ## Recursion
 
-The rules are the same at every level; only the parent changes. `/tickets <task>` cuts a task that was created at Todo for its own breakdown into sub-issues with the next MA numbers, at Defined, and moves that task to Ready For Development. A parent closes when its last child closes.
+The rules are the same at every level; only the parent changes. `/tickets <task>` cuts a task into sub-issues with the next MA numbers, at Defined, and leaves that task at Defined as a parent. The task is either one created at Todo for its own breakdown or a leaf at Defined or Ready For Development that turned out bigger than one PR; the leaf keeps its body and its children's Acceptance covers it line by line. A parent stays at Defined, is never planned, and closes when its last child closes.
 
 ## The nine tickets on #378, as a worked check
 

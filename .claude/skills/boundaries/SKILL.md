@@ -12,7 +12,7 @@ Phase 2 of the define workflow. Interview the user from codebase evidence until 
 
 `bash scripts/board.sh get <n>` prints `Todo` and `gh issue view <n> --json body --jq .body` has no `Scope locked` line. Defined or later: say so and stop; there is nothing to do here. Not on the board yet: `bash scripts/board.sh status <n> Todo` first.
 
-Kind: an issue with the `epic` label is an epic; anything else is a task. A task at Todo has two exits and the user picks by invoking: `/tickets <n>` cuts it into sub-issues, this skill defines it as one leaf.
+Kind: an issue with the `epic` label is an epic; anything else is a task. A task at Todo has two exits and the user picks by invoking: `/tickets <n>` cuts it into sub-issues, this skill defines it as one leaf. A leaf locked here that later turns out bigger than one PR goes to `/tickets <n>` at Defined or Ready For Development, with no reset to Todo.
 
 ## Method
 
@@ -29,10 +29,10 @@ Kind: an issue with the `epic` label is an epic; anything else is a task. A task
 5. **Spike** when a question can only be answered by code: `git worktree add .claude/worktrees/spike-<n> origin/main`, try it there, write the answer into Rules or Not building, then `git worktree remove --force .claude/worktrees/spike-<n>`. Spike code never survives.
 6. **Mockup is a ticket by default**; MA-014 on #378 is the pattern. Draw only when a boundary cannot be settled in words, then one artifact with the `design` skill, its URL under Links. A task whose design already exists links it under Links; a task that needs a new one names the design ticket in Depends on.
 7. **Before the gate:** two or three approaches, recommendation first, then the strongest objections to it and what would make it wrong.
-8. **Gate.** Present the full rewritten body, per [epic-body.md](../epic/references/epic-body.md) for an epic or [ticket-body.md](../tickets/references/ticket-body.md) for a task, and ask exactly: **"Lock this scope?"** Yes, epic: write it with `Scope locked <today>` as the first line, `gh issue edit <n> --body "$BODY"`, then `bash scripts/board.sh status <n> Defined`. Yes, task: write it with the header line first, `gh issue edit <n> --body "$BODY"`, `bash scripts/board.sh status <n> Defined`, then `bash scripts/board.sh promote <parent>` when it has a parent, so a task with nothing open in Depends on becomes pullable. Anything else is a revision request: revise and ask again. Earlier enthusiasm is not approval.
+8. **Gate.** Present the full rewritten body, per [epic-body.md](../epic/references/epic-body.md) for an epic or [ticket-body.md](../tickets/references/ticket-body.md) for a task, and ask exactly: **"Lock this scope?"** Yes, epic: write it with `Scope locked <today>` as the first line, `gh issue edit <n> --body "$BODY"`, then `bash scripts/board.sh status <n> Defined`. Yes, task: write it with the header line first, `Reviewed none` at its end, `gh issue edit <n> --body "$BODY"`, `bash scripts/board.sh status <n> Defined`. No promote here: Ready For Development is `/issue-review`'s to give. Anything else is a revision request: revise and ask again. Earlier enthusiasm is not approval.
 
 **Blocked.** When the boundaries cannot lock until another issue ships: `bash scripts/board.sh status <n> Blocked`, then `gh issue comment <n> --body "Blocked on #<m>: <why>"`, and stop.
 
 ## Reply after the lock
 
-Epic: the issue URL, the number of Rules, and `Next: /issue-review <n>`, then `/tickets <n>`. Task: the issue URL, its board Status, and `Next: /issue-review <n>`.
+Epic: the issue URL, the number of Rules, and `Next: /issue-review <n>`, then `/tickets <n>`. Task: the issue URL, Defined, and `Next: /issue-review <n>`, the step that makes it pullable.

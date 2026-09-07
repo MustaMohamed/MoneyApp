@@ -10,7 +10,7 @@ The first half of delivery. Takes one leaf task from Ready For Development to Pl
 
 ## Preconditions
 
-`bash scripts/board.sh get <n>` prints Ready For Development. Planned: print the branch and the plan URL and stop, unless `--replan` (plan again from scratch). `--amend` (fix a plan that is wrong about the code) is accepted at Planned, In Progress, In Review and Awaiting Human, which is how `/ship` calls it, and writes no board Status. Anything else: say what you found and stop.
+`bash scripts/board.sh get <n>` prints Ready For Development and `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq length` prints 0. An issue with children is a parent cut by `/tickets`; it closes through them and is never planned: say so, name the children, and stop. Planned: print the branch and the plan URL and stop, unless `--replan` (plan again from scratch). `--amend` (fix a plan that is wrong about the code) is accepted at Planned, In Progress, In Review and Awaiting Human, which is how `/ship` calls it, and writes no board Status. Anything else: say what you found and stop.
 
 The issue body is in the ticket standard: header line `Part of · Depends on · Verify · Flags`, then Task Definition, Goal, Acceptance, Rules, Links, Out of scope, Context. A body without them is not planned here; it goes back through `/boundaries <n>`.
 
@@ -23,7 +23,7 @@ The issue body is in the ticket standard: header line `Part of · Depends on · 
 
 ## Steps
 
-1. **Read the ticket.** `gh issue view <n> --json title,body,url`. The MA id and the slug come from the title, `MA-013 — Account type tile fill` → `MA-013`, `account-type-tile-fill`: lowercase, every run of non-alphanumerics to one `-`, at most five words. Read the header line: Verify and Flags shape the plan (step 3), Depends on is already closed or the board would not say Ready For Development.
+1. **Read the ticket.** `gh issue view <n> --json title,body,url`. The MA id and the slug come from the title, `MA-013 — Account type tile fill` → `MA-013`, `account-type-tile-fill`: lowercase, every run of non-alphanumerics to one `-`, at most five words. Read the header line: Verify and Flags shape the plan (step 3); Depends on is closed and Reviewed carries a date, or the board would not say Ready For Development.
 
 2. **Branch and worktree.** A linked branch may already exist, `gh issue develop --list <n>`; reuse it. Otherwise create it on GitHub, linked to the issue:
 
