@@ -19,6 +19,7 @@ beforeAll(() => {
       __fakeDb: {
         runAsync: jest.Mock;
         getAllAsync: jest.Mock;
+        getFirstAsync: jest.Mock;
         execAsync: jest.Mock;
       };
     }
@@ -33,6 +34,11 @@ beforeAll(() => {
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     return realDb.prepare(sql).all(...(params as never[]));
+  });
+
+  mocked.getFirstAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
+    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
+    return realDb.prepare(sql).get(...(params as never[])) ?? null;
   });
 
   mocked.execAsync.mockImplementation(async (sql: string) => {
@@ -275,6 +281,59 @@ describe('AccountRepository.archive — TC-M15-02', () => {
       }
     ).updated_at;
     expect(after).not.toBe(before);
+  });
+});
+
+describe('AccountRepository.countArchived', () => {
+  // `react-native-uuid` is mocked to one fixed id, so multi-row cases insert directly.
+  function insertAccount(id: string, isArchived: 0 | 1) {
+    realDb
+      .prepare(
+        `INSERT INTO accounts (
+          id, name, type, currency, opening_balance, current_balance,
+          interest_tracking, is_archived, sort_order, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, 0, 0, 0, ?, 0, ?, ?)`,
+      )
+      .run(
+        id,
+        `acct-${id}`,
+        AccountType.Bank,
+        Currency.EGP,
+        isArchived,
+        '2026-04-29T00:00:00Z',
+        '2026-04-29T00:00:00Z',
+      );
+  }
+
+  it('returns 0 on an empty table', async () => {
+    await expect(repo.countArchived()).resolves.toBe(0);
+  });
+
+  it('returns 0 when every row is active', async () => {
+    insertAccount('a', 0);
+    insertAccount('b', 0);
+
+    await expect(repo.countArchived()).resolves.toBe(0);
+  });
+
+  it('counts only the archived rows', async () => {
+    insertAccount('a', 1);
+    insertAccount('b', 1);
+    insertAccount('c', 0);
+
+    await expect(repo.countArchived()).resolves.toBe(2);
+    await expect(repo.getAll()).resolves.toHaveLength(1);
+  });
+
+  it('goes 0 to 1 when the only account is archived, and getAll empties', async () => {
+    await repo.add(baseInput);
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    await expect(repo.countArchived()).resolves.toBe(0);
+
+    await repo.archive(id);
+
+    await expect(repo.countArchived()).resolves.toBe(1);
+    await expect(repo.getAll()).resolves.toEqual([]);
   });
 });
 

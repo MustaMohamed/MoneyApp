@@ -21,6 +21,7 @@ Object.freeze(EMPTY_ACCOUNT_LOOKUP);
 const INITIAL_STATE = {
   accounts: EMPTY_ACCOUNTS,
   accountLookup: EMPTY_ACCOUNT_LOOKUP,
+  archivedCount: 0,
   hasLoaded: false,
   loadError: false,
 };
@@ -49,9 +50,12 @@ export function createAccountStore(repo: IAccountRepository) {
         const requestId = ++loadRequestId;
 
         try {
-          const accounts = await repo.getAll();
+          const [accounts, archivedCount] = await Promise.all([
+            repo.getAll(),
+            repo.countArchived(),
+          ]);
           if (requestId === loadRequestId) {
-            set({ accounts, hasLoaded: true, loadError: false });
+            set({ accounts, archivedCount, hasLoaded: true, loadError: false });
           }
         } catch (err) {
           if (requestId === loadRequestId) set({ loadError: true });

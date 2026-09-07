@@ -9,13 +9,18 @@ import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboa
 import { isRateUsable } from '../../../domain/account_aggregation';
 import { useAccountStore } from '../../../store/account.store';
 import { resolveAccountCaption, resolveAccountsListContent } from './accounts_list.helpers';
+import { resolveAccountsListEmptyState } from './accounts_list.presentation';
 import { useAccountsListState } from './accounts_list.state';
 
 /** No focus loader: the store reloads at startup and after every mutation, and Try again is the only reload this screen starts. */
 export function useAccountsList() {
   const router = useRouter();
-  const { accounts, loadError } = useAccountStore(
-    useShallow((s) => ({ accounts: s.accounts, loadError: s.loadError })),
+  const { accounts, archivedCount, loadError } = useAccountStore(
+    useShallow((s) => ({
+      accounts: s.accounts,
+      archivedCount: s.archivedCount,
+      loadError: s.loadError,
+    })),
   );
   const loadAccounts = useAccountStore.getState().loadAccounts;
   const isRetrying = useAccountsListState((s) => s.isRetrying);
@@ -69,8 +74,13 @@ export function useAccountsList() {
   return {
     state: {
       rows,
+      archivedCount,
       isRetrying,
       content: resolveAccountsListContent({ loadError, accountCount: rows.length }),
+      emptyState: resolveAccountsListEmptyState({
+        activeCount: accounts.length,
+        archivedCount,
+      }),
     },
     goToAccount,
     goToAddAccount,

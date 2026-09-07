@@ -1,13 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
 import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { GoldTokens } from '@/constants/theme_tokens';
+import { Colors, FontFamily, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 // Ruled genuinely different from ErrorState, not merged (#290). Evidence and the
 // rejected merge shape: docs/adr/2026-09-01-empty-error-state-stay-separate.md
@@ -15,6 +14,7 @@ const LAYOUT = resolveStateScreenLayout('empty');
 
 export type EmptyStateVariant =
   | 'accounts'
+  | 'accountsArchivedOnly'
   | 'transactions'
   | 'commitments'
   | 'commitmentsMonth'
@@ -24,29 +24,40 @@ export type EmptyStateVariant =
   | 'budget'
   | 'onboardingAccounts';
 
-export interface EmptyStateProps {
-  variant: EmptyStateVariant;
-  onAction?: () => void;
-}
+export type EmptyStateProps =
+  | { variant: 'accountsArchivedOnly'; archivedCount: number; onAction?: () => void }
+  | { variant: Exclude<EmptyStateVariant, 'accountsArchivedOnly'>; onAction?: () => void };
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const VARIANT_CONFIG: Record<
-  EmptyStateVariant,
-  {
-    icon: MCIName;
-    headline: string;
-    description: string;
-    ctaLabel: string | null;
-    clearLabel: string | null;
-  }
-> = {
+interface VariantConfig {
+  icon: MCIName;
+  headline: string;
+  description: string | ((n: number) => string);
+  ctaLabel: string | null;
+  clearLabel: string | null;
+  /** `inline` sits at the top of a scroll; `centered` fills the screen. */
+  placement: 'centered' | 'inline';
+}
+
+const VARIANT_CONFIG: Record<EmptyStateVariant, VariantConfig> & {
+  accountsArchivedOnly: { description: (n: number) => string };
+} = {
   accounts: {
     icon: 'bank',
     headline: Strings.emptyAccountsHeadline,
     description: Strings.emptyAccountsDescription,
     ctaLabel: Strings.emptyAccountsCta,
     clearLabel: null,
+    placement: 'centered',
+  },
+  accountsArchivedOnly: {
+    icon: 'bank',
+    headline: Strings.emptyAccountsArchivedOnlyHeadline,
+    description: Strings.emptyAccountsArchivedOnlyDescription,
+    ctaLabel: Strings.emptyAccountsCta,
+    clearLabel: null,
+    placement: 'inline',
   },
   transactions: {
     icon: 'swap-horizontal',
@@ -54,6 +65,7 @@ const VARIANT_CONFIG: Record<
     description: Strings.emptyTransactionsDescription,
     ctaLabel: Strings.emptyTransactionsCta,
     clearLabel: null,
+    placement: 'centered',
   },
   commitments: {
     icon: 'calendar-check',
@@ -61,6 +73,7 @@ const VARIANT_CONFIG: Record<
     description: Strings.emptyCommitmentsDescription,
     ctaLabel: Strings.emptyCommitmentsCta,
     clearLabel: null,
+    placement: 'centered',
   },
   commitmentsMonth: {
     icon: 'calendar-blank-outline',
@@ -68,6 +81,7 @@ const VARIANT_CONFIG: Record<
     description: Strings.emptyCommitmentsMonthDescription,
     ctaLabel: null,
     clearLabel: null,
+    placement: 'centered',
   },
   filtered: {
     icon: 'filter-remove',
@@ -75,6 +89,7 @@ const VARIANT_CONFIG: Record<
     description: Strings.emptyFilteredDescription,
     ctaLabel: null,
     clearLabel: Strings.emptyFilteredClearCta,
+    placement: 'centered',
   },
   categories: {
     icon: 'tag-outline',
@@ -82,6 +97,7 @@ const VARIANT_CONFIG: Record<
     description: Strings.emptyStateCategoriesDescription,
     ctaLabel: null,
     clearLabel: null,
+    placement: 'centered',
   },
   goals: {
     icon: 'target',
@@ -89,6 +105,7 @@ const VARIANT_CONFIG: Record<
     description: Strings.emptyGoalsSub,
     ctaLabel: null,
     clearLabel: null,
+    placement: 'centered',
   },
   budget: {
     icon: 'chart-pie',
@@ -96,6 +113,7 @@ const VARIANT_CONFIG: Record<
     description: Strings.emptyBudgetSub,
     ctaLabel: Strings.emptyBudgetCta,
     clearLabel: null,
+    placement: 'centered',
   },
   // `ctaLabel` stays null: N3's action is `Strings.n3EmptyCta` in the `OnboardingShell` footer.
   onboardingAccounts: {
@@ -104,14 +122,22 @@ const VARIANT_CONFIG: Record<
     description: Strings.n3EmptyBody,
     ctaLabel: null,
     clearLabel: null,
+    placement: 'centered',
   },
 };
 
-export function EmptyState({ variant, onAction }: EmptyStateProps) {
-  const config = VARIANT_CONFIG[variant];
+export function EmptyState(props: EmptyStateProps) {
+  const { onAction } = props;
+  const config = VARIANT_CONFIG[props.variant];
+  // Only `accountsArchivedOnly` carries a count, and only its description reads one.
+  const archivedCount = props.variant === 'accountsArchivedOnly' ? props.archivedCount : 0;
+  const description =
+    typeof config.description === 'function'
+      ? config.description(archivedCount)
+      : config.description;
 
   return (
-    <View style={styles.root}>
+    <View style={config.placement === 'inline' ? styles.rootInline : styles.root}>
       <View style={styles.iconCircle}>
         <MaterialCommunityIcons
           name={config.icon}
@@ -125,25 +151,19 @@ export function EmptyState({ variant, onAction }: EmptyStateProps) {
       </Text>
 
       <Text variant="hint" style={styles.description}>
-        {config.description}
+        {description}
       </Text>
 
       {config.ctaLabel !== null && (
-        <Pressable
-          onPress={onAction}
-          style={styles.ctaWrapper}
-          accessibilityRole="button"
-          accessibilityLabel={config.ctaLabel}
-        >
-          <LinearGradient
-            testID="empty-state-cta-gradient"
-            colors={[GoldTokens[500], GoldTokens[600]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.ctaGradient}
+        <View style={styles.ctaWrapper}>
+          <Button
+            variant="primary"
+            flat
+            label={config.ctaLabel}
+            accessibilityLabel={config.ctaLabel}
+            onPress={onAction}
           />
-          <Text style={styles.ctaLabel}>{config.ctaLabel}</Text>
-        </Pressable>
+        </View>
       )}
 
       {config.clearLabel !== null && (
@@ -162,6 +182,7 @@ export function EmptyState({ variant, onAction }: EmptyStateProps) {
 
 const styles = StyleSheet.create({
   root: LAYOUT.root,
+  rootInline: LAYOUT.rootInline,
   iconCircle: {
     // Mockup `.ei` draws --surface-secondary (mockup.html:777); plain surface vanished against surface-hosted screens.
     ...LAYOUT.iconCircle,
@@ -178,25 +199,6 @@ const styles = StyleSheet.create({
   ctaWrapper: {
     ...LAYOUT.action,
     width: '100%',
-    height: Size.ctaHeight,
-    borderRadius: Radius.cta,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ctaGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
-    borderRadius: Radius.cta,
-  },
-  ctaLabel: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.bodyStrong,
-    lineHeight: lineHeightFor(Type.bodyStrong),
-    color: Colors.shared.midnightBlue,
   },
   clearWrapper: {
     ...LAYOUT.action,

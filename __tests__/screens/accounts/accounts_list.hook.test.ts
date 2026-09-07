@@ -56,7 +56,7 @@ const usdWallet = makeTestAccount({
   sort_order: 2,
 });
 
-let storeState = { accounts, loadError: false, loadAccounts: mockLoadAccounts };
+let storeState = { accounts, archivedCount: 0, loadError: false, loadAccounts: mockLoadAccounts };
 
 let currencyState: {
   rate: number;
@@ -81,7 +81,7 @@ function deferred<T>() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockLoadAccounts.mockResolvedValue(undefined);
-  storeState = { accounts, loadError: false, loadAccounts: mockLoadAccounts };
+  storeState = { accounts, archivedCount: 0, loadError: false, loadAccounts: mockLoadAccounts };
   currencyState = {
     rate: 50,
     isManualOverride: false,
@@ -106,6 +106,35 @@ describe('useAccountsList', () => {
     expect(result.current.state.rows.map((row) => row.account)).toEqual(accounts);
     expect(result.current.state.rows[0].account).toBe(accounts[0]);
     expect(result.current.state.rows[1].account).toBe(accounts[1]);
+  });
+
+  it('reports no empty state while rows exist, whatever the archived count', async () => {
+    storeState = { accounts, archivedCount: 1, loadError: false, loadAccounts: mockLoadAccounts };
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.emptyState).toBe('none');
+  });
+
+  it('reports archivedOnly with no rows and archived accounts, carrying the count', async () => {
+    storeState = {
+      accounts: [],
+      archivedCount: 2,
+      loadError: false,
+      loadAccounts: mockLoadAccounts,
+    };
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.emptyState).toBe('archivedOnly');
+    expect(result.current.state.archivedCount).toBe(2);
+  });
+
+  it('reports noAccounts with no rows and nothing archived', async () => {
+    storeState = {
+      accounts: [],
+      archivedCount: 0,
+      loadError: false,
+      loadAccounts: mockLoadAccounts,
+    };
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.emptyState).toBe('noAccounts');
   });
 
   it('opens a row at its detail route', async () => {
@@ -189,7 +218,7 @@ describe('useAccountsList', () => {
   });
 
   it('shows the error body over the rows when the last read failed', async () => {
-    storeState = { accounts, loadError: true, loadAccounts: mockLoadAccounts };
+    storeState = { accounts, archivedCount: 0, loadError: true, loadAccounts: mockLoadAccounts };
     const { result } = await renderHook(() => useAccountsList());
 
     expect(result.current.state.content).toBe('error');
