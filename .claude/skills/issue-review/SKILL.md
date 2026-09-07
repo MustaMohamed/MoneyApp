@@ -10,7 +10,7 @@ The review step of the define workflow, and the only road to Ready For Developme
 
 ## Preconditions
 
-`bash scripts/board.sh get <n>` says Defined or Ready For Development. Anything else: say what you found and stop.
+`bash scripts/board.sh get <n>` says Defined or Ready For Development, or In Progress on a parent with sub-issues, since a parent moves there with its first child in delivery. Anything else: say what you found and stop.
 
 ## What gets reviewed
 

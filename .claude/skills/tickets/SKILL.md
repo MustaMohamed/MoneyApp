@@ -16,7 +16,7 @@ Phase 3 of the define workflow. Cuts a parent, an epic at Defined, a task at Tod
 - Todo: a task created for its own breakdown. A task at Todo meant to stay one leaf goes to `/boundaries` instead.
 - Defined or Ready For Development, body in the ticket standard, no sub-issues: a leaf that turned out bigger than one PR, cut further here as it is, with no reset to Todo.
 
-Sub-issues: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq length`. Children already exist: `--rewrite` here or `/issue-review <n>`, never a second cut. Planned or later: a branch exists and the ticket is in delivery; say so and stop. Anything else: say what you found and stop. `--rewrite` needs existing children: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq '.[].number'`.
+Sub-issues: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq length`. Children already exist: `--rewrite` here or `/issue-review <n>`, never a second cut; both accept the parent at Defined or at In Progress, where it sits once a child is in delivery. Planned or later: a branch exists and the ticket is in delivery; say so and stop. Anything else: say what you found and stop. `--rewrite` needs existing children: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq '.[].number'`.
 
 ## Steps
 
