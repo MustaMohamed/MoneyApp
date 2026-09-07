@@ -11,9 +11,7 @@ set -euo pipefail
 
 PKG="${MQA_PKG:-com.moneyapp.app}"
 SCHEME="${MQA_SCHEME:-moneyapp}"
-PORT="${MQA_PORT:-8081}"
 APK="${MQA_APK:-android/app/build/outputs/apk/debug/app-debug.apk}"
-WORK="${MQA_WORK:-${TMPDIR:-/tmp}/mqa}"
 
 # Resolve the repo root from this script's own location, never from $PWD — the
 # node call below needs the project's better-sqlite3 regardless of where the
@@ -23,17 +21,103 @@ ROOT="$(cd "$HERE/../../.." && pwd)"
 
 ADB="$(command -v adb || echo "$HOME/Library/Android/sdk/platform-tools/adb")"
 EMU="$HOME/Library/Android/sdk/emulator/emulator"
-mkdir -p "$WORK"
-
-serial() {
-  if [ -n "${MQA_SERIAL:-}" ]; then echo "$MQA_SERIAL"; return; fi
-  "$ADB" devices | awk '/^emulator-[0-9]+\tdevice$/{print $1; exit}'
-}
-S="$(serial)"
-a() { "$ADB" ${S:+-s "$S"} "$@"; }
 
 die() { echo "mqa: $*" >&2; exit 1; }
-need_device() { [ -n "$S" ] || die "no emulator attached. Run: mqa boot"; }
+
+# --- device leases ----------------------------------------------------------
+# Three tickets verify in parallel, so a session must own one device outright.
+# The claim cannot live in MQA_SERIAL: an agent's shell calls do not carry env
+# between them, and a lost export puts us back on "first device wins", which is
+# the silent cross-talk this whole mechanism exists to stop. The lease is keyed
+# on the caller's git worktree instead. Claim once, and every later call from
+# that worktree resolves the same device, with nothing to remember.
+LEASE_DIR="${MQA_LEASE_DIR:-$HOME/.mqa/leases}"
+LEASE_TTL="${MQA_LEASE_TTL:-7200}"
+read -r -a SLOT_AVDS <<<"${MQA_SLOTS:-Pixel_2_API_34 Pixel_2_API_34_2 Pixel_2_API_34_3}"
+SLOT_MAX="${#SLOT_AVDS[@]}"
+
+# Slot N is pinned to console port 5554+2(N-1) and Metro 8081+N, and `claim`
+# boots with an explicit -port. Letting the emulator pick the lowest free port
+# would make the serial depend on boot order, i.e. on which session started first.
+slot_avd()    { echo "${SLOT_AVDS[$(($1 - 1))]}"; }
+slot_serial() { echo "emulator-$((5554 + ($1 - 1) * 2))"; }
+slot_port()   { echo "$((8081 + $1))"; }
+
+worktree() { git -C "$PWD" rev-parse --show-toplevel 2>/dev/null || echo "$ROOT"; }
+lease_field() { sed -n "s/^$2=//p" "$LEASE_DIR/$1" 2>/dev/null || true; }
+
+# A lease outlives the shell that took it, so a PID proves nothing about whether
+# the holder is alive. Judge it on what does persist: the worktree still exists,
+# and the lease was touched recently. Every mqa call touches its own, so an
+# abandoned session ages out instead of holding a device forever.
+lease_stale() {
+  local f="$LEASE_DIR/$1" wt age
+  [ -f "$f" ] || return 0
+  wt="$(lease_field "$1" worktree)"
+  [ -n "$wt" ] && [ -d "$wt" ] || return 0
+  age=$(( $(date +%s) - $(stat -f %m "$f") ))
+  [ "$age" -gt "$LEASE_TTL" ]
+}
+
+my_slot() {
+  local wt s
+  wt="$(worktree)"
+  for ((s = 1; s <= SLOT_MAX; s++)); do
+    if ! lease_stale "$s" && [ "$(lease_field "$s" worktree)" = "$wt" ]; then echo "$s"; return 0; fi
+  done
+  return 1
+}
+
+active_leases() {
+  local s n=0
+  for ((s = 1; s <= SLOT_MAX; s++)); do
+    if ! lease_stale "$s"; then n=$((n + 1)); fi
+  done
+  echo "$n"
+}
+
+attached() { "$ADB" devices | awk '/^emulator-[0-9]+\tdevice$/{print $1}'; }
+
+# Resolution order: an explicit MQA_SERIAL, then this worktree's lease, then the
+# single-emulator case. That last fallback keeps solo work claim-free, but only
+# while nobody holds a lease. Once one session has claimed, an unclaimed caller
+# is guessing, and guessing is what produces a pass against another branch.
+resolve_serial() {
+  if [ -n "${MQA_SERIAL:-}" ]; then echo "$MQA_SERIAL"; return; fi
+  local slot devs
+  if slot="$(my_slot)"; then
+    touch "$LEASE_DIR/$slot"
+    lease_field "$slot" serial
+    return
+  fi
+  devs="$(attached)"
+  if [ "$(grep -c . <<<"$devs" || true)" = 1 ] && [ "$(active_leases)" = 0 ]; then
+    echo "$devs"
+  fi
+}
+S="$(resolve_serial)"
+
+resolve_port() {
+  if [ -n "${MQA_PORT:-}" ]; then echo "$MQA_PORT"; return; fi
+  local slot
+  if slot="$(my_slot)"; then lease_field "$slot" port; else echo 8081; fi
+}
+PORT="$(resolve_port)"
+
+# Per device, not per machine: a shared work dir means two sessions overwrite
+# each other's ui.xml and pull the other's SQLite into their own analysis.
+WORK="${MQA_WORK:-${TMPDIR:-/tmp}/mqa/${S:-unclaimed}}"
+mkdir -p "$WORK"
+
+a() { "$ADB" ${S:+-s "$S"} "$@"; }
+
+need_device() {
+  [ -n "$S" ] && return 0
+  local n; n="$(grep -c . <<<"$(attached)" || true)"
+  [ "$n" = 0 ] && die "no emulator attached. Run: mqa claim"
+  die "no device claimed for $(worktree): $n attached, $(active_leases) leased.
+Guessing here would drive another session's device. Run: mqa claim   (see: mqa claims)"
+}
 
 # --- UI hierarchy -----------------------------------------------------------
 # GOTCHA: uiautomator dumps the *app* window only, never the IME. With the soft
@@ -142,18 +226,94 @@ cmd_clear() {
 }
 
 # --- lifecycle --------------------------------------------------------------
-cmd_boot() {
-  if [ -n "$S" ]; then echo "already running: $S"; return; fi
-  local avd
-  avd="$("$EMU" -list-avds 2>/dev/null | sed -n 1p)"
-  [ -n "$avd" ] || die "no AVD found"
-  echo "booting $avd ..."
-  nohup "$EMU" -avd "$avd" >/dev/null 2>&1 &
-  "$ADB" wait-for-device
-  until [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
+# Boots the AVD for one slot on its pinned console port. Waits on that serial
+# specifically: `adb wait-for-device` with three emulators up returns for
+# whichever one answers first, which need not be the one being booted.
+boot_slot() {
+  local slot="$1" avd serial
+  avd="$(slot_avd "$slot")"; serial="$(slot_serial "$slot")"
+  if "$ADB" devices | grep -q "^$serial	device$"; then echo "$serial already up"; return; fi
+  echo "booting $avd on $serial ..."
+  nohup "$EMU" -avd "$avd" -port "${serial#emulator-}" >/dev/null 2>&1 &
+  "$ADB" -s "$serial" wait-for-device
+  until [ "$("$ADB" -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
     sleep 2
   done
-  echo "booted"
+  echo "booted $serial"
+}
+
+cmd_boot() {
+  local slot="${1:-}"
+  if [ -z "$slot" ]; then slot="$(my_slot)" || die "no slot claimed here. Run: mqa claim   (or: mqa boot <slot>)"; fi
+  boot_slot "$slot"
+}
+
+print_claim() {
+  local slot="$1"
+  cat <<EOF
+slot $slot  $(slot_avd "$slot")  $(slot_serial "$slot")  metro :$(slot_port "$slot")
+  npx expo start --port $(slot_port "$slot")   # in this worktree, then: mqa launch
+EOF
+}
+
+cmd_claim() {
+  mkdir -p "$LEASE_DIR"
+  local want="${1:-}" wt slot s
+  wt="$(worktree)"
+  if slot="$(my_slot)"; then echo "already claimed"; print_claim "$slot"; return; fi
+  if [ -n "$want" ]; then
+    [ "$want" -ge 1 ] 2>/dev/null && [ "$want" -le "$SLOT_MAX" ] || die "slot must be 1..$SLOT_MAX"
+    lease_stale "$want" || die "slot $want is held by $(lease_field "$want" worktree)"
+    slot="$want"
+  else
+    slot=""
+    for ((s = 1; s <= SLOT_MAX; s++)); do
+      if lease_stale "$s"; then slot="$s"; break; fi
+    done
+    [ -n "$slot" ] || die "all $SLOT_MAX slots are held. See: mqa claims"
+  fi
+  cat > "$LEASE_DIR/$slot" <<EOF
+worktree=$wt
+avd=$(slot_avd "$slot")
+serial=$(slot_serial "$slot")
+port=$(slot_port "$slot")
+claimed=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+EOF
+  boot_slot "$slot"
+  # Expo silently falls through to the next free port when its own is taken, so a
+  # squatter costs a run: this device would load whatever that other server serves.
+  # A Metro already answering here is the normal case on a re-claim, not a problem.
+  local mp; mp="$(slot_port "$slot")"
+  if lsof -nP -iTCP:"$mp" -sTCP:LISTEN >/dev/null 2>&1; then
+    if curl -sS --max-time 2 "http://127.0.0.1:$mp/status" 2>/dev/null | grep -q packager-status:running; then
+      echo "Metro already answering on :$mp. Check it is this worktree's before you trust a run"
+    else
+      echo "WARNING: :$mp is held by something that is not Metro. Free it before starting Metro"
+    fi
+  fi
+  print_claim "$slot"
+}
+
+cmd_release() {
+  local slot
+  slot="$(my_slot)" || { echo "nothing claimed for $(worktree)"; return; }
+  rm -f "$LEASE_DIR/$slot"
+  echo "released slot $slot ($(slot_serial "$slot")). The emulator is left running."
+}
+
+cmd_claims() {
+  local s state wt
+  printf '%-5s %-20s %-16s %-6s %-9s %s\n' SLOT AVD SERIAL METRO STATE WORKTREE
+  for ((s = 1; s <= SLOT_MAX; s++)); do
+    if lease_stale "$s"; then
+      state=free; wt="-"
+      [ -f "$LEASE_DIR/$s" ] && wt="(stale: $(lease_field "$s" worktree))"
+    else
+      state=held; wt="$(lease_field "$s" worktree)"
+    fi
+    "$ADB" devices | grep -q "^$(slot_serial "$s")	device$" || state="$state,down"
+    printf '%-5s %-20s %-16s %-6s %-9s %s\n' "$s" "$(slot_avd "$s")" "$(slot_serial "$s")" ":$(slot_port "$s")" "$state" "$wt"
+  done
 }
 
 # GOTCHA: a fresh `android/` proves nothing — the CI-parity chain ends in
@@ -305,7 +465,8 @@ usage() {
   cat <<'EOF'
 mqa — drive the MoneyApp dev client on an Android emulator and read state back.
 
-  boot | install | launch | reset      lifecycle
+  claim [slot] | release | claims      one device per worktree
+  boot [slot] | install | launch | reset   lifecycle
   needs-build [base] | build | abi     build decision (default base: origin/main)
   walk <script.sh> | step <label>      scripted scenarios
   ui | find <label> | shot [name]      observe
@@ -314,18 +475,30 @@ mqa — drive the MoneyApp dev client on an Android emulator and read state back
   back | ime-down                      navigation
   db "<sql>" | logs [n]                state
 
-env: MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK
+env: MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK MQA_SLOTS MQA_LEASE_DIR MQA_LEASE_TTL
+
+Three slots run in parallel, one per worktree. The claim is keyed on the
+worktree, so it survives between shell calls and there is nothing to export:
+
+  slot 1  Pixel_2_API_34    emulator-5554  metro :8082
+  slot 2  Pixel_2_API_34_2  emulator-5556  metro :8083
+  slot 3  Pixel_2_API_34_3  emulator-5558  metro :8084
 
 Cheapest correct run, in order:
-  mqa needs-build && mqa build && mqa install   # exits 1 when a rebuild is not needed
-  MQA_PORT=8082 npx expo start --port 8082 &    # a worktree needs its own port
-  MQA_PORT=8082 mqa launch && mqa park
+  mqa claim                                      # boots a free device, prints its Metro port
+  mqa needs-build && mqa build && mqa install    # exits 1 when a rebuild is not needed
+  npx expo start --port <the port claim printed> &
+  mqa launch && mqa park
   mqa walk scenarios.sh                          # one call, not one per tap
+  mqa release                                    # when the ticket is done
 EOF
 }
 
 case "${1:-help}" in
-  boot)     cmd_boot ;;
+  claim)    cmd_claim "${2:-}" ;;
+  release)  cmd_release ;;
+  claims)   cmd_claims ;;
+  boot)     cmd_boot "${2:-}" ;;
   install)  cmd_install ;;
   launch)   cmd_launch ;;
   reset)    cmd_reset ;;

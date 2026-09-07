@@ -23,7 +23,8 @@ examples below assume `M=.claude/skills/emulator-verify/mqa.sh`.
 
 | Command | Does |
 |---|---|
-| `mqa boot` / `install` / `launch` | start AVD · install `app-debug.apk` · deep-link into the dev client |
+| `mqa claim [slot]` / `release` / `claims` | take one of the three devices for this worktree · give it back · see who holds what |
+| `mqa boot [slot]` / `install` / `launch` | start a slot's AVD · install `app-debug.apk` · deep-link into the dev client |
 | `mqa needs-build [base]` | **ask before you build.** Exits 0 (rebuild) only if the native surface moved |
 | `mqa build` | Gradle debug APK for the device's own ABI only — ~100MB, not ~300MB |
 | `mqa reset` | `pm clear` — next launch starts at N1, for fresh-onboarding runs |
@@ -36,7 +37,46 @@ examples below assume `M=.claude/skills/emulator-verify/mqa.sh`.
 | `mqa db "<sql>"` | query the on-device database |
 | `mqa logs [n]` | recent JS errors and crashes |
 
-`MQA_SERIAL` targets a specific device; `MQA_PORT` a non-8081 Metro.
+`MQA_SERIAL` targets a specific device; `MQA_PORT` a non-8081 Metro. Both override the
+claim below, which is the only reason to set them.
+
+## Claim a device before anything else
+
+Three tickets verify at once, so there are three emulators and a session owns one
+outright. **`mqa claim` is the first call of any run.**
+
+```bash
+mqa claim                  # boots a free device, prints its serial and Metro port
+mqa claims                 # who holds what
+mqa release                # when the ticket is done
+```
+
+| Slot | AVD | Serial | Metro |
+|---|---|---|---|
+| 1 | `Pixel_2_API_34` | emulator-5554 | 8082 |
+| 2 | `Pixel_2_API_34_2` | emulator-5556 | 8083 |
+| 3 | `Pixel_2_API_34_3` | emulator-5558 | 8084 |
+
+The claim is keyed on the **git worktree**, not on an environment variable. An agent's
+shell calls do not carry env between them, so an exported `MQA_SERIAL` is gone by the next
+call and the tool would fall back to first-device-wins. Keyed on the worktree, one claim
+covers every later call from it and there is nothing to remember or re-export.
+
+Without a claim, `mqa` refuses to run as soon as a second device is attached or any lease
+is held. That refusal is the point. Before this existed, four concurrent `/ship` sessions
+shared one device and produced three silent failures: a `launch` re-pointed another
+session's dev client at the wrong Metro, two `uiautomator` dumps at once returned a screen
+the app was not on, and state-setting `DELETE`s landed in another session's fixtures. Every
+one of those reads as a pass. A single emulator with nothing claimed still works, so solo
+work needs no ceremony.
+
+A lease outlives the shell that took it, so nothing can be inferred from a PID. It goes
+stale when its worktree is deleted, or after `MQA_LEASE_TTL` (default 2h) without a call.
+Every `mqa` call touches its own lease, so an abandoned session's device comes back on its
+own. `mqa claims` shows a stale lease as free and names its old holder.
+
+A fourth concurrent ticket queues. That is the design, not a bug: add a slot by creating
+another AVD and extending `MQA_SLOTS`.
 
 ## Scope the walk before you run it
 
@@ -122,16 +162,18 @@ worktree, which needs three things the worktree does not have by default.
    single-ABI one is ~100MB, and the emulator cannot execute the other three
    anyway.
 
-3. **Its own Metro, on its own port.** This is the one that produces a false pass.
-   `mqa launch` runs `adb reverse tcp:$PORT tcp:$PORT`, and **`adb reverse` is global per
-   device** — it does not care which directory asked for it. Share port 8081 with the Metro
-   already running in the primary repo and the emulator loads the *primary repo's* bundle:
-   the app runs, the screens render, the run goes green, and none of it exercised the code
-   under review. Always give the worktree a private port:
+3. **Its own Metro, on the port the claim printed.** This is the one that produces a false
+   pass. `mqa launch` runs `adb reverse tcp:$PORT tcp:$PORT`, and **`adb reverse` is global
+   per device**, and it does not care which directory asked for it. Share a port with
+   another Metro and the emulator loads *that* branch's bundle: the app runs, it renders,
+   the run goes green, and none of it exercised the code under review.
+
+   `mqa claim` hands out a port with the device and warns if something already listens on
+   it. Use that port for both:
 
    ```bash
-   MQA_PORT=8082 npx expo start --port 8082   # in the worktree
-   MQA_PORT=8082 $M launch
+   npx expo start --port 8083   # the port `mqa claim` printed, in the worktree
+   $M launch                    # picks up the same port from the lease
    ```
 
    Confirm before trusting anything: `mqa launch` warns when no Metro answers on that port,
@@ -218,5 +260,7 @@ user's gate: this is "verified on emulator", never "QA passed".
 | A walk driven one tool call per tap | Every round trip carries a whole UI hierarchy. Put the scenario in a script and run `mqa walk`. |
 | Tapping by screenshot coordinates | Read them from `mqa find`. RN wraps a Pressable around a same-labelled Text; only the `clickable` node responds. `find` sorts those first and `tap` refuses a text-only match rather than firing a no-op that reports success. |
 | Typing a value containing `&`, `;`, `'` or `$` | The text reaches the *device's* shell. `mqa type` single-quotes it; a raw `adb shell input text` truncates at the metacharacter **and still exits 0**, so it looks like it worked. Account and category names are exactly where this bites. |
+| Running without a claim because "only my session is using it" | `mqa` cannot see the other sessions, and neither can you. It refuses instead of guessing, and it is right to: an unclaimed run on a shared device is how a walk passes against another branch's bundle, another branch's screen, and another branch's rows. |
+| A worktree on an older branch driving the shared device | `mqa.sh` is checked in, so a worktree branched before this change carries the lease-blind copy and still takes the first device it finds. Rebase the worktree, or run this branch's `mqa.sh` by absolute path from it. |
 | Treating a green emulator run as QA | Gate 3 is the user's, on real hardware. This produces evidence for it, not a verdict. |
 | Trusting the UI for a money assertion | The screen is the thing under test. Assert against `mqa db`. |
