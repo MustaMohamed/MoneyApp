@@ -1,8 +1,12 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { AccountType, Currency } from '@/constants/enums';
 import { useAccountsList } from '@/modules/accounts/screens/accounts/list/accounts_list.hook';
 import { useAccountsListState } from '@/modules/accounts/screens/accounts/list/accounts_list.state';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -10,6 +14,9 @@ const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockLoadAccounts = jest.fn<Promise<void>, []>();
 
+jest.mock('zustand/react/shallow', () => ({
+  useShallow: <T>(selector: T): T => selector,
+}));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: mockBack }),
 }));
@@ -17,13 +24,50 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
   useAccountStore: jest.fn(),
 }));
+// Mocked for the caption inputs, and because the real modules pull the settings repo and the DB.
+jest.mock('@/modules/currency/store/currency.store', () => ({
+  useCurrencyStore: jest.fn(),
+}));
+jest.mock('@/modules/currency/store/base_currency.store', () => ({
+  useBaseCurrencyStore: jest.fn(),
+}));
+jest.mock('@/modules/dashboard/screens/dashboard/dashboard.store', () => ({
+  useDashboardStore: jest.fn(),
+}));
 
 const accounts = [
-  makeTestAccount({ id: 'acc-1', name: 'CIB Current', sort_order: 0 }),
+  makeTestAccount({
+    id: 'acc-1',
+    name: 'CIB Current',
+    type: AccountType.Bank,
+    currency: Currency.EGP,
+    sort_order: 0,
+  }),
   makeTestAccount({ id: 'acc-2', name: 'Cash', sort_order: 1 }),
 ];
 
+const usdWallet = makeTestAccount({
+  id: 'acc-3',
+  name: 'Instapay',
+  type: AccountType.SmartWallet,
+  currency: Currency.USD,
+  current_balance: 100,
+  opening_balance: 100,
+  sort_order: 2,
+});
+
 let storeState = { accounts, loadError: false, loadAccounts: mockLoadAccounts };
+
+let currencyState: {
+  rate: number;
+  isManualOverride: boolean;
+  // The store's field name: the real selector reads `s.rate_updated_at`, the hook renames it.
+  rate_updated_at: string | null;
+};
+
+let dashboardStoreState: {
+  snapshot: { statsMap: Record<string, { month_in: number; month_out: number }> } | undefined;
+};
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -38,14 +82,30 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockLoadAccounts.mockResolvedValue(undefined);
   storeState = { accounts, loadError: false, loadAccounts: mockLoadAccounts };
+  currencyState = {
+    rate: 50,
+    isManualOverride: false,
+    rate_updated_at: '2026-09-01T09:00:00.000Z',
+  };
+  dashboardStoreState = {
+    snapshot: {
+      statsMap: { 'acc-1': { month_in: 22300, month_out: 14950 } },
+    },
+  };
+
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => storeState);
+  attachMockSelectorStore(useCurrencyStore, () => currencyState);
+  attachMockSelectorStore(useBaseCurrencyStore, () => ({ baseCurrency: Currency.EGP }));
+  attachMockSelectorStore(useDashboardStore, () => dashboardStoreState);
   useAccountsListState.getState().reset();
 });
 
 describe('useAccountsList', () => {
   it('exposes the store rows by reference, in store order, with no filter of its own', async () => {
     const { result } = await renderHook(() => useAccountsList());
-    expect(result.current.state.accounts).toBe(accounts);
+    expect(result.current.state.rows.map((row) => row.account)).toEqual(accounts);
+    expect(result.current.state.rows[0].account).toBe(accounts[0]);
+    expect(result.current.state.rows[1].account).toBe(accounts[1]);
   });
 
   it('opens a row at its detail route', async () => {
@@ -133,5 +193,35 @@ describe('useAccountsList', () => {
     const { result } = await renderHook(() => useAccountsList());
 
     expect(result.current.state.content).toBe('error');
+  });
+});
+
+describe('useAccountsList — the caption reads the dashboard snapshot', () => {
+  it("takes each row's figures from the snapshot entry keyed by the account id", async () => {
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.rows[0].caption).toBe('Month in 22,300 · out 14,950');
+  });
+
+  it('falls back to zeros when the dashboard holds no snapshot', async () => {
+    dashboardStoreState = { snapshot: undefined };
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.rows[0].caption).toBe('Month in 0 · out 0');
+  });
+});
+
+describe('useAccountsList — the smart wallet caption follows the rate gate, not the rate', () => {
+  beforeEach(() => {
+    storeState = { ...storeState, accounts: [usdWallet] };
+  });
+
+  it('takes the bank caption at the placeholder rate with no provenance', async () => {
+    currencyState = { rate: 50, isManualOverride: false, rate_updated_at: null };
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.rows[0].caption).toBe('Month in 0.00 · out 0.00');
+  });
+
+  it('takes the equivalent caption once the rate has provenance', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.rows[0].caption).toBe('≈ 5,000 EGP at 50.00');
   });
 });

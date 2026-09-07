@@ -16,7 +16,7 @@ import type { Account } from '@/modules/accounts/store/account.store';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
-  formatCurrencyAmount,
+  formatCurrencyParts,
   formatDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
@@ -28,18 +28,30 @@ import { formatOwnedAmountParts } from './net_worth_breakdown_sheet.helpers';
 // 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;
 
-/** Zero-gated sign composition (#332): a net that prints as zero carries no sign either way. */
-function signedStatValue(value: number, currency: Currency): string {
-  const { text, printsAsZero } = formatDisplayMagnitude(value, currency);
-  return signAmountText(
-    `${text} ${CURRENCY_CONFIG[currency].code}`,
-    value >= 0 ? PLUS_SIGN : MINUS_SIGN,
-    printsAsZero,
-  );
+/** One `formatCurrencyParts` call per row, so `amountText` cannot drift from `value` (MA-024). */
+function amountParts(
+  value: number,
+  currency: Currency,
+  decimals?: number,
+): Required<Pick<InfoRow, 'value' | 'amountText'>> {
+  const parts = formatCurrencyParts(value, currency, decimals);
+  return { value: `${parts.value} ${parts.code}`, amountText: parts.value };
 }
 
-/** `formatOwnedAmountParts` joined the way `formatCurrencyAmount` used to be (#332, PR #375 r2):
- * the carousel headline balance and its base-equivalent row are both negative-capable (overdraft). */
+/** Zero-gated sign composition (#332): a net that prints as zero carries no sign either way. */
+function signedStatParts(
+  value: number,
+  currency: Currency,
+): Required<Pick<InfoRow, 'value' | 'amountText'>> {
+  const { text, printsAsZero } = formatDisplayMagnitude(value, currency);
+  const sign = value >= 0 ? PLUS_SIGN : MINUS_SIGN;
+  return {
+    value: signAmountText(`${text} ${CURRENCY_CONFIG[currency].code}`, sign, printsAsZero),
+    amountText: signAmountText(text, sign, printsAsZero),
+  };
+}
+
+/** The carousel headline balance is negative-capable (overdraft), so it composes U+2212 (#332). */
 function ownedAmountText(value: number, currency: Currency): string {
   const parts = formatOwnedAmountParts(value, currency);
   return `${parts.value} ${parts.code}`;
@@ -55,9 +67,26 @@ function nextDueDate(dueDay: number): string {
   return target.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-interface InfoRow {
+export type InfoRowKind =
+  | 'limit'
+  | 'available'
+  | 'dueDate'
+  | 'monthSpend'
+  | 'avgDay'
+  | 'weekSpend'
+  | 'monthStart'
+  | 'change'
+  | 'monthIn'
+  | 'monthOut'
+  | 'thisWeek'
+  | 'inBase';
+
+export interface InfoRow {
+  kind: InfoRowKind;
   label: string;
   value: string;
+  /** `value` without its currency code; absent on the due-date and Over Limit rows. */
+  amountText?: string;
   valueColor?: string;
   icon?: 'up' | 'down';
 }
@@ -84,15 +113,18 @@ export function buildInfoRows(
 
     return [
       {
+        kind: 'limit',
         label: Strings.cardLimitLabel,
-        value: formatCurrencyAmount(limit, cur),
+        ...amountParts(limit, cur),
       },
       {
+        kind: 'available',
         label: Strings.cardAvailableLabel,
-        value: isOverLimit ? Strings.cardOverLimit : formatCurrencyAmount(available, cur),
+        ...(isOverLimit ? { value: Strings.cardOverLimit } : amountParts(available, cur)),
         valueColor: availColor,
       },
       {
+        kind: 'dueDate',
         label: Strings.cardDueDateLabel,
         value: dueDay != null && dueDay > 0 ? nextDueDate(dueDay) : '—',
       },
@@ -104,17 +136,20 @@ export function buildInfoRows(
     const avgDay = s.month_out / daysElapsed;
     return [
       {
+        kind: 'monthSpend',
         label: Strings.cardMonthSpendLabel,
-        value: formatCurrencyAmount(s.month_out, cur),
+        ...amountParts(s.month_out, cur),
         valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
       },
       {
+        kind: 'avgDay',
         label: Strings.cardAvgDayLabel,
-        value: formatCurrencyAmount(avgDay, cur, ACCOUNT_CARD_AVG_DAY_DECIMALS),
+        ...amountParts(avgDay, cur, ACCOUNT_CARD_AVG_DAY_DECIMALS),
       },
       {
+        kind: 'weekSpend',
         label: Strings.cardWeekSpendLabel,
-        value: formatCurrencyAmount(s.week_out, cur),
+        ...amountParts(s.week_out, cur),
         valueColor: s.week_out > 0 ? Colors.dark.negative : Colors.dark.text1,
       },
     ];
@@ -126,12 +161,14 @@ export function buildInfoRows(
     const changeColor = change >= 0 ? Colors.dark.positive : Colors.dark.negative;
     return [
       {
+        kind: 'monthStart',
         label: Strings.cardMonthStartLabel,
-        value: formatCurrencyAmount(Math.max(0, monthStart), cur),
+        ...amountParts(Math.max(0, monthStart), cur),
       },
       {
+        kind: 'change',
         label: Strings.cardChangeLabel,
-        value: signedStatValue(change, cur),
+        ...signedStatParts(change, cur),
         valueColor: changeColor,
         icon: change >= 0 ? 'up' : 'down',
       },
@@ -144,57 +181,59 @@ export function buildInfoRows(
   // Fires whichever side of the base the account sits on (#349): `convertCurrency` picks the
   // direction from `from`/`to`, and the base's own code drives both label and display decimals.
   // One `roundMoney` at the call site; `convertCurrency` deliberately does not round (W4 ADR §3).
-  const baseEquivalentRows: InfoRow[] =
+  const baseEquivalent =
     isRateUsable && account.currency !== baseCurrency
-      ? [
+      ? formatOwnedAmountParts(
+          roundMoney(
+            convertCurrency({
+              amount: account.current_balance,
+              from: account.currency,
+              to: baseCurrency,
+              rate,
+            }),
+          ),
+          baseCurrency,
+        )
+      : undefined;
+
+  const baseEquivalentRows: InfoRow[] =
+    baseEquivalent === undefined
+      ? []
+      : [
           {
+            kind: 'inBase',
             label: Strings.cardInBaseLabel(baseCurrency),
-            value: ownedAmountText(
-              roundMoney(
-                convertCurrency({
-                  amount: account.current_balance,
-                  from: account.currency,
-                  to: baseCurrency,
-                  rate,
-                }),
-              ),
-              baseCurrency,
-            ),
+            value: `${baseEquivalent.value} ${baseEquivalent.code}`,
+            amountText: baseEquivalent.value,
             valueColor: Colors.dark.gold,
           },
-        ]
-      : [];
+        ];
 
-  if (isUSD) {
-    return [
-      {
-        label: Strings.cardMonthInLabel,
-        value: formatCurrencyAmount(s.month_in, cur),
-        valueColor: s.month_in > 0 ? Colors.dark.positive : Colors.dark.text1,
-      },
-      {
-        label: Strings.cardMonthOutLabel,
-        value: formatCurrencyAmount(s.month_out, cur),
-        valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
-      },
-      ...baseEquivalentRows,
-    ];
-  }
-
-  return [
+  const monthRows: InfoRow[] = [
     {
+      kind: 'monthIn',
       label: Strings.cardMonthInLabel,
-      value: formatCurrencyAmount(s.month_in, cur),
+      ...amountParts(s.month_in, cur),
       valueColor: s.month_in > 0 ? Colors.dark.positive : Colors.dark.text1,
     },
     {
+      kind: 'monthOut',
       label: Strings.cardMonthOutLabel,
-      value: formatCurrencyAmount(s.month_out, cur),
+      ...amountParts(s.month_out, cur),
       valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
     },
+  ];
+
+  if (isUSD) {
+    return [...monthRows, ...baseEquivalentRows];
+  }
+
+  return [
+    ...monthRows,
     {
+      kind: 'thisWeek',
       label: Strings.cardThisWeekLabel,
-      value: signedStatValue(weekNet, cur),
+      ...signedStatParts(weekNet, cur),
       valueColor: weekNetColor,
     },
     ...baseEquivalentRows,
