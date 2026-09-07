@@ -4,39 +4,49 @@ import { View } from 'react-native';
 
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
-import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { resolveAccountRowA11yLabel } from '@/modules/accounts/constants/account_row_a11y_label';
-import type { Account } from '@/modules/accounts/store/account.store';
+import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
-import {
-  N3_ROW_STYLE,
-  N3_ROW_TYPE_GAP,
-  N3_ROW_TYPE_GLYPH,
-  resolveAccountRowDotColor,
-} from '../more_accounts.geometry';
+import { resolveAccountBalanceColorClass } from '../../../../constants/account_balance_color';
+import { resolveAccountRowA11yLabel } from '../../../../constants/account_row_a11y_label';
+import type { Account } from '../../../../entities/account.entity';
+import { ACCOUNTS_LIST_ROW_STYLE, resolveAccountTileColors } from '../accounts_list.geometry';
 
-/** `accessible` announces the row once; no `accessibilityRole`, it is not pressable here. */
-export function AccountRow({ account }: { account: Account }) {
-  // Two nodes, not `formatCurrencyAmount`: the design stacks the value over the code.
+interface AccountListRowProps {
+  account: Account;
+  onPress: (id: string) => void;
+}
+
+export function AccountListRow({ account, onPress }: AccountListRowProps) {
+  // Two nodes, not `formatCurrencyAmount`: B1 stacks the value over the code.
   const { value, code } = formatCurrencyParts(account.current_balance, account.currency);
+  const tile = resolveAccountTileColors(account.color);
 
   return (
     <ListGroup.Item
-      style={N3_ROW_STYLE}
-      accessible
+      onPress={() => onPress(account.id)}
+      style={ACCOUNTS_LIST_ROW_STYLE}
+      accessibilityRole="button"
       accessibilityLabel={resolveAccountRowA11yLabel(account)}
     >
       {/* Runtime hex: className is build-time only. */}
       <ListGroup.ItemPrefix
         style={{
-          width: Size.colorDot,
-          height: Size.colorDot,
-          borderRadius: Size.colorDot / 2,
+          width: Size.accountTile,
+          height: Size.accountTile,
+          borderRadius: Radius.sm,
           flexShrink: 0,
-          backgroundColor: resolveAccountRowDotColor(account.color),
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: tile.background,
         }}
-      />
+      >
+        <MaterialCommunityIcons
+          name={ACCOUNT_TYPE_ICONS[account.type]}
+          size={Size.iconXs}
+          color={tile.glyph}
+        />
+      </ListGroup.ItemPrefix>
 
       <ListGroup.ItemContent style={{ flex: 1, minWidth: 0 }}>
         <ListGroup.ItemTitle
@@ -48,33 +58,23 @@ export function AccountRow({ account }: { account: Account }) {
           {account.name}
         </ListGroup.ItemTitle>
 
-        {/* Not ItemDescription: its muted colour is 2.36:1 and cannot host the glyph sibling. */}
-        <View
+        {/* Not ItemDescription: its muted colour is 2.36:1. */}
+        <Typography
+          className="text-content-secondary font-inter"
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: N3_ROW_TYPE_GAP,
+            fontSize: Type.caption,
+            lineHeight: lineHeightFor(Type.caption),
             marginTop: Spacing.xxxs,
           }}
         >
-          <MaterialCommunityIcons
-            name={ACCOUNT_TYPE_ICONS[account.type]}
-            size={N3_ROW_TYPE_GLYPH}
-            color={Colors.dark.text2}
-          />
-          <Typography
-            className="text-content-secondary font-inter"
-            style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
-          >
-            {ACCOUNT_TYPE_LABELS[account.type]}
-          </Typography>
-        </View>
+          {ACCOUNT_TYPE_LABELS[account.type]}
+        </Typography>
       </ListGroup.ItemContent>
 
       {/* Passing children replaces the slot's default chevron outright. */}
       <ListGroup.ItemSuffix style={{ alignItems: 'flex-end', flexShrink: 0 }}>
         <Typography
-          className="text-foreground font-sora tabular-nums"
+          className={`${resolveAccountBalanceColorClass(account.type)} font-sora tabular-nums`}
           style={{
             fontSize: Type.bodyStrong,
             lineHeight: lineHeightFor(Type.bodyStrong),
@@ -95,6 +95,9 @@ export function AccountRow({ account }: { account: Account }) {
           {code}
         </Typography>
       </ListGroup.ItemSuffix>
+
+      {/* Empty by design: MA-016 puts the reorder grip here. */}
+      <View style={{ width: Size.reorderGripSlot }} />
     </ListGroup.Item>
   );
 }

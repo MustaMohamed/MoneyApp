@@ -176,6 +176,7 @@ export function useDashboard() {
 
   const goToAccount = useCallback((id: string) => router.push(`/accounts/${id}`), [router]);
   const goToAddAccount = useCallback(() => router.push('/accounts/add_account'), [router]);
+  const goToAccountsList = useCallback(() => router.push('/accounts'), [router]);
   const goToSettings = useCallback(() => router.push('/settings'), [router]);
   const goToTransactions = useCallback(() => router.push('/(app)/(tabs)/transactions'), [router]);
   const goToBudget = useCallback(() => router.push('/(app)/(tabs)/budget'), [router]);
@@ -230,6 +231,7 @@ export function useDashboard() {
     retry,
     goToAccount,
     goToAddAccount,
+    goToAccountsList,
     goToSettings,
     goToTransactions,
     goToBudget,

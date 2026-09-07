@@ -528,6 +528,7 @@ describe('useDashboard', () => {
       result.current.setSelectedSegment('accounts');
       result.current.goToAccount('account-id');
       result.current.goToAddAccount();
+      result.current.goToAccountsList();
       result.current.goToSettings();
       result.current.goToTransactions();
       result.current.goToBudget();
@@ -539,6 +540,7 @@ describe('useDashboard', () => {
     expect(mockPush.mock.calls).toEqual([
       ['/accounts/account-id'],
       ['/accounts/add_account'],
+      ['/accounts'],
       ['/settings'],
       ['/(app)/(tabs)/transactions'],
       ['/(app)/(tabs)/budget'],

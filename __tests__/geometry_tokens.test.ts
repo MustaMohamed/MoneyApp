@@ -14,6 +14,14 @@ describe('zero-shift geometry tokens', () => {
     expect(Size.progressRail).toBe(ms(55));
   });
 
+  it('locks the five accounts-list values read from A1 and B1', () => {
+    expect(Size.accountTile).toBe(ms(28));
+    expect(Size.accountListRowMinHeight).toBe(ms(64));
+    expect(Size.reorderGripSlot).toBe(ms(16));
+    expect(Size.inlineLinkChevron).toBe(ms(14));
+    expect(Size.inlineLinkOffset).toBe(ms(6));
+  });
+
   it('the N4 value slot stays taller than the number it has to hold', () => {
     expect(Size.summaryValueSlot).toBeGreaterThan(Type.amountEntry);
   });

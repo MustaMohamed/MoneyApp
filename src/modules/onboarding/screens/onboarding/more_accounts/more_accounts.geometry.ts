@@ -1,14 +1,11 @@
 import type { ViewStyle } from 'react-native';
 
-import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Size, Spacing } from '@/constants/theme';
 import {
   DEFAULT_ACCOUNT_COLOR,
   findAccountColor,
 } from '@/modules/accounts/constants/account_palette';
-import type { Account } from '@/modules/accounts/entities/account.entity';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
-import { formatCurrencyParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 /** mockup.html:619, `.lrow { min-height: var(--size-budget-category-row-height) }`. */
@@ -40,10 +37,4 @@ export const N3_HEADLINE_TRACKING_EM = BROADSHEET_HEADLINE_TRACKING_EM;
 export function resolveAccountRowDotColor(color: string | null): string {
   if (color === null) return DEFAULT_ACCOUNT_COLOR;
   return findAccountColor(color)?.hex ?? DEFAULT_ACCOUNT_COLOR;
-}
-
-/** Reads `current_balance`, not `opening_balance`: the two are equal only at account creation. */
-export function resolveAccountRowA11yLabel(account: Account): string {
-  const { value, code } = formatCurrencyParts(account.current_balance, account.currency);
-  return `${account.name}, ${ACCOUNT_TYPE_LABELS[account.type]}, ${value} ${code}`;
 }

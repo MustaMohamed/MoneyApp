@@ -52,6 +52,7 @@ export default function DashboardScreen() {
     retry,
     goToAccount,
     goToAddAccount,
+    goToAccountsList,
     goToSettings,
     goToTransactions,
     goToBudget,
@@ -224,6 +225,7 @@ export default function DashboardScreen() {
                       netWorth={state.netWorth}
                       baseCurrency={state.baseCurrency}
                       accountsCount={totalAccountsCount}
+                      onSeeAllPress={goToAccountsList}
                     />
                     {visibleTypes.map((type, index) => (
                       <Animated.View key={type} entering={sectionEntering(index)}>
