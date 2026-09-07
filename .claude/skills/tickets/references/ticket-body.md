@@ -35,7 +35,7 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 | Depends on | `MA-nnn (#N)` list, or `nothing`; real dependencies only |
 | Verify | `emulator` when the task changes what a screen shows or what the app writes; else `none` |
 | Flags | any of `data-loss migration`, `money path`, `native change`, `user copy`, `secure store`; else `none`. These are CLAUDE.md's critical triggers, written where the merge gate reads them |
-| Reviewed | `none` when written; `/issue-review` writes the date when the body passes with no open ask, on a split parent as on a leaf. `board.sh promote` moves only a leaf with a date under a parent with a date, so this field is the road to Ready For Development; an open ask sends the issue to Defined. Any rewrite of the body by `/boundaries` or `/tickets` resets it to `none` |
+| Reviewed | `none` when written; `/issue-review` writes the date when the body passes with no open ask, on a split parent as on a leaf. `board.sh promote` moves only a leaf with a date under a parent with a date, so this field is the road to Ready For Development; a review ends only with every question answered, and a run ended on a deferred question leaves the issue at Defined. Any rewrite of the body by `/boundaries` or `/tickets` resets it to `none` |
 
 Title `MA-nnn — <title>`, the number from `bash scripts/board.sh next-ma`.
 
