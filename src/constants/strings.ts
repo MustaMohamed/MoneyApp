@@ -298,6 +298,10 @@ export const Strings = {
   accountBalanceReviewConfirm: 'Balance is correct',
   accountBalanceReviewError: 'Could not confirm this balance. Please try again.',
 
+  // Accounts list (B1)
+  accountsListTitle: 'Accounts',
+  accountsListSection: 'Your accounts',
+
   // §9 Account Detail: balance hero captions
   accountHeroOpening: (amount: string, currency: string) => `Opening ${amount} ${currency}`,
   accountHeroAdjusted: 'adjusted',

@@ -192,6 +192,11 @@ export const Size = {
   flagBox: ms(36),
   shieldBox: ms(48),
   colorDot: ms(20),
+  /** Accounts list B1: colour tile, row minimum, the grip slot MA-016 fills, the See-all chevron. */
+  accountTile: ms(28),
+  accountListRowMinHeight: ms(64),
+  reorderGripSlot: ms(16),
+  inlineLinkChevron: ms(14),
   progressTrack: ms(8),
   progressThin: ms(3),
   progressDot: ms(4),

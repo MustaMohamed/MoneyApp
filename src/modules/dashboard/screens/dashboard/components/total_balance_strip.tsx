@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { LinkButton } from 'heroui-native';
 import React from 'react';
 import { Text as RNText, View } from 'react-native';
 
@@ -10,8 +11,8 @@ import {
 } from '@/components/ui/hero_gradient';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
-import { SemanticTokens } from '@/constants/theme_tokens';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
@@ -29,6 +30,7 @@ interface TotalBalanceStripProps {
   /** Read once in `dashboard.hook.ts` and passed down, never from a store here. */
   baseCurrency: Currency;
   accountsCount: number;
+  onSeeAllPress: () => void;
 }
 
 function TotalBalanceStripAmount({
@@ -50,6 +52,7 @@ export function TotalBalanceStrip({
   netWorth,
   baseCurrency,
   accountsCount,
+  onSeeAllPress,
 }: TotalBalanceStripProps) {
   return (
     <View className="border-border mx-4 mt-2 mb-2 overflow-hidden rounded-2xl border">
@@ -97,6 +100,24 @@ export function TotalBalanceStrip({
           <RNText className="font-sora-semibold text-foreground mt-1 text-base">
             {String(accountsCount)}
           </RNText>
+          <LinkButton
+            size="sm"
+            onPress={onSeeAllPress}
+            accessibilityRole="button"
+            style={{ marginTop: Spacing.xxs + Spacing.xxxs, alignSelf: 'flex-end' }}
+          >
+            <LinkButton.Label
+              className="text-accent font-inter-semibold"
+              style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
+            >
+              {Strings.dashSeeAll}
+            </LinkButton.Label>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={Size.inlineLinkChevron}
+              color={GoldTokens[500]}
+            />
+          </LinkButton>
         </View>
       </LinearGradient>
     </View>
