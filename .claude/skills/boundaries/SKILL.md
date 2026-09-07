@@ -12,7 +12,7 @@ Phase 2 of the define workflow. Interview the user from codebase evidence until 
 
 `bash scripts/board.sh get <n>` prints `Todo` and `gh issue view <n> --json body --jq .body` has no `Scope locked` line. Defined or later: say so and stop; there is nothing to do here. Not on the board yet: `bash scripts/board.sh status <n> Todo` first.
 
-Kind: an issue with the `epic` label is an epic; anything else is a task. A task at Todo has two exits and the user picks by invoking: `/tickets <n>` cuts it into sub-issues, this skill defines it as one leaf.
+Kind: an issue with the `epic` label is an epic; anything else is a task. A task at Todo has two exits and the user picks by invoking: `/tickets <n>` cuts it into sub-issues, this skill defines it as one leaf. A leaf locked here that later turns out bigger than one PR goes to `/tickets <n>` at Defined or Ready For Development, with no reset to Todo.
 
 ## Method
 
