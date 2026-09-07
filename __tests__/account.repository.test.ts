@@ -19,6 +19,7 @@ beforeAll(() => {
       __fakeDb: {
         runAsync: jest.Mock;
         getAllAsync: jest.Mock;
+        getFirstAsync: jest.Mock;
         execAsync: jest.Mock;
       };
     }
@@ -33,6 +34,11 @@ beforeAll(() => {
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     return realDb.prepare(sql).all(...(params as never[]));
+  });
+
+  mocked.getFirstAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
+    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
+    return realDb.prepare(sql).get(...(params as never[])) ?? null;
   });
 
   mocked.execAsync.mockImplementation(async (sql: string) => {

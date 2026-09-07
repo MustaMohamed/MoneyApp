@@ -30,17 +30,17 @@ export type EmptyStateProps =
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-interface VariantConfig<V extends EmptyStateVariant> {
+interface VariantConfig {
   icon: MCIName;
   headline: string;
-  description: V extends 'accountsArchivedOnly' ? (n: number) => string : string;
+  description: string | ((n: number) => string);
   ctaLabel: string | null;
   clearLabel: string | null;
   /** `inline` sits at the top of a scroll; `centered` fills the screen. */
   placement: 'centered' | 'inline';
 }
 
-const VARIANT_CONFIG: { [V in EmptyStateVariant]: VariantConfig<V> } = {
+const VARIANT_CONFIG: Record<EmptyStateVariant, VariantConfig> = {
   accounts: {
     icon: 'bank',
     headline: Strings.emptyAccountsHeadline,
@@ -127,10 +127,12 @@ const VARIANT_CONFIG: { [V in EmptyStateVariant]: VariantConfig<V> } = {
 export function EmptyState(props: EmptyStateProps) {
   const { onAction } = props;
   const config = VARIANT_CONFIG[props.variant];
+  // Only `accountsArchivedOnly` carries a count, and only its description reads one.
+  const archivedCount = props.variant === 'accountsArchivedOnly' ? props.archivedCount : 0;
   const description =
-    props.variant === 'accountsArchivedOnly'
-      ? VARIANT_CONFIG[props.variant].description(props.archivedCount)
-      : VARIANT_CONFIG[props.variant].description;
+    typeof config.description === 'function'
+      ? config.description(archivedCount)
+      : config.description;
 
   return (
     <View style={config.placement === 'inline' ? styles.rootInline : styles.root}>
