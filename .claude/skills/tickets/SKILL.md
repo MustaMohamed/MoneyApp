@@ -34,7 +34,7 @@ Sub-issues: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq lengt
 
    `--rewrite`: `gh issue edit <child> --body "$BODY"` keeps number, title and an existing Context, writes the header with `Reviewed none`, and touches only a child at Todo, Defined or Ready For Development; a rewritten child at Ready For Development goes back, `bash scripts/board.sh status <child> Defined`, since its review no longer stands. A child past that is in delivery, listed as skipped, and left alone.
 
-   Once, after the last ticket: `gh issue comment <parent> --body "Cut: <delivery | module | incremental, or the mix named>"`, so `/issue-review` can check the set against it. The parent stays at Defined, or returns there when it was a leaf at Ready For Development, `bash scripts/board.sh status <parent> Defined`, with `Reviewed none` on its header; a parent is never promoted and closes through its children. No child is promoted here: Ready For Development is `/issue-review`'s to give.
+   Once, after the last ticket: `gh issue comment <parent> --body "Cut: <delivery | module | incremental, or the mix named>"`, so `/issue-review` can check the set against it. The parent stays at Defined, or returns there when it was a leaf at Ready For Development, `bash scripts/board.sh status <parent> Defined`, with `Reviewed none` on its header; a parent is never promoted and closes through its children, and `/issue-review` marks it before any child. No child is promoted here: Ready For Development is `/issue-review`'s to give.
 6. **Reply** with the numbers created, each with its status, and `Next: /issue-review <parent>`, the step that makes them pullable.
 
 ## Ordering
