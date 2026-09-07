@@ -79,7 +79,7 @@
   ],
   "overrides": [
     {
-      "files": ["scripts/**/*.{ts,tsx,js}", "metro.config.js", "babel.config.js"],
+      "files": ["scripts/**/*.{ts,tsx,js,mjs}", "metro.config.js", "babel.config.js"],
       "rules": {
         "typescript/no-unsafe-assignment": "warn",
         "typescript/no-explicit-any": "warn",
