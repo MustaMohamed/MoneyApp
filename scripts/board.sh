@@ -128,7 +128,7 @@ usage() {
   cat >&2 <<'EOF'
 usage: bash scripts/board.sh <command> ...
   add <issue>                  put the issue on the board (idempotent), print the item id
-  status <issue> <Status>      set the Status field; Status is the option name, quoted if it has spaces
+  status <issue> <Status>      set the Status field; Status is the option name, quoted if it has spaces. "In Progress" carries to every parent not already there
   get <issue>                  print the issue's current Status name
   link <parent> <child>        make <child> a sub-issue of <parent>
   promote <issue>              Defined leaves with a Reviewed date and every Depends on closed -> Ready For Development: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
@@ -159,6 +159,12 @@ case "$cmd" in
     gh project item-edit --project-id "$PROJECT_ID" --id "$id" \
       --field-id "$STATUS_FIELD" --single-select-option-id "$opt" >/dev/null
     echo "#$1 -> $2"
+    if [ "$2" = "In Progress" ]; then
+      parent=$(gh api "repos/$REPO/issues/$1/parent" --jq .number 2>/dev/null) || parent=""
+      case "$parent" in ''|*[!0-9]*) ;; *)
+        case "$(bash "$0" get "$parent")" in "In Progress"|Done) ;; *) bash "$0" status "$parent" "In Progress" ;; esac ;;
+      esac
+    fi
     ;;
   get)
     [ $# -eq 1 ] || usage

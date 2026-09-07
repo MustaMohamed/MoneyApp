@@ -48,12 +48,13 @@ Every move, who makes it, and on what. Nothing else moves a row.
 | Ready For Development | Planned | `/prep` | plan committed on the ticket branch |
 | Ready For Development | Todo | `/prep` | the ticket returned on a gap; next is `/boundaries` or `/tickets` |
 | Planned | In Progress | `/ship` phase 1 | implementer dispatched |
+| Defined, parent | In Progress | `board.sh status`, carried up from the child, at every level | the first child reaches In Progress; the parent stays there until its last child closes |
 | In Progress | In Review | `/ship` phase 2 | PR open, lenses running |
 | In Review | Awaiting Human | `/ship` | a dispute, the cycle cap, or the merge gate |
 | Awaiting Human | Done | the merge, `Closes #N`; then the post-merge routine, `board.sh status <n> Done` and `promote <parent>` | PR merged |
 | parent, any | Done | `board.sh promote` | last child closed as completed; closes the parent, then one level up |
 
-**Hierarchy.** A milestone `MA-<module>-<goal>` groups any number of epics. An epic parents its tasks as sub-issues. A task I choose to break down further is created at Todo and re-enters `/tickets`; a leaf at Defined or Ready For Development that turns out bigger than one PR goes to `/tickets` as it is. An issue with sub-issues is a parent: it stays at Defined, `promote`, `/prep` and `/ship` skip it, and it closes when its last child closes. The unit that gets a branch, a PR and `Closes #N` is the leaf task.
+**Hierarchy.** A milestone `MA-<module>-<goal>` groups any number of epics. An epic parents its tasks as sub-issues. A task I choose to break down further is created at Todo and re-enters `/tickets`; a leaf at Defined or Ready For Development that turns out bigger than one PR goes to `/tickets` as it is. An issue with sub-issues is a parent: it sits at Defined until its first child is In Progress, then In Progress until its last child closes; `promote`, `/prep` and `/ship` skip it. The unit that gets a branch, a PR and `Closes #N` is the leaf task.
 
 **Delivering a ticket is two skills that compose on the board.** `/prep <n>` takes a leaf task from Ready For Development to Planned: it creates the ticket branch linked to the issue (`gh issue develop`), a cold planner writes `.work/MA-XXX/plan.md`, a fresh reviewer checks it against Acceptance and the code, and the plan is committed on the branch. `/ship <n>` takes it from Planned to Done: implement, review battery, triage and fix, re-check, merge; on a Ready For Development ticket it runs `/prep` first, and `/ship` alone pulls the top Planned row. The plan lives under `.work/`, the transient branch-only folder, never under `docs/`, and never reaches main: ship removes it in its last commit before the merge. One human gate, the merge; every destructive repository operation is an explicit request from me.
 

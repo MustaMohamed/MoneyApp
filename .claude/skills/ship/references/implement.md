@@ -2,7 +2,7 @@
 
 **Goal:** the plan becomes commits on the ticket branch, self-reviewed, CI parity chain green, render pass done when the header says `Verify emulator`. No push.
 
-**Board:** `bash scripts/board.sh status <n> "In Progress"` at dispatch.
+**Board:** `bash scripts/board.sh status <n> "In Progress"` at dispatch. The script carries In Progress up to the parent and its parent when they are not there yet; a parent stays In Progress until `promote` closes it with its last child.
 
 ## Conductor: compose the implementer
 
