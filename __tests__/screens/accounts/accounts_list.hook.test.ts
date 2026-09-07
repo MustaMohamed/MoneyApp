@@ -132,7 +132,6 @@ describe('useAccountsList', () => {
     storeState = { accounts, loadError: true, loadAccounts: mockLoadAccounts };
     const { result } = await renderHook(() => useAccountsList());
 
-    expect(result.current.state.loadError).toBe(true);
     expect(result.current.state.content).toBe('error');
   });
 });

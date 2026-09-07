@@ -35,7 +35,6 @@ export function useAccountsList() {
   return {
     state: {
       accounts,
-      loadError,
       isRetrying,
       content: resolveAccountsListContent({ loadError, accountCount: accounts.length }),
     },

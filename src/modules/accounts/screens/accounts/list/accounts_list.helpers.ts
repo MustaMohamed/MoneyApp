@@ -5,7 +5,6 @@ type AccountsListContentInput = {
 
 type AccountsListContent = 'error' | 'empty' | 'rows';
 
-/** The error state wins over both empty states whenever the last read failed. */
 export function resolveAccountsListContent({
   loadError,
   accountCount,

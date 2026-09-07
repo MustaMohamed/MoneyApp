@@ -17,6 +17,8 @@ Every fact below was re-verified against the tree on 2026-09-01, not copied from
 
 **The wrapper differs.** `EmptyState` renders a plain `View` (`empty_state.tsx:112`) and is embedded in its caller's own layout, list bodies and tab content slots. `ErrorState` owns a route-level `Screen` (`error_state.tsx:41`); its callers are whole-screen fallbacks, the startup error and the router error boundary.
 
+**Amended 2026-09-07, MA-026 (#400).** `ErrorState` still owns its `Screen` (`error_state.tsx:49`), but a caller may now switch the safe-area padding off with `edges` (`:28`) and embed it under a header, which the accounts list does (`src/modules/accounts/screens/accounts/list/index.tsx:49`), so "its callers are whole-screen fallbacks" no longer holds. The refusal in §3 rests on the other three facts and the prop-surface argument.
+
 **The a11y and testID contracts differ.** `ErrorState` requires `actionAccessibilityLabel` (`error_state.tsx:21`) and takes a `testID` (`:25`) that lands on its `Screen` (`:41`); both callers pass both (`startup-error`, `route-error`). `EmptyState`'s public props carry neither (`empty_state.tsx:25-28`); its labels are internal, derived from variant config (`:134`, `:152`), and its only testID is the internal gradient probe `empty-state-cta-gradient` (`:137`).
 
 ## 2. What is shared, and how the sharing is guarded
@@ -25,7 +27,7 @@ The geometry in `state_screen.geometry.ts`, and nothing else. The two kinds shar
 
 ## 3. The rejected alternative
 
-One component with a variant prop was weighed in #290 and is refused. The merged prop surface would be a discriminated union with a nullable CTA slot: `isActionLoading`, `isActionDisabled`, `actionAccessibilityLabel` and `testID` mean nothing to the four action-less empty variants, and the variant-config copy machinery means nothing to error callers, which pass free strings. The wrapper split is worse than cosmetic: the merged component would own a `Screen` on one discriminant and not the other, so what a caller may embed it in changes with a prop value. Every caller would use roughly half the surface, which is the two-half-used-prop-sets component #290 itself warned about, built deliberately this time.
+One component with a variant prop was weighed in #290 and is refused. The merged prop surface would be a discriminated union with a nullable CTA slot: `isActionLoading`, `isActionDisabled`, `actionAccessibilityLabel` and `testID` mean nothing to the four action-less empty variants, and the variant-config copy machinery means nothing to error callers, which pass free strings. The wrapper split is worse than cosmetic: the merged component would own a `Screen` on one discriminant and not the other, so what a caller may embed it in changes with a prop value — a larger change than MA-026's `edges`, which moves the padding inside a wrapper that is always there. Every caller would use roughly half the surface, which is the two-half-used-prop-sets component #290 itself warned about, built deliberately this time.
 
 ## 4. Provenance
 

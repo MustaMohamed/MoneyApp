@@ -49,10 +49,10 @@ export default function AccountsListScreen() {
           edges={[]}
           flat
           iconName="alert-circle-outline"
-          title={Strings.accountsLoadErrorTitle}
-          description={Strings.accountsLoadErrorDescription}
-          actionLabel={Strings.accountsLoadErrorRetry}
-          actionAccessibilityLabel={Strings.accountsLoadErrorRetry}
+          title={Strings.accountsReadErrorTitle}
+          description={Strings.accountsReadErrorDescription}
+          actionLabel={Strings.accountsReadErrorRetry}
+          actionAccessibilityLabel={Strings.accountsReadErrorRetry}
           onAction={() => void retry()}
           isActionLoading={isRetrying}
           isActionDisabled={isRetrying}
