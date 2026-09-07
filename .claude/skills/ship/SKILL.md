@@ -17,9 +17,9 @@ Delivery of one leaf task from Planned to Done, on the branch `/prep` created, t
    - **Planned** → phase 1.
    - **Ready For Development** with no sub-issues → run the `prep` skill on `<n>` first, in this session, then phase 1 without stopping. Prep's two stops survive (a gap, a disputed finding); a ticket plan returns to Todo ends the run with plan's `Next:` line. The board is the composition switch.
    - **In Progress / In Review / Awaiting Human** with no `state.md` → another machine or session owns it; report the branch (`gh issue develop --list <n>`) and the PR (`gh pr list --head <branch> --state all`) and stop.
-   - **Ready For Development** with sub-issues → a parent that should be at Defined; name the children, `bash scripts/board.sh status <n> Defined`, and stop.
+   - **Ready For Development** with sub-issues → a parent, its column mirrors its children; name the children at Ready For Development and stop, nothing is pulled from a parent.
    - Anything else → say what you found and stop.
-3. `/ship` alone: the top Planned row, else the top Ready For Development row without sub-issues; a parent never belongs in that column, the check is a net. `gh project item-list` returns items in the board's position order, which is the row order within a column (checked 2026-09-06: #382 listed before #381, which was created first), so the first match is the top row. Name it in the reply.
+3. `/ship` alone: the top Planned row, else the top Ready For Development row without sub-issues; a parent sits in that column as a mirror of its children and is never pulled. `gh project item-list` returns items in the board's position order, which is the row order within a column (checked 2026-09-06: #382 listed before #381, which was created first), so the first match is the top row. Name it in the reply.
    ```bash
    gh project item-list 2 --owner MustaMohamed --limit 500 --format json --jq '[.items[] | select(.status == "Planned") | .content.number] | first'
    for n in $(gh project item-list 2 --owner MustaMohamed --limit 500 --format json --jq '.items[] | select(.status == "Ready For Development") | .content.number'); do
