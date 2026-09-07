@@ -3,6 +3,7 @@ import { PressableFeedback, Separator } from 'heroui-native';
 import React from 'react';
 
 import { EmptyState } from '@/components/ui/empty_state';
+import { ErrorState } from '@/components/ui/error_state';
 import { ListCard } from '@/components/ui/list_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section_header';
@@ -16,10 +17,11 @@ import { AccountListRow } from './components/account_list_row';
 
 export default function AccountsListScreen() {
   const {
-    state: { accounts },
+    state: { accounts, content, isRetrying },
     goToAccount,
     goToAddAccount,
     onBack,
+    retry,
   } = useAccountsList();
 
   return (
@@ -41,7 +43,22 @@ export default function AccountsListScreen() {
         }
       />
 
-      {accounts.length === 0 ? (
+      {content === 'error' ? (
+        // `edges={[]}`: the outer `Screen` already pads top and bottom.
+        <ErrorState
+          edges={[]}
+          flat
+          iconName="alert-circle-outline"
+          title={Strings.accountsReadErrorTitle}
+          description={Strings.accountsReadErrorDescription}
+          actionLabel={Strings.accountsReadErrorRetry}
+          actionAccessibilityLabel={Strings.accountsReadErrorRetry}
+          onAction={() => void retry()}
+          isActionLoading={isRetrying}
+          isActionDisabled={isRetrying}
+          testID="accounts-load-error"
+        />
+      ) : content === 'empty' ? (
         // MA-025 replaces this with B2 and keeps it for B3.
         <EmptyState variant="accounts" onAction={goToAddAccount} />
       ) : (
