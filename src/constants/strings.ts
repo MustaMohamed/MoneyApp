@@ -1079,6 +1079,11 @@ export const Strings = {
   // EmptyState component
   emptyAccountsHeadline: 'No accounts yet',
   emptyAccountsDescription: 'Add your first account to start tracking your money.',
+  emptyAccountsArchivedOnlyHeadline: 'No active accounts',
+  emptyAccountsArchivedOnlyDescription: (n: number) =>
+    n === 1
+      ? 'Your 1 archived account is below. Unarchive it, or add a new account.'
+      : `Your ${n} archived accounts are below. Unarchive one, or add a new account.`,
   emptyTransactionsHeadline: 'No transactions yet',
   emptyTransactionsDescription: 'Your transactions will appear here once you start adding them.',
   emptyTransactionsCta: 'Add Transaction',

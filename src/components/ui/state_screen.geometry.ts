@@ -16,6 +16,7 @@ interface StateScreenKindGeometry {
 interface StateScreenGeometry {
   paddingHorizontal: number;
   bodyGap: number;
+  inlinePaddingVertical: number;
   error: StateScreenKindGeometry;
   empty: StateScreenKindGeometry;
 }
@@ -23,6 +24,7 @@ interface StateScreenGeometry {
 export const STATE_SCREEN_LAYOUT = {
   paddingHorizontal: Spacing.xl,
   bodyGap: Spacing.xs,
+  inlinePaddingVertical: Spacing.xl,
   error: {
     iconCircle: ms(64),
     iconSize: Size.iconXl,
@@ -43,6 +45,8 @@ type StateScreenKind = 'error' | 'empty';
 
 interface StateScreenLayout {
   root: Readonly<ViewStyle>;
+  /** Top-placed variant: no `flex`, so it does not centre inside a scroll. */
+  rootInline: Readonly<ViewStyle>;
   iconCircle: Readonly<ViewStyle>;
   /** Not a style object; feeds the icon's own `size` prop directly. */
   iconSize: number;
@@ -59,6 +63,13 @@ function buildStateScreenLayout(kind: StateScreenKind): StateScreenLayout {
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: STATE_SCREEN_LAYOUT.paddingHorizontal,
+  });
+
+  const rootInline: Readonly<ViewStyle> = Object.freeze({
+    alignItems: 'center',
+    paddingHorizontal: STATE_SCREEN_LAYOUT.paddingHorizontal,
+    paddingTop: STATE_SCREEN_LAYOUT.inlinePaddingVertical,
+    paddingBottom: STATE_SCREEN_LAYOUT.inlinePaddingVertical,
   });
 
   const iconCircle: Readonly<ViewStyle> = Object.freeze({
@@ -85,7 +96,15 @@ function buildStateScreenLayout(kind: StateScreenKind): StateScreenLayout {
       ? Object.freeze({ marginTop: config.actionGap, width: '100%', maxWidth: config.bodyMaxWidth })
       : Object.freeze({ marginTop: config.actionGap });
 
-  return Object.freeze({ root, iconCircle, iconSize: config.iconSize, headline, body, action });
+  return Object.freeze({
+    root,
+    rootInline,
+    iconCircle,
+    iconSize: config.iconSize,
+    headline,
+    body,
+    action,
+  });
 }
 
 export const ERROR_STATE_SCREEN_LAYOUT: StateScreenLayout = buildStateScreenLayout('error');

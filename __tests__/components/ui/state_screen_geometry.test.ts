@@ -85,6 +85,38 @@ describe('resolveStateScreenLayout — every leaf pairs its token and its scaled
   });
 });
 
+describe('resolveStateScreenLayout — rootInline places the block at the top, not centred', () => {
+  it.each([
+    ['error', errorLayout],
+    ['empty', emptyLayout],
+  ] as const)('%s — carries no flex and no justifyContent', (_kind, layout) => {
+    expect(layout.rootInline.flex).toBeUndefined();
+    expect(layout.rootInline.justifyContent).toBeUndefined();
+    expect(layout.rootInline.alignItems).toBe('center');
+  });
+
+  it('shares the horizontal padding with the centred root', () => {
+    expect(emptyLayout.rootInline.paddingHorizontal).toBe(STATE_SCREEN_LAYOUT.paddingHorizontal);
+    expect(emptyLayout.rootInline.paddingHorizontal).toBe(emptyLayout.root.paddingHorizontal);
+  });
+
+  it('pads top and bottom with the shared inline slot', () => {
+    expect(emptyLayout.rootInline.paddingTop).toBe(STATE_SCREEN_LAYOUT.inlinePaddingVertical);
+    expect(emptyLayout.rootInline.paddingBottom).toBe(STATE_SCREEN_LAYOUT.inlinePaddingVertical);
+    expect(emptyLayout.rootInline.paddingTop).toBe(Spacing.xl);
+    expect(emptyLayout.rootInline.paddingTop).toBe(28);
+  });
+
+  it('leaves the centred root untouched', () => {
+    expect(emptyLayout.root).toEqual({
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.xl,
+    });
+  });
+});
+
 describe('resolveStateScreenLayout — the icon circle never goes out of round', () => {
   it('error borderRadius is exactly half of width', () => {
     expect(errorLayout.iconCircle.borderRadius).toBe(STATE_SCREEN_LAYOUT.error.iconCircle / 2);
@@ -110,11 +142,13 @@ describe('resolveStateScreenLayout — the action slot differs by kind', () => {
 });
 
 describe('resolveStateScreenLayout — shared slots live once, not duplicated per kind', () => {
-  it('paddingHorizontal and bodyGap are absent from both kind configs', () => {
+  it('paddingHorizontal, bodyGap and inlinePaddingVertical are absent from both kind configs', () => {
     expect('paddingHorizontal' in STATE_SCREEN_LAYOUT.error).toBe(false);
     expect('bodyGap' in STATE_SCREEN_LAYOUT.error).toBe(false);
+    expect('inlinePaddingVertical' in STATE_SCREEN_LAYOUT.error).toBe(false);
     expect('paddingHorizontal' in STATE_SCREEN_LAYOUT.empty).toBe(false);
     expect('bodyGap' in STATE_SCREEN_LAYOUT.empty).toBe(false);
+    expect('inlinePaddingVertical' in STATE_SCREEN_LAYOUT.empty).toBe(false);
   });
 
   it('both kinds resolve the identical shared paddingHorizontal', () => {
@@ -123,7 +157,15 @@ describe('resolveStateScreenLayout — shared slots live once, not duplicated pe
 });
 
 describe('resolveStateScreenLayout — key-set pins and frozen output', () => {
-  const EXPECTED_KEYS = ['action', 'body', 'headline', 'iconCircle', 'iconSize', 'root'];
+  const EXPECTED_KEYS = [
+    'action',
+    'body',
+    'headline',
+    'iconCircle',
+    'iconSize',
+    'root',
+    'rootInline',
+  ];
 
   it('error carries exactly these keys', () => {
     expect(Object.keys(errorLayout).sort()).toEqual(EXPECTED_KEYS);
@@ -136,13 +178,17 @@ describe('resolveStateScreenLayout — key-set pins and frozen output', () => {
   it.each([
     ['error', errorLayout],
     ['empty', emptyLayout],
-  ] as const)('%s — root, iconCircle, headline, body, action are frozen', (_kind, layout) => {
-    expect(Object.isFrozen(layout.root)).toBe(true);
-    expect(Object.isFrozen(layout.iconCircle)).toBe(true);
-    expect(Object.isFrozen(layout.headline)).toBe(true);
-    expect(Object.isFrozen(layout.body)).toBe(true);
-    expect(Object.isFrozen(layout.action)).toBe(true);
-  });
+  ] as const)(
+    '%s — root, rootInline, iconCircle, headline, body, action are frozen',
+    (_kind, layout) => {
+      expect(Object.isFrozen(layout.root)).toBe(true);
+      expect(Object.isFrozen(layout.rootInline)).toBe(true);
+      expect(Object.isFrozen(layout.iconCircle)).toBe(true);
+      expect(Object.isFrozen(layout.headline)).toBe(true);
+      expect(Object.isFrozen(layout.body)).toBe(true);
+      expect(Object.isFrozen(layout.action)).toBe(true);
+    },
+  );
 });
 
 describe('resolveStateScreenLayout — a real singleton, not a per-call rebuild', () => {

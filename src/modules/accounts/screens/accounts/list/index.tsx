@@ -17,7 +17,7 @@ import { AccountListRow } from './components/account_list_row';
 
 export default function AccountsListScreen() {
   const {
-    state: { rows, content, isRetrying },
+    state: { rows, archivedCount, content, emptyState, isRetrying },
     goToAccount,
     goToAddAccount,
     onBack,
@@ -58,24 +58,34 @@ export default function AccountsListScreen() {
           isActionDisabled={isRetrying}
           testID="accounts-load-error"
         />
-      ) : content === 'empty' ? (
-        // MA-025 replaces this with B2 and keeps it for B3.
+      ) : emptyState === 'noAccounts' ? (
         <EmptyState variant="accounts" onAction={goToAddAccount} />
       ) : (
         <ScreenScroll
           contentContainerStyle={{ paddingBottom: Spacing.xxl }}
           showsVerticalScrollIndicator={false}
         >
-          <SectionHeader title={Strings.accountsListSection} count={rows.length} />
-          <ListCard>
-            {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
-            {rows.map(({ account, caption }, index) => (
-              <React.Fragment key={account.id}>
-                {index > 0 ? <Separator thickness={Size.hairline} /> : null}
-                <AccountListRow account={account} caption={caption} onPress={goToAccount} />
-              </React.Fragment>
-            ))}
-          </ListCard>
+          {emptyState === 'archivedOnly' ? (
+            // Nothing follows: the archived section is MA-017's slot.
+            <EmptyState
+              variant="accountsArchivedOnly"
+              archivedCount={archivedCount}
+              onAction={goToAddAccount}
+            />
+          ) : (
+            <>
+              <SectionHeader title={Strings.accountsListSection} count={rows.length} />
+              <ListCard>
+                {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
+                {rows.map(({ account, caption }, index) => (
+                  <React.Fragment key={account.id}>
+                    {index > 0 ? <Separator thickness={Size.hairline} /> : null}
+                    <AccountListRow account={account} caption={caption} onPress={goToAccount} />
+                  </React.Fragment>
+                ))}
+              </ListCard>
+            </>
+          )}
         </ScreenScroll>
       )}
     </Screen>

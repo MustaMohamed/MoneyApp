@@ -10,6 +10,13 @@ export async function getAccounts(db: SQLiteDatabase): Promise<Account[]> {
   );
 }
 
+export async function getArchivedAccountCount(db: SQLiteDatabase): Promise<number> {
+  const rows = await db.getAllAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM accounts WHERE is_archived = 1',
+  );
+  return rows[0].count;
+}
+
 export async function getAccountByIdIncludingArchived(
   db: SQLiteDatabase,
   id: string,
