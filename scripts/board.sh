@@ -115,6 +115,15 @@ promote() {
   done <<<"$candidates"
 
   echo "#$parent: $total children, $open open, promoted $promoted, skipped $skipped"
+  if [ -n "$children" ] && [ "$(bash "$0" get "$parent")" = "Defined" ]; then
+    lift=$promoted
+    [ "$lift" -gt 0 ] || for num in $(printf '%s\n' "$children" | cut -d "$US" -f1); do
+      case "$(jq -r --argjson n "$num" '.items[] | select(.content.number == $n) | .status' <<<"$items")" in
+        "Ready For Development"|Planned|"In Review"|"Awaiting Human") lift=1; break ;;
+      esac
+    done
+    [ "$lift" -eq 0 ] || bash "$0" status "$parent" "Ready For Development"
+  fi
   [ "$total" -gt 0 ] && [ "$open" -eq 0 ] || return 0
   if [ "$completed" -lt "$total" ]; then
     echo "#$parent: every child is closed but $((total - completed)) not as completed; left open" >&2
@@ -137,7 +146,7 @@ usage: bash scripts/board.sh <command> ...
   status <issue> <Status>      set the Status field; Status is the option name, quoted if it has spaces. "In Progress" carries to every parent not already there
   get <issue>                  print the issue's current Status name
   link <parent> <child>        make <child> a sub-issue of <parent>
-  promote <issue>              Defined leaves with a Reviewed date, under a marked parent, every Depends on closed -> Ready For Development: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
+  promote <issue>              Defined leaves with a Reviewed date, under a marked parent, every Depends on closed -> Ready For Development, and a Defined parent follows its first child there: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
   next-ma                      print the next MA-nnn (highest in any issue title, plus one)
 EOF
   exit 2
