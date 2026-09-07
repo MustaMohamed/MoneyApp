@@ -21,7 +21,7 @@ Every fact below was re-verified against the tree on 2026-09-01, not copied from
 
 **Amended 2026-09-07, MA-026 (#400).** `ErrorState` still owns its `Screen` (`error_state.tsx:49`), but a caller may now switch the safe-area padding off with `edges` (`:28`) and embed it under a header, which the accounts list does (`src/modules/accounts/screens/accounts/list/index.tsx:49`), so "its callers are whole-screen fallbacks" no longer holds. The refusal in §3 rests on the other three facts and the prop-surface argument.
 
-**The a11y and testID contracts differ.** `ErrorState` requires `actionAccessibilityLabel` (`error_state.tsx:23`) and takes a `testID` (`:31`) that lands on its `Screen` (`:49`); all three callers pass both (`startup-error`, `route-error`, `accounts-load-error`). `EmptyState`'s public props carry neither (`empty_state.tsx:25-28`); its labels are internal, derived from variant config.
+**The a11y and testID contracts differ.** `ErrorState` requires `actionAccessibilityLabel` (`error_state.tsx:23`) and takes a `testID` (`:31`) that lands on its `Screen` (`:49`); all three callers pass both (`startup-error`, `route-error`, `accounts-load-error`). `EmptyState`'s public props carry neither (`empty_state.tsx:27-29`); its labels are internal, derived from variant config.
 
 2026-09-07 (MA-025): the gradient probe went with the gradient, so `EmptyState` now carries no testID at all (`empty_state.tsx:27-29` for the props, `:153-163` for the CTA) — this fact discriminates harder than when it was written.
 

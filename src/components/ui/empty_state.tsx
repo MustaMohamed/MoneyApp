@@ -40,7 +40,9 @@ interface VariantConfig {
   placement: 'centered' | 'inline';
 }
 
-const VARIANT_CONFIG: Record<EmptyStateVariant, VariantConfig> = {
+const VARIANT_CONFIG: Record<EmptyStateVariant, VariantConfig> & {
+  accountsArchivedOnly: { description: (n: number) => string };
+} = {
   accounts: {
     icon: 'bank',
     headline: Strings.emptyAccountsHeadline,
