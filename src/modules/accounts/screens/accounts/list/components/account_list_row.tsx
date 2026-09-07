@@ -3,7 +3,6 @@ import { ListGroup, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
-import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
@@ -14,10 +13,12 @@ import { ACCOUNTS_LIST_ROW_STYLE, resolveAccountTileColors } from '../accounts_l
 
 interface AccountListRowProps {
   account: Account;
+  /** The row's live figure line; the a11y label keeps the type label instead. */
+  caption: string;
   onPress: (id: string) => void;
 }
 
-export function AccountListRow({ account, onPress }: AccountListRowProps) {
+export function AccountListRow({ account, caption, onPress }: AccountListRowProps) {
   // Two nodes, not `formatCurrencyAmount`: B1 stacks the value over the code.
   const { value, code } = formatCurrencyParts(account.current_balance, account.currency);
   const tile = resolveAccountTileColors(account.color);
@@ -60,14 +61,16 @@ export function AccountListRow({ account, onPress }: AccountListRowProps) {
 
         {/* Not ItemDescription: its muted colour is 2.36:1. */}
         <Typography
-          className="text-content-secondary font-inter"
+          className="text-content-secondary font-inter tabular-nums"
           style={{
             fontSize: Type.caption,
             lineHeight: lineHeightFor(Type.caption),
             marginTop: Spacing.xxxs,
           }}
+          numberOfLines={1}
+          ellipsizeMode="tail"
         >
-          {ACCOUNT_TYPE_LABELS[account.type]}
+          {caption}
         </Typography>
       </ListGroup.ItemContent>
 

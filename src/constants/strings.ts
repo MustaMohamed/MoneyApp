@@ -305,6 +305,15 @@ export const Strings = {
   accountsReadErrorDescription:
     'Something went wrong reading your data. Your accounts are still there.',
   accountsReadErrorRetry: 'Try again',
+  // Single spaces around `·`, not `currencyTotalsSeparator`'s double: B1 `.cap` is one line.
+  accountCaptionBank: (monthIn: string, monthOut: string) =>
+    `Month in ${monthIn} · out ${monthOut}`,
+  accountCaptionSmartWallet: (amount: string, code: string, rate: string) =>
+    `≈ ${amount} ${code} at ${rate}`,
+  accountCaptionCash: (month: string, week: string) => `Month spend ${month} · week ${week}`,
+  accountCaptionSavings: (start: string, change: string) => `Month start ${start} · ${change}`,
+  accountCaptionCard: (limit: string, available: string) =>
+    `Limit ${limit} · available ${available}`,
 
   // §9 Account Detail: balance hero captions
   accountHeroOpening: (amount: string, currency: string) => `Opening ${amount} ${currency}`,

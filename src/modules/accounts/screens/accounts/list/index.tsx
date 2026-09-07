@@ -17,7 +17,7 @@ import { AccountListRow } from './components/account_list_row';
 
 export default function AccountsListScreen() {
   const {
-    state: { accounts, content, isRetrying },
+    state: { rows, content, isRetrying },
     goToAccount,
     goToAddAccount,
     onBack,
@@ -66,13 +66,13 @@ export default function AccountsListScreen() {
           contentContainerStyle={{ paddingBottom: Spacing.xxl }}
           showsVerticalScrollIndicator={false}
         >
-          <SectionHeader title={Strings.accountsListSection} count={accounts.length} />
+          <SectionHeader title={Strings.accountsListSection} count={rows.length} />
           <ListCard>
             {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
-            {accounts.map((account, index) => (
+            {rows.map(({ account, caption }, index) => (
               <React.Fragment key={account.id}>
                 {index > 0 ? <Separator thickness={Size.hairline} /> : null}
-                <AccountListRow account={account} onPress={goToAccount} />
+                <AccountListRow account={account} caption={caption} onPress={goToAccount} />
               </React.Fragment>
             ))}
           </ListCard>

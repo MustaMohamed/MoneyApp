@@ -1,8 +1,12 @@
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { buildInfoRows } from '@/modules/dashboard/screens/dashboard/components/account_card';
+import {
+  buildInfoRows,
+  type InfoRowKind,
+} from '@/modules/dashboard/screens/dashboard/components/account_card.helpers';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 const STATS: AccountStats = { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
@@ -342,5 +346,151 @@ describe("buildInfoRows — credit card limit/available take the card's own curr
     );
     expect(rows[1]?.value).toBe('300 EGP');
     expect(rows[1]?.valueColor).toBe('#E8B130');
+  });
+});
+
+// MA-024: the accounts list joins these rows into one caption, so every row has to say which
+// figure it is and carry its amount without the currency code.
+describe('buildInfoRows — every row names its figure and carries a bare amount (MA-024)', () => {
+  const STATS_CENTS: AccountStats = {
+    month_in: 1250.75,
+    month_out: 640.25,
+    week_in: 90.5,
+    week_out: 12.05,
+  };
+
+  const ALL_TYPES = [
+    AccountType.Bank,
+    AccountType.SmartWallet,
+    AccountType.PhysicalWallet,
+    AccountType.PhysicalSavings,
+    AccountType.CreditCard,
+  ];
+
+  const typed = (type: AccountType, currency: Currency, balance = 1000): Account =>
+    makeTestAccount({
+      type,
+      currency,
+      current_balance: balance,
+      opening_balance: balance,
+      credit_limit: 40000,
+      statement_due_day: 12,
+    });
+
+  const kinds = (account: Account, isRateUsable: boolean, base: Currency): InfoRowKind[] =>
+    buildInfoRows(account, PLACEHOLDER_RATE, STATS, isRateUsable, base).map((row) => row.kind);
+
+  it('names the card rows limit, available, dueDate', () => {
+    expect(kinds(typed(AccountType.CreditCard, Currency.EGP, 8450), false, Currency.EGP)).toEqual([
+      'limit',
+      'available',
+      'dueDate',
+    ]);
+  });
+
+  it('names the cash rows monthSpend, avgDay, weekSpend', () => {
+    expect(kinds(typed(AccountType.PhysicalWallet, Currency.EGP), false, Currency.EGP)).toEqual([
+      'monthSpend',
+      'avgDay',
+      'weekSpend',
+    ]);
+  });
+
+  it('names the savings rows monthStart, change', () => {
+    expect(kinds(typed(AccountType.PhysicalSavings, Currency.EGP), false, Currency.EGP)).toEqual([
+      'monthStart',
+      'change',
+    ]);
+  });
+
+  it('names the USD bank rows monthIn, monthOut, and inBase only behind the gate', () => {
+    expect(kinds(usdBank(100), false, Currency.EGP)).toEqual(['monthIn', 'monthOut']);
+    expect(kinds(usdBank(100), true, Currency.EGP)).toEqual(['monthIn', 'monthOut', 'inBase']);
+  });
+
+  it('names the EGP bank rows monthIn, monthOut, thisWeek, and inBase only behind the gate', () => {
+    expect(kinds(egpBank(1000), false, Currency.USD)).toEqual(['monthIn', 'monthOut', 'thisWeek']);
+    expect(kinds(egpBank(1000), true, Currency.USD)).toEqual([
+      'monthIn',
+      'monthOut',
+      'thisWeek',
+      'inBase',
+    ]);
+  });
+
+  it.each(ALL_TYPES)(
+    '%s: amountText plus the row currency code is exactly value, on both currencies and both bases',
+    (type) => {
+      for (const currency of [Currency.EGP, Currency.USD]) {
+        for (const base of [Currency.EGP, Currency.USD]) {
+          const rows = buildInfoRows(
+            typed(type, currency),
+            PLACEHOLDER_RATE,
+            STATS_CENTS,
+            true,
+            base,
+          );
+          for (const row of rows) {
+            if (row.amountText === undefined) continue;
+            const code =
+              row.kind === 'inBase' ? CURRENCY_CONFIG[base].code : CURRENCY_CONFIG[currency].code;
+            expect(row.value).toBe(`${row.amountText} ${code}`);
+          }
+        }
+      }
+    },
+  );
+
+  it.each(ALL_TYPES)('%s: only the due-date row is left without an amountText', (type) => {
+    for (const currency of [Currency.EGP, Currency.USD]) {
+      for (const base of [Currency.EGP, Currency.USD]) {
+        const rows = buildInfoRows(
+          typed(type, currency),
+          PLACEHOLDER_RATE,
+          STATS_CENTS,
+          true,
+          base,
+        );
+        const bare = rows.filter((row) => row.amountText === undefined).map((row) => row.kind);
+        expect(bare).toEqual(type === AccountType.CreditCard ? ['dueDate'] : []);
+      }
+    }
+  });
+
+  it.each([
+    ['USD', Currency.USD, '+610.50'],
+    ['EGP', Currency.EGP, '+611'],
+  ])(
+    'the savings change amountText keeps the sign and drops the code — %s',
+    (_dir, currency, expected) => {
+      const rows = buildInfoRows(
+        typed(AccountType.PhysicalSavings, currency),
+        PLACEHOLDER_RATE,
+        STATS_CENTS,
+        false,
+        Currency.EGP,
+      );
+      expect(rows[1]?.amountText).toBe(expected);
+      expect(rows[1]?.amountText).not.toContain(CURRENCY_CONFIG[currency].code);
+    },
+  );
+
+  it('the base-equivalent amountText of an overdrawn USD bank is a composed minus, no code', () => {
+    const rows = buildInfoRows(usdBank(-100), PLACEHOLDER_RATE, STATS, true, Currency.EGP);
+    expect(rows.at(-1)?.amountText).toBe('−5,000');
+    expect(rows.at(-1)?.amountText).not.toContain('-');
+  });
+
+  it('the Over Limit and due-date rows carry no amountText', () => {
+    const rows = buildInfoRows(
+      typed(AccountType.CreditCard, Currency.EGP, 45000),
+      PLACEHOLDER_RATE,
+      STATS,
+      false,
+      Currency.EGP,
+    );
+    expect(rows[1]?.value).toBe(Strings.cardOverLimit);
+    expect(rows[1]?.amountText).toBeUndefined();
+    expect(rows[2]?.amountText).toBeUndefined();
   });
 });
