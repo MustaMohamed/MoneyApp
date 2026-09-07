@@ -1,21 +1,10 @@
-import { AccountType, Currency } from '@/constants/enums';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_palette';
 import {
   ACCOUNTS_LIST_ROW_STYLE,
-  resolveAccountListRowA11yLabel,
   resolveAccountTileColors,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.geometry';
-import { makeTestAccount } from '@/test_helpers/transaction';
 import { ms } from '@/utils/responsive';
-
-// `makeTestAccount` defaults to EGP, `color: null` and both balances 0.
-const egpAccount = makeTestAccount({
-  name: 'CIB Current',
-  type: AccountType.Bank,
-  current_balance: 48250.4,
-});
-const usdAccount = makeTestAccount({ currency: Currency.USD, current_balance: 1350.5 });
 
 describe('accounts list row geometry (B1)', () => {
   it('is 64dp, the B1 row with its caption, as a minimum', () => {
@@ -76,26 +65,5 @@ describe('accounts list tile colours', () => {
       background: DEFAULT_ACCOUNT_COLOR,
       glyph: CoreTokens.text1,
     });
-  });
-});
-
-describe('accounts list row amount — decimals by currency, balance by field', () => {
-  it('renders USD cents', () => {
-    expect(resolveAccountListRowA11yLabel(usdAccount)).toContain('1,350.50 USD');
-  });
-
-  it('renders EGP at 0 decimals', () => {
-    expect(resolveAccountListRowA11yLabel(egpAccount)).toContain('48,250 EGP');
-  });
-
-  it('reads current_balance, not opening_balance', () => {
-    // `current_balance` equals `opening_balance` at creation, so only unequal fixtures catch it.
-    const account = makeTestAccount({ current_balance: 999, opening_balance: 111 });
-    expect(resolveAccountListRowA11yLabel(account)).toContain('999');
-    expect(resolveAccountListRowA11yLabel(account)).not.toContain('111');
-  });
-
-  it('announces name, type and amount as one label', () => {
-    expect(resolveAccountListRowA11yLabel(egpAccount)).toBe('CIB Current, Bank, 48,250 EGP');
   });
 });

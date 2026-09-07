@@ -197,6 +197,8 @@ export const Size = {
   accountListRowMinHeight: ms(64),
   reorderGripSlot: ms(16),
   inlineLinkChevron: ms(14),
+  /** A1: "See all" sits 6 under the accounts count. */
+  inlineLinkOffset: ms(6),
   progressTrack: ms(8),
   progressThin: ms(3),
   progressDot: ms(4),

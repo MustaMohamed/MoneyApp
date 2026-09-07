@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/hero_gradient';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type {
   DashboardNetWorth,
@@ -104,7 +104,8 @@ export function TotalBalanceStrip({
             size="sm"
             onPress={onSeeAllPress}
             accessibilityRole="button"
-            style={{ marginTop: Spacing.xxs + Spacing.xxxs, alignSelf: 'flex-end' }}
+            accessibilityLabel={Strings.dashSeeAll}
+            style={{ marginTop: Size.inlineLinkOffset, alignSelf: 'flex-end' }}
           >
             <LinkButton.Label
               className="text-accent font-inter-semibold"

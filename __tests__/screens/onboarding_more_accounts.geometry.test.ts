@@ -1,9 +1,9 @@
 import { AccountType, Currency } from '@/constants/enums';
 import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_palette';
+import { resolveAccountRowA11yLabel } from '@/modules/accounts/constants/account_row_a11y_label';
 import {
   N3_ROW_MIN_HEIGHT,
   N3_ROW_STYLE,
-  resolveAccountRowA11yLabel,
   resolveAccountRowDotColor,
 } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.geometry';
 import { makeTestAccount } from '@/test_helpers/transaction';

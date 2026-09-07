@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { resolveAccountRowA11yLabel } from '@/modules/accounts/constants/account_row_a11y_label';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
@@ -12,7 +13,6 @@ import {
   N3_ROW_STYLE,
   N3_ROW_TYPE_GAP,
   N3_ROW_TYPE_GLYPH,
-  resolveAccountRowA11yLabel,
   resolveAccountRowDotColor,
 } from '../more_accounts.geometry';
 

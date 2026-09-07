@@ -8,12 +8,9 @@ import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
 import { resolveAccountBalanceColorClass } from '../../../../constants/account_balance_color';
+import { resolveAccountRowA11yLabel } from '../../../../constants/account_row_a11y_label';
 import type { Account } from '../../../../entities/account.entity';
-import {
-  ACCOUNTS_LIST_ROW_STYLE,
-  resolveAccountListRowA11yLabel,
-  resolveAccountTileColors,
-} from '../accounts_list.geometry';
+import { ACCOUNTS_LIST_ROW_STYLE, resolveAccountTileColors } from '../accounts_list.geometry';
 
 interface AccountListRowProps {
   account: Account;
@@ -30,7 +27,7 @@ export function AccountListRow({ account, onPress }: AccountListRowProps) {
       onPress={() => onPress(account.id)}
       style={ACCOUNTS_LIST_ROW_STYLE}
       accessibilityRole="button"
-      accessibilityLabel={resolveAccountListRowA11yLabel(account)}
+      accessibilityLabel={resolveAccountRowA11yLabel(account)}
     >
       {/* Runtime hex: className is build-time only. */}
       <ListGroup.ItemPrefix
