@@ -125,7 +125,8 @@ export function AdjustBalanceSheet({
           suffix={
             <Typography className="text-muted font-sora-bold text-[15px]">{currency}</Typography>
           }
-          helperText={Strings.adjustBalanceHelper}
+          // HeroUI paints `Description` in the danger colour while the field is invalid.
+          helperText={error ? undefined : Strings.adjustBalanceHelper}
         />
         <FormErrorText message={error || undefined} />
       </Box>
