@@ -12,10 +12,9 @@ import { AcctTokens } from '@/constants/theme_tokens';
 import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import { resolveAccountTileColors } from '@/modules/accounts/constants/account_tile_color';
-import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
-import { buildHeroCaption } from './balance_hero.helpers';
+import { buildHeroCaption, formatAccountBalance } from './balance_hero.helpers';
 
 interface BalanceHeroProps {
   account: Account;
@@ -71,7 +70,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
           style={{ fontSize: Type.hero, lineHeight: lineHeightFor(Type.hero) }}
           className={`font-sora-bold mt-1 tabular-nums ${resolveAccountBalanceColorClass(account.type)}`}
         >
-          {formatCurrencyAmount(account.current_balance, account.currency)}
+          {formatAccountBalance(account.current_balance, account.currency)}
         </Typography>
 
         <Typography

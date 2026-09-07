@@ -1,9 +1,9 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
-import { AccountType } from '@/constants/enums';
+import { AccountType, type Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
-import { formatAmount } from '@/utils/format_amount';
+import { MINUS_SIGN, formatAmount, signAmountText } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
 
@@ -46,4 +46,13 @@ export function buildHeroCaption(account: Account): HeroCaption {
     text: Strings.accountHeroOpening(formatAmount(account.opening_balance, decimals), currency),
     adjusted: account.current_balance !== account.opening_balance,
   };
+}
+
+/** An unsigned magnitude at the currency's decimals, with the canonical `−` when overdrawn (#411). */
+export function formatAccountBalance(balance: number, currency: Currency): string {
+  const { decimals, code } = CURRENCY_CONFIG[currency];
+  // Not `formatOwnedAmountParts`: `formatDisplayMagnitude` prints an exact zero at 0dp on every currency.
+  const magnitude = formatAmount(Math.abs(balance), decimals);
+  const printsAsZero = magnitude === formatAmount(0, decimals);
+  return `${signAmountText(magnitude, balance < 0 ? MINUS_SIGN : '', printsAsZero)} ${code}`;
 }

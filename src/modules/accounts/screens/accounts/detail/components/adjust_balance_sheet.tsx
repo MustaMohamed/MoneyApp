@@ -11,7 +11,6 @@ import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
-import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import {
   FIELD_MESSAGE_RAIL_STYLE,
@@ -19,6 +18,7 @@ import {
 } from '../../../../components/account_form/account_form.geometry';
 import { parseAdjustInput } from './adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
+import { formatAccountBalance } from './balance_hero.helpers';
 
 interface AdjustBalanceSheetProps {
   isOpen: boolean;
@@ -112,7 +112,7 @@ export function AdjustBalanceSheet({
             className="text-foreground font-sora-semibold tabular-nums"
             style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
           >
-            {formatCurrencyAmount(currentBalance, currency)}
+            {formatAccountBalance(currentBalance, currency)}
           </Typography>
         </Box>
         <FormSectionLabel>{Strings.adjustBalanceLabel}</FormSectionLabel>

@@ -2,8 +2,12 @@ import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
-import { buildHeroCaption } from '@/modules/accounts/screens/accounts/detail/components/balance_hero.helpers';
+import {
+  buildHeroCaption,
+  formatAccountBalance,
+} from '@/modules/accounts/screens/accounts/detail/components/balance_hero.helpers';
 import type { Account } from '@/store/account.store';
+import { MINUS_SIGN, formatCurrencyAmount } from '@/utils/format_amount';
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
   return {
@@ -134,5 +138,45 @@ describe('buildHeroCaption — credit cards', () => {
       }),
     );
     expect(cap.text).toBe('Available 500.00 USD of 500.00');
+  });
+});
+
+describe('formatAccountBalance — the hero balance and the sheet row', () => {
+  it('leaves a positive EGP balance exactly as the shipped formatter printed it', () => {
+    expect(formatAccountBalance(30000, Currency.EGP)).toBe('30,000 EGP');
+    expect(formatAccountBalance(30000, Currency.EGP)).toBe(
+      formatCurrencyAmount(30000, Currency.EGP),
+    );
+  });
+
+  it('keeps a positive USD balance at two decimals', () => {
+    expect(formatAccountBalance(1250.5, Currency.USD)).toBe('1,250.50 USD');
+    expect(formatAccountBalance(1250.5, Currency.USD)).toBe(
+      formatCurrencyAmount(1250.5, Currency.USD),
+    );
+  });
+
+  it('#411: an overdrawn EGP balance keeps its minus at zero decimals', () => {
+    expect(formatAccountBalance(-1900, Currency.EGP)).toBe(`${MINUS_SIGN}1,900 EGP`);
+  });
+
+  it('#411: an overdrawn USD balance keeps it at two decimals', () => {
+    expect(formatAccountBalance(-42.5, Currency.USD)).toBe(`${MINUS_SIGN}42.50 USD`);
+  });
+
+  it('#411: the minus is U+2212, never the ASCII hyphen `Intl` emits', () => {
+    expect(formatAccountBalance(-1, Currency.EGP).codePointAt(0)).toBe(0x2212);
+    expect(formatAccountBalance(-1, Currency.EGP)).not.toContain('-');
+    expect(formatCurrencyAmount(-1, Currency.EGP).codePointAt(0)).toBe(0x2d);
+  });
+
+  it('prints an exact zero unsigned with each currency decimals', () => {
+    expect(formatAccountBalance(0, Currency.EGP)).toBe('0 EGP');
+    expect(formatAccountBalance(0, Currency.USD)).toBe('0.00 USD');
+  });
+
+  it('carries no sign when a negative magnitude rounds to zero at the currency precision', () => {
+    expect(formatAccountBalance(-0.4, Currency.EGP)).toBe('0 EGP');
+    expect(formatAccountBalance(-0.004, Currency.USD)).toBe('0.00 USD');
   });
 });
