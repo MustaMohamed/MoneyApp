@@ -3,7 +3,7 @@
 Every task issue has this body. `/issue-review` rejects a body that skips a heading or leaves Acceptance empty. No file paths, no code, no technical design outside Context; design is planning's job at delivery.
 
 ```markdown
-Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none
+Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none · Reviewed none
 
 ## Task Definition
 Two or three lines. What this task is about, read first.
@@ -35,13 +35,14 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 | Depends on | `MA-nnn (#N)` list, or `nothing`; real dependencies only |
 | Verify | `emulator` when the task changes what a screen shows or what the app writes; else `none` |
 | Flags | any of `data-loss migration`, `money path`, `native change`, `user copy`, `secure store`; else `none`. These are CLAUDE.md's critical triggers, written where the merge gate reads them |
+| Reviewed | `none` when written; `/issue-review` writes the date when the body passes. `board.sh promote` moves only a leaf with a date, so this field is the road to Ready For Development. Any rewrite of the body by `/boundaries` or `/tickets` resets it to `none` |
 
 Title `MA-nnn — <title>`, the number from `bash scripts/board.sh next-ma`.
 
 ## Filled example, MA-015
 
 ```markdown
-Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none
+Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none · Reviewed none
 
 ## Task Definition
 An accounts list screen at `/accounts`, opened from a "see all" entry on the dashboard account carousel. Shows every active account; empty state included.

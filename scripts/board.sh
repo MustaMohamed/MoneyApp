@@ -46,6 +46,10 @@ promote() {
     --jq '.[] | [.number, .state, (.state_reason // ""), ((.body // "") | split("\n")[0])] | map(tostring) | join("")') \
     || { echo "board.sh: could not list the sub-issues of #$parent" >&2; exit 1; }
   candidates=$(printf '%s\n' "$children" | sed $'/./s/^/child\x1f/')
+  if [ -z "$children" ]; then
+    candidates=$(gh api "repos/$REPO/issues/$parent" \
+      --jq '[.number, .state, (.state_reason // ""), ((.body // "") | split("\n")[0])] | map(tostring) | join("")' | sed $'s/^/self\x1f/')
+  fi
 
   milestone=$(gh api "repos/$REPO/issues/$parent" --jq '.milestone.title // ""')
   if [ -n "$milestone" ] && [ -n "$children" ]; then
@@ -75,6 +79,10 @@ promote() {
       continue
     fi
     case "$status" in Defined|Blocked) ;; *) continue ;; esac
+    case "$line" in *"Reviewed 20"[0-9][0-9]-*) ;; *) echo "#$num: no Reviewed date on the header, skipped" >&2; skipped=$((skipped + 1)); continue ;; esac
+    if [ "$(gh api "repos/$REPO/issues/$num/sub_issues" --jq length 2>/dev/null)" != "0" ]; then
+      echo "#$num: a parent, closes through its children, skipped" >&2; skipped=$((skipped + 1)); continue
+    fi
     deps=$(deps_of "$line")
     case "$deps" in
       MISSING) echo "#$num: no Depends on field, skipped" >&2; skipped=$((skipped + 1)); continue ;;
@@ -123,7 +131,7 @@ usage: bash scripts/board.sh <command> ...
   status <issue> <Status>      set the Status field; Status is the option name, quoted if it has spaces
   get <issue>                  print the issue's current Status name
   link <parent> <child>        make <child> a sub-issue of <parent>
-  promote <parent>             Defined children, and milestone issues depending on them, with every Depends on closed -> Ready For Development; every child completed -> parent closed, Done, then one level up
+  promote <issue>              Defined leaves with a Reviewed date and every Depends on closed -> Ready For Development: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
   next-ma                      print the next MA-nnn (highest in any issue title, plus one)
 EOF
   exit 2

@@ -23,7 +23,7 @@ The issue body is in the ticket standard: header line `Part of · Depends on · 
 
 ## Steps
 
-1. **Read the ticket.** `gh issue view <n> --json title,body,url`. The MA id and the slug come from the title, `MA-013 — Account type tile fill` → `MA-013`, `account-type-tile-fill`: lowercase, every run of non-alphanumerics to one `-`, at most five words. Read the header line: Verify and Flags shape the plan (step 3), Depends on is already closed or the board would not say Ready For Development.
+1. **Read the ticket.** `gh issue view <n> --json title,body,url`. The MA id and the slug come from the title, `MA-013 — Account type tile fill` → `MA-013`, `account-type-tile-fill`: lowercase, every run of non-alphanumerics to one `-`, at most five words. Read the header line: Verify and Flags shape the plan (step 3); Depends on is closed and Reviewed carries a date, or the board would not say Ready For Development.
 
 2. **Branch and worktree.** A linked branch may already exist, `gh issue develop --list <n>`; reuse it. Otherwise create it on GitHub, linked to the issue:
 
