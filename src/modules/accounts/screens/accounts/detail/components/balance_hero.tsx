@@ -11,10 +11,10 @@ import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
+import { resolveAccountTileColors } from '@/modules/accounts/constants/account_tile_color';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
-import { resolveAccountTileColors } from '../../list/accounts_list.geometry';
 import { buildHeroCaption } from './balance_hero.helpers';
 
 interface BalanceHeroProps {

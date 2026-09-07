@@ -1,5 +1,8 @@
-import { AcctTokens } from '@/constants/theme_tokens';
-import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
+import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
+import {
+  mixHex,
+  resolveAccountBadgeColors,
+} from '@/modules/accounts/constants/account_badge_color';
 import {
   ACCOUNT_PALETTE,
   DEFAULT_ACCOUNT_COLOR,
@@ -8,8 +11,8 @@ import {
 
 const OPAQUE_HEX = /^#[0-9A-Fa-f]{6}$/;
 const MIN_RATIO = 4.5;
-// The frames' 55/45 mix for midnight rich; it lands at 3.30:1 against that badge's fill.
-const MIDNIGHT_RICH_MIX_55 = '#7B818F';
+// The frames' 55/45 mix for midnight rich, from the tokens themselves: a mirrored hex goes stale when either moves.
+const MIDNIGHT_RICH_MIX_55 = mixHex(AcctTokens.midnight.rich, CoreTokens.text1, 0.55);
 
 describe('resolveAccountBadgeColors', () => {
   it.each([...ACCOUNT_PALETTE.map((entry) => entry.hex), DEFAULT_ACCOUNT_COLOR])(

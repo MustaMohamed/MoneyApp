@@ -12,8 +12,7 @@ import { resolveButtonContent } from './button.content';
 // CTAs are Sora (.claude/rules/ui.md; mockup `.cta` uses the display face at 600) — HeroUI's own label ships Inter medium.
 const CTA_LABEL_FONT = 'font-sora-semibold';
 
-export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled'> {
-  variant?: ButtonVariant;
+interface ButtonBaseProps extends Omit<PressableProps, 'children' | 'disabled'> {
   size?: ButtonSize;
   label: string;
   isLoading?: boolean;
@@ -22,14 +21,18 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled
   disabled?: boolean;
   /** When `isLoading`, replaces `Strings.loading` as the button text. */
   loadingLabel?: string;
-  /** Flat treatment at Radius.cta, opt-in per redesigned screen — primary: accent fill, no gradient; secondary: foreground label (mockup `.cta`/`.cta.sec`; spec.md § Known disagreements 1). */
-  flat?: boolean;
   /** Leading glyph before the label — the flat secondary's plus (mockup `.cta.sec svg`); renders foreground. */
   icon?: keyof typeof MaterialCommunityIcons.glyphMap;
-  /** Destructive treatment; honoured on the flat secondary only (the account detail's Archive). */
-  tone?: 'danger';
   className?: string;
 }
+
+// `flat` is the redesigned screens' treatment at Radius.cta — primary: accent fill, no gradient; secondary: foreground label (mockup `.cta`/`.cta.sec`; spec.md § Known disagreements 1).
+/** Only the flat secondary paints `tone` (the account detail's Archive), so the union stops every other shape naming it. */
+export type ButtonProps = ButtonBaseProps &
+  (
+    | { variant: 'secondary'; flat: true; tone?: 'danger' }
+    | { variant?: ButtonVariant; flat?: boolean; tone?: never }
+  );
 
 export function Button({
   variant = 'primary',

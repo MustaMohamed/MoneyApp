@@ -147,6 +147,7 @@ export default function AccountDetailScreen() {
           {facts.map((fact, index) => (
             <DetailRow
               key={fact.label}
+              plain
               label={fact.label}
               value={fact.value}
               showDivider={index < facts.length - 1}

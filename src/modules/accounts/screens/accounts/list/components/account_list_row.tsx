@@ -9,8 +9,9 @@ import { formatCurrencyParts } from '@/utils/format_amount';
 
 import { resolveAccountBalanceColorClass } from '../../../../constants/account_balance_color';
 import { resolveAccountRowA11yLabel } from '../../../../constants/account_row_a11y_label';
+import { resolveAccountTileColors } from '../../../../constants/account_tile_color';
 import type { Account } from '../../../../entities/account.entity';
-import { ACCOUNTS_LIST_ROW_STYLE, resolveAccountTileColors } from '../accounts_list.geometry';
+import { ACCOUNTS_LIST_ROW_STYLE } from '../accounts_list.geometry';
 
 interface AccountListRowProps {
   account: Account;

@@ -1,6 +1,6 @@
 import { AccountType, Currency } from '@/constants/enums';
 import { buildAccountFacts } from '@/modules/accounts/screens/accounts/detail/components/account_facts.helpers';
-import type { Account } from '@/store/account.store';
+import type { Account } from '@/modules/accounts/store/account.store';
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
   return {

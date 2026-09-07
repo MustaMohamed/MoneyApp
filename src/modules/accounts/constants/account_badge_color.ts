@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/theme';
+import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { contrastRatio } from './account_palette';
@@ -10,8 +10,8 @@ export interface AccountBadgeColors {
 
 // The badge's shipped fill alpha (`status_badge.tsx`), composited so the tested fill is the painted one.
 const FILL_ALPHA = 0x22 / 255;
-// The hero gradient stop the badge sits on; the glow tints the top-right corner above it.
-const FILL_BACKDROP = Colors.shared.heroGrad2;
+// The hero gradient's middle stop, the one the badge sits on; the glow tints the top-right corner above it.
+const FILL_BACKDROP = HERO_GRADIENT_COLORS[1];
 // The frames' badge foreground: 55% account colour into the text colour, stepped down until it clears.
 const FOREGROUND_COLOR_SHARE = 0.55;
 const FOREGROUND_SHARE_STEP = 0.05;
@@ -23,7 +23,8 @@ function channels(hex: string): [number, number, number] {
   return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
 }
 
-function mixHex(a: string, b: string, shareOfA: number): string {
+/** Channel mix of `a` into `b`; exported so a test derives the frames' mix from the tokens instead of mirroring its hex. */
+export function mixHex(a: string, b: string, shareOfA: number): string {
   const [ar, ag, ab] = channels(a);
   const [br, bg, bb] = channels(b);
   const blend = (x: number, y: number): string =>

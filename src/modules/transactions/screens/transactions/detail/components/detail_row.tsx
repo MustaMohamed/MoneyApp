@@ -32,9 +32,7 @@ const BADGE_STYLES: Record<BadgeTone, BadgeStyle> = {
   },
 };
 
-interface Props {
-  /** Omit for a plain label-and-value row; the account detail's facts render without a tile. */
-  icon?: IconName;
+interface BaseProps {
   label: string;
   value: string;
   badge?: string;
@@ -44,6 +42,9 @@ interface Props {
   muted?: boolean;
   showDivider?: boolean;
 }
+
+/** A tile-less row is `plain`, declared: an omitted `icon` would otherwise drop the tile silently (the account detail's facts). */
+type Props = BaseProps & ({ icon: IconName; plain?: never } | { plain: true; icon?: never });
 
 export function DetailRow({
   icon,

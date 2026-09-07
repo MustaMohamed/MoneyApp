@@ -11,7 +11,7 @@ export interface HeroCaption {
   text: string;
   /** true only for non-CC accounts whose current balance has drifted from opening */
   adjusted: boolean;
-  /** runtime color for CC available-credit captions; undefined for Opening captions */
+  /** runtime color for a CC's available-credit and over-limit captions; undefined for Opening captions */
   color?: string;
 }
 
