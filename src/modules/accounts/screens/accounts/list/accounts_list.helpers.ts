@@ -6,7 +6,7 @@ import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import {
   buildInfoRows,
   type InfoRowKind,
-} from '@/modules/dashboard/screens/dashboard/components/account_card';
+} from '@/modules/dashboard/screens/dashboard/components/account_card.helpers';
 import { formatRateDisplayMagnitude } from '@/utils/format_amount';
 
 import type { Account } from '../../../entities/account.entity';
@@ -80,6 +80,11 @@ function composeCaption({
     }
     case AccountType.Bank:
       return join(Strings.accountCaptionBank, 'monthIn', 'monthOut');
+    // A sixth account type has to be given a caption here, not silently take the type label.
+    default: {
+      const unreachable: never = account.type;
+      return ACCOUNT_TYPE_LABELS[unreachable];
+    }
   }
 }
 

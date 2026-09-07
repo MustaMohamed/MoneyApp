@@ -6,7 +6,7 @@ import type { Account } from '@/modules/accounts/store/account.store';
 import {
   buildInfoRows,
   type InfoRowKind,
-} from '@/modules/dashboard/screens/dashboard/components/account_card';
+} from '@/modules/dashboard/screens/dashboard/components/account_card.helpers';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 const STATS: AccountStats = { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
@@ -460,17 +460,20 @@ describe('buildInfoRows — every row names its figure and carries a bare amount
   it.each([
     ['USD', Currency.USD, '+610.50'],
     ['EGP', Currency.EGP, '+611'],
-  ])('the savings change amountText keeps the sign and drops the code — %s', (_dir, currency) => {
-    const rows = buildInfoRows(
-      typed(AccountType.PhysicalSavings, currency),
-      PLACEHOLDER_RATE,
-      STATS_CENTS,
-      false,
-      Currency.EGP,
-    );
-    expect(rows[1]?.amountText).toBe(currency === Currency.USD ? '+610.50' : '+611');
-    expect(rows[1]?.amountText).not.toContain(CURRENCY_CONFIG[currency].code);
-  });
+  ])(
+    'the savings change amountText keeps the sign and drops the code — %s',
+    (_dir, currency, expected) => {
+      const rows = buildInfoRows(
+        typed(AccountType.PhysicalSavings, currency),
+        PLACEHOLDER_RATE,
+        STATS_CENTS,
+        false,
+        Currency.EGP,
+      );
+      expect(rows[1]?.amountText).toBe(expected);
+      expect(rows[1]?.amountText).not.toContain(CURRENCY_CONFIG[currency].code);
+    },
+  );
 
   it('the base-equivalent amountText of an overdrawn USD bank is a composed minus, no code', () => {
     const rows = buildInfoRows(usdBank(-100), PLACEHOLDER_RATE, STATS, true, Currency.EGP);
