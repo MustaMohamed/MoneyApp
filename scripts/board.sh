@@ -52,6 +52,9 @@ promote() {
   fi
 
   milestone=$(gh api "repos/$REPO/issues/$parent" --jq '.milestone.title // ""')
+  parent_line=$(gh api "repos/$REPO/issues/$parent" --jq '((.body // "") | split("\n")[0])')
+  parent_marked=0; case "$parent_line" in *"Reviewed 20"[0-9][0-9]-*) parent_marked=1 ;; esac
+  [ -z "$(gh api "repos/$REPO/issues/$parent" --jq '.labels[].name' | grep -x epic)" ] || parent_marked=1
   if [ -n "$milestone" ] && [ -n "$children" ]; then
     child_re=$(printf '%s\n' "$children" | cut -d "$US" -f1 | paste -s -d '|' -)
     extras=$(gh issue list --repo "$REPO" --milestone "$milestone" --state open --limit 1000 --json number,body \
@@ -80,6 +83,9 @@ promote() {
     fi
     case "$status" in Defined|Blocked) ;; *) continue ;; esac
     case "$line" in *"Reviewed 20"[0-9][0-9]-*) ;; *) echo "#$num: no Reviewed date on the header, skipped" >&2; skipped=$((skipped + 1)); continue ;; esac
+    if [ "$kind" = "child" ] && [ "$parent_marked" -eq 0 ]; then
+      echo "#$num: parent #$parent has no Reviewed date, skipped" >&2; skipped=$((skipped + 1)); continue
+    fi
     if [ "$(gh api "repos/$REPO/issues/$num/sub_issues" --jq length 2>/dev/null)" != "0" ]; then
       echo "#$num: a parent, closes through its children, skipped" >&2; skipped=$((skipped + 1)); continue
     fi
@@ -131,7 +137,7 @@ usage: bash scripts/board.sh <command> ...
   status <issue> <Status>      set the Status field; Status is the option name, quoted if it has spaces. "In Progress" carries to every parent not already there
   get <issue>                  print the issue's current Status name
   link <parent> <child>        make <child> a sub-issue of <parent>
-  promote <issue>              Defined leaves with a Reviewed date and every Depends on closed -> Ready For Development: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
+  promote <issue>              Defined leaves with a Reviewed date, under a marked parent, every Depends on closed -> Ready For Development: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
   next-ma                      print the next MA-nnn (highest in any issue title, plus one)
 EOF
   exit 2

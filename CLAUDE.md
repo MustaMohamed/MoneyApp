@@ -40,9 +40,9 @@ Every move, who makes it, and on what. Nothing else moves a row.
 |---|---|---|---|
 | none | Todo | `/epic`; `/tickets` for a child marked for its own breakdown; `board.sh status <n> Todo` for a task recorded by hand | issue created |
 | Todo | Defined | `/boundaries` at the lock; `/tickets` for each child it creates, `Reviewed none` on the header | body in the standard |
-| Defined | Ready For Development | `board.sh promote`, run by `/issue-review` on a pass and by the post-merge routine; never by hand | `Reviewed <date>` on the header, every Depends on closed, no sub-issues |
-| Defined epic, or a Defined or Ready For Development leaf | Defined, as a parent | `/tickets` after the cut | children created at Defined or Todo. A parent stays at Defined, is never planned, and closes through its children |
-| Ready For Development | Defined | `/issue-review` when a Depends on names an open issue again; `/tickets --rewrite` on a rewritten body, `Reviewed` back to `none` | the review no longer stands |
+| Defined | Ready For Development | `board.sh promote`, run by `/issue-review` on a pass and by the post-merge routine; never by hand | `Reviewed <date>` on the header and on the parent's, every Depends on closed, no sub-issues |
+| Defined epic, or a Defined or Ready For Development leaf | Defined, as a parent | `/tickets` after the cut | children created at Defined or Todo. A parent stays at Defined, is reviewed and marked before its children, is never planned, and closes through its children |
+| Ready For Development | Defined | `/issue-review` when a Depends on names an open issue again or a review ended on a deferred question; `/tickets --rewrite` on a rewritten body, `Reviewed` back to `none` | the review no longer stands |
 | Todo, Defined | Blocked | `/boundaries` | the lock waits on another issue; comment `Blocked on #m` |
 | Blocked | Ready For Development | by hand, `board.sh status` | promote reports it and refuses to move it |
 | Ready For Development | Planned | `/prep` | plan committed on the ticket branch |
