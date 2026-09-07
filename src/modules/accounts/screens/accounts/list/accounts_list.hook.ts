@@ -78,7 +78,7 @@ export function useAccountsList() {
       isRetrying,
       content: resolveAccountsListContent({ loadError, accountCount: rows.length }),
       emptyState: resolveAccountsListEmptyState({
-        activeCount: rows.length,
+        activeCount: accounts.length,
         archivedCount,
       }),
     },
