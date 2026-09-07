@@ -301,6 +301,10 @@ export const Strings = {
   // Accounts list (B1)
   accountsListTitle: 'Accounts',
   accountsListSection: 'Your accounts',
+  accountsLoadErrorTitle: "Couldn't load your accounts",
+  accountsLoadErrorDescription:
+    'Something went wrong reading your data. Your accounts are still there.',
+  accountsLoadErrorRetry: 'Try again',
 
   // §9 Account Detail: balance hero captions
   accountHeroOpening: (amount: string, currency: string) => `Opening ${amount} ${currency}`,

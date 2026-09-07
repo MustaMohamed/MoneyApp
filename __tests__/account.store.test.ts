@@ -176,6 +176,53 @@ describe('accountStore.loadAccounts', () => {
     });
   });
 
+  it('keeps loadError up while the reload after a failure is in flight', async () => {
+    const secondLoad = deferred<Account[]>();
+    const repo = makeRepo({
+      getAll: jest
+        .fn()
+        .mockRejectedValueOnce(new Error('db error'))
+        .mockReturnValueOnce(secondLoad.promise),
+    });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().loadAccounts()).rejects.toThrow('db error');
+    const retry = store.getState().loadAccounts();
+    expect(store.getState().loadError).toBe(true);
+
+    secondLoad.resolve([mockAccount]);
+    await retry;
+
+    expect(store.getState()).toMatchObject({
+      accounts: [mockAccount],
+      hasLoaded: true,
+      loadError: false,
+    });
+  });
+
+  it('a failed reload keeps the rows already loaded', async () => {
+    const repo = makeRepo({
+      getAll: jest
+        .fn()
+        .mockResolvedValueOnce([mockAccount])
+        .mockRejectedValueOnce(new Error('db error')),
+    });
+    const store = createAccountStore(repo);
+
+    await store.getState().loadAccounts();
+    await expect(store.getState().loadAccounts()).rejects.toThrow('db error');
+
+    expect(store.getState()).toMatchObject({
+      accounts: [mockAccount],
+      hasLoaded: true,
+      loadError: true,
+    });
+    expect(repo.getAll).toHaveBeenCalledTimes(2);
+    expect(repo.add).not.toHaveBeenCalled();
+    expect(repo.update).not.toHaveBeenCalled();
+    expect(repo.adjustBalance).not.toHaveBeenCalled();
+  });
+
   it('does not let an older load overwrite a newer load result', async () => {
     const firstLoad = deferred<Account[]>();
     const secondLoad = deferred<Account[]>();

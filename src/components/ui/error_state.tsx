@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { withUniwind } from 'uniwind';
 
 import { Button } from '@/components/ui/button';
-import { Screen } from '@/components/ui/screen';
+import { Screen, type ScreenProps } from '@/components/ui/screen';
 import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
 
@@ -24,6 +24,10 @@ export interface ErrorStateProps {
   onAction: () => void;
   isActionLoading?: boolean;
   isActionDisabled?: boolean;
+  /** Absent means the default top and bottom padding; `[]` for an embed under a header. */
+  edges?: ScreenProps['edges'];
+  /** Opt-in per redesigned screen; absent keeps the legacy gradient CTA. */
+  flat?: boolean;
   testID?: string;
 }
 
@@ -36,11 +40,13 @@ export function ErrorState({
   onAction,
   isActionLoading = false,
   isActionDisabled = false,
+  edges,
+  flat,
   testID,
 }: ErrorStateProps) {
   // Scaled `ms()` numbers must go through `style`; `className` is build-time only.
   return (
-    <Screen testID={testID}>
+    <Screen edges={edges} testID={testID}>
       <View style={LAYOUT.root}>
         <View style={LAYOUT.iconCircle} className="bg-danger/10">
           <StateIcon name={iconName} size={LAYOUT.iconSize} className="text-danger" />
@@ -57,6 +63,7 @@ export function ErrorState({
             accessibilityLabel={actionAccessibilityLabel}
             isLoading={isActionLoading}
             isDisabled={isActionDisabled}
+            flat={flat}
             onPress={onAction}
           />
         </View>

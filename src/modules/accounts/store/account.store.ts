@@ -44,9 +44,9 @@ export function createAccountStore(repo: IAccountRepository) {
     create<AccountStore>((set, get) => ({
       ...INITIAL_STATE,
 
+      // `loadError` means the last *settled* read failed, so a reload in flight keeps it up.
       loadAccounts: async () => {
         const requestId = ++loadRequestId;
-        set({ loadError: false });
 
         try {
           const accounts = await repo.getAll();
