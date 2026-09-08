@@ -7,7 +7,11 @@ import { AccountType } from '@/constants/enums';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { TransactionRow } from '@/modules/transactions/screens/transactions/components/transaction_row';
-import { TRANSACTION_ROW_HEIGHT } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+import {
+  TRANSACTION_ROW_HEIGHT,
+  TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+  TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
+} from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { ms } from '@/utils/responsive';
 
 interface MockSwipeableRowProps {
@@ -135,8 +139,12 @@ describe('TransactionRow ownership actions', () => {
       minWidth: 0,
     });
     expect(screen.getByTestId('transaction-row-value-track')).toHaveStyle({ width: ms(120) });
-    expect(screen.getByTestId('transaction-row-note-track')).toBeTruthy();
-    expect(screen.getByTestId('transaction-row-secondary-amount-track')).toBeTruthy();
+    expect(screen.getByTestId('transaction-row-note-track')).toHaveStyle({
+      height: TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+    });
+    expect(screen.getByTestId('transaction-row-secondary-amount-track')).toHaveStyle({
+      height: TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
+    });
     expect(TRANSACTION_ROW_HEIGHT).toBe(ms(60));
   });
 

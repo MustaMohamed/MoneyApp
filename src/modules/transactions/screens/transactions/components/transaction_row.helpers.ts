@@ -4,6 +4,7 @@ import type React from 'react';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Type, lineHeightFor } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -24,7 +25,16 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 export const TRANSACTION_ROW_ICON_SIZE = ms(36);
 export const TRANSACTION_ROW_VALUE_WIDTH = ms(120);
 export const TRANSACTION_ROW_HEIGHT = ms(60);
-export const TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT = ms(8);
+export const TRANSACTION_ROW_NOTE_FONT_SIZE = Type.chip;
+export const TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE = Type.overline;
+export const TRANSACTION_ROW_NOTE_TRACK_HEIGHT = lineHeightFor(TRANSACTION_ROW_NOTE_FONT_SIZE);
+export const TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT = lineHeightFor(
+  TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
+);
+export const TRANSACTION_ROW_VERTICAL_PADDING = ms(5);
+export const TRANSACTION_ROW_CONTEXT_GAP = ms(2);
+// Mirrors TypeBadge's unscaled `sm` box (type_badge.tsx:27,43,75-80); the render pass catches drift.
+export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT = 18;
 
 const FALLBACK_ICON: IconName = 'shape-outline';
 
