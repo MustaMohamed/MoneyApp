@@ -57,6 +57,7 @@ export function TransactionRowBody({
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       animation={false}
+      accessibilityLabel={presentation.accessibilityLabel}
     >
       <Animated.View
         testID="transaction-row"

@@ -4,12 +4,17 @@ import { View } from 'react-native';
 
 import { Colors, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
-export interface SectionHeaderProps {
+interface SectionHeaderCommonProps {
   title: string;
-  count?: number;
-  /** The right-slot link; no caller passes it alongside `count`. */
-  action?: { label: string; onPress: () => void };
 }
+
+// The count badge and the link share the one right slot, so the union keeps them exclusive.
+export type SectionHeaderProps =
+  | (SectionHeaderCommonProps & { count?: number; action?: never })
+  | (SectionHeaderCommonProps & {
+      action: { label: string; onPress: () => void };
+      count?: never;
+    });
 
 export function SectionHeader({ title, count, action }: SectionHeaderProps) {
   return (

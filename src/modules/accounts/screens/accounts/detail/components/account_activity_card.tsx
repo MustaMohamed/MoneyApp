@@ -14,7 +14,7 @@ import { ActivityEmptyBlock } from './activity_empty_block';
 
 const SKELETON_ROWS = 3;
 
-export interface AccountActivityRow {
+interface AccountActivityRow {
   id: string;
   presentation: TransactionRowPresentation;
   category?: Category;
@@ -44,7 +44,7 @@ export function AccountActivityCard({
         action={{ label: Strings.accountActivitySeeAll, onPress: onSeeAll }}
       />
       <DetailRowsCard>
-        {status === 'initialLoading' ? (
+        {status === 'idle' || status === 'initialLoading' ? (
           <TransactionRowsSkeleton rows={SKELETON_ROWS} showDateHeader={false} />
         ) : status === 'initialError' ? (
           <LoadErrorAlert

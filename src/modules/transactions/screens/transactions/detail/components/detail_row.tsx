@@ -86,11 +86,10 @@ export function DetailRow({
         </ListGroup.ItemDescription>
         <ListGroup.ItemTitle
           className={`mt-0.5 ${muted ? 'font-inter text-foreground/60 italic' : 'font-inter-medium'}`}
-          style={{
-            fontSize: Type.meta,
-            lineHeight: lineHeightFor(Type.meta),
-            color: valueColor,
-          }}
+          style={[
+            { fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) },
+            valueColor ? { color: valueColor } : undefined,
+          ]}
           numberOfLines={1}
         >
           {value}

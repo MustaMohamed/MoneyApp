@@ -112,12 +112,12 @@ function runFocusEffect(): void {
 }
 
 // The add handler waits two frames for the tabs host to paint; run them inline.
-beforeAll(() => {
-  jest.spyOn(global, 'requestAnimationFrame').mockImplementation((callback) => {
-    callback(0);
-    return 0;
-  });
+const rafSpy = jest.spyOn(global, 'requestAnimationFrame').mockImplementation((callback) => {
+  callback(0);
+  return 0;
 });
+
+afterAll(() => rafSpy.mockRestore());
 
 const mockSetEditing = jest.fn();
 const mockSetAdjustVisible = jest.fn();

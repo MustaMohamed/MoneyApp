@@ -20,8 +20,7 @@ import { useAccountDetailState } from './account_detail.state';
 import { buildActivityRowPresentation } from './components/account_activity.helpers';
 import { buildMonthFacts } from './components/account_facts.helpers';
 
-// `navigate`, not `push`: the detail sits above `(tabs)` on the `(app)` Stack, and pushing a route
-// already in that stack would mount a second tab navigator.
+// `navigate`, not `push`: pushing a route already in the `(app)` stack mounts a second tab navigator.
 const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions' as const;
 
 export function useAccountDetail() {
