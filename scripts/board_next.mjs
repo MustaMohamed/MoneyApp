@@ -40,7 +40,7 @@ function parseArgs(argv) {
     else if (a === '--scope') opts.scope = Number(argv[++i]);
     else if (a === '--help' || a === '-h') {
       process.stdout.write(
-        'usage: node scripts/board_next.mjs [--format text|json|svg] [--scope <issue>] [--snapshot <file>] [--save <file>]\n',
+        'usage: node scripts/board_next.mjs [--format text|json|html] [--scope <issue>] [--snapshot <file>] [--save <file>]\n',
       );
       process.exit(0);
     } else {
@@ -48,7 +48,7 @@ function parseArgs(argv) {
       process.exit(2);
     }
   }
-  if (!['text', 'json', 'svg'].includes(opts.format)) {
+  if (!['text', 'json', 'html'].includes(opts.format)) {
     process.stderr.write(`board_next: unknown format ${opts.format}\n`);
     process.exit(2);
   }
@@ -614,191 +614,156 @@ function clip(s, max) {
   return s.length <= max ? s : `${s.slice(0, Math.max(0, max - 1))}…`;
 }
 
-const SHORT = { 'Ready For Development': 'Ready', 'Awaiting Human': 'Awaiting' };
+const SHORT = {
+  'Ready For Development': 'Ready',
+  'Awaiting Human': 'Awaiting you',
+  'In Progress': 'In progress',
+  'In Review': 'In review',
+};
 
 function shortStatus(status) {
-  return SHORT[status] ?? status ?? 'off board';
+  return SHORT[status] ?? status ?? 'Off board';
 }
 
-function ramp(a) {
-  if (a.bucket === 'drift' || a.status === 'Blocked') return 'c-coral';
-  if (a.state === 'closed') return 'c-gray';
-  if (['In Progress', 'In Review', 'Awaiting Human'].includes(a.status)) return 'c-teal';
-  if (['Ready For Development', 'Planned'].includes(a.status)) return 'c-purple';
-  return 'c-gray';
+const CSS = `.bn{font-family:var(--font-sans);font-size:14px;line-height:1.5;color:var(--text-primary)}
+.bn-head{display:flex;justify-content:space-between;gap:16px;padding:2px 0 10px;font-size:12px;color:var(--text-secondary)}
+.bn-sec{margin:14px 0 2px;font-size:12px;color:var(--text-muted)}
+.bn-row{display:flex;align-items:center;gap:10px;min-height:38px;padding:5px 0;border-bottom:0.5px solid var(--border)}
+.bn-kids{margin-left:10px;padding-left:12px;border-left:1px solid var(--border-strong)}
+.bn-st{width:84px;flex:none;font-size:12px;color:var(--text-secondary)}
+.bn-id{flex:none;font-weight:500}
+.bn-title{flex:1 1 120px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary)}
+.bn-why{flex:none;font-size:12px;color:var(--text-muted);text-align:right}
+.bn-act{flex:none;font:inherit;font-size:13px;font-weight:500;padding:3px 10px;border-radius:var(--radius);border:0.5px solid var(--border-accent);background:var(--bg-accent);color:var(--text-accent);cursor:pointer}
+.bn-act:focus-visible{outline:2px solid var(--border-stronger);outline-offset:2px}
+.bn-act.you{border-color:var(--border-warning);background:var(--bg-warning);color:var(--text-warning)}
+.bn-act.fix{border-color:var(--border-danger);background:var(--bg-danger);color:var(--text-danger)}
+.bn-alt{flex:none;font:inherit;font-size:12px;padding:3px 6px;border:0;background:transparent;color:var(--text-secondary);cursor:pointer;text-decoration:underline}
+.bn-wait{flex:none;font-size:12px;color:var(--text-muted)}
+.bn-foot{margin-top:12px;font-size:12px;color:var(--text-muted)}
+@media (max-width:520px){.bn-title{display:none}.bn-why{display:none}}`;
+
+function actionControl(a) {
+  const cmd = a.command ?? '';
+  if (a.bucket === 'yours') {
+    const pr = /PR #(\d+)/.exec(a.action);
+    if (pr)
+      return `<button class="bn-act you" onclick="openLink('https://github.com/${REPO}/pull/${pr[1]}')">Open PR #${pr[1]}</button>`;
+    return `<button class="bn-act you" onclick="sendPrompt('${esc(cmd)}')">${esc(cmd)}</button>`;
+  }
+  if (a.bucket === 'drift') {
+    if (!cmd.startsWith('/') && !cmd.startsWith('bash ') && !cmd.startsWith('gh '))
+      return `<span class="bn-wait">${esc(cmd)}</span>`;
+    return `<button class="bn-act fix" onclick="sendPrompt('${esc(cmd)}')">${esc(clip(cmd, 40))}</button>`;
+  }
+  if (!cmd) return `<span class="bn-wait">waiting</span>`;
+  if (cmd.startsWith('/')) {
+    const [first, ...rest] = cmd.split(' or ');
+    const alt = rest
+      .map(
+        (r) =>
+          `<button class="bn-alt" onclick="sendPrompt('${esc(r)}')">${esc(r.split(' ')[0])}</button>`,
+      )
+      .join('');
+    return `<button class="bn-act" onclick="sendPrompt('${esc(first)}')">${esc(first)}</button>${alt}`;
+  }
+  return `<button class="bn-act" onclick="sendPrompt('${esc(cmd)}')">${esc(clip(cmd, 40))}</button>`;
 }
 
-function svgReport(result) {
+function shortTitle(a) {
+  return (a.title ?? '').replace(/^MA-\d+\s+—\s+/, '');
+}
+
+function rowId(a) {
+  return /^MA-\d+/.test(a.title ?? '') ? a.ma : `#${a.number}`;
+}
+
+const FRIENDLY = [
+  [/^Todo, deps closed$/, 'nothing blocks it'],
+  [/^Todo$/, ''],
+  [/^Defined, Reviewed none$/, 'not reviewed yet'],
+  [/^pullable$/, 'reviewed, nothing blocks it'],
+  [/^marked$/, ''],
+  [/^marked, every Depends on closed, promote missed$/, 'reviewed, promote missed'],
+  [/^parent unmarked, a child at Defined$/, 'parent not reviewed yet'],
+];
+
+function friendly(action) {
+  const base = action.replace(/,? ?waits on #\d+(, #\d+)*/, '').trim();
+  for (const [re, text] of FRIENDLY) if (re.test(base)) return text;
+  return base;
+}
+
+function htmlReport(result) {
   const { ctx } = result;
-  const byNum = new Map(result.actions.map((a) => [a.number, a]));
-  const shown = new Map();
-  for (const a of result.actions)
-    if (a.state === 'open' || a.bucket === 'drift') shown.set(a.number, a);
-  for (const a of [...shown.values()]) {
-    for (const d of a.deps) {
-      if (shown.has(d.number)) continue;
-      const it = ctx.byNumber.get(d.number);
-      shown.set(d.number, {
-        number: d.number,
-        ma: it ? maId(it) : `#${d.number}`,
-        title: it?.title ?? '',
-        status: it?.status ?? (d.closed ? 'Done' : null),
-        state: d.closed ? 'closed' : 'open',
-        parent: it?.parent ?? null,
-        isParent: false,
-        deps: [],
-        bucket: 'wait',
-        action: d.closed ? 'closed' : 'not on the board',
-        command: undefined,
-        boardIndex: it?.boardIndex ?? 99_999,
-        ghost: true,
-      });
-    }
+  const leaves = result.actions.filter((a) => a.state === 'open' && !a.isParent);
+  const parents = result.actions.filter((a) => a.isParent);
+  const byNum = new Map(leaves.map((a) => [a.number, a]));
+  const blockers = new Map();
+  for (const a of leaves) {
+    const it = ctx.byNumber.get(a.number);
+    const set = new Set(
+      a.deps.filter((d) => !d.closed && byNum.has(d.number)).map((d) => d.number),
+    );
+    for (const m of blockedOn(it?.comments ?? [])) if (byNum.has(m) && !ctx.isClosed(m)) set.add(m);
+    blockers.set(a.number, [...set]);
   }
+  const dependants = new Map(leaves.map((a) => [a.number, []]));
+  for (const a of leaves) for (const b of blockers.get(a.number)) dependants.get(b).push(a.number);
 
-  const depth = new Map();
-  const depthOf = (n, seen = new Set()) => {
-    if (depth.has(n)) return depth.get(n);
-    if (seen.has(n)) return 0;
-    seen.add(n);
-    const ds = (shown.get(n)?.deps ?? []).filter((d) => shown.has(d.number));
-    const v = ds.length ? 1 + Math.max(...ds.map((d) => depthOf(d.number, seen))) : 0;
-    depth.set(n, v);
-    return v;
+  const placed = new Set();
+  const row = (a, depth, parentNum) => {
+    placed.add(a.number);
+    const others = blockers
+      .get(a.number)
+      .filter((b) => b !== parentNum)
+      .map((b) => byNum.get(b).ma);
+    const outside = a.deps
+      .filter((d) => !d.closed && !byNum.has(d.number))
+      .map((d) => `#${d.number}`);
+    const after = [...others, ...outside];
+    const afterNote = after.length ? `${parentNum ? 'also ' : ''}after ${after.join(', ')}` : '';
+    const note = [friendly(a.action), afterNote].filter(Boolean).join(', ');
+    const kids = dependants
+      .get(a.number)
+      .filter((k) => !placed.has(k))
+      .map((k) => byNum.get(k));
+    kids.sort(
+      (x, y) =>
+        BUCKETS.indexOf(x.bucket) - BUCKETS.indexOf(y.bucket) || x.boardIndex - y.boardIndex,
+    );
+    const self =
+      `<div class="bn-row" data-issue="${a.number}"><span class="bn-st">${esc(shortStatus(a.status))}</span>` +
+      `<a class="bn-id" href="${ISSUE_URL}${a.number}">${esc(rowId(a))}</a><span class="bn-title">${esc(shortTitle(a))}</span>` +
+      `<span class="bn-why">${esc(note)}</span>${actionControl(a)}</div>`;
+    const inner = kids.map((k) => row(k, depth + 1, a.number)).join('');
+    return inner ? `${self}<div class="bn-kids">${inner}</div>` : self;
   };
-  for (const n of shown.keys()) depthOf(n);
-  const maxDepth = Math.max(0, ...depth.values());
-  const ncols = maxDepth + 1;
-  const left = 40;
-  const right = 640;
-  const gap = 18;
-  const colW = Math.min(190, Math.floor((right - left - (ncols - 1) * gap) / ncols));
-  const nodeH = 44;
-  const rowGap = 12;
-  const titleChars = Math.floor((colW - 16) / 7.4);
-  const subChars = Math.floor((colW - 16) / 6.4);
 
-  const bands = new Map();
-  const bandOrder = [];
-  const bandKey = (a) => {
-    if (a.isParent) return a.number;
-    return a.parent ?? 'none';
-  };
-  for (const a of [...shown.values()].sort((x, y) => x.boardIndex - y.boardIndex)) {
-    const k = bandKey(a);
-    if (!bands.has(k)) {
-      bands.set(k, { key: k, header: null, nodes: [] });
-      bandOrder.push(k);
-    }
-    if (a.isParent) bands.get(k).header = a;
-    else bands.get(k).nodes.push(a);
+  const roots = leaves.filter((a) => blockers.get(a.number).length === 0);
+  const sections = [
+    ['Needs you', roots.filter((a) => a.bucket === 'yours' || a.bucket === 'drift')],
+    ['Run next', roots.filter((a) => ['flight', 'pull', 'define'].includes(a.bucket))],
+    ['Waiting', roots.filter((a) => a.bucket === 'wait')],
+  ];
+  let body = '';
+  for (const [label, list] of sections) {
+    if (!list.length) continue;
+    body += `<div class="bn-sec">${label}</div>${list.map((a) => row(a, 0, null)).join('')}`;
   }
-  bandOrder.sort((x, y) => {
-    if (x === 'none') return 1;
-    if (y === 'none') return -1;
-    return (
-      (shown.get(x)?.boardIndex ?? ctx.byNumber.get(x)?.boardIndex ?? 99_999) -
-      (shown.get(y)?.boardIndex ?? ctx.byNumber.get(y)?.boardIndex ?? 99_999)
-    );
-  });
+  const leftovers = leaves.filter((a) => !placed.has(a.number));
+  if (leftovers.length)
+    body += `<div class="bn-sec">In a dependency cycle</div>${leftovers.map((a) => row(a, 0, null)).join('')}`;
 
-  const pos = new Map();
-  const parts = [];
-  let y = 40;
-  for (const k of bandOrder) {
-    const band = bands.get(k);
-    const header = band.header ?? (k === 'none' ? null : (byNum.get(k) ?? null));
-    const parentIt = k === 'none' ? null : ctx.byNumber.get(k);
-    const bandTop = y;
-    const label = header
-      ? `#${header.number} ${header.ma} · ${shortStatus(header.status)} · ${header.command ?? header.action}`
-      : parentIt
-        ? `#${parentIt.number} ${maId(parentIt)} · ${shortStatus(parentIt.status)}`
-        : k === 'none'
-          ? 'no parent'
-          : `#${k}`;
-    y += 28;
-    const cols = Array.from({ length: ncols }, () => []);
-    for (const a of band.nodes) cols[Math.min(depth.get(a.number) ?? 0, ncols - 1)].push(a);
-    const rows = Math.max(1, ...cols.map((c) => c.length));
-    cols.forEach((c, ci) => {
-      c.forEach((a, ri) => {
-        const x = left + ci * (colW + gap);
-        const ny = y + ri * (nodeH + rowGap);
-        pos.set(a.number, { x, y: ny });
-      });
-    });
-    const bandH = 28 + rows * (nodeH + rowGap) - rowGap + 12;
-    const clickable = header?.command && header.command.startsWith('/');
-    const headerClick = header
-      ? clickable
-        ? ` class="node" onclick="sendPrompt('${esc(header.command.split(' or ')[0])}')"`
-        : ` class="node" onclick="openLink('${ISSUE_URL}${header.number}')"`
-      : '';
-    parts.push(
-      `<g${headerClick}${header ? ` data-issue="${header.number}"` : ''}><rect x="${left - 8}" y="${bandTop}" width="${right - left + 16}" height="${bandH}" rx="6" fill="none" stroke="var(--border-strong)" stroke-width="0.5" stroke-dasharray="4 3"/>` +
-        `<text x="${left}" y="${bandTop + 18}" class="ts">${esc(clip(label, 88))}</text></g>`,
-    );
-    y = bandTop + bandH + 16;
-  }
-  const height = y - 16 + 40 + 56;
-
-  const edges = [];
-  for (const a of shown.values()) {
-    for (const d of a.deps) {
-      const from = pos.get(d.number);
-      const to = pos.get(a.number);
-      if (!from || !to) continue;
-      const x1 = from.x + colW;
-      const y1 = from.y + nodeH / 2;
-      const x2 = to.x;
-      const y2 = to.y + nodeH / 2;
-      const dash = d.closed ? ' stroke-dasharray="4 3"' : '';
-      edges.push(
-        `<path data-edge="${d.number}-${a.number}" class="arr" fill="none"${dash} marker-end="url(#arrow)" d="M${x1} ${y1} C${x1 + 24} ${y1}, ${x2 - 24} ${y2}, ${x2} ${y2}"/>`,
-      );
-    }
-  }
-
-  const nodes = [];
-  for (const a of shown.values()) {
-    const p = pos.get(a.number);
-    if (!p) continue;
-    const title = clip(`${a.ma} · ${shortStatus(a.status)}`, titleChars);
-    const sub = clip((a.command ?? a.action).split(' or ')[0], subChars);
-    const click =
-      a.command && a.command.startsWith('/')
-        ? `sendPrompt('${esc(a.command.split(' or ')[0])}')`
-        : `openLink('${ISSUE_URL}${a.number}')`;
-    const opacity = a.ghost ? ' opacity="0.55"' : '';
-    nodes.push(
-      `<g class="node ${ramp(a)}" data-issue="${a.number}" onclick="${click}"${opacity}><rect x="${p.x}" y="${p.y}" width="${colW}" height="${nodeH}" rx="4" stroke-width="0.5"/>` +
-        `<text x="${p.x + 8}" y="${p.y + 18}" class="th">${esc(title)}</text><text x="${p.x + 8}" y="${p.y + 34}" class="ts">${esc(sub)}</text></g>`,
-    );
-  }
-
-  const legendY = y - 16 + 20;
-  const legend = [
-    ['c-gray', 'Todo, Defined'],
-    ['c-purple', 'Ready, Planned'],
-    ['c-teal', 'In flight'],
-    ['c-coral', 'Drift, Blocked'],
-  ]
-    .map(([c, t], i) => {
-      const x = left + i * 150;
-      return `<g class="${c}"><rect x="${x}" y="${legendY}" width="138" height="26" rx="4" stroke-width="0.5"/><text x="${x + 8}" y="${legendY + 17}" class="ts">${t}</text></g>`;
-    })
-    .join('');
-
-  return (
-    `<svg width="100%" viewBox="0 0 680 ${height}" role="img"><title>MoneyApp board</title><desc>Open tickets grouped by parent, columns by dependency depth, the next action on each node. Click a node to run its command.</desc>` +
-    `<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>` +
-    parts.join('') +
-    edges.join('') +
-    nodes.join('') +
-    legend +
-    `</svg>\n`
-  );
+  const count = (b) => result.actions.filter((a) => a.bucket === b && !a.isParent).length;
+  const runnable = count('flight') + count('pull') + count('define');
+  const needs = count('yours') + count('drift');
+  const waiting = leaves.filter((a) => a.bucket === 'wait').length;
+  const head = `<div class="bn-head"><span>${runnable} to run, ${needs} need you, ${waiting} waiting</span><span>${esc(localStamp(result.fetchedAt))}</span></div>`;
+  const foot = parents.length
+    ? `<div class="bn-foot">Parents mirror their children: ${parents.map((p) => `<a href="${ISSUE_URL}${p.number}">${esc(p.ma)}</a> (${esc(shortStatus(p.status))})`).join(', ')}</div>`
+    : '';
+  return `<style>${CSS}</style><div class="bn">${head}${body}${foot}</div>\n`;
 }
 
 function main() {
@@ -811,8 +776,8 @@ function main() {
   if (opts.format === 'json') {
     const { ctx: _ctx, ...rest } = result;
     process.stdout.write(`${JSON.stringify(rest, null, 2)}\n`);
-  } else if (opts.format === 'svg') {
-    process.stdout.write(svgReport(result));
+  } else if (opts.format === 'html') {
+    process.stdout.write(htmlReport(result));
   } else {
     process.stdout.write(textReport(result));
   }

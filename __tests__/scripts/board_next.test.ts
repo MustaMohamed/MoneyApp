@@ -144,15 +144,23 @@ describe('board_next text', () => {
   });
 });
 
-describe('board_next svg', () => {
-  test('emits one 680-wide svg with every open ticket as a node and the dependency edges', () => {
-    const r = run('--format', 'svg');
+describe('board_next html', () => {
+  test('emits a dependency tree: roots that can move, dependants nested, one row per open leaf', () => {
+    const r = run('--format', 'html');
     expect(r.status).toBe(0);
-    expect(r.stdout.startsWith('<svg width="100%" viewBox="0 0 680 ')).toBe(true);
-    expect((r.stdout.match(/<svg /g) ?? []).length).toBe(1);
-    expect(r.stdout).toContain('data-issue="108"');
-    expect(r.stdout).toContain('data-issue="111"');
-    expect(r.stdout).toContain('data-edge="108-119"');
-    expect(r.stdout).not.toContain('<!--');
+    const html = r.stdout;
+    expect(html.startsWith('<style>')).toBe(true);
+    expect(html).not.toContain('<!--');
+    expect(html).toContain('data-issue="108"');
+    expect(html).not.toContain('data-issue="111"');
+    expect(html).not.toContain('data-issue="100"');
+    const i108 = html.indexOf('data-issue="108"');
+    const i119 = html.indexOf('data-issue="119"');
+    const kids = html.indexOf('<div class="bn-kids">', i108);
+    expect(kids).toBeGreaterThan(i108);
+    expect(i119).toBeGreaterThan(kids);
+    expect(html).toContain(`onclick="sendPrompt('/prep 108')"`);
+    expect(html).toContain('Open PR #501');
+    expect(html.indexOf('Needs you')).toBeLessThan(html.indexOf('Run next'));
   });
 });

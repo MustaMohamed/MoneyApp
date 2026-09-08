@@ -25,11 +25,11 @@ One read of Project #2, one action per open ticket, the dependency graph when th
    node scripts/board_next.mjs --snapshot "$S" --format text [--scope <n>] </dev/null
    ```
 
-4. Graph: the reply is the SVG as an inline widget, then the `yours` and `drift` lines from the text report, since the graph does not carry those in full, then the `Next:` line of step 5.
+4. Graph: the reply is the dependency tree as an inline widget, then the `yours` and `drift` lines from the text report, then the `Next:` line of step 5.
    ```bash
-   node scripts/board_next.mjs --snapshot "$S" --format svg [--scope <n>] </dev/null
+   node scripts/board_next.mjs --snapshot "$S" --format html [--scope <n>] </dev/null
    ```
-   The SVG is complete: 680 wide, `role="img"`, pre-built classes, arrow marker, `sendPrompt` on nodes whose command is a skill and `openLink` on the rest. Pass it to `show_widget` unchanged, title `moneyapp_board`. Clicking a node sends its command as the next prompt.
+   The HTML is complete: a `<style>` block on host variables, then one `.bn` block. Tickets nothing blocks are roots, in sections Needs you, Run next, Waiting; whatever waits on a root is nested under it with a tree line, so a row's position says what it waits for and its note says what else. The command on a row is a button that sends itself as the next prompt; a merge is a link to the PR. Parents are one footer line. Pass it to `show_widget` unchanged, title `moneyapp_board`.
 
 5. The last line of the reply is `Next: <the first action line of the report>`, the line after the first bucket heading; never the `Board …` header. Nothing after it.
 
@@ -47,4 +47,4 @@ A Todo leaf names both `/boundaries` and `/tickets`: the user picks per ticket. 
 
 - Running a command from the report because it looked safe. The report is the answer; the user runs or delegates.
 - Re-fetching for the second format. One `--save`, two `--snapshot` renders.
-- Editing the SVG before `show_widget`. The script owns the layout; a layout defect is a script fix with a test.
+- Editing the HTML before `show_widget`. The script owns the layout; a layout defect is a script fix with a test.
