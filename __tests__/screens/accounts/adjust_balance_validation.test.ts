@@ -1,8 +1,10 @@
 import { AccountType } from '@/constants/enums';
 import {
   parseAdjustInput,
+  resolveAdjustInputChange,
   splitLeadingMinus,
 } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.helpers';
+import { MINUS_SIGN } from '@/utils/format_amount';
 
 const BANK_POSITIVE = { isNegative: false, accountType: AccountType.Bank };
 const BANK_NEGATIVE = { isNegative: true, accountType: AccountType.Bank };
@@ -87,6 +89,19 @@ describe('parseAdjustInput', () => {
     expect(parseAdjustInput('--5', BANK_POSITIVE)).toEqual({ ok: false });
   });
 
+  it("reads the app's own minus glyph as a sign on a non-card", () => {
+    expect(parseAdjustInput(`${MINUS_SIGN}5`, BANK_POSITIVE)).toEqual({ ok: true, value: -5 });
+  });
+
+  it("refuses the app's own minus glyph on a credit card", () => {
+    expect(parseAdjustInput(`${MINUS_SIGN}5`, CARD_POSITIVE)).toEqual({ ok: false });
+  });
+
+  it('rejects a second minus whichever glyph it is', () => {
+    expect(parseAdjustInput(`${MINUS_SIGN}${MINUS_SIGN}5`, BANK_POSITIVE)).toEqual({ ok: false });
+    expect(parseAdjustInput(`${MINUS_SIGN}-5`, BANK_POSITIVE)).toEqual({ ok: false });
+  });
+
   it('rejects a lone minus', () => {
     expect(parseAdjustInput('-', BANK_POSITIVE)).toEqual({ ok: false });
   });
@@ -142,5 +157,39 @@ describe('splitLeadingMinus', () => {
 
   it('trims before reading the sign', () => {
     expect(splitLeadingMinus(' -5 ')).toEqual({ magnitude: '5', typedNegative: true });
+  });
+
+  it("strips the app's own minus glyph too", () => {
+    expect(splitLeadingMinus(`${MINUS_SIGN}1900`)).toEqual({
+      magnitude: '1900',
+      typedNegative: true,
+    });
+  });
+
+  it('strips exactly one minus, whichever glyph follows it', () => {
+    expect(splitLeadingMinus(`${MINUS_SIGN}${MINUS_SIGN}5`)).toEqual({
+      magnitude: `${MINUS_SIGN}5`,
+      typedNegative: true,
+    });
+  });
+});
+
+describe('resolveAdjustInputChange', () => {
+  it('moves a non-card typed minus into the sign and stores the magnitude', () => {
+    expect(resolveAdjustInputChange('-1900', false)).toEqual({ input: '1900', negative: true });
+  });
+
+  it('leaves the sign alone on an ordinary non-card edit', () => {
+    const change = resolveAdjustInputChange('1900', false);
+
+    expect(change.input).toBe('1900');
+    expect(change.negative).toBeUndefined();
+  });
+
+  it('stores a card typed minus as text and leaves the sign alone', () => {
+    const change = resolveAdjustInputChange('-1900', true);
+
+    expect(change.input).toBe('-1900');
+    expect(change.negative).toBeUndefined();
   });
 });

@@ -1,4 +1,5 @@
 import { AccountType } from '@/constants/enums';
+import { MINUS_SIGN } from '@/utils/format_amount';
 import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
 
 /** Finite; a card is floored at zero, a non-card may be negative, and one leading minus is read. */
@@ -9,12 +10,24 @@ interface AdjustSign {
   accountType: AccountType;
 }
 
-/** Only U+002D is a sign; a U+2212 or a second minus stays in the magnitude and fails the parse. */
+/** One leading U+002D or U+2212 is the sign; a second minus of either glyph stays in the magnitude. */
 export function splitLeadingMinus(raw: string): { magnitude: string; typedNegative: boolean } {
   const trimmed = raw.trim();
-  return trimmed.startsWith('-')
+  return trimmed.startsWith('-') || trimmed.startsWith(MINUS_SIGN)
     ? { magnitude: trimmed.slice(1), typedNegative: true }
     : { magnitude: trimmed, typedNegative: false };
+}
+
+/** An absent `negative` means leave the segment as the user set it; an ordinary edit never moves it. */
+export interface AdjustInputChange {
+  input: string;
+  negative?: true;
+}
+
+export function resolveAdjustInputChange(raw: string, isCard: boolean): AdjustInputChange {
+  const { magnitude, typedNegative } = splitLeadingMinus(raw);
+  // A card has no control to clear the sign with, so its text stays exactly as typed.
+  return typedNegative && !isCard ? { input: magnitude, negative: true } : { input: raw };
 }
 
 export function parseAdjustInput(raw: string, sign: AdjustSign): AdjustParseResult {

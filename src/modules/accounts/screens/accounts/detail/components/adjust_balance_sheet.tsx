@@ -8,20 +8,34 @@ import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
-import { SegmentedTabs } from '@/components/ui/tabs';
+import { SegmentedTabs, type TabSegment } from '@/components/ui/tabs';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
+import { MINUS_SIGN, PLUS_SIGN } from '@/utils/format_amount';
 
 import {
   FIELD_MESSAGE_RAIL_STYLE,
   FIELD_MESSAGE_TEXT_LINE_HEIGHT,
 } from '../../../../components/account_form/account_form.geometry';
-import { parseAdjustInput, splitLeadingMinus } from './adjust_balance_sheet.helpers';
+import { parseAdjustInput, resolveAdjustInputChange } from './adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
 import { formatAccountBalance } from './balance_hero.helpers';
 
 type SignSegment = 'positive' | 'negative';
+
+const SIGN_SEGMENTS: TabSegment<SignSegment>[] = [
+  {
+    value: 'positive',
+    label: PLUS_SIGN,
+    accessibilityLabel: Strings.adjustBalanceSignPositiveA11y,
+  },
+  {
+    value: 'negative',
+    label: MINUS_SIGN,
+    accessibilityLabel: Strings.adjustBalanceSignNegativeA11y,
+  },
+];
 
 interface AdjustBalanceSheetProps {
   isOpen: boolean;
@@ -126,18 +140,7 @@ export function AdjustBalanceSheet({
         <FormSectionLabel>{Strings.adjustBalanceLabel}</FormSectionLabel>
         {!isCard && (
           <SegmentedTabs<SignSegment>
-            segments={[
-              {
-                value: 'positive',
-                label: Strings.adjustBalanceSignPositive,
-                accessibilityLabel: Strings.adjustBalanceSignPositiveA11y,
-              },
-              {
-                value: 'negative',
-                label: Strings.adjustBalanceSignNegative,
-                accessibilityLabel: Strings.adjustBalanceSignNegativeA11y,
-              },
-            ]}
+            segments={SIGN_SEGMENTS}
             value={isNegative ? 'negative' : 'positive'}
             onValueChange={(v) => {
               setNegative(v === 'negative');
@@ -145,7 +148,7 @@ export function AdjustBalanceSheet({
             }}
             variant="solid-gold"
             density="compact"
-            listClassName="mb-2 w-full rounded-lg"
+            listClassName="mb-2 h-9 w-full rounded-lg"
             accessibilityLabel={Strings.adjustBalanceSignA11y}
             isDisabled={isLoading}
           />
@@ -153,14 +156,9 @@ export function AdjustBalanceSheet({
         <Input
           value={input}
           onChangeText={(v) => {
-            const { magnitude, typedNegative } = splitLeadingMinus(v);
-            // A card has no control to clear the sign with, so its text stays exactly as typed.
-            if (typedNegative && !isCard) {
-              setNegative(true);
-              setInput(magnitude);
-            } else {
-              setInput(v);
-            }
+            const change = resolveAdjustInputChange(v, isCard);
+            setInput(change.input);
+            if (change.negative) setNegative(true);
             setError('');
           }}
           onFocus={onFocus}
