@@ -2,11 +2,11 @@ import { AccountType } from '@/constants/enums';
 import { MINUS_SIGN } from '@/utils/format_amount';
 import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
 
-/** Finite; a card is floored at zero, a non-card may be negative, and one leading minus is read. */
+/** Finite; a card refuses a negative, a non-card may hold one, and one leading minus is read. */
 export type AdjustParseResult = { ok: true; value: number } | { ok: false };
 
 /** One leading U+002D or U+2212 is the sign; a second minus of either glyph stays in the magnitude. */
-export function splitLeadingMinus(raw: string): { magnitude: string; typedNegative: boolean } {
+function splitLeadingMinus(raw: string): { magnitude: string; typedNegative: boolean } {
   const trimmed = raw.trim();
   return trimmed.startsWith('-') || trimmed.startsWith(MINUS_SIGN)
     ? { magnitude: trimmed.slice(1), typedNegative: true }
@@ -19,7 +19,7 @@ export function parseAdjustInput(raw: string, accountType: AccountType): AdjustP
   if (parsed === undefined) {
     return { ok: false };
   }
-  if (typedNegative && accountType === AccountType.CreditCard) {
+  if (typedNegative && parsed !== 0 && accountType === AccountType.CreditCard) {
     return { ok: false };
   }
   // `roundMoney(-0)` returns `-0` and the column would keep it, so zero never takes the sign.

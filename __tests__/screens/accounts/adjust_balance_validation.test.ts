@@ -1,8 +1,5 @@
 import { AccountType } from '@/constants/enums';
-import {
-  parseAdjustInput,
-  splitLeadingMinus,
-} from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.helpers';
+import { parseAdjustInput } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.helpers';
 import { MINUS_SIGN } from '@/utils/format_amount';
 
 describe('parseAdjustInput', () => {
@@ -98,6 +95,10 @@ describe('parseAdjustInput', () => {
     expect(parseAdjustInput('-', AccountType.Bank)).toEqual({ ok: false });
   });
 
+  it('trims surrounding whitespace before reading the sign', () => {
+    expect(parseAdjustInput(' -5 ', AccountType.Bank)).toEqual({ ok: true, value: -5 });
+  });
+
   it('applies a typed minus to a comma-grouped wallet amount', () => {
     expect(parseAdjustInput('-1,900', AccountType.SmartWallet)).toEqual({ ok: true, value: -1900 });
   });
@@ -118,32 +119,20 @@ describe('parseAdjustInput', () => {
     if (!result.ok) return;
     expect(Object.is(result.value, 0)).toBe(true);
   });
-});
 
-describe('splitLeadingMinus', () => {
-  it('strips one leading minus and reports it', () => {
-    expect(splitLeadingMinus('-1900')).toEqual({ magnitude: '1900', typedNegative: true });
+  it('accepts a typed "-0" on a credit card as positive zero', () => {
+    const result = parseAdjustInput('-0', AccountType.CreditCard);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(Object.is(result.value, 0)).toBe(true);
   });
 
-  it('leaves a bare magnitude alone', () => {
-    expect(splitLeadingMinus('1900')).toEqual({ magnitude: '1900', typedNegative: false });
-  });
+  it("accepts a zero signed with the app's own minus glyph on a credit card", () => {
+    const result = parseAdjustInput(`${MINUS_SIGN}0`, AccountType.CreditCard);
 
-  it('trims before reading the sign', () => {
-    expect(splitLeadingMinus(' -5 ')).toEqual({ magnitude: '5', typedNegative: true });
-  });
-
-  it("strips the app's own minus glyph too", () => {
-    expect(splitLeadingMinus(`${MINUS_SIGN}1900`)).toEqual({
-      magnitude: '1900',
-      typedNegative: true,
-    });
-  });
-
-  it('strips exactly one minus, whichever glyph follows it', () => {
-    expect(splitLeadingMinus(`${MINUS_SIGN}${MINUS_SIGN}5`)).toEqual({
-      magnitude: `${MINUS_SIGN}5`,
-      typedNegative: true,
-    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(Object.is(result.value, 0)).toBe(true);
   });
 });
