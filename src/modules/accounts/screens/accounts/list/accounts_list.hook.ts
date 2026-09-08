@@ -9,7 +9,10 @@ import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboa
 import { isRateUsable } from '../../../domain/account_aggregation';
 import { useAccountStore } from '../../../store/account.store';
 import { resolveAccountCaption, resolveAccountsListContent } from './accounts_list.helpers';
-import { resolveAccountsListEmptyState } from './accounts_list.presentation';
+import {
+  resolveAccountsListEmptyState,
+  resolveAccountsListSectionTitle,
+} from './accounts_list.presentation';
 import { useAccountsListState } from './accounts_list.state';
 
 /** No focus loader: the store reloads at startup and after every mutation, and Try again is the only reload this screen starts. */
@@ -25,6 +28,8 @@ export function useAccountsList() {
   const loadAccounts = useAccountStore.getState().loadAccounts;
   const isRetrying = useAccountsListState((s) => s.isRetrying);
   const setRetrying = useAccountsListState.getState().setRetrying;
+  const selectedType = useAccountsListState((s) => s.selectedType);
+  const setSelectedType = useAccountsListState.getState().setSelectedType;
   const { rate, isManualOverride, rateUpdatedAt } = useCurrencyStore(
     useShallow((state) => ({
       rate: state.rate,
@@ -40,7 +45,7 @@ export function useAccountsList() {
   // Decided once here and passed down; never re-derived as `rate > 0` when displaying.
   const rateUsable = isRateUsable({ rate, rateUpdatedAt, isManualOverride });
 
-  const rows = useMemo(
+  const allRows = useMemo(
     () =>
       accounts.map((account) => ({
         account,
@@ -53,6 +58,13 @@ export function useAccountsList() {
         }),
       })),
     [accounts, baseCurrency, rate, rateUsable, statsMap],
+  );
+
+  // A narrow over the same row objects: a filter change re-derives no caption (ADR 2026-09-07).
+  const rows = useMemo(
+    () =>
+      selectedType === 'all' ? allRows : allRows.filter((row) => row.account.type === selectedType),
+    [allRows, selectedType],
   );
 
   const goToAccount = useCallback((id: string) => router.push(`/accounts/${id}`), [router]);
@@ -76,15 +88,20 @@ export function useAccountsList() {
       rows,
       archivedCount,
       isRetrying,
-      content: resolveAccountsListContent({ loadError, accountCount: rows.length }),
+      selectedType,
+      sectionTitle: resolveAccountsListSectionTitle(selectedType),
+      // The unfiltered active count: a filtered-to-empty list is not an empty screen.
+      content: resolveAccountsListContent({ loadError, accountCount: allRows.length }),
       emptyState: resolveAccountsListEmptyState({
         activeCount: accounts.length,
         archivedCount,
+        visibleCount: rows.length,
       }),
     },
     goToAccount,
     goToAddAccount,
     onBack,
     retry,
+    selectType: setSelectedType,
   };
 }

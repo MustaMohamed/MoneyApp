@@ -1,6 +1,7 @@
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
   ACCOUNTS_LIST_CARD_STYLE,
+  ACCOUNTS_LIST_RAIL_STYLE,
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
   ACCOUNTS_LIST_ROW_STYLE,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.geometry';
@@ -64,5 +65,20 @@ describe('accounts list card geometry (B1)', () => {
 
   it('is frozen', () => {
     expect(Object.isFrozen(ACCOUNTS_LIST_CARD_STYLE)).toBe(true);
+  });
+});
+
+describe('accounts list type rail geometry (B7)', () => {
+  it('takes the card gutter and sits off the header', () => {
+    expect(ACCOUNTS_LIST_RAIL_STYLE.marginHorizontal).toBe(Spacing.md);
+    expect(ACCOUNTS_LIST_RAIL_STYLE.marginTop).toBe(Spacing.sm);
+  });
+
+  it('carries exactly these keys', () => {
+    expect(Object.keys(ACCOUNTS_LIST_RAIL_STYLE).sort()).toEqual(['marginHorizontal', 'marginTop']);
+  });
+
+  it('is frozen', () => {
+    expect(Object.isFrozen(ACCOUNTS_LIST_RAIL_STYLE)).toBe(true);
   });
 });

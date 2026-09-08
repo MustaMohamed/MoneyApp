@@ -101,8 +101,9 @@ beforeEach(() => {
 });
 
 describe('useAccountsList', () => {
-  it('exposes the store rows by reference, in store order, with no filter of its own', async () => {
+  it('exposes the store rows by reference, in store order, on All', async () => {
     const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.selectedType).toBe('all');
     expect(result.current.state.rows.map((row) => row.account)).toEqual(accounts);
     expect(result.current.state.rows[0].account).toBe(accounts[0]);
     expect(result.current.state.rows[1].account).toBe(accounts[1]);
@@ -222,6 +223,86 @@ describe('useAccountsList', () => {
     const { result } = await renderHook(() => useAccountsList());
 
     expect(result.current.state.content).toBe('error');
+  });
+});
+
+describe('useAccountsList — the type filter narrows the rows', () => {
+  // Two non-adjacent Banks: a narrow written as a regroup or a re-sort fails this.
+  const banks = [
+    makeTestAccount({ id: 'acc-1', name: 'CIB Current', type: AccountType.Bank, sort_order: 0 }),
+    makeTestAccount({ id: 'acc-2', name: 'Cash', type: AccountType.PhysicalWallet, sort_order: 1 }),
+    makeTestAccount({ id: 'acc-4', name: 'QNB', type: AccountType.Bank, sort_order: 2 }),
+  ];
+
+  it('shows only the selected type, in store order, and All restores the list', async () => {
+    storeState = {
+      accounts: banks,
+      archivedCount: 0,
+      loadError: false,
+      loadAccounts: mockLoadAccounts,
+    };
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.selectType(AccountType.Bank);
+    });
+
+    expect(result.current.state.rows.map((row) => row.account.id)).toEqual(['acc-1', 'acc-4']);
+    expect(result.current.state.emptyState).toBe('none');
+
+    await act(() => {
+      result.current.selectType('all');
+    });
+
+    expect(result.current.state.rows.map((row) => row.account.id)).toEqual([
+      'acc-1',
+      'acc-2',
+      'acc-4',
+    ]);
+  });
+
+  it('keeps the surviving rows and their captions as the objects All showed', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+    const allRows = result.current.state.rows;
+
+    await act(() => {
+      result.current.selectType(AccountType.Bank);
+    });
+
+    expect(result.current.state.rows).toHaveLength(1);
+    expect(result.current.state.rows[0]).toBe(allRows[0]);
+    expect(result.current.state.rows[0].caption).toBe(allRows[0].caption);
+  });
+
+  it('names the section after the selected type and keeps the content on rows', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.sectionTitle).toBe('Your accounts');
+
+    await act(() => {
+      result.current.selectType(AccountType.CreditCard);
+    });
+
+    expect(result.current.state.sectionTitle).toBe('Credit cards');
+    expect(result.current.state.rows).toEqual([]);
+    expect(result.current.state.emptyState).toBe('filtered');
+    expect(result.current.state.content).toBe('rows');
+  });
+
+  it('keeps the archived-only block on every segment', async () => {
+    storeState = {
+      accounts: [],
+      archivedCount: 2,
+      loadError: false,
+      loadAccounts: mockLoadAccounts,
+    };
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.emptyState).toBe('archivedOnly');
+
+    await act(() => {
+      result.current.selectType(AccountType.Bank);
+    });
+
+    expect(result.current.state.emptyState).toBe('archivedOnly');
   });
 });
 

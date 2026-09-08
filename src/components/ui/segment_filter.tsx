@@ -14,9 +14,15 @@ export function SegmentFilter<T extends string>(props: SegmentFilterProps<T>) {
       variant="solid-gold"
       layout="scrollable"
       scrollAlign="visible"
-      listClassName="self-stretch rounded-full bg-default/60"
+      // Two literals, never a composed string: Uniwind scans class names at build time.
+      listClassName={
+        props.corners === 'form'
+          ? 'self-stretch bg-default/60'
+          : 'self-stretch rounded-full bg-default/60'
+      }
       segmentWidth={Size.filterSegmentCompactWidth}
       density="compact"
+      corners={props.corners}
       accessibilityLabel={props.accessibilityLabel}
     />
   );
