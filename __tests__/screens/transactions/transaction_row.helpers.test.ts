@@ -206,12 +206,11 @@ describe('buildTransactionRowPresentation', () => {
     expect(overridden.context).toBe('6 Sep');
     expect(shipped.context).toBe('Daily wallet');
     expect(overridden.accessibilityLabel.split(', ')[1]).toBe('6 Sep');
-    expect(overridden).toMatchObject({
-      title: shipped.title,
-      primaryAmount: shipped.primaryAmount,
-      iconName: shipped.iconName,
-      timeText: shipped.timeText,
-    });
+    expect({
+      ...overridden,
+      context: shipped.context,
+      accessibilityLabel: shipped.accessibilityLabel,
+    }).toEqual(shipped);
   });
 
   it('gives commitment ownership precedence over a named budget', () => {

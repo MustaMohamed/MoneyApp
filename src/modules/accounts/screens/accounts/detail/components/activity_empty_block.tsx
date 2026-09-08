@@ -17,7 +17,7 @@ export function ActivityEmptyBlock({ onAdd }: Props): React.ReactElement {
     <View className="items-center px-4 py-5">
       <View
         className="bg-surface-secondary items-center justify-center rounded-full"
-        style={{ width: Size.emptyStateIcon, height: Size.emptyStateIcon }}
+        style={{ width: Size.activityEmptyCircle, height: Size.activityEmptyCircle }}
       >
         <MaterialCommunityIcons
           name="swap-horizontal"

@@ -1,9 +1,10 @@
 import { AccountType, TransactionType } from '@/constants/enums';
 import type { AccountActivityStatus } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
 import {
-  activityCardView,
+  type ActivityCardBody,
   buildActivityRowPresentation,
   formatActivityDayLabel,
+  resolveActivityCardView,
 } from '@/modules/accounts/screens/accounts/detail/components/account_activity.helpers';
 import { buildTransactionRowPresentation } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { makeTestAccount, makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
@@ -156,8 +157,8 @@ describe('buildActivityRowPresentation', () => {
   });
 });
 
-describe('activityCardView', () => {
-  const cases: [AccountActivityStatus, number, string, boolean][] = [
+describe('resolveActivityCardView', () => {
+  const cases: [AccountActivityStatus, number, ActivityCardBody, boolean][] = [
     ['idle', 0, 'loading', false],
     ['idle', 2, 'loading', false],
     ['initialLoading', 0, 'loading', false],
@@ -169,6 +170,6 @@ describe('activityCardView', () => {
   ];
 
   it.each(cases)('%s with %i rows renders %s, See all %s', (status, rowCount, body, showSeeAll) => {
-    expect(activityCardView(status, rowCount)).toEqual({ body, showSeeAll });
+    expect(resolveActivityCardView(status, rowCount)).toEqual({ body, showSeeAll });
   });
 });

@@ -12,19 +12,24 @@ import { MONTHS_SHORT } from '@/utils/year_month';
 
 import type { AccountActivityStatus } from '../account_activity.store';
 
-/** One call decides the card's body and its See all, so the header cannot invite a tap into an empty or loading list. */
-export function activityCardView(
+export type ActivityCardBody = 'loading' | 'error' | 'empty' | 'rows';
+
+function resolveActivityCardBody(
   status: AccountActivityStatus,
   rowCount: number,
-): { body: 'loading' | 'error' | 'empty' | 'rows'; showSeeAll: boolean } {
-  const body =
-    status === 'idle' || status === 'initialLoading'
-      ? 'loading'
-      : status === 'initialError'
-        ? 'error'
-        : rowCount === 0
-          ? 'empty'
-          : 'rows';
+): ActivityCardBody {
+  if (status === 'idle' || status === 'initialLoading') return 'loading';
+  if (status === 'initialError') return 'error';
+  if (rowCount === 0) return 'empty';
+  return 'rows';
+}
+
+/** One call decides the card's body and its See all, so the header cannot invite a tap into an empty or loading list. */
+export function resolveActivityCardView(
+  status: AccountActivityStatus,
+  rowCount: number,
+): { body: ActivityCardBody; showSeeAll: boolean } {
+  const body = resolveActivityCardBody(status, rowCount);
   return { body, showSeeAll: body === 'rows' || body === 'error' };
 }
 
@@ -46,7 +51,7 @@ export function formatActivityDayLabel(
   return `${Number(day)} ${MONTHS_SHORT[Number(month) - 1]}`;
 }
 
-/** The detail's second line is the transaction's own context; the date joins it wherever the title already carries the category. */
+/** The detail's second line is the transaction's own context; the category joins the date wherever the title does not already carry it. */
 function activityContext(
   { tx, account, category }: TransactionRowPresentationInput,
   dayLabel: string,

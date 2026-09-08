@@ -10,7 +10,7 @@ import { TransactionRowsSkeleton } from '@/modules/transactions/screens/transact
 import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 
 import type { AccountActivityStatus } from '../account_activity.store';
-import { activityCardView } from './account_activity.helpers';
+import { resolveActivityCardView } from './account_activity.helpers';
 import { ActivityEmptyBlock } from './activity_empty_block';
 
 const SKELETON_ROWS = 3;
@@ -38,7 +38,7 @@ export function AccountActivityCard({
   onAdd,
   onRetry,
 }: Props): React.ReactElement {
-  const { body, showSeeAll } = activityCardView(status, rows.length);
+  const { body, showSeeAll } = resolveActivityCardView(status, rows.length);
 
   return (
     <>
