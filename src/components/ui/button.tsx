@@ -26,7 +26,7 @@ interface ButtonBaseProps extends Omit<PressableProps, 'children' | 'disabled'> 
   className?: string;
 }
 
-// `flat` is the redesigned screens' treatment at Radius.cta — primary: accent fill, no gradient; secondary: foreground label (mockup `.cta`/`.cta.sec`; spec.md § Known disagreements 1).
+// `flat` is the redesigned screens' treatment at Radius.cta — primary: accent fill, no gradient; secondary: foreground label (mockup `.cta`/`.cta.sec`; spec.md § Known disagreements 1); ghost: radius only, no label class.
 /** Only the flat secondary paints `tone` (the account detail's Archive), so the union stops every other shape naming it. */
 export type ButtonProps = ButtonBaseProps &
   (

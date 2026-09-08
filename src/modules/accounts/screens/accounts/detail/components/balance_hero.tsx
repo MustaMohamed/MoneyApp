@@ -15,7 +15,11 @@ import { resolveAccountTileColors } from '@/modules/accounts/constants/account_t
 
 import type { Account } from '../../../../store/account.store';
 import { HERO_CURRENCY_GAP, HERO_CURRENCY_OPACITY } from './balance_hero.geometry';
-import { buildHeroCaption, formatAccountBalanceParts } from './balance_hero.helpers';
+import {
+  buildHeroCaption,
+  formatAccountBalance,
+  formatAccountBalanceParts,
+} from './balance_hero.helpers';
 
 interface BalanceHeroProps {
   account: Account;
@@ -75,6 +79,8 @@ export function BalanceHero({ account }: BalanceHeroProps) {
 
         {/* A container `gap`, not a `marginLeft` on a nested Text — RN Android drops margins on inline text. */}
         <View
+          accessible
+          accessibilityLabel={formatAccountBalance(account.current_balance, account.currency)}
           style={{
             flexDirection: 'row',
             alignItems: 'baseline',
@@ -96,7 +102,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
               fontSize: Type.subhead,
               lineHeight: lineHeightFor(Type.subhead),
             }}
-            className={`font-sora-bold tabular-nums ${balanceColorClass}`}
+            className={`font-sora-semibold tabular-nums ${balanceColorClass}`}
           >
             {balance.code}
           </Typography>

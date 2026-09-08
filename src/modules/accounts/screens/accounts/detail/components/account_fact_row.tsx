@@ -30,7 +30,7 @@ export function AccountFactRow({
         {label}
       </ListGroup.ItemDescription>
       <ListGroup.ItemTitle
-        className="font-inter-medium text-foreground"
+        className="font-sora text-foreground tabular-nums"
         style={[
           { fontSize: Type.body, lineHeight: lineHeightFor(Type.body) },
           valueColor ? { color: valueColor } : undefined,
