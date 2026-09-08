@@ -111,6 +111,14 @@ function runFocusEffect(): void {
   mockFocusEffect.mock.calls.at(-1)?.[0]();
 }
 
+// The add handler waits two frames for the tabs host to paint; run them inline.
+beforeAll(() => {
+  jest.spyOn(global, 'requestAnimationFrame').mockImplementation((callback) => {
+    callback(0);
+    return 0;
+  });
+});
+
 const mockSetEditing = jest.fn();
 const mockSetAdjustVisible = jest.fn();
 const mockSetArchiveVisible = jest.fn();
@@ -358,16 +366,17 @@ describe('useAccountDetail', () => {
     );
   });
 
-  it('opens the add form with this account before landing on the tab', async () => {
+  // The tabs subtree is frozen while the detail is on top, so the form opens after the landing.
+  it('lands on the tab before opening the add form with this account', async () => {
     mockAccounts([mkAccount()]);
     const { result } = await renderHook(() => useAccountDetail());
 
     await act(() => result.current.addTransactionForAccount());
 
-    expect(mockOpenAdd).toHaveBeenCalledWith({ accountId: 'acc-1' });
     expect(mockNavigate).toHaveBeenCalledWith(TRANSACTIONS_TAB);
-    expect(mockOpenAdd.mock.invocationCallOrder[0]).toBeLessThan(
-      mockNavigate.mock.invocationCallOrder[0] ?? 0,
+    expect(mockOpenAdd).toHaveBeenCalledWith({ accountId: 'acc-1' });
+    expect(mockNavigate.mock.invocationCallOrder[0]).toBeLessThan(
+      mockOpenAdd.mock.invocationCallOrder[0] ?? 0,
     );
   });
 

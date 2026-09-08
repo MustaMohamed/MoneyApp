@@ -253,9 +253,16 @@ export function useAccountDetail() {
     router.navigate(TRANSACTIONS_TAB);
   };
 
+  // Two frames past the pop: the tabs host is frozen until then, and a `Sheet` that first renders already-open never animates in.
   const addTransactionForAccount = () => {
-    useTransactionFormState.getState().openAdd({ accountId: id });
     router.navigate(TRANSACTIONS_TAB);
+    runAfterInteractions(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          useTransactionFormState.getState().openAdd({ accountId: id });
+        });
+      });
+    });
   };
 
   return {
