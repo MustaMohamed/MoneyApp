@@ -311,6 +311,8 @@ export const Strings = {
   accountActivityLoadRetry: 'Try again',
   accountActivityToday: (time: string) => `Today, ${time}`,
   accountActivityYesterday: 'Yesterday',
+  // The other side of a card payment, on the detail of the card it paid.
+  accountActivityFromAccount: (name: string) => `From ${name}`,
 
   // Accounts list (B1)
   accountsListTitle: 'Accounts',

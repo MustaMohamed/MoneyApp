@@ -198,6 +198,22 @@ describe('buildTransactionRowPresentation', () => {
     });
   });
 
+  it('takes the context line from the surface when one is passed, and nothing else', () => {
+    const input = { tx: transaction({}), account: account({}), category };
+    const shipped = buildTransactionRowPresentation(input);
+    const overridden = buildTransactionRowPresentation(input, '6 Sep');
+
+    expect(overridden.context).toBe('6 Sep');
+    expect(shipped.context).toBe('Daily wallet');
+    expect(overridden.accessibilityLabel.split(', ')[1]).toBe('6 Sep');
+    expect(overridden).toMatchObject({
+      title: shipped.title,
+      primaryAmount: shipped.primaryAmount,
+      iconName: shipped.iconName,
+      timeText: shipped.timeText,
+    });
+  });
+
   it('gives commitment ownership precedence over a named budget', () => {
     expect(
       buildTransactionRowPresentation({

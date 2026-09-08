@@ -1,12 +1,32 @@
+import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import {
   buildTransactionRowPresentation,
+  isCardCredit,
   type TransactionRowPresentation,
   type TransactionRowPresentationInput,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { toLocalDateString } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { MONTHS_SHORT } from '@/utils/year_month';
+
+import type { AccountActivityStatus } from '../account_activity.store';
+
+/** One call decides the card's body and its See all, so the header cannot invite a tap into an empty or loading list. */
+export function activityCardView(
+  status: AccountActivityStatus,
+  rowCount: number,
+): { body: 'loading' | 'error' | 'empty' | 'rows'; showSeeAll: boolean } {
+  const body =
+    status === 'idle' || status === 'initialLoading'
+      ? 'loading'
+      : status === 'initialError'
+        ? 'error'
+        : rowCount === 0
+          ? 'empty'
+          : 'rows';
+  return { body, showSeeAll: body === 'rows' || body === 'error' };
+}
 
 /** The activity row's time slot: the clock for today, a word for yesterday, a date before that. */
 export function formatActivityDayLabel(
@@ -26,13 +46,39 @@ export function formatActivityDayLabel(
   return `${Number(day)} ${MONTHS_SHORT[Number(month) - 1]}`;
 }
 
-/** The shipped row presentation with the list's time-only slot swapped for the day label. */
+/** The detail's second line is the transaction's own context; the date joins it wherever the title already carries the category. */
+function activityContext(
+  { tx, account, category }: TransactionRowPresentationInput,
+  dayLabel: string,
+  openAccountId: string,
+): { context?: string; timeText: string } {
+  if (tx.type === TransactionType.CCPayment && tx.to_account_id === openAccountId) {
+    return {
+      context: Strings.accountActivityFromAccount(account?.name ?? Strings.unknownAccount),
+      timeText: dayLabel,
+    };
+  }
+  // No override: the shared builder's own transfer, card-payment and account-name branches stand.
+  if (tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment) {
+    return { timeText: dayLabel };
+  }
+  if (!category) return { timeText: dayLabel };
+  if (isCardCredit(tx, account)) return { context: `${category.name} · ${dayLabel}`, timeText: '' };
+  return { context: dayLabel, timeText: '' };
+}
+
+/** The shipped row presentation with the detail's own second line and time slot. */
 export function buildActivityRowPresentation(
   input: TransactionRowPresentationInput,
   now: Date,
+  openAccountId: string,
 ): TransactionRowPresentation {
-  return {
-    ...buildTransactionRowPresentation(input),
-    timeText: formatActivityDayLabel(input.tx.transaction_date, input.tx.transaction_time, now),
-  };
+  const dayLabel = formatActivityDayLabel(
+    input.tx.transaction_date,
+    input.tx.transaction_time,
+    now,
+  );
+  const { context, timeText } = activityContext(input, dayLabel, openAccountId);
+
+  return { ...buildTransactionRowPresentation(input, context), timeText };
 }
