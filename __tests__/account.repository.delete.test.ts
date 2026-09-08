@@ -209,6 +209,14 @@ describe('AccountRepository.delete — what leaves and what stays', () => {
     expect(row).toMatchObject({ id: TARGET, is_deleted: 1, is_archived: 1, name: '' });
   });
 
+  it('keeps the deleted row archived — the invariant that makes the is_archived filters exclude it', async () => {
+    await repo.delete(TARGET);
+
+    expect(
+      realDb.prepare('SELECT is_deleted, is_archived FROM accounts WHERE id = ?').get(TARGET),
+    ).toEqual({ is_deleted: 1, is_archived: 1 });
+  });
+
   it('keeps every transaction row and every amount it holds', async () => {
     const before = transactionShapes();
     expect(before).toHaveLength(4);

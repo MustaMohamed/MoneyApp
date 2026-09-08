@@ -105,7 +105,7 @@ export class AccountRepository implements IAccountRepository {
 
     const now = new Date().toISOString();
     await db.withTransactionAsync(async () => {
-      if ((await setAccountDeleted(db, id, now)) !== 1) throw new AccountNotArchivedError();
+      if ((await setAccountDeleted(db, id, now)) !== 1) throw new AccountNotFoundError();
       await clearCommitmentAccount(db, id, now);
     });
   }

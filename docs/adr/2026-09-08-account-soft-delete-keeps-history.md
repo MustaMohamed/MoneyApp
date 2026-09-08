@@ -29,6 +29,8 @@ The label is therefore never read off the name. `resolveAccountName` (`src/utils
 
 Scrubbing also frees the name. Uniqueness is an app-level check against the loaded list (`add_account.schema.ts:34`, `account_detail.hook.ts:160-162`), and that list excludes deleted rows, so a new account may reuse the name.
 
+A deleted row also stays archived: `setAccountDeleted` never writes `is_archived` and only an archived account reaches it, so `is_deleted = 1` implies `is_archived = 1`, and every list that hides archived accounts (`dashboard.helpers.ts:28,132,174,283`, `account_aggregation.ts:51`, `starting_net_position.ts:44`) hides deleted ones without ever testing `is_deleted`. Any future unarchive must therefore carry `AND is_deleted = 0`, or a deleted account returns to the live list under an empty name.
+
 ## 4. Commitments lose the reference; commitment payments keep theirs
 
 A commitment is forward-looking: it says where the next payment will come from, and that account no longer exists, so `clearCommitmentAccount` sets `account_id = NULL` on every commitment that pointed at the account. A commitment payment is history — what was paid, from where — so its `account_id` and `transaction_id` are left exactly as they are. The pay sheet already refuses an unavailable account (`src/modules/commitments/screens/commitments/detail/components/pay_sheet.hook.ts:101-108`) and already falls back when an id outlives its account (`:278-281`), so a cleared commitment degrades into a state the screen handles.
