@@ -3,6 +3,7 @@ import { Strings } from '@/constants/strings';
 import { InfoTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
+import { STACKED_PREFIX } from '@/modules/navigation/domain/stacked_route';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   buildTransactionDetailPresentation,
@@ -94,7 +95,13 @@ describe('getAccountTypeIcon', () => {
 
 describe('getCommitmentPaymentRoute', () => {
   it('uses the payment id expected by the commitment detail route', () => {
-    expect(getCommitmentPaymentRoute('payment-1')).toBe('/commitments/payment-1');
+    expect(getCommitmentPaymentRoute('payment-1', '')).toBe('/commitments/payment-1');
+  });
+
+  it('stays in the stacked subtree when opened from a stacked transaction', () => {
+    expect(getCommitmentPaymentRoute('payment-1', STACKED_PREFIX)).toBe(
+      '/stacked/commitments/payment-1',
+    );
   });
 });
 

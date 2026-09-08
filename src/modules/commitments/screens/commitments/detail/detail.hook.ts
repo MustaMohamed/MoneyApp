@@ -178,6 +178,7 @@ export function useCommitmentDetail() {
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;
+    // Bare href: reached from /stacked this drops into (tabs) and Back lands on the Dashboard — MA-040 (#437).
     router.push(`/commitments/${commitment.id}/edit`);
   }, [commitment]);
 

@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { stackedTransactionDetailRoute } from '@/modules/navigation/domain/stacked_route';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
@@ -20,7 +21,6 @@ import { useAccountDetailState } from './account_detail.state';
 import { buildActivityRowPresentation } from './components/account_activity.helpers';
 import { buildMonthFacts } from './components/account_facts.helpers';
 
-// `navigate`, not `push`: pushing a route already in the `(app)` stack mounts a second tab navigator.
 const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions' as const;
 
 export function useAccountDetail() {
@@ -244,17 +244,23 @@ export function useAccountDetail() {
   };
 
   const goToTransaction = (transactionId: string) => {
-    router.navigate(`${TRANSACTIONS_TAB}/detail/${transactionId}`);
+    router.push(stackedTransactionDetailRoute(transactionId));
+  };
+
+  // The second `dismissTo` pops the landed tab's own Stack, where the href only diverges once the first has run.
+  const jumpToTransactionsTab = () => {
+    router.dismissTo(TRANSACTIONS_TAB);
+    router.dismissTo(TRANSACTIONS_TAB);
   };
 
   const goToAllTransactions = () => {
     useTransactionsScreenStore.getState().seedAccountFilter(id, currentYearMonth());
-    router.navigate(TRANSACTIONS_TAB);
+    jumpToTransactionsTab();
   };
 
-  // Two frames past the pop: the tabs host is frozen until then, and a `Sheet` that first renders already-open never animates in.
+  // Two frames past the pop: a `Sheet` that first renders already-open never animates in.
   const addTransactionForAccount = () => {
-    router.navigate(TRANSACTIONS_TAB);
+    jumpToTransactionsTab();
     runAfterInteractions(() => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {

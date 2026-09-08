@@ -14,6 +14,8 @@ import { currentYearMonth } from '@/utils/year_month';
 
 const mockBack = jest.fn();
 const mockNavigate = jest.fn();
+const mockPush = jest.fn();
+const mockDismissTo = jest.fn();
 const mockFocusEffect = jest.fn<void, [() => void | (() => void)]>();
 const mockEnsure = jest.fn();
 const mockRetry = jest.fn(() => Promise.resolve());
@@ -27,7 +29,12 @@ const mockAddListener = jest.fn<() => void, [string, BeforeRemoveHandler]>(() =>
 jest.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void | (() => void)) => mockFocusEffect(effect),
   useLocalSearchParams: () => ({ id: 'acc-1' }),
-  useRouter: () => ({ back: mockBack, navigate: mockNavigate }),
+  useRouter: () => ({
+    back: mockBack,
+    navigate: mockNavigate,
+    push: mockPush,
+    dismissTo: mockDismissTo,
+  }),
   useNavigation: () => ({ addListener: mockAddListener }),
 }));
 jest.mock('@/utils/run_after_interactions', () => ({
@@ -353,40 +360,44 @@ describe('useAccountDetail', () => {
     );
   });
 
-  it('seeds the transactions filter before landing on the tab', async () => {
+  it('seeds the transactions filter before popping to the tab', async () => {
     mockAccounts([mkAccount()]);
     const { result } = await renderHook(() => useAccountDetail());
 
     await act(() => result.current.goToAllTransactions());
 
     expect(mockSeedAccountFilter).toHaveBeenCalledWith('acc-1', currentYearMonth());
-    expect(mockNavigate).toHaveBeenCalledWith(TRANSACTIONS_TAB);
+    // The second pop reaches the tab's own Stack, which the first one leaves as it found it.
+    expect(mockDismissTo.mock.calls).toEqual([[TRANSACTIONS_TAB], [TRANSACTIONS_TAB]]);
+    expect(mockNavigate).not.toHaveBeenCalled();
     expect(mockSeedAccountFilter.mock.invocationCallOrder[0]).toBeLessThan(
-      mockNavigate.mock.invocationCallOrder[0] ?? 0,
+      mockDismissTo.mock.invocationCallOrder[0] ?? 0,
     );
   });
 
-  // The tabs subtree is frozen while the detail is on top, so the form opens after the landing.
+  // A `Sheet` that first renders already-open never animates in, so the form opens after the landing.
   it('lands on the tab before opening the add form with this account', async () => {
     mockAccounts([mkAccount()]);
     const { result } = await renderHook(() => useAccountDetail());
 
     await act(() => result.current.addTransactionForAccount());
 
-    expect(mockNavigate).toHaveBeenCalledWith(TRANSACTIONS_TAB);
+    expect(mockDismissTo.mock.calls).toEqual([[TRANSACTIONS_TAB], [TRANSACTIONS_TAB]]);
+    expect(mockNavigate).not.toHaveBeenCalled();
     expect(mockOpenAdd).toHaveBeenCalledWith({ accountId: 'acc-1' });
-    expect(mockNavigate.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(mockDismissTo.mock.invocationCallOrder[1]).toBeLessThan(
       mockOpenAdd.mock.invocationCallOrder[0] ?? 0,
     );
   });
 
-  it('opens a row on the transaction detail', async () => {
+  it('opens a row on the stacked transaction detail, a sibling of this screen', async () => {
     mockAccounts([mkAccount()]);
     const { result } = await renderHook(() => useAccountDetail());
 
     await act(() => result.current.goToTransaction('tx-9'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(`${TRANSACTIONS_TAB}/detail/tx-9`);
+    expect(mockPush).toHaveBeenCalledWith('/stacked/transactions/detail/tx-9');
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('reads latest edit state when a registered beforeRemove handler fires later', async () => {
