@@ -23,6 +23,7 @@ import { formatLongDate } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
 
+import { isCardCredit } from '../components/transaction_row.helpers';
 import type { BadgeTone } from './components/detail_row';
 import type { TransactionDetailStatus } from './detail.state';
 
@@ -119,10 +120,6 @@ export function transferCellAmountText(
   const { text, printsAsZero } = formatDisplayMagnitude(amount, currency);
   const accessible = `${text} ${CURRENCY_CONFIG[currency].code}`;
   return { display: signAmountText(accessible, signPrefix, printsAsZero), accessible };
-}
-
-function isCardCredit(tx: Transaction, account?: Account): boolean {
-  return tx.type === TransactionType.Income && account?.type === AccountType.CreditCard;
 }
 
 /** Delegates to `transferCellAmountText` so the zero-aware sign rule has one home (#318). */
