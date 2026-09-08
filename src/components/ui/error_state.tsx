@@ -51,10 +51,11 @@ export function ErrorState({
         <View style={LAYOUT.iconCircle} className="bg-danger/10">
           <StateIcon name={iconName} size={LAYOUT.iconSize} className="text-danger" />
         </View>
-        <Text variant="h2" style={LAYOUT.headline}>
+        <Text variant="h3" style={LAYOUT.headline}>
           {title}
         </Text>
-        <Text variant="body" muted style={LAYOUT.body}>
+        {/* The variant's own `text-muted` is 2.4:1; `cn` merges the two into one colour class. */}
+        <Text variant="hint" className="text-content-secondary" style={LAYOUT.body}>
           {description}
         </Text>
         <View style={LAYOUT.action}>

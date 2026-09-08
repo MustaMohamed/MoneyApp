@@ -12,6 +12,7 @@ import { Strings } from '@/constants/strings';
 import { Radius, Size, Spacing } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
+import { ACCOUNTS_LIST_CARD_STYLE } from './accounts_list.geometry';
 import { useAccountsList } from './accounts_list.hook';
 import { AccountListRow } from './components/account_list_row';
 
@@ -75,7 +76,7 @@ export default function AccountsListScreen() {
           ) : (
             <>
               <SectionHeader title={Strings.accountsListSection} count={rows.length} />
-              <ListCard>
+              <ListCard style={ACCOUNTS_LIST_CARD_STYLE}>
                 {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
                 {rows.map(({ account, caption }, index) => (
                   <React.Fragment key={account.id}>

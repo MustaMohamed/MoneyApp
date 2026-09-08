@@ -3,14 +3,17 @@ import { ListGroup, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
-import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
 import { resolveAccountBalanceColorClass } from '../../../../constants/account_balance_color';
 import { resolveAccountRowA11yLabel } from '../../../../constants/account_row_a11y_label';
 import { resolveAccountTileColors } from '../../../../constants/account_tile_color';
 import type { Account } from '../../../../entities/account.entity';
-import { ACCOUNTS_LIST_ROW_STYLE } from '../accounts_list.geometry';
+import {
+  ACCOUNTS_LIST_ROW_CAPTION_STYLE,
+  ACCOUNTS_LIST_ROW_STYLE,
+} from '../accounts_list.geometry';
 
 interface AccountListRowProps {
   account: Account;
@@ -63,11 +66,7 @@ export function AccountListRow({ account, caption, onPress }: AccountListRowProp
         {/* Not ItemDescription: its muted colour is 2.36:1. */}
         <Typography
           className="text-content-secondary font-inter tabular-nums"
-          style={{
-            fontSize: Type.caption,
-            lineHeight: lineHeightFor(Type.caption),
-            marginTop: Spacing.xxxs,
-          }}
+          style={ACCOUNTS_LIST_ROW_CAPTION_STYLE}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
@@ -89,12 +88,7 @@ export function AccountListRow({ account, caption, onPress }: AccountListRowProp
         </Typography>
         <Typography
           className="text-content-secondary font-inter"
-          style={{
-            fontSize: Type.micro,
-            lineHeight: lineHeightFor(Type.micro),
-            marginTop: Spacing.xxxs,
-            textAlign: 'right',
-          }}
+          style={[ACCOUNTS_LIST_ROW_CAPTION_STYLE, { textAlign: 'right' }]}
         >
           {code}
         </Typography>

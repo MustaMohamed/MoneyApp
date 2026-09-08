@@ -3,6 +3,9 @@ import { resolve } from 'node:path';
 
 import { Colors } from '@/constants/theme';
 import { CoreTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
+import { contrastRatio } from '@/modules/accounts/constants/account_palette';
+
+const MIN_SEGMENT_RATIO = 4.5;
 
 function globalCss(): string {
   return readFileSync(resolve(process.cwd(), 'global.css'), 'utf8');
@@ -84,6 +87,23 @@ describe('semantic colour agreement — theme.ts vs theme_tokens.ts vs global.cs
     expect(cssValues).toHaveLength(2);
     for (const value of cssValues) {
       expect(value).toBe(Colors.dark.text2.toLowerCase());
+    }
+  });
+
+  it('segment-foreground is declared, at text1 — undeclared it falls to HeroUI 1.15:1 eclipse', () => {
+    const cssValues = cssVarValues(css, 'segment-foreground');
+    expect(cssValues).toHaveLength(2);
+    for (const value of cssValues) {
+      expect(value).toBe(Colors.dark.text1.toLowerCase());
+    }
+  });
+
+  it('segment-foreground clears 4.5:1 on the segment fill it is read against', () => {
+    const fills = cssVarValues(css, 'segment');
+    const inks = cssVarValues(css, 'segment-foreground');
+    expect(fills).toHaveLength(inks.length);
+    for (const [index, fill] of fills.entries()) {
+      expect(contrastRatio(fill, inks[index]!)).toBeGreaterThanOrEqual(MIN_SEGMENT_RATIO);
     }
   });
 
