@@ -625,23 +625,61 @@ function shortStatus(status) {
   return SHORT[status] ?? status ?? 'Off board';
 }
 
-const CSS = `.bn{font-family:var(--font-sans);font-size:14px;line-height:1.5;color:var(--text-primary)}
-.bn-head{display:flex;justify-content:space-between;gap:16px;padding:2px 0 10px;font-size:12px;color:var(--text-secondary)}
-.bn-sec{margin:14px 0 2px;font-size:12px;color:var(--text-muted)}
-.bn-row{display:flex;align-items:center;gap:10px;min-height:38px;padding:5px 0;border-bottom:0.5px solid var(--border)}
-.bn-kids{margin-left:10px;padding-left:12px;border-left:1px solid var(--border-strong)}
-.bn-st{width:84px;flex:none;font-size:12px;color:var(--text-secondary)}
-.bn-id{flex:none;font-weight:500}
-.bn-title{flex:1 1 120px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary)}
-.bn-why{flex:none;font-size:12px;color:var(--text-muted);text-align:right}
-.bn-act{flex:none;font:inherit;font-size:13px;font-weight:500;padding:3px 10px;border-radius:var(--radius);border:0.5px solid var(--border-accent);background:var(--bg-accent);color:var(--text-accent);cursor:pointer}
+const CSS = `.bn{position:relative;font-family:var(--font-sans);font-size:14px;line-height:1.4;color:var(--text-primary)}
+.bn-head{display:flex;justify-content:space-between;gap:16px;padding:2px 0 4px;font-size:13px;color:var(--text-secondary)}
+.bn-key{font-size:12px;color:var(--text-muted);padding-bottom:10px}
+.bn-band{border:0.5px solid var(--border-strong);border-radius:6px;padding:8px 10px 10px;margin-top:10px;background:var(--surface-0)}
+.bn-band.nested{margin-top:8px;background:var(--surface-1)}
+.bn-band.closed{padding:6px 10px;color:var(--text-muted)}
+.bn-bh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:8px;font-size:13px}
+.bn-bh .bn-id{font-size:14px}
+.bn-bh .bn-t{color:var(--text-secondary);flex:1 1 160px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bn-bh .bn-c{color:var(--text-muted);font-size:12px}
+.bn-grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));column-gap:14px;row-gap:8px;align-items:start}
+.bn-wave{font-size:12px;color:var(--text-muted);padding-bottom:2px;border-bottom:0.5px solid var(--border)}
+.bn-cell{display:flex;flex-direction:column;gap:8px;min-width:0}
+.bn-span{grid-column:1/-1}
+.bn-card{position:relative;border:0.5px solid var(--border-strong);border-left:3px solid var(--border-stronger);border-radius:0;padding:6px 8px 8px;background:var(--surface-2);min-width:0}
+.bn-card.s-define{border-left-color:var(--border-strong)}
+.bn-card.s-ready{border-left-color:var(--border-accent)}
+.bn-card.s-flight{border-left-color:var(--border-success)}
+.bn-card.s-you{border-left-color:var(--border-warning)}
+.bn-card.s-fix{border-left-color:var(--border-danger)}
+.bn-card.s-wait{border-left-color:var(--border);background:var(--surface-1)}
+.bn-l1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.bn-id{font-weight:500;color:var(--text-primary);text-decoration:none;white-space:nowrap}
+.bn-id:hover{text-decoration:underline}
+.bn-st{font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bn-t{font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:1px 0 5px}
+.bn-l3{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.bn-act{font:inherit;font-size:12px;font-weight:500;padding:2px 8px;border-radius:var(--radius);border:0.5px solid var(--border-accent);background:var(--bg-accent);color:var(--text-accent);cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bn-act:focus-visible{outline:2px solid var(--border-stronger);outline-offset:2px}
 .bn-act.you{border-color:var(--border-warning);background:var(--bg-warning);color:var(--text-warning)}
 .bn-act.fix{border-color:var(--border-danger);background:var(--bg-danger);color:var(--text-danger)}
-.bn-alt{flex:none;font:inherit;font-size:12px;padding:3px 6px;border:0;background:transparent;color:var(--text-secondary);cursor:pointer;text-decoration:underline}
-.bn-wait{flex:none;font-size:12px;color:var(--text-muted)}
-.bn-foot{margin-top:12px;font-size:12px;color:var(--text-muted)}
-@media (max-width:520px){.bn-title{display:none}.bn-why{display:none}}`;
+.bn-alt{font:inherit;font-size:12px;padding:2px 4px;border:0;background:transparent;color:var(--text-secondary);cursor:pointer;text-decoration:underline}
+.bn-why{font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.bn-wait{font-size:12px;color:var(--text-muted)}
+.bn-arrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.bn-arrows path{fill:none;stroke:var(--text-muted);stroke-width:1.2;opacity:0.7}
+.bn-arrows path.hi{stroke:var(--text-accent);stroke-width:2;opacity:1}
+.bn-arrows .hd{fill:var(--text-muted)}
+.bn-card.dim{opacity:0.45}
+@media (max-width:560px){.bn-grid{grid-template-columns:1fr}.bn-wave{display:none}.bn-arrows{display:none}}
+@media (prefers-reduced-motion:no-preference){.bn-card,.bn-arrows path{transition:opacity .15s}}`;
+
+const SCRIPT = `(function(){var root=document.getElementById('bn-root');var svg=root.querySelector('.bn-arrows');var edges=JSON.parse(root.getAttribute('data-edges'));
+function draw(){var r=root.getBoundingClientRect();var out='<defs><marker id="bnh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="hd" d="M1 1L9 5L1 9z"/></marker></defs>';
+for(var i=0;i<edges.length;i++){var A=root.querySelector('[data-issue="'+edges[i][0]+'"]'),B=root.querySelector('[data-issue="'+edges[i][1]+'"]');if(!A||!B)continue;
+var ra=A.getBoundingClientRect(),rb=B.getBoundingClientRect();var x1=ra.right-r.left,y1=ra.top+ra.height/2-r.top,x2=rb.left-r.left,y2=rb.top+rb.height/2-r.top;
+var gx=x2-7;if(gx<x1+6){gx=x1+6;}var s=y2>y1?1:-1;var d='M'+x1+' '+y1+' L'+(gx-5)+' '+y1+' Q'+gx+' '+y1+' '+gx+' '+(y1+5*s)+' L'+gx+' '+(y2-5*s)+' Q'+gx+' '+y2+' '+(gx+5)+' '+y2+' L'+x2+' '+y2;
+if(Math.abs(y2-y1)<12){d='M'+x1+' '+y1+' L'+x2+' '+y2;}
+out+='<path data-from="'+edges[i][0]+'" data-to="'+edges[i][1]+'" marker-end="url(#bnh)" d="'+d+'"/>';}
+svg.innerHTML=out;}
+draw();if(window.ResizeObserver){new ResizeObserver(draw).observe(root);}
+function mark(n){var paths=svg.querySelectorAll('path[data-from]');var rel={};for(var i=0;i<paths.length;i++){var p=paths[i];var on=n&&(p.getAttribute('data-from')===n||p.getAttribute('data-to')===n);p.classList.toggle('hi',!!on);if(on){rel[p.getAttribute('data-from')]=1;rel[p.getAttribute('data-to')]=1;}}
+var cards=root.querySelectorAll('.bn-card[data-issue]');for(var j=0;j<cards.length;j++){var c=cards[j];c.classList.toggle('dim',!!n&&!rel[c.getAttribute('data-issue')]&&c.getAttribute('data-issue')!==n);}}
+root.addEventListener('mouseover',function(e){var c=e.target.closest?e.target.closest('.bn-card[data-issue]'):null;mark(c?c.getAttribute('data-issue'):null);});
+root.addEventListener('mouseleave',function(){mark(null);});})();`;
 
 function actionControl(a) {
   const cmd = a.command ?? '';
@@ -675,7 +713,7 @@ function shortTitle(a) {
 }
 
 function rowId(a) {
-  return /^MA-\d+/.test(a.title ?? '') ? a.ma : `#${a.number}`;
+  return /^MA-\d+/.test(a.title ?? '') ? maId(a) : `#${a.number}`;
 }
 
 const FRIENDLY = [
@@ -694,76 +732,144 @@ function friendly(action) {
   return base;
 }
 
+function stageClass(a) {
+  if (a.bucket === 'yours') return 's-you';
+  if (a.bucket === 'drift') return 's-fix';
+  if (a.bucket === 'wait') return 's-wait';
+  if (a.bucket === 'flight') return 's-flight';
+  if (a.bucket === 'pull') return 's-ready';
+  return 's-define';
+}
+
 function htmlReport(result) {
   const { ctx } = result;
+  const inScope = new Map(result.actions.map((a) => [a.number, a]));
   const leaves = result.actions.filter((a) => a.state === 'open' && !a.isParent);
-  const parents = result.actions.filter((a) => a.isParent);
-  const byNum = new Map(leaves.map((a) => [a.number, a]));
-  const blockers = new Map();
-  for (const a of leaves) {
-    const it = ctx.byNumber.get(a.number);
-    const set = new Set(
-      a.deps.filter((d) => !d.closed && byNum.has(d.number)).map((d) => d.number),
-    );
-    for (const m of blockedOn(it?.comments ?? [])) if (byNum.has(m) && !ctx.isClosed(m)) set.add(m);
-    blockers.set(a.number, [...set]);
-  }
-  const dependants = new Map(leaves.map((a) => [a.number, []]));
-  for (const a of leaves) for (const b of blockers.get(a.number)) dependants.get(b).push(a.number);
+  const leafSet = new Set(leaves.map((a) => a.number));
 
-  const placed = new Set();
-  const row = (a, depth, parentNum) => {
-    placed.add(a.number);
-    const others = blockers
-      .get(a.number)
-      .filter((b) => b !== parentNum)
-      .map((b) => byNum.get(b).ma);
-    const outside = a.deps
-      .filter((d) => !d.closed && !byNum.has(d.number))
-      .map((d) => `#${d.number}`);
-    const after = [...others, ...outside];
-    const afterNote = after.length ? `${parentNum ? 'also ' : ''}after ${after.join(', ')}` : '';
-    const note = [friendly(a.action), afterNote].filter(Boolean).join(', ');
-    const kids = dependants
-      .get(a.number)
-      .filter((k) => !placed.has(k))
-      .map((k) => byNum.get(k));
-    kids.sort(
-      (x, y) =>
-        BUCKETS.indexOf(x.bucket) - BUCKETS.indexOf(y.bucket) || x.boardIndex - y.boardIndex,
+  const wave = new Map();
+  const waveOf = (n, seen = new Set()) => {
+    if (wave.has(n)) return wave.get(n);
+    if (seen.has(n)) return 0;
+    seen.add(n);
+    const a = inScope.get(n);
+    const blockers = new Set(
+      (a?.deps ?? []).filter((d) => !d.closed && leafSet.has(d.number)).map((d) => d.number),
     );
-    const self =
-      `<div class="bn-row" data-issue="${a.number}"><span class="bn-st">${esc(shortStatus(a.status))}</span>` +
-      `<a class="bn-id" href="${ISSUE_URL}${a.number}">${esc(rowId(a))}</a><span class="bn-title">${esc(shortTitle(a))}</span>` +
-      `<span class="bn-why">${esc(note)}</span>${actionControl(a)}</div>`;
-    const inner = kids.map((k) => row(k, depth + 1, a.number)).join('');
-    return inner ? `${self}<div class="bn-kids">${inner}</div>` : self;
+    for (const m of blockedOn(ctx.byNumber.get(n)?.comments ?? []))
+      if (leafSet.has(m) && !ctx.isClosed(m)) blockers.add(m);
+    const v = blockers.size ? 1 + Math.max(...[...blockers].map((b) => waveOf(b, seen))) : 0;
+    wave.set(n, v);
+    return v;
+  };
+  for (const a of leaves) waveOf(a.number);
+  const cols = Math.max(1, ...wave.values()) + (leaves.length ? 1 : 0) || 1;
+
+  const edges = [];
+  for (const a of leaves) {
+    const from = new Set(
+      a.deps.filter((d) => !d.closed && leafSet.has(d.number)).map((d) => d.number),
+    );
+    for (const m of blockedOn(ctx.byNumber.get(a.number)?.comments ?? []))
+      if (leafSet.has(m) && !ctx.isClosed(m)) from.add(m);
+    for (const b of from) edges.push([b, a.number]);
+  }
+
+  const card = (a) => {
+    const outside = a.deps
+      .filter((d) => !d.closed && !leafSet.has(d.number))
+      .map((d) => `#${d.number}`);
+    const note = [friendly(a.action), outside.length ? `after ${outside.join(', ')}` : '']
+      .filter(Boolean)
+      .join(', ');
+    const control = a.bucket === 'wait' && !a.command ? '' : actionControl(a);
+    const noteHtml = note ? `<span class="bn-why" title="${esc(note)}">${esc(note)}</span>` : '';
+    return (
+      `<div class="bn-card ${stageClass(a)}" data-issue="${a.number}" style="grid-column:${(wave.get(a.number) ?? 0) + 1}">` +
+      `<div class="bn-l1"><a class="bn-id" href="${ISSUE_URL}${a.number}">${esc(rowId(a))}</a><span class="bn-st">${esc(shortStatus(a.status))}</span></div>` +
+      `<div class="bn-t" title="${esc(shortTitle(a))}">${esc(shortTitle(a))}</div>` +
+      `<div class="bn-l3">${control}${noteHtml}</div></div>`
+    );
   };
 
-  const roots = leaves.filter((a) => blockers.get(a.number).length === 0);
-  const sections = [
-    ['Needs you', roots.filter((a) => a.bucket === 'yours' || a.bucket === 'drift')],
-    ['Run next', roots.filter((a) => ['flight', 'pull', 'define'].includes(a.bucket))],
-    ['Waiting', roots.filter((a) => a.bucket === 'wait')],
-  ];
-  let body = '';
-  for (const [label, list] of sections) {
-    if (!list.length) continue;
-    body += `<div class="bn-sec">${label}</div>${list.map((a) => row(a, 0, null)).join('')}`;
-  }
-  const leftovers = leaves.filter((a) => !placed.has(a.number));
-  if (leftovers.length)
-    body += `<div class="bn-sec">In a dependency cycle</div>${leftovers.map((a) => row(a, 0, null)).join('')}`;
+  const childrenOf = (n) => (ctx.byNumber.get(n)?.children ?? []).map((c) => c.number);
+  const placed = new Set();
+  const band = (n, depth) => {
+    const it = ctx.byNumber.get(n);
+    const a = inScope.get(n);
+    placed.add(n);
+    const kids = childrenOf(n);
+    const done = (it?.children ?? []).filter((c) => c.state === 'closed').length;
+    const cls = `bn-band${depth ? ' nested' : ''}`;
+    const label = it ? rowId(it) : `#${n}`;
+    const title = it ? shortTitle(it) : '';
+    const status = a
+      ? shortStatus(a.status)
+      : shortStatus(it?.status ?? (it?.state === 'closed' ? 'Done' : null));
+    if (it?.state === 'closed' || (kids.length && done === kids.length)) {
+      for (const k of kids) placed.add(k);
+      return `<section class="${cls} closed bn-span" data-issue="${n}"><div class="bn-bh"><a class="bn-id" href="${ISSUE_URL}${n}">${esc(label)}</a><span class="bn-t">${esc(title)}</span><span class="bn-c">${esc(status)}, ${kids.length} children</span></div></section>`;
+    }
+    const control = a && a.command ? actionControl(a) : '';
+    const why =
+      a && a.bucket !== 'wait' ? `<span class="bn-c">${esc(friendly(a.action))}</span>` : '';
+    const head = `<div class="bn-bh"><a class="bn-id" href="${ISSUE_URL}${n}">${esc(label)}</a><span class="bn-t" title="${esc(title)}">${esc(title)}</span><span class="bn-c">${esc(status)}${kids.length ? `, ${done} of ${kids.length} done` : ''}</span>${why}${control}</div>`;
+    const leafKids = kids.filter((k) => leafSet.has(k)).map((k) => inScope.get(k));
+    const parentKids = kids
+      .filter((k) => !leafSet.has(k) && (ctx.byNumber.get(k)?.children ?? []).length > 0)
+      .sort(
+        (x, y) =>
+          Number(ctx.byNumber.get(x)?.state === 'closed') -
+          Number(ctx.byNumber.get(y)?.state === 'closed'),
+      );
+    const cells = Array.from({ length: cols }, () => []);
+    for (const k of leafKids) cells[Math.min(wave.get(k.number) ?? 0, cols - 1)].push(k);
+    const waveRow =
+      depth === 0 && leaves.length
+        ? cells.map((_, i) => `<div class="bn-wave">Wave ${i + 1}</div>`).join('')
+        : '';
+    const cellHtml = cells
+      .map(
+        (list, i) =>
+          `<div class="bn-cell" style="grid-column:${i + 1}">${list.map(card).join('')}</div>`,
+      )
+      .join('');
+    const nested = parentKids.map((k) => band(k, depth + 1)).join('');
+    return `<section class="${cls}${depth ? ' bn-span' : ''}" data-issue="${n}">${head}<div class="bn-grid" style="--cols:${cols}">${waveRow}${cellHtml}${nested}</div></section>`;
+  };
 
-  const count = (b) => result.actions.filter((a) => a.bucket === b && !a.isParent).length;
+  const roots = [];
+  for (const a of result.actions) {
+    if (!a.isParent) continue;
+    const parent = a.parent;
+    if (parent && inScope.has(parent) && inScope.get(parent).isParent) continue;
+    roots.push(a.number);
+  }
+  if (result.scope && !roots.includes(result.scope) && inScope.get(result.scope)?.isParent)
+    roots.unshift(result.scope);
+  roots.sort(
+    (x, y) => (ctx.byNumber.get(x)?.boardIndex ?? 0) - (ctx.byNumber.get(y)?.boardIndex ?? 0),
+  );
+  let body = roots.map((n) => band(n, 0)).join('');
+  const stray = leaves
+    .filter((a) => !a.parent || !placed.has(a.parent))
+    .filter((a) => !placed.has(a.number));
+  if (stray.length) {
+    const cells = Array.from({ length: cols }, () => []);
+    for (const a of stray) cells[Math.min(wave.get(a.number) ?? 0, cols - 1)].push(a);
+    const waveRow = !roots.length
+      ? cells.map((_, i) => `<div class="bn-wave">Wave ${i + 1}</div>`).join('')
+      : '';
+    body += `<section class="bn-band"><div class="bn-bh"><span class="bn-t">No parent</span></div><div class="bn-grid" style="--cols:${cols}">${waveRow}${cells.map((list, i) => `<div class="bn-cell" style="grid-column:${i + 1}">${list.map(card).join('')}</div>`).join('')}</div></section>`;
+  }
+
+  const count = (b) => leaves.filter((a) => a.bucket === b).length;
   const runnable = count('flight') + count('pull') + count('define');
-  const needs = count('yours') + count('drift');
-  const waiting = leaves.filter((a) => a.bucket === 'wait').length;
+  const needs = result.actions.filter((a) => a.bucket === 'yours' || a.bucket === 'drift').length;
+  const waiting = count('wait');
   const head = `<div class="bn-head"><span>${runnable} to run, ${needs} need you, ${waiting} waiting</span><span>${esc(localStamp(result.fetchedAt))}</span></div>`;
-  const foot = parents.length
-    ? `<div class="bn-foot">Parents mirror their children: ${parents.map((p) => `<a href="${ISSUE_URL}${p.number}">${esc(p.ma)}</a> (${esc(shortStatus(p.status))})`).join(', ')}</div>`
-    : '';
-  return `<style>${CSS}</style><div class="bn">${head}${body}${foot}</div>\n`;
+  const key = `<div class="bn-key">A box is a ticket with its children. A card's column is its wave: an arrow into it comes from a ticket that must close first. The button is the next step; hover a card to trace its arrows.</div>`;
+  return `<style>${CSS}</style><div class="bn" id="bn-root" data-edges='${JSON.stringify(edges)}'>${head}${key}${body}<svg class="bn-arrows" aria-hidden="true"></svg><script>${SCRIPT}</script></div>\n`;
 }
 
 function main() {

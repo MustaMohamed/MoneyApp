@@ -145,22 +145,35 @@ describe('board_next text', () => {
 });
 
 describe('board_next html', () => {
-  test('emits a dependency tree: roots that can move, dependants nested, one row per open leaf', () => {
+  test('draws the hierarchy: epic band, nested parent bands, leaf cards in wave columns, dependency edges', () => {
     const r = run('--format', 'html');
     expect(r.status).toBe(0);
     const html = r.stdout;
     expect(html.startsWith('<style>')).toBe(true);
     expect(html).not.toContain('<!--');
-    expect(html).toContain('data-issue="108"');
-    expect(html).not.toContain('data-issue="111"');
-    expect(html).not.toContain('data-issue="100"');
-    const i108 = html.indexOf('data-issue="108"');
-    const i119 = html.indexOf('data-issue="119"');
-    const kids = html.indexOf('<div class="bn-kids">', i108);
-    expect(kids).toBeGreaterThan(i108);
-    expect(i119).toBeGreaterThan(kids);
+    const epic = html.indexOf('<section class="bn-band" data-issue="100">');
+    const parent115 = html.indexOf('<section class="bn-band nested bn-span" data-issue="115">');
+    const epicEnd = html.indexOf('</section>', parent115);
+    expect(epic).toBeGreaterThan(-1);
+    expect(parent115).toBeGreaterThan(epic);
+    const card116 = html.indexOf('data-issue="116"');
+    expect(card116).toBeGreaterThan(parent115);
+    expect(card116).toBeLessThan(epicEnd);
+    expect(html).toContain('data-issue="108" style="grid-column:1"');
+    expect(html).toContain('data-issue="119" style="grid-column:2"');
+    expect(html).not.toContain('class="bn-card s-define" data-issue="111"');
+    const edges = JSON.parse(/data-edges='([^']*)'/.exec(html)?.[1] ?? '[]') as number[][];
+    expect(edges).toEqual(
+      expect.arrayContaining([
+        [104, 114],
+        [108, 119],
+        [104, 121],
+      ]),
+    );
+    expect(edges).toHaveLength(3);
     expect(html).toContain(`onclick="sendPrompt('/prep 108')"`);
     expect(html).toContain('Open PR #501');
-    expect(html.indexOf('Needs you')).toBeLessThan(html.indexOf('Run next'));
+    expect(html).toContain('data-issue="113"');
+    expect(html).toContain('1 children');
   });
 });

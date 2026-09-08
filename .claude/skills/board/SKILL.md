@@ -25,11 +25,11 @@ One read of Project #2, one action per open ticket, the dependency graph when th
    node scripts/board_next.mjs --snapshot "$S" --format text [--scope <n>] </dev/null
    ```
 
-4. Graph: the reply is the dependency tree as an inline widget, then the `yours` and `drift` lines from the text report, then the `Next:` line of step 5.
+4. Graph: the reply is the board drawn as a hierarchy, an inline widget, then the `yours` and `drift` lines from the text report, then the `Next:` line of step 5.
    ```bash
    node scripts/board_next.mjs --snapshot "$S" --format html [--scope <n>] </dev/null
    ```
-   The HTML is complete: a `<style>` block on host variables, then one `.bn` block. Tickets nothing blocks are roots, in sections Needs you, Run next, Waiting; whatever waits on a root is nested under it with a tree line, so a row's position says what it waits for and its note says what else. The command on a row is a button that sends itself as the next prompt; a merge is a link to the PR. Parents are one footer line. Pass it to `show_widget` unchanged, title `moneyapp_board`.
+   The HTML is complete: a `<style>` block on host variables, one `.bn` block, and a script that draws the arrows after layout. Each parent is a box holding its children; a split task is a box inside its epic; a closed parent is one collapsed line. Inside a box, cards sit in wave columns: wave 1 has nothing open blocking it, wave 2 waits on wave 1, and so on, with an arrow from each blocker to what it blocks, routed through the column gap. A card carries id, status, title, the command as a button that sends itself as the next prompt, and why. Hovering a card traces its arrows. Pass it to `show_widget` unchanged, title `moneyapp_board`.
 
 5. The last line of the reply is `Next: <the first action line of the report>`, the line after the first bucket heading; never the `Board …` header. Nothing after it.
 
