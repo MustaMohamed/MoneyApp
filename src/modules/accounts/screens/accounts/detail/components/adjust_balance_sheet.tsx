@@ -75,13 +75,13 @@ export function AdjustBalanceSheet({
     <Box style={{ flexDirection: 'row' }} className="gap-2">
       <Box style={{ flex: 1 }}>
         <Button
-          variant="secondary"
+          variant="ghost"
           flat
           label={Strings.adjustBalanceCancel}
           onPress={() => onOpenChange(false)}
         />
       </Box>
-      <Box style={{ flex: 2 }}>
+      <Box style={{ flex: 1 }}>
         <Button
           variant="primary"
           flat

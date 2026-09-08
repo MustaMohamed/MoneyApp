@@ -4,10 +4,10 @@ import { Button as HButton, Spinner, cn, type ButtonSize, type ButtonVariant } f
 import React from 'react';
 import { StyleSheet, type PressableProps } from 'react-native';
 
-import { Colors, Radius, Size } from '@/constants/theme';
+import { Colors, Size } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 
-import { resolveButtonContent } from './button.content';
+import { resolveButtonContent, resolveFlatRadius } from './button.content';
 
 // CTAs are Sora (.claude/rules/ui.md; mockup `.cta` uses the display face at 600) — HeroUI's own label ships Inter medium.
 const CTA_LABEL_FONT = 'font-sora-semibold';
@@ -64,7 +64,7 @@ export function Button({
         isDisabled={disabledState}
         className={className}
         {...props}
-        style={{ borderRadius: Radius.cta }}
+        style={resolveFlatRadius({ variant, flat })}
       >
         {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
         <HButton.Label className={CTA_LABEL_FONT}>{text}</HButton.Label>
@@ -105,7 +105,7 @@ export function Button({
       isDisabled={disabledState}
       className={className}
       {...props}
-      style={flatSecondary ? { borderRadius: Radius.cta } : undefined}
+      style={resolveFlatRadius({ variant, flat })}
       // A glyph sibling stops RN deriving the label from the text child — restate it.
       accessibilityLabel={icon ? text : undefined}
     >

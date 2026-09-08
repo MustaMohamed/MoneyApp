@@ -49,11 +49,28 @@ export function buildHeroCaption(account: Account): HeroCaption {
   };
 }
 
-/** An unsigned magnitude at the currency's decimals, with the canonical `−` when overdrawn (#411). */
-export function formatAccountBalance(balance: number, currency: Currency): string {
+export interface AccountBalanceParts {
+  amount: string;
+  code: string;
+}
+
+/** The hero draws the code at its own size, so the two halves are available apart as well as joined. */
+export function formatAccountBalanceParts(
+  balance: number,
+  currency: Currency,
+): AccountBalanceParts {
   const { decimals, code } = CURRENCY_CONFIG[currency];
   // Not `formatOwnedAmountParts`: `formatDisplayMagnitude` prints an exact zero at 0dp on every currency.
   const magnitude = formatAmount(Math.abs(balance), decimals);
   const printsAsZero = magnitude === formatAmount(0, decimals);
-  return `${signAmountText(magnitude, balance < 0 ? MINUS_SIGN : '', printsAsZero)} ${code}`;
+  return {
+    amount: signAmountText(magnitude, balance < 0 ? MINUS_SIGN : '', printsAsZero),
+    code,
+  };
+}
+
+/** An unsigned magnitude at the currency's decimals, with the canonical `−` when overdrawn (#411). */
+export function formatAccountBalance(balance: number, currency: Currency): string {
+  const { amount, code } = formatAccountBalanceParts(balance, currency);
+  return `${amount} ${code}`;
 }

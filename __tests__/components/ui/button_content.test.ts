@@ -1,8 +1,8 @@
 import type { ButtonVariant } from 'heroui-native';
 
-import { resolveButtonContent } from '@/components/ui/button.content';
+import { resolveButtonContent, resolveFlatRadius } from '@/components/ui/button.content';
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, Radius } from '@/constants/theme';
 
 interface Row {
   variant: ButtonVariant;
@@ -91,4 +91,25 @@ describe('resolveButtonContent', () => {
       });
     },
   );
+});
+
+interface RadiusRow {
+  variant: ButtonVariant;
+  flat: boolean | undefined;
+  radius: { borderRadius: number } | undefined;
+}
+
+const radiusRows: RadiusRow[] = [
+  { variant: 'primary', flat: true, radius: { borderRadius: Radius.cta } },
+  { variant: 'secondary', flat: true, radius: { borderRadius: Radius.cta } },
+  { variant: 'ghost', flat: true, radius: { borderRadius: Radius.cta } },
+  { variant: 'ghost', flat: undefined, radius: undefined },
+  { variant: 'secondary', flat: undefined, radius: undefined },
+  { variant: 'danger', flat: true, radius: undefined },
+];
+
+describe('resolveFlatRadius', () => {
+  it.each(radiusRows)('$variant flat=$flat -> $radius', ({ variant, flat, radius }) => {
+    expect(resolveFlatRadius({ variant, flat })).toEqual(radius);
+  });
 });
