@@ -721,10 +721,10 @@ font-family:var(--font-sans);color:var(--c-text);background:var(--c-bg);padding:
 .tg .card.run{stroke:var(--c-accent-bd)}.tg .card.you{stroke:var(--c-warn-bd)}.tg .card.fix{stroke:var(--c-danger-bd)}.tg .card.done{opacity:0.55}
 .tg .edge{fill:none;stroke:var(--c-accent-bd);stroke-width:3;opacity:0.9}
 .tg .edge.you{stroke:var(--c-warn-bd)}.tg .edge.fix{stroke:var(--c-danger-bd)}.tg .edge.wait{stroke:var(--c-border2);opacity:1}.tg .edge.done{stroke:var(--c-success-bd)}
-.tg .tree{fill:none;stroke:var(--c-border2);stroke-width:1.2}
-.tg .dep{fill:none;stroke:var(--c-text2);stroke-width:1.4;stroke-dasharray:5 4}
-.tg .dep.hi{stroke:var(--c-accent);stroke-width:2.2;stroke-dasharray:none}
-.tg .hd{fill:var(--c-text2)}
+.tg .tree{fill:none;stroke:var(--c-text2);stroke-width:2;opacity:0.9}
+.tg .dep{fill:none;stroke:var(--c-accent-bd);stroke-width:2.2;stroke-dasharray:7 5;opacity:0.95}
+.tg .dep.hi{stroke:var(--c-accent);stroke-width:3.2;stroke-dasharray:none;opacity:1}
+.tg .hd{fill:var(--c-accent-bd)}
 .tg .pill{stroke-width:0.5}.tg .pill.run{fill:var(--c-accent-bg);stroke:var(--c-accent-bd)}.tg .pill.you{fill:var(--c-warn-bg);stroke:var(--c-warn-bd)}.tg .pill.fix{fill:var(--c-danger-bg);stroke:var(--c-danger-bd)}
 .tg .pt{font-size:11px;font-weight:500}.tg .pt.run{fill:var(--c-accent)}.tg .pt.you{fill:var(--c-warn)}.tg .pt.fix{fill:var(--c-danger)}
 .tg .node{cursor:pointer}
@@ -746,7 +746,7 @@ function card(x,y,w,a,tag,why){var tc=Math.floor((w-22)/6.1),wc=Math.floor((w-22
 return '<g class="node" data-i="'+a.n+'" data-dim="'+(a.kind==='wait'||a.kind==='done'?'0':'1')+'" onclick="'+click+'"><title>'+esc(a.tip)+'</title><rect class="card '+a.kind+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+CARD_H+'" rx="6"/><path class="edge '+a.kind+'" d="M'+(x+2)+' '+(y+6)+' L'+(x+2)+' '+(y+CARD_H-6)+'"/><text class="id" x="'+(x+12)+'" y="'+(y+19)+'">'+esc(a.id)+'</text><text class="st" x="'+(x+w-10)+'" y="'+(y+19)+'" text-anchor="end">'+esc(a.status)+'</text><text class="tt" x="'+(x+12)+'" y="'+(y+36)+'">'+esc(clip(a.title,tc))+'</text><text class="why" x="'+(x+12)+'" y="'+(y+52)+'">'+esc(clip(why||'',wc))+'</text>'+pillSvg(a.pill,x+10,y+58)+(tag?'<text class="tag" x="'+(x+w-10)+'" y="'+(y+71)+'" text-anchor="end">'+esc(tag)+'</text>':'')+'</g>';}
 function group(x,y,w,g,lines){var c=Math.floor((w-20)/6.1),cs=Math.floor((w-20)/5.5);var click=g.pill?g.pill.click:(g.url?"openLink('"+g.url+"')":'');
 return '<g class="node"'+(g.n!==undefined?' data-i="'+g.n+'" data-dim="0"':'')+(click?' onclick="'+click+'"':'')+'>'+(g.tip?'<title>'+esc(g.tip)+'</title>':'')+'<rect class="grp'+(g.fix?' fix':'')+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+CARD_H+'" rx="6"/><text class="gl" x="'+(x+10)+'" y="'+(y+19)+'">'+esc(clip(lines[0],c))+'</text><text class="tt" x="'+(x+10)+'" y="'+(y+36)+'">'+esc(clip(lines[1]||'',c))+'</text><text class="gs" x="'+(x+10)+'" y="'+(y+52)+'">'+esc(clip(lines[2]||'',cs))+'</text>'+(g.pill?pillSvg(g.pill,x+10,y+58):'<text class="gs" x="'+(x+10)+'" y="'+(y+71)+'">'+esc(clip(lines[3]||'',cs))+'</text>')+'</g>';}
-function marker(id){return '<defs><marker id="'+id+'" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="hd" d="M1 1L9 5L1 9z"/></marker></defs>';}
+function marker(id){return '<defs><marker id="'+id+'" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path class="hd" d="M1 1L9 5L1 9z"/></marker></defs>';}
 var byN={};M.leaves.forEach(function(l){byN[l.n]=l;});var pByN={};M.parents.forEach(function(p){pByN[p.n]=p;});
 function nameOf(n){return byN[n]?byN[n].id:(pByN[n]?pByN[n].id:'#'+n);}
 function hier(W){
@@ -755,7 +755,7 @@ var extra=Math.max(0,W-680);var w0=110+Math.round(extra*0.12),w1=130+Math.round(
 function colW(c){return c===0?w0:w1;}function colX(c){return c===0?20:20+w0+40+(c-1)*(w1+40);}
 var leafX=colX(leafCol);var edgesAll=[];M.leaves.forEach(function(l){l.blockers.forEach(function(b){edgesAll.push({from:b.n,to:l.n,parent:b.parent});});});
 var rightCount=edgesAll.filter(function(e){return !e.parent&&byN[e.from];}).length;
-var laneW=Math.max(40,rightCount*14+16);var leafW=Math.max(230,W-20-laneW-leafX);var laneX0=leafX+leafW+16;
+var laneGap=Math.min(26,Math.round(14+extra*0.04));var laneW=Math.max(48,rightCount*laneGap+20);var leafW=Math.max(230,W-20-laneW-leafX);var laneX0=leafX+leafW+18;
 var rows=[],placed=[];
 function leavesOf(pn){return M.leaves.filter(function(l){return l.parent===pn;});}
 function kidsOf(pn){return M.parents.filter(function(p){return p.parent===pn;}).sort(function(x,y){return x.board-y.board;});}
@@ -778,10 +778,10 @@ var touches={};function touch(n,o){(touches[n]=touches[n]||[]).push(o);}edgesAll
 function yOf(n){return rowOf[n]?cy(rowOf[n]):(placed.filter(function(pp){return pp.n===n;})[0]||{y:0}).y;}
 function portY(n,o){var list=[];(touches[n]||[]).forEach(function(v){if(list.indexOf(v)<0)list.push(v);});list.sort(function(p,q){return yOf(p)-yOf(q);});var i=list.indexOf(o);return cy(rowOf[n])+(i-(list.length-1)/2)*10;}
 var right=edgesAll.filter(function(e){return !e.parent&&rowOf[e.from]&&rowOf[e.to];}).sort(function(p,q){return Math.abs(cy(rowOf[p.to])-cy(rowOf[p.from]))-Math.abs(cy(rowOf[q.to])-cy(rowOf[q.from]));});
-var laneStep=Math.max(7,Math.min(14,Math.floor((W-14-laneX0)/Math.max(1,right.length))));
+var laneStep=Math.max(8,Math.min(laneGap,Math.floor((W-14-laneX0)/Math.max(1,right.length))));
 right.forEach(function(e,i){var lx=laneX0+i*laneStep,y1=portY(e.from,e.to),y2=portY(e.to,e.from);dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tga)" d="M'+(leafX+leafW)+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(leafX+leafW+2)+' '+y2+'"/>';});
 var pe=edgesAll.filter(function(e){return e.parent&&rowOf[e.to];});var lanes=[];pe.forEach(function(e){if(lanes.indexOf(e.from)<0)lanes.push(e.from);});
-pe.forEach(function(e){var pp=placed.filter(function(o){return o.n===e.from;})[0];if(!pp)return;var lx=leafX-8-lanes.indexOf(e.from)*6,y1=pp.y+CARD_H/2+12,y2=cy(rowOf[e.to])+12;dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tga)" d="M'+(colX(pp.col)+colW(pp.col))+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(leafX-2)+' '+y2+'"/>';});
+pe.forEach(function(e){var pp=placed.filter(function(o){return o.n===e.from;})[0];if(!pp)return;var lx=leafX-10-lanes.indexOf(e.from)*10,y1=pp.y+CARD_H/2+14,y2=cy(rowOf[e.to])+14;dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tga)" d="M'+(colX(pp.col)+colW(pp.col))+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(leafX-2)+' '+y2+'"/>';});
 var H=top+rows.length*PITCH+30;var heads='<text class="col" x="'+colX(0)+'" y="24">Epic</text>';for(var c=1;c<leafCol;c++)heads+='<text class="col" x="'+colX(c)+'" y="24">Split tasks</text>';heads+='<text class="col" x="'+leafX+'" y="24">Tickets</text>'+(right.length?'<text class="col" x="'+laneX0+'" y="24">Waits on</text>':'');
 return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Hierarchy first">'+marker('tga')+heads+svg+dsvg+'<text class="key" x="20" y="'+(H-18)+'">Solid elbow: part of. Dashed arrow: the ticket it points at waits on the one it starts from.</text><text class="key" x="20" y="'+(H-4)+'">Hover a ticket to trace its arrows. Click a pill to run it.</text></svg>';}
 function dep(W){
@@ -804,7 +804,7 @@ order.forEach(function(k){var nd=nodes[k],p=pos[k];if(nd.closeOf){var g=nd.p;svg
 else{var a=nd.a;var tag=a.parentTag;var bs=blockerKeys(k).filter(function(b){return b!==primary[k];}).map(function(b){return nodes[b].closeOf?nodes[b].p.id+' closes':nameOf(b);});var base=primary[k]?a.why.replace(/nothing blocks it|reviewed, unblocked/,'unblocked by the ticket above'):a.why;var why=base+(bs.length?(base?', ':'')+'also after '+bs.join(', '):'');svg+=card(p.x,p.y,colW,a,tag,why);}});
 order.forEach(function(k){var pk=primary[k];if(!pk)return;var a=pos[pk],b=pos[k];if(staggered)tsvg+='<path class="tree" d="M'+(a.x+18)+' '+(a.y+CARD_H)+' L'+(a.x+18)+' '+(b.y+CARD_H/2)+' L'+b.x+' '+(b.y+CARD_H/2)+'"/>';else tsvg+='<path class="tree" d="M'+(a.x+colW)+' '+(a.y+CARD_H/2)+' L'+(a.x+colW+20)+' '+(a.y+CARD_H/2)+' L'+(a.x+colW+20)+' '+(b.y+CARD_H/2)+' L'+b.x+' '+(b.y+CARD_H/2)+'"/>';blockerKeys(k).forEach(function(o){if(o!==pk)sec.push({from:o,to:k});});});
 sec.sort(function(p,q){return Math.abs(pos[p.to].y-pos[p.from].y)-Math.abs(pos[q.to].y-pos[q.from].y);});
-sec.forEach(function(e,i){var o=pos[e.from],b=pos[e.to];var lx=Math.max(o.x,b.x)+colW+12+i*8;if(lx>W-6)lx=W-6-i*4;var y1=o.y+CARD_H/2+10,y2=b.y+CARD_H/2+12;dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tgb)" d="M'+(o.x+colW)+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(b.x+colW+2)+' '+y2+'"/>';});
+sec.forEach(function(e,i){var o=pos[e.from],b=pos[e.to];var lx=Math.max(o.x,b.x)+colW+14+i*12;if(lx>W-6)lx=W-6-i*6;var y1=o.y+CARD_H/2+10,y2=b.y+CARD_H/2+12;dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tgb)" d="M'+(o.x+colW)+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(b.x+colW+2)+' '+y2+'"/>';});
 var H=top+order.length*PITCH+30;var heads='';for(var c=0;c<=maxW;c++)heads+='<text class="col" x="'+colX(c)+'" y="'+(stepX<100?22+(c%2)*13:26)+'">'+(c===0?'Can start now':'After '+c+' close'+(c>1?'s':''))+'</text>';
 return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Dependency first">'+marker('tgb')+heads+tsvg+dsvg+svg+'<text class="key" x="20" y="'+(H-18)+'">Solid: the lower ticket waits on the one above it. Dashed, from the right: its other blockers.</text><text class="key" x="20" y="'+(H-4)+'">Grey tag: which part of the epic it belongs to. Click a pill to run it.</text></svg>';}
 var hw=document.getElementById('tg-hw'),dw=document.getElementById('tg-dw');var lastW=0;
