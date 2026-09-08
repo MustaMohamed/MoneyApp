@@ -3,6 +3,7 @@ import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
+import { isOverLimit } from '@/modules/accounts/constants/is_over_limit';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import { convertCurrency } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/store/account.store';
@@ -71,7 +72,7 @@ export interface InfoRow {
   kind: InfoRowKind;
   label: string;
   value: string;
-  /** `value` without its currency code; absent on the due-date and Over Limit rows. */
+  /** `value` without its currency code; absent on the due-date and over-limit rows. */
   amountText?: string;
   valueColor?: string;
   icon?: 'up' | 'down';
@@ -93,7 +94,6 @@ export function buildInfoRows(
     const limit = account.credit_limit ?? 0;
     const balance = account.current_balance;
     const available = Math.max(0, limit - balance);
-    const isOverLimit = balance > limit && limit > 0;
     const availColor = availableCreditColor(available, limit);
     const dueDay = account.statement_due_day;
 
@@ -106,7 +106,9 @@ export function buildInfoRows(
       {
         kind: 'available',
         label: Strings.cardAvailableLabel,
-        ...(isOverLimit ? { value: Strings.cardOverLimit } : amountParts(available, cur)),
+        ...(isOverLimit(balance, limit)
+          ? { value: Strings.accountOverLimit }
+          : amountParts(available, cur)),
         valueColor: availColor,
       },
       {

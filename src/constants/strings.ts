@@ -225,7 +225,6 @@ export const Strings = {
   cardLimitLabel: 'Limit',
   cardAvailableLabel: 'Available',
   cardMinPayLabel: 'Min Pay',
-  cardOverLimit: 'Over Limit',
   cardTypeLabel: 'Type',
   cardCurrencyLabel: 'Currency',
   cardOpeningLabel: 'Opening',
@@ -324,7 +323,8 @@ export const Strings = {
   accountHeroAdjusted: 'adjusted',
   accountHeroAvailable: (avail: string, currency: string, limit: string) =>
     `Available ${avail} ${currency} of ${limit}`,
-  accountHeroOverLimit: 'Over limit',
+  // Not hero-specific: the detail hero, the dashboard account card and the accounts list row all render it.
+  accountOverLimit: 'Over limit',
   // Ordinal suffix by the day's last digit; `formatOrdinal` owns the 11–13 exception.
   ordinalSuffixes: { one: 'st', two: 'nd', few: 'rd', other: 'th' },
 

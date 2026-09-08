@@ -44,7 +44,7 @@ function composeCaption({
   const rows = buildInfoRows(account, rate, stats, isRateUsable, baseCurrency);
   const byKind = new Map(rows.map((row) => [row.kind, row] as const));
 
-  // Over Limit carries no bare amount, so it reaches the caption through `value`.
+  // The over-limit state carries no bare amount, so it reaches the caption through `value`.
   const text = (kind: InfoRowKind): string | undefined => {
     const row = byKind.get(kind);
     return row === undefined ? undefined : (row.amountText ?? row.value);

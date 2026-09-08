@@ -1,5 +1,4 @@
 import { AccountType, Currency } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
@@ -189,8 +188,8 @@ describe('resolveAccountCaption — credit card', () => {
     expect(caption(card(8450))).toBe('Limit 40,000 · available 31,550');
   });
 
-  it('carries Over Limit through in place of the available amount', () => {
-    expect(caption(card(45000))).toBe(`Limit 40,000 · available ${Strings.cardOverLimit}`);
+  it('carries the over-limit state through in place of the available amount', () => {
+    expect(caption(card(45000))).toBe('Limit 40,000 · available Over limit');
   });
 });
 
