@@ -300,6 +300,17 @@ export const Strings = {
   accountBalanceReviewAdjust: 'Adjust balance',
   accountBalanceReviewConfirm: 'Balance is correct',
   accountBalanceReviewError: 'Could not confirm this balance. Please try again.',
+  accountDetailMonthInLabel: 'This month in',
+  accountDetailMonthOutLabel: 'This month out',
+  accountActivityTitle: 'Recent activity',
+  accountActivitySeeAll: 'See all',
+  accountActivityEmptyTitle: 'Nothing recorded yet',
+  accountActivityEmptyBody: 'Transactions on this account show up here.',
+  accountActivityEmptyCta: 'Add a transaction',
+  accountActivityLoadError: "Couldn't load recent activity.",
+  accountActivityLoadRetry: 'Try again',
+  accountActivityToday: (time: string) => `Today, ${time}`,
+  accountActivityYesterday: 'Yesterday',
 
   // Accounts list (B1)
   accountsListTitle: 'Accounts',

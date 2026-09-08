@@ -197,6 +197,8 @@ describe('useTransactions screen orchestration', () => {
     await act(() => result.current.openAddTransaction());
 
     expect(mockOpenAdd).toHaveBeenCalledTimes(1);
+    // Bare: the transactions screen's own opener preselects no account.
+    expect(mockOpenAdd).toHaveBeenCalledWith();
   });
 
   it('owns the delete confirmation lifecycle', async () => {

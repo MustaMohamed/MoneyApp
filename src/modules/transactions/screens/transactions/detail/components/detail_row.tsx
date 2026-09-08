@@ -41,6 +41,8 @@ interface BaseProps {
   reserveSublabel?: boolean;
   muted?: boolean;
   showDivider?: boolean;
+  /** Runtime hex from a token; `className` is build-time only (the detail's month figures). */
+  valueColor?: string;
 }
 
 /** A tile-less row is `plain`, declared: an omitted `icon` would otherwise drop the tile silently (the account detail's facts). */
@@ -56,6 +58,7 @@ export function DetailRow({
   reserveSublabel = false,
   muted = false,
   showDivider = true,
+  valueColor,
 }: Props): React.ReactElement {
   const tone = BADGE_STYLES[badgeTone];
   return (
@@ -83,7 +86,10 @@ export function DetailRow({
         </ListGroup.ItemDescription>
         <ListGroup.ItemTitle
           className={`mt-0.5 ${muted ? 'font-inter text-foreground/60 italic' : 'font-inter-medium'}`}
-          style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+          style={[
+            { fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) },
+            valueColor ? { color: valueColor } : undefined,
+          ]}
           numberOfLines={1}
         >
           {value}

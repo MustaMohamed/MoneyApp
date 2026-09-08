@@ -29,6 +29,7 @@ type TransactionsScreenStore = StateShape & {
   setActiveFilter: (f: TransactionFilter) => void;
   setSelectedMonth: (yearMonth: string) => void;
   setAppliedFilters: (f: AdvancedFilters) => void;
+  seedAccountFilter: (accountId: string, yearMonth: string) => void;
   clearSearch: () => void;
   beginTotalsRequest: (yearMonth: string, preserveData: boolean) => number;
   resolveTotals: (yearMonth: string, requestId: number, totals: TransactionTotalsState) => boolean;
@@ -56,6 +57,14 @@ export const useTransactionsScreenStore = createMoneyAppSelectors(
     setActiveFilter: (f) => set({ activeFilter: f }),
     setSelectedMonth: (yearMonth) => set({ period: { type: 'month', yearMonth } }),
     setAppliedFilters: (f) => set({ appliedFilters: f }),
+    // One publication: the screen's query and totals effects both key off these four fields.
+    seedAccountFilter: (accountId, yearMonth) =>
+      set({
+        searchQuery: '',
+        activeFilter: 'all',
+        period: { type: 'month', yearMonth },
+        appliedFilters: { ...EMPTY_FILTERS, accountIds: [accountId] },
+      }),
     clearSearch: () => set({ searchQuery: '' }),
     beginTotalsRequest: (yearMonth, preserveData) => {
       const state = get();

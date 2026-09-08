@@ -5,6 +5,7 @@ import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
 import {
   buildInfoRows,
+  buildMonthRows,
   type InfoRowKind,
 } from '@/modules/dashboard/screens/dashboard/components/account_card.helpers';
 import { makeTestAccount } from '@/test_helpers/transaction';
@@ -492,5 +493,26 @@ describe('buildInfoRows — every row names its figure and carries a bare amount
     expect(rows[1]?.value).toBe(Strings.accountOverLimit);
     expect(rows[1]?.amountText).toBeUndefined();
     expect(rows[2]?.amountText).toBeUndefined();
+  });
+});
+
+describe('buildMonthRows — the pair the account detail lifts (MA-028)', () => {
+  const stats: AccountStats = { month_in: 1250.75, month_out: 640.25, week_in: 10, week_out: 20 };
+
+  it.each([Currency.EGP, Currency.USD])(
+    'is byte-identical to the %s bank card rows the dashboard renders',
+    (currency) => {
+      const account = currency === Currency.EGP ? egpBank(1000) : usdBank(1000);
+      const cardRows = buildInfoRows(account, PLACEHOLDER_RATE, stats, false, currency);
+
+      expect(buildMonthRows(stats, currency)).toEqual(cardRows.slice(0, 2));
+    },
+  );
+
+  it('names its two rows monthIn and monthOut', () => {
+    expect(buildMonthRows(stats, Currency.EGP).map((row) => row.kind)).toEqual([
+      'monthIn',
+      'monthOut',
+    ]);
   });
 });

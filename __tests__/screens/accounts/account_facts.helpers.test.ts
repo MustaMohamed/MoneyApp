@@ -1,5 +1,10 @@
 import { AccountType, Currency } from '@/constants/enums';
-import { buildAccountFacts } from '@/modules/accounts/screens/accounts/detail/components/account_facts.helpers';
+import { Colors } from '@/constants/theme';
+import type { AccountStats } from '@/modules/accounts/database/account_stats';
+import {
+  buildAccountFacts,
+  buildMonthFacts,
+} from '@/modules/accounts/screens/accounts/detail/components/account_facts.helpers';
 import type { Account } from '@/modules/accounts/store/account.store';
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
@@ -116,5 +121,52 @@ describe('buildAccountFacts — credit cards', () => {
     );
     expect(facts[0]).toEqual({ label: 'Credit limit', value: '500.00 USD' });
     expect(facts[1]).toEqual({ label: 'Minimum payment', value: '25.00 USD' });
+  });
+});
+
+describe('buildMonthFacts', () => {
+  const stats: AccountStats = {
+    month_in: 1250.75,
+    month_out: 640.25,
+    week_in: 0,
+    week_out: 0,
+  };
+
+  it("colours a bank's month figures the way the dashboard card colours them", () => {
+    expect(buildMonthFacts(mkAccount(), stats)).toEqual([
+      { label: 'This month in', value: '1,251 EGP', valueColor: Colors.dark.positive },
+      { label: 'This month out', value: '640 EGP', valueColor: Colors.dark.negative },
+    ]);
+  });
+
+  it('takes the figure decimals from the account currency', () => {
+    const facts = buildMonthFacts(mkAccount({ currency: Currency.USD }), stats);
+    expect(facts[0]?.value).toBe('1,250.75 USD');
+    expect(facts[1]?.value).toBe('640.25 USD');
+  });
+
+  it('leaves a zero figure in the neutral text colour', () => {
+    expect(
+      buildMonthFacts(mkAccount(), { month_in: 0, month_out: 0, week_in: 0, week_out: 0 }),
+    ).toEqual([
+      { label: 'This month in', value: '0 EGP', valueColor: Colors.dark.text1 },
+      { label: 'This month out', value: '0 EGP', valueColor: Colors.dark.text1 },
+    ]);
+  });
+
+  it('holds the two rows at the unset glyph before the load lands', () => {
+    expect(buildMonthFacts(mkAccount(), undefined)).toEqual([
+      { label: 'This month in', value: '—' },
+      { label: 'This month out', value: '—' },
+    ]);
+  });
+
+  it.each([
+    AccountType.CreditCard,
+    AccountType.SmartWallet,
+    AccountType.PhysicalWallet,
+    AccountType.PhysicalSavings,
+  ])('%s carries no month rows', (type) => {
+    expect(buildMonthFacts(mkAccount({ type }), stats)).toEqual([]);
   });
 });

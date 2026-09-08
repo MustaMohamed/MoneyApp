@@ -78,6 +78,24 @@ export interface InfoRow {
   icon?: 'up' | 'down';
 }
 
+/** The month pair the card and the account detail's fact rows both render (MA-028). */
+export function buildMonthRows(stats: AccountStats, currency: Currency): [InfoRow, InfoRow] {
+  return [
+    {
+      kind: 'monthIn',
+      label: Strings.cardMonthInLabel,
+      ...amountParts(stats.month_in, currency),
+      valueColor: stats.month_in > 0 ? Colors.dark.positive : Colors.dark.text1,
+    },
+    {
+      kind: 'monthOut',
+      label: Strings.cardMonthOutLabel,
+      ...amountParts(stats.month_out, currency),
+      valueColor: stats.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
+    },
+  ];
+}
+
 /** Never re-derive `isRateUsable` as `rate > 0`; the store's placeholder rate is 50. */
 export function buildInfoRows(
   account: Account,
@@ -197,20 +215,7 @@ export function buildInfoRows(
           },
         ];
 
-  const monthRows: InfoRow[] = [
-    {
-      kind: 'monthIn',
-      label: Strings.cardMonthInLabel,
-      ...amountParts(s.month_in, cur),
-      valueColor: s.month_in > 0 ? Colors.dark.positive : Colors.dark.text1,
-    },
-    {
-      kind: 'monthOut',
-      label: Strings.cardMonthOutLabel,
-      ...amountParts(s.month_out, cur),
-      valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
-    },
-  ];
+  const monthRows = buildMonthRows(s, cur);
 
   if (isUSD) {
     return [...monthRows, ...baseEquivalentRows];

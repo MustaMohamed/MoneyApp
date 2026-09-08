@@ -9,6 +9,8 @@ interface AddTransactionStoreShape {
   amountStr: string;
   availableBudgets: Budget[];
   budgetId: string | undefined;
+  /** Set by the opener; the add hook reads it once for its `accountId` default. */
+  initialAccountId: string | undefined;
 }
 
 type AddTransactionStore = AddTransactionStoreShape & {
@@ -16,6 +18,7 @@ type AddTransactionStore = AddTransactionStoreShape & {
   setAmountStr: (value: string) => void;
   setAvailableBudgets: (budgets: Budget[]) => void;
   setBudgetId: (budgetId: string | undefined) => void;
+  setInitialAccountId: (accountId: string | undefined) => void;
   reset: () => void;
 };
 
@@ -24,6 +27,7 @@ const INITIAL_STATE: AddTransactionStoreShape = {
   amountStr: '',
   availableBudgets: [],
   budgetId: undefined,
+  initialAccountId: undefined,
 };
 
 export const useAddTransactionStore = createMoneyAppSelectors(
@@ -35,6 +39,7 @@ export const useAddTransactionStore = createMoneyAppSelectors(
     setAmountStr: (value) => set({ amountStr: value }),
     setAvailableBudgets: (budgets) => set({ availableBudgets: budgets }),
     setBudgetId: (budgetId) => set({ budgetId }),
+    setInitialAccountId: (initialAccountId) => set({ initialAccountId }),
 
     reset: () => set(INITIAL_STATE),
   })),
