@@ -5,15 +5,14 @@ import React from 'react';
 import { StyleSheet, type PressableProps } from 'react-native';
 
 import { Colors, Radius, Size } from '@/constants/theme';
-import { GoldTokens } from '@/constants/theme_tokens';
+import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 
 import { resolveButtonContent } from './button.content';
 
 // CTAs are Sora (.claude/rules/ui.md; mockup `.cta` uses the display face at 600) — HeroUI's own label ships Inter medium.
 const CTA_LABEL_FONT = 'font-sora-semibold';
 
-export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled'> {
-  variant?: ButtonVariant;
+interface ButtonBaseProps extends Omit<PressableProps, 'children' | 'disabled'> {
   size?: ButtonSize;
   label: string;
   isLoading?: boolean;
@@ -22,12 +21,18 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled
   disabled?: boolean;
   /** When `isLoading`, replaces `Strings.loading` as the button text. */
   loadingLabel?: string;
-  /** Flat treatment at Radius.cta, opt-in per redesigned screen — primary: accent fill, no gradient; secondary: foreground label (mockup `.cta`/`.cta.sec`; spec.md § Known disagreements 1). */
-  flat?: boolean;
   /** Leading glyph before the label — the flat secondary's plus (mockup `.cta.sec svg`); renders foreground. */
   icon?: keyof typeof MaterialCommunityIcons.glyphMap;
   className?: string;
 }
+
+// `flat` is the redesigned screens' treatment at Radius.cta — primary: accent fill, no gradient; secondary: foreground label (mockup `.cta`/`.cta.sec`; spec.md § Known disagreements 1).
+/** Only the flat secondary paints `tone` (the account detail's Archive), so the union stops every other shape naming it. */
+export type ButtonProps = ButtonBaseProps &
+  (
+    | { variant: 'secondary'; flat: true; tone?: 'danger' }
+    | { variant?: ButtonVariant; flat?: boolean; tone?: never }
+  );
 
 export function Button({
   variant = 'primary',
@@ -39,6 +44,7 @@ export function Button({
   loadingLabel,
   flat,
   icon,
+  tone,
   className,
   ...props
 }: ButtonProps) {
@@ -91,6 +97,7 @@ export function Button({
   }
 
   const flatSecondary = flat === true && variant === 'secondary';
+  const isDanger = flatSecondary && tone === 'danger';
   return (
     <HButton
       variant={variant}
@@ -104,9 +111,18 @@ export function Button({
     >
       {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
       {icon ? (
-        <MaterialCommunityIcons name={icon} size={Size.iconSm} color={Colors.dark.text1} />
+        <MaterialCommunityIcons
+          name={icon}
+          size={Size.iconSm}
+          color={isDanger ? SemanticTokens.negative : Colors.dark.text1}
+        />
       ) : null}
-      <HButton.Label className={cn(CTA_LABEL_FONT, flatSecondary ? 'text-foreground' : undefined)}>
+      <HButton.Label
+        className={cn(
+          CTA_LABEL_FONT,
+          isDanger ? 'text-danger' : flatSecondary ? 'text-foreground' : undefined,
+        )}
+      >
         {text}
       </HButton.Label>
     </HButton>

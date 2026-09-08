@@ -200,7 +200,7 @@ writing") implied a direction that never existed either. Suppressing the sign at
 from the table above's, not a retreat from it. `normalizeNegativeZero` and `formatAmount`'s
 own guard are unmodified and continue to own the population the table above describes.
 
-## 3. Three decimals constants, allowed to diverge
+## 3. Four decimals constants, allowed to diverge
 
 - **`EXCHANGE_RATE_DECIMALS`** (`src/utils/format_amount.ts`) owns rate precision for
   `formatExchangeRate` and for every rate site that keeps its own surrounding string:
@@ -216,10 +216,17 @@ own guard are unmodified and continue to own the population the table above desc
   precision itself predates W1A; W1A's #299 only moved the bare literal it was already passed
   as onto a named constant, discharging `review.md:15`'s recording obligation for the first
   time.
+- **`APR_DISPLAY_DECIMALS`**, declared locally in
+  `src/modules/accounts/screens/accounts/detail/components/account_facts.helpers.ts` beside the
+  account detail's fact rows, owns the credit card's APR row. It is a **rate**, not a
+  `CURRENCY_CONFIG` amount, so the currency's decimals do not reach it, and MA-027's acceptance
+  (#401) fixes it at two — an APR reads `24.50%` on an EGP card and on a USD one alike. Declared
+  beside its own surface for the same reason as the two above, per the `N4_HERO_AMOUNT_DECIMALS`
+  precedent named below.
 
-`EXCHANGE_RATE_DECIMALS` and `RATE_PREVIEW_AMOUNT_DECIMALS` are both `2` today, and that
-agreement is coincidence, not a shared contract — `ACCOUNT_CARD_AVG_DAY_DECIMALS` is `1`,
-already diverging, which is the point. A rate is an EGP-per-USD ratio; the preview is a
+`EXCHANGE_RATE_DECIMALS`, `RATE_PREVIEW_AMOUNT_DECIMALS` and `APR_DISPLAY_DECIMALS` are all `2`
+today, and that agreement is coincidence, not a shared contract — `ACCOUNT_CARD_AVG_DAY_DECIMALS`
+is `1`, already diverging, which is the point. A rate is an EGP-per-USD ratio; the preview is a
 stored-currency amount someone reads mid-entry, and its final decimal count is @marcus's call,
 out of scope for this ticket (`spec.md` §2, §4.2).
 Declaring it locally rather than importing `EXCHANGE_RATE_DECIMALS` means that later ruling moves

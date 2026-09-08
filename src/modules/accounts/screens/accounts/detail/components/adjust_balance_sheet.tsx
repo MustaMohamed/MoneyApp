@@ -1,6 +1,5 @@
 import { Typography } from 'heroui-native';
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Box } from '@/components/ui/box';
@@ -11,9 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Type, lineHeightFor } from '@/constants/theme';
 
+import {
+  FIELD_MESSAGE_RAIL_STYLE,
+  FIELD_MESSAGE_TEXT_LINE_HEIGHT,
+} from '../../../../components/account_form/account_form.geometry';
 import { parseAdjustInput } from './adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
+import { formatAccountBalance } from './balance_hero.helpers';
 
 interface AdjustBalanceSheetProps {
   isOpen: boolean;
@@ -69,6 +74,7 @@ export function AdjustBalanceSheet({
       <Box style={{ flex: 1 }}>
         <Button
           variant="secondary"
+          flat
           label={Strings.adjustBalanceCancel}
           onPress={() => onOpenChange(false)}
         />
@@ -76,6 +82,7 @@ export function AdjustBalanceSheet({
       <Box style={{ flex: 2 }}>
         <Button
           variant="primary"
+          flat
           label={Strings.adjustBalanceSave}
           onPress={() => void handleSave()}
           isDisabled={isLoading}
@@ -94,24 +101,53 @@ export function AdjustBalanceSheet({
       footer={footer}
     >
       <Box className="px-4 pt-2">
-        <FormSectionLabel>{Strings.adjustBalanceLabel}</FormSectionLabel>
-        <Box style={{ flexDirection: 'row' }} className="items-center gap-2">
-          <View style={{ flex: 1 }}>
-            <Input
-              value={input}
-              onChangeText={(v) => {
-                setInput(v);
-                setError('');
-              }}
-              onFocus={onFocus}
-              onBlur={onBlur}
-              keyboardType="decimal-pad"
-              isInvalid={!!error}
-            />
-          </View>
-          <Typography className="text-muted font-sora-bold text-[15px]">{currency}</Typography>
+        <Box style={{ flexDirection: 'row' }} className="items-center justify-between pb-3">
+          <Typography
+            className="text-foreground/55 font-inter"
+            style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+          >
+            {Strings.accountDetailBalance}
+          </Typography>
+          <Typography
+            className="text-foreground font-sora-semibold tabular-nums"
+            style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
+          >
+            {formatAccountBalance(currentBalance, currency)}
+          </Typography>
         </Box>
-        <FormErrorText message={error || undefined} />
+        <FormSectionLabel>{Strings.adjustBalanceLabel}</FormSectionLabel>
+        <Input
+          value={input}
+          onChangeText={(v) => {
+            setInput(v);
+            setError('');
+          }}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          keyboardType="decimal-pad"
+          isInvalid={!!error}
+          suffix={
+            <Typography className="text-muted font-sora-bold text-[15px]">{currency}</Typography>
+          }
+        />
+        {/* One track for helper and error, announced live; `FieldMessageRail` is RHF-bound and this sheet is not, so the shape is reused, not the component. */}
+        <Box style={FIELD_MESSAGE_RAIL_STYLE} accessibilityLiveRegion="polite">
+          {error ? (
+            <FormErrorText
+              message={error}
+              disableAnimation
+              style={{ fontSize: Type.detail, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT }}
+            />
+          ) : (
+            // Not HeroUI `Description`: it paints `--color-muted` and this copy must stay readable.
+            <Typography
+              className="font-inter text-foreground"
+              style={{ fontSize: Type.detail, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT }}
+            >
+              {Strings.adjustBalanceHelper}
+            </Typography>
+          )}
+        </Box>
       </Box>
     </Sheet>
   );

@@ -1,21 +1,23 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { ListGroup, PressableFeedback, Separator, Typography } from 'heroui-native';
+import { PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
+import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
-import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
+import { DetailRow } from '@/modules/transactions/screens/transactions/detail/components/detail_row';
+import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 
 import { AccountColorField } from '../../../components/account_form/account_color_field';
 import { useAccountDetailAnim } from './account_detail.anim';
 import { useAccountDetail } from './account_detail.hook';
+import { buildAccountFacts } from './components/account_facts.helpers';
 import { AdjustBalanceSheet } from './components/adjust_balance_sheet';
 import { ArchiveConfirmationDialog } from './components/archive_confirmation_dialog';
 import { BalanceHero } from './components/balance_hero';
@@ -54,6 +56,8 @@ export default function AccountDetailScreen() {
   } = form;
 
   if (!account) return null;
+
+  const facts = buildAccountFacts(account);
 
   return (
     <Screen>
@@ -139,35 +143,33 @@ export default function AccountDetailScreen() {
           </Animated.View>
         )}
 
+        <DetailRowsCard>
+          {facts.map((fact, index) => (
+            <DetailRow
+              key={fact.label}
+              plain
+              label={fact.label}
+              value={fact.value}
+              showDivider={index < facts.length - 1}
+            />
+          ))}
+        </DetailRowsCard>
+
         {!isEditing && (
-          <Box className="mx-4 mt-5">
-            <ListGroup>
-              <ListGroup.Item onPress={() => setAdjustVisible(true)}>
-                <ListGroup.ItemPrefix>
-                  <MaterialCommunityIcons name="pencil" size={20} color={CoreTokens.text2} />
-                </ListGroup.ItemPrefix>
-                <ListGroup.ItemContent>
-                  <ListGroup.ItemTitle>{Strings.accountDetailAdjustBalance}</ListGroup.ItemTitle>
-                </ListGroup.ItemContent>
-                <ListGroup.ItemSuffix />
-              </ListGroup.Item>
-              <Separator className="mx-4" />
-              <ListGroup.Item onPress={() => setArchiveVisible(true)}>
-                <ListGroup.ItemPrefix>
-                  <MaterialCommunityIcons
-                    name="archive"
-                    size={20}
-                    color={SemanticTokens.negative}
-                  />
-                </ListGroup.ItemPrefix>
-                <ListGroup.ItemContent>
-                  <ListGroup.ItemTitle className="text-danger">
-                    {Strings.accountDetailArchive}
-                  </ListGroup.ItemTitle>
-                </ListGroup.ItemContent>
-                <ListGroup.ItemSuffix iconProps={{ color: SemanticTokens.negative }} />
-              </ListGroup.Item>
-            </ListGroup>
+          <Box className="mx-4 mt-4 gap-2">
+            <Button
+              variant="secondary"
+              flat
+              label={Strings.accountDetailAdjustBalance}
+              onPress={() => setAdjustVisible(true)}
+            />
+            <Button
+              variant="secondary"
+              flat
+              tone="danger"
+              label={Strings.accountDetailArchive}
+              onPress={() => setArchiveVisible(true)}
+            />
           </Box>
         )}
       </ScreenScroll>

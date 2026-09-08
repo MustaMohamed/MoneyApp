@@ -284,8 +284,12 @@ export const Strings = {
   accountDetailSave: 'Save',
   accountDetailCancel: 'Cancel',
   accountDetailMore: 'More',
-  accountDetailBalance: 'Current Balance',
-  accountDetailAdjustBalance: 'Adjust Balance',
+  accountDetailBalance: 'Current balance',
+  accountDetailAdjustBalance: 'Adjust balance',
+  accountDetailFactUnset: '—',
+  accountDetailDueDayValue: (ordinal: string) => `${ordinal} of the month`,
+  accountDetailAprValue: (rate: string) => `${rate}%`,
+  accountDetailInterestTracked: 'interest tracked',
   accountDetailArchive: 'Archive',
   accountDetailArchiveTitle: 'Archive Account?',
   accountDetailArchiveBody: 'This account will be hidden from your dashboard and all calculations.',
@@ -320,6 +324,9 @@ export const Strings = {
   accountHeroAdjusted: 'adjusted',
   accountHeroAvailable: (avail: string, currency: string, limit: string) =>
     `Available ${avail} ${currency} of ${limit}`,
+  accountHeroOverLimit: 'Over limit',
+  // Ordinal suffix by the day's last digit; `formatOrdinal` owns the 11–13 exception.
+  ordinalSuffixes: { one: 'st', two: 'nd', few: 'rd', other: 'th' },
 
   // Add Account screen (U4, main app)
   u4Title: 'Add Account',
@@ -327,9 +334,10 @@ export const Strings = {
   u4CtaBusy: 'Saving…',
 
   // Adjust Balance sheet
-  adjustBalanceTitle: 'Adjust Balance',
-  adjustBalanceLabel: 'New Balance',
-  adjustBalanceSave: 'Save Balance',
+  adjustBalanceTitle: 'Adjust balance',
+  adjustBalanceLabel: 'New balance',
+  adjustBalanceHelper: 'Enter the balance on your statement.',
+  adjustBalanceSave: 'Save',
   adjustBalanceCancel: 'Cancel',
   // Not `errBalanceInvalid`: that one asks the user to fix the value, this one to retry it.
   adjustBalanceSaveError: 'Could not save this balance. Please try again.',
