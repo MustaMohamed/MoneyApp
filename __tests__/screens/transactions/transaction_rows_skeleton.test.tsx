@@ -5,6 +5,7 @@ import {
   TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
   TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
+  TRANSACTION_ROW_VERTICAL_PADDING,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { TransactionRowsSkeleton } from '@/modules/transactions/screens/transactions/components/transaction_rows_skeleton';
 import { ms } from '@/utils/responsive';
@@ -28,7 +29,10 @@ describe('TransactionRowsSkeleton', () => {
     });
     expect(getAllByTestId('transaction-row-skeleton-value')[0]).toHaveStyle({ width: ms(120) });
     for (const row of getAllByTestId('transaction-row-skeleton')) {
-      expect(row).toHaveStyle({ height: TRANSACTION_ROW_HEIGHT });
+      expect(row).toHaveStyle({
+        height: TRANSACTION_ROW_HEIGHT,
+        paddingVertical: TRANSACTION_ROW_VERTICAL_PADDING,
+      });
     }
   });
 

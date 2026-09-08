@@ -10,9 +10,11 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 import { TransactionRow } from '@/modules/transactions/screens/transactions/components/transaction_row';
 import {
   TRANSACTION_ROW_HEIGHT,
+  TRANSACTION_ROW_NOTE_FONT_SIZE,
   TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
   TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
+  TRANSACTION_ROW_VERTICAL_PADDING,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { ms } from '@/utils/responsive';
 
@@ -121,9 +123,11 @@ describe('TransactionRow ownership actions', () => {
       created_at: '2026-07-19T12:00:00.000Z',
       updated_at: '2026-07-19T12:00:00.000Z',
     };
+    const tx = transaction(null);
+    tx.note = 'Split with Omar at the counter';
     const screen = await render(
       <TransactionRow
-        tx={transaction(null)}
+        tx={tx}
         account={source}
         onPress={jest.fn()}
         onEdit={jest.fn()}
@@ -131,7 +135,10 @@ describe('TransactionRow ownership actions', () => {
       />,
     );
 
-    expect(screen.getByTestId('transaction-row')).toHaveStyle({ height: TRANSACTION_ROW_HEIGHT });
+    expect(screen.getByTestId('transaction-row')).toHaveStyle({
+      height: TRANSACTION_ROW_HEIGHT,
+      paddingVertical: TRANSACTION_ROW_VERTICAL_PADDING,
+    });
     expect(screen.getByTestId('transaction-row-icon-track')).toHaveStyle({
       width: ms(36),
       height: ms(36),
@@ -143,6 +150,10 @@ describe('TransactionRow ownership actions', () => {
     expect(screen.getByTestId('transaction-row-value-track')).toHaveStyle({ width: ms(120) });
     expect(screen.getByTestId('transaction-row-note-track')).toHaveStyle({
       height: TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+    });
+    expect(screen.getByText('Split with Omar at the counter')).toHaveStyle({
+      fontSize: TRANSACTION_ROW_NOTE_FONT_SIZE,
+      lineHeight: lineHeightFor(TRANSACTION_ROW_NOTE_FONT_SIZE),
     });
     expect(screen.getByTestId('transaction-row-secondary-amount-track')).toHaveStyle({
       height: TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,

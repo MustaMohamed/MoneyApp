@@ -14,9 +14,7 @@ import {
   buildTransactionRowPresentation,
   TRANSACTION_ROW_CONTEXT_GAP,
   TRANSACTION_ROW_HEIGHT,
-  TRANSACTION_ROW_NOTE_FONT_SIZE,
   TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
-  TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
   TRANSACTION_ROW_TITLE_BADGE_HEIGHT,
   TRANSACTION_ROW_VERTICAL_PADDING,
@@ -215,13 +213,6 @@ describe('buildTransactionRowPresentation', () => {
 });
 
 describe('transaction row track geometry', () => {
-  it('sizes each optional track to the line box of the font it holds', () => {
-    expect(TRANSACTION_ROW_NOTE_TRACK_HEIGHT).toBe(lineHeightFor(TRANSACTION_ROW_NOTE_FONT_SIZE));
-    expect(TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT).toBe(
-      lineHeightFor(TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE),
-    );
-  });
-
   it('keeps both columns inside the row box', () => {
     // The row's own `border-b` comes out of the content box alongside the padding.
     const innerBox = TRANSACTION_ROW_HEIGHT - 2 * TRANSACTION_ROW_VERTICAL_PADDING - 1;
