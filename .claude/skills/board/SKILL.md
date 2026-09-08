@@ -25,11 +25,11 @@ One read of Project #2, one action per open ticket, the dependency graph when th
    node scripts/board_next.mjs --snapshot "$S" --format text [--scope <n>] </dev/null
    ```
 
-4. Graph: the reply is the board drawn as a hierarchy, an inline widget, then the `yours` and `drift` lines from the text report, then the `Next:` line of step 5.
+4. Graph: the reply is the board drawn as a tree, an inline widget, then the `yours` and `drift` lines from the text report, then the `Next:` line of step 5.
    ```bash
    node scripts/board_next.mjs --snapshot "$S" --format html [--scope <n>] </dev/null
    ```
-   The HTML is complete: a `<style>` block on host variables, one `.bn` block, and a script that draws the arrows after layout. Each parent is a box holding its children; a split task is a box inside its epic; a closed parent is one collapsed line. Inside a box, cards sit in wave columns: wave 1 has nothing open blocking it, wave 2 waits on wave 1, and so on, with an arrow from each blocker to what it blocks, routed through the column gap. A card carries id, status, title, the command as a button that sends itself as the next prompt, and why. Hovering a card traces its arrows. Pass it to `show_widget` unchanged, title `moneyapp_board`.
+   The HTML is complete: a `<style>` block on host variables, one `.tg` block holding two views and a toggle, and the script that wires them. Hierarchy first: epic, split tasks and tickets left to right joined by solid elbows, closed children folded into one "N done" card, every open dependency a dashed arrow in its own lane on the right ending on the ticket that waits. Dependency first: tickets nothing blocks at the left, whatever waits on them to the right, a parent that something waits on drawn as "MA-nnn closes" after its open children, other blockers as dashed arrows from the right. A card carries id, status, title, why, and its command as a pill that sends itself as the next prompt; a merge is a link to the PR. Hovering a card traces its arrows. Pass it to `show_widget` unchanged, title `moneyapp_board`.
 
 5. The last line of the reply is `Next: <the first action line of the report>`, the line after the first bucket heading; never the `Board …` header. Nothing after it.
 
@@ -47,4 +47,4 @@ A Todo leaf names both `/boundaries` and `/tickets`: the user picks per ticket. 
 
 - Running a command from the report because it looked safe. The report is the answer; the user runs or delegates.
 - Re-fetching for the second format. One `--save`, two `--snapshot` renders.
-- Editing the HTML before `show_widget`. The script owns the layout; a layout defect is a script fix with a test.
+- Editing the HTML before `show_widget`. The script owns the layout; a layout defect is a script fix with a test, checked in a browser preview before it ships.

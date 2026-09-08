@@ -625,89 +625,6 @@ function shortStatus(status) {
   return SHORT[status] ?? status ?? 'Off board';
 }
 
-const CSS = `.bn{position:relative;font-family:var(--font-sans);font-size:14px;line-height:1.4;color:var(--text-primary)}
-.bn-head{display:flex;justify-content:space-between;gap:16px;padding:2px 0 4px;font-size:13px;color:var(--text-secondary)}
-.bn-key{font-size:12px;color:var(--text-muted);padding-bottom:10px}
-.bn-band{border:0.5px solid var(--border-strong);border-radius:6px;padding:8px 10px 10px;margin-top:10px;background:var(--surface-0)}
-.bn-band.nested{margin-top:8px;background:var(--surface-1)}
-.bn-band.closed{padding:6px 10px;color:var(--text-muted)}
-.bn-bh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:8px;font-size:13px}
-.bn-bh .bn-id{font-size:14px}
-.bn-bh .bn-t{color:var(--text-secondary);flex:1 1 160px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bn-bh .bn-c{color:var(--text-muted);font-size:12px}
-.bn-grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));column-gap:40px;row-gap:10px;align-items:start}
-.bn-wave{font-size:12px;color:var(--text-muted);padding-bottom:2px;border-bottom:0.5px solid var(--border)}
-.bn-cell{display:flex;flex-direction:column;gap:12px;min-width:0}
-.bn-span{grid-column:1/-1}
-.bn-card{position:relative;border:0.5px solid var(--border-strong);border-left:3px solid var(--border-stronger);border-radius:0;padding:6px 8px 8px;background:var(--surface-2);min-width:0}
-.bn-card.s-define{border-left-color:var(--border-strong)}
-.bn-card.s-ready{border-left-color:var(--border-accent)}
-.bn-card.s-flight{border-left-color:var(--border-success)}
-.bn-card.s-you{border-left-color:var(--border-warning)}
-.bn-card.s-fix{border-left-color:var(--border-danger)}
-.bn-card.s-wait{border-left-color:var(--border);background:var(--surface-1)}
-.bn-l1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
-.bn-id{font-weight:500;color:var(--text-primary);text-decoration:none;white-space:nowrap}
-.bn-id:hover{text-decoration:underline}
-.bn-st{font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bn-t{font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:1px 0 5px}
-.bn-l3{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.bn-act{font:inherit;font-size:12px;font-weight:500;padding:2px 8px;border-radius:var(--radius);border:0.5px solid var(--border-accent);background:var(--bg-accent);color:var(--text-accent);cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bn-act:focus-visible{outline:2px solid var(--border-stronger);outline-offset:2px}
-.bn-act.you{border-color:var(--border-warning);background:var(--bg-warning);color:var(--text-warning)}
-.bn-act.fix{border-color:var(--border-danger);background:var(--bg-danger);color:var(--text-danger)}
-.bn-alt{font:inherit;font-size:12px;padding:2px 4px;border:0;background:transparent;color:var(--text-secondary);cursor:pointer;text-decoration:underline}
-.bn-why{font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.bn-wait{font-size:12px;color:var(--text-muted)}
-.bn-arrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
-.bn-arrows path{fill:none;stroke:var(--text-muted);stroke-width:1.2;opacity:0.7}
-.bn-arrows path.hi{stroke:var(--text-accent);stroke-width:2;opacity:1}
-.bn-arrows .hd{fill:var(--text-muted)}
-.bn-card.dim{opacity:0.45}
-@media (max-width:560px){.bn-grid{grid-template-columns:1fr}.bn-wave{display:none}.bn-arrows{display:none}}
-@media (prefers-reduced-motion:no-preference){.bn-card,.bn-arrows path{transition:opacity .15s}}`;
-
-const SCRIPT = `(function(){var root=document.getElementById('bn-root');var svg=root.querySelector('.bn-arrows');var edges=JSON.parse(root.getAttribute('data-edges'));
-function draw(){var r=root.getBoundingClientRect();var lanes={},laneN=0;var out='<defs><marker id="bnh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="hd" d="M1 1L9 5L1 9z"/></marker></defs>';
-for(var i=0;i<edges.length;i++){var A=root.querySelector('[data-issue="'+edges[i][0]+'"]'),B=root.querySelector('[data-issue="'+edges[i][1]+'"]');if(!A||!B)continue;
-var ra=A.getBoundingClientRect(),rb=B.getBoundingClientRect();var x1=ra.right-r.left,y1=ra.top+ra.height/2-r.top,x2=rb.left-r.left,y2=rb.top+rb.height/2-r.top;
-var key=edges[i][0];if(lanes[key]===undefined){lanes[key]=laneN++;}var gx=x2-28+(lanes[key]%3)*8;if(gx<x1+8){gx=x1+8;}var s=y2>y1?1:-1;var d='M'+x1+' '+y1+' L'+(gx-6)+' '+y1+' Q'+gx+' '+y1+' '+gx+' '+(y1+6*s)+' L'+gx+' '+(y2-6*s)+' Q'+gx+' '+y2+' '+(gx+6)+' '+y2+' L'+x2+' '+y2;
-if(Math.abs(y2-y1)<12){d='M'+x1+' '+y1+' L'+x2+' '+y2;}
-out+='<path data-from="'+edges[i][0]+'" data-to="'+edges[i][1]+'" marker-end="url(#bnh)" d="'+d+'"/>';}
-svg.innerHTML=out;}
-draw();if(window.ResizeObserver){new ResizeObserver(draw).observe(root);}
-function mark(n){var paths=svg.querySelectorAll('path[data-from]');var rel={};for(var i=0;i<paths.length;i++){var p=paths[i];var on=n&&(p.getAttribute('data-from')===n||p.getAttribute('data-to')===n);p.classList.toggle('hi',!!on);if(on){rel[p.getAttribute('data-from')]=1;rel[p.getAttribute('data-to')]=1;}}
-var cards=root.querySelectorAll('.bn-card[data-issue]');for(var j=0;j<cards.length;j++){var c=cards[j];c.classList.toggle('dim',!!n&&!rel[c.getAttribute('data-issue')]&&c.getAttribute('data-issue')!==n);}}
-root.addEventListener('mouseover',function(e){var c=e.target.closest?e.target.closest('.bn-card[data-issue]'):null;mark(c?c.getAttribute('data-issue'):null);});
-root.addEventListener('mouseleave',function(){mark(null);});})();`;
-
-function actionControl(a) {
-  const cmd = a.command ?? '';
-  if (a.bucket === 'yours') {
-    const pr = /PR #(\d+)/.exec(a.action);
-    if (pr)
-      return `<button class="bn-act you" onclick="openLink('https://github.com/${REPO}/pull/${pr[1]}')">Open PR #${pr[1]}</button>`;
-    return `<button class="bn-act you" onclick="sendPrompt('${esc(cmd)}')">${esc(cmd)}</button>`;
-  }
-  if (a.bucket === 'drift') {
-    if (!cmd.startsWith('/') && !cmd.startsWith('bash ') && !cmd.startsWith('gh '))
-      return `<span class="bn-wait">${esc(cmd)}</span>`;
-    return `<button class="bn-act fix" onclick="sendPrompt('${esc(cmd)}')">${esc(clip(cmd, 40))}</button>`;
-  }
-  if (!cmd) return `<span class="bn-wait">waiting</span>`;
-  if (cmd.startsWith('/')) {
-    const [first, ...rest] = cmd.split(' or ');
-    const alt = rest
-      .map(
-        (r) =>
-          `<button class="bn-alt" onclick="sendPrompt('${esc(r)}')">${esc(r.split(' ')[0])}</button>`,
-      )
-      .join('');
-    return `<button class="bn-act" onclick="sendPrompt('${esc(first)}')">${esc(first)}</button>${alt}`;
-  }
-  return `<button class="bn-act" onclick="sendPrompt('${esc(cmd)}')">${esc(clip(cmd, 40))}</button>`;
-}
-
 function shortTitle(a) {
   return (a.title ?? '').replace(/^MA-\d+\s+—\s+/, '');
 }
@@ -718,12 +635,15 @@ function rowId(a) {
 
 const FRIENDLY = [
   [/^Todo, deps closed$/, 'nothing blocks it'],
-  [/^Todo$/, ''],
+  [/^Todo$/, 'nothing blocks it'],
   [/^Defined, Reviewed none$/, 'not reviewed yet'],
-  [/^pullable$/, 'reviewed, nothing blocks it'],
-  [/^marked$/, ''],
+  [/^pullable$/, 'reviewed, unblocked'],
+  [/^Planned, branch .*$/, 'planned, branch ready'],
+  [/^marked$/, 'reviewed, waiting'],
   [/^marked, every Depends on closed, promote missed$/, 'reviewed, promote missed'],
   [/^parent unmarked, a child at Defined$/, 'parent not reviewed yet'],
+  [/^parent, mirrors its children$/, ''],
+  [/^parent, children at Todo lead$/, ''],
 ];
 
 function friendly(action) {
@@ -732,144 +652,537 @@ function friendly(action) {
   return base;
 }
 
-function stageClass(a) {
-  if (a.bucket === 'yours') return 's-you';
-  if (a.bucket === 'drift') return 's-fix';
-  if (a.bucket === 'wait') return 's-wait';
-  if (a.bucket === 'flight') return 's-flight';
-  if (a.bucket === 'pull') return 's-ready';
-  return 's-define';
+const FIX_COLOR = '#D85A30';
+
+function pillLabel(a) {
+  const cmd = a.command ?? '';
+  if (a.bucket === 'yours') {
+    const pr = /PR #(\d+)/.exec(a.action);
+    if (pr)
+      return {
+        text: `PR #${pr[1]}`,
+        kind: 'you',
+        click: `openLink('https://github.com/${REPO}/pull/${pr[1]}')`,
+      };
+    return { text: 'read ship state', kind: 'you', click: `sendPrompt('${esc(cmd)}')` };
+  }
+  if (a.bucket === 'drift') {
+    let text = 'fix';
+    let m;
+    if ((m = /board\.sh status \d+ (.+)$/.exec(cmd))) text = `set ${m[1].replace(/"/g, '')}`;
+    else if (/board\.sh promote/.test(cmd)) text = 'promote';
+    else if (/board\.sh add/.test(cmd)) text = 'add to board';
+    else if (/^gh issue close/.test(cmd)) text = 'close issue';
+    else if (/^\//.test(cmd)) text = cmd.replace(/ \d+/, '');
+    else if (/header/.test(cmd)) text = 'fix header';
+    const runnable = /^(\/|bash |gh )/.test(cmd);
+    return {
+      text,
+      kind: 'fix',
+      click: runnable ? `sendPrompt('${esc(cmd)}')` : `openLink('${ISSUE_URL}${a.number}')`,
+    };
+  }
+  if (!cmd) return null;
+  if (cmd.startsWith('/')) {
+    const first = cmd.split(' or ')[0];
+    return {
+      text: first.replace(/ \d+.*$/, ''),
+      kind: 'run',
+      click: `sendPrompt('${esc(first)}')`,
+    };
+  }
+  return {
+    text: cmd.replace(/^bash scripts\/board\.sh /, '').replace(/ \d+/, ''),
+    kind: 'run',
+    click: `sendPrompt('${esc(cmd)}')`,
+  };
 }
 
-function htmlReport(result) {
-  const { ctx } = result;
-  const inScope = new Map(result.actions.map((a) => [a.number, a]));
-  const leaves = result.actions.filter((a) => a.state === 'open' && !a.isParent);
-  const leafSet = new Set(leaves.map((a) => a.number));
+const TREE_CSS = `.tg{font-family:var(--font-sans);color:var(--text-primary)}
+.tg-bar{display:flex;align-items:center;gap:8px;padding:2px 0 8px;font-size:13px;color:var(--text-secondary)}
+.tg-bar .sp{flex:1}
+.tg-btn{font:inherit;font-size:12px;font-weight:500;padding:3px 10px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-2);color:var(--text-secondary);cursor:pointer}
+.tg-btn.on{border-color:var(--border-accent);background:var(--bg-accent);color:var(--text-accent)}
+.tg svg{display:block;width:100%;height:auto}
+.tg [hidden]{display:none}
+.tg text{font-family:var(--font-sans)}
+.tg .id{font-size:13px;font-weight:500;fill:var(--text-primary)}
+.tg .st{font-size:11px;fill:var(--text-secondary)}
+.tg .tt{font-size:12px;fill:var(--text-secondary)}
+.tg .why{font-size:11px;fill:var(--text-muted)}
+.tg .tag{font-size:11px;fill:var(--text-muted)}
+.tg .card{fill:var(--surface-2);stroke:var(--border-strong);stroke-width:0.5}
+.tg .card.run{stroke:var(--border-accent)}.tg .card.you{stroke:var(--border-warning)}.tg .card.fix{stroke:var(--border-danger)}.tg .card.done{opacity:0.6}
+.tg .edge{fill:none;stroke:var(--border-accent);stroke-width:3;opacity:0.9}
+.tg .edge.you{stroke:var(--border-warning)}.tg .edge.fix{stroke:var(--border-danger)}.tg .edge.wait{stroke:var(--border);opacity:1}.tg .edge.done{stroke:var(--border-success)}
+.tg .tree{fill:none;stroke:var(--border-strong);stroke-width:1.2}
+.tg .dep{fill:none;stroke:var(--text-secondary);stroke-width:1.4;stroke-dasharray:5 4}
+.tg .dep.hi{stroke:var(--text-accent);stroke-width:2.2;stroke-dasharray:none}
+.tg .hd{fill:var(--text-secondary)}
+.tg .pill{stroke-width:0.5}.tg .pill.run{fill:var(--bg-accent);stroke:var(--border-accent)}.tg .pill.you{fill:var(--bg-warning);stroke:var(--border-warning)}.tg .pill.fix{fill:var(--bg-danger);stroke:var(--border-danger)}
+.tg .pt{font-size:11px;font-weight:500}.tg .pt.run{fill:var(--text-accent)}.tg .pt.you{fill:var(--text-warning)}.tg .pt.fix{fill:var(--text-danger)}
+.tg .node{cursor:pointer}
+.tg .node.lo{opacity:0.35}
+.tg .grp{fill:var(--surface-1);stroke:var(--border-strong);stroke-width:0.5}
+.tg .grp.fix{stroke:var(--border-danger)}
+.tg .gl{font-size:12px;font-weight:500;fill:var(--text-primary)}.tg .gs{font-size:11px;fill:var(--text-muted)}
+.tg .col{font-size:11px;fill:var(--text-muted)}
+.tg .key{font-size:11px;fill:var(--text-muted)}`;
 
-  const wave = new Map();
-  const waveOf = (n, seen = new Set()) => {
-    if (wave.has(n)) return wave.get(n);
-    if (seen.has(n)) return 0;
-    seen.add(n);
-    const a = inScope.get(n);
-    const blockers = new Set(
-      (a?.deps ?? []).filter((d) => !d.closed && leafSet.has(d.number)).map((d) => d.number),
-    );
-    for (const m of blockedOn(ctx.byNumber.get(n)?.comments ?? []))
-      if (leafSet.has(m) && !ctx.isClosed(m)) blockers.add(m);
-    const v = blockers.size ? 1 + Math.max(...[...blockers].map((b) => waveOf(b, seen))) : 0;
-    wave.set(n, v);
-    return v;
-  };
-  for (const a of leaves) waveOf(a.number);
-  const cols = Math.max(1, ...wave.values()) + (leaves.length ? 1 : 0) || 1;
+const TREE_SCRIPT = `(function(){var r=document.getElementById('tg-root');if(!r)return;var h=document.getElementById('tg-hw'),d=document.getElementById('tg-dw');var bs=r.querySelectorAll('.tg-btn');for(var i=0;i<bs.length;i++){bs[i].addEventListener('click',function(){var v=this.getAttribute('data-v');h.hidden=v!=='h';d.hidden=v!=='d';for(var j=0;j<bs.length;j++)bs[j].classList.toggle('on',bs[j]===this);});}
+function mark(id){var ps=r.querySelectorAll('.dep');var rel={};for(var k=0;k<ps.length;k++){var p=ps[k];var on=!!id&&(p.getAttribute('data-f')===id||p.getAttribute('data-t')===id);p.classList.toggle('hi',on);if(on){rel[p.getAttribute('data-f')]=1;rel[p.getAttribute('data-t')]=1;}}
+var ns=r.querySelectorAll('.node[data-i]');for(var m=0;m<ns.length;m++){var n=ns[m],nid=n.getAttribute('data-i');n.classList.toggle('lo',!!id&&nid!==id&&!rel[nid]&&n.getAttribute('data-dim')==='1');}}
+r.addEventListener('mouseover',function(e){var t=e.target;while(t&&t!==r&&!(t.classList&&t.classList.contains('node')))t=t.parentNode;mark(t&&t!==r?t.getAttribute('data-i'):null);});
+r.addEventListener('mouseleave',function(){mark(null);});})();`;
 
-  const edges = [];
-  for (const a of leaves) {
-    const from = new Set(
-      a.deps.filter((d) => !d.closed && leafSet.has(d.number)).map((d) => d.number),
-    );
-    for (const m of blockedOn(ctx.byNumber.get(a.number)?.comments ?? []))
-      if (leafSet.has(m) && !ctx.isClosed(m)) from.add(m);
-    for (const b of from) edges.push([b, a.number]);
-  }
+const CARD_H = 80;
+const PITCH = 104;
 
-  const card = (a) => {
-    const outside = a.deps
-      .filter((d) => !d.closed && !leafSet.has(d.number))
-      .map((d) => `#${d.number}`);
-    const note = [friendly(a.action), outside.length ? `after ${outside.join(', ')}` : '']
-      .filter(Boolean)
-      .join(', ');
-    const control = a.bucket === 'wait' && !a.command ? '' : actionControl(a);
-    const noteHtml = note ? `<span class="bn-why" title="${esc(note)}">${esc(note)}</span>` : '';
-    return (
-      `<div class="bn-card ${stageClass(a)}" data-issue="${a.number}" style="grid-column:${(wave.get(a.number) ?? 0) + 1}">` +
-      `<div class="bn-l1"><a class="bn-id" href="${ISSUE_URL}${a.number}">${esc(rowId(a))}</a><span class="bn-st">${esc(shortStatus(a.status))}</span></div>` +
-      `<div class="bn-t" title="${esc(shortTitle(a))}">${esc(shortTitle(a))}</div>` +
-      `<div class="bn-l3">${control}${noteHtml}</div></div>`
-    );
-  };
+function cardKind(a) {
+  if (!a) return 'wait';
+  if (a.state === 'closed') return 'done';
+  if (a.bucket === 'drift') return 'fix';
+  if (a.bucket === 'yours') return 'you';
+  if (a.command) return 'run';
+  return 'wait';
+}
 
-  const childrenOf = (n) => (ctx.byNumber.get(n)?.children ?? []).map((c) => c.number);
-  const placed = new Set();
-  const band = (n, depth) => {
-    const it = ctx.byNumber.get(n);
-    const a = inScope.get(n);
-    placed.add(n);
-    const kids = childrenOf(n);
-    const done = (it?.children ?? []).filter((c) => c.state === 'closed').length;
-    const cls = `bn-band${depth ? ' nested' : ''}`;
-    const label = it ? rowId(it) : `#${n}`;
-    const title = it ? shortTitle(it) : '';
-    const status = a
-      ? shortStatus(a.status)
-      : shortStatus(it?.status ?? (it?.state === 'closed' ? 'Done' : null));
-    if (it?.state === 'closed' || (kids.length && done === kids.length)) {
-      for (const k of kids) placed.add(k);
-      return `<section class="${cls} closed bn-span" data-issue="${n}"><div class="bn-bh"><a class="bn-id" href="${ISSUE_URL}${n}">${esc(label)}</a><span class="bn-t">${esc(title)}</span><span class="bn-c">${esc(status)}, ${kids.length} children</span></div></section>`;
-    }
-    const control = a && a.command ? actionControl(a) : '';
-    const why =
-      a && a.bucket !== 'wait' ? `<span class="bn-c">${esc(friendly(a.action))}</span>` : '';
-    const head = `<div class="bn-bh"><a class="bn-id" href="${ISSUE_URL}${n}">${esc(label)}</a><span class="bn-t" title="${esc(title)}">${esc(title)}</span><span class="bn-c">${esc(status)}${kids.length ? `, ${done} of ${kids.length} done` : ''}</span>${why}${control}</div>`;
-    const leafKids = kids.filter((k) => leafSet.has(k)).map((k) => inScope.get(k));
-    const parentKids = kids
-      .filter((k) => !leafSet.has(k) && (ctx.byNumber.get(k)?.children ?? []).length > 0)
-      .sort(
-        (x, y) =>
-          Number(ctx.byNumber.get(x)?.state === 'closed') -
-          Number(ctx.byNumber.get(y)?.state === 'closed'),
-      );
-    const cells = Array.from({ length: cols }, () => []);
-    for (const k of leafKids) cells[Math.min(wave.get(k.number) ?? 0, cols - 1)].push(k);
-    const waveRow =
-      depth === 0 && leaves.length
-        ? cells.map((_, i) => `<div class="bn-wave">Wave ${i + 1}</div>`).join('')
-        : '';
-    const cellHtml = cells
-      .map(
-        (list, i) =>
-          `<div class="bn-cell" style="grid-column:${i + 1}">${list.map(card).join('')}</div>`,
-      )
-      .join('');
-    const nested = parentKids.map((k) => band(k, depth + 1)).join('');
-    return `<section class="${cls}${depth ? ' bn-span' : ''}" data-issue="${n}">${head}<div class="bn-grid" style="--cols:${cols}">${waveRow}${cellHtml}${nested}</div></section>`;
-  };
+function whyOf(a, blockerNames) {
+  const f = friendly(a.action);
+  const parts = [];
+  if (f && !(blockerNames.length && /nothing blocks it|unblocked/.test(f))) parts.push(f);
+  if (blockerNames.length) parts.push(`after ${blockerNames.join(', ')}`);
+  return parts.join(', ');
+}
 
-  const roots = [];
-  for (const a of result.actions) {
-    if (!a.isParent) continue;
-    const parent = a.parent;
-    if (parent && inScope.has(parent) && inScope.get(parent).isParent) continue;
-    roots.push(a.number);
-  }
-  if (result.scope && !roots.includes(result.scope) && inScope.get(result.scope)?.isParent)
-    roots.unshift(result.scope);
-  roots.sort(
-    (x, y) => (ctx.byNumber.get(x)?.boardIndex ?? 0) - (ctx.byNumber.get(y)?.boardIndex ?? 0),
+function cardSvg(x, y, w, a, opts) {
+  const kind = cardKind(a);
+  const pill = kind === 'done' ? null : pillLabel(a);
+  const pillW = pill ? Math.max(56, Math.round(pill.text.length * 6.2 + 14)) : 0;
+  const titleChars = Math.floor((w - 22) / 6.1);
+  const whyChars = Math.floor((w - 22) / 5.5);
+  const click = pill ? pill.click : `openLink('${ISSUE_URL}${a.number}')`;
+  const dim = kind === 'wait' || kind === 'done' ? '0' : '1';
+  const tip = `${rowId(a)} ${shortTitle(a)}. ${a.status ?? ''}. ${a.action}${a.command ? `. Next: ${a.command}` : ''}`;
+  return (
+    `<g class="node" data-i="${a.number}" data-dim="${dim}" onclick="${click}"><title>${esc(tip)}</title>` +
+    `<rect class="card ${kind}" x="${x}" y="${y}" width="${w}" height="${CARD_H}" rx="6"/><path class="edge ${kind}" d="M${x + 2} ${y + 6} L${x + 2} ${y + CARD_H - 6}"/>` +
+    `<text class="id" x="${x + 12}" y="${y + 19}">${esc(rowId(a))}</text><text class="st" x="${x + w - 10}" y="${y + 19}" text-anchor="end">${esc(shortStatus(a.status))}</text>` +
+    `<text class="tt" x="${x + 12}" y="${y + 36}">${esc(clip(opts.title ?? shortTitle(a), titleChars))}</text>` +
+    `<text class="why" x="${x + 12}" y="${y + 52}">${esc(clip(opts.why ?? '', whyChars))}</text>` +
+    (pill
+      ? `<rect class="pill ${pill.kind}" x="${x + 10}" y="${y + 58}" width="${pillW}" height="18" rx="9"/><text class="pt ${pill.kind}" x="${x + 10 + pillW / 2}" y="${y + 71}" text-anchor="middle">${esc(pill.text)}</text>`
+      : '') +
+    (opts.tag
+      ? `<text class="tag" x="${x + w - 10}" y="${y + 71}" text-anchor="end">${esc(opts.tag)}</text>`
+      : '') +
+    `</g>`
   );
-  let body = roots.map((n) => band(n, 0)).join('');
-  const stray = leaves
-    .filter((a) => !a.parent || !placed.has(a.parent))
-    .filter((a) => !placed.has(a.number));
-  if (stray.length) {
-    const cells = Array.from({ length: cols }, () => []);
-    for (const a of stray) cells[Math.min(wave.get(a.number) ?? 0, cols - 1)].push(a);
-    const waveRow = !roots.length
-      ? cells.map((_, i) => `<div class="bn-wave">Wave ${i + 1}</div>`).join('')
-      : '';
-    body += `<section class="bn-band"><div class="bn-bh"><span class="bn-t">No parent</span></div><div class="bn-grid" style="--cols:${cols}">${waveRow}${cells.map((list, i) => `<div class="bn-cell" style="grid-column:${i + 1}">${list.map(card).join('')}</div>`).join('')}</div></section>`;
-  }
+}
 
-  const count = (b) => leaves.filter((a) => a.bucket === b).length;
-  const runnable = count('flight') + count('pull') + count('define');
-  const needs = result.actions.filter((a) => a.bucket === 'yours' || a.bucket === 'drift').length;
-  const waiting = count('wait');
-  const head = `<div class="bn-head"><span>${runnable} to run, ${needs} need you, ${waiting} waiting</span><span>${esc(localStamp(result.fetchedAt))}</span></div>`;
-  const key = `<div class="bn-key">A box is a ticket with its children. A card's column is its wave: an arrow into it comes from a ticket that must close first. The button is the next step; hover a card to trace its arrows.</div>`;
-  return `<style>${CSS}</style><div class="bn" id="bn-root" data-edges='${JSON.stringify(edges)}'>${head}${key}${body}<svg class="bn-arrows" aria-hidden="true"></svg><script>${SCRIPT}</script></div>\n`;
+function groupSvg(x, y, w, lines, opts) {
+  const kind = opts.fix ? ' fix' : '';
+  const pill = opts.a && opts.a.command ? pillLabel(opts.a) : null;
+  const pillW = pill ? Math.max(56, Math.round(pill.text.length * 6.2 + 14)) : 0;
+  const click = pill ? pill.click : opts.n ? `openLink('${ISSUE_URL}${opts.n}')` : '';
+  const chars = Math.floor((w - 20) / 6.1);
+  const charsS = Math.floor((w - 20) / 5.5);
+  return (
+    `<g class="node"${opts.n ? ` data-i="${opts.n}" data-dim="0"` : ''}${click ? ` onclick="${click}"` : ''}>${opts.tip ? `<title>${esc(opts.tip)}</title>` : ''}` +
+    `<rect class="grp${kind}" x="${x}" y="${y}" width="${w}" height="${CARD_H}" rx="6"/>` +
+    `<text class="gl" x="${x + 10}" y="${y + 19}">${esc(clip(lines[0], chars))}</text>` +
+    `<text class="tt" x="${x + 10}" y="${y + 36}">${esc(clip(lines[1] ?? '', chars))}</text>` +
+    `<text class="gs" x="${x + 10}" y="${y + 52}">${esc(clip(lines[2] ?? '', charsS))}</text>` +
+    (pill
+      ? `<rect class="pill ${pill.kind}" x="${x + 10}" y="${y + 58}" width="${pillW}" height="18" rx="9"/><text class="pt ${pill.kind}" x="${x + 10 + pillW / 2}" y="${y + 71}" text-anchor="middle">${esc(pill.text)}</text>`
+      : `<text class="gs" x="${x + 10}" y="${y + 71}">${esc(clip(lines[3] ?? '', charsS))}</text>`) +
+    `</g>`
+  );
+}
+
+function elbow(x1, y1, xb, x2, y2) {
+  return `M${x1} ${y1} L${xb} ${y1} L${xb} ${y2} L${x2} ${y2}`;
+}
+
+function treeReport(result) {
+  const { ctx } = result;
+  const inScope = new Map(result.actions.map((x) => [x.number, x]));
+  const leaves = result.actions.filter((x) => x.state === 'open' && !x.isParent);
+  const leafSet = new Set(leaves.map((x) => x.number));
+  const parents = result.actions.filter((x) => x.isParent);
+  const parentSet = new Set(parents.map((x) => x.number));
+  const roots = parents.filter((p) => !(p.parent && parentSet.has(p.parent)));
+  const rootSet = new Set(roots.map((r) => r.number));
+  const parentOf = (n) => {
+    const p = ctx.byNumber.get(n)?.parent ?? null;
+    return p && parentSet.has(p) ? p : null;
+  };
+  const blockersOf = (n) => {
+    const a = inScope.get(n);
+    const it = ctx.byNumber.get(n);
+    const out = [];
+    for (const dd of a?.deps ?? []) {
+      if (dd.closed) continue;
+      if (leafSet.has(dd.number)) out.push({ n: dd.number, parent: false });
+      else if (parentSet.has(dd.number) && !rootSet.has(dd.number))
+        out.push({ n: dd.number, parent: true });
+    }
+    for (const m of blockedOn(it?.comments ?? []))
+      if (leafSet.has(m) && !ctx.isClosed(m) && !out.some((o) => o.n === m))
+        out.push({ n: m, parent: false });
+    return out;
+  };
+  const nameOf = (n) => {
+    const a = inScope.get(n);
+    return a ? rowId(a) : `#${n}`;
+  };
+  const kindCount = (b) => leaves.filter((x) => x.bucket === b).length;
+  const runnable = kindCount('flight') + kindCount('pull') + kindCount('define');
+  const needs = result.actions.filter((x) => x.bucket === 'yours' || x.bucket === 'drift').length;
+  const waiting = kindCount('wait');
+  const marker = (id) =>
+    `<defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="hd" d="M1 1L9 5L1 9z"/></marker></defs>`;
+
+  const hier = (() => {
+    const depthOf = (n) => {
+      let dpt = 0;
+      let cur = parentOf(n);
+      while (cur) {
+        dpt += 1;
+        cur = parentOf(cur);
+      }
+      return dpt;
+    };
+    const maxParentDepth = Math.max(0, ...parents.map((p) => depthOf(p.number)));
+    const leafCol = maxParentDepth + 1;
+    const colX = (col) => (col === 0 ? 20 : 170 + (col - 1) * 170);
+    const colW = (col) => (col === 0 ? 110 : 130);
+    const leafX = colX(leafCol);
+    const leafW = 230;
+    const laneX0 = leafX + leafW + 16;
+    const rows = [];
+    const placedParents = [];
+    const orderLeaves = (pn) => leaves.filter((l) => parentOf(l.number) === pn);
+    const childParents = (pn) =>
+      parents.filter((p) => parentOf(p.number) === pn).sort((x, y) => x.boardIndex - y.boardIndex);
+    const walk = (pn, col) => {
+      const start = rows.length;
+      for (const cp of childParents(pn)) walk(cp.number, col + 1);
+      for (const l of orderLeaves(pn)) rows.push({ kind: 'leaf', a: l, y: 0 });
+      const it = ctx.byNumber.get(pn);
+      const closed = (it?.children ?? []).filter((k) => k.state === 'closed');
+      if (closed.length) rows.push({ kind: 'done', parent: pn, closed, y: 0 });
+      const end = rows.length - 1;
+      if (end < start) rows.push({ kind: 'empty', parent: pn, y: 0 });
+      placedParents.push({ n: pn, col, start, end: Math.max(end, start) });
+    };
+    for (const r of roots.sort((x, y) => x.boardIndex - y.boardIndex)) walk(r.number, 0);
+    const stray = leaves.filter((l) => !parentOf(l.number));
+    let strayGroup = null;
+    if (stray.length) {
+      const start = rows.length;
+      for (const l of stray) rows.push({ kind: 'leaf', a: l, y: 0 });
+      strayGroup = { start, end: rows.length - 1 };
+    }
+    const top = 44;
+    rows.forEach((r, i) => {
+      r.y = top + i * PITCH;
+    });
+    const cy = (r) => r.y + CARD_H / 2;
+    let svg = '';
+    for (const pp of placedParents) {
+      const a = inScope.get(pp.n);
+      const it = ctx.byNumber.get(pp.n);
+      const kids = it?.children ?? [];
+      const done = kids.filter((k) => k.state === 'closed').length;
+      const y = (cy(rows[pp.start]) + cy(rows[pp.end])) / 2 - CARD_H / 2;
+      pp.y = y;
+      const x = colX(pp.col);
+      const w = colW(pp.col);
+      const lines = [
+        rowId(a),
+        shortTitle(a),
+        `${shortStatus(a.status)}, ${done} of ${kids.length} done`,
+        friendly(a.action),
+      ];
+      svg += groupSvg(x, y, w, lines, {
+        n: pp.n,
+        a,
+        fix: a.bucket === 'drift',
+        tip: `${rowId(a)} ${shortTitle(a)}. ${a.status}. ${a.action}`,
+      });
+      const xb = x + w + 20;
+      const ys = [];
+      for (const cp of placedParents)
+        if (parentOf(cp.n) === pp.n) ys.push({ x: colX(cp.col), y: cp.y + CARD_H / 2 });
+      for (let i = pp.start; i <= pp.end; i += 1) {
+        const r = rows[i];
+        if (
+          (r.kind === 'leaf' && parentOf(r.a.number) === pp.n) ||
+          (r.kind === 'done' && r.parent === pp.n)
+        )
+          ys.push({ x: leafX, y: cy(r) });
+      }
+      if (ys.length) {
+        const ymin = Math.min(...ys.map((o) => o.y), y + CARD_H / 2);
+        const ymax = Math.max(...ys.map((o) => o.y), y + CARD_H / 2);
+        svg += `<path class="tree" d="M${x + w} ${y + CARD_H / 2} L${xb} ${y + CARD_H / 2} M${xb} ${ymin} L${xb} ${ymax}${ys.map((o) => ` M${xb} ${o.y} L${o.x} ${o.y}`).join('')}"/>`;
+      }
+    }
+    if (strayGroup) {
+      const y = (cy(rows[strayGroup.start]) + cy(rows[strayGroup.end])) / 2 - CARD_H / 2;
+      svg += groupSvg(colX(0), y, colW(0), ['No parent', '', `${stray.length} open`, ''], {});
+      const xb = colX(0) + colW(0) + 20;
+      const ys = [];
+      for (let i = strayGroup.start; i <= strayGroup.end; i += 1) ys.push(cy(rows[i]));
+      svg += `<path class="tree" d="M${colX(0) + colW(0)} ${y + CARD_H / 2} L${xb} ${y + CARD_H / 2} M${xb} ${Math.min(...ys, y + CARD_H / 2)} L${xb} ${Math.max(...ys, y + CARD_H / 2)}${ys.map((yy) => ` M${xb} ${yy} L${leafX} ${yy}`).join('')}"/>`;
+    }
+    const rowOf = new Map();
+    rows.forEach((r) => {
+      if (r.kind === 'leaf') rowOf.set(r.a.number, r);
+    });
+    for (const r of rows) {
+      if (r.kind === 'leaf') {
+        const bs = blockersOf(r.a.number);
+        svg += cardSvg(leafX, r.y, leafW, r.a, {
+          why: whyOf(
+            r.a,
+            bs.map((o) => (o.parent ? `${nameOf(o.n)} closes` : nameOf(o.n))),
+          ),
+        });
+      } else if (r.kind === 'done') {
+        const ids = r.closed.map((k) => {
+          const it = ctx.byNumber.get(k.number);
+          return it ? rowId(it) : `#${k.number}`;
+        });
+        const fake = {
+          number: r.closed[0].number,
+          title: '',
+          status: 'Done',
+          state: 'closed',
+          action: '',
+          bucket: 'wait',
+          deps: [],
+        };
+        svg += `<g class="node" data-dim="0" onclick="openLink('${ISSUE_URL}${r.parent}')"><rect class="card done" x="${leafX}" y="${r.y}" width="${leafW}" height="${CARD_H}" rx="6"/><path class="edge done" d="M${leafX + 2} ${r.y + 6} L${leafX + 2} ${r.y + CARD_H - 6}"/><text class="id" x="${leafX + 12}" y="${r.y + 19}">${r.closed.length} done</text><text class="st" x="${leafX + leafW - 10}" y="${r.y + 19}" text-anchor="end">Done</text><text class="tt" x="${leafX + 12}" y="${r.y + 36}">${esc(clip(ids.join(', '), 34))}</text></g>`;
+        void fake;
+      } else if (r.kind === 'empty') {
+        svg += `<text class="why" x="${leafX + 12}" y="${r.y + 44}">no open tickets</text>`;
+      }
+    }
+    const edges = [];
+    for (const l of leaves)
+      for (const b of blockersOf(l.number))
+        edges.push({ from: b.n, to: l.number, parent: b.parent });
+    const touches = new Map();
+    const touch = (n, other) => {
+      if (!touches.has(n)) touches.set(n, []);
+      touches.get(n).push(other);
+    };
+    for (const e of edges) {
+      if (!e.parent) touch(e.from, e.to);
+      touch(e.to, e.from);
+    }
+    const portY = (n, other) => {
+      const r = rowOf.get(n);
+      const list = [...new Set(touches.get(n) ?? [])].sort(
+        (p, q) =>
+          (rowOf.get(p)?.y ?? placedParents.find((pp) => pp.n === p)?.y ?? 0) -
+          (rowOf.get(q)?.y ?? placedParents.find((pp) => pp.n === q)?.y ?? 0),
+      );
+      const i = list.indexOf(other);
+      return cy(r) + (i - (list.length - 1) / 2) * 10;
+    };
+    const rightEdges = edges
+      .filter((e) => !e.parent && rowOf.has(e.from) && rowOf.has(e.to))
+      .sort(
+        (p, q) =>
+          Math.abs(cy(rowOf.get(p.to)) - cy(rowOf.get(p.from))) -
+          Math.abs(cy(rowOf.get(q.to)) - cy(rowOf.get(q.from))),
+      );
+    const laneStep = Math.max(
+      7,
+      Math.min(14, Math.floor((666 - laneX0) / Math.max(1, rightEdges.length))),
+    );
+    let dsvg = '';
+    rightEdges.forEach((e, i) => {
+      const lx = laneX0 + i * laneStep;
+      const y1 = portY(e.from, e.to);
+      const y2 = portY(e.to, e.from);
+      dsvg += `<path class="dep" data-f="${e.from}" data-t="${e.to}" marker-end="url(#tga)" d="M${leafX + leafW} ${y1} L${lx} ${y1} L${lx} ${y2} L${leafX + leafW + 2} ${y2}"/>`;
+    });
+    const parentEdges = edges.filter((e) => e.parent && rowOf.has(e.to));
+    const parentLanes = [...new Set(parentEdges.map((e) => e.from))];
+    for (const e of parentEdges) {
+      const pp = placedParents.find((o) => o.n === e.from);
+      if (!pp) continue;
+      const lx = leafX - 8 - parentLanes.indexOf(e.from) * 6;
+      const y1 = pp.y + CARD_H / 2 + 12;
+      const y2 = cy(rowOf.get(e.to)) + 12;
+      dsvg += `<path class="dep" data-f="${e.from}" data-t="${e.to}" marker-end="url(#tga)" d="M${colX(pp.col) + colW(pp.col)} ${y1} L${lx} ${y1} L${lx} ${y2} L${leafX - 2} ${y2}"/>`;
+    }
+    const H = top + rows.length * PITCH + 30;
+    const heads = [`<text class="col" x="${colX(0)}" y="24">Epic</text>`];
+    for (let cidx = 1; cidx < leafCol; cidx += 1)
+      heads.push(`<text class="col" x="${colX(cidx)}" y="24">Split tasks</text>`);
+    heads.push(
+      `<text class="col" x="${leafX}" y="24">Tickets</text>`,
+      `<text class="col" x="${laneX0}" y="24">Waits on</text>`,
+    );
+    const key = `<text class="key" x="20" y="${H - 18}">Solid elbow: part of. Dashed arrow: the ticket it points at waits on the one it starts from.</text><text class="key" x="20" y="${H - 4}">Hover a ticket to trace its arrows. Click a pill to run it.</text>`;
+    return `<div id="tg-hw"><svg id="tg-h" viewBox="0 0 680 ${H}" role="img" aria-label="Hierarchy first">${marker('tga')}${heads.join('')}${svg}${dsvg}${key}</svg></div>`;
+  })();
+
+  const dep = (() => {
+    const nodes = new Map();
+    for (const l of leaves) nodes.set(l.number, { key: l.number, a: l, closeOf: null });
+    const neededParents = new Set();
+    for (const l of leaves)
+      for (const b of blockersOf(l.number)) if (b.parent) neededParents.add(b.n);
+    for (const pn of neededParents)
+      nodes.set(`p${pn}`, { key: `p${pn}`, a: inScope.get(pn), closeOf: pn });
+    const blockerKeys = (key) => {
+      const nd = nodes.get(key);
+      if (nd.closeOf)
+        return leaves.filter((l) => parentOf(l.number) === nd.closeOf).map((l) => l.number);
+      return blockersOf(nd.a.number)
+        .map((b) => (b.parent ? `p${b.n}` : b.n))
+        .filter((k) => nodes.has(k));
+    };
+    const wave = new Map();
+    const waveOf = (key, seen = new Set()) => {
+      if (wave.has(key)) return wave.get(key);
+      if (seen.has(key)) return 0;
+      seen.add(key);
+      const bs = blockerKeys(key);
+      const v = bs.length ? 1 + Math.max(...bs.map((k) => waveOf(k, seen))) : 0;
+      wave.set(key, v);
+      return v;
+    };
+    for (const k of nodes.keys()) waveOf(k);
+    const maxWave = Math.max(0, ...wave.values());
+    const ncols = maxWave + 1;
+    const colW = 230;
+    const stepX = Math.min(colW + 40, Math.floor((650 - colW - 20) / Math.max(1, maxWave)));
+    const staggered = stepX < colW + 20;
+    const colX = (cidx) => 20 + cidx * stepX;
+    const primary = new Map();
+    for (const k of nodes.keys()) {
+      const bs = blockerKeys(k);
+      if (!bs.length) continue;
+      bs.sort(
+        (p, q) =>
+          wave.get(q) - wave.get(p) ||
+          (nodes.get(p).a?.boardIndex ?? 0) - (nodes.get(q).a?.boardIndex ?? 0),
+      );
+      primary.set(k, bs[0]);
+    }
+    const order = [];
+    const children = (k) =>
+      [...nodes.keys()]
+        .filter((c) => primary.get(c) === k)
+        .sort(
+          (p, q) =>
+            BUCKETS.indexOf(nodes.get(p).a?.bucket ?? 'wait') -
+              BUCKETS.indexOf(nodes.get(q).a?.bucket ?? 'wait') ||
+            (nodes.get(p).a?.boardIndex ?? 0) - (nodes.get(q).a?.boardIndex ?? 0),
+        );
+    const visit = (k) => {
+      order.push(k);
+      for (const c of children(k)) visit(c);
+    };
+    const rootsD = [...nodes.keys()]
+      .filter((k) => !primary.has(k))
+      .sort(
+        (p, q) =>
+          BUCKETS.indexOf(nodes.get(p).a?.bucket ?? 'wait') -
+            BUCKETS.indexOf(nodes.get(q).a?.bucket ?? 'wait') ||
+          (nodes.get(p).a?.boardIndex ?? 0) - (nodes.get(q).a?.boardIndex ?? 0),
+      );
+    for (const k of rootsD) visit(k);
+    const top = 48;
+    const pos = new Map();
+    order.forEach((k, i) => pos.set(k, { x: colX(wave.get(k)), y: top + i * PITCH }));
+    let svg = '';
+    for (const k of order) {
+      const nd = nodes.get(k);
+      const p = pos.get(k);
+      if (nd.closeOf) {
+        const it = ctx.byNumber.get(nd.closeOf);
+        const kids = it?.children ?? [];
+        const open = kids.filter((x) => x.state === 'open').length;
+        svg += groupSvg(
+          p.x,
+          p.y,
+          colW,
+          [
+            `${rowId(nd.a)} closes`,
+            shortTitle(nd.a),
+            `${shortStatus(nd.a.status)}, ${open} open child${open === 1 ? '' : 'ren'}`,
+            friendly(nd.a.action),
+          ],
+          {
+            n: nd.closeOf,
+            a: nd.a,
+            fix: nd.a.bucket === 'drift',
+            tip: `${rowId(nd.a)} ${shortTitle(nd.a)} closes when its children close. ${nd.a.action}`,
+          },
+        );
+      } else {
+        const pn = parentOf(nd.a.number);
+        const tag = pn ? (rootSet.has(pn) ? 'Epic' : clip(rowId(inScope.get(pn)), 8)) : 'No parent';
+        const bs = blockerKeys(k)
+          .filter((b) => b !== primary.get(k))
+          .map((b) => (nodes.get(b).closeOf ? `${rowId(nodes.get(b).a)} closes` : nameOf(b)));
+        const base = primary.has(k)
+          ? friendly(nd.a.action).replace(
+              /nothing blocks it|reviewed, unblocked/,
+              'unblocked by the ticket above',
+            )
+          : friendly(nd.a.action);
+        const why = base + (bs.length ? `${base ? ', ' : ''}also after ${bs.join(', ')}` : '');
+        svg += cardSvg(p.x, p.y, colW, nd.a, { tag, why });
+      }
+    }
+    let tsvg = '';
+    let dsvg = '';
+    const secondary = [];
+    for (const k of order) {
+      const pk = primary.get(k);
+      if (!pk) continue;
+      const a = pos.get(pk);
+      const b = pos.get(k);
+      if (staggered)
+        tsvg += `<path class="tree" d="M${a.x + 18} ${a.y + CARD_H} L${a.x + 18} ${b.y + CARD_H / 2} L${b.x} ${b.y + CARD_H / 2}"/>`;
+      else
+        tsvg += `<path class="tree" d="${elbow(a.x + colW, a.y + CARD_H / 2, a.x + colW + 20, b.x, b.y + CARD_H / 2)}"/>`;
+      for (const other of blockerKeys(k)) if (other !== pk) secondary.push({ from: other, to: k });
+    }
+    secondary.sort(
+      (p, q) =>
+        Math.abs(pos.get(p.to).y - pos.get(p.from).y) -
+        Math.abs(pos.get(q.to).y - pos.get(q.from).y),
+    );
+    secondary.forEach((e, i) => {
+      const o = pos.get(e.from);
+      const b = pos.get(e.to);
+      const lx = Math.max(o.x, b.x) + colW + 12 + i * 8;
+      const y1 = o.y + CARD_H / 2 + 10;
+      const y2 = b.y + CARD_H / 2 + 12;
+      dsvg += `<path class="dep" data-f="${esc(String(e.from))}" data-t="${esc(String(e.to))}" marker-end="url(#tgb)" d="M${o.x + colW} ${y1} L${lx} ${y1} L${lx} ${y2} L${b.x + colW + 2} ${y2}"/>`;
+    });
+    const H = top + order.length * PITCH + 30;
+    const heads = Array.from(
+      { length: ncols },
+      (_, i) =>
+        `<text class="col" x="${colX(i)}" y="${stepX < 100 ? 22 + (i % 2) * 13 : 26}">${i === 0 ? 'Can start now' : `After ${i} close${i > 1 ? 's' : ''}`}</text>`,
+    ).join('');
+    const key = `<text class="key" x="20" y="${H - 18}">Solid: the lower ticket waits on the one above it. Dashed, from the right: its other blockers.</text><text class="key" x="20" y="${H - 4}">Grey tag: which part of the epic it belongs to. Click a pill to run it.</text>`;
+    return `<div id="tg-dw" hidden><svg id="tg-d" viewBox="0 0 680 ${H}" role="img" aria-label="Dependency first">${marker('tgb')}${heads}${tsvg}${dsvg}${svg}${key}</svg></div>`;
+  })();
+
+  const bar = `<div class="tg-bar"><span>${runnable} to run, ${needs} need you, ${waiting} waiting</span><span class="sp"></span><span>${esc(localStamp(result.fetchedAt))}</span><button class="tg-btn on" data-v="h">Hierarchy first</button><button class="tg-btn" data-v="d">Dependency first</button></div>`;
+  return `<style>${TREE_CSS}</style><div class="tg" id="tg-root">${bar}${hier}${dep}<script>${TREE_SCRIPT}</script></div>\n`;
 }
 
 function main() {
@@ -883,7 +1196,7 @@ function main() {
     const { ctx: _ctx, ...rest } = result;
     process.stdout.write(`${JSON.stringify(rest, null, 2)}\n`);
   } else if (opts.format === 'html') {
-    process.stdout.write(htmlReport(result));
+    process.stdout.write(treeReport(result));
   } else {
     process.stdout.write(textReport(result));
   }

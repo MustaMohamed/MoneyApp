@@ -145,35 +145,35 @@ describe('board_next text', () => {
 });
 
 describe('board_next html', () => {
-  test('draws the hierarchy: epic band, nested parent bands, leaf cards in wave columns, dependency edges', () => {
+  test('draws both trees: hierarchy first with dependency lanes, dependency first by wave, one toggle', () => {
     const r = run('--format', 'html');
     expect(r.status).toBe(0);
     const html = r.stdout;
     expect(html.startsWith('<style>')).toBe(true);
     expect(html).not.toContain('<!--');
-    const epic = html.indexOf('<section class="bn-band" data-issue="100">');
-    const parent115 = html.indexOf('<section class="bn-band nested bn-span" data-issue="115">');
-    const epicEnd = html.indexOf('</section>', parent115);
-    expect(epic).toBeGreaterThan(-1);
-    expect(parent115).toBeGreaterThan(epic);
-    const card116 = html.indexOf('data-issue="116"');
-    expect(card116).toBeGreaterThan(parent115);
-    expect(card116).toBeLessThan(epicEnd);
-    expect(html).toContain('data-issue="108" style="grid-column:1"');
-    expect(html).toContain('data-issue="119" style="grid-column:2"');
-    expect(html).not.toContain('class="bn-card s-define" data-issue="111"');
-    const edges = JSON.parse(/data-edges='([^']*)'/.exec(html)?.[1] ?? '[]') as number[][];
-    expect(edges).toEqual(
-      expect.arrayContaining([
-        [104, 114],
-        [108, 119],
-        [104, 121],
-      ]),
-    );
-    expect(edges).toHaveLength(3);
+    expect(html).toContain('id="tg-h"');
+    expect(html).toContain('id="tg-d"');
+    expect(html).toContain('data-v="h"');
+    expect(html).toContain('data-v="d"');
+    const hier = html.slice(html.indexOf('id="tg-h"'), html.indexOf('id="tg-d"'));
+    const dep = html.slice(html.indexOf('id="tg-d"'));
+    expect(hier).toContain('data-i="100"');
+    expect(hier).toContain('data-i="115"');
+    expect(hier).toContain('data-i="108"');
+    expect(hier).toContain('data-f="108" data-t="119"');
+    expect(hier).toContain('data-f="104" data-t="114"');
+    expect(hier).not.toContain('data-i="111"');
+    expect(dep).toContain('Can start now');
+    expect(dep).toContain('After 1 close');
+    const x = (frag: string, n: number) =>
+      Number(
+        new RegExp(
+          `data-i="${n}"[^>]*><title>[^<]*</title><rect class="card[^"]*" x="([\\d.]+)"`,
+        ).exec(frag)?.[1],
+      );
+    expect(x(dep, 119)).toBeGreaterThan(x(dep, 108));
+    expect(x(hier, 119)).toBe(x(hier, 108));
     expect(html).toContain(`onclick="sendPrompt('/prep 108')"`);
-    expect(html).toContain('Open PR #501');
-    expect(html).toContain('data-issue="113"');
-    expect(html).toContain('1 children');
+    expect(html).toContain('>PR #501<');
   });
 });
