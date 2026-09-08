@@ -8,34 +8,17 @@ import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
-import { SegmentedTabs, type TabSegment } from '@/components/ui/tabs';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
-import { MINUS_SIGN, PLUS_SIGN } from '@/utils/format_amount';
 
 import {
   FIELD_MESSAGE_RAIL_STYLE,
   FIELD_MESSAGE_TEXT_LINE_HEIGHT,
 } from '../../../../components/account_form/account_form.geometry';
-import { parseAdjustInput, resolveAdjustInputChange } from './adjust_balance_sheet.helpers';
+import { parseAdjustInput } from './adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
 import { formatAccountBalance } from './balance_hero.helpers';
-
-type SignSegment = 'positive' | 'negative';
-
-const SIGN_SEGMENTS: TabSegment<SignSegment>[] = [
-  {
-    value: 'positive',
-    label: PLUS_SIGN,
-    accessibilityLabel: Strings.adjustBalanceSignPositiveA11y,
-  },
-  {
-    value: 'negative',
-    label: MINUS_SIGN,
-    accessibilityLabel: Strings.adjustBalanceSignNegativeA11y,
-  },
-];
 
 interface AdjustBalanceSheetProps {
   isOpen: boolean;
@@ -57,15 +40,12 @@ export function AdjustBalanceSheet({
   onSave,
   isLoading,
 }: AdjustBalanceSheetProps) {
-  const { input, isNegative, error } = useAdjustBalanceSheetState(
-    useShallow((s) => ({ input: s.input, isNegative: s.isNegative, error: s.error })),
+  const { input, error } = useAdjustBalanceSheetState(
+    useShallow((s) => ({ input: s.input, error: s.error })),
   );
   const setInput = useAdjustBalanceSheetState.getState().setInput;
-  const setNegative = useAdjustBalanceSheetState.getState().setNegative;
   const setError = useAdjustBalanceSheetState.getState().setError;
   const initialize = useAdjustBalanceSheetState.getState().initialize;
-
-  const isCard = accountType === AccountType.CreditCard;
 
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
@@ -76,7 +56,7 @@ export function AdjustBalanceSheet({
   }, [isOpen, currentBalance, initialize]);
 
   const handleSave = async () => {
-    const result = parseAdjustInput(input, { isNegative, accountType });
+    const result = parseAdjustInput(input, accountType);
     if (!result.ok) {
       setError(Strings.errBalanceInvalid);
       return;
@@ -138,27 +118,10 @@ export function AdjustBalanceSheet({
           </Typography>
         </Box>
         <FormSectionLabel>{Strings.adjustBalanceLabel}</FormSectionLabel>
-        {!isCard && (
-          <SegmentedTabs<SignSegment>
-            segments={SIGN_SEGMENTS}
-            value={isNegative ? 'negative' : 'positive'}
-            onValueChange={(v) => {
-              setNegative(v === 'negative');
-              setError('');
-            }}
-            variant="solid-gold"
-            density="compact"
-            listClassName="mb-2 h-9 w-full rounded-lg"
-            accessibilityLabel={Strings.adjustBalanceSignA11y}
-            isDisabled={isLoading}
-          />
-        )}
         <Input
           value={input}
           onChangeText={(v) => {
-            const change = resolveAdjustInputChange(v, isCard);
-            setInput(change.input);
-            if (change.negative) setNegative(true);
+            setInput(v);
             setError('');
           }}
           onFocus={onFocus}

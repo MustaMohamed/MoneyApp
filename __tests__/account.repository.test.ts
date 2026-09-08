@@ -420,10 +420,7 @@ describe('AccountRepository.adjustBalance — TC-M15-03', () => {
   });
 
   it('B1-03: a comma-grouped typed amount reaches current_balance intact', async () => {
-    const parsed = parseAdjustInput('1,234.56', {
-      isNegative: false,
-      accountType: AccountType.Bank,
-    });
+    const parsed = parseAdjustInput('1,234.56', AccountType.Bank);
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
 
@@ -432,9 +429,9 @@ describe('AccountRepository.adjustBalance — TC-M15-03', () => {
 
   it('MA-030: an overdrawn prefill saves unedited', async () => {
     useAdjustBalanceSheetState.getState().initialize(-1900);
-    const { input, isNegative } = useAdjustBalanceSheetState.getState();
+    const { input } = useAdjustBalanceSheetState.getState();
 
-    const parsed = parseAdjustInput(input, { isNegative, accountType: AccountType.Bank });
+    const parsed = parseAdjustInput(input, AccountType.Bank);
     expect(parsed).toEqual({ ok: true, value: -1900 });
     if (!parsed.ok) return;
 

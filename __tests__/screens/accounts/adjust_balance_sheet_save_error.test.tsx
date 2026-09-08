@@ -61,12 +61,6 @@ jest.mock('@/components/ui/input', () => ({
     );
   },
 }));
-jest.mock('@/components/ui/tabs', () => ({
-  SegmentedTabs: () => {
-    const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <View />;
-  },
-}));
 jest.mock('@/components/ui/form_error_text', () => ({
   FormErrorText: ({ message }: { message?: string }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');

@@ -339,10 +339,6 @@ export const Strings = {
   adjustBalanceHelper: 'Enter the balance on your statement.',
   adjustBalanceSave: 'Save',
   adjustBalanceCancel: 'Cancel',
-  // The segment labels themselves are `PLUS_SIGN`/`MINUS_SIGN` from `format_amount.ts`, not copy.
-  adjustBalanceSignA11y: 'Balance sign',
-  adjustBalanceSignPositiveA11y: 'Positive balance',
-  adjustBalanceSignNegativeA11y: 'Negative balance',
   // Not `errBalanceInvalid`: that one asks the user to fix the value, this one to retry it.
   adjustBalanceSaveError: 'Could not save this balance. Please try again.',
 
