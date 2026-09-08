@@ -11,13 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
-import { DetailRow } from '@/modules/transactions/screens/transactions/detail/components/detail_row';
 import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 
 import { AccountColorField } from '../../../components/account_form/account_color_field';
 import { useAccountDetailAnim } from './account_detail.anim';
 import { useAccountDetail } from './account_detail.hook';
 import { AccountActivityCard } from './components/account_activity_card';
+import { AccountFactRow } from './components/account_fact_row';
 import { buildAccountFacts } from './components/account_facts.helpers';
 import { AdjustBalanceSheet } from './components/adjust_balance_sheet';
 import { ArchiveConfirmationDialog } from './components/archive_confirmation_dialog';
@@ -151,9 +151,8 @@ export default function AccountDetailScreen() {
 
         <DetailRowsCard>
           {facts.map((fact, index) => (
-            <DetailRow
+            <AccountFactRow
               key={fact.label}
-              plain
               label={fact.label}
               value={fact.value}
               valueColor={fact.valueColor}
@@ -164,20 +163,26 @@ export default function AccountDetailScreen() {
 
         {!isEditing && (
           <>
-            <Box className="mx-4 mt-4 gap-2">
-              <Button
-                variant="secondary"
-                flat
-                label={Strings.accountDetailAdjustBalance}
-                onPress={() => setAdjustVisible(true)}
-              />
-              <Button
-                variant="secondary"
-                flat
-                tone="danger"
-                label={Strings.accountDetailArchive}
-                onPress={() => setArchiveVisible(true)}
-              />
+            <Box style={{ flexDirection: 'row' }} className="mx-4 mt-4 gap-2">
+              <Box style={{ flex: 1 }}>
+                <Button
+                  variant="secondary"
+                  flat
+                  icon="pencil-outline"
+                  label={Strings.accountDetailAdjustBalance}
+                  onPress={() => setAdjustVisible(true)}
+                />
+              </Box>
+              <Box style={{ flex: 1 }}>
+                <Button
+                  variant="secondary"
+                  flat
+                  tone="danger"
+                  icon="archive-outline"
+                  label={Strings.accountDetailArchive}
+                  onPress={() => setArchiveVisible(true)}
+                />
+              </Box>
             </Box>
             {/* The card's own header and container carry `mx-4`, so it is the Box's sibling. */}
             <AccountActivityCard

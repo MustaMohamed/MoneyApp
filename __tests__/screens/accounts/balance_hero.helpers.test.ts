@@ -1,3 +1,4 @@
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
@@ -5,6 +6,7 @@ import { availableCreditColor } from '@/modules/accounts/constants/available_cre
 import {
   buildHeroCaption,
   formatAccountBalance,
+  formatAccountBalanceParts,
 } from '@/modules/accounts/screens/accounts/detail/components/balance_hero.helpers';
 import type { Account } from '@/store/account.store';
 import { MINUS_SIGN, formatCurrencyAmount } from '@/utils/format_amount';
@@ -178,5 +180,37 @@ describe('formatAccountBalance — the hero balance and the sheet row', () => {
   it('carries no sign when a negative magnitude rounds to zero at the currency precision', () => {
     expect(formatAccountBalance(-0.4, Currency.EGP)).toBe('0 EGP');
     expect(formatAccountBalance(-0.004, Currency.USD)).toBe('0.00 USD');
+  });
+});
+
+describe('formatAccountBalanceParts — the hero draws the code apart from the magnitude', () => {
+  const cases = [
+    { balance: 30000, currency: Currency.EGP },
+    { balance: 1250.5, currency: Currency.USD },
+    { balance: -1900, currency: Currency.EGP },
+    { balance: -42.5, currency: Currency.USD },
+  ];
+
+  it.each(cases)(
+    '$balance $currency recomposes into the shipped string',
+    ({ balance, currency }) => {
+      const { amount, code } = formatAccountBalanceParts(balance, currency);
+      expect(`${amount} ${code}`).toBe(formatAccountBalance(balance, currency));
+    },
+  );
+
+  it.each(cases)(
+    '$balance $currency takes its code from the currency config',
+    ({ balance, currency }) => {
+      expect(formatAccountBalanceParts(balance, currency).code).toBe(
+        CURRENCY_CONFIG[currency].code,
+      );
+    },
+  );
+
+  it('keeps the minus on the magnitude, never on the code', () => {
+    const { amount, code } = formatAccountBalanceParts(-1900, Currency.EGP);
+    expect(amount).toBe(`${MINUS_SIGN}1,900`);
+    expect(code).not.toContain(MINUS_SIGN);
   });
 });
