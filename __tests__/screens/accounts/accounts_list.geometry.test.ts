@@ -4,7 +4,7 @@ import {
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
   ACCOUNTS_LIST_ROW_STYLE,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.geometry';
-import { ms } from '@/utils/responsive';
+import { ms, msFont } from '@/utils/responsive';
 
 describe('accounts list row geometry (B1)', () => {
   it('is 64dp, the B1 row with its caption, as a minimum', () => {
@@ -31,6 +31,7 @@ describe('accounts list row geometry (B1)', () => {
 
 describe('accounts list row caption geometry (B1)', () => {
   it('is 11 over 14, the same size as the currency code under the balance', () => {
+    expect(Type.micro).toBe(msFont(11));
     expect(ACCOUNTS_LIST_ROW_CAPTION_STYLE.fontSize).toBe(Type.micro);
     expect(ACCOUNTS_LIST_ROW_CAPTION_STYLE.lineHeight).toBe(lineHeightFor(Type.micro));
   });

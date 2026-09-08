@@ -20,7 +20,7 @@ export const ACCOUNTS_LIST_ROW_CAPTION_STYLE: Readonly<TextStyle> = Object.freez
   marginTop: Spacing.xxxs,
 });
 
-/** B1 `.lgrp`: the gutter is this screen's, matching `SectionHeader`'s own `mx-4` above it. */
+/** B1 `.lgrp`: the gutter is this screen's, the same `Spacing.md` `SectionHeader` takes above it. */
 export const ACCOUNTS_LIST_CARD_STYLE: Readonly<ViewStyle> = Object.freeze({
   marginHorizontal: Spacing.md,
 });

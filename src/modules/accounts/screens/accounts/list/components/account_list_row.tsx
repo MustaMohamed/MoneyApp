@@ -3,7 +3,7 @@ import { ListGroup, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
-import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
 import { resolveAccountBalanceColorClass } from '../../../../constants/account_balance_color';
@@ -88,12 +88,7 @@ export function AccountListRow({ account, caption, onPress }: AccountListRowProp
         </Typography>
         <Typography
           className="text-content-secondary font-inter"
-          style={{
-            fontSize: Type.micro,
-            lineHeight: lineHeightFor(Type.micro),
-            marginTop: Spacing.xxxs,
-            textAlign: 'right',
-          }}
+          style={[ACCOUNTS_LIST_ROW_CAPTION_STYLE, { textAlign: 'right' }]}
         >
           {code}
         </Typography>
