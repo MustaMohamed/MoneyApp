@@ -20,6 +20,74 @@ import { parseAdjustInput } from './adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
 import { formatAccountBalance } from './balance_hero.helpers';
 
+interface AdjustBalanceSheetBodyProps {
+  currentBalance: number;
+  currency: Currency;
+  input: string;
+  error: string;
+  onChangeText: (v: string) => void;
+}
+
+// Its own component so `useBottomSheetAwareHandlers` runs inside the sheet's context; called above `Sheet` it returns no-ops and the sheet never leaves the keyboard.
+function AdjustBalanceSheetBody({
+  currentBalance,
+  currency,
+  input,
+  error,
+  onChangeText,
+}: AdjustBalanceSheetBodyProps) {
+  const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+
+  return (
+    <Box className="px-4 pt-2">
+      <Box style={{ flexDirection: 'row' }} className="items-center justify-between pb-3">
+        <Typography
+          className="text-foreground/55 font-inter"
+          style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+        >
+          {Strings.accountDetailBalance}
+        </Typography>
+        <Typography
+          className="text-foreground font-sora-semibold tabular-nums"
+          style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
+        >
+          {formatAccountBalance(currentBalance, currency)}
+        </Typography>
+      </Box>
+      <FormSectionLabel>{Strings.adjustBalanceLabel}</FormSectionLabel>
+      <Input
+        value={input}
+        onChangeText={onChangeText}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        keyboardType="decimal-pad"
+        isInvalid={!!error}
+        suffix={
+          <Typography className="text-muted font-sora-bold text-[15px]">{currency}</Typography>
+        }
+      />
+      {/* One track for helper and error, announced live; `FieldMessageRail` is RHF-bound and this sheet is not, so the shape is reused, not the component. */}
+      <Box style={FIELD_MESSAGE_RAIL_STYLE} accessibilityLiveRegion="polite">
+        {error ? (
+          <FormErrorText
+            message={error}
+            disableAnimation
+            style={{ fontSize: Type.detail, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT }}
+          />
+        ) : (
+          // Not HeroUI `Description`: it paints `--color-muted` and this copy must stay readable.
+          <Typography
+            className="font-inter text-foreground"
+            style={{ fontSize: Type.detail, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT }}
+          >
+            {Strings.adjustBalanceHelper}
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 interface AdjustBalanceSheetProps {
   isOpen: boolean;
   currentBalance: number;
@@ -46,8 +114,6 @@ export function AdjustBalanceSheet({
   const setInput = useAdjustBalanceSheetState.getState().setInput;
   const setError = useAdjustBalanceSheetState.getState().setError;
   const initialize = useAdjustBalanceSheetState.getState().initialize;
-
-  const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
   useEffect(() => {
     if (isOpen) {
@@ -101,56 +167,18 @@ export function AdjustBalanceSheet({
       title={Strings.adjustBalanceTitle}
       size="sm"
       footer={footer}
+      liftsAboveKeyboard
     >
-      <Box className="px-4 pt-2">
-        <Box style={{ flexDirection: 'row' }} className="items-center justify-between pb-3">
-          <Typography
-            className="text-foreground/55 font-inter"
-            style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
-          >
-            {Strings.accountDetailBalance}
-          </Typography>
-          <Typography
-            className="text-foreground font-sora-semibold tabular-nums"
-            style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
-          >
-            {formatAccountBalance(currentBalance, currency)}
-          </Typography>
-        </Box>
-        <FormSectionLabel>{Strings.adjustBalanceLabel}</FormSectionLabel>
-        <Input
-          value={input}
-          onChangeText={(v) => {
-            setInput(v);
-            setError('');
-          }}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          keyboardType="decimal-pad"
-          isInvalid={!!error}
-          suffix={
-            <Typography className="text-muted font-sora-bold text-[15px]">{currency}</Typography>
-          }
-        />
-        {/* One track for helper and error, announced live; `FieldMessageRail` is RHF-bound and this sheet is not, so the shape is reused, not the component. */}
-        <Box style={FIELD_MESSAGE_RAIL_STYLE} accessibilityLiveRegion="polite">
-          {error ? (
-            <FormErrorText
-              message={error}
-              disableAnimation
-              style={{ fontSize: Type.detail, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT }}
-            />
-          ) : (
-            // Not HeroUI `Description`: it paints `--color-muted` and this copy must stay readable.
-            <Typography
-              className="font-inter text-foreground"
-              style={{ fontSize: Type.detail, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT }}
-            >
-              {Strings.adjustBalanceHelper}
-            </Typography>
-          )}
-        </Box>
-      </Box>
+      <AdjustBalanceSheetBody
+        currentBalance={currentBalance}
+        currency={currency}
+        input={input}
+        error={error}
+        onChangeText={(v) => {
+          setInput(v);
+          setError('');
+        }}
+      />
     </Sheet>
   );
 }
