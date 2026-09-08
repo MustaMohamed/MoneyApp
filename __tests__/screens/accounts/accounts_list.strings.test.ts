@@ -14,3 +14,17 @@ describe('accounts list load-error copy (F1)', () => {
     expect(Strings.accountsReadErrorDescription).not.toMatch(/apolog/i);
   });
 });
+
+describe('accounts list type-filter copy (B7)', () => {
+  it('ships the five section plurals byte-exact', () => {
+    expect(Strings.accountsListSectionBanks).toBe('Banks');
+    expect(Strings.accountsListSectionSmartWallets).toBe('Smart wallets');
+    expect(Strings.accountsListSectionCashWallets).toBe('Cash wallets');
+    expect(Strings.accountsListSectionSavings).toBe('Savings');
+    expect(Strings.accountsListSectionCreditCards).toBe('Credit cards');
+  });
+
+  it('names the rail for screen readers', () => {
+    expect(Strings.accountTypeFilterAccessibility).toBe('Account type filter');
+  });
+});

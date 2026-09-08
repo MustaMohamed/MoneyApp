@@ -1,28 +1,32 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback, Separator } from 'heroui-native';
 import React from 'react';
+import { View } from 'react-native';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { ErrorState } from '@/components/ui/error_state';
 import { ListCard } from '@/components/ui/list_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section_header';
+import { SegmentFilter } from '@/components/ui/segment_filter';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Spacing } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { ACCOUNTS_LIST_CARD_STYLE } from './accounts_list.geometry';
+import { ACCOUNTS_LIST_CARD_STYLE, ACCOUNTS_LIST_RAIL_STYLE } from './accounts_list.geometry';
 import { useAccountsList } from './accounts_list.hook';
+import { ACCOUNTS_LIST_TYPE_FILTERS } from './accounts_list.presentation';
 import { AccountListRow } from './components/account_list_row';
 
 export default function AccountsListScreen() {
   const {
-    state: { rows, archivedCount, content, emptyState, isRetrying },
+    state: { rows, archivedCount, content, emptyState, isRetrying, selectedType, sectionTitle },
     goToAccount,
     goToAddAccount,
     onBack,
     retry,
+    selectType,
   } = useAccountsList();
 
   return (
@@ -66,6 +70,16 @@ export default function AccountsListScreen() {
           contentContainerStyle={{ paddingBottom: Spacing.xxl }}
           showsVerticalScrollIndicator={false}
         >
+          <View style={ACCOUNTS_LIST_RAIL_STYLE}>
+            <SegmentFilter
+              selectedFilter={selectedType}
+              onSelectedFilterChange={selectType}
+              filters={ACCOUNTS_LIST_TYPE_FILTERS}
+              accessibilityLabel={Strings.accountTypeFilterAccessibility}
+              corners="form"
+            />
+          </View>
+
           {emptyState === 'archivedOnly' ? (
             // Nothing follows: the archived section is MA-017's slot.
             <EmptyState
@@ -75,16 +89,24 @@ export default function AccountsListScreen() {
             />
           ) : (
             <>
-              <SectionHeader title={Strings.accountsListSection} count={rows.length} />
-              <ListCard style={ACCOUNTS_LIST_CARD_STYLE}>
-                {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
-                {rows.map(({ account, caption }, index) => (
-                  <React.Fragment key={account.id}>
-                    {index > 0 ? <Separator thickness={Size.hairline} /> : null}
-                    <AccountListRow account={account} caption={caption} onPress={goToAccount} />
-                  </React.Fragment>
-                ))}
-              </ListCard>
+              <SectionHeader title={sectionTitle} count={rows.length} />
+              {emptyState === 'filtered' ? (
+                <EmptyState
+                  variant="filtered"
+                  placement="inline"
+                  onAction={() => selectType('all')}
+                />
+              ) : (
+                <ListCard style={ACCOUNTS_LIST_CARD_STYLE}>
+                  {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
+                  {rows.map(({ account, caption }, index) => (
+                    <React.Fragment key={account.id}>
+                      {index > 0 ? <Separator thickness={Size.hairline} /> : null}
+                      <AccountListRow account={account} caption={caption} onPress={goToAccount} />
+                    </React.Fragment>
+                  ))}
+                </ListCard>
+              )}
             </>
           )}
         </ScreenScroll>

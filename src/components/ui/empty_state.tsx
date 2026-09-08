@@ -25,8 +25,17 @@ export type EmptyStateVariant =
   | 'onboardingAccounts';
 
 export type EmptyStateProps =
-  | { variant: 'accountsArchivedOnly'; archivedCount: number; onAction?: () => void }
-  | { variant: Exclude<EmptyStateVariant, 'accountsArchivedOnly'>; onAction?: () => void };
+  | {
+      variant: 'accountsArchivedOnly';
+      archivedCount: number;
+      onAction?: () => void;
+      placement?: 'inline';
+    }
+  | {
+      variant: Exclude<EmptyStateVariant, 'accountsArchivedOnly'>;
+      onAction?: () => void;
+      placement?: 'inline';
+    };
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -126,9 +135,18 @@ const VARIANT_CONFIG: Record<EmptyStateVariant, VariantConfig> & {
   },
 };
 
+/** An opt-in, never an override: the `'inline'`-only parameter cannot force a variant out of it. */
+export function resolveEmptyStatePlacement(
+  override: 'inline' | undefined,
+  variantPlacement: 'centered' | 'inline',
+): 'centered' | 'inline' {
+  return override ?? variantPlacement;
+}
+
 export function EmptyState(props: EmptyStateProps) {
   const { onAction } = props;
   const config = VARIANT_CONFIG[props.variant];
+  const placement = resolveEmptyStatePlacement(props.placement, config.placement);
   // Only `accountsArchivedOnly` carries a count, and only its description reads one.
   const archivedCount = props.variant === 'accountsArchivedOnly' ? props.archivedCount : 0;
   const description =
@@ -137,7 +155,7 @@ export function EmptyState(props: EmptyStateProps) {
       : config.description;
 
   return (
-    <View style={config.placement === 'inline' ? styles.rootInline : styles.root}>
+    <View style={placement === 'inline' ? styles.rootInline : styles.root}>
       <View style={styles.iconCircle}>
         <MaterialCommunityIcons
           name={config.icon}

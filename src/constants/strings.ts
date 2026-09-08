@@ -315,6 +315,13 @@ export const Strings = {
   // Accounts list (B1)
   accountsListTitle: 'Accounts',
   accountsListSection: 'Your accounts',
+  // B7 section headers: the plural of each type label, one per filter segment.
+  accountsListSectionBanks: 'Banks',
+  accountsListSectionSmartWallets: 'Smart wallets',
+  accountsListSectionCashWallets: 'Cash wallets',
+  accountsListSectionSavings: 'Savings',
+  accountsListSectionCreditCards: 'Credit cards',
+  accountTypeFilterAccessibility: 'Account type filter',
   accountsReadErrorTitle: "Couldn't load your accounts",
   accountsReadErrorDescription:
     'Something went wrong reading your data. Your accounts are still there.',

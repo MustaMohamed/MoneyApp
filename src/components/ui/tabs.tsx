@@ -12,6 +12,21 @@ const TABS_LIST_PADDING = 3;
 export const SOLID_GOLD_TRACK_RADIUS = Radius.md;
 export const SOLID_GOLD_SELECTED_RADIUS = Math.max(SOLID_GOLD_TRACK_RADIUS - TABS_LIST_PADDING, 0);
 
+export type SegmentedTabsCorners = 'pill' | 'form';
+
+/** `track: undefined` leaves HeroUI's own pill radius standing; only the form corners override it. */
+export function resolveSolidGoldRadii({
+  isCompact,
+  corners,
+}: {
+  isCompact: boolean;
+  corners: SegmentedTabsCorners;
+}): { track: number | undefined; selected: number } {
+  return isCompact && corners === 'pill'
+    ? { track: undefined, selected: Radius.lg }
+    : { track: SOLID_GOLD_TRACK_RADIUS, selected: SOLID_GOLD_SELECTED_RADIUS };
+}
+
 export interface TabSegmentIcon {
   name: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   color: string;
@@ -43,6 +58,8 @@ export interface SegmentedTabsProps<T extends string = string> {
   accessibilityLabel?: string;
   segmentWidth?: number;
   density?: SegmentedTabsDensity;
+  /** `'form'` gives a compact solid-gold track the account form's corners instead of the pill. */
+  corners?: SegmentedTabsCorners;
   /** Every trigger is non-interactive; the selected indicator still shows. */
   isDisabled?: boolean;
 }
@@ -59,11 +76,13 @@ export function SegmentedTabs<T extends string>({
   accessibilityLabel,
   segmentWidth,
   density = 'default',
+  corners = 'pill',
   isDisabled,
 }: SegmentedTabsProps<T>): React.ReactElement {
   const isSolidGold = variant === 'solid-gold';
   const isScrollable = layout === 'scrollable';
   const isCompact = density === 'compact';
+  const radii = resolveSolidGoldRadii({ isCompact, corners });
   const scrollBehavior = useSegmentedTabsScroll({
     scrollAlign,
     value,
@@ -77,7 +96,7 @@ export function SegmentedTabs<T extends string>({
       isSolidGold && isSelected
         ? {
             backgroundColor: Colors.shared.cairoGold,
-            borderRadius: isCompact ? Radius.lg : SOLID_GOLD_SELECTED_RADIUS,
+            borderRadius: radii.selected,
           }
         : undefined;
     const triggerStyle =
@@ -134,7 +153,7 @@ export function SegmentedTabs<T extends string>({
         isSolidGold
           ? {
               backgroundColor: Colors.shared.cairoGold,
-              borderRadius: isCompact ? Radius.lg : SOLID_GOLD_SELECTED_RADIUS,
+              borderRadius: radii.selected,
             }
           : undefined
       }
@@ -151,7 +170,7 @@ export function SegmentedTabs<T extends string>({
     >
       <Tabs.List
         className={cn(listClassName)}
-        style={isSolidGold && !isCompact ? { borderRadius: SOLID_GOLD_TRACK_RADIUS } : undefined}
+        style={isSolidGold && radii.track !== undefined ? { borderRadius: radii.track } : undefined}
         accessibilityLabel={accessibilityLabel}
       >
         {isScrollable ? (
@@ -163,7 +182,7 @@ export function SegmentedTabs<T extends string>({
             scrollEventThrottle={scrollBehavior.scrollEventThrottle}
             // The scroll view repeats the list's 3xl radius in its own CSS — keep it in step with the overridden track.
             style={
-              isSolidGold && !isCompact ? { borderRadius: SOLID_GOLD_TRACK_RADIUS } : undefined
+              isSolidGold && radii.track !== undefined ? { borderRadius: radii.track } : undefined
             }
           >
             {indicator}

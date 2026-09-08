@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import type { TabSegment, TabSegmentIcon } from './tabs';
+import type { SegmentedTabsCorners, TabSegment, TabSegmentIcon } from './tabs';
 
 export interface SegmentFilterOption<T extends string = string> {
   value: T;
@@ -14,6 +14,7 @@ export interface SegmentFilterProps<T extends string = string> {
   onSelectedFilterChange: (filter: T) => void;
   filters: ReadonlyArray<SegmentFilterOption<T>>;
   accessibilityLabel: string;
+  corners?: SegmentedTabsCorners;
 }
 
 export function useSegmentFilter<T extends string>({ filters }: SegmentFilterProps<T>) {

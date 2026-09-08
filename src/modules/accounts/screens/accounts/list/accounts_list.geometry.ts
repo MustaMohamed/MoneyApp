@@ -24,3 +24,10 @@ export const ACCOUNTS_LIST_ROW_CAPTION_STYLE: Readonly<TextStyle> = Object.freez
 export const ACCOUNTS_LIST_CARD_STYLE: Readonly<ViewStyle> = Object.freeze({
   marginHorizontal: Spacing.md,
 });
+
+/** B7 `.rail`: `padding: 4px 16px` on the canvas, as margins here since the scroll has no gutter. */
+export const ACCOUNTS_LIST_RAIL_STYLE: Readonly<ViewStyle> = Object.freeze({
+  marginHorizontal: Spacing.md,
+  marginTop: Spacing.xxs,
+  marginBottom: Spacing.xxs,
+});
