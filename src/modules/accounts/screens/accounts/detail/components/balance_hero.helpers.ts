@@ -3,6 +3,7 @@ import { AccountType, type Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
+import { isOverLimit } from '@/modules/accounts/constants/is_over_limit';
 import { MINUS_SIGN, formatAmount, signAmountText } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
@@ -23,7 +24,7 @@ export function buildHeroCaption(account: Account): HeroCaption {
   const decimals = CURRENCY_CONFIG[currency].decimals;
 
   if (isCC && limit > 0) {
-    if (account.current_balance > limit) {
+    if (isOverLimit(account.current_balance, limit)) {
       return {
         text: Strings.accountHeroOverLimit,
         adjusted: false,
