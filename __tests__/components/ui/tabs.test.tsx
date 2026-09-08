@@ -87,7 +87,7 @@ const segments = [
 
 describe('SegmentedTabs', () => {
   it('keeps the active indicator inside the scroll view for scrollable layout', async () => {
-    const { getByTestId } = await render(
+    const { getByTestId, getByText } = await render(
       <SegmentedTabs
         segments={[...segments]}
         value="all"
@@ -97,6 +97,7 @@ describe('SegmentedTabs', () => {
     );
 
     expect(within(getByTestId('tabs-scroll-view')).getByTestId('tabs-indicator')).toBeTruthy();
+    expect(getByText('Overdue')).not.toHaveStyle({ color: Colors.dark.text2 });
   });
 
   it('applies a fixed width to every scrollable segment when provided', async () => {
