@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
-import { Currency } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AdjustBalanceSheet } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet';
 import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
@@ -76,6 +76,7 @@ function renderSheet(onSave: (v: number) => void | Promise<void>, isLoading = fa
       isOpen
       currentBalance={CURRENT_BALANCE}
       currency={Currency.EGP}
+      accountType={AccountType.Bank}
       onOpenChange={jest.fn()}
       onSave={onSave}
       isLoading={isLoading}

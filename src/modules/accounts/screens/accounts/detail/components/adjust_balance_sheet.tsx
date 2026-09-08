@@ -8,7 +8,7 @@ import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
-import { Currency } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 
@@ -24,6 +24,7 @@ interface AdjustBalanceSheetProps {
   isOpen: boolean;
   currentBalance: number;
   currency: Currency;
+  accountType: AccountType;
   onOpenChange: (open: boolean) => void;
   // Promise-returning on purpose: `handleSave` awaits and catches, so rejections surface here.
   onSave: (newBalance: number) => void | Promise<void>;
@@ -34,6 +35,7 @@ export function AdjustBalanceSheet({
   isOpen,
   currentBalance,
   currency,
+  accountType,
   onOpenChange,
   onSave,
   isLoading,
@@ -54,7 +56,7 @@ export function AdjustBalanceSheet({
   }, [isOpen, currentBalance, initialize]);
 
   const handleSave = async () => {
-    const result = parseAdjustInput(input);
+    const result = parseAdjustInput(input, accountType);
     if (!result.ok) {
       setError(Strings.errBalanceInvalid);
       return;
