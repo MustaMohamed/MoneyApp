@@ -4,6 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import { AccountType, Currency } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
 import { parseAdjustInput } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.helpers';
+import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
 import { AccountRepository } from '@/repositories/account.repository';
 import type { NewAccountInput } from '@/repositories/account.repository';
 
@@ -338,6 +339,10 @@ describe('AccountRepository.countArchived', () => {
 });
 
 describe('AccountRepository.adjustBalance — TC-M15-03', () => {
+  afterEach(() => {
+    useAdjustBalanceSheetState.getState().reset();
+  });
+
   it('updates current_balance to the new value', async () => {
     await repo.add({ ...baseInput, opening_balance: 1000 });
     const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
@@ -423,6 +428,44 @@ describe('AccountRepository.adjustBalance — TC-M15-03', () => {
     if (!parsed.ok) return;
 
     await expect(adjustedBalance(parsed.value)).resolves.toBe(1234.56);
+  });
+
+  it('MA-030: an overdrawn prefill saves unedited', async () => {
+    useAdjustBalanceSheetState.getState().initialize(-1900);
+    const { input, isNegative } = useAdjustBalanceSheetState.getState();
+
+    const parsed = parseAdjustInput(input, { isNegative, accountType: AccountType.Bank });
+    expect(parsed).toEqual({ ok: true, value: -1900 });
+    if (!parsed.ok) return;
+
+    await expect(adjustedBalance(parsed.value)).resolves.toBe(-1900);
+  });
+
+  it('MA-030: a negative target clears the review flag and moves updated_at like any other', async () => {
+    await repo.add({ ...baseInput, opening_balance: 1000 });
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    realDb.prepare('UPDATE accounts SET balance_review_required = 1 WHERE id = ?').run(id);
+    const before = (
+      realDb.prepare('SELECT updated_at FROM accounts WHERE id = ?').get(id) as {
+        updated_at: string;
+      }
+    ).updated_at;
+    await new Promise((r) => setTimeout(r, 10));
+
+    await repo.adjustBalance(id, -1900);
+
+    const row = realDb
+      .prepare(
+        'SELECT current_balance, balance_review_required, updated_at FROM accounts WHERE id = ?',
+      )
+      .get(id) as {
+      balance_review_required: number;
+      current_balance: number;
+      updated_at: string;
+    };
+    expect(row.current_balance).toBe(-1900);
+    expect(row.balance_review_required).toBe(0);
+    expect(row.updated_at).not.toBe(before);
   });
 });
 

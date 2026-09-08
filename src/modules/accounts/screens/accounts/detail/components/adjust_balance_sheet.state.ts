@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface AdjustBalanceSheetStateShape {
-  /** Magnitude only; the sign lives in `isNegative` because the decimal keypad has no minus key. */
+  /** The sign lives in `isNegative`, not here: the decimal keypad offers no minus key. */
   input: string;
   isNegative: boolean;
   error: string;

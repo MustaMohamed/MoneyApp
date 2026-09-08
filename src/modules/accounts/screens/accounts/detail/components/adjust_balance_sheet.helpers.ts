@@ -4,12 +4,12 @@ import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
 /** Finite; a card is floored at zero, a non-card may be negative, and one leading minus is read. */
 export type AdjustParseResult = { ok: true; value: number } | { ok: false };
 
-export interface AdjustSign {
+interface AdjustSign {
   isNegative: boolean;
   accountType: AccountType;
 }
 
-/** Only U+002D counts; `parseNonNegativeDecimal` refuses whatever the remainder turns out to be. */
+/** Only U+002D is a sign; a U+2212 or a second minus stays in the magnitude and fails the parse. */
 export function splitLeadingMinus(raw: string): { magnitude: string; typedNegative: boolean } {
   const trimmed = raw.trim();
   return trimmed.startsWith('-')

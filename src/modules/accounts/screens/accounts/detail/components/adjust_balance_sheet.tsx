@@ -124,7 +124,7 @@ export function AdjustBalanceSheet({
           </Typography>
         </Box>
         <FormSectionLabel>{Strings.adjustBalanceLabel}</FormSectionLabel>
-        {isCard ? null : (
+        {!isCard && (
           <SegmentedTabs<SignSegment>
             segments={[
               {
