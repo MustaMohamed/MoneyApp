@@ -178,6 +178,7 @@ export default function AccountDetailScreen() {
         isOpen={isAdjustVisible}
         currentBalance={account.current_balance}
         currency={account.currency}
+        accountType={account.type}
         onOpenChange={(open) => {
           if (!open) setAdjustVisible(false);
         }}

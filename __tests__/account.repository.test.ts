@@ -415,7 +415,10 @@ describe('AccountRepository.adjustBalance — TC-M15-03', () => {
   });
 
   it('B1-03: a comma-grouped typed amount reaches current_balance intact', async () => {
-    const parsed = parseAdjustInput('1,234.56');
+    const parsed = parseAdjustInput('1,234.56', {
+      isNegative: false,
+      accountType: AccountType.Bank,
+    });
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
 

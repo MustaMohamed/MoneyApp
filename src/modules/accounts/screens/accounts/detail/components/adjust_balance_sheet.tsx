@@ -8,7 +8,8 @@ import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
-import { Currency } from '@/constants/enums';
+import { SegmentedTabs } from '@/components/ui/tabs';
+import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 
@@ -16,14 +17,17 @@ import {
   FIELD_MESSAGE_RAIL_STYLE,
   FIELD_MESSAGE_TEXT_LINE_HEIGHT,
 } from '../../../../components/account_form/account_form.geometry';
-import { parseAdjustInput } from './adjust_balance_sheet.helpers';
+import { parseAdjustInput, splitLeadingMinus } from './adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
 import { formatAccountBalance } from './balance_hero.helpers';
+
+type SignSegment = 'positive' | 'negative';
 
 interface AdjustBalanceSheetProps {
   isOpen: boolean;
   currentBalance: number;
   currency: Currency;
+  accountType: AccountType;
   onOpenChange: (open: boolean) => void;
   // Promise-returning on purpose: `handleSave` awaits and catches, so rejections surface here.
   onSave: (newBalance: number) => void | Promise<void>;
@@ -34,16 +38,20 @@ export function AdjustBalanceSheet({
   isOpen,
   currentBalance,
   currency,
+  accountType,
   onOpenChange,
   onSave,
   isLoading,
 }: AdjustBalanceSheetProps) {
-  const { input, error } = useAdjustBalanceSheetState(
-    useShallow((s) => ({ input: s.input, error: s.error })),
+  const { input, isNegative, error } = useAdjustBalanceSheetState(
+    useShallow((s) => ({ input: s.input, isNegative: s.isNegative, error: s.error })),
   );
   const setInput = useAdjustBalanceSheetState.getState().setInput;
+  const setNegative = useAdjustBalanceSheetState.getState().setNegative;
   const setError = useAdjustBalanceSheetState.getState().setError;
   const initialize = useAdjustBalanceSheetState.getState().initialize;
+
+  const isCard = accountType === AccountType.CreditCard;
 
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
@@ -54,7 +62,7 @@ export function AdjustBalanceSheet({
   }, [isOpen, currentBalance, initialize]);
 
   const handleSave = async () => {
-    const result = parseAdjustInput(input);
+    const result = parseAdjustInput(input, { isNegative, accountType });
     if (!result.ok) {
       setError(Strings.errBalanceInvalid);
       return;
@@ -116,10 +124,43 @@ export function AdjustBalanceSheet({
           </Typography>
         </Box>
         <FormSectionLabel>{Strings.adjustBalanceLabel}</FormSectionLabel>
+        {isCard ? null : (
+          <SegmentedTabs<SignSegment>
+            segments={[
+              {
+                value: 'positive',
+                label: Strings.adjustBalanceSignPositive,
+                accessibilityLabel: Strings.adjustBalanceSignPositiveA11y,
+              },
+              {
+                value: 'negative',
+                label: Strings.adjustBalanceSignNegative,
+                accessibilityLabel: Strings.adjustBalanceSignNegativeA11y,
+              },
+            ]}
+            value={isNegative ? 'negative' : 'positive'}
+            onValueChange={(v) => {
+              setNegative(v === 'negative');
+              setError('');
+            }}
+            variant="solid-gold"
+            density="compact"
+            listClassName="mb-2 w-full rounded-lg"
+            accessibilityLabel={Strings.adjustBalanceSignA11y}
+            isDisabled={isLoading}
+          />
+        )}
         <Input
           value={input}
           onChangeText={(v) => {
-            setInput(v);
+            const { magnitude, typedNegative } = splitLeadingMinus(v);
+            // A card has no control to clear the sign with, so its text stays exactly as typed.
+            if (typedNegative && !isCard) {
+              setNegative(true);
+              setInput(magnitude);
+            } else {
+              setInput(v);
+            }
             setError('');
           }}
           onFocus={onFocus}

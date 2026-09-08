@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
-import { Currency } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AdjustBalanceSheet } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet';
 import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
@@ -61,6 +61,12 @@ jest.mock('@/components/ui/input', () => ({
     );
   },
 }));
+jest.mock('@/components/ui/tabs', () => ({
+  SegmentedTabs: () => {
+    const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+    return <View testID="balance-sign-tabs" />;
+  },
+}));
 jest.mock('@/components/ui/form_error_text', () => ({
   FormErrorText: ({ message }: { message?: string }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -76,6 +82,7 @@ function renderSheet(onSave: (v: number) => void | Promise<void>, isLoading = fa
       isOpen
       currentBalance={CURRENT_BALANCE}
       currency={Currency.EGP}
+      accountType={AccountType.Bank}
       onOpenChange={jest.fn()}
       onSave={onSave}
       isLoading={isLoading}
