@@ -8,6 +8,7 @@ import { Strings } from '@/constants/strings';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { resolveAccountName } from '@/utils/account_name';
 
 import { getAccountTypeIcon, type TransferCellText } from '../detail.helpers';
 import { DETAIL_TRANSFER_MIN_HEIGHT } from './detail_geometry';
@@ -33,6 +34,7 @@ function Cell({
   onPress?: () => void;
 }): React.ReactElement {
   const { display, accessible } = amountText;
+  const accountName = resolveAccountName(account);
   const inner = (
     <View className="flex-1 items-center">
       <Text
@@ -53,7 +55,7 @@ function Cell({
         style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail) }}
         numberOfLines={1}
       >
-        {account.name}
+        {accountName}
       </Text>
       <Text
         className="font-sora-semibold text-foreground/85 mt-0.5"
@@ -70,7 +72,7 @@ function Cell({
       <PressableFeedback
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel={Strings.detailOpenAccountAccessibility(account.name, accessible)}
+        accessibilityLabel={Strings.detailOpenAccountAccessibility(accountName, accessible)}
         className="flex-1"
       >
         {inner}

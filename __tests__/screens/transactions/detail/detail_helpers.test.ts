@@ -33,6 +33,7 @@ function account(overrides: Partial<Account>): Account {
     apr: null,
     is_archived: 0,
     balance_review_required: 0,
+    is_deleted: 0,
     sort_order: 0,
     created_at: now,
     updated_at: now,
@@ -254,5 +255,42 @@ describe('buildTransactionDetailPresentation', () => {
     expect(exchangeRateText).toBe('1 USD = 48.60 EGP');
     // `formatCurrencyAmount` gives EGP 0dp, the wrong decimals for a rate; this pins that.
     expect(formatCurrencyAmount(48.6, Currency.EGP)).toBe('49 EGP');
+  });
+});
+
+describe('buildTransactionDetailPresentation — deleted accounts (MA-020)', () => {
+  const deletedSource = account({ id: 'source', name: '', is_archived: 1, is_deleted: 1 });
+
+  it('labels a transfer whose destination was deleted', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: transaction({}),
+        account: account({ name: 'USD wallet' }),
+        toAccount: account({ id: 'destination', name: '', is_archived: 1, is_deleted: 1 }),
+      }).accountLabel,
+    ).toBe(`USD wallet → ${Strings.deletedAccount}`);
+  });
+
+  it('labels a transfer whose source was deleted, keeping the live destination named', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: transaction({}),
+        account: deletedSource,
+        toAccount: account({ id: 'destination', name: 'Chase' }),
+      }).accountLabel,
+    ).toBe(`${Strings.deletedAccount} → Chase`);
+  });
+
+  it('labels a single-account transaction on a deleted account', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: transaction({
+          type: TransactionType.Expense,
+          to_account_id: null,
+          to_amount: null,
+        }),
+        account: deletedSource,
+      }).accountLabel,
+    ).toBe(Strings.deletedAccount);
   });
 });

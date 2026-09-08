@@ -89,6 +89,14 @@ describe('AccountRepository.add — TC-09', () => {
     expect(row.is_archived).toBe(0);
   });
 
+  it('forces is_deleted to 0', async () => {
+    await repo.add(baseInput);
+    const row = realDb.prepare('SELECT is_deleted FROM accounts').get() as {
+      is_deleted: number;
+    };
+    expect(row.is_deleted).toBe(0);
+  });
+
   it('writes a UUID-shaped id', async () => {
     await repo.add(baseInput);
     const row = realDb.prepare('SELECT id FROM accounts').get() as { id: string };
@@ -335,6 +343,41 @@ describe('AccountRepository.countArchived', () => {
 
     await expect(repo.countArchived()).resolves.toBe(1);
     await expect(repo.getAll()).resolves.toEqual([]);
+  });
+});
+
+describe('a soft-deleted account leaves both lists — MA-020', () => {
+  const DELETED_ID = 'deleted-1';
+
+  beforeEach(() => {
+    realDb
+      .prepare(
+        `INSERT INTO accounts (
+          id, name, type, currency, opening_balance, current_balance,
+          interest_tracking, is_archived, is_deleted, sort_order, created_at, updated_at
+        ) VALUES (?, '', ?, ?, 0, 0, 0, 1, 1, 0, ?, ?)`,
+      )
+      .run(
+        DELETED_ID,
+        AccountType.Bank,
+        Currency.EGP,
+        '2026-09-08T00:00:00Z',
+        '2026-09-08T00:00:00Z',
+      );
+  });
+
+  it('is absent from the active list', async () => {
+    await expect(repo.getAll()).resolves.toEqual([]);
+  });
+
+  it('is not counted among the archived', async () => {
+    await expect(repo.countArchived()).resolves.toBe(0);
+  });
+
+  it('still resolves by id, so a transaction can label it', async () => {
+    const rows = await repo.getByIdsIncludingArchived([DELETED_ID]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: DELETED_ID, is_deleted: 1, is_archived: 1 });
   });
 });
 

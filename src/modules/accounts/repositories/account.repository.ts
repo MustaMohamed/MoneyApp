@@ -1,6 +1,7 @@
 import uuid from 'react-native-uuid';
 
 import { getDb } from '@/database/client';
+import { clearCommitmentAccount } from '@/modules/commitments/database/commitments';
 import { roundMoney } from '@/utils/money';
 
 import {
@@ -12,13 +13,21 @@ import {
   getAccounts,
   getArchivedAccountCount,
   setAccountBalance,
+  setAccountDeleted,
   updateAccount,
 } from '../database/accounts';
 import type { Account } from '../entities/account.entity';
+import { AccountNotArchivedError, AccountNotFoundError } from './account.errors';
 
 export type NewAccountInput = Omit<
   Account,
-  'id' | 'created_at' | 'updated_at' | 'current_balance' | 'is_archived' | 'balance_review_required'
+  | 'id'
+  | 'created_at'
+  | 'updated_at'
+  | 'current_balance'
+  | 'is_archived'
+  | 'is_deleted'
+  | 'balance_review_required'
 >;
 
 export type UpdateAccountInput = {
@@ -34,6 +43,7 @@ export interface IAccountRepository {
   add(data: NewAccountInput): Promise<Account>;
   update(id: string, data: UpdateAccountInput): Promise<void>;
   archive(id: string): Promise<void>;
+  delete(id: string): Promise<void>;
   adjustBalance(id: string, newBalance: number): Promise<void>;
   confirmBalanceReviewed(id: string): Promise<void>;
 }
@@ -68,6 +78,7 @@ export class AccountRepository implements IAccountRepository {
       id,
       current_balance: data.opening_balance,
       is_archived: 0,
+      is_deleted: 0,
       balance_review_required: 0,
       created_at: now,
       updated_at: now,
@@ -84,6 +95,19 @@ export class AccountRepository implements IAccountRepository {
   async archive(id: string): Promise<void> {
     const db = await getDb();
     await archiveAccount(db, id, new Date().toISOString());
+  }
+
+  async delete(id: string): Promise<void> {
+    const db = await getDb();
+    const existing = await getAccountByIdIncludingArchived(db, id);
+    if (!existing || existing.is_deleted === 1) throw new AccountNotFoundError();
+    if (existing.is_archived !== 1) throw new AccountNotArchivedError();
+
+    const now = new Date().toISOString();
+    await db.withTransactionAsync(async () => {
+      if ((await setAccountDeleted(db, id, now)) !== 1) throw new AccountNotArchivedError();
+      await clearCommitmentAccount(db, id, now);
+    });
   }
 
   async adjustBalance(id: string, newBalance: number): Promise<void> {

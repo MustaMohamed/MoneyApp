@@ -12,6 +12,7 @@ import { MIGRATIONS } from '@/database/migrations';
 import { addPayments } from '@/modules/commitments/database/commitment_payments';
 import {
   addCommitment,
+  clearCommitmentAccount,
   deactivateCommitment,
   deactivateExpiredCommitments,
   getCommitmentById,
@@ -464,3 +465,65 @@ function makePayment(id: string, commitmentId: string, dueDate: string): Commitm
     updated_at: NOW,
   };
 }
+
+describe('clearCommitmentAccount — MA-020', () => {
+  const CLEARED_AT = '2026-09-08T09:00:00.000Z';
+
+  beforeAll(() => {
+    realDb
+      .prepare(
+        `INSERT OR IGNORE INTO accounts
+         (id, name, type, currency, opening_balance, current_balance,
+          interest_tracking, is_archived, sort_order, created_at, updated_at)
+         VALUES ('acc2', 'Second EGP', 'bank', 'EGP', 0, 0, 0, 0, 1, ?, ?)`,
+      )
+      .run(NOW, NOW);
+  });
+
+  async function seed(): Promise<void> {
+    await addCommitment(mockDb, makeCommitment({ id: 'com-on-target-1', account_id: 'acc1' }));
+    await addCommitment(mockDb, makeCommitment({ id: 'com-on-target-2', account_id: 'acc1' }));
+    await addCommitment(mockDb, makeCommitment({ id: 'com-on-survivor', account_id: 'acc2' }));
+    await addPayments(mockDb, [makePayment('pay-on-target', 'com-on-target-1', '2026-05-10')]);
+  }
+
+  it('nulls the account of every commitment that pointed at it, and stamps updated_at', async () => {
+    await seed();
+
+    await clearCommitmentAccount(mockDb, 'acc1', CLEARED_AT);
+
+    const rows = realDb
+      .prepare('SELECT id, account_id, updated_at FROM commitments ORDER BY id')
+      .all() as { account_id: string | null; id: string; updated_at: string }[];
+    expect(rows).toEqual([
+      { id: 'com-on-survivor', account_id: 'acc2', updated_at: NOW },
+      { id: 'com-on-target-1', account_id: null, updated_at: CLEARED_AT },
+      { id: 'com-on-target-2', account_id: null, updated_at: CLEARED_AT },
+    ]);
+  });
+
+  it('leaves the commitment of another account byte-identical', async () => {
+    await seed();
+    const before = realDb.prepare("SELECT * FROM commitments WHERE id = 'com-on-survivor'").get();
+
+    await clearCommitmentAccount(mockDb, 'acc1', CLEARED_AT);
+
+    expect(realDb.prepare("SELECT * FROM commitments WHERE id = 'com-on-survivor'").get()).toEqual(
+      before,
+    );
+  });
+
+  it('leaves a commitment payment on the account untouched, references included', async () => {
+    await seed();
+    const before = realDb
+      .prepare("SELECT * FROM commitment_payments WHERE id = 'pay-on-target'")
+      .get();
+
+    await clearCommitmentAccount(mockDb, 'acc1', CLEARED_AT);
+
+    expect(
+      realDb.prepare("SELECT * FROM commitment_payments WHERE id = 'pay-on-target'").get(),
+    ).toEqual(before);
+    expect(before).toMatchObject({ account_id: 'acc1', commitment_id: 'com-on-target-1' });
+  });
+});

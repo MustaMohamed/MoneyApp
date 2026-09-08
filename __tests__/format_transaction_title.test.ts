@@ -130,3 +130,31 @@ describe('formatTransactionTitle — cc_payment', () => {
     expect(out.title).toBe(Strings.ccPaymentTitle);
   });
 });
+
+describe('formatTransactionTitle — deleted accounts (MA-020)', () => {
+  const deletedCib = makeTestAccount({ id: 'acc-cib', name: '', is_archived: 1, is_deleted: 1 });
+  const deletedVf = makeTestAccount({ id: 'acc-vf', name: '', is_archived: 1, is_deleted: 1 });
+
+  it('reads "Deleted Account" as an expense subtitle', () => {
+    const out = formatTransactionTitle({ tx: baseTx, account: deletedCib, category: catFood });
+    expect(out.subtitle).toBe(Strings.deletedAccount);
+  });
+
+  it('reads "Deleted Account" on both sides of a transfer between two deleted accounts', () => {
+    const out = formatTransactionTitle({
+      tx: { ...baseTx, type: TransactionType.Transfer, category_id: null, to_account_id: 'acc-vf' },
+      account: deletedCib,
+      toAccount: deletedVf,
+    });
+    expect(out.subtitle).toBe(`${Strings.deletedAccount} → ${Strings.deletedAccount}`);
+  });
+
+  it('keeps a live counterparty named next to a deleted source', () => {
+    const out = formatTransactionTitle({
+      tx: { ...baseTx, type: TransactionType.Transfer, category_id: null, to_account_id: 'acc-vf' },
+      account: deletedCib,
+      toAccount: accVf,
+    });
+    expect(out.subtitle).toBe(`${Strings.deletedAccount} → Vodafone Cash`);
+  });
+});

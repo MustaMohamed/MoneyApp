@@ -24,6 +24,7 @@ const account: Account = {
   interest_tracking: 0,
   apr: null,
   balance_review_required: 0,
+  is_deleted: 0,
   is_archived: 0,
   sort_order: 0,
   created_at: 'now',

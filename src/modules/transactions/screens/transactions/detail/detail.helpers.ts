@@ -9,6 +9,7 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { StackedPrefix } from '@/modules/navigation/domain/stacked_route';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { resolveAccountName } from '@/utils/account_name';
 import {
   type AmountSign,
   MINUS_SIGN,
@@ -157,8 +158,8 @@ export function buildTransactionDetailPresentation({
     categoryBadgeTone,
     heroColor: cardCredit ? InfoTokens[500] : TYPE_HERO_COLOR[tx.type],
     accountLabel: toAccount
-      ? `${account?.name ?? Strings.unknownAccount} → ${toAccount.name}`
-      : (account?.name ?? Strings.unknownAccount),
+      ? `${resolveAccountName(account)} → ${resolveAccountName(toAccount)}`
+      : resolveAccountName(account),
     accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
     accountIcon: getAccountTypeIcon(account?.type),
     originalAmountText:

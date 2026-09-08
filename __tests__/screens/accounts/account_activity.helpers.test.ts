@@ -1,4 +1,5 @@
 import { AccountType, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { AccountActivityStatus } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
 import {
   type ActivityCardBody,
@@ -133,6 +134,21 @@ describe('buildActivityRowPresentation', () => {
 
     expect(activity.context).toBe('From CIB');
     expect(activity.timeText).toBe('6 Sep');
+  });
+
+  it('names a deleted payer "Deleted Account" on the card it paid — MA-020', () => {
+    const deleted = makeTestAccount({ id: 'account-1', name: '', is_archived: 1, is_deleted: 1 });
+    const activity = buildActivityRowPresentation(
+      {
+        tx: { ...tx, type: TransactionType.CCPayment, to_account_id: card.id },
+        account: deleted,
+        toAccount: card,
+      },
+      now,
+      card.id,
+    );
+
+    expect(activity.context).toBe(`From ${Strings.deletedAccount}`);
   });
 
   it('speaks the new second line where the shipped label speaks the account', () => {

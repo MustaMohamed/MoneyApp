@@ -866,6 +866,7 @@ export const Strings = {
   transferTitle: 'Transfer',
   ccPaymentTitle: 'Credit Card Payment',
   unknownAccount: 'Unknown account',
+  deletedAccount: 'Deleted Account',
   uncategorized: 'Uncategorized',
   noResultsHeadline: 'No transactions found',
   noResultsSubtext: 'Try a different search term or filter.',

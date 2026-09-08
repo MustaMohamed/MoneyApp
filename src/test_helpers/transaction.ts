@@ -30,6 +30,7 @@ export function makeTestAccount(overrides: Partial<Account> = {}): Account {
     interest_tracking: 0,
     apr: null,
     is_archived: 0,
+    is_deleted: 0,
     balance_review_required: 0,
     sort_order: 0,
     created_at: TEST_TIMESTAMP,

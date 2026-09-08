@@ -120,6 +120,17 @@ export async function updateCommitment(
   );
 }
 
+export async function clearCommitmentAccount(
+  db: SQLiteDatabase,
+  accountId: string,
+  updatedAt: string,
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE commitments SET account_id = NULL, updated_at = ? WHERE account_id = ?',
+    [updatedAt, accountId],
+  );
+}
+
 export async function deactivateCommitment(db: SQLiteDatabase, id: string): Promise<void> {
   await db.runAsync('UPDATE commitments SET is_active = 0, updated_at = ? WHERE id = ?', [
     new Date().toISOString(),

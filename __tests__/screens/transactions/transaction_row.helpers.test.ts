@@ -39,6 +39,7 @@ function account(overrides: Partial<Account>): Account {
     apr: null,
     is_archived: 0,
     balance_review_required: 0,
+    is_deleted: 0,
     sort_order: 0,
     created_at: now,
     updated_at: now,
@@ -223,6 +224,56 @@ describe('buildTransactionRowPresentation', () => {
     ).toMatchObject({
       ownershipLabel: Strings.typeBadgeCommitment,
       isCommitmentOwned: true,
+    });
+  });
+});
+
+describe('buildTransactionRowPresentation — deleted accounts (MA-020)', () => {
+  const deletedSource = account({ id: 'gone', name: '', is_archived: 1, is_deleted: 1 });
+  const deletedTarget = account({ id: 'gone-too', name: '', is_archived: 1, is_deleted: 1 });
+
+  it('reads "Deleted Account" as the context of an expense', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: transaction({ account_id: deletedSource.id }),
+        account: deletedSource,
+      }).context,
+    ).toBe(Strings.deletedAccount);
+  });
+
+  it('reads "Deleted Account" on both sides of a transfer between two deleted accounts', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: transaction({
+          type: TransactionType.Transfer,
+          account_id: deletedSource.id,
+          to_account_id: deletedTarget.id,
+          category_id: null,
+        }),
+        account: deletedSource,
+        toAccount: deletedTarget,
+      }).context,
+    ).toBe(`${Strings.deletedAccount} → ${Strings.deletedAccount}`);
+  });
+
+  it('keeps the card-credit branch, with the deleted card named by the label', () => {
+    const deletedCard = account({
+      id: 'gone-card',
+      name: '',
+      type: AccountType.CreditCard,
+      is_archived: 1,
+      is_deleted: 1,
+    });
+
+    expect(
+      buildTransactionRowPresentation({
+        tx: transaction({ type: TransactionType.Income, account_id: deletedCard.id }),
+        account: deletedCard,
+        category,
+      }),
+    ).toMatchObject({
+      title: Strings.cardCreditTitle,
+      context: `Food & Dining · ${Strings.deletedAccount}`,
     });
   });
 });
