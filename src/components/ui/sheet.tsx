@@ -2,7 +2,7 @@
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { BottomSheet } from 'heroui-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, FontFamily, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
@@ -79,7 +79,7 @@ export interface SheetProps {
   isDismissable?: boolean;
   /** Pass a bare CTA; the shell adds bg, hairline, and padding, so do not pad it again. */
   footer?: React.ReactNode;
-  /** Android only: lift the sheet and its footer clear of the keyboard. Set it on any sheet whose `footer` must stay reachable while typing. */
+  /** Android only: lift the sheet and its footer clear of the keyboard. Set it on any sheet whose `footer` must stay reachable while typing. Assumes the activity does not resize for the IME; re-check this sheet if `app.json` gains `android.softwareKeyboardLayoutMode`. */
   liftsAboveKeyboard?: boolean;
   children: React.ReactNode;
 }
@@ -121,10 +121,12 @@ export function Sheet({
       increment();
       return () => {
         decrement();
+        // `adjustPan` leaves the IME up after a programmatic close; every close path drops `isOpen`.
+        if (liftsAboveKeyboard) Keyboard.dismiss();
       };
     }
     return undefined;
-  }, [isOpen, increment, decrement]);
+  }, [isOpen, increment, decrement, liftsAboveKeyboard]);
 
   const renderFooter = useCallback(
     (props: BottomSheetFooterProps) =>
