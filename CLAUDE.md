@@ -153,6 +153,7 @@ New domain work belongs under `src/modules/<domain>/` using the existing module 
 - Every route `index.tsx` is a one-line re-export from the canonical module screen: `export { default } from '@/modules/<domain>/screens/<path>';` — the sole exception is `src/app/index.tsx`, the root redirect that routes to onboarding or dashboard.
 - **Never** colocate `*.hook.ts` / `*.anim.ts` / `*.store.ts` / `*.helpers.ts` next to a route — Expo Router registers every `.ts/.tsx` as a route; files without a default export crash.
 - **Never** name a sibling of `_layout.tsx` like `_layout.<anything>.ts` — Expo strips the extension and splits on `.`, silently overwriting `_layout.tsx` in prod builds.
+- **Never** leave a screen reachable from `/stacked` with a bare outbound href — a screen inside the mirror either has a stacked twin route or carries `stackedPrefixOf(usePathname())` on every route it pushes; a bare href drops the user back into `(tabs)`, mounting a second tab bar and sending Back to the Dashboard.
 
 ### module screen anatomy
 

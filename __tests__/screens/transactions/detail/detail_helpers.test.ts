@@ -95,7 +95,7 @@ describe('getAccountTypeIcon', () => {
 
 describe('getCommitmentPaymentRoute', () => {
   it('uses the payment id expected by the commitment detail route', () => {
-    expect(getCommitmentPaymentRoute('payment-1')).toBe('/commitments/payment-1');
+    expect(getCommitmentPaymentRoute('payment-1', '')).toBe('/commitments/payment-1');
   });
 
   it('stays in the stacked subtree when opened from a stacked transaction', () => {

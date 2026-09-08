@@ -191,9 +191,9 @@ export function getAccountTypeIcon(type: string | undefined): IconName {
   return 'card-bulleted-outline';
 }
 
-export function getCommitmentPaymentRoute(
+export function getCommitmentPaymentRoute<P extends StackedPrefix>(
   paymentId: string,
-  prefix: StackedPrefix = '',
-): `${StackedPrefix}/commitments/${string}` {
+  prefix: P,
+): `${P}/commitments/${string}` {
   return `${prefix}/commitments/${paymentId}`;
 }
