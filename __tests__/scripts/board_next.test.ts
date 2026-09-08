@@ -145,35 +145,39 @@ describe('board_next text', () => {
 });
 
 describe('board_next html', () => {
-  test('draws both trees: hierarchy first with dependency lanes, dependency first by wave, one toggle', () => {
+  test('ships the tree model and the runtime that lays it out at the container width', () => {
     const r = run('--format', 'html');
     expect(r.status).toBe(0);
     const html = r.stdout;
     expect(html.startsWith('<style>')).toBe(true);
     expect(html).not.toContain('<!--');
-    expect(html).toContain('id="tg-h"');
-    expect(html).toContain('id="tg-d"');
     expect(html).toContain('data-v="h"');
     expect(html).toContain('data-v="d"');
-    const hier = html.slice(html.indexOf('id="tg-h"'), html.indexOf('id="tg-d"'));
-    const dep = html.slice(html.indexOf('id="tg-d"'));
-    expect(hier).toContain('data-i="100"');
-    expect(hier).toContain('data-i="115"');
-    expect(hier).toContain('data-i="108"');
-    expect(hier).toContain('data-f="108" data-t="119"');
-    expect(hier).toContain('data-f="104" data-t="114"');
-    expect(hier).not.toContain('data-i="111"');
-    expect(dep).toContain('Can start now');
-    expect(dep).toContain('After 1 close');
-    const x = (frag: string, n: number) =>
-      Number(
-        new RegExp(
-          `data-i="${n}"[^>]*><title>[^<]*</title><rect class="card[^"]*" x="([\\d.]+)"`,
-        ).exec(frag)?.[1],
-      );
-    expect(x(dep, 119)).toBeGreaterThan(x(dep, 108));
-    expect(x(hier, 119)).toBe(x(hier, 108));
-    expect(html).toContain(`onclick="sendPrompt('/prep 108')"`);
-    expect(html).toContain('>PR #501<');
+    expect(html).toContain('data-theme="dark"');
+    const json =
+      /<script type="application\/json" id="tg-model">([^]*?)<\/script>/.exec(html)?.[1] ?? '{}';
+    const model = JSON.parse(json) as {
+      leaves: Array<{
+        n: number;
+        blockers: Array<{ n: number; parent: boolean }>;
+        pill: { text: string; click: string } | null;
+        parent: number | null;
+      }>;
+      parents: Array<{ n: number; root: boolean; depth: number; done: number; kids: number }>;
+    };
+    const leaf = (n: number) => model.leaves.find((l) => l.n === n);
+    expect(model.leaves.map((l) => l.n)).not.toContain(111);
+    expect(leaf(119)?.blockers).toEqual([{ n: 108, parent: false }]);
+    expect(leaf(114)?.blockers).toEqual([{ n: 104, parent: false }]);
+    expect(leaf(121)?.blockers).toEqual([{ n: 104, parent: false }]);
+    expect(leaf(108)?.pill?.click).toBe("sendPrompt('/prep 108')");
+    expect(leaf(101)?.pill?.text).toBe('PR #501');
+    expect(leaf(116)?.parent).toBe(115);
+    const p = (n: number) => model.parents.find((x) => x.n === n);
+    expect(p(100)?.root).toBe(true);
+    expect(p(115)).toMatchObject({ root: false, depth: 1, kids: 2, done: 0 });
+    expect(p(113)).toMatchObject({ kids: 1, done: 1 });
+    expect(html).toContain('r.clientWidth');
+    expect(html).toContain('ResizeObserver');
   });
 });

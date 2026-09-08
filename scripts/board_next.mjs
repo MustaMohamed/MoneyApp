@@ -709,6 +709,7 @@ font-family:var(--font-sans);color:var(--c-text);background:var(--c-bg);padding:
 .tg-btn{font:inherit;font-size:12px;font-weight:500;padding:3px 10px;border-radius:8px;border:0.5px solid var(--c-border2);background:var(--c-btn);color:var(--c-text2);cursor:pointer}
 .tg-btn.on{border-color:var(--c-accent-bd);background:var(--c-accent-bg);color:var(--c-accent)}
 .tg svg{display:block;width:100%;height:auto}
+.tg{min-width:0}
 .tg [hidden]{display:none}
 .tg text{font-family:var(--font-sans)}
 .tg .id{font-size:13px;font-weight:500;fill:var(--c-text)}
@@ -734,15 +735,87 @@ font-family:var(--font-sans);color:var(--c-text);background:var(--c-bg);padding:
 .tg .col{font-size:11px;fill:var(--c-muted)}
 .tg .key{font-size:11px;fill:var(--c-muted)}`;
 
-const TREE_SCRIPT = `(function(){var r=document.getElementById('tg-root');if(!r)return;var h=document.getElementById('tg-hw'),d=document.getElementById('tg-dw');var bs=r.querySelectorAll('.tg-btn[data-v]');for(var i=0;i<bs.length;i++){bs[i].addEventListener('click',function(){var v=this.getAttribute('data-v');h.hidden=v!=='h';d.hidden=v!=='d';for(var j=0;j<bs.length;j++)bs[j].classList.toggle('on',bs[j]===this);});}
+const TREE_RUNTIME = String.raw`(function(){
+var r=document.getElementById('tg-root');if(!r)return;
+var M=JSON.parse(document.getElementById('tg-model').textContent);
+var CARD_H=80,PITCH=104;
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function clip(s,n){s=String(s||'');return s.length<=n?s:s.slice(0,Math.max(0,n-1))+'…';}
+function pillSvg(p,x,y){if(!p)return '';var w=Math.max(56,Math.round(p.text.length*6.2+14));return '<rect class="pill '+p.kind+'" x="'+x+'" y="'+y+'" width="'+w+'" height="18" rx="9"/><text class="pt '+p.kind+'" x="'+(x+w/2)+'" y="'+(y+13)+'" text-anchor="middle">'+esc(p.text)+'</text>';}
+function card(x,y,w,a,tag,why){var tc=Math.floor((w-22)/6.1),wc=Math.floor((w-22)/5.5);var click=a.pill?a.pill.click:"openLink('"+a.url+"')";
+return '<g class="node" data-i="'+a.n+'" data-dim="'+(a.kind==='wait'||a.kind==='done'?'0':'1')+'" onclick="'+click+'"><title>'+esc(a.tip)+'</title><rect class="card '+a.kind+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+CARD_H+'" rx="6"/><path class="edge '+a.kind+'" d="M'+(x+2)+' '+(y+6)+' L'+(x+2)+' '+(y+CARD_H-6)+'"/><text class="id" x="'+(x+12)+'" y="'+(y+19)+'">'+esc(a.id)+'</text><text class="st" x="'+(x+w-10)+'" y="'+(y+19)+'" text-anchor="end">'+esc(a.status)+'</text><text class="tt" x="'+(x+12)+'" y="'+(y+36)+'">'+esc(clip(a.title,tc))+'</text><text class="why" x="'+(x+12)+'" y="'+(y+52)+'">'+esc(clip(why||'',wc))+'</text>'+pillSvg(a.pill,x+10,y+58)+(tag?'<text class="tag" x="'+(x+w-10)+'" y="'+(y+71)+'" text-anchor="end">'+esc(tag)+'</text>':'')+'</g>';}
+function group(x,y,w,g,lines){var c=Math.floor((w-20)/6.1),cs=Math.floor((w-20)/5.5);var click=g.pill?g.pill.click:(g.url?"openLink('"+g.url+"')":'');
+return '<g class="node"'+(g.n!==undefined?' data-i="'+g.n+'" data-dim="0"':'')+(click?' onclick="'+click+'"':'')+'>'+(g.tip?'<title>'+esc(g.tip)+'</title>':'')+'<rect class="grp'+(g.fix?' fix':'')+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+CARD_H+'" rx="6"/><text class="gl" x="'+(x+10)+'" y="'+(y+19)+'">'+esc(clip(lines[0],c))+'</text><text class="tt" x="'+(x+10)+'" y="'+(y+36)+'">'+esc(clip(lines[1]||'',c))+'</text><text class="gs" x="'+(x+10)+'" y="'+(y+52)+'">'+esc(clip(lines[2]||'',cs))+'</text>'+(g.pill?pillSvg(g.pill,x+10,y+58):'<text class="gs" x="'+(x+10)+'" y="'+(y+71)+'">'+esc(clip(lines[3]||'',cs))+'</text>')+'</g>';}
+function marker(id){return '<defs><marker id="'+id+'" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="hd" d="M1 1L9 5L1 9z"/></marker></defs>';}
+var byN={};M.leaves.forEach(function(l){byN[l.n]=l;});var pByN={};M.parents.forEach(function(p){pByN[p.n]=p;});
+function nameOf(n){return byN[n]?byN[n].id:(pByN[n]?pByN[n].id:'#'+n);}
+function hier(W){
+var maxD=0;M.parents.forEach(function(p){if(p.depth>maxD)maxD=p.depth;});var leafCol=maxD+1;
+var extra=Math.max(0,W-680);var w0=110+Math.round(extra*0.12),w1=130+Math.round(extra*0.16);
+function colW(c){return c===0?w0:w1;}function colX(c){return c===0?20:20+w0+40+(c-1)*(w1+40);}
+var leafX=colX(leafCol);var edgesAll=[];M.leaves.forEach(function(l){l.blockers.forEach(function(b){edgesAll.push({from:b.n,to:l.n,parent:b.parent});});});
+var rightCount=edgesAll.filter(function(e){return !e.parent&&byN[e.from];}).length;
+var laneW=Math.max(40,rightCount*14+16);var leafW=Math.max(230,W-20-laneW-leafX);var laneX0=leafX+leafW+16;
+var rows=[],placed=[];
+function leavesOf(pn){return M.leaves.filter(function(l){return l.parent===pn;});}
+function kidsOf(pn){return M.parents.filter(function(p){return p.parent===pn;}).sort(function(x,y){return x.board-y.board;});}
+function walk(pn,col){var start=rows.length;kidsOf(pn).forEach(function(cp){walk(cp.n,col+1);});leavesOf(pn).forEach(function(l){rows.push({kind:'leaf',a:l});});var p=pByN[pn];if(p.doneIds.length)rows.push({kind:'done',parent:pn,ids:p.doneIds,url:p.url});var end=rows.length-1;if(end<start)rows.push({kind:'empty'});placed.push({n:pn,col:col,start:start,end:Math.max(end,start)});}
+M.parents.filter(function(p){return p.root;}).sort(function(x,y){return x.board-y.board;}).forEach(function(p){walk(p.n,0);});
+var stray=M.leaves.filter(function(l){return l.parent===null;});var sg=null;if(stray.length){var st=rows.length;stray.forEach(function(l){rows.push({kind:'leaf',a:l});});sg={start:st,end:rows.length-1};}
+var top=44;rows.forEach(function(r,i){r.y=top+i*PITCH;});function cy(r){return r.y+CARD_H/2;}
+var svg='',dsvg='';
+placed.forEach(function(pp){var p=pByN[pp.n];var y=(cy(rows[pp.start])+cy(rows[pp.end]))/2-CARD_H/2;pp.y=y;var x=colX(pp.col),w=colW(pp.col);
+svg+=group(x,y,w,p,[p.id,p.title,p.status+', '+p.done+' of '+p.kids+' done',p.why]);
+var xb=x+w+20,ys=[];placed.forEach(function(cp){if(pByN[cp.n].parent===pp.n)ys.push({x:colX(cp.col),y:cp.y+CARD_H/2});});
+for(var i=pp.start;i<=pp.end;i++){var rr=rows[i];if((rr.kind==='leaf'&&rr.a.parent===pp.n)||(rr.kind==='done'&&rr.parent===pp.n))ys.push({x:leafX,y:cy(rr)});}
+if(ys.length){var ymin=Math.min.apply(null,ys.map(function(o){return o.y;}).concat([y+CARD_H/2])),ymax=Math.max.apply(null,ys.map(function(o){return o.y;}).concat([y+CARD_H/2]));svg+='<path class="tree" d="M'+(x+w)+' '+(y+CARD_H/2)+' L'+xb+' '+(y+CARD_H/2)+' M'+xb+' '+ymin+' L'+xb+' '+ymax+ys.map(function(o){return ' M'+xb+' '+o.y+' L'+o.x+' '+o.y;}).join('')+'"/>';}});
+if(sg){var y0=(cy(rows[sg.start])+cy(rows[sg.end]))/2-CARD_H/2;svg+=group(colX(0),y0,colW(0),{},['No parent','',stray.length+' open','']);var xb0=colX(0)+colW(0)+20,yy=[];for(var q=sg.start;q<=sg.end;q++)yy.push(cy(rows[q]));svg+='<path class="tree" d="M'+(colX(0)+colW(0))+' '+(y0+CARD_H/2)+' L'+xb0+' '+(y0+CARD_H/2)+' M'+xb0+' '+Math.min.apply(null,yy.concat([y0+CARD_H/2]))+' L'+xb0+' '+Math.max.apply(null,yy.concat([y0+CARD_H/2]))+yy.map(function(v){return ' M'+xb0+' '+v+' L'+leafX+' '+v;}).join('')+'"/>';}
+var rowOf={};rows.forEach(function(rr){if(rr.kind==='leaf')rowOf[rr.a.n]=rr;});
+rows.forEach(function(rr){if(rr.kind==='leaf'){var bn=rr.a.blockers.map(function(b){return b.parent?nameOf(b.n)+' closes':nameOf(b.n);});var why=rr.a.why;if(bn.length){if(/nothing blocks it|unblocked/.test(why))why='';why=(why?why+', ':'')+'after '+bn.join(', ');}svg+=card(leafX,rr.y,leafW,rr.a,'',why);}
+else if(rr.kind==='done'){svg+='<g class="node" data-dim="0" onclick="openLink(\''+rr.url+'\')"><rect class="card done" x="'+leafX+'" y="'+rr.y+'" width="'+leafW+'" height="'+CARD_H+'" rx="6"/><path class="edge done" d="M'+(leafX+2)+' '+(rr.y+6)+' L'+(leafX+2)+' '+(rr.y+CARD_H-6)+'"/><text class="id" x="'+(leafX+12)+'" y="'+(rr.y+19)+'">'+rr.ids.length+' done</text><text class="st" x="'+(leafX+leafW-10)+'" y="'+(rr.y+19)+'" text-anchor="end">Done</text><text class="tt" x="'+(leafX+12)+'" y="'+(rr.y+36)+'">'+esc(clip(rr.ids.join(', '),Math.floor((leafW-22)/6.1)))+'</text></g>';}
+else if(rr.kind==='empty'){svg+='<text class="why" x="'+(leafX+12)+'" y="'+(rr.y+44)+'">no open tickets</text>';}});
+var touches={};function touch(n,o){(touches[n]=touches[n]||[]).push(o);}edgesAll.forEach(function(e){if(!e.parent)touch(e.from,e.to);touch(e.to,e.from);});
+function yOf(n){return rowOf[n]?cy(rowOf[n]):(placed.filter(function(pp){return pp.n===n;})[0]||{y:0}).y;}
+function portY(n,o){var list=[];(touches[n]||[]).forEach(function(v){if(list.indexOf(v)<0)list.push(v);});list.sort(function(p,q){return yOf(p)-yOf(q);});var i=list.indexOf(o);return cy(rowOf[n])+(i-(list.length-1)/2)*10;}
+var right=edgesAll.filter(function(e){return !e.parent&&rowOf[e.from]&&rowOf[e.to];}).sort(function(p,q){return Math.abs(cy(rowOf[p.to])-cy(rowOf[p.from]))-Math.abs(cy(rowOf[q.to])-cy(rowOf[q.from]));});
+var laneStep=Math.max(7,Math.min(14,Math.floor((W-14-laneX0)/Math.max(1,right.length))));
+right.forEach(function(e,i){var lx=laneX0+i*laneStep,y1=portY(e.from,e.to),y2=portY(e.to,e.from);dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tga)" d="M'+(leafX+leafW)+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(leafX+leafW+2)+' '+y2+'"/>';});
+var pe=edgesAll.filter(function(e){return e.parent&&rowOf[e.to];});var lanes=[];pe.forEach(function(e){if(lanes.indexOf(e.from)<0)lanes.push(e.from);});
+pe.forEach(function(e){var pp=placed.filter(function(o){return o.n===e.from;})[0];if(!pp)return;var lx=leafX-8-lanes.indexOf(e.from)*6,y1=pp.y+CARD_H/2+12,y2=cy(rowOf[e.to])+12;dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tga)" d="M'+(colX(pp.col)+colW(pp.col))+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(leafX-2)+' '+y2+'"/>';});
+var H=top+rows.length*PITCH+30;var heads='<text class="col" x="'+colX(0)+'" y="24">Epic</text>';for(var c=1;c<leafCol;c++)heads+='<text class="col" x="'+colX(c)+'" y="24">Split tasks</text>';heads+='<text class="col" x="'+leafX+'" y="24">Tickets</text>'+(right.length?'<text class="col" x="'+laneX0+'" y="24">Waits on</text>':'');
+return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Hierarchy first">'+marker('tga')+heads+svg+dsvg+'<text class="key" x="20" y="'+(H-18)+'">Solid elbow: part of. Dashed arrow: the ticket it points at waits on the one it starts from.</text><text class="key" x="20" y="'+(H-4)+'">Hover a ticket to trace its arrows. Click a pill to run it.</text></svg>';}
+function dep(W){
+var nodes={},keys=[];M.leaves.forEach(function(l){nodes[l.n]={key:l.n,a:l};keys.push(l.n);});
+var needed={};M.leaves.forEach(function(l){l.blockers.forEach(function(b){if(b.parent)needed[b.n]=1;});});
+Object.keys(needed).forEach(function(pn){var p=pByN[pn];if(!p)return;nodes['p'+pn]={key:'p'+pn,p:p,closeOf:Number(pn)};keys.push('p'+pn);});
+function blockerKeys(k){var nd=nodes[k];if(nd.closeOf)return M.leaves.filter(function(l){return l.parent===nd.closeOf;}).map(function(l){return l.n;});return nd.a.blockers.map(function(b){return b.parent?'p'+b.n:b.n;}).filter(function(x){return !!nodes[x];});}
+var wave={};function waveOf(k,seen){seen=seen||{};if(wave[k]!==undefined)return wave[k];if(seen[k])return 0;seen[k]=1;var bs=blockerKeys(k);var v=bs.length?1+Math.max.apply(null,bs.map(function(x){return waveOf(x,seen);})):0;wave[k]=v;return v;}
+keys.forEach(function(k){waveOf(k);});var maxW=0;keys.forEach(function(k){if(wave[k]>maxW)maxW=wave[k];});
+var colW=Math.max(230,Math.min(340,Math.floor((W-40)/(maxW+1))));var stepX=maxW>0?Math.floor((W-40-colW)/maxW):0;var staggered=stepX<colW+20;
+function colX(c){return 20+c*stepX;}
+var bucketOrder=['yours','drift','flight','pull','define','wait'];function bo(k){var nd=nodes[k];var a=nd.a||nd.p;return bucketOrder.indexOf(a.bucket)*100000+(a.board||0);}
+var primary={};keys.forEach(function(k){var bs=blockerKeys(k);if(!bs.length)return;bs.sort(function(p,q){return (wave[q]-wave[p])||(bo(p)-bo(q));});primary[k]=bs[0];});
+var order=[];function children(k){return keys.filter(function(c){return primary[c]===k;}).sort(function(p,q){return bo(p)-bo(q);});}
+function visit(k){order.push(k);children(k).forEach(visit);}
+keys.filter(function(k){return primary[k]===undefined;}).sort(function(p,q){return bo(p)-bo(q);}).forEach(visit);
+var top=48,pos={};order.forEach(function(k,i){pos[k]={x:colX(wave[k]),y:top+i*PITCH};});
+var svg='',tsvg='',dsvg='',sec=[];
+order.forEach(function(k){var nd=nodes[k],p=pos[k];if(nd.closeOf){var g=nd.p;svg+=group(p.x,p.y,colW,g,[g.id+' closes',g.title,g.status+', '+g.open+' open child'+(g.open===1?'':'ren'),g.why]);}
+else{var a=nd.a;var tag=a.parentTag;var bs=blockerKeys(k).filter(function(b){return b!==primary[k];}).map(function(b){return nodes[b].closeOf?nodes[b].p.id+' closes':nameOf(b);});var base=primary[k]?a.why.replace(/nothing blocks it|reviewed, unblocked/,'unblocked by the ticket above'):a.why;var why=base+(bs.length?(base?', ':'')+'also after '+bs.join(', '):'');svg+=card(p.x,p.y,colW,a,tag,why);}});
+order.forEach(function(k){var pk=primary[k];if(!pk)return;var a=pos[pk],b=pos[k];if(staggered)tsvg+='<path class="tree" d="M'+(a.x+18)+' '+(a.y+CARD_H)+' L'+(a.x+18)+' '+(b.y+CARD_H/2)+' L'+b.x+' '+(b.y+CARD_H/2)+'"/>';else tsvg+='<path class="tree" d="M'+(a.x+colW)+' '+(a.y+CARD_H/2)+' L'+(a.x+colW+20)+' '+(a.y+CARD_H/2)+' L'+(a.x+colW+20)+' '+(b.y+CARD_H/2)+' L'+b.x+' '+(b.y+CARD_H/2)+'"/>';blockerKeys(k).forEach(function(o){if(o!==pk)sec.push({from:o,to:k});});});
+sec.sort(function(p,q){return Math.abs(pos[p.to].y-pos[p.from].y)-Math.abs(pos[q.to].y-pos[q.from].y);});
+sec.forEach(function(e,i){var o=pos[e.from],b=pos[e.to];var lx=Math.max(o.x,b.x)+colW+12+i*8;if(lx>W-6)lx=W-6-i*4;var y1=o.y+CARD_H/2+10,y2=b.y+CARD_H/2+12;dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tgb)" d="M'+(o.x+colW)+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(b.x+colW+2)+' '+y2+'"/>';});
+var H=top+order.length*PITCH+30;var heads='';for(var c=0;c<=maxW;c++)heads+='<text class="col" x="'+colX(c)+'" y="'+(stepX<100?22+(c%2)*13:26)+'">'+(c===0?'Can start now':'After '+c+' close'+(c>1?'s':''))+'</text>';
+return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Dependency first">'+marker('tgb')+heads+tsvg+dsvg+svg+'<text class="key" x="20" y="'+(H-18)+'">Solid: the lower ticket waits on the one above it. Dashed, from the right: its other blockers.</text><text class="key" x="20" y="'+(H-4)+'">Grey tag: which part of the epic it belongs to. Click a pill to run it.</text></svg>';}
+var hw=document.getElementById('tg-hw'),dw=document.getElementById('tg-dw');var lastW=0;
+function render(){var W=Math.max(680,Math.floor(r.clientWidth-28));if(W===lastW)return;lastW=W;hw.innerHTML=hier(W);dw.innerHTML=dep(W);}
+render();if(window.ResizeObserver){new ResizeObserver(function(){render();}).observe(r);}
+var bs=r.querySelectorAll('.tg-btn[data-v]');for(var i=0;i<bs.length;i++){bs[i].addEventListener('click',function(){var v=this.getAttribute('data-v');hw.hidden=v!=='h';dw.hidden=v!=='d';for(var j=0;j<bs.length;j++)bs[j].classList.toggle('on',bs[j]===this);});}
 var tb=r.querySelector('.tg-btn[data-theme-toggle]');if(tb){tb.addEventListener('click',function(){var dark=r.getAttribute('data-theme')!=='light';r.setAttribute('data-theme',dark?'light':'dark');this.textContent=dark?'Dark':'Light';});}
 function mark(id){var ps=r.querySelectorAll('.dep');var rel={};for(var k=0;k<ps.length;k++){var p=ps[k];var on=!!id&&(p.getAttribute('data-f')===id||p.getAttribute('data-t')===id);p.classList.toggle('hi',on);if(on){rel[p.getAttribute('data-f')]=1;rel[p.getAttribute('data-t')]=1;}}
 var ns=r.querySelectorAll('.node[data-i]');for(var m=0;m<ns.length;m++){var n=ns[m],nid=n.getAttribute('data-i');n.classList.toggle('lo',!!id&&nid!==id&&!rel[nid]&&n.getAttribute('data-dim')==='1');}}
 r.addEventListener('mouseover',function(e){var t=e.target;while(t&&t!==r&&!(t.classList&&t.classList.contains('node')))t=t.parentNode;mark(t&&t!==r?t.getAttribute('data-i'):null);});
 r.addEventListener('mouseleave',function(){mark(null);});})();`;
-
-const CARD_H = 80;
-const PITCH = 104;
 
 function cardKind(a) {
   if (!a) return 'wait';
@@ -751,63 +824,6 @@ function cardKind(a) {
   if (a.bucket === 'yours') return 'you';
   if (a.command) return 'run';
   return 'wait';
-}
-
-function whyOf(a, blockerNames) {
-  const f = friendly(a.action);
-  const parts = [];
-  if (f && !(blockerNames.length && /nothing blocks it|unblocked/.test(f))) parts.push(f);
-  if (blockerNames.length) parts.push(`after ${blockerNames.join(', ')}`);
-  return parts.join(', ');
-}
-
-function cardSvg(x, y, w, a, opts) {
-  const kind = cardKind(a);
-  const pill = kind === 'done' ? null : pillLabel(a);
-  const pillW = pill ? Math.max(56, Math.round(pill.text.length * 6.2 + 14)) : 0;
-  const titleChars = Math.floor((w - 22) / 6.1);
-  const whyChars = Math.floor((w - 22) / 5.5);
-  const click = pill ? pill.click : `openLink('${ISSUE_URL}${a.number}')`;
-  const dim = kind === 'wait' || kind === 'done' ? '0' : '1';
-  const tip = `${rowId(a)} ${shortTitle(a)}. ${a.status ?? ''}. ${a.action}${a.command ? `. Next: ${a.command}` : ''}`;
-  return (
-    `<g class="node" data-i="${a.number}" data-dim="${dim}" onclick="${click}"><title>${esc(tip)}</title>` +
-    `<rect class="card ${kind}" x="${x}" y="${y}" width="${w}" height="${CARD_H}" rx="6"/><path class="edge ${kind}" d="M${x + 2} ${y + 6} L${x + 2} ${y + CARD_H - 6}"/>` +
-    `<text class="id" x="${x + 12}" y="${y + 19}">${esc(rowId(a))}</text><text class="st" x="${x + w - 10}" y="${y + 19}" text-anchor="end">${esc(shortStatus(a.status))}</text>` +
-    `<text class="tt" x="${x + 12}" y="${y + 36}">${esc(clip(opts.title ?? shortTitle(a), titleChars))}</text>` +
-    `<text class="why" x="${x + 12}" y="${y + 52}">${esc(clip(opts.why ?? '', whyChars))}</text>` +
-    (pill
-      ? `<rect class="pill ${pill.kind}" x="${x + 10}" y="${y + 58}" width="${pillW}" height="18" rx="9"/><text class="pt ${pill.kind}" x="${x + 10 + pillW / 2}" y="${y + 71}" text-anchor="middle">${esc(pill.text)}</text>`
-      : '') +
-    (opts.tag
-      ? `<text class="tag" x="${x + w - 10}" y="${y + 71}" text-anchor="end">${esc(opts.tag)}</text>`
-      : '') +
-    `</g>`
-  );
-}
-
-function groupSvg(x, y, w, lines, opts) {
-  const kind = opts.fix ? ' fix' : '';
-  const pill = opts.a && opts.a.command ? pillLabel(opts.a) : null;
-  const pillW = pill ? Math.max(56, Math.round(pill.text.length * 6.2 + 14)) : 0;
-  const click = pill ? pill.click : opts.n ? `openLink('${ISSUE_URL}${opts.n}')` : '';
-  const chars = Math.floor((w - 20) / 6.1);
-  const charsS = Math.floor((w - 20) / 5.5);
-  return (
-    `<g class="node"${opts.n ? ` data-i="${opts.n}" data-dim="0"` : ''}${click ? ` onclick="${click}"` : ''}>${opts.tip ? `<title>${esc(opts.tip)}</title>` : ''}` +
-    `<rect class="grp${kind}" x="${x}" y="${y}" width="${w}" height="${CARD_H}" rx="6"/>` +
-    `<text class="gl" x="${x + 10}" y="${y + 19}">${esc(clip(lines[0], chars))}</text>` +
-    `<text class="tt" x="${x + 10}" y="${y + 36}">${esc(clip(lines[1] ?? '', chars))}</text>` +
-    `<text class="gs" x="${x + 10}" y="${y + 52}">${esc(clip(lines[2] ?? '', charsS))}</text>` +
-    (pill
-      ? `<rect class="pill ${pill.kind}" x="${x + 10}" y="${y + 58}" width="${pillW}" height="18" rx="9"/><text class="pt ${pill.kind}" x="${x + 10 + pillW / 2}" y="${y + 71}" text-anchor="middle">${esc(pill.text)}</text>`
-      : `<text class="gs" x="${x + 10}" y="${y + 71}">${esc(clip(lines[3] ?? '', charsS))}</text>`) +
-    `</g>`
-  );
-}
-
-function elbow(x1, y1, xb, x2, y2) {
-  return `M${x1} ${y1} L${xb} ${y1} L${xb} ${y2} L${x2} ${y2}`;
 }
 
 function treeReport(result) {
@@ -822,6 +838,15 @@ function treeReport(result) {
   const parentOf = (n) => {
     const p = ctx.byNumber.get(n)?.parent ?? null;
     return p && parentSet.has(p) ? p : null;
+  };
+  const depthOf = (n) => {
+    let dpt = 0;
+    let cur = parentOf(n);
+    while (cur) {
+      dpt += 1;
+      cur = parentOf(cur);
+    }
+    return dpt;
   };
   const blockersOf = (n) => {
     const a = inScope.get(n);
@@ -838,357 +863,64 @@ function treeReport(result) {
         out.push({ n: m, parent: false });
     return out;
   };
-  const nameOf = (n) => {
-    const a = inScope.get(n);
-    return a ? rowId(a) : `#${n}`;
+  const model = {
+    leaves: leaves.map((a) => {
+      const pn = parentOf(a.number);
+      return {
+        n: a.number,
+        id: rowId(a),
+        title: shortTitle(a),
+        status: shortStatus(a.status),
+        kind: cardKind(a),
+        bucket: a.bucket,
+        board: a.boardIndex,
+        why: friendly(a.action),
+        parent: pn,
+        parentTag: pn ? (rootSet.has(pn) ? 'Epic' : clip(rowId(inScope.get(pn)), 8)) : 'No parent',
+        blockers: blockersOf(a.number),
+        pill: cardKind(a) === 'done' ? null : pillLabel(a),
+        url: `${ISSUE_URL}${a.number}`,
+        tip: `${rowId(a)} ${shortTitle(a)}. ${a.status ?? ''}. ${a.action}${a.command ? `. Next: ${a.command}` : ''}`,
+      };
+    }),
+    parents: parents.map((p) => {
+      const it = ctx.byNumber.get(p.number);
+      const kids = it?.children ?? [];
+      const doneIds = kids
+        .filter((k) => k.state === 'closed')
+        .map((k) => {
+          const kit = ctx.byNumber.get(k.number);
+          return kit ? rowId(kit) : `#${k.number}`;
+        });
+      return {
+        n: p.number,
+        id: rowId(p),
+        title: shortTitle(p),
+        status: shortStatus(p.status),
+        bucket: p.bucket,
+        board: p.boardIndex,
+        depth: depthOf(p.number),
+        root: rootSet.has(p.number),
+        parent: parentOf(p.number),
+        kids: kids.length,
+        done: doneIds.length,
+        open: kids.length - doneIds.length,
+        doneIds,
+        why: friendly(p.action),
+        fix: p.bucket === 'drift',
+        pill: p.command ? pillLabel(p) : null,
+        url: `${ISSUE_URL}${p.number}`,
+        tip: `${rowId(p)} ${shortTitle(p)}. ${p.status ?? ''}. ${p.action}`,
+      };
+    }),
   };
   const kindCount = (b) => leaves.filter((x) => x.bucket === b).length;
   const runnable = kindCount('flight') + kindCount('pull') + kindCount('define');
   const needs = result.actions.filter((x) => x.bucket === 'yours' || x.bucket === 'drift').length;
   const waiting = kindCount('wait');
-  const marker = (id) =>
-    `<defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="hd" d="M1 1L9 5L1 9z"/></marker></defs>`;
-
-  const hier = (() => {
-    const depthOf = (n) => {
-      let dpt = 0;
-      let cur = parentOf(n);
-      while (cur) {
-        dpt += 1;
-        cur = parentOf(cur);
-      }
-      return dpt;
-    };
-    const maxParentDepth = Math.max(0, ...parents.map((p) => depthOf(p.number)));
-    const leafCol = maxParentDepth + 1;
-    const colX = (col) => (col === 0 ? 20 : 170 + (col - 1) * 170);
-    const colW = (col) => (col === 0 ? 110 : 130);
-    const leafX = colX(leafCol);
-    const leafW = 230;
-    const laneX0 = leafX + leafW + 16;
-    const rows = [];
-    const placedParents = [];
-    const orderLeaves = (pn) => leaves.filter((l) => parentOf(l.number) === pn);
-    const childParents = (pn) =>
-      parents.filter((p) => parentOf(p.number) === pn).sort((x, y) => x.boardIndex - y.boardIndex);
-    const walk = (pn, col) => {
-      const start = rows.length;
-      for (const cp of childParents(pn)) walk(cp.number, col + 1);
-      for (const l of orderLeaves(pn)) rows.push({ kind: 'leaf', a: l, y: 0 });
-      const it = ctx.byNumber.get(pn);
-      const closed = (it?.children ?? []).filter((k) => k.state === 'closed');
-      if (closed.length) rows.push({ kind: 'done', parent: pn, closed, y: 0 });
-      const end = rows.length - 1;
-      if (end < start) rows.push({ kind: 'empty', parent: pn, y: 0 });
-      placedParents.push({ n: pn, col, start, end: Math.max(end, start) });
-    };
-    for (const r of roots.sort((x, y) => x.boardIndex - y.boardIndex)) walk(r.number, 0);
-    const stray = leaves.filter((l) => !parentOf(l.number));
-    let strayGroup = null;
-    if (stray.length) {
-      const start = rows.length;
-      for (const l of stray) rows.push({ kind: 'leaf', a: l, y: 0 });
-      strayGroup = { start, end: rows.length - 1 };
-    }
-    const top = 44;
-    rows.forEach((r, i) => {
-      r.y = top + i * PITCH;
-    });
-    const cy = (r) => r.y + CARD_H / 2;
-    let svg = '';
-    for (const pp of placedParents) {
-      const a = inScope.get(pp.n);
-      const it = ctx.byNumber.get(pp.n);
-      const kids = it?.children ?? [];
-      const done = kids.filter((k) => k.state === 'closed').length;
-      const y = (cy(rows[pp.start]) + cy(rows[pp.end])) / 2 - CARD_H / 2;
-      pp.y = y;
-      const x = colX(pp.col);
-      const w = colW(pp.col);
-      const lines = [
-        rowId(a),
-        shortTitle(a),
-        `${shortStatus(a.status)}, ${done} of ${kids.length} done`,
-        friendly(a.action),
-      ];
-      svg += groupSvg(x, y, w, lines, {
-        n: pp.n,
-        a,
-        fix: a.bucket === 'drift',
-        tip: `${rowId(a)} ${shortTitle(a)}. ${a.status}. ${a.action}`,
-      });
-      const xb = x + w + 20;
-      const ys = [];
-      for (const cp of placedParents)
-        if (parentOf(cp.n) === pp.n) ys.push({ x: colX(cp.col), y: cp.y + CARD_H / 2 });
-      for (let i = pp.start; i <= pp.end; i += 1) {
-        const r = rows[i];
-        if (
-          (r.kind === 'leaf' && parentOf(r.a.number) === pp.n) ||
-          (r.kind === 'done' && r.parent === pp.n)
-        )
-          ys.push({ x: leafX, y: cy(r) });
-      }
-      if (ys.length) {
-        const ymin = Math.min(...ys.map((o) => o.y), y + CARD_H / 2);
-        const ymax = Math.max(...ys.map((o) => o.y), y + CARD_H / 2);
-        svg += `<path class="tree" d="M${x + w} ${y + CARD_H / 2} L${xb} ${y + CARD_H / 2} M${xb} ${ymin} L${xb} ${ymax}${ys.map((o) => ` M${xb} ${o.y} L${o.x} ${o.y}`).join('')}"/>`;
-      }
-    }
-    if (strayGroup) {
-      const y = (cy(rows[strayGroup.start]) + cy(rows[strayGroup.end])) / 2 - CARD_H / 2;
-      svg += groupSvg(colX(0), y, colW(0), ['No parent', '', `${stray.length} open`, ''], {});
-      const xb = colX(0) + colW(0) + 20;
-      const ys = [];
-      for (let i = strayGroup.start; i <= strayGroup.end; i += 1) ys.push(cy(rows[i]));
-      svg += `<path class="tree" d="M${colX(0) + colW(0)} ${y + CARD_H / 2} L${xb} ${y + CARD_H / 2} M${xb} ${Math.min(...ys, y + CARD_H / 2)} L${xb} ${Math.max(...ys, y + CARD_H / 2)}${ys.map((yy) => ` M${xb} ${yy} L${leafX} ${yy}`).join('')}"/>`;
-    }
-    const rowOf = new Map();
-    rows.forEach((r) => {
-      if (r.kind === 'leaf') rowOf.set(r.a.number, r);
-    });
-    for (const r of rows) {
-      if (r.kind === 'leaf') {
-        const bs = blockersOf(r.a.number);
-        svg += cardSvg(leafX, r.y, leafW, r.a, {
-          why: whyOf(
-            r.a,
-            bs.map((o) => (o.parent ? `${nameOf(o.n)} closes` : nameOf(o.n))),
-          ),
-        });
-      } else if (r.kind === 'done') {
-        const ids = r.closed.map((k) => {
-          const it = ctx.byNumber.get(k.number);
-          return it ? rowId(it) : `#${k.number}`;
-        });
-        const fake = {
-          number: r.closed[0].number,
-          title: '',
-          status: 'Done',
-          state: 'closed',
-          action: '',
-          bucket: 'wait',
-          deps: [],
-        };
-        svg += `<g class="node" data-dim="0" onclick="openLink('${ISSUE_URL}${r.parent}')"><rect class="card done" x="${leafX}" y="${r.y}" width="${leafW}" height="${CARD_H}" rx="6"/><path class="edge done" d="M${leafX + 2} ${r.y + 6} L${leafX + 2} ${r.y + CARD_H - 6}"/><text class="id" x="${leafX + 12}" y="${r.y + 19}">${r.closed.length} done</text><text class="st" x="${leafX + leafW - 10}" y="${r.y + 19}" text-anchor="end">Done</text><text class="tt" x="${leafX + 12}" y="${r.y + 36}">${esc(clip(ids.join(', '), 34))}</text></g>`;
-        void fake;
-      } else if (r.kind === 'empty') {
-        svg += `<text class="why" x="${leafX + 12}" y="${r.y + 44}">no open tickets</text>`;
-      }
-    }
-    const edges = [];
-    for (const l of leaves)
-      for (const b of blockersOf(l.number))
-        edges.push({ from: b.n, to: l.number, parent: b.parent });
-    const touches = new Map();
-    const touch = (n, other) => {
-      if (!touches.has(n)) touches.set(n, []);
-      touches.get(n).push(other);
-    };
-    for (const e of edges) {
-      if (!e.parent) touch(e.from, e.to);
-      touch(e.to, e.from);
-    }
-    const portY = (n, other) => {
-      const r = rowOf.get(n);
-      const list = [...new Set(touches.get(n) ?? [])].sort(
-        (p, q) =>
-          (rowOf.get(p)?.y ?? placedParents.find((pp) => pp.n === p)?.y ?? 0) -
-          (rowOf.get(q)?.y ?? placedParents.find((pp) => pp.n === q)?.y ?? 0),
-      );
-      const i = list.indexOf(other);
-      return cy(r) + (i - (list.length - 1) / 2) * 10;
-    };
-    const rightEdges = edges
-      .filter((e) => !e.parent && rowOf.has(e.from) && rowOf.has(e.to))
-      .sort(
-        (p, q) =>
-          Math.abs(cy(rowOf.get(p.to)) - cy(rowOf.get(p.from))) -
-          Math.abs(cy(rowOf.get(q.to)) - cy(rowOf.get(q.from))),
-      );
-    const laneStep = Math.max(
-      7,
-      Math.min(14, Math.floor((666 - laneX0) / Math.max(1, rightEdges.length))),
-    );
-    let dsvg = '';
-    rightEdges.forEach((e, i) => {
-      const lx = laneX0 + i * laneStep;
-      const y1 = portY(e.from, e.to);
-      const y2 = portY(e.to, e.from);
-      dsvg += `<path class="dep" data-f="${e.from}" data-t="${e.to}" marker-end="url(#tga)" d="M${leafX + leafW} ${y1} L${lx} ${y1} L${lx} ${y2} L${leafX + leafW + 2} ${y2}"/>`;
-    });
-    const parentEdges = edges.filter((e) => e.parent && rowOf.has(e.to));
-    const parentLanes = [...new Set(parentEdges.map((e) => e.from))];
-    for (const e of parentEdges) {
-      const pp = placedParents.find((o) => o.n === e.from);
-      if (!pp) continue;
-      const lx = leafX - 8 - parentLanes.indexOf(e.from) * 6;
-      const y1 = pp.y + CARD_H / 2 + 12;
-      const y2 = cy(rowOf.get(e.to)) + 12;
-      dsvg += `<path class="dep" data-f="${e.from}" data-t="${e.to}" marker-end="url(#tga)" d="M${colX(pp.col) + colW(pp.col)} ${y1} L${lx} ${y1} L${lx} ${y2} L${leafX - 2} ${y2}"/>`;
-    }
-    const H = top + rows.length * PITCH + 30;
-    const heads = [`<text class="col" x="${colX(0)}" y="24">Epic</text>`];
-    for (let cidx = 1; cidx < leafCol; cidx += 1)
-      heads.push(`<text class="col" x="${colX(cidx)}" y="24">Split tasks</text>`);
-    heads.push(
-      `<text class="col" x="${leafX}" y="24">Tickets</text>`,
-      `<text class="col" x="${laneX0}" y="24">Waits on</text>`,
-    );
-    const key = `<text class="key" x="20" y="${H - 18}">Solid elbow: part of. Dashed arrow: the ticket it points at waits on the one it starts from.</text><text class="key" x="20" y="${H - 4}">Hover a ticket to trace its arrows. Click a pill to run it.</text>`;
-    return `<div id="tg-hw"><svg id="tg-h" viewBox="0 0 680 ${H}" role="img" aria-label="Hierarchy first">${marker('tga')}${heads.join('')}${svg}${dsvg}${key}</svg></div>`;
-  })();
-
-  const dep = (() => {
-    const nodes = new Map();
-    for (const l of leaves) nodes.set(l.number, { key: l.number, a: l, closeOf: null });
-    const neededParents = new Set();
-    for (const l of leaves)
-      for (const b of blockersOf(l.number)) if (b.parent) neededParents.add(b.n);
-    for (const pn of neededParents)
-      nodes.set(`p${pn}`, { key: `p${pn}`, a: inScope.get(pn), closeOf: pn });
-    const blockerKeys = (key) => {
-      const nd = nodes.get(key);
-      if (nd.closeOf)
-        return leaves.filter((l) => parentOf(l.number) === nd.closeOf).map((l) => l.number);
-      return blockersOf(nd.a.number)
-        .map((b) => (b.parent ? `p${b.n}` : b.n))
-        .filter((k) => nodes.has(k));
-    };
-    const wave = new Map();
-    const waveOf = (key, seen = new Set()) => {
-      if (wave.has(key)) return wave.get(key);
-      if (seen.has(key)) return 0;
-      seen.add(key);
-      const bs = blockerKeys(key);
-      const v = bs.length ? 1 + Math.max(...bs.map((k) => waveOf(k, seen))) : 0;
-      wave.set(key, v);
-      return v;
-    };
-    for (const k of nodes.keys()) waveOf(k);
-    const maxWave = Math.max(0, ...wave.values());
-    const ncols = maxWave + 1;
-    const colW = 230;
-    const stepX = Math.min(colW + 40, Math.floor((650 - colW - 20) / Math.max(1, maxWave)));
-    const staggered = stepX < colW + 20;
-    const colX = (cidx) => 20 + cidx * stepX;
-    const primary = new Map();
-    for (const k of nodes.keys()) {
-      const bs = blockerKeys(k);
-      if (!bs.length) continue;
-      bs.sort(
-        (p, q) =>
-          wave.get(q) - wave.get(p) ||
-          (nodes.get(p).a?.boardIndex ?? 0) - (nodes.get(q).a?.boardIndex ?? 0),
-      );
-      primary.set(k, bs[0]);
-    }
-    const order = [];
-    const children = (k) =>
-      [...nodes.keys()]
-        .filter((c) => primary.get(c) === k)
-        .sort(
-          (p, q) =>
-            BUCKETS.indexOf(nodes.get(p).a?.bucket ?? 'wait') -
-              BUCKETS.indexOf(nodes.get(q).a?.bucket ?? 'wait') ||
-            (nodes.get(p).a?.boardIndex ?? 0) - (nodes.get(q).a?.boardIndex ?? 0),
-        );
-    const visit = (k) => {
-      order.push(k);
-      for (const c of children(k)) visit(c);
-    };
-    const rootsD = [...nodes.keys()]
-      .filter((k) => !primary.has(k))
-      .sort(
-        (p, q) =>
-          BUCKETS.indexOf(nodes.get(p).a?.bucket ?? 'wait') -
-            BUCKETS.indexOf(nodes.get(q).a?.bucket ?? 'wait') ||
-          (nodes.get(p).a?.boardIndex ?? 0) - (nodes.get(q).a?.boardIndex ?? 0),
-      );
-    for (const k of rootsD) visit(k);
-    const top = 48;
-    const pos = new Map();
-    order.forEach((k, i) => pos.set(k, { x: colX(wave.get(k)), y: top + i * PITCH }));
-    let svg = '';
-    for (const k of order) {
-      const nd = nodes.get(k);
-      const p = pos.get(k);
-      if (nd.closeOf) {
-        const it = ctx.byNumber.get(nd.closeOf);
-        const kids = it?.children ?? [];
-        const open = kids.filter((x) => x.state === 'open').length;
-        svg += groupSvg(
-          p.x,
-          p.y,
-          colW,
-          [
-            `${rowId(nd.a)} closes`,
-            shortTitle(nd.a),
-            `${shortStatus(nd.a.status)}, ${open} open child${open === 1 ? '' : 'ren'}`,
-            friendly(nd.a.action),
-          ],
-          {
-            n: nd.closeOf,
-            a: nd.a,
-            fix: nd.a.bucket === 'drift',
-            tip: `${rowId(nd.a)} ${shortTitle(nd.a)} closes when its children close. ${nd.a.action}`,
-          },
-        );
-      } else {
-        const pn = parentOf(nd.a.number);
-        const tag = pn ? (rootSet.has(pn) ? 'Epic' : clip(rowId(inScope.get(pn)), 8)) : 'No parent';
-        const bs = blockerKeys(k)
-          .filter((b) => b !== primary.get(k))
-          .map((b) => (nodes.get(b).closeOf ? `${rowId(nodes.get(b).a)} closes` : nameOf(b)));
-        const base = primary.has(k)
-          ? friendly(nd.a.action).replace(
-              /nothing blocks it|reviewed, unblocked/,
-              'unblocked by the ticket above',
-            )
-          : friendly(nd.a.action);
-        const why = base + (bs.length ? `${base ? ', ' : ''}also after ${bs.join(', ')}` : '');
-        svg += cardSvg(p.x, p.y, colW, nd.a, { tag, why });
-      }
-    }
-    let tsvg = '';
-    let dsvg = '';
-    const secondary = [];
-    for (const k of order) {
-      const pk = primary.get(k);
-      if (!pk) continue;
-      const a = pos.get(pk);
-      const b = pos.get(k);
-      if (staggered)
-        tsvg += `<path class="tree" d="M${a.x + 18} ${a.y + CARD_H} L${a.x + 18} ${b.y + CARD_H / 2} L${b.x} ${b.y + CARD_H / 2}"/>`;
-      else
-        tsvg += `<path class="tree" d="${elbow(a.x + colW, a.y + CARD_H / 2, a.x + colW + 20, b.x, b.y + CARD_H / 2)}"/>`;
-      for (const other of blockerKeys(k)) if (other !== pk) secondary.push({ from: other, to: k });
-    }
-    secondary.sort(
-      (p, q) =>
-        Math.abs(pos.get(p.to).y - pos.get(p.from).y) -
-        Math.abs(pos.get(q.to).y - pos.get(q.from).y),
-    );
-    secondary.forEach((e, i) => {
-      const o = pos.get(e.from);
-      const b = pos.get(e.to);
-      const lx = Math.max(o.x, b.x) + colW + 12 + i * 8;
-      const y1 = o.y + CARD_H / 2 + 10;
-      const y2 = b.y + CARD_H / 2 + 12;
-      dsvg += `<path class="dep" data-f="${esc(String(e.from))}" data-t="${esc(String(e.to))}" marker-end="url(#tgb)" d="M${o.x + colW} ${y1} L${lx} ${y1} L${lx} ${y2} L${b.x + colW + 2} ${y2}"/>`;
-    });
-    const H = top + order.length * PITCH + 30;
-    const heads = Array.from(
-      { length: ncols },
-      (_, i) =>
-        `<text class="col" x="${colX(i)}" y="${stepX < 100 ? 22 + (i % 2) * 13 : 26}">${i === 0 ? 'Can start now' : `After ${i} close${i > 1 ? 's' : ''}`}</text>`,
-    ).join('');
-    const key = `<text class="key" x="20" y="${H - 18}">Solid: the lower ticket waits on the one above it. Dashed, from the right: its other blockers.</text><text class="key" x="20" y="${H - 4}">Grey tag: which part of the epic it belongs to. Click a pill to run it.</text>`;
-    return `<div id="tg-dw" hidden><svg id="tg-d" viewBox="0 0 680 ${H}" role="img" aria-label="Dependency first">${marker('tgb')}${heads}${tsvg}${dsvg}${svg}${key}</svg></div>`;
-  })();
-
   const bar = `<div class="tg-bar"><span>${runnable} to run, ${needs} need you, ${waiting} waiting</span><span class="sp"></span><span>${esc(localStamp(result.fetchedAt))}</span><button class="tg-btn on" data-v="h">Hierarchy first</button><button class="tg-btn" data-v="d">Dependency first</button><button class="tg-btn" data-theme-toggle="1">Light</button></div>`;
-  return `<style>${TREE_CSS}</style><div class="tg" id="tg-root" data-theme="dark">${bar}${hier}${dep}<script>${TREE_SCRIPT}</script></div>\n`;
+  const json = JSON.stringify(model).replace(/</g, '\\u003c');
+  return `<style>${TREE_CSS}</style><div class="tg" id="tg-root" data-theme="dark">${bar}<div id="tg-hw"></div><div id="tg-dw" hidden></div><script type="application/json" id="tg-model">${json}</script><script>${TREE_RUNTIME}</script></div>\n`;
 }
 
 function main() {
