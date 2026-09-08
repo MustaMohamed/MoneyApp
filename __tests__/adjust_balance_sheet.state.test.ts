@@ -11,6 +11,10 @@ describe('useAdjustBalanceSheetState initial state', () => {
     expect(state.input).toBe('');
     expect(state.error).toBe('');
   });
+
+  it('starts positive', () => {
+    expect(useAdjustBalanceSheetState.getState().isNegative).toBe(false);
+  });
 });
 
 describe('useAdjustBalanceSheetState setters', () => {
@@ -47,6 +51,17 @@ describe('useAdjustBalanceSheetState setters', () => {
     expect(state.input).toBe('99');
     expect(state.error).toBe('nope');
   });
+
+  it('setNegative flips the sign without touching input or error', () => {
+    useAdjustBalanceSheetState.getState().setInput('1900');
+    useAdjustBalanceSheetState.getState().setError('nope');
+    useAdjustBalanceSheetState.getState().setNegative(true);
+
+    const state = useAdjustBalanceSheetState.getState();
+    expect(state.isNegative).toBe(true);
+    expect(state.input).toBe('1900');
+    expect(state.error).toBe('nope');
+  });
 });
 
 describe('useAdjustBalanceSheetState initialize', () => {
@@ -60,13 +75,16 @@ describe('useAdjustBalanceSheetState initialize', () => {
 
     const state = useAdjustBalanceSheetState.getState();
     expect(state.input).toBe('1500');
+    expect(state.isNegative).toBe(false);
     expect(state.error).toBe('');
   });
 
   it('handles zero balance', () => {
     useAdjustBalanceSheetState.getState().initialize(0);
 
-    expect(useAdjustBalanceSheetState.getState().input).toBe('0');
+    const state = useAdjustBalanceSheetState.getState();
+    expect(state.input).toBe('0');
+    expect(state.isNegative).toBe(false);
   });
 
   it('handles decimal balance', () => {
@@ -78,7 +96,9 @@ describe('useAdjustBalanceSheetState initialize', () => {
   it('handles negative balance', () => {
     useAdjustBalanceSheetState.getState().initialize(-50);
 
-    expect(useAdjustBalanceSheetState.getState().input).toBe('-50');
+    const state = useAdjustBalanceSheetState.getState();
+    expect(state.input).toBe('50');
+    expect(state.isNegative).toBe(true);
   });
 });
 
@@ -90,10 +110,12 @@ describe('useAdjustBalanceSheetState reset', () => {
   it('returns to defaults', () => {
     useAdjustBalanceSheetState.getState().setInput('999');
     useAdjustBalanceSheetState.getState().setError('something');
+    useAdjustBalanceSheetState.getState().setNegative(true);
     useAdjustBalanceSheetState.getState().reset();
 
     const state = useAdjustBalanceSheetState.getState();
     expect(state.input).toBe('');
+    expect(state.isNegative).toBe(false);
     expect(state.error).toBe('');
   });
 });
