@@ -251,10 +251,11 @@ function columnIndex(status) {
 
 function expectedParentColumn(item, ctx) {
   const open = item.children.filter((c) => c.state === 'open');
-  const closedAny = item.children.length > open.length;
-  const cols = open.map((c) => ctx.statusOf(c.number)).filter((s) => s && s !== 'Blocked');
-  const idx = cols.map(columnIndex);
-  if (closedAny || idx.some((i) => i >= columnIndex('In Progress'))) return 'In Progress';
+  const idx = open
+    .map((c) => ctx.statusOf(c.number))
+    .filter((s) => s && s !== 'Blocked')
+    .map(columnIndex);
+  if (idx.some((i) => i >= columnIndex('In Progress'))) return 'In Progress';
   if (idx.some((i) => i >= columnIndex('Ready For Development'))) return 'Ready For Development';
   return 'Defined';
 }
@@ -326,7 +327,9 @@ function decide(item, ctx) {
       return { bucket: 'wait', action: 'parent, a child closed as not planned; closes by hand' };
     }
     const expected = expectedParentColumn(item, ctx);
-    if (item.status !== 'Blocked' && item.status !== expected) {
+    const closedAny = item.children.length > open.length;
+    const stays = closedAny && item.status === 'In Progress';
+    if (item.status !== 'Blocked' && item.status !== expected && !stays) {
       const quoted = expected.includes(' ') ? `"${expected}"` : expected;
       const cmd = `bash scripts/board.sh status ${n} ${quoted}`;
       if (item.status === 'Todo')
@@ -698,38 +701,41 @@ function pillLabel(a) {
   };
 }
 
-const TREE_CSS = `.tg{font-family:var(--font-sans);color:var(--text-primary)}
-.tg-bar{display:flex;align-items:center;gap:8px;padding:2px 0 8px;font-size:13px;color:var(--text-secondary)}
+const TREE_CSS = `.tg{--c-bg:#1f1f1e;--c-card:#2c2c2a;--c-grp:#262624;--c-text:#f1efe8;--c-text2:#b4b2a9;--c-muted:#8a8984;--c-border:#3a3a38;--c-border2:#5f5e5a;--c-accent:#cecbf6;--c-accent-bg:#26215c;--c-accent-bd:#7f77dd;--c-warn:#fac775;--c-warn-bg:#412402;--c-warn-bd:#ba7517;--c-danger:#f7c1c1;--c-danger-bg:#501313;--c-danger-bd:#e24b4a;--c-success-bd:#639922;--c-btn:#2c2c2a;
+font-family:var(--font-sans);color:var(--c-text);background:var(--c-bg);padding:12px 14px 10px;border-radius:12px}
+.tg[data-theme="light"]{--c-bg:#faf9f6;--c-card:#ffffff;--c-grp:#f1efe8;--c-text:#1a1a1a;--c-text2:#5f5e5a;--c-muted:#888780;--c-border:#d3d1c7;--c-border2:#b4b2a9;--c-accent:#3c3489;--c-accent-bg:#eeedfe;--c-accent-bd:#7f77dd;--c-warn:#633806;--c-warn-bg:#faeeda;--c-warn-bd:#ef9f27;--c-danger:#791f1f;--c-danger-bg:#fcebeb;--c-danger-bd:#e24b4a;--c-success-bd:#639922;--c-btn:#ffffff}
+.tg-bar{display:flex;align-items:center;gap:8px;padding:0 0 10px;font-size:13px;color:var(--c-text2)}
 .tg-bar .sp{flex:1}
-.tg-btn{font:inherit;font-size:12px;font-weight:500;padding:3px 10px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-2);color:var(--text-secondary);cursor:pointer}
-.tg-btn.on{border-color:var(--border-accent);background:var(--bg-accent);color:var(--text-accent)}
+.tg-btn{font:inherit;font-size:12px;font-weight:500;padding:3px 10px;border-radius:8px;border:0.5px solid var(--c-border2);background:var(--c-btn);color:var(--c-text2);cursor:pointer}
+.tg-btn.on{border-color:var(--c-accent-bd);background:var(--c-accent-bg);color:var(--c-accent)}
 .tg svg{display:block;width:100%;height:auto}
 .tg [hidden]{display:none}
 .tg text{font-family:var(--font-sans)}
-.tg .id{font-size:13px;font-weight:500;fill:var(--text-primary)}
-.tg .st{font-size:11px;fill:var(--text-secondary)}
-.tg .tt{font-size:12px;fill:var(--text-secondary)}
-.tg .why{font-size:11px;fill:var(--text-muted)}
-.tg .tag{font-size:11px;fill:var(--text-muted)}
-.tg .card{fill:var(--surface-2);stroke:var(--border-strong);stroke-width:0.5}
-.tg .card.run{stroke:var(--border-accent)}.tg .card.you{stroke:var(--border-warning)}.tg .card.fix{stroke:var(--border-danger)}.tg .card.done{opacity:0.6}
-.tg .edge{fill:none;stroke:var(--border-accent);stroke-width:3;opacity:0.9}
-.tg .edge.you{stroke:var(--border-warning)}.tg .edge.fix{stroke:var(--border-danger)}.tg .edge.wait{stroke:var(--border);opacity:1}.tg .edge.done{stroke:var(--border-success)}
-.tg .tree{fill:none;stroke:var(--border-strong);stroke-width:1.2}
-.tg .dep{fill:none;stroke:var(--text-secondary);stroke-width:1.4;stroke-dasharray:5 4}
-.tg .dep.hi{stroke:var(--text-accent);stroke-width:2.2;stroke-dasharray:none}
-.tg .hd{fill:var(--text-secondary)}
-.tg .pill{stroke-width:0.5}.tg .pill.run{fill:var(--bg-accent);stroke:var(--border-accent)}.tg .pill.you{fill:var(--bg-warning);stroke:var(--border-warning)}.tg .pill.fix{fill:var(--bg-danger);stroke:var(--border-danger)}
-.tg .pt{font-size:11px;font-weight:500}.tg .pt.run{fill:var(--text-accent)}.tg .pt.you{fill:var(--text-warning)}.tg .pt.fix{fill:var(--text-danger)}
+.tg .id{font-size:13px;font-weight:500;fill:var(--c-text)}
+.tg .st{font-size:11px;fill:var(--c-text2)}
+.tg .tt{font-size:12px;fill:var(--c-text2)}
+.tg .why{font-size:11px;fill:var(--c-muted)}
+.tg .tag{font-size:11px;fill:var(--c-muted)}
+.tg .card{fill:var(--c-card);stroke:var(--c-border2);stroke-width:0.5}
+.tg .card.run{stroke:var(--c-accent-bd)}.tg .card.you{stroke:var(--c-warn-bd)}.tg .card.fix{stroke:var(--c-danger-bd)}.tg .card.done{opacity:0.55}
+.tg .edge{fill:none;stroke:var(--c-accent-bd);stroke-width:3;opacity:0.9}
+.tg .edge.you{stroke:var(--c-warn-bd)}.tg .edge.fix{stroke:var(--c-danger-bd)}.tg .edge.wait{stroke:var(--c-border2);opacity:1}.tg .edge.done{stroke:var(--c-success-bd)}
+.tg .tree{fill:none;stroke:var(--c-border2);stroke-width:1.2}
+.tg .dep{fill:none;stroke:var(--c-text2);stroke-width:1.4;stroke-dasharray:5 4}
+.tg .dep.hi{stroke:var(--c-accent);stroke-width:2.2;stroke-dasharray:none}
+.tg .hd{fill:var(--c-text2)}
+.tg .pill{stroke-width:0.5}.tg .pill.run{fill:var(--c-accent-bg);stroke:var(--c-accent-bd)}.tg .pill.you{fill:var(--c-warn-bg);stroke:var(--c-warn-bd)}.tg .pill.fix{fill:var(--c-danger-bg);stroke:var(--c-danger-bd)}
+.tg .pt{font-size:11px;font-weight:500}.tg .pt.run{fill:var(--c-accent)}.tg .pt.you{fill:var(--c-warn)}.tg .pt.fix{fill:var(--c-danger)}
 .tg .node{cursor:pointer}
 .tg .node.lo{opacity:0.35}
-.tg .grp{fill:var(--surface-1);stroke:var(--border-strong);stroke-width:0.5}
-.tg .grp.fix{stroke:var(--border-danger)}
-.tg .gl{font-size:12px;font-weight:500;fill:var(--text-primary)}.tg .gs{font-size:11px;fill:var(--text-muted)}
-.tg .col{font-size:11px;fill:var(--text-muted)}
-.tg .key{font-size:11px;fill:var(--text-muted)}`;
+.tg .grp{fill:var(--c-grp);stroke:var(--c-border2);stroke-width:0.5}
+.tg .grp.fix{stroke:var(--c-danger-bd)}
+.tg .gl{font-size:12px;font-weight:500;fill:var(--c-text)}.tg .gs{font-size:11px;fill:var(--c-muted)}
+.tg .col{font-size:11px;fill:var(--c-muted)}
+.tg .key{font-size:11px;fill:var(--c-muted)}`;
 
-const TREE_SCRIPT = `(function(){var r=document.getElementById('tg-root');if(!r)return;var h=document.getElementById('tg-hw'),d=document.getElementById('tg-dw');var bs=r.querySelectorAll('.tg-btn');for(var i=0;i<bs.length;i++){bs[i].addEventListener('click',function(){var v=this.getAttribute('data-v');h.hidden=v!=='h';d.hidden=v!=='d';for(var j=0;j<bs.length;j++)bs[j].classList.toggle('on',bs[j]===this);});}
+const TREE_SCRIPT = `(function(){var r=document.getElementById('tg-root');if(!r)return;var h=document.getElementById('tg-hw'),d=document.getElementById('tg-dw');var bs=r.querySelectorAll('.tg-btn[data-v]');for(var i=0;i<bs.length;i++){bs[i].addEventListener('click',function(){var v=this.getAttribute('data-v');h.hidden=v!=='h';d.hidden=v!=='d';for(var j=0;j<bs.length;j++)bs[j].classList.toggle('on',bs[j]===this);});}
+var tb=r.querySelector('.tg-btn[data-theme-toggle]');if(tb){tb.addEventListener('click',function(){var dark=r.getAttribute('data-theme')!=='light';r.setAttribute('data-theme',dark?'light':'dark');this.textContent=dark?'Dark':'Light';});}
 function mark(id){var ps=r.querySelectorAll('.dep');var rel={};for(var k=0;k<ps.length;k++){var p=ps[k];var on=!!id&&(p.getAttribute('data-f')===id||p.getAttribute('data-t')===id);p.classList.toggle('hi',on);if(on){rel[p.getAttribute('data-f')]=1;rel[p.getAttribute('data-t')]=1;}}
 var ns=r.querySelectorAll('.node[data-i]');for(var m=0;m<ns.length;m++){var n=ns[m],nid=n.getAttribute('data-i');n.classList.toggle('lo',!!id&&nid!==id&&!rel[nid]&&n.getAttribute('data-dim')==='1');}}
 r.addEventListener('mouseover',function(e){var t=e.target;while(t&&t!==r&&!(t.classList&&t.classList.contains('node')))t=t.parentNode;mark(t&&t!==r?t.getAttribute('data-i'):null);});
@@ -1181,8 +1187,8 @@ function treeReport(result) {
     return `<div id="tg-dw" hidden><svg id="tg-d" viewBox="0 0 680 ${H}" role="img" aria-label="Dependency first">${marker('tgb')}${heads}${tsvg}${dsvg}${svg}${key}</svg></div>`;
   })();
 
-  const bar = `<div class="tg-bar"><span>${runnable} to run, ${needs} need you, ${waiting} waiting</span><span class="sp"></span><span>${esc(localStamp(result.fetchedAt))}</span><button class="tg-btn on" data-v="h">Hierarchy first</button><button class="tg-btn" data-v="d">Dependency first</button></div>`;
-  return `<style>${TREE_CSS}</style><div class="tg" id="tg-root">${bar}${hier}${dep}<script>${TREE_SCRIPT}</script></div>\n`;
+  const bar = `<div class="tg-bar"><span>${runnable} to run, ${needs} need you, ${waiting} waiting</span><span class="sp"></span><span>${esc(localStamp(result.fetchedAt))}</span><button class="tg-btn on" data-v="h">Hierarchy first</button><button class="tg-btn" data-v="d">Dependency first</button><button class="tg-btn" data-theme-toggle="1">Light</button></div>`;
+  return `<style>${TREE_CSS}</style><div class="tg" id="tg-root" data-theme="dark">${bar}${hier}${dep}<script>${TREE_SCRIPT}</script></div>\n`;
 }
 
 function main() {
