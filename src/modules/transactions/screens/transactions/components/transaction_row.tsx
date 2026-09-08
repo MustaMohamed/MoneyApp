@@ -167,7 +167,17 @@ export function TransactionRowBody({
                 >
                   {presentation.secondaryAmount}
                   {presentation.rateText ? (
-                    <Text className="opacity-70"> {presentation.rateText}</Text>
+                    // The Text wrapper's default variant sets its own size and colour, so a nested chip inherits neither.
+                    <Text
+                      className="text-foreground/60 opacity-70"
+                      style={{
+                        fontSize: TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
+                        lineHeight: lineHeightFor(TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE),
+                      }}
+                    >
+                      {' '}
+                      {presentation.rateText}
+                    </Text>
                   ) : null}
                 </Text>
               ) : null}
