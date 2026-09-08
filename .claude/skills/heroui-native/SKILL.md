@@ -59,7 +59,8 @@ import { BottomSheet, Button } from 'heroui-native';
 
 - Close handling: `onOpenChange` only — `Content.onClose` fires solely on swipe-down, so overlay-press, close-button, and programmatic closes silently skip it.
 - Scrollables: `BottomSheetScrollView` / `BottomSheetFlatList` from `@gorhom/bottom-sheet` (NOT `react-native`), with `enableOverDrag={false}`, `enableDynamicSizing={false}`, fixed height via `contentContainerClassName="h-full"`.
-- Keyboard: `useBottomSheetAwareHandlers()` on `onFocus`/`onBlur` + `keyboardBehavior="extend"` on `Content`.
+- Keyboard: `useBottomSheetAwareHandlers()` on `onFocus`/`onBlur` + `keyboardBehavior="extend"` on `Content`. **Call the hook from a component rendered inside the sheet's `children`** — above `<Sheet>`, or in a `.hook.ts` consumed by the component that renders `<Sheet>`, it is outside the gorhom context and the handlers are silent no-ops.
+- Keyboard + footer: pass `liftsAboveKeyboard` to `components/ui/sheet.tsx` instead. `extend` only reaches the largest snap point and cannot lift an absolute footer — `BottomSheetFooterContainer.tsx:29` subtracts a keyboard height that `android_keyboardInputMode="adjustResize"` pins to zero (`BottomSheet.tsx:851-854`). The prop swaps that mode to `adjustPan`. Android only.
 
 ## Card = Surface trap (device-QA-only bug class)
 
