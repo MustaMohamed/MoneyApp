@@ -108,7 +108,7 @@ export function SegmentedTabs<T extends string>({
           />
         ) : null}
         <Tabs.Label
-          // In RN the style prop wins over className, so it overrides the selected label color.
+          // In RN the style prop wins over className, so it overrides the label color.
           numberOfLines={1}
           adjustsFontSizeToFit={isCompact || segmentWidth != null}
           minimumFontScale={0.85}
@@ -118,6 +118,7 @@ export function SegmentedTabs<T extends string>({
           style={[
             isCompact || segmentWidth != null ? { flexShrink: 1 } : undefined,
             isSolidGold && isSelected ? { color: Colors.shared.midnightBlue } : undefined,
+            isCompact && !isSelected ? { color: Colors.dark.text2 } : undefined,
           ]}
         >
           {seg.label}
