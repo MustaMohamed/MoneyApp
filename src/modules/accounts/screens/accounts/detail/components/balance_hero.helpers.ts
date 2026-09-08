@@ -26,7 +26,7 @@ export function buildHeroCaption(account: Account): HeroCaption {
   if (isCC && limit > 0) {
     if (isOverLimit(account.current_balance, limit)) {
       return {
-        text: Strings.accountHeroOverLimit,
+        text: Strings.accountOverLimit,
         adjusted: false,
         color: SemanticTokens.negative,
       };

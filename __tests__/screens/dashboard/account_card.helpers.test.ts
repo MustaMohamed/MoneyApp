@@ -317,7 +317,7 @@ describe("buildInfoRows — credit card limit/available take the card's own curr
     expect(rows[1]?.value).toBe('800 EGP');
   });
 
-  it('the over-limit short-circuit still shows Strings.cardOverLimit, on either currency', () => {
+  it('the over-limit short-circuit still shows Strings.accountOverLimit, on either currency', () => {
     const egpRows = buildInfoRows(
       creditCard(Currency.EGP, 1500, 1000),
       PLACEHOLDER_RATE,
@@ -332,8 +332,8 @@ describe("buildInfoRows — credit card limit/available take the card's own curr
       false,
       Currency.EGP,
     );
-    expect(egpRows[1]?.value).toBe(Strings.cardOverLimit);
-    expect(usdRows[1]?.value).toBe(Strings.cardOverLimit);
+    expect(egpRows[1]?.value).toBe(Strings.accountOverLimit);
+    expect(usdRows[1]?.value).toBe(Strings.accountOverLimit);
   });
 
   it('the Available row is warning-coloured in the 20-50% band', () => {
@@ -481,7 +481,7 @@ describe('buildInfoRows — every row names its figure and carries a bare amount
     expect(rows.at(-1)?.amountText).not.toContain('-');
   });
 
-  it('the Over Limit and due-date rows carry no amountText', () => {
+  it('the over-limit and due-date rows carry no amountText', () => {
     const rows = buildInfoRows(
       typed(AccountType.CreditCard, Currency.EGP, 45000),
       PLACEHOLDER_RATE,
@@ -489,7 +489,7 @@ describe('buildInfoRows — every row names its figure and carries a bare amount
       false,
       Currency.EGP,
     );
-    expect(rows[1]?.value).toBe(Strings.cardOverLimit);
+    expect(rows[1]?.value).toBe(Strings.accountOverLimit);
     expect(rows[1]?.amountText).toBeUndefined();
     expect(rows[2]?.amountText).toBeUndefined();
   });

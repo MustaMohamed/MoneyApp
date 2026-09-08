@@ -102,7 +102,7 @@ describe('buildHeroCaption — credit cards', () => {
     const cap = buildHeroCaption(
       mkAccount({ type: AccountType.CreditCard, credit_limit: 1000, current_balance: 1500 }),
     );
-    expect(cap.text).toBe(Strings.accountHeroOverLimit);
+    expect(cap.text).toBe(Strings.accountOverLimit);
     expect(cap.color).toBe(SemanticTokens.negative);
     expect(cap.adjusted).toBe(false);
   });
@@ -116,7 +116,7 @@ describe('buildHeroCaption — credit cards', () => {
         current_balance: 500.01,
       }),
     );
-    expect(cap.text).toBe(Strings.accountHeroOverLimit);
+    expect(cap.text).toBe(Strings.accountOverLimit);
     expect(cap.color).toBe(SemanticTokens.negative);
   });
 

@@ -107,7 +107,7 @@ export function buildInfoRows(
         kind: 'available',
         label: Strings.cardAvailableLabel,
         ...(isOverLimit(balance, limit)
-          ? { value: Strings.cardOverLimit }
+          ? { value: Strings.accountOverLimit }
           : amountParts(available, cur)),
         valueColor: availColor,
       },
