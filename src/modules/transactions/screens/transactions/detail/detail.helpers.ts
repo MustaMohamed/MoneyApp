@@ -7,6 +7,7 @@ import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_to
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import type { StackedPrefix } from '@/modules/navigation/domain/stacked_route';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   type AmountSign,
@@ -190,6 +191,9 @@ export function getAccountTypeIcon(type: string | undefined): IconName {
   return 'card-bulleted-outline';
 }
 
-export function getCommitmentPaymentRoute(paymentId: string): `/commitments/${string}` {
-  return `/commitments/${paymentId}`;
+export function getCommitmentPaymentRoute(
+  paymentId: string,
+  prefix: StackedPrefix = '',
+): `${StackedPrefix}/commitments/${string}` {
+  return `${prefix}/commitments/${paymentId}`;
 }

@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect, usePathname } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
@@ -9,6 +9,7 @@ import { budgetRepository } from '@/modules/budget/repositories/budget.repositor
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 
@@ -21,6 +22,7 @@ import { useTxDetailState } from './detail.state';
 import { useTxDetailStore } from './detail.store';
 
 export function useTransactionDetail(id: string) {
+  const stackedPrefix = stackedPrefixOf(usePathname());
   const { tx, txId, budget } = useTxDetailStore(
     useShallow((state) => ({ tx: state.tx, txId: state.txId, budget: state.budget })),
   );
@@ -130,6 +132,13 @@ export function useTransactionDetail(id: string) {
   const currentTx = ownsRoute ? tx : null;
   const currentStatus = activeId === id ? status : 'initialLoading';
 
+  // Two details can be mounted at once and the store holds one; the lower copy re-claims the slot on focus.
+  useFocusEffect(
+    useCallback(() => {
+      if (useTxDetailStore.getState().txId !== id) bumpReload();
+    }, [bumpReload, id]),
+  );
+
   useEffect(() => {
     return () => {
       resetData();
@@ -202,12 +211,12 @@ export function useTransactionDetail(id: string) {
       }
       const commitmentState = useCommitmentStore.getState();
       await commitmentState.setSelectedMonth(payment.due_date.slice(0, 7));
-      router.push(getCommitmentPaymentRoute(commitmentPaymentId));
+      router.push(getCommitmentPaymentRoute(commitmentPaymentId, stackedPrefix));
     } catch (error) {
       console.error('[transactionDetail] open commitment failed', error);
       Alert.alert(Strings.commitmentsDetailNotFound);
     }
-  }, [commitmentPaymentId]);
+  }, [commitmentPaymentId, stackedPrefix]);
 
   const reload = useCallback(() => bumpReload(), [bumpReload]);
   const goBack = useCallback(() => router.back(), []);

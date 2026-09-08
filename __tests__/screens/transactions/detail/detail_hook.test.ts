@@ -20,7 +20,18 @@ import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 const mockGetBudgetById = jest.fn<Promise<Budget | undefined>, [string]>();
 const mockGetCommitmentPaymentById = jest.fn<Promise<CommitmentPayment | undefined>, [string]>();
 
-jest.mock('expo-router', () => ({ router: { back: jest.fn(), push: jest.fn() } }));
+const mockPathname = { current: '/transactions/detail/transaction-1' };
+const mockFocusEffect: { current?: () => void | (() => void) } = {};
+
+jest.mock('expo-router', () => ({
+  router: { back: jest.fn(), push: jest.fn() },
+  usePathname: () => mockPathname.current,
+  // Runs on mount like the real one, and keeps the callback so a test can refocus the screen.
+  useFocusEffect: (effect: () => void | (() => void)) => {
+    mockFocusEffect.current = effect;
+    return jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]);
+  },
+}));
 jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -83,6 +94,8 @@ function deferred<T>() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPathname.current = '/transactions/detail/transaction-1';
+  mockFocusEffect.current = undefined;
   loadAccountLookup.mockResolvedValue(undefined);
   jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
   useTxDetailStore.getState().reset();
@@ -273,25 +286,27 @@ describe('useTransactionDetail loading', () => {
   });
 });
 
+const paidPayment: CommitmentPayment = {
+  id: 'payment-1',
+  commitment_id: 'commitment-1',
+  due_date: '2026-04-18',
+  paid_date: '2026-04-18',
+  skipped_date: null,
+  amount_due: 200,
+  amount_paid: 200,
+  currency: Currency.EGP,
+  exchange_rate_snapshot: null,
+  account_id: 'account-1',
+  transaction_id: 'transaction-1',
+  status: CommitmentPaymentStatus.Paid,
+  notes: null,
+  created_at: '2026-04-18T10:00:00.000Z',
+  updated_at: '2026-04-18T10:00:00.000Z',
+};
+
 describe('useTransactionDetail commitment navigation', () => {
   it('loads the linked payment month before navigating', async () => {
-    mockGetCommitmentPaymentById.mockResolvedValue({
-      id: 'payment-1',
-      commitment_id: 'commitment-1',
-      due_date: '2026-04-18',
-      paid_date: '2026-04-18',
-      skipped_date: null,
-      amount_due: 200,
-      amount_paid: 200,
-      currency: Currency.EGP,
-      exchange_rate_snapshot: null,
-      account_id: 'account-1',
-      transaction_id: linkedTransaction.id,
-      status: CommitmentPaymentStatus.Paid,
-      notes: null,
-      created_at: '2026-04-18T10:00:00.000Z',
-      updated_at: '2026-04-18T10:00:00.000Z',
-    });
+    mockGetCommitmentPaymentById.mockResolvedValue(paidPayment);
     const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
@@ -301,6 +316,17 @@ describe('useTransactionDetail commitment navigation', () => {
     expect(loadCommitments).not.toHaveBeenCalled();
     expect(setSelectedMonth).toHaveBeenCalledWith('2026-04');
     expect(router.push).toHaveBeenCalledWith('/commitments/payment-1');
+  });
+
+  it('keeps the stacked copy inside the stacked subtree', async () => {
+    mockPathname.current = '/stacked/transactions/detail/transaction-1';
+    mockGetCommitmentPaymentById.mockResolvedValue(paidPayment);
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await act(async () => result.current.openCommitment());
+
+    expect(router.push).toHaveBeenCalledWith('/stacked/commitments/payment-1');
   });
 
   it('does not navigate when the linked payment no longer exists', async () => {
@@ -340,5 +366,27 @@ describe('useTransactionDetail route actions', () => {
     await act(() => result.current.openEdit());
 
     expect(openEdit).not.toHaveBeenCalled();
+  });
+});
+
+describe('useTransactionDetail focus re-claim', () => {
+  it('reloads only when another copy has taken the single store slot', async () => {
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(getById).toHaveBeenCalledTimes(1);
+
+    await act(async () => mockFocusEffect.current?.());
+
+    expect(getById).toHaveBeenCalledTimes(1);
+
+    // The copy pushed above this one reset the slot when it unmounted.
+    await act(async () => useTxDetailStore.getState().reset());
+    expect(result.current.state.viewState).toBe('loading');
+
+    await act(async () => mockFocusEffect.current?.());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(getById).toHaveBeenCalledTimes(2);
+    expect(getById).toHaveBeenLastCalledWith(linkedTransaction.id);
   });
 });
