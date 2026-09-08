@@ -25,8 +25,9 @@ export const ACCOUNTS_LIST_CARD_STYLE: Readonly<ViewStyle> = Object.freeze({
   marginHorizontal: Spacing.md,
 });
 
-/** B7 `.rail`: the same gutter as the card, off the header by the scroll's own top gap. */
+/** B7 `.rail`: `padding: 4px 16px` on the canvas, as margins here since the scroll has no gutter. */
 export const ACCOUNTS_LIST_RAIL_STYLE: Readonly<ViewStyle> = Object.freeze({
   marginHorizontal: Spacing.md,
-  marginTop: Spacing.sm,
+  marginTop: Spacing.xxs,
+  marginBottom: Spacing.xxs,
 });

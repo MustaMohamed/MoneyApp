@@ -69,13 +69,18 @@ describe('accounts list card geometry (B1)', () => {
 });
 
 describe('accounts list type rail geometry (B7)', () => {
-  it('takes the card gutter and sits off the header', () => {
+  it('takes the card gutter and the canvas 4px above and below', () => {
     expect(ACCOUNTS_LIST_RAIL_STYLE.marginHorizontal).toBe(Spacing.md);
-    expect(ACCOUNTS_LIST_RAIL_STYLE.marginTop).toBe(Spacing.sm);
+    expect(ACCOUNTS_LIST_RAIL_STYLE.marginTop).toBe(Spacing.xxs);
+    expect(ACCOUNTS_LIST_RAIL_STYLE.marginBottom).toBe(Spacing.xxs);
   });
 
   it('carries exactly these keys', () => {
-    expect(Object.keys(ACCOUNTS_LIST_RAIL_STYLE).sort()).toEqual(['marginHorizontal', 'marginTop']);
+    expect(Object.keys(ACCOUNTS_LIST_RAIL_STYLE).sort()).toEqual([
+      'marginBottom',
+      'marginHorizontal',
+      'marginTop',
+    ]);
   });
 
   it('is frozen', () => {
