@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -6,6 +6,11 @@ import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import {
+  STACKED_EDIT_POP_COUNT,
+  STACKED_PREFIX,
+  stackedPrefixOf,
+} from '@/modules/navigation/domain/stacked_route';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useCommitmentStore } from '../../../store/commitment.store';
@@ -21,6 +26,7 @@ export type { CommitmentFormValues };
 export function useEditCommitment() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const stackedPrefix = stackedPrefixOf(usePathname());
 
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
@@ -83,8 +89,8 @@ export function useEditCommitment() {
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
       reset();
-      // regeneratePayments invalidates the paymentId underneath, so pop to the list, not back.
-      router.dismissTo('/commitments');
+      if (stackedPrefix === STACKED_PREFIX) router.dismiss(STACKED_EDIT_POP_COUNT);
+      else router.dismissTo('/commitments');
     } catch {
       setSaveError(Strings.commitmentsSaveError);
     } finally {
@@ -103,7 +109,8 @@ export function useEditCommitment() {
       await deactivateCommitment(id);
       setDeactivateDialogVisible(false);
       reset();
-      router.replace('/commitments');
+      if (stackedPrefix === STACKED_PREFIX) router.dismiss(STACKED_EDIT_POP_COUNT);
+      else router.replace('/commitments');
     } catch {
       // Error logged by store.
     } finally {

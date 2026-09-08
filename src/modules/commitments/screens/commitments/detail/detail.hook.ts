@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, usePathname } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -6,6 +6,7 @@ import { CommitmentPaymentStatus, DurationType, RecurrencePeriod } from '@/const
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { commitmentEditRoute, stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
 import { formatLongDate } from '@/utils/format_date';
 
 import type { Commitment } from '../../../entities/commitment.entity';
@@ -62,6 +63,7 @@ function findCurrentPayment(payments: CommitmentPayment[]): CommitmentPayment | 
 
 export function useCommitmentDetail() {
   const { id: paymentId } = useLocalSearchParams<{ id: string }>();
+  const stackedPrefix = stackedPrefixOf(usePathname());
 
   const { payments, commitments } = useCommitmentStore(
     useShallow((s) => ({
@@ -178,9 +180,8 @@ export function useCommitmentDetail() {
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;
-    // Bare href: reached from /stacked this drops into (tabs) and Back lands on the Dashboard — MA-040 (#437).
-    router.push(`/commitments/${commitment.id}/edit`);
-  }, [commitment]);
+    router.push(commitmentEditRoute(commitment.id, stackedPrefix));
+  }, [commitment, stackedPrefix]);
 
   const goBack = useCallback(() => {
     router.back();

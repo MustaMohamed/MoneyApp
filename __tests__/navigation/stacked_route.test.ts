@@ -1,5 +1,6 @@
 import {
   STACKED_PREFIX,
+  commitmentEditRoute,
   stackedPrefixOf,
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
@@ -28,5 +29,15 @@ describe('stackedPrefixOf', () => {
 describe('stackedTransactionDetailRoute', () => {
   it('addresses the stacked twin of the transaction detail route', () => {
     expect(stackedTransactionDetailRoute('tx-9')).toBe('/stacked/transactions/detail/tx-9');
+  });
+});
+
+describe('commitmentEditRoute', () => {
+  it('addresses the tabbed edit route with no prefix', () => {
+    expect(commitmentEditRoute('com-1', '')).toBe('/commitments/com-1/edit');
+  });
+
+  it('addresses the stacked twin of the edit route with the prefix', () => {
+    expect(commitmentEditRoute('com-1', STACKED_PREFIX)).toBe('/stacked/commitments/com-1/edit');
   });
 });
