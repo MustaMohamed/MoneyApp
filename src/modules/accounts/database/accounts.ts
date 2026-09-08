@@ -6,13 +6,15 @@ import type { Account } from '../entities/account.entity';
 
 export async function getAccounts(db: SQLiteDatabase): Promise<Account[]> {
   return db.getAllAsync<Account>(
-    'SELECT * FROM accounts WHERE is_archived = 0 ORDER BY sort_order ASC, created_at ASC',
+    `SELECT * FROM accounts
+      WHERE is_archived = 0 AND is_deleted = 0
+      ORDER BY sort_order ASC, created_at ASC`,
   );
 }
 
 export async function getArchivedAccountCount(db: SQLiteDatabase): Promise<number> {
   const result = await db.getFirstAsync<{ count: number }>(
-    'SELECT COUNT(*) AS count FROM accounts WHERE is_archived = 1',
+    'SELECT COUNT(*) AS count FROM accounts WHERE is_archived = 1 AND is_deleted = 0',
   );
   return result?.count ?? 0;
 }
@@ -74,8 +76,8 @@ export async function addAccount(db: SQLiteDatabase, account: Account): Promise<
       opening_balance, current_balance,
       color, credit_limit, revolving_balance, minimum_payment,
       statement_due_day, interest_tracking, apr,
-      is_archived, sort_order, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      is_archived, is_deleted, sort_order, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       account.id,
       account.name,
@@ -91,6 +93,7 @@ export async function addAccount(db: SQLiteDatabase, account: Account): Promise<
       account.interest_tracking,
       account.apr,
       account.is_archived,
+      account.is_deleted,
       account.sort_order,
       account.created_at,
       account.updated_at,
@@ -120,6 +123,21 @@ export async function archiveAccount(
     updated_at,
     id,
   ]);
+}
+
+/** The predicate is the guard: the write cannot land on a live or already-deleted row. */
+export async function setAccountDeleted(
+  db: SQLiteDatabase,
+  id: string,
+  updated_at: string,
+): Promise<number> {
+  const result = await db.runAsync(
+    `UPDATE accounts
+        SET is_deleted = 1, name = '', updated_at = ?
+      WHERE id = ? AND is_archived = 1 AND is_deleted = 0`,
+    [updated_at, id],
+  );
+  return result.changes;
 }
 
 export async function setAccountBalance(

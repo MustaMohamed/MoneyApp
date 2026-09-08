@@ -3,6 +3,7 @@ import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { resolveAccountName } from '@/utils/account_name';
 
 export interface FormatTitleArgs {
   tx: Transaction;
@@ -22,8 +23,8 @@ export function formatTransactionTitle({
   toAccount,
   category,
 }: FormatTitleArgs): FormattedTitle {
-  const accountName = account?.name ?? Strings.unknownAccount;
-  const toAccountName = toAccount?.name ?? Strings.unknownAccount;
+  const accountName = resolveAccountName(account);
+  const toAccountName = resolveAccountName(toAccount);
   // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined (empty-string blank note)
   const note = tx.note?.trim() || undefined;
 

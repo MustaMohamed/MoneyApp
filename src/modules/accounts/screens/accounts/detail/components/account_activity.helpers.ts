@@ -6,6 +6,7 @@ import {
   type TransactionRowPresentation,
   type TransactionRowPresentationInput,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+import { resolveAccountName } from '@/utils/account_name';
 import { toLocalDateString } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { MONTHS_SHORT } from '@/utils/year_month';
@@ -59,7 +60,7 @@ function activityContext(
 ): { context?: string; timeText: string } {
   if (tx.type === TransactionType.CCPayment && tx.to_account_id === openAccountId) {
     return {
-      context: Strings.accountActivityFromAccount(account?.name ?? Strings.unknownAccount),
+      context: Strings.accountActivityFromAccount(resolveAccountName(account)),
       timeText: dayLabel,
     };
   }

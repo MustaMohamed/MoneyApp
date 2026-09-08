@@ -97,6 +97,7 @@ const baseAccount: Account = {
   apr: null,
   is_archived: 0,
   balance_review_required: 0,
+  is_deleted: 0,
   sort_order: 0,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',

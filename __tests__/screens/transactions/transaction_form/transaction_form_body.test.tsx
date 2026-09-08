@@ -130,6 +130,7 @@ describe('TransactionFormBody geometry', () => {
           apr: null,
           is_archived: 0,
           balance_review_required: 0,
+          is_deleted: 0,
           sort_order: 0,
           created_at: '2026-07-21T00:00:00.000Z',
           updated_at: '2026-07-21T00:00:00.000Z',

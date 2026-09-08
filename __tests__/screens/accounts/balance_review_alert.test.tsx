@@ -85,6 +85,7 @@ describe('shouldShowBalanceReview', () => {
     interest_tracking: 0 as const,
     apr: null,
     balance_review_required: 1 as const,
+    is_deleted: 0 as const,
     is_archived: 0 as const,
     sort_order: 0,
     created_at: '2026-07-19T00:00:00.000Z',

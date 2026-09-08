@@ -8,6 +8,7 @@ import { Type, lineHeightFor } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { resolveAccountName } from '@/utils/account_name';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
@@ -79,12 +80,12 @@ function contextFor(
   toAccount?: Account,
   category?: Category,
 ): string {
-  const sourceName = account?.name ?? Strings.unknownAccount;
+  const sourceName = resolveAccountName(account);
   if (isCardCredit(tx, account)) {
     return `${category?.name ?? Strings.uncategorized} · ${sourceName}`;
   }
   if (tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment) {
-    return `${sourceName} → ${toAccount?.name ?? Strings.unknownAccount}`;
+    return `${sourceName} → ${resolveAccountName(toAccount)}`;
   }
   return sourceName;
 }
