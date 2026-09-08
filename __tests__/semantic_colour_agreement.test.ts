@@ -6,6 +6,7 @@ import { CoreTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens
 import { contrastRatio } from '@/modules/accounts/constants/account_palette';
 
 const MIN_SEGMENT_RATIO = 4.5;
+const MIN_CONTROL_LABEL_RATIO = 3;
 
 function globalCss(): string {
   return readFileSync(resolve(process.cwd(), 'global.css'), 'utf8');
@@ -104,6 +105,15 @@ describe('semantic colour agreement — theme.ts vs theme_tokens.ts vs global.cs
     expect(fills).toHaveLength(inks.length);
     for (const [index, fill] of fills.entries()) {
       expect(contrastRatio(fill, inks[index]!)).toBeGreaterThanOrEqual(MIN_SEGMENT_RATIO);
+    }
+  });
+
+  it('content-secondary clears 3:1 on default, the compact segmented control track', () => {
+    const tracks = cssVarValues(css, 'default');
+    const inks = cssVarValues(css, 'content-secondary');
+    expect(tracks).toHaveLength(inks.length);
+    for (const [index, track] of tracks.entries()) {
+      expect(contrastRatio(track, inks[index]!)).toBeGreaterThanOrEqual(MIN_CONTROL_LABEL_RATIO);
     }
   });
 
