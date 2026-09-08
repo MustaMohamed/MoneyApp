@@ -62,7 +62,7 @@ export interface TransactionRowPresentation {
   accessibilityLabel: string;
 }
 
-function isCardCredit(tx: Transaction, account?: Account): boolean {
+export function isCardCredit(tx: Transaction, account?: Account): boolean {
   return tx.type === TransactionType.Income && account?.type === AccountType.CreditCard;
 }
 
@@ -133,15 +133,13 @@ function iconFor(tx: Transaction, cardCredit: boolean, category?: Category): Ico
   return toIconName(category?.icon, FALLBACK_ICON);
 }
 
-export function buildTransactionRowPresentation({
-  tx,
-  account,
-  toAccount,
-  category,
-}: TransactionRowPresentationInput): TransactionRowPresentation {
+export function buildTransactionRowPresentation(
+  { tx, account, toAccount, category }: TransactionRowPresentationInput,
+  contextOverride?: string,
+): TransactionRowPresentation {
   const cardCredit = isCardCredit(tx, account);
   const title = titleFor(tx, account, category);
-  const context = contextFor(tx, account, toAccount, category);
+  const context = contextOverride ?? contextFor(tx, account, toAccount, category);
   const primaryAmount = primaryAmountFor(tx, cardCredit);
   const secondaryAmount = destinationAmountFor(tx, toAccount);
   const ownershipLabel =

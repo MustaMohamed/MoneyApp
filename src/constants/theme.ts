@@ -183,6 +183,10 @@ export const Size = {
   /** Same ms(30) as `logoMark` by design; icon vocabulary, not the brand mark. Do not dedupe. */
   iconXl: ms(30),
   emptyStateIcon: ms(56),
+  /** Same ms(56) as `emptyStateIcon` by design; a circle diameter, not a glyph size. Do not dedupe. */
+  activityEmptyCircle: ms(56),
+  /** The activity card's inline empty block: the glyph drawn inside that circle. */
+  activityEmptyGlyph: ms(28),
   iconHero: ms(64),
   filterSegmentWidth: ms(96),
   filterSegmentCompactWidth: ms(72),

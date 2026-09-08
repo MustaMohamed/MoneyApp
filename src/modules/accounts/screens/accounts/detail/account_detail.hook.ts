@@ -132,6 +132,7 @@ export function useAccountDetail() {
             category,
           },
           loadedAt,
+          id,
         ),
       };
     });
