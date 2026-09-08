@@ -751,11 +751,11 @@ var byN={};M.leaves.forEach(function(l){byN[l.n]=l;});var pByN={};M.parents.forE
 function nameOf(n){return byN[n]?byN[n].id:(pByN[n]?pByN[n].id:'#'+n);}
 function hier(W){
 var maxD=0;M.parents.forEach(function(p){if(p.depth>maxD)maxD=p.depth;});var leafCol=maxD+1;
-var extra=Math.max(0,W-680);var w0=110+Math.round(extra*0.12),w1=130+Math.round(extra*0.16);
-function colW(c){return c===0?w0:w1;}function colX(c){return c===0?20:20+w0+40+(c-1)*(w1+40);}
+var extra=Math.max(0,W-680);var gap=Math.min(170,40+Math.round(extra*0.26));var w0=110+Math.round(extra*0.07),w1=130+Math.round(extra*0.09);
+function colW(c){return c===0?w0:w1;}function colX(c){return c===0?20:20+w0+gap+(c-1)*(w1+gap);}
 var leafX=colX(leafCol);var edgesAll=[];M.leaves.forEach(function(l){l.blockers.forEach(function(b){edgesAll.push({from:b.n,to:l.n,parent:b.parent});});});
 var rightCount=edgesAll.filter(function(e){return !e.parent&&byN[e.from];}).length;
-var laneGap=Math.min(26,Math.round(14+extra*0.04));var laneW=Math.max(48,rightCount*laneGap+20);var leafW=Math.max(230,W-20-laneW-leafX);var laneX0=leafX+leafW+18;
+var laneGap=Math.min(30,Math.round(14+extra*0.05));var laneW=Math.max(48,rightCount*laneGap+20);var leafW=Math.max(230,W-20-laneW-leafX);var laneX0=leafX+leafW+18;
 var rows=[],placed=[];
 function leavesOf(pn){return M.leaves.filter(function(l){return l.parent===pn;});}
 function kidsOf(pn){return M.parents.filter(function(p){return p.parent===pn;}).sort(function(x,y){return x.board-y.board;});}
@@ -766,10 +766,10 @@ var top=44;rows.forEach(function(r,i){r.y=top+i*PITCH;});function cy(r){return r
 var svg='',dsvg='';
 placed.forEach(function(pp){var p=pByN[pp.n];var y=(cy(rows[pp.start])+cy(rows[pp.end]))/2-CARD_H/2;pp.y=y;var x=colX(pp.col),w=colW(pp.col);
 svg+=group(x,y,w,p,[p.id,p.title,p.status+', '+p.done+' of '+p.kids+' done',p.why]);
-var xb=x+w+20,ys=[];placed.forEach(function(cp){if(pByN[cp.n].parent===pp.n)ys.push({x:colX(cp.col),y:cp.y+CARD_H/2});});
+var xb=x+w+Math.min(40,Math.round(gap/2)),ys=[];placed.forEach(function(cp){if(pByN[cp.n].parent===pp.n)ys.push({x:colX(cp.col),y:cp.y+CARD_H/2});});
 for(var i=pp.start;i<=pp.end;i++){var rr=rows[i];if((rr.kind==='leaf'&&rr.a.parent===pp.n)||(rr.kind==='done'&&rr.parent===pp.n))ys.push({x:leafX,y:cy(rr)});}
 if(ys.length){var ymin=Math.min.apply(null,ys.map(function(o){return o.y;}).concat([y+CARD_H/2])),ymax=Math.max.apply(null,ys.map(function(o){return o.y;}).concat([y+CARD_H/2]));svg+='<path class="tree" d="M'+(x+w)+' '+(y+CARD_H/2)+' L'+xb+' '+(y+CARD_H/2)+' M'+xb+' '+ymin+' L'+xb+' '+ymax+ys.map(function(o){return ' M'+xb+' '+o.y+' L'+o.x+' '+o.y;}).join('')+'"/>';}});
-if(sg){var y0=(cy(rows[sg.start])+cy(rows[sg.end]))/2-CARD_H/2;svg+=group(colX(0),y0,colW(0),{},['No parent','',stray.length+' open','']);var xb0=colX(0)+colW(0)+20,yy=[];for(var q=sg.start;q<=sg.end;q++)yy.push(cy(rows[q]));svg+='<path class="tree" d="M'+(colX(0)+colW(0))+' '+(y0+CARD_H/2)+' L'+xb0+' '+(y0+CARD_H/2)+' M'+xb0+' '+Math.min.apply(null,yy.concat([y0+CARD_H/2]))+' L'+xb0+' '+Math.max.apply(null,yy.concat([y0+CARD_H/2]))+yy.map(function(v){return ' M'+xb0+' '+v+' L'+leafX+' '+v;}).join('')+'"/>';}
+if(sg){var y0=(cy(rows[sg.start])+cy(rows[sg.end]))/2-CARD_H/2;svg+=group(colX(0),y0,colW(0),{},['No parent','',stray.length+' open','']);var xb0=colX(0)+colW(0)+Math.min(40,Math.round(gap/2)),yy=[];for(var q=sg.start;q<=sg.end;q++)yy.push(cy(rows[q]));svg+='<path class="tree" d="M'+(colX(0)+colW(0))+' '+(y0+CARD_H/2)+' L'+xb0+' '+(y0+CARD_H/2)+' M'+xb0+' '+Math.min.apply(null,yy.concat([y0+CARD_H/2]))+' L'+xb0+' '+Math.max.apply(null,yy.concat([y0+CARD_H/2]))+yy.map(function(v){return ' M'+xb0+' '+v+' L'+leafX+' '+v;}).join('')+'"/>';}
 var rowOf={};rows.forEach(function(rr){if(rr.kind==='leaf')rowOf[rr.a.n]=rr;});
 rows.forEach(function(rr){if(rr.kind==='leaf'){var bn=rr.a.blockers.map(function(b){return b.parent?nameOf(b.n)+' closes':nameOf(b.n);});var why=rr.a.why;if(bn.length){if(/nothing blocks it|unblocked/.test(why))why='';why=(why?why+', ':'')+'after '+bn.join(', ');}svg+=card(leafX,rr.y,leafW,rr.a,'',why);}
 else if(rr.kind==='done'){svg+='<g class="node" data-dim="0" onclick="openLink(\''+rr.url+'\')"><rect class="card done" x="'+leafX+'" y="'+rr.y+'" width="'+leafW+'" height="'+CARD_H+'" rx="6"/><path class="edge done" d="M'+(leafX+2)+' '+(rr.y+6)+' L'+(leafX+2)+' '+(rr.y+CARD_H-6)+'"/><text class="id" x="'+(leafX+12)+'" y="'+(rr.y+19)+'">'+rr.ids.length+' done</text><text class="st" x="'+(leafX+leafW-10)+'" y="'+(rr.y+19)+'" text-anchor="end">Done</text><text class="tt" x="'+(leafX+12)+'" y="'+(rr.y+36)+'">'+esc(clip(rr.ids.join(', '),Math.floor((leafW-22)/6.1)))+'</text></g>';}
@@ -781,7 +781,7 @@ var right=edgesAll.filter(function(e){return !e.parent&&rowOf[e.from]&&rowOf[e.t
 var laneStep=Math.max(8,Math.min(laneGap,Math.floor((W-14-laneX0)/Math.max(1,right.length))));
 right.forEach(function(e,i){var lx=laneX0+i*laneStep,y1=portY(e.from,e.to),y2=portY(e.to,e.from);dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tga)" d="M'+(leafX+leafW)+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(leafX+leafW+2)+' '+y2+'"/>';});
 var pe=edgesAll.filter(function(e){return e.parent&&rowOf[e.to];});var lanes=[];pe.forEach(function(e){if(lanes.indexOf(e.from)<0)lanes.push(e.from);});
-pe.forEach(function(e){var pp=placed.filter(function(o){return o.n===e.from;})[0];if(!pp)return;var lx=leafX-10-lanes.indexOf(e.from)*10,y1=pp.y+CARD_H/2+14,y2=cy(rowOf[e.to])+14;dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tga)" d="M'+(colX(pp.col)+colW(pp.col))+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(leafX-2)+' '+y2+'"/>';});
+pe.forEach(function(e){var pp=placed.filter(function(o){return o.n===e.from;})[0];if(!pp)return;var lstep=gap>=80?14:10;var lx=leafX-12-lanes.indexOf(e.from)*lstep,y1=pp.y+CARD_H/2+14,y2=cy(rowOf[e.to])+14;dsvg+='<path class="dep" data-f="'+e.from+'" data-t="'+e.to+'" marker-end="url(#tga)" d="M'+(colX(pp.col)+colW(pp.col))+' '+y1+' L'+lx+' '+y1+' L'+lx+' '+y2+' L'+(leafX-2)+' '+y2+'"/>';});
 var H=top+rows.length*PITCH+30;var heads='<text class="col" x="'+colX(0)+'" y="24">Epic</text>';for(var c=1;c<leafCol;c++)heads+='<text class="col" x="'+colX(c)+'" y="24">Split tasks</text>';heads+='<text class="col" x="'+leafX+'" y="24">Tickets</text>'+(right.length?'<text class="col" x="'+laneX0+'" y="24">Waits on</text>':'');
 return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Hierarchy first">'+marker('tga')+heads+svg+dsvg+'<text class="key" x="20" y="'+(H-18)+'">Solid elbow: part of. Dashed arrow: the ticket it points at waits on the one it starts from.</text><text class="key" x="20" y="'+(H-4)+'">Hover a ticket to trace its arrows. Click a pill to run it.</text></svg>';}
 function dep(W){
