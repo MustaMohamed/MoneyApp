@@ -49,7 +49,7 @@ interface VariantConfig {
   placement: 'centered' | 'inline';
 }
 
-export const EMPTY_STATE_VARIANT_CONFIG: Record<EmptyStateVariant, VariantConfig> & {
+const VARIANT_CONFIG: Record<EmptyStateVariant, VariantConfig> & {
   accountsArchivedOnly: { description: (n: number) => string };
 } = {
   accounts: {
@@ -145,7 +145,7 @@ export function resolveEmptyStatePlacement(
 
 export function EmptyState(props: EmptyStateProps) {
   const { onAction } = props;
-  const config = EMPTY_STATE_VARIANT_CONFIG[props.variant];
+  const config = VARIANT_CONFIG[props.variant];
   const placement = resolveEmptyStatePlacement(props.placement, config.placement);
   // Only `accountsArchivedOnly` carries a count, and only its description reads one.
   const archivedCount = props.variant === 'accountsArchivedOnly' ? props.archivedCount : 0;
