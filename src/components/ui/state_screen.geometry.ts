@@ -16,7 +16,8 @@ interface StateScreenKindGeometry {
 interface StateScreenGeometry {
   paddingHorizontal: number;
   bodyGap: number;
-  inlinePaddingVertical: number;
+  inlinePaddingTop: number;
+  inlinePaddingBottom: number;
   error: StateScreenKindGeometry;
   empty: StateScreenKindGeometry;
 }
@@ -24,7 +25,9 @@ interface StateScreenGeometry {
 export const STATE_SCREEN_LAYOUT = {
   paddingHorizontal: Spacing.xl,
   bodyGap: Spacing.xs,
-  inlinePaddingVertical: Spacing.xl,
+  inlinePaddingTop: Spacing.xxl,
+  // 8, so the section that follows the archived-only block clears it (MA-017's slot).
+  inlinePaddingBottom: Spacing.xs,
   error: {
     iconCircle: ms(64),
     iconSize: Size.iconXl,
@@ -68,8 +71,8 @@ function buildStateScreenLayout(kind: StateScreenKind): StateScreenLayout {
   const rootInline: Readonly<ViewStyle> = Object.freeze({
     alignItems: 'center',
     paddingHorizontal: STATE_SCREEN_LAYOUT.paddingHorizontal,
-    paddingTop: STATE_SCREEN_LAYOUT.inlinePaddingVertical,
-    paddingBottom: STATE_SCREEN_LAYOUT.inlinePaddingVertical,
+    paddingTop: STATE_SCREEN_LAYOUT.inlinePaddingTop,
+    paddingBottom: STATE_SCREEN_LAYOUT.inlinePaddingBottom,
   });
 
   const iconCircle: Readonly<ViewStyle> = Object.freeze({
@@ -93,7 +96,7 @@ function buildStateScreenLayout(kind: StateScreenKind): StateScreenLayout {
 
   const action: Readonly<ViewStyle> =
     kind === 'error'
-      ? Object.freeze({ marginTop: config.actionGap, width: '100%', maxWidth: config.bodyMaxWidth })
+      ? Object.freeze({ marginTop: config.actionGap, width: '100%' })
       : Object.freeze({ marginTop: config.actionGap });
 
   return Object.freeze({

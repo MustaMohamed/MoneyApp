@@ -100,11 +100,16 @@ describe('resolveStateScreenLayout — rootInline places the block at the top, n
     expect(emptyLayout.rootInline.paddingHorizontal).toBe(emptyLayout.root.paddingHorizontal);
   });
 
-  it('pads top and bottom with the shared inline slot', () => {
-    expect(emptyLayout.rootInline.paddingTop).toBe(STATE_SCREEN_LAYOUT.inlinePaddingVertical);
-    expect(emptyLayout.rootInline.paddingBottom).toBe(STATE_SCREEN_LAYOUT.inlinePaddingVertical);
-    expect(emptyLayout.rootInline.paddingTop).toBe(Spacing.xl);
-    expect(emptyLayout.rootInline.paddingTop).toBe(28);
+  it('pads the top with the shared inline top slot', () => {
+    expect(emptyLayout.rootInline.paddingTop).toBe(STATE_SCREEN_LAYOUT.inlinePaddingTop);
+    expect(emptyLayout.rootInline.paddingTop).toBe(Spacing.xxl);
+    expect(emptyLayout.rootInline.paddingTop).toBe(37);
+  });
+
+  it('leaves the shared inline bottom slot beneath itself, for the section that follows', () => {
+    expect(emptyLayout.rootInline.paddingBottom).toBe(STATE_SCREEN_LAYOUT.inlinePaddingBottom);
+    expect(emptyLayout.rootInline.paddingBottom).toBe(Spacing.xs);
+    expect(emptyLayout.rootInline.paddingBottom).toBe(9);
   });
 
   it('leaves the centred root untouched', () => {
@@ -130,9 +135,9 @@ describe('resolveStateScreenLayout — the icon circle never goes out of round',
 });
 
 describe('resolveStateScreenLayout — the action slot differs by kind', () => {
-  it('error stretches full width, capped at the shared body max width', () => {
+  it('error stretches the full content width, uncapped — the body above it keeps its own cap', () => {
     expect(errorLayout.action.width).toBe('100%');
-    expect(errorLayout.action.maxWidth).toBe(STATE_SCREEN_LAYOUT.error.bodyMaxWidth);
+    expect(errorLayout.action.maxWidth).toBeUndefined();
   });
 
   it('empty carries no width or maxWidth', () => {
@@ -142,13 +147,15 @@ describe('resolveStateScreenLayout — the action slot differs by kind', () => {
 });
 
 describe('resolveStateScreenLayout — shared slots live once, not duplicated per kind', () => {
-  it('paddingHorizontal, bodyGap and inlinePaddingVertical are absent from both kind configs', () => {
+  it('paddingHorizontal, bodyGap and the two inline slots are absent from both kind configs', () => {
     expect('paddingHorizontal' in STATE_SCREEN_LAYOUT.error).toBe(false);
     expect('bodyGap' in STATE_SCREEN_LAYOUT.error).toBe(false);
-    expect('inlinePaddingVertical' in STATE_SCREEN_LAYOUT.error).toBe(false);
+    expect('inlinePaddingTop' in STATE_SCREEN_LAYOUT.error).toBe(false);
+    expect('inlinePaddingBottom' in STATE_SCREEN_LAYOUT.error).toBe(false);
     expect('paddingHorizontal' in STATE_SCREEN_LAYOUT.empty).toBe(false);
     expect('bodyGap' in STATE_SCREEN_LAYOUT.empty).toBe(false);
-    expect('inlinePaddingVertical' in STATE_SCREEN_LAYOUT.empty).toBe(false);
+    expect('inlinePaddingTop' in STATE_SCREEN_LAYOUT.empty).toBe(false);
+    expect('inlinePaddingBottom' in STATE_SCREEN_LAYOUT.empty).toBe(false);
   });
 
   it('both kinds resolve the identical shared paddingHorizontal', () => {

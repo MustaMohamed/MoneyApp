@@ -87,6 +87,14 @@ describe('semantic colour agreement — theme.ts vs theme_tokens.ts vs global.cs
     }
   });
 
+  it('segment-foreground is declared, at text1 — undeclared it falls to HeroUI 1.15:1 eclipse', () => {
+    const cssValues = cssVarValues(css, 'segment-foreground');
+    expect(cssValues).toHaveLength(2);
+    for (const value of cssValues) {
+      expect(value).toBe(Colors.dark.text1.toLowerCase());
+    }
+  });
+
   it('InfoTokens[500] agrees with SemanticTokens.info — a fourth declaration the loop above cannot reach', () => {
     expect(InfoTokens[500].toLowerCase()).toBe(SemanticTokens.info.toLowerCase());
   });

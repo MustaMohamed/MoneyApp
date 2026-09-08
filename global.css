@@ -32,6 +32,8 @@
     --content-secondary: #6b7f99;
     --muted: #4a5568;
     --segment: #1a2535;
+    /* HeroUI reads this for the selected tab label; undeclared it falls to --eclipse, 1.15:1. */
+    --segment-foreground: #f0ebe3;
     --border: #2a3a4f;
     --separator: #2a3a4f;
     --focus: #d4a44c;
@@ -77,6 +79,8 @@
     --content-secondary: #6b7f99;
     --muted: #4a5568;
     --segment: #1a2535;
+    /* HeroUI reads this for the selected tab label; undeclared it falls to --eclipse, 1.15:1. */
+    --segment-foreground: #f0ebe3;
     --border: #2a3a4f;
     --separator: #2a3a4f;
     --focus: #d4a44c;

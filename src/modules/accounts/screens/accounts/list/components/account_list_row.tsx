@@ -10,7 +10,10 @@ import { resolveAccountBalanceColorClass } from '../../../../constants/account_b
 import { resolveAccountRowA11yLabel } from '../../../../constants/account_row_a11y_label';
 import { resolveAccountTileColors } from '../../../../constants/account_tile_color';
 import type { Account } from '../../../../entities/account.entity';
-import { ACCOUNTS_LIST_ROW_STYLE } from '../accounts_list.geometry';
+import {
+  ACCOUNTS_LIST_ROW_CAPTION_STYLE,
+  ACCOUNTS_LIST_ROW_STYLE,
+} from '../accounts_list.geometry';
 
 interface AccountListRowProps {
   account: Account;
@@ -63,11 +66,7 @@ export function AccountListRow({ account, caption, onPress }: AccountListRowProp
         {/* Not ItemDescription: its muted colour is 2.36:1. */}
         <Typography
           className="text-content-secondary font-inter tabular-nums"
-          style={{
-            fontSize: Type.caption,
-            lineHeight: lineHeightFor(Type.caption),
-            marginTop: Spacing.xxxs,
-          }}
+          style={ACCOUNTS_LIST_ROW_CAPTION_STYLE}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
