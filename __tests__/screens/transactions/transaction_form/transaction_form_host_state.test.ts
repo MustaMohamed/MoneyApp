@@ -4,6 +4,7 @@ import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
+import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 
@@ -77,6 +78,20 @@ describe('useTransactionFormState', () => {
         disabled: true,
       },
     });
+  });
+
+  it('carries an opener-preselected account into the add session', () => {
+    useTransactionFormState.getState().openAdd({ accountId: 'a1' });
+
+    expect(useAddTransactionStore.getState().initialAccountId).toBe('a1');
+    expect(useTransactionFormState.getState()).toMatchObject({ mode: 'add', phase: 'open' });
+  });
+
+  it('clears the preselection when the next open passes none', () => {
+    useTransactionFormState.getState().openAdd({ accountId: 'a1' });
+    useTransactionFormState.getState().openAdd();
+
+    expect(useAddTransactionStore.getState().initialAccountId).toBeUndefined();
   });
 
   it('opens Edit with its target in the same state update', () => {

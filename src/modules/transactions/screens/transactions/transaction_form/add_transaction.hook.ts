@@ -280,7 +280,8 @@ export function useAddTransaction(
     reValidateMode: 'onChange',
     defaultValues: {
       amount: 0,
-      accountId: '',
+      // RHF reads defaults at mount only, so the opener's preselection lands exactly once.
+      accountId: useAddTransactionStore.getState().initialAccountId ?? '',
       toAccountId: '',
       categoryId: '',
       budgetId: '',

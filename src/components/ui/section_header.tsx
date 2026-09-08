@@ -1,15 +1,17 @@
-import { Typography } from 'heroui-native';
+import { LinkButton, Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 export interface SectionHeaderProps {
   title: string;
   count?: number;
+  /** The right-slot link; no caller passes it alongside `count`. */
+  action?: { label: string; onPress: () => void };
 }
 
-export function SectionHeader({ title, count }: SectionHeaderProps) {
+export function SectionHeader({ title, count, action }: SectionHeaderProps) {
   return (
     <View
       className="mt-4 mb-2 flex-row items-center justify-between"
@@ -32,6 +34,21 @@ export function SectionHeader({ title, count }: SectionHeaderProps) {
             {count}
           </Typography>
         </View>
+      ) : null}
+      {action ? (
+        <LinkButton
+          size="sm"
+          onPress={action.onPress}
+          accessibilityRole="button"
+          accessibilityLabel={action.label}
+        >
+          <LinkButton.Label
+            className="text-accent font-inter-semibold"
+            style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
+          >
+            {action.label}
+          </LinkButton.Label>
+        </LinkButton>
       ) : null}
     </View>
   );

@@ -1,6 +1,10 @@
 import { TransactionType } from '@/constants/enums';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 import {
+  countActiveFilters,
+  formatAppliedFilterSummary,
+} from '@/modules/transactions/screens/transactions/filter/filter.helpers';
+import {
   EMPTY_FILTERS,
   type AdvancedFilters,
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
@@ -115,6 +119,58 @@ describe('useTransactionsScreenStore setters', () => {
     useTransactionsScreenStore.getState().clearSearch();
     expect(useTransactionsScreenStore.getState().searchQuery).toBe('');
     expect(useTransactionsScreenStore.getState().activeFilter).toBe(TransactionType.Income);
+  });
+});
+
+describe('useTransactionsScreenStore seedAccountFilter', () => {
+  const accountsById = new Map([['acc1', { id: 'acc1', name: 'CIB' }]]);
+  const categoriesById = new Map<string, { id: string; name: string }>();
+
+  it('publishes the account filter, the month, and a cleared search and chip together', () => {
+    useTransactionsScreenStore.getState().seedAccountFilter('acc1', '2026-09');
+
+    const s = useTransactionsScreenStore.getState();
+    expect(s.searchQuery).toBe('');
+    expect(s.activeFilter).toBe('all');
+    expect(s.period).toEqual({ type: 'month', yearMonth: '2026-09' });
+    expect(s.appliedFilters).toEqual({ ...EMPTY_FILTERS, accountIds: ['acc1'] });
+  });
+
+  it('reads as exactly one active filter, labelled with the account name', () => {
+    useTransactionsScreenStore.getState().seedAccountFilter('acc1', '2026-09');
+
+    const { appliedFilters } = useTransactionsScreenStore.getState();
+    expect(countActiveFilters(appliedFilters)).toBe(1);
+    expect(formatAppliedFilterSummary(appliedFilters, accountsById, categoriesById)).toBe('CIB');
+  });
+
+  it('clears a typed search and a type chip that were already applied', () => {
+    useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
+    useTransactionsScreenStore
+      .getState()
+      .setAppliedFilters({ ...EMPTY_FILTERS, categoryIds: ['cat1'] });
+
+    useTransactionsScreenStore.getState().seedAccountFilter('acc1', '2026-09');
+
+    const s = useTransactionsScreenStore.getState();
+    expect(s.searchQuery).toBe('');
+    expect(s.activeFilter).toBe('all');
+    expect(s.appliedFilters.categoryIds).toEqual([]);
+  });
+
+  it('leaves the totals slot to its own owner', () => {
+    const requestId = useTransactionsScreenStore.getState().beginTotalsRequest('2026-08', false);
+    useTransactionsScreenStore.getState().resolveTotals('2026-08', requestId, {
+      current: { incomeEgp: 100, expenseEgp: 80, netEgp: 20 },
+      previous: null,
+    });
+
+    useTransactionsScreenStore.getState().seedAccountFilter('acc1', '2026-09');
+
+    const s = useTransactionsScreenStore.getState();
+    expect(s.totalsYearMonth).toBe('2026-08');
+    expect(s.totals?.current.netEgp).toBe(20);
   });
 });
 

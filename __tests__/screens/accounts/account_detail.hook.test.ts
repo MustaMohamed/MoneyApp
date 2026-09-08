@@ -1,20 +1,40 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import type { AccountActivitySnapshot } from '@/modules/accounts/repositories/account_activity.repository';
+import { useAccountActivityStore } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
 import { useAccountDetail } from '@/modules/accounts/screens/accounts/detail/account_detail.hook';
 import { useAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountStore, type Account } from '@/modules/accounts/store/account.store';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { makeTestTransaction } from '@/test_helpers/transaction';
+import { currentYearMonth } from '@/utils/year_month';
 
 const mockBack = jest.fn();
+const mockNavigate = jest.fn();
+const mockFocusEffect = jest.fn<void, [() => void | (() => void)]>();
+const mockEnsure = jest.fn();
+const mockRetry = jest.fn(() => Promise.resolve());
+const mockActivityReset = jest.fn();
+const mockSeedAccountFilter = jest.fn();
+const mockOpenAdd = jest.fn();
 type BeforeRemoveEvent = { preventDefault: () => void };
 type BeforeRemoveHandler = (event: BeforeRemoveEvent) => void;
 const mockAddListener = jest.fn<() => void, [string, BeforeRemoveHandler]>(() => jest.fn());
 
 jest.mock('expo-router', () => ({
+  useFocusEffect: (effect: () => void | (() => void)) => mockFocusEffect(effect),
   useLocalSearchParams: () => ({ id: 'acc-1' }),
-  useRouter: () => ({ back: mockBack }),
+  useRouter: () => ({ back: mockBack, navigate: mockNavigate }),
   useNavigation: () => ({ addListener: mockAddListener }),
+}));
+jest.mock('@/utils/run_after_interactions', () => ({
+  runAfterInteractions: (task: () => void) => {
+    task();
+    return { cancel: jest.fn() };
+  },
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
@@ -23,6 +43,73 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () => {
   return { useAccountDetailState: jest.fn() };
 });
+jest.mock('@/modules/accounts/screens/accounts/detail/account_activity.store', () => ({
+  useAccountActivityStore: jest.fn(),
+}));
+jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
+jest.mock('@/modules/transactions/store/transaction.store', () => ({
+  useTransactionStore: { getState: () => ({ mutationVersion: 3 }) },
+}));
+jest.mock('@/modules/transactions/screens/transactions/transactions.store', () => ({
+  useTransactionsScreenStore: { getState: () => ({ seedAccountFilter: mockSeedAccountFilter }) },
+}));
+jest.mock(
+  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
+  () => ({ useTransactionFormState: { getState: () => ({ openAdd: mockOpenAdd }) } }),
+);
+
+const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions';
+
+function mkAccount(overrides: Partial<Account> = {}): Account {
+  return {
+    id: 'acc-1',
+    name: 'CIB',
+    type: AccountType.Bank,
+    currency: Currency.EGP,
+    opening_balance: 30000,
+    current_balance: 30000,
+    color: '#1B2B4B',
+    credit_limit: null,
+    revolving_balance: null,
+    minimum_payment: null,
+    statement_due_day: null,
+    interest_tracking: 0,
+    apr: null,
+    is_archived: 0,
+    balance_review_required: 0,
+    sort_order: 0,
+    created_at: '2026-09-01T00:00:00.000Z',
+    updated_at: '2026-09-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function mockAccounts(accounts: Account[]): void {
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    accounts,
+    updateAccount: jest.fn(),
+    archiveAccount: jest.fn(),
+    adjustBalance: mockAdjustBalance,
+    confirmBalanceReviewed: mockConfirmBalanceReviewed,
+  }));
+}
+
+function mockActivity(snapshot?: AccountActivitySnapshot, status = 'ready'): void {
+  attachMockSelectorStore(useAccountActivityStore as unknown as jest.Mock, () => ({
+    snapshot,
+    status,
+    requestedKey: undefined,
+    requestGeneration: 0,
+    ensure: mockEnsure,
+    retry: mockRetry,
+    reset: mockActivityReset,
+  }));
+}
+
+/** The focus effect the mocked `useFocusEffect` recorded, invoked as navigation would. */
+function runFocusEffect(): void {
+  mockFocusEffect.mock.calls.at(-1)?.[0]();
+}
 
 const mockSetEditing = jest.fn();
 const mockSetAdjustVisible = jest.fn();
@@ -88,13 +175,10 @@ function mockDetailState(overrides: Partial<DetailStateMock> = {}) {
 function setup() {
   jest.clearAllMocks();
   mockAddListener.mockReturnValue(jest.fn());
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: [],
-    updateAccount: jest.fn(),
-    archiveAccount: jest.fn(),
-    adjustBalance: mockAdjustBalance,
-    confirmBalanceReviewed: mockConfirmBalanceReviewed,
-  }));
+  mockRetry.mockReturnValue(Promise.resolve());
+  mockAccounts([]);
+  mockActivity(undefined, 'idle');
+  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({ categories: [] }));
   mockDetailState();
 }
 
@@ -218,6 +302,84 @@ describe('useAccountDetail', () => {
     expect(mockSetEditing).toHaveBeenCalledWith(false);
   });
 
+  it('loads the activity on focus, stamped with the current mutation version', async () => {
+    mockAccounts([mkAccount()]);
+    await renderHook(() => useAccountDetail());
+
+    runFocusEffect();
+
+    expect(mockEnsure).toHaveBeenCalledTimes(1);
+    expect(mockEnsure).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: 'acc-1', mutationVersion: 3 }),
+    );
+  });
+
+  it('M14: does not load for an id the account store no longer holds', async () => {
+    mockAccounts([mkAccount({ id: 'acc-other' })]);
+    await renderHook(() => useAccountDetail());
+
+    runFocusEffect();
+
+    expect(mockEnsure).not.toHaveBeenCalled();
+  });
+
+  it('drops the activity snapshot on unmount', async () => {
+    mockAccounts([mkAccount()]);
+    const { unmount } = await renderHook(() => useAccountDetail());
+
+    expect(mockActivityReset).not.toHaveBeenCalled();
+    await unmount();
+
+    expect(mockReset).toHaveBeenCalledTimes(1);
+    expect(mockActivityReset).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries the activity read with a fresh stamp', async () => {
+    mockAccounts([mkAccount()]);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.retryActivity());
+
+    expect(mockRetry).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: 'acc-1', mutationVersion: 3 }),
+    );
+  });
+
+  it('seeds the transactions filter before landing on the tab', async () => {
+    mockAccounts([mkAccount()]);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.goToAllTransactions());
+
+    expect(mockSeedAccountFilter).toHaveBeenCalledWith('acc-1', currentYearMonth());
+    expect(mockNavigate).toHaveBeenCalledWith(TRANSACTIONS_TAB);
+    expect(mockSeedAccountFilter.mock.invocationCallOrder[0]).toBeLessThan(
+      mockNavigate.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it('opens the add form with this account before landing on the tab', async () => {
+    mockAccounts([mkAccount()]);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.addTransactionForAccount());
+
+    expect(mockOpenAdd).toHaveBeenCalledWith({ accountId: 'acc-1' });
+    expect(mockNavigate).toHaveBeenCalledWith(TRANSACTIONS_TAB);
+    expect(mockOpenAdd.mock.invocationCallOrder[0]).toBeLessThan(
+      mockNavigate.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it('opens a row on the transaction detail', async () => {
+    mockAccounts([mkAccount()]);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.goToTransaction('tx-9'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(`${TRANSACTIONS_TAB}/detail/tx-9`);
+  });
+
   it('reads latest edit state when a registered beforeRemove handler fires later', async () => {
     const store = mockDetailState({ isEditing: false });
     const preventDefault = jest.fn();
@@ -232,5 +394,60 @@ describe('useAccountDetail', () => {
 
     expect(preventDefault).toHaveBeenCalledTimes(1);
     expect(mockSetEditing).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('useAccountDetail — the activity slice the screen renders', () => {
+  beforeEach(setup);
+
+  it("holds a bank's month rows at the unset glyph until the snapshot lands", async () => {
+    mockAccounts([mkAccount()]);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(result.current.state.activity.monthFacts).toEqual([
+      { label: Strings.accountDetailMonthInLabel, value: Strings.accountDetailFactUnset },
+      { label: Strings.accountDetailMonthOutLabel, value: Strings.accountDetailFactUnset },
+    ]);
+    expect(result.current.state.activity.rows).toEqual([]);
+  });
+
+  it('gives a credit card no month rows at all', async () => {
+    mockAccounts([mkAccount({ type: AccountType.CreditCard })]);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(result.current.state.activity.monthFacts).toEqual([]);
+  });
+
+  it('fills the month rows and the row list from one snapshot', async () => {
+    mockAccounts([mkAccount()]);
+    mockActivity({
+      accountId: 'acc-1',
+      rows: [makeTestTransaction({ id: 'tx-1', account_id: 'acc-1' })],
+      stats: { month_in: 1250, month_out: 640, week_in: 0, week_out: 0 },
+      loadedAt: new Date('2026-09-15T12:00:00.000Z').getTime(),
+    });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(result.current.state.activity.monthFacts.map((fact) => fact.value)).toEqual([
+      '1,250 EGP',
+      '640 EGP',
+    ]);
+    expect(result.current.state.activity.rows).toHaveLength(1);
+    expect(result.current.state.activity.rows[0]?.id).toBe('tx-1');
+    expect(result.current.state.activity.rows[0]?.presentation.context).toBe('CIB');
+  });
+
+  it('ignores a snapshot belonging to another account', async () => {
+    mockAccounts([mkAccount()]);
+    mockActivity({
+      accountId: 'acc-other',
+      rows: [makeTestTransaction({ id: 'tx-1', account_id: 'acc-other' })],
+      stats: { month_in: 1250, month_out: 640, week_in: 0, week_out: 0 },
+      loadedAt: 0,
+    });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(result.current.state.activity.rows).toEqual([]);
+    expect(result.current.state.activity.monthFacts.map((fact) => fact.value)).toEqual(['—', '—']);
   });
 });

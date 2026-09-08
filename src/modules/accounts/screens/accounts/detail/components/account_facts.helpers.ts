@@ -1,14 +1,17 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, type Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { buildMonthRows } from '@/modules/dashboard/screens/dashboard/components/account_card.helpers';
 import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatOrdinal } from '@/utils/format_ordinal';
 
+import type { AccountStats } from '../../../../database/account_stats';
 import type { Account } from '../../../../store/account.store';
 
 export interface AccountFact {
   label: string;
   value: string;
+  valueColor?: string;
 }
 
 // APR is a rate, not an amount, so `CURRENCY_CONFIG` decimals do not apply to it.
@@ -56,6 +59,32 @@ export function buildAccountFacts(account: Account): AccountFact[] {
     {
       label: Strings.accountBalanceLabel,
       value: formatCurrencyAmount(account.opening_balance, currency),
+    },
+  ];
+}
+
+/** The month figures the dashboard card shows, as detail fact rows; only a bank carries them. */
+export function buildMonthFacts(account: Account, stats: AccountStats | undefined): AccountFact[] {
+  if (account.type !== AccountType.Bank) return [];
+
+  if (stats === undefined) {
+    return [
+      { label: Strings.accountDetailMonthInLabel, value: Strings.accountDetailFactUnset },
+      { label: Strings.accountDetailMonthOutLabel, value: Strings.accountDetailFactUnset },
+    ];
+  }
+
+  const [monthIn, monthOut] = buildMonthRows(stats, account.currency);
+  return [
+    {
+      label: Strings.accountDetailMonthInLabel,
+      value: monthIn.value,
+      valueColor: monthIn.valueColor,
+    },
+    {
+      label: Strings.accountDetailMonthOutLabel,
+      value: monthOut.value,
+      valueColor: monthOut.valueColor,
     },
   ];
 }

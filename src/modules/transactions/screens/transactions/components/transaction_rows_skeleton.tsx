@@ -10,16 +10,27 @@ import {
   TRANSACTION_ROW_VALUE_WIDTH,
 } from './transaction_row.helpers';
 
-const ROWS = [0, 1, 2, 3, 4];
+const DEFAULT_ROWS = 5;
 
-export function TransactionRowsSkeleton(): React.ReactElement {
+interface Props {
+  rows?: number;
+  showDateHeader?: boolean;
+}
+
+export function TransactionRowsSkeleton({
+  rows = DEFAULT_ROWS,
+  showDateHeader = true,
+}: Props): React.ReactElement {
+  const rowIndexes = Array.from({ length: rows }, (_, index) => index);
   return (
     <View testID="transaction-row-skeletons" accessibilityLabel={Strings.loadingTransactionsA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
-        <View className="px-4 pt-2 pb-1">
-          <SkeletonGroup.Item className="h-3 w-24 rounded-md" />
-        </View>
-        {ROWS.map((row) => (
+        {showDateHeader ? (
+          <View className="px-4 pt-2 pb-1">
+            <SkeletonGroup.Item className="h-3 w-24 rounded-md" />
+          </View>
+        ) : null}
+        {rowIndexes.map((row) => (
           <View
             key={row}
             testID="transaction-row-skeleton"

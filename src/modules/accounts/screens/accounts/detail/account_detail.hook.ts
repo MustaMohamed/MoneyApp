@@ -1,14 +1,28 @@
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useZodForm } from '@/utils/use_zod_form.hook';
+import { currentYearMonth } from '@/utils/year_month';
 
 import { DEFAULT_ACCOUNT_COLOR } from '../../../constants/account_palette';
+import type { AccountActivityLoadInput } from '../../../repositories/account_activity.repository';
 import { useAccountStore } from '../../../store/account.store';
+import { useAccountActivityStore } from './account_activity.store';
 import { useAccountDetailState } from './account_detail.state';
+import { buildActivityRowPresentation } from './components/account_activity.helpers';
+import { buildMonthFacts } from './components/account_facts.helpers';
+
+// `navigate`, not `push`: the detail sits above `(tabs)` on the `(app)` Stack, and pushing a route
+// already in that stack would mount a second tab navigator.
+const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions' as const;
 
 export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -50,7 +64,19 @@ export function useAccountDetail() {
   const setConfirmingBalanceReview = useAccountDetailState.getState().setConfirmingBalanceReview;
   const setBalanceReviewError = useAccountDetailState.getState().setBalanceReviewError;
   const reset = useAccountDetailState.getState().reset;
-  useEffect(() => () => reset(), [reset]);
+  const { activityStatus, activitySnapshot } = useAccountActivityStore(
+    useShallow((s) => ({ activityStatus: s.status, activitySnapshot: s.snapshot })),
+  );
+  const categories = useCategoryStore((s) => s.categories);
+
+  useEffect(
+    () => () => {
+      reset();
+      // Bumps the generation too, so a result racing an archive is dropped (M14).
+      useAccountActivityStore.getState().reset();
+    },
+    [reset],
+  );
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -63,6 +89,65 @@ export function useAccountDetail() {
   }, [navigation]);
 
   const account = accounts.find((a) => a.id === id);
+
+  const activityInput = useCallback(
+    (): AccountActivityLoadInput => ({
+      accountId: id,
+      mutationVersion: useTransactionStore.getState().mutationVersion,
+      now: new Date(),
+    }),
+    [id],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const task = runAfterInteractions(
+        () => {
+          // Archive removes the account mid-flight; without this the load reads a dead id (M14).
+          if (!useAccountStore.getState().accounts.some((a) => a.id === id)) return undefined;
+          return useAccountActivityStore.getState().ensure(activityInput());
+        },
+        // The store owns the error status the card renders; this only leaves a trace.
+        { onError: (error) => console.error('[accountDetail] activity load failed:', error) },
+      );
+      return () => task.cancel();
+    }, [activityInput, id]),
+  );
+
+  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+
+  const activityRows = useMemo(() => {
+    if (activitySnapshot?.accountId !== id) return [];
+    const loadedAt = new Date(activitySnapshot.loadedAt);
+    return activitySnapshot.rows.map((tx) => {
+      const category = tx.category_id ? categoriesById.get(tx.category_id) : undefined;
+      return {
+        id: tx.id,
+        category,
+        presentation: buildActivityRowPresentation(
+          {
+            tx,
+            account: accountsById.get(tx.account_id),
+            toAccount: tx.to_account_id ? accountsById.get(tx.to_account_id) : undefined,
+            category,
+          },
+          loadedAt,
+        ),
+      };
+    });
+  }, [accountsById, activitySnapshot, categoriesById, id]);
+
+  const monthFacts = useMemo(
+    () =>
+      account
+        ? buildMonthFacts(
+            account,
+            activitySnapshot?.accountId === id ? activitySnapshot.stats : undefined,
+          )
+        : [],
+    [account, activitySnapshot, id],
+  );
 
   const editSchema = useMemo(
     () =>
@@ -154,6 +239,25 @@ export function useAccountDetail() {
     }
   };
 
+  // Nothing to catch: a failed retry publishes `initialError`, which the card renders and logs.
+  const retryActivity = () => {
+    void useAccountActivityStore.getState().retry(activityInput());
+  };
+
+  const goToTransaction = (transactionId: string) => {
+    router.navigate(`${TRANSACTIONS_TAB}/detail/${transactionId}`);
+  };
+
+  const goToAllTransactions = () => {
+    useTransactionsScreenStore.getState().seedAccountFilter(id, currentYearMonth());
+    router.navigate(TRANSACTIONS_TAB);
+  };
+
+  const addTransactionForAccount = () => {
+    useTransactionFormState.getState().openAdd({ accountId: id });
+    router.navigate(TRANSACTIONS_TAB);
+  };
+
   return {
     state: {
       account,
@@ -165,6 +269,7 @@ export function useAccountDetail() {
       isArchiving,
       isConfirmingBalanceReview,
       balanceReviewError,
+      activity: { status: activityStatus, rows: activityRows, monthFacts },
     },
     form,
     setEditing,
@@ -175,5 +280,9 @@ export function useAccountDetail() {
     handleArchive,
     handleConfirmBalanceReviewed,
     onBack,
+    retryActivity,
+    goToTransaction,
+    goToAllTransactions,
+    addTransactionForAccount,
   };
 }

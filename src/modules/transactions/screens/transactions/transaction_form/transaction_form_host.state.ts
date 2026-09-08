@@ -34,7 +34,7 @@ interface TransactionFormStateShape {
 }
 
 type TransactionFormState = TransactionFormStateShape & {
-  openAdd: () => void;
+  openAdd: (options?: { accountId?: string }) => void;
   openEdit: (tx: Transaction, onSaved?: () => void) => void;
   requestClose: () => boolean;
   requestAccountCreation: (sessionId: number) => boolean;
@@ -120,8 +120,10 @@ export const useTransactionFormState = createMoneyAppSelectors(
   create<TransactionFormState>((set, get) => ({
     ...INITIAL_STATE,
 
-    openAdd: () => {
+    openAdd: (options) => {
       resetFormSessions();
+      // After the reset, which clears it: the account the opener preselects, if any.
+      useAddTransactionStore.getState().setInitialAccountId(options?.accountId);
       const opening = getOpeningState('add', null);
       set((state) => ({
         mode: 'add',

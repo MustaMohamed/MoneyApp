@@ -386,6 +386,25 @@ describe('useAddTransaction — validation', () => {
     expect(result.current.state.errorMessage).toBeUndefined();
   });
 
+  it('opens with the account the opener preselected already chosen', async () => {
+    useTransactionFormState.getState().openAdd({ accountId: mockAccountUSD.id });
+
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+
+    expect(result.current.state.accountId).toBe(mockAccountUSD.id);
+    expect(result.current.state.selectedAccount?.id).toBe(mockAccountUSD.id);
+  });
+
+  it('opens with no account chosen when the opener names none', async () => {
+    useTransactionFormState.getState().openAdd({ accountId: mockAccountUSD.id });
+    useTransactionFormState.getState().openAdd();
+
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+
+    expect(result.current.state.accountId).toBe('');
+    expect(result.current.state.selectedAccount).toBeNull();
+  });
+
   it('preserves entered values while the sheet close animation is running', async () => {
     useTransactionFormState.getState().openAdd();
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));

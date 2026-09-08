@@ -21,6 +21,7 @@ import {
   TRANSACTION_ROW_ICON_SIZE,
   TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT,
   TRANSACTION_ROW_VALUE_WIDTH,
+  type TransactionRowPresentation,
 } from './transaction_row.helpers';
 
 interface Props {
@@ -33,6 +34,140 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
+interface BodyProps {
+  presentation: TransactionRowPresentation;
+  category?: Category;
+  onPress: () => void;
+}
+
+/** The row without its swipe wrapper — the read-only list on the account detail renders this. */
+export function TransactionRowBody({
+  presentation,
+  category,
+  onPress,
+}: BodyProps): React.ReactElement {
+  const { scale, onPressIn, onPressOut } = useRowPressScale();
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const isCommitmentOwned = presentation.isCommitmentOwned;
+
+  return (
+    // animation={false} keeps PressableFeedback's own scale off the Reanimated one below.
+    <PressableFeedback
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      animation={false}
+    >
+      <Animated.View
+        testID="transaction-row"
+        style={[animStyle, { height: TRANSACTION_ROW_HEIGHT }]}
+        className="border-separator border-b px-4 py-1.5"
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
+          <View
+            testID="transaction-row-icon-track"
+            className={`mt-0.5 items-center justify-center rounded-lg ${presentation.iconBackgroundClassName}`}
+            style={{
+              width: TRANSACTION_ROW_ICON_SIZE,
+              height: TRANSACTION_ROW_ICON_SIZE,
+              flexShrink: 0,
+            }}
+          >
+            <MaterialCommunityIcons
+              name={presentation.iconName}
+              size={Size.iconSm}
+              color={category?.color ?? GoldTokens[500]}
+            />
+          </View>
+          <View testID="transaction-row-content-track" style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1.5">
+              <Text
+                className="font-sora-bold text-foreground min-w-0 shrink"
+                style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+                numberOfLines={1}
+              >
+                {presentation.title}
+              </Text>
+              {isCommitmentOwned ? <TypeBadge type="commitment" /> : null}
+              {!isCommitmentOwned && presentation.ownershipLabel ? (
+                <Text
+                  className="font-inter-bold text-info shrink-0"
+                  style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+                  numberOfLines={1}
+                >
+                  {presentation.ownershipLabel}
+                </Text>
+              ) : null}
+            </View>
+            <Text
+              className="font-inter-medium text-foreground/55 mt-0.5"
+              style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+              numberOfLines={1}
+            >
+              {presentation.context}
+            </Text>
+            <View
+              testID="transaction-row-note-track"
+              className="justify-end"
+              style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
+            >
+              {presentation.note ? (
+                <Text
+                  className="font-inter text-muted italic"
+                  style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+                  numberOfLines={1}
+                >
+                  {presentation.note}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+          <View
+            testID="transaction-row-value-track"
+            style={{ width: TRANSACTION_ROW_VALUE_WIDTH, alignItems: 'flex-end', flexShrink: 0 }}
+          >
+            <Text
+              className={`font-sora-bold ${presentation.amountClassName}`}
+              style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+            >
+              {presentation.primaryAmount}
+            </Text>
+            <View
+              testID="transaction-row-secondary-amount-track"
+              className="items-end justify-end"
+              style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
+            >
+              {presentation.secondaryAmount ? (
+                <Text
+                  className="font-inter-medium text-foreground/60"
+                  style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                >
+                  {presentation.secondaryAmount}
+                  {presentation.rateText ? (
+                    <Text className="opacity-70"> {presentation.rateText}</Text>
+                  ) : null}
+                </Text>
+              ) : null}
+            </View>
+            <Text
+              className="font-inter text-foreground/40"
+              style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+            >
+              {presentation.timeText}
+            </Text>
+          </View>
+        </View>
+      </Animated.View>
+    </PressableFeedback>
+  );
+}
+
 function TransactionRowComponent({
   tx,
   account,
@@ -42,9 +177,6 @@ function TransactionRowComponent({
   onEdit,
   onDelete,
 }: Props): React.ReactElement {
-  const { scale, onPressIn, onPressOut } = useRowPressScale();
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
   const presentation = useMemo(
     () => buildTransactionRowPresentation({ tx, account, toAccount, category }),
     [account, category, toAccount, tx],
@@ -84,120 +216,7 @@ function TransactionRowComponent({
       disabled={isCommitmentOwned}
       accessibilityLabel={presentation.accessibilityLabel}
     >
-      {/* animation={false} keeps PressableFeedback's own scale off the Reanimated one below. */}
-      <PressableFeedback
-        onPress={handlePress}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        animation={false}
-      >
-        <Animated.View
-          testID="transaction-row"
-          style={[animStyle, { height: TRANSACTION_ROW_HEIGHT }]}
-          className="border-separator border-b px-4 py-1.5"
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
-            <View
-              testID="transaction-row-icon-track"
-              className={`mt-0.5 items-center justify-center rounded-lg ${presentation.iconBackgroundClassName}`}
-              style={{
-                width: TRANSACTION_ROW_ICON_SIZE,
-                height: TRANSACTION_ROW_ICON_SIZE,
-                flexShrink: 0,
-              }}
-            >
-              <MaterialCommunityIcons
-                name={presentation.iconName}
-                size={Size.iconSm}
-                color={category?.color ?? GoldTokens[500]}
-              />
-            </View>
-            <View testID="transaction-row-content-track" style={{ flex: 1, minWidth: 0 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1.5">
-                <Text
-                  className="font-sora-bold text-foreground min-w-0 shrink"
-                  style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
-                  numberOfLines={1}
-                >
-                  {presentation.title}
-                </Text>
-                {isCommitmentOwned ? <TypeBadge type="commitment" /> : null}
-                {!isCommitmentOwned && presentation.ownershipLabel ? (
-                  <Text
-                    className="font-inter-bold text-info shrink-0"
-                    style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
-                    numberOfLines={1}
-                  >
-                    {presentation.ownershipLabel}
-                  </Text>
-                ) : null}
-              </View>
-              <Text
-                className="font-inter-medium text-foreground/55 mt-0.5"
-                style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
-                numberOfLines={1}
-              >
-                {presentation.context}
-              </Text>
-              <View
-                testID="transaction-row-note-track"
-                className="justify-end"
-                style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
-              >
-                {presentation.note ? (
-                  <Text
-                    className="font-inter text-muted italic"
-                    style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
-                    numberOfLines={1}
-                  >
-                    {presentation.note}
-                  </Text>
-                ) : null}
-              </View>
-            </View>
-            <View
-              testID="transaction-row-value-track"
-              style={{ width: TRANSACTION_ROW_VALUE_WIDTH, alignItems: 'flex-end', flexShrink: 0 }}
-            >
-              <Text
-                className={`font-sora-bold ${presentation.amountClassName}`}
-                style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.72}
-              >
-                {presentation.primaryAmount}
-              </Text>
-              <View
-                testID="transaction-row-secondary-amount-track"
-                className="items-end justify-end"
-                style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
-              >
-                {presentation.secondaryAmount ? (
-                  <Text
-                    className="font-inter-medium text-foreground/60"
-                    style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.75}
-                  >
-                    {presentation.secondaryAmount}
-                    {presentation.rateText ? (
-                      <Text className="opacity-70"> {presentation.rateText}</Text>
-                    ) : null}
-                  </Text>
-                ) : null}
-              </View>
-              <Text
-                className="font-inter text-foreground/40"
-                style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
-              >
-                {presentation.timeText}
-              </Text>
-            </View>
-          </View>
-        </Animated.View>
-      </PressableFeedback>
+      <TransactionRowBody presentation={presentation} category={category} onPress={handlePress} />
     </SwipeableRow>
   );
 }

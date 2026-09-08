@@ -11,6 +11,8 @@ interface LoadErrorAlertCommonProps {
   onRetry: () => void;
   /** Required, not defaulted: no shared retry key exists; every caller names its own. */
   retryLabel: string;
+  /** The redesigned screens' flat secondary on the retry; every other render site stays bordered. */
+  flatRetry?: boolean;
   testID?: string;
 }
 
@@ -43,7 +45,27 @@ const FLOATING_CLASS_NAME: Record<LoadErrorAlertFloatingOffset, string> = {
 const INLINE_CLASS_NAME = 'px-4 py-3';
 
 export function LoadErrorAlert(props: LoadErrorAlertProps) {
-  const { title, onRetry, retryLabel, testID } = props;
+  const { title, onRetry, retryLabel, flatRetry, testID } = props;
+
+  // Two literals, not `flat={flatRetry}`: `ButtonProps` discriminates on `flat: true`.
+  const retryButton = flatRetry ? (
+    <Button
+      variant="secondary"
+      flat
+      size="sm"
+      label={retryLabel}
+      accessibilityLabel={retryLabel}
+      onPress={onRetry}
+    />
+  ) : (
+    <Button
+      variant="secondary"
+      size="sm"
+      label={retryLabel}
+      accessibilityLabel={retryLabel}
+      onPress={onRetry}
+    />
+  );
 
   const alert = (
     <Alert status="danger" className="w-full">
@@ -51,13 +73,7 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
       <Alert.Content>
         <Alert.Title>{title}</Alert.Title>
       </Alert.Content>
-      <Button
-        variant="secondary"
-        size="sm"
-        label={retryLabel}
-        accessibilityLabel={retryLabel}
-        onPress={onRetry}
-      />
+      {retryButton}
     </Alert>
   );
 

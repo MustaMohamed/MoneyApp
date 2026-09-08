@@ -43,9 +43,10 @@ const derivedRetryKeys: StringsKey[] = [
 ].filter(isStringsKey);
 
 describe('load-error titles — derived from Strings by naming convention', () => {
-  it('derives exactly the 13 titles the nine-copy fold uses', () => {
+  it('derives exactly the 14 titles the nine-copy fold uses', () => {
     expect(derivedTitleKeys.slice().sort()).toEqual(
       [
+        'accountActivityLoadError',
         'categoriesLoadError',
         'categoriesRefreshError',
         'dashboardLoadError',
@@ -64,7 +65,7 @@ describe('load-error titles — derived from Strings by naming convention', () =
   });
 
   it('every derived title is present and non-empty', () => {
-    expect(derivedTitleKeys).toHaveLength(13);
+    expect(derivedTitleKeys).toHaveLength(14);
     for (const key of derivedTitleKeys) {
       const value = Strings[key];
       if (typeof value !== 'string') throw new Error(`expected ${key} to be a string`);
@@ -74,9 +75,10 @@ describe('load-error titles — derived from Strings by naming convention', () =
 });
 
 describe('load-error retry labels — derived from Strings by naming convention', () => {
-  it('derives exactly the 7 retry labels the nine-copy fold uses', () => {
+  it('derives exactly the 8 retry labels the nine-copy fold uses', () => {
     expect(derivedRetryKeys.slice().sort()).toEqual(
       [
+        'accountActivityLoadRetry',
         'categoriesLoadRetry',
         'dashboardLoadRetry',
         'budgetLoadRetry',
@@ -89,7 +91,7 @@ describe('load-error retry labels — derived from Strings by naming convention'
   });
 
   it('every derived retry label is present and non-empty', () => {
-    expect(derivedRetryKeys).toHaveLength(7);
+    expect(derivedRetryKeys).toHaveLength(8);
     for (const key of derivedRetryKeys) {
       const value = Strings[key];
       if (typeof value !== 'string') throw new Error(`expected ${key} to be a string`);

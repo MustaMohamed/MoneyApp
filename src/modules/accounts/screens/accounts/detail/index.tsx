@@ -17,6 +17,7 @@ import { DetailRowsCard } from '@/modules/transactions/screens/transactions/deta
 import { AccountColorField } from '../../../components/account_form/account_color_field';
 import { useAccountDetailAnim } from './account_detail.anim';
 import { useAccountDetail } from './account_detail.hook';
+import { AccountActivityCard } from './components/account_activity_card';
 import { buildAccountFacts } from './components/account_facts.helpers';
 import { AdjustBalanceSheet } from './components/adjust_balance_sheet';
 import { ArchiveConfirmationDialog } from './components/archive_confirmation_dialog';
@@ -38,6 +39,7 @@ export default function AccountDetailScreen() {
       isArchiving,
       isConfirmingBalanceReview,
       balanceReviewError,
+      activity,
     },
     form,
     setEditing,
@@ -48,6 +50,10 @@ export default function AccountDetailScreen() {
     handleArchive,
     handleConfirmBalanceReviewed,
     onBack,
+    retryActivity,
+    goToTransaction,
+    goToAllTransactions,
+    addTransactionForAccount,
   } = useAccountDetail();
   const { headerStyle, triggerEditToggle, fieldEntering, fieldExiting } = useAccountDetailAnim();
   const {
@@ -57,7 +63,7 @@ export default function AccountDetailScreen() {
 
   if (!account) return null;
 
-  const facts = buildAccountFacts(account);
+  const facts = [...buildAccountFacts(account), ...activity.monthFacts];
 
   return (
     <Screen>
@@ -150,27 +156,39 @@ export default function AccountDetailScreen() {
               plain
               label={fact.label}
               value={fact.value}
+              valueColor={fact.valueColor}
               showDivider={index < facts.length - 1}
             />
           ))}
         </DetailRowsCard>
 
         {!isEditing && (
-          <Box className="mx-4 mt-4 gap-2">
-            <Button
-              variant="secondary"
-              flat
-              label={Strings.accountDetailAdjustBalance}
-              onPress={() => setAdjustVisible(true)}
+          <>
+            <Box className="mx-4 mt-4 gap-2">
+              <Button
+                variant="secondary"
+                flat
+                label={Strings.accountDetailAdjustBalance}
+                onPress={() => setAdjustVisible(true)}
+              />
+              <Button
+                variant="secondary"
+                flat
+                tone="danger"
+                label={Strings.accountDetailArchive}
+                onPress={() => setArchiveVisible(true)}
+              />
+            </Box>
+            {/* The card's own header and container carry `mx-4`, so it is the Box's sibling. */}
+            <AccountActivityCard
+              status={activity.status}
+              rows={activity.rows}
+              onRowPress={goToTransaction}
+              onSeeAll={goToAllTransactions}
+              onAdd={addTransactionForAccount}
+              onRetry={retryActivity}
             />
-            <Button
-              variant="secondary"
-              flat
-              tone="danger"
-              label={Strings.accountDetailArchive}
-              onPress={() => setArchiveVisible(true)}
-            />
-          </Box>
+          </>
         )}
       </ScreenScroll>
 
