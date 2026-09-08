@@ -2,12 +2,16 @@ import { SkeletonGroup } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
+import { Type, lineHeightFor } from '@/constants/theme';
 
 import {
+  TRANSACTION_ROW_CONTEXT_GAP,
   TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_ICON_SIZE,
-  TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT,
+  TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+  TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
   TRANSACTION_ROW_VALUE_WIDTH,
+  TRANSACTION_ROW_VERTICAL_PADDING,
 } from './transaction_row.helpers';
 
 const DEFAULT_ROWS = 5;
@@ -34,8 +38,11 @@ export function TransactionRowsSkeleton({
           <View
             key={row}
             testID="transaction-row-skeleton"
-            className="border-separator border-b px-4 py-1.5"
-            style={{ height: TRANSACTION_ROW_HEIGHT }}
+            className="border-separator border-b px-4"
+            style={{
+              height: TRANSACTION_ROW_HEIGHT,
+              paddingVertical: TRANSACTION_ROW_VERTICAL_PADDING,
+            }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
               <SkeletonGroup.Item
@@ -43,31 +50,41 @@ export function TransactionRowsSkeleton({
                 className="mt-0.5 rounded-lg"
                 style={{ width: TRANSACTION_ROW_ICON_SIZE, height: TRANSACTION_ROW_ICON_SIZE }}
               />
-              <View style={{ flex: 1 }} className="gap-0.5">
+              <View style={{ flex: 1 }}>
                 <SkeletonGroup.Item
-                  className={row % 2 === 0 ? 'h-4 w-32 rounded-md' : 'h-4 w-24 rounded-md'}
+                  className={row % 2 === 0 ? 'w-32 rounded-md' : 'w-24 rounded-md'}
+                  style={{ height: lineHeightFor(Type.meta) }}
                 />
-                <SkeletonGroup.Item className="h-3 w-20 rounded-md" />
+                <SkeletonGroup.Item
+                  className="w-20 rounded-md"
+                  style={{
+                    height: lineHeightFor(Type.overline),
+                    marginTop: TRANSACTION_ROW_CONTEXT_GAP,
+                  }}
+                />
                 <SkeletonGroup.Item
                   testID="transaction-row-skeleton-note"
                   className="w-28 rounded-md"
-                  style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
+                  style={{ height: TRANSACTION_ROW_NOTE_TRACK_HEIGHT }}
                 />
               </View>
               <View
                 testID="transaction-row-skeleton-value"
                 style={{ width: TRANSACTION_ROW_VALUE_WIDTH, alignItems: 'flex-end' }}
-                className="gap-0.5"
               >
                 <SkeletonGroup.Item
-                  className={row % 2 === 0 ? 'h-4 w-24 rounded-md' : 'h-4 w-20 rounded-md'}
+                  className={row % 2 === 0 ? 'w-24 rounded-md' : 'w-20 rounded-md'}
+                  style={{ height: lineHeightFor(Type.body) }}
                 />
                 <SkeletonGroup.Item
                   testID="transaction-row-skeleton-secondary-amount"
                   className="w-16 rounded-md"
-                  style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
+                  style={{ height: TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT }}
                 />
-                <SkeletonGroup.Item className="h-3 w-12 rounded-md" />
+                <SkeletonGroup.Item
+                  className="w-12 rounded-md"
+                  style={{ height: lineHeightFor(Type.overline) }}
+                />
               </View>
             </View>
           </View>

@@ -6,10 +6,19 @@ import {
   TransactionType,
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Type, lineHeightFor } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { buildTransactionRowPresentation } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+import {
+  buildTransactionRowPresentation,
+  TRANSACTION_ROW_CONTEXT_GAP,
+  TRANSACTION_ROW_HEIGHT,
+  TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+  TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
+  TRANSACTION_ROW_TITLE_BADGE_HEIGHT,
+  TRANSACTION_ROW_VERTICAL_PADDING,
+} from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 
 const now = '2026-07-20T12:00:00.000Z';
 
@@ -200,5 +209,24 @@ describe('buildTransactionRowPresentation', () => {
       ownershipLabel: Strings.typeBadgeCommitment,
       isCommitmentOwned: true,
     });
+  });
+});
+
+describe('transaction row track geometry', () => {
+  it('keeps both columns inside the row box', () => {
+    // The row's own `border-b` comes out of the content box alongside the padding.
+    const innerBox = TRANSACTION_ROW_HEIGHT - 2 * TRANSACTION_ROW_VERTICAL_PADDING - 1;
+    const valueColumn =
+      lineHeightFor(Type.body) +
+      TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT +
+      lineHeightFor(Type.overline);
+    const contentColumn =
+      Math.max(lineHeightFor(Type.meta), TRANSACTION_ROW_TITLE_BADGE_HEIGHT) +
+      TRANSACTION_ROW_CONTEXT_GAP +
+      lineHeightFor(Type.overline) +
+      TRANSACTION_ROW_NOTE_TRACK_HEIGHT;
+
+    expect(valueColumn).toBeLessThanOrEqual(innerBox);
+    expect(contentColumn).toBeLessThanOrEqual(innerBox);
   });
 });

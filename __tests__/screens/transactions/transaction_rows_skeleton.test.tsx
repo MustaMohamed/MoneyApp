@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 
 import {
   TRANSACTION_ROW_HEIGHT,
-  TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT,
+  TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+  TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
+  TRANSACTION_ROW_VERTICAL_PADDING,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { TransactionRowsSkeleton } from '@/modules/transactions/screens/transactions/components/transaction_rows_skeleton';
 import { ms } from '@/utils/responsive';
@@ -27,7 +29,10 @@ describe('TransactionRowsSkeleton', () => {
     });
     expect(getAllByTestId('transaction-row-skeleton-value')[0]).toHaveStyle({ width: ms(120) });
     for (const row of getAllByTestId('transaction-row-skeleton')) {
-      expect(row).toHaveStyle({ height: TRANSACTION_ROW_HEIGHT });
+      expect(row).toHaveStyle({
+        height: TRANSACTION_ROW_HEIGHT,
+        paddingVertical: TRANSACTION_ROW_VERTICAL_PADDING,
+      });
     }
   });
 
@@ -37,7 +42,10 @@ describe('TransactionRowsSkeleton', () => {
     expect(getAllByTestId('transaction-row-skeleton-note')).toHaveLength(5);
     expect(getAllByTestId('transaction-row-skeleton-secondary-amount')).toHaveLength(5);
     expect(getAllByTestId('transaction-row-skeleton-note')[0]).toHaveStyle({
-      height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT,
+      height: TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+    });
+    expect(getAllByTestId('transaction-row-skeleton-secondary-amount')[0]).toHaveStyle({
+      height: TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
     });
   });
 });

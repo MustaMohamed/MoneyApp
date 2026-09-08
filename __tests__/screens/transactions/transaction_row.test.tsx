@@ -4,10 +4,18 @@ import { View } from 'react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { AccountType } from '@/constants/enums';
+import { lineHeightFor } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { TransactionRow } from '@/modules/transactions/screens/transactions/components/transaction_row';
-import { TRANSACTION_ROW_HEIGHT } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+import {
+  TRANSACTION_ROW_HEIGHT,
+  TRANSACTION_ROW_NOTE_FONT_SIZE,
+  TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+  TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
+  TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
+  TRANSACTION_ROW_VERTICAL_PADDING,
+} from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { ms } from '@/utils/responsive';
 
 interface MockSwipeableRowProps {
@@ -115,9 +123,11 @@ describe('TransactionRow ownership actions', () => {
       created_at: '2026-07-19T12:00:00.000Z',
       updated_at: '2026-07-19T12:00:00.000Z',
     };
+    const tx = transaction(null);
+    tx.note = 'Split with Omar at the counter';
     const screen = await render(
       <TransactionRow
-        tx={transaction(null)}
+        tx={tx}
         account={source}
         onPress={jest.fn()}
         onEdit={jest.fn()}
@@ -125,7 +135,10 @@ describe('TransactionRow ownership actions', () => {
       />,
     );
 
-    expect(screen.getByTestId('transaction-row')).toHaveStyle({ height: TRANSACTION_ROW_HEIGHT });
+    expect(screen.getByTestId('transaction-row')).toHaveStyle({
+      height: TRANSACTION_ROW_HEIGHT,
+      paddingVertical: TRANSACTION_ROW_VERTICAL_PADDING,
+    });
     expect(screen.getByTestId('transaction-row-icon-track')).toHaveStyle({
       width: ms(36),
       height: ms(36),
@@ -135,8 +148,16 @@ describe('TransactionRow ownership actions', () => {
       minWidth: 0,
     });
     expect(screen.getByTestId('transaction-row-value-track')).toHaveStyle({ width: ms(120) });
-    expect(screen.getByTestId('transaction-row-note-track')).toBeTruthy();
-    expect(screen.getByTestId('transaction-row-secondary-amount-track')).toBeTruthy();
+    expect(screen.getByTestId('transaction-row-note-track')).toHaveStyle({
+      height: TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+    });
+    expect(screen.getByText('Split with Omar at the counter')).toHaveStyle({
+      fontSize: TRANSACTION_ROW_NOTE_FONT_SIZE,
+      lineHeight: lineHeightFor(TRANSACTION_ROW_NOTE_FONT_SIZE),
+    });
+    expect(screen.getByTestId('transaction-row-secondary-amount-track')).toHaveStyle({
+      height: TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
+    });
     expect(TRANSACTION_ROW_HEIGHT).toBe(ms(60));
   });
 
@@ -168,6 +189,7 @@ describe('TransactionRow ownership actions', () => {
     transfer.amount = 100;
     transfer.egp_amount = 4_850;
     transfer.to_amount = 4_850;
+    transfer.exchange_rate = 48.5;
     transfer.to_account_id = destination.id;
     transfer.category_id = null;
 
@@ -183,6 +205,10 @@ describe('TransactionRow ownership actions', () => {
     );
 
     expect(getByText('100.00 USD')).toBeTruthy();
-    expect(getByText('→ 4,850 EGP')).toBeTruthy();
+    expect(getByText('→ 4,850 EGP @ 48.50')).toBeTruthy();
+    expect(getByText('@ 48.50')).toHaveStyle({
+      fontSize: TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
+      lineHeight: lineHeightFor(TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE),
+    });
   });
 });

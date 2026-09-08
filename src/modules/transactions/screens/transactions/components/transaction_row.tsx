@@ -17,10 +17,15 @@ import type { Transaction } from '../../../entities/transaction.entity';
 import { useRowPressScale } from './transaction_row.anim';
 import {
   buildTransactionRowPresentation,
+  TRANSACTION_ROW_CONTEXT_GAP,
   TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_ICON_SIZE,
-  TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT,
+  TRANSACTION_ROW_NOTE_FONT_SIZE,
+  TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+  TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
+  TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
   TRANSACTION_ROW_VALUE_WIDTH,
+  TRANSACTION_ROW_VERTICAL_PADDING,
   type TransactionRowPresentation,
 } from './transaction_row.helpers';
 
@@ -61,8 +66,11 @@ export function TransactionRowBody({
     >
       <Animated.View
         testID="transaction-row"
-        style={[animStyle, { height: TRANSACTION_ROW_HEIGHT }]}
-        className="border-separator border-b px-4 py-1.5"
+        style={[
+          animStyle,
+          { height: TRANSACTION_ROW_HEIGHT, paddingVertical: TRANSACTION_ROW_VERTICAL_PADDING },
+        ]}
+        className="border-separator border-b px-4"
       >
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
           <View
@@ -101,8 +109,12 @@ export function TransactionRowBody({
               ) : null}
             </View>
             <Text
-              className="font-inter-medium text-foreground/55 mt-0.5"
-              style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+              className="font-inter-medium text-foreground/55"
+              style={{
+                fontSize: Type.overline,
+                lineHeight: lineHeightFor(Type.overline),
+                marginTop: TRANSACTION_ROW_CONTEXT_GAP,
+              }}
               numberOfLines={1}
             >
               {presentation.context}
@@ -110,12 +122,15 @@ export function TransactionRowBody({
             <View
               testID="transaction-row-note-track"
               className="justify-end"
-              style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
+              style={{ height: TRANSACTION_ROW_NOTE_TRACK_HEIGHT }}
             >
               {presentation.note ? (
                 <Text
                   className="font-inter text-muted italic"
-                  style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+                  style={{
+                    fontSize: TRANSACTION_ROW_NOTE_FONT_SIZE,
+                    lineHeight: lineHeightFor(TRANSACTION_ROW_NOTE_FONT_SIZE),
+                  }}
                   numberOfLines={1}
                 >
                   {presentation.note}
@@ -139,19 +154,30 @@ export function TransactionRowBody({
             <View
               testID="transaction-row-secondary-amount-track"
               className="items-end justify-end"
-              style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
+              style={{ height: TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT }}
             >
               {presentation.secondaryAmount ? (
                 <Text
                   className="font-inter-medium text-foreground/60"
-                  style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+                  style={{
+                    fontSize: TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
+                    lineHeight: lineHeightFor(TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE),
+                  }}
                   numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.75}
                 >
                   {presentation.secondaryAmount}
                   {presentation.rateText ? (
-                    <Text className="opacity-70"> {presentation.rateText}</Text>
+                    // The Text wrapper's default variant sets its own size, colour and family, so a nested chip inherits none of the three.
+                    <Text
+                      className="text-foreground/40"
+                      style={{
+                        fontSize: TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
+                        lineHeight: lineHeightFor(TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE),
+                      }}
+                    >
+                      {' '}
+                      {presentation.rateText}
+                    </Text>
                   ) : null}
                 </Text>
               ) : null}
