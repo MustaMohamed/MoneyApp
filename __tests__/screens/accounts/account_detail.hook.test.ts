@@ -331,6 +331,23 @@ describe('useAccountDetail', () => {
     consoleError.mockRestore();
   });
 
+  it('does not claim a failed archive when the write landed and the pop threw', async () => {
+    mockArchiveAccount.mockResolvedValue(undefined);
+    mockBack.mockImplementationOnce(() => {
+      throw new Error('navigation gone');
+    });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(async () => {
+      await expect(result.current.handleArchive()).rejects.toThrow('navigation gone');
+    });
+
+    expect(mockArchiveAccount).toHaveBeenCalledWith('acc-1');
+    expect(mockSetArchiveVisible).toHaveBeenCalledWith(false);
+    expect(mockSetArchiveError).not.toHaveBeenCalledWith(Strings.accountDetailArchiveError);
+    expect(mockSetArchiving).toHaveBeenLastCalledWith(false);
+  });
+
   it('clears the failure when the dialog closes, so a reopen is clean', async () => {
     const { result } = await renderHook(() => useAccountDetail());
 

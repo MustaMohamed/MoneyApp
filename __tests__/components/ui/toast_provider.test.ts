@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { TOAST_PROVIDER_PROPS } from '@/components/ui/toast';
+import { TOAST_PROVIDER_PROPS, useToast } from '@/components/ui/toast';
 
 const layout = readFileSync(resolve(process.cwd(), 'src/app/_layout.tsx'), 'utf8');
 
@@ -12,6 +12,10 @@ describe('the app toast configuration', () => {
 
   it('shows one at a time', () => {
     expect(TOAST_PROVIDER_PROPS.maxVisibleToasts).toBe(1);
+  });
+
+  it('re-exports a callable hook, under the jest mock a consumer suite runs against', () => {
+    expect(typeof useToast).toBe('function');
   });
 });
 

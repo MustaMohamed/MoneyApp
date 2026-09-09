@@ -5,7 +5,7 @@ import { DEFAULT_ACCOUNT_COLOR, findAccountColor } from './account_palette';
 
 type AccountTileColors = { background: string; glyph: string; border?: string };
 
-export type AccountTileVariant = 'filled' | 'hollow';
+type AccountTileVariant = 'filled' | 'hollow';
 
 // The default sits in the palette (`account_palette.test.ts`), so the `??` is for the type only.
 const FALLBACK_TILE_COLORS: Readonly<AccountTileColors> = Object.freeze({

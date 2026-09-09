@@ -213,14 +213,16 @@ export function useAccountDetail() {
     setArchiving(true);
     try {
       await archiveAccount(id);
-      setArchiveVisible(false);
-      router.back();
     } catch (error) {
       console.error('[accountDetail] archiveAccount failed:', error);
       setArchiveError(Strings.accountDetailArchiveError);
+      return;
     } finally {
       setArchiving(false);
     }
+    // Outside the try: only the write decides the failure line, never the close or the pop.
+    setArchiveVisible(false);
+    router.back();
   };
 
   // Reopening must not show the last failure, so the close path clears it.
