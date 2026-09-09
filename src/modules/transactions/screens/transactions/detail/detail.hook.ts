@@ -1,5 +1,5 @@
 import { router, useFocusEffect, usePathname } from 'expo-router';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useId, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -18,10 +18,11 @@ import {
   getCommitmentPaymentRoute,
   resolveDetailViewState,
 } from './detail.helpers';
-import { useTxDetailState } from './detail.state';
+import { INITIAL_UI_ENTRY, useTxDetailState } from './detail.state';
 import { useTxDetailStore } from './detail.store';
 
 export function useTransactionDetail(id: string) {
+  const owner = useId();
   const stackedPrefix = stackedPrefixOf(usePathname());
   const { tx, txId, budget } = useTxDetailStore(
     useShallow((state) => ({ tx: state.tx, txId: state.txId, budget: state.budget })),
@@ -31,17 +32,7 @@ export function useTransactionDetail(id: string) {
   const clearForId = useTxDetailStore.getState().clearForId;
   const resetData = useTxDetailStore.getState().reset;
   const { activeId, status, revalidating, refreshError, confirmVisible, deleting, reloadKey } =
-    useTxDetailState(
-      useShallow((s) => ({
-        activeId: s.activeId,
-        status: s.status,
-        revalidating: s.revalidating,
-        refreshError: s.refreshError,
-        confirmVisible: s.confirmVisible,
-        deleting: s.deleting,
-        reloadKey: s.reloadKey,
-      })),
-    );
+    useTxDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
   const beginLoad = useTxDetailState.getState().beginLoad;
   const resolve = useTxDetailState.getState().resolve;
   const resolveNotFound = useTxDetailState.getState().resolveNotFound;
@@ -49,7 +40,7 @@ export function useTransactionDetail(id: string) {
   const setConfirmVisible = useTxDetailState.getState().setConfirmVisible;
   const setDeleting = useTxDetailState.getState().setDeleting;
   const bumpReload = useTxDetailState.getState().bumpReload;
-  const resetUi = useTxDetailState.getState().reset;
+  const releaseUi = useTxDetailState.getState().release;
 
   const getById = useTransactionStore.getState().getById;
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
@@ -69,17 +60,17 @@ export function useTransactionDetail(id: string) {
     const detailStore = useTxDetailStore.getState();
     const preserveData = detailStore.txId === id && detailStore.tx !== null;
     if (!preserveData) clearForId(id);
-    beginLoad(id, preserveData);
+    beginLoad(owner, id, preserveData);
     getById(id)
       .then((transaction) => {
         if (cancelled) return;
         if (!transaction) {
           clearForId(id);
-          resolveNotFound(id);
+          resolveNotFound(owner, id);
           return;
         }
         setTx(id, transaction);
-        resolve(id);
+        resolve(owner, id);
 
         const accountIds = transaction.to_account_id
           ? [transaction.account_id, transaction.to_account_id]
@@ -109,7 +100,7 @@ export function useTransactionDetail(id: string) {
       })
       .catch((e) => {
         console.error('[transactionDetail] getById failed', e);
-        if (!cancelled) failLoad(id, preserveData);
+        if (!cancelled) failLoad(owner, id, preserveData);
       });
     return () => {
       cancelled = true;
@@ -121,6 +112,7 @@ export function useTransactionDetail(id: string) {
     getById,
     id,
     loadAccountLookup,
+    owner,
     reloadKey,
     resolve,
     resolveNotFound,
@@ -135,16 +127,16 @@ export function useTransactionDetail(id: string) {
   // Two details can be mounted at once and the store holds one; the lower copy re-claims the slot on focus.
   useFocusEffect(
     useCallback(() => {
-      if (useTxDetailStore.getState().txId !== id) bumpReload();
-    }, [bumpReload, id]),
+      if (useTxDetailStore.getState().txId !== id) bumpReload(owner);
+    }, [bumpReload, id, owner]),
   );
 
   useEffect(() => {
     return () => {
       resetData();
-      resetUi();
+      releaseUi(owner);
     };
-  }, [resetData, resetUi]);
+  }, [owner, releaseUi, resetData]);
 
   const accountsById = useMemo(
     () => new Map([...accounts, ...accountLookup].map((account) => [account.id, account])),
@@ -180,15 +172,15 @@ export function useTransactionDetail(id: string) {
   }, [accountsById, budget, categoriesById, currentTx]);
 
   const openDeleteConfirm = useCallback(() => {
-    if (!isCommitmentOwned) setConfirmVisible(true);
-  }, [isCommitmentOwned, setConfirmVisible]);
+    if (!isCommitmentOwned) setConfirmVisible(owner, true);
+  }, [isCommitmentOwned, owner, setConfirmVisible]);
   const closeDeleteConfirm = useCallback(() => {
-    if (!deleting) setConfirmVisible(false);
-  }, [deleting, setConfirmVisible]);
+    if (!deleting) setConfirmVisible(owner, false);
+  }, [deleting, owner, setConfirmVisible]);
 
   const confirmDelete = useCallback(async () => {
     if (!currentTx || isCommitmentOwned) return;
-    setDeleting(true);
+    setDeleting(owner, true);
     try {
       await deleteTransaction(currentTx.id);
       router.back();
@@ -196,10 +188,10 @@ export function useTransactionDetail(id: string) {
       console.error('[transactionDetail] delete failed', e);
       Alert.alert(Strings.errDeleteFailed);
     } finally {
-      setDeleting(false);
-      setConfirmVisible(false);
+      setDeleting(owner, false);
+      setConfirmVisible(owner, false);
     }
-  }, [currentTx, isCommitmentOwned, deleteTransaction, setDeleting, setConfirmVisible]);
+  }, [currentTx, isCommitmentOwned, owner, deleteTransaction, setDeleting, setConfirmVisible]);
 
   const openCommitment = useCallback(async () => {
     if (!commitmentPaymentId) return;
@@ -219,7 +211,7 @@ export function useTransactionDetail(id: string) {
     }
   }, [commitmentPaymentId, stackedPrefix, id]);
 
-  const reload = useCallback(() => bumpReload(), [bumpReload]);
+  const reload = useCallback(() => bumpReload(owner), [bumpReload, owner]);
   const goBack = useCallback(() => router.back(), []);
   const openAccount = useCallback((accountId: string) => {
     router.push(`/accounts/${accountId}`);
