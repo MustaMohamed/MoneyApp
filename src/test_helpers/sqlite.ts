@@ -52,13 +52,11 @@ export function getSQLiteParams(rest: unknown[]): unknown[] {
   return Array.isArray(rest[0]) ? rest[0] : rest;
 }
 
-/**
- * Runs the facade's three query methods against a real better-sqlite3 handle.
- *
- * `execAsync` and `withTransactionAsync` stay with the suite: a transaction bridged
- * to a pass-through instead of real BEGIN/COMMIT makes an atomicity test vacuous (audit M33).
- */
-export function bridgeBetterSQLite(mock: MockSQLiteDatabase, realDb: ReturnType<typeof Database>) {
+/** Queries only: `withTransactionAsync` stays with the suite, since a pass-through is vacuous (M33). */
+export function bridgeBetterSQLite(
+  mock: MockSQLiteDatabase,
+  realDb: ReturnType<typeof Database>,
+): void {
   mock.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
     return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
