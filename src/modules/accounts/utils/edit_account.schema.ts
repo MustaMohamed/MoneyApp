@@ -17,5 +17,3 @@ export function createEditAccountSchema(accounts: Account[], accountId: string) 
     color: z.string(),
   });
 }
-
-export type EditAccountFormData = z.infer<ReturnType<typeof createEditAccountSchema>>;
