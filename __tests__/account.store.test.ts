@@ -1,11 +1,6 @@
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
-import {
-  createAccountStore,
-  EMPTY_ACCOUNT_LOOKUP,
-  EMPTY_ACCOUNTS,
-  EMPTY_ARCHIVED_ACCOUNTS,
-} from '@/modules/accounts/store/account.store';
+import { createAccountStore, EMPTY_ACCOUNTS } from '@/modules/accounts/store/account.store';
 import type { IAccountRepository, NewAccountInput } from '@/repositories/account.repository';
 
 const mockAccount: Account = {
@@ -105,7 +100,7 @@ describe('accountStore.loadAccountLookup', () => {
     await store.getState().loadAccountLookup([]);
 
     expect(repo.getByIdsIncludingArchived).toHaveBeenCalledTimes(1);
-    expect(store.getState().accountLookup).toBe(EMPTY_ACCOUNT_LOOKUP);
+    expect(store.getState().accountLookup).toBe(EMPTY_ACCOUNTS);
   });
 
   it('does not let an older lookup overwrite a newer result', async () => {
@@ -141,8 +136,8 @@ describe('accountStore.loadAccounts', () => {
     const store = createAccountStore(repo);
 
     expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
-    expect(store.getState().archivedAccounts).toBe(EMPTY_ARCHIVED_ACCOUNTS);
-    expect(store.getState().accountLookup).toBe(EMPTY_ACCOUNT_LOOKUP);
+    expect(store.getState().archivedAccounts).toBe(EMPTY_ACCOUNTS);
+    expect(store.getState().accountLookup).toBe(EMPTY_ACCOUNTS);
     expect(store.getState().archivedCount).toBe(0);
     expect(store.getState().hasLoaded).toBe(false);
     expect(store.getState().loadError).toBe(false);
@@ -174,7 +169,7 @@ describe('accountStore.loadAccounts', () => {
 
     expect(store.getState().loadError).toBe(true);
     expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
-    expect(store.getState().archivedAccounts).toBe(EMPTY_ARCHIVED_ACCOUNTS);
+    expect(store.getState().archivedAccounts).toBe(EMPTY_ACCOUNTS);
     expect(store.getState().archivedCount).toBe(0);
     expect(store.getState().hasLoaded).toBe(false);
   });
@@ -530,7 +525,7 @@ describe('accountStore.reset', () => {
     store.getState().reset();
 
     expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
-    expect(store.getState().archivedAccounts).toBe(EMPTY_ARCHIVED_ACCOUNTS);
+    expect(store.getState().archivedAccounts).toBe(EMPTY_ACCOUNTS);
     expect(store.getState().archivedCount).toBe(0);
     expect(store.getState().hasLoaded).toBe(false);
   });
@@ -554,11 +549,5 @@ describe('accountStore.reset', () => {
 describe('EMPTY_ACCOUNTS', () => {
   it('is immutable', () => {
     expect(Object.isFrozen(EMPTY_ACCOUNTS)).toBe(true);
-  });
-});
-
-describe('EMPTY_ARCHIVED_ACCOUNTS', () => {
-  it('is immutable', () => {
-    expect(Object.isFrozen(EMPTY_ARCHIVED_ACCOUNTS)).toBe(true);
   });
 });

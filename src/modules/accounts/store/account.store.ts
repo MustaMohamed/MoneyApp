@@ -15,16 +15,10 @@ export type { Account, NewAccountInput, UpdateAccountInput };
 export const EMPTY_ACCOUNTS: Account[] = [];
 Object.freeze(EMPTY_ACCOUNTS);
 
-export const EMPTY_ARCHIVED_ACCOUNTS: Account[] = [];
-Object.freeze(EMPTY_ARCHIVED_ACCOUNTS);
-
-export const EMPTY_ACCOUNT_LOOKUP: Account[] = [];
-Object.freeze(EMPTY_ACCOUNT_LOOKUP);
-
 const INITIAL_STATE = {
   accounts: EMPTY_ACCOUNTS,
-  archivedAccounts: EMPTY_ARCHIVED_ACCOUNTS,
-  accountLookup: EMPTY_ACCOUNT_LOOKUP,
+  archivedAccounts: EMPTY_ACCOUNTS,
+  accountLookup: EMPTY_ACCOUNTS,
   archivedCount: 0,
   hasLoaded: false,
   loadError: false,
@@ -79,7 +73,7 @@ export function createAccountStore(repo: IAccountRepository) {
         const requestId = ++lookupRequestId;
         const uniqueIds = [...new Set(ids)];
         if (uniqueIds.length === 0) {
-          set({ accountLookup: EMPTY_ACCOUNT_LOOKUP });
+          set({ accountLookup: EMPTY_ACCOUNTS });
           return;
         }
 
