@@ -61,6 +61,16 @@ describe('useCommitmentDetailState', () => {
     expect(useCommitmentDetailState.getState().entries).toEqual({});
   });
 
+  it('setViewState after release opens the copy again, from the initial entry', () => {
+    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+    useCommitmentDetailState.getState().setSkipConfirmVisible('owner-a', true);
+    useCommitmentDetailState.getState().release('owner-a');
+
+    useCommitmentDetailState.getState().setViewState('owner-a', 'loading');
+
+    expect(entryOf('owner-a')).toEqual({ viewState: 'loading', skipConfirmVisible: false });
+  });
+
   it('release removes only the released copy', () => {
     useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
     useCommitmentDetailState.getState().setViewState('owner-b', 'loading');

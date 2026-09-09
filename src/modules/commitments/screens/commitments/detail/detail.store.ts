@@ -20,6 +20,7 @@ type CommitmentDetailStore = CommitmentDetailStoreShape & {
 
 // One shared array, so an unkeyed read is referentially stable across renders.
 const EMPTY_PAYMENTS: CommitmentPayment[] = [];
+Object.freeze(EMPTY_PAYMENTS);
 
 export const INITIAL_DATA_ENTRY: CommitmentDetailEntry = Object.freeze({
   allPayments: EMPTY_PAYMENTS,

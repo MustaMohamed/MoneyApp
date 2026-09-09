@@ -1,6 +1,9 @@
 import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
-import { useCommitmentDetailStore } from '@/modules/commitments/screens/commitments/detail/detail.store';
+import {
+  INITIAL_DATA_ENTRY,
+  useCommitmentDetailStore,
+} from '@/modules/commitments/screens/commitments/detail/detail.store';
 
 const entryOf = (owner: string) => useCommitmentDetailStore.getState().entries[owner];
 
@@ -93,5 +96,12 @@ describe('useCommitmentDetailStore release', () => {
     useCommitmentDetailStore.getState().reset();
 
     expect(useCommitmentDetailStore.getState().entries).toEqual({});
+  });
+});
+
+describe('INITIAL_DATA_ENTRY', () => {
+  it('shares one immutable payments array across every unkeyed read', () => {
+    expect(Object.isFrozen(INITIAL_DATA_ENTRY.allPayments)).toBe(true);
+    expect(() => INITIAL_DATA_ENTRY.allPayments.push(makePayment())).toThrow(TypeError);
   });
 });

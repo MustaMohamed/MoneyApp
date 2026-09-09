@@ -36,6 +36,7 @@ const withEntry = (
 export const useCommitmentDetailState = createMoneyAppSelectors(
   create<CommitmentDetailState>((set) => ({
     ...initialState(),
+    // The begin action: a first mount has no entry yet, so this creates one and takes no guard.
     setViewState: (owner, vs) =>
       set((state) =>
         withEntry(state, owner, { ...(state.entries[owner] ?? INITIAL_UI_ENTRY), viewState: vs }),
