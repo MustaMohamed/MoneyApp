@@ -9,7 +9,7 @@ export type TransactionDetailStatus =
   | 'notFound'
   | 'firstLoadError';
 
-export interface TxDetailUiEntry {
+interface TxDetailUiEntry {
   activeId: string | undefined;
   status: TransactionDetailStatus;
   revalidating: boolean;
@@ -100,20 +100,21 @@ export const useTxDetailState = createMoneyAppSelectors(
             : { ...entry, status: 'firstLoadError', revalidating: false, refreshError: false },
         );
       }),
+    // A released copy can still hold a callback; these three must not write its entry back.
     setConfirmVisible: (owner, v) =>
-      set((state) =>
-        withEntry(state, owner, {
-          ...(state.entries[owner] ?? INITIAL_UI_ENTRY),
-          confirmVisible: v,
-        }),
-      ),
+      set((state) => {
+        if (!(owner in state.entries)) return state;
+        return withEntry(state, owner, { ...state.entries[owner], confirmVisible: v });
+      }),
     setDeleting: (owner, v) =>
-      set((state) =>
-        withEntry(state, owner, { ...(state.entries[owner] ?? INITIAL_UI_ENTRY), deleting: v }),
-      ),
+      set((state) => {
+        if (!(owner in state.entries)) return state;
+        return withEntry(state, owner, { ...state.entries[owner], deleting: v });
+      }),
     bumpReload: (owner) =>
       set((state) => {
-        const entry = state.entries[owner] ?? INITIAL_UI_ENTRY;
+        if (!(owner in state.entries)) return state;
+        const entry = state.entries[owner];
         return withEntry(state, owner, { ...entry, reloadKey: entry.reloadKey + 1 });
       }),
     release: (owner) =>

@@ -1,7 +1,4 @@
-import {
-  INITIAL_DATA_ENTRY,
-  useTxDetailStore,
-} from '@/modules/transactions/screens/transactions/detail/detail.store';
+import { useTxDetailStore } from '@/modules/transactions/screens/transactions/detail/detail.store';
 import { makeTestBudget, makeTestTransaction } from '@/test_helpers/transaction';
 
 const entryOf = (owner: string) => useTxDetailStore.getState().entries[owner];
@@ -13,12 +10,6 @@ beforeEach(() => {
 describe('useTxDetailStore', () => {
   it('initialises without transaction ownership', () => {
     expect(useTxDetailStore.getState().entries).toEqual({});
-    expect(INITIAL_DATA_ENTRY).toEqual({
-      tx: null,
-      txId: undefined,
-      budget: undefined,
-      loadedAtVersion: undefined,
-    });
   });
 
   it('stores resolved ownership data with the transaction snapshot', () => {
@@ -30,12 +21,12 @@ describe('useTxDetailStore', () => {
     expect(entryOf('owner-a')).toEqual({ tx, budget, txId: 't1', loadedAtVersion: 4 });
   });
 
-  it('setTx stamps the mutation version the snapshot was read at', () => {
+  it("a copy's first snapshot stamps its version and carries no budget yet", () => {
     const tx = makeTestTransaction({ id: 't1' });
+
     useTxDetailStore.getState().setTx('owner-a', 't1', tx, 7);
-    expect(entryOf('owner-a').tx).toBe(tx);
-    expect(entryOf('owner-a').txId).toBe('t1');
-    expect(entryOf('owner-a').loadedAtVersion).toBe(7);
+
+    expect(entryOf('owner-a')).toEqual({ tx, txId: 't1', budget: undefined, loadedAtVersion: 7 });
   });
 
   it('carries a hydrated budget across a reload of the same transaction', () => {

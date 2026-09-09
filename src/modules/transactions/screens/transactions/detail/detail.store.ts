@@ -4,7 +4,7 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-export interface TxDetailEntry {
+interface TxDetailEntry {
   tx: Transaction | null;
   txId: string | undefined;
   budget: Budget | undefined;

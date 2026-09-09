@@ -1,7 +1,4 @@
-import {
-  INITIAL_UI_ENTRY,
-  useTxDetailState,
-} from '@/modules/transactions/screens/transactions/detail/detail.state';
+import { useTxDetailState } from '@/modules/transactions/screens/transactions/detail/detail.state';
 
 const entryOf = (owner: string) => useTxDetailState.getState().entries[owner];
 
@@ -13,29 +10,20 @@ describe('useTxDetailState initial state', () => {
   it('starts with no copy owning anything', () => {
     expect(useTxDetailState.getState().entries).toEqual({});
   });
+});
 
-  it('reads a copy that has not acted yet as idle, hidden, and not deleting', () => {
-    expect(INITIAL_UI_ENTRY).toEqual({
-      activeId: undefined,
-      status: 'idle',
+describe('useTxDetailState setters', () => {
+  it('begins an initial load for a new route, hidden and not deleting', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+
+    expect(entryOf('owner-a')).toEqual({
+      activeId: 't1',
+      status: 'initialLoading',
       revalidating: false,
       refreshError: false,
       confirmVisible: false,
       deleting: false,
       reloadKey: 0,
-    });
-  });
-});
-
-describe('useTxDetailState setters', () => {
-  it('begins an initial load for a new route', () => {
-    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
-
-    expect(entryOf('owner-a')).toMatchObject({
-      activeId: 't1',
-      status: 'initialLoading',
-      revalidating: false,
-      refreshError: false,
     });
   });
 
@@ -100,6 +88,8 @@ describe('useTxDetailState setters', () => {
   });
 
   it('setConfirmVisible toggles the confirm dialog', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+
     useTxDetailState.getState().setConfirmVisible('owner-a', true);
     expect(entryOf('owner-a').confirmVisible).toBe(true);
     useTxDetailState.getState().setConfirmVisible('owner-a', false);
@@ -107,6 +97,8 @@ describe('useTxDetailState setters', () => {
   });
 
   it('setDeleting toggles the deleting flag', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+
     useTxDetailState.getState().setDeleting('owner-a', true);
     expect(entryOf('owner-a').deleting).toBe(true);
     useTxDetailState.getState().setDeleting('owner-a', false);
@@ -114,6 +106,8 @@ describe('useTxDetailState setters', () => {
   });
 
   it('bumpReload increments reloadKey by 1 each call', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+
     useTxDetailState.getState().bumpReload('owner-a');
     expect(entryOf('owner-a').reloadKey).toBe(1);
     useTxDetailState.getState().bumpReload('owner-a');
@@ -136,6 +130,8 @@ describe('useTxDetailState owner isolation', () => {
   });
 
   it('a second copy reloading does not re-query the first', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+    useTxDetailState.getState().beginLoad('owner-b', 't2', false);
     useTxDetailState.getState().bumpReload('owner-a');
 
     useTxDetailState.getState().bumpReload('owner-b');
@@ -158,6 +154,7 @@ describe('useTxDetailState owner isolation', () => {
 
   it('a second copy opening its delete confirm leaves the first copy closed', () => {
     useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+    useTxDetailState.getState().beginLoad('owner-b', 't1', false);
     useTxDetailState.getState().setDeleting('owner-b', true);
 
     useTxDetailState.getState().setConfirmVisible('owner-b', true);
@@ -187,10 +184,23 @@ describe('useTxDetailState release', () => {
 
     expect(useTxDetailState.getState().entries).toBe(before);
   });
+
+  it('a released copy acting again does not resurrect its entry', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+    useTxDetailState.getState().release('owner-a');
+
+    useTxDetailState.getState().bumpReload('owner-a');
+    useTxDetailState.getState().setConfirmVisible('owner-a', true);
+    useTxDetailState.getState().setDeleting('owner-a', true);
+
+    expect(useTxDetailState.getState().entries).toEqual({});
+  });
 });
 
 describe('useTxDetailState reset', () => {
   it('drops every copy', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+    useTxDetailState.getState().beginLoad('owner-b', 't2', false);
     useTxDetailState.getState().setConfirmVisible('owner-a', true);
     useTxDetailState.getState().setDeleting('owner-b', true);
     useTxDetailState.getState().bumpReload('owner-a');
