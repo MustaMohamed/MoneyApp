@@ -20,6 +20,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableFreeze } from 'react-native-screens';
 
+import { AppToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { StartupError } from '@/modules/navigation/components/startup_error';
 import { useAppInit } from '@/utils/use_layout_init.hook';
@@ -69,22 +70,25 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.dark.bg }}>
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <HeroUINativeProviderRaw>
-          <ThemeProvider value={AppTheme}>
-            <StatusBar style="light" />
-            {showStartupError ? (
-              <StartupError isRetrying={status === 'initializing'} onRetry={retry} />
-            ) : status === 'ready' ? (
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  freezeOnBlur: true,
-                  contentStyle: { backgroundColor: Colors.dark.bg },
-                }}
-              />
-            ) : null}
-          </ThemeProvider>
-          {/* `HeroUINativeProviderRaw` omits the `PortalHost`; portal overlays render here. */}
-          <PortalHost />
+          {/* Wraps the host too: a dialog or sheet renders at the portal and may call `useToast`. */}
+          <AppToastProvider>
+            <ThemeProvider value={AppTheme}>
+              <StatusBar style="light" />
+              {showStartupError ? (
+                <StartupError isRetrying={status === 'initializing'} onRetry={retry} />
+              ) : status === 'ready' ? (
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    freezeOnBlur: true,
+                    contentStyle: { backgroundColor: Colors.dark.bg },
+                  }}
+                />
+              ) : null}
+            </ThemeProvider>
+            {/* `HeroUINativeProviderRaw` omits the `PortalHost`; portal overlays render here. */}
+            <PortalHost />
+          </AppToastProvider>
         </HeroUINativeProviderRaw>
       </SafeAreaProvider>
     </GestureHandlerRootView>
