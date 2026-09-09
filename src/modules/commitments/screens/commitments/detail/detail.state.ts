@@ -1,53 +1,46 @@
 import { create } from 'zustand';
 
+import { withEntry, withoutEntry, type KeyedEntries } from '@/utils/keyed_entries';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
-
-import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
 
-interface DetailStateShape {
+interface CommitmentDetailUiEntry {
+  viewState: DetailViewState;
   skipConfirmVisible: boolean;
 }
 
+type DetailStateShape = KeyedEntries<CommitmentDetailUiEntry>;
+
 type CommitmentDetailState = DetailStateShape & {
-  setSkipConfirmVisible: (v: boolean) => void;
+  setViewState: (owner: string, vs: DetailViewState) => void;
+  setSkipConfirmVisible: (owner: string, v: boolean) => void;
+  release: (owner: string) => void;
   reset: () => void;
 };
 
-const INITIAL_STATE: DetailStateShape = {
+export const INITIAL_UI_ENTRY: CommitmentDetailUiEntry = Object.freeze({
+  viewState: 'loading',
   skipConfirmVisible: false,
-};
+});
+
+const initialState = (): DetailStateShape => ({ entries: {} });
 
 export const useCommitmentDetailState = createMoneyAppSelectors(
   create<CommitmentDetailState>((set) => ({
-    ...INITIAL_STATE,
-    setSkipConfirmVisible: (v) => set({ skipConfirmVisible: v }),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
-
-interface DetailScreenDataShape {
-  allPayments: CommitmentPayment[];
-  viewState: DetailViewState;
-}
-
-type CommitmentDetailScreenDataStore = DetailScreenDataShape & {
-  setAllPayments: (payments: CommitmentPayment[]) => void;
-  setViewState: (vs: DetailViewState) => void;
-  reset: () => void;
-};
-
-const INITIAL_SCREEN_DATA: DetailScreenDataShape = {
-  allPayments: [],
-  viewState: 'loading',
-};
-
-export const useCommitmentDetailScreenData = createMoneyAppSelectors(
-  create<CommitmentDetailScreenDataStore>((set) => ({
-    ...INITIAL_SCREEN_DATA,
-    setAllPayments: (payments) => set({ allPayments: payments }),
-    setViewState: (vs) => set({ viewState: vs }),
-    reset: () => set(INITIAL_SCREEN_DATA),
+    ...initialState(),
+    // The begin action: a first mount has no entry yet, so this creates one and takes no guard.
+    setViewState: (owner, vs) =>
+      set((state) =>
+        withEntry(state, owner, { ...(state.entries[owner] ?? INITIAL_UI_ENTRY), viewState: vs }),
+      ),
+    // A released copy can still hold a callback; this must not write its entry back.
+    setSkipConfirmVisible: (owner, v) =>
+      set((state) => {
+        if (!(owner in state.entries)) return state;
+        return withEntry(state, owner, { ...state.entries[owner], skipConfirmVisible: v });
+      }),
+    release: (owner) => set((state) => withoutEntry(state, owner)),
+    reset: () => set(initialState()),
   })),
 );

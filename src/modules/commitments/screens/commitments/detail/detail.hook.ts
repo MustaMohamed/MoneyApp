@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams, usePathname } from 'expo-router';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus, DurationType, RecurrencePeriod } from '@/constants/enums';
@@ -14,11 +14,8 @@ import type { CommitmentPayment } from '../../../entities/commitment_payment.ent
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
 import { usePaySheetState } from './components/pay_sheet.state';
-import {
-  useCommitmentDetailState,
-  useCommitmentDetailScreenData,
-  type DetailViewState,
-} from './detail.state';
+import { INITIAL_UI_ENTRY, useCommitmentDetailState, type DetailViewState } from './detail.state';
+import { INITIAL_DATA_ENTRY, useCommitmentDetailStore } from './detail.store';
 
 const PERIOD_LABEL: Record<RecurrencePeriod, string> = {
   [RecurrencePeriod.Days]: Strings.commitmentsRecurrencePeriodDay,
@@ -62,6 +59,7 @@ function findCurrentPayment(payments: CommitmentPayment[]): CommitmentPayment | 
 }
 
 export function useCommitmentDetail() {
+  const owner = useId();
   const { id: paymentId, originTxId } = useLocalSearchParams<{
     id: string;
     originTxId?: string;
@@ -78,18 +76,18 @@ export function useCommitmentDetail() {
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
 
-  const skipConfirmVisible = useCommitmentDetailState.useState.skipConfirmVisible();
-  const setSkipConfirmVisible = useCommitmentDetailState.getState().setSkipConfirmVisible;
-  const resetUi = useCommitmentDetailState.getState().reset;
-
-  const { allPayments, screenViewState } = useCommitmentDetailScreenData(
-    useShallow((s) => ({
-      allPayments: s.allPayments,
-      screenViewState: s.viewState,
-    })),
+  const { viewState: screenViewState, skipConfirmVisible } = useCommitmentDetailState(
+    useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY),
   );
-  const setAllPayments = useCommitmentDetailScreenData.getState().setAllPayments;
-  const setViewState = useCommitmentDetailScreenData.getState().setViewState;
+  const setViewState = useCommitmentDetailState.getState().setViewState;
+  const setSkipConfirmVisible = useCommitmentDetailState.getState().setSkipConfirmVisible;
+  const releaseUi = useCommitmentDetailState.getState().release;
+
+  const { allPayments } = useCommitmentDetailStore(
+    useShallow((s) => s.entries[owner] ?? INITIAL_DATA_ENTRY),
+  );
+  const setAllPayments = useCommitmentDetailStore.getState().setAllPayments;
+  const releaseData = useCommitmentDetailStore.getState().release;
 
   const payment = useMemo(() => payments.find((p) => p.id === paymentId), [payments, paymentId]);
 
@@ -106,35 +104,35 @@ export function useCommitmentDetail() {
 
   useEffect(() => {
     if (!commitment) {
-      setViewState('notFound');
+      setViewState(owner, 'notFound');
       return;
     }
     let cancelled = false;
-    setViewState('loading');
+    setViewState(owner, 'loading');
     commitmentRepository
       .getPaymentsByCommitment(commitment.id)
       .then((payments) => {
         if (!cancelled) {
-          setAllPayments(payments);
-          setViewState('ready');
+          setAllPayments(owner, payments);
+          setViewState(owner, 'ready');
         }
       })
       .catch((err) => {
         console.error('[commitmentDetail] getPaymentsByCommitment failed', err);
-        if (!cancelled) setViewState('ready');
+        if (!cancelled) setViewState(owner, 'ready');
       });
     return () => {
       cancelled = true;
     };
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [commitment?.id, payments, setAllPayments, setViewState]); // object dep re-fetches spuriously
+  }, [commitment?.id, payments, owner, setAllPayments, setViewState]); // object dep re-fetches spuriously
 
   useEffect(() => {
     return () => {
-      resetUi();
-      useCommitmentDetailScreenData.getState().reset();
+      releaseData(owner);
+      releaseUi(owner);
     };
-  }, [resetUi]);
+  }, [owner, releaseData, releaseUi]);
 
   const category = useMemo(
     () => (commitment ? categories.find((c) => c.id === commitment.category_id) : undefined),
@@ -167,19 +165,19 @@ export function useCommitmentDetail() {
     if (!payment) return;
     try {
       await storeSkipPayment(payment.id);
-      setSkipConfirmVisible(false);
+      setSkipConfirmVisible(owner, false);
     } catch (err) {
       console.error('[commitmentDetail] skipPayment failed', err);
     }
-  }, [payment, storeSkipPayment, setSkipConfirmVisible]);
+  }, [payment, storeSkipPayment, owner, setSkipConfirmVisible]);
 
   const confirmSkip = useCallback(() => {
-    setSkipConfirmVisible(true);
-  }, [setSkipConfirmVisible]);
+    setSkipConfirmVisible(owner, true);
+  }, [owner, setSkipConfirmVisible]);
 
   const cancelSkip = useCallback(() => {
-    setSkipConfirmVisible(false);
-  }, [setSkipConfirmVisible]);
+    setSkipConfirmVisible(owner, false);
+  }, [owner, setSkipConfirmVisible]);
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;

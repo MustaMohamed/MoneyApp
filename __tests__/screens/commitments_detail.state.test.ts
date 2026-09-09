@@ -6,20 +6,88 @@ beforeEach(() => {
   usePaySheetState.getState().reset();
 });
 
+const entryOf = (owner: string) => useCommitmentDetailState.getState().entries[owner];
+
 describe('useCommitmentDetailState', () => {
-  it('starts with skipConfirmVisible false', () => {
-    expect(useCommitmentDetailState.getState().skipConfirmVisible).toBe(false);
+  it('starts with no copy owning anything', () => {
+    expect(useCommitmentDetailState.getState().entries).toEqual({});
   });
 
-  it('setSkipConfirmVisible updates value', () => {
-    useCommitmentDetailState.getState().setSkipConfirmVisible(true);
-    expect(useCommitmentDetailState.getState().skipConfirmVisible).toBe(true);
+  it('setViewState opens a copy entry with its confirm sheet closed', () => {
+    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+
+    expect(entryOf('owner-a')).toEqual({ viewState: 'ready', skipConfirmVisible: false });
   });
 
-  it('reset returns to initial state', () => {
-    useCommitmentDetailState.getState().setSkipConfirmVisible(true);
+  it('a second copy opening its skip confirm leaves the first copy closed', () => {
+    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+    useCommitmentDetailState.getState().setViewState('owner-b', 'ready');
+    const before = entryOf('owner-a');
+
+    useCommitmentDetailState.getState().setSkipConfirmVisible('owner-b', true);
+
+    expect(entryOf('owner-a')).toBe(before);
+    expect(entryOf('owner-b').skipConfirmVisible).toBe(true);
+  });
+
+  it('a second copy resolving not-found leaves the first copy ready', () => {
+    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+    useCommitmentDetailState.getState().setViewState('owner-b', 'ready');
+    const before = entryOf('owner-a');
+
+    useCommitmentDetailState.getState().setViewState('owner-b', 'notFound');
+
+    expect(entryOf('owner-a')).toBe(before);
+    expect(entryOf('owner-b').viewState).toBe('notFound');
+  });
+
+  it('setSkipConfirmVisible on a copy that never loaded writes nothing', () => {
+    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+    const before = useCommitmentDetailState.getState().entries;
+
+    useCommitmentDetailState.getState().setSkipConfirmVisible('owner-b', true);
+
+    expect(useCommitmentDetailState.getState().entries).toBe(before);
+  });
+
+  it('setSkipConfirmVisible after release does not resurrect the copy', () => {
+    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+    useCommitmentDetailState.getState().release('owner-a');
+    const before = useCommitmentDetailState.getState().entries;
+
+    useCommitmentDetailState.getState().setSkipConfirmVisible('owner-a', false);
+
+    expect(useCommitmentDetailState.getState().entries).toBe(before);
+    expect(useCommitmentDetailState.getState().entries).toEqual({});
+  });
+
+  it('setViewState after release opens the copy again, from the initial entry', () => {
+    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+    useCommitmentDetailState.getState().setSkipConfirmVisible('owner-a', true);
+    useCommitmentDetailState.getState().release('owner-a');
+
+    useCommitmentDetailState.getState().setViewState('owner-a', 'loading');
+
+    expect(entryOf('owner-a')).toEqual({ viewState: 'loading', skipConfirmVisible: false });
+  });
+
+  it('release removes only the released copy', () => {
+    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+    useCommitmentDetailState.getState().setViewState('owner-b', 'loading');
+    const before = entryOf('owner-a');
+
+    useCommitmentDetailState.getState().release('owner-b');
+
+    expect(entryOf('owner-a')).toBe(before);
+    expect(Object.keys(useCommitmentDetailState.getState().entries)).toEqual(['owner-a']);
+  });
+
+  it('reset drops every copy', () => {
+    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+
     useCommitmentDetailState.getState().reset();
-    expect(useCommitmentDetailState.getState().skipConfirmVisible).toBe(false);
+
+    expect(useCommitmentDetailState.getState().entries).toEqual({});
   });
 });
 
