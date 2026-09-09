@@ -143,6 +143,8 @@ export const Size = {
   ctaHeight: ms(52),
   // Raw 48, never ms(): must equal HeroUI's .button__root--size-md height — CSS px don't width-scale.
   onboardingCtaTrack: 48,
+  // Raw 36 for the same reason: it overrides HeroUI's size="sm" track of 40 (button.css:43).
+  compactCtaTrack: 36,
   headerHeight: ms(56),
   // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),

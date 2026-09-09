@@ -7,7 +7,11 @@ import { StyleSheet, type PressableProps } from 'react-native';
 import { Colors, Size } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 
-import { resolveButtonContent, resolveFlatRadius } from './button.content';
+import {
+  resolveButtonContent,
+  resolveFlatButtonStyle,
+  type FlatButtonTone,
+} from './button.content';
 
 // CTAs are Sora (.claude/rules/ui.md; mockup `.cta` uses the display face at 600) — HeroUI's own label ships Inter medium.
 const CTA_LABEL_FONT = 'font-sora-semibold';
@@ -27,10 +31,10 @@ interface ButtonBaseProps extends Omit<PressableProps, 'children' | 'disabled'> 
 }
 
 // `flat` is the redesigned screens' treatment at Radius.cta — primary: accent fill, no gradient; secondary: foreground label (mockup `.cta`/`.cta.sec`; spec.md § Known disagreements 1); ghost: radius only, no label class.
-/** Only the flat secondary paints `tone` (the account detail's Archive), so the union stops every other shape naming it. */
+/** Only the flat secondary paints `tone` (the account detail's Archive, the compact accent arm), so the union stops every other shape naming it. */
 export type ButtonProps = ButtonBaseProps &
   (
-    | { variant: 'secondary'; flat: true; tone?: 'danger' }
+    | { variant: 'secondary'; flat: true; tone?: FlatButtonTone }
     | { variant?: ButtonVariant; flat?: boolean; tone?: never }
   );
 
@@ -55,6 +59,7 @@ export function Button({
     isLoading,
     loadingLabel,
   });
+  const flatStyle = resolveFlatButtonStyle({ variant, flat, tone });
 
   if (variant === 'primary' && flat) {
     return (
@@ -64,7 +69,7 @@ export function Button({
         isDisabled={disabledState}
         className={className}
         {...props}
-        style={resolveFlatRadius({ variant, flat })}
+        style={flatStyle?.style}
       >
         {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
         <HButton.Label className={CTA_LABEL_FONT}>{text}</HButton.Label>
@@ -96,35 +101,26 @@ export function Button({
     );
   }
 
-  const flatSecondary = flat === true && variant === 'secondary';
-  const isDanger = flatSecondary && tone === 'danger';
+  const iconColor =
+    tone === 'danger'
+      ? SemanticTokens.negative
+      : tone === 'accent'
+        ? Colors.dark.gold
+        : Colors.dark.text1;
   return (
     <HButton
       variant={variant}
       size={size}
       isDisabled={disabledState}
-      className={className}
+      className={cn(flatStyle?.rootClass, className)}
       {...props}
-      style={resolveFlatRadius({ variant, flat })}
+      style={flatStyle?.style}
       // A glyph sibling stops RN deriving the label from the text child — restate it.
       accessibilityLabel={icon ? text : undefined}
     >
       {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
-      {icon ? (
-        <MaterialCommunityIcons
-          name={icon}
-          size={Size.iconSm}
-          color={isDanger ? SemanticTokens.negative : Colors.dark.text1}
-        />
-      ) : null}
-      <HButton.Label
-        className={cn(
-          CTA_LABEL_FONT,
-          isDanger ? 'text-danger' : flatSecondary ? 'text-foreground' : undefined,
-        )}
-      >
-        {text}
-      </HButton.Label>
+      {icon ? <MaterialCommunityIcons name={icon} size={Size.iconSm} color={iconColor} /> : null}
+      <HButton.Label className={cn(CTA_LABEL_FONT, flatStyle?.labelClass)}>{text}</HButton.Label>
     </HButton>
   );
 }

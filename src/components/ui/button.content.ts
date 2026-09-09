@@ -1,20 +1,41 @@
 import type { ButtonVariant } from 'heroui-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Radius } from '@/constants/theme';
+import { Colors, Radius, Size } from '@/constants/theme';
 
-const FLAT_RADIUS_VARIANTS: ButtonVariant[] = ['primary', 'secondary', 'ghost'];
+const FLAT_VARIANTS: ButtonVariant[] = ['primary', 'secondary', 'ghost', 'danger'];
+
+export type FlatButtonTone = 'danger' | 'accent';
+
+export interface FlatButtonStyle {
+  style: { borderRadius: number; height?: number };
+  rootClass?: string;
+  labelClass?: string;
+}
 
 /** `flat` is the redesigned screens' treatment; only the variants it paints take `Radius.cta`. */
-export function resolveFlatRadius({
+export function resolveFlatButtonStyle({
   variant,
   flat,
+  tone,
 }: {
   variant: ButtonVariant;
   flat?: boolean;
-}): { borderRadius: number } | undefined {
-  if (flat !== true || !FLAT_RADIUS_VARIANTS.includes(variant)) return undefined;
-  return { borderRadius: Radius.cta };
+  tone?: FlatButtonTone;
+}): FlatButtonStyle | undefined {
+  if (flat !== true || !FLAT_VARIANTS.includes(variant)) return undefined;
+  if (variant !== 'secondary') return { style: { borderRadius: Radius.cta } };
+  if (tone === 'accent') {
+    return {
+      style: { borderRadius: Radius.cta, height: Size.compactCtaTrack },
+      rootClass: 'bg-accent-soft',
+      labelClass: 'text-accent',
+    };
+  }
+  return {
+    style: { borderRadius: Radius.cta },
+    labelClass: tone === 'danger' ? 'text-danger' : 'text-foreground',
+  };
 }
 
 export interface ButtonContentInput {

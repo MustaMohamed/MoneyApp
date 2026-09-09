@@ -104,11 +104,12 @@ export function ConfirmSheet({
 
         <View style={{ flexDirection: 'row', marginTop: Spacing.lg }} className="gap-3">
           <View style={{ flex: 1 }}>
-            <Button variant="ghost" label={cancelLabel} onPress={onCancel} isDisabled={busy} />
+            <Button variant="ghost" flat label={cancelLabel} onPress={onCancel} isDisabled={busy} />
           </View>
           <View style={{ flex: 1 }}>
             <Button
               variant={destructive ? 'danger' : 'primary'}
+              flat
               label={confirmLabel}
               isLoading={busy}
               isDisabled={busy}
