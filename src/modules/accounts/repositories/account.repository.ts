@@ -18,6 +18,7 @@ import {
   updateAccount,
 } from '../database/accounts';
 import type { Account } from '../entities/account.entity';
+import { isAccountNameTaken } from '../utils/account_name_taken';
 import {
   AccountNameTakenError,
   AccountNotArchivedError,
@@ -111,12 +112,8 @@ export class AccountRepository implements IAccountRepository {
       throw new AccountNotArchivedError('Only an archived account can be restored');
     }
 
-    const wanted = existing.name.trim().toLowerCase();
     const active = await getAccounts(db);
-    // SQLite's `LOWER` is ASCII only, so the name comparison runs in JS as the add schema's does.
-    if (active.some((a) => a.name.trim().toLowerCase() === wanted)) {
-      throw new AccountNameTakenError();
-    }
+    if (isAccountNameTaken(active, existing.name)) throw new AccountNameTakenError();
 
     const now = new Date().toISOString();
     if ((await setAccountUnarchived(db, id, now)) !== 1) throw new AccountNotFoundError();

@@ -16,6 +16,7 @@ import { currentYearMonth } from '@/utils/year_month';
 import { DEFAULT_ACCOUNT_COLOR } from '../../../constants/account_palette';
 import type { AccountActivityLoadInput } from '../../../repositories/account_activity.repository';
 import { useAccountStore } from '../../../store/account.store';
+import { isAccountNameTaken } from '../../../utils/account_name_taken';
 import { useAccountActivityStore } from './account_activity.store';
 import { useAccountDetailState } from './account_detail.state';
 import { buildActivityRowPresentation } from './components/account_activity.helpers';
@@ -156,13 +157,9 @@ export function useAccountDetail() {
           .string()
           .min(1, Strings.errNameRequired)
           .max(30, Strings.errNameTooLong)
-          .refine(
-            (n) =>
-              !accounts.some(
-                (a) => a.id !== id && a.name.trim().toLowerCase() === n.trim().toLowerCase(),
-              ),
-            { message: Strings.errNameDuplicate },
-          ),
+          .refine((n) => !isAccountNameTaken(accounts, n, id), {
+            message: Strings.errNameDuplicate,
+          }),
         color: z.string(),
       }),
     [accounts, id],

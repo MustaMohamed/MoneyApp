@@ -31,7 +31,7 @@ The row count is still checked after the write, and a `0` there throws `AccountN
 
 ## 3. The name comparison runs in JavaScript, over the active list
 
-SQLite's `LOWER` folds ASCII only, so a SQL-side check would let a restored account collide with an active one whose name differs by a non-ASCII case pair. The comparison is `name.trim().toLowerCase()` over `getAccounts(db)`, the same expression the add schema (`add_account.schema.ts:34`) and the rename check (`account_detail.hook.ts:162`) apply.
+SQLite's `LOWER` folds ASCII only, so a SQL-side check would let a restored account collide with an active one whose name differs by a non-ASCII case pair. The comparison is `name.trim().toLowerCase()` over `getAccounts(db)`, and it is the one `isAccountNameTaken` (`utils/account_name_taken.ts`) holds: the add schema and the rename check call the same helper, the latter passing the edited account's own id as `excludeId`.
 
 The list is the active one, so two archived accounts may share a name and neither blocks the other until one is restored. That follows from the schema, which has no `UNIQUE` on `name` (audit L12): an active and an archived account can already share one today. Widening the add and edit checks to archived accounts is off this milestone.
 
