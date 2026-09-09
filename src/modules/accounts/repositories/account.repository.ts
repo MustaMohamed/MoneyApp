@@ -11,7 +11,6 @@ import {
   getAccountByIdIncludingArchived,
   getAccountsByIdsIncludingArchived,
   getAccounts,
-  getArchivedAccountCount,
   getArchivedAccounts,
   setAccountBalance,
   setAccountDeleted,
@@ -44,7 +43,6 @@ export type UpdateAccountInput = {
 export interface IAccountRepository {
   getAll(): Promise<Account[]>;
   getArchived(): Promise<Account[]>;
-  countArchived(): Promise<number>;
   getByIdIncludingArchived(id: string): Promise<Account | undefined>;
   getByIdsIncludingArchived(ids: string[]): Promise<Account[]>;
   add(data: NewAccountInput): Promise<Account>;
@@ -65,11 +63,6 @@ export class AccountRepository implements IAccountRepository {
   async getArchived(): Promise<Account[]> {
     const db = await getDb();
     return getArchivedAccounts(db);
-  }
-
-  async countArchived(): Promise<number> {
-    const db = await getDb();
-    return getArchivedAccountCount(db);
   }
 
   async getByIdsIncludingArchived(ids: string[]): Promise<Account[]> {

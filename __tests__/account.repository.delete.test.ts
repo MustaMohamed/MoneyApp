@@ -204,7 +204,7 @@ describe('AccountRepository.delete — what leaves and what stays', () => {
 
     const listed = await repo.getAll();
     expect(listed.map((a) => a.id).sort()).toEqual([LIVE, SURVIVOR].sort());
-    await expect(repo.countArchived()).resolves.toBe(0);
+    await expect(repo.getArchived()).resolves.toEqual([]);
     const [row] = await repo.getByIdsIncludingArchived([TARGET]);
     expect(row).toMatchObject({ id: TARGET, is_deleted: 1, is_archived: 1, name: '' });
   });

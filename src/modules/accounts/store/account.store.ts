@@ -55,13 +55,18 @@ export function createAccountStore(repo: IAccountRepository) {
         const requestId = ++loadRequestId;
 
         try {
-          const [accounts, archivedAccounts, archivedCount] = await Promise.all([
+          const [accounts, archivedAccounts] = await Promise.all([
             repo.getAll(),
             repo.getArchived(),
-            repo.countArchived(),
           ]);
           if (requestId === loadRequestId) {
-            set({ accounts, archivedAccounts, archivedCount, hasLoaded: true, loadError: false });
+            set({
+              accounts,
+              archivedAccounts,
+              archivedCount: archivedAccounts.length,
+              hasLoaded: true,
+              loadError: false,
+            });
           }
         } catch (err) {
           if (requestId === loadRequestId) set({ loadError: true });

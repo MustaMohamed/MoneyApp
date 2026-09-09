@@ -293,59 +293,6 @@ describe('AccountRepository.archive — TC-M15-02', () => {
   });
 });
 
-describe('AccountRepository.countArchived', () => {
-  // `react-native-uuid` is mocked to one fixed id, so multi-row cases insert directly.
-  function insertAccount(id: string, isArchived: 0 | 1) {
-    realDb
-      .prepare(
-        `INSERT INTO accounts (
-          id, name, type, currency, opening_balance, current_balance,
-          interest_tracking, is_archived, sort_order, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, 0, 0, 0, ?, 0, ?, ?)`,
-      )
-      .run(
-        id,
-        `acct-${id}`,
-        AccountType.Bank,
-        Currency.EGP,
-        isArchived,
-        '2026-04-29T00:00:00Z',
-        '2026-04-29T00:00:00Z',
-      );
-  }
-
-  it('returns 0 on an empty table', async () => {
-    await expect(repo.countArchived()).resolves.toBe(0);
-  });
-
-  it('returns 0 when every row is active', async () => {
-    insertAccount('a', 0);
-    insertAccount('b', 0);
-
-    await expect(repo.countArchived()).resolves.toBe(0);
-  });
-
-  it('counts only the archived rows', async () => {
-    insertAccount('a', 1);
-    insertAccount('b', 1);
-    insertAccount('c', 0);
-
-    await expect(repo.countArchived()).resolves.toBe(2);
-    await expect(repo.getAll()).resolves.toHaveLength(1);
-  });
-
-  it('goes 0 to 1 when the only account is archived, and getAll empties', async () => {
-    await repo.add(baseInput);
-    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
-    await expect(repo.countArchived()).resolves.toBe(0);
-
-    await repo.archive(id);
-
-    await expect(repo.countArchived()).resolves.toBe(1);
-    await expect(repo.getAll()).resolves.toEqual([]);
-  });
-});
-
 describe('a soft-deleted account leaves both lists — MA-020', () => {
   const DELETED_ID = 'deleted-1';
 
@@ -370,8 +317,8 @@ describe('a soft-deleted account leaves both lists — MA-020', () => {
     await expect(repo.getAll()).resolves.toEqual([]);
   });
 
-  it('is not counted among the archived', async () => {
-    await expect(repo.countArchived()).resolves.toBe(0);
+  it('is not listed among the archived', async () => {
+    await expect(repo.getArchived()).resolves.toEqual([]);
   });
 
   it('still resolves by id, so a transaction can label it', async () => {
