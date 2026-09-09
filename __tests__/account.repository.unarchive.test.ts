@@ -60,7 +60,6 @@ function insertAccount(
 }
 
 // `react-native-uuid` is mocked to one fixed id, so every row is inserted directly.
-// Insertion order z, x, y is what the archived query returns with its ORDER BY removed.
 function seed(): void {
   insertAccount('a', 'Main', 0, 0, 0, '2026-01-01T00:00:00.000Z');
   insertAccount('b', 'Spare', 5, 0, 0, '2026-01-01T00:00:00.000Z');
@@ -158,7 +157,7 @@ describe('setAccountUnarchived — a zero row count is itself a refusal', () => 
 });
 
 describe('AccountRepository.getArchived', () => {
-  it('lists the archived accounts by sort position then creation time, never a deleted one', async () => {
+  it('lists the archived accounts by sort position then creation time, the reverse of the z, x, y insertion order, never a deleted one', async () => {
     const archived = await repo.getArchived();
 
     expect(archived.map((account) => account.id)).toEqual(['y', 'x', 'z']);

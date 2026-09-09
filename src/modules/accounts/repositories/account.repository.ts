@@ -110,7 +110,6 @@ export class AccountRepository implements IAccountRepository {
     await archiveAccount(db, id, new Date().toISOString());
   }
 
-  // SQLite's `LOWER` is ASCII only, so the name comparison runs in JS as the add schema's does.
   async unarchive(id: string): Promise<void> {
     const db = await getDb();
     const existing = await getAccountByIdIncludingArchived(db, id);
@@ -121,6 +120,7 @@ export class AccountRepository implements IAccountRepository {
 
     const wanted = existing.name.trim().toLowerCase();
     const active = await getAccounts(db);
+    // SQLite's `LOWER` is ASCII only, so the name comparison runs in JS as the add schema's does.
     if (active.some((a) => a.name.trim().toLowerCase() === wanted)) {
       throw new AccountNameTakenError();
     }
