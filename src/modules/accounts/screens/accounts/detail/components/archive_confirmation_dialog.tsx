@@ -41,7 +41,7 @@ export function ArchiveConfirmationDialog({
     >
       {ccLine === undefined ? null : (
         <Typography
-          className="text-warning font-inter mb-2"
+          className="text-accent font-inter mb-2"
           style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
         >
           {ccLine}
