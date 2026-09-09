@@ -1,5 +1,4 @@
 import Database from 'better-sqlite3';
-import * as SQLite from 'expo-sqlite';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
@@ -7,42 +6,17 @@ import { parseAdjustInput } from '@/modules/accounts/screens/accounts/detail/com
 import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
 import { AccountRepository } from '@/repositories/account.repository';
 import type { NewAccountInput } from '@/repositories/account.repository';
+import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 
-const sqlite = SQLite as unknown as { __reset: () => void };
+const sqlite = getExpoSQLiteTestDatabase();
 let realDb: ReturnType<typeof Database>;
 
 beforeAll(() => {
   realDb = new Database(':memory:');
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
 
-  const mocked = (
-    SQLite as unknown as {
-      __fakeDb: {
-        runAsync: jest.Mock;
-        getAllAsync: jest.Mock;
-        getFirstAsync: jest.Mock;
-        execAsync: jest.Mock;
-      };
-    }
-  ).__fakeDb;
-
-  mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    const result = realDb.prepare(sql).run(...(params as never[]));
-    return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
-  });
-
-  mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    return realDb.prepare(sql).all(...(params as never[]));
-  });
-
-  mocked.getFirstAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    return realDb.prepare(sql).get(...(params as never[])) ?? null;
-  });
-
-  mocked.execAsync.mockImplementation(async (sql: string) => {
+  bridgeBetterSQLite(sqlite, realDb);
+  sqlite.execAsync.mockImplementation(async (sql: string) => {
     realDb.exec(sql);
   });
 });
@@ -53,7 +27,7 @@ beforeEach(() => {
 
 afterAll(() => {
   realDb.close();
-  sqlite.__reset();
+  sqlite.reset();
 });
 
 const baseInput: NewAccountInput = {
