@@ -352,6 +352,26 @@ describe('useCommitmentDetail two copies mounted at once', () => {
     expect(useCommitmentDetailState.getState().entries).toEqual({});
   });
 
+  it('a history query that settles after its copy unmounts writes nothing back', async () => {
+    commitmentsState = [commitment];
+    paymentsState = [payment];
+    const pending = deferred<CommitmentPayment[]>();
+    mockGetPaymentsByCommitment.mockReturnValue(pending.promise);
+
+    const copy = await renderHook(() => useCommitmentDetail());
+    expect(copy.result.current.state.viewState).toBe('loading');
+    expect(Object.keys(useCommitmentDetailState.getState().entries)).toHaveLength(1);
+
+    await copy.unmount();
+    await act(async () => {
+      pending.resolve(rentHistory);
+      await pending.promise;
+    });
+
+    expect(useCommitmentDetailState.getState().entries).toEqual({});
+    expect(useCommitmentDetailStore.getState().entries).toEqual({});
+  });
+
   it('a skip that settles after its copy unmounts writes nothing back', async () => {
     commitmentsState = [commitment];
     paymentsState = [payment];
