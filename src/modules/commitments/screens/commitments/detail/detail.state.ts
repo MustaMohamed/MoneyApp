@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { withEntry, withoutEntry, type KeyedEntries } from '@/utils/keyed_entries';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
@@ -9,9 +10,7 @@ interface CommitmentDetailUiEntry {
   skipConfirmVisible: boolean;
 }
 
-interface DetailStateShape {
-  entries: Record<string, CommitmentDetailUiEntry>;
-}
+type DetailStateShape = KeyedEntries<CommitmentDetailUiEntry>;
 
 type CommitmentDetailState = DetailStateShape & {
   setViewState: (owner: string, vs: DetailViewState) => void;
@@ -27,12 +26,6 @@ export const INITIAL_UI_ENTRY: CommitmentDetailUiEntry = Object.freeze({
 
 const initialState = (): DetailStateShape => ({ entries: {} });
 
-const withEntry = (
-  state: DetailStateShape,
-  owner: string,
-  entry: CommitmentDetailUiEntry,
-): DetailStateShape => ({ entries: { ...state.entries, [owner]: entry } });
-
 export const useCommitmentDetailState = createMoneyAppSelectors(
   create<CommitmentDetailState>((set) => ({
     ...initialState(),
@@ -47,13 +40,7 @@ export const useCommitmentDetailState = createMoneyAppSelectors(
         if (!(owner in state.entries)) return state;
         return withEntry(state, owner, { ...state.entries[owner], skipConfirmVisible: v });
       }),
-    release: (owner) =>
-      set((state) => {
-        if (!(owner in state.entries)) return state;
-        const entries = { ...state.entries };
-        delete entries[owner];
-        return { entries };
-      }),
+    release: (owner) => set((state) => withoutEntry(state, owner)),
     reset: () => set(initialState()),
   })),
 );
