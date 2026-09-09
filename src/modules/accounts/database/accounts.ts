@@ -12,6 +12,14 @@ export async function getAccounts(db: SQLiteDatabase): Promise<Account[]> {
   );
 }
 
+export async function getArchivedAccounts(db: SQLiteDatabase): Promise<Account[]> {
+  return db.getAllAsync<Account>(
+    `SELECT * FROM accounts
+      WHERE is_archived = 1 AND is_deleted = 0
+      ORDER BY sort_order ASC, created_at ASC`,
+  );
+}
+
 export async function getArchivedAccountCount(db: SQLiteDatabase): Promise<number> {
   const result = await db.getFirstAsync<{ count: number }>(
     'SELECT COUNT(*) AS count FROM accounts WHERE is_archived = 1 AND is_deleted = 0',
@@ -134,6 +142,26 @@ export async function setAccountDeleted(
   const result = await db.runAsync(
     `UPDATE accounts
         SET is_deleted = 1, name = '', updated_at = ?
+      WHERE id = ? AND is_archived = 1 AND is_deleted = 0`,
+    [updated_at, id],
+  );
+  return result.changes;
+}
+
+/** The predicate is the guard, and the subquery reads the active rows at statement time. */
+export async function setAccountUnarchived(
+  db: SQLiteDatabase,
+  id: string,
+  updated_at: string,
+): Promise<number> {
+  const result = await db.runAsync(
+    `UPDATE accounts
+        SET is_archived = 0,
+            sort_order = (
+              SELECT COALESCE(MAX(sort_order), -1) + 1 FROM accounts
+               WHERE is_archived = 0 AND is_deleted = 0
+            ),
+            updated_at = ?
       WHERE id = ? AND is_archived = 1 AND is_deleted = 0`,
     [updated_at, id],
   );

@@ -4,6 +4,7 @@ import {
   createAccountStore,
   EMPTY_ACCOUNT_LOOKUP,
   EMPTY_ACCOUNTS,
+  EMPTY_ARCHIVED_ACCOUNTS,
 } from '@/modules/accounts/store/account.store';
 import type { IAccountRepository, NewAccountInput } from '@/repositories/account.repository';
 
@@ -47,12 +48,14 @@ const baseInput: NewAccountInput = {
 function makeRepo(overrides: Partial<IAccountRepository> = {}): IAccountRepository {
   return {
     getAll: jest.fn().mockResolvedValue([]),
+    getArchived: jest.fn().mockResolvedValue([]),
     countArchived: jest.fn().mockResolvedValue(0),
     getByIdIncludingArchived: jest.fn().mockResolvedValue(undefined),
     getByIdsIncludingArchived: jest.fn().mockResolvedValue([]),
     add: jest.fn().mockResolvedValue(mockAccount),
     update: jest.fn().mockResolvedValue(undefined),
     archive: jest.fn().mockResolvedValue(undefined),
+    unarchive: jest.fn().mockResolvedValue(undefined),
     delete: jest.fn().mockResolvedValue(undefined),
     adjustBalance: jest.fn().mockResolvedValue(undefined),
     confirmBalanceReviewed: jest.fn().mockResolvedValue(undefined),
@@ -139,10 +142,42 @@ describe('accountStore.loadAccounts', () => {
     const store = createAccountStore(repo);
 
     expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
+    expect(store.getState().archivedAccounts).toBe(EMPTY_ARCHIVED_ACCOUNTS);
     expect(store.getState().accountLookup).toBe(EMPTY_ACCOUNT_LOOKUP);
     expect(store.getState().archivedCount).toBe(0);
     expect(store.getState().hasLoaded).toBe(false);
     expect(store.getState().loadError).toBe(false);
+  });
+
+  it('publishes the archived list alongside the active one, in one pass', async () => {
+    const archived: Account = { ...mockAccount, id: 'archived', is_archived: 1 };
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([mockAccount]),
+      getArchived: jest.fn().mockResolvedValue([archived]),
+    });
+    const store = createAccountStore(repo);
+
+    await store.getState().loadAccounts();
+
+    expect(repo.getArchived).toHaveBeenCalledTimes(1);
+    expect(store.getState().archivedAccounts).toEqual([archived]);
+    expect(store.getState().accounts).toEqual([mockAccount]);
+  });
+
+  it('sets loadError and keeps every slot when the archived list rejects', async () => {
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([mockAccount]),
+      getArchived: jest.fn().mockRejectedValue(new Error('archived list failed')),
+    });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().loadAccounts()).rejects.toThrow('archived list failed');
+
+    expect(store.getState().loadError).toBe(true);
+    expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
+    expect(store.getState().archivedAccounts).toBe(EMPTY_ARCHIVED_ACCOUNTS);
+    expect(store.getState().archivedCount).toBe(0);
+    expect(store.getState().hasLoaded).toBe(false);
   });
 
   it('publishes the archived count the repository returns', async () => {
@@ -282,14 +317,16 @@ describe('accountStore.loadAccounts', () => {
     expect(store.getState().accounts).toEqual([newerAccount]);
   });
 
-  it('does not let an older load publish its archived count either', async () => {
+  it('does not let an older load publish its archived list or count either', async () => {
     const firstLoad = deferred<Account[]>();
     const secondLoad = deferred<Account[]>();
+    const stale: Account = { ...mockAccount, id: 'stale-archived', is_archived: 1 };
     const repo = makeRepo({
       getAll: jest
         .fn()
         .mockReturnValueOnce(firstLoad.promise)
         .mockReturnValueOnce(secondLoad.promise),
+      getArchived: jest.fn().mockResolvedValueOnce([stale]).mockResolvedValueOnce([]),
       countArchived: jest.fn().mockResolvedValueOnce(7).mockResolvedValueOnce(3),
     });
     const store = createAccountStore(repo);
@@ -299,11 +336,13 @@ describe('accountStore.loadAccounts', () => {
 
     secondLoad.resolve([]);
     await secondRequest;
+    expect(store.getState().archivedAccounts).toEqual([]);
     expect(store.getState().archivedCount).toBe(3);
 
     firstLoad.resolve([mockAccount]);
     await firstRequest;
 
+    expect(store.getState().archivedAccounts).toEqual([]);
     expect(store.getState().archivedCount).toBe(3);
   });
 });
@@ -395,6 +434,51 @@ describe('accountStore.archiveAccount', () => {
   });
 });
 
+describe('accountStore.unarchiveAccount', () => {
+  it('delegates to repo.unarchive and republishes all three slots', async () => {
+    const archived: Account = { ...mockAccount, id: 'archived', is_archived: 1 };
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([mockAccount]),
+      getArchived: jest.fn().mockResolvedValueOnce([archived]).mockResolvedValueOnce([]),
+      countArchived: jest.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(0),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccounts();
+    expect(store.getState().archivedAccounts).toEqual([archived]);
+
+    await store.getState().unarchiveAccount('archived');
+
+    expect(repo.unarchive).toHaveBeenCalledWith('archived');
+    expect(store.getState().accounts).toEqual([mockAccount]);
+    expect(store.getState().archivedAccounts).toEqual([]);
+    expect(store.getState().archivedCount).toBe(0);
+  });
+
+  it('rejects with the repository error and leaves every loaded slot alone', async () => {
+    const archived: Account = { ...mockAccount, id: 'archived', is_archived: 1 };
+    const failure = new Error('unarchive failed');
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([mockAccount]),
+      getArchived: jest.fn().mockResolvedValue([archived]),
+      countArchived: jest.fn().mockResolvedValue(1),
+      unarchive: jest.fn().mockRejectedValue(failure),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccounts();
+
+    await expect(store.getState().unarchiveAccount('archived')).rejects.toBe(failure);
+
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+    expect(repo.getArchived).toHaveBeenCalledTimes(1);
+    expect(store.getState()).toMatchObject({
+      accounts: [mockAccount],
+      archivedAccounts: [archived],
+      archivedCount: 1,
+      loadError: false,
+    });
+  });
+});
+
 describe('accountStore.adjustBalance', () => {
   it('delegates to repo.adjustBalance with id and balance', async () => {
     const repo = makeRepo();
@@ -442,20 +526,23 @@ describe('accountStore.confirmBalanceReviewed', () => {
 });
 
 describe('accountStore.reset', () => {
-  it('restores the empty account list and a zero archived count', async () => {
+  it('restores the empty account lists and a zero archived count', async () => {
     const repo = makeRepo({
       getAll: jest.fn().mockResolvedValue([{ ...mockAccount, id: 'a1' }]),
+      getArchived: jest.fn().mockResolvedValue([{ ...mockAccount, id: 'a2', is_archived: 1 }]),
       countArchived: jest.fn().mockResolvedValue(4),
     });
     const store = createAccountStore(repo);
     await store.getState().loadAccounts();
     expect(store.getState().accounts).toHaveLength(1);
+    expect(store.getState().archivedAccounts).toHaveLength(1);
     expect(store.getState().archivedCount).toBe(4);
     expect(store.getState().hasLoaded).toBe(true);
 
     store.getState().reset();
 
     expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
+    expect(store.getState().archivedAccounts).toBe(EMPTY_ARCHIVED_ACCOUNTS);
     expect(store.getState().archivedCount).toBe(0);
     expect(store.getState().hasLoaded).toBe(false);
   });
@@ -479,5 +566,11 @@ describe('accountStore.reset', () => {
 describe('EMPTY_ACCOUNTS', () => {
   it('is immutable', () => {
     expect(Object.isFrozen(EMPTY_ACCOUNTS)).toBe(true);
+  });
+});
+
+describe('EMPTY_ARCHIVED_ACCOUNTS', () => {
+  it('is immutable', () => {
+    expect(Object.isFrozen(EMPTY_ARCHIVED_ACCOUNTS)).toBe(true);
   });
 });
