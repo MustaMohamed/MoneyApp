@@ -19,18 +19,18 @@ import {
   resolveDetailViewState,
 } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useTxDetailState } from './detail.state';
-import { useTxDetailStore } from './detail.store';
+import { INITIAL_DATA_ENTRY, useTxDetailStore } from './detail.store';
 
 export function useTransactionDetail(id: string) {
   const owner = useId();
   const stackedPrefix = stackedPrefixOf(usePathname());
   const { tx, txId, budget } = useTxDetailStore(
-    useShallow((state) => ({ tx: state.tx, txId: state.txId, budget: state.budget })),
+    useShallow((state) => state.entries[owner] ?? INITIAL_DATA_ENTRY),
   );
   const setTx = useTxDetailStore.getState().setTx;
   const setBudget = useTxDetailStore.getState().setBudget;
   const clearForId = useTxDetailStore.getState().clearForId;
-  const resetData = useTxDetailStore.getState().reset;
+  const releaseData = useTxDetailStore.getState().release;
   const { activeId, status, revalidating, refreshError, confirmVisible, deleting, reloadKey } =
     useTxDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
   const beginLoad = useTxDetailState.getState().beginLoad;
@@ -57,19 +57,21 @@ export function useTransactionDetail(id: string) {
 
   useEffect(() => {
     let cancelled = false;
-    const detailStore = useTxDetailStore.getState();
-    const preserveData = detailStore.txId === id && detailStore.tx !== null;
-    if (!preserveData) clearForId(id);
+    const entry = useTxDetailStore.getState().entries[owner] ?? INITIAL_DATA_ENTRY;
+    const preserveData = entry.txId === id && entry.tx !== null;
+    if (!preserveData) clearForId(owner, id);
     beginLoad(owner, id, preserveData);
+    // Stamped before the read, so a write that lands mid-read leaves this snapshot stale.
+    const loadedAtVersion = useTransactionStore.getState().mutationVersion;
     getById(id)
       .then((transaction) => {
         if (cancelled) return;
         if (!transaction) {
-          clearForId(id);
+          clearForId(owner, id);
           resolveNotFound(owner, id);
           return;
         }
-        setTx(id, transaction);
+        setTx(owner, id, transaction, loadedAtVersion);
         resolve(owner, id);
 
         const accountIds = transaction.to_account_id
@@ -88,7 +90,7 @@ export function useTransactionDetail(id: string) {
           try {
             void Promise.resolve(budgetRepository.getById(budgetId))
               .then((resolvedBudget) => {
-                if (!cancelled) setBudget(id, budgetId, resolvedBudget);
+                if (!cancelled) setBudget(owner, id, budgetId, resolvedBudget);
               })
               .catch((error) => {
                 console.error('[transactionDetail] budget lookup failed', error);
@@ -124,19 +126,27 @@ export function useTransactionDetail(id: string) {
   const currentTx = ownsRoute ? tx : null;
   const currentStatus = activeId === id ? status : 'initialLoading';
 
-  // Two details can be mounted at once and the store holds one; the lower copy re-claims the slot on focus.
+  // A copy re-queries on return only when it holds no claim on the route, or a write landed since its snapshot.
   useFocusEffect(
     useCallback(() => {
-      if (useTxDetailStore.getState().txId !== id) bumpReload(owner);
+      const entry = useTxDetailStore.getState().entries[owner] ?? INITIAL_DATA_ENTRY;
+      if (entry.txId !== id) {
+        bumpReload(owner);
+        return;
+      }
+      if (entry.tx === null) return;
+      if (entry.loadedAtVersion !== useTransactionStore.getState().mutationVersion) {
+        bumpReload(owner);
+      }
     }, [bumpReload, id, owner]),
   );
 
   useEffect(() => {
     return () => {
-      resetData();
+      releaseData(owner);
       releaseUi(owner);
     };
-  }, [owner, releaseUi, resetData]);
+  }, [owner, releaseData, releaseUi]);
 
   const accountsById = useMemo(
     () => new Map([...accounts, ...accountLookup].map((account) => [account.id, account])),

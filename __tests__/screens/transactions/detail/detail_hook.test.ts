@@ -81,6 +81,12 @@ const setSelectedMonth = jest.fn().mockResolvedValue(undefined);
 const loadAccountLookup = jest.fn().mockResolvedValue(undefined);
 const openEdit = jest.fn();
 let getById: jest.Mock;
+let transactionStoreState: {
+  transactions: Transaction[];
+  getById: jest.Mock;
+  deleteTransaction: jest.Mock;
+  mutationVersion: number;
+};
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -112,11 +118,13 @@ beforeEach(() => {
     openEdit,
   });
 
-  attachMockSelectorStore(useTransactionStore, () => ({
+  transactionStoreState = {
     transactions: [],
     getById,
     deleteTransaction: jest.fn(),
-  }));
+    mutationVersion: 0,
+  };
+  attachMockSelectorStore(useTransactionStore, () => transactionStoreState);
   attachMockSelectorStore(useAccountStore, () => ({
     accounts: [],
     accountLookup: [],
@@ -371,8 +379,15 @@ describe('useTransactionDetail route actions', () => {
   });
 });
 
-describe('useTransactionDetail focus re-claim', () => {
-  it('reloads only when another copy has taken the single store slot', async () => {
+const otherTransaction: Transaction = {
+  ...linkedTransaction,
+  id: 'transaction-2',
+  amount: 900,
+  egp_amount: 900,
+};
+
+describe('useTransactionDetail focus refresh', () => {
+  it('shows its transaction again without a round trip when nothing was written', async () => {
     const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(getById).toHaveBeenCalledTimes(1);
@@ -380,15 +395,92 @@ describe('useTransactionDetail focus re-claim', () => {
     await act(async () => mockFocusEffect.current?.());
 
     expect(getById).toHaveBeenCalledTimes(1);
+    expect(result.current.state.viewState).toBe('ready');
+    expect(result.current.state.tx).toEqual(linkedTransaction);
+  });
 
-    // The copy pushed above this one reset the slot when it unmounted.
-    await act(async () => useTxDetailStore.getState().reset());
-    expect(result.current.state.viewState).toBe('loading');
+  it('re-queries and renders the edit when the transaction was written elsewhere', async () => {
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    getById.mockResolvedValue({ ...linkedTransaction, note: 'edited elsewhere' });
+    transactionStoreState.mutationVersion += 1;
+    await act(async () => mockFocusEffect.current?.());
+
+    await waitFor(() => expect(result.current.state.tx?.note).toBe('edited elsewhere'));
+    expect(getById).toHaveBeenCalledTimes(2);
+    expect(getById).toHaveBeenLastCalledWith(linkedTransaction.id);
+  });
+
+  it('stamps the version read before the query, so a write mid-read still refreshes', async () => {
+    const pending = deferred<typeof linkedTransaction>();
+    getById.mockReturnValueOnce(pending.promise);
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+
+    transactionStoreState.mutationVersion += 1;
+    pending.resolve(linkedTransaction);
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
     await act(async () => mockFocusEffect.current?.());
 
-    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(getById).toHaveBeenCalledTimes(2);
-    expect(getById).toHaveBeenLastCalledWith(linkedTransaction.id);
+  });
+});
+
+describe('useTransactionDetail two copies mounted at once', () => {
+  it('each copy reads its own transaction and neither reloads when the other unmounts', async () => {
+    getById.mockImplementation((txId: string) =>
+      Promise.resolve(txId === linkedTransaction.id ? linkedTransaction : otherTransaction),
+    );
+    const lower = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const lowerFocus = mockFocusEffect.current;
+    await waitFor(() => expect(lower.result.current.state.viewState).toBe('ready'));
+    const upper = await renderHook(() => useTransactionDetail(otherTransaction.id));
+    await waitFor(() => expect(upper.result.current.state.viewState).toBe('ready'));
+
+    expect(lower.result.current.state.tx).toEqual(linkedTransaction);
+    expect(upper.result.current.state.tx).toEqual(otherTransaction);
+
+    await upper.unmount();
+    await act(async () => lowerFocus?.());
+
+    expect(lower.result.current.state.viewState).toBe('ready');
+    expect(lower.result.current.state.tx).toEqual(linkedTransaction);
+    expect(getById).toHaveBeenCalledTimes(2);
+  });
+
+  it('two copies of the same transaction do not release each other', async () => {
+    const lower = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const lowerFocus = mockFocusEffect.current;
+    await waitFor(() => expect(lower.result.current.state.viewState).toBe('ready'));
+    const upper = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    await waitFor(() => expect(upper.result.current.state.viewState).toBe('ready'));
+    expect(getById).toHaveBeenCalledTimes(2);
+
+    await upper.unmount();
+
+    expect(lower.result.current.state.viewState).toBe('ready');
+    expect(lower.result.current.state.tx).toEqual(linkedTransaction);
+
+    await act(async () => lowerFocus?.());
+
+    expect(lower.result.current.state.viewState).toBe('ready');
+    expect(getById).toHaveBeenCalledTimes(2);
+  });
+
+  it('a copy whose transaction was deleted elsewhere goes not-found alone', async () => {
+    const lower = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    await waitFor(() => expect(lower.result.current.state.viewState).toBe('ready'));
+    const upper = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const upperFocus = mockFocusEffect.current;
+    await waitFor(() => expect(upper.result.current.state.viewState).toBe('ready'));
+
+    getById.mockResolvedValue(null);
+    transactionStoreState.mutationVersion += 1;
+    await act(async () => upperFocus?.());
+
+    await waitFor(() => expect(upper.result.current.state.viewState).toBe('notFound'));
+    expect(lower.result.current.state.viewState).toBe('ready');
+    expect(lower.result.current.state.tx).toEqual(linkedTransaction);
   });
 });
