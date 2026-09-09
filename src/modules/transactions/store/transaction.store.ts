@@ -63,6 +63,7 @@ type TransactionStore = typeof INITIAL_STATE & {
   addTransaction: (data: NewTransactionInput) => Promise<Transaction>;
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (id: string, data: UpdateTransactionInput) => Promise<void>;
+  announceExternalWrite: () => void;
   reset: () => void;
 };
 
@@ -206,6 +207,11 @@ export function createTransactionStore(repo: ITransactionRepository) {
           await repo.update(id, data);
           bumpMutationVersion();
           refreshAfterMutation('update');
+        },
+
+        // Bump only: callers write from other screens, and the list refreshes on its own focus.
+        announceExternalWrite: () => {
+          bumpMutationVersion();
         },
 
         reset: () => {

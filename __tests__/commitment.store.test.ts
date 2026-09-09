@@ -16,6 +16,7 @@ import type {
 } from '@/modules/commitments/repositories/commitment.repository';
 import { createCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 
 const MAY = '2026-05';
 const DAY_ONE = new Date('2026-05-08T23:30:00.000Z');
@@ -666,6 +667,59 @@ describe('commitment store mutation invalidation', () => {
     expect(store.getState().generation).toBe(0);
     expect(repository.runHousekeeping).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
+  });
+});
+
+describe('commitment store transaction write announcement', () => {
+  it('announces once when the payment writes a transaction row', async () => {
+    const announce = jest.fn();
+    const store = createCommitmentStore(makeRepository(), announce);
+    await store.getState().loadMonthSnapshot(MAY);
+
+    await store.getState().markAsPaid('payment', paymentDetails);
+    await flushMicrotasks();
+
+    expect(announce).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not announce when the payment fails', async () => {
+    const announce = jest.fn();
+    const repository = makeRepository({
+      markAsPaid: jest.fn().mockRejectedValue(new Error('pay failed')),
+    });
+    const store = createCommitmentStore(repository, announce);
+    await store.getState().loadMonthSnapshot(MAY);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.getState().markAsPaid('payment', paymentDetails)).rejects.toThrow(
+      'pay failed',
+    );
+
+    expect(repository.markAsPaid).toHaveBeenCalledTimes(1);
+    expect(announce).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('does not announce when a payment is skipped', async () => {
+    const announce = jest.fn();
+    const store = createCommitmentStore(makeRepository(), announce);
+    await store.getState().loadMonthSnapshot(MAY);
+
+    await store.getState().skipPayment('payment');
+    await flushMicrotasks();
+
+    expect(announce).not.toHaveBeenCalled();
+  });
+
+  it('raises the transaction store mutation version by default', async () => {
+    const store = createCommitmentStore(makeRepository());
+    await store.getState().loadMonthSnapshot(MAY);
+    const beforeVersion = useTransactionStore.getState().mutationVersion;
+
+    await store.getState().markAsPaid('payment', paymentDetails);
+    await flushMicrotasks();
+
+    expect(useTransactionStore.getState().mutationVersion).toBe(beforeVersion + 1);
   });
 });
 

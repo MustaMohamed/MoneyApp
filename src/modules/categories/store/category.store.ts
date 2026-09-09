@@ -7,6 +7,7 @@ import {
   type NewCategoryInput,
   type UpdateCategoryInput,
 } from '@/modules/categories/repositories/category.repository';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type { Category, NewCategoryInput, UpdateCategoryInput };
@@ -23,7 +24,11 @@ type CategoryStore = typeof INITIAL_STATE & {
   reset: () => void;
 };
 
-export function createCategoryStore(repo: ICategoryRepository) {
+export function createCategoryStore(
+  repo: ICategoryRepository,
+  announceTransactionWrite: () => void = () =>
+    useTransactionStore.getState().announceExternalWrite(),
+) {
   let requestGeneration = 0;
   let lifecycleGeneration = 0;
   let sharedLoadPromise: Promise<void> | undefined;
@@ -82,7 +87,10 @@ export function createCategoryStore(repo: ICategoryRepository) {
         deleteCategory: (id) => mutateAndReload(() => repo.delete(id), 'deleteCategory'),
 
         reassignAndDelete: (fromId, toId) =>
-          mutateAndReload(() => repo.reassignAndDelete(fromId, toId), 'reassignAndDelete'),
+          mutateAndReload(async () => {
+            await repo.reassignAndDelete(fromId, toId);
+            announceTransactionWrite();
+          }, 'reassignAndDelete'),
 
         getCategoryTransactionCount: (id) => repo.getTransactionCount(id),
 
