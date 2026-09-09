@@ -2,8 +2,6 @@ import { create } from 'zustand';
 
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
-
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
 
 interface CommitmentDetailUiEntry {
@@ -56,30 +54,5 @@ export const useCommitmentDetailState = createMoneyAppSelectors(
         return { entries };
       }),
     reset: () => set(initialState()),
-  })),
-);
-
-interface DetailScreenDataShape {
-  allPayments: CommitmentPayment[];
-  viewState: DetailViewState;
-}
-
-type CommitmentDetailScreenDataStore = DetailScreenDataShape & {
-  setAllPayments: (payments: CommitmentPayment[]) => void;
-  setViewState: (vs: DetailViewState) => void;
-  reset: () => void;
-};
-
-const INITIAL_SCREEN_DATA: DetailScreenDataShape = {
-  allPayments: [],
-  viewState: 'loading',
-};
-
-export const useCommitmentDetailScreenData = createMoneyAppSelectors(
-  create<CommitmentDetailScreenDataStore>((set) => ({
-    ...INITIAL_SCREEN_DATA,
-    setAllPayments: (payments) => set({ allPayments: payments }),
-    setViewState: (vs) => set({ viewState: vs }),
-    reset: () => set(INITIAL_SCREEN_DATA),
   })),
 );
