@@ -4,21 +4,16 @@ import { z } from 'zod';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/store/account.store';
+import { isAccountNameTaken } from '@/modules/accounts/utils/account_name_taken';
 
-// Copy of the `editSchema` in `detail/account_detail.hook.ts`; keep the two in step.
+// Mirrors how `editSchema` in `detail/account_detail.hook.ts` composes the rules; the duplicate rule is the shared helper.
 function makeEditSchema(accounts: Account[], id: string) {
   return z.object({
     name: z
       .string()
       .min(1, Strings.errNameRequired)
       .max(30, Strings.errNameTooLong)
-      .refine(
-        (n) =>
-          !accounts.some(
-            (a) => a.id !== id && a.name.trim().toLowerCase() === n.trim().toLowerCase(),
-          ),
-        { message: Strings.errNameDuplicate },
-      ),
+      .refine((n) => !isAccountNameTaken(accounts, n, id), { message: Strings.errNameDuplicate }),
     color: z.string(),
   });
 }
