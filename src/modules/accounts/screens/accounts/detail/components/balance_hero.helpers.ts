@@ -52,6 +52,8 @@ export function buildHeroCaption(account: Account): HeroCaption {
 export interface AccountBalanceParts {
   amount: string;
   code: string;
+  /** True when the magnitude prints as an exact zero at this currency's decimals. */
+  printsAsZero: boolean;
 }
 
 /** The hero draws the code at its own size, so the two halves are available apart as well as joined. */
@@ -66,6 +68,7 @@ export function formatAccountBalanceParts(
   return {
     amount: signAmountText(magnitude, balance < 0 ? MINUS_SIGN : '', printsAsZero),
     code,
+    printsAsZero,
   };
 }
 

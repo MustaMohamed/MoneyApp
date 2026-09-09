@@ -290,10 +290,13 @@ export const Strings = {
   accountDetailAprValue: (rate: string) => `${rate}%`,
   accountDetailInterestTracked: 'interest tracked',
   accountDetailArchive: 'Archive',
-  accountDetailArchiveTitle: 'Archive Account?',
+  accountDetailArchiveTitle: (name: string) => `Archive ${name}?`,
   accountDetailArchiveBody: 'This account will be hidden from your dashboard and all calculations.',
-  accountDetailArchiveCCWarning: 'Outstanding credit card balance will still affect net worth.',
+  // Archived accounts count in no total, so the balance leaves net worth rather than staying in it.
+  accountDetailArchiveCCWarning: (balance: string) =>
+    `Its ${balance} balance leaves your net worth until you unarchive it.`,
   accountDetailArchiveConfirm: 'Archive',
+  accountDetailArchiveError: "Couldn't archive this account. Nothing was changed.",
   accountBalanceReviewTitle: 'Review this card balance',
   accountBalanceReviewBody:
     'Older transactions may have affected this balance. Check it against your card statement.',
