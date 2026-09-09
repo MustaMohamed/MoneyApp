@@ -39,6 +39,7 @@ export default function AccountDetailScreen() {
       isArchiving,
       isConfirmingBalanceReview,
       balanceReviewError,
+      archiveError,
       activity,
     },
     form,
@@ -47,6 +48,7 @@ export default function AccountDetailScreen() {
     setAdjustVisible,
     handleAdjustBalance,
     setArchiveVisible,
+    closeArchive,
     handleArchive,
     handleConfirmBalanceReviewed,
     onBack,
@@ -213,11 +215,12 @@ export default function AccountDetailScreen() {
       <ArchiveConfirmationDialog
         visible={isArchiveVisible}
         account={account}
-        onClose={() => setArchiveVisible(false)}
+        onClose={closeArchive}
         onConfirm={() => {
           void handleArchive();
         }}
         isLoading={isArchiving}
+        errorMessage={archiveError}
       />
     </Screen>
   );

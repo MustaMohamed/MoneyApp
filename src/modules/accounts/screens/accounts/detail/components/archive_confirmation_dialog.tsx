@@ -1,17 +1,19 @@
 import { Typography } from 'heroui-native';
 
 import { ConfirmDialog } from '@/components/ui/confirm_dialog';
-import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Type, lineHeightFor } from '@/constants/theme';
 
 import type { Account } from '../../../../store/account.store';
+import { resolveArchiveCcLine } from './archive_confirmation.helpers';
 
 interface ArchiveConfirmationDialogProps {
   visible: boolean;
-  account: Account | undefined;
+  account: Account;
   onClose: () => void;
   onConfirm: () => void;
   isLoading: boolean;
+  errorMessage?: string;
 }
 
 export function ArchiveConfirmationDialog({
@@ -20,26 +22,31 @@ export function ArchiveConfirmationDialog({
   onClose,
   onConfirm,
   isLoading,
+  errorMessage,
 }: ArchiveConfirmationDialogProps) {
-  const isCC = account?.type === AccountType.CreditCard;
+  const ccLine = resolveArchiveCcLine(account);
 
   return (
     <ConfirmDialog
       visible={visible}
       busy={isLoading}
       destructive
-      title={Strings.accountDetailArchiveTitle}
+      title={Strings.accountDetailArchiveTitle(account.name)}
       body={Strings.accountDetailArchiveBody}
       confirmLabel={Strings.accountDetailArchiveConfirm}
       cancelLabel={Strings.accountDetailCancel}
       onConfirm={onConfirm}
       onCancel={onClose}
+      errorMessage={errorMessage}
     >
-      {isCC ? (
-        <Typography className="text-accent font-inter mb-2 text-[11px]">
-          {Strings.accountDetailArchiveCCWarning}
+      {ccLine === undefined ? null : (
+        <Typography
+          className="text-accent font-inter mb-2"
+          style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
+        >
+          {ccLine}
         </Typography>
-      ) : null}
+      )}
     </ConfirmDialog>
   );
 }

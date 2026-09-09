@@ -1,8 +1,9 @@
-import { Dialog } from 'heroui-native';
+import { Dialog, Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { Type, lineHeightFor } from '@/constants/theme';
 
 interface ConfirmDialogProps {
   visible: boolean;
@@ -14,6 +15,8 @@ interface ConfirmDialogProps {
   onCancel: () => void;
   destructive?: boolean;
   busy?: boolean;
+  /** A failed confirm renders here and the dialog stays open (`.dlg .errl`). */
+  errorMessage?: string;
   /** Optional content rendered between the body and the button row (e.g. a warning line). */
   children?: React.ReactNode;
 }
@@ -28,6 +31,7 @@ export function ConfirmDialog({
   onCancel,
   destructive = false,
   busy = false,
+  errorMessage,
   children,
 }: ConfirmDialogProps) {
   const handleOpenChange = (open: boolean) => {
@@ -52,10 +56,19 @@ export function ConfirmDialog({
             {body}
           </Dialog.Description>
           {children}
+          {errorMessage ? (
+            <Typography
+              className="text-danger font-inter mb-2"
+              style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
+            >
+              {errorMessage}
+            </Typography>
+          ) : null}
           <View style={{ flexDirection: 'row' }} className="mt-1 gap-2">
             <View style={{ flex: 1 }}>
               <Button
                 variant="secondary"
+                flat
                 label={cancelLabel}
                 onPress={onCancel}
                 isDisabled={busy}
@@ -64,6 +77,7 @@ export function ConfirmDialog({
             <View style={{ flex: 1 }}>
               <Button
                 variant={destructive ? 'danger' : 'primary'}
+                flat
                 label={confirmLabel}
                 onPress={onConfirm}
                 isLoading={busy}

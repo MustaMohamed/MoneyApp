@@ -39,4 +39,41 @@ describe('resolveAccountTileColors', () => {
       glyph: CoreTokens.text1,
     });
   });
+
+  it('the omitted variant is the filled one', () => {
+    expect(resolveAccountTileColors('#D4830A')).toEqual(
+      resolveAccountTileColors('#D4830A', 'filled'),
+    );
+  });
+});
+
+describe('resolveAccountTileColors — the hollow variant C4 draws on an archived account', () => {
+  it('drops the fill and rings the tile in the account colour', () => {
+    expect(resolveAccountTileColors('#D4830A', 'hollow')).toEqual({
+      background: 'transparent',
+      glyph: '#D4830A',
+      border: '#D4830A',
+    });
+  });
+
+  it('rings a hex outside the 32 in the fallback colour', () => {
+    expect(resolveAccountTileColors('#ABCDEF', 'hollow')).toEqual({
+      background: 'transparent',
+      glyph: DEFAULT_ACCOUNT_COLOR,
+      border: DEFAULT_ACCOUNT_COLOR,
+    });
+  });
+
+  it('rings a null colour in the fallback colour too', () => {
+    expect(resolveAccountTileColors(null, 'hollow')).toEqual({
+      background: 'transparent',
+      glyph: DEFAULT_ACCOUNT_COLOR,
+      border: DEFAULT_ACCOUNT_COLOR,
+    });
+  });
+
+  // The filled variant draws no ring, so `border` is what decides which treatment renders.
+  it('the filled variant carries no border', () => {
+    expect(resolveAccountTileColors('#D4830A').border).toBeUndefined();
+  });
 });

@@ -96,7 +96,7 @@ function mockAccounts(accounts: Account[]): void {
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
     updateAccount: jest.fn(),
-    archiveAccount: jest.fn(),
+    archiveAccount: mockArchiveAccount,
     adjustBalance: mockAdjustBalance,
     confirmBalanceReviewed: mockConfirmBalanceReviewed,
   }));
@@ -135,9 +135,11 @@ const mockSetAdjusting = jest.fn();
 const mockSetArchiving = jest.fn();
 const mockSetConfirmingBalanceReview = jest.fn();
 const mockSetBalanceReviewError = jest.fn();
+const mockSetArchiveError = jest.fn();
 const mockReset = jest.fn();
 const mockConfirmBalanceReviewed = jest.fn();
 const mockAdjustBalance = jest.fn();
+const mockArchiveAccount = jest.fn();
 
 type DetailStateMock = {
   isEditing: boolean;
@@ -148,6 +150,7 @@ type DetailStateMock = {
   isArchiving: boolean;
   isConfirmingBalanceReview: boolean;
   balanceReviewError: string | undefined;
+  archiveError: string | undefined;
   setEditing: jest.Mock;
   setAdjustVisible: jest.Mock;
   setArchiveVisible: jest.Mock;
@@ -156,6 +159,7 @@ type DetailStateMock = {
   setArchiving: jest.Mock;
   setConfirmingBalanceReview: jest.Mock;
   setBalanceReviewError: jest.Mock;
+  setArchiveError: jest.Mock;
   reset: jest.Mock;
 };
 
@@ -169,6 +173,7 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     isArchiving: false,
     isConfirmingBalanceReview: false,
     balanceReviewError: undefined,
+    archiveError: undefined,
     setEditing: mockSetEditing,
     setAdjustVisible: mockSetAdjustVisible,
     setArchiveVisible: mockSetArchiveVisible,
@@ -177,6 +182,7 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     setArchiving: mockSetArchiving,
     setConfirmingBalanceReview: mockSetConfirmingBalanceReview,
     setBalanceReviewError: mockSetBalanceReviewError,
+    setArchiveError: mockSetArchiveError,
     reset: mockReset,
     ...overrides,
   };
@@ -292,6 +298,64 @@ describe('useAccountDetail', () => {
     expect(mockSetAdjustVisible).not.toHaveBeenCalledWith(false);
     // `finally` still runs, so the Save Balance button must not stay spinning.
     expect(mockSetAdjusting).toHaveBeenLastCalledWith(false);
+  });
+
+  it('closes the dialog and returns to the previous screen on a successful archive', async () => {
+    mockArchiveAccount.mockResolvedValue(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleArchive());
+
+    expect(mockArchiveAccount).toHaveBeenCalledWith('acc-1');
+    expect(mockSetArchiveVisible).toHaveBeenCalledWith(false);
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockSetArchiveError).toHaveBeenCalledWith(undefined);
+    expect(mockSetArchiveError).not.toHaveBeenCalledWith(Strings.accountDetailArchiveError);
+    expect(mockSetArchiving).toHaveBeenLastCalledWith(false);
+  });
+
+  it('keeps the dialog open with the failure line when the archive write rejects', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation();
+    mockArchiveAccount.mockRejectedValue(new Error('db write failed'));
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleArchive());
+
+    expect(mockSetArchiveError).toHaveBeenNthCalledWith(1, undefined);
+    expect(mockSetArchiveError).toHaveBeenLastCalledWith(Strings.accountDetailArchiveError);
+    // The dialog must stay up and the detail must not pop out from under it.
+    expect(mockSetArchiveVisible).not.toHaveBeenCalledWith(false);
+    expect(mockBack).not.toHaveBeenCalled();
+    // `finally` still runs, so the Archive button must not stay spinning.
+    expect(mockSetArchiving).toHaveBeenLastCalledWith(false);
+    consoleError.mockRestore();
+  });
+
+  it('does not claim a failed archive when the write landed and the pop threw', async () => {
+    mockArchiveAccount.mockResolvedValue(undefined);
+    mockBack.mockImplementationOnce(() => {
+      throw new Error('navigation gone');
+    });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(async () => {
+      await expect(result.current.handleArchive()).rejects.toThrow('navigation gone');
+    });
+
+    expect(mockArchiveAccount).toHaveBeenCalledWith('acc-1');
+    expect(mockSetArchiveVisible).toHaveBeenCalledWith(false);
+    expect(mockSetArchiveError).not.toHaveBeenCalledWith(Strings.accountDetailArchiveError);
+    expect(mockSetArchiving).toHaveBeenLastCalledWith(false);
+  });
+
+  it('clears the failure when the dialog closes, so a reopen is clean', async () => {
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.closeArchive());
+
+    expect(mockSetArchiveVisible).toHaveBeenCalledWith(false);
+    expect(mockSetArchiveError).toHaveBeenCalledWith(undefined);
+    expect(mockArchiveAccount).not.toHaveBeenCalled();
   });
 
   it('leaves edit mode instead of navigating back when editing', async () => {

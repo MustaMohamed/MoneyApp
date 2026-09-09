@@ -184,6 +184,10 @@ jest.mock('heroui-native', () => {
   const BottomSheetTitle = ({ children }) =>
     React.createElement(RNText, { testID: 'bottom-sheet-title' }, children);
 
+  const ToastProvider = ({ children }) => React.createElement(React.Fragment, null, children);
+  // One object, so a consumer suite asserts on the same `show` the code under test called.
+  const toast = { show: jest.fn() };
+
   function BottomSheet({ isOpen, onOpenChange: _onOpenChange, children }) {
     if (!isOpen) return null;
     return React.createElement(View, { testID: 'heroui-bottom-sheet' }, children);
@@ -215,9 +219,11 @@ jest.mock('heroui-native', () => {
     ListGroup,
     Separator,
     Surface,
+    ToastProvider,
     Typography,
     useTextField: () => ({ isDisabled: false, isInvalid: false, isRequired: false }),
     useThemeColor: () => ['#D4A44C'],
+    useToast: () => toast,
   };
 });
 

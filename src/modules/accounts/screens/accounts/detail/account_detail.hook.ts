@@ -42,6 +42,7 @@ export function useAccountDetail() {
     isArchiving,
     isConfirmingBalanceReview,
     balanceReviewError,
+    archiveError,
   } = useAccountDetailState(
     useShallow((s) => ({
       isEditing: s.isEditing,
@@ -52,6 +53,7 @@ export function useAccountDetail() {
       isArchiving: s.isArchiving,
       isConfirmingBalanceReview: s.isConfirmingBalanceReview,
       balanceReviewError: s.balanceReviewError,
+      archiveError: s.archiveError,
     })),
   );
   const setEditing = useAccountDetailState.getState().setEditing;
@@ -62,6 +64,7 @@ export function useAccountDetail() {
   const setArchiving = useAccountDetailState.getState().setArchiving;
   const setConfirmingBalanceReview = useAccountDetailState.getState().setConfirmingBalanceReview;
   const setBalanceReviewError = useAccountDetailState.getState().setBalanceReviewError;
+  const setArchiveError = useAccountDetailState.getState().setArchiveError;
   const reset = useAccountDetailState.getState().reset;
   const { activityStatus, activitySnapshot } = useAccountActivityStore(
     useShallow((s) => ({ activityStatus: s.status, activitySnapshot: s.snapshot })),
@@ -206,14 +209,26 @@ export function useAccountDetail() {
 
   const handleArchive = async () => {
     if (!id) return;
+    setArchiveError(undefined);
     setArchiving(true);
     try {
       await archiveAccount(id);
-      setArchiveVisible(false);
-      router.back();
+    } catch (error) {
+      console.error('[accountDetail] archiveAccount failed:', error);
+      setArchiveError(Strings.accountDetailArchiveError);
+      return;
     } finally {
       setArchiving(false);
     }
+    // Outside the try: only the write decides the failure line, never the close or the pop.
+    setArchiveVisible(false);
+    router.back();
+  };
+
+  // Reopening must not show the last failure, so the close path clears it.
+  const closeArchive = () => {
+    setArchiveVisible(false);
+    setArchiveError(undefined);
   };
 
   const handleConfirmBalanceReviewed = async () => {
@@ -282,6 +297,7 @@ export function useAccountDetail() {
       isArchiving,
       isConfirmingBalanceReview,
       balanceReviewError,
+      archiveError,
       activity: { status: activityStatus, rows: activityRows, monthFacts },
     },
     form,
@@ -290,6 +306,7 @@ export function useAccountDetail() {
     setAdjustVisible,
     handleAdjustBalance,
     setArchiveVisible,
+    closeArchive,
     handleArchive,
     handleConfirmBalanceReviewed,
     onBack,

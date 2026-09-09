@@ -213,4 +213,15 @@ describe('formatAccountBalanceParts — the hero draws the code apart from the m
     expect(amount).toBe(`${MINUS_SIGN}1,900`);
     expect(code).not.toContain(MINUS_SIGN);
   });
+
+  // The archive dialog gates its balance line on this, so it is part of the contract.
+  it.each([
+    { balance: 0.01, currency: Currency.EGP, printsAsZero: true },
+    { balance: 0.01, currency: Currency.USD, printsAsZero: false },
+    { balance: 0, currency: Currency.USD, printsAsZero: true },
+    { balance: 0, currency: Currency.EGP, printsAsZero: true },
+    { balance: -1900, currency: Currency.EGP, printsAsZero: false },
+  ])('$balance $currency printsAsZero=$printsAsZero', ({ balance, currency, printsAsZero }) => {
+    expect(formatAccountBalanceParts(balance, currency).printsAsZero).toBe(printsAsZero);
+  });
 });

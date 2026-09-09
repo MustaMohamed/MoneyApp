@@ -393,6 +393,16 @@ describe('accountStore.archiveAccount', () => {
     const store = createAccountStore(repo);
     await expect(store.getState().archiveAccount('test-id')).rejects.toThrow('archive failed');
   });
+
+  it('resolves when the write lands and only the reload after it fails', async () => {
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('reload failed')) });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().archiveAccount('test-id')).resolves.toBeUndefined();
+
+    expect(repo.archive).toHaveBeenCalledWith('test-id');
+    expect(store.getState().loadError).toBe(true);
+  });
 });
 
 describe('accountStore.adjustBalance', () => {
