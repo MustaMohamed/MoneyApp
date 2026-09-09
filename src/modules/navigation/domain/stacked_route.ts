@@ -25,6 +25,3 @@ export function commitmentEditRoute<P extends StackedPrefix>(
   }
   return `${prefix}/commitments/${commitmentId}/edit`;
 }
-
-// The mirror is transaction detail → commitment payment → commitment edit, so leaving the edit pops both.
-export const STACKED_EDIT_POP_COUNT = 2;

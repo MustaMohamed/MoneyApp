@@ -8,22 +8,20 @@ import type { Commitment } from '@/modules/commitments/entities/commitment.entit
 import { useEditCommitment } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.hook';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
-import { STACKED_EDIT_POP_COUNT } from '@/modules/navigation/domain/stacked_route';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 const mockRouterBack = jest.fn();
-const mockRouterDismiss = jest.fn();
 const mockRouterDismissTo = jest.fn();
 const mockRouterReplace = jest.fn();
 const mockPathname = { current: '/commitments/com-1/edit' };
+let mockParams: { id: string; originTxId?: string } = { id: 'com-1' };
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ id: 'com-1' }),
+  useLocalSearchParams: () => mockParams,
   usePathname: () => mockPathname.current,
   useRouter: () => ({
     back: mockRouterBack,
-    dismiss: mockRouterDismiss,
     replace: mockRouterReplace,
     dismissTo: mockRouterDismissTo,
   }),
@@ -99,6 +97,7 @@ describe('useEditCommitment', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPathname.current = '/commitments/com-1/edit';
+    mockParams = { id: 'com-1' };
     setup();
   });
 
@@ -120,10 +119,23 @@ describe('useEditCommitment', () => {
 
     expect(updateCommitmentMock).toHaveBeenCalled();
     expect(mockRouterDismissTo).toHaveBeenCalledWith('/commitments');
-    expect(mockRouterDismiss).not.toHaveBeenCalled();
   });
 
-  it('saving from the stacked copy pops back to the stacked transaction', async () => {
+  it('saving from the stacked copy pops back to the stacked transaction it came from', async () => {
+    mockPathname.current = '/stacked/commitments/com-1/edit';
+    mockParams.originTxId = 'tx-1';
+    const { result } = await renderHook(() => useEditCommitment());
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(updateCommitmentMock).toHaveBeenCalled();
+    expect(mockRouterDismissTo).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
+    expect(mockRouterDismissTo).not.toHaveBeenCalledWith('/commitments');
+  });
+
+  it('saving from a stacked copy with no origin falls back to one step inside the mirror', async () => {
     mockPathname.current = '/stacked/commitments/com-1/edit';
     const { result } = await renderHook(() => useEditCommitment());
 
@@ -132,7 +144,7 @@ describe('useEditCommitment', () => {
     });
 
     expect(updateCommitmentMock).toHaveBeenCalled();
-    expect(mockRouterDismiss).toHaveBeenCalledWith(STACKED_EDIT_POP_COUNT);
+    expect(mockRouterBack).toHaveBeenCalled();
     expect(mockRouterDismissTo).not.toHaveBeenCalled();
   });
 
@@ -145,11 +157,11 @@ describe('useEditCommitment', () => {
 
     expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
     expect(mockRouterReplace).toHaveBeenCalledWith('/commitments');
-    expect(mockRouterDismiss).not.toHaveBeenCalled();
   });
 
-  it('deactivating from the stacked copy pops back to the stacked transaction', async () => {
+  it('deactivating from the stacked copy pops back to the stacked transaction it came from', async () => {
     mockPathname.current = '/stacked/commitments/com-1/edit';
+    mockParams.originTxId = 'tx-1';
     const { result } = await renderHook(() => useEditCommitment());
 
     await act(async () => {
@@ -157,7 +169,7 @@ describe('useEditCommitment', () => {
     });
 
     expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
-    expect(mockRouterDismiss).toHaveBeenCalledWith(STACKED_EDIT_POP_COUNT);
+    expect(mockRouterDismissTo).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
     expect(mockRouterReplace).not.toHaveBeenCalled();
   });
 

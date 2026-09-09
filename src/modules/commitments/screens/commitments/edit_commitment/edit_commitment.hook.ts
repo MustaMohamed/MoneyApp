@@ -7,9 +7,9 @@ import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import {
-  STACKED_EDIT_POP_COUNT,
   STACKED_PREFIX,
   stackedPrefixOf,
+  stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -25,7 +25,7 @@ export type { CommitmentFormValues };
 
 export function useEditCommitment() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, originTxId } = useLocalSearchParams<{ id: string; originTxId?: string }>();
   const stackedPrefix = stackedPrefixOf(usePathname());
 
   const accounts = useAccountStore((s) => s.accounts);
@@ -66,6 +66,12 @@ export function useEditCommitment() {
     return () => reset();
   }, [reset]);
 
+  // POP_TO selects by route name, so it steps over any duplicate edit or payment a double-tap appended.
+  function leaveStackedSubtree() {
+    if (originTxId) router.dismissTo(stackedTransactionDetailRoute(originTxId));
+    else router.back();
+  }
+
   async function onValid(data: CommitmentFormValues) {
     if (!id) return;
     setSaveError(undefined);
@@ -89,7 +95,7 @@ export function useEditCommitment() {
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
       reset();
-      if (stackedPrefix === STACKED_PREFIX) router.dismiss(STACKED_EDIT_POP_COUNT);
+      if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
       else router.dismissTo('/commitments');
     } catch {
       setSaveError(Strings.commitmentsSaveError);
@@ -109,7 +115,7 @@ export function useEditCommitment() {
       await deactivateCommitment(id);
       setDeactivateDialogVisible(false);
       reset();
-      if (stackedPrefix === STACKED_PREFIX) router.dismiss(STACKED_EDIT_POP_COUNT);
+      if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
       else router.replace('/commitments');
     } catch {
       // Error logged by store.
