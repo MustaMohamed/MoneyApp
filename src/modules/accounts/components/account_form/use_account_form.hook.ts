@@ -47,7 +47,9 @@ export function useAccountForm({
 
     try {
       if (!useAccountFormState.getState().inserted) {
-        const sortOrder = useAccountStore.getState().accounts.length;
+        // One past the highest active position, the rule `setAccountUnarchived` applies on restore.
+        const active = useAccountStore.getState().accounts;
+        const sortOrder = active.reduce((max, a) => Math.max(max, a.sort_order), -1) + 1;
         await useAccountStore.getState().addAccount(toNewAccountInput(data, { sortOrder }));
         useAccountFormState.getState().markInserted();
       }

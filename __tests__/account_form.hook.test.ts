@@ -15,10 +15,10 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 }));
 
 const mockAddAccount = jest.fn();
-let mockAccounts: { id: string; name: string }[] = [];
+let mockAccounts: { id: string; name: string; sort_order: number }[] = [];
 
 function setup() {
-  mockAccounts = [{ id: 'a1', name: 'Existing' }];
+  mockAccounts = [{ id: 'a1', name: 'Existing', sort_order: 0 }];
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: mockAccounts,
     addAccount: mockAddAccount,
@@ -104,7 +104,7 @@ describe('useAccountForm', () => {
   it('the retry does not re-validate against the row it just inserted', async () => {
     // Republishing `mockAccounts` reproduces the real store's own `loadAccounts()` republication.
     mockAddAccount.mockImplementation(async () => {
-      mockAccounts = [...mockAccounts, { id: 'new', name: 'New Account' }];
+      mockAccounts = [...mockAccounts, { id: 'new', name: 'New Account', sort_order: 1 }];
     });
     const onSaved = jest
       .fn()
@@ -180,17 +180,34 @@ describe('useAccountForm', () => {
     expect(result.current.form.getValues('currency')).toBe(Currency.USD);
   });
 
-  it('sortOrder is read at submit time, not at mount', async () => {
+  it('sortOrder is one past the highest active position, read at submit time', async () => {
     const { result } = await renderHook(() => useAccountForm(makeOptions()));
     await fillValidDraft(result);
 
-    mockAccounts = [...mockAccounts, { id: 'a2', name: 'Two' }, { id: 'a3', name: 'Three' }];
+    // A gap over the count: the active list is 3 long but its highest position is 7.
+    mockAccounts = [
+      ...mockAccounts,
+      { id: 'a2', name: 'Two', sort_order: 7 },
+      { id: 'a3', name: 'Three', sort_order: 4 },
+    ];
 
     await act(async () => {
       await result.current.submit();
     });
 
-    expect(mockAddAccount).toHaveBeenCalledWith(expect.objectContaining({ sort_order: 3 }));
+    expect(mockAddAccount).toHaveBeenCalledWith(expect.objectContaining({ sort_order: 8 }));
+  });
+
+  it('sortOrder is 0 when no active account is left', async () => {
+    mockAccounts = [];
+    const { result } = await renderHook(() => useAccountForm(makeOptions()));
+    await fillValidDraft(result);
+
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(mockAddAccount).toHaveBeenCalledWith(expect.objectContaining({ sort_order: 0 }));
   });
 
   it('a fresh mount starts clean even if a previous session had already inserted', async () => {
