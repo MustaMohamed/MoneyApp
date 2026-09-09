@@ -26,7 +26,6 @@ type CategoryStore = typeof INITIAL_STATE & {
 
 export function createCategoryStore(
   repo: ICategoryRepository,
-  // An arrow, so the transaction store is read at reassign time, not at module load.
   announceTransactionWrite: () => void = () =>
     useTransactionStore.getState().announceExternalWrite(),
 ) {

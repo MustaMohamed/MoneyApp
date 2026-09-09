@@ -77,7 +77,6 @@ function initialState(generation = 0): CommitmentStoreState {
 
 export function createCommitmentStore(
   repo: ICommitmentRepository,
-  // An arrow, so the transaction store is read at payment time, not at module load.
   announceTransactionWrite: () => void = () =>
     useTransactionStore.getState().announceExternalWrite(),
 ) {
