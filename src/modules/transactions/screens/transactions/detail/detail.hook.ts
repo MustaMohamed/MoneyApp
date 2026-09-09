@@ -211,12 +211,13 @@ export function useTransactionDetail(id: string) {
       }
       const commitmentState = useCommitmentStore.getState();
       await commitmentState.setSelectedMonth(payment.due_date.slice(0, 7));
-      router.push(getCommitmentPaymentRoute(commitmentPaymentId, stackedPrefix));
+      // The route's own id, not currentTx.id: POP_TO overwrites the target's params with this value.
+      router.push(getCommitmentPaymentRoute(commitmentPaymentId, stackedPrefix, id));
     } catch (error) {
       console.error('[transactionDetail] open commitment failed', error);
       Alert.alert(Strings.commitmentsDetailNotFound);
     }
-  }, [commitmentPaymentId, stackedPrefix]);
+  }, [commitmentPaymentId, stackedPrefix, id]);
 
   const reload = useCallback(() => bumpReload(), [bumpReload]);
   const goBack = useCallback(() => router.back(), []);

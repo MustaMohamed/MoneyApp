@@ -1,6 +1,7 @@
 // Stores are mocked: a real one plus the `useShallow` passthrough loops on an unstable snapshot.
 
 import { act, renderHook } from '@testing-library/react-native';
+import { router } from 'expo-router';
 
 import {
   AmountType,
@@ -25,12 +26,15 @@ import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 const mockGetPaymentsByCommitment = jest.fn();
 const mockSkipPayment = jest.fn();
 const mockSetSkipConfirmVisible = jest.fn();
+const mockPathname = { current: '/commitments/pay-1' };
+let mockParams: { id: string; originTxId?: string } = { id: 'pay-1' };
 let commitmentsState: Commitment[] = [];
 let paymentsState: CommitmentPayment[] = [];
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ id: 'pay-1' }),
+  useLocalSearchParams: () => mockParams,
+  usePathname: () => mockPathname.current,
   router: { push: jest.fn(), back: jest.fn() },
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -125,6 +129,8 @@ const payment: CommitmentPayment = {
 describe('useCommitmentDetail', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPathname.current = '/commitments/pay-1';
+    mockParams = { id: 'pay-1' };
     commitmentsState = [];
     paymentsState = [];
     mockGetPaymentsByCommitment.mockResolvedValue([]);
@@ -164,6 +170,36 @@ describe('useCommitmentDetail', () => {
     expect(typeof result.current.cancelSkip).toBe('function');
     expect(typeof result.current.goToEdit).toBe('function');
     expect(typeof result.current.goBack).toBe('function');
+  });
+
+  it('edits through the tabbed route when opened from the tabbed copy', async () => {
+    commitmentsState = [commitment];
+    paymentsState = [payment];
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => result.current.goToEdit());
+
+    expect(router.push).toHaveBeenCalledWith('/commitments/commitment-1/edit');
+  });
+
+  it('keeps the edit inside the stacked subtree when opened from the stacked copy', async () => {
+    mockPathname.current = '/stacked/commitments/pay-1';
+    mockParams.originTxId = 'tx-1';
+    commitmentsState = [commitment];
+    paymentsState = [payment];
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => result.current.goToEdit());
+
+    expect(router.push).toHaveBeenCalledWith(
+      '/stacked/commitments/commitment-1/edit?originTxId=tx-1',
+    );
   });
 
   it('completes a committed skip before an effect-driven history refresh failure', async () => {

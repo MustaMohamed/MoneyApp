@@ -13,10 +13,13 @@ import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 const mockRouterBack = jest.fn();
 const mockRouterDismissTo = jest.fn();
 const mockRouterReplace = jest.fn();
+const mockPathname = { current: '/commitments/com-1/edit' };
+let mockParams: { id: string; originTxId?: string } = { id: 'com-1' };
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ id: 'com-1' }),
+  useLocalSearchParams: () => mockParams,
+  usePathname: () => mockPathname.current,
   useRouter: () => ({
     back: mockRouterBack,
     replace: mockRouterReplace,
@@ -59,17 +62,19 @@ const commitment: Commitment = {
 };
 
 const updateCommitmentMock = jest.fn().mockResolvedValue(undefined);
+const deactivateCommitmentMock = jest.fn().mockResolvedValue(undefined);
 const setSavingMock = jest.fn();
 const setSaveErrorMock = jest.fn();
 
 function setup() {
   updateCommitmentMock.mockResolvedValue(undefined);
+  deactivateCommitmentMock.mockResolvedValue(undefined);
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments: [commitment],
     payments: [],
     selectedMonth: '2026-05',
     updateCommitment: updateCommitmentMock,
-    deactivateCommitment: jest.fn().mockResolvedValue(undefined),
+    deactivateCommitment: deactivateCommitmentMock,
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: [],
@@ -91,6 +96,8 @@ function setup() {
 describe('useEditCommitment', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPathname.current = '/commitments/com-1/edit';
+    mockParams = { id: 'com-1' };
     setup();
   });
 
@@ -101,6 +108,69 @@ describe('useEditCommitment', () => {
   it('saving defaults to false', async () => {
     const { result } = await renderHook(() => useEditCommitment());
     expect(result.current.state.saving).toBe(false);
+  });
+
+  it('saving from the tabbed copy dismisses to the commitments list', async () => {
+    const { result } = await renderHook(() => useEditCommitment());
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(updateCommitmentMock).toHaveBeenCalled();
+    expect(mockRouterDismissTo).toHaveBeenCalledWith('/commitments');
+  });
+
+  it('saving from the stacked copy pops back to the stacked transaction it came from', async () => {
+    mockPathname.current = '/stacked/commitments/com-1/edit';
+    mockParams.originTxId = 'tx-1';
+    const { result } = await renderHook(() => useEditCommitment());
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(updateCommitmentMock).toHaveBeenCalled();
+    expect(mockRouterDismissTo).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
+    expect(mockRouterDismissTo).not.toHaveBeenCalledWith('/commitments');
+  });
+
+  it('saving from a stacked copy with no origin falls back to one step inside the mirror', async () => {
+    mockPathname.current = '/stacked/commitments/com-1/edit';
+    const { result } = await renderHook(() => useEditCommitment());
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(updateCommitmentMock).toHaveBeenCalled();
+    expect(mockRouterBack).toHaveBeenCalled();
+    expect(mockRouterDismissTo).not.toHaveBeenCalled();
+  });
+
+  it('deactivating from the tabbed copy replaces with the commitments list', async () => {
+    const { result } = await renderHook(() => useEditCommitment());
+
+    await act(async () => {
+      await result.current.confirmDeactivate();
+    });
+
+    expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
+    expect(mockRouterReplace).toHaveBeenCalledWith('/commitments');
+  });
+
+  it('deactivating from the stacked copy pops back to the stacked transaction it came from', async () => {
+    mockPathname.current = '/stacked/commitments/com-1/edit';
+    mockParams.originTxId = 'tx-1';
+    const { result } = await renderHook(() => useEditCommitment());
+
+    await act(async () => {
+      await result.current.confirmDeactivate();
+    });
+
+    expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
+    expect(mockRouterDismissTo).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
+    expect(mockRouterReplace).not.toHaveBeenCalled();
   });
 
   it('keeps the form open and publishes a retryable error when update fails', async () => {

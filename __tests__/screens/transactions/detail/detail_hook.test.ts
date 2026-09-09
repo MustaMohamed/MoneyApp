@@ -326,7 +326,9 @@ describe('useTransactionDetail commitment navigation', () => {
 
     await act(async () => result.current.openCommitment());
 
-    expect(router.push).toHaveBeenCalledWith('/stacked/commitments/payment-1');
+    expect(router.push).toHaveBeenCalledWith(
+      '/stacked/commitments/payment-1?originTxId=transaction-1',
+    );
   });
 
   it('does not navigate when the linked payment no longer exists', async () => {
