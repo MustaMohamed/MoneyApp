@@ -9,6 +9,7 @@ import {
 } from '@/utils/parse_decimal';
 
 import type { Account } from '../store/account.store';
+import { isAccountNameTaken } from './account_name_taken';
 
 export function createAddAccountSchema(accounts: Account[]) {
   return z
@@ -31,7 +32,7 @@ export function createAddAccountSchema(accounts: Account[]) {
       due_day: z.string().optional(),
     })
     .superRefine((data, ctx) => {
-      if (accounts.some((a) => a.name.trim().toLowerCase() === data.name.trim().toLowerCase())) {
+      if (isAccountNameTaken(accounts, data.name)) {
         ctx.addIssue({
           code: 'custom',
           path: ['name'],

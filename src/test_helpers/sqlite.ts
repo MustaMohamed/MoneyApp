@@ -1,3 +1,4 @@
+import type Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 import type { SQLiteDatabase, SQLiteRunResult } from 'expo-sqlite';
 
@@ -49,6 +50,24 @@ export function getExpoSQLiteTestDatabase(): ExpoSQLiteTestDatabase {
 
 export function getSQLiteParams(rest: unknown[]): unknown[] {
   return Array.isArray(rest[0]) ? rest[0] : rest;
+}
+
+/** Queries only: `withTransactionAsync` stays with the suite, since a pass-through is vacuous (M33). */
+export function bridgeBetterSQLite(
+  mock: MockSQLiteDatabase,
+  realDb: ReturnType<typeof Database>,
+): void {
+  mock.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
+    const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
+    return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
+  });
+  mock.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) =>
+    realDb.prepare(sql).all(...getSQLiteParams(rest)),
+  );
+  mock.getFirstAsync.mockImplementation(
+    async (sql: string, ...rest: unknown[]) =>
+      realDb.prepare(sql).get(...getSQLiteParams(rest)) ?? null,
+  );
 }
 
 export function isQueryPlanRow(value: unknown): value is { detail: string } {

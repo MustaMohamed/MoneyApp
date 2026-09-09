@@ -6,8 +6,15 @@ export class AccountNotFoundError extends Error {
 }
 
 export class AccountNotArchivedError extends Error {
-  constructor() {
-    super('Only an archived account can be deleted');
+  constructor(message = 'Only an archived account can be deleted') {
+    super(message);
     this.name = 'AccountNotArchivedError';
+  }
+}
+
+export class AccountNameTakenError extends Error {
+  constructor() {
+    super('An active account already holds this name');
+    this.name = 'AccountNameTakenError';
   }
 }

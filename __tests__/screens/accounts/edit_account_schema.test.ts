@@ -1,27 +1,8 @@
 import '@/utils/zod_config';
-import { z } from 'zod';
-
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/store/account.store';
-
-// Copy of the `editSchema` in `detail/account_detail.hook.ts`; keep the two in step.
-function makeEditSchema(accounts: Account[], id: string) {
-  return z.object({
-    name: z
-      .string()
-      .min(1, Strings.errNameRequired)
-      .max(30, Strings.errNameTooLong)
-      .refine(
-        (n) =>
-          !accounts.some(
-            (a) => a.id !== id && a.name.trim().toLowerCase() === n.trim().toLowerCase(),
-          ),
-        { message: Strings.errNameDuplicate },
-      ),
-    color: z.string(),
-  });
-}
+import { createEditAccountSchema } from '@/modules/accounts/utils/edit_account.schema';
 
 const acct = (id: string, name: string): Account =>
   ({
@@ -44,7 +25,10 @@ const acct = (id: string, name: string): Account =>
     updated_at: '2026-05-23T00:00:00.000Z',
   }) as Account;
 
-function err(schema: ReturnType<typeof makeEditSchema>, data: { name: string; color: string }) {
+function err(
+  schema: ReturnType<typeof createEditAccountSchema>,
+  data: { name: string; color: string },
+) {
   const r = schema.safeParse(data);
   return r.success ? undefined : r.error.issues[0]?.message;
 }
@@ -53,22 +37,22 @@ describe('edit account schema', () => {
   const accounts = [acct('id-self', 'My Bank'), acct('id-other', 'Other Bank')];
 
   it('A-07: duplicate name of another account (diff case) → errNameDuplicate', () => {
-    const schema = makeEditSchema(accounts, 'id-self');
+    const schema = createEditAccountSchema(accounts, 'id-self');
     expect(err(schema, { name: 'OTHER BANK', color: '#fff' })).toBe(Strings.errNameDuplicate);
   });
 
   it('A-08: own current name is valid (self excluded by id)', () => {
-    const schema = makeEditSchema(accounts, 'id-self');
+    const schema = createEditAccountSchema(accounts, 'id-self');
     expect(err(schema, { name: 'My Bank', color: '#fff' })).toBeUndefined();
   });
 
   it('empty name → errNameRequired', () => {
-    const schema = makeEditSchema(accounts, 'id-self');
+    const schema = createEditAccountSchema(accounts, 'id-self');
     expect(err(schema, { name: '', color: '#fff' })).toBe(Strings.errNameRequired);
   });
 
   it('name > 30 chars → errNameTooLong', () => {
-    const schema = makeEditSchema(accounts, 'id-self');
+    const schema = createEditAccountSchema(accounts, 'id-self');
     expect(err(schema, { name: 'a'.repeat(31), color: '#fff' })).toBe(Strings.errNameTooLong);
   });
 });

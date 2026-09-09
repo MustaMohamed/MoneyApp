@@ -1,6 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
-import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
@@ -16,6 +15,7 @@ import { currentYearMonth } from '@/utils/year_month';
 import { DEFAULT_ACCOUNT_COLOR } from '../../../constants/account_palette';
 import type { AccountActivityLoadInput } from '../../../repositories/account_activity.repository';
 import { useAccountStore } from '../../../store/account.store';
+import { createEditAccountSchema } from '../../../utils/edit_account.schema';
 import { useAccountActivityStore } from './account_activity.store';
 import { useAccountDetailState } from './account_detail.state';
 import { buildActivityRowPresentation } from './components/account_activity.helpers';
@@ -152,24 +152,7 @@ export function useAccountDetail() {
     [account, activitySnapshot, id],
   );
 
-  const editSchema = useMemo(
-    () =>
-      z.object({
-        name: z
-          .string()
-          .min(1, Strings.errNameRequired)
-          .max(30, Strings.errNameTooLong)
-          .refine(
-            (n) =>
-              !accounts.some(
-                (a) => a.id !== id && a.name.trim().toLowerCase() === n.trim().toLowerCase(),
-              ),
-            { message: Strings.errNameDuplicate },
-          ),
-        color: z.string(),
-      }),
-    [accounts, id],
-  );
+  const editSchema = useMemo(() => createEditAccountSchema(accounts, id), [accounts, id]);
 
   const form = useZodForm(editSchema, {
     defaultValues: {

@@ -11,13 +11,19 @@ import {
   getAccountByIdIncludingArchived,
   getAccountsByIdsIncludingArchived,
   getAccounts,
-  getArchivedAccountCount,
+  getArchivedAccounts,
   setAccountBalance,
   setAccountDeleted,
+  setAccountUnarchived,
   updateAccount,
 } from '../database/accounts';
 import type { Account } from '../entities/account.entity';
-import { AccountNotArchivedError, AccountNotFoundError } from './account.errors';
+import { isAccountNameTaken } from '../utils/account_name_taken';
+import {
+  AccountNameTakenError,
+  AccountNotArchivedError,
+  AccountNotFoundError,
+} from './account.errors';
 
 export type NewAccountInput = Omit<
   Account,
@@ -37,12 +43,13 @@ export type UpdateAccountInput = {
 
 export interface IAccountRepository {
   getAll(): Promise<Account[]>;
-  countArchived(): Promise<number>;
+  getArchived(): Promise<Account[]>;
   getByIdIncludingArchived(id: string): Promise<Account | undefined>;
   getByIdsIncludingArchived(ids: string[]): Promise<Account[]>;
   add(data: NewAccountInput): Promise<Account>;
   update(id: string, data: UpdateAccountInput): Promise<void>;
   archive(id: string): Promise<void>;
+  unarchive(id: string): Promise<void>;
   delete(id: string): Promise<void>;
   adjustBalance(id: string, newBalance: number): Promise<void>;
   confirmBalanceReviewed(id: string): Promise<void>;
@@ -54,9 +61,9 @@ export class AccountRepository implements IAccountRepository {
     return getAccounts(db);
   }
 
-  async countArchived(): Promise<number> {
+  async getArchived(): Promise<Account[]> {
     const db = await getDb();
-    return getArchivedAccountCount(db);
+    return getArchivedAccounts(db);
   }
 
   async getByIdsIncludingArchived(ids: string[]): Promise<Account[]> {
@@ -95,6 +102,21 @@ export class AccountRepository implements IAccountRepository {
   async archive(id: string): Promise<void> {
     const db = await getDb();
     await archiveAccount(db, id, new Date().toISOString());
+  }
+
+  async unarchive(id: string): Promise<void> {
+    const db = await getDb();
+    const existing = await getAccountByIdIncludingArchived(db, id);
+    if (!existing || existing.is_deleted === 1) throw new AccountNotFoundError();
+    if (existing.is_archived !== 1) {
+      throw new AccountNotArchivedError('Only an archived account can be restored');
+    }
+
+    const active = await getAccounts(db);
+    if (isAccountNameTaken(active, existing.name)) throw new AccountNameTakenError();
+
+    const now = new Date().toISOString();
+    if ((await setAccountUnarchived(db, id, now)) !== 1) throw new AccountNotFoundError();
   }
 
   async delete(id: string): Promise<void> {

@@ -15,12 +15,10 @@ export type { Account, NewAccountInput, UpdateAccountInput };
 export const EMPTY_ACCOUNTS: Account[] = [];
 Object.freeze(EMPTY_ACCOUNTS);
 
-export const EMPTY_ACCOUNT_LOOKUP: Account[] = [];
-Object.freeze(EMPTY_ACCOUNT_LOOKUP);
-
 const INITIAL_STATE = {
   accounts: EMPTY_ACCOUNTS,
-  accountLookup: EMPTY_ACCOUNT_LOOKUP,
+  archivedAccounts: EMPTY_ACCOUNTS,
+  accountLookup: EMPTY_ACCOUNTS,
   archivedCount: 0,
   hasLoaded: false,
   loadError: false,
@@ -32,6 +30,7 @@ export type AccountStore = typeof INITIAL_STATE & {
   addAccount: (data: NewAccountInput) => Promise<Account>;
   updateAccount: (id: string, data: UpdateAccountInput) => Promise<void>;
   archiveAccount: (id: string) => Promise<void>;
+  unarchiveAccount: (id: string) => Promise<void>;
   adjustBalance: (id: string, newBalance: number) => Promise<void>;
   confirmBalanceReviewed: (id: string) => Promise<void>;
   reset: () => void;
@@ -50,12 +49,18 @@ export function createAccountStore(repo: IAccountRepository) {
         const requestId = ++loadRequestId;
 
         try {
-          const [accounts, archivedCount] = await Promise.all([
+          const [accounts, archivedAccounts] = await Promise.all([
             repo.getAll(),
-            repo.countArchived(),
+            repo.getArchived(),
           ]);
           if (requestId === loadRequestId) {
-            set({ accounts, archivedCount, hasLoaded: true, loadError: false });
+            set({
+              accounts,
+              archivedAccounts,
+              archivedCount: archivedAccounts.length,
+              hasLoaded: true,
+              loadError: false,
+            });
           }
         } catch (err) {
           if (requestId === loadRequestId) set({ loadError: true });
@@ -68,7 +73,7 @@ export function createAccountStore(repo: IAccountRepository) {
         const requestId = ++lookupRequestId;
         const uniqueIds = [...new Set(ids)];
         if (uniqueIds.length === 0) {
-          set({ accountLookup: EMPTY_ACCOUNT_LOOKUP });
+          set({ accountLookup: EMPTY_ACCOUNTS });
           return;
         }
 
@@ -115,6 +120,16 @@ export function createAccountStore(repo: IAccountRepository) {
         await get()
           .loadAccounts()
           .catch(() => undefined);
+      },
+
+      unarchiveAccount: async (id) => {
+        try {
+          await repo.unarchive(id);
+          await get().loadAccounts();
+        } catch (err) {
+          console.error('[accountStore] unarchiveAccount failed:', err);
+          throw err;
+        }
       },
 
       adjustBalance: async (id, newBalance) => {
