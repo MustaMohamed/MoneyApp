@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { currentYearMonth } from '@/utils/year_month';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
@@ -74,7 +75,12 @@ function initialState(generation = 0): CommitmentStoreState {
   };
 }
 
-export function createCommitmentStore(repo: ICommitmentRepository) {
+export function createCommitmentStore(
+  repo: ICommitmentRepository,
+  // An arrow, so the transaction store is read at payment time, not at module load.
+  announceTransactionWrite: () => void = () =>
+    useTransactionStore.getState().announceExternalWrite(),
+) {
   let dataGeneration = 0;
   let lastSuccessfulHousekeepingKey: string | undefined;
   let latestHousekeepingRequest = 0;
@@ -249,6 +255,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
               : undefined;
             if (!commitment) throw new Error(`Commitment not found for payment ${paymentId}`);
             const amounts = await repo.markAsPaid(paymentId, details, commitment);
+            announceTransactionWrite();
             const updatedAt = new Date().toISOString();
             set((state) => ({
               payments: state.payments.map((candidate) =>

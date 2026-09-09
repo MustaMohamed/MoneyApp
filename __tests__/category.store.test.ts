@@ -2,6 +2,7 @@ import { CategoryType } from '@/constants/enums';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { ICategoryRepository } from '@/modules/categories/repositories/category.repository';
 import { createCategoryStore } from '@/modules/categories/store/category.store';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 
 const mockCategory = (overrides: Partial<Category> = {}): Category => ({
   id: 'cat-1',
@@ -273,6 +274,52 @@ describe('categoryStore.reassignAndDelete', () => {
     const useStore = createCategoryStore(repo);
     await useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense');
     expect(repo.getAll).toHaveBeenCalled();
+  });
+});
+
+describe('categoryStore — transaction write announcement', () => {
+  it('announces once when the reassign rewrites transaction rows', async () => {
+    const announce = jest.fn();
+    const useStore = createCategoryStore(makeRepo(), announce);
+
+    await useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense');
+
+    expect(announce).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not announce when the reassign fails', async () => {
+    const announce = jest.fn();
+    const repo = makeRepo({
+      reassignAndDelete: jest.fn().mockRejectedValue(new Error('reassign fail')),
+    });
+    const useStore = createCategoryStore(repo, announce);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(
+      useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense'),
+    ).rejects.toThrow('reassign fail');
+
+    expect(repo.reassignAndDelete).toHaveBeenCalledTimes(1);
+    expect(announce).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('does not announce when a category with no linked transactions is deleted', async () => {
+    const announce = jest.fn();
+    const useStore = createCategoryStore(makeRepo(), announce);
+
+    await useStore.getState().deleteCategory('cat-1');
+
+    expect(announce).not.toHaveBeenCalled();
+  });
+
+  it('raises the transaction store mutation version by default', async () => {
+    const useStore = createCategoryStore(makeRepo());
+    const beforeVersion = useTransactionStore.getState().mutationVersion;
+
+    await useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense');
+
+    expect(useTransactionStore.getState().mutationVersion).toBe(beforeVersion + 1);
   });
 });
 

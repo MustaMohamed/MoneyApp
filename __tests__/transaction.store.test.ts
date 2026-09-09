@@ -615,6 +615,22 @@ describe('transactionStore.updateTransaction', () => {
   });
 });
 
+describe('transactionStore.announceExternalWrite', () => {
+  it('raises the mutation version by one without refetching the list', async () => {
+    const repo = makeRepo([makeTransaction({ id: 'tx-ext' })]);
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+    repo.getAll.mockClear();
+    const beforeVersion = useStore.getState().mutationVersion;
+
+    useStore.getState().announceExternalWrite();
+    await Promise.resolve();
+
+    expect(useStore.getState().mutationVersion).toBe(beforeVersion + 1);
+    expect(repo.getAll).not.toHaveBeenCalled();
+  });
+});
+
 describe('transactionStore.getById', () => {
   it('passes through to repo.getById without touching list state', async () => {
     const tx = makeTransaction({ id: 'one' });
