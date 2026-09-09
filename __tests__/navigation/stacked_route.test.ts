@@ -34,11 +34,13 @@ describe('stackedTransactionDetailRoute', () => {
 
 describe('commitmentEditRoute', () => {
   it('addresses the tabbed edit route with no prefix', () => {
-    expect(commitmentEditRoute('com-1', '')).toBe('/commitments/com-1/edit');
+    expect(commitmentEditRoute('com-1', '', undefined)).toBe('/commitments/com-1/edit');
   });
 
   it('addresses the stacked twin of the edit route with the prefix', () => {
-    expect(commitmentEditRoute('com-1', STACKED_PREFIX)).toBe('/stacked/commitments/com-1/edit');
+    expect(commitmentEditRoute('com-1', STACKED_PREFIX, undefined)).toBe(
+      '/stacked/commitments/com-1/edit',
+    );
   });
 
   it('carries the origin transaction on the stacked href', () => {

@@ -195,7 +195,8 @@ export function getAccountTypeIcon(type: string | undefined): IconName {
 export function getCommitmentPaymentRoute<P extends StackedPrefix>(
   paymentId: string,
   prefix: P,
-  originTransactionId?: string,
+  // Required, never optional: an omitted origin is a silent wrong landing, so it must not compile.
+  originTransactionId: string | undefined,
 ): `${P}/commitments/${string}` | `${P}/commitments/${string}?originTxId=${string}` {
   // Only the mirror needs the origin; the tabbed href stays byte-identical whatever the caller passes.
   if (prefix === STACKED_PREFIX && originTransactionId) {
