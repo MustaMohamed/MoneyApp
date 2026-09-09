@@ -104,6 +104,16 @@ describe('getCommitmentPaymentRoute', () => {
       '/stacked/commitments/payment-1',
     );
   });
+
+  it('carries the origin transaction on the stacked href', () => {
+    expect(getCommitmentPaymentRoute('payment-1', STACKED_PREFIX, 'tx-1')).toBe(
+      '/stacked/commitments/payment-1?originTxId=tx-1',
+    );
+  });
+
+  it('leaves the tabbed href bare when an origin transaction is passed', () => {
+    expect(getCommitmentPaymentRoute('payment-1', '', 'tx-1')).toBe('/commitments/payment-1');
+  });
 });
 
 describe('resolveDetailViewState', () => {

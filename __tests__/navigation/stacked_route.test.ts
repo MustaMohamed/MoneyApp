@@ -40,4 +40,14 @@ describe('commitmentEditRoute', () => {
   it('addresses the stacked twin of the edit route with the prefix', () => {
     expect(commitmentEditRoute('com-1', STACKED_PREFIX)).toBe('/stacked/commitments/com-1/edit');
   });
+
+  it('carries the origin transaction on the stacked href', () => {
+    expect(commitmentEditRoute('com-1', STACKED_PREFIX, 'tx-1')).toBe(
+      '/stacked/commitments/com-1/edit?originTxId=tx-1',
+    );
+  });
+
+  it('leaves the tabbed href bare when an origin transaction is passed', () => {
+    expect(commitmentEditRoute('com-1', '', 'tx-1')).toBe('/commitments/com-1/edit');
+  });
 });

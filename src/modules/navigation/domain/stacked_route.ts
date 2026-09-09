@@ -17,7 +17,12 @@ export function stackedTransactionDetailRoute(
 export function commitmentEditRoute<P extends StackedPrefix>(
   commitmentId: string,
   prefix: P,
-): `${P}/commitments/${string}/edit` {
+  originTransactionId?: string,
+): `${P}/commitments/${string}/edit` | `${P}/commitments/${string}/edit?originTxId=${string}` {
+  // Only the mirror needs the origin; the tabbed href stays byte-identical whatever the caller passes.
+  if (prefix === STACKED_PREFIX && originTransactionId) {
+    return `${prefix}/commitments/${commitmentId}/edit?originTxId=${originTransactionId}`;
+  }
   return `${prefix}/commitments/${commitmentId}/edit`;
 }
 

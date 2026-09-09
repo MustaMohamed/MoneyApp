@@ -7,7 +7,7 @@ import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_to
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import type { StackedPrefix } from '@/modules/navigation/domain/stacked_route';
+import { STACKED_PREFIX, type StackedPrefix } from '@/modules/navigation/domain/stacked_route';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { resolveAccountName } from '@/utils/account_name';
 import {
@@ -195,6 +195,11 @@ export function getAccountTypeIcon(type: string | undefined): IconName {
 export function getCommitmentPaymentRoute<P extends StackedPrefix>(
   paymentId: string,
   prefix: P,
-): `${P}/commitments/${string}` {
+  originTransactionId?: string,
+): `${P}/commitments/${string}` | `${P}/commitments/${string}?originTxId=${string}` {
+  // Only the mirror needs the origin; the tabbed href stays byte-identical whatever the caller passes.
+  if (prefix === STACKED_PREFIX && originTransactionId) {
+    return `${prefix}/commitments/${paymentId}?originTxId=${originTransactionId}`;
+  }
   return `${prefix}/commitments/${paymentId}`;
 }
