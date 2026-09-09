@@ -315,10 +315,7 @@ describe('accountStore.loadAccounts', () => {
         .fn()
         .mockReturnValueOnce(firstLoad.promise)
         .mockReturnValueOnce(secondLoad.promise),
-      getArchived: jest
-        .fn()
-        .mockResolvedValueOnce([stale, staler])
-        .mockResolvedValueOnce([fresh]),
+      getArchived: jest.fn().mockResolvedValueOnce([stale, staler]).mockResolvedValueOnce([fresh]),
     });
     const store = createAccountStore(repo);
 

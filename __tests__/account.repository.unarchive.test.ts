@@ -9,7 +9,7 @@ import {
   AccountNotFoundError,
 } from '@/modules/accounts/repositories/account.errors';
 import { AccountRepository } from '@/modules/accounts/repositories/account.repository';
-import { getExpoSQLiteTestDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
+import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 
 const sqlite = getExpoSQLiteTestDatabase();
 let realDb: ReturnType<typeof Database>;
@@ -73,13 +73,7 @@ beforeAll(() => {
   realDb = new Database(':memory:');
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
 
-  sqlite.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
-    return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
-  });
-  sqlite.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) =>
-    realDb.prepare(sql).all(...getSQLiteParams(rest)),
-  );
+  bridgeBetterSQLite(sqlite, realDb);
 });
 
 beforeEach(() => {

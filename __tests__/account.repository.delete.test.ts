@@ -12,7 +12,7 @@ import {
 } from '@/modules/accounts/repositories/account.repository';
 import * as commitmentsModule from '@/modules/commitments/database/commitments';
 import { TransactionRepository } from '@/modules/transactions/repositories/transaction.repository';
-import { getExpoSQLiteTestDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
+import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 
 const sqlite = getExpoSQLiteTestDatabase();
 let realDb: ReturnType<typeof Database>;
@@ -135,20 +135,10 @@ beforeAll(() => {
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
   realDb.pragma('foreign_keys = ON');
 
+  bridgeBetterSQLite(sqlite, realDb);
   sqlite.execAsync.mockImplementation(async (sql: string) => {
     realDb.exec(sql);
   });
-  sqlite.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
-    return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
-  });
-  sqlite.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) =>
-    realDb.prepare(sql).all(...getSQLiteParams(rest)),
-  );
-  sqlite.getFirstAsync.mockImplementation(
-    async (sql: string, ...rest: unknown[]) =>
-      realDb.prepare(sql).get(...getSQLiteParams(rest)) ?? null,
-  );
   sqlite.withTransactionAsync.mockImplementation(async (task: () => Promise<void>) => {
     realDb.exec('BEGIN');
     try {

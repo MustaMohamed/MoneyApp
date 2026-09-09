@@ -18,7 +18,9 @@ describe('isAccountNameTaken', () => {
 
   it('matches whatever the case is on either side', () => {
     expect(isAccountNameTaken(accounts, 'cib savings')).toBe(true);
-    expect(isAccountNameTaken([makeTestAccount({ name: 'cib savings' })], 'CIB SAVINGS')).toBe(true);
+    expect(isAccountNameTaken([makeTestAccount({ name: 'cib savings' })], 'CIB SAVINGS')).toBe(
+      true,
+    );
   });
 
   it('trims the candidate and the stored name alike', () => {

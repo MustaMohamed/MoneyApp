@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 
 import { runMigrations } from '@/database/client';
 import { MIGRATIONS, type Migration } from '@/database/migrations';
-import { getExpoSQLiteTestDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
+import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 import { registerOpenDbsDrain } from '@/test_helpers/sqlite_drain';
 
 const openDbs = registerOpenDbsDrain();
@@ -91,16 +91,10 @@ describe('runMigrations — the runner that upgrades a real database', () => {
   const sqlite = getExpoSQLiteTestDatabase();
 
   function bridge(realDb: Database.Database): void {
+    bridgeBetterSQLite(sqlite, realDb);
     sqlite.execAsync.mockImplementation(async (sql: string) => {
       realDb.exec(sql);
     });
-    sqlite.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-      const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
-      return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
-    });
-    sqlite.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) =>
-      realDb.prepare(sql).all(...getSQLiteParams(rest)),
-    );
     sqlite.withTransactionAsync.mockImplementation(async (task: () => Promise<void>) => {
       realDb.exec('BEGIN');
       try {
