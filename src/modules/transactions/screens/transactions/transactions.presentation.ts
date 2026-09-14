@@ -2,7 +2,7 @@ import type { TransactionListStatus } from '@/modules/transactions/store/transac
 
 import type { TransactionTotalsStatus } from './transactions.state';
 
-export type TransactionLoadErrorVariant = 'none' | 'refresh' | 'totals';
+export type TransactionLoadErrorVariant = 'none' | 'refresh' | 'totals' | 'accounts';
 
 export interface TransactionsPresentationInput {
   listStatus: TransactionListStatus;
@@ -10,6 +10,7 @@ export interface TransactionsPresentationInput {
   rowCount: number;
   hasLoadedOnce: boolean;
   paginationError: boolean;
+  accountLookupError: boolean;
 }
 
 export interface TransactionsPresentation {
@@ -38,7 +39,9 @@ export function buildTransactionsPresentation(
         ? 'refresh'
         : input.totalsStatus === 'firstLoadError'
           ? 'totals'
-          : 'none',
+          : input.accountLookupError
+            ? 'accounts'
+            : 'none',
     showPaginationRetry: input.paginationError && input.rowCount > 0,
   };
 }

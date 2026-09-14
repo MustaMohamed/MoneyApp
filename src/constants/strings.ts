@@ -1179,6 +1179,7 @@ export const Strings = {
   transactionsRefreshError: 'Could not refresh transactions.',
   transactionsTotalsLoadError: 'Could not load monthly totals.',
   transactionsLoadMoreError: 'Could not load more transactions.',
+  transactionsAccountLookupError: 'Could not load account details.',
   transactionsLoadRetry: 'Retry',
 
   // §6 Transactions: Type badges

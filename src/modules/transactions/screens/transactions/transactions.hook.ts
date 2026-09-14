@@ -352,6 +352,7 @@ export function useTransactions() {
     rowCount: currentTransactions.length,
     hasLoadedOnce: hasCurrentSnapshot,
     paginationError: hasCurrentSnapshot && paginationError,
+    accountLookupError: false,
   });
   const emptyVariant: EmptyVariant = !presentation.showEmptyState
     ? 'none'

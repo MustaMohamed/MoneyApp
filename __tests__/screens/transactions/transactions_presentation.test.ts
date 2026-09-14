@@ -14,6 +14,7 @@ function input(
     rowCount: 2,
     hasLoadedOnce: true,
     paginationError: false,
+    accountLookupError: false,
     ...overrides,
   };
 }
@@ -60,6 +61,22 @@ describe('buildTransactionsPresentation', () => {
       'totals first-load failure with rows',
       { totalsStatus: 'firstLoadError' },
       { loadErrorVariant: 'totals' },
+    ],
+    ['account lookup failure', { accountLookupError: true }, { loadErrorVariant: 'accounts' }],
+    [
+      'account lookup failure under a list refresh failure',
+      { accountLookupError: true, listStatus: 'refreshErrorWithData' },
+      { loadErrorVariant: 'refresh' },
+    ],
+    [
+      'account lookup failure under a totals first-load failure',
+      { accountLookupError: true, totalsStatus: 'firstLoadError' },
+      { loadErrorVariant: 'totals' },
+    ],
+    [
+      'account lookup failure under a first-load list failure',
+      { accountLookupError: true, listStatus: 'firstLoadError', rowCount: 0, hasLoadedOnce: false },
+      { loadErrorVariant: 'none' },
     ],
     ['pagination failure with rows', { paginationError: true }, { showPaginationRetry: true }],
     [
