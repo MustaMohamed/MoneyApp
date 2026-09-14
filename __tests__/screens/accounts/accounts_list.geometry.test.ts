@@ -93,6 +93,7 @@ describe('accounts list archived header geometry (B4)', () => {
   it('is 52 high with the row gutter and an 8 gap', () => {
     expect(Size.archivedCardHeaderHeight).toBe(ms(52));
     expect(ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE).toEqual({
+      flex: 1,
       height: Size.archivedCardHeaderHeight,
       paddingHorizontal: Spacing.md,
       gap: Spacing.xs,
@@ -104,6 +105,7 @@ describe('accounts list archived header geometry (B4)', () => {
   it('carries exactly these keys', () => {
     expect(Object.keys(ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE).sort()).toEqual([
       'alignItems',
+      'flex',
       'flexDirection',
       'gap',
       'height',

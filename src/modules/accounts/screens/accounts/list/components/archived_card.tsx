@@ -1,6 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion, Chip, Separator, Typography } from 'heroui-native';
 import React from 'react';
+import { View } from 'react-native';
 
 import { ListCard } from '@/components/ui/list_card';
 import { Strings } from '@/constants/strings';
@@ -48,54 +49,58 @@ export function ArchivedCard({
         hideSeparator
       >
         <Accordion.Item value={ARCHIVED_ITEM}>
+          {/* The trigger's own classes beat a style's padding and gap on device, so the row is an inner View. */}
           <Accordion.Trigger
             className="gap-0 px-0 py-0"
-            style={ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE}
+            style={{ padding: 0, gap: 0 }}
             accessibilityState={{ expanded: isExpanded }}
           >
-            <MaterialCommunityIcons name="archive" size={Size.iconXs} color={Colors.dark.text2} />
-            <Typography
-              className="font-inter-semibold text-foreground"
-              style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
-            >
-              {Strings.accountsArchivedTitle}
-            </Typography>
-            {/* `pointerEvents="none"`: the chip is a Pressable and would take a tap on the count from the trigger. */}
-            <Chip
-              size="sm"
-              variant="soft"
-              color="accent"
-              style={{ flexShrink: 0 }}
-              pointerEvents="none"
-            >
-              <Chip.Label
-                numberOfLines={1}
-                className="font-inter-bold text-accent"
-                style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+            <View style={ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE}>
+              <MaterialCommunityIcons name="archive" size={Size.iconXs} color={Colors.dark.text2} />
+              <Typography
+                className="font-inter-semibold text-foreground"
+                style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
               >
-                {rows.length}
-              </Chip.Label>
-            </Chip>
-            {/* Blank, not absent, while expanded, so the header keeps its height. */}
-            <Typography
-              className="font-inter text-foreground/60"
-              style={{
-                flex: 1,
-                textAlign: 'right',
-                fontSize: Type.micro,
-                lineHeight: lineHeightFor(Type.micro),
-              }}
-              numberOfLines={1}
-            >
-              {isExpanded ? '' : summary}
-            </Typography>
-            <Accordion.Indicator isAnimatedStyleActive={false}>
-              <MaterialCommunityIcons
-                name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                size={Size.iconXs}
-                color={Colors.dark.text2}
-              />
-            </Accordion.Indicator>
+                {Strings.accountsArchivedTitle}
+              </Typography>
+              {/* `pointerEvents="none"`: the chip is a Pressable and would take a tap on the count from the trigger. */}
+              <Chip
+                size="sm"
+                variant="soft"
+                color="accent"
+                className="self-center"
+                style={{ flexShrink: 0 }}
+                pointerEvents="none"
+              >
+                <Chip.Label
+                  numberOfLines={1}
+                  className="font-inter-bold text-accent"
+                  style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+                >
+                  {rows.length}
+                </Chip.Label>
+              </Chip>
+              {/* Blank, not absent, while expanded, so the header keeps its height. */}
+              <Typography
+                className="font-inter text-foreground/60"
+                style={{
+                  flex: 1,
+                  textAlign: 'right',
+                  fontSize: Type.micro,
+                  lineHeight: lineHeightFor(Type.micro),
+                }}
+                numberOfLines={1}
+              >
+                {isExpanded ? '' : summary}
+              </Typography>
+              <Accordion.Indicator isAnimatedStyleActive={false}>
+                <MaterialCommunityIcons
+                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={Size.iconXs}
+                  color={Colors.dark.text2}
+                />
+              </Accordion.Indicator>
+            </View>
           </Accordion.Trigger>
           <Accordion.Content className="px-0 pb-0" style={{ padding: 0 }}>
             {rows.map((row) => (

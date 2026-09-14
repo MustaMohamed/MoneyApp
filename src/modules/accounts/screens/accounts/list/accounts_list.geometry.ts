@@ -31,8 +31,9 @@ export const ACCOUNTS_LIST_ARCHIVED_CARD_STYLE: Readonly<ViewStyle> = Object.fre
   marginTop: Spacing.sm,
 });
 
-/** B4 `.lg-acc`: the collapsible header, 52 high. */
+/** B4 `.lg-acc`: the collapsible header row, 52 high, on a View inside the trigger. */
 export const ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE: Readonly<ViewStyle> = Object.freeze({
+  flex: 1,
   height: Size.archivedCardHeaderHeight,
   paddingHorizontal: Spacing.md,
   gap: Spacing.xs,
