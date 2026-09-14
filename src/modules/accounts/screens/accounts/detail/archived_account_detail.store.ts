@@ -8,7 +8,7 @@ import {
 } from '@/modules/accounts/repositories/archived_account_detail.repository';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-export type ArchivedAccountDetailStatus = 'idle' | 'loading' | 'ready' | 'error';
+export type ArchivedAccountDetailStatus = 'idle' | 'initialLoading' | 'ready' | 'initialError';
 
 interface ArchivedAccountDetailStoreShape {
   snapshot: ArchivedAccountDetailSnapshot | undefined;
@@ -65,7 +65,7 @@ export function createArchivedAccountDetailStore(repository: IArchivedAccountDet
         const ownerGeneration = ++generation;
         set({
           snapshot: undefined,
-          status: 'loading',
+          status: 'initialLoading',
           requestedKey: key,
           requestGeneration: ownerGeneration,
         });
@@ -92,7 +92,7 @@ export function createArchivedAccountDetailStore(repository: IArchivedAccountDet
             (error: unknown) => {
               if (ownerGeneration !== generation) return;
               console.error('[archivedAccountDetailStore] snapshot request failed:', error);
-              set({ status: 'error', requestGeneration: ownerGeneration });
+              set({ status: 'initialError', requestGeneration: ownerGeneration });
             },
           )
           .finally(() => {

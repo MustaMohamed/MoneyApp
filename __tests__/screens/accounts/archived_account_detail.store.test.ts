@@ -43,7 +43,7 @@ describe('createArchivedAccountDetailStore', () => {
     );
 
     const pending = store.getState().ensure(input('acc-1'));
-    expect(store.getState().status).toBe('loading');
+    expect(store.getState().status).toBe('initialLoading');
     expect(store.getState().snapshot).toBeUndefined();
 
     load.resolve(snapshot('acc-1', 7));
@@ -52,7 +52,7 @@ describe('createArchivedAccountDetailStore', () => {
     expect(store.getState().status).toBe('ready');
     expect(store.getState().snapshot?.transactionCount).toBe(7);
     expect(seen).toEqual([
-      { status: 'loading', hasSnapshot: false },
+      { status: 'initialLoading', hasSnapshot: false },
       { status: 'ready', hasSnapshot: true },
     ]);
   });
@@ -77,7 +77,24 @@ describe('createArchivedAccountDetailStore', () => {
     expect(store.getState().snapshot?.transactionCount).toBe(2);
   });
 
-  it('reads once for two requests on the same key', async () => {
+  it('reads once for two overlapping requests on the same key', async () => {
+    const load = deferred<ArchivedAccountDetailSnapshot>();
+    const repo = repository(() => load.promise);
+    const store = createArchivedAccountDetailStore(repo);
+
+    const first = store.getState().ensure(input('acc-1'));
+    const second = store.getState().ensure(input('acc-1'));
+    expect(second).toBe(first);
+
+    load.resolve(snapshot('acc-1', 4));
+    await Promise.all([first, second]);
+
+    expect(repo.getSnapshot).toHaveBeenCalledTimes(1);
+    expect(store.getState().status).toBe('ready');
+    expect(store.getState().snapshot?.transactionCount).toBe(4);
+  });
+
+  it('does not read again once the same key has settled', async () => {
     const repo = repository(({ accountId }) => Promise.resolve(snapshot(accountId)));
     const store = createArchivedAccountDetailStore(repo);
 
@@ -90,13 +107,13 @@ describe('createArchivedAccountDetailStore', () => {
   it.each([
     ['a bumped mutation version', input('acc-1', 1)],
     ['a different account', input('acc-2', 0)],
-  ])('reads again under loading for %s', async (_label, next) => {
+  ])('reads again under initialLoading for %s', async (_label, next) => {
     const repo = repository(({ accountId }) => Promise.resolve(snapshot(accountId)));
     const store = createArchivedAccountDetailStore(repo);
     await store.getState().ensure(input('acc-1', 0));
 
     const pending = store.getState().ensure(next);
-    expect(store.getState().status).toBe('loading');
+    expect(store.getState().status).toBe('initialLoading');
     expect(store.getState().snapshot).toBeUndefined();
     await pending;
 
@@ -116,7 +133,7 @@ describe('createArchivedAccountDetailStore', () => {
     const store = createArchivedAccountDetailStore(repo);
 
     await store.getState().ensure(input('acc-1'));
-    expect(store.getState().status).toBe('error');
+    expect(store.getState().status).toBe('initialError');
     expect(store.getState().snapshot).toBeUndefined();
     expect(consoleError).toHaveBeenCalledWith(
       '[archivedAccountDetailStore] snapshot request failed:',
