@@ -26,10 +26,7 @@ export function useCommitmentFormBodyPickers() {
   }, [owner]);
 
   return {
-    categoryPickerVisible,
-    accountPickerVisible,
-    showStartDatePicker,
-    showEndDatePicker,
+    state: { categoryPickerVisible, accountPickerVisible, showStartDatePicker, showEndDatePicker },
     ...setters,
   };
 }

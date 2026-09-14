@@ -24,10 +24,10 @@ describe('useCommitmentFormBodyPickers', () => {
     await act(async () => lower.result.current.setCategoryPickerVisible(true));
     await act(async () => upper.result.current.setShowStartDatePicker(true));
 
-    expect(lower.result.current.categoryPickerVisible).toBe(true);
-    expect(upper.result.current.categoryPickerVisible).toBe(false);
-    expect(upper.result.current.showStartDatePicker).toBe(true);
-    expect(lower.result.current.showStartDatePicker).toBe(false);
+    expect(lower.result.current.state.categoryPickerVisible).toBe(true);
+    expect(upper.result.current.state.categoryPickerVisible).toBe(false);
+    expect(upper.result.current.state.showStartDatePicker).toBe(true);
+    expect(lower.result.current.state.showStartDatePicker).toBe(false);
   });
 
   it('unmounting one copy leaves the other copy open picker as it was', async () => {
@@ -41,7 +41,7 @@ describe('useCommitmentFormBodyPickers', () => {
 
     expect(Object.keys(entries())).toEqual([lowerOwner]);
     expect(entries()[lowerOwner]).toBe(shown);
-    expect(lower.result.current.accountPickerVisible).toBe(true);
+    expect(lower.result.current.state.accountPickerVisible).toBe(true);
   });
 
   it('unmounting both copies leaves no entry behind', async () => {

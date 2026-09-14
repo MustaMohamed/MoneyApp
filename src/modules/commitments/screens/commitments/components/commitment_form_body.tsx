@@ -104,10 +104,7 @@ export function CommitmentFormBody({
   );
 
   const {
-    categoryPickerVisible,
-    accountPickerVisible,
-    showStartDatePicker,
-    showEndDatePicker,
+    state: { categoryPickerVisible, accountPickerVisible, showStartDatePicker, showEndDatePicker },
     setCategoryPickerVisible,
     setAccountPickerVisible,
     setShowStartDatePicker,

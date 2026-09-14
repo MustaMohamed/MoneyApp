@@ -187,6 +187,22 @@ describe('useEditCommitment', () => {
     expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
     expect(result.current.state.saving).toBe(false);
     expect(mockRouterDismissTo).not.toHaveBeenCalled();
+
+    const pendingRetry = deferred<void>();
+    updateCommitmentMock.mockReturnValue(pendingRetry.promise);
+    let retrying: Promise<void> | undefined;
+
+    await act(async () => {
+      retrying = result.current.onSubmit();
+    });
+
+    expect(result.current.state.saveError).toBeUndefined();
+    expect(result.current.state.saving).toBe(true);
+
+    await act(async () => {
+      pendingRetry.resolve();
+      await retrying;
+    });
   });
 
   it('a write on one mounted copy changes nothing on the other', async () => {

@@ -93,7 +93,6 @@ export function useEditCommitment() {
         end_after_count:
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
-      release(owner);
       if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
       else router.dismissTo('/commitments');
     } catch {
@@ -113,7 +112,6 @@ export function useEditCommitment() {
     try {
       await deactivateCommitment(id);
       setDeactivateDialogVisible(owner, false);
-      release(owner);
       if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
       else router.replace('/commitments');
     } catch {
