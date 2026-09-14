@@ -1,4 +1,5 @@
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { mergeAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
@@ -25,12 +26,10 @@ export async function ensureTransactionFormPrerequisite(
 }
 
 export function getMissingTransactionFormAccountIds(tx: Transaction): string[] {
-  const accountState = useAccountStore.getState();
-  const knownIds = new Set(
-    [...accountState.accounts, ...accountState.accountLookup].map((account) => account.id),
-  );
+  const { accounts, archivedAccounts, accountLookupById } = useAccountStore.getState();
+  const knownAccounts = mergeAccountsById(accounts, archivedAccounts, accountLookupById);
   return [tx.account_id, tx.to_account_id].filter(
-    (id): id is string => id !== null && !knownIds.has(id),
+    (id): id is string => id !== null && !knownAccounts.has(id),
   );
 }
 

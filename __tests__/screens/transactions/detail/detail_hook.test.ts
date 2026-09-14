@@ -127,7 +127,9 @@ beforeEach(() => {
   attachMockSelectorStore(useTransactionStore, () => transactionStoreState);
   attachMockSelectorStore(useAccountStore, () => ({
     accounts: [],
-    accountLookup: [],
+    archivedAccounts: [],
+    accountLookupById: {},
+    accountLookupError: false,
     loadAccountLookup,
   }));
   attachMockSelectorStore(useCategoryStore, () => ({ categories: [] }));

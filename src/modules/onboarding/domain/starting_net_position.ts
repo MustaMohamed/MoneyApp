@@ -39,7 +39,7 @@ function assertSupportedCurrency(currency: Currency): void {
 // Re-export only this one; a wider re-export lets dashboard reach accounts through onboarding.
 export { normalizeNegativeZero };
 
-/** `accountLookup` carries archived rows, so the filter is needed here as well as in SQL. */
+/** The store's lookup cache carries archived rows, so the filter is needed here as well as in SQL. */
 export function selectActiveAccounts(accounts: readonly Account[]): readonly Account[] {
   return accounts.filter((account) => account.is_archived === 0);
 }

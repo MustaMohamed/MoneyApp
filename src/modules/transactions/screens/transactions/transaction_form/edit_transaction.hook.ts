@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { mergeAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import type { Category } from '@/modules/categories/entities/category.entity';
@@ -120,10 +121,11 @@ export function useEditTransaction(
   onSaved?: () => void,
   prerequisites?: TransactionFormPrerequisiteController,
 ) {
-  const { accounts, accountLookup } = useAccountStore(
+  const { accounts, archivedAccounts, accountLookupById } = useAccountStore(
     useShallow((state) => ({
       accounts: state.accounts,
-      accountLookup: state.accountLookup,
+      archivedAccounts: state.archivedAccounts,
+      accountLookupById: state.accountLookupById,
     })),
   );
   const accountsLoaded = useAccountStore((state) => state.hasLoaded);
@@ -189,8 +191,8 @@ export function useEditTransaction(
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   const contextualAccounts = useMemo(
-    () => new Map([...accounts, ...accountLookup].map((account) => [account.id, account])),
-    [accountLookup, accounts],
+    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
+    [accountLookupById, accounts, archivedAccounts],
   );
   const selectedAccount = contextualAccounts.get(initialTx.account_id) ?? null;
   const selectedToAccount = initialTx.to_account_id

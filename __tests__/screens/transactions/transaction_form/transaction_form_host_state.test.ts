@@ -60,7 +60,7 @@ function createAccount(id = 'account-1'): Account {
 describe('useTransactionFormState', () => {
   beforeEach(() => {
     useTransactionFormState.getState().reset();
-    useAccountStore.setState({ accounts: [], accountLookup: [], hasLoaded: false });
+    useAccountStore.setState({ accounts: [], accountLookupById: {}, hasLoaded: false });
     useCategoryStore.setState({ categories: [], hasLoaded: false });
   });
 
@@ -125,9 +125,10 @@ describe('useTransactionFormState', () => {
   });
 
   it('opens directly into ready state when the cached Edit account is in lookup', () => {
+    const cachedAccount = createAccount();
     useAccountStore.setState({
       hasLoaded: true,
-      accountLookup: [createAccount()],
+      accountLookupById: { [cachedAccount.id]: cachedAccount },
     });
     useCategoryStore.setState({ hasLoaded: true });
 

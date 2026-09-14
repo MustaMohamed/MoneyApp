@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { mergeAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { getPeriodTotals } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -88,8 +89,12 @@ export function useTransactions() {
   );
   const deleteAction = useConfirmAction(runDeleteTransaction);
 
-  const { accounts, accountLookup } = useAccountStore(
-    useShallow((s) => ({ accounts: s.accounts, accountLookup: s.accountLookup })),
+  const { accounts, archivedAccounts, accountLookupById } = useAccountStore(
+    useShallow((s) => ({
+      accounts: s.accounts,
+      archivedAccounts: s.archivedAccounts,
+      accountLookupById: s.accountLookupById,
+    })),
   );
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
@@ -305,8 +310,8 @@ export function useTransactions() {
   );
 
   const accountsById = useMemo(
-    () => new Map([...accounts, ...accountLookup].map((account) => [account.id, account])),
-    [accountLookup, accounts],
+    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
+    [accountLookupById, accounts, archivedAccounts],
   );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const sections = useMemo(

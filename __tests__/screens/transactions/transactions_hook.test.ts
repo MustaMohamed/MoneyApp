@@ -142,7 +142,9 @@ function setupStores(transactionOverrides: Record<string, unknown> = {}) {
 
   attachMockSelectorStore(useAccountStore, () => ({
     accounts: [],
-    accountLookup: [],
+    archivedAccounts: [],
+    accountLookupById: {},
+    accountLookupError: false,
     loadAccountLookup,
   }));
   attachMockSelectorStore(useCategoryStore, () => ({
