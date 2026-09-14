@@ -2,10 +2,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { Input, PressableFeedback } from 'heroui-native';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Button } from '@/components/ui/button';
@@ -36,7 +35,7 @@ import {
   SET_OPTS,
   detectPreset,
 } from '../commitment_form.shared';
-import { useCommitmentFormBodyState } from './commitment_form_body.state';
+import { useCommitmentFormBodyPickers } from './commitment_form_body.hook';
 import { CommitmentHeader } from './commitment_header';
 import { DecimalAmountInput } from './decimal_amount_input';
 import { DurationPicker } from './duration_picker';
@@ -104,21 +103,16 @@ export function CommitmentFormBody({
     [accounts, accountId],
   );
 
-  const { categoryPickerVisible, accountPickerVisible, showStartDatePicker, showEndDatePicker } =
-    useCommitmentFormBodyState(
-      useShallow((s) => ({
-        categoryPickerVisible: s.categoryPickerVisible,
-        accountPickerVisible: s.accountPickerVisible,
-        showStartDatePicker: s.showStartDatePicker,
-        showEndDatePicker: s.showEndDatePicker,
-      })),
-    );
-  const setCategoryPickerVisible = useCommitmentFormBodyState.getState().setCategoryPickerVisible;
-  const setAccountPickerVisible = useCommitmentFormBodyState.getState().setAccountPickerVisible;
-  const setShowStartDatePicker = useCommitmentFormBodyState.getState().setShowStartDatePicker;
-  const setShowEndDatePicker = useCommitmentFormBodyState.getState().setShowEndDatePicker;
-
-  useEffect(() => () => useCommitmentFormBodyState.getState().reset(), []);
+  const {
+    categoryPickerVisible,
+    accountPickerVisible,
+    showStartDatePicker,
+    showEndDatePicker,
+    setCategoryPickerVisible,
+    setAccountPickerVisible,
+    setShowStartDatePicker,
+    setShowEndDatePicker,
+  } = useCommitmentFormBodyPickers();
 
   const errors = {
     name: form.formState.errors.name?.message,
