@@ -5,6 +5,7 @@ const ROWS = [
   ['initial', Strings.transactionsLoadError],
   ['refresh', Strings.transactionsRefreshError],
   ['totals', Strings.transactionsTotalsLoadError],
+  ['accounts', Strings.transactionsAccountLookupError],
   ['pagination', Strings.transactionsLoadMoreError],
 ] as const;
 

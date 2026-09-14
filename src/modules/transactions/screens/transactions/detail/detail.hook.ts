@@ -5,6 +5,11 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import {
+  findMissingAccountIds,
+  getTransactionAccountIds,
+  mergeAccountsById,
+} from '@/modules/accounts/store/account_lookup.helpers';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
@@ -45,8 +50,13 @@ export function useTransactionDetail(id: string) {
   const getById = useTransactionStore.getState().getById;
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
 
-  const { accounts, accountLookup } = useAccountStore(
-    useShallow((s) => ({ accounts: s.accounts, accountLookup: s.accountLookup })),
+  const { accounts, archivedAccounts, accountLookupById, accountLookupError } = useAccountStore(
+    useShallow((s) => ({
+      accounts: s.accounts,
+      archivedAccounts: s.archivedAccounts,
+      accountLookupById: s.accountLookupById,
+      accountLookupError: s.accountLookupError,
+    })),
   );
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
@@ -74,9 +84,7 @@ export function useTransactionDetail(id: string) {
         setTx(owner, id, transaction, loadedAtVersion);
         resolve(owner, id);
 
-        const accountIds = transaction.to_account_id
-          ? [transaction.account_id, transaction.to_account_id]
-          : [transaction.account_id];
+        const accountIds = getTransactionAccountIds(transaction);
         try {
           void Promise.resolve(loadAccountLookup(accountIds)).catch((error) => {
             console.error('[transactionDetail] account lookup failed', error);
@@ -149,13 +157,17 @@ export function useTransactionDetail(id: string) {
   }, [owner, releaseData, releaseUi]);
 
   const accountsById = useMemo(
-    () => new Map([...accounts, ...accountLookup].map((account) => [account.id, account])),
-    [accountLookup, accounts],
+    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
+    [accountLookupById, accounts, archivedAccounts],
   );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const currentRevalidating = activeId === id && revalidating;
-  const currentRefreshError = activeId === id && refreshError;
+  const hasUnresolvedAccount =
+    currentTx !== null &&
+    findMissingAccountIds(getTransactionAccountIds(currentTx), accountsById).length > 0;
+  const currentRefreshError =
+    (activeId === id && refreshError) || (accountLookupError && hasUnresolvedAccount);
   const viewState = resolveDetailViewState(
     currentStatus,
     currentTx !== null,

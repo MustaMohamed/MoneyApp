@@ -64,7 +64,7 @@ describe('useTransactionFormPrerequisites', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     useTransactionFormState.getState().reset();
-    useAccountStore.setState({ accounts: [], accountLookup: [], hasLoaded: false });
+    useAccountStore.setState({ accounts: [], accountLookupById: {}, hasLoaded: false });
     useCategoryStore.setState({ categories: [], hasLoaded: false, loadError: false });
   });
 
@@ -149,7 +149,7 @@ describe('useTransactionFormPrerequisites', () => {
   it('hydrates an archived account required by Edit', async () => {
     const archived = { ...account, id: 'archived-account', is_archived: 1 as const };
     const loadAccountLookup = jest.fn(async () => {
-      useAccountStore.setState({ accountLookup: [archived] });
+      useAccountStore.setState({ accountLookupById: { [archived.id]: archived } });
     });
     useAccountStore.setState({ hasLoaded: true, loadAccountLookup });
     useCategoryStore.setState({ hasLoaded: true });

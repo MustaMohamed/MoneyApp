@@ -1,6 +1,10 @@
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
-import { createAccountStore, EMPTY_ACCOUNTS } from '@/modules/accounts/store/account.store';
+import {
+  createAccountStore,
+  EMPTY_ACCOUNT_LOOKUP,
+  EMPTY_ACCOUNTS,
+} from '@/modules/accounts/store/account.store';
 import type { IAccountRepository, NewAccountInput } from '@/repositories/account.repository';
 
 const mockAccount: Account = {
@@ -76,53 +80,187 @@ beforeEach(() => {
 });
 
 describe('accountStore.loadAccountLookup', () => {
-  it('loads archived accounts without adding them to the active account list', async () => {
-    const archivedAccount = { ...mockAccount, id: 'archived', is_archived: 1 };
+  const archivedA: Account = { ...mockAccount, id: 'archived-a', is_archived: 1 };
+  const deletedB: Account = { ...mockAccount, id: 'deleted-b', name: '', is_deleted: 1 };
+
+  it('keeps the rows of an earlier load when a later load resolves different ids', async () => {
     const repo = makeRepo({
-      getByIdsIncludingArchived: jest.fn().mockResolvedValue([archivedAccount]),
+      getByIdsIncludingArchived: jest
+        .fn()
+        .mockResolvedValueOnce([archivedA])
+        .mockResolvedValueOnce([deletedB]),
     });
     const store = createAccountStore(repo);
 
-    await store.getState().loadAccountLookup(['archived', 'archived']);
+    await store.getState().loadAccountLookup([archivedA.id, archivedA.id]);
+    await store.getState().loadAccountLookup([deletedB.id]);
 
-    expect(repo.getByIdsIncludingArchived).toHaveBeenCalledWith(['archived']);
-    expect(store.getState().accountLookup).toEqual([archivedAccount]);
+    expect(repo.getByIdsIncludingArchived).toHaveBeenNthCalledWith(1, [archivedA.id]);
+    expect(repo.getByIdsIncludingArchived).toHaveBeenNthCalledWith(2, [deletedB.id]);
+    expect(store.getState().accountLookupById).toEqual({
+      [archivedA.id]: archivedA,
+      [deletedB.id]: deletedB,
+    });
     expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
   });
 
-  it('clears the lookup without querying when no ids are requested', async () => {
+  it('makes no query for ids the active list, the archived list or the cache already hold', async () => {
     const repo = makeRepo({
-      getByIdsIncludingArchived: jest.fn().mockResolvedValue([mockAccount]),
+      getAll: jest.fn().mockResolvedValue([mockAccount]),
+      getArchived: jest.fn().mockResolvedValue([archivedA]),
+      getByIdsIncludingArchived: jest.fn().mockResolvedValue([deletedB]),
     });
     const store = createAccountStore(repo);
-    await store.getState().loadAccountLookup(['test-id']);
+    await store.getState().loadAccounts();
+    await store.getState().loadAccountLookup([deletedB.id]);
+    const cached = store.getState().accountLookupById;
+
+    await store.getState().loadAccountLookup([mockAccount.id, archivedA.id, deletedB.id]);
+
+    expect(repo.getByIdsIncludingArchived).toHaveBeenCalledTimes(1);
+    expect(store.getState().accountLookupById).toBe(cached);
+  });
+
+  it('queries nothing and removes nothing when no ids are requested', async () => {
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest.fn().mockResolvedValue([deletedB]),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccountLookup([deletedB.id]);
+    const cached = store.getState().accountLookupById;
 
     await store.getState().loadAccountLookup([]);
 
     expect(repo.getByIdsIncludingArchived).toHaveBeenCalledTimes(1);
-    expect(store.getState().accountLookup).toBe(EMPTY_ACCOUNTS);
+    expect(store.getState().accountLookupById).toBe(cached);
+    expect(cached).toEqual({ [deletedB.id]: deletedB });
   });
 
-  it('does not let an older lookup overwrite a newer result', async () => {
-    const firstLoad = deferred<Account[]>();
-    const secondLoad = deferred<Account[]>();
+  it('discards a lookup that started before the latest account reload', async () => {
+    const lookup = deferred<Account[]>();
     const repo = makeRepo({
-      getByIdsIncludingArchived: jest
-        .fn()
-        .mockReturnValueOnce(firstLoad.promise)
-        .mockReturnValueOnce(secondLoad.promise),
+      getByIdsIncludingArchived: jest.fn().mockReturnValueOnce(lookup.promise),
     });
     const store = createAccountStore(repo);
 
-    const firstRequest = store.getState().loadAccountLookup(['older']);
-    const secondRequest = store.getState().loadAccountLookup(['newer']);
-    const newerAccount = { ...mockAccount, id: 'newer' };
-    secondLoad.resolve([newerAccount]);
-    await secondRequest;
-    firstLoad.resolve([{ ...mockAccount, id: 'older' }]);
-    await firstRequest;
+    const request = store.getState().loadAccountLookup([deletedB.id]);
+    await store.getState().loadAccounts();
+    lookup.resolve([deletedB]);
+    await request;
 
-    expect(store.getState().accountLookup).toEqual([newerAccount]);
+    expect(repo.getByIdsIncludingArchived).toHaveBeenCalledTimes(1);
+    expect(store.getState().accountLookupById).toBe(EMPTY_ACCOUNT_LOOKUP);
+  });
+
+  it('sets the error on a failed lookup and clears it when the retry queries', async () => {
+    const failure = new Error('lookup failed');
+    const retryLookup = deferred<Account[]>();
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest
+        .fn()
+        .mockRejectedValueOnce(failure)
+        .mockReturnValueOnce(retryLookup.promise),
+    });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().loadAccountLookup([deletedB.id])).rejects.toBe(failure);
+    expect(store.getState().accountLookupError).toBe(true);
+
+    const retry = store.getState().loadAccountLookup([deletedB.id]);
+    expect(store.getState().accountLookupError).toBe(false);
+    expect(repo.getByIdsIncludingArchived).toHaveBeenCalledTimes(2);
+
+    retryLookup.resolve([deletedB]);
+    await retry;
+
+    expect(store.getState().accountLookupError).toBe(false);
+    expect(store.getState().accountLookupById).toEqual({ [deletedB.id]: deletedB });
+  });
+
+  it('keeps the error up until a load queries every id whose failure is outstanding', async () => {
+    const deletedE: Account = { ...mockAccount, id: 'deleted-e', name: '', is_deleted: 1 };
+    const failure = new Error('lookup failed');
+    const retryLookup = deferred<Account[]>();
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest
+        .fn()
+        .mockRejectedValueOnce(failure)
+        .mockResolvedValueOnce([deletedE])
+        .mockReturnValueOnce(retryLookup.promise),
+    });
+    const store = createAccountStore(repo);
+    await expect(store.getState().loadAccountLookup([deletedB.id, deletedE.id])).rejects.toBe(
+      failure,
+    );
+
+    await store.getState().loadAccountLookup([deletedE.id]);
+
+    expect(repo.getByIdsIncludingArchived).toHaveBeenNthCalledWith(2, [deletedE.id]);
+    expect(store.getState().accountLookupError).toBe(true);
+
+    const retry = store.getState().loadAccountLookup([deletedB.id]);
+    expect(repo.getByIdsIncludingArchived).toHaveBeenNthCalledWith(3, [deletedB.id]);
+    expect(store.getState().accountLookupError).toBe(false);
+
+    retryLookup.resolve([deletedB]);
+    await retry;
+
+    expect(store.getState().accountLookupError).toBe(false);
+  });
+
+  it('does not hold the error up for a failed id the lists have resolved since', async () => {
+    const repo = makeRepo({
+      getArchived: jest.fn().mockResolvedValue([archivedA]),
+      getByIdsIncludingArchived: jest
+        .fn()
+        .mockRejectedValueOnce(new Error('lookup failed'))
+        .mockResolvedValueOnce([deletedB]),
+    });
+    const store = createAccountStore(repo);
+    await expect(store.getState().loadAccountLookup([archivedA.id, deletedB.id])).rejects.toThrow();
+    await store.getState().loadAccounts();
+
+    const retry = store.getState().loadAccountLookup([archivedA.id, deletedB.id]);
+    expect(repo.getByIdsIncludingArchived).toHaveBeenNthCalledWith(2, [deletedB.id]);
+    expect(store.getState().accountLookupError).toBe(false);
+    await retry;
+
+    expect(store.getState().accountLookupError).toBe(false);
+  });
+
+  it('forgets the failed ids on reset', async () => {
+    const deletedE: Account = { ...mockAccount, id: 'deleted-e', name: '', is_deleted: 1 };
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest
+        .fn()
+        .mockRejectedValueOnce(new Error('before reset'))
+        .mockRejectedValueOnce(new Error('after reset'))
+        .mockResolvedValueOnce([deletedE]),
+    });
+    const store = createAccountStore(repo);
+    await expect(store.getState().loadAccountLookup([deletedB.id])).rejects.toThrow();
+    store.getState().reset();
+    await expect(store.getState().loadAccountLookup([deletedE.id])).rejects.toThrow();
+
+    await store.getState().loadAccountLookup([deletedE.id]);
+
+    expect(store.getState().accountLookupError).toBe(false);
+  });
+
+  it('leaves the error up on a load that queries nothing', async () => {
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([mockAccount]),
+      getByIdsIncludingArchived: jest.fn().mockRejectedValueOnce(new Error('lookup failed')),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccounts();
+    await expect(store.getState().loadAccountLookup([deletedB.id])).rejects.toThrow();
+
+    await store.getState().loadAccountLookup([mockAccount.id]);
+    await store.getState().loadAccountLookup([]);
+
+    expect(repo.getByIdsIncludingArchived).toHaveBeenCalledTimes(1);
+    expect(store.getState().accountLookupError).toBe(true);
   });
 });
 
@@ -137,7 +275,8 @@ describe('accountStore.loadAccounts', () => {
 
     expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
     expect(store.getState().archivedAccounts).toBe(EMPTY_ACCOUNTS);
-    expect(store.getState().accountLookup).toBe(EMPTY_ACCOUNTS);
+    expect(store.getState().accountLookupById).toBe(EMPTY_ACCOUNT_LOOKUP);
+    expect(store.getState().accountLookupError).toBe(false);
     expect(store.getState().archivedCount).toBe(0);
     expect(store.getState().hasLoaded).toBe(false);
     expect(store.getState().loadError).toBe(false);
@@ -538,6 +677,25 @@ describe('accountStore.reset', () => {
     expect(store.getState().archivedAccounts).toBe(EMPTY_ACCOUNTS);
     expect(store.getState().archivedCount).toBe(0);
     expect(store.getState().hasLoaded).toBe(false);
+  });
+
+  it('empties the lookup cache and clears the lookup error', async () => {
+    const deleted: Account = { ...mockAccount, id: 'deleted', is_deleted: 1 };
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest
+        .fn()
+        .mockResolvedValueOnce([deleted])
+        .mockRejectedValueOnce(new Error('lookup failed')),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccountLookup([deleted.id]);
+    await expect(store.getState().loadAccountLookup(['missing'])).rejects.toThrow();
+    expect(store.getState().accountLookupError).toBe(true);
+
+    store.getState().reset();
+
+    expect(store.getState().accountLookupById).toBe(EMPTY_ACCOUNT_LOOKUP);
+    expect(store.getState().accountLookupError).toBe(false);
   });
 
   it('prevents pending loads from writing after reset', async () => {

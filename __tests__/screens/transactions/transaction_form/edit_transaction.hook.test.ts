@@ -89,7 +89,7 @@ beforeEach(() => {
   useAccountStore.getState().reset();
   useAccountStore.setState({
     accounts: [mockAccountEGP, mockAccountCC],
-    accountLookup: [mockAccountUSD],
+    accountLookupById: { [mockAccountUSD.id]: mockAccountUSD },
     hasLoaded: true,
   });
   useCategoryStore.setState({

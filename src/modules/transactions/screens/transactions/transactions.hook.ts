@@ -6,6 +6,11 @@ import { useShallow } from 'zustand/react/shallow';
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import {
+  findMissingAccountIds,
+  getTransactionAccountIds,
+  mergeAccountsById,
+} from '@/modules/accounts/store/account_lookup.helpers';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { getPeriodTotals } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -88,8 +93,13 @@ export function useTransactions() {
   );
   const deleteAction = useConfirmAction(runDeleteTransaction);
 
-  const { accounts, accountLookup } = useAccountStore(
-    useShallow((s) => ({ accounts: s.accounts, accountLookup: s.accountLookup })),
+  const { accounts, archivedAccounts, accountLookupById, accountLookupError } = useAccountStore(
+    useShallow((s) => ({
+      accounts: s.accounts,
+      archivedAccounts: s.archivedAccounts,
+      accountLookupById: s.accountLookupById,
+      accountLookupError: s.accountLookupError,
+    })),
   );
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
@@ -220,12 +230,7 @@ export function useTransactions() {
   }, [setQuery, transactionQuery]);
 
   const transactionAccountIds = useMemo(
-    () =>
-      currentTransactions.flatMap((transaction) =>
-        transaction.to_account_id
-          ? [transaction.account_id, transaction.to_account_id]
-          : [transaction.account_id],
-      ),
+    () => currentTransactions.flatMap((transaction) => getTransactionAccountIds(transaction)),
     [currentTransactions],
   );
 
@@ -305,9 +310,11 @@ export function useTransactions() {
   );
 
   const accountsById = useMemo(
-    () => new Map([...accounts, ...accountLookup].map((account) => [account.id, account])),
-    [accountLookup, accounts],
+    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
+    [accountLookupById, accounts, archivedAccounts],
   );
+  const showAccountLookupError =
+    accountLookupError && findMissingAccountIds(transactionAccountIds, accountsById).length > 0;
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const sections = useMemo(
     () => groupTransactionsByDate(currentTransactions),
@@ -352,6 +359,7 @@ export function useTransactions() {
     rowCount: currentTransactions.length,
     hasLoadedOnce: hasCurrentSnapshot,
     paginationError: hasCurrentSnapshot && paginationError,
+    accountLookupError: showAccountLookupError,
   });
   const emptyVariant: EmptyVariant = !presentation.showEmptyState
     ? 'none'
@@ -393,8 +401,19 @@ export function useTransactions() {
       displayTotalsStatus === 'firstLoadError' || displayTotalsStatus === 'refreshErrorWithData'
         ? retryTotals()
         : Promise.resolve(),
+      showAccountLookupError
+        ? loadAccountLookup(transactionAccountIds).catch(() => {})
+        : Promise.resolve(),
     ]);
-  }, [displayTotalsStatus, listStatus, retry, retryTotals]);
+  }, [
+    displayTotalsStatus,
+    listStatus,
+    loadAccountLookup,
+    retry,
+    retryTotals,
+    showAccountLookupError,
+    transactionAccountIds,
+  ]);
 
   const goToDetail = useCallback(
     (id: string) => router.push(`/transactions/detail/${id}`),
