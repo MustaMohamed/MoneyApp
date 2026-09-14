@@ -1,0 +1,76 @@
+# MA-050 — Key the commitment pay sheet slot by its owner
+base: 662bb98ac4bab1bcbd66ad30a887dc829fbba134 · verify: emulator · flags: none · expected diff: ~90 lines outside tests
+
+Contract that changes: `usePaySheetState` (`pay_sheet.state.ts`) goes from five flat fields to `KeyedEntries<PaySheetEntry>`; `usePaySheet` and `PaySheet` take an `owner`; `useCommitmentDetail` returns `state.owner`. Consumers today: `pay_sheet.hook.ts:165-179` (the five reads, six setters), `detail.hook.ts:161` (`setVisible(true)`), `detail/index.tsx:85` (the mount), and five test files (`grep -rln usePaySheetState __tests__`). Nothing else imports the state file.
+
+Release site, the planner's call: `detail.hook.ts:130-135`, next to `releaseData` and `releaseUi`. The begin action is already called from that hook (`openPaySheet`), so the entry's whole lifecycle sits in one file, in the shape MA-044 left. `PaySheet` mounts and unmounts with the detail copy (`index.tsx:85`, outside the ready branch), so this runs once per copy.
+
+## Steps
+
+### 1. The sheet is told which detail copy owns it
+- File: `src/modules/commitments/screens/commitments/detail/components/pay_sheet.hook.ts` (`usePaySheet`, line 161); `pay_sheet.tsx` (`Props`, line 27, and the call at line 43); `detail.hook.ts` (the return at line 191); `detail/index.tsx:85`.
+- Change: `usePaySheet(owner: string, commitment, payment)`, owner first, the order every keyed action in `detail.state.ts` uses. `PaySheet` gains `owner: string` and passes it through. `useCommitmentDetail` adds `owner` to its returned `state`; `index.tsx` renders `<PaySheet owner={state.owner} commitment payment />`. No read of `owner` inside the sheet yet; the store is still flat, so behaviour is unchanged and every suite stays green.
+- Test: `__tests__/screens/commitments_pay_sheet.hook.test.ts`: one `const OWNER = 'owner-a'` and every `usePaySheet(` call takes it first (39 call sites, `grep -c "usePaySheet("`). `__tests__/screens/commitments/pay_sheet_rate_error.test.tsx:187` and `pay_sheet_converted_total.test.tsx:176` pass `owner="owner-a"`. `__tests__/screens/commitments_detail.hook.test.ts` adds one assertion to "exposes all required action functions": `state.owner` is a non-empty string. Counts stay 82 / 3 / 10 / 16.
+
+### 2. The slot holds one entry per owner, in the MA-044 shape
+- File: `src/modules/commitments/screens/commitments/detail/components/pay_sheet.state.ts`, whole file.
+- Change: `export interface PaySheetEntry` keeps the five fields with their meaning and the `saveError` doc line. State is `KeyedEntries<PaySheetEntry>` from `@/utils/keyed_entries`, `initialState = () => ({ entries: {} })`, `export const INITIAL_PAY_SHEET_ENTRY = Object.freeze({...all false, saveError: undefined})`. Actions, every one `(owner, ...)`:
+  - `open(owner)`: the begin action, no guard. `withEntry(state, owner, { ...(state.entries[owner] ?? INITIAL_PAY_SHEET_ENTRY), visible: true })`.
+  - `setVisible`, `setSaving`, `setAccountPickerVisible`, `setRateOverride`, `setSaveError`: `if (!(owner in state.entries)) return state;` then `withEntry` with the one field changed. Same reference back on refusal, so a sibling's `useShallow` read does not re-render.
+  - `resetEntry(owner)`: guarded; the owner's entry becomes `INITIAL_PAY_SHEET_ENTRY` (the entry stays present, closed).
+  - `release(owner)`: `withoutEntry(state, owner)`.
+  - `reset()`: `set(initialState())`, store-wide, tests only.
+  Invariant: after `release(a)`, no action other than `open(a)` can make `a` appear in `entries`.
+- Test: `__tests__/screens/commitments_detail.state.test.ts`, the `usePaySheetState` describe at lines 94-121, written first against the real store. Replace the five flat cases with the keyed set, one per line of the invariant above: starts with `entries: {}`; `open` creates the entry as `{ ...INITIAL_PAY_SHEET_ENTRY, visible: true }`; `setSaving('owner-b', true)` leaves `entryOf('owner-a')` the same reference; each guarded setter on an owner that never opened returns the same `entries` reference; a setter after `release` does the same and `entries` stays `{}`; `resetEntry('owner-a')` returns a's entry to initial while b's `saveError` is untouched; `release('owner-b')` leaves only `owner-a`; `reset` drops every copy. Mirror the `useCommitmentDetailState` describe above it in the same file; the count of this file grows from 14 to about 17, and the hook and render suites keep theirs.
+- Steps 2 and 3 are one commit: the branch typechecks only once the hook reads the keyed shape.
+
+### 3. Every read and write in the sheet is bound to its owner
+- File: `pay_sheet.hook.ts:165-179` (the subscription and six setters), `:300-302` (prefill), `:314-341` (`onValid`), `:344-369` (`onInvalid`, `selectAccount`, `toggleRateOverride`), the return at `:394`; `detail.hook.ts:130-135` (release) and `:160-162` (`openPaySheet`).
+- Change: the subscription becomes `usePaySheetState(useShallow((s) => s.entries[owner] ?? INITIAL_PAY_SHEET_ENTRY))`, the shape at `detail.hook.ts:80`. The setters read from `getState()` as today and every call site passes `owner` first; `reset()` at `:331` becomes `resetEntry(owner)`, and the `setVisible(owner, false)` before it stays so the success path still records both. The returned `setVisible` is `(v: boolean) => setVisible(owner, v)`, so `pay_sheet.tsx:80-82` does not change. `openPaySheet` calls `usePaySheetState.getState().open(owner)` with `[owner]` as its deps. The unmount cleanup at `:130-135` adds `usePaySheetState.getState().release(owner)`, read into a `releasePaySheet` const beside the other two. Post-await writes in `onValid` (`setVisible`, `resetEntry`, `setSaveError`, `setSaving` in `finally`) are the guarded actions, so a save that resolves after release is refused by the store; the hook needs no cancelled flag for them.
+- Test: three mocked suites move their store mock to the keyed shape, assertions unchanged; the fourth, `commitments_detail.hook.test.ts`, drops its mock in this same commit (end of this row). `commitments_pay_sheet.hook.test.ts:44-95`: `paySheetStateInner` becomes the entry, `mockPaySheetState` exposes `get entries() { return { [OWNER]: paySheetStateInner }; }`, each setter mock takes `(_owner, v)`, `reset` becomes `resetEntry`, plus `open`, `release`, `reset` as bare `jest.fn()`; the `beforeEach` call at `:170` becomes `mockPaySheetState.resetEntry()` and the re-wiring at `:173-196` follows. The eight call assertions on the mock gain the owner (`grep -n "mockPaySheetState\.\w*)\.\(toHaveBeenCalledWith\|toHaveBeenLastCalledWith\|not\)"`): `(OWNER, true)` at `:259`, `(OWNER, false)` at `:384, :497, :967`, `toHaveBeenLastCalledWith(OWNER, Strings.commitmentsPayError)` at `:493`, `toHaveBeenLastCalledWith(OWNER, false)` at `:540`, `(OWNER, undefined)` at `:682, :707`; `reset` at `:385` becomes `resetEntry`, still `toHaveBeenCalledTimes(1)`. `pay_sheet_rate_error.test.tsx:151-163` and `pay_sheet_converted_total.test.tsx:141-153`: `paySheetState` becomes `{ entries: { 'owner-a': { visible: true, ... } }, setVisible: jest.fn(), ..., resetEntry, open, release, reset }`. Every `jest.mock('.../pay_sheet.state', ...)` factory (three files) spreads `jest.requireActual` and overrides `usePaySheetState: jest.fn()`, so `INITIAL_PAY_SHEET_ENTRY` is the real frozen object under the mock. `commitments_detail.hook.test.ts:53-55` and `:69-72`: drop the `jest.mock` of `pay_sheet.state` and its `attachMockSelectorStore`, and `beforeEach` at `:136-147` adds `usePaySheetState.getState().reset()`; the mocked `getState()` (`mock_zustand_selectors.ts:46`) has no `release`, so with the mock kept the new cleanup throws `TypeError` on every unmount in that file, `upper.unmount()` at `:344` included. The real store is side-effect free, as `useCommitmentDetailState` and `useCommitmentDetailStore` already are there. Counts stay 82 / 3 / 10 / 16.
+
+### 4. The detail copy creates and releases its own entry
+- File: `__tests__/screens/commitments_detail.hook.test.ts`, after the case at `:331-353`.
+- Change: none in `src/` and none in the mocks; the hook already does this after step 3, and that commit already runs this file on the real pay sheet store.
+- Test: one new case under "useCommitmentDetail two copies mounted at once", after "an unmounted copy leaves both stores holding only the copy still mounted": mount lower and upper on `payment` and `otherPayment`; `lower.result.current.openPaySheet()` inside `act`; `usePaySheetState.getState().entries` has exactly `lower.result.current.state.owner`, with `visible: true`, and no entry for the upper owner; `upper.unmount()` leaves it untouched; `lower.unmount()` leaves `entries` equal to `{}`. The existing case also asserts the third store: after `upper.unmount()` the pay sheet store still holds the lower owner's key if it opened, and `{}` after both. Count 16 to 17.
+
+### 5. Two sheets under two owners do not see each other
+- File: new, `__tests__/screens/commitments_pay_sheet_owners.hook.test.ts`.
+- Change: none in `src/`.
+- Test: the same mocks as `commitments_pay_sheet.hook.test.ts:25-41` for the commitment, account and currency stores and the repository, `useShallow` real, the pay sheet state real (`reset()` in `beforeEach`). Fixtures: `fixedCommitment` with `account_id: null`, `egpAccount` loaded, two payments `p1` and `p2` on the same commitment. `renderHook(() => usePaySheet('owner-a', commitment, p1))` and the same for `'owner-b'` with `p2`. Cases, one per Acceptance line:
+  - `open('owner-a')` through the store: a reads `visible: true`, b `false`; `getLastPaidPayment` called once (a's prefill ran, b's did not).
+  - `markAsPaid` deferred; a submits: a `saving: true`, b `saving: false`; b submits while a is pending: `markAsPaid` called twice, with `p1.id` then `p2.id`; resolve both, both `saving: false`.
+  - `markAsPaid` rejects for a: a `saveError` is `Strings.commitmentsPayError`, b `saveError` undefined, b `visible` unchanged.
+  - a `toggleRateOverride()` and a `openAccountPicker()`: b `rateOverride` and `accountPickerVisible` stay false; a's form rate is re-seeded, b's form untouched.
+  - both open; a `setVisible(false)`: b `visible: true`; a's successful save (`resetEntry` path): b's entry is the same reference as before.
+  - `release('owner-a')` while a's save is pending, then resolve it: `entries` has only `owner-b`, `'owner-a' in entries` is false, `markAsPaid` was still called once for a.
+  Every read goes through `result.current.state`; every store assertion through `usePaySheetState.getState().entries`. Not the emulator's job: the emulator pass below shoots pixels only.
+
+## Screens
+Both two-copy paths the ticket names put a paid payment on top: the only push of a second commitment detail is the transaction detail's commitment link (`transactions/detail/detail.hook.ts:217`), a commitment-owned transaction exists only for a paid payment, and `CurrentCycleCard` hides Mark as paid on a paid or skipped payment (`current_cycle_card.tsx:36-38`). So the upper copy cannot open its sheet by navigation; mount it by deep link on the same due payment: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://stacked/commitments/<due payment id>"` while the tabbed copy on that payment is on screen (scheme at `app.json:7`). `mqa claim` first, `mqa needs-build` (JS-only diff, no build expected).
+- Commitment detail, one copy (`/commitments/[id]`, a due payment): sheet open and prefilled; closed after a successful save with the row now Paid. The empty-amount error and the save banner are `commitments_pay_sheet.hook.test.ts:245` and `:493`, not the emulator's.
+- Commitment detail, two copies (tabbed under, stacked over, same due payment): Mark as paid on the upper, shoot the upper with its sheet open; Back to the lower, shoot the lower on reveal. The acceptance frame is the lower with no sheet and the FAB visible (one `sheet_visibility` increment, one decrement); an open sheet or a hidden FAB on that frame is the defect the ticket names.
+
+## Non-goals
+- The commitment edit screen's global slots (MA-051, #453).
+- The spinner flash, re-query on every publish, and an error view state on the detail (MA-052, #454).
+- The account store's `accountLookup` slot (MA-043, #441); the sheet reads `accounts`.
+- Any other sheet slot: adjust balance, reassign category, income, set budget, categories, spending plan stay flat.
+- The detail's own keyed slots (`detail.state.ts`, `detail.store.ts`) and the transaction detail's: no edit.
+- The sheet's form, schema, prefill query, preview, submit payload, and `markAsPaid`'s guard and SQL: no edit. No new string, token, route or layout.
+- A cancelled flag or generation stamp in `onValid`: the guarded store is the refusal; do not add a second one.
+- Reading the owner from `useId()` inside `usePaySheet`: the owner is the detail copy's id, handed down as a prop, so the detail can open the entry the sheet reads.
+
+## Verification
+- Per commit: `npm run format:check && npm run lint && npm run typecheck && npm test -- --ci`
+- The five suites plus the new one: `npx jest __tests__/screens/commitments_pay_sheet.hook.test.ts __tests__/screens/commitments_pay_sheet_owners.hook.test.ts __tests__/screens/commitments_detail.state.test.ts __tests__/screens/commitments_detail.hook.test.ts __tests__/screens/commitments/pay_sheet_rate_error.test.tsx __tests__/screens/commitments/pay_sheet_converted_total.test.tsx --json`; base reads 125 passed across five files, head reads 82 / 3 / 10 / 17 / about 17 plus the new file. `test -f` each path before citing it.
+- Once, before hand-off: the full CI parity chain from `CLAUDE.md`.
+
+## Risks
+- The `useShallow` identity mock in `commitments_pay_sheet.hook.test.ts:25` returns the entry object itself; the `entries` getter may build a fresh map per read, but the selector's output must be the one `paySheetStateInner` object, or the hook re-renders on every store call.
+- `jest.requireActual` of the state file in the four mock factories loads real zustand under a mocked module; if that trips a hoisting or transform error, export `INITIAL_PAY_SHEET_ENTRY` as a literal in the factory instead, same five fields.
+- The `commitments_detail.state.test.ts` count moves (five flat cases become about eight keyed ones); the ticket's "keep their count" names the pay sheet tests, and this file is the state test, but a reviewer may read it the other way.
+- The deep link may land the stacked copy with the tabbed one unmounted (a cold start rather than a push over the running tabs); open the tabbed copy first in the running dev client and only then fire `am start`. If the two-copy frame cannot be produced at all, the emulator pass covers the one-copy states and the isolation stands on step 5.
+
+## Self-assessment
+Step 3's test row is the one I trust least. Its eight assertion lines come from a grep for `mockPaySheetState.<setter>).toHaveBeenCalledWith`, and a `mockImplementation` body inside an `it.each` block, or an assertion written against `paySheetStateInner` directly, would not match that pattern; the count invariant (82) catches a missed one, not my list. The release site is firm. The `entries` getter meeting the identity `useShallow` mock is the second thing I would look at if that suite goes red after the mock moves.
