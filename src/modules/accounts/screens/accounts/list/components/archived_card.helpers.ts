@@ -3,9 +3,10 @@ import { Strings } from '@/constants/strings';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../entities/account.entity';
+import { matchesAccountsListType } from '../accounts_list.presentation';
 import type { AccountsListTypeFilter } from '../accounts_list.state';
 
-export interface ArchivedAccountRow {
+export interface ArchivedAccountRowVM {
   account: Account;
   caption: string;
 }
@@ -23,12 +24,12 @@ export function resolveArchivedRowCaption(
 export function resolveArchivedCardRows(
   archivedAccounts: Account[],
   typeFilter: AccountsListTypeFilter,
-): ArchivedAccountRow[] {
+): ArchivedAccountRowVM[] {
   return archivedAccounts
-    .filter((account) => typeFilter === 'all' || account.type === typeFilter)
+    .filter((account) => matchesAccountsListType(account.type, typeFilter))
     .map((account) => ({ account, caption: resolveArchivedRowCaption(account) }));
 }
 
-export function resolveArchivedSummary(rows: ArchivedAccountRow[]): string {
+export function resolveArchivedSummary(rows: ArchivedAccountRowVM[]): string {
   return Strings.accountsArchivedSummary(rows.map((row) => row.account.name));
 }

@@ -92,16 +92,23 @@ describe('accountsListState — the archived card', () => {
     store.getState().setSelectedType(AccountType.Bank);
     store.getState().setRetrying(true);
     store.getState().setArchivedExpanded(true);
-    store.getState().setUnarchivingId('arch-1');
     store.getState().setUnarchiveError(error);
 
     store.getState().resetArchivedCard();
 
     expect(store.getState().isArchivedExpanded).toBe(false);
-    expect(store.getState().unarchivingId).toBeUndefined();
     expect(store.getState().unarchiveError).toBeUndefined();
     expect(store.getState().selectedType).toBe(AccountType.Bank);
     expect(store.getState().isRetrying).toBe(true);
+  });
+
+  it('resetArchivedCard leaves a restore in flight locked', () => {
+    const store = createAccountsListState();
+    store.getState().setUnarchivingId('arch-1');
+
+    store.getState().resetArchivedCard();
+
+    expect(store.getState().unarchivingId).toBe('arch-1');
   });
 
   it('reset clears the card with everything else', () => {

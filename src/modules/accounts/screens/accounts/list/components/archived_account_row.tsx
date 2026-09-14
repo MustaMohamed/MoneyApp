@@ -11,10 +11,12 @@ import {
   ACCOUNTS_LIST_ARCHIVED_ROW_STYLE,
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
 } from '../accounts_list.geometry';
-import type { ArchivedAccountRow as ArchivedRow } from './archived_card.helpers';
+import type { ArchivedAccountRowVM } from './archived_card.helpers';
+
+const UNARCHIVE_ACTION = 'unarchive';
 
 interface ArchivedAccountRowProps {
-  row: ArchivedRow;
+  row: ArchivedAccountRowVM;
   isUnarchiving: boolean;
   /** Any restore in flight locks every row's Unarchive. */
   isLocked: boolean;
@@ -38,6 +40,15 @@ export function ArchivedAccountRow({
         style={ACCOUNTS_LIST_ARCHIVED_ROW_STYLE}
         accessibilityRole="button"
         accessibilityLabel={resolveAccountRowA11yLabel(account)}
+        // The item is one focus stop on iOS, so the nested Unarchive is reached as an action.
+        accessibilityActions={[
+          { name: UNARCHIVE_ACTION, label: Strings.accountsArchivedUnarchive },
+        ]}
+        onAccessibilityAction={(event) => {
+          if (event.nativeEvent.actionName === UNARCHIVE_ACTION && !isUnarchiving && !isLocked) {
+            onUnarchive(account.id);
+          }
+        }}
       >
         <AccountColorTile
           color={account.color}

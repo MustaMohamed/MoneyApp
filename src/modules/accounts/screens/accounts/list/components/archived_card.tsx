@@ -13,12 +13,12 @@ import {
 } from '../accounts_list.geometry';
 import type { AccountsListUnarchiveError } from '../accounts_list.state';
 import { ArchivedAccountRow } from './archived_account_row';
-import type { ArchivedAccountRow as ArchivedRow } from './archived_card.helpers';
+import type { ArchivedAccountRowVM } from './archived_card.helpers';
 
 const ARCHIVED_ITEM = 'archived';
 
 interface ArchivedCardProps {
-  rows: ArchivedRow[];
+  rows: ArchivedAccountRowVM[];
   summary: string;
   isExpanded: boolean;
   unarchivingId: string | undefined;
@@ -74,7 +74,7 @@ export function ArchivedCard({
               >
                 <Chip.Label
                   numberOfLines={1}
-                  className="font-inter-bold text-accent"
+                  className="font-sora-bold text-accent"
                   style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
                 >
                   {rows.length}

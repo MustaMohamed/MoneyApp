@@ -46,11 +46,10 @@ export function createAccountsListState() {
       setArchivedExpanded: (v) => set({ isArchivedExpanded: v }),
       setUnarchivingId: (id) => set({ unarchivingId: id }),
       setUnarchiveError: (e) => set({ unarchiveError: e }),
-      // Per field, so the selected type survives the card's reset.
+      // Per field: the selected type survives, and only `unarchive`'s own `finally` clears the lock.
       resetArchivedCard: () =>
         set({
           isArchivedExpanded: INITIAL_STATE.isArchivedExpanded,
-          unarchivingId: INITIAL_STATE.unarchivingId,
           unarchiveError: INITIAL_STATE.unarchiveError,
         }),
       reset: () => set(INITIAL_STATE),

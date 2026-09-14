@@ -13,6 +13,7 @@ import { AccountNameTakenError } from '../../../repositories/account.errors';
 import { useAccountStore } from '../../../store/account.store';
 import { resolveAccountCaption, resolveAccountsListContent } from './accounts_list.helpers';
 import {
+  matchesAccountsListType,
   resolveAccountsListEmptyState,
   resolveAccountsListSectionTitle,
   resolveArchivedCardType,
@@ -87,7 +88,9 @@ export function useAccountsList() {
   // A narrow over the same row objects: a filter change re-derives no caption (ADR 2026-09-07).
   const rows = useMemo(
     () =>
-      selectedType === 'all' ? allRows : allRows.filter((row) => row.account.type === selectedType),
+      selectedType === 'all'
+        ? allRows
+        : allRows.filter((row) => matchesAccountsListType(row.account.type, selectedType)),
     [allRows, selectedType],
   );
 
@@ -131,20 +134,24 @@ export function useAccountsList() {
       try {
         await unarchiveAccount(id);
       } catch (error) {
-        setUnarchiveError({
-          id,
-          message:
-            error instanceof AccountNameTakenError
-              ? Strings.accountsArchivedNameTaken
-              : Strings.accountsArchivedRestoreError,
-        });
+        // A reload that failed after the write is the screen's ErrorState, not this row's line.
+        if (!useAccountStore.getState().loadError) {
+          setUnarchiveError({
+            id,
+            message:
+              error instanceof AccountNameTakenError
+                ? Strings.accountsArchivedNameTaken
+                : Strings.accountsArchivedRestoreError,
+          });
+        }
         return;
       } finally {
         setUnarchivingId(undefined);
       }
+      if (useAccountStore.getState().archivedAccounts.length === 0) setArchivedExpanded(false);
       toast.show({ label: Strings.accountsArchivedRestored(name), variant: 'success' });
     },
-    [setUnarchiveError, setUnarchivingId, toast, unarchiveAccount],
+    [setArchivedExpanded, setUnarchiveError, setUnarchivingId, toast, unarchiveAccount],
   );
 
   return {

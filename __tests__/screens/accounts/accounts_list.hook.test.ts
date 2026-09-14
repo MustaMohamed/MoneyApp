@@ -509,6 +509,56 @@ describe('useAccountsList — unarchive from a row', () => {
     expect(result.current.state.archived.rows.map((row) => row.account.id)).toEqual(['arch-2']);
   });
 
+  it('collapses the card when the restore leaves nothing archived', async () => {
+    storeState = { ...storeState, archivedAccounts: [oldHsbc], archivedCount: 1 };
+    mockUnarchive.mockImplementationOnce(async () => {
+      storeState = { ...storeState, archivedAccounts: NO_ARCHIVED, archivedCount: 0 };
+    });
+    const { result } = await renderHook(() => useAccountsList());
+    await act(() => {
+      result.current.setArchivedExpanded(true);
+    });
+
+    await act(async () => {
+      await result.current.unarchive('arch-1');
+    });
+
+    expect(result.current.state.archived.isExpanded).toBe(false);
+  });
+
+  it('keeps the card expanded while archived accounts remain', async () => {
+    mockUnarchive.mockImplementationOnce(async () => {
+      storeState = { ...storeState, archivedAccounts: [vodafoneCash], archivedCount: 1 };
+    });
+    const { result } = await renderHook(() => useAccountsList());
+    await act(() => {
+      result.current.setArchivedExpanded(true);
+    });
+
+    await act(async () => {
+      await result.current.unarchive('arch-1');
+    });
+
+    expect(result.current.state.archived.isExpanded).toBe(true);
+  });
+
+  it('sets no row line when the write landed and the reload failed', async () => {
+    mockUnarchive.mockImplementationOnce(async () => {
+      storeState = { ...storeState, loadError: true };
+      throw new Error('reload failed');
+    });
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.unarchive('arch-1');
+    });
+
+    expect(result.current.state.archived.unarchiveError).toBeUndefined();
+    expect(result.current.state.archived.unarchivingId).toBeUndefined();
+    expect(result.current.state.content).toBe('error');
+    expect(useToast().toast.show).not.toHaveBeenCalled();
+  });
+
   it('refuses a name an active account holds with the clash line, and no toast', async () => {
     mockUnarchive.mockRejectedValueOnce(new AccountNameTakenError());
     const { result } = await renderHook(() => useAccountsList());

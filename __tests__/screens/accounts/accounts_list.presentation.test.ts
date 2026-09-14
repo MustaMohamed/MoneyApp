@@ -4,6 +4,7 @@ import {
   ACCOUNTS_LIST_TYPE_FILTERS,
   resolveAccountsListEmptyState,
   resolveAccountsListSectionTitle,
+  matchesAccountsListType,
   resolveArchivedCardType,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.presentation';
 
@@ -68,5 +69,16 @@ describe('resolveArchivedCardType', () => {
     ['none', 'all', 'all'],
   ] as const)('%s under %s holds %s', (emptyState, selectedType, expected) => {
     expect(resolveArchivedCardType({ emptyState, selectedType })).toBe(expected);
+  });
+});
+
+describe('matchesAccountsListType', () => {
+  it.each([
+    [AccountType.Bank, 'all', true],
+    [AccountType.CreditCard, 'all', true],
+    [AccountType.Bank, AccountType.Bank, true],
+    [AccountType.SmartWallet, AccountType.Bank, false],
+  ] as const)('%s under %s matches: %s', (type, filter, expected) => {
+    expect(matchesAccountsListType(type, filter)).toBe(expected);
   });
 });
