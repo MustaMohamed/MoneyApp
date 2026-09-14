@@ -96,6 +96,9 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   },
 }));
 jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
+  ...jest.requireActual<
+    typeof import('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state')
+  >('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state'),
   usePaySheetState: jest.fn(),
 }));
 
@@ -149,16 +152,23 @@ const duePayment: CommitmentPayment = {
 };
 
 const paySheetState = {
-  visible: true,
-  saving: false,
-  accountPickerVisible: false,
-  rateOverride: false,
-  saveError: undefined,
+  entries: {
+    'owner-a': {
+      visible: true,
+      saving: false,
+      accountPickerVisible: false,
+      rateOverride: false,
+      saveError: undefined,
+    },
+  },
   setVisible: jest.fn(),
   setSaving: jest.fn(),
   setAccountPickerVisible: jest.fn(),
   setRateOverride: jest.fn(),
   setSaveError: jest.fn(),
+  resetEntry: jest.fn(),
+  open: jest.fn(),
+  release: jest.fn(),
   reset: jest.fn(),
 };
 

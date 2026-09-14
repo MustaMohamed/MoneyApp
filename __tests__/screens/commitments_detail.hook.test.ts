@@ -50,9 +50,6 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
     getPaymentsByCommitment: (...args: unknown[]) => mockGetPaymentsByCommitment(...args),
   },
 }));
-jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
-  usePaySheetState: jest.fn(),
-}));
 
 function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
@@ -65,10 +62,6 @@ function setup() {
   }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],
-  }));
-  attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => ({
-    visible: false,
-    setVisible: jest.fn(),
   }));
 }
 
@@ -143,6 +136,7 @@ beforeEach(() => {
   mockSkipPayment.mockResolvedValue(undefined);
   useCommitmentDetailStore.getState().reset();
   useCommitmentDetailState.getState().reset();
+  usePaySheetState.getState().reset();
   setup();
 });
 

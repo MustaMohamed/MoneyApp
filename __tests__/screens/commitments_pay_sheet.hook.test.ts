@@ -51,37 +51,25 @@ let paySheetStateInner = {
   saveError: undefined as string | undefined,
 };
 const mockPaySheetState = {
-  get visible() {
-    return paySheetStateInner.visible;
+  get entries() {
+    return { [OWNER]: paySheetStateInner };
   },
-  get saving() {
-    return paySheetStateInner.saving;
-  },
-  get accountPickerVisible() {
-    return paySheetStateInner.accountPickerVisible;
-  },
-  get rateOverride() {
-    return paySheetStateInner.rateOverride;
-  },
-  get saveError() {
-    return paySheetStateInner.saveError;
-  },
-  setVisible: jest.fn((v: boolean) => {
+  setVisible: jest.fn((_owner: string, v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, visible: v };
   }),
-  setSaving: jest.fn((v: boolean) => {
+  setSaving: jest.fn((_owner: string, v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, saving: v };
   }),
-  setAccountPickerVisible: jest.fn((v: boolean) => {
+  setAccountPickerVisible: jest.fn((_owner: string, v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, accountPickerVisible: v };
   }),
-  setRateOverride: jest.fn((v: boolean) => {
+  setRateOverride: jest.fn((_owner: string, v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
   }),
-  setSaveError: jest.fn((message?: string) => {
+  setSaveError: jest.fn((_owner: string, message?: string) => {
     paySheetStateInner = { ...paySheetStateInner, saveError: message };
   }),
-  reset: jest.fn(() => {
+  resetEntry: jest.fn((_owner: string) => {
     paySheetStateInner = {
       visible: false,
       saving: false,
@@ -90,9 +78,15 @@ const mockPaySheetState = {
       saveError: undefined,
     };
   }),
+  open: jest.fn(),
+  release: jest.fn(),
+  reset: jest.fn(),
 };
 
 jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
+  ...jest.requireActual<
+    typeof import('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state')
+  >('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state'),
   usePaySheetState: jest.fn(),
 }));
 
@@ -169,25 +163,25 @@ function setupStoreMocks() {
 describe('usePaySheet', () => {
   beforeEach(() => {
     setupStoreMocks();
-    mockPaySheetState.reset();
+    mockPaySheetState.resetEntry(OWNER);
     jest.clearAllMocks();
     // Re-wire setters after `clearAllMocks`.
-    mockPaySheetState.setVisible.mockImplementation((v: boolean) => {
+    mockPaySheetState.setVisible.mockImplementation((_owner: string, v: boolean) => {
       paySheetStateInner = { ...paySheetStateInner, visible: v };
     });
-    mockPaySheetState.setSaving.mockImplementation((v: boolean) => {
+    mockPaySheetState.setSaving.mockImplementation((_owner: string, v: boolean) => {
       paySheetStateInner = { ...paySheetStateInner, saving: v };
     });
-    mockPaySheetState.setAccountPickerVisible.mockImplementation((v: boolean) => {
+    mockPaySheetState.setAccountPickerVisible.mockImplementation((_owner: string, v: boolean) => {
       paySheetStateInner = { ...paySheetStateInner, accountPickerVisible: v };
     });
-    mockPaySheetState.setRateOverride.mockImplementation((v: boolean) => {
+    mockPaySheetState.setRateOverride.mockImplementation((_owner: string, v: boolean) => {
       paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
     });
-    mockPaySheetState.setSaveError.mockImplementation((message?: string) => {
+    mockPaySheetState.setSaveError.mockImplementation((_owner: string, message?: string) => {
       paySheetStateInner = { ...paySheetStateInner, saveError: message };
     });
-    mockPaySheetState.reset.mockImplementation(() => {
+    mockPaySheetState.resetEntry.mockImplementation((_owner: string) => {
       paySheetStateInner = {
         visible: false,
         saving: false,
@@ -258,7 +252,7 @@ describe('usePaySheet', () => {
     const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     expect(result.current.state.rateOverride).toBe(false);
     await act(() => result.current.toggleRateOverride());
-    expect(mockPaySheetState.setRateOverride).toHaveBeenCalledWith(true);
+    expect(mockPaySheetState.setRateOverride).toHaveBeenCalledWith(OWNER, true);
   });
 
   it('setPaidDate writes an ISO string into the form (date-picker upgrade)', async () => {
@@ -383,8 +377,8 @@ describe('usePaySheet', () => {
 
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
     expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
-    expect(mockPaySheetState.setVisible).toHaveBeenCalledWith(false);
-    expect(mockPaySheetState.reset).toHaveBeenCalledTimes(1);
+    expect(mockPaySheetState.setVisible).toHaveBeenCalledWith(OWNER, false);
+    expect(mockPaySheetState.resetEntry).toHaveBeenCalledTimes(1);
     expect(consoleSpy).toHaveBeenCalledWith(
       '[paySheet] account revalidation failed:',
       refreshError,
@@ -494,11 +488,14 @@ describe('usePaySheet', () => {
     const { result, rerender } = await submitAmount('15');
 
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
-    expect(mockPaySheetState.setSaveError).toHaveBeenLastCalledWith(Strings.commitmentsPayError);
+    expect(mockPaySheetState.setSaveError).toHaveBeenLastCalledWith(
+      OWNER,
+      Strings.commitmentsPayError,
+    );
     // The mocked selector store does not subscribe, so the flag reaches state on the next render.
     await act(() => rerender(undefined));
     expect(result.current.state.saveError).toBe(Strings.commitmentsPayError);
-    expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(false);
+    expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(OWNER, false);
   });
 
   it('A2-04: omits the rate snapshot when the payment stays in one currency', async () => {
@@ -543,7 +540,7 @@ describe('usePaySheet', () => {
 
     expect(result.current.state.requiresRate).toBe(true);
     expect(result.current.form.getValues('exchange_rate')).toBe('55');
-    expect(mockPaySheetState.setRateOverride).toHaveBeenLastCalledWith(false);
+    expect(mockPaySheetState.setRateOverride).toHaveBeenLastCalledWith(OWNER, false);
   });
 
   // A USD commitment needs a rate whatever the account's currency is.
@@ -693,7 +690,7 @@ describe('usePaySheet', () => {
     });
     await act(() => rerender(undefined));
 
-    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(undefined);
+    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(OWNER, undefined);
     expect(result.current.state.saveError).toBeUndefined();
   });
 
@@ -718,7 +715,7 @@ describe('usePaySheet', () => {
     expect(result.current.form.getFieldState('amountText').error?.message).toBe(
       Strings.errAmountInvalid,
     );
-    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(undefined);
+    expect(mockPaySheetState.setSaveError).toHaveBeenCalledWith(OWNER, undefined);
     expect(result.current.state.saveError).toBeUndefined();
   });
 
@@ -986,7 +983,7 @@ describe('usePaySheet', () => {
 
       expect(result.current.form.getFieldState('amountText').error).toBeUndefined();
       expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
-      expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(false);
+      expect(mockPaySheetState.setVisible).not.toHaveBeenCalledWith(OWNER, false);
 
       // Deterministic failure gets its own copy, not the retry-implying banner.
       await act(() => rerender(undefined));

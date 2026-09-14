@@ -23,7 +23,7 @@ import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
 import { commitmentRepository } from '../../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../../store/commitment.store';
-import { usePaySheetState } from './pay_sheet.state';
+import { INITIAL_PAY_SHEET_ENTRY, usePaySheetState } from './pay_sheet.state';
 
 /**
  * `resolved` is `undefined` for inputs that cannot resolve yet (the resolver would throw on
@@ -164,20 +164,14 @@ export function usePaySheet(
   payment: CommitmentPayment | undefined,
 ) {
   const { visible, saving, accountPickerVisible, rateOverride, saveError } = usePaySheetState(
-    useShallow((s) => ({
-      visible: s.visible,
-      saving: s.saving,
-      accountPickerVisible: s.accountPickerVisible,
-      rateOverride: s.rateOverride,
-      saveError: s.saveError,
-    })),
+    useShallow((s) => s.entries[owner] ?? INITIAL_PAY_SHEET_ENTRY),
   );
   const setVisible = usePaySheetState.getState().setVisible;
   const setSaving = usePaySheetState.getState().setSaving;
   const setAccountPickerVisible = usePaySheetState.getState().setAccountPickerVisible;
   const setRateOverride = usePaySheetState.getState().setRateOverride;
   const setSaveError = usePaySheetState.getState().setSaveError;
-  const reset = usePaySheetState.getState().reset;
+  const resetEntry = usePaySheetState.getState().resetEntry;
 
   const accounts = useAccountStore((s) => s.accounts);
   const loadAccounts = useAccountStore.getState().loadAccounts;
@@ -298,9 +292,9 @@ export function usePaySheet(
             : undefined,
           notes: undefined,
         });
-        setRateOverride(false);
+        setRateOverride(owner, false);
         // Module-level state outlives the sheet; a stale save error would greet the next open.
-        setSaveError(undefined);
+        setSaveError(owner, undefined);
       }
     }
 
@@ -314,8 +308,8 @@ export function usePaySheet(
 
   async function onValid(data: PaySheetFormValues) {
     if (!payment) return;
-    setSaving(true);
-    setSaveError(undefined);
+    setSaving(owner, true);
+    setSaveError(owner, undefined);
     try {
       await markAsPaid(payment.id, {
         amount_paid: parseRequiredMoneyText(data.amountText, 'amountText'),
@@ -328,22 +322,22 @@ export function usePaySheet(
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
-      setVisible(false);
-      reset();
+      setVisible(owner, false);
+      resetEntry(owner);
       void loadAccounts().catch((error: unknown) =>
         console.error('[paySheet] account revalidation failed:', error),
       );
     } catch (error) {
       // The store logs and rethrows; without this banner the failure is silent.
-      setSaveError(resolvePaySheetSaveError(error));
+      setSaveError(owner, resolvePaySheetSaveError(error));
     } finally {
-      setSaving(false);
+      setSaving(owner, false);
     }
   }
 
   // RHF calls `onValid` only when validation passes, so a stale banner outlives a failed submit.
   function onInvalid() {
-    setSaveError(undefined);
+    setSaveError(owner, undefined);
   }
 
   function selectAccount(account: Account) {
@@ -356,15 +350,15 @@ export function usePaySheet(
     ) {
       // Gate on `isSubmitted`: seeding clears a rate error but must not raise one pre-submit.
       form.setValue('exchange_rate', formatStoredMoneyText(rate), { shouldValidate: isSubmitted });
-      setRateOverride(false);
+      setRateOverride(owner, false);
     }
-    setAccountPickerVisible(false);
+    setAccountPickerVisible(owner, false);
   }
 
   // The field is hidden when the override is off, so restore the global rate or the save fails.
   function toggleRateOverride() {
     const next = !rateOverride;
-    setRateOverride(next);
+    setRateOverride(owner, next);
     if (!next)
       form.setValue('exchange_rate', formatStoredMoneyText(rate), { shouldValidate: isSubmitted });
   }
@@ -389,10 +383,10 @@ export function usePaySheet(
       purposeCaption: preview.purposeCaption,
     },
     onSubmit: form.handleSubmit(onValid, onInvalid),
-    openAccountPicker: () => setAccountPickerVisible(true),
-    closeAccountPicker: () => setAccountPickerVisible(false),
+    openAccountPicker: () => setAccountPickerVisible(owner, true),
+    closeAccountPicker: () => setAccountPickerVisible(owner, false),
     selectAccount,
-    setVisible,
+    setVisible: (v: boolean) => setVisible(owner, v),
     toggleRateOverride,
     setPaidDate: (iso: string) => form.setValue('paid_date', iso, { shouldValidate: true }),
   };

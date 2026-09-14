@@ -1,4 +1,7 @@
-import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
+import {
+  INITIAL_PAY_SHEET_ENTRY,
+  usePaySheetState,
+} from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentDetailState } from '@/modules/commitments/screens/commitments/detail/detail.state';
 
 beforeEach(() => {
@@ -91,32 +94,93 @@ describe('useCommitmentDetailState', () => {
   });
 });
 
+const sheetOf = (owner: string) => usePaySheetState.getState().entries[owner];
+
+// Every write except `open`, the begin action; each must refuse an owner with no entry.
+const guardedWrites: ((owner: string) => void)[] = [
+  (owner) => usePaySheetState.getState().setVisible(owner, true),
+  (owner) => usePaySheetState.getState().setSaving(owner, true),
+  (owner) => usePaySheetState.getState().setAccountPickerVisible(owner, true),
+  (owner) => usePaySheetState.getState().setRateOverride(owner, true),
+  (owner) => usePaySheetState.getState().setSaveError(owner, 'failed'),
+  (owner) => usePaySheetState.getState().resetEntry(owner),
+];
+
 describe('usePaySheetState', () => {
-  it('starts with all false', () => {
-    const s = usePaySheetState.getState();
-    expect(s.visible).toBe(false);
-    expect(s.saving).toBe(false);
-    expect(s.accountPickerVisible).toBe(false);
+  it('starts with no copy owning a sheet', () => {
+    expect(usePaySheetState.getState().entries).toEqual({});
   });
 
-  it('setVisible updates visible', () => {
-    usePaySheetState.getState().setVisible(true);
-    expect(usePaySheetState.getState().visible).toBe(true);
+  it('open creates a copy entry with only its sheet visible', () => {
+    usePaySheetState.getState().open('owner-a');
+
+    expect(sheetOf('owner-a')).toEqual({ ...INITIAL_PAY_SHEET_ENTRY, visible: true });
   });
 
-  it('setSaving updates saving', () => {
-    usePaySheetState.getState().setSaving(true);
-    expect(usePaySheetState.getState().saving).toBe(true);
+  it('a second copy saving leaves the first copy entry untouched', () => {
+    usePaySheetState.getState().open('owner-a');
+    usePaySheetState.getState().open('owner-b');
+    const before = sheetOf('owner-a');
+
+    usePaySheetState.getState().setSaving('owner-b', true);
+
+    expect(sheetOf('owner-a')).toBe(before);
+    expect(sheetOf('owner-b').saving).toBe(true);
   });
 
-  it('setAccountPickerVisible updates accountPickerVisible', () => {
-    usePaySheetState.getState().setAccountPickerVisible(true);
-    expect(usePaySheetState.getState().accountPickerVisible).toBe(true);
+  it('every write on a copy that never opened its sheet writes nothing', () => {
+    usePaySheetState.getState().open('owner-a');
+    const before = usePaySheetState.getState().entries;
+
+    for (const write of guardedWrites) {
+      write('owner-b');
+      expect(usePaySheetState.getState().entries).toBe(before);
+    }
   });
 
-  it('reset returns to initial state', () => {
-    usePaySheetState.getState().setVisible(true);
+  it('every write after release does not resurrect the copy', () => {
+    usePaySheetState.getState().open('owner-a');
+    usePaySheetState.getState().release('owner-a');
+    const before = usePaySheetState.getState().entries;
+
+    for (const write of guardedWrites) {
+      write('owner-a');
+      expect(usePaySheetState.getState().entries).toBe(before);
+    }
+    expect(usePaySheetState.getState().entries).toEqual({});
+  });
+
+  it('resetEntry closes one copy and leaves the other copy error in place', () => {
+    usePaySheetState.getState().open('owner-a');
+    usePaySheetState.getState().setRateOverride('owner-a', true);
+    usePaySheetState.getState().open('owner-b');
+    usePaySheetState.getState().setSaveError('owner-b', 'failed');
+    const before = sheetOf('owner-b');
+
+    usePaySheetState.getState().resetEntry('owner-a');
+
+    expect(sheetOf('owner-a')).toEqual(INITIAL_PAY_SHEET_ENTRY);
+    expect(sheetOf('owner-b')).toBe(before);
+    expect(sheetOf('owner-b').saveError).toBe('failed');
+  });
+
+  it('release removes only the released copy', () => {
+    usePaySheetState.getState().open('owner-a');
+    usePaySheetState.getState().open('owner-b');
+    const before = sheetOf('owner-a');
+
+    usePaySheetState.getState().release('owner-b');
+
+    expect(sheetOf('owner-a')).toBe(before);
+    expect(Object.keys(usePaySheetState.getState().entries)).toEqual(['owner-a']);
+  });
+
+  it('reset drops every copy', () => {
+    usePaySheetState.getState().open('owner-a');
+    usePaySheetState.getState().open('owner-b');
+
     usePaySheetState.getState().reset();
-    expect(usePaySheetState.getState().visible).toBe(false);
+
+    expect(usePaySheetState.getState().entries).toEqual({});
   });
 });
