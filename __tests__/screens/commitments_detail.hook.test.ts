@@ -324,7 +324,7 @@ describe('useCommitmentDetail two copies mounted at once', () => {
     expect(lower.result.current.state.allPayments).toEqual(rentHistory);
   });
 
-  it('an unmounted copy leaves both stores holding only the copy still mounted', async () => {
+  it('an unmounted copy leaves every store holding only the copy still mounted', async () => {
     commitmentsState = [commitment];
     paymentsState = [payment];
     mockGetPaymentsByCommitment.mockResolvedValue(rentHistory);
@@ -333,19 +333,61 @@ describe('useCommitmentDetail two copies mounted at once', () => {
     await waitFor(() => expect(lower.result.current.state.viewState).toBe('ready'));
     const upper = await renderHook(() => useCommitmentDetail());
     await waitFor(() => expect(upper.result.current.state.viewState).toBe('ready'));
+    await act(async () => {
+      lower.result.current.openPaySheet();
+      upper.result.current.openPaySheet();
+    });
 
     expect(Object.keys(useCommitmentDetailStore.getState().entries)).toHaveLength(2);
     expect(Object.keys(useCommitmentDetailState.getState().entries)).toHaveLength(2);
+    expect(Object.keys(usePaySheetState.getState().entries)).toHaveLength(2);
 
     await upper.unmount();
 
     expect(Object.keys(useCommitmentDetailStore.getState().entries)).toHaveLength(1);
     expect(Object.keys(useCommitmentDetailState.getState().entries)).toHaveLength(1);
+    expect(Object.keys(usePaySheetState.getState().entries)).toEqual([
+      lower.result.current.state.owner,
+    ]);
 
     await lower.unmount();
 
     expect(useCommitmentDetailStore.getState().entries).toEqual({});
     expect(useCommitmentDetailState.getState().entries).toEqual({});
+    expect(usePaySheetState.getState().entries).toEqual({});
+  });
+
+  it('Mark as paid opens only its own copy pay sheet, and each copy releases its own', async () => {
+    commitmentsState = [commitment, otherCommitment];
+    paymentsState = [payment, otherPayment];
+    mockGetPaymentsByCommitment.mockImplementation((commitmentId: string) =>
+      Promise.resolve(commitmentId === commitment.id ? rentHistory : gymHistory),
+    );
+
+    const lower = await renderHook(() => useCommitmentDetail(), {
+      wrapper: paramsWrapper({ id: payment.id }),
+    });
+    await waitFor(() => expect(lower.result.current.state.viewState).toBe('ready'));
+    const upper = await renderHook(() => useCommitmentDetail(), {
+      wrapper: paramsWrapper({ id: otherPayment.id }),
+    });
+    await waitFor(() => expect(upper.result.current.state.viewState).toBe('ready'));
+    const lowerOwner = lower.result.current.state.owner;
+
+    await act(async () => lower.result.current.openPaySheet());
+
+    const opened = usePaySheetState.getState().entries[lowerOwner];
+    expect(Object.keys(usePaySheetState.getState().entries)).toEqual([lowerOwner]);
+    expect(opened.visible).toBe(true);
+
+    await upper.unmount();
+
+    expect(usePaySheetState.getState().entries[lowerOwner]).toBe(opened);
+    expect(Object.keys(usePaySheetState.getState().entries)).toEqual([lowerOwner]);
+
+    await lower.unmount();
+
+    expect(usePaySheetState.getState().entries).toEqual({});
   });
 
   it('a history query that settles after its copy unmounts writes nothing back', async () => {
