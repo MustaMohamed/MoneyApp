@@ -25,11 +25,12 @@ import type { CommitmentPayment } from '../../../../entities/commitment_payment.
 import { usePaySheet } from './pay_sheet.hook';
 
 interface Props {
+  owner: string;
   commitment: Commitment | undefined;
   payment: CommitmentPayment | undefined;
 }
 
-export function PaySheet({ commitment, payment }: Props) {
+export function PaySheet({ owner, commitment, payment }: Props) {
   const {
     form,
     state,
@@ -40,7 +41,7 @@ export function PaySheet({ commitment, payment }: Props) {
     setVisible,
     toggleRateOverride,
     setPaidDate,
-  } = usePaySheet(commitment, payment);
+  } = usePaySheet(owner, commitment, payment);
 
   const [showIosDate, setShowIosDate] = useState(false);
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();

@@ -96,6 +96,9 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   },
 }));
 jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
+  ...jest.requireActual<
+    typeof import('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state')
+  >('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state'),
   usePaySheetState: jest.fn(),
 }));
 
@@ -149,16 +152,23 @@ const duePayment: CommitmentPayment = {
 };
 
 const paySheetState = {
-  visible: true,
-  saving: false,
-  accountPickerVisible: false,
-  rateOverride: false,
-  saveError: undefined,
+  entries: {
+    'owner-a': {
+      visible: true,
+      saving: false,
+      accountPickerVisible: false,
+      rateOverride: false,
+      saveError: undefined,
+    },
+  },
   setVisible: jest.fn(),
   setSaving: jest.fn(),
   setAccountPickerVisible: jest.fn(),
   setRateOverride: jest.fn(),
   setSaveError: jest.fn(),
+  resetEntry: jest.fn(),
+  open: jest.fn(),
+  release: jest.fn(),
   reset: jest.fn(),
 };
 
@@ -184,7 +194,9 @@ beforeEach(() => {
 });
 
 async function renderOpenSheet() {
-  const utils = await render(<PaySheet commitment={variableCommitment} payment={duePayment} />);
+  const utils = await render(
+    <PaySheet owner="owner-a" commitment={variableCommitment} payment={duePayment} />,
+  );
   // The prefill effect that seeds the exchange rate is async, hence the wait.
   await waitFor(() => expect(utils.getByTestId('pay-sheet')).toBeTruthy());
   return utils;

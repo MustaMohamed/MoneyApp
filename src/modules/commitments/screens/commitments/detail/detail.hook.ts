@@ -88,6 +88,7 @@ export function useCommitmentDetail() {
   );
   const setAllPayments = useCommitmentDetailStore.getState().setAllPayments;
   const releaseData = useCommitmentDetailStore.getState().release;
+  const releasePaySheet = usePaySheetState.getState().release;
 
   const payment = useMemo(() => payments.find((p) => p.id === paymentId), [payments, paymentId]);
 
@@ -131,8 +132,9 @@ export function useCommitmentDetail() {
     return () => {
       releaseData(owner);
       releaseUi(owner);
+      releasePaySheet(owner);
     };
-  }, [owner, releaseData, releaseUi]);
+  }, [owner, releaseData, releaseUi, releasePaySheet]);
 
   const category = useMemo(
     () => (commitment ? categories.find((c) => c.id === commitment.category_id) : undefined),
@@ -158,8 +160,8 @@ export function useCommitmentDetail() {
   );
 
   const openPaySheet = useCallback(() => {
-    usePaySheetState.getState().setVisible(true);
-  }, []);
+    usePaySheetState.getState().open(owner);
+  }, [owner]);
 
   const skipPayment = useCallback(async () => {
     if (!payment) return;
@@ -190,6 +192,7 @@ export function useCommitmentDetail() {
 
   return {
     state: {
+      owner,
       viewState,
       payment,
       commitment,

@@ -82,7 +82,7 @@ export default function CommitmentDetailScreen() {
         </ScreenScroll>
       ) : null}
 
-      <PaySheet commitment={state.commitment} payment={state.payment} />
+      <PaySheet owner={state.owner} commitment={state.commitment} payment={state.payment} />
 
       <SkipConfirmSheet
         isOpen={state.skipConfirmVisible}
