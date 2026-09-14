@@ -15,13 +15,13 @@ An owner-keyed slot, the shape `src/utils/keyed_entries.ts` gives the commitment
 
 ## 2. The cache only grows, and the lists win
 
-A load queries only the ids absent from the active list, the archived list and the cache at that moment (`account.store.ts:77-80`). The two lists hold every non-deleted account, so the cache in practice holds deleted accounts, whose rows never change. There is no eviction, no refresh on an account write, and no cache of misses: an id with no row is unreachable through the foreign key.
+A load queries only the ids absent from the active list, the archived list and the cache at that moment (`account.store.ts:79-82`). The two lists hold every non-deleted account, so the cache in practice holds deleted accounts, whose rows never change. There is no eviction, no refresh on an account write, and no cache of misses: an id with no row is unreachable through the foreign key.
 
 `mergeAccountsById` (`account_lookup.helpers.ts:4`) builds the map from the cache, then the archived list, then the active list, and a later entry replaces an earlier one. A restored account shows its current name even when a lookup cached its archived copy, and a lookup that lands before `loadAccounts` publishes costs nothing.
 
 ## 3. One guard and one error field
 
-A load stamps the account reload generation, `loadRequestId`, and drops its result when a reload started since (`account.store.ts:76`, `:85`). The separate lookup counter is gone. A failed load sets `accountLookupError` under the same guard and rethrows, so the edit form's prerequisite still turns the failure into its own error state. A load that queries clears the field before it does, so a retry is what clears it; a load that queries nothing leaves the field as it was.
+A load stamps the account reload generation, `loadRequestId`, and drops its result when a reload started since (`account.store.ts:78`, `:90`). The separate lookup counter is gone. A failed load sets `accountLookupError` under the same guard, adds the ids it queried to `failedLookupIds`, a set in the store's closure beside `loadRequestId` (`:46`), and rethrows, so the edit form's prerequisite still turns the failure into its own error state. A successful load removes the ids it queried from the set, and `reset` empties it. A load clears the field before it queries only when its ids include every failed id the lists and the cache still lack (`:83-86`), so one screen's successful lookup cannot hide another screen's outstanding failure. A load that queries nothing leaves the field as it was.
 
 The field is shared, so a screen shows it only while something it displays is unresolved. The list shows it while a visible row's account is missing (`transactions.hook.ts:316`), as its floating banner with `transactionsAccountLookupError`, and its Retry re-runs the lookup. The detail shows it while its transaction's account or counterparty is missing (`detail.hook.ts:166`), as its floating refresh error, and its Retry is `reload`.
 

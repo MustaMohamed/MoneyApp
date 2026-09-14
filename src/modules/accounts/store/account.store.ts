@@ -42,6 +42,8 @@ export type AccountStore = typeof INITIAL_STATE & {
 
 export function createAccountStore(repo: IAccountRepository) {
   let loadRequestId = 0;
+  // Ids whose last lookup failed and that no load has answered since; closure state, not store state.
+  const failedLookupIds = new Set<string>();
 
   return createMoneyAppSelectors(
     create<AccountStore>((set, get) => ({
@@ -78,11 +80,15 @@ export function createAccountStore(repo: IAccountRepository) {
         const known = mergeAccountsById(accounts, archivedAccounts, accountLookupById);
         const missing = findMissingAccountIds([...new Set(ids)], known);
         if (missing.length === 0) return;
-        if (accountLookupError) set({ accountLookupError: false });
+        const outstanding = findMissingAccountIds([...failedLookupIds], known);
+        if (accountLookupError && outstanding.every((id) => missing.includes(id))) {
+          set({ accountLookupError: false });
+        }
 
         try {
           const rows = await repo.getByIdsIncludingArchived(missing);
           if (generation !== loadRequestId) return;
+          for (const id of missing) failedLookupIds.delete(id);
           set((s) => ({
             accountLookupById: {
               ...s.accountLookupById,
@@ -90,7 +96,10 @@ export function createAccountStore(repo: IAccountRepository) {
             },
           }));
         } catch (err) {
-          if (generation === loadRequestId) set({ accountLookupError: true });
+          if (generation === loadRequestId) {
+            for (const id of missing) failedLookupIds.add(id);
+            set({ accountLookupError: true });
+          }
           console.error('[accountStore] loadAccountLookup failed:', err);
           throw err;
         }
@@ -162,6 +171,7 @@ export function createAccountStore(repo: IAccountRepository) {
 
       reset: () => {
         loadRequestId += 1;
+        failedLookupIds.clear();
         set(INITIAL_STATE);
       },
     })),
