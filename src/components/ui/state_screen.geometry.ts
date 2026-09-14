@@ -26,7 +26,7 @@ export const STATE_SCREEN_LAYOUT = {
   paddingHorizontal: Spacing.xl,
   bodyGap: Spacing.xs,
   inlinePaddingTop: Spacing.xxl,
-  // 8, so the section that follows the archived-only block clears it (MA-017's slot).
+  // 8, so the section that follows the archived-only block clears it (the archived card, MA-048).
   inlinePaddingBottom: Spacing.xs,
   error: {
     iconCircle: ms(64),

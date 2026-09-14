@@ -201,6 +201,9 @@ export const Size = {
   /** Accounts list B1: colour tile, row minimum, the grip slot MA-016 fills, the See-all chevron. */
   accountTile: ms(28),
   accountListRowMinHeight: ms(64),
+  /** Accounts list B4 `.lg-acc` header and B5 `.ar-row` minimum. */
+  archivedCardHeaderHeight: ms(52),
+  archivedRowMinHeight: ms(56),
   reorderGripSlot: ms(16),
   inlineLinkChevron: ms(14),
   /** A1: "See all" sits 6 under the accounts count. */

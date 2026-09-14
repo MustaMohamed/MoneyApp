@@ -4,6 +4,7 @@ import {
   ACCOUNTS_LIST_TYPE_FILTERS,
   resolveAccountsListEmptyState,
   resolveAccountsListSectionTitle,
+  resolveArchivedCardType,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.presentation';
 
 describe('ACCOUNTS_LIST_TYPE_FILTERS', () => {
@@ -55,5 +56,17 @@ describe('resolveAccountsListEmptyState', () => {
     [{ activeCount: 1, archivedCount: 0, visibleCount: 1 }, 'none'],
   ] as const)('%j resolves to %s', (input, expected) => {
     expect(resolveAccountsListEmptyState(input)).toBe(expected);
+  });
+});
+
+describe('resolveArchivedCardType', () => {
+  it.each([
+    ['archivedOnly', AccountType.Bank, 'all'],
+    ['none', AccountType.Bank, AccountType.Bank],
+    ['filtered', AccountType.Bank, AccountType.Bank],
+    ['noAccounts', AccountType.Bank, AccountType.Bank],
+    ['none', 'all', 'all'],
+  ] as const)('%s under %s holds %s', (emptyState, selectedType, expected) => {
+    expect(resolveArchivedCardType({ emptyState, selectedType })).toBe(expected);
   });
 });

@@ -1,9 +1,12 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { useToast } from '@/components/ui/toast';
 import { AccountType, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { AccountNameTakenError } from '@/modules/accounts/repositories/account.errors';
 import { useAccountsList } from '@/modules/accounts/screens/accounts/list/accounts_list.hook';
 import { useAccountsListState } from '@/modules/accounts/screens/accounts/list/accounts_list.state';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { type Account, useAccountStore } from '@/modules/accounts/store/account.store';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
@@ -13,6 +16,7 @@ import { makeTestAccount } from '@/test_helpers/transaction';
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockLoadAccounts = jest.fn<Promise<void>, []>();
+const mockUnarchive = jest.fn<Promise<void>, [string]>();
 
 jest.mock('zustand/react/shallow', () => ({
   useShallow: <T>(selector: T): T => selector,
@@ -35,6 +39,8 @@ jest.mock('@/modules/dashboard/screens/dashboard/dashboard.store', () => ({
   useDashboardStore: jest.fn(),
 }));
 
+const NO_ARCHIVED: Account[] = [];
+
 const accounts = [
   makeTestAccount({
     id: 'acc-1',
@@ -56,7 +62,14 @@ const usdWallet = makeTestAccount({
   sort_order: 2,
 });
 
-let storeState = { accounts, archivedCount: 0, loadError: false, loadAccounts: mockLoadAccounts };
+let storeState = {
+  accounts,
+  archivedAccounts: NO_ARCHIVED,
+  archivedCount: 0,
+  loadError: false,
+  loadAccounts: mockLoadAccounts,
+  unarchiveAccount: mockUnarchive,
+};
 
 let currencyState: {
   rate: number;
@@ -81,7 +94,15 @@ function deferred<T>() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockLoadAccounts.mockResolvedValue(undefined);
-  storeState = { accounts, archivedCount: 0, loadError: false, loadAccounts: mockLoadAccounts };
+  mockUnarchive.mockResolvedValue(undefined);
+  storeState = {
+    accounts,
+    archivedAccounts: NO_ARCHIVED,
+    archivedCount: 0,
+    loadError: false,
+    loadAccounts: mockLoadAccounts,
+    unarchiveAccount: mockUnarchive,
+  };
   currencyState = {
     rate: 50,
     isManualOverride: false,
@@ -110,30 +131,20 @@ describe('useAccountsList', () => {
   });
 
   it('reports no empty state while rows exist, whatever the archived count', async () => {
-    storeState = { accounts, archivedCount: 1, loadError: false, loadAccounts: mockLoadAccounts };
+    storeState = { ...storeState, archivedCount: 1 };
     const { result } = await renderHook(() => useAccountsList());
     expect(result.current.state.emptyState).toBe('none');
   });
 
   it('reports archivedOnly with no rows and archived accounts, carrying the count', async () => {
-    storeState = {
-      accounts: [],
-      archivedCount: 2,
-      loadError: false,
-      loadAccounts: mockLoadAccounts,
-    };
+    storeState = { ...storeState, accounts: [], archivedCount: 2 };
     const { result } = await renderHook(() => useAccountsList());
     expect(result.current.state.emptyState).toBe('archivedOnly');
     expect(result.current.state.archivedCount).toBe(2);
   });
 
   it('reports noAccounts with no rows and nothing archived', async () => {
-    storeState = {
-      accounts: [],
-      archivedCount: 0,
-      loadError: false,
-      loadAccounts: mockLoadAccounts,
-    };
+    storeState = { ...storeState, accounts: [], archivedCount: 0 };
     const { result } = await renderHook(() => useAccountsList());
     expect(result.current.state.emptyState).toBe('noAccounts');
   });
@@ -219,7 +230,7 @@ describe('useAccountsList', () => {
   });
 
   it('shows the error body over the rows when the last read failed', async () => {
-    storeState = { accounts, archivedCount: 0, loadError: true, loadAccounts: mockLoadAccounts };
+    storeState = { ...storeState, loadError: true };
     const { result } = await renderHook(() => useAccountsList());
 
     expect(result.current.state.content).toBe('error');
@@ -235,12 +246,7 @@ describe('useAccountsList — the type filter narrows the rows', () => {
   ];
 
   it('shows only the selected type, in store order, and All restores the list', async () => {
-    storeState = {
-      accounts: banks,
-      archivedCount: 0,
-      loadError: false,
-      loadAccounts: mockLoadAccounts,
-    };
+    storeState = { ...storeState, accounts: banks };
     const { result } = await renderHook(() => useAccountsList());
 
     await act(() => {
@@ -289,12 +295,7 @@ describe('useAccountsList — the type filter narrows the rows', () => {
   });
 
   it('keeps the archived-only block on every segment', async () => {
-    storeState = {
-      accounts: [],
-      archivedCount: 2,
-      loadError: false,
-      loadAccounts: mockLoadAccounts,
-    };
+    storeState = { ...storeState, accounts: [], archivedCount: 2 };
     const { result } = await renderHook(() => useAccountsList());
     expect(result.current.state.emptyState).toBe('archivedOnly');
 
@@ -333,5 +334,267 @@ describe('useAccountsList — the smart wallet caption follows the rate gate, no
   it('takes the equivalent caption once the rate has provenance', async () => {
     const { result } = await renderHook(() => useAccountsList());
     expect(result.current.state.rows[0].caption).toBe('≈ 5,000 EGP at 50.00');
+  });
+});
+
+const oldHsbc = makeTestAccount({
+  id: 'arch-1',
+  name: 'Old HSBC',
+  type: AccountType.Bank,
+  currency: Currency.EGP,
+  current_balance: 0,
+  is_archived: 1,
+  sort_order: 0,
+});
+const vodafoneCash = makeTestAccount({
+  id: 'arch-2',
+  name: 'Vodafone Cash',
+  type: AccountType.SmartWallet,
+  currency: Currency.EGP,
+  current_balance: 120,
+  opening_balance: 120,
+  is_archived: 1,
+  sort_order: 1,
+});
+
+describe('useAccountsList — the archived card holds the archived accounts', () => {
+  beforeEach(() => {
+    storeState = { ...storeState, archivedAccounts: [oldHsbc, vodafoneCash], archivedCount: 2 };
+  });
+
+  it('holds no rows and no summary when nothing is archived', async () => {
+    storeState = { ...storeState, archivedAccounts: NO_ARCHIVED, archivedCount: 0 };
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.archived.rows).toEqual([]);
+    expect(result.current.state.archived.summary).toBe('');
+  });
+
+  it('holds every archived account in store order, captioned with its stored balance', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+    const { rows, summary } = result.current.state.archived;
+    expect(rows.map((row) => row.account)).toEqual([oldHsbc, vodafoneCash]);
+    expect(rows[0].account).toBe(oldHsbc);
+    expect(rows.map((row) => row.caption)).toEqual(['Bank · 0 EGP', 'Smart Wallet · 120 EGP']);
+    expect(summary).toBe('Old HSBC, Vodafone Cash');
+  });
+
+  it('narrows to the selected type, count and names included', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.selectType(AccountType.Bank);
+    });
+
+    expect(result.current.state.archived.rows.map((row) => row.account.id)).toEqual(['arch-1']);
+    expect(result.current.state.archived.summary).toBe('Old HSBC');
+    expect(result.current.state.emptyState).toBe('none');
+  });
+
+  it("holds that type's archived accounts under the filtered empty state", async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.selectType(AccountType.SmartWallet);
+    });
+
+    expect(result.current.state.emptyState).toBe('filtered');
+    expect(result.current.state.archived.rows.map((row) => row.account.id)).toEqual(['arch-2']);
+  });
+
+  it('holds nothing when no archived account matches the filter', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.selectType(AccountType.CreditCard);
+    });
+
+    expect(result.current.state.archived.rows).toEqual([]);
+  });
+
+  it('holds every archived account under the archived-only state, whatever the filter', async () => {
+    storeState = { ...storeState, accounts: [] };
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.selectType(AccountType.Bank);
+    });
+
+    expect(result.current.state.emptyState).toBe('archivedOnly');
+    expect(result.current.state.archived.rows.map((row) => row.account.id)).toEqual([
+      'arch-1',
+      'arch-2',
+    ]);
+  });
+});
+
+describe('useAccountsList — the archived card collapses on each mount', () => {
+  beforeEach(() => {
+    storeState = { ...storeState, archivedAccounts: [oldHsbc, vodafoneCash], archivedCount: 2 };
+  });
+
+  it('starts collapsed when the state was left expanded, and keeps the selected type', async () => {
+    useAccountsListState.getState().setArchivedExpanded(true);
+    useAccountsListState.getState().setSelectedType(AccountType.Bank);
+
+    const { result } = await renderHook(() => useAccountsList());
+
+    expect(result.current.state.archived.isExpanded).toBe(false);
+    expect(result.current.state.selectedType).toBe(AccountType.Bank);
+  });
+
+  it('expands on request and stays expanded across a filter change', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.setArchivedExpanded(true);
+    });
+    expect(result.current.state.archived.isExpanded).toBe(true);
+
+    await act(() => {
+      result.current.selectType(AccountType.Bank);
+    });
+    expect(result.current.state.archived.isExpanded).toBe(true);
+  });
+
+  it('unmount collapses the card and clears its error, and keeps the selected type', async () => {
+    const { result, unmount } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.selectType(AccountType.Bank);
+      result.current.setArchivedExpanded(true);
+      useAccountsListState.getState().setUnarchiveError({ id: 'arch-1', message: 'failed' });
+    });
+
+    await unmount();
+
+    const listState = useAccountsListState.getState();
+    expect(listState.isArchivedExpanded).toBe(false);
+    expect(listState.unarchiveError).toBeUndefined();
+    expect(listState.selectedType).toBe(AccountType.Bank);
+  });
+});
+
+describe('useAccountsList — unarchive from a row', () => {
+  beforeEach(() => {
+    storeState = { ...storeState, archivedAccounts: [oldHsbc, vodafoneCash], archivedCount: 2 };
+  });
+
+  it('restores through the store once and toasts the name', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.unarchive('arch-1');
+    });
+
+    expect(mockUnarchive.mock.calls).toEqual([['arch-1']]);
+    expect(useToast().toast.show).toHaveBeenCalledTimes(1);
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: 'Old HSBC restored.',
+      variant: 'success',
+    });
+    expect(result.current.state.archived.unarchiveError).toBeUndefined();
+    expect(result.current.state.archived.unarchivingId).toBeUndefined();
+  });
+
+  it('drops the restored row once the store reloads without it', async () => {
+    mockUnarchive.mockImplementationOnce(async () => {
+      storeState = { ...storeState, archivedAccounts: [vodafoneCash], archivedCount: 1 };
+    });
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.unarchive('arch-1');
+    });
+
+    expect(result.current.state.archived.rows.map((row) => row.account.id)).toEqual(['arch-2']);
+  });
+
+  it('refuses a name an active account holds with the clash line, and no toast', async () => {
+    mockUnarchive.mockRejectedValueOnce(new AccountNameTakenError());
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await expect(result.current.unarchive('arch-1')).resolves.toBeUndefined();
+    });
+
+    expect(result.current.state.archived.unarchiveError).toEqual({
+      id: 'arch-1',
+      message: Strings.accountsArchivedNameTaken,
+    });
+    expect(result.current.state.archived.unarchivingId).toBeUndefined();
+    expect(useToast().toast.show).not.toHaveBeenCalled();
+  });
+
+  it('reports any other failure with the restore error line', async () => {
+    mockUnarchive.mockRejectedValueOnce(new Error('db error'));
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.unarchive('arch-2');
+    });
+
+    expect(result.current.state.archived.unarchiveError).toEqual({
+      id: 'arch-2',
+      message: Strings.accountsArchivedRestoreError,
+    });
+    expect(useToast().toast.show).not.toHaveBeenCalled();
+  });
+
+  it('a second tap while one restore is in flight writes nothing more', async () => {
+    const write = deferred<void>();
+    mockUnarchive.mockReturnValueOnce(write.promise);
+    const { result } = await renderHook(() => useAccountsList());
+
+    let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
+    await act(() => {
+      first = result.current.unarchive('arch-1');
+    });
+    expect(result.current.state.archived.unarchivingId).toBe('arch-1');
+    await act(() => {
+      second = result.current.unarchive('arch-2');
+    });
+
+    expect(mockUnarchive).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      write.resolve();
+      await Promise.all([first, second]);
+    });
+    expect(result.current.state.archived.unarchivingId).toBeUndefined();
+  });
+
+  it('a new restore clears the previous error before the write settles', async () => {
+    mockUnarchive.mockRejectedValueOnce(new Error('db error'));
+    const { result } = await renderHook(() => useAccountsList());
+    await act(async () => {
+      await result.current.unarchive('arch-1');
+    });
+    expect(result.current.state.archived.unarchiveError).toBeDefined();
+
+    const write = deferred<void>();
+    mockUnarchive.mockReturnValueOnce(write.promise);
+    let pending: Promise<void> = Promise.resolve();
+    await act(() => {
+      pending = result.current.unarchive('arch-1');
+    });
+
+    expect(result.current.state.archived.unarchiveError).toBeUndefined();
+
+    await act(async () => {
+      write.resolve();
+      await pending;
+    });
+  });
+
+  it('writes nothing for an id the archived list does not hold', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.unarchive('acc-1');
+    });
+
+    expect(mockUnarchive).not.toHaveBeenCalled();
+    expect(useToast().toast.show).not.toHaveBeenCalled();
   });
 });
