@@ -264,6 +264,17 @@ export async function getTransactionsByAccount(
   );
 }
 
+export async function getTransactionCountByAccount(
+  db: SQLiteDatabase,
+  accountId: string,
+): Promise<number> {
+  const row = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM transactions WHERE account_id = ? OR to_account_id = ?',
+    [accountId, accountId],
+  );
+  return row?.count ?? 0;
+}
+
 export async function getTransactionById(
   db: SQLiteDatabase,
   id: string,

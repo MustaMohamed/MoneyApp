@@ -131,6 +131,17 @@ export async function clearCommitmentAccount(
   );
 }
 
+export async function getActiveCommitmentCountByAccount(
+  db: SQLiteDatabase,
+  accountId: string,
+): Promise<number> {
+  const row = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM commitments WHERE account_id = ? AND is_active = 1',
+    [accountId],
+  );
+  return row?.count ?? 0;
+}
+
 export async function deactivateCommitment(db: SQLiteDatabase, id: string): Promise<void> {
   await db.runAsync('UPDATE commitments SET is_active = 0, updated_at = ? WHERE id = ?', [
     new Date().toISOString(),
