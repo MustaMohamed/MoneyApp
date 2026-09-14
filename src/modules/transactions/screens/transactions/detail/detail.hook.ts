@@ -46,11 +46,12 @@ export function useTransactionDetail(id: string) {
   const getById = useTransactionStore.getState().getById;
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
 
-  const { accounts, archivedAccounts, accountLookupById } = useAccountStore(
+  const { accounts, archivedAccounts, accountLookupById, accountLookupError } = useAccountStore(
     useShallow((s) => ({
       accounts: s.accounts,
       archivedAccounts: s.archivedAccounts,
       accountLookupById: s.accountLookupById,
+      accountLookupError: s.accountLookupError,
     })),
   );
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
@@ -160,7 +161,12 @@ export function useTransactionDetail(id: string) {
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const currentRevalidating = activeId === id && revalidating;
-  const currentRefreshError = activeId === id && refreshError;
+  const hasUnresolvedAccount =
+    currentTx !== null &&
+    (!accountsById.has(currentTx.account_id) ||
+      (currentTx.to_account_id !== null && !accountsById.has(currentTx.to_account_id)));
+  const currentRefreshError =
+    (activeId === id && refreshError) || (accountLookupError && hasUnresolvedAccount);
   const viewState = resolveDetailViewState(
     currentStatus,
     currentTx !== null,

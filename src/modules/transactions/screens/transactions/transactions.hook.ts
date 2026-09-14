@@ -89,11 +89,12 @@ export function useTransactions() {
   );
   const deleteAction = useConfirmAction(runDeleteTransaction);
 
-  const { accounts, archivedAccounts, accountLookupById } = useAccountStore(
+  const { accounts, archivedAccounts, accountLookupById, accountLookupError } = useAccountStore(
     useShallow((s) => ({
       accounts: s.accounts,
       archivedAccounts: s.archivedAccounts,
       accountLookupById: s.accountLookupById,
+      accountLookupError: s.accountLookupError,
     })),
   );
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
@@ -313,6 +314,8 @@ export function useTransactions() {
     () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
     [accountLookupById, accounts, archivedAccounts],
   );
+  const showAccountLookupError =
+    accountLookupError && transactionAccountIds.some((id) => !accountsById.has(id));
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const sections = useMemo(
     () => groupTransactionsByDate(currentTransactions),
@@ -357,7 +360,7 @@ export function useTransactions() {
     rowCount: currentTransactions.length,
     hasLoadedOnce: hasCurrentSnapshot,
     paginationError: hasCurrentSnapshot && paginationError,
-    accountLookupError: false,
+    accountLookupError: showAccountLookupError,
   });
   const emptyVariant: EmptyVariant = !presentation.showEmptyState
     ? 'none'
@@ -399,8 +402,19 @@ export function useTransactions() {
       displayTotalsStatus === 'firstLoadError' || displayTotalsStatus === 'refreshErrorWithData'
         ? retryTotals()
         : Promise.resolve(),
+      showAccountLookupError
+        ? loadAccountLookup(transactionAccountIds).catch(() => {})
+        : Promise.resolve(),
     ]);
-  }, [displayTotalsStatus, listStatus, retry, retryTotals]);
+  }, [
+    displayTotalsStatus,
+    listStatus,
+    loadAccountLookup,
+    retry,
+    retryTotals,
+    showAccountLookupError,
+    transactionAccountIds,
+  ]);
 
   const goToDetail = useCallback(
     (id: string) => router.push(`/transactions/detail/${id}`),

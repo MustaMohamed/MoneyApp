@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 
 import { CommitmentPaymentStatus, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
@@ -16,6 +17,7 @@ import { useTxDetailStore } from '@/modules/transactions/screens/transactions/de
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { makeTestAccount } from '@/test_helpers/transaction';
 
 const mockGetBudgetById = jest.fn<Promise<Budget | undefined>, [string]>();
 const mockGetCommitmentPaymentById = jest.fn<Promise<CommitmentPayment | undefined>, [string]>();
@@ -79,6 +81,38 @@ const linkedTransaction: Transaction = {
 const loadCommitments = jest.fn().mockResolvedValue(undefined);
 const setSelectedMonth = jest.fn().mockResolvedValue(undefined);
 const loadAccountLookup = jest.fn().mockResolvedValue(undefined);
+const archivedCounterparty = makeTestAccount({
+  id: 'archived-a',
+  name: 'Dollar Vault',
+  currency: Currency.USD,
+  is_archived: 1,
+});
+const deletedCounterparty = makeTestAccount({
+  id: 'deleted-b',
+  name: '',
+  is_archived: 1,
+  is_deleted: 1,
+});
+const LOOKUP_ROWS: Record<string, Account> = {
+  [archivedCounterparty.id]: archivedCounterparty,
+  [deletedCounterparty.id]: deletedCounterparty,
+};
+let accountStoreState: {
+  accounts: Account[];
+  archivedAccounts: Account[];
+  accountLookupById: Record<string, Account>;
+  accountLookupError: boolean;
+  loadAccountLookup: jest.Mock;
+};
+
+function mergeLookupRows(ids: string[]): Promise<void> {
+  const rows = Object.values(LOOKUP_ROWS).filter((row) => ids.includes(row.id));
+  accountStoreState.accountLookupById = {
+    ...accountStoreState.accountLookupById,
+    ...Object.fromEntries(rows.map((row) => [row.id, row])),
+  };
+  return Promise.resolve();
+}
 const openEdit = jest.fn();
 let getById: jest.Mock;
 let transactionStoreState: {
@@ -102,7 +136,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockPathname.current = '/transactions/detail/transaction-1';
   mockFocusEffect.current = undefined;
-  loadAccountLookup.mockResolvedValue(undefined);
+  loadAccountLookup.mockImplementation(mergeLookupRows);
   jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
   useTxDetailStore.getState().reset();
   useTxDetailState.getState().reset();
@@ -125,13 +159,14 @@ beforeEach(() => {
     mutationVersion: 0,
   };
   attachMockSelectorStore(useTransactionStore, () => transactionStoreState);
-  attachMockSelectorStore(useAccountStore, () => ({
+  accountStoreState = {
     accounts: [],
     archivedAccounts: [],
     accountLookupById: {},
     accountLookupError: false,
     loadAccountLookup,
-  }));
+  };
+  attachMockSelectorStore(useAccountStore, () => accountStoreState);
   attachMockSelectorStore(useCategoryStore, () => ({ categories: [] }));
   attachMockSelectorStore(useCommitmentStore, () => ({
     loadCommitments,
@@ -484,5 +519,72 @@ describe('useTransactionDetail two copies mounted at once', () => {
     await waitFor(() => expect(upper.result.current.state.viewState).toBe('notFound'));
     expect(lower.result.current.state.viewState).toBe('ready');
     expect(lower.result.current.state.tx).toEqual(linkedTransaction);
+  });
+});
+
+describe('useTransactionDetail account lookup', () => {
+  it('floats the refresh error while the lookup failed and an account on screen is unresolved', async () => {
+    accountStoreState.accountLookupError = true;
+
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+
+    await waitFor(() => expect(result.current.state.tx).toEqual(linkedTransaction));
+    expect(result.current.state.refreshError).toBe(true);
+    expect(result.current.state.viewState).toBe('refreshErrorWithData');
+  });
+
+  it('does not float the lookup error over a transaction whose accounts resolved', async () => {
+    accountStoreState.accountLookupError = true;
+    accountStoreState.accountLookupById = { 'account-1': makeTestAccount() };
+
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+
+    await waitFor(() => expect(result.current.state.tx).toEqual(linkedTransaction));
+    expect(result.current.state.refreshError).toBe(false);
+    expect(result.current.state.viewState).toBe('ready');
+  });
+
+  it('two copies on different counterparties each keep theirs after the other loads and unmounts', async () => {
+    accountStoreState.accounts = [makeTestAccount({ name: 'Cash' })];
+    const toArchived: Transaction = {
+      ...linkedTransaction,
+      id: 'transfer-a',
+      type: TransactionType.Transfer,
+      category_id: null,
+      commitment_payment_id: null,
+      to_account_id: archivedCounterparty.id,
+      to_amount: 4,
+      exchange_rate: 50,
+    };
+    const toDeleted: Transaction = {
+      ...toArchived,
+      id: 'transfer-b',
+      to_account_id: deletedCounterparty.id,
+    };
+    getById.mockImplementation((txId: string) =>
+      Promise.resolve(txId === toArchived.id ? toArchived : toDeleted),
+    );
+
+    const lower = await renderHook(() => useTransactionDetail(toArchived.id));
+    const lowerFocus = mockFocusEffect.current;
+    await waitFor(() => expect(lower.result.current.state.viewState).toBe('ready'));
+    const upper = await renderHook(() => useTransactionDetail(toDeleted.id));
+    await waitFor(() => expect(upper.result.current.state.viewState).toBe('ready'));
+    await lower.rerender({});
+    await upper.rerender({});
+
+    expect(lower.result.current.state.derived?.accountLabel).toBe('Cash → Dollar Vault');
+    expect(lower.result.current.state.derived?.transferFlow).not.toBeNull();
+    expect(upper.result.current.state.derived?.accountLabel).toBe(
+      `Cash → ${Strings.deletedAccount}`,
+    );
+    expect(upper.result.current.state.derived?.transferFlow).not.toBeNull();
+
+    await upper.unmount();
+    await act(async () => lowerFocus?.());
+    await lower.rerender({});
+
+    expect(lower.result.current.state.derived?.accountLabel).toBe('Cash → Dollar Vault');
+    expect(lower.result.current.state.derived?.transferFlow).not.toBeNull();
   });
 });

@@ -16,6 +16,7 @@ import { useTransactionsScreenStore } from '@/modules/transactions/screens/trans
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { makeTestAccount } from '@/test_helpers/transaction';
 
 let mockFocusEffectCallback: (() => void | (() => void)) | undefined;
 const mockPush = jest.fn();
@@ -87,6 +88,7 @@ let setQuery: jest.Mock;
 let refresh: jest.Mock;
 let retry: jest.Mock;
 let deleteTransaction: jest.Mock;
+let loadAccountLookup: jest.Mock;
 let transactionStoreState: Record<string, unknown>;
 
 const JULY_QUERY = {
@@ -133,12 +135,15 @@ const JUNE_TRANSACTION: Transaction = {
   updated_at: '2026-06-12T12:00:00.000Z',
 };
 
-function setupStores(transactionOverrides: Record<string, unknown> = {}) {
+function setupStores(
+  transactionOverrides: Record<string, unknown> = {},
+  accountOverrides: Record<string, unknown> = {},
+) {
   setQuery = jest.fn().mockResolvedValue(undefined);
   refresh = jest.fn().mockResolvedValue(undefined);
   retry = jest.fn().mockResolvedValue(undefined);
   deleteTransaction = jest.fn().mockResolvedValue(undefined);
-  const loadAccountLookup = jest.fn().mockResolvedValue(undefined);
+  loadAccountLookup = jest.fn().mockResolvedValue(undefined);
 
   attachMockSelectorStore(useAccountStore, () => ({
     accounts: [],
@@ -146,6 +151,7 @@ function setupStores(transactionOverrides: Record<string, unknown> = {}) {
     accountLookupById: {},
     accountLookupError: false,
     loadAccountLookup,
+    ...accountOverrides,
   }));
   attachMockSelectorStore(useCategoryStore, () => ({
     categories: [],
@@ -773,5 +779,33 @@ describe('useTransactions query ownership', () => {
     await waitFor(() => expect(result.current.state.totalsStatus).toBe('firstLoadError'));
     expect(result.current.state.loadErrorVariant).toBe('totals');
     consoleSpy.mockRestore();
+  });
+
+  it('floats the account lookup error over a row with an unresolved account and retries the lookup', async () => {
+    setupStores({ transactions: [TRANSACTION], status: 'ready' }, { accountLookupError: true });
+    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+
+    const { result } = await renderHook(() => useTransactions());
+
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+    expect(result.current.state.loadErrorVariant).toBe('accounts');
+    loadAccountLookup.mockClear();
+    await act(() => result.current.retryFailedLoads());
+
+    expect(loadAccountLookup).toHaveBeenCalledTimes(1);
+    expect(loadAccountLookup).toHaveBeenCalledWith(['account-1']);
+  });
+
+  it('does not float the account lookup error when every visible row resolved its accounts', async () => {
+    setupStores(
+      { transactions: [TRANSACTION], status: 'ready' },
+      { accountLookupError: true, accountLookupById: { 'account-1': makeTestAccount() } },
+    );
+    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+
+    const { result } = await renderHook(() => useTransactions());
+
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+    expect(result.current.state.loadErrorVariant).toBe('none');
   });
 });
