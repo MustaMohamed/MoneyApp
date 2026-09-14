@@ -23,7 +23,7 @@ A load queries only the ids absent from the active list, the archived list and t
 
 A load stamps the account reload generation, `loadRequestId`, and drops its result when a reload started since (`account.store.ts:76`, `:85`). The separate lookup counter is gone. A failed load sets `accountLookupError` under the same guard and rethrows, so the edit form's prerequisite still turns the failure into its own error state. A load that queries clears the field before it does, so a retry is what clears it; a load that queries nothing leaves the field as it was.
 
-The field is shared, so a screen shows it only while something it displays is unresolved. The list shows it while a visible row's account is missing (`transactions.hook.ts:317`), as its floating banner with `transactionsAccountLookupError`, and its Retry re-runs the lookup. The detail shows it while its transaction's account or counterparty is missing (`detail.hook.ts:164`), as its floating refresh error, and its Retry is `reload`.
+The field is shared, so a screen shows it only while something it displays is unresolved. The list shows it while a visible row's account is missing (`transactions.hook.ts:316`), as its floating banner with `transactionsAccountLookupError`, and its Retry re-runs the lookup. The detail shows it while its transaction's account or counterparty is missing (`detail.hook.ts:166`), as its floating refresh error, and its Retry is `reload`.
 
 ## 4. Display only
 

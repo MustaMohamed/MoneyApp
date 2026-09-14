@@ -6,7 +6,11 @@ import { useShallow } from 'zustand/react/shallow';
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { mergeAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
+import {
+  findMissingAccountIds,
+  getTransactionAccountIds,
+  mergeAccountsById,
+} from '@/modules/accounts/store/account_lookup.helpers';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { getPeriodTotals } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -226,12 +230,7 @@ export function useTransactions() {
   }, [setQuery, transactionQuery]);
 
   const transactionAccountIds = useMemo(
-    () =>
-      currentTransactions.flatMap((transaction) =>
-        transaction.to_account_id
-          ? [transaction.account_id, transaction.to_account_id]
-          : [transaction.account_id],
-      ),
+    () => currentTransactions.flatMap((transaction) => getTransactionAccountIds(transaction)),
     [currentTransactions],
   );
 
@@ -315,7 +314,7 @@ export function useTransactions() {
     [accountLookupById, accounts, archivedAccounts],
   );
   const showAccountLookupError =
-    accountLookupError && transactionAccountIds.some((id) => !accountsById.has(id));
+    accountLookupError && findMissingAccountIds(transactionAccountIds, accountsById).length > 0;
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const sections = useMemo(
     () => groupTransactionsByDate(currentTransactions),

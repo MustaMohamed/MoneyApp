@@ -5,7 +5,11 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { mergeAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
+import {
+  findMissingAccountIds,
+  getTransactionAccountIds,
+  mergeAccountsById,
+} from '@/modules/accounts/store/account_lookup.helpers';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
@@ -80,9 +84,7 @@ export function useTransactionDetail(id: string) {
         setTx(owner, id, transaction, loadedAtVersion);
         resolve(owner, id);
 
-        const accountIds = transaction.to_account_id
-          ? [transaction.account_id, transaction.to_account_id]
-          : [transaction.account_id];
+        const accountIds = getTransactionAccountIds(transaction);
         try {
           void Promise.resolve(loadAccountLookup(accountIds)).catch((error) => {
             console.error('[transactionDetail] account lookup failed', error);
@@ -163,8 +165,7 @@ export function useTransactionDetail(id: string) {
   const currentRevalidating = activeId === id && revalidating;
   const hasUnresolvedAccount =
     currentTx !== null &&
-    (!accountsById.has(currentTx.account_id) ||
-      (currentTx.to_account_id !== null && !accountsById.has(currentTx.to_account_id)));
+    findMissingAccountIds(getTransactionAccountIds(currentTx), accountsById).length > 0;
   const currentRefreshError =
     (activeId === id && refreshError) || (accountLookupError && hasUnresolvedAccount);
   const viewState = resolveDetailViewState(

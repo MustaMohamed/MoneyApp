@@ -9,7 +9,7 @@ import {
   type NewAccountInput,
   type UpdateAccountInput,
 } from '../repositories/account.repository';
-import { mergeAccountsById } from './account_lookup.helpers';
+import { findMissingAccountIds, mergeAccountsById } from './account_lookup.helpers';
 
 export type { Account, NewAccountInput, UpdateAccountInput };
 
@@ -76,7 +76,7 @@ export function createAccountStore(repo: IAccountRepository) {
         const generation = loadRequestId;
         const { accounts, archivedAccounts, accountLookupById, accountLookupError } = get();
         const known = mergeAccountsById(accounts, archivedAccounts, accountLookupById);
-        const missing = [...new Set(ids)].filter((id) => !known.has(id));
+        const missing = findMissingAccountIds([...new Set(ids)], known);
         if (missing.length === 0) return;
         if (accountLookupError) set({ accountLookupError: false });
 

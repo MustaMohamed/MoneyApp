@@ -1,5 +1,9 @@
-import { mergeAccountsById } from '@/modules/accounts/store/account_lookup.helpers';
-import { makeTestAccount } from '@/test_helpers/transaction';
+import {
+  findMissingAccountIds,
+  getTransactionAccountIds,
+  mergeAccountsById,
+} from '@/modules/accounts/store/account_lookup.helpers';
+import { makeTestAccount, makeTestTransaction } from '@/test_helpers/transaction';
 
 describe('mergeAccountsById', () => {
   it('lets the active list win over a cached row with the same id', () => {
@@ -35,5 +39,35 @@ describe('mergeAccountsById', () => {
 
   it('yields an empty map from empty inputs', () => {
     expect(mergeAccountsById([], [], {}).size).toBe(0);
+  });
+});
+
+describe('getTransactionAccountIds', () => {
+  it('returns the source and the destination of a transfer', () => {
+    const transfer = makeTestTransaction({ account_id: 'source', to_account_id: 'destination' });
+
+    expect(getTransactionAccountIds(transfer)).toEqual(['source', 'destination']);
+  });
+
+  it('returns only the account of a transaction with no destination', () => {
+    const expense = makeTestTransaction({ account_id: 'source', to_account_id: null });
+
+    expect(getTransactionAccountIds(expense)).toEqual(['source']);
+  });
+});
+
+describe('findMissingAccountIds', () => {
+  it('returns the ids the map does not hold, in request order', () => {
+    const accountsById = mergeAccountsById([makeTestAccount({ id: 'a' })], [], {
+      c: makeTestAccount({ id: 'c' }),
+    });
+
+    expect(findMissingAccountIds(['b', 'a', 'c', 'd'], accountsById)).toEqual(['b', 'd']);
+  });
+
+  it('returns nothing when the map holds every id', () => {
+    const accountsById = mergeAccountsById([makeTestAccount({ id: 'a' })], [], {});
+
+    expect(findMissingAccountIds(['a'], accountsById)).toEqual([]);
   });
 });
