@@ -184,7 +184,9 @@ beforeEach(() => {
 });
 
 async function renderOpenSheet() {
-  const utils = await render(<PaySheet commitment={variableCommitment} payment={duePayment} />);
+  const utils = await render(
+    <PaySheet owner="owner-a" commitment={variableCommitment} payment={duePayment} />,
+  );
   // The prefill effect that seeds the exchange rate is async, hence the wait.
   await waitFor(() => expect(utils.getByTestId('pay-sheet')).toBeTruthy());
   return utils;

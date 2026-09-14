@@ -190,6 +190,7 @@ export function useCommitmentDetail() {
 
   return {
     state: {
+      owner,
       viewState,
       payment,
       commitment,

@@ -173,7 +173,9 @@ beforeEach(() => {
 const CONVERTED_ROW = /^=\s/;
 
 async function renderOpenSheet() {
-  const utils = await render(<PaySheet commitment={variableCommitment} payment={duePayment} />);
+  const utils = await render(
+    <PaySheet owner="owner-a" commitment={variableCommitment} payment={duePayment} />,
+  );
   // The prefill effect is async and seeds the exchange rate the preview multiplies by.
   await waitFor(() => expect(utils.getByTestId('pay-sheet')).toBeTruthy());
   return utils;

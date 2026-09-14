@@ -198,6 +198,8 @@ describe('useCommitmentDetail', () => {
     expect(typeof result.current.cancelSkip).toBe('function');
     expect(typeof result.current.goToEdit).toBe('function');
     expect(typeof result.current.goBack).toBe('function');
+    expect(result.current.state.owner).toEqual(expect.any(String));
+    expect(result.current.state.owner.length).toBeGreaterThan(0);
   });
 
   it('edits through the tabbed route when opened from the tabbed copy', async () => {

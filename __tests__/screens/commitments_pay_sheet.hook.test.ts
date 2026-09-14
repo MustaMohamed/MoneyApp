@@ -40,6 +40,8 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   },
 }));
 
+const OWNER = 'owner-a';
+
 // Stateful mock so `act()`-wrapped setters actually update what the hook reads.
 let paySheetStateInner = {
   visible: false,
@@ -208,7 +210,7 @@ describe('usePaySheet', () => {
   it('prefills the fixed amount from amount_due when the sheet is visible on mount', async () => {
     // Start with `visible: true` so the prefill `useEffect` fires on first render.
     paySheetStateInner = { ...paySheetStateInner, visible: true };
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     // Prefill runs in a `useEffect`; flush microtasks.
     await act(async () => {});
     expect(result.current.form.getValues('amountText')).toBe('15');
@@ -222,7 +224,7 @@ describe('usePaySheet', () => {
   ])('prefills amount_due %p as %p through amountText', async (amountDue, expected) => {
     paySheetStateInner = { ...paySheetStateInner, visible: true };
     const { result } = await renderHook(() =>
-      usePaySheet(fixedCommitment, { ...duePayment, amount_due: amountDue }),
+      usePaySheet(OWNER, fixedCommitment, { ...duePayment, amount_due: amountDue }),
     );
     await act(async () => {});
     expect(result.current.form.getValues('amountText')).toBe(expected);
@@ -232,7 +234,7 @@ describe('usePaySheet', () => {
     mockAccounts = [egpAccount];
     paySheetStateInner = { ...paySheetStateInner, visible: true };
     const { result } = await renderHook(() =>
-      usePaySheet(egpCommitment, { ...duePayment, amount_due: 1e-7 }),
+      usePaySheet(OWNER, egpCommitment, { ...duePayment, amount_due: 1e-7 }),
     );
     await act(async () => {});
     expect(result.current.form.getValues('amountText')).toBe('0.0000001');
@@ -248,35 +250,35 @@ describe('usePaySheet', () => {
   });
 
   it('starts with rateOverride false on open', async () => {
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('toggleRateOverride flips the flag', async () => {
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     expect(result.current.state.rateOverride).toBe(false);
     await act(() => result.current.toggleRateOverride());
     expect(mockPaySheetState.setRateOverride).toHaveBeenCalledWith(true);
   });
 
   it('setPaidDate writes an ISO string into the form (date-picker upgrade)', async () => {
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     await act(() => result.current.setPaidDate('2026-05-20'));
     expect(result.current.form.getValues('paid_date')).toBe('2026-05-20');
   });
 
   it('renders without throwing when commitment and payment are undefined', async () => {
-    await expect(renderHook(() => usePaySheet(undefined, undefined))).resolves.toBeDefined();
+    await expect(renderHook(() => usePaySheet(OWNER, undefined, undefined))).resolves.toBeDefined();
   });
 
   it('saving defaults to false', async () => {
-    const { result } = await renderHook(() => usePaySheet(undefined, undefined));
+    const { result } = await renderHook(() => usePaySheet(OWNER, undefined, undefined));
     expect(result.current.state.saving).toBe(false);
   });
 
   it('captures the EGP reporting rate for a USD commitment paid from a USD account', async () => {
     mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-usd');
       result.current.form.setValue('amountText', '15');
@@ -295,7 +297,7 @@ describe('usePaySheet', () => {
 
   it('snapshots the entered rate when the payment crosses currencies', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
       result.current.form.setValue('amountText', '15');
@@ -313,7 +315,7 @@ describe('usePaySheet', () => {
 
   it('rejects a sub-cent amount at the field and leaves markAsPaid uncalled', async () => {
     mockAccounts = [egpAccount];
-    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', egpAccount.id);
       result.current.form.setValue('amountText', '0.005');
@@ -331,7 +333,7 @@ describe('usePaySheet', () => {
 
   it('rejects 0.006 (rounds to the floor but is below it raw) and leaves markAsPaid uncalled', async () => {
     mockAccounts = [egpAccount];
-    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', egpAccount.id);
       result.current.form.setValue('amountText', '0.006');
@@ -348,7 +350,7 @@ describe('usePaySheet', () => {
 
   it('accepts the floor amount 0.01 and submits', async () => {
     mockAccounts = [egpAccount];
-    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', egpAccount.id);
       result.current.form.setValue('amountText', '0.01');
@@ -367,7 +369,7 @@ describe('usePaySheet', () => {
     mockLoadAccounts.mockRejectedValueOnce(refreshError);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockAccounts = [egpAccount];
-    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', egpAccount.id);
       result.current.form.setValue('amountText', '15');
@@ -393,7 +395,9 @@ describe('usePaySheet', () => {
   // EGP commitment paid from a loaded EGP account, so a failure here is the typed amount only.
   async function submitAmount(typed: string) {
     mockAccounts = [egpAccount];
-    const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    const { result, rerender } = await renderHook(() =>
+      usePaySheet(OWNER, egpCommitment, duePayment),
+    );
     await act(() => {
       result.current.form.setValue('account_id', egpAccount.id);
       result.current.form.setValue('amountText', typed);
@@ -442,7 +446,7 @@ describe('usePaySheet', () => {
 
   async function submitRate(typed: string) {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
       result.current.form.setValue('amountText', '15');
@@ -500,7 +504,7 @@ describe('usePaySheet', () => {
   it('A2-04: omits the rate snapshot when the payment stays in one currency', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
     const { result } = await renderHook(() =>
-      usePaySheet({ ...fixedCommitment, currency: Currency.EGP }, duePayment),
+      usePaySheet(OWNER, { ...fixedCommitment, currency: Currency.EGP }, duePayment),
     );
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
@@ -522,7 +526,9 @@ describe('usePaySheet', () => {
       { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
       { id: 'acc-usd', currency: Currency.USD } as unknown as Account,
     ];
-    const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    const { result, rerender } = await renderHook(() =>
+      usePaySheet(OWNER, egpCommitment, duePayment),
+    );
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
     });
@@ -543,7 +549,9 @@ describe('usePaySheet', () => {
   // A USD commitment needs a rate whatever the account's currency is.
   it('F1: seeds the global rate for a USD commitment paid from an EGP account', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result, rerender } = await renderHook(() =>
+      usePaySheet(OWNER, fixedCommitment, duePayment),
+    );
     await act(() => {
       result.current.form.setValue('exchange_rate', '');
     });
@@ -558,7 +566,7 @@ describe('usePaySheet', () => {
 
   it('F1: leaves the rate alone when neither side is USD', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, duePayment));
     await act(() => {
       result.current.selectAccount(mockAccounts[0]);
     });
@@ -568,7 +576,9 @@ describe('usePaySheet', () => {
   // `AccountPickerSheet` fires `onSelect` for every row, the already-checked one included.
   it('G1: keeps a typed override rate when the already-selected account is re-picked', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result, rerender } = await renderHook(() =>
+      usePaySheet(OWNER, fixedCommitment, duePayment),
+    );
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
     });
@@ -590,7 +600,9 @@ describe('usePaySheet', () => {
 
   it('F2: restores the global rate when the override is turned back off', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result, rerender } = await renderHook(() =>
+      usePaySheet(OWNER, fixedCommitment, duePayment),
+    );
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
     });
@@ -612,7 +624,7 @@ describe('usePaySheet', () => {
 
   it('F2: does not overwrite the typed rate when the override is turned on', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     await act(() => {
       result.current.form.setValue('exchange_rate', '48.6');
     });
@@ -629,7 +641,7 @@ describe('usePaySheet', () => {
     }));
     mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
     paySheetStateInner = { ...paySheetStateInner, visible: true };
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     await act(async () => {});
 
     expect(result.current.form.getValues('exchange_rate')).toBe('0.0000001');
@@ -642,7 +654,7 @@ describe('usePaySheet', () => {
       rate_updated_at: null,
     }));
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
     await act(() => result.current.toggleRateOverride());
     await act(() => result.current.form.setValue('exchange_rate', '48.6'));
     await act(() => result.current.toggleRateOverride());
@@ -656,7 +668,9 @@ describe('usePaySheet', () => {
     paySheetStateInner = { ...paySheetStateInner, visible: true };
     mockMarkAsPaid.mockRejectedValueOnce(new Error('write failed'));
 
-    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result, rerender } = await renderHook(() =>
+      usePaySheet(OWNER, fixedCommitment, duePayment),
+    );
     await act(async () => {});
     expect(result.current.form.getValues('exchange_rate')).toBe('55');
 
@@ -714,7 +728,9 @@ describe('usePaySheet', () => {
       { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
       { id: 'acc-usd', currency: Currency.USD } as unknown as Account,
     ];
-    const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+    const { result, rerender } = await renderHook(() =>
+      usePaySheet(OWNER, egpCommitment, duePayment),
+    );
     await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
       result.current.form.setValue('amountText', '15');
@@ -748,7 +764,9 @@ describe('usePaySheet', () => {
 
   it('H4: turning the override off after a failed submit clears the stale rate error', async () => {
     mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
-    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result, rerender } = await renderHook(() =>
+      usePaySheet(OWNER, fixedCommitment, duePayment),
+    );
     await act(() => {
       result.current.form.setValue('account_id', 'acc-usd');
       result.current.form.setValue('amountText', '15');
@@ -786,7 +804,9 @@ describe('usePaySheet', () => {
 
   it('H1: seeding the rate before any submit raises no error', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result, rerender } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result, rerender } = await renderHook(() =>
+      usePaySheet(OWNER, fixedCommitment, duePayment),
+    );
     await act(async () => {
       result.current.selectAccount(mockAccounts[0]);
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -803,7 +823,7 @@ describe('usePaySheet', () => {
   // The store publishes non-archived accounts only: archived, deleted and unloaded are one shape.
   describe('account membership', () => {
     async function submitWithAccountId(commitment: Commitment, accountId: string) {
-      const { result } = await renderHook(() => usePaySheet(commitment, duePayment));
+      const { result } = await renderHook(() => usePaySheet(OWNER, commitment, duePayment));
       await act(() => {
         result.current.form.setValue('account_id', accountId);
         result.current.form.setValue('amountText', '15');
@@ -874,7 +894,7 @@ describe('usePaySheet', () => {
       mockAccounts = [egpAccount];
       paySheetStateInner = { ...paySheetStateInner, visible: true };
       const { result } = await renderHook(() =>
-        usePaySheet({ ...egpCommitment, account_id: 'acc-archived' }, duePayment),
+        usePaySheet(OWNER, { ...egpCommitment, account_id: 'acc-archived' }, duePayment),
       );
       await act(async () => {});
 
@@ -884,7 +904,7 @@ describe('usePaySheet', () => {
     it('leaves the account empty when the prefilled id is dropped and nothing is loaded', async () => {
       paySheetStateInner = { ...paySheetStateInner, visible: true };
       const { result } = await renderHook(() =>
-        usePaySheet({ ...egpCommitment, account_id: 'acc-archived' }, duePayment),
+        usePaySheet(OWNER, { ...egpCommitment, account_id: 'acc-archived' }, duePayment),
       );
       await act(async () => {});
 
@@ -896,7 +916,7 @@ describe('usePaySheet', () => {
     // 0.01 EGP at 49.06 rounds to 0.00 USD: over the amount floor, under the debited one.
     it('blocks a save whose converted amount rounds below the money floor', async () => {
       mockAccounts = [usdAccount];
-      const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+      const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, duePayment));
       await act(() => {
         result.current.form.setValue('account_id', usdAccount.id);
         result.current.form.setValue('amountText', '0.01');
@@ -916,7 +936,7 @@ describe('usePaySheet', () => {
     // `roundMoney(0.50 * 0.01)` is 0.00, so the shortfall is in EGP, the currency debited.
     it('names the paying account currency, not USD, when the shortfall is in EGP', async () => {
       mockAccounts = [egpAccount];
-      const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+      const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
       await act(() => {
         result.current.form.setValue('account_id', egpAccount.id);
         result.current.form.setValue('amountText', '0.50');
@@ -936,7 +956,7 @@ describe('usePaySheet', () => {
     // An amount that overflows the resolver returns undefined instead of throwing in a render.
     it('shows no converted line for an amount that overflows the resolver output guard', async () => {
       mockAccounts = [egpAccount];
-      const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+      const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
       await act(() => {
         result.current.form.setValue('account_id', egpAccount.id);
         result.current.form.setValue('amountText', '99999999999999999999');
@@ -952,7 +972,9 @@ describe('usePaySheet', () => {
       mockMarkAsPaid.mockRejectedValueOnce(
         new TransactionAmountError('Computed amount exceeds the storable range', 'unstorable'),
       );
-      const { result, rerender } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+      const { result, rerender } = await renderHook(() =>
+        usePaySheet(OWNER, egpCommitment, duePayment),
+      );
       await act(() => {
         result.current.form.setValue('account_id', egpAccount.id);
         result.current.form.setValue('amountText', '99999999999999999999');
@@ -973,7 +995,7 @@ describe('usePaySheet', () => {
 
     it('saves the same amount when the rate leaves the converted value on the floor', async () => {
       mockAccounts = [usdAccount];
-      const { result } = await renderHook(() => usePaySheet(egpCommitment, duePayment));
+      const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, duePayment));
       await act(() => {
         result.current.form.setValue('account_id', usdAccount.id);
         result.current.form.setValue('amountText', '0.01');
@@ -998,7 +1020,9 @@ describe('usePaySheet', () => {
       exchangeRate?: string,
     ) {
       mockAccounts = [account];
-      const { result, rerender } = await renderHook(() => usePaySheet(commitment, duePayment));
+      const { result, rerender } = await renderHook(() =>
+        usePaySheet(OWNER, commitment, duePayment),
+      );
       await act(() => {
         result.current.form.setValue('account_id', account.id);
         result.current.form.setValue('amountText', amountText);
@@ -1054,7 +1078,7 @@ describe('usePaySheet', () => {
 
     it('row 4: shows no line and demands no rate before an account is picked', async () => {
       mockAccounts = [egpAccount];
-      const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+      const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
       await act(() => {
         result.current.form.setValue('amountText', '100');
       });
