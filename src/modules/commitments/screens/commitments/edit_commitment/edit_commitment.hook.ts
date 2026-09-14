@@ -1,5 +1,5 @@
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
@@ -19,11 +19,12 @@ import {
   type CommitmentFormValues,
   buildEditDefaults,
 } from '../commitment_form.shared';
-import { useEditCommitmentState } from './edit_commitment.state';
+import { INITIAL_UI_ENTRY, useEditCommitmentState } from './edit_commitment.state';
 
 export type { CommitmentFormValues };
 
 export function useEditCommitment() {
+  const owner = useId();
   const router = useRouter();
   const { id, originTxId } = useLocalSearchParams<{ id: string; originTxId?: string }>();
   const stackedPrefix = stackedPrefixOf(usePathname());
@@ -34,16 +35,13 @@ export function useEditCommitment() {
   const updateCommitment = useCommitmentStore.getState().updateCommitment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
   const { saving, saveError, deactivateDialogVisible } = useEditCommitmentState(
-    useShallow((s) => ({
-      saving: s.saving,
-      saveError: s.saveError,
-      deactivateDialogVisible: s.deactivateDialogVisible,
-    })),
+    useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY),
   );
+  const claim = useEditCommitmentState.getState().claim;
   const setSaving = useEditCommitmentState.getState().setSaving;
   const setSaveError = useEditCommitmentState.getState().setSaveError;
   const setDeactivateDialogVisible = useEditCommitmentState.getState().setDeactivateDialogVisible;
-  const reset = useEditCommitmentState.getState().reset;
+  const release = useEditCommitmentState.getState().release;
 
   const commitment = useMemo(() => commitments.find((c) => c.id === id), [commitments, id]);
 
@@ -63,8 +61,9 @@ export function useEditCommitment() {
   }, [commitment]); // oxlint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    return () => reset();
-  }, [reset]);
+    claim(owner);
+    return () => release(owner);
+  }, [owner, claim, release]);
 
   // POP_TO selects by route name, so it steps over any duplicate edit or payment a double-tap appended.
   function leaveStackedSubtree() {
@@ -74,8 +73,8 @@ export function useEditCommitment() {
 
   async function onValid(data: CommitmentFormValues) {
     if (!id) return;
-    setSaveError(undefined);
-    setSaving(true);
+    setSaveError(owner, undefined);
+    setSaving(owner, true);
     try {
       await updateCommitment(id, {
         name: data.name,
@@ -94,38 +93,40 @@ export function useEditCommitment() {
         end_after_count:
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
-      reset();
+      release(owner);
       if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
       else router.dismissTo('/commitments');
     } catch {
-      setSaveError(Strings.commitmentsSaveError);
+      setSaveError(owner, Strings.commitmentsSaveError);
     } finally {
-      setSaving(false);
+      setSaving(owner, false);
     }
   }
 
   function handleDeactivate() {
-    setDeactivateDialogVisible(true);
+    setDeactivateDialogVisible(owner, true);
   }
 
   async function confirmDeactivate() {
     if (!id) return;
-    setSaving(true);
+    setSaving(owner, true);
     try {
       await deactivateCommitment(id);
-      setDeactivateDialogVisible(false);
-      reset();
+      setDeactivateDialogVisible(owner, false);
+      release(owner);
       if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
       else router.replace('/commitments');
     } catch {
-      // Error logged by store.
+      // The sheet is a portal over the form, so it must close for the banner to show.
+      setDeactivateDialogVisible(owner, false);
+      setSaveError(owner, Strings.commitmentsSaveError);
     } finally {
-      setSaving(false);
+      setSaving(owner, false);
     }
   }
 
   function cancelDeactivate() {
-    setDeactivateDialogVisible(false);
+    setDeactivateDialogVisible(owner, false);
   }
 
   return {
