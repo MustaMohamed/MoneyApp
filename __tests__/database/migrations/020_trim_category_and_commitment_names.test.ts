@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 
 import { MIGRATIONS, type Migration } from '@/database/migrations';
 import { registerOpenDbsDrain } from '@/test_helpers/sqlite_drain';
+import { stripNameEdges } from '@/utils/strip_name_edges';
 
 const openDbs = registerOpenDbsDrain();
 
@@ -69,15 +70,42 @@ function commitmentRow(
 }
 
 describe('migration020 — strip stored category and commitment names', () => {
-  it('strips surrounding spaces, tabs and newlines from a category name', () => {
+  it('strips surrounding spaces, tabs, carriage returns and newlines from a category name', () => {
     const db = createDatabaseThrough019();
     insertCategory(db, 'padded', ' Food ');
     insertCategory(db, 'mixed', '\t Trip \n');
+    insertCategory(db, 'carriage', '\r Bills \r');
 
     db.exec(migration020().up);
 
     expect(categoryName(db, 'padded')).toBe('Food');
     expect(categoryName(db, 'mixed')).toBe('Trip');
+    expect(categoryName(db, 'carriage')).toBe('Bills');
+  });
+
+  it('stores every seeded name as stripNameEdges reads it, on both tables', () => {
+    const db = createDatabaseThrough019();
+    const names = [
+      ' Food ',
+      '\t Trip \n',
+      '\r Bills \r',
+      ' \r\n\tPets\t\n\r ',
+      ' \r\n\t',
+      'a  b',
+      ' Gym ',
+      '',
+    ];
+    names.forEach((name, i) => {
+      insertCategory(db, `category_${i}`, name);
+      insertCommitment(db, `commitment_${i}`, name);
+    });
+
+    db.exec(migration020().up);
+
+    names.forEach((name, i) => {
+      expect(categoryName(db, `category_${i}`)).toBe(stripNameEdges(name));
+      expect(commitmentRow(db, `commitment_${i}`).name).toBe(stripNameEdges(name));
+    });
   });
 
   it('leaves a category name of only whitespace empty', () => {

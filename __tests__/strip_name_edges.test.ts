@@ -9,6 +9,10 @@ describe('stripNameEdges', () => {
     expect(stripNameEdges(' ab \n')).toBe('ab');
   });
 
+  it('strips carriage returns at the edges', () => {
+    expect(stripNameEdges('\r Rent \r')).toBe('Rent');
+  });
+
   it('keeps inner spaces as typed', () => {
     expect(stripNameEdges('a  b')).toBe('a  b');
   });
