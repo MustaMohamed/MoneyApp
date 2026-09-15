@@ -1,5 +1,6 @@
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Strings } from '@/constants/strings';
+import { resolveAccountName } from '@/utils/account_name';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../entities/account.entity';
@@ -31,5 +32,5 @@ export function resolveArchivedCardRows(
 }
 
 export function resolveArchivedSummary(rows: ArchivedAccountRowVM[]): string {
-  return Strings.accountsArchivedSummary(rows.map((row) => row.account.name));
+  return Strings.accountsArchivedSummary(rows.map((row) => resolveAccountName(row.account)));
 }

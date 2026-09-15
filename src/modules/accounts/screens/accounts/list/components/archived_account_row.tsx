@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { AccountColorTile } from '@/modules/accounts/components/account_color_tile';
+import { resolveAccountName } from '@/utils/account_name';
 
 import { resolveAccountRowA11yLabel } from '../../../../constants/account_row_a11y_label';
 import {
@@ -65,7 +66,7 @@ export function ArchivedAccountRow({
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {account.name}
+            {resolveAccountName(account)}
           </ListGroup.ItemTitle>
           <Typography
             className="text-content-secondary font-inter tabular-nums"

@@ -501,6 +501,26 @@ describe('useAccountsList — unarchive from a row', () => {
     expect(result.current.state.archived.unarchivingId).toBeUndefined();
   });
 
+  it('toasts the unnamed label for a blank-named archived account', async () => {
+    storeState = {
+      ...storeState,
+      archivedAccounts: [makeTestAccount({ id: 'arch-3', name: '  ', is_archived: 1 })],
+      archivedCount: 1,
+    };
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.unarchive('arch-3');
+    });
+
+    expect(mockUnarchive.mock.calls).toEqual([['arch-3']]);
+    expect(useToast().toast.show).toHaveBeenCalledTimes(1);
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: Strings.accountsArchivedRestored(Strings.unnamedAccount),
+      variant: 'success',
+    });
+  });
+
   it('drops the restored row once the store reloads without it', async () => {
     mockUnarchive.mockImplementationOnce(async () => {
       storeState = { ...storeState, archivedAccounts: [vodafoneCash], archivedCount: 1 };
