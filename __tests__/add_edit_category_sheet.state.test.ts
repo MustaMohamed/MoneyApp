@@ -11,6 +11,7 @@ describe('useAddEditCategorySheetState initial state', () => {
     expect(s.selectedIcon).toBeNull();
     expect(s.selectedColor).toBe(AccountColors[0]);
     expect(s.iconError).toBe('');
+    expect(s.saveError).toBe('');
     expect(s.isLoading).toBe(false);
   });
 });
@@ -42,6 +43,13 @@ describe('useAddEditCategorySheetState setters', () => {
     expect(useAddEditCategorySheetState.getState().iconError).toBe('');
   });
 
+  it('setSaveError updates message', () => {
+    useAddEditCategorySheetState.getState().setSaveError('Could not save');
+    expect(useAddEditCategorySheetState.getState().saveError).toBe('Could not save');
+    useAddEditCategorySheetState.getState().setSaveError('');
+    expect(useAddEditCategorySheetState.getState().saveError).toBe('');
+  });
+
   it('setIsLoading toggles loading flag', () => {
     useAddEditCategorySheetState.getState().setIsLoading(true);
     expect(useAddEditCategorySheetState.getState().isLoading).toBe(true);
@@ -54,6 +62,7 @@ describe('useAddEditCategorySheetState initialize', () => {
   it('sets type/icon/color and clears iconError + isLoading', () => {
     useAddEditCategorySheetState.getState().setIconError('previous error');
     useAddEditCategorySheetState.getState().setIsLoading(true);
+    useAddEditCategorySheetState.getState().setSaveError('previous save error');
 
     useAddEditCategorySheetState.getState().initialize({
       type: CategoryType.Income,
@@ -66,6 +75,7 @@ describe('useAddEditCategorySheetState initialize', () => {
     expect(s.selectedIcon).toBe('cart');
     expect(s.selectedColor).toBe('#abcdef');
     expect(s.iconError).toBe('');
+    expect(s.saveError).toBe('');
     expect(s.isLoading).toBe(false);
   });
 
