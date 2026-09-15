@@ -28,6 +28,7 @@ import { buildActivityRowPresentation } from './components/account_activity.help
 import { buildMonthFacts } from './components/account_facts.helpers';
 
 const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions' as const;
+const ACCOUNTS_LIST = '/accounts' as const;
 
 export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -282,7 +283,7 @@ export function useAccountDetail() {
     // A failed reload leaves both lists stale, so pop over the slot's row instead of a blank loading frame.
     if (useAccountStore.getState().loadError) {
       toast.show({ label: Strings.accountsArchivedRestored(name), variant: 'success' });
-      router.back();
+      router.dismissTo(ACCOUNTS_LIST);
       return;
     }
     // Once restored the slot must not hold the pre-restore row at `ready`, or a later Archive paints it.

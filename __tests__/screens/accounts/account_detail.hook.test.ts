@@ -720,6 +720,7 @@ describe('useAccountDetail — an id outside the active list', () => {
     expect(mockSetUnarchiving).toHaveBeenNthCalledWith(1, true);
     expect(mockSetUnarchiving).toHaveBeenLastCalledWith(false);
     expect(mockBack).not.toHaveBeenCalled();
+    expect(mockDismissTo).not.toHaveBeenCalled();
   });
 
   it('pops to the list with the restored toast when the write landed and the reload failed', async () => {
@@ -737,7 +738,8 @@ describe('useAccountDetail — an id outside the active list', () => {
       label: 'CIB restored.',
       variant: 'success',
     });
-    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo.mock.calls).toEqual([['/accounts']]);
+    expect(mockBack).not.toHaveBeenCalled();
     expect(mockSlotReset).not.toHaveBeenCalled();
     expect(mockEnsure).not.toHaveBeenCalled();
     expect(mockSetUnarchiveError.mock.calls).toEqual([[undefined]]);
