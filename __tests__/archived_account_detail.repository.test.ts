@@ -58,6 +58,16 @@ function seed(): void {
   commitment.run('com-arch-off', 'Old gym', ARCH, 0, NOW, NOW);
   commitment.run('com-live-on', 'Netflix', LIVE, 1, NOW, NOW);
   commitment.run('com-none', 'Rent', null, 1, NOW, NOW);
+
+  const payment = realDb.prepare(
+    `INSERT INTO commitment_payments
+       (id, commitment_id, due_date, paid_date, amount_due, amount_paid, currency,
+        account_id, status, created_at, updated_at)
+     VALUES (?, 'com-arch-on', ?, ?, 200, ?, 'EGP', ?, ?, ?, ?)`,
+  );
+  payment.run('pay-paid', '2026-08-01', '2026-08-01', 200, ARCH, 'paid', NOW, NOW);
+  payment.run('pay-overdue', '2026-09-01', null, null, ARCH, 'overdue', NOW, NOW);
+  payment.run('pay-upcoming', '2026-10-01', null, null, ARCH, 'upcoming', NOW, NOW);
 }
 
 beforeAll(() => {
@@ -89,14 +99,30 @@ describe('getTransactionCountByAccount', () => {
 
 describe('getActiveCommitmentsByAccount', () => {
   it.each([
-    ['an archived account, skipping the inactive one', ARCH, [{ id: 'com-arch-on', name: 'Gym' }]],
-    ['an active account', LIVE, [{ id: 'com-live-on', name: 'Netflix' }]],
+    [
+      'an archived account, skipping the inactive one',
+      ARCH,
+      [{ id: 'com-arch-on', name: 'Gym', account_id: ARCH, amount: 200 }],
+    ],
+    ['an active account', LIVE, [{ id: 'com-live-on', name: 'Netflix', account_id: LIVE }]],
     ['an account with nothing on it', ARCH_EMPTY, []],
     ['an unknown id', UNKNOWN, []],
   ])('reads %s', async (_label, accountId, expected) => {
-    await expect(getActiveCommitmentsByAccount(sqlite.database, accountId)).resolves.toEqual(
+    await expect(getActiveCommitmentsByAccount(sqlite.database, accountId)).resolves.toMatchObject(
       expected,
     );
+  });
+
+  it('dates the next payment from the earliest unpaid row, skipping a paid one', async () => {
+    const [gym] = await getActiveCommitmentsByAccount(sqlite.database, ARCH);
+
+    expect(gym?.next_due_date).toBe('2026-09-01');
+  });
+
+  it('reads no next date for a commitment with no unpaid row', async () => {
+    const [netflix] = await getActiveCommitmentsByAccount(sqlite.database, LIVE);
+
+    expect(netflix?.next_due_date).toBeNull();
   });
 });
 
@@ -109,7 +135,7 @@ describe('ArchivedAccountDetailRepository.getSnapshot', () => {
     expect(snapshot.accountId).toBe(ARCH);
     expect(snapshot.account?.id).toBe(ARCH);
     expect(snapshot.transactionCount).toBe(3);
-    expect(snapshot.activeCommitments).toEqual([{ id: 'com-arch-on', name: 'Gym' }]);
+    expect(snapshot.activeCommitments).toMatchObject([{ id: 'com-arch-on', name: 'Gym' }]);
   });
 
   it('resolves an archived account with nothing on it, both counts zero', async () => {
@@ -131,7 +157,7 @@ describe('ArchivedAccountDetailRepository.getSnapshot', () => {
 
     expect(snapshot.account).toBeUndefined();
     expect(snapshot.transactionCount).toBe(3);
-    expect(snapshot.activeCommitments).toEqual([{ id: 'com-live-on', name: 'Netflix' }]);
+    expect(snapshot.activeCommitments).toMatchObject([{ id: 'com-live-on', name: 'Netflix' }]);
   });
 
   it('resolves an unknown id to no account and zero counts', async () => {
@@ -155,7 +181,7 @@ describe('createArchivedAccountDetailStore on the real database', () => {
     expect(store.getState().status).toBe('ready');
     expect(store.getState().snapshot?.account?.id).toBe(ARCH);
     expect(store.getState().snapshot?.transactionCount).toBe(3);
-    expect(store.getState().snapshot?.activeCommitments).toEqual([
+    expect(store.getState().snapshot?.activeCommitments).toMatchObject([
       { id: 'com-arch-on', name: 'Gym' },
     ]);
   });

@@ -131,14 +131,34 @@ export async function clearCommitmentAccount(
   );
 }
 
-export type AccountCommitmentRef = Pick<Commitment, 'id' | 'name'>;
+export async function updateActiveCommitmentsAccount(
+  db: SQLiteDatabase,
+  fromAccountId: string,
+  toAccountId: string,
+  updatedAt: string,
+): Promise<number> {
+  const result = await db.runAsync(
+    'UPDATE commitments SET account_id = ?, updated_at = ? WHERE account_id = ? AND is_active = 1',
+    [toAccountId, updatedAt, fromAccountId],
+  );
+  return result.changes;
+}
+
+export type AccountCommitmentRef = Commitment & { next_due_date: string | null };
 
 export async function getActiveCommitmentsByAccount(
   db: SQLiteDatabase,
   accountId: string,
 ): Promise<AccountCommitmentRef[]> {
   return db.getAllAsync<AccountCommitmentRef>(
-    'SELECT id, name FROM commitments WHERE account_id = ? AND is_active = 1 ORDER BY name COLLATE NOCASE, id',
+    `SELECT c.*,
+            (SELECT MIN(p.due_date)
+               FROM commitment_payments p INDEXED BY idx_cp_commitment_id
+              WHERE p.commitment_id = c.id
+                AND p.status IN ('upcoming', 'due', 'overdue')) AS next_due_date
+       FROM commitments c
+      WHERE c.account_id = ? AND c.is_active = 1
+      ORDER BY c.name COLLATE NOCASE, c.id`,
     [accountId],
   );
 }

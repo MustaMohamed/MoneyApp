@@ -1,7 +1,11 @@
 import uuid from 'react-native-uuid';
 
 import { getDb } from '@/database/client';
-import { clearCommitmentAccount } from '@/modules/commitments/database/commitments';
+import { updateUnpaidPaymentsAccount } from '@/modules/commitments/database/commitment_payments';
+import {
+  clearCommitmentAccount,
+  updateActiveCommitmentsAccount,
+} from '@/modules/commitments/database/commitments';
 import { roundMoney } from '@/utils/money';
 
 import {
@@ -51,7 +55,7 @@ export interface IAccountRepository {
   update(id: string, data: UpdateAccountInput): Promise<void>;
   archive(id: string): Promise<void>;
   unarchive(id: string): Promise<void>;
-  delete(id: string): Promise<void>;
+  delete(id: string, replacementAccountId?: string): Promise<void>;
   adjustBalance(id: string, newBalance: number): Promise<void>;
   confirmBalanceReviewed(id: string): Promise<void>;
 }
@@ -120,7 +124,7 @@ export class AccountRepository implements IAccountRepository {
     if ((await setAccountUnarchived(db, id, now)) !== 1) throw new AccountNotFoundError();
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, replacementAccountId?: string): Promise<void> {
     const db = await getDb();
     const existing = await getAccountByIdIncludingArchived(db, id);
     if (!existing || existing.is_deleted === 1) throw new AccountNotFoundError();
@@ -128,6 +132,14 @@ export class AccountRepository implements IAccountRepository {
 
     const now = new Date().toISOString();
     await db.withTransactionAsync(async () => {
+      if (replacementAccountId !== undefined) {
+        const replacement = await getAccountByIdIncludingArchived(db, replacementAccountId);
+        if (!replacement || replacement.is_deleted === 1) throw new AccountNotFoundError();
+        if (replacement.is_archived === 1) throw new AccountArchivedError();
+        // Payments first: their subquery finds the commitments only while they still name `id`.
+        await updateUnpaidPaymentsAccount(db, id, replacementAccountId, now);
+        await updateActiveCommitmentsAccount(db, id, replacementAccountId, now);
+      }
       if ((await setAccountDeleted(db, id, now)) !== 1) throw new AccountNotFoundError();
       await clearCommitmentAccount(db, id, now);
     });

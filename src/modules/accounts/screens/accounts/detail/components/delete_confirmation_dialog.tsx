@@ -11,6 +11,7 @@ interface AccountDeleteConfirmationDialogProps {
   account: Account;
   transactionCount: number;
   activeCommitments: Readonly<ArchivedAccountDetailSnapshot['activeCommitments']>;
+  hasReplacementAccount: boolean;
   onClose: () => void;
   onConfirm: () => void;
   isLoading: boolean;
@@ -22,6 +23,7 @@ export function AccountDeleteConfirmationDialog({
   account,
   transactionCount,
   activeCommitments,
+  hasReplacementAccount,
   onClose,
   onConfirm,
   isLoading,
@@ -33,7 +35,11 @@ export function AccountDeleteConfirmationDialog({
       busy={isLoading}
       destructive
       title={Strings.accountDetailDeleteTitle(resolveAccountName(account))}
-      body={resolveDeleteWarningBody({ transactionCount, activeCommitments })}
+      body={resolveDeleteWarningBody({
+        transactionCount,
+        activeCommitments,
+        hasReplacementAccount,
+      })}
       confirmLabel={Strings.accountDetailDeleteConfirm}
       confirmLoadingLabel={Strings.accountDetailDeleting}
       cancelLabel={Strings.accountDetailDeleteKeep}

@@ -36,6 +36,7 @@ export type AccountStore = typeof INITIAL_STATE & {
   archiveAccount: (id: string) => Promise<void>;
   unarchiveAccount: (id: string) => Promise<void>;
   deleteAccount: (id: string) => Promise<void>;
+  deleteAccountMovingCommitments: (id: string, replacementAccountId: string) => Promise<void>;
   adjustBalance: (id: string, newBalance: number) => Promise<void>;
   confirmBalanceReviewed: (id: string) => Promise<void>;
   reset: () => void;
@@ -61,6 +62,23 @@ export function createAccountStore(repo: IAccountRepository) {
           .loadAccounts()
           .catch(() => undefined);
         return result;
+      };
+
+      const refreshDeletedLookup = async (id: string): Promise<void> => {
+        // A cached copy keeps the id known, so the lookup would never fetch the deleted row.
+        set((s) =>
+          id in s.accountLookupById
+            ? {
+                accountLookupById: Object.fromEntries(
+                  Object.entries(s.accountLookupById).filter(([key]) => key !== id),
+                ),
+              }
+            : s,
+        );
+        // A failed lookup publishes `accountLookupError`, which the transactions list renders.
+        await get()
+          .loadAccountLookup([id])
+          .catch(() => undefined);
       };
 
       return {
@@ -132,20 +150,14 @@ export function createAccountStore(repo: IAccountRepository) {
 
         deleteAccount: async (id) => {
           await writeThenReload('deleteAccount', () => repo.delete(id));
-          // A cached copy keeps the id known, so the lookup would never fetch the deleted row.
-          set((s) =>
-            id in s.accountLookupById
-              ? {
-                  accountLookupById: Object.fromEntries(
-                    Object.entries(s.accountLookupById).filter(([key]) => key !== id),
-                  ),
-                }
-              : s,
+          await refreshDeletedLookup(id);
+        },
+
+        deleteAccountMovingCommitments: async (id, replacementAccountId) => {
+          await writeThenReload('deleteAccountMovingCommitments', () =>
+            repo.delete(id, replacementAccountId),
           );
-          // A failed lookup publishes `accountLookupError`, which the transactions list renders.
-          await get()
-            .loadAccountLookup([id])
-            .catch(() => undefined);
+          await refreshDeletedLookup(id);
         },
 
         adjustBalance: (id, newBalance) =>

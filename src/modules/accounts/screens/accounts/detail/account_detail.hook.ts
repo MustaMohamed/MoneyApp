@@ -26,6 +26,7 @@ import { useAccountDetailState } from './account_detail.state';
 import { useArchivedAccountDetailStore } from './archived_account_detail.store';
 import { buildActivityRowPresentation } from './components/account_activity.helpers';
 import { buildMonthFacts } from './components/account_facts.helpers';
+import { useReplacementAccountSheetState } from './components/replacement_account_sheet.state';
 
 const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions' as const;
 const ACCOUNTS_LIST = '/accounts' as const;
@@ -91,6 +92,7 @@ export function useAccountDetail() {
   const setDeleting = useAccountDetailState.getState().setDeleting;
   const setDeleteError = useAccountDetailState.getState().setDeleteError;
   const reset = useAccountDetailState.getState().reset;
+  const openReplacementSheet = useReplacementAccountSheetState.getState().open;
   const { activityStatus, activitySnapshot } = useAccountActivityStore(
     useShallow((s) => ({ activityStatus: s.status, activitySnapshot: s.snapshot })),
   );
@@ -102,6 +104,7 @@ export function useAccountDetail() {
   useEffect(
     () => () => {
       reset();
+      useReplacementAccountSheetState.getState().reset();
       // Bumps the generation too, so a result racing an archive is dropped (M14).
       useAccountActivityStore.getState().reset();
       useArchivedAccountDetailStore.getState().reset();
@@ -120,6 +123,8 @@ export function useAccountDetail() {
   }, [navigation]);
 
   const account = accounts.find((a) => a.id === id);
+  const replacementOptions = accounts;
+  const hasReplacementAccount = replacementOptions.length > 0;
 
   const archived = useMemo(
     () =>
@@ -314,6 +319,13 @@ export function useAccountDetail() {
 
   const handleDelete = async () => {
     if (!archived || useAccountDetailState.getState().isDeleting) return;
+    // Commitments an active account can take over go through the sheet instead of losing their account.
+    if (archived.activeCommitments.length > 0 && hasReplacementAccount) {
+      setDeleteVisible(false);
+      setDeleteError(undefined);
+      openReplacementSheet(replacementOptions[0].id);
+      return;
+    }
     // Read before the write, which scrubs the name.
     const name = resolveAccountName(archived.account);
     setDeleteError(undefined);
@@ -419,6 +431,8 @@ export function useAccountDetail() {
       isDeleteVisible,
       isDeleting,
       deleteError,
+      replacementOptions,
+      hasReplacementAccount,
       activity: { status: activityStatus, rows: activityRows, monthFacts },
     },
     form,

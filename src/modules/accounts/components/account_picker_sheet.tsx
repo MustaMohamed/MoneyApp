@@ -1,16 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { PressableFeedback, Typography } from 'heroui-native';
-import { View } from 'react-native';
+import { PressableFeedback } from 'heroui-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { resolveAccountName } from '@/utils/account_name';
-import { formatCurrencyAmount } from '@/utils/format_amount';
-import { ms } from '@/utils/responsive';
 
 import type { Account } from '../entities/account.entity';
-import { TYPE_OPTIONS } from './account_type_pill';
+import { AccountRowContent } from './account_row_content';
 
 interface Props {
   isOpen: boolean;
@@ -56,21 +52,7 @@ export function AccountPickerSheet({
               style={{ flexDirection: 'row', alignItems: 'center' }}
               className="border-separator gap-3 border-b px-4 py-3"
             >
-              <View style={{ width: ms(20), alignItems: 'center', justifyContent: 'center' }}>
-                <MaterialCommunityIcons
-                  name={TYPE_OPTIONS.find((o) => o.type === item.type)?.icon ?? 'bank'}
-                  size={ms(18)}
-                  color={item.color ?? CoreTokens.text2}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Typography className="font-sora-semibold text-foreground text-[15px]">
-                  {resolveAccountName(item)}
-                </Typography>
-                <Typography className="font-inter text-muted text-[12px]">
-                  {formatCurrencyAmount(item.current_balance, item.currency)}
-                </Typography>
-              </View>
+              <AccountRowContent account={item} />
               {isSelected ? (
                 <MaterialCommunityIcons
                   testID={`account-picker-row-${item.id}-selected`}

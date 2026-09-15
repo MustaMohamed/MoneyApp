@@ -31,6 +31,7 @@ import { BalanceHero } from './components/balance_hero';
 import { BalanceReviewAlert } from './components/balance_review_alert';
 import { shouldShowBalanceReview } from './components/balance_review_alert.helpers';
 import { AccountDeleteConfirmationDialog } from './components/delete_confirmation_dialog';
+import { ReplacementAccountSheet } from './components/replacement_account_sheet';
 
 const hitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
 
@@ -54,6 +55,8 @@ export default function AccountDetailScreen() {
       isDeleteVisible,
       isDeleting,
       deleteError,
+      replacementOptions,
+      hasReplacementAccount,
       activity,
     },
     form,
@@ -135,12 +138,18 @@ export default function AccountDetailScreen() {
               account={archived.account}
               transactionCount={archived.transactionCount}
               activeCommitments={archived.activeCommitments}
+              hasReplacementAccount={hasReplacementAccount}
               onClose={closeDelete}
               onConfirm={() => {
                 void handleDelete();
               }}
               isLoading={isDeleting}
               errorMessage={deleteError}
+            />
+            <ReplacementAccountSheet
+              account={archived.account}
+              commitments={archived.activeCommitments}
+              options={replacementOptions}
             />
           </>
         ) : null}

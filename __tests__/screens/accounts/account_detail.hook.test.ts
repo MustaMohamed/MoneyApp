@@ -15,6 +15,7 @@ import {
 } from '@/modules/accounts/screens/accounts/detail/archived_account_detail.store';
 import { useAccountStore, type Account } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { makeAccountCommitmentRef } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
 import { currentYearMonth } from '@/utils/year_month';
@@ -82,8 +83,17 @@ jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
   () => ({ useTransactionFormState: { getState: () => ({ openAdd: mockOpenAdd }) } }),
 );
+jest.mock(
+  '@/modules/accounts/screens/accounts/detail/components/replacement_account_sheet.state',
+  () => ({
+    useReplacementAccountSheetState: {
+      getState: () => ({ open: mockOpenReplacementSheet, reset: mockReplacementSheetReset }),
+    },
+  }),
+);
 
 const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions';
+const GYM_REF = makeAccountCommitmentRef({ id: 'com-1', name: 'Gym' });
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
   return {
@@ -186,6 +196,8 @@ const mockDeleteAccount = jest.fn();
 const mockSetDeleteVisible = jest.fn();
 const mockSetDeleting = jest.fn();
 const mockSetDeleteError = jest.fn();
+const mockOpenReplacementSheet = jest.fn();
+const mockReplacementSheetReset = jest.fn();
 
 type DetailStateMock = {
   isEditing: boolean;
@@ -702,7 +714,7 @@ function archivedSnapshot(
     accountId: 'acc-1',
     account: mkAccount({ is_archived: 1 }),
     transactionCount: 42,
-    activeCommitments: [{ id: 'com-1', name: 'Gym' }],
+    activeCommitments: [GYM_REF],
     ...overrides,
   };
 }
@@ -720,7 +732,7 @@ describe('useAccountDetail — an id outside the active list', () => {
       account: mkAccount({ is_archived: 1 }),
       transactionCount: 42,
       activeCommitmentCount: 1,
-      activeCommitments: [{ id: 'com-1', name: 'Gym' }],
+      activeCommitments: [GYM_REF],
     });
     expect(result.current.state.activity.monthFacts).toEqual([]);
   });
@@ -1000,5 +1012,65 @@ describe('useAccountDetail — an id outside the active list', () => {
     expect(mockSetDeleteVisible).toHaveBeenCalledWith(false);
     expect(mockSetDeleteError).toHaveBeenCalledWith(undefined);
     expect(mockDeleteAccount).not.toHaveBeenCalled();
+  });
+});
+
+const CASH = mkAccount({ id: 'acc-2', name: 'Cash' });
+const HSBC = mkAccount({ id: 'acc-3', name: 'HSBC' });
+
+describe('useAccountDetail — the replacement sheet', () => {
+  beforeEach(setup);
+
+  it('opens the sheet on Delete with the first active account selected, and writes nothing', async () => {
+    mockAccounts([CASH, HSBC]);
+    mockSlot(archivedSnapshot());
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleDelete());
+
+    expect(mockSetDeleteVisible).toHaveBeenCalledWith(false);
+    expect(mockSetDeleteError).toHaveBeenCalledWith(undefined);
+    expect(mockOpenReplacementSheet).toHaveBeenCalledWith('acc-2');
+    expect(mockDeleteAccount).not.toHaveBeenCalled();
+    expect(mockSetDeleting).not.toHaveBeenCalled();
+    expect(result.current.state.replacementOptions).toEqual([CASH, HSBC]);
+    expect(result.current.state.hasReplacementAccount).toBe(true);
+  });
+
+  it('skips the sheet when no active account can take the commitments, and toasts the plain line', async () => {
+    mockSlot(archivedSnapshot());
+    mockDeleteAccount.mockResolvedValueOnce(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(result.current.state.hasReplacementAccount).toBe(false);
+
+    await act(() => result.current.handleDelete());
+
+    expect(mockOpenReplacementSheet).not.toHaveBeenCalled();
+    expect(mockDeleteAccount).toHaveBeenCalledWith('acc-1');
+    expect(mockToast.show).toHaveBeenCalledWith({ label: 'CIB deleted.', variant: 'success' });
+  });
+
+  it('runs the delete when no active commitment prefers the account', async () => {
+    mockAccounts([CASH]);
+    mockSlot(archivedSnapshot({ activeCommitments: [] }));
+    mockDeleteAccount.mockResolvedValueOnce(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleDelete());
+
+    expect(mockOpenReplacementSheet).not.toHaveBeenCalled();
+    expect(mockDeleteAccount).toHaveBeenCalledWith('acc-1');
+  });
+
+  it('resets the sheet with the detail state when the screen unmounts', async () => {
+    mockAccounts([CASH]);
+    mockSlot(archivedSnapshot());
+    const { unmount } = await renderHook(() => useAccountDetail());
+
+    await unmount();
+
+    expect(mockReset).toHaveBeenCalledTimes(1);
+    expect(mockReplacementSheetReset).toHaveBeenCalledTimes(1);
   });
 });
