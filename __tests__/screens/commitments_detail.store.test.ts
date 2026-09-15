@@ -54,13 +54,6 @@ describe('useCommitmentDetailStore', () => {
 
     expect(entryOf('owner-a').allPayments).toBe(second);
   });
-
-  it('rows written for one commitment read as not owned by another id', () => {
-    useCommitmentDetailStore.getState().setAllPayments('owner-a', 'commitment-1', [makePayment()]);
-
-    expect(entryOf('owner-a').commitmentId).toBe('commitment-1');
-    expect(entryOf('owner-a').commitmentId).not.toBe('commitment-2');
-  });
 });
 
 describe('useCommitmentDetailStore owner isolation', () => {

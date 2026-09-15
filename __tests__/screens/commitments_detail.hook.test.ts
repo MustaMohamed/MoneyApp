@@ -261,7 +261,6 @@ describe('useCommitmentDetail', () => {
     await waitFor(() => expect(result.current.state.viewState).toBe('refreshErrorWithData'));
     expect(useCommitmentDetailStore.getState().entries[owner].allPayments).toBe(rentHistory);
     expect(result.current.state.allPayments[0].status).toBe(CommitmentPaymentStatus.Skipped);
-    expect(result.current.state.refreshError).toBe(true);
     expect(result.current.state.skipConfirmVisible).toBe(false);
     consoleSpy.mockRestore();
   });
@@ -348,7 +347,6 @@ describe('useCommitmentDetail', () => {
 
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(3);
-    expect(result.current.state.refreshError).toBe(false);
     consoleSpy.mockRestore();
   });
 

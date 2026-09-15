@@ -13,7 +13,6 @@ import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
-import type { DetailLoadErrorFloatingOffset } from './components/detail_load_error';
 import { usePaySheetState } from './components/pay_sheet.state';
 import { overlayStorePayments, resolveCommitmentDetailViewState } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
@@ -78,7 +77,7 @@ export function useCommitmentDetail() {
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
 
-  const { status, refreshError, reloadKey, skipConfirmVisible, skipBusy, skipError } =
+  const { activeId, status, refreshError, reloadKey, skipConfirmVisible, skipBusy, skipError } =
     useCommitmentDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
   const beginLoad = useCommitmentDetailState.getState().beginLoad;
   const resolve = useCommitmentDetailState.getState().resolve;
@@ -110,17 +109,17 @@ export function useCommitmentDetail() {
     let cancelled = false;
     const entry = useCommitmentDetailStore.getState().entries[owner] ?? INITIAL_DATA_ENTRY;
     const preserveData = entry.commitmentId === commitmentId && entry.allPayments.length > 0;
-    beginLoad(owner, preserveData);
+    beginLoad(owner, commitmentId, preserveData);
     commitmentRepository
       .getPaymentsByCommitment(commitmentId)
       .then((rows) => {
         if (cancelled) return;
         setAllPayments(owner, commitmentId, rows);
-        resolve(owner);
+        resolve(owner, commitmentId);
       })
       .catch((err) => {
         console.error('[commitmentDetail] getPaymentsByCommitment failed', err);
-        if (!cancelled) failLoad(owner, preserveData);
+        if (!cancelled) failLoad(owner, commitmentId, preserveData);
       });
     return () => {
       cancelled = true;
@@ -140,6 +139,7 @@ export function useCommitmentDetail() {
 
   const viewState = resolveCommitmentDetailViewState({
     hasCommitment: commitment !== undefined,
+    ownsStatus: activeId === commitmentId,
     status,
     hasRows: rows.length > 0,
     refreshError,
@@ -167,8 +167,6 @@ export function useCommitmentDetail() {
     () => (commitment ? buildDurationLabel(commitment) : ''),
     [commitment],
   );
-
-  const floatingOffset: DetailLoadErrorFloatingOffset = stackedPrefix ? 'edge' : 'tabBar';
 
   const openPaySheet = useCallback(() => {
     usePaySheetState.getState().open(owner);
@@ -221,11 +219,9 @@ export function useCommitmentDetail() {
       currentPayment,
       recurrenceLabel,
       durationLabel,
-      refreshError,
       skipConfirmVisible,
       skipBusy,
       skipError,
-      floatingOffset,
     },
     openPaySheet,
     skipPayment,

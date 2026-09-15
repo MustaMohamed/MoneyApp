@@ -1,34 +1,24 @@
-import { LoadErrorAlert, type LoadErrorAlertProps } from '@/components/ui/load_error_alert';
+import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Strings } from '@/constants/strings';
 
-export type DetailLoadErrorFloatingOffset = NonNullable<
-  Extract<LoadErrorAlertProps, { mode: 'floating' }>['floatingOffset']
->;
+import { resolveDetailLoadErrorTitle } from './detail_load_error.helpers';
 
 interface DetailLoadErrorProps {
   floating?: boolean;
-  floatingOffset?: DetailLoadErrorFloatingOffset;
   onRetry: () => void;
 }
 
 export function DetailLoadError({
   floating = false,
-  floatingOffset,
   onRetry,
 }: DetailLoadErrorProps): React.ReactElement {
-  const common = {
-    retryLabel: Strings.commitmentsLoadRetry,
-    onRetry,
-    testID: 'commitment-detail-load-error',
-  };
-  return floating ? (
+  return (
     <LoadErrorAlert
-      {...common}
-      mode="floating"
-      floatingOffset={floatingOffset}
-      title={Strings.commitmentsDetailRefreshErrorTitle}
+      mode={floating ? 'floating' : 'fill'}
+      title={resolveDetailLoadErrorTitle(floating)}
+      retryLabel={Strings.commitmentsLoadRetry}
+      onRetry={onRetry}
+      testID="commitment-detail-load-error"
     />
-  ) : (
-    <LoadErrorAlert {...common} mode="fill" title={Strings.commitmentsDetailLoadErrorTitle} />
   );
 }

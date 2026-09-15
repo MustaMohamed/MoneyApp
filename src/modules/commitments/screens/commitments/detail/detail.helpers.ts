@@ -10,6 +10,8 @@ export type CommitmentDetailViewState =
 
 export interface CommitmentDetailViewStateInput {
   hasCommitment: boolean;
+  /** The UI entry's load belongs to the commitment now on the route. */
+  ownsStatus: boolean;
   status: CommitmentDetailLoadStatus;
   hasRows: boolean;
   refreshError: boolean;
@@ -17,12 +19,13 @@ export interface CommitmentDetailViewStateInput {
 
 export function resolveCommitmentDetailViewState({
   hasCommitment,
+  ownsStatus,
   status,
   hasRows,
   refreshError,
 }: CommitmentDetailViewStateInput): CommitmentDetailViewState {
   if (!hasCommitment) return 'notFound';
-  if (status === 'loading') return hasRows ? 'ready' : 'loading';
+  if (!ownsStatus || status === 'loading') return hasRows ? 'ready' : 'loading';
   if (status === 'firstLoadError') return hasRows ? 'refreshErrorWithData' : 'firstLoadError';
   if (refreshError && hasRows) return 'refreshErrorWithData';
   return 'ready';

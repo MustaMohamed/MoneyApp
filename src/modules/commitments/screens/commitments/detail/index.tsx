@@ -84,7 +84,7 @@ export default function CommitmentDetailScreen() {
       ) : null}
 
       {state.viewState === 'refreshErrorWithData' ? (
-        <DetailLoadError floating floatingOffset={state.floatingOffset} onRetry={reload} />
+        <DetailLoadError floating onRetry={reload} />
       ) : null}
 
       <PaySheet owner={state.owner} commitment={state.commitment} payment={state.payment} />
