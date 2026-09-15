@@ -20,6 +20,7 @@ interface ArchivedDetailBodyProps {
   transactionCount: number;
   activeCommitmentCount: number;
   onUnarchive: () => void;
+  onDelete: () => void;
   isUnarchiving: boolean;
   errorMessage?: string;
 }
@@ -29,6 +30,7 @@ export function ArchivedDetailBody({
   transactionCount,
   activeCommitmentCount,
   onUnarchive,
+  onDelete,
   isUnarchiving,
   errorMessage,
 }: ArchivedDetailBodyProps): React.ReactElement {
@@ -74,6 +76,16 @@ export function ArchivedDetailBody({
           onPress={onUnarchive}
           isLoading={isUnarchiving}
           isDisabled={isUnarchiving}
+        />
+      </Box>
+      <Box className="mx-4 mt-2">
+        <Button
+          variant="ghost"
+          flat
+          tone="danger"
+          icon="trash-can-outline"
+          label={Strings.accountDetailDelete}
+          onPress={onDelete}
         />
       </Box>
       <FormErrorText message={errorMessage} className="mx-4" />

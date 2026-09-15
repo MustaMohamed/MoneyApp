@@ -1,5 +1,8 @@
 import { getDb } from '@/database/client';
-import { getActiveCommitmentCountByAccount } from '@/modules/commitments/database/commitments';
+import {
+  getActiveCommitmentsByAccount,
+  type AccountCommitmentRef,
+} from '@/modules/commitments/database/commitments';
 import { getTransactionCountByAccount } from '@/modules/transactions/database/transactions';
 
 import { getAccountByIdIncludingArchived } from '../database/accounts';
@@ -10,7 +13,7 @@ export interface ArchivedAccountDetailSnapshot {
   /** The row only when it is archived and not deleted. */
   account: Account | undefined;
   transactionCount: number;
-  activeCommitmentCount: number;
+  activeCommitments: AccountCommitmentRef[];
 }
 
 export interface ArchivedAccountDetailLoadInput {
@@ -29,17 +32,17 @@ export class ArchivedAccountDetailRepository implements IArchivedAccountDetailRe
   }: ArchivedAccountDetailLoadInput): Promise<ArchivedAccountDetailSnapshot> {
     const db = await getDb();
 
-    const [row, transactionCount, activeCommitmentCount] = await Promise.all([
+    const [row, transactionCount, activeCommitments] = await Promise.all([
       getAccountByIdIncludingArchived(db, accountId),
       getTransactionCountByAccount(db, accountId),
-      getActiveCommitmentCountByAccount(db, accountId),
+      getActiveCommitmentsByAccount(db, accountId),
     ]);
 
     return {
       accountId,
       account: row?.is_archived === 1 && row.is_deleted === 0 ? row : undefined,
       transactionCount,
-      activeCommitmentCount,
+      activeCommitments,
     };
   }
 }

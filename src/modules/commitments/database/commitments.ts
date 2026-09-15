@@ -131,15 +131,16 @@ export async function clearCommitmentAccount(
   );
 }
 
-export async function getActiveCommitmentCountByAccount(
+export type AccountCommitmentRef = Pick<Commitment, 'id' | 'name'>;
+
+export async function getActiveCommitmentsByAccount(
   db: SQLiteDatabase,
   accountId: string,
-): Promise<number> {
-  const row = await db.getFirstAsync<{ count: number }>(
-    'SELECT COUNT(*) AS count FROM commitments WHERE account_id = ? AND is_active = 1',
+): Promise<AccountCommitmentRef[]> {
+  return db.getAllAsync<AccountCommitmentRef>(
+    'SELECT id, name FROM commitments WHERE account_id = ? AND is_active = 1 ORDER BY name COLLATE NOCASE, id',
     [accountId],
   );
-  return row?.count ?? 0;
 }
 
 export async function deactivateCommitment(db: SQLiteDatabase, id: string): Promise<void> {

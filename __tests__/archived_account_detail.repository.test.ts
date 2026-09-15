@@ -4,7 +4,7 @@ import { AccountType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
 import { ArchivedAccountDetailRepository } from '@/modules/accounts/repositories/archived_account_detail.repository';
 import { createArchivedAccountDetailStore } from '@/modules/accounts/screens/accounts/detail/archived_account_detail.store';
-import { getActiveCommitmentCountByAccount } from '@/modules/commitments/database/commitments';
+import { getActiveCommitmentsByAccount } from '@/modules/commitments/database/commitments';
 import { getTransactionCountByAccount } from '@/modules/transactions/database/transactions';
 import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 
@@ -87,14 +87,14 @@ describe('getTransactionCountByAccount', () => {
   });
 });
 
-describe('getActiveCommitmentCountByAccount', () => {
+describe('getActiveCommitmentsByAccount', () => {
   it.each([
-    ['an archived account, skipping the inactive one', ARCH, 1],
-    ['an active account', LIVE, 1],
-    ['an account with nothing on it', ARCH_EMPTY, 0],
-    ['an unknown id', UNKNOWN, 0],
-  ])('counts %s', async (_label, accountId, expected) => {
-    await expect(getActiveCommitmentCountByAccount(sqlite.database, accountId)).resolves.toBe(
+    ['an archived account, skipping the inactive one', ARCH, [{ id: 'com-arch-on', name: 'Gym' }]],
+    ['an active account', LIVE, [{ id: 'com-live-on', name: 'Netflix' }]],
+    ['an account with nothing on it', ARCH_EMPTY, []],
+    ['an unknown id', UNKNOWN, []],
+  ])('reads %s', async (_label, accountId, expected) => {
+    await expect(getActiveCommitmentsByAccount(sqlite.database, accountId)).resolves.toEqual(
       expected,
     );
   });
@@ -109,7 +109,7 @@ describe('ArchivedAccountDetailRepository.getSnapshot', () => {
     expect(snapshot.accountId).toBe(ARCH);
     expect(snapshot.account?.id).toBe(ARCH);
     expect(snapshot.transactionCount).toBe(3);
-    expect(snapshot.activeCommitmentCount).toBe(1);
+    expect(snapshot.activeCommitments).toEqual([{ id: 'com-arch-on', name: 'Gym' }]);
   });
 
   it('resolves an archived account with nothing on it, both counts zero', async () => {
@@ -117,7 +117,7 @@ describe('ArchivedAccountDetailRepository.getSnapshot', () => {
 
     expect(snapshot.account?.id).toBe(ARCH_EMPTY);
     expect(snapshot.transactionCount).toBe(0);
-    expect(snapshot.activeCommitmentCount).toBe(0);
+    expect(snapshot.activeCommitments).toEqual([]);
   });
 
   it('resolves a deleted id to no account', async () => {
@@ -131,7 +131,7 @@ describe('ArchivedAccountDetailRepository.getSnapshot', () => {
 
     expect(snapshot.account).toBeUndefined();
     expect(snapshot.transactionCount).toBe(3);
-    expect(snapshot.activeCommitmentCount).toBe(1);
+    expect(snapshot.activeCommitments).toEqual([{ id: 'com-live-on', name: 'Netflix' }]);
   });
 
   it('resolves an unknown id to no account and zero counts', async () => {
@@ -141,7 +141,7 @@ describe('ArchivedAccountDetailRepository.getSnapshot', () => {
       accountId: UNKNOWN,
       account: undefined,
       transactionCount: 0,
-      activeCommitmentCount: 0,
+      activeCommitments: [],
     });
   });
 });
@@ -155,6 +155,8 @@ describe('createArchivedAccountDetailStore on the real database', () => {
     expect(store.getState().status).toBe('ready');
     expect(store.getState().snapshot?.account?.id).toBe(ARCH);
     expect(store.getState().snapshot?.transactionCount).toBe(3);
-    expect(store.getState().snapshot?.activeCommitmentCount).toBe(1);
+    expect(store.getState().snapshot?.activeCommitments).toEqual([
+      { id: 'com-arch-on', name: 'Gym' },
+    ]);
   });
 });

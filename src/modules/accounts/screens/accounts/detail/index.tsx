@@ -30,6 +30,7 @@ import { ArchivedDetailBody } from './components/archived_detail_body';
 import { BalanceHero } from './components/balance_hero';
 import { BalanceReviewAlert } from './components/balance_review_alert';
 import { shouldShowBalanceReview } from './components/balance_review_alert.helpers';
+import { AccountDeleteConfirmationDialog } from './components/delete_confirmation_dialog';
 
 const hitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
 
@@ -50,6 +51,9 @@ export default function AccountDetailScreen() {
       archiveError,
       isUnarchiving,
       unarchiveError,
+      isDeleteVisible,
+      isDeleting,
+      deleteError,
       activity,
     },
     form,
@@ -61,6 +65,9 @@ export default function AccountDetailScreen() {
     closeArchive,
     handleArchive,
     handleUnarchive,
+    setDeleteVisible,
+    closeDelete,
+    handleDelete,
     handleConfirmBalanceReviewed,
     onBack,
     retryActivity,
@@ -106,21 +113,36 @@ export default function AccountDetailScreen() {
         ) : null}
 
         {archived ? (
-          <ScreenScroll
-            contentContainerStyle={{ paddingBottom: 32 }}
-            showsVerticalScrollIndicator={false}
-          >
-            <ArchivedDetailBody
+          <>
+            <ScreenScroll
+              contentContainerStyle={{ paddingBottom: 32 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <ArchivedDetailBody
+                account={archived.account}
+                transactionCount={archived.transactionCount}
+                activeCommitmentCount={archived.activeCommitmentCount}
+                onUnarchive={() => {
+                  void handleUnarchive();
+                }}
+                onDelete={() => setDeleteVisible(true)}
+                isUnarchiving={isUnarchiving}
+                errorMessage={unarchiveError}
+              />
+            </ScreenScroll>
+            <AccountDeleteConfirmationDialog
+              visible={isDeleteVisible}
               account={archived.account}
               transactionCount={archived.transactionCount}
-              activeCommitmentCount={archived.activeCommitmentCount}
-              onUnarchive={() => {
-                void handleUnarchive();
+              activeCommitments={archived.activeCommitments}
+              onClose={closeDelete}
+              onConfirm={() => {
+                void handleDelete();
               }}
-              isUnarchiving={isUnarchiving}
-              errorMessage={unarchiveError}
+              isLoading={isDeleting}
+              errorMessage={deleteError}
             />
-          </ScreenScroll>
+          </>
         ) : null}
       </Screen>
     );

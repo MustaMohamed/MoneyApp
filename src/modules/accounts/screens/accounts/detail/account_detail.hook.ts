@@ -40,6 +40,7 @@ export function useAccountDetail() {
   const updateAccount = useAccountStore.getState().updateAccount;
   const archiveAccount = useAccountStore.getState().archiveAccount;
   const unarchiveAccount = useAccountStore.getState().unarchiveAccount;
+  const deleteAccount = useAccountStore.getState().deleteAccount;
   const adjustBalance = useAccountStore.getState().adjustBalance;
   const confirmBalanceReviewed = useAccountStore.getState().confirmBalanceReviewed;
   const {
@@ -54,6 +55,9 @@ export function useAccountDetail() {
     archiveError,
     isUnarchiving,
     unarchiveError,
+    isDeleteVisible,
+    isDeleting,
+    deleteError,
   } = useAccountDetailState(
     useShallow((s) => ({
       isEditing: s.isEditing,
@@ -67,6 +71,9 @@ export function useAccountDetail() {
       archiveError: s.archiveError,
       isUnarchiving: s.isUnarchiving,
       unarchiveError: s.unarchiveError,
+      isDeleteVisible: s.isDeleteVisible,
+      isDeleting: s.isDeleting,
+      deleteError: s.deleteError,
     })),
   );
   const setEditing = useAccountDetailState.getState().setEditing;
@@ -80,6 +87,9 @@ export function useAccountDetail() {
   const setArchiveError = useAccountDetailState.getState().setArchiveError;
   const setUnarchiving = useAccountDetailState.getState().setUnarchiving;
   const setUnarchiveError = useAccountDetailState.getState().setUnarchiveError;
+  const setDeleteVisible = useAccountDetailState.getState().setDeleteVisible;
+  const setDeleting = useAccountDetailState.getState().setDeleting;
+  const setDeleteError = useAccountDetailState.getState().setDeleteError;
   const reset = useAccountDetailState.getState().reset;
   const { activityStatus, activitySnapshot } = useAccountActivityStore(
     useShallow((s) => ({ activityStatus: s.status, activitySnapshot: s.snapshot })),
@@ -117,7 +127,8 @@ export function useAccountDetail() {
         ? {
             account: slotSnapshot.account,
             transactionCount: slotSnapshot.transactionCount,
-            activeCommitmentCount: slotSnapshot.activeCommitmentCount,
+            activeCommitmentCount: slotSnapshot.activeCommitments.length,
+            activeCommitments: slotSnapshot.activeCommitments,
           }
         : undefined,
     [account, id, slotSnapshot],
@@ -301,6 +312,32 @@ export function useAccountDetail() {
     toast.show({ label: Strings.accountsArchivedRestored(name), variant: 'success' });
   };
 
+  const handleDelete = async () => {
+    if (!archived || useAccountDetailState.getState().isDeleting) return;
+    // Read before the write, which scrubs the name.
+    const name = resolveAccountName(archived.account);
+    setDeleteError(undefined);
+    setDeleting(true);
+    try {
+      await deleteAccount(id);
+    } catch (error) {
+      console.error('[accountDetail] deleteAccount failed:', error);
+      setDeleteError(Strings.accountDetailDeleteError);
+      return;
+    } finally {
+      setDeleting(false);
+    }
+    // Outside the try, and the pop before the toast so it lands on the screen the detail came from.
+    setDeleteVisible(false);
+    router.back();
+    toast.show({ label: Strings.accountDetailDeleted(name), variant: 'success' });
+  };
+
+  const closeDelete = () => {
+    setDeleteVisible(false);
+    setDeleteError(undefined);
+  };
+
   const handleConfirmBalanceReviewed = async () => {
     const detailState = useAccountDetailState.getState();
     if (!id || detailState.isConfirmingBalanceReview) return;
@@ -379,6 +416,9 @@ export function useAccountDetail() {
       archiveError,
       isUnarchiving,
       unarchiveError,
+      isDeleteVisible,
+      isDeleting,
+      deleteError,
       activity: { status: activityStatus, rows: activityRows, monthFacts },
     },
     form,
@@ -390,6 +430,9 @@ export function useAccountDetail() {
     closeArchive,
     handleArchive,
     handleUnarchive,
+    setDeleteVisible,
+    closeDelete,
+    handleDelete,
     handleConfirmBalanceReviewed,
     onBack,
     retryActivity,

@@ -124,6 +124,13 @@ const flatRows: FlatRow[] = [
     tone: undefined,
     resolved: { style: { borderRadius: Radius.cta } },
   },
+  // C4's Delete account: transparent, danger label, at the CTA radius.
+  {
+    variant: 'ghost',
+    flat: true,
+    tone: 'danger',
+    resolved: { style: { borderRadius: Radius.cta }, labelClass: 'text-danger' },
+  },
   // The gate this ticket opens: the confirm surfaces' Archive and Delete are flat danger.
   {
     variant: 'danger',

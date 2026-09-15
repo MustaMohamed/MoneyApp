@@ -24,6 +24,12 @@ export function resolveFlatButtonStyle({
   tone?: FlatButtonTone;
 }): FlatButtonStyle | undefined {
   if (flat !== true || !FLAT_VARIANTS.includes(variant)) return undefined;
+  if (variant === 'ghost') {
+    return {
+      style: { borderRadius: Radius.cta },
+      labelClass: tone === 'danger' ? 'text-danger' : undefined,
+    };
+  }
   if (variant !== 'secondary') return { style: { borderRadius: Radius.cta } };
   if (tone === 'accent') {
     return {

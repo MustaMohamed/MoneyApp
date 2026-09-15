@@ -5,11 +5,15 @@ import { View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Type, lineHeightFor } from '@/constants/theme';
 
+import { shouldDismissOnOpenChange } from './confirm_dialog.helpers';
+
 interface ConfirmDialogProps {
   visible: boolean;
   title: string;
   body: string;
   confirmLabel: string;
+  /** The confirm button's text while `busy`; `Strings.loading` when absent. */
+  confirmLoadingLabel?: string;
   cancelLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -26,6 +30,7 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel,
+  confirmLoadingLabel,
   cancelLabel,
   onConfirm,
   onCancel,
@@ -35,7 +40,7 @@ export function ConfirmDialog({
   children,
 }: ConfirmDialogProps) {
   const handleOpenChange = (open: boolean) => {
-    if (!open && !busy) onCancel();
+    if (shouldDismissOnOpenChange(open, busy)) onCancel();
   };
 
   return (
@@ -79,6 +84,7 @@ export function ConfirmDialog({
                 variant={destructive ? 'danger' : 'primary'}
                 flat
                 label={confirmLabel}
+                loadingLabel={confirmLoadingLabel}
                 onPress={onConfirm}
                 isLoading={busy}
                 isDisabled={busy}

@@ -119,6 +119,7 @@ function mockAccounts(accounts: Account[]): void {
     updateAccount: mockUpdateAccount,
     archiveAccount: mockArchiveAccount,
     unarchiveAccount: mockUnarchiveAccount,
+    deleteAccount: mockDeleteAccount,
     adjustBalance: mockAdjustBalance,
     confirmBalanceReviewed: mockConfirmBalanceReviewed,
   }));
@@ -181,6 +182,10 @@ const mockAdjustBalance = jest.fn();
 const mockUpdateAccount = jest.fn();
 const mockArchiveAccount = jest.fn();
 const mockUnarchiveAccount = jest.fn();
+const mockDeleteAccount = jest.fn();
+const mockSetDeleteVisible = jest.fn();
+const mockSetDeleting = jest.fn();
+const mockSetDeleteError = jest.fn();
 
 type DetailStateMock = {
   isEditing: boolean;
@@ -194,6 +199,9 @@ type DetailStateMock = {
   archiveError: string | undefined;
   isUnarchiving: boolean;
   unarchiveError: string | undefined;
+  isDeleteVisible: boolean;
+  isDeleting: boolean;
+  deleteError: string | undefined;
   setEditing: jest.Mock;
   setAdjustVisible: jest.Mock;
   setArchiveVisible: jest.Mock;
@@ -205,6 +213,9 @@ type DetailStateMock = {
   setArchiveError: jest.Mock;
   setUnarchiving: jest.Mock;
   setUnarchiveError: jest.Mock;
+  setDeleteVisible: jest.Mock;
+  setDeleting: jest.Mock;
+  setDeleteError: jest.Mock;
   reset: jest.Mock;
 };
 
@@ -221,6 +232,9 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     archiveError: undefined,
     isUnarchiving: false,
     unarchiveError: undefined,
+    isDeleteVisible: false,
+    isDeleting: false,
+    deleteError: undefined,
     setEditing: mockSetEditing,
     setAdjustVisible: mockSetAdjustVisible,
     setArchiveVisible: mockSetArchiveVisible,
@@ -232,6 +246,9 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     setArchiveError: mockSetArchiveError,
     setUnarchiving: mockSetUnarchiving,
     setUnarchiveError: mockSetUnarchiveError,
+    setDeleteVisible: mockSetDeleteVisible,
+    setDeleting: mockSetDeleting,
+    setDeleteError: mockSetDeleteError,
     reset: mockReset,
     ...overrides,
   };
@@ -685,7 +702,7 @@ function archivedSnapshot(
     accountId: 'acc-1',
     account: mkAccount({ is_archived: 1 }),
     transactionCount: 42,
-    activeCommitmentCount: 1,
+    activeCommitments: [{ id: 'com-1', name: 'Gym' }],
     ...overrides,
   };
 }
@@ -703,6 +720,7 @@ describe('useAccountDetail — an id outside the active list', () => {
       account: mkAccount({ is_archived: 1 }),
       transactionCount: 42,
       activeCommitmentCount: 1,
+      activeCommitments: [{ id: 'com-1', name: 'Gym' }],
     });
     expect(result.current.state.activity.monthFacts).toEqual([]);
   });
@@ -878,5 +896,109 @@ describe('useAccountDetail — an id outside the active list', () => {
 
     expect(mockUnarchiveAccount).not.toHaveBeenCalled();
     expect(mockSetUnarchiving).not.toHaveBeenCalled();
+  });
+
+  it('deletes, then pops to where the detail came from and toasts the name', async () => {
+    mockSlot(archivedSnapshot());
+    mockDeleteAccount.mockResolvedValueOnce(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleDelete());
+
+    expect(mockDeleteAccount).toHaveBeenCalledWith('acc-1');
+    expect(mockSetDeleteError.mock.calls).toEqual([[undefined]]);
+    expect(mockSetDeleting).toHaveBeenNthCalledWith(1, true);
+    expect(mockSetDeleting).toHaveBeenLastCalledWith(false);
+    expect(mockSetDeleteVisible).toHaveBeenCalledWith(false);
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo).not.toHaveBeenCalled();
+    expect(useToast().toast.show).toHaveBeenCalledTimes(1);
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: 'CIB deleted.',
+      variant: 'success',
+    });
+    expect(mockBack.mock.invocationCallOrder[0]).toBeLessThan(
+      mockToast.show.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it('toasts the name read before the write, which scrubs it', async () => {
+    const snapshot = archivedSnapshot();
+    mockSlot(snapshot);
+    // The same object the hook holds, so a read after the await sees the scrub.
+    mockDeleteAccount.mockImplementationOnce(async () => {
+      Object.assign(snapshot.account!, { name: '', is_deleted: 1 });
+    });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleDelete());
+
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: 'CIB deleted.',
+      variant: 'success',
+    });
+  });
+
+  it('toasts a blank-named account under the shared label', async () => {
+    mockSlot(archivedSnapshot({ account: mkAccount({ name: '', is_archived: 1 }) }));
+    mockDeleteAccount.mockResolvedValueOnce(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleDelete());
+
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: `${Strings.unnamedAccount} deleted.`,
+      variant: 'success',
+    });
+  });
+
+  it('keeps the dialog open with the failure line when the delete rejects', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation();
+    mockSlot(archivedSnapshot());
+    mockDeleteAccount.mockRejectedValueOnce(new Error('db write failed'));
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleDelete());
+
+    expect(mockSetDeleteError).toHaveBeenNthCalledWith(1, undefined);
+    expect(mockSetDeleteError).toHaveBeenLastCalledWith(Strings.accountDetailDeleteError);
+    expect(mockSetDeleteVisible).not.toHaveBeenCalledWith(false);
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(useToast().toast.show).not.toHaveBeenCalled();
+    expect(mockSetDeleting).toHaveBeenLastCalledWith(false);
+    consoleError.mockRestore();
+  });
+
+  it('ignores a second confirm while a delete is running', async () => {
+    mockSlot(archivedSnapshot());
+    mockDetailState({ isDeleting: true });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleDelete());
+
+    expect(mockDeleteAccount).not.toHaveBeenCalled();
+    expect(mockSetDeleteError).not.toHaveBeenCalled();
+    expect(mockSetDeleting).not.toHaveBeenCalled();
+  });
+
+  it('deletes nothing while the slot holds no archived row', async () => {
+    mockSlot(undefined, 'idle');
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleDelete());
+
+    expect(mockDeleteAccount).not.toHaveBeenCalled();
+    expect(mockSetDeleting).not.toHaveBeenCalled();
+  });
+
+  it('clears the delete failure when the dialog closes, without a write', async () => {
+    mockSlot(archivedSnapshot());
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.closeDelete());
+
+    expect(mockSetDeleteVisible).toHaveBeenCalledWith(false);
+    expect(mockSetDeleteError).toHaveBeenCalledWith(undefined);
+    expect(mockDeleteAccount).not.toHaveBeenCalled();
   });
 });
