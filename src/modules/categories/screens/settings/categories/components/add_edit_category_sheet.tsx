@@ -107,6 +107,7 @@ export function AddEditCategorySheet({
     handleSubmit,
     reset,
     setError,
+    clearErrors,
     formState: { errors },
   } = useZodForm(schema, {
     defaultValues: { name: '' },
@@ -216,7 +217,10 @@ export function AddEditCategorySheet({
                 { value: CategoryType.Income, label: Strings.categoriesTabIncome },
               ]}
               value={type}
-              onValueChange={setType}
+              onValueChange={(next) => {
+                setType(next);
+                clearErrors('name');
+              }}
               variant="solid-gold"
               listClassName="w-full"
               accessibilityLabel={Strings.categoriesTypeLabel}
