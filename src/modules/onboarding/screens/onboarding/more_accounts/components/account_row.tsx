@@ -7,6 +7,7 @@ import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { resolveAccountRowA11yLabel } from '@/modules/accounts/constants/account_row_a11y_label';
 import type { Account } from '@/modules/accounts/store/account.store';
+import { resolveAccountName } from '@/utils/account_name';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
 import {
@@ -45,7 +46,7 @@ export function AccountRow({ account }: { account: Account }) {
           numberOfLines={1}
           ellipsizeMode="tail"
         >
-          {account.name}
+          {resolveAccountName(account)}
         </ListGroup.ItemTitle>
 
         {/* Not ItemDescription: its muted colour is 2.36:1 and cannot host the glyph sibling. */}
