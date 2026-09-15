@@ -8,10 +8,16 @@ const CLOSE = Strings.accountDetailDeleteClose;
 describe('resolveDeleteWarningBody', () => {
   it.each([
     [
-      'nothing recorded and no commitment',
+      'nothing recorded and no commitment, the none sentence alone',
       0,
       [],
-      `${Strings.accountDetailDeleteTransactionsNone} ${CLOSE}`,
+      Strings.accountDetailDeleteTransactionsNone,
+    ],
+    [
+      'nothing recorded but one commitment, which keeps the close',
+      0,
+      [GYM],
+      `${Strings.accountDetailDeleteTransactionsNone} ${Strings.accountDetailDeleteCommitmentOne('Gym')} ${CLOSE}`,
     ],
     ['one transaction', 1, [], `${Strings.accountDetailDeleteTransactionsOne} ${CLOSE}`],
     ['two transactions', 2, [], `${Strings.accountDetailDeleteTransactionsMany('2')} ${CLOSE}`],

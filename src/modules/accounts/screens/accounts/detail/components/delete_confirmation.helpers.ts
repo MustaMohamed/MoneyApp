@@ -26,11 +26,14 @@ function commitmentsSentence(commitments: ActiveCommitments): string | undefined
   );
 }
 
-/** E1's body: what stays, what loses its account, and what keeping it archived keeps. */
+/** E1's body: what stays, what loses its account, and what keeping it archived keeps; an account with nothing on it gets the none sentence alone. */
 export function resolveDeleteWarningBody({
   transactionCount,
   activeCommitments,
 }: DeleteWarningInput): string {
+  if (transactionCount === 0 && activeCommitments.length === 0) {
+    return Strings.accountDetailDeleteTransactionsNone;
+  }
   return [
     transactionsSentence(transactionCount),
     commitmentsSentence(activeCommitments),
