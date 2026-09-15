@@ -4,7 +4,6 @@ import { PressableFeedback, Typography } from 'heroui-native';
 import { useEffect } from 'react';
 import { type Control, useController } from 'react-hook-form';
 import { type BlurEvent, FlatList, type FocusEvent, StyleSheet, View } from 'react-native';
-import { z } from 'zod/v4';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { SegmentedTabs } from '@/components/ui/tabs';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, Radius, Spacing } from '@/constants/theme';
+import { CategoryNameTakenError } from '@/modules/categories/repositories/category.errors';
 import {
   useCategoryStore,
   type Category,
@@ -24,6 +24,7 @@ import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
+import { createCategorySchema } from './add_edit_category_sheet.schema';
 import { useAddEditCategorySheetState } from './add_edit_category_sheet.state';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -63,31 +64,6 @@ const CATEGORY_ICONS: IconName[] = [
   'airplane',
 ];
 
-export function createCategorySchema(
-  categories: Category[],
-  activeTab: CategoryType,
-  editingCategory?: Category | null,
-) {
-  const editingId = editingCategory?.id;
-  const editingType = editingCategory?.type ?? activeTab;
-  return z.object({
-    name: z
-      .string()
-      .min(1, Strings.categoriesErrNameRequired)
-      .max(50, Strings.categoriesErrNameTooLong)
-      .refine(
-        (val) =>
-          !categories.some(
-            (c) =>
-              c.name.toLowerCase() === val.toLowerCase() &&
-              c.id !== editingId &&
-              c.type === editingType,
-          ),
-        Strings.categoriesErrNameDuplicate,
-      ),
-  });
-}
-
 interface AddEditCategorySheetProps {
   isOpen: boolean;
   editingCategory: Category | null;
@@ -106,27 +82,31 @@ export function AddEditCategorySheet({
   const categories = useCategoryStore.useState.categories();
   const isEditing = editingCategory !== null;
 
-  const { type, selectedIcon, selectedColor, iconError, isLoading } = useAddEditCategorySheetState(
-    useShallow((s) => ({
-      type: s.type,
-      selectedIcon: s.selectedIcon,
-      selectedColor: s.selectedColor,
-      iconError: s.iconError,
-      isLoading: s.isLoading,
-    })),
-  );
+  const { type, selectedIcon, selectedColor, iconError, saveError, isLoading } =
+    useAddEditCategorySheetState(
+      useShallow((s) => ({
+        type: s.type,
+        selectedIcon: s.selectedIcon,
+        selectedColor: s.selectedColor,
+        iconError: s.iconError,
+        saveError: s.saveError,
+        isLoading: s.isLoading,
+      })),
+    );
   const setType = useAddEditCategorySheetState.getState().setType;
   const setSelectedIcon = useAddEditCategorySheetState.getState().setSelectedIcon;
   const setSelectedColor = useAddEditCategorySheetState.getState().setSelectedColor;
   const setIconError = useAddEditCategorySheetState.getState().setIconError;
+  const setSaveError = useAddEditCategorySheetState.getState().setSaveError;
   const setIsLoading = useAddEditCategorySheetState.getState().setIsLoading;
   const initialize = useAddEditCategorySheetState.getState().initialize;
 
-  const schema = createCategorySchema(categories, activeTab, editingCategory);
+  const schema = createCategorySchema(categories, type, editingCategory?.id);
   const {
     control,
     handleSubmit,
     reset,
+    setError,
     formState: { errors },
   } = useZodForm(schema, {
     defaultValues: { name: '' },
@@ -153,7 +133,7 @@ export function AddEditCategorySheet({
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editingCategory, activeTab]); // initialize and reset are stable identities
 
-  const handleSave = handleSubmit(async ({ name }) => {
+  const submit = handleSubmit(async ({ name }) => {
     if (!selectedIcon) {
       setIconError(Strings.categoriesErrIconRequired);
       return;
@@ -166,10 +146,22 @@ export function AddEditCategorySheet({
         icon: selectedIcon,
         color: selectedColor,
       });
+    } catch (error) {
+      if (error instanceof CategoryNameTakenError) {
+        setError('name', { message: Strings.categoriesErrNameDuplicate });
+      } else {
+        setSaveError(Strings.categoriesSaveError);
+      }
     } finally {
       setIsLoading(false);
     }
   });
+
+  // Cleared ahead of validation so a stale save message never sits beside a fresh field error.
+  const handleSave = () => {
+    setSaveError('');
+    return submit();
+  };
 
   const footer = (
     <Button
@@ -197,6 +189,11 @@ export function AddEditCategorySheet({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {saveError ? (
+          <Typography className="font-inter-medium text-danger mt-3 text-sm">
+            {saveError}
+          </Typography>
+        ) : null}
         <Typography className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
           {Strings.categoriesNameLabel.toUpperCase()}
         </Typography>

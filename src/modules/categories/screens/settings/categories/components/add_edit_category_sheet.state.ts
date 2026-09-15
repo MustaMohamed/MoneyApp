@@ -13,6 +13,7 @@ interface AddEditCategorySheetStateShape {
   selectedIcon: IconName | null;
   selectedColor: string;
   iconError: string;
+  saveError: string;
   isLoading: boolean;
 }
 
@@ -21,6 +22,7 @@ type AddEditCategorySheetState = AddEditCategorySheetStateShape & {
   setSelectedIcon: (icon: IconName | null) => void;
   setSelectedColor: (c: string) => void;
   setIconError: (msg: string) => void;
+  setSaveError: (msg: string) => void;
   setIsLoading: (v: boolean) => void;
   initialize: (params: { type: CategoryType; icon: IconName | null; color: string }) => void;
   reset: () => void;
@@ -31,6 +33,7 @@ const INITIAL_STATE: AddEditCategorySheetStateShape = {
   selectedIcon: null,
   selectedColor: AccountColors[0],
   iconError: '',
+  saveError: '',
   isLoading: false,
 };
 
@@ -41,6 +44,7 @@ export const useAddEditCategorySheetState = createMoneyAppSelectors(
     setSelectedIcon: (icon) => set({ selectedIcon: icon }),
     setSelectedColor: (c) => set({ selectedColor: c }),
     setIconError: (msg) => set({ iconError: msg }),
+    setSaveError: (msg) => set({ saveError: msg }),
     setIsLoading: (v) => set({ isLoading: v }),
     initialize: ({ type, icon, color }) =>
       set({
@@ -48,6 +52,7 @@ export const useAddEditCategorySheetState = createMoneyAppSelectors(
         selectedIcon: icon,
         selectedColor: color,
         iconError: '',
+        saveError: '',
         isLoading: false,
       }),
     reset: () => set(INITIAL_STATE),
