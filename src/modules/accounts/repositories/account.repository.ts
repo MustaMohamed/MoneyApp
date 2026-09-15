@@ -140,7 +140,8 @@ export class AccountRepository implements IAccountRepository {
     if (!existing || existing.is_deleted === 1) throw new AccountNotFoundError();
     if (existing.is_archived === 1) throw new AccountArchivedError();
 
-    await setAccountBalance(db, id, rounded, new Date().toISOString());
+    const now = new Date().toISOString();
+    if ((await setAccountBalance(db, id, rounded, now)) !== 1) throw new AccountArchivedError();
   }
 
   async confirmBalanceReviewed(id: string): Promise<void> {

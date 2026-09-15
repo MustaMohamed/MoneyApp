@@ -13,8 +13,8 @@ export class AccountNotArchivedError extends Error {
 }
 
 export class AccountArchivedError extends Error {
-  constructor(message = 'An archived account is frozen; restore it first') {
-    super(message);
+  constructor() {
+    super('An archived account is frozen; restore it first');
     this.name = 'AccountArchivedError';
   }
 }

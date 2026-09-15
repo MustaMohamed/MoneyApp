@@ -8,6 +8,7 @@ import {
   getAccountByIdIncludingArchived,
 } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
 import { getBudgetRowById } from '@/modules/budget/database/budgets';
 import { getCategoryById } from '@/modules/categories/database/categories';
 import { toLocalDateString } from '@/utils/format_date';
@@ -127,11 +128,8 @@ function requireSelectableAccount(account: Account, role: 'source' | 'destinatio
   if (account.is_archived === 1) throw new TransactionAccountArchivedError(role, account);
 }
 
-// A deleted account is archived too, and its transactions stay editable (soft-delete record §1).
 function requireUnfrozenAccount(account: Account, role: 'source' | 'destination'): void {
-  if (account.is_archived === 1 && account.is_deleted === 0) {
-    throw new TransactionAccountArchivedError(role, account);
-  }
+  if (isFrozenAccount(account)) throw new TransactionAccountArchivedError(role, account);
 }
 
 function normalizedAmountsMatch(input: {

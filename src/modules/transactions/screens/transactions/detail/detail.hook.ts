@@ -10,6 +10,7 @@ import {
   getTransactionAccountIds,
   mergeAccountsById,
 } from '@/modules/accounts/store/account_lookup.helpers';
+import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
@@ -180,7 +181,7 @@ export function useTransactionDetail(id: string) {
   const archivedLeg = currentTx
     ? getTransactionAccountIds(currentTx)
         .map((accountId) => accountsById.get(accountId))
-        .find((account) => account?.is_archived === 1 && account.is_deleted === 0)
+        .find((account) => account !== undefined && isFrozenAccount(account))
     : undefined;
   const isMutable = !isCommitmentOwned && archivedLeg === undefined;
 
@@ -208,7 +209,7 @@ export function useTransactionDetail(id: string) {
   }, [deleting, owner, setConfirmVisible]);
 
   const confirmDelete = useCallback(async () => {
-    if (!currentTx || isCommitmentOwned) return;
+    if (!currentTx || !isMutable) return;
     setDeleting(owner, true);
     try {
       await deleteTransaction(currentTx.id);
@@ -220,7 +221,7 @@ export function useTransactionDetail(id: string) {
       setDeleting(owner, false);
       setConfirmVisible(owner, false);
     }
-  }, [currentTx, isCommitmentOwned, owner, deleteTransaction, setDeleting, setConfirmVisible]);
+  }, [currentTx, isMutable, owner, deleteTransaction, setDeleting, setConfirmVisible]);
 
   const openCommitment = useCallback(async () => {
     if (!commitmentPaymentId) return;
@@ -263,7 +264,9 @@ export function useTransactionDetail(id: string) {
       isCommitmentOwned,
       isEditable: isMutable,
       isDeletable: isMutable,
-      archivedAccountLine: archivedLeg ? Strings.txAccountArchived(archivedLeg.name) : undefined,
+      archivedAccountLine: archivedLeg
+        ? Strings.transactionAccountArchived(archivedLeg.name)
+        : undefined,
     },
     openDeleteConfirm,
     closeDeleteConfirm,

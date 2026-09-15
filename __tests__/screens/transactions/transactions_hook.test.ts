@@ -227,16 +227,16 @@ describe('useTransactions screen orchestration', () => {
     setupStores({
       deleteTransaction: jest
         .fn()
-        .mockRejectedValue(
-          new TransactionAccountArchivedError('source', { id: 'account-1', name: 'Old Card' }),
-        ),
+        .mockRejectedValue(new TransactionAccountArchivedError('source', { name: 'Old Card' })),
     });
     const { result } = await renderHook(() => useTransactions());
 
     await act(() => result.current.requestDelete('tx-1'));
     await act(async () => result.current.confirmDelete());
 
-    expect(result.current.state.deleteErrorMessage).toBe(Strings.txAccountArchived('Old Card'));
+    expect(result.current.state.deleteErrorMessage).toBe(
+      Strings.transactionAccountArchived('Old Card'),
+    );
     expect(result.current.state.pendingDeleteId).toBe('tx-1');
   });
 

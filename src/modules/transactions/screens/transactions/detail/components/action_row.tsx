@@ -28,36 +28,38 @@ interface NoticeProps {
 
 type Props = MutableProps | OwnedProps | NoticeProps;
 
-export function ActionRow(props: Props): React.ReactElement {
+function ActionRowContent(props: Props): React.ReactElement {
   if (props.onViewCommitment) {
     return (
-      <View className="px-4 pt-4 pb-6" style={{ minHeight: DETAIL_ACTION_MIN_HEIGHT }}>
-        <Button variant="primary" label={Strings.viewCommitment} onPress={props.onViewCommitment} />
-      </View>
+      <Button variant="primary" label={Strings.viewCommitment} onPress={props.onViewCommitment} />
     );
   }
 
   if (props.notice !== undefined) {
     return (
-      <View className="px-4 pt-4 pb-6" style={{ minHeight: DETAIL_ACTION_MIN_HEIGHT }}>
-        <Text
-          className="font-inter text-content-secondary"
-          style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
-        >
-          {props.notice}
-        </Text>
-      </View>
+      <Text
+        className="font-inter text-content-secondary"
+        style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+      >
+        {props.notice}
+      </Text>
     );
   }
 
   return (
+    <Button
+      variant="danger-soft"
+      label={Strings.detailDeleteButton}
+      onPress={props.onDelete}
+      className="w-full"
+    />
+  );
+}
+
+export function ActionRow(props: Props): React.ReactElement {
+  return (
     <View className="px-4 pt-4 pb-6" style={{ minHeight: DETAIL_ACTION_MIN_HEIGHT }}>
-      <Button
-        variant="danger-soft"
-        label={Strings.detailDeleteButton}
-        onPress={props.onDelete}
-        className="w-full"
-      />
+      <ActionRowContent {...props} />
     </View>
   );
 }

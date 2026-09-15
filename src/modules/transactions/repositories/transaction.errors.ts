@@ -21,14 +21,12 @@ export class TransactionValidationError extends Error {
 
 export class TransactionAccountArchivedError extends TransactionValidationError {
   readonly role: 'source' | 'destination';
-  readonly accountId: string;
   readonly accountName: string;
 
-  constructor(role: 'source' | 'destination', account: Pick<Account, 'id' | 'name'>) {
+  constructor(role: 'source' | 'destination', account: Pick<Account, 'name'>) {
     super(`${role} account is archived`);
     this.name = 'TransactionAccountArchivedError';
     this.role = role;
-    this.accountId = account.id;
     this.accountName = account.name;
   }
 }

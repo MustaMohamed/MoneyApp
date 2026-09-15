@@ -93,21 +93,22 @@ describe('transaction form helpers', () => {
   });
 
   it('MA-053: maps an archived-account refusal to the line naming the account', () => {
-    const refusal = new TransactionAccountArchivedError('source', { id: 'a', name: 'Old Card' });
+    const refusal = new TransactionAccountArchivedError('source', { name: 'Old Card' });
 
-    expect(resolveTransactionSaveError(refusal)).toBe(Strings.txAccountArchived('Old Card'));
+    expect(resolveTransactionSaveError(refusal)).toBe(
+      Strings.transactionAccountArchived('Old Card'),
+    );
     expect(resolveTransactionSaveError(new TransactionValidationError('invalid'))).toBe(
       Strings.transactionSaveError,
     );
   });
 
   it('MA-053: maps a delete refusal to the same line and anything else to the delete copy', () => {
-    const refusal = new TransactionAccountArchivedError('destination', {
-      id: 'a',
-      name: 'Old Card',
-    });
+    const refusal = new TransactionAccountArchivedError('destination', { name: 'Old Card' });
 
-    expect(resolveTransactionDeleteError(refusal)).toBe(Strings.txAccountArchived('Old Card'));
+    expect(resolveTransactionDeleteError(refusal)).toBe(
+      Strings.transactionAccountArchived('Old Card'),
+    );
     expect(resolveTransactionDeleteError(new Error('x'))).toBe(Strings.errDeleteFailed);
   });
 });

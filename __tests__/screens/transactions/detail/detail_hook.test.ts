@@ -603,7 +603,9 @@ describe('useTransactionDetail archived account (MA-053)', () => {
 
     expect(result.current.state.isEditable).toBe(false);
     expect(result.current.state.isDeletable).toBe(false);
-    expect(result.current.state.archivedAccountLine).toBe(Strings.txAccountArchived('Old Card'));
+    expect(result.current.state.archivedAccountLine).toBe(
+      Strings.transactionAccountArchived('Old Card'),
+    );
 
     await act(() => result.current.openEdit());
     await act(() => result.current.openDeleteConfirm());
@@ -639,7 +641,7 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     await waitFor(() =>
       expect(result.current.state.archivedAccountLine).toBe(
-        Strings.txAccountArchived(archivedCounterparty.name),
+        Strings.transactionAccountArchived(archivedCounterparty.name),
       ),
     );
 
@@ -652,16 +654,15 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     accountStoreState.accountLookupById = { 'account-1': makeTestAccount({ id: 'account-1' }) };
     transactionStoreState.deleteTransaction = jest
       .fn()
-      .mockRejectedValue(
-        new TransactionAccountArchivedError('source', { id: 'account-1', name: 'Old Card' }),
-      );
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      .mockRejectedValue(new TransactionAccountArchivedError('source', { name: 'Old Card' }));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
     await act(async () => result.current.confirmDelete());
 
-    expect(Alert.alert).toHaveBeenCalledWith(Strings.txAccountArchived('Old Card'));
+    expect(Alert.alert).toHaveBeenCalledWith(Strings.transactionAccountArchived('Old Card'));
     expect(router.back).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });

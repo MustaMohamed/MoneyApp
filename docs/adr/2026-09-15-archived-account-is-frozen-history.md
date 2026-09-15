@@ -31,7 +31,7 @@ A deleted account's balance left net worth with the account, so moving it change
 
 ## 3. The refusal is a class, and the error carries the name
 
-`TransactionAccountArchivedError` extends `TransactionValidationError`, so every catch that reasons about a validation failure stays valid. It carries `role`, `accountId` and `accountName`. The repository is the only layer that read the row, and the name lets the add form, the edit form, the list's swipe delete and the transaction detail print one line, `Strings.txAccountArchived(name)`, with no second lookup.
+`TransactionAccountArchivedError` extends `TransactionValidationError`, so every catch that reasons about a validation failure stays valid. It carries `role` and `accountName`. The repository is the only layer that read the row, and the name lets the add form, the edit form, the list's swipe delete and the transaction detail print one line, `Strings.transactionAccountArchived(name)`, with no second lookup.
 
 `resolveTransactionSaveError` checks the class before its issues branch. The class carries `issues: []`, and in the other order it falls to the retry copy. `resolveTransactionDeleteError` maps the same class to the same line and anything else to `Strings.errDeleteFailed`.
 
