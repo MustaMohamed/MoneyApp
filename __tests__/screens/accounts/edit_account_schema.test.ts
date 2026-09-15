@@ -90,4 +90,34 @@ describe('edit account schema', () => {
     const schema = createEditAccountSchema(accounts, 'id-self');
     expect(err(schema, { name: ` ${'a'.repeat(30)} `, color: '#fff' })).toBeUndefined();
   });
+
+  describe('invisible-only names', () => {
+    describe.each([
+      ['a right-to-left mark', '\u200F'],
+      ['a zero-width space', '\u200B'],
+      ['a mark and a zero-width space among spaces', ' \u200F \u200B '],
+    ])('%s', (_label, name) => {
+      it.each([
+        ['the two named accounts', accounts],
+        ['a blank-named account', [...accounts, acct('id-blank', '')]],
+        ['an account named only a mark', [...accounts, acct('id-mark', '\u200F')]],
+      ])('→ errNameRequired alone, beside %s', (_beside, list) => {
+        const schema = createEditAccountSchema(list, 'id-self');
+        expect(nameMessages(schema, { name, color: '#fff' })).toEqual([Strings.errNameRequired]);
+      });
+    });
+
+    it("a leading mark on another account's name → errNameDuplicate", () => {
+      const schema = createEditAccountSchema(accounts, 'id-self');
+      expect(nameMessages(schema, { name: '\u200FOther Bank', color: '#fff' })).toEqual([
+        Strings.errNameDuplicate,
+      ]);
+    });
+
+    it('a zero-width joiner inside a name parses as typed', () => {
+      const schema = createEditAccountSchema(accounts, 'id-self');
+      const r = schema.safeParse({ name: 'My\u200DBank', color: '#fff' });
+      expect(r.data?.name).toBe('My\u200DBank');
+    });
+  });
 });

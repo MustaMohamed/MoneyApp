@@ -127,6 +127,47 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
       const errs = fieldErrors(baseData({ name: '  Bank One  ' }), [accountFixture('bank one')]);
       expect(errs.name).toBe(Strings.errNameDuplicateNamed('Bank One'));
     });
+
+    describe('invisible-only names', () => {
+      const nameMessagesFor = (name: string, accounts: Account[]) =>
+        createAddAccountSchema(accounts)
+          .safeParse(baseData({ name }))
+          .error?.issues.filter((i) => i.path[0] === 'name')
+          .map((i) => i.message);
+
+      describe.each([
+        ['a right-to-left mark', '\u200F'],
+        ['a zero-width space', '\u200B'],
+        ['a mark and a zero-width space among spaces', ' \u200F \u200B '],
+      ])('%s', (_label, name) => {
+        it.each([
+          ['no accounts', emptyAccounts],
+          ['a blank-named account', [accountFixture('')]],
+          ['an account named only a mark', [accountFixture('\u200F')]],
+        ])('→ errNameRequired alone, against %s', (_against, accounts) => {
+          expect(nameMessagesFor(name, accounts)).toEqual([Strings.errNameRequired]);
+        });
+      });
+
+      it('a zero-width joiner inside a name parses as typed', () => {
+        const result = createAddAccountSchema(emptyAccounts).safeParse(
+          baseData({ name: 'Ca\u200Dsh' }),
+        );
+        expect(result.data?.name).toBe('Ca\u200Dsh');
+      });
+
+      it('a leading mark survives the trim', () => {
+        const result = createAddAccountSchema(emptyAccounts).safeParse(
+          baseData({ name: ' \u200FCash ' }),
+        );
+        expect(result.data?.name).toBe('\u200FCash');
+      });
+
+      it('a leading mark against an active "Cash" → errNameDuplicateNamed with the typed name', () => {
+        const errs = fieldErrors(baseData({ name: ' \u200FCash ' }), [accountFixture('Cash')]);
+        expect(errs.name).toBe(Strings.errNameDuplicateNamed('\u200FCash'));
+      });
+    });
   });
 
   describe('balance', () => {
