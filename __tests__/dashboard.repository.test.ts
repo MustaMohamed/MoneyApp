@@ -70,13 +70,13 @@ function seedSnapshotFixture(): void {
     createdAt: '2026-01-01T00:00:00.000Z',
     archived: 1,
   });
-  // Characterization, not guard: `getAccounts` already drops deleted rows at base.
+  // Unarchived, so only the deleted filter drops it from the snapshot.
   insertAccount({
     id: 'deleted',
     name: '',
     sortOrder: -2,
     createdAt: '2026-01-01T00:00:00.000Z',
-    archived: 1,
+    archived: 0,
     deleted: 1,
   });
   insertAccount({
