@@ -32,7 +32,7 @@ const SUCCESS_ICON = (
 );
 
 function withSuccessIcon(options: string | ToastShowOptions): string | ToastShowOptions {
-  if (typeof options === 'string' || 'component' in options) return options;
+  if (typeof options === 'string' || options.component !== undefined) return options;
   if (options.variant !== 'success' || options.icon !== undefined) return options;
   return { ...options, icon: SUCCESS_ICON };
 }

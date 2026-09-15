@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-native';
+import { render, renderHook } from '@testing-library/react-native';
 import type { ToastShowOptions } from 'heroui-native';
 import { createElement, type ReactElement } from 'react';
 import { View } from 'react-native';
@@ -6,11 +6,17 @@ import { View } from 'react-native';
 import { useToast } from '@/components/ui/toast';
 import { Colors, Size } from '@/constants/theme';
 
+// A host Text carrying the glyph's props, so the test finds it by name, not by JSX nesting.
+jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
+  const { createElement: create } = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  return ({ name, size, color }: { name: string; size: number; color: string }) =>
+    create(Text, { testID: `icon-${name}`, style: { color, fontSize: size } }, name);
+});
+
 const heroui = jest.requireMock<typeof import('heroui-native')>('heroui-native');
 const heroToast = heroui.useToast().toast;
 const heroShow = jest.mocked(heroToast.show);
-
-type GlyphProps = { name: string; size: number; color: string };
 
 function forwarded(): unknown {
   expect(heroShow).toHaveBeenCalledTimes(1);
@@ -31,12 +37,12 @@ describe('the wrapper toast', () => {
 
     result.current.toast.show({ label: 'x', variant: 'success' });
 
-    const options = forwarded() as { icon: ReactElement<{ children: ReactElement<GlyphProps> }> };
+    const options = forwarded() as { icon: ReactElement };
     expect(options).toEqual({ label: 'x', variant: 'success', icon: expect.anything() });
-    expect(options.icon.props.children.props).toMatchObject({
-      name: 'check-circle',
-      size: Size.toastIcon,
+    const { getByTestId } = await render(options.icon);
+    expect(getByTestId('icon-check-circle')).toHaveStyle({
       color: Colors.dark.positive,
+      fontSize: Size.toastIcon,
     });
   });
 
@@ -70,6 +76,14 @@ describe('the wrapper toast', () => {
     expect(forwarded()).toBe(options);
   });
 
+  it('puts the check-circle on a success config whose component is undefined', async () => {
+    const { result } = await renderHook(() => useToast());
+
+    result.current.toast.show({ label: 'x', variant: 'success', component: undefined });
+
+    expect(forwarded()).toEqual({ label: 'x', variant: 'success', icon: expect.anything() });
+  });
+
   it('forwards a custom component call untouched', async () => {
     const { result } = await renderHook(() => useToast());
     const options: ToastShowOptions = { component: () => createElement(View) };
@@ -87,7 +101,7 @@ describe('the wrapper toast', () => {
     expect(result.current.isToastVisible).toBe(true);
   });
 
-  it('keeps one toast object across renders, so a caller useCallback dep holds', async () => {
+  it('keeps the toast object while the HeroUI one is unchanged', async () => {
     const { result, rerender } = await renderHook(() => useToast());
     const first = result.current.toast;
 

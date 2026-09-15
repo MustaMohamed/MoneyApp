@@ -35,7 +35,7 @@ const mockOpenAdd = jest.fn();
 type BeforeRemoveEvent = { preventDefault: () => void };
 type BeforeRemoveHandler = (event: BeforeRemoveEvent) => void;
 const mockAddListener = jest.fn<() => void, [string, BeforeRemoveHandler]>(() => jest.fn());
-const mockToast = { show: jest.fn(), hide: jest.fn() };
+const mockToast = { show: jest.fn() };
 
 // The wrapper, not HeroUI, so `show` sees exactly what the call site passed.
 jest.mock('@/components/ui/toast', () => ({

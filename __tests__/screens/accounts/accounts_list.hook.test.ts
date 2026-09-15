@@ -17,7 +17,7 @@ const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockLoadAccounts = jest.fn<Promise<void>, []>();
 const mockUnarchive = jest.fn<Promise<void>, [string]>();
-const mockToast = { show: jest.fn(), hide: jest.fn() };
+const mockToast = { show: jest.fn() };
 
 jest.mock('zustand/react/shallow', () => ({
   useShallow: <T>(selector: T): T => selector,
