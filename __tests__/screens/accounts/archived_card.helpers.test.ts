@@ -1,4 +1,5 @@
 import { AccountType, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import {
   resolveArchivedCardRows,
   resolveArchivedRowCaption,
@@ -79,6 +80,17 @@ describe('resolveArchivedSummary', () => {
       'all',
     );
     expect(resolveArchivedSummary(rows)).toBe('Old HSBC, Vodafone Cash');
+  });
+
+  it('reads a blank name as the unnamed label', () => {
+    const rows = resolveArchivedCardRows(
+      [
+        makeTestAccount({ id: 'arch-1', name: '   ', is_archived: 1 }),
+        makeTestAccount({ id: 'arch-2', name: 'Vodafone Cash' }),
+      ],
+      'all',
+    );
+    expect(resolveArchivedSummary(rows)).toBe(`${Strings.unnamedAccount}, Vodafone Cash`);
   });
 
   it('is empty for no rows', () => {

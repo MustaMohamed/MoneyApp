@@ -7,6 +7,7 @@ import { Strings } from '@/constants/strings';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
+import { resolveAccountName } from '@/utils/account_name';
 
 import { isRateUsable } from '../../../domain/account_aggregation';
 import { AccountNameTakenError } from '../../../repositories/account.errors';
@@ -124,10 +125,11 @@ export function useAccountsList() {
   const unarchive = useCallback(
     async (id: string) => {
       if (useAccountsListState.getState().unarchivingId !== undefined) return;
-      const name = useAccountStore
+      const account = useAccountStore
         .getState()
-        .archivedAccounts.find((account) => account.id === id)?.name;
-      if (name === undefined) return;
+        .archivedAccounts.find((archived) => archived.id === id);
+      if (account === undefined) return;
+      const name = resolveAccountName(account);
 
       setUnarchiveError(undefined);
       setUnarchivingId(id);
