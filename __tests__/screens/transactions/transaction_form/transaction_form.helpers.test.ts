@@ -118,6 +118,17 @@ describe('transaction form helpers', () => {
     );
     expect(resolveTransactionDeleteError(new Error('x'))).toBe(Strings.errDeleteFailed);
   });
+
+  it('MA-073: a blank-named archived account reads "Unnamed account" on save and delete', () => {
+    const refusal = new TransactionAccountArchivedError(
+      'source',
+      makeTestAccount({ name: '  ', is_archived: 1 }),
+    );
+    const line = Strings.transactionAccountArchived(Strings.unnamedAccount);
+
+    expect(resolveTransactionSaveError(refusal)).toBe(line);
+    expect(resolveTransactionDeleteError(refusal)).toBe(line);
+  });
 });
 
 describe('resolveDestinationFloorError', () => {

@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 
 import { Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { MIGRATIONS } from '@/database/migrations';
 import * as transactionsModule from '@/modules/transactions/database/transactions';
 import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
@@ -999,17 +1000,18 @@ describe('archived accounts are frozen history (MA-053)', () => {
   async function expectArchivedRefusal(
     write: Promise<unknown>,
     role: 'source' | 'destination',
-    accountName: string,
+    accountLabel: string,
   ): Promise<void> {
     const error = await write.then(
       () => undefined,
       (rejection: unknown) => rejection,
     );
     expect(error).toBeInstanceOf(TransactionAccountArchivedError);
-    expect(error).toMatchObject({ role, accountName });
+    expect(error).toMatchObject({ role, accountLabel });
   }
 
   afterEach(() => {
+    realDb.prepare("UPDATE accounts SET name = 'Bank' WHERE id = 'acc1'").run();
     setAccountFlags('acc1', { archived: 0, deleted: 0 });
     setAccountFlags('acc2', { archived: 0, deleted: 0 });
   });
@@ -1069,6 +1071,21 @@ describe('archived accounts are frozen history (MA-053)', () => {
     });
     expect(accountBalance('acc1')).toBe(5000);
     expect(accountBalance('acc2')).toBe(1000);
+  });
+
+  it('MA-073: labels a blank-named archived source "Unnamed account" and writes nothing', async () => {
+    const tx = await repo.add(baseInput);
+    realDb.prepare("UPDATE accounts SET name = '   ', is_archived = 1 WHERE id = 'acc1'").run();
+
+    await expectArchivedRefusal(repo.update(tx.id, expenseEdit), 'source', Strings.unnamedAccount);
+
+    expect(storedAmount(tx.id)).toBe(200);
+  });
+
+  it('MA-073: labels a deleted source refused on add "Deleted Account"', async () => {
+    setAccountFlags('acc1', { archived: 1, deleted: 1 });
+
+    await expectArchivedRefusal(repo.add(baseInput), 'source', Strings.deletedAccount);
   });
 
   it('keeps a deleted source editable and deletable, and its balance moves', async () => {

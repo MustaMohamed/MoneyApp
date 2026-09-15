@@ -126,7 +126,7 @@ export function resolveDestinationFloorError(input: {
 
 function resolveArchivedAccountLine(error: unknown): string | undefined {
   return error instanceof TransactionAccountArchivedError
-    ? Strings.transactionAccountArchived(error.accountName)
+    ? Strings.transactionAccountArchived(error.accountLabel)
     : undefined;
 }
 
