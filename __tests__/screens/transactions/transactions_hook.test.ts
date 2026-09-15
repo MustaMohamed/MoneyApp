@@ -227,7 +227,9 @@ describe('useTransactions screen orchestration', () => {
     setupStores({
       deleteTransaction: jest
         .fn()
-        .mockRejectedValue(new TransactionAccountArchivedError('source', { name: 'Old Card' })),
+        .mockRejectedValue(
+          new TransactionAccountArchivedError('source', makeTestAccount({ name: 'Old Card' })),
+        ),
     });
     const { result } = await renderHook(() => useTransactions());
 

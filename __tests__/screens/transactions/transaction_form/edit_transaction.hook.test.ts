@@ -267,7 +267,9 @@ describe('useEditTransaction', () => {
 
   it('MA-053: names the archived account and preserves edits when the update is refused', async () => {
     installMockUpdateTransaction(() =>
-      Promise.reject(new TransactionAccountArchivedError('source', { name: 'Old Card' })),
+      Promise.reject(
+        new TransactionAccountArchivedError('source', makeTestAccount({ name: 'Old Card' })),
+      ),
     );
     const onClose = jest.fn();
     const { result } = await renderHook(() =>
