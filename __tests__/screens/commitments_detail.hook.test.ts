@@ -225,11 +225,13 @@ describe('useCommitmentDetail', () => {
   it('completes a committed skip before an effect-driven history refresh failure', async () => {
     commitmentsState = [commitment];
     paymentsState = [payment];
+    mockGetPaymentsByCommitment.mockResolvedValue(rentHistory);
     const historyError = new Error('history refresh failed');
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const { result, rerender } = await renderHook(() => useCommitmentDetail());
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(1);
+    const owner = result.current.state.owner;
 
     await act(async () => result.current.confirmSkip());
     expect(result.current.state.skipConfirmVisible).toBe(true);
@@ -256,6 +258,209 @@ describe('useCommitmentDetail', () => {
       '[commitmentDetail] getPaymentsByCommitment failed',
       historyError,
     );
+    await waitFor(() => expect(result.current.state.viewState).toBe('refreshErrorWithData'));
+    expect(useCommitmentDetailStore.getState().entries[owner].allPayments).toBe(rentHistory);
+    expect(result.current.state.allPayments[0].status).toBe(CommitmentPaymentStatus.Skipped);
+    expect(result.current.state.refreshError).toBe(true);
+    expect(result.current.state.skipConfirmVisible).toBe(false);
+    consoleSpy.mockRestore();
+  });
+
+  it('a store publish with rows on screen refreshes in place, never reading loading', async () => {
+    commitmentsState = [commitment];
+    paymentsState = [payment];
+    const nextPayment: CommitmentPayment = { ...payment, id: 'pay-next', due_date: '2026-06-01' };
+    const refreshedHistory = [payment, nextPayment];
+    const pending = deferred<CommitmentPayment[]>();
+    mockGetPaymentsByCommitment
+      .mockResolvedValueOnce(rentHistory)
+      .mockReturnValueOnce(pending.promise);
+    const seen: string[] = [];
+
+    const { result, rerender } = await renderHook(() => {
+      const hook = useCommitmentDetail();
+      seen.push(hook.state.viewState);
+      return hook;
+    });
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    const seenBeforePublish = seen.length;
+
+    paymentsState = [{ ...payment }];
+    await rerender({});
+
+    await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
+    expect(result.current.state.viewState).toBe('ready');
+    expect(result.current.state.allPayments).toEqual(rentHistory);
+
+    await act(async () => {
+      pending.resolve(refreshedHistory);
+      await pending.promise;
+    });
+
+    await waitFor(() => expect(result.current.state.allPayments).toHaveLength(2));
+    expect(result.current.state.viewState).toBe('ready');
+    expect(seen.slice(seenBeforePublish)).not.toContain('loading');
+  });
+
+  it('a first query that fails shows the load error, and retry re-runs it', async () => {
+    commitmentsState = [commitment];
+    paymentsState = [payment];
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockGetPaymentsByCommitment
+      .mockRejectedValueOnce(new Error('first load failed'))
+      .mockRejectedValueOnce(new Error('retry failed'))
+      .mockResolvedValueOnce(rentHistory);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('firstLoadError'));
+    expect(result.current.state.allPayments).toEqual([]);
+
+    await act(async () => result.current.reload());
+    await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.state.viewState).toBe('firstLoadError'));
+
+    await act(async () => result.current.reload());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(3);
+    expect(result.current.state.allPayments).toEqual(rentHistory);
+    consoleSpy.mockRestore();
+  });
+
+  it('a warm refresh failure keeps the rows, and a successful retry clears it', async () => {
+    commitmentsState = [commitment];
+    paymentsState = [payment];
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const retried = [{ ...payment }];
+    mockGetPaymentsByCommitment
+      .mockResolvedValueOnce(rentHistory)
+      .mockRejectedValueOnce(new Error('refresh failed'))
+      .mockResolvedValueOnce(retried);
+
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    paymentsState = [{ ...payment }];
+    await rerender({});
+    await waitFor(() => expect(result.current.state.viewState).toBe('refreshErrorWithData'));
+    expect(result.current.state.allPayments).toEqual(rentHistory);
+
+    await act(async () => result.current.reload());
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(3);
+    expect(result.current.state.refreshError).toBe(false);
+    consoleSpy.mockRestore();
+  });
+
+  it('a route move to another commitment reads loading with no rows and drops the late result', async () => {
+    commitmentsState = [commitment, otherCommitment];
+    paymentsState = [payment, otherPayment];
+    const lateRent = deferred<CommitmentPayment[]>();
+    const gym = deferred<CommitmentPayment[]>();
+    const lateRentRows = [{ ...payment, status: CommitmentPaymentStatus.Paid }];
+    mockGetPaymentsByCommitment
+      .mockResolvedValueOnce(rentHistory)
+      .mockReturnValueOnce(lateRent.promise)
+      .mockReturnValueOnce(gym.promise);
+
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    const owner = result.current.state.owner;
+
+    paymentsState = [{ ...payment }, otherPayment];
+    await rerender({});
+    await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
+
+    mockParams = { id: otherPayment.id };
+    await rerender({});
+    await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(3));
+    expect(mockGetPaymentsByCommitment).toHaveBeenLastCalledWith(otherCommitment.id);
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.allPayments).toEqual([]);
+
+    await act(async () => {
+      lateRent.resolve(lateRentRows);
+      await lateRent.promise;
+    });
+
+    expect(useCommitmentDetailStore.getState().entries[owner].allPayments).toBe(rentHistory);
+    expect(result.current.state.viewState).toBe('loading');
+
+    await act(async () => {
+      gym.resolve(gymHistory);
+      await gym.promise;
+    });
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.allPayments).toEqual(gymHistory);
+    expect(useCommitmentDetailStore.getState().entries[owner].commitmentId).toBe(
+      otherCommitment.id,
+    );
+  });
+
+  it('the history row reads the store status while the re-query is in flight', async () => {
+    commitmentsState = [commitment];
+    paymentsState = [payment];
+    const pending = deferred<CommitmentPayment[]>();
+    mockGetPaymentsByCommitment
+      .mockResolvedValueOnce(rentHistory)
+      .mockReturnValueOnce(pending.promise);
+
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    paymentsState = [{ ...payment, status: CommitmentPaymentStatus.Paid }];
+    await rerender({});
+    await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
+
+    expect(result.current.state.payment?.status).toBe(CommitmentPaymentStatus.Paid);
+    expect(result.current.state.allPayments[0].status).toBe(CommitmentPaymentStatus.Paid);
+    expect(
+      useCommitmentDetailStore.getState().entries[result.current.state.owner].allPayments,
+    ).toBe(rentHistory);
+  });
+
+  it('a failed skip keeps the sheet open with its error, and a retry that lands closes it', async () => {
+    commitmentsState = [commitment];
+    paymentsState = [payment];
+    mockGetPaymentsByCommitment.mockResolvedValue(rentHistory);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const skipError = new Error('skip failed');
+    mockSkipPayment.mockRejectedValueOnce(skipError);
+
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    await act(async () => result.current.confirmSkip());
+
+    await act(async () => {
+      await result.current.skipPayment();
+    });
+
+    expect(consoleSpy).toHaveBeenCalledWith('[commitmentDetail] skipPayment failed', skipError);
+    expect(result.current.state.skipConfirmVisible).toBe(true);
+    expect(result.current.state.skipError).toBe(true);
+    expect(result.current.state.skipBusy).toBe(false);
+    expect(result.current.state.allPayments).toEqual(rentHistory);
+    expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(1);
+
+    const pendingSkip = deferred<void>();
+    mockSkipPayment.mockReturnValueOnce(pendingSkip.promise);
+    let skipping: Promise<void> = Promise.resolve();
+    await act(async () => {
+      skipping = result.current.skipPayment();
+    });
+
+    expect(result.current.state.skipBusy).toBe(true);
+    expect(result.current.state.skipError).toBe(false);
+
+    await act(async () => {
+      pendingSkip.resolve();
+      await skipping;
+    });
+
+    expect(result.current.state.skipConfirmVisible).toBe(false);
+    expect(result.current.state.skipBusy).toBe(false);
+    expect(result.current.state.skipError).toBe(false);
     consoleSpy.mockRestore();
   });
 });
@@ -419,7 +624,10 @@ describe('useCommitmentDetail two copies mounted at once', () => {
 
     const copy = await renderHook(() => useCommitmentDetail());
     await waitFor(() => expect(copy.result.current.state.viewState).toBe('ready'));
-    const skipping = copy.result.current.skipPayment();
+    let skipping: Promise<void> = Promise.resolve();
+    await act(async () => {
+      skipping = copy.result.current.skipPayment();
+    });
 
     await copy.unmount();
     await act(async () => {

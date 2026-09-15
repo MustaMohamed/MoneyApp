@@ -6,13 +6,14 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 
 interface CommitmentDetailEntry {
+  commitmentId: string | undefined;
   allPayments: CommitmentPayment[];
 }
 
 type CommitmentDetailStoreShape = KeyedEntries<CommitmentDetailEntry>;
 
 type CommitmentDetailStore = CommitmentDetailStoreShape & {
-  setAllPayments: (owner: string, payments: CommitmentPayment[]) => void;
+  setAllPayments: (owner: string, commitmentId: string, payments: CommitmentPayment[]) => void;
   release: (owner: string) => void;
   reset: () => void;
 };
@@ -22,6 +23,7 @@ const EMPTY_PAYMENTS: CommitmentPayment[] = [];
 Object.freeze(EMPTY_PAYMENTS);
 
 export const INITIAL_DATA_ENTRY: CommitmentDetailEntry = Object.freeze({
+  commitmentId: undefined,
   allPayments: EMPTY_PAYMENTS,
 });
 
@@ -30,8 +32,8 @@ const initialState = (): CommitmentDetailStoreShape => ({ entries: {} });
 export const useCommitmentDetailStore = createMoneyAppSelectors(
   create<CommitmentDetailStore>((set) => ({
     ...initialState(),
-    setAllPayments: (owner, payments) =>
-      set((state) => withEntry(state, owner, { allPayments: payments })),
+    setAllPayments: (owner, commitmentId, payments) =>
+      set((state) => withEntry(state, owner, { commitmentId, allPayments: payments })),
     release: (owner) => set((state) => withoutEntry(state, owner)),
     reset: () => set(initialState()),
   })),

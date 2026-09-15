@@ -11,20 +11,29 @@ beforeEach(() => {
 
 const entryOf = (owner: string) => useCommitmentDetailState.getState().entries[owner];
 
+const COLD_ENTRY = {
+  status: 'loading',
+  refreshError: false,
+  reloadKey: 0,
+  skipConfirmVisible: false,
+  skipBusy: false,
+  skipError: false,
+};
+
 describe('useCommitmentDetailState', () => {
   it('starts with no copy owning anything', () => {
     expect(useCommitmentDetailState.getState().entries).toEqual({});
   });
 
-  it('setViewState opens a copy entry with its confirm sheet closed', () => {
-    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+  it('beginLoad opens a copy entry with its confirm sheet closed', () => {
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
 
-    expect(entryOf('owner-a')).toEqual({ viewState: 'ready', skipConfirmVisible: false });
+    expect(entryOf('owner-a')).toEqual(COLD_ENTRY);
   });
 
   it('a second copy opening its skip confirm leaves the first copy closed', () => {
-    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
-    useCommitmentDetailState.getState().setViewState('owner-b', 'ready');
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
+    useCommitmentDetailState.getState().beginLoad('owner-b', false);
     const before = entryOf('owner-a');
 
     useCommitmentDetailState.getState().setSkipConfirmVisible('owner-b', true);
@@ -33,19 +42,81 @@ describe('useCommitmentDetailState', () => {
     expect(entryOf('owner-b').skipConfirmVisible).toBe(true);
   });
 
-  it('a second copy resolving not-found leaves the first copy ready', () => {
-    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
-    useCommitmentDetailState.getState().setViewState('owner-b', 'ready');
+  it('a second copy failing its first load leaves the first copy ready', () => {
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
+    useCommitmentDetailState.getState().resolve('owner-a');
+    useCommitmentDetailState.getState().beginLoad('owner-b', false);
     const before = entryOf('owner-a');
 
-    useCommitmentDetailState.getState().setViewState('owner-b', 'notFound');
+    useCommitmentDetailState.getState().failLoad('owner-b', false);
 
     expect(entryOf('owner-a')).toBe(before);
-    expect(entryOf('owner-b').viewState).toBe('notFound');
+    expect(entryOf('owner-a').status).toBe('ready');
+    expect(entryOf('owner-b').status).toBe('firstLoadError');
+  });
+
+  it('a warm beginLoad keeps ready and clears the refresh error', () => {
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
+    useCommitmentDetailState.getState().resolve('owner-a');
+    useCommitmentDetailState.getState().failLoad('owner-a', true);
+
+    useCommitmentDetailState.getState().beginLoad('owner-a', true);
+
+    expect(entryOf('owner-a').status).toBe('ready');
+    expect(entryOf('owner-a').refreshError).toBe(false);
+  });
+
+  it('a cold failLoad reads firstLoadError', () => {
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
+
+    useCommitmentDetailState.getState().failLoad('owner-a', false);
+
+    expect(entryOf('owner-a').status).toBe('firstLoadError');
+    expect(entryOf('owner-a').refreshError).toBe(false);
+  });
+
+  it('a warm failLoad keeps ready with the refresh error set', () => {
+    useCommitmentDetailState.getState().beginLoad('owner-a', true);
+
+    useCommitmentDetailState.getState().failLoad('owner-a', true);
+
+    expect(entryOf('owner-a').status).toBe('ready');
+    expect(entryOf('owner-a').refreshError).toBe(true);
+  });
+
+  it('resolve after failLoad clears the error', () => {
+    useCommitmentDetailState.getState().beginLoad('owner-a', true);
+    useCommitmentDetailState.getState().failLoad('owner-a', true);
+
+    useCommitmentDetailState.getState().resolve('owner-a');
+
+    expect(entryOf('owner-a').status).toBe('ready');
+    expect(entryOf('owner-a').refreshError).toBe(false);
+  });
+
+  it('bumpReload moves only that copy reload key', () => {
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
+    useCommitmentDetailState.getState().beginLoad('owner-b', false);
+    const before = entryOf('owner-b');
+
+    useCommitmentDetailState.getState().bumpReload('owner-a');
+
+    expect(entryOf('owner-a').reloadKey).toBe(1);
+    expect(entryOf('owner-b')).toBe(before);
+  });
+
+  it('setSkipBusy and setSkipError write only that copy skip outcome', () => {
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
+
+    useCommitmentDetailState.getState().setSkipBusy('owner-a', true);
+    useCommitmentDetailState.getState().setSkipError('owner-a', true);
+
+    expect(entryOf('owner-a').skipBusy).toBe(true);
+    expect(entryOf('owner-a').skipError).toBe(true);
   });
 
   it('setSkipConfirmVisible on a copy that never loaded writes nothing', () => {
-    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
     const before = useCommitmentDetailState.getState().entries;
 
     useCommitmentDetailState.getState().setSkipConfirmVisible('owner-b', true);
@@ -53,30 +124,41 @@ describe('useCommitmentDetailState', () => {
     expect(useCommitmentDetailState.getState().entries).toBe(before);
   });
 
-  it('setSkipConfirmVisible after release does not resurrect the copy', () => {
-    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+  it('every guarded write after release does not resurrect the copy', () => {
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
     useCommitmentDetailState.getState().release('owner-a');
     const before = useCommitmentDetailState.getState().entries;
+    const store = useCommitmentDetailState.getState();
+    const guardedWrites: ((owner: string) => void)[] = [
+      (owner) => store.resolve(owner),
+      (owner) => store.failLoad(owner, false),
+      (owner) => store.failLoad(owner, true),
+      (owner) => store.bumpReload(owner),
+      (owner) => store.setSkipConfirmVisible(owner, false),
+      (owner) => store.setSkipBusy(owner, true),
+      (owner) => store.setSkipError(owner, true),
+    ];
 
-    useCommitmentDetailState.getState().setSkipConfirmVisible('owner-a', false);
-
-    expect(useCommitmentDetailState.getState().entries).toBe(before);
+    for (const write of guardedWrites) {
+      write('owner-a');
+      expect(useCommitmentDetailState.getState().entries).toBe(before);
+    }
     expect(useCommitmentDetailState.getState().entries).toEqual({});
   });
 
-  it('setViewState after release opens the copy again, from the initial entry', () => {
-    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+  it('beginLoad after release opens the copy again, from the initial entry', () => {
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
     useCommitmentDetailState.getState().setSkipConfirmVisible('owner-a', true);
     useCommitmentDetailState.getState().release('owner-a');
 
-    useCommitmentDetailState.getState().setViewState('owner-a', 'loading');
+    useCommitmentDetailState.getState().beginLoad('owner-a', false);
 
-    expect(entryOf('owner-a')).toEqual({ viewState: 'loading', skipConfirmVisible: false });
+    expect(entryOf('owner-a')).toEqual(COLD_ENTRY);
   });
 
   it('release removes only the released copy', () => {
-    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
-    useCommitmentDetailState.getState().setViewState('owner-b', 'loading');
+    useCommitmentDetailState.getState().beginLoad('owner-a', true);
+    useCommitmentDetailState.getState().beginLoad('owner-b', false);
     const before = entryOf('owner-a');
 
     useCommitmentDetailState.getState().release('owner-b');
@@ -86,7 +168,7 @@ describe('useCommitmentDetailState', () => {
   });
 
   it('reset drops every copy', () => {
-    useCommitmentDetailState.getState().setViewState('owner-a', 'ready');
+    useCommitmentDetailState.getState().beginLoad('owner-a', true);
 
     useCommitmentDetailState.getState().reset();
 

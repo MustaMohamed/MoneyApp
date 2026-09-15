@@ -1,6 +1,7 @@
 import { PressableFeedback } from 'heroui-native';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 
+import { LoadingCenter } from '@/components/ui/loading_center';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -9,6 +10,7 @@ import { GoldTokens } from '@/constants/theme_tokens';
 import { CommitmentHeader } from '../components/commitment_header';
 import { CurrentCycleCard } from './components/current_cycle_card';
 import { DetailHero } from './components/detail_hero';
+import { DetailLoadError } from './components/detail_load_error';
 import { DetailsCard } from './components/details_card';
 import { PaySheet } from './components/pay_sheet';
 import { PaymentHistory } from './components/payment_history';
@@ -16,8 +18,9 @@ import { SkipConfirmSheet } from './components/skip_confirm_sheet';
 import { useCommitmentDetail } from './detail.hook';
 
 export default function CommitmentDetailScreen() {
-  const { state, confirmSkip, skipPayment, cancelSkip, openPaySheet, goToEdit, goBack } =
+  const { state, confirmSkip, skipPayment, cancelSkip, reload, openPaySheet, goToEdit, goBack } =
     useCommitmentDetail();
+  const showsBody = state.viewState === 'ready' || state.viewState === 'refreshErrorWithData';
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -25,7 +28,7 @@ export default function CommitmentDetailScreen() {
         title={state.commitment?.name ?? ''}
         onBack={goBack}
         right={
-          state.viewState === 'ready' && state.commitment ? (
+          state.commitment && state.viewState !== 'loading' ? (
             <PressableFeedback
               onPress={goToEdit}
               hitSlop={8}
@@ -39,11 +42,7 @@ export default function CommitmentDetailScreen() {
         }
       />
 
-      {state.viewState === 'loading' ? (
-        <View style={{ flex: 1 }} className="items-center justify-center">
-          <ActivityIndicator color={GoldTokens[500]} />
-        </View>
-      ) : null}
+      {state.viewState === 'loading' ? <LoadingCenter /> : null}
 
       {state.viewState === 'notFound' ? (
         <View style={{ flex: 1 }} className="items-center justify-center">
@@ -53,7 +52,9 @@ export default function CommitmentDetailScreen() {
         </View>
       ) : null}
 
-      {state.viewState === 'ready' && state.commitment ? (
+      {state.viewState === 'firstLoadError' ? <DetailLoadError onRetry={reload} /> : null}
+
+      {showsBody && state.commitment ? (
         <ScreenScroll
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
@@ -82,10 +83,16 @@ export default function CommitmentDetailScreen() {
         </ScreenScroll>
       ) : null}
 
+      {state.viewState === 'refreshErrorWithData' ? (
+        <DetailLoadError floating floatingOffset={state.floatingOffset} onRetry={reload} />
+      ) : null}
+
       <PaySheet owner={state.owner} commitment={state.commitment} payment={state.payment} />
 
       <SkipConfirmSheet
         isOpen={state.skipConfirmVisible}
+        busy={state.skipBusy}
+        errorMessage={state.skipError ? Strings.commitmentsSkipError : undefined}
         onCancel={cancelSkip}
         onConfirm={() => void skipPayment()}
       />
