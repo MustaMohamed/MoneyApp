@@ -33,6 +33,14 @@ function err(
   return r.success ? undefined : r.error.issues[0]?.message;
 }
 
+function nameMessages(
+  schema: ReturnType<typeof createEditAccountSchema>,
+  data: { name: string; color: string },
+) {
+  const r = schema.safeParse(data);
+  return r.success ? [] : r.error.issues.filter((i) => i.path[0] === 'name').map((i) => i.message);
+}
+
 describe('edit account schema', () => {
   const accounts = [acct('id-self', 'My Bank'), acct('id-other', 'Other Bank')];
 
@@ -54,5 +62,32 @@ describe('edit account schema', () => {
   it('name > 30 chars → errNameTooLong', () => {
     const schema = createEditAccountSchema(accounts, 'id-self');
     expect(err(schema, { name: 'a'.repeat(31), color: '#fff' })).toBe(Strings.errNameTooLong);
+  });
+
+  it('whitespace-only name → errNameRequired alone', () => {
+    const schema = createEditAccountSchema(accounts, 'id-self');
+    expect(nameMessages(schema, { name: '   ', color: '#fff' })).toEqual([Strings.errNameRequired]);
+  });
+
+  it('whitespace-only name beside a blank-named account → errNameRequired alone, no duplicate', () => {
+    const schema = createEditAccountSchema([...accounts, acct('id-blank', '')], 'id-self');
+    expect(nameMessages(schema, { name: '   ', color: '#fff' })).toEqual([Strings.errNameRequired]);
+  });
+
+  it('surrounding spaces are removed from the parsed name', () => {
+    const schema = createEditAccountSchema([acct('id-self', 'My Bank')], 'id-self');
+    const r = schema.safeParse({ name: ' Cash ', color: '#fff' });
+    expect(r.success).toBe(true);
+    expect(r.data?.name).toBe('Cash');
+  });
+
+  it('surrounding spaces against another active "cash" → errNameDuplicate', () => {
+    const schema = createEditAccountSchema([...accounts, acct('id-other-cash', 'cash')], 'id-self');
+    expect(err(schema, { name: ' Cash ', color: '#fff' })).toBe(Strings.errNameDuplicate);
+  });
+
+  it('30 chars inside surrounding spaces → valid, the limit reads the trimmed name', () => {
+    const schema = createEditAccountSchema(accounts, 'id-self');
+    expect(err(schema, { name: ` ${'a'.repeat(30)} `, color: '#fff' })).toBeUndefined();
   });
 });
