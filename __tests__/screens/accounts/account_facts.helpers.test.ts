@@ -3,6 +3,7 @@ import { Colors } from '@/constants/theme';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import {
   buildAccountFacts,
+  buildArchivedAccountFacts,
   buildMonthFacts,
 } from '@/modules/accounts/screens/accounts/detail/components/account_facts.helpers';
 import type { Account } from '@/modules/accounts/store/account.store';
@@ -169,5 +170,37 @@ describe('buildMonthFacts', () => {
     AccountType.PhysicalSavings,
   ])('%s carries no month rows', (type) => {
     expect(buildMonthFacts(mkAccount({ type }), stats)).toEqual([]);
+  });
+});
+
+describe('buildArchivedAccountFacts', () => {
+  const counts = { transactionCount: 42, activeCommitmentCount: 1 };
+
+  it('a bank gives currency, transactions and commitments, and nothing else', () => {
+    expect(buildArchivedAccountFacts(mkAccount({ is_archived: 1 }), counts)).toEqual([
+      { label: 'Currency', value: 'EGP' },
+      { label: 'Transactions', value: '42' },
+      { label: 'Commitments paid from it', value: '1' },
+    ]);
+  });
+
+  it('a credit card gives the same three rows and none of its card terms', () => {
+    const facts = buildArchivedAccountFacts(mkCard({ is_archived: 1 }), counts);
+    expect(facts.map((fact) => fact.label)).toEqual([
+      'Currency',
+      'Transactions',
+      'Commitments paid from it',
+    ]);
+    expect(facts.map((fact) => fact.label)).not.toContain('Credit limit');
+  });
+
+  it('groups a large count and prints it whole on a two-decimal currency', () => {
+    const facts = buildArchivedAccountFacts(mkAccount({ currency: Currency.USD }), {
+      transactionCount: 1204,
+      activeCommitmentCount: 0,
+    });
+    expect(facts[0]?.value).toBe('USD');
+    expect(facts[1]?.value).toBe('1,204');
+    expect(facts[2]?.value).toBe('0');
   });
 });

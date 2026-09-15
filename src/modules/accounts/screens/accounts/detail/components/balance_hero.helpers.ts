@@ -10,7 +10,7 @@ import type { Account } from '../../../../store/account.store';
 
 export interface HeroCaption {
   text: string;
-  /** true only for non-CC accounts whose current balance has drifted from opening */
+  /** true only on the opening caption (non-CC, or an archived CC) when the current balance has drifted from opening */
   adjusted: boolean;
   /** runtime color for a CC's available-credit and over-limit captions; undefined for Opening captions */
   color?: string;
@@ -23,7 +23,8 @@ export function buildHeroCaption(account: Account): HeroCaption {
   // `Strings.accountHero*` interpolate the currency, so `formatCurrencyAmount` would double it.
   const decimals = CURRENCY_CONFIG[currency].decimals;
 
-  if (isCC && limit > 0) {
+  // An archived card cannot act on its terms, so it takes the opening caption like any other account.
+  if (isCC && limit > 0 && account.is_archived !== 1) {
     if (isOverLimit(account.current_balance, limit)) {
       return {
         text: Strings.accountOverLimit,
@@ -47,6 +48,18 @@ export function buildHeroCaption(account: Account): HeroCaption {
     text: Strings.accountHeroOpening(formatAmount(account.opening_balance, decimals), currency),
     adjusted: account.current_balance !== account.opening_balance,
   };
+}
+
+export interface HeroHeading {
+  label: string;
+  hollow: boolean;
+}
+
+/** An archived row names its balance as the one it was archived with and hollows its tile (G2). */
+export function buildHeroHeading(account: Account): HeroHeading {
+  return account.is_archived === 1
+    ? { label: Strings.accountDetailBalanceArchived, hollow: true }
+    : { label: Strings.accountDetailBalance, hollow: false };
 }
 
 export interface AccountBalanceParts {

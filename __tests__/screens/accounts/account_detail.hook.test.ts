@@ -1,11 +1,18 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { useToast } from '@/components/ui/toast';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { AccountNameTakenError } from '@/modules/accounts/repositories/account.errors';
 import type { AccountActivitySnapshot } from '@/modules/accounts/repositories/account_activity.repository';
+import type { ArchivedAccountDetailSnapshot } from '@/modules/accounts/repositories/archived_account_detail.repository';
 import { useAccountActivityStore } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
 import { useAccountDetail } from '@/modules/accounts/screens/accounts/detail/account_detail.hook';
 import { useAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
+import {
+  useArchivedAccountDetailStore,
+  type ArchivedAccountDetailStatus,
+} from '@/modules/accounts/screens/accounts/detail/archived_account_detail.store';
 import { useAccountStore, type Account } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -20,6 +27,9 @@ const mockFocusEffect = jest.fn<void, [() => void | (() => void)]>();
 const mockEnsure = jest.fn();
 const mockRetry = jest.fn(() => Promise.resolve());
 const mockActivityReset = jest.fn();
+const mockSlotEnsure = jest.fn(() => Promise.resolve());
+const mockSlotRetry = jest.fn(() => Promise.resolve());
+const mockSlotReset = jest.fn();
 const mockSeedAccountFilter = jest.fn();
 const mockOpenAdd = jest.fn();
 type BeforeRemoveEvent = { preventDefault: () => void };
@@ -52,6 +62,9 @@ jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () 
 });
 jest.mock('@/modules/accounts/screens/accounts/detail/account_activity.store', () => ({
   useAccountActivityStore: jest.fn(),
+}));
+jest.mock('@/modules/accounts/screens/accounts/detail/archived_account_detail.store', () => ({
+  useArchivedAccountDetailStore: jest.fn(),
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/transactions/store/transaction.store', () => ({
@@ -97,6 +110,7 @@ function mockAccounts(accounts: Account[]): void {
     accounts,
     updateAccount: jest.fn(),
     archiveAccount: mockArchiveAccount,
+    unarchiveAccount: mockUnarchiveAccount,
     adjustBalance: mockAdjustBalance,
     confirmBalanceReviewed: mockConfirmBalanceReviewed,
   }));
@@ -111,6 +125,21 @@ function mockActivity(snapshot?: AccountActivitySnapshot, status = 'ready'): voi
     ensure: mockEnsure,
     retry: mockRetry,
     reset: mockActivityReset,
+  }));
+}
+
+function mockSlot(
+  snapshot?: ArchivedAccountDetailSnapshot,
+  status: ArchivedAccountDetailStatus = 'ready',
+): void {
+  attachMockSelectorStore(useArchivedAccountDetailStore as unknown as jest.Mock, () => ({
+    snapshot,
+    status,
+    requestedKey: undefined,
+    requestGeneration: 0,
+    ensure: mockSlotEnsure,
+    retry: mockSlotRetry,
+    reset: mockSlotReset,
   }));
 }
 
@@ -136,10 +165,13 @@ const mockSetArchiving = jest.fn();
 const mockSetConfirmingBalanceReview = jest.fn();
 const mockSetBalanceReviewError = jest.fn();
 const mockSetArchiveError = jest.fn();
+const mockSetUnarchiving = jest.fn();
+const mockSetUnarchiveError = jest.fn();
 const mockReset = jest.fn();
 const mockConfirmBalanceReviewed = jest.fn();
 const mockAdjustBalance = jest.fn();
 const mockArchiveAccount = jest.fn();
+const mockUnarchiveAccount = jest.fn();
 
 type DetailStateMock = {
   isEditing: boolean;
@@ -151,6 +183,8 @@ type DetailStateMock = {
   isConfirmingBalanceReview: boolean;
   balanceReviewError: string | undefined;
   archiveError: string | undefined;
+  isUnarchiving: boolean;
+  unarchiveError: string | undefined;
   setEditing: jest.Mock;
   setAdjustVisible: jest.Mock;
   setArchiveVisible: jest.Mock;
@@ -160,6 +194,8 @@ type DetailStateMock = {
   setConfirmingBalanceReview: jest.Mock;
   setBalanceReviewError: jest.Mock;
   setArchiveError: jest.Mock;
+  setUnarchiving: jest.Mock;
+  setUnarchiveError: jest.Mock;
   reset: jest.Mock;
 };
 
@@ -174,6 +210,8 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     isConfirmingBalanceReview: false,
     balanceReviewError: undefined,
     archiveError: undefined,
+    isUnarchiving: false,
+    unarchiveError: undefined,
     setEditing: mockSetEditing,
     setAdjustVisible: mockSetAdjustVisible,
     setArchiveVisible: mockSetArchiveVisible,
@@ -183,6 +221,8 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     setConfirmingBalanceReview: mockSetConfirmingBalanceReview,
     setBalanceReviewError: mockSetBalanceReviewError,
     setArchiveError: mockSetArchiveError,
+    setUnarchiving: mockSetUnarchiving,
+    setUnarchiveError: mockSetUnarchiveError,
     reset: mockReset,
     ...overrides,
   };
@@ -198,8 +238,11 @@ function setup() {
   jest.clearAllMocks();
   mockAddListener.mockReturnValue(jest.fn());
   mockRetry.mockReturnValue(Promise.resolve());
+  mockSlotEnsure.mockReturnValue(Promise.resolve());
+  mockSlotRetry.mockReturnValue(Promise.resolve());
   mockAccounts([]);
   mockActivity(undefined, 'idle');
+  mockSlot(undefined, 'idle');
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({ categories: [] }));
   mockDetailState();
 }
@@ -403,15 +446,17 @@ describe('useAccountDetail', () => {
     expect(mockEnsure).not.toHaveBeenCalled();
   });
 
-  it('drops the activity snapshot on unmount', async () => {
+  it('drops the activity snapshot and the archived slot on unmount', async () => {
     mockAccounts([mkAccount()]);
     const { unmount } = await renderHook(() => useAccountDetail());
 
     expect(mockActivityReset).not.toHaveBeenCalled();
+    expect(mockSlotReset).not.toHaveBeenCalled();
     await unmount();
 
     expect(mockReset).toHaveBeenCalledTimes(1);
     expect(mockActivityReset).toHaveBeenCalledTimes(1);
+    expect(mockSlotReset).toHaveBeenCalledTimes(1);
   });
 
   it('retries the activity read with a fresh stamp', async () => {
@@ -551,5 +596,171 @@ describe('useAccountDetail — the activity slice the screen renders', () => {
 
     expect(result.current.state.activity.rows).toEqual([]);
     expect(result.current.state.activity.monthFacts.map((fact) => fact.value)).toEqual(['—', '—']);
+  });
+});
+
+function archivedSnapshot(
+  overrides: Partial<ArchivedAccountDetailSnapshot> = {},
+): ArchivedAccountDetailSnapshot {
+  return {
+    accountId: 'acc-1',
+    account: mkAccount({ is_archived: 1 }),
+    transactionCount: 42,
+    activeCommitmentCount: 1,
+    ...overrides,
+  };
+}
+
+describe('useAccountDetail — an id outside the active list', () => {
+  beforeEach(setup);
+
+  it('resolves an archived id through the slot, with both counts and no month rows', async () => {
+    mockSlot(archivedSnapshot());
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(result.current.state.viewState).toBe('archived');
+    expect(result.current.state.account).toBeUndefined();
+    expect(result.current.state.archived).toEqual({
+      account: mkAccount({ is_archived: 1 }),
+      transactionCount: 42,
+      activeCommitmentCount: 1,
+    });
+    expect(result.current.state.activity.monthFacts).toEqual([]);
+  });
+
+  it('reads the slot on focus, stamped with the mutation version, and not the activity', async () => {
+    await renderHook(() => useAccountDetail());
+
+    runFocusEffect();
+
+    expect(mockSlotEnsure).toHaveBeenCalledTimes(1);
+    expect(mockSlotEnsure).toHaveBeenCalledWith({ accountId: 'acc-1', mutationVersion: 3 });
+    expect(mockEnsure).not.toHaveBeenCalled();
+  });
+
+  it('shows a deleted id as not found, not as an archived account', async () => {
+    mockSlot(archivedSnapshot({ account: undefined }));
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(result.current.state.viewState).toBe('notFound');
+    expect(result.current.state.archived).toBeUndefined();
+  });
+
+  it('renders the active detail when the active list holds the id, whatever the slot holds', async () => {
+    mockAccounts([mkAccount()]);
+    mockSlot(archivedSnapshot());
+    const { result } = await renderHook(() => useAccountDetail());
+
+    runFocusEffect();
+
+    expect(result.current.state.viewState).toBe('active');
+    expect(result.current.state.archived).toBeUndefined();
+    expect(mockSlotEnsure).not.toHaveBeenCalled();
+    expect(mockEnsure).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not paint a slot that holds another id', async () => {
+    mockSlot(archivedSnapshot({ accountId: 'acc-other' }));
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.archived).toBeUndefined();
+  });
+
+  it.each<[ArchivedAccountDetailStatus, string]>([
+    ['idle', 'loading'],
+    ['initialLoading', 'loading'],
+    ['initialError', 'loadError'],
+  ])('reads a %s slot as %s', async (status, viewState) => {
+    mockSlot(undefined, status);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(result.current.state.viewState).toBe(viewState);
+  });
+
+  it('retries the archived read with a fresh stamp', async () => {
+    mockSlot(undefined, 'initialError');
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.retryArchivedRead());
+
+    expect(mockSlotRetry).toHaveBeenCalledWith({ accountId: 'acc-1', mutationVersion: 3 });
+  });
+
+  it('restores in place: drops the slot, asks for the activity and toasts the name', async () => {
+    mockSlot(archivedSnapshot());
+    mockUnarchiveAccount.mockResolvedValueOnce(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleUnarchive());
+
+    expect(mockUnarchiveAccount).toHaveBeenCalledWith('acc-1');
+    expect(mockSetUnarchiveError.mock.calls).toEqual([[undefined]]);
+    expect(mockSetUnarchiveError.mock.invocationCallOrder[0]).toBeLessThan(
+      mockUnarchiveAccount.mock.invocationCallOrder[0] ?? 0,
+    );
+    // The reset bumps the slot's generation, so a read still in flight is dropped.
+    expect(mockSlotReset).toHaveBeenCalledTimes(1);
+    expect(mockUnarchiveAccount.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSlotReset.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(mockEnsure).toHaveBeenCalledTimes(1);
+    expect(mockEnsure).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: 'acc-1', mutationVersion: 3 }),
+    );
+    expect(useToast().toast.show).toHaveBeenCalledTimes(1);
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: 'CIB restored.',
+      variant: 'success',
+    });
+    expect(mockSetUnarchiving).toHaveBeenNthCalledWith(1, true);
+    expect(mockSetUnarchiving).toHaveBeenLastCalledWith(false);
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'refuses a name an active account holds',
+      new AccountNameTakenError(),
+      Strings.accountsArchivedNameTaken,
+    ],
+    ['reports a restore that did not land', new Error('db'), Strings.accountsArchivedRestoreError],
+  ])('%s with one line and leaves the screen as it was', async (_name, failure, line) => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation();
+    mockSlot(archivedSnapshot());
+    mockUnarchiveAccount.mockRejectedValueOnce(failure);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleUnarchive());
+
+    expect(mockSetUnarchiveError).toHaveBeenNthCalledWith(1, undefined);
+    expect(mockSetUnarchiveError).toHaveBeenLastCalledWith(line);
+    expect(useToast().toast.show).not.toHaveBeenCalled();
+    expect(mockSlotReset).not.toHaveBeenCalled();
+    expect(mockEnsure).not.toHaveBeenCalled();
+    expect(mockSetUnarchiving).toHaveBeenLastCalledWith(false);
+    consoleError.mockRestore();
+  });
+
+  it('ignores a second tap while a restore is running', async () => {
+    mockSlot(archivedSnapshot());
+    mockDetailState({ isUnarchiving: true });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleUnarchive());
+
+    expect(mockUnarchiveAccount).not.toHaveBeenCalled();
+    expect(mockSetUnarchiveError).not.toHaveBeenCalled();
+    expect(mockSetUnarchiving).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing while the slot holds no archived row', async () => {
+    mockSlot(undefined, 'initialLoading');
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleUnarchive());
+
+    expect(mockUnarchiveAccount).not.toHaveBeenCalled();
+    expect(mockSetUnarchiving).not.toHaveBeenCalled();
   });
 });

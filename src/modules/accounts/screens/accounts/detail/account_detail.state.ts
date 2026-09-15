@@ -12,6 +12,8 @@ interface AccountDetailStateShape {
   isConfirmingBalanceReview: boolean;
   balanceReviewError: string | undefined;
   archiveError: string | undefined;
+  isUnarchiving: boolean;
+  unarchiveError: string | undefined;
 }
 
 type AccountDetailState = AccountDetailStateShape & {
@@ -24,6 +26,8 @@ type AccountDetailState = AccountDetailStateShape & {
   setConfirmingBalanceReview: (v: boolean) => void;
   setBalanceReviewError: (message: string | undefined) => void;
   setArchiveError: (message: string | undefined) => void;
+  setUnarchiving: (v: boolean) => void;
+  setUnarchiveError: (message: string | undefined) => void;
   reset: () => void;
 };
 
@@ -37,6 +41,8 @@ const INITIAL_STATE: AccountDetailStateShape = {
   isConfirmingBalanceReview: false,
   balanceReviewError: undefined,
   archiveError: undefined,
+  isUnarchiving: false,
+  unarchiveError: undefined,
 };
 
 export function createAccountDetailState() {
@@ -52,6 +58,8 @@ export function createAccountDetailState() {
       setConfirmingBalanceReview: (v) => set({ isConfirmingBalanceReview: v }),
       setBalanceReviewError: (message) => set({ balanceReviewError: message }),
       setArchiveError: (message) => set({ archiveError: message }),
+      setUnarchiving: (v) => set({ isUnarchiving: v }),
+      setUnarchiveError: (message) => set({ unarchiveError: message }),
       reset: () => set(INITIAL_STATE),
     })),
   );

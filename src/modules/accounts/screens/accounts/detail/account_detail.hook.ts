@@ -2,6 +2,7 @@ import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from '
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import { useToast } from '@/components/ui/toast';
 import { Strings } from '@/constants/strings';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { stackedTransactionDetailRoute } from '@/modules/navigation/domain/stacked_route';
@@ -13,11 +14,15 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 import { currentYearMonth } from '@/utils/year_month';
 
 import { DEFAULT_ACCOUNT_COLOR } from '../../../constants/account_palette';
+import { AccountNameTakenError } from '../../../repositories/account.errors';
 import type { AccountActivityLoadInput } from '../../../repositories/account_activity.repository';
+import type { ArchivedAccountDetailLoadInput } from '../../../repositories/archived_account_detail.repository';
 import { useAccountStore } from '../../../store/account.store';
 import { createEditAccountSchema } from '../../../utils/edit_account.schema';
 import { useAccountActivityStore } from './account_activity.store';
+import { resolveViewState } from './account_detail.helpers';
 import { useAccountDetailState } from './account_detail.state';
+import { useArchivedAccountDetailStore } from './archived_account_detail.store';
 import { buildActivityRowPresentation } from './components/account_activity.helpers';
 import { buildMonthFacts } from './components/account_facts.helpers';
 
@@ -27,10 +32,12 @@ export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const navigation = useNavigation();
+  const { toast } = useToast();
 
   const accounts = useAccountStore((s) => s.accounts);
   const updateAccount = useAccountStore.getState().updateAccount;
   const archiveAccount = useAccountStore.getState().archiveAccount;
+  const unarchiveAccount = useAccountStore.getState().unarchiveAccount;
   const adjustBalance = useAccountStore.getState().adjustBalance;
   const confirmBalanceReviewed = useAccountStore.getState().confirmBalanceReviewed;
   const {
@@ -43,6 +50,8 @@ export function useAccountDetail() {
     isConfirmingBalanceReview,
     balanceReviewError,
     archiveError,
+    isUnarchiving,
+    unarchiveError,
   } = useAccountDetailState(
     useShallow((s) => ({
       isEditing: s.isEditing,
@@ -54,6 +63,8 @@ export function useAccountDetail() {
       isConfirmingBalanceReview: s.isConfirmingBalanceReview,
       balanceReviewError: s.balanceReviewError,
       archiveError: s.archiveError,
+      isUnarchiving: s.isUnarchiving,
+      unarchiveError: s.unarchiveError,
     })),
   );
   const setEditing = useAccountDetailState.getState().setEditing;
@@ -65,9 +76,14 @@ export function useAccountDetail() {
   const setConfirmingBalanceReview = useAccountDetailState.getState().setConfirmingBalanceReview;
   const setBalanceReviewError = useAccountDetailState.getState().setBalanceReviewError;
   const setArchiveError = useAccountDetailState.getState().setArchiveError;
+  const setUnarchiving = useAccountDetailState.getState().setUnarchiving;
+  const setUnarchiveError = useAccountDetailState.getState().setUnarchiveError;
   const reset = useAccountDetailState.getState().reset;
   const { activityStatus, activitySnapshot } = useAccountActivityStore(
     useShallow((s) => ({ activityStatus: s.status, activitySnapshot: s.snapshot })),
+  );
+  const { slotStatus, slotSnapshot } = useArchivedAccountDetailStore(
+    useShallow((s) => ({ slotStatus: s.status, slotSnapshot: s.snapshot })),
   );
   const categories = useCategoryStore((s) => s.categories);
 
@@ -76,6 +92,7 @@ export function useAccountDetail() {
       reset();
       // Bumps the generation too, so a result racing an archive is dropped (M14).
       useAccountActivityStore.getState().reset();
+      useArchivedAccountDetailStore.getState().reset();
     },
     [reset],
   );
@@ -92,6 +109,25 @@ export function useAccountDetail() {
 
   const account = accounts.find((a) => a.id === id);
 
+  const archived = useMemo(
+    () =>
+      !account && slotSnapshot?.accountId === id && slotSnapshot.account
+        ? {
+            account: slotSnapshot.account,
+            transactionCount: slotSnapshot.transactionCount,
+            activeCommitmentCount: slotSnapshot.activeCommitmentCount,
+          }
+        : undefined,
+    [account, id, slotSnapshot],
+  );
+
+  const viewState = resolveViewState({
+    isActive: account !== undefined,
+    isArchived: archived !== undefined,
+    slotStatus,
+    slotHoldsId: slotSnapshot?.accountId === id,
+  });
+
   const activityInput = useCallback(
     (): AccountActivityLoadInput => ({
       accountId: id,
@@ -101,19 +137,29 @@ export function useAccountDetail() {
     [id],
   );
 
+  const archivedInput = useCallback(
+    (): ArchivedAccountDetailLoadInput => ({
+      accountId: id,
+      mutationVersion: useTransactionStore.getState().mutationVersion,
+    }),
+    [id],
+  );
+
   useFocusEffect(
     useCallback(() => {
       const task = runAfterInteractions(
         () => {
-          // Archive removes the account mid-flight; without this the load reads a dead id (M14).
-          if (!useAccountStore.getState().accounts.some((a) => a.id === id)) return undefined;
+          // An id outside the active list reads by id into the slot, never the activity or the shared lookup (L27, M14).
+          if (!useAccountStore.getState().accounts.some((a) => a.id === id)) {
+            return useArchivedAccountDetailStore.getState().ensure(archivedInput());
+          }
           return useAccountActivityStore.getState().ensure(activityInput());
         },
-        // The store owns the error status the card renders; this only leaves a trace.
-        { onError: (error) => console.error('[accountDetail] activity load failed:', error) },
+        // The stores own the error status the screen renders; this only leaves a trace.
+        { onError: (error) => console.error('[accountDetail] focus load failed:', error) },
       );
       return () => task.cancel();
-    }, [activityInput, id]),
+    }, [activityInput, archivedInput, id]),
   );
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
@@ -214,6 +260,31 @@ export function useAccountDetail() {
     setArchiveError(undefined);
   };
 
+  const handleUnarchive = async () => {
+    if (!archived || useAccountDetailState.getState().isUnarchiving) return;
+    const { name } = archived.account;
+    setUnarchiveError(undefined);
+    setUnarchiving(true);
+    try {
+      await unarchiveAccount(id);
+    } catch (error) {
+      console.error('[accountDetail] unarchiveAccount failed:', error);
+      setUnarchiveError(
+        error instanceof AccountNameTakenError
+          ? Strings.accountsArchivedNameTaken
+          : Strings.accountsArchivedRestoreError,
+      );
+      return;
+    } finally {
+      setUnarchiving(false);
+    }
+    // Once restored the slot must not hold the pre-restore row at `ready`, or a later Archive paints it.
+    useArchivedAccountDetailStore.getState().reset();
+    // The focus effect does not re-run on a store change; the store owns the error status the card renders.
+    void useAccountActivityStore.getState().ensure(activityInput());
+    toast.show({ label: Strings.accountsArchivedRestored(name), variant: 'success' });
+  };
+
   const handleConfirmBalanceReviewed = async () => {
     const detailState = useAccountDetailState.getState();
     if (!id || detailState.isConfirmingBalanceReview) return;
@@ -240,6 +311,11 @@ export function useAccountDetail() {
   // Nothing to catch: a failed retry publishes `initialError`, which the card renders and logs.
   const retryActivity = () => {
     void useAccountActivityStore.getState().retry(activityInput());
+  };
+
+  // Nothing to catch: a failed retry publishes `initialError`, which the screen renders and the store logs.
+  const retryArchivedRead = () => {
+    void useArchivedAccountDetailStore.getState().retry(archivedInput());
   };
 
   const goToTransaction = (transactionId: string) => {
@@ -272,6 +348,8 @@ export function useAccountDetail() {
   return {
     state: {
       account,
+      viewState,
+      archived,
       isEditing,
       isAdjustVisible,
       isArchiveVisible,
@@ -281,6 +359,8 @@ export function useAccountDetail() {
       isConfirmingBalanceReview,
       balanceReviewError,
       archiveError,
+      isUnarchiving,
+      unarchiveError,
       activity: { status: activityStatus, rows: activityRows, monthFacts },
     },
     form,
@@ -291,9 +371,11 @@ export function useAccountDetail() {
     setArchiveVisible,
     closeArchive,
     handleArchive,
+    handleUnarchive,
     handleConfirmBalanceReviewed,
     onBack,
     retryActivity,
+    retryArchivedRead,
     goToTransaction,
     goToAllTransactions,
     addTransactionForAccount,

@@ -1,6 +1,7 @@
 import { PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
 import { Controller } from 'react-hook-form';
+import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
@@ -8,8 +9,11 @@ import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
+import { LoadErrorAlert } from '@/components/ui/load_error_alert';
+import { LoadingCenter } from '@/components/ui/loading_center';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 
@@ -21,6 +25,7 @@ import { AccountFactRow } from './components/account_fact_row';
 import { buildAccountFacts } from './components/account_facts.helpers';
 import { AdjustBalanceSheet } from './components/adjust_balance_sheet';
 import { ArchiveConfirmationDialog } from './components/archive_confirmation_dialog';
+import { ArchivedDetailBody } from './components/archived_detail_body';
 import { BalanceHero } from './components/balance_hero';
 import { BalanceReviewAlert } from './components/balance_review_alert';
 import { shouldShowBalanceReview } from './components/balance_review_alert.helpers';
@@ -31,6 +36,8 @@ export default function AccountDetailScreen() {
   const {
     state: {
       account,
+      viewState,
+      archived,
       isEditing,
       isAdjustVisible,
       isArchiveVisible,
@@ -40,6 +47,8 @@ export default function AccountDetailScreen() {
       isConfirmingBalanceReview,
       balanceReviewError,
       archiveError,
+      isUnarchiving,
+      unarchiveError,
       activity,
     },
     form,
@@ -50,9 +59,11 @@ export default function AccountDetailScreen() {
     setArchiveVisible,
     closeArchive,
     handleArchive,
+    handleUnarchive,
     handleConfirmBalanceReviewed,
     onBack,
     retryActivity,
+    retryArchivedRead,
     goToTransaction,
     goToAllTransactions,
     addTransactionForAccount,
@@ -63,7 +74,53 @@ export default function AccountDetailScreen() {
     formState: { errors },
   } = form;
 
-  if (!account) return null;
+  // `viewState` is 'active' exactly when `account` resolves; the guard is what narrows it.
+  if (!account) {
+    return (
+      <Screen>
+        <Animated.View style={headerStyle}>
+          <StackHeader title={archived?.account.name ?? ''} onBack={onBack} />
+        </Animated.View>
+
+        {viewState === 'loading' ? <LoadingCenter /> : null}
+
+        {viewState === 'notFound' ? (
+          <View style={{ flex: 1 }} className="items-center justify-center">
+            <Text className="font-inter text-muted text-[15px]">
+              {Strings.accountDetailNotFound}
+            </Text>
+          </View>
+        ) : null}
+
+        {viewState === 'loadError' ? (
+          <LoadErrorAlert
+            title={Strings.accountDetailLoadError}
+            retryLabel={Strings.accountDetailLoadRetry}
+            flatRetry
+            onRetry={retryArchivedRead}
+          />
+        ) : null}
+
+        {archived ? (
+          <ScreenScroll
+            contentContainerStyle={{ paddingBottom: 32 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <ArchivedDetailBody
+              account={archived.account}
+              transactionCount={archived.transactionCount}
+              activeCommitmentCount={archived.activeCommitmentCount}
+              onUnarchive={() => {
+                void handleUnarchive();
+              }}
+              isUnarchiving={isUnarchiving}
+              errorMessage={unarchiveError}
+            />
+          </ScreenScroll>
+        ) : null}
+      </Screen>
+    );
+  }
 
   const facts = [...buildAccountFacts(account), ...activity.monthFacts];
 
