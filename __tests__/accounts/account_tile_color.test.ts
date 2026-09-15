@@ -1,6 +1,7 @@
 import { HERO_GRADIENT_COLORS } from '@/components/ui/hero_gradient';
 import { Colors } from '@/constants/theme';
 import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
+import { mixHex } from '@/modules/accounts/constants/account_badge_color';
 import {
   ACCOUNT_PALETTE,
   DEFAULT_ACCOUNT_COLOR,
@@ -93,25 +94,19 @@ describe('resolveAccountTileColors — the hollow variant C4 draws on an archive
     expect(border).toBe(hex);
   });
 
-  it('steps midnight rich toward the text colour, since it does not clear', () => {
+  it('steps midnight rich to the first mix that clears, since it does not clear', () => {
     const hex = AcctTokens.midnight.rich;
     const { glyph } = resolveAccountTileColors(hex, 'hollow');
     expect(contrastRatio(hex, HOLLOW_HERO_BACKDROP)).toBeLessThan(HOLLOW_MIN_RATIO);
-    expect(glyph).not.toBe(hex);
-    expect(contrastRatio(glyph, HOLLOW_HERO_BACKDROP)).toBeGreaterThan(
-      contrastRatio(hex, HOLLOW_HERO_BACKDROP),
+    expect(glyph).toBe(mixHex(hex, CoreTokens.text1, 0.55));
+    expect(contrastRatio(mixHex(hex, CoreTokens.text1, 0.6), HOLLOW_HERO_BACKDROP)).toBeLessThan(
+      HOLLOW_MIN_RATIO,
     );
   });
 
-  it('rings a hex outside the 32 in the stepped fallback colour', () => {
+  it.each(['#ABCDEF', null])('rings %s in the stepped fallback colour', (hex) => {
     const fallback = resolveAccountTileColors(DEFAULT_ACCOUNT_COLOR, 'hollow');
-    expect(resolveAccountTileColors('#ABCDEF', 'hollow')).toEqual(fallback);
-    expect(fallback.glyph).not.toBe(DEFAULT_ACCOUNT_COLOR);
-  });
-
-  it('rings a null colour in the stepped fallback colour too', () => {
-    const fallback = resolveAccountTileColors(DEFAULT_ACCOUNT_COLOR, 'hollow');
-    expect(resolveAccountTileColors(null, 'hollow')).toEqual(fallback);
+    expect(resolveAccountTileColors(hex, 'hollow')).toEqual(fallback);
     expect(fallback.glyph).not.toBe(DEFAULT_ACCOUNT_COLOR);
   });
 

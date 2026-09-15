@@ -30,7 +30,7 @@ function resolveHollowTileColor(hex: string): string {
   return CoreTokens.text1;
 }
 
-/** The tile fill and the glyph on it; the palette entry already picked the legible glyph colour. */
+/** Filled takes the palette entry's tick colour on its fill; hollow steps the account colour until it clears 3:1 on the hero. */
 export function resolveAccountTileColors(
   color: string | null,
   variant: AccountTileVariant = 'filled',
