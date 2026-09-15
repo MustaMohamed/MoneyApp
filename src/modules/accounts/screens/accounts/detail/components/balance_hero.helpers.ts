@@ -49,6 +49,18 @@ export function buildHeroCaption(account: Account): HeroCaption {
   };
 }
 
+export interface HeroHeading {
+  label: string;
+  hollow: boolean;
+}
+
+/** An archived row names its balance as the one it was archived with and hollows its tile (G2). */
+export function buildHeroHeading(account: Account): HeroHeading {
+  return account.is_archived === 1
+    ? { label: Strings.accountDetailBalanceArchived, hollow: true }
+    : { label: Strings.accountDetailBalance, hollow: false };
+}
+
 export interface AccountBalanceParts {
   amount: string;
   code: string;

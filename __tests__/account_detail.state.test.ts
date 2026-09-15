@@ -84,6 +84,22 @@ describe('accountDetailState setters', () => {
     useAccountDetailState.getState().setBalanceReviewError(undefined);
     expect(useAccountDetailState.getState().balanceReviewError).toBeUndefined();
   });
+
+  it('setUnarchiving toggles', () => {
+    useAccountDetailState.getState().setUnarchiving(true);
+    expect(useAccountDetailState.getState().isUnarchiving).toBe(true);
+
+    useAccountDetailState.getState().setUnarchiving(false);
+    expect(useAccountDetailState.getState().isUnarchiving).toBe(false);
+  });
+
+  it('sets and clears the unarchive error', () => {
+    useAccountDetailState.getState().setUnarchiveError('Not restored');
+    expect(useAccountDetailState.getState().unarchiveError).toBe('Not restored');
+
+    useAccountDetailState.getState().setUnarchiveError(undefined);
+    expect(useAccountDetailState.getState().unarchiveError).toBeUndefined();
+  });
 });
 
 describe('accountDetailState reset', () => {
@@ -100,6 +116,8 @@ describe('accountDetailState reset', () => {
     useAccountDetailState.getState().setArchiving(true);
     useAccountDetailState.getState().setConfirmingBalanceReview(true);
     useAccountDetailState.getState().setBalanceReviewError('Try again');
+    useAccountDetailState.getState().setUnarchiving(true);
+    useAccountDetailState.getState().setUnarchiveError('Not restored');
 
     useAccountDetailState.getState().reset();
 
@@ -112,5 +130,7 @@ describe('accountDetailState reset', () => {
     expect(state.isArchiving).toBe(false);
     expect(state.isConfirmingBalanceReview).toBe(false);
     expect(state.balanceReviewError).toBeUndefined();
+    expect(state.isUnarchiving).toBe(false);
+    expect(state.unarchiveError).toBeUndefined();
   });
 });

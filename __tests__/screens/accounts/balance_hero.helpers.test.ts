@@ -5,6 +5,7 @@ import { SemanticTokens } from '@/constants/theme_tokens';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import {
   buildHeroCaption,
+  buildHeroHeading,
   formatAccountBalance,
   formatAccountBalanceParts,
 } from '@/modules/accounts/screens/accounts/detail/components/balance_hero.helpers';
@@ -223,5 +224,21 @@ describe('formatAccountBalanceParts — the hero draws the code apart from the m
     { balance: -1900, currency: Currency.EGP, printsAsZero: false },
   ])('$balance $currency printsAsZero=$printsAsZero', ({ balance, currency, printsAsZero }) => {
     expect(formatAccountBalanceParts(balance, currency).printsAsZero).toBe(printsAsZero);
+  });
+});
+
+describe('buildHeroHeading', () => {
+  it('labels an active balance as current, on a filled tile', () => {
+    expect(buildHeroHeading(mkAccount({ is_archived: 0 }))).toEqual({
+      label: 'Current balance',
+      hollow: false,
+    });
+  });
+
+  it('labels an archived balance as the one it was archived with, on a hollow tile', () => {
+    expect(buildHeroHeading(mkAccount({ is_archived: 1 }))).toEqual({
+      label: 'Balance when archived',
+      hollow: true,
+    });
   });
 });

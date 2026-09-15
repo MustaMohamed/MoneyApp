@@ -16,6 +16,8 @@ export interface AccountFact {
 
 // APR is a rate, not an amount, so `CURRENCY_CONFIG` decimals do not apply to it.
 const APR_DISPLAY_DECIMALS = 2;
+// A count is not an amount either, so it prints whole whatever the account currency.
+const COUNT_DISPLAY_DECIMALS = 0;
 
 function amountOrUnset(value: number | null, currency: Currency): string {
   return value === null ? Strings.accountDetailFactUnset : formatCurrencyAmount(value, currency);
@@ -59,6 +61,29 @@ export function buildAccountFacts(account: Account): AccountFact[] {
     {
       label: Strings.accountBalanceLabel,
       value: formatCurrencyAmount(account.opening_balance, currency),
+    },
+  ];
+}
+
+export interface ArchivedAccountCounts {
+  transactionCount: number;
+  activeCommitmentCount: number;
+}
+
+/** The archived detail's rows: the same three for every type, since card terms are settings it cannot act on. */
+export function buildArchivedAccountFacts(
+  account: Account,
+  counts: ArchivedAccountCounts,
+): AccountFact[] {
+  return [
+    { label: Strings.accountCurrencyLabel, value: CURRENCY_CONFIG[account.currency].code },
+    {
+      label: Strings.accountDetailTransactionsLabel,
+      value: formatAmount(counts.transactionCount, COUNT_DISPLAY_DECIMALS),
+    },
+    {
+      label: Strings.accountDetailCommitmentsLabel,
+      value: formatAmount(counts.activeCommitmentCount, COUNT_DISPLAY_DECIMALS),
     },
   ];
 }
