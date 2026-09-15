@@ -1,60 +1,114 @@
-import { useCommitmentFormBodyState } from '@/modules/commitments/screens/commitments/components/commitment_form_body.state';
+import {
+  INITIAL_PICKER_ENTRY,
+  useCommitmentFormBodyState,
+} from '@/modules/commitments/screens/commitments/components/commitment_form_body.state';
 
 beforeEach(() => {
   useCommitmentFormBodyState.getState().reset();
 });
 
-describe('useCommitmentFormBodyState initial state', () => {
-  it('starts with every picker and date picker hidden', () => {
-    const s = useCommitmentFormBodyState.getState();
-    expect(s.categoryPickerVisible).toBe(false);
-    expect(s.accountPickerVisible).toBe(false);
-    expect(s.showStartDatePicker).toBe(false);
-    expect(s.showEndDatePicker).toBe(false);
-  });
-});
+const entryOf = (owner: string) => useCommitmentFormBodyState.getState().entries[owner];
 
-describe('useCommitmentFormBodyState setters', () => {
-  it('setCategoryPickerVisible toggles the category picker', () => {
-    useCommitmentFormBodyState.getState().setCategoryPickerVisible(true);
-    expect(useCommitmentFormBodyState.getState().categoryPickerVisible).toBe(true);
-    useCommitmentFormBodyState.getState().setCategoryPickerVisible(false);
-    expect(useCommitmentFormBodyState.getState().categoryPickerVisible).toBe(false);
+// Every write except `claim`, the begin action; each must refuse an owner with no entry.
+const guardedWrites: ((owner: string) => void)[] = [
+  (owner) => useCommitmentFormBodyState.getState().setCategoryPickerVisible(owner, true),
+  (owner) => useCommitmentFormBodyState.getState().setAccountPickerVisible(owner, true),
+  (owner) => useCommitmentFormBodyState.getState().setShowStartDatePicker(owner, true),
+  (owner) => useCommitmentFormBodyState.getState().setShowEndDatePicker(owner, true),
+];
+
+describe('useCommitmentFormBodyState', () => {
+  it('starts with no copy owning anything', () => {
+    expect(useCommitmentFormBodyState.getState().entries).toEqual({});
   });
 
-  it('setAccountPickerVisible toggles the account picker', () => {
-    useCommitmentFormBodyState.getState().setAccountPickerVisible(true);
-    expect(useCommitmentFormBodyState.getState().accountPickerVisible).toBe(true);
-    useCommitmentFormBodyState.getState().setAccountPickerVisible(false);
-    expect(useCommitmentFormBodyState.getState().accountPickerVisible).toBe(false);
+  it('claim opens a copy entry with every picker and date picker hidden', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+
+    expect(entryOf('owner-a')).toEqual({
+      categoryPickerVisible: false,
+      accountPickerVisible: false,
+      showStartDatePicker: false,
+      showEndDatePicker: false,
+    });
   });
 
-  it('setShowStartDatePicker toggles the start-date picker', () => {
-    useCommitmentFormBodyState.getState().setShowStartDatePicker(true);
-    expect(useCommitmentFormBodyState.getState().showStartDatePicker).toBe(true);
-    useCommitmentFormBodyState.getState().setShowStartDatePicker(false);
-    expect(useCommitmentFormBodyState.getState().showStartDatePicker).toBe(false);
+  it('claim on a copy that already owns an entry keeps it', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    useCommitmentFormBodyState.getState().setAccountPickerVisible('owner-a', true);
+    const before = entryOf('owner-a');
+
+    useCommitmentFormBodyState.getState().claim('owner-a');
+
+    expect(entryOf('owner-a')).toBe(before);
   });
 
-  it('setShowEndDatePicker toggles the end-date picker', () => {
-    useCommitmentFormBodyState.getState().setShowEndDatePicker(true);
-    expect(useCommitmentFormBodyState.getState().showEndDatePicker).toBe(true);
-    useCommitmentFormBodyState.getState().setShowEndDatePicker(false);
-    expect(useCommitmentFormBodyState.getState().showEndDatePicker).toBe(false);
-  });
-});
+  it('each write on a second copy leaves the first copy entry untouched', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    useCommitmentFormBodyState.getState().claim('owner-b');
+    const before = entryOf('owner-a');
 
-describe('useCommitmentFormBodyState reset', () => {
-  it('returns every field to its initial value', () => {
-    useCommitmentFormBodyState.getState().setCategoryPickerVisible(true);
-    useCommitmentFormBodyState.getState().setAccountPickerVisible(true);
-    useCommitmentFormBodyState.getState().setShowStartDatePicker(true);
-    useCommitmentFormBodyState.getState().setShowEndDatePicker(true);
+    for (const write of guardedWrites) {
+      write('owner-b');
+      expect(entryOf('owner-a')).toBe(before);
+    }
+    expect(entryOf('owner-b')).toEqual({
+      categoryPickerVisible: true,
+      accountPickerVisible: true,
+      showStartDatePicker: true,
+      showEndDatePicker: true,
+    });
+  });
+
+  it('every write on a copy that never claimed writes nothing', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    const before = useCommitmentFormBodyState.getState().entries;
+
+    for (const write of guardedWrites) {
+      write('owner-b');
+      expect(useCommitmentFormBodyState.getState().entries).toBe(before);
+    }
+  });
+
+  it('every write after release does not resurrect the copy', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    useCommitmentFormBodyState.getState().release('owner-a');
+    const before = useCommitmentFormBodyState.getState().entries;
+
+    for (const write of guardedWrites) {
+      write('owner-a');
+      expect(useCommitmentFormBodyState.getState().entries).toBe(before);
+    }
+    expect(useCommitmentFormBodyState.getState().entries).toEqual({});
+  });
+
+  it('claim after release opens the copy again, from the initial entry', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    useCommitmentFormBodyState.getState().setShowStartDatePicker('owner-a', true);
+    useCommitmentFormBodyState.getState().release('owner-a');
+
+    useCommitmentFormBodyState.getState().claim('owner-a');
+
+    expect(entryOf('owner-a')).toEqual(INITIAL_PICKER_ENTRY);
+  });
+
+  it('release removes only the released copy', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    useCommitmentFormBodyState.getState().claim('owner-b');
+    const before = entryOf('owner-a');
+
+    useCommitmentFormBodyState.getState().release('owner-b');
+
+    expect(entryOf('owner-a')).toBe(before);
+    expect(Object.keys(useCommitmentFormBodyState.getState().entries)).toEqual(['owner-a']);
+  });
+
+  it('reset drops every copy', () => {
+    useCommitmentFormBodyState.getState().claim('owner-a');
+    useCommitmentFormBodyState.getState().claim('owner-b');
+
     useCommitmentFormBodyState.getState().reset();
-    const s = useCommitmentFormBodyState.getState();
-    expect(s.categoryPickerVisible).toBe(false);
-    expect(s.accountPickerVisible).toBe(false);
-    expect(s.showStartDatePicker).toBe(false);
-    expect(s.showEndDatePicker).toBe(false);
+
+    expect(useCommitmentFormBodyState.getState().entries).toEqual({});
   });
 });

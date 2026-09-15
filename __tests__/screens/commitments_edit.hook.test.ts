@@ -34,12 +34,6 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock(
-  '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state',
-  () => ({
-    useEditCommitmentState: jest.fn(),
-  }),
-);
 
 const commitment: Commitment = {
   id: 'com-1',
@@ -63,8 +57,6 @@ const commitment: Commitment = {
 
 const updateCommitmentMock = jest.fn().mockResolvedValue(undefined);
 const deactivateCommitmentMock = jest.fn().mockResolvedValue(undefined);
-const setSavingMock = jest.fn();
-const setSaveErrorMock = jest.fn();
 
 function setup() {
   updateCommitmentMock.mockResolvedValue(undefined);
@@ -82,15 +74,25 @@ function setup() {
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],
   }));
-  attachMockSelectorStore(useEditCommitmentState as unknown as jest.Mock, () => ({
-    saving: false,
-    saveError: undefined,
-    deactivateDialogVisible: false,
-    setSaving: setSavingMock,
-    setSaveError: setSaveErrorMock,
-    setDeactivateDialogVisible: jest.fn(),
-    reset: jest.fn(),
-  }));
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
+const entries = () => useEditCommitmentState.getState().entries;
+
+// Mounts the lower copy first, so each copy's owner is read off the key its mount added.
+async function mountTwoCopies() {
+  const lower = await renderHook(() => useEditCommitment());
+  const [lowerOwner] = Object.keys(entries());
+  const upper = await renderHook(() => useEditCommitment());
+  const upperOwner = Object.keys(entries()).find((key) => key !== lowerOwner)!;
+  return { lower, lowerOwner, upper, upperOwner };
 }
 
 describe('useEditCommitment', () => {
@@ -98,6 +100,7 @@ describe('useEditCommitment', () => {
     jest.clearAllMocks();
     mockPathname.current = '/commitments/com-1/edit';
     mockParams = { id: 'com-1' };
+    useEditCommitmentState.getState().reset();
     setup();
   });
 
@@ -181,8 +184,120 @@ describe('useEditCommitment', () => {
       await result.current.onSubmit();
     });
 
-    expect(setSaveErrorMock).toHaveBeenNthCalledWith(1, undefined);
-    expect(setSaveErrorMock).toHaveBeenLastCalledWith(Strings.commitmentsSaveError);
+    expect(result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+    expect(result.current.state.saving).toBe(false);
     expect(mockRouterDismissTo).not.toHaveBeenCalled();
+
+    const pendingRetry = deferred<void>();
+    updateCommitmentMock.mockReturnValue(pendingRetry.promise);
+    let retrying: Promise<void> | undefined;
+
+    await act(async () => {
+      retrying = result.current.onSubmit();
+    });
+
+    expect(result.current.state.saveError).toBeUndefined();
+    expect(result.current.state.saving).toBe(true);
+
+    await act(async () => {
+      pendingRetry.resolve();
+      await retrying;
+    });
+  });
+
+  it('a write on one mounted copy changes nothing on the other', async () => {
+    updateCommitmentMock.mockRejectedValueOnce(new Error('regeneration failed'));
+    const { lower, upper } = await mountTwoCopies();
+
+    await act(async () => {
+      await lower.result.current.onSubmit();
+    });
+
+    expect(lower.result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+    expect(upper.result.current.state.saveError).toBeUndefined();
+
+    await act(async () => upper.result.current.handleDeactivate());
+
+    expect(upper.result.current.state.deactivateDialogVisible).toBe(true);
+    expect(lower.result.current.state.deactivateDialogVisible).toBe(false);
+  });
+
+  it('an unmounted copy releases only its own entry', async () => {
+    updateCommitmentMock.mockRejectedValueOnce(new Error('regeneration failed'));
+    const { lower, lowerOwner, upper } = await mountTwoCopies();
+    await act(async () => {
+      await lower.result.current.onSubmit();
+    });
+    const shown = entries()[lowerOwner];
+
+    expect(Object.keys(entries())).toHaveLength(2);
+
+    await upper.unmount();
+
+    expect(Object.keys(entries())).toEqual([lowerOwner]);
+    expect(entries()[lowerOwner]).toBe(shown);
+    expect(lower.result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+
+    await lower.unmount();
+
+    expect(entries()).toEqual({});
+  });
+
+  it('a save that resolves after its copy unmounts writes nothing back', async () => {
+    const pendingUpdate = deferred<void>();
+    updateCommitmentMock.mockReturnValue(pendingUpdate.promise);
+    const copy = await renderHook(() => useEditCommitment());
+    let saving: Promise<void> | undefined;
+
+    await act(async () => {
+      saving = copy.result.current.onSubmit();
+    });
+    expect(updateCommitmentMock).toHaveBeenCalled();
+
+    await copy.unmount();
+    await act(async () => {
+      pendingUpdate.resolve();
+      await saving;
+    });
+
+    expect(entries()).toEqual({});
+  });
+
+  it('a deactivate that resolves after its copy unmounts writes nothing back', async () => {
+    const pendingDeactivate = deferred<void>();
+    deactivateCommitmentMock.mockReturnValue(pendingDeactivate.promise);
+    const copy = await renderHook(() => useEditCommitment());
+    let deactivating: Promise<void> | undefined;
+
+    await act(async () => {
+      deactivating = copy.result.current.confirmDeactivate();
+    });
+    expect(deactivateCommitmentMock).toHaveBeenCalled();
+
+    await copy.unmount();
+    await act(async () => {
+      pendingDeactivate.resolve();
+      await deactivating;
+    });
+
+    expect(entries()).toEqual({});
+  });
+
+  it('a failed deactivate closes the sheet and shows the banner on the copy that confirmed only', async () => {
+    deactivateCommitmentMock.mockRejectedValueOnce(new Error('deactivate failed'));
+    const { lower, upper, upperOwner } = await mountTwoCopies();
+    await act(async () => lower.result.current.handleDeactivate());
+    const before = entries()[upperOwner];
+
+    await act(async () => {
+      await lower.result.current.confirmDeactivate();
+    });
+
+    expect(lower.result.current.state.deactivateDialogVisible).toBe(false);
+    expect(lower.result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+    expect(lower.result.current.state.saving).toBe(false);
+    expect(entries()[upperOwner]).toBe(before);
+    expect(upper.result.current.state.saveError).toBeUndefined();
+    expect(mockRouterReplace).not.toHaveBeenCalled();
   });
 });
