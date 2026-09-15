@@ -5,6 +5,7 @@ import { AmountType, Currency, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { resolveAccountName } from '@/utils/account_name';
 
 import { useCommitmentsScreenState } from '../commitments.state';
 import {
@@ -63,7 +64,7 @@ export function useCommitmentFilterSheet() {
   const accountSummary = formatCommitmentSelectionSummary(
     accounts
       .filter((account) => draft.accountIds.includes(account.id))
-      .map((account) => account.name),
+      .map((account) => resolveAccountName(account)),
     Strings.filterSummaryAccountsEmpty,
   );
   const categorySummary = formatCommitmentSelectionSummary(

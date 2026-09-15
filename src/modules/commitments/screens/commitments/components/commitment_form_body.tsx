@@ -26,6 +26,7 @@ import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
+import { resolveAccountName } from '@/utils/account_name';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
@@ -385,7 +386,7 @@ export function CommitmentFormBody({
                   color={selectedAccount.color ?? CoreTokens.text2}
                 />
                 <Text className="font-sora-semibold text-foreground flex-1 text-[15px]">
-                  {selectedAccount.name}
+                  {resolveAccountName(selectedAccount)}
                 </Text>
               </>
             ) : (

@@ -4,6 +4,7 @@ import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { DetailRow } from '@/modules/transactions/screens/transactions/detail/components/detail_row';
 import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
+import { resolveAccountName } from '@/utils/account_name';
 import { formatLongDate } from '@/utils/format_date';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -35,7 +36,7 @@ export function DetailsCard({ commitment, account, recurrenceLabel, durationLabe
         <DetailRow
           icon="bank-outline"
           label={Strings.commitmentsDetailDefaultAccount}
-          value={account?.name ?? Strings.commitmentsDetailNone}
+          value={account ? resolveAccountName(account) : Strings.commitmentsDetailNone}
         />
         <DetailRow
           icon="timer-sand"
