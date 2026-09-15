@@ -52,6 +52,7 @@ describe('resolveAccountName', () => {
   });
 
   it('returns a visible name with a format character inside as stored', () => {
+    expect(resolveAccountName(makeTestAccount({ name: `Ca${RLM}sh` }))).toBe(`Ca${RLM}sh`);
     expect(resolveAccountName(makeTestAccount({ name: `Ca${ZWJ}sh` }))).toBe(`Ca${ZWJ}sh`);
   });
 
