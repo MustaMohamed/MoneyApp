@@ -116,6 +116,41 @@ describe('COMMITMENT_SCHEMA', () => {
     expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, name: '' }).success).toBe(false);
   });
 
+  it('fails a name of only whitespace with the required message', () => {
+    const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, name: '  \t\n' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.filter((e) => e.path[0] === 'name').map((e) => e.message)).toEqual(
+        [Strings.commitmentsErrNameRequired],
+      );
+    }
+  });
+
+  it('returns the name without its surrounding spaces', () => {
+    const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, name: ' Rent ' });
+    expect(result.success && result.data.name).toBe('Rent');
+  });
+
+  it('measures the length limit on the stripped name', () => {
+    const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, name: ` ${'a'.repeat(50)} ` });
+    expect(result.success && result.data.name).toBe('a'.repeat(50));
+  });
+
+  it('fails a stripped name past the length limit with the length message', () => {
+    const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, name: ` ${'a'.repeat(51)} ` });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.filter((e) => e.path[0] === 'name').map((e) => e.message)).toEqual(
+        [Strings.commitmentsErrNameMax],
+      );
+    }
+  });
+
+  it('keeps a name of non-breaking spaces as typed', () => {
+    const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, name: '  ' });
+    expect(result.success && result.data.name).toBe('  ');
+  });
+
   it('fails when categoryId is empty', () => {
     expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, categoryId: '' }).success).toBe(false);
   });
