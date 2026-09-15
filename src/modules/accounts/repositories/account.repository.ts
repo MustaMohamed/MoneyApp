@@ -20,6 +20,7 @@ import {
 import type { Account } from '../entities/account.entity';
 import { isAccountNameTaken } from '../utils/account_name_taken';
 import {
+  AccountArchivedError,
   AccountNameTakenError,
   AccountNotArchivedError,
   AccountNotFoundError,
@@ -135,7 +136,12 @@ export class AccountRepository implements IAccountRepository {
   async adjustBalance(id: string, newBalance: number): Promise<void> {
     const rounded = roundMoney(newBalance);
     const db = await getDb();
-    await setAccountBalance(db, id, rounded, new Date().toISOString());
+    const existing = await getAccountByIdIncludingArchived(db, id);
+    if (!existing || existing.is_deleted === 1) throw new AccountNotFoundError();
+    if (existing.is_archived === 1) throw new AccountArchivedError();
+
+    const now = new Date().toISOString();
+    if ((await setAccountBalance(db, id, rounded, now)) !== 1) throw new AccountArchivedError();
   }
 
   async confirmBalanceReviewed(id: string): Promise<void> {

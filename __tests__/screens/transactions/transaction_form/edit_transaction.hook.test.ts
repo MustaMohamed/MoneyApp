@@ -7,6 +7,7 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
@@ -262,6 +263,24 @@ describe('useEditTransaction', () => {
     expect(result.current.state.note).toBe('keep this edit');
     expect(onClose).not.toHaveBeenCalled();
     expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it('MA-053: names the archived account and preserves edits when the update is refused', async () => {
+    installMockUpdateTransaction(() =>
+      Promise.reject(new TransactionAccountArchivedError('source', { name: 'Old Card' })),
+    );
+    const onClose = jest.fn();
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, onClose, jest.fn()),
+    );
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await act(() => result.current.setNote('keep this edit'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errorMessage).toBe(Strings.transactionAccountArchived('Old Card'));
+    expect(result.current.state.note).toBe('keep this edit');
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('preserves edits while the sheet close animation is running', async () => {

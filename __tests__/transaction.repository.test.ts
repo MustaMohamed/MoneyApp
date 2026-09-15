@@ -5,6 +5,7 @@ import { MIGRATIONS } from '@/database/migrations';
 import * as transactionsModule from '@/modules/transactions/database/transactions';
 import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import {
+  TransactionAccountArchivedError,
   TransactionBalanceError,
   TransactionNotFoundError,
   TransactionOwnershipError,
@@ -948,6 +949,164 @@ describe('commitment-owned transaction mutations', () => {
     ).toEqual({
       amount: 200,
     });
+  });
+});
+
+describe('archived accounts are frozen history (MA-053)', () => {
+  const transferInput: NewTransactionInput = {
+    type: TransactionType.Transfer,
+    amount: 1000,
+    currency: Currency.EGP,
+    egp_amount: 1000,
+    to_amount: 1000,
+    exchange_rate: 1,
+    account_id: 'acc1',
+    to_account_id: 'acc2',
+    transaction_date: '2026-05-01',
+    transaction_time: '10:00:00',
+  };
+  const expenseEdit = {
+    amount: 300,
+    currency: Currency.EGP,
+    egp_amount: 300,
+    category_id: 'cat_food',
+    transaction_date: '2026-05-01',
+    transaction_time: '10:00:00',
+  };
+  const transferEdit = {
+    amount: 400,
+    currency: Currency.EGP,
+    egp_amount: 400,
+    to_amount: 400,
+    exchange_rate: 1,
+    transaction_date: '2026-05-01',
+    transaction_time: '10:00:00',
+  };
+
+  function setAccountFlags(id: string, flags: { archived: 0 | 1; deleted: 0 | 1 }): void {
+    realDb
+      .prepare('UPDATE accounts SET is_archived = ?, is_deleted = ? WHERE id = ?')
+      .run(flags.archived, flags.deleted, id);
+  }
+
+  function storedAmount(id: string): number | undefined {
+    const row = realDb.prepare('SELECT amount FROM transactions WHERE id = ?').get(id) as
+      | { amount: number }
+      | undefined;
+    return row?.amount;
+  }
+
+  async function expectArchivedRefusal(
+    write: Promise<unknown>,
+    role: 'source' | 'destination',
+    accountName: string,
+  ): Promise<void> {
+    const error = await write.then(
+      () => undefined,
+      (rejection: unknown) => rejection,
+    );
+    expect(error).toBeInstanceOf(TransactionAccountArchivedError);
+    expect(error).toMatchObject({ role, accountName });
+  }
+
+  afterEach(() => {
+    setAccountFlags('acc1', { archived: 0, deleted: 0 });
+    setAccountFlags('acc2', { archived: 0, deleted: 0 });
+  });
+
+  it('refuses an update on an archived source and writes nothing', async () => {
+    const tx = await repo.add(baseInput);
+    setAccountFlags('acc1', { archived: 1, deleted: 0 });
+
+    await expectArchivedRefusal(repo.update(tx.id, expenseEdit), 'source', 'Bank');
+
+    expect(storedAmount(tx.id)).toBe(200);
+    expect(accountBalance('acc1')).toBe(4800);
+  });
+
+  it('refuses a delete on an archived source and writes nothing', async () => {
+    const tx = await repo.add(baseInput);
+    setAccountFlags('acc1', { archived: 1, deleted: 0 });
+
+    await expectArchivedRefusal(repo.delete(tx.id), 'source', 'Bank');
+
+    expect(storedAmount(tx.id)).toBe(200);
+    expect(accountBalance('acc1')).toBe(4800);
+  });
+
+  it("refuses an update on a transfer's archived destination and writes nothing", async () => {
+    const tx = await repo.add(transferInput);
+    setAccountFlags('acc2', { archived: 1, deleted: 0 });
+
+    await expectArchivedRefusal(repo.update(tx.id, transferEdit), 'destination', 'Savings');
+
+    expect(storedAmount(tx.id)).toBe(1000);
+    expect(accountBalance('acc1')).toBe(4000);
+    expect(accountBalance('acc2')).toBe(2000);
+  });
+
+  it("refuses a delete on a transfer's archived destination and writes nothing", async () => {
+    const tx = await repo.add(transferInput);
+    setAccountFlags('acc2', { archived: 1, deleted: 0 });
+
+    await expectArchivedRefusal(repo.delete(tx.id), 'destination', 'Savings');
+
+    expect(storedAmount(tx.id)).toBe(1000);
+    expect(accountBalance('acc1')).toBe(4000);
+    expect(accountBalance('acc2')).toBe(2000);
+  });
+
+  it('refuses an add on an archived source or destination with the same class', async () => {
+    setAccountFlags('acc1', { archived: 1, deleted: 0 });
+    await expectArchivedRefusal(repo.add(baseInput), 'source', 'Bank');
+
+    setAccountFlags('acc1', { archived: 0, deleted: 0 });
+    setAccountFlags('acc2', { archived: 1, deleted: 0 });
+    await expectArchivedRefusal(repo.add(transferInput), 'destination', 'Savings');
+
+    expect(realDb.prepare('SELECT COUNT(*) AS count FROM transactions').get()).toEqual({
+      count: 0,
+    });
+    expect(accountBalance('acc1')).toBe(5000);
+    expect(accountBalance('acc2')).toBe(1000);
+  });
+
+  it('keeps a deleted source editable and deletable, and its balance moves', async () => {
+    const tx = await repo.add(baseInput);
+    setAccountFlags('acc1', { archived: 1, deleted: 1 });
+
+    await repo.update(tx.id, expenseEdit);
+    expect(storedAmount(tx.id)).toBe(300);
+    expect(accountBalance('acc1')).toBe(4700);
+
+    await repo.delete(tx.id);
+    expect(storedAmount(tx.id)).toBeUndefined();
+    expect(accountBalance('acc1')).toBe(5000);
+  });
+
+  it("keeps a transfer's deleted destination editable and deletable, and its balance moves", async () => {
+    const tx = await repo.add(transferInput);
+    setAccountFlags('acc2', { archived: 1, deleted: 1 });
+
+    await repo.update(tx.id, transferEdit);
+    expect(accountBalance('acc2')).toBe(1400);
+
+    await repo.delete(tx.id);
+    expect(storedAmount(tx.id)).toBeUndefined();
+    expect(accountBalance('acc1')).toBe(5000);
+    expect(accountBalance('acc2')).toBe(1000);
+  });
+
+  it('edits the same transaction once its account is restored', async () => {
+    const tx = await repo.add(baseInput);
+    setAccountFlags('acc1', { archived: 1, deleted: 0 });
+    await expectArchivedRefusal(repo.update(tx.id, expenseEdit), 'source', 'Bank');
+
+    setAccountFlags('acc1', { archived: 0, deleted: 0 });
+    await repo.update(tx.id, expenseEdit);
+
+    expect(storedAmount(tx.id)).toBe(300);
+    expect(accountBalance('acc1')).toBe(4700);
   });
 });
 

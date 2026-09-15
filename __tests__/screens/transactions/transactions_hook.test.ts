@@ -1,10 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { getPeriodTotals } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
 import { useFilterState } from '@/modules/transactions/screens/transactions/filter/filter.state';
 import {
   EMPTY_FILTERS,
@@ -219,6 +221,33 @@ describe('useTransactions screen orchestration', () => {
 
     expect(deleteTransaction).toHaveBeenCalledWith('tx-1');
     expect(result.current.state.pendingDeleteId).toBeNull();
+  });
+
+  it('MA-053: keeps the delete pending and names the archived account when the delete is refused', async () => {
+    setupStores({
+      deleteTransaction: jest
+        .fn()
+        .mockRejectedValue(new TransactionAccountArchivedError('source', { name: 'Old Card' })),
+    });
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => result.current.requestDelete('tx-1'));
+    await act(async () => result.current.confirmDelete());
+
+    expect(result.current.state.deleteErrorMessage).toBe(
+      Strings.transactionAccountArchived('Old Card'),
+    );
+    expect(result.current.state.pendingDeleteId).toBe('tx-1');
+  });
+
+  it('keeps the generic delete copy for any other failure', async () => {
+    setupStores({ deleteTransaction: jest.fn().mockRejectedValue(new Error('write failed')) });
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => result.current.requestDelete('tx-1'));
+    await act(async () => result.current.confirmDelete());
+
+    expect(result.current.state.deleteErrorMessage).toBe(Strings.errDeleteFailed);
   });
 });
 

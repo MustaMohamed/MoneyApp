@@ -489,6 +489,8 @@ export const Strings = {
   addTxDatePickerCancel: 'Cancel',
   addTxDatePickerDone: 'Done',
   transactionSaveError: 'Could not save this transaction. Please try again.',
+  transactionAccountArchived: (name: string) =>
+    `${name} is archived. Restore it to change this transaction.`,
   viewCommitment: 'View commitment',
   budgetOverPill: 'Over',
   budgetSetTitle: 'Set budget',

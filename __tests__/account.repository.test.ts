@@ -2,6 +2,10 @@ import Database from 'better-sqlite3';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
+import {
+  AccountArchivedError,
+  AccountNotFoundError,
+} from '@/modules/accounts/repositories/account.errors';
 import { parseAdjustInput } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
 import { AccountRepository } from '@/repositories/account.repository';
@@ -400,6 +404,40 @@ describe('AccountRepository.adjustBalance — TC-M15-03', () => {
     if (!parsed.ok) return;
 
     await expect(adjustedBalance(parsed.value)).resolves.toBe(-1900);
+  });
+
+  function balanceRow(id: string) {
+    return realDb
+      .prepare(
+        'SELECT current_balance, balance_review_required, updated_at FROM accounts WHERE id = ?',
+      )
+      .get(id);
+  }
+
+  it('MA-053: refuses an archived account and writes nothing', async () => {
+    const { id } = await repo.add({ ...baseInput, opening_balance: 1000 });
+    await repo.archive(id);
+    realDb.prepare('UPDATE accounts SET balance_review_required = 1 WHERE id = ?').run(id);
+    const before = balanceRow(id);
+
+    await expect(repo.adjustBalance(id, 9999)).rejects.toBeInstanceOf(AccountArchivedError);
+
+    expect(balanceRow(id)).toEqual(before);
+  });
+
+  it('MA-053: refuses a deleted account as not found and writes nothing', async () => {
+    const { id } = await repo.add({ ...baseInput, opening_balance: 1000 });
+    await repo.archive(id);
+    await repo.delete(id);
+    const before = balanceRow(id);
+
+    await expect(repo.adjustBalance(id, 9999)).rejects.toBeInstanceOf(AccountNotFoundError);
+
+    expect(balanceRow(id)).toEqual(before);
+  });
+
+  it('MA-053: refuses a missing id as not found', async () => {
+    await expect(repo.adjustBalance('missing', 9999)).rejects.toBeInstanceOf(AccountNotFoundError);
   });
 
   it('MA-030: a negative target clears the review flag and moves updated_at like any other', async () => {

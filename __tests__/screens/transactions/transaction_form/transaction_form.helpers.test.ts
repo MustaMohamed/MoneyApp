@@ -2,7 +2,12 @@ import { AccountType, CategoryType, Currency, TransactionType } from '@/constant
 import { Strings } from '@/constants/strings';
 import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
 import {
+  TransactionAccountArchivedError,
+  TransactionValidationError,
+} from '@/modules/transactions/repositories/transaction.errors';
+import {
   resolveDestinationFloorError,
+  resolveTransactionDeleteError,
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
   toTransactionTimestamp,
@@ -85,6 +90,26 @@ describe('transaction form helpers', () => {
         new TransactionAmountError('A positive USD exchange rate is required'),
       ),
     ).toBe(Strings.transactionSaveError);
+  });
+
+  it('MA-053: maps an archived-account refusal to the line naming the account', () => {
+    const refusal = new TransactionAccountArchivedError('source', { name: 'Old Card' });
+
+    expect(resolveTransactionSaveError(refusal)).toBe(
+      Strings.transactionAccountArchived('Old Card'),
+    );
+    expect(resolveTransactionSaveError(new TransactionValidationError('invalid'))).toBe(
+      Strings.transactionSaveError,
+    );
+  });
+
+  it('MA-053: maps a delete refusal to the same line and anything else to the delete copy', () => {
+    const refusal = new TransactionAccountArchivedError('destination', { name: 'Old Card' });
+
+    expect(resolveTransactionDeleteError(refusal)).toBe(
+      Strings.transactionAccountArchived('Old Card'),
+    );
+    expect(resolveTransactionDeleteError(new Error('x'))).toBe(Strings.errDeleteFailed);
   });
 });
 

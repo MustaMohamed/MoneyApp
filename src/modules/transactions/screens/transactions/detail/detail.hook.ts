@@ -10,11 +10,13 @@ import {
   getTransactionAccountIds,
   mergeAccountsById,
 } from '@/modules/accounts/store/account_lookup.helpers';
+import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
+import { resolveTransactionDeleteError } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 
@@ -176,6 +178,12 @@ export function useTransactionDetail(id: string) {
   );
   const commitmentPaymentId = currentTx?.commitment_payment_id ?? undefined;
   const isCommitmentOwned = commitmentPaymentId !== undefined;
+  const archivedLeg = currentTx
+    ? getTransactionAccountIds(currentTx)
+        .map((accountId) => accountsById.get(accountId))
+        .find((account) => account !== undefined && isFrozenAccount(account))
+    : undefined;
+  const isMutable = !isCommitmentOwned && archivedLeg === undefined;
 
   const derived = useMemo(() => {
     if (!currentTx) return null;
@@ -194,26 +202,26 @@ export function useTransactionDetail(id: string) {
   }, [accountsById, budget, categoriesById, currentTx]);
 
   const openDeleteConfirm = useCallback(() => {
-    if (!isCommitmentOwned) setConfirmVisible(owner, true);
-  }, [isCommitmentOwned, owner, setConfirmVisible]);
+    if (isMutable) setConfirmVisible(owner, true);
+  }, [isMutable, owner, setConfirmVisible]);
   const closeDeleteConfirm = useCallback(() => {
     if (!deleting) setConfirmVisible(owner, false);
   }, [deleting, owner, setConfirmVisible]);
 
   const confirmDelete = useCallback(async () => {
-    if (!currentTx || isCommitmentOwned) return;
+    if (!currentTx || !isMutable) return;
     setDeleting(owner, true);
     try {
       await deleteTransaction(currentTx.id);
       router.back();
     } catch (e) {
       console.error('[transactionDetail] delete failed', e);
-      Alert.alert(Strings.errDeleteFailed);
+      Alert.alert(resolveTransactionDeleteError(e));
     } finally {
       setDeleting(owner, false);
       setConfirmVisible(owner, false);
     }
-  }, [currentTx, isCommitmentOwned, owner, deleteTransaction, setDeleting, setConfirmVisible]);
+  }, [currentTx, isMutable, owner, deleteTransaction, setDeleting, setConfirmVisible]);
 
   const openCommitment = useCallback(async () => {
     if (!commitmentPaymentId) return;
@@ -239,9 +247,9 @@ export function useTransactionDetail(id: string) {
     router.push(`/accounts/${accountId}`);
   }, []);
   const openEdit = useCallback(() => {
-    if (!currentTx || isCommitmentOwned) return;
+    if (!currentTx || !isMutable) return;
     useTransactionFormState.getState().openEdit(currentTx, reload);
-  }, [currentTx, isCommitmentOwned, reload]);
+  }, [currentTx, isMutable, reload]);
 
   return {
     state: {
@@ -254,8 +262,11 @@ export function useTransactionDetail(id: string) {
       confirmVisible,
       deleting,
       isCommitmentOwned,
-      isEditable: !isCommitmentOwned,
-      isDeletable: !isCommitmentOwned,
+      isEditable: isMutable,
+      isDeletable: isMutable,
+      archivedAccountLine: archivedLeg
+        ? Strings.transactionAccountArchived(archivedLeg.name)
+        : undefined,
     },
     openDeleteConfirm,
     closeDeleteConfirm,

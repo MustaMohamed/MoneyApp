@@ -166,16 +166,14 @@ export async function setAccountBalance(
   id: string,
   newBalance: number,
   updated_at: string,
-): Promise<void> {
+): Promise<number> {
   const result = await db.runAsync(
     `UPDATE accounts
         SET current_balance = ?, balance_review_required = 0, updated_at = ?
-      WHERE id = ?`,
+      WHERE id = ? AND is_archived = 0 AND is_deleted = 0`,
     [newBalance, updated_at, id],
   );
-  if (result.changes !== 1) {
-    throw new Error(`Account balance target not found: ${id}`);
-  }
+  return result.changes;
 }
 
 export async function clearAccountBalanceReview(

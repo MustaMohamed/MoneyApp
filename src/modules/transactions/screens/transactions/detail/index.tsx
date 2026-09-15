@@ -38,7 +38,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
   return (
     <Screen edges={['top', 'bottom']}>
       <DetailHeader
-        editable={hasDetailContent && !state.isCommitmentOwned}
+        editable={hasDetailContent && state.isEditable}
         refreshing={state.viewState === 'refreshing'}
         onBack={goBack}
         onEdit={openEdit}
@@ -137,6 +137,8 @@ export default function TransactionDetailScreen(): React.ReactElement {
                   void openCommitment();
                 }}
               />
+            ) : state.archivedAccountLine ? (
+              <ActionRow notice={state.archivedAccountLine} />
             ) : (
               <ActionRow onDelete={openDeleteConfirm} />
             )}

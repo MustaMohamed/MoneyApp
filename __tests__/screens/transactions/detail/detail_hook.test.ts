@@ -11,6 +11,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
 import { useTransactionDetail } from '@/modules/transactions/screens/transactions/detail/detail.hook';
 import { useTxDetailState } from '@/modules/transactions/screens/transactions/detail/detail.state';
 import { useTxDetailStore } from '@/modules/transactions/screens/transactions/detail/detail.store';
@@ -586,5 +587,82 @@ describe('useTransactionDetail account lookup', () => {
 
     expect(lower.result.current.state.derived?.accountLabel).toBe('Cash → Dollar Vault');
     expect(lower.result.current.state.derived?.transferFlow).not.toBeNull();
+  });
+});
+
+describe('useTransactionDetail archived account (MA-053)', () => {
+  const ordinaryTransaction: Transaction = { ...linkedTransaction, commitment_payment_id: null };
+
+  it('hides edit and delete on an archived source and names the account', async () => {
+    getById.mockResolvedValue(ordinaryTransaction);
+    accountStoreState.accountLookupById = {
+      'account-1': makeTestAccount({ id: 'account-1', name: 'Old Card', is_archived: 1 }),
+    };
+    const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    expect(result.current.state.isEditable).toBe(false);
+    expect(result.current.state.isDeletable).toBe(false);
+    expect(result.current.state.archivedAccountLine).toBe(
+      Strings.transactionAccountArchived('Old Card'),
+    );
+
+    await act(() => result.current.openEdit());
+    await act(() => result.current.openDeleteConfirm());
+
+    expect(openEdit).not.toHaveBeenCalled();
+    expect(result.current.state.confirmVisible).toBe(false);
+  });
+
+  it('keeps edit and delete on a deleted source, with no line', async () => {
+    getById.mockResolvedValue(ordinaryTransaction);
+    accountStoreState.accountLookupById = {
+      'account-1': makeTestAccount({ id: 'account-1', name: '', is_archived: 1, is_deleted: 1 }),
+    };
+    const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    expect(result.current.state.isEditable).toBe(true);
+    expect(result.current.state.isDeletable).toBe(true);
+    expect(result.current.state.archivedAccountLine).toBeUndefined();
+  });
+
+  it('hides edit and delete on a transfer whose destination is archived', async () => {
+    accountStoreState.accounts = [makeTestAccount({ name: 'Cash' })];
+    getById.mockResolvedValue({
+      ...ordinaryTransaction,
+      type: TransactionType.Transfer,
+      category_id: null,
+      to_account_id: archivedCounterparty.id,
+      to_amount: 4,
+      exchange_rate: 50,
+    });
+    const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    await waitFor(() =>
+      expect(result.current.state.archivedAccountLine).toBe(
+        Strings.transactionAccountArchived(archivedCounterparty.name),
+      ),
+    );
+
+    expect(result.current.state.isEditable).toBe(false);
+    expect(result.current.state.isDeletable).toBe(false);
+  });
+
+  it('alerts the line when the repository refuses the delete', async () => {
+    getById.mockResolvedValue(ordinaryTransaction);
+    accountStoreState.accountLookupById = { 'account-1': makeTestAccount({ id: 'account-1' }) };
+    transactionStoreState.deleteTransaction = jest
+      .fn()
+      .mockRejectedValue(new TransactionAccountArchivedError('source', { name: 'Old Card' }));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await act(async () => result.current.confirmDelete());
+
+    expect(Alert.alert).toHaveBeenCalledWith(Strings.transactionAccountArchived('Old Card'));
+    expect(router.back).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });

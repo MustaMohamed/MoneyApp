@@ -8,6 +8,7 @@ import {
   getAccountByIdIncludingArchived,
 } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
 import { getBudgetRowById } from '@/modules/budget/database/budgets';
 import { getCategoryById } from '@/modules/categories/database/categories';
 import { toLocalDateString } from '@/utils/format_date';
@@ -35,6 +36,7 @@ import {
 } from '../domain/transaction_policy';
 import type { Transaction } from '../entities/transaction.entity';
 import {
+  TransactionAccountArchivedError,
   TransactionBalanceError,
   TransactionNotFoundError,
   TransactionOwnershipError,
@@ -123,9 +125,11 @@ function requireAccount(account: Account | undefined, role: 'source' | 'destinat
 }
 
 function requireSelectableAccount(account: Account, role: 'source' | 'destination'): void {
-  if (account.is_archived === 1) {
-    throw new TransactionValidationError(`${role} account is archived`);
-  }
+  if (account.is_archived === 1) throw new TransactionAccountArchivedError(role, account);
+}
+
+function requireUnfrozenAccount(account: Account, role: 'source' | 'destination'): void {
+  if (isFrozenAccount(account)) throw new TransactionAccountArchivedError(role, account);
 }
 
 function normalizedAmountsMatch(input: {
@@ -347,6 +351,8 @@ export class TransactionRepository implements ITransactionRepository {
 
     const source = requireAccount(await loadAccount(db, existing.account_id), 'source');
     const destination = await loadAccount(db, existing.to_account_id);
+    requireUnfrozenAccount(source, 'source');
+    if (destination) requireUnfrozenAccount(destination, 'destination');
     const command = toPolicyCommand({
       type: existing.type,
       amount: existing.amount,
@@ -374,6 +380,8 @@ export class TransactionRepository implements ITransactionRepository {
 
     const source = requireAccount(await loadAccount(db, existing.account_id), 'source');
     const destination = await loadAccount(db, existing.to_account_id);
+    requireUnfrozenAccount(source, 'source');
+    if (destination) requireUnfrozenAccount(destination, 'destination');
     const toAmount = data.to_amount ?? null;
     const exchangeRate = data.exchange_rate ?? null;
     validateNormalizedInput({
