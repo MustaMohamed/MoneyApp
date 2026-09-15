@@ -1,8 +1,8 @@
 import Database from 'better-sqlite3';
 
 import { Currency, TransactionType } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
 import { MIGRATIONS } from '@/database/migrations';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import * as transactionsModule from '@/modules/transactions/database/transactions';
 import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import {
@@ -1000,14 +1000,14 @@ describe('archived accounts are frozen history (MA-053)', () => {
   async function expectArchivedRefusal(
     write: Promise<unknown>,
     role: 'source' | 'destination',
-    accountLabel: string,
+    account: Partial<Account>,
   ): Promise<void> {
     const error = await write.then(
       () => undefined,
       (rejection: unknown) => rejection,
     );
     expect(error).toBeInstanceOf(TransactionAccountArchivedError);
-    expect(error).toMatchObject({ role, accountLabel });
+    expect(error).toMatchObject({ role, account });
   }
 
   afterEach(() => {
@@ -1020,7 +1020,7 @@ describe('archived accounts are frozen history (MA-053)', () => {
     const tx = await repo.add(baseInput);
     setAccountFlags('acc1', { archived: 1, deleted: 0 });
 
-    await expectArchivedRefusal(repo.update(tx.id, expenseEdit), 'source', 'Bank');
+    await expectArchivedRefusal(repo.update(tx.id, expenseEdit), 'source', { id: 'acc1' });
 
     expect(storedAmount(tx.id)).toBe(200);
     expect(accountBalance('acc1')).toBe(4800);
@@ -1030,7 +1030,7 @@ describe('archived accounts are frozen history (MA-053)', () => {
     const tx = await repo.add(baseInput);
     setAccountFlags('acc1', { archived: 1, deleted: 0 });
 
-    await expectArchivedRefusal(repo.delete(tx.id), 'source', 'Bank');
+    await expectArchivedRefusal(repo.delete(tx.id), 'source', { id: 'acc1' });
 
     expect(storedAmount(tx.id)).toBe(200);
     expect(accountBalance('acc1')).toBe(4800);
@@ -1040,7 +1040,7 @@ describe('archived accounts are frozen history (MA-053)', () => {
     const tx = await repo.add(transferInput);
     setAccountFlags('acc2', { archived: 1, deleted: 0 });
 
-    await expectArchivedRefusal(repo.update(tx.id, transferEdit), 'destination', 'Savings');
+    await expectArchivedRefusal(repo.update(tx.id, transferEdit), 'destination', { id: 'acc2' });
 
     expect(storedAmount(tx.id)).toBe(1000);
     expect(accountBalance('acc1')).toBe(4000);
@@ -1051,7 +1051,7 @@ describe('archived accounts are frozen history (MA-053)', () => {
     const tx = await repo.add(transferInput);
     setAccountFlags('acc2', { archived: 1, deleted: 0 });
 
-    await expectArchivedRefusal(repo.delete(tx.id), 'destination', 'Savings');
+    await expectArchivedRefusal(repo.delete(tx.id), 'destination', { id: 'acc2' });
 
     expect(storedAmount(tx.id)).toBe(1000);
     expect(accountBalance('acc1')).toBe(4000);
@@ -1060,11 +1060,11 @@ describe('archived accounts are frozen history (MA-053)', () => {
 
   it('refuses an add on an archived source or destination with the same class', async () => {
     setAccountFlags('acc1', { archived: 1, deleted: 0 });
-    await expectArchivedRefusal(repo.add(baseInput), 'source', 'Bank');
+    await expectArchivedRefusal(repo.add(baseInput), 'source', { id: 'acc1' });
 
     setAccountFlags('acc1', { archived: 0, deleted: 0 });
     setAccountFlags('acc2', { archived: 1, deleted: 0 });
-    await expectArchivedRefusal(repo.add(transferInput), 'destination', 'Savings');
+    await expectArchivedRefusal(repo.add(transferInput), 'destination', { id: 'acc2' });
 
     expect(realDb.prepare('SELECT COUNT(*) AS count FROM transactions').get()).toEqual({
       count: 0,
@@ -1073,19 +1073,24 @@ describe('archived accounts are frozen history (MA-053)', () => {
     expect(accountBalance('acc2')).toBe(1000);
   });
 
-  it('MA-073: labels a blank-named archived source "Unnamed account" and writes nothing', async () => {
+  it('MA-073: carries the stored blank name of an archived source and writes nothing', async () => {
     const tx = await repo.add(baseInput);
-    realDb.prepare("UPDATE accounts SET name = '   ', is_archived = 1 WHERE id = 'acc1'").run();
+    setAccountFlags('acc1', { archived: 1, deleted: 0 });
+    realDb.prepare("UPDATE accounts SET name = '   ' WHERE id = 'acc1'").run();
 
-    await expectArchivedRefusal(repo.update(tx.id, expenseEdit), 'source', Strings.unnamedAccount);
+    await expectArchivedRefusal(repo.update(tx.id, expenseEdit), 'source', {
+      id: 'acc1',
+      name: '   ',
+      is_deleted: 0,
+    });
 
     expect(storedAmount(tx.id)).toBe(200);
   });
 
-  it('MA-073: labels a deleted source refused on add "Deleted Account"', async () => {
+  it('MA-073: carries the deleted source refused on add', async () => {
     setAccountFlags('acc1', { archived: 1, deleted: 1 });
 
-    await expectArchivedRefusal(repo.add(baseInput), 'source', Strings.deletedAccount);
+    await expectArchivedRefusal(repo.add(baseInput), 'source', { id: 'acc1', is_deleted: 1 });
   });
 
   it('keeps a deleted source editable and deletable, and its balance moves', async () => {
@@ -1117,7 +1122,7 @@ describe('archived accounts are frozen history (MA-053)', () => {
   it('edits the same transaction once its account is restored', async () => {
     const tx = await repo.add(baseInput);
     setAccountFlags('acc1', { archived: 1, deleted: 0 });
-    await expectArchivedRefusal(repo.update(tx.id, expenseEdit), 'source', 'Bank');
+    await expectArchivedRefusal(repo.update(tx.id, expenseEdit), 'source', { id: 'acc1' });
 
     setAccountFlags('acc1', { archived: 0, deleted: 0 });
     await repo.update(tx.id, expenseEdit);

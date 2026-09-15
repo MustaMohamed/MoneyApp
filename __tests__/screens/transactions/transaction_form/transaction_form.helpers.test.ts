@@ -129,6 +129,17 @@ describe('transaction form helpers', () => {
     expect(resolveTransactionSaveError(refusal)).toBe(line);
     expect(resolveTransactionDeleteError(refusal)).toBe(line);
   });
+
+  it('MA-073: a deleted archived account reads "Deleted Account" on save and delete', () => {
+    const refusal = new TransactionAccountArchivedError(
+      'source',
+      makeTestAccount({ name: '', is_archived: 1, is_deleted: 1 }),
+    );
+    const line = Strings.transactionAccountArchived(Strings.deletedAccount);
+
+    expect(resolveTransactionSaveError(refusal)).toBe(line);
+    expect(resolveTransactionDeleteError(refusal)).toBe(line);
+  });
 });
 
 describe('resolveDestinationFloorError', () => {
