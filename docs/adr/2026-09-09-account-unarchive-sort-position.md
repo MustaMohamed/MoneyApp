@@ -41,7 +41,7 @@ A concurrent add between the read and the write could seat a duplicate. There is
 
 `current_balance` and `revolving_balance` have three writers, `applyAccountDelta` (`accounts.ts:46`), `setAccountBalance` (`:164`) and `addAccount` (`:73`), and the restore calls none of them. The account rejoins the live totals with whatever the columns hold at that moment.
 
-That is not a freeze, and MA-048 and MA-049 must not read it as one. Archiving closes the account to *new* money only. `add` refuses an archived source or destination through `requireSelectableAccount` (`transaction.repository.ts:271-272`, the check at `:125-127`), and `markAsPaid` refuses one as a payment account (`commitment.repository.ts:211-213`). A transaction that already points at the account takes neither path: `update` (`:369`) and `delete` (`:342`) resolve it with `requireAccount` and write through `applyAccountDelta` (`:433`, `:365`). Editing that transaction's amount or deleting it moves an archived account's balance, so the balance on restore is not guaranteed to be the balance at archive time.
+The balance on restore is the balance at archive time, because no write moves the balance of an archived account while it stays archived. That rule, and the refusals that hold it, live in `docs/adr/2026-09-15-archived-account-is-frozen-history.md`.
 
 What a restore changes is which rows the archived-filtered readers return. Every total, carousel and picker reads through `getAccounts` or filters `is_archived` in JavaScript, so they pick the account up on their next load with no new code.
 
