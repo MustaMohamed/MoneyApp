@@ -249,6 +249,20 @@ describe('useTransactions screen orchestration', () => {
 
     expect(result.current.state.deleteErrorMessage).toBe(Strings.errDeleteFailed);
   });
+
+  it('MA-062: names a blank-named account "Unnamed account" in the applied filter summary', async () => {
+    setupStores({}, { accounts: [makeTestAccount({ id: 'account-1', name: '' })] });
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => {
+      useTransactionsScreenStore
+        .getState()
+        .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['account-1'] });
+    });
+
+    expect(result.current.state.appliedFilterSummary).toBe(Strings.unnamedAccount);
+    expect(result.current.state.accountsById.get('account-1')?.name).toBe('');
+  });
 });
 
 describe('useTransactions monthly totals', () => {

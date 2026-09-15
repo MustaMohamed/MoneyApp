@@ -158,3 +158,21 @@ describe('formatTransactionTitle — deleted accounts (MA-020)', () => {
     expect(out.subtitle).toBe(`${Strings.deletedAccount} → Vodafone Cash`);
   });
 });
+
+describe('formatTransactionTitle — blank-named accounts (MA-062)', () => {
+  const blankCib = makeTestAccount({ id: 'acc-cib', name: '' });
+
+  it('reads "Unnamed account" as an expense subtitle', () => {
+    const out = formatTransactionTitle({ tx: baseTx, account: blankCib, category: catFood });
+    expect(out.subtitle).toBe(Strings.unnamedAccount);
+  });
+
+  it('keeps a named counterparty next to a blank-named source', () => {
+    const out = formatTransactionTitle({
+      tx: { ...baseTx, type: TransactionType.Transfer, category_id: null, to_account_id: 'acc-vf' },
+      account: blankCib,
+      toAccount: accVf,
+    });
+    expect(out.subtitle).toBe(`${Strings.unnamedAccount} → Vodafone Cash`);
+  });
+});

@@ -5,6 +5,7 @@ import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { resolveAccountName } from '@/utils/account_name';
 
 import { useTransactionsScreenStore } from '../transactions.store';
 import {
@@ -68,7 +69,7 @@ export function useFilterSheet() {
   const accountSummary = formatSelectionSummary(
     accounts
       .filter((account) => draft.accountIds.includes(account.id))
-      .map((account) => account.name),
+      .map((account) => resolveAccountName(account)),
     Strings.filterSummaryAccountsEmpty,
   );
   const categorySummary = formatSelectionSummary(

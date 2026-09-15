@@ -27,6 +27,7 @@ import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import {
   countActiveFilters,
   formatAppliedFilterSummary,
+  labelAccountsById,
   toQueryFilters,
 } from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';
@@ -313,6 +314,7 @@ export function useTransactions() {
     () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
     [accountLookupById, accounts, archivedAccounts],
   );
+  const accountLabelsById = useMemo(() => labelAccountsById(accountsById), [accountsById]);
   const showAccountLookupError =
     accountLookupError && findMissingAccountIds(transactionAccountIds, accountsById).length > 0;
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -322,8 +324,8 @@ export function useTransactions() {
   );
   const activeFilterCount = useMemo(() => countActiveFilters(appliedFilters), [appliedFilters]);
   const appliedFilterSummary = useMemo(
-    () => formatAppliedFilterSummary(appliedFilters, accountsById, categoriesById),
-    [accountsById, appliedFilters, categoriesById],
+    () => formatAppliedFilterSummary(appliedFilters, accountLabelsById, categoriesById),
+    [accountLabelsById, appliedFilters, categoriesById],
   );
   const hasAdvancedFilters = activeFilterCount > 0;
 

@@ -1,8 +1,10 @@
 import { Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import {
   advancedFiltersEqual,
   countActiveFilters,
   formatAppliedFilterSummary,
+  labelAccountsById,
   parseAmountInput,
   validateAmountRange,
 } from '@/modules/transactions/screens/transactions/filter/filter.helpers';
@@ -10,6 +12,7 @@ import {
   EMPTY_FILTERS,
   type AdvancedFilters,
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
+import { makeTestAccount } from '@/test_helpers/transaction';
 
 describe('advancedFiltersEqual', () => {
   it('treats empty filters as equal', () => {
@@ -100,6 +103,33 @@ describe('formatAppliedFilterSummary', () => {
         categories,
       ),
     ).toBe('From 500 EGP');
+  });
+
+  it('reads a blank-named account as "Unnamed account" through the label map (MA-062)', () => {
+    const labels = labelAccountsById(
+      new Map([
+        ['a1', makeTestAccount({ id: 'a1', name: '' })],
+        ['a2', makeTestAccount({ id: 'a2', name: 'Wallet' })],
+      ]),
+    );
+
+    expect(
+      formatAppliedFilterSummary(
+        { ...EMPTY_FILTERS, accountIds: ['a1', 'a2'] },
+        labels,
+        categories,
+      ),
+    ).toBe(`${Strings.unnamedAccount}, Wallet`);
+  });
+
+  it('reads a deleted account as "Deleted Account" through the label map', () => {
+    const labels = labelAccountsById(
+      new Map([['a1', makeTestAccount({ id: 'a1', name: '', is_archived: 1, is_deleted: 1 })]]),
+    );
+
+    expect(
+      formatAppliedFilterSummary({ ...EMPTY_FILTERS, accountIds: ['a1'] }, labels, categories),
+    ).toBe(Strings.deletedAccount);
   });
 });
 

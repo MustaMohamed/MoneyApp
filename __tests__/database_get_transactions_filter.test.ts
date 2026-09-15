@@ -22,9 +22,10 @@ function seed() {
        VALUES
          ('acc_a','Bank A','bank','EGP',1000,1000,0,0,0,?,?),
          ('acc_b','Bank B','bank','EGP',1000,1000,0,0,1,?,?),
-         ('acc_c','USD Wallet','smart_wallet','USD',1000,1000,0,0,2,?,?)`,
+         ('acc_c','USD Wallet','smart_wallet','USD',1000,1000,0,0,2,?,?),
+         ('acc_blank','','bank','EGP',1000,1000,0,0,3,?,?)`,
     )
-    .run(NOW, NOW, NOW, NOW, NOW, NOW);
+    .run(NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW);
 
   realDb
     .prepare(
@@ -311,6 +312,15 @@ describe('getTransactions — expanded search projection', () => {
     expect((await getTransactions(mockDb, { search: '750' })).map((row) => row.id)).toEqual([
       'transfer',
     ]);
+  });
+
+  it('MA-062: searches the stored account name, never the "Unnamed account" label', async () => {
+    await insert({ id: 'blank-row', account_id: 'acc_blank' });
+
+    expect((await getTransactions(mockDb, { search: 'Unnamed' })).map((row) => row.id)).toEqual([]);
+    expect(
+      (await getTransactions(mockDb, { accountIds: ['acc_blank'] })).map((row) => row.id),
+    ).toEqual(['blank-row']);
   });
 
   it('finds a stored sub-cent legacy row by its exact amount', async () => {

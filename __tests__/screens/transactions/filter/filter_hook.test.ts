@@ -1,16 +1,37 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useFilterSheet } from '@/modules/transactions/screens/transactions/filter/filter.hook';
 import {
   EMPTY_FILTERS,
   useFilterStore,
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
 import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
+import { makeTestAccount } from '@/test_helpers/transaction';
 
 beforeEach(() => {
   useFilterStore.getState().resetDraft();
   useTransactionsScreenStore.getState().reset();
+  useAccountStore.getState().reset();
+});
+
+describe('useFilterSheet summaries', () => {
+  it('MA-062: names a blank-named account "Unnamed account" in the draft account summary', async () => {
+    useAccountStore.setState({
+      accounts: [
+        makeTestAccount({ id: 'a1', name: '' }),
+        makeTestAccount({ id: 'a2', name: 'Wallet' }),
+      ],
+    });
+    const { result } = await renderHook(() => useFilterSheet());
+
+    await act(() => result.current.toggleAccountId('a1'));
+    await act(() => result.current.toggleAccountId('a2'));
+
+    expect(result.current.state.accountSummary).toBe(`${Strings.unnamedAccount}, Wallet`);
+  });
 });
 
 describe('useFilterSheet apply/reset behavior', () => {
