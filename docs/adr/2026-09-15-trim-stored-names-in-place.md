@@ -13,11 +13,13 @@ A name's edge whitespace is a space, tab, carriage return or newline. `stripName
 
 `String.prototype.trim` and Zod's `.trim()` are not used. They also strip NBSP and the other Unicode spaces, so a name the schema accepted could differ from the one SQLite's `TRIM` produced. A name of only Unicode spaces is not blank under this rule and saves as typed.
 
+Account names differ. They use Zod's `.trim()` (`src/modules/accounts/utils/add_account.schema.ts`, `edit_account.schema.ts`, `account_name_taken.ts`), which also strips NBSP, so a name of only NBSP is refused as an account and saves as a category or commitment.
+
 ## 2. Only `name` changes, and rows that collide stay
 
 Each `UPDATE` sets `name` alone, under `WHERE name <> TRIM(...)`, so a clean row is not written and `updated_at` does not move on any row.
 
-Two categories of the same type can strip to the same name, `Rent` and ` Rent `. Both stay. Deleting one, or renaming it with an invented suffix, would lose or alter what the user entered, and that is the data loss the migration exists to avoid. The app already tolerates same-name rows: no UNIQUE constraint or index exists on `categories.name` or `commitments.name`, and the duplicate check runs only when a name is saved.
+Two categories of the same type can strip to the same name, `Rent` and ` Rent `. Both stay. Deleting one, or renaming it with an invented suffix, would lose or alter what the user entered, and that is the data loss the migration exists to avoid. The app already tolerates same-name rows: no UNIQUE constraint or index exists on `categories.name` or `commitments.name`, and the duplicate check runs only when a name is saved. After the migration, a same-type pair that collides once stripped cannot be saved from the edit sheet until one row gets a distinct name, because the duplicate check excludes only the row being edited.
 
 ## 3. Blank names stay blank
 
