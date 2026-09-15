@@ -16,6 +16,7 @@ import { StackHeader } from '@/components/ui/stack_header';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
+import { resolveAccountName } from '@/utils/account_name';
 
 import { AccountColorField } from '../../../components/account_form/account_color_field';
 import { useAccountDetailAnim } from './account_detail.anim';
@@ -79,7 +80,10 @@ export default function AccountDetailScreen() {
     return (
       <Screen>
         <Animated.View style={headerStyle}>
-          <StackHeader title={archived?.account.name ?? ''} onBack={onBack} />
+          <StackHeader
+            title={archived ? resolveAccountName(archived.account) : ''}
+            onBack={onBack}
+          />
         </Animated.View>
 
         {viewState === 'loading' ? <LoadingCenter /> : null}
@@ -128,7 +132,7 @@ export default function AccountDetailScreen() {
     <Screen>
       <Animated.View style={headerStyle}>
         <StackHeader
-          title={account.name}
+          title={resolveAccountName(account)}
           onBack={onBack}
           right={
             isEditing ? (

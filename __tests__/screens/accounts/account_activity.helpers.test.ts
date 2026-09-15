@@ -151,6 +151,21 @@ describe('buildActivityRowPresentation', () => {
     expect(activity.context).toBe(`From ${Strings.deletedAccount}`);
   });
 
+  it('names a blank-named payer "Unnamed account" on the card it paid — MA-059', () => {
+    const blank = makeTestAccount({ id: 'account-1', name: '' });
+    const activity = buildActivityRowPresentation(
+      {
+        tx: { ...tx, type: TransactionType.CCPayment, to_account_id: card.id },
+        account: blank,
+        toAccount: card,
+      },
+      now,
+      card.id,
+    );
+
+    expect(activity.context).toBe(`From ${Strings.unnamedAccount}`);
+  });
+
   it('speaks the new second line where the shipped label speaks the account', () => {
     const shipped = buildTransactionRowPresentation({ tx, account, category });
     const activity = buildActivityRowPresentation({ tx, account, category }, now, account.id);

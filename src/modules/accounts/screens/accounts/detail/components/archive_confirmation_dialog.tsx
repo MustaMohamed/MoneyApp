@@ -3,6 +3,7 @@ import { Typography } from 'heroui-native';
 import { ConfirmDialog } from '@/components/ui/confirm_dialog';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
+import { resolveAccountName } from '@/utils/account_name';
 
 import type { Account } from '../../../../store/account.store';
 import { resolveArchiveCcLine } from './archive_confirmation.helpers';
@@ -31,7 +32,7 @@ export function ArchiveConfirmationDialog({
       visible={visible}
       busy={isLoading}
       destructive
-      title={Strings.accountDetailArchiveTitle(account.name)}
+      title={Strings.accountDetailArchiveTitle(resolveAccountName(account))}
       body={Strings.accountDetailArchiveBody}
       confirmLabel={Strings.accountDetailArchiveConfirm}
       cancelLabel={Strings.accountDetailCancel}
