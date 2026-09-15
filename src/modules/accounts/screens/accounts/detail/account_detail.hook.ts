@@ -9,6 +9,7 @@ import { stackedTransactionDetailRoute } from '@/modules/navigation/domain/stack
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { resolveAccountName } from '@/utils/account_name';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 import { currentYearMonth } from '@/utils/year_month';
@@ -262,7 +263,7 @@ export function useAccountDetail() {
 
   const handleUnarchive = async () => {
     if (!archived || useAccountDetailState.getState().isUnarchiving) return;
-    const { name } = archived.account;
+    const name = resolveAccountName(archived.account);
     setUnarchiveError(undefined);
     setUnarchiving(true);
     try {
