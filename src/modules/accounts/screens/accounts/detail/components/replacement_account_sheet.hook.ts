@@ -12,7 +12,7 @@ import { useAccountStore, type Account } from '../../../../store/account.store';
 import { resolveMovedToast } from './replacement_account_sheet.helpers';
 import { useReplacementAccountSheetState } from './replacement_account_sheet.state';
 
-export interface ReplacementAccountSheetInput {
+interface ReplacementAccountSheetInput {
   account: Account;
   commitments: Readonly<AccountCommitmentRef[]>;
   options: Account[];
