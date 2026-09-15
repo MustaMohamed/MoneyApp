@@ -82,6 +82,7 @@ export function ReplacementAccountSheet({
       size="lg"
       scrollable
       isDismissable={!busy}
+      showCloseButton={false}
       footer={footer}
     >
       <BottomSheetScrollView

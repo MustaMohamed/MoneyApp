@@ -77,6 +77,8 @@ export interface SheetProps {
   fitContent?: boolean;
   /** Gates overlay press, pan-down, and the header close button. Defaults to true. */
   isDismissable?: boolean;
+  /** Draws the header close button; overlay press and pan-down still follow `isDismissable`. Defaults to true. */
+  showCloseButton?: boolean;
   /** Pass a bare CTA; the shell adds bg, hairline, and padding, so do not pad it again. */
   footer?: React.ReactNode;
   /** Android only: lift the sheet and its footer clear of the keyboard. Set it on any sheet whose `footer` must stay reachable while typing. Assumes the activity does not resize for the IME; re-check this sheet if `app.json` gains `android.softwareKeyboardLayoutMode`. */
@@ -94,6 +96,7 @@ export function Sheet({
   scrollable = false,
   fitContent = false,
   isDismissable = true,
+  showCloseButton = true,
   footer,
   liftsAboveKeyboard = false,
   children,
@@ -208,11 +211,13 @@ export function Sheet({
               >
                 {title}
               </BottomSheet.Title>
-              <BottomSheet.Close
-                testID="sheet-close-btn"
-                isDisabled={!isDismissable}
-                iconProps={{ size: ms(24), color: Colors.dark.text2 }}
-              />
+              {showCloseButton ? (
+                <BottomSheet.Close
+                  testID="sheet-close-btn"
+                  isDisabled={!isDismissable}
+                  iconProps={{ size: ms(24), color: Colors.dark.text2 }}
+                />
+              ) : null}
             </View>
           )}
           {children}
