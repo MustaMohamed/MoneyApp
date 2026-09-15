@@ -17,6 +17,10 @@ interface AccountDetailStateShape {
   isDeleteVisible: boolean;
   isDeleting: boolean;
   deleteError: string | undefined;
+  isReplacementVisible: boolean;
+  replacementAccountId: string | undefined;
+  isMovingAndDeleting: boolean;
+  moveAndDeleteError: string | undefined;
 }
 
 type AccountDetailState = AccountDetailStateShape & {
@@ -34,6 +38,10 @@ type AccountDetailState = AccountDetailStateShape & {
   setDeleteVisible: (v: boolean) => void;
   setDeleting: (v: boolean) => void;
   setDeleteError: (message: string | undefined) => void;
+  setReplacementVisible: (v: boolean) => void;
+  setReplacementAccountId: (id: string | undefined) => void;
+  setMovingAndDeleting: (v: boolean) => void;
+  setMoveAndDeleteError: (message: string | undefined) => void;
   reset: () => void;
 };
 
@@ -52,6 +60,10 @@ const INITIAL_STATE: AccountDetailStateShape = {
   isDeleteVisible: false,
   isDeleting: false,
   deleteError: undefined,
+  isReplacementVisible: false,
+  replacementAccountId: undefined,
+  isMovingAndDeleting: false,
+  moveAndDeleteError: undefined,
 };
 
 export function createAccountDetailState() {
@@ -72,6 +84,10 @@ export function createAccountDetailState() {
       setDeleteVisible: (v) => set({ isDeleteVisible: v }),
       setDeleting: (v) => set({ isDeleting: v }),
       setDeleteError: (message) => set({ deleteError: message }),
+      setReplacementVisible: (v) => set({ isReplacementVisible: v }),
+      setReplacementAccountId: (id) => set({ replacementAccountId: id }),
+      setMovingAndDeleting: (v) => set({ isMovingAndDeleting: v }),
+      setMoveAndDeleteError: (message) => set({ moveAndDeleteError: message }),
       reset: () => set(INITIAL_STATE),
     })),
   );

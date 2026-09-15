@@ -318,6 +318,23 @@ export const Strings = {
   accountDetailDeleting: 'Deleting…',
   accountDetailDeleteError: "Couldn't delete this account. Nothing was changed.",
   accountDetailDeleted: (name: string) => `${name} deleted.`,
+  accountDetailDeleteCommitmentOneNoReplacement: (name: string) =>
+    `${name} will need an account before its next payment.`,
+  accountDetailDeleteCommitmentsManyNoReplacement: (count: string) =>
+    `${count} commitments will need an account before their next payments.`,
+  accountDetailMoveTitleOne: 'Move 1 commitment first',
+  accountDetailMoveTitleMany: (count: string) => `Move ${count} commitments first`,
+  accountDetailMoveBodyOne: (commitment: string, name: string) =>
+    `${commitment} is paid from ${name}. Pick the account it uses from now on, then ${name} is deleted.`,
+  accountDetailMoveBodyMany: (count: string, name: string) =>
+    `${count} commitments are paid from ${name}. Pick the account they use from now on, then ${name} is deleted.`,
+  accountDetailMoveAndDelete: 'Move and delete',
+  accountDetailMoveCommitmentCaption: (amount: string, cadence: string, nextDate?: string) =>
+    nextDate === undefined ? `${amount} · ${cadence}` : `${amount} · ${cadence} · ${nextDate}`,
+  accountDetailDeletedMovedOne: (name: string, commitment: string, account: string) =>
+    `${name} deleted. ${commitment} now uses ${account}.`,
+  accountDetailDeletedMovedMany: (name: string, count: string, account: string) =>
+    `${name} deleted. ${count} commitments now use ${account}.`,
   accountDetailNotFound: 'Account not found',
   accountDetailLoadError: "Couldn't load this account.",
   accountDetailLoadRetry: 'Try again',

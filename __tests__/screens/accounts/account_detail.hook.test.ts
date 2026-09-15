@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
+import { BackHandler } from 'react-native';
 
 import { useToast } from '@/components/ui/toast';
 import { AccountType, Currency } from '@/constants/enums';
@@ -15,6 +16,7 @@ import {
 } from '@/modules/accounts/screens/accounts/detail/archived_account_detail.store';
 import { useAccountStore, type Account } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { makeAccountCommitmentRef } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
 import { currentYearMonth } from '@/utils/year_month';
@@ -84,6 +86,7 @@ jest.mock(
 );
 
 const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions';
+const GYM_REF = makeAccountCommitmentRef({ id: 'com-1', name: 'Gym' });
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
   return {
@@ -120,6 +123,7 @@ function mockAccounts(accounts: Account[]): void {
     archiveAccount: mockArchiveAccount,
     unarchiveAccount: mockUnarchiveAccount,
     deleteAccount: mockDeleteAccount,
+    deleteAccountMovingCommitments: mockDeleteAccountMovingCommitments,
     adjustBalance: mockAdjustBalance,
     confirmBalanceReviewed: mockConfirmBalanceReviewed,
   }));
@@ -186,6 +190,11 @@ const mockDeleteAccount = jest.fn();
 const mockSetDeleteVisible = jest.fn();
 const mockSetDeleting = jest.fn();
 const mockSetDeleteError = jest.fn();
+const mockDeleteAccountMovingCommitments = jest.fn();
+const mockSetReplacementVisible = jest.fn();
+const mockSetReplacementAccountId = jest.fn();
+const mockSetMovingAndDeleting = jest.fn();
+const mockSetMoveAndDeleteError = jest.fn();
 
 type DetailStateMock = {
   isEditing: boolean;
@@ -202,6 +211,10 @@ type DetailStateMock = {
   isDeleteVisible: boolean;
   isDeleting: boolean;
   deleteError: string | undefined;
+  isReplacementVisible: boolean;
+  replacementAccountId: string | undefined;
+  isMovingAndDeleting: boolean;
+  moveAndDeleteError: string | undefined;
   setEditing: jest.Mock;
   setAdjustVisible: jest.Mock;
   setArchiveVisible: jest.Mock;
@@ -216,6 +229,10 @@ type DetailStateMock = {
   setDeleteVisible: jest.Mock;
   setDeleting: jest.Mock;
   setDeleteError: jest.Mock;
+  setReplacementVisible: jest.Mock;
+  setReplacementAccountId: jest.Mock;
+  setMovingAndDeleting: jest.Mock;
+  setMoveAndDeleteError: jest.Mock;
   reset: jest.Mock;
 };
 
@@ -235,6 +252,10 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     isDeleteVisible: false,
     isDeleting: false,
     deleteError: undefined,
+    isReplacementVisible: false,
+    replacementAccountId: undefined,
+    isMovingAndDeleting: false,
+    moveAndDeleteError: undefined,
     setEditing: mockSetEditing,
     setAdjustVisible: mockSetAdjustVisible,
     setArchiveVisible: mockSetArchiveVisible,
@@ -249,6 +270,10 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     setDeleteVisible: mockSetDeleteVisible,
     setDeleting: mockSetDeleting,
     setDeleteError: mockSetDeleteError,
+    setReplacementVisible: mockSetReplacementVisible,
+    setReplacementAccountId: mockSetReplacementAccountId,
+    setMovingAndDeleting: mockSetMovingAndDeleting,
+    setMoveAndDeleteError: mockSetMoveAndDeleteError,
     reset: mockReset,
     ...overrides,
   };
@@ -702,7 +727,7 @@ function archivedSnapshot(
     accountId: 'acc-1',
     account: mkAccount({ is_archived: 1 }),
     transactionCount: 42,
-    activeCommitments: [{ id: 'com-1', name: 'Gym' }],
+    activeCommitments: [GYM_REF],
     ...overrides,
   };
 }
@@ -720,7 +745,7 @@ describe('useAccountDetail — an id outside the active list', () => {
       account: mkAccount({ is_archived: 1 }),
       transactionCount: 42,
       activeCommitmentCount: 1,
-      activeCommitments: [{ id: 'com-1', name: 'Gym' }],
+      activeCommitments: [GYM_REF],
     });
     expect(result.current.state.activity.monthFacts).toEqual([]);
   });
@@ -1000,5 +1025,183 @@ describe('useAccountDetail — an id outside the active list', () => {
     expect(mockSetDeleteVisible).toHaveBeenCalledWith(false);
     expect(mockSetDeleteError).toHaveBeenCalledWith(undefined);
     expect(mockDeleteAccount).not.toHaveBeenCalled();
+  });
+});
+
+const CASH = mkAccount({ id: 'acc-2', name: 'Cash' });
+const HSBC = mkAccount({ id: 'acc-3', name: 'HSBC' });
+const NETFLIX_REF = makeAccountCommitmentRef({ id: 'com-2', name: 'Netflix' });
+
+describe('useAccountDetail — the replacement sheet', () => {
+  beforeEach(setup);
+
+  it('opens the sheet on Delete with the first active account selected, and writes nothing', async () => {
+    mockAccounts([CASH, HSBC]);
+    mockSlot(archivedSnapshot());
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleDelete());
+
+    expect(mockSetDeleteVisible).toHaveBeenCalledWith(false);
+    expect(mockSetDeleteError).toHaveBeenCalledWith(undefined);
+    expect(mockSetMoveAndDeleteError).toHaveBeenCalledWith(undefined);
+    expect(mockSetReplacementAccountId).toHaveBeenCalledWith('acc-2');
+    expect(mockSetReplacementVisible).toHaveBeenCalledWith(true);
+    expect(mockDeleteAccount).not.toHaveBeenCalled();
+    expect(mockDeleteAccountMovingCommitments).not.toHaveBeenCalled();
+    expect(mockSetDeleting).not.toHaveBeenCalled();
+    expect(result.current.state.replacementOptions).toEqual([CASH, HSBC]);
+    expect(result.current.state.hasReplacementAccount).toBe(true);
+  });
+
+  it('skips the sheet when no active account can take the commitments, and toasts the plain line', async () => {
+    mockSlot(archivedSnapshot());
+    mockDeleteAccount.mockResolvedValueOnce(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(result.current.state.hasReplacementAccount).toBe(false);
+
+    await act(() => result.current.handleDelete());
+
+    expect(mockSetReplacementVisible).not.toHaveBeenCalled();
+    expect(mockDeleteAccount).toHaveBeenCalledWith('acc-1');
+    expect(mockToast.show).toHaveBeenCalledWith({ label: 'CIB deleted.', variant: 'success' });
+  });
+
+  it('runs the delete when no active commitment prefers the account', async () => {
+    mockAccounts([CASH]);
+    mockSlot(archivedSnapshot({ activeCommitments: [] }));
+    mockDeleteAccount.mockResolvedValueOnce(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleDelete());
+
+    expect(mockSetReplacementVisible).not.toHaveBeenCalled();
+    expect(mockDeleteAccount).toHaveBeenCalledWith('acc-1');
+  });
+
+  it.each([
+    ['one commitment', [GYM_REF], 'CIB deleted. Gym now uses Cash.'],
+    ['two commitments', [GYM_REF, NETFLIX_REF], 'CIB deleted. 2 commitments now use Cash.'],
+  ])(
+    'moves %s and deletes, closes the sheet and pops before the toast',
+    async (_label, activeCommitments, label) => {
+      mockAccounts([CASH, HSBC]);
+      mockSlot(archivedSnapshot({ activeCommitments }));
+      mockDetailState({ isReplacementVisible: true, replacementAccountId: 'acc-2' });
+      mockDeleteAccountMovingCommitments.mockResolvedValueOnce(undefined);
+      const { result } = await renderHook(() => useAccountDetail());
+
+      await act(() => result.current.handleMoveAndDelete());
+
+      expect(mockDeleteAccountMovingCommitments).toHaveBeenCalledWith('acc-1', 'acc-2');
+      expect(mockDeleteAccount).not.toHaveBeenCalled();
+      expect(mockSetMoveAndDeleteError.mock.calls).toEqual([[undefined]]);
+      expect(mockSetMovingAndDeleting).toHaveBeenNthCalledWith(1, true);
+      expect(mockSetMovingAndDeleting).toHaveBeenLastCalledWith(false);
+      expect(mockSetReplacementVisible).toHaveBeenCalledWith(false);
+      expect(mockBack).toHaveBeenCalledTimes(1);
+      expect(mockToast.show).toHaveBeenCalledTimes(1);
+      expect(mockToast.show).toHaveBeenCalledWith({ label, variant: 'success' });
+      expect(mockBack.mock.invocationCallOrder[0]).toBeLessThan(
+        mockToast.show.mock.invocationCallOrder[0] ?? 0,
+      );
+    },
+  );
+
+  it('keeps the sheet open with the failure line when the move and delete rejects', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation();
+    mockAccounts([CASH]);
+    mockSlot(archivedSnapshot());
+    mockDetailState({ isReplacementVisible: true, replacementAccountId: 'acc-2' });
+    mockDeleteAccountMovingCommitments.mockRejectedValueOnce(new Error('db write failed'));
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleMoveAndDelete());
+
+    expect(mockSetMoveAndDeleteError).toHaveBeenNthCalledWith(1, undefined);
+    expect(mockSetMoveAndDeleteError).toHaveBeenLastCalledWith(Strings.accountDetailDeleteError);
+    expect(mockSetReplacementVisible).not.toHaveBeenCalled();
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockToast.show).not.toHaveBeenCalled();
+    expect(mockSetMovingAndDeleting).toHaveBeenLastCalledWith(false);
+    consoleError.mockRestore();
+  });
+
+  it('ignores a second confirm while the move and delete runs', async () => {
+    mockAccounts([CASH]);
+    mockSlot(archivedSnapshot());
+    mockDetailState({ isMovingAndDeleting: true, replacementAccountId: 'acc-2' });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleMoveAndDelete());
+
+    expect(mockDeleteAccountMovingCommitments).not.toHaveBeenCalled();
+    expect(mockSetMovingAndDeleting).not.toHaveBeenCalled();
+    expect(mockSetMoveAndDeleteError).not.toHaveBeenCalled();
+  });
+
+  it('closes the sheet and clears its failure while idle, and holds it while busy', async () => {
+    mockAccounts([CASH]);
+    mockSlot(archivedSnapshot());
+    const idle = await renderHook(() => useAccountDetail());
+
+    await act(() => idle.result.current.closeReplacement());
+
+    expect(mockSetReplacementVisible).toHaveBeenCalledWith(false);
+    expect(mockSetMoveAndDeleteError).toHaveBeenCalledWith(undefined);
+    expect(mockDeleteAccountMovingCommitments).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    mockDetailState({ isMovingAndDeleting: true });
+    const busy = await renderHook(() => useAccountDetail());
+
+    await act(() => busy.result.current.closeReplacement());
+    await act(() => busy.result.current.selectReplacement('acc-3'));
+
+    expect(mockSetReplacementVisible).not.toHaveBeenCalled();
+    expect(mockSetMoveAndDeleteError).not.toHaveBeenCalled();
+    expect(mockSetReplacementAccountId).not.toHaveBeenCalled();
+  });
+
+  it('selects another replacement while idle', async () => {
+    mockAccounts([CASH, HSBC]);
+    mockSlot(archivedSnapshot());
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.selectReplacement('acc-3'));
+
+    expect(mockSetReplacementAccountId).toHaveBeenCalledWith('acc-3');
+  });
+
+  it('registers no hardware back handler while idle', async () => {
+    const addListener = jest.spyOn(BackHandler, 'addEventListener');
+    mockAccounts([CASH]);
+    mockSlot(archivedSnapshot());
+    mockDetailState({ isReplacementVisible: true });
+
+    await renderHook(() => useAccountDetail());
+
+    expect(addListener).not.toHaveBeenCalled();
+    addListener.mockRestore();
+  });
+
+  it('swallows hardware back while busy, changing nothing', async () => {
+    const addListener = jest
+      .spyOn(BackHandler, 'addEventListener')
+      .mockReturnValue({ remove: jest.fn() });
+    mockAccounts([CASH]);
+    mockSlot(archivedSnapshot());
+    mockDetailState({ isReplacementVisible: true, isMovingAndDeleting: true });
+
+    await renderHook(() => useAccountDetail());
+
+    expect(addListener).toHaveBeenCalledTimes(1);
+    const [eventName, handler] = addListener.mock.calls[0]!;
+    expect(eventName).toBe('hardwareBackPress');
+    expect((handler as () => boolean | null | undefined)()).toBe(true);
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockSetReplacementVisible).not.toHaveBeenCalled();
+    addListener.mockRestore();
   });
 });

@@ -722,6 +722,50 @@ describe('accountStore.deleteAccount', () => {
   });
 });
 
+describe('accountStore.deleteAccountMovingCommitments', () => {
+  const deletedRow: Account = { ...mockAccount, is_archived: 1, is_deleted: 1, name: '' };
+
+  it('delegates to repo.delete with the account id and the replacement id', async () => {
+    const repo = makeRepo();
+    const store = createAccountStore(repo);
+    await store.getState().deleteAccountMovingCommitments('test-id', 'replacement-id');
+    expect(repo.delete).toHaveBeenCalledWith('test-id', 'replacement-id');
+  });
+
+  it('reloads both lists once after the move and delete', async () => {
+    const repo = makeRepo();
+    const store = createAccountStore(repo);
+    await store.getState().deleteAccountMovingCommitments('test-id', 'replacement-id');
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+    expect(repo.getArchived).toHaveBeenCalledTimes(1);
+  });
+
+  it('propagates a failed write and reads nothing after it', async () => {
+    const failure = new Error('move failed');
+    const repo = makeRepo({ delete: jest.fn().mockRejectedValue(failure) });
+    const store = createAccountStore(repo);
+
+    await expect(
+      store.getState().deleteAccountMovingCommitments('test-id', 'replacement-id'),
+    ).rejects.toBe(failure);
+
+    expect(repo.getAll).not.toHaveBeenCalled();
+    expect(repo.getByIdsIncludingArchived).not.toHaveBeenCalled();
+  });
+
+  it('publishes the deleted row to the lookup', async () => {
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest.fn().mockResolvedValue([deletedRow]),
+    });
+    const store = createAccountStore(repo);
+
+    await store.getState().deleteAccountMovingCommitments('test-id', 'replacement-id');
+
+    expect(repo.getByIdsIncludingArchived).toHaveBeenCalledWith(['test-id']);
+    expect(store.getState().accountLookupById['test-id']?.is_deleted).toBe(1);
+  });
+});
+
 describe('accountStore.adjustBalance', () => {
   it('delegates to repo.adjustBalance with id and balance', async () => {
     const repo = makeRepo();

@@ -179,6 +179,22 @@ export async function deleteUnpaidPaymentsByCommitment(
   );
 }
 
+// Keys on the commitments that still name `fromAccountId`, so it must run before they move.
+export async function moveUnpaidPaymentsToAccount(
+  db: SQLiteDatabase,
+  fromAccountId: string,
+  toAccountId: string,
+  updatedAt: string,
+): Promise<number> {
+  const result = await db.runAsync(
+    `UPDATE commitment_payments SET account_id = ?, updated_at = ?
+     WHERE commitment_id IN (SELECT id FROM commitments WHERE account_id = ? AND is_active = 1)
+       AND status IN ('upcoming', 'due', 'overdue')`,
+    [toAccountId, updatedAt, fromAccountId],
+  );
+  return result.changes;
+}
+
 export async function getLastPaidPayment(
   db: SQLiteDatabase,
   commitmentId: string,

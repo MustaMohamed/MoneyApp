@@ -2,7 +2,9 @@ import Database from 'better-sqlite3';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
+import * as accountsDb from '@/modules/accounts/database/accounts';
 import {
+  AccountArchivedError,
   AccountNotArchivedError,
   AccountNotFoundError,
 } from '@/modules/accounts/repositories/account.errors';
@@ -119,6 +121,14 @@ function seed(): void {
   );
   commitment.run('com-target', 'Gym', TARGET, NOW, NOW);
   commitment.run('com-survivor', 'Netflix', SURVIVOR, NOW, NOW);
+  realDb
+    .prepare(
+      `INSERT INTO commitments
+         (id, name, amount_type, amount, currency, category_id, recurrence_every,
+          recurrence_period, start_date, account_id, duration_type, is_active, created_at, updated_at)
+       VALUES ('com-target-off', 'Old gym', 'fixed', 200, 'EGP', 'cat1', 1, 'months', '2026-01-01', ?, 'forever', 0, ?, ?)`,
+    )
+    .run(TARGET, NOW, NOW);
 
   realDb
     .prepare(
@@ -128,6 +138,30 @@ function seed(): void {
        VALUES ('pay-1', 'com-target', '2026-09-01', '2026-09-01', 30, 30, 'EGP', ?, 'tx-paid', 'paid', ?, ?)`,
     )
     .run(TARGET, NOW, NOW);
+  const unpaid = realDb.prepare(
+    `INSERT INTO commitment_payments
+       (id, commitment_id, due_date, skipped_date, amount_due, currency, account_id, status,
+        created_at, updated_at)
+     VALUES (?, ?, ?, ?, 200, 'EGP', ?, ?, ?, ?)`,
+  );
+  unpaid.run('pay-2', 'com-target', '2026-10-01', null, TARGET, 'upcoming', NOW, NOW);
+  unpaid.run('pay-3', 'com-target', '2026-08-01', null, TARGET, 'overdue', NOW, NOW);
+  unpaid.run('pay-4', 'com-target', '2026-07-01', '2026-07-01', TARGET, 'skipped', NOW, NOW);
+  unpaid.run('pay-5', 'com-survivor', '2026-10-01', null, SURVIVOR, 'upcoming', NOW, NOW);
+}
+
+function commitmentAccounts(): { account_id: string | null; id: string }[] {
+  return realDb.prepare('SELECT id, account_id FROM commitments ORDER BY id').all() as {
+    account_id: string | null;
+    id: string;
+  }[];
+}
+
+function paymentAccounts(): Record<string, string | null> {
+  const rows = realDb
+    .prepare('SELECT id, account_id FROM commitment_payments ORDER BY id')
+    .all() as { account_id: string | null; id: string }[];
+  return Object.fromEntries(rows.map((row) => [row.id, row.account_id]));
 }
 
 beforeAll(() => {
@@ -243,6 +277,7 @@ describe('AccountRepository.delete — what leaves and what stays', () => {
     expect(commitments).toEqual([
       { id: 'com-survivor', account_id: SURVIVOR },
       { id: 'com-target', account_id: null },
+      { id: 'com-target-off', account_id: null },
     ]);
 
     const payment = realDb
@@ -276,6 +311,83 @@ describe('AccountRepository.delete — atomicity', () => {
     expect(
       realDb.prepare("SELECT account_id FROM commitments WHERE id = 'com-target'").get(),
     ).toEqual({ account_id: TARGET });
+  });
+});
+
+describe('AccountRepository.delete — with a replacement account', () => {
+  it('deletes the account and moves the active commitment to the replacement', async () => {
+    await repo.delete(TARGET, SURVIVOR);
+
+    expect(realDb.prepare('SELECT is_deleted FROM accounts WHERE id = ?').get(TARGET)).toEqual({
+      is_deleted: 1,
+    });
+    expect(commitmentAccounts()).toEqual([
+      { id: 'com-survivor', account_id: SURVIVOR },
+      { id: 'com-target', account_id: SURVIVOR },
+      { id: 'com-target-off', account_id: null },
+    ]);
+  });
+
+  it('carries the unpaid payments and leaves paid, skipped and another commitment’s rows alone', async () => {
+    await repo.delete(TARGET, SURVIVOR);
+
+    expect(paymentAccounts()).toEqual({
+      'pay-1': TARGET,
+      'pay-2': SURVIVOR,
+      'pay-3': SURVIVOR,
+      'pay-4': TARGET,
+      'pay-5': SURVIVOR,
+    });
+    expect(
+      realDb.prepare("SELECT updated_at FROM commitment_payments WHERE id = 'pay-5'").get(),
+    ).toEqual({ updated_at: NOW });
+  });
+
+  it('writes no balance on any account', async () => {
+    const before = [TARGET, SURVIVOR, LIVE].map(balancesOf);
+
+    await repo.delete(TARGET, SURVIVOR);
+
+    expect([TARGET, SURVIVOR, LIVE].map(balancesOf)).toEqual(before);
+  });
+
+  it('rolls the moves back with the delete when the delete write fails', async () => {
+    jest
+      .spyOn(accountsDb, 'setAccountDeleted')
+      .mockRejectedValueOnce(new Error('delete write failed'));
+
+    await expect(repo.delete(TARGET, SURVIVOR)).rejects.toThrow('delete write failed');
+
+    expect(
+      realDb.prepare('SELECT name, is_deleted FROM accounts WHERE id = ?').get(TARGET),
+    ).toEqual({ name: 'Old Card', is_deleted: 0 });
+    expect(commitmentAccounts()).toContainEqual({ id: 'com-target', account_id: TARGET });
+    expect(paymentAccounts()['pay-2']).toBe(TARGET);
+  });
+
+  it('refuses an archived replacement and changes nothing', async () => {
+    realDb.prepare('UPDATE accounts SET is_archived = 1 WHERE id = ?').run(LIVE);
+    const commitmentsBefore = commitmentAccounts();
+    const paymentsBefore = paymentAccounts();
+
+    await expect(repo.delete(TARGET, LIVE)).rejects.toThrow(AccountArchivedError);
+
+    expect(realDb.prepare('SELECT is_deleted FROM accounts WHERE id = ?').get(TARGET)).toEqual({
+      is_deleted: 0,
+    });
+    expect(commitmentAccounts()).toEqual(commitmentsBefore);
+    expect(paymentAccounts()).toEqual(paymentsBefore);
+  });
+
+  it('refuses a replacement that resolves to nothing', async () => {
+    const commitmentsBefore = commitmentAccounts();
+
+    await expect(repo.delete(TARGET, 'no-such-account')).rejects.toThrow(AccountNotFoundError);
+
+    expect(realDb.prepare('SELECT is_deleted FROM accounts WHERE id = ?').get(TARGET)).toEqual({
+      is_deleted: 0,
+    });
+    expect(commitmentAccounts()).toEqual(commitmentsBefore);
   });
 });
 

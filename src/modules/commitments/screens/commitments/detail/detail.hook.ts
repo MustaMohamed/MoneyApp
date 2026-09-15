@@ -2,7 +2,7 @@ import { router, useLocalSearchParams, usePathname } from 'expo-router';
 import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { CommitmentPaymentStatus, DurationType, RecurrencePeriod } from '@/constants/enums';
+import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
@@ -13,22 +13,11 @@ import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
+import { buildRecurrenceLabel } from '../recurrence_label';
 import { usePaySheetState } from './components/pay_sheet.state';
 import { overlayStorePayments, resolveCommitmentDetailViewState } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useCommitmentDetailStore } from './detail.store';
-
-const PERIOD_LABEL: Record<RecurrencePeriod, string> = {
-  [RecurrencePeriod.Days]: Strings.commitmentsRecurrencePeriodDay,
-  [RecurrencePeriod.Weeks]: Strings.commitmentsRecurrencePeriodWeek,
-  [RecurrencePeriod.Months]: Strings.commitmentsRecurrencePeriodMonth,
-  [RecurrencePeriod.Years]: Strings.commitmentsRecurrencePeriodYear,
-};
-
-function buildRecurrenceLabel(commitment: Commitment): string {
-  const { recurrence_every, recurrence_period } = commitment;
-  return Strings.commitmentsRecurrenceEveryN(recurrence_every, PERIOD_LABEL[recurrence_period]);
-}
 
 function buildDurationLabel(commitment: Commitment): string {
   switch (commitment.duration_type) {
