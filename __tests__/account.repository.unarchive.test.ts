@@ -130,6 +130,13 @@ describe('AccountRepository.unarchive — the three refusals', () => {
     expect(positionOf('x')).toEqual({ is_archived: 1, sort_order: 1, updated_at: NOW });
   });
 
+  it('refuses a name an active account holds with only a direction mark added', async () => {
+    insertAccount('c', '\u200Fold card', 7, 0, 0, '2026-01-01T00:00:00.000Z');
+
+    await expect(repo.unarchive('x')).rejects.toThrow(AccountNameTakenError);
+    expect(positionOf('x')).toEqual({ is_archived: 1, sort_order: 1, updated_at: NOW });
+  });
+
   it('lets an archived namesake through, then refuses it once the first is active', async () => {
     await repo.unarchive('x');
 
