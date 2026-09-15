@@ -178,6 +178,8 @@ export const Size = {
   compactBodyLineHeight: ms(20),
   iconMicro: ms(12),
   iconBack: ms(20),
+  /** Same ms(20) as `iconBack` by design; the design's toast glyph (G3), not the back chevron. Do not dedupe. */
+  toastIcon: ms(20),
   iconXs: ms(16),
   iconSm: ms(18),
   iconMd: ms(22),

@@ -186,7 +186,7 @@ jest.mock('heroui-native', () => {
 
   const ToastProvider = ({ children }) => React.createElement(React.Fragment, null, children);
   // One object, so a consumer suite asserts on the same `show` the code under test called.
-  const toast = { show: jest.fn() };
+  const toast = { show: jest.fn(), hide: jest.fn() };
 
   function BottomSheet({ isOpen, onOpenChange: _onOpenChange, children }) {
     if (!isOpen) return null;
