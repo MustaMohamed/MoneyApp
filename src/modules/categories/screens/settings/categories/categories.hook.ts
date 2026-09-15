@@ -117,7 +117,7 @@ export function useCategories() {
       if (editingCategory) {
         await updateCategory(editingCategory.id, data);
       } else {
-        // `addCategory` throws 'already exists' on a name+type collision; the caller surfaces it.
+        // `addCategory` throws `CategoryNameTakenError` on a name+type collision; the sheet surfaces it.
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- else-branch means editingCategory is null, so data is always NewCategoryInput
         await addCategory(data as NewCategoryInput);
       }

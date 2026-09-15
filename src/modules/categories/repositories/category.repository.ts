@@ -12,10 +12,14 @@ import {
   deleteCategory,
   getCategories,
   getCategoriesByType,
+  getCategoryById,
   getCategoryTransactionCount,
   updateCategory,
 } from '@/modules/categories/database/categories';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { stripNameEdges } from '@/utils/strip_name_edges';
+
+import { CategoryNameTakenError } from './category.errors';
 
 export type NewCategoryInput = Pick<Category, 'name' | 'type' | 'icon' | 'color'>;
 export type UpdateCategoryInput = Pick<Category, 'name' | 'icon' | 'color'>;
@@ -28,6 +32,11 @@ export interface ICategoryRepository {
   delete(id: string): Promise<void>;
   reassignAndDelete(fromId: string, toId: string): Promise<void>;
   getTransactionCount(id: string): Promise<number>;
+}
+
+function isNameTaken(categories: Category[], strippedName: string): boolean {
+  const key = strippedName.toLowerCase();
+  return categories.some((c) => stripNameEdges(c.name).toLowerCase() === key);
 }
 
 export class CategoryRepository implements ICategoryRepository {
@@ -50,17 +59,12 @@ export class CategoryRepository implements ICategoryRepository {
     const maxOrder = existing.reduce((max, c) => Math.max(max, c.sort_order), -1);
 
     // Backstop for the UI's Zod check: uniqueness is scoped to (name, type).
-    const trimmedName = data.name.trim();
-    const duplicate = existing.find(
-      (c) => c.name.trim().toLowerCase() === trimmedName.toLowerCase(),
-    );
-    if (duplicate) {
-      throw new Error(`A category named "${trimmedName}" already exists in ${data.type}`);
-    }
+    const name = stripNameEdges(data.name);
+    if (isNameTaken(existing, name)) throw new CategoryNameTakenError();
 
     const category: Category = {
       id,
-      name: trimmedName,
+      name,
       type: data.type,
       icon: data.icon,
       color: data.color,
@@ -76,7 +80,14 @@ export class CategoryRepository implements ICategoryRepository {
 
   async update(id: string, data: UpdateCategoryInput): Promise<void> {
     const db = await getDb();
-    await updateCategory(db, id, { ...data, updated_at: new Date().toISOString() });
+    const row = await getCategoryById(db, id);
+    if (!row) return;
+
+    const name = stripNameEdges(data.name);
+    const siblings = (await getCategoriesByType(db, row.type)).filter((c) => c.id !== id);
+    if (isNameTaken(siblings, name)) throw new CategoryNameTakenError();
+
+    await updateCategory(db, id, { ...data, name, updated_at: new Date().toISOString() });
   }
 
   async delete(id: string): Promise<void> {
