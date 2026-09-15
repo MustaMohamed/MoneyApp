@@ -14,6 +14,9 @@ interface AccountDetailStateShape {
   archiveError: string | undefined;
   isUnarchiving: boolean;
   unarchiveError: string | undefined;
+  isDeleteVisible: boolean;
+  isDeleting: boolean;
+  deleteError: string | undefined;
 }
 
 type AccountDetailState = AccountDetailStateShape & {
@@ -28,6 +31,9 @@ type AccountDetailState = AccountDetailStateShape & {
   setArchiveError: (message: string | undefined) => void;
   setUnarchiving: (v: boolean) => void;
   setUnarchiveError: (message: string | undefined) => void;
+  setDeleteVisible: (v: boolean) => void;
+  setDeleting: (v: boolean) => void;
+  setDeleteError: (message: string | undefined) => void;
   reset: () => void;
 };
 
@@ -43,6 +49,9 @@ const INITIAL_STATE: AccountDetailStateShape = {
   archiveError: undefined,
   isUnarchiving: false,
   unarchiveError: undefined,
+  isDeleteVisible: false,
+  isDeleting: false,
+  deleteError: undefined,
 };
 
 export function createAccountDetailState() {
@@ -60,6 +69,9 @@ export function createAccountDetailState() {
       setArchiveError: (message) => set({ archiveError: message }),
       setUnarchiving: (v) => set({ isUnarchiving: v }),
       setUnarchiveError: (message) => set({ unarchiveError: message }),
+      setDeleteVisible: (v) => set({ isDeleteVisible: v }),
+      setDeleting: (v) => set({ isDeleting: v }),
+      setDeleteError: (message) => set({ deleteError: message }),
       reset: () => set(INITIAL_STATE),
     })),
   );

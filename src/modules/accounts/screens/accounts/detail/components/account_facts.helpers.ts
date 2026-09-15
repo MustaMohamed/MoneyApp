@@ -17,7 +17,7 @@ export interface AccountFact {
 // APR is a rate, not an amount, so `CURRENCY_CONFIG` decimals do not apply to it.
 const APR_DISPLAY_DECIMALS = 2;
 // A count is not an amount either, so it prints whole whatever the account currency.
-const COUNT_DISPLAY_DECIMALS = 0;
+export const COUNT_DISPLAY_DECIMALS = 0;
 
 function amountOrUnset(value: number | null, currency: Currency): string {
   return value === null ? Strings.accountDetailFactUnset : formatCurrencyAmount(value, currency);

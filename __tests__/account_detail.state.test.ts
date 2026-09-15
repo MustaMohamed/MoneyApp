@@ -16,6 +16,9 @@ describe('accountDetailState initial state', () => {
     expect(state.isArchiving).toBe(false);
     expect(state.isConfirmingBalanceReview).toBe(false);
     expect(state.balanceReviewError).toBeUndefined();
+    expect(state.isDeleteVisible).toBe(false);
+    expect(state.isDeleting).toBe(false);
+    expect(state.deleteError).toBeUndefined();
   });
 });
 
@@ -100,6 +103,30 @@ describe('accountDetailState setters', () => {
     useAccountDetailState.getState().setUnarchiveError(undefined);
     expect(useAccountDetailState.getState().unarchiveError).toBeUndefined();
   });
+
+  it('setDeleteVisible toggles', () => {
+    useAccountDetailState.getState().setDeleteVisible(true);
+    expect(useAccountDetailState.getState().isDeleteVisible).toBe(true);
+
+    useAccountDetailState.getState().setDeleteVisible(false);
+    expect(useAccountDetailState.getState().isDeleteVisible).toBe(false);
+  });
+
+  it('setDeleting toggles', () => {
+    useAccountDetailState.getState().setDeleting(true);
+    expect(useAccountDetailState.getState().isDeleting).toBe(true);
+
+    useAccountDetailState.getState().setDeleting(false);
+    expect(useAccountDetailState.getState().isDeleting).toBe(false);
+  });
+
+  it('sets and clears the delete error', () => {
+    useAccountDetailState.getState().setDeleteError('Not deleted');
+    expect(useAccountDetailState.getState().deleteError).toBe('Not deleted');
+
+    useAccountDetailState.getState().setDeleteError(undefined);
+    expect(useAccountDetailState.getState().deleteError).toBeUndefined();
+  });
 });
 
 describe('accountDetailState reset', () => {
@@ -118,6 +145,9 @@ describe('accountDetailState reset', () => {
     useAccountDetailState.getState().setBalanceReviewError('Try again');
     useAccountDetailState.getState().setUnarchiving(true);
     useAccountDetailState.getState().setUnarchiveError('Not restored');
+    useAccountDetailState.getState().setDeleteVisible(true);
+    useAccountDetailState.getState().setDeleting(true);
+    useAccountDetailState.getState().setDeleteError('Not deleted');
 
     useAccountDetailState.getState().reset();
 
@@ -132,5 +162,8 @@ describe('accountDetailState reset', () => {
     expect(state.balanceReviewError).toBeUndefined();
     expect(state.isUnarchiving).toBe(false);
     expect(state.unarchiveError).toBeUndefined();
+    expect(state.isDeleteVisible).toBe(false);
+    expect(state.isDeleting).toBe(false);
+    expect(state.deleteError).toBeUndefined();
   });
 });

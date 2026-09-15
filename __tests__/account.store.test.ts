@@ -652,6 +652,76 @@ describe('accountStore.unarchiveAccount', () => {
   });
 });
 
+describe('accountStore.deleteAccount', () => {
+  const deletedRow: Account = { ...mockAccount, is_archived: 1, is_deleted: 1, name: '' };
+
+  it('delegates to repo.delete with the account id', async () => {
+    const repo = makeRepo();
+    const store = createAccountStore(repo);
+    await store.getState().deleteAccount('test-id');
+    expect(repo.delete).toHaveBeenCalledWith('test-id');
+  });
+
+  it('reloads both lists once after deleting', async () => {
+    const repo = makeRepo();
+    const store = createAccountStore(repo);
+    await store.getState().deleteAccount('test-id');
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+    expect(repo.getArchived).toHaveBeenCalledTimes(1);
+  });
+
+  it('propagates a failed delete and reads nothing after it', async () => {
+    const failure = new Error('delete failed');
+    const repo = makeRepo({ delete: jest.fn().mockRejectedValue(failure) });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().deleteAccount('test-id')).rejects.toBe(failure);
+
+    expect(repo.getAll).not.toHaveBeenCalled();
+    expect(repo.getByIdsIncludingArchived).not.toHaveBeenCalled();
+  });
+
+  it('resolves when the write lands and only the reload after it fails', async () => {
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('reload failed')) });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().deleteAccount('test-id')).resolves.toBeUndefined();
+
+    expect(repo.delete).toHaveBeenCalledWith('test-id');
+    expect(store.getState().loadError).toBe(true);
+  });
+
+  it('publishes the deleted row to the lookup, so a mounted list reads Deleted Account', async () => {
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest.fn().mockResolvedValue([deletedRow]),
+    });
+    const store = createAccountStore(repo);
+
+    await store.getState().deleteAccount('test-id');
+
+    expect(repo.getByIdsIncludingArchived).toHaveBeenCalledWith(['test-id']);
+    expect(store.getState().accountLookupById['test-id']?.is_deleted).toBe(1);
+  });
+
+  it('drops a cached copy before the lookup, so the pre-delete row does not stay known', async () => {
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest
+        .fn()
+        .mockResolvedValueOnce([mockAccount])
+        .mockResolvedValueOnce([deletedRow]),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccountLookup(['test-id']);
+    expect(store.getState().accountLookupById['test-id']?.is_deleted).toBe(0);
+
+    await store.getState().deleteAccount('test-id');
+
+    expect(repo.getByIdsIncludingArchived).toHaveBeenCalledTimes(2);
+    expect(repo.getByIdsIncludingArchived).toHaveBeenLastCalledWith(['test-id']);
+    expect(store.getState().accountLookupById['test-id']?.is_deleted).toBe(1);
+  });
+});
+
 describe('accountStore.adjustBalance', () => {
   it('delegates to repo.adjustBalance with id and balance', async () => {
     const repo = makeRepo();

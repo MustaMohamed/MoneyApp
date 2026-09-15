@@ -24,7 +24,7 @@ function input(accountId: string, mutationVersion = 0): ArchivedAccountDetailLoa
 }
 
 function snapshot(accountId: string, transactionCount = 0): ArchivedAccountDetailSnapshot {
-  return { accountId, account: undefined, transactionCount, activeCommitmentCount: 0 };
+  return { accountId, account: undefined, transactionCount, activeCommitments: [] };
 }
 
 function repository(getSnapshot: IArchivedAccountDetailRepository['getSnapshot']): {

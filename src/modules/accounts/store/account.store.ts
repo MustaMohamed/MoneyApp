@@ -35,6 +35,7 @@ export type AccountStore = typeof INITIAL_STATE & {
   updateAccount: (id: string, data: UpdateAccountInput) => Promise<void>;
   archiveAccount: (id: string) => Promise<void>;
   unarchiveAccount: (id: string) => Promise<void>;
+  deleteAccount: (id: string) => Promise<void>;
   adjustBalance: (id: string, newBalance: number) => Promise<void>;
   confirmBalanceReviewed: (id: string) => Promise<void>;
   reset: () => void;
@@ -128,6 +129,24 @@ export function createAccountStore(repo: IAccountRepository) {
         archiveAccount: (id) => writeThenReload('archiveAccount', () => repo.archive(id)),
 
         unarchiveAccount: (id) => writeThenReload('unarchiveAccount', () => repo.unarchive(id)),
+
+        deleteAccount: async (id) => {
+          await writeThenReload('deleteAccount', () => repo.delete(id));
+          // A cached copy keeps the id known, so the lookup would never fetch the deleted row.
+          set((s) =>
+            id in s.accountLookupById
+              ? {
+                  accountLookupById: Object.fromEntries(
+                    Object.entries(s.accountLookupById).filter(([key]) => key !== id),
+                  ),
+                }
+              : s,
+          );
+          // A failed lookup publishes `accountLookupError`, which the transactions list renders.
+          await get()
+            .loadAccountLookup([id])
+            .catch(() => undefined);
+        },
 
         adjustBalance: (id, newBalance) =>
           writeThenReload('adjustBalance', () => repo.adjustBalance(id, newBalance)),
