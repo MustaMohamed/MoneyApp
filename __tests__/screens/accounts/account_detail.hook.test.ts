@@ -925,8 +925,9 @@ describe('useAccountDetail — an id outside the active list', () => {
   it('toasts the name read before the write, which scrubs it', async () => {
     const snapshot = archivedSnapshot();
     mockSlot(snapshot);
+    // The same object the hook holds, so a read after the await sees the scrub.
     mockDeleteAccount.mockImplementationOnce(async () => {
-      snapshot.account = mkAccount({ name: '', is_archived: 1, is_deleted: 1 });
+      Object.assign(snapshot.account!, { name: '', is_deleted: 1 });
     });
     const { result } = await renderHook(() => useAccountDetail());
 

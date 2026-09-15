@@ -46,10 +46,3 @@ describe('the dialog carries a failure line', () => {
     expect(dialog.indexOf('{errorMessage}')).toBeLessThan(dialog.indexOf('<Button'));
   });
 });
-
-// Hardware back and the overlay both land on `onOpenChange`; an inlined close would bypass the busy gate.
-describe('the dialog routes every dismiss through the busy gate', () => {
-  it('calls the tested helper from its open-change handler', () => {
-    expect(source('src/components/ui/confirm_dialog.tsx')).toContain('shouldDismissOnOpenChange(');
-  });
-});

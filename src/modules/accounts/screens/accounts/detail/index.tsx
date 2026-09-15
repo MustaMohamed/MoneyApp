@@ -30,7 +30,7 @@ import { ArchivedDetailBody } from './components/archived_detail_body';
 import { BalanceHero } from './components/balance_hero';
 import { BalanceReviewAlert } from './components/balance_review_alert';
 import { shouldShowBalanceReview } from './components/balance_review_alert.helpers';
-import { DeleteConfirmationDialog } from './components/delete_confirmation_dialog';
+import { AccountDeleteConfirmationDialog } from './components/delete_confirmation_dialog';
 
 const hitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
 
@@ -130,7 +130,7 @@ export default function AccountDetailScreen() {
                 errorMessage={unarchiveError}
               />
             </ScreenScroll>
-            <DeleteConfirmationDialog
+            <AccountDeleteConfirmationDialog
               visible={isDeleteVisible}
               account={archived.account}
               transactionCount={archived.transactionCount}

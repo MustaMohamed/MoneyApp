@@ -333,7 +333,6 @@ export function useAccountDetail() {
     toast.show({ label: Strings.accountDetailDeleted(name), variant: 'success' });
   };
 
-  // Reopening must not show the last failure, so the close path clears it.
   const closeDelete = () => {
     setDeleteVisible(false);
     setDeleteError(undefined);

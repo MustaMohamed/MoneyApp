@@ -1,23 +1,23 @@
 import { ConfirmDialog } from '@/components/ui/confirm_dialog';
 import { Strings } from '@/constants/strings';
-import type { AccountCommitmentRef } from '@/modules/commitments/database/commitments';
 import { resolveAccountName } from '@/utils/account_name';
 
+import type { ArchivedAccountDetailSnapshot } from '../../../../repositories/archived_account_detail.repository';
 import type { Account } from '../../../../store/account.store';
 import { resolveDeleteWarningBody } from './delete_confirmation.helpers';
 
-interface DeleteConfirmationDialogProps {
+interface AccountDeleteConfirmationDialogProps {
   visible: boolean;
   account: Account;
   transactionCount: number;
-  activeCommitments: readonly AccountCommitmentRef[];
+  activeCommitments: Readonly<ArchivedAccountDetailSnapshot['activeCommitments']>;
   onClose: () => void;
   onConfirm: () => void;
   isLoading: boolean;
   errorMessage?: string;
 }
 
-export function DeleteConfirmationDialog({
+export function AccountDeleteConfirmationDialog({
   visible,
   account,
   transactionCount,
@@ -26,7 +26,7 @@ export function DeleteConfirmationDialog({
   onConfirm,
   isLoading,
   errorMessage,
-}: DeleteConfirmationDialogProps) {
+}: AccountDeleteConfirmationDialogProps) {
   return (
     <ConfirmDialog
       visible={visible}

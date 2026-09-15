@@ -1,12 +1,14 @@
 import { Strings } from '@/constants/strings';
-import type { AccountCommitmentRef } from '@/modules/commitments/database/commitments';
 import { formatAmount } from '@/utils/format_amount';
 
+import type { ArchivedAccountDetailSnapshot } from '../../../../repositories/archived_account_detail.repository';
 import { COUNT_DISPLAY_DECIMALS } from './account_facts.helpers';
 
-export interface DeleteWarningInput {
+type ActiveCommitments = Readonly<ArchivedAccountDetailSnapshot['activeCommitments']>;
+
+interface DeleteWarningInput {
   transactionCount: number;
-  activeCommitments: readonly AccountCommitmentRef[];
+  activeCommitments: ActiveCommitments;
 }
 
 function transactionsSentence(count: number): string {
@@ -15,7 +17,7 @@ function transactionsSentence(count: number): string {
   return Strings.accountDetailDeleteTransactionsMany(formatAmount(count, COUNT_DISPLAY_DECIMALS));
 }
 
-function commitmentsSentence(commitments: readonly AccountCommitmentRef[]): string | undefined {
+function commitmentsSentence(commitments: ActiveCommitments): string | undefined {
   if (commitments.length === 0) return undefined;
   if (commitments.length === 1)
     return Strings.accountDetailDeleteCommitmentOne(commitments[0].name);
