@@ -11,6 +11,7 @@ import { AcctTokens } from '@/constants/theme_tokens';
 import { AccountColorTile } from '@/modules/accounts/components/account_color_tile';
 import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
+import { resolveAccountName } from '@/utils/account_name';
 
 import type { Account } from '../../../../store/account.store';
 import {
@@ -57,7 +58,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
               style={{ fontSize: Type.subhead, lineHeight: lineHeightFor(Type.subhead) }}
               className="font-sora-semibold text-foreground"
             >
-              {account.name}
+              {resolveAccountName(account)}
             </Typography>
             {/* A column child stretches by default, which would run the pill the full width. */}
             <View style={{ alignSelf: 'flex-start', marginTop: Spacing.xxs }}>

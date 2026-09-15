@@ -1,4 +1,5 @@
 import { AccountType, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { resolveAccountRowA11yLabel } from '@/modules/accounts/constants/account_row_a11y_label';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -28,5 +29,10 @@ describe('resolveAccountRowA11yLabel — the one label the N3 row and the accoun
 
   it('announces name, type and amount as one label', () => {
     expect(resolveAccountRowA11yLabel(egpAccount)).toBe('CIB Current, Bank, 48,250 EGP');
+  });
+
+  it('announces a blank-named account as "Unnamed account"', () => {
+    const blank = makeTestAccount({ name: '', type: AccountType.Bank, current_balance: 4500 });
+    expect(resolveAccountRowA11yLabel(blank)).toBe(`${Strings.unnamedAccount}, Bank, 4,500 EGP`);
   });
 });

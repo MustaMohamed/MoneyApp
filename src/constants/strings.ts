@@ -891,6 +891,7 @@ export const Strings = {
   ccPaymentTitle: 'Credit Card Payment',
   unknownAccount: 'Unknown account',
   deletedAccount: 'Deleted Account',
+  unnamedAccount: 'Unnamed account',
   uncategorized: 'Uncategorized',
   noResultsHeadline: 'No transactions found',
   noResultsSubtext: 'Try a different search term or filter.',

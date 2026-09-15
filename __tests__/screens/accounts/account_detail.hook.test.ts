@@ -718,6 +718,19 @@ describe('useAccountDetail — an id outside the active list', () => {
     expect(mockBack).not.toHaveBeenCalled();
   });
 
+  it('toasts a blank-named account under the shared label — MA-059', async () => {
+    mockSlot(archivedSnapshot({ account: mkAccount({ name: '', is_archived: 1 }) }));
+    mockUnarchiveAccount.mockResolvedValueOnce(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleUnarchive());
+
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: `${Strings.unnamedAccount} restored.`,
+      variant: 'success',
+    });
+  });
+
   it.each([
     [
       'refuses a name an active account holds',

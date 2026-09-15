@@ -5,6 +5,12 @@ describe('archive confirmation copy (G2)', () => {
     expect(Strings.accountDetailArchiveTitle('CIB Titanium')).toBe('Archive CIB Titanium?');
   });
 
+  it('titles a blank-named account with the shared label', () => {
+    expect(Strings.accountDetailArchiveTitle(Strings.unnamedAccount)).toBe(
+      'Archive Unnamed account?',
+    );
+  });
+
   it('says the balance leaves net worth, which is what archiving does', () => {
     expect(Strings.accountDetailArchiveCCWarning('8,450 EGP')).toBe(
       'Its 8,450 EGP balance leaves your net worth until you unarchive it.',

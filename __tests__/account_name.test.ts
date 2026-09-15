@@ -23,14 +23,43 @@ describe('resolveAccountName', () => {
     expect(resolveAccountName(makeTestAccount({ name: '', is_deleted: 1, is_archived: 1 }))).toBe(
       Strings.deletedAccount,
     );
-    expect(resolveAccountName(makeTestAccount({ name: '', is_deleted: 0 }))).toBe('');
+    expect(resolveAccountName(makeTestAccount({ name: '', is_deleted: 0 }))).toBe(
+      Strings.unnamedAccount,
+    );
+  });
+
+  it('reads "Deleted Account", not "Unnamed account", for a deleted account with a blank name', () => {
+    expect(
+      resolveAccountName(makeTestAccount({ name: '   ', is_deleted: 1, is_archived: 1 })),
+    ).toBe(Strings.deletedAccount);
+  });
+
+  it('reads "Unnamed account" for a live name that is blank after trimming', () => {
+    expect(resolveAccountName(makeTestAccount({ name: '   ' }))).toBe(Strings.unnamedAccount);
+    expect(resolveAccountName(makeTestAccount({ name: '\t\n ' }))).toBe(Strings.unnamedAccount);
+  });
+
+  it('reads an archived blank name as "Unnamed account"', () => {
+    expect(resolveAccountName(makeTestAccount({ name: '', is_archived: 1 }))).toBe(
+      Strings.unnamedAccount,
+    );
+  });
+
+  it('returns a real name as stored, surrounding spaces included', () => {
+    expect(resolveAccountName(makeTestAccount({ name: '  CIB  ' }))).toBe('  CIB  ');
   });
 
   it('reads "Unknown account" for an id that did not resolve', () => {
     expect(resolveAccountName(undefined)).toBe(Strings.unknownAccount);
   });
 
-  it('keeps the two fallbacks distinct', () => {
+  it('ships "Unnamed account" byte-exact', () => {
+    expect(Strings.unnamedAccount).toBe('Unnamed account');
+  });
+
+  it('keeps the three fallbacks distinct', () => {
     expect(Strings.deletedAccount).not.toBe(Strings.unknownAccount);
+    expect(Strings.unnamedAccount).not.toBe(Strings.unknownAccount);
+    expect(Strings.unnamedAccount).not.toBe(Strings.deletedAccount);
   });
 });

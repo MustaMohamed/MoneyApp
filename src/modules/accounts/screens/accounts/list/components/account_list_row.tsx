@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
+import { resolveAccountName } from '@/utils/account_name';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
 import { resolveAccountBalanceColorClass } from '../../../../constants/account_balance_color';
@@ -60,7 +61,7 @@ export function AccountListRow({ account, caption, onPress }: AccountListRowProp
           numberOfLines={1}
           ellipsizeMode="tail"
         >
-          {account.name}
+          {resolveAccountName(account)}
         </ListGroup.ItemTitle>
 
         {/* Not ItemDescription: its muted colour is 2.36:1. */}

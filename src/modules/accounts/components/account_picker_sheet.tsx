@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { CoreTokens } from '@/constants/theme_tokens';
+import { resolveAccountName } from '@/utils/account_name';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
@@ -64,7 +65,7 @@ export function AccountPickerSheet({
               </View>
               <View style={{ flex: 1 }}>
                 <Typography className="font-sora-semibold text-foreground text-[15px]">
-                  {item.name}
+                  {resolveAccountName(item)}
                 </Typography>
                 <Typography className="font-inter text-muted text-[12px]">
                   {formatCurrencyAmount(item.current_balance, item.currency)}
