@@ -116,7 +116,7 @@ function mockAccounts(accounts: Account[]): void {
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
     loadError: accountLoadError,
-    updateAccount: jest.fn(),
+    updateAccount: mockUpdateAccount,
     archiveAccount: mockArchiveAccount,
     unarchiveAccount: mockUnarchiveAccount,
     adjustBalance: mockAdjustBalance,
@@ -178,6 +178,7 @@ const mockSetUnarchiveError = jest.fn();
 const mockReset = jest.fn();
 const mockConfirmBalanceReviewed = jest.fn();
 const mockAdjustBalance = jest.fn();
+const mockUpdateAccount = jest.fn();
 const mockArchiveAccount = jest.fn();
 const mockUnarchiveAccount = jest.fn();
 
@@ -300,6 +301,7 @@ describe('useAccountDetail', () => {
     expect(mockSetBalanceReviewError).toHaveBeenCalledWith(undefined);
     expect(mockSetConfirmingBalanceReview).toHaveBeenNthCalledWith(1, true);
     expect(mockSetConfirmingBalanceReview).toHaveBeenLastCalledWith(false);
+    expect(mockDismissTo).not.toHaveBeenCalled();
   });
 
   it('surfaces confirmation failures in screen state', async () => {
@@ -334,6 +336,7 @@ describe('useAccountDetail', () => {
     expect(mockAdjustBalance).toHaveBeenCalledWith('acc-1', 1500);
     expect(mockSetAdjustVisible).toHaveBeenCalledWith(false);
     expect(mockSetAdjusting).toHaveBeenLastCalledWith(false);
+    expect(mockDismissTo).not.toHaveBeenCalled();
   });
 
   it('H5: propagates a failed balance adjust to the sheet and leaves it open', async () => {
@@ -350,6 +353,73 @@ describe('useAccountDetail', () => {
     expect(mockSetAdjustVisible).not.toHaveBeenCalledWith(false);
     // `finally` still runs, so the Save Balance button must not stay spinning.
     expect(mockSetAdjusting).toHaveBeenLastCalledWith(false);
+  });
+
+  it('closes the edit and pops to the list when the update landed and the reload failed', async () => {
+    mockAccounts([mkAccount()]);
+    mockUpdateAccount.mockImplementationOnce(async () => {
+      accountLoadError = true;
+    });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleSave());
+
+    expect(mockUpdateAccount).toHaveBeenCalledWith('acc-1', { name: 'CIB', color: '#1B2B4B' });
+    expect(mockSetEditing).toHaveBeenCalledWith(false);
+    expect(mockSetEditing.mock.invocationCallOrder.at(-1)).toBeLessThan(
+      mockDismissTo.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(mockDismissTo.mock.calls).toEqual([['/accounts']]);
+    expect(mockSetSaving).toHaveBeenLastCalledWith(false);
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it('keeps the edit open and stays on the screen when the update rejects', async () => {
+    const failure = new Error('db write failed');
+    mockAccounts([mkAccount()]);
+    mockUpdateAccount.mockRejectedValue(failure);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(async () => {
+      await expect(result.current.handleSave()).rejects.toBe(failure);
+    });
+
+    expect(mockSetEditing).not.toHaveBeenCalledWith(false);
+    expect(mockDismissTo).not.toHaveBeenCalled();
+    expect(mockSetSaving).toHaveBeenLastCalledWith(false);
+  });
+
+  it('closes the adjust sheet and pops to the list when the adjustment landed and the reload failed', async () => {
+    mockAccounts([mkAccount()]);
+    mockAdjustBalance.mockImplementationOnce(async () => {
+      accountLoadError = true;
+    });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleAdjustBalance(1500));
+
+    expect(mockAdjustBalance).toHaveBeenCalledWith('acc-1', 1500);
+    expect(mockSetAdjustVisible).toHaveBeenCalledWith(false);
+    expect(mockSetAdjustVisible.mock.invocationCallOrder.at(-1)).toBeLessThan(
+      mockDismissTo.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(mockDismissTo.mock.calls).toEqual([['/accounts']]);
+    expect(mockSetAdjusting).toHaveBeenLastCalledWith(false);
+  });
+
+  it('pops to the list with no review failure line when the review landed and the reload failed', async () => {
+    mockAccounts([mkAccount()]);
+    mockConfirmBalanceReviewed.mockImplementationOnce(async () => {
+      accountLoadError = true;
+    });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleConfirmBalanceReviewed());
+
+    expect(mockConfirmBalanceReviewed).toHaveBeenCalledWith('acc-1');
+    expect(mockSetBalanceReviewError.mock.calls).toEqual([[undefined]]);
+    expect(mockDismissTo.mock.calls).toEqual([['/accounts']]);
+    expect(mockSetConfirmingBalanceReview).toHaveBeenLastCalledWith(false);
   });
 
   it('closes the dialog and returns to the previous screen on a successful archive', async () => {

@@ -23,11 +23,14 @@ const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 // `addAccount` must republish `mockAccounts`, as the real store's `loadAccounts()` does.
 const mockAddAccount = jest.fn();
 let mockAccounts: { id: string; name: string }[] = [];
+let mockLoadError = false;
 
 function setup() {
   mockAccounts = [];
+  mockLoadError = false;
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: mockAccounts,
+    loadError: mockLoadError,
     addAccount: mockAddAccount,
     loadAccounts: mockLoadAccounts,
   }));
@@ -84,5 +87,25 @@ describe('useAddAccountApp', () => {
 
     expect(mockAddAccount).toHaveBeenCalledTimes(1);
     expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('a committed add whose reload failed pops once with no save error and inserts once', async () => {
+    mockAddAccount.mockImplementation(async () => {
+      mockLoadError = true;
+    });
+    const { result } = await renderHook(() => useAddAccountApp());
+    await fillValidDraft(result);
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(mockAddAccount).toHaveBeenCalledTimes(1);
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(result.current.state.errorMessage).toBeUndefined();
+    expect(useAccountFormState.getState().inserted).toBe(true);
   });
 });

@@ -33,6 +33,19 @@ export function useAddAccount() {
       // `false`, not void, tells `useAccountForm` this was a decline, not a completion.
       if (useAddAccountTransitionState.getState().busy) return false;
 
+      // A committed add whose reload failed leaves `accounts` stale, so the step below would resolve back to N2.
+      if (useAccountStore.getState().loadError) {
+        const session = useAddAccountTransitionState.getState().begin();
+        if (session === null) return false;
+        try {
+          await useAccountStore.getState().loadAccounts();
+        } catch {
+          useAddAccountTransitionState.getState().fail(session, Strings.accountsReadErrorTitle);
+          return false;
+        }
+        useAddAccountTransitionState.getState().settle(session);
+      }
+
       // Resolve after the insert: `onSaved` runs past `markInserted()`, so the new row is counted.
       const resolved = isAddingMore
         ? OnboardingStep.N3
