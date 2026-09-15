@@ -18,15 +18,27 @@ import { ACCOUNTS_LIST_CARD_STYLE, ACCOUNTS_LIST_RAIL_STYLE } from './accounts_l
 import { useAccountsList } from './accounts_list.hook';
 import { ACCOUNTS_LIST_TYPE_FILTERS } from './accounts_list.presentation';
 import { AccountListRow } from './components/account_list_row';
+import { ArchivedCard } from './components/archived_card';
 
 export default function AccountsListScreen() {
   const {
-    state: { rows, archivedCount, content, emptyState, isRetrying, selectedType, sectionTitle },
+    state: {
+      rows,
+      archived,
+      archivedCount,
+      content,
+      emptyState,
+      isRetrying,
+      selectedType,
+      sectionTitle,
+    },
     goToAccount,
     goToAddAccount,
     onBack,
     retry,
     selectType,
+    setArchivedExpanded,
+    unarchive,
   } = useAccountsList();
 
   return (
@@ -81,7 +93,6 @@ export default function AccountsListScreen() {
           </View>
 
           {emptyState === 'archivedOnly' ? (
-            // Nothing follows: the archived section is MA-017's slot.
             <EmptyState
               variant="accountsArchivedOnly"
               archivedCount={archivedCount}
@@ -109,6 +120,17 @@ export default function AccountsListScreen() {
               )}
             </>
           )}
+
+          <ArchivedCard
+            rows={archived.rows}
+            summary={archived.summary}
+            isExpanded={archived.isExpanded}
+            unarchivingId={archived.unarchivingId}
+            unarchiveError={archived.unarchiveError}
+            onExpandedChange={setArchivedExpanded}
+            onPressRow={goToAccount}
+            onUnarchive={(id) => void unarchive(id)}
+          />
         </ScreenScroll>
       )}
     </Screen>

@@ -341,6 +341,15 @@ export const Strings = {
   accountCaptionCard: (limit: string, available: string) =>
     `Limit ${limit} · available ${available}`,
 
+  // Accounts list: archived card (B4, B5, G3)
+  accountsArchivedTitle: 'Archived',
+  accountsArchivedSummary: (names: string[]) => names.join(', '),
+  accountsArchivedRowCaption: (type: string, balance: string) => `${type} · ${balance}`,
+  accountsArchivedUnarchive: 'Unarchive',
+  accountsArchivedRestored: (name: string) => `${name} restored.`,
+  accountsArchivedNameTaken: 'An active account already has this name. Rename it first.',
+  accountsArchivedRestoreError: "Couldn't restore this account. Nothing was changed.",
+
   // §9 Account Detail: balance hero captions
   accountHeroOpening: (amount: string, currency: string) => `Opening ${amount} ${currency}`,
   accountHeroAdjusted: 'adjusted',

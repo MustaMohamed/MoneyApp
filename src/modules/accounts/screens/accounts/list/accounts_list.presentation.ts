@@ -37,3 +37,18 @@ export function resolveAccountsListEmptyState(input: {
   if (input.activeCount === 0) return input.archivedCount > 0 ? 'archivedOnly' : 'noAccounts';
   return input.visibleCount === 0 ? 'filtered' : 'none';
 }
+
+export function matchesAccountsListType(
+  type: AccountType,
+  filter: AccountsListTypeFilter,
+): boolean {
+  return filter === 'all' || type === filter;
+}
+
+/** Under the archived-only state the card holds every archived account, so that state's count stays true. */
+export function resolveArchivedCardType(input: {
+  emptyState: AccountsListEmptyState;
+  selectedType: AccountsListTypeFilter;
+}): AccountsListTypeFilter {
+  return input.emptyState === 'archivedOnly' ? 'all' : input.selectedType;
+}

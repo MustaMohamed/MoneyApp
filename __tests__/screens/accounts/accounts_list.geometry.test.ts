@@ -1,5 +1,8 @@
-import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
+  ACCOUNTS_LIST_ARCHIVED_CARD_STYLE,
+  ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE,
+  ACCOUNTS_LIST_ARCHIVED_ROW_STYLE,
   ACCOUNTS_LIST_CARD_STYLE,
   ACCOUNTS_LIST_RAIL_STYLE,
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
@@ -65,6 +68,84 @@ describe('accounts list card geometry (B1)', () => {
 
   it('is frozen', () => {
     expect(Object.isFrozen(ACCOUNTS_LIST_CARD_STYLE)).toBe(true);
+  });
+});
+
+describe('accounts list archived card geometry (B4)', () => {
+  it('takes the card gutter and sits 12 under the active card', () => {
+    expect(ACCOUNTS_LIST_ARCHIVED_CARD_STYLE.marginHorizontal).toBe(Spacing.md);
+    expect(ACCOUNTS_LIST_ARCHIVED_CARD_STYLE.marginTop).toBe(Spacing.sm);
+  });
+
+  it('carries exactly these keys', () => {
+    expect(Object.keys(ACCOUNTS_LIST_ARCHIVED_CARD_STYLE).sort()).toEqual([
+      'marginHorizontal',
+      'marginTop',
+    ]);
+  });
+
+  it('is frozen', () => {
+    expect(Object.isFrozen(ACCOUNTS_LIST_ARCHIVED_CARD_STYLE)).toBe(true);
+  });
+});
+
+describe('accounts list archived header geometry (B4)', () => {
+  it('is 52 high with the row gutter and an 8 gap', () => {
+    expect(Size.archivedCardHeaderHeight).toBe(ms(52));
+    expect(ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE).toEqual({
+      flex: 1,
+      height: Size.archivedCardHeaderHeight,
+      paddingHorizontal: Spacing.md,
+      gap: Spacing.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+    });
+  });
+
+  it('carries exactly these keys', () => {
+    expect(Object.keys(ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE).sort()).toEqual([
+      'alignItems',
+      'flex',
+      'flexDirection',
+      'gap',
+      'height',
+      'paddingHorizontal',
+    ]);
+  });
+
+  it('is frozen', () => {
+    expect(Object.isFrozen(ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE)).toBe(true);
+  });
+});
+
+describe('accounts list archived row geometry (B5)', () => {
+  it('is 56dp as a minimum, 16 left, 12 right, 8 vertical', () => {
+    expect(Size.archivedRowMinHeight).toBe(ms(56));
+    expect(ACCOUNTS_LIST_ARCHIVED_ROW_STYLE).toEqual({
+      minHeight: Size.archivedRowMinHeight,
+      paddingLeft: Spacing.md,
+      paddingRight: Spacing.sm,
+      paddingVertical: Spacing.xs,
+      gap: Spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+    });
+  });
+
+  it('carries exactly these keys', () => {
+    expect(Object.keys(ACCOUNTS_LIST_ARCHIVED_ROW_STYLE).sort()).toEqual([
+      'alignItems',
+      'flexDirection',
+      'gap',
+      'minHeight',
+      'paddingLeft',
+      'paddingRight',
+      'paddingVertical',
+    ]);
+  });
+
+  it('is frozen', () => {
+    expect(Object.isFrozen(ACCOUNTS_LIST_ARCHIVED_ROW_STYLE)).toBe(true);
   });
 });
 

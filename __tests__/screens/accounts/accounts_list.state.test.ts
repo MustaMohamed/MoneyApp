@@ -52,3 +52,75 @@ describe('accountsListState', () => {
     expect(store.getState().selectedType).toBe('all');
   });
 });
+
+describe('accountsListState — the archived card', () => {
+  const error = { id: 'arch-1', message: 'failed' };
+
+  it('starts collapsed, with no unarchive in flight and no error', () => {
+    const store = createAccountsListState();
+    expect(store.getState().isArchivedExpanded).toBe(false);
+    expect(store.getState().unarchivingId).toBeUndefined();
+    expect(store.getState().unarchiveError).toBeUndefined();
+  });
+
+  it('round-trips the expanded flag', () => {
+    const store = createAccountsListState();
+    store.getState().setArchivedExpanded(true);
+    expect(store.getState().isArchivedExpanded).toBe(true);
+    store.getState().setArchivedExpanded(false);
+    expect(store.getState().isArchivedExpanded).toBe(false);
+  });
+
+  it('round-trips the in-flight id', () => {
+    const store = createAccountsListState();
+    store.getState().setUnarchivingId('arch-1');
+    expect(store.getState().unarchivingId).toBe('arch-1');
+    store.getState().setUnarchivingId(undefined);
+    expect(store.getState().unarchivingId).toBeUndefined();
+  });
+
+  it('round-trips the unarchive error', () => {
+    const store = createAccountsListState();
+    store.getState().setUnarchiveError(error);
+    expect(store.getState().unarchiveError).toEqual(error);
+    store.getState().setUnarchiveError(undefined);
+    expect(store.getState().unarchiveError).toBeUndefined();
+  });
+
+  it('resetArchivedCard clears the card and leaves the type and the retry flag', () => {
+    const store = createAccountsListState();
+    store.getState().setSelectedType(AccountType.Bank);
+    store.getState().setRetrying(true);
+    store.getState().setArchivedExpanded(true);
+    store.getState().setUnarchiveError(error);
+
+    store.getState().resetArchivedCard();
+
+    expect(store.getState().isArchivedExpanded).toBe(false);
+    expect(store.getState().unarchiveError).toBeUndefined();
+    expect(store.getState().selectedType).toBe(AccountType.Bank);
+    expect(store.getState().isRetrying).toBe(true);
+  });
+
+  it('resetArchivedCard leaves a restore in flight locked', () => {
+    const store = createAccountsListState();
+    store.getState().setUnarchivingId('arch-1');
+
+    store.getState().resetArchivedCard();
+
+    expect(store.getState().unarchivingId).toBe('arch-1');
+  });
+
+  it('reset clears the card with everything else', () => {
+    const store = createAccountsListState();
+    store.getState().setArchivedExpanded(true);
+    store.getState().setUnarchivingId('arch-1');
+    store.getState().setUnarchiveError(error);
+
+    store.getState().reset();
+
+    expect(store.getState().isArchivedExpanded).toBe(false);
+    expect(store.getState().unarchivingId).toBeUndefined();
+    expect(store.getState().unarchiveError).toBeUndefined();
+  });
+});

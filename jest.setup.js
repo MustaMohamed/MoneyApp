@@ -223,7 +223,7 @@ jest.mock('heroui-native', () => {
     Typography,
     useTextField: () => ({ isDisabled: false, isInvalid: false, isRequired: false }),
     useThemeColor: () => ['#D4A44C'],
-    useToast: () => toast,
+    useToast: () => ({ toast, isToastVisible: false }),
   };
 });
 

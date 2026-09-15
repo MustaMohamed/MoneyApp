@@ -25,6 +25,33 @@ export const ACCOUNTS_LIST_CARD_STYLE: Readonly<ViewStyle> = Object.freeze({
   marginHorizontal: Spacing.md,
 });
 
+/** B4 `.lgrp`, 12 under the active card; its own style so `ACCOUNTS_LIST_CARD_STYLE` keeps one key. */
+export const ACCOUNTS_LIST_ARCHIVED_CARD_STYLE: Readonly<ViewStyle> = Object.freeze({
+  marginHorizontal: Spacing.md,
+  marginTop: Spacing.sm,
+});
+
+/** B4 `.lg-acc`: the collapsible header row, 52 high, on a View inside the trigger. */
+export const ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE: Readonly<ViewStyle> = Object.freeze({
+  flex: 1,
+  height: Size.archivedCardHeaderHeight,
+  paddingHorizontal: Spacing.md,
+  gap: Spacing.xs,
+  flexDirection: 'row',
+  alignItems: 'center',
+});
+
+/** B5 `.ar-row`: 8 vertical against the canvas 10, since the 56 minimum decides the height. */
+export const ACCOUNTS_LIST_ARCHIVED_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({
+  minHeight: Size.archivedRowMinHeight,
+  paddingLeft: Spacing.md,
+  paddingRight: Spacing.sm,
+  paddingVertical: Spacing.xs,
+  gap: Spacing.sm,
+  flexDirection: 'row',
+  alignItems: 'center',
+});
+
 /** B7 `.rail`: `padding: 4px 16px` on the canvas, as margins here since the scroll has no gutter. */
 export const ACCOUNTS_LIST_RAIL_STYLE: Readonly<ViewStyle> = Object.freeze({
   marginHorizontal: Spacing.md,
