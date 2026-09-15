@@ -46,138 +46,102 @@ export function createAccountStore(repo: IAccountRepository) {
   const failedLookupIds = new Set<string>();
 
   return createMoneyAppSelectors(
-    create<AccountStore>((set, get) => ({
-      ...INITIAL_STATE,
-
-      // `loadError` means the last *settled* read failed, so a reload in flight keeps it up.
-      loadAccounts: async () => {
-        const requestId = ++loadRequestId;
-
+    create<AccountStore>((set, get) => {
+      // A landed write must not read as a failed one because the reload after it failed; `loadAccounts` publishes `loadError`.
+      const writeThenReload = async <T>(tag: string, write: () => Promise<T>): Promise<T> => {
+        let result: T;
         try {
-          const [accounts, archivedAccounts] = await Promise.all([
-            repo.getAll(),
-            repo.getArchived(),
-          ]);
-          if (requestId === loadRequestId) {
-            set({
-              accounts,
-              archivedAccounts,
-              archivedCount: archivedAccounts.length,
-              hasLoaded: true,
-              loadError: false,
-            });
-          }
+          result = await write();
         } catch (err) {
-          if (requestId === loadRequestId) set({ loadError: true });
-          console.error('[accountStore] loadAccounts failed:', err);
+          console.error(`[accountStore] ${tag} failed:`, err);
           throw err;
         }
-      },
-
-      loadAccountLookup: async (ids) => {
-        const generation = loadRequestId;
-        const { accounts, archivedAccounts, accountLookupById, accountLookupError } = get();
-        const known = mergeAccountsById(accounts, archivedAccounts, accountLookupById);
-        const missing = findMissingAccountIds([...new Set(ids)], known);
-        if (missing.length === 0) return;
-        const outstanding = findMissingAccountIds([...failedLookupIds], known);
-        if (accountLookupError && outstanding.every((id) => missing.includes(id))) {
-          set({ accountLookupError: false });
-        }
-
-        try {
-          const rows = await repo.getByIdsIncludingArchived(missing);
-          if (generation !== loadRequestId) return;
-          for (const id of missing) failedLookupIds.delete(id);
-          set((s) => ({
-            accountLookupById: {
-              ...s.accountLookupById,
-              ...Object.fromEntries(rows.map((row) => [row.id, row])),
-            },
-          }));
-        } catch (err) {
-          if (generation === loadRequestId) {
-            for (const id of missing) failedLookupIds.add(id);
-            set({ accountLookupError: true });
-          }
-          console.error('[accountStore] loadAccountLookup failed:', err);
-          throw err;
-        }
-      },
-
-      addAccount: async (data) => {
-        try {
-          const account = await repo.add(data);
-          await get().loadAccounts();
-          return account;
-        } catch (err) {
-          console.error('[accountStore] addAccount failed:', err);
-          throw err;
-        }
-      },
-
-      updateAccount: async (id, data) => {
-        try {
-          await repo.update(id, data);
-          await get().loadAccounts();
-        } catch (err) {
-          console.error('[accountStore] updateAccount failed:', err);
-          throw err;
-        }
-      },
-
-      archiveAccount: async (id) => {
-        try {
-          await repo.archive(id);
-        } catch (err) {
-          console.error('[accountStore] archiveAccount failed:', err);
-          throw err;
-        }
-        // The row is archived, so a failing reload must not read as a failed archive; it publishes `loadError`.
         await get()
           .loadAccounts()
           .catch(() => undefined);
-      },
+        return result;
+      };
 
-      unarchiveAccount: async (id) => {
-        try {
-          await repo.unarchive(id);
-        } catch (err) {
-          console.error('[accountStore] unarchiveAccount failed:', err);
-          throw err;
-        }
-        // The row is restored, so a failing reload must not read as a failed restore; it publishes `loadError`.
-        await get()
-          .loadAccounts()
-          .catch(() => undefined);
-      },
+      return {
+        ...INITIAL_STATE,
 
-      adjustBalance: async (id, newBalance) => {
-        try {
-          await repo.adjustBalance(id, newBalance);
-          await get().loadAccounts();
-        } catch (err) {
-          console.error('[accountStore] adjustBalance failed:', err);
-          throw err;
-        }
-      },
+        // `loadError` means the last *settled* read failed, so a reload in flight keeps it up.
+        loadAccounts: async () => {
+          const requestId = ++loadRequestId;
 
-      confirmBalanceReviewed: async (id) => {
-        try {
-          await repo.confirmBalanceReviewed(id);
-          await get().loadAccounts();
-        } catch (err) {
-          console.error('[accountStore] confirmBalanceReviewed failed:', err);
-          throw err;
-        }
-      },
+          try {
+            const [accounts, archivedAccounts] = await Promise.all([
+              repo.getAll(),
+              repo.getArchived(),
+            ]);
+            if (requestId === loadRequestId) {
+              set({
+                accounts,
+                archivedAccounts,
+                archivedCount: archivedAccounts.length,
+                hasLoaded: true,
+                loadError: false,
+              });
+            }
+          } catch (err) {
+            if (requestId === loadRequestId) set({ loadError: true });
+            console.error('[accountStore] loadAccounts failed:', err);
+            throw err;
+          }
+        },
 
-      reset: () => {
-        loadRequestId += 1;
-        failedLookupIds.clear();
-        set(INITIAL_STATE);
-      },
-    })),
+        loadAccountLookup: async (ids) => {
+          const generation = loadRequestId;
+          const { accounts, archivedAccounts, accountLookupById, accountLookupError } = get();
+          const known = mergeAccountsById(accounts, archivedAccounts, accountLookupById);
+          const missing = findMissingAccountIds([...new Set(ids)], known);
+          if (missing.length === 0) return;
+          const outstanding = findMissingAccountIds([...failedLookupIds], known);
+          if (accountLookupError && outstanding.every((id) => missing.includes(id))) {
+            set({ accountLookupError: false });
+          }
+
+          try {
+            const rows = await repo.getByIdsIncludingArchived(missing);
+            if (generation !== loadRequestId) return;
+            for (const id of missing) failedLookupIds.delete(id);
+            set((s) => ({
+              accountLookupById: {
+                ...s.accountLookupById,
+                ...Object.fromEntries(rows.map((row) => [row.id, row])),
+              },
+            }));
+          } catch (err) {
+            if (generation === loadRequestId) {
+              for (const id of missing) failedLookupIds.add(id);
+              set({ accountLookupError: true });
+            }
+            console.error('[accountStore] loadAccountLookup failed:', err);
+            throw err;
+          }
+        },
+
+        addAccount: (data) => writeThenReload('addAccount', () => repo.add(data)),
+
+        updateAccount: (id, data) => writeThenReload('updateAccount', () => repo.update(id, data)),
+
+        archiveAccount: (id) => writeThenReload('archiveAccount', () => repo.archive(id)),
+
+        unarchiveAccount: (id) => writeThenReload('unarchiveAccount', () => repo.unarchive(id)),
+
+        adjustBalance: (id, newBalance) =>
+          writeThenReload('adjustBalance', () => repo.adjustBalance(id, newBalance)),
+
+        confirmBalanceReviewed: (id) =>
+          writeThenReload('confirmBalanceReviewed', () => repo.confirmBalanceReviewed(id)),
+
+        reset: () => {
+          loadRequestId += 1;
+          failedLookupIds.clear();
+          set(INITIAL_STATE);
+        },
+      };
+    }),
   );
 }
 

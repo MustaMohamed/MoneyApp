@@ -215,15 +215,22 @@ export function useAccountDetail() {
     }
   }, [account, form]);
 
+  // Nothing on the active detail reads `loadError`, so a landed write over a failed reload pops to the list that does.
+  const popIfReloadFailed = () => {
+    if (useAccountStore.getState().loadError) router.dismissTo(ACCOUNTS_LIST);
+  };
+
   const handleSave = form.handleSubmit(async (data) => {
     if (!id) return;
     setSaving(true);
     try {
       await updateAccount(id, { name: data.name.trim(), color: data.color });
-      setEditing(false);
     } finally {
       setSaving(false);
     }
+    // Before the pop: `beforeRemove` cancels a removal while editing.
+    setEditing(false);
+    popIfReloadFailed();
   });
 
   const handleAdjustBalance = async (newBalance: number) => {
@@ -231,11 +238,12 @@ export function useAccountDetail() {
     setAdjusting(true);
     try {
       await adjustBalance(id, newBalance);
-      // After the await on purpose: a rejection keeps the sheet open with the typed value intact.
-      setAdjustVisible(false);
     } finally {
       setAdjusting(false);
     }
+    // After the write on purpose: a rejection keeps the sheet open with the typed value intact.
+    setAdjustVisible(false);
+    popIfReloadFailed();
   };
 
   const handleArchive = async () => {
@@ -303,9 +311,11 @@ export function useAccountDetail() {
     } catch (error) {
       console.error('[accountDetail] confirmBalanceReviewed failed:', error);
       setBalanceReviewError(Strings.accountBalanceReviewError);
+      return;
     } finally {
       setConfirmingBalanceReview(false);
     }
+    popIfReloadFailed();
   };
 
   const onBack = () => {

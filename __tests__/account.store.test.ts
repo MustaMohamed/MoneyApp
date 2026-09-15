@@ -491,6 +491,17 @@ describe('accountStore.addAccount', () => {
     const repo = makeRepo({ add: jest.fn().mockRejectedValue(new Error('insert failed')) });
     const store = createAccountStore(repo);
     await expect(store.getState().addAccount(baseInput)).rejects.toThrow('insert failed');
+    expect(repo.getAll).not.toHaveBeenCalled();
+  });
+
+  it('resolves when the write lands and only the reload after it fails', async () => {
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('reload failed')) });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().addAccount(baseInput)).resolves.toEqual(mockAccount);
+
+    expect(repo.add).toHaveBeenCalledWith(baseInput);
+    expect(store.getState().loadError).toBe(true);
   });
 });
 
@@ -516,6 +527,19 @@ describe('accountStore.updateAccount', () => {
     await expect(
       store.getState().updateAccount('test-id', { name: 'x', color: null }),
     ).rejects.toThrow('update failed');
+    expect(repo.getAll).not.toHaveBeenCalled();
+  });
+
+  it('resolves when the write lands and only the reload after it fails', async () => {
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('reload failed')) });
+    const store = createAccountStore(repo);
+
+    await expect(
+      store.getState().updateAccount('test-id', { name: 'New Name', color: null }),
+    ).resolves.toBeUndefined();
+
+    expect(repo.update).toHaveBeenCalledWith('test-id', { name: 'New Name', color: null });
+    expect(store.getState().loadError).toBe(true);
   });
 });
 
@@ -649,6 +673,17 @@ describe('accountStore.adjustBalance', () => {
     });
     const store = createAccountStore(repo);
     await expect(store.getState().adjustBalance('test-id', 0)).rejects.toThrow('db error');
+    expect(repo.getAll).not.toHaveBeenCalled();
+  });
+
+  it('resolves when the write lands and only the reload after it fails', async () => {
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('reload failed')) });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().adjustBalance('test-id', 9999)).resolves.toBeUndefined();
+
+    expect(repo.adjustBalance).toHaveBeenCalledWith('test-id', 9999);
+    expect(store.getState().loadError).toBe(true);
   });
 });
 
@@ -671,6 +706,16 @@ describe('accountStore.confirmBalanceReviewed', () => {
 
     await expect(store.getState().confirmBalanceReviewed('test-id')).rejects.toThrow('db error');
     expect(repo.getAll).not.toHaveBeenCalled();
+  });
+
+  it('resolves when the write lands and only the reload after it fails', async () => {
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('reload failed')) });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().confirmBalanceReviewed('test-id')).resolves.toBeUndefined();
+
+    expect(repo.confirmBalanceReviewed).toHaveBeenCalledWith('test-id');
+    expect(store.getState().loadError).toBe(true);
   });
 });
 

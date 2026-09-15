@@ -25,9 +25,11 @@ const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 const mockReplace = jest.fn();
 
 let mockAccounts: { id: string; name: string }[] = [];
+let mockLoadError = false;
 
 function setup(isAddingMore?: string) {
   mockAccounts = [];
+  mockLoadError = false;
   const { useLocalSearchParams, useRouter } = require('expo-router');
   (useLocalSearchParams as jest.Mock).mockReturnValue(
     isAddingMore === undefined ? {} : { isAddingMore },
@@ -36,6 +38,7 @@ function setup(isAddingMore?: string) {
 
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: mockAccounts,
+    loadError: mockLoadError,
     addAccount: mockAddAccount,
     loadAccounts: mockLoadAccounts,
   }));
@@ -142,6 +145,67 @@ describe('useAddAccount', () => {
     expect(result.current.state.statusMessage).toBeFalsy();
     // `formState.errors` is vacuous under `renderHook`; `getFieldState` reads the live field.
     expect(result.current.form.getFieldState('name').error).toBeUndefined();
+  });
+
+  describe('a committed add whose reload failed', () => {
+    beforeEach(() => {
+      mockAddAccount.mockImplementation(async () => {
+        mockLoadError = true;
+      });
+    });
+
+    function reloadRepublishes() {
+      mockLoadAccounts.mockImplementationOnce(async () => {
+        mockLoadError = false;
+        mockAccounts = [...mockAccounts, { id: 'new', name: 'CIB Savings' }];
+      });
+    }
+
+    function reloadFails() {
+      mockLoadAccounts.mockRejectedValueOnce(new Error('reload failed'));
+    }
+
+    it('retries the reload once and moves to N3 when it succeeds', async () => {
+      reloadRepublishes();
+      const { result } = await renderHook(() => useAddAccount());
+      await fillAndSubmit(result);
+
+      expect(mockAddAccount).toHaveBeenCalledTimes(1);
+      expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
+      expect(mockSetStep).toHaveBeenCalledWith(OnboardingStep.N3);
+      expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/more_accounts');
+      expect(result.current.state.statusMessage).toBeFalsy();
+    });
+
+    it('stays on N2 with the failed-load line and no step write when the retry fails too', async () => {
+      reloadFails();
+      const { result } = await renderHook(() => useAddAccount());
+      await fillAndSubmit(result);
+
+      expect(mockAddAccount).toHaveBeenCalledTimes(1);
+      expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
+      expect(mockSetStep).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+      expect(result.current.state.statusMessage).toBe(Strings.accountsReadErrorTitle);
+      expect(result.current.state.saving).toBe(false);
+      expect(useAddAccountTransitionState.getState().busy).toBe(false);
+    });
+
+    it('the tap after a failed retry reloads again and never inserts again', async () => {
+      reloadFails();
+      const { result } = await renderHook(() => useAddAccount());
+      await fillAndSubmit(result);
+
+      reloadRepublishes();
+      await act(async () => {
+        await result.current.handleSave();
+      });
+
+      expect(mockAddAccount).toHaveBeenCalledTimes(1);
+      expect(mockLoadAccounts).toHaveBeenCalledTimes(2);
+      expect(mockSetStep).toHaveBeenCalledWith(OnboardingStep.N3);
+      expect(mockReplace).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('?isAddingMore=true saves without writing a step', async () => {
