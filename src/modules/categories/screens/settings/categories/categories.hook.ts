@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { CategoryNameTakenError } from '@/modules/categories/repositories/category.errors';
+import { CategoryReloadError } from '@/modules/categories/repositories/category.errors';
 import type {
   Category,
   NewCategoryInput,
@@ -124,8 +124,8 @@ export function useCategories() {
           await addCategory(data as NewCategoryInput);
         }
       } catch (error) {
-        // A reload that failed after the write is the screen's load error, not the sheet's message.
-        if (error instanceof CategoryNameTakenError || !useCategoryStore.getState().loadError) {
+        // The write committed; its failed reload is the screen's load error, not the sheet's message.
+        if (!(error instanceof CategoryReloadError)) {
           throw error;
         }
       }

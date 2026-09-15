@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { CategoryReloadError } from '@/modules/categories/repositories/category.errors';
 import {
   CategoryRepository,
   type ICategoryRepository,
@@ -65,12 +66,18 @@ export function createCategoryStore(
         const ownerLifecycle = lifecycleGeneration;
         try {
           await operation();
-          if (ownerLifecycle !== lifecycleGeneration) return;
-          await loadOwned(true);
         } catch (error) {
           if (ownerLifecycle !== lifecycleGeneration) return;
           console.error(`[categoryStore] ${label} failed:`, error);
           throw error;
+        }
+        if (ownerLifecycle !== lifecycleGeneration) return;
+        try {
+          await loadOwned(true);
+        } catch (error) {
+          if (ownerLifecycle !== lifecycleGeneration) return;
+          console.error(`[categoryStore] ${label} reload failed:`, error);
+          throw new CategoryReloadError(error);
         }
       };
 

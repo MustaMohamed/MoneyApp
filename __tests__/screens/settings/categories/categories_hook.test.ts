@@ -13,7 +13,10 @@ jest.mock('@/modules/categories/screens/settings/categories/categories.store', (
 import { act, renderHook } from '@testing-library/react-native';
 
 import { CategoryType, PROTECTED_CATEGORY_IDS } from '@/constants/enums';
-import { CategoryNameTakenError } from '@/modules/categories/repositories/category.errors';
+import {
+  CategoryNameTakenError,
+  CategoryReloadError,
+} from '@/modules/categories/repositories/category.errors';
 import { useCategories } from '@/modules/categories/screens/settings/categories/categories.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Category } from '@/modules/categories/store/category.store';
@@ -342,9 +345,9 @@ describe('useCategories — handleSave when the reload after the write fails', (
     jest.clearAllMocks();
   });
 
-  it('closes the sheet and resolves when the store reports a load error', async () => {
+  it('closes the sheet and resolves when the write committed and its reload failed', async () => {
     setupMocks({
-      addCategory: jest.fn().mockRejectedValue(new Error('reload failed')),
+      addCategory: jest.fn().mockRejectedValue(new CategoryReloadError(new Error('reload failed'))),
       loadError: true,
     });
     const { result } = await renderHook(() => useCategories());
@@ -356,15 +359,16 @@ describe('useCategories — handleSave when the reload after the write fails', (
     expect(capturedSetShowAddSheet).toHaveBeenCalledWith(false);
   });
 
-  it('re-throws a failed write and leaves the sheet open when the store has no load error', async () => {
-    setupMocks({ addCategory: jest.fn().mockRejectedValue(new Error('write failed')) });
+  it('re-throws a failed write and leaves the sheet open beside a load error left by an earlier load', async () => {
+    const writeFailure = new Error('write failed');
+    setupMocks({ addCategory: jest.fn().mockRejectedValue(writeFailure), loadError: true });
     const { result } = await renderHook(() => useCategories());
 
     await expect(
       act(async () => {
         await result.current.handleSave(input);
       }),
-    ).rejects.toThrow('write failed');
+    ).rejects.toBe(writeFailure);
     expect(capturedSetShowAddSheet).not.toHaveBeenCalledWith(false);
   });
 
