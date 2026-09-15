@@ -204,6 +204,7 @@ describe('useEditCommitment', () => {
 
     expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
     expect(mockRouterDismissAll).toHaveBeenCalled();
+    expect(mockRouterDismissTo).not.toHaveBeenCalled();
     expect(mockRouterReplace).not.toHaveBeenCalled();
   });
 

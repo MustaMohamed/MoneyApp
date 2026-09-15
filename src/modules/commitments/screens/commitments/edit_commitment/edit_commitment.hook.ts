@@ -70,10 +70,10 @@ export function useEditCommitment() {
     return () => release(owner);
   }, [owner, claim, release]);
 
-  // POP_TO selects by route name, so it steps over any duplicate edit or payment a double-tap appended.
   function leaveStackedSubtree() {
     // `(tabs)` is index 0 of the `(app)` Stack, so popping to the top lands on the tabbed transaction.
     if (originTxCopy === TABBED_ORIGIN) router.dismissAll();
+    // POP_TO selects by route name, so it steps over any duplicate edit or payment a double-tap appended.
     else if (originTxId) router.dismissTo(stackedTransactionDetailRoute(originTxId));
     else router.back();
   }
