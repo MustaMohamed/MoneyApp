@@ -134,16 +134,13 @@ export function useAccountsList() {
       try {
         await unarchiveAccount(id);
       } catch (error) {
-        // A reload that failed after the write is the screen's ErrorState, not this row's line.
-        if (!useAccountStore.getState().loadError) {
-          setUnarchiveError({
-            id,
-            message:
-              error instanceof AccountNameTakenError
-                ? Strings.accountsArchivedNameTaken
-                : Strings.accountsArchivedRestoreError,
-          });
-        }
+        setUnarchiveError({
+          id,
+          message:
+            error instanceof AccountNameTakenError
+              ? Strings.accountsArchivedNameTaken
+              : Strings.accountsArchivedRestoreError,
+        });
         return;
       } finally {
         setUnarchivingId(undefined);

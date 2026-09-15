@@ -610,6 +610,22 @@ describe('accountStore.unarchiveAccount', () => {
       loadError: false,
     });
   });
+
+  it('resolves when the write lands and only the reload after it fails', async () => {
+    const archived: Account = { ...mockAccount, id: 'archived', is_archived: 1 };
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('reload failed')),
+      getArchived: jest.fn().mockResolvedValue([archived]),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccounts();
+
+    await expect(store.getState().unarchiveAccount('archived')).resolves.toBeUndefined();
+
+    expect(repo.unarchive).toHaveBeenCalledWith('archived');
+    expect(store.getState().loadError).toBe(true);
+    expect(store.getState().archivedAccounts).toEqual([archived]);
+  });
 });
 
 describe('accountStore.adjustBalance', () => {

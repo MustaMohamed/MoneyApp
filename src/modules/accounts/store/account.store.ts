@@ -142,11 +142,14 @@ export function createAccountStore(repo: IAccountRepository) {
       unarchiveAccount: async (id) => {
         try {
           await repo.unarchive(id);
-          await get().loadAccounts();
         } catch (err) {
           console.error('[accountStore] unarchiveAccount failed:', err);
           throw err;
         }
+        // The row is restored, so a failing reload must not read as a failed restore; it publishes `loadError`.
+        await get()
+          .loadAccounts()
+          .catch(() => undefined);
       },
 
       adjustBalance: async (id, newBalance) => {

@@ -105,9 +105,12 @@ function mkAccount(overrides: Partial<Account> = {}): Account {
   };
 }
 
+let accountLoadError = false;
+
 function mockAccounts(accounts: Account[]): void {
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
+    loadError: accountLoadError,
     updateAccount: jest.fn(),
     archiveAccount: mockArchiveAccount,
     unarchiveAccount: mockUnarchiveAccount,
@@ -240,6 +243,7 @@ function setup() {
   mockRetry.mockReturnValue(Promise.resolve());
   mockSlotEnsure.mockReturnValue(Promise.resolve());
   mockSlotRetry.mockReturnValue(Promise.resolve());
+  accountLoadError = false;
   mockAccounts([]);
   mockActivity(undefined, 'idle');
   mockSlot(undefined, 'idle');
@@ -716,6 +720,30 @@ describe('useAccountDetail — an id outside the active list', () => {
     expect(mockSetUnarchiving).toHaveBeenNthCalledWith(1, true);
     expect(mockSetUnarchiving).toHaveBeenLastCalledWith(false);
     expect(mockBack).not.toHaveBeenCalled();
+    expect(mockDismissTo).not.toHaveBeenCalled();
+  });
+
+  it('pops to the list with the restored toast when the write landed and the reload failed', async () => {
+    mockSlot(archivedSnapshot());
+    mockUnarchiveAccount.mockImplementationOnce(async () => {
+      accountLoadError = true;
+    });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleUnarchive());
+
+    expect(mockUnarchiveAccount).toHaveBeenCalledWith('acc-1');
+    expect(useToast().toast.show).toHaveBeenCalledTimes(1);
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: 'CIB restored.',
+      variant: 'success',
+    });
+    expect(mockDismissTo.mock.calls).toEqual([['/accounts']]);
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockSlotReset).not.toHaveBeenCalled();
+    expect(mockEnsure).not.toHaveBeenCalled();
+    expect(mockSetUnarchiveError.mock.calls).toEqual([[undefined]]);
+    expect(mockSetUnarchiving).toHaveBeenLastCalledWith(false);
   });
 
   it('toasts a blank-named account under the shared label — MA-059', async () => {
