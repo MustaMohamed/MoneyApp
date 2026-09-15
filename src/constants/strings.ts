@@ -159,7 +159,7 @@ export const Strings = {
   onboardingBackSaveError: "Couldn't go back. Tap the back arrow to try again.",
 
   // O4 validation errors
-  errNameRequired: 'Account name is required',
+  errNameRequired: 'Enter a name for this account.',
   errNameTooLong: 'Name must be 30 characters or less',
   errNameDuplicate: 'This name is already used',
   errBalanceInvalid: 'Please enter a valid amount',

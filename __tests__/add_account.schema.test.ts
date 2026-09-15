@@ -88,6 +88,36 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
       expect(fieldErrors(baseData({ name: 'a'.repeat(30) })).name).toBeUndefined();
     });
 
+    it('whitespace-only name → errNameRequired', () => {
+      expect(fieldErrors(baseData({ name: '   ' })).name).toBe(Strings.errNameRequired);
+    });
+
+    it('whitespace-only name beside a blank-named account → errNameRequired alone, no duplicate', () => {
+      const result = createAddAccountSchema([accountFixture('')]).safeParse(
+        baseData({ name: '   ' }),
+      );
+      expect(result.success).toBe(false);
+      const nameMessages = result.error?.issues
+        .filter((i) => i.path[0] === 'name')
+        .map((i) => i.message);
+      expect(nameMessages).toEqual([Strings.errNameRequired]);
+    });
+
+    it('surrounding spaces are removed from the parsed name', () => {
+      const result = createAddAccountSchema(emptyAccounts).safeParse(baseData({ name: ' Cash ' }));
+      expect(result.success).toBe(true);
+      expect(result.data?.name).toBe('Cash');
+    });
+
+    it('surrounding spaces against an active "cash" → errNameDuplicateNamed with the trimmed name', () => {
+      const errs = fieldErrors(baseData({ name: ' Cash ' }), [accountFixture('cash')]);
+      expect(errs.name).toBe(Strings.errNameDuplicateNamed('Cash'));
+    });
+
+    it('30 chars inside surrounding spaces → valid, the limit reads the trimmed name', () => {
+      expect(fieldErrors(baseData({ name: ` ${'a'.repeat(30)} ` })).name).toBeUndefined();
+    });
+
     it('duplicate name (case-insensitive) → errNameDuplicateNamed, carrying the typed casing', () => {
       const errs = fieldErrors(baseData({ name: 'CIB SAVINGS' }), [accountFixture('CIB Savings')]);
       expect(errs.name).toBe(Strings.errNameDuplicateNamed('CIB SAVINGS'));
