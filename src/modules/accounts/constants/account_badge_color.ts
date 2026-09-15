@@ -23,7 +23,7 @@ function channels(hex: string): [number, number, number] {
   return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
 }
 
-/** Channel mix of `a` into `b`; exported so a test derives the frames' mix from the tokens instead of mirroring its hex. */
+/** Channel mix of `a` into `b`, `shareOfA` from 0 to 1, as an uppercase #RRGGBB. */
 export function mixHex(a: string, b: string, shareOfA: number): string {
   const [ar, ag, ab] = channels(a);
   const [br, bg, bb] = channels(b);
