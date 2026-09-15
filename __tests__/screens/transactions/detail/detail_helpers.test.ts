@@ -304,3 +304,28 @@ describe('buildTransactionDetailPresentation — deleted accounts (MA-020)', () 
     ).toBe(Strings.deletedAccount);
   });
 });
+
+describe('buildTransactionDetailPresentation — blank-named accounts (MA-062)', () => {
+  it('labels a transfer whose destination has a blank name', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: transaction({}),
+        account: account({ name: 'USD wallet' }),
+        toAccount: account({ id: 'destination', name: '' }),
+      }).accountLabel,
+    ).toBe(`USD wallet → ${Strings.unnamedAccount}`);
+  });
+
+  it('labels a single-account transaction on a blank-named account', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: transaction({
+          type: TransactionType.Expense,
+          to_account_id: null,
+          to_amount: null,
+        }),
+        account: account({ name: '' }),
+      }).accountLabel,
+    ).toBe(Strings.unnamedAccount);
+  });
+});

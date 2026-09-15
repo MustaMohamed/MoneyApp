@@ -6,6 +6,7 @@ import { FilterAccordionShell, FilterOptionPillList } from '@/components/ui/filt
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { resolveAccountName } from '@/utils/account_name';
 import { ms } from '@/utils/responsive';
 
 interface Props {
@@ -29,9 +30,9 @@ export function AccountAccordion({
 }: Props): React.ReactElement {
   const options = accounts.map((account) => ({
     id: account.id,
-    label: account.name,
+    label: resolveAccountName(account),
     selected: selectedIds.includes(account.id),
-    accessibilityLabel: Strings.filterAccountAccessibility(account.name),
+    accessibilityLabel: Strings.filterAccountAccessibility(resolveAccountName(account)),
     startIcon: (
       <MaterialCommunityIcons
         name={TYPE_OPTIONS.find((option) => option.type === account.type)?.icon ?? 'bank'}

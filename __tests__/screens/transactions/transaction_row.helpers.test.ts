@@ -278,6 +278,35 @@ describe('buildTransactionRowPresentation — deleted accounts (MA-020)', () => 
   });
 });
 
+describe('buildTransactionRowPresentation — blank-named accounts (MA-062)', () => {
+  const blankSource = account({ id: 'blank', name: '' });
+  const blankTarget = account({ id: 'blank-too', name: '' });
+
+  it('reads "Unnamed account" as the context of an expense', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: transaction({ account_id: blankSource.id }),
+        account: blankSource,
+      }).context,
+    ).toBe(Strings.unnamedAccount);
+  });
+
+  it('reads "Unnamed account" on both sides of a transfer between two blank-named accounts', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: transaction({
+          type: TransactionType.Transfer,
+          account_id: blankSource.id,
+          to_account_id: blankTarget.id,
+          category_id: null,
+        }),
+        account: blankSource,
+        toAccount: blankTarget,
+      }).context,
+    ).toBe(`${Strings.unnamedAccount} → ${Strings.unnamedAccount}`);
+  });
+});
+
 describe('transaction row track geometry', () => {
   it('keeps both columns inside the row box', () => {
     // The row's own `border-b` comes out of the content box alongside the padding.

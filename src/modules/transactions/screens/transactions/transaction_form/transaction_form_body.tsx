@@ -14,6 +14,7 @@ import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { resolveAccountName } from '@/utils/account_name';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
@@ -178,7 +179,9 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             onPress={locked ? undefined : onOpenAccountPicker}
             disabled={locked}
             label={isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
-            value={selectedAccount?.name ?? Strings.addTxPickAccountTitle}
+            value={
+              selectedAccount ? resolveAccountName(selectedAccount) : Strings.addTxPickAccountTitle
+            }
             prefix={
               <MaterialCommunityIcons
                 name={
@@ -210,7 +213,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 onPress={locked ? undefined : onOpenToPicker}
                 disabled={locked}
                 label={Strings.addTxToLabel}
-                value={selectedToAccount?.name ?? Strings.addTxPickToTitle}
+                value={
+                  selectedToAccount
+                    ? resolveAccountName(selectedToAccount)
+                    : Strings.addTxPickToTitle
+                }
                 prefix={
                   <MaterialCommunityIcons
                     name={

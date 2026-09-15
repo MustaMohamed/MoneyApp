@@ -313,6 +313,30 @@ describe('getTransactions — expanded search projection', () => {
     ]);
   });
 
+  it('MA-062: searches the stored account name, never the "Unnamed account" label', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO accounts
+         (id,name,type,currency,opening_balance,current_balance,
+          interest_tracking,is_archived,sort_order,created_at,updated_at)
+         VALUES ('acc_blank','','bank','EGP',1000,1000,0,0,3,?,?)`,
+      )
+      .run(NOW, NOW);
+    try {
+      await insert({ id: 'blank-row', account_id: 'acc_blank' });
+
+      expect((await getTransactions(mockDb, { search: 'Unnamed' })).map((row) => row.id)).toEqual(
+        [],
+      );
+      expect(
+        (await getTransactions(mockDb, { accountIds: ['acc_blank'] })).map((row) => row.id),
+      ).toEqual(['blank-row']);
+    } finally {
+      realDb.exec(`DELETE FROM transactions WHERE account_id = 'acc_blank'`);
+      realDb.exec(`DELETE FROM accounts WHERE id = 'acc_blank'`);
+    }
+  });
+
   it('finds a stored sub-cent legacy row by its exact amount', async () => {
     await insert({ id: 'sub-cent', amount: 0.005, egp_amount: 0.005 });
     await insert({ id: 'different-amount', amount: 150, egp_amount: 150 });

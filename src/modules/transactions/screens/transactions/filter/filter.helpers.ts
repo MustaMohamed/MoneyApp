@@ -1,5 +1,7 @@
 import { Strings } from '@/constants/strings';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { TransactionListFilters } from '@/modules/transactions/store/transaction.store';
+import { resolveAccountName } from '@/utils/account_name';
 import { parseDecimalText } from '@/utils/parse_decimal';
 
 import type { AdvancedFilters } from './filter.store';
@@ -108,6 +110,14 @@ export function advancedFiltersEqual(a: AdvancedFilters, b: AdvancedFilters): bo
 
 function selectedNames(ids: string[], source: ReadonlyMap<string, NamedEntity>): string[] {
   return ids.map((id) => source.get(id)?.name).filter((name): name is string => name !== undefined);
+}
+
+export function labelAccountsById(
+  accountsById: ReadonlyMap<string, Account>,
+): ReadonlyMap<string, NamedEntity> {
+  return new Map(
+    [...accountsById].map(([id, account]) => [id, { name: resolveAccountName(account) }]),
+  );
 }
 
 export function formatAppliedFilterSummary(
