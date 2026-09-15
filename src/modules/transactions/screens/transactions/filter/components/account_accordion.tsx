@@ -28,19 +28,22 @@ export function AccountAccordion({
   onToggleSection,
   onToggleId,
 }: Props): React.ReactElement {
-  const options = accounts.map((account) => ({
-    id: account.id,
-    label: resolveAccountName(account),
-    selected: selectedIds.includes(account.id),
-    accessibilityLabel: Strings.filterAccountAccessibility(resolveAccountName(account)),
-    startIcon: (
-      <MaterialCommunityIcons
-        name={TYPE_OPTIONS.find((option) => option.type === account.type)?.icon ?? 'bank'}
-        size={ms(13)}
-        color={account.color ?? CoreTokens.text2}
-      />
-    ),
-  }));
+  const options = accounts.map((account) => {
+    const label = resolveAccountName(account);
+    return {
+      id: account.id,
+      label,
+      selected: selectedIds.includes(account.id),
+      accessibilityLabel: Strings.filterAccountAccessibility(label),
+      startIcon: (
+        <MaterialCommunityIcons
+          name={TYPE_OPTIONS.find((option) => option.type === account.type)?.icon ?? 'bank'}
+          size={ms(13)}
+          color={account.color ?? CoreTokens.text2}
+        />
+      ),
+    };
+  });
 
   return (
     <FilterAccordionShell
