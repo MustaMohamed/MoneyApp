@@ -1,19 +1,39 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { AmountType, Currency, RecurrencePreset } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentFilterSheet } from '@/modules/commitments/screens/commitments/filter/filter.hook';
 import {
   EMPTY_COMMITMENT_FILTERS,
   useCommitmentFilterStore,
 } from '@/modules/commitments/screens/commitments/filter/filter.store';
+import { makeTestAccount } from '@/test_helpers/transaction';
 
 beforeEach(() => {
   useCommitmentFilterStore.getState().resetDraft();
   useCommitmentsScreenState.getState().reset();
+  useAccountStore.getState().reset();
 });
 
 describe('useCommitmentFilterSheet', () => {
+  it('names a blank-named account "Unnamed account" in the draft account summary', async () => {
+    useAccountStore.setState({
+      accounts: [
+        makeTestAccount({ id: 'a1', name: '' }),
+        makeTestAccount({ id: 'a2', name: 'Wallet' }),
+      ],
+    });
+    const { result } = await renderHook(() => useCommitmentFilterSheet());
+    expect(result.current.state.accountSummary).toBe(Strings.filterSummaryAccountsEmpty);
+
+    await act(() => result.current.toggleAccountId('a1'));
+    await act(() => result.current.toggleAccountId('a2'));
+
+    expect(result.current.state.accountSummary).toBe(`${Strings.unnamedAccount}, Wallet`);
+  });
+
   it('disables Apply when draft and applied filters match', async () => {
     const { result } = await renderHook(() => useCommitmentFilterSheet());
 

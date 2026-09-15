@@ -15,6 +15,7 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
 import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
+import { resolveAccountName } from '@/utils/account_name';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
 import { maskMoneyFieldText } from '@/utils/money_text';
@@ -180,7 +181,7 @@ export function PaySheet({ owner, commitment, payment }: Props) {
                   />
                   <View style={{ flex: 1 }}>
                     <Text className="font-sora-semibold text-foreground text-[15px]">
-                      {state.selectedAccount.name}
+                      {resolveAccountName(state.selectedAccount)}
                     </Text>
                     <Text className="font-inter text-muted text-[12px]">
                       {formatCurrencyAmount(

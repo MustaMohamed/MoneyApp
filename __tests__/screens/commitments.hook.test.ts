@@ -471,6 +471,45 @@ describe('useCommitments', () => {
     ).toEqual(['internet']);
   });
 
+  it('searches the stored account name, so "Unnamed" matches no blank-named account', async () => {
+    setup({
+      commitments: [makeCommitment('commitment-blank', { account_id: 'account-wallet' })],
+      payments: [makePayment('blank', CommitmentPaymentStatus.Due)],
+      accounts: [makeAccount('account-wallet', 'Wallet')],
+      searchQuery: 'wallet',
+    });
+    const { result: named } = await renderHook(() => useCommitments());
+    expect(
+      named.current.state.sections.flatMap((section) => section.data.map((p) => p.id)),
+    ).toEqual(['blank']);
+
+    setup({
+      commitments: [makeCommitment('commitment-blank', { account_id: 'account-blank' })],
+      payments: [makePayment('blank', CommitmentPaymentStatus.Due)],
+      accounts: [makeAccount('account-blank', '')],
+      searchQuery: 'Unnamed',
+    });
+    const { result: blank } = await renderHook(() => useCommitments());
+    expect(
+      blank.current.state.sections.flatMap((section) => section.data.map((p) => p.id)),
+    ).toEqual([]);
+  });
+
+  it('keeps the account filter reaching a blank-named account', async () => {
+    setup({
+      commitments: [makeCommitment('commitment-blank', { account_id: 'account-blank' })],
+      payments: [makePayment('blank', CommitmentPaymentStatus.Due)],
+      accounts: [makeAccount('account-blank', '')],
+      appliedFilters: { ...EMPTY_COMMITMENT_FILTERS, accountIds: ['account-blank'] },
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(
+      result.current.state.sections.flatMap((section) => section.data.map((p) => p.id)),
+    ).toEqual(['blank']);
+  });
+
   it('navigateMonth moves January to previous December', async () => {
     setup({ selectedMonth: '2026-01' });
     const { result } = await renderHook(() => useCommitments());
