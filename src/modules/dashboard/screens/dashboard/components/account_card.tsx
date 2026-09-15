@@ -10,6 +10,7 @@ import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/ac
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
+import { resolveAccountName } from '@/utils/account_name';
 import { ms, msFont } from '@/utils/responsive';
 
 import { buildInfoRows } from './account_card.helpers';
@@ -57,7 +58,7 @@ export function AccountCard({
     <PressableFeedback
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={account.name}
+      accessibilityLabel={resolveAccountName(account)}
       style={{ width, marginLeft: ms(4) }}
     >
       <Card
@@ -82,7 +83,7 @@ export function AccountCard({
                 numberOfLines={1}
                 style={{ flex: 1, fontSize: msFont(17), lineHeight: lineHeightFor(msFont(17)) }}
               >
-                {account.name}
+                {resolveAccountName(account)}
               </Text>
               <View
                 className="rounded"

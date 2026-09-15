@@ -17,6 +17,7 @@ import type {
   DashboardBudgetLimitRow,
   DashboardTransactionFactRow,
 } from '@/modules/dashboard/database/dashboard_snapshot';
+import { resolveAccountName } from '@/utils/account_name';
 import { roundMoney } from '@/utils/money';
 
 /** Sums into `baseCurrency`, the reporting currency, not the EGP storage currency. */
@@ -136,10 +137,10 @@ export function computeLiquidityBreakdown(
     );
     if (LIQUID_TYPES.has(a.type)) {
       liquid += balance;
-      liquidAccounts.push({ id: a.id, name: a.name, balance });
+      liquidAccounts.push({ id: a.id, name: resolveAccountName(a), balance });
     } else if (RESERVE_TYPES.has(a.type)) {
       reserve += balance;
-      reserveAccounts.push({ id: a.id, name: a.name, balance });
+      reserveAccounts.push({ id: a.id, name: resolveAccountName(a), balance });
     }
   }
 
@@ -179,7 +180,7 @@ export function computeLiabilitiesBreakdown(
     );
     rows.push({
       id: a.id,
-      name: a.name,
+      name: resolveAccountName(a),
       balance,
       statementDueDay: a.statement_due_day ?? null,
     });

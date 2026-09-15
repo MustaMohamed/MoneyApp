@@ -1,4 +1,5 @@
 import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import {
   AccountAggregationError,
   type DashboardNetWorth,
@@ -757,6 +758,48 @@ describe('computeLiquidityBreakdown', () => {
     expect(result.reserveAccounts.map((a) => a.name)).toEqual(['Savings']);
   });
 
+  it('labels a blank-named liquid and reserve row "Unnamed account"', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', name: '   ', type: AccountType.Bank, current_balance: 1000 }),
+      makeAccount({ id: '2', name: '', type: AccountType.PhysicalSavings, current_balance: 500 }),
+    ];
+    const result = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
+    expect(result.liquidAccounts[0].name).toBe(Strings.unnamedAccount);
+    expect(result.reserveAccounts[0].name).toBe(Strings.unnamedAccount);
+  });
+
+  it('labels a deleted row "Deleted Account", blank name or not', () => {
+    const accounts: Account[] = [
+      makeAccount({
+        id: '1',
+        name: 'CIB',
+        type: AccountType.Bank,
+        current_balance: 2000,
+        is_deleted: 1,
+      }),
+      makeAccount({
+        id: '2',
+        name: '',
+        type: AccountType.Bank,
+        current_balance: 1000,
+        is_deleted: 1,
+      }),
+    ];
+    const result = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
+    expect(result.liquidAccounts.map((a) => a.name)).toEqual([
+      Strings.deletedAccount,
+      Strings.deletedAccount,
+    ]);
+  });
+
+  it('passes a padded real name through as stored', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', name: '  CIB  ', type: AccountType.Bank, current_balance: 1000 }),
+    ];
+    const result = computeLiquidityBreakdown(accounts, 48.85, Currency.EGP);
+    expect(result.liquidAccounts[0].name).toBe('  CIB  ');
+  });
+
   it('returns zero reserve when no PhysicalSavings present', () => {
     const accounts: Account[] = [
       makeAccount({ id: '1', type: AccountType.Bank, current_balance: 1000 }),
@@ -845,6 +888,42 @@ describe('computeLiabilitiesBreakdown', () => {
     ];
     const [row] = computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP);
     expect(row.statementDueDay).toBe(28);
+  });
+
+  it('labels a blank-named credit card row "Unnamed account"', () => {
+    const accounts: Account[] = [
+      makeAccount({ id: '1', name: '', type: AccountType.CreditCard, current_balance: 1000 }),
+    ];
+    expect(computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP)).toEqual([
+      { id: '1', name: Strings.unnamedAccount, balance: 1000, statementDueDay: null },
+    ]);
+  });
+
+  it('labels a deleted credit card row "Deleted Account"', () => {
+    const accounts: Account[] = [
+      makeAccount({
+        id: '1',
+        name: '',
+        type: AccountType.CreditCard,
+        current_balance: 1000,
+        is_deleted: 1,
+      }),
+    ];
+    const [row] = computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP);
+    expect(row.name).toBe(Strings.deletedAccount);
+  });
+
+  it('passes a padded real card name through as stored', () => {
+    const accounts: Account[] = [
+      makeAccount({
+        id: '1',
+        name: '  CIB  ',
+        type: AccountType.CreditCard,
+        current_balance: 1000,
+      }),
+    ];
+    const [row] = computeLiabilitiesBreakdown(accounts, 48.85, Currency.EGP);
+    expect(row.name).toBe('  CIB  ');
   });
 
   it('returns an empty array when no credit cards', () => {
