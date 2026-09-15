@@ -742,6 +742,18 @@ describe('useAccountDetail — an id outside the active list', () => {
     consoleError.mockRestore();
   });
 
+  it('ignores a second tap while a restore is running', async () => {
+    mockSlot(archivedSnapshot());
+    mockDetailState({ isUnarchiving: true });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleUnarchive());
+
+    expect(mockUnarchiveAccount).not.toHaveBeenCalled();
+    expect(mockSetUnarchiveError).not.toHaveBeenCalled();
+    expect(mockSetUnarchiving).not.toHaveBeenCalled();
+  });
+
   it('writes nothing while the slot holds no archived row', async () => {
     mockSlot(undefined, 'initialLoading');
     const { result } = await renderHook(() => useAccountDetail());

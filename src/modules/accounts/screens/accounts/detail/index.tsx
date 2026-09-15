@@ -1,7 +1,7 @@
 import { PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
 import { Controller } from 'react-hook-form';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
@@ -10,11 +10,11 @@ import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
+import { LoadingCenter } from '@/components/ui/loading_center';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { GoldTokens } from '@/constants/theme_tokens';
 import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 
 import { AccountColorField } from '../../../components/account_form/account_color_field';
@@ -82,11 +82,7 @@ export default function AccountDetailScreen() {
           <StackHeader title={archived?.account.name ?? ''} onBack={onBack} />
         </Animated.View>
 
-        {viewState === 'loading' ? (
-          <View style={{ flex: 1 }} className="items-center justify-center">
-            <ActivityIndicator color={GoldTokens[500]} />
-          </View>
-        ) : null}
+        {viewState === 'loading' ? <LoadingCenter /> : null}
 
         {viewState === 'notFound' ? (
           <View style={{ flex: 1 }} className="items-center justify-center">

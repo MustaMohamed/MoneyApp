@@ -10,7 +10,7 @@ import type { Account } from '../../../../store/account.store';
 
 export interface HeroCaption {
   text: string;
-  /** true only for non-CC accounts whose current balance has drifted from opening */
+  /** true only on the opening caption (non-CC, or an archived CC) when the current balance has drifted from opening */
   adjusted: boolean;
   /** runtime color for a CC's available-credit and over-limit captions; undefined for Opening captions */
   color?: string;
@@ -23,7 +23,8 @@ export function buildHeroCaption(account: Account): HeroCaption {
   // `Strings.accountHero*` interpolate the currency, so `formatCurrencyAmount` would double it.
   const decimals = CURRENCY_CONFIG[currency].decimals;
 
-  if (isCC && limit > 0) {
+  // An archived card cannot act on its terms, so it takes the opening caption like any other account.
+  if (isCC && limit > 0 && account.is_archived !== 1) {
     if (isOverLimit(account.current_balance, limit)) {
       return {
         text: Strings.accountOverLimit,

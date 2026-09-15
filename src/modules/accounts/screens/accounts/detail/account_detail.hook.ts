@@ -20,36 +20,13 @@ import type { ArchivedAccountDetailLoadInput } from '../../../repositories/archi
 import { useAccountStore } from '../../../store/account.store';
 import { createEditAccountSchema } from '../../../utils/edit_account.schema';
 import { useAccountActivityStore } from './account_activity.store';
+import { resolveViewState } from './account_detail.helpers';
 import { useAccountDetailState } from './account_detail.state';
-import {
-  useArchivedAccountDetailStore,
-  type ArchivedAccountDetailStatus,
-} from './archived_account_detail.store';
+import { useArchivedAccountDetailStore } from './archived_account_detail.store';
 import { buildActivityRowPresentation } from './components/account_activity.helpers';
 import { buildMonthFacts } from './components/account_facts.helpers';
 
 const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions' as const;
-
-export type AccountDetailViewState = 'active' | 'archived' | 'loading' | 'notFound' | 'loadError';
-
-function resolveViewState({
-  isActive,
-  isArchived,
-  slotStatus,
-  slotHoldsId,
-}: {
-  isActive: boolean;
-  isArchived: boolean;
-  slotStatus: ArchivedAccountDetailStatus;
-  slotHoldsId: boolean;
-}): AccountDetailViewState {
-  // The active list wins; the slot only ever answers for an id that list misses.
-  if (isActive) return 'active';
-  if (isArchived) return 'archived';
-  if (slotStatus === 'ready' && slotHoldsId) return 'notFound';
-  if (slotStatus === 'initialError') return 'loadError';
-  return 'loading';
-}
 
 export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -284,7 +261,7 @@ export function useAccountDetail() {
   };
 
   const handleUnarchive = async () => {
-    if (!archived) return;
+    if (!archived || useAccountDetailState.getState().isUnarchiving) return;
     const { name } = archived.account;
     setUnarchiveError(undefined);
     setUnarchiving(true);
