@@ -14,7 +14,8 @@ import type { CommitmentPayment } from '../../../entities/commitment_payment.ent
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
 import { usePaySheetState } from './components/pay_sheet.state';
-import { INITIAL_UI_ENTRY, useCommitmentDetailState, type DetailViewState } from './detail.state';
+import { overlayStorePayments, resolveCommitmentDetailViewState } from './detail.helpers';
+import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useCommitmentDetailStore } from './detail.store';
 
 const PERIOD_LABEL: Record<RecurrencePeriod, string> = {
@@ -76,14 +77,18 @@ export function useCommitmentDetail() {
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
 
-  const { viewState: screenViewState, skipConfirmVisible } = useCommitmentDetailState(
-    useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY),
-  );
-  const setViewState = useCommitmentDetailState.getState().setViewState;
+  const { activeId, status, refreshError, reloadKey, skipConfirmVisible, skipBusy, skipError } =
+    useCommitmentDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
+  const beginLoad = useCommitmentDetailState.getState().beginLoad;
+  const resolve = useCommitmentDetailState.getState().resolve;
+  const failLoad = useCommitmentDetailState.getState().failLoad;
+  const bumpReload = useCommitmentDetailState.getState().bumpReload;
   const setSkipConfirmVisible = useCommitmentDetailState.getState().setSkipConfirmVisible;
+  const setSkipBusy = useCommitmentDetailState.getState().setSkipBusy;
+  const setSkipError = useCommitmentDetailState.getState().setSkipError;
   const releaseUi = useCommitmentDetailState.getState().release;
 
-  const { allPayments } = useCommitmentDetailStore(
+  const { commitmentId: rowsCommitmentId, allPayments } = useCommitmentDetailStore(
     useShallow((s) => s.entries[owner] ?? INITIAL_DATA_ENTRY),
   );
   const setAllPayments = useCommitmentDetailStore.getState().setAllPayments;
@@ -96,37 +101,30 @@ export function useCommitmentDetail() {
     () => (payment ? commitments.find((c) => c.id === payment.commitment_id) : undefined),
     [payment, commitments],
   );
+  const commitmentId = commitment?.id;
 
-  const viewState: DetailViewState = useMemo(() => {
-    if (screenViewState === 'loading') return 'loading';
-    if (!commitment) return 'notFound';
-    return 'ready';
-  }, [screenViewState, commitment]);
-
+  // `payments` is the refresh trigger: every store publish re-queries the history in place.
   useEffect(() => {
-    if (!commitment) {
-      setViewState(owner, 'notFound');
-      return;
-    }
+    if (!commitmentId) return;
     let cancelled = false;
-    setViewState(owner, 'loading');
+    const entry = useCommitmentDetailStore.getState().entries[owner] ?? INITIAL_DATA_ENTRY;
+    const preserveData = entry.commitmentId === commitmentId && entry.allPayments.length > 0;
+    beginLoad(owner, commitmentId, preserveData);
     commitmentRepository
-      .getPaymentsByCommitment(commitment.id)
-      .then((payments) => {
-        if (!cancelled) {
-          setAllPayments(owner, payments);
-          setViewState(owner, 'ready');
-        }
+      .getPaymentsByCommitment(commitmentId)
+      .then((rows) => {
+        if (cancelled) return;
+        setAllPayments(owner, commitmentId, rows);
+        resolve(owner, commitmentId);
       })
       .catch((err) => {
         console.error('[commitmentDetail] getPaymentsByCommitment failed', err);
-        if (!cancelled) setViewState(owner, 'ready');
+        if (!cancelled) failLoad(owner, commitmentId, preserveData);
       });
     return () => {
       cancelled = true;
     };
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [commitment?.id, payments, owner, setAllPayments, setViewState]); // object dep re-fetches spuriously
+  }, [commitmentId, payments, reloadKey, owner, beginLoad, resolve, failLoad, setAllPayments]);
 
   useEffect(() => {
     return () => {
@@ -135,6 +133,17 @@ export function useCommitmentDetail() {
       releasePaySheet(owner);
     };
   }, [owner, releaseData, releaseUi, releasePaySheet]);
+
+  const rows = rowsCommitmentId === commitmentId ? allPayments : INITIAL_DATA_ENTRY.allPayments;
+  const historyRows = useMemo(() => overlayStorePayments(rows, payments), [rows, payments]);
+
+  const viewState = resolveCommitmentDetailViewState({
+    hasCommitment: commitment !== undefined,
+    ownsStatus: activeId === commitmentId,
+    status,
+    hasRows: rows.length > 0,
+    refreshError,
+  });
 
   const category = useMemo(
     () => (commitment ? categories.find((c) => c.id === commitment.category_id) : undefined),
@@ -165,21 +174,29 @@ export function useCommitmentDetail() {
 
   const skipPayment = useCallback(async () => {
     if (!payment) return;
+    setSkipError(owner, false);
+    setSkipBusy(owner, true);
     try {
       await storeSkipPayment(payment.id);
       setSkipConfirmVisible(owner, false);
     } catch (err) {
       console.error('[commitmentDetail] skipPayment failed', err);
+      setSkipError(owner, true);
+    } finally {
+      setSkipBusy(owner, false);
     }
-  }, [payment, storeSkipPayment, owner, setSkipConfirmVisible]);
+  }, [payment, storeSkipPayment, owner, setSkipConfirmVisible, setSkipBusy, setSkipError]);
 
   const confirmSkip = useCallback(() => {
+    setSkipError(owner, false);
     setSkipConfirmVisible(owner, true);
-  }, [owner, setSkipConfirmVisible]);
+  }, [owner, setSkipConfirmVisible, setSkipError]);
 
   const cancelSkip = useCallback(() => {
     setSkipConfirmVisible(owner, false);
   }, [owner, setSkipConfirmVisible]);
+
+  const reload = useCallback(() => bumpReload(owner), [bumpReload, owner]);
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;
@@ -196,18 +213,21 @@ export function useCommitmentDetail() {
       viewState,
       payment,
       commitment,
-      allPayments,
+      allPayments: historyRows,
       category,
       account,
       currentPayment,
       recurrenceLabel,
       durationLabel,
       skipConfirmVisible,
+      skipBusy,
+      skipError,
     },
     openPaySheet,
     skipPayment,
     confirmSkip,
     cancelSkip,
+    reload,
     goToEdit,
     goBack,
   };

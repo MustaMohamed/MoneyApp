@@ -40,17 +40,17 @@ describe('useCommitmentDetailStore', () => {
   it('setAllPayments creates the owner entry with its rows', () => {
     const payments = [makePayment()];
 
-    useCommitmentDetailStore.getState().setAllPayments('owner-a', payments);
+    useCommitmentDetailStore.getState().setAllPayments('owner-a', 'commitment-1', payments);
 
-    expect(entryOf('owner-a')).toEqual({ allPayments: payments });
+    expect(entryOf('owner-a')).toEqual({ commitmentId: 'commitment-1', allPayments: payments });
   });
 
   it('setAllPayments replaces only that owner rows on a reload', () => {
     const first = [makePayment({ id: 'pay-1' })];
     const second = [makePayment({ id: 'pay-2' })];
-    useCommitmentDetailStore.getState().setAllPayments('owner-a', first);
+    useCommitmentDetailStore.getState().setAllPayments('owner-a', 'commitment-1', first);
 
-    useCommitmentDetailStore.getState().setAllPayments('owner-a', second);
+    useCommitmentDetailStore.getState().setAllPayments('owner-a', 'commitment-1', second);
 
     expect(entryOf('owner-a').allPayments).toBe(second);
   });
@@ -59,10 +59,12 @@ describe('useCommitmentDetailStore', () => {
 describe('useCommitmentDetailStore owner isolation', () => {
   it('a second copy loading leaves the first copy rows intact', () => {
     const first = [makePayment({ id: 'pay-1' })];
-    useCommitmentDetailStore.getState().setAllPayments('owner-a', first);
+    useCommitmentDetailStore.getState().setAllPayments('owner-a', 'commitment-1', first);
     const before = entryOf('owner-a');
 
-    useCommitmentDetailStore.getState().setAllPayments('owner-b', [makePayment({ id: 'pay-2' })]);
+    useCommitmentDetailStore
+      .getState()
+      .setAllPayments('owner-b', 'commitment-2', [makePayment({ id: 'pay-2' })]);
 
     expect(entryOf('owner-a')).toBe(before);
     expect(entryOf('owner-b').allPayments).toEqual([makePayment({ id: 'pay-2' })]);
@@ -71,8 +73,12 @@ describe('useCommitmentDetailStore owner isolation', () => {
 
 describe('useCommitmentDetailStore release', () => {
   it('removes only the released copy', () => {
-    useCommitmentDetailStore.getState().setAllPayments('owner-a', [makePayment({ id: 'pay-1' })]);
-    useCommitmentDetailStore.getState().setAllPayments('owner-b', [makePayment({ id: 'pay-2' })]);
+    useCommitmentDetailStore
+      .getState()
+      .setAllPayments('owner-a', 'commitment-1', [makePayment({ id: 'pay-1' })]);
+    useCommitmentDetailStore
+      .getState()
+      .setAllPayments('owner-b', 'commitment-2', [makePayment({ id: 'pay-2' })]);
     const before = entryOf('owner-a');
 
     useCommitmentDetailStore.getState().release('owner-b');
@@ -82,7 +88,7 @@ describe('useCommitmentDetailStore release', () => {
   });
 
   it('releasing a copy that never loaded leaves the store identical', () => {
-    useCommitmentDetailStore.getState().setAllPayments('owner-a', [makePayment()]);
+    useCommitmentDetailStore.getState().setAllPayments('owner-a', 'commitment-1', [makePayment()]);
     const before = useCommitmentDetailStore.getState().entries;
 
     useCommitmentDetailStore.getState().release('owner-b');
@@ -91,7 +97,7 @@ describe('useCommitmentDetailStore release', () => {
   });
 
   it('reset drops every copy', () => {
-    useCommitmentDetailStore.getState().setAllPayments('owner-a', [makePayment()]);
+    useCommitmentDetailStore.getState().setAllPayments('owner-a', 'commitment-1', [makePayment()]);
 
     useCommitmentDetailStore.getState().reset();
 

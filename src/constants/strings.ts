@@ -1056,6 +1056,8 @@ export const Strings = {
   commitmentsDetailCurrentCycle: 'Current Cycle',
   commitmentsDetailNotes: 'Notes',
   commitmentsDetailEdit: 'Edit',
+  commitmentsDetailLoadErrorTitle: 'Could not load this commitment.',
+  commitmentsDetailRefreshErrorTitle: 'Could not refresh this commitment.',
   commitmentsMarkAsPaid: 'Mark as Paid',
   commitmentsSkip: 'Skip',
   commitmentsSkipConfirmTitle: 'Skip this payment?',
