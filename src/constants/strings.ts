@@ -796,6 +796,7 @@ export const Strings = {
   categoriesErrNameTooLong: 'Name must be 50 characters or less',
   categoriesErrNameDuplicate: 'This name is already used',
   categoriesErrIconRequired: 'Please select an icon',
+  categoriesSaveError: 'Could not save this category. Please try again.',
   categoriesDeleteTitle: 'Delete Category',
   categoriesDeleteBody: (name: string) => `Delete "${name}"? This cannot be undone.`,
   categoriesDeleteConfirm: 'Delete',

@@ -10,6 +10,7 @@ import {
 import { Strings } from '@/constants/strings';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { stripNameEdges } from '@/utils/strip_name_edges';
 
 import type { Commitment } from '../../entities/commitment.entity';
 
@@ -18,6 +19,7 @@ export const COMMITMENT_SCHEMA = z
     amountType: z.enum(AmountType),
     name: z
       .string()
+      .overwrite(stripNameEdges)
       .min(1, Strings.commitmentsErrNameRequired)
       .max(50, Strings.commitmentsErrNameMax),
     amount: z

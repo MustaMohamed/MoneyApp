@@ -13,6 +13,10 @@ jest.mock('@/modules/categories/screens/settings/categories/categories.store', (
 import { act, renderHook } from '@testing-library/react-native';
 
 import { CategoryType, PROTECTED_CATEGORY_IDS } from '@/constants/enums';
+import {
+  CategoryNameTakenError,
+  CategoryReloadError,
+} from '@/modules/categories/repositories/category.errors';
 import { useCategories } from '@/modules/categories/screens/settings/categories/categories.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Category } from '@/modules/categories/store/category.store';
@@ -150,6 +154,7 @@ const fakeExpenseCategory: Category = {
 };
 
 let capturedSetIsDeleting: jest.Mock;
+let capturedSetShowAddSheet: jest.Mock;
 let capturedSetLinkedCount: jest.Mock;
 let capturedSetShowDeleteConfirm: jest.Mock;
 let capturedSetShowReassignSheet: jest.Mock;
@@ -163,11 +168,13 @@ function setupMocks(
     showDeleteConfirm?: boolean;
     showReassignSheet?: boolean;
     addCategory?: jest.Mock;
+    loadError?: boolean;
     reassignAndDelete?: jest.Mock;
     getCategoryTransactionCount?: jest.Mock;
   } = {},
 ) {
   capturedSetIsDeleting = jest.fn();
+  capturedSetShowAddSheet = jest.fn();
   capturedSetLinkedCount = jest.fn();
   capturedSetShowDeleteConfirm = jest.fn();
   capturedSetShowReassignSheet = jest.fn();
@@ -181,7 +188,7 @@ function setupMocks(
     showReassignSheet: overrides.showReassignSheet ?? false,
     isDeleting: overrides.isDeleting ?? false,
     setActiveTab: jest.fn(),
-    setShowAddSheet: jest.fn(),
+    setShowAddSheet: capturedSetShowAddSheet,
     setShowDeleteConfirm: capturedSetShowDeleteConfirm,
     setShowReassignSheet: capturedSetShowReassignSheet,
     setIsDeleting: capturedSetIsDeleting,
@@ -198,6 +205,7 @@ function setupMocks(
 
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],
+    loadError: overrides.loadError ?? false,
     addCategory: overrides.addCategory ?? jest.fn().mockResolvedValue(undefined),
     updateCategory: jest.fn().mockResolvedValue(undefined),
     deleteCategory: jest.fn().mockResolvedValue(undefined),
@@ -308,8 +316,7 @@ describe('useCategories — handleSave name-duplicate error (TC-06)', () => {
   });
 
   it('re-throws when addCategory rejects with a duplicate name error', async () => {
-    const dupError = new Error('A category named "Food" already exists in expense');
-    setupMocks({ addCategory: jest.fn().mockRejectedValue(dupError) });
+    setupMocks({ addCategory: jest.fn().mockRejectedValue(new CategoryNameTakenError()) });
 
     const { result } = await renderHook(() => useCategories());
 
@@ -322,7 +329,62 @@ describe('useCategories — handleSave name-duplicate error (TC-06)', () => {
           color: '#C9',
         });
       }),
-    ).rejects.toThrow('already exists');
+    ).rejects.toThrow(CategoryNameTakenError);
+  });
+});
+
+describe('useCategories — handleSave when the reload after the write fails', () => {
+  const input = {
+    name: 'Food',
+    type: CategoryType.Expense,
+    icon: 'food-fork-drink',
+    color: '#C9',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('closes the sheet and resolves when the write committed and its reload failed', async () => {
+    setupMocks({
+      addCategory: jest.fn().mockRejectedValue(new CategoryReloadError(new Error('reload failed'))),
+      loadError: true,
+    });
+    const { result } = await renderHook(() => useCategories());
+
+    await act(async () => {
+      await result.current.handleSave(input);
+    });
+
+    expect(capturedSetShowAddSheet).toHaveBeenCalledWith(false);
+  });
+
+  it('re-throws a failed write and leaves the sheet open beside a load error left by an earlier load', async () => {
+    const writeFailure = new Error('write failed');
+    setupMocks({ addCategory: jest.fn().mockRejectedValue(writeFailure), loadError: true });
+    const { result } = await renderHook(() => useCategories());
+
+    await expect(
+      act(async () => {
+        await result.current.handleSave(input);
+      }),
+    ).rejects.toBe(writeFailure);
+    expect(capturedSetShowAddSheet).not.toHaveBeenCalledWith(false);
+  });
+
+  it('re-throws a refused duplicate beside a load error left by an earlier load', async () => {
+    setupMocks({
+      addCategory: jest.fn().mockRejectedValue(new CategoryNameTakenError()),
+      loadError: true,
+    });
+    const { result } = await renderHook(() => useCategories());
+
+    await expect(
+      act(async () => {
+        await result.current.handleSave(input);
+      }),
+    ).rejects.toThrow(CategoryNameTakenError);
+    expect(capturedSetShowAddSheet).not.toHaveBeenCalledWith(false);
   });
 });
 

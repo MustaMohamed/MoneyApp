@@ -1,5 +1,6 @@
 import { CategoryType } from '@/constants/enums';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { CategoryReloadError } from '@/modules/categories/repositories/category.errors';
 import type { ICategoryRepository } from '@/modules/categories/repositories/category.repository';
 import { createCategoryStore } from '@/modules/categories/store/category.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
@@ -373,6 +374,44 @@ describe('categoryStore — error branches', () => {
     await expect(
       useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense'),
     ).rejects.toThrow('reassign fail');
+    consoleSpy.mockRestore();
+  });
+
+  it('a failing write rethrows its own error, not CategoryReloadError, beside an earlier load error', async () => {
+    const writeFailure = new Error('add fail');
+    const repo = makeRepo({
+      getAll: jest.fn().mockRejectedValue(new Error('load fail')),
+      add: jest.fn().mockRejectedValue(writeFailure),
+    });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(useStore.getState().loadCategories()).rejects.toThrow('load fail');
+
+    await expect(
+      useStore
+        .getState()
+        .addCategory({ name: 'X', type: CategoryType.Expense, icon: 'star', color: '#fff' }),
+    ).rejects.toBe(writeFailure);
+
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+    expect(useStore.getState().loadError).toBe(true);
+    consoleSpy.mockRestore();
+  });
+
+  it('a committed write whose reload fails rejects with CategoryReloadError carrying the load error', async () => {
+    const reloadFailure = new Error('reload fail');
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(reloadFailure) });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const save = useStore
+      .getState()
+      .updateCategory('cat-1', { name: 'Y', icon: 'heart', color: '#aaa' });
+
+    await expect(save).rejects.toBeInstanceOf(CategoryReloadError);
+    await expect(save).rejects.toHaveProperty('cause', reloadFailure);
+    expect(repo.update).toHaveBeenCalledTimes(1);
+    expect(useStore.getState().loadError).toBe(true);
     consoleSpy.mockRestore();
   });
 });
