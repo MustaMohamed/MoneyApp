@@ -17,9 +17,14 @@ const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockLoadAccounts = jest.fn<Promise<void>, []>();
 const mockUnarchive = jest.fn<Promise<void>, [string]>();
+const mockToast = { show: jest.fn() };
 
 jest.mock('zustand/react/shallow', () => ({
   useShallow: <T>(selector: T): T => selector,
+}));
+// The wrapper, not HeroUI, so `show` sees exactly what the call site passed.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
 }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: mockBack }),
