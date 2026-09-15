@@ -6,11 +6,10 @@ import { Button } from '@/components/ui/button';
 import { SHEET_FOOTER_CLEARANCE, Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { AccountColorTile } from '@/modules/accounts/components/account_color_tile';
+import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { AccountRowContent } from '@/modules/accounts/components/account_row_content';
 import type { AccountCommitmentRef } from '@/modules/commitments/database/commitments';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
 import {
@@ -128,24 +127,7 @@ export function ReplacementAccountSheet({
               className="border-separator min-h-14 gap-3 border-b px-4 py-3"
               style={{ flexDirection: 'row', alignItems: 'center' }}
             >
-              <AccountColorTile
-                color={item.color}
-                type={item.type}
-                size={Size.accountTile}
-                glyphSize={Size.iconXs}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  className="font-sora-semibold text-foreground"
-                  style={nameStyle}
-                  numberOfLines={1}
-                >
-                  {resolveAccountName(item)}
-                </Text>
-                <Text className="font-inter text-muted" style={captionStyle}>
-                  {formatCurrencyAmount(item.current_balance, item.currency)}
-                </Text>
-              </View>
+              <AccountRowContent account={item} />
               <Radio testID={`replacement-account-row-${item.id}-selected`} />
             </RadioGroup.Item>
           ))}
