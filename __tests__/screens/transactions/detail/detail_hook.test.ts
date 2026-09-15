@@ -614,6 +614,21 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     expect(result.current.state.confirmVisible).toBe(false);
   });
 
+  it('MA-073: names a blank-named archived source "Unnamed account"', async () => {
+    getById.mockResolvedValue(ordinaryTransaction);
+    accountStoreState.accountLookupById = {
+      'account-1': makeTestAccount({ id: 'account-1', name: '   ', is_archived: 1 }),
+    };
+    const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    expect(result.current.state.archivedAccountLine).toBe(
+      Strings.transactionAccountArchived(Strings.unnamedAccount),
+    );
+    expect(result.current.state.isEditable).toBe(false);
+    expect(result.current.state.isDeletable).toBe(false);
+  });
+
   it('keeps edit and delete on a deleted source, with no line', async () => {
     getById.mockResolvedValue(ordinaryTransaction);
     accountStoreState.accountLookupById = {
@@ -654,7 +669,9 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     accountStoreState.accountLookupById = { 'account-1': makeTestAccount({ id: 'account-1' }) };
     transactionStoreState.deleteTransaction = jest
       .fn()
-      .mockRejectedValue(new TransactionAccountArchivedError('source', { name: 'Old Card' }));
+      .mockRejectedValue(
+        new TransactionAccountArchivedError('source', makeTestAccount({ name: 'Old Card' })),
+      );
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));

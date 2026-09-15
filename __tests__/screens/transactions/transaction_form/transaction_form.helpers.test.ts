@@ -12,6 +12,7 @@ import {
   resolveTransactionSaveError,
   toTransactionTimestamp,
 } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
+import { makeTestAccount } from '@/test_helpers/transaction';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 
 describe('transaction form helpers', () => {
@@ -93,7 +94,10 @@ describe('transaction form helpers', () => {
   });
 
   it('MA-053: maps an archived-account refusal to the line naming the account', () => {
-    const refusal = new TransactionAccountArchivedError('source', { name: 'Old Card' });
+    const refusal = new TransactionAccountArchivedError(
+      'source',
+      makeTestAccount({ name: 'Old Card' }),
+    );
 
     expect(resolveTransactionSaveError(refusal)).toBe(
       Strings.transactionAccountArchived('Old Card'),
@@ -104,12 +108,37 @@ describe('transaction form helpers', () => {
   });
 
   it('MA-053: maps a delete refusal to the same line and anything else to the delete copy', () => {
-    const refusal = new TransactionAccountArchivedError('destination', { name: 'Old Card' });
+    const refusal = new TransactionAccountArchivedError(
+      'destination',
+      makeTestAccount({ name: 'Old Card' }),
+    );
 
     expect(resolveTransactionDeleteError(refusal)).toBe(
       Strings.transactionAccountArchived('Old Card'),
     );
     expect(resolveTransactionDeleteError(new Error('x'))).toBe(Strings.errDeleteFailed);
+  });
+
+  it('MA-073: a blank-named archived account reads "Unnamed account" on save and delete', () => {
+    const refusal = new TransactionAccountArchivedError(
+      'source',
+      makeTestAccount({ name: '  ', is_archived: 1 }),
+    );
+    const line = Strings.transactionAccountArchived(Strings.unnamedAccount);
+
+    expect(resolveTransactionSaveError(refusal)).toBe(line);
+    expect(resolveTransactionDeleteError(refusal)).toBe(line);
+  });
+
+  it('MA-073: a deleted archived account reads "Deleted Account" on save and delete', () => {
+    const refusal = new TransactionAccountArchivedError(
+      'source',
+      makeTestAccount({ name: '', is_archived: 1, is_deleted: 1 }),
+    );
+    const line = Strings.transactionAccountArchived(Strings.deletedAccount);
+
+    expect(resolveTransactionSaveError(refusal)).toBe(line);
+    expect(resolveTransactionDeleteError(refusal)).toBe(line);
   });
 });
 

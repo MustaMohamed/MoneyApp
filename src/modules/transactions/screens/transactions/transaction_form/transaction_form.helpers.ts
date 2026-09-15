@@ -7,6 +7,7 @@ import {
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
 import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
+import { resolveAccountName } from '@/utils/account_name';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { parseRateText } from '@/utils/parse_decimal';
@@ -126,7 +127,7 @@ export function resolveDestinationFloorError(input: {
 
 function resolveArchivedAccountLine(error: unknown): string | undefined {
   return error instanceof TransactionAccountArchivedError
-    ? Strings.transactionAccountArchived(error.accountName)
+    ? Strings.transactionAccountArchived(resolveAccountName(error.account))
     : undefined;
 }
 
