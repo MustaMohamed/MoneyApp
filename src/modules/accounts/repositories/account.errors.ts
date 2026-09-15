@@ -12,6 +12,13 @@ export class AccountNotArchivedError extends Error {
   }
 }
 
+export class AccountArchivedError extends Error {
+  constructor(message = 'An archived account is frozen; restore it first') {
+    super(message);
+    this.name = 'AccountArchivedError';
+  }
+}
+
 export class AccountNameTakenError extends Error {
   constructor() {
     super('An active account already holds this name');

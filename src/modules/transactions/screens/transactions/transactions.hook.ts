@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
@@ -14,6 +13,7 @@ import {
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { getPeriodTotals } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { resolveTransactionDeleteError } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import type { TransactionListStatus } from '@/modules/transactions/store/transaction.store';
@@ -463,7 +463,9 @@ export function useTransactions() {
       listRef,
       pendingDeleteId: deleteAction.pendingPayload,
       deleteBusy: deleteAction.busy,
-      deleteErrorMessage: deleteAction.error ? Strings.errDeleteFailed : undefined,
+      deleteErrorMessage: deleteAction.error
+        ? resolveTransactionDeleteError(deleteAction.error)
+        : undefined,
     },
     setSearchQuery,
     setActiveFilter,

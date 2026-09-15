@@ -6,6 +6,7 @@ import {
   resolveTransactionAmounts,
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
+import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { parseRateText } from '@/utils/parse_decimal';
@@ -123,7 +124,18 @@ export function resolveDestinationFloorError(input: {
   }
 }
 
+export function resolveTransactionDeleteError(error: unknown): string {
+  if (error instanceof TransactionAccountArchivedError) {
+    return Strings.txAccountArchived(error.accountName);
+  }
+  return Strings.errDeleteFailed;
+}
+
 export function resolveTransactionSaveError(error: unknown): string {
+  // Before the issues branch: the archived refusal carries `issues: []` and would fall to the retry copy.
+  if (error instanceof TransactionAccountArchivedError) {
+    return Strings.txAccountArchived(error.accountName);
+  }
   // Only `'unstorable'` and `'zero-destination'` have user copy; other causes carry internal
   // literals. `resolveDestinationFloorError` already catches `'zero-destination'` pre-submit;
   // this is the fallback for whatever reaches save anyway (e.g. state changed after validation).

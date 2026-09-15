@@ -170,7 +170,7 @@ export async function setAccountBalance(
   const result = await db.runAsync(
     `UPDATE accounts
         SET current_balance = ?, balance_review_required = 0, updated_at = ?
-      WHERE id = ?`,
+      WHERE id = ? AND is_archived = 0 AND is_deleted = 0`,
     [newBalance, updated_at, id],
   );
   if (result.changes !== 1) {

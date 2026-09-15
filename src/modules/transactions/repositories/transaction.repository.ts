@@ -35,6 +35,7 @@ import {
 } from '../domain/transaction_policy';
 import type { Transaction } from '../entities/transaction.entity';
 import {
+  TransactionAccountArchivedError,
   TransactionBalanceError,
   TransactionNotFoundError,
   TransactionOwnershipError,
@@ -123,8 +124,13 @@ function requireAccount(account: Account | undefined, role: 'source' | 'destinat
 }
 
 function requireSelectableAccount(account: Account, role: 'source' | 'destination'): void {
-  if (account.is_archived === 1) {
-    throw new TransactionValidationError(`${role} account is archived`);
+  if (account.is_archived === 1) throw new TransactionAccountArchivedError(role, account);
+}
+
+// A deleted account is archived too, and its transactions stay editable (soft-delete record §1).
+function requireUnfrozenAccount(account: Account, role: 'source' | 'destination'): void {
+  if (account.is_archived === 1 && account.is_deleted === 0) {
+    throw new TransactionAccountArchivedError(role, account);
   }
 }
 
@@ -347,6 +353,8 @@ export class TransactionRepository implements ITransactionRepository {
 
     const source = requireAccount(await loadAccount(db, existing.account_id), 'source');
     const destination = await loadAccount(db, existing.to_account_id);
+    requireUnfrozenAccount(source, 'source');
+    if (destination) requireUnfrozenAccount(destination, 'destination');
     const command = toPolicyCommand({
       type: existing.type,
       amount: existing.amount,
@@ -374,6 +382,8 @@ export class TransactionRepository implements ITransactionRepository {
 
     const source = requireAccount(await loadAccount(db, existing.account_id), 'source');
     const destination = await loadAccount(db, existing.to_account_id);
+    requireUnfrozenAccount(source, 'source');
+    if (destination) requireUnfrozenAccount(destination, 'destination');
     const toAmount = data.to_amount ?? null;
     const exchangeRate = data.exchange_rate ?? null;
     validateNormalizedInput({

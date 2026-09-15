@@ -1,3 +1,5 @@
+import type { Account } from '@/modules/accounts/entities/account.entity';
+
 import type { TransactionPolicyIssue } from '../domain/transaction_policy';
 
 export class TransactionNotFoundError extends Error {
@@ -14,6 +16,20 @@ export class TransactionValidationError extends Error {
     super(message);
     this.name = 'TransactionValidationError';
     this.issues = issues;
+  }
+}
+
+export class TransactionAccountArchivedError extends TransactionValidationError {
+  readonly role: 'source' | 'destination';
+  readonly accountId: string;
+  readonly accountName: string;
+
+  constructor(role: 'source' | 'destination', account: Pick<Account, 'id' | 'name'>) {
+    super(`${role} account is archived`);
+    this.name = 'TransactionAccountArchivedError';
+    this.role = role;
+    this.accountId = account.id;
+    this.accountName = account.name;
   }
 }
 
