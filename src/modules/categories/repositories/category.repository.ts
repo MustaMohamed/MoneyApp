@@ -17,6 +17,7 @@ import {
   updateCategory,
 } from '@/modules/categories/database/categories';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { isCategoryNameTaken } from '@/modules/categories/utils/category_name_taken';
 import { stripNameEdges } from '@/utils/strip_name_edges';
 
 import { CategoryNameTakenError } from './category.errors';
@@ -32,11 +33,6 @@ export interface ICategoryRepository {
   delete(id: string): Promise<void>;
   reassignAndDelete(fromId: string, toId: string): Promise<void>;
   getTransactionCount(id: string): Promise<number>;
-}
-
-function isNameTaken(categories: Category[], strippedName: string): boolean {
-  const key = strippedName.toLowerCase();
-  return categories.some((c) => stripNameEdges(c.name).toLowerCase() === key);
 }
 
 export class CategoryRepository implements ICategoryRepository {
@@ -60,7 +56,7 @@ export class CategoryRepository implements ICategoryRepository {
 
     // Backstop for the UI's Zod check: uniqueness is scoped to (name, type).
     const name = stripNameEdges(data.name);
-    if (isNameTaken(existing, name)) throw new CategoryNameTakenError();
+    if (isCategoryNameTaken(existing, name)) throw new CategoryNameTakenError();
 
     const category: Category = {
       id,
@@ -84,8 +80,8 @@ export class CategoryRepository implements ICategoryRepository {
     if (!row) return;
 
     const name = stripNameEdges(data.name);
-    const siblings = (await getCategoriesByType(db, row.type)).filter((c) => c.id !== id);
-    if (isNameTaken(siblings, name)) throw new CategoryNameTakenError();
+    const sameType = await getCategoriesByType(db, row.type);
+    if (isCategoryNameTaken(sameType, name, id)) throw new CategoryNameTakenError();
 
     await updateCategory(db, id, { ...data, name, updated_at: new Date().toISOString() });
   }
