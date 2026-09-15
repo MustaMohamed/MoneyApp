@@ -2,8 +2,8 @@ import Database from 'better-sqlite3';
 
 import { AccountType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
-import { moveUnpaidPaymentsToAccount } from '@/modules/commitments/database/commitment_payments';
-import { moveActiveCommitmentsToAccount } from '@/modules/commitments/database/commitments';
+import { updateUnpaidPaymentsAccount } from '@/modules/commitments/database/commitment_payments';
+import { updateActiveCommitmentsAccount } from '@/modules/commitments/database/commitments';
 import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 
 const sqlite = getExpoSQLiteTestDatabase();
@@ -94,7 +94,7 @@ function accountOf(table: 'commitments' | 'commitment_payments', id: string) {
 
 describe('moving the active commitments and their unpaid payments to another account', () => {
   it('moves the unpaid payments of the active commitment and leaves history on the old account', async () => {
-    await expect(moveUnpaidPaymentsToAccount(sqlite.database, FROM, TO, MOVED_AT)).resolves.toBe(3);
+    await expect(updateUnpaidPaymentsAccount(sqlite.database, FROM, TO, MOVED_AT)).resolves.toBe(3);
 
     for (const id of ['pay-upcoming', 'pay-due', 'pay-overdue']) {
       expect(accountOf('commitment_payments', id)).toEqual({
@@ -109,7 +109,7 @@ describe('moving the active commitments and their unpaid payments to another acc
   });
 
   it('moves the active commitment only, leaving the inactive one and the target’s own alone', async () => {
-    await expect(moveActiveCommitmentsToAccount(sqlite.database, FROM, TO, MOVED_AT)).resolves.toBe(
+    await expect(updateActiveCommitmentsAccount(sqlite.database, FROM, TO, MOVED_AT)).resolves.toBe(
       1,
     );
 
@@ -119,9 +119,9 @@ describe('moving the active commitments and their unpaid payments to another acc
   });
 
   it('moves nothing once the commitments already name the other account, so the payment move runs first', async () => {
-    await moveActiveCommitmentsToAccount(sqlite.database, FROM, TO, MOVED_AT);
+    await updateActiveCommitmentsAccount(sqlite.database, FROM, TO, MOVED_AT);
 
-    await expect(moveUnpaidPaymentsToAccount(sqlite.database, FROM, TO, MOVED_AT)).resolves.toBe(0);
+    await expect(updateUnpaidPaymentsAccount(sqlite.database, FROM, TO, MOVED_AT)).resolves.toBe(0);
     expect(accountOf('commitment_payments', 'pay-upcoming').account_id).toBe(FROM);
   });
 
@@ -134,8 +134,8 @@ describe('moving the active commitments and their unpaid payments to another acc
     });
     const before = amounts();
 
-    await moveUnpaidPaymentsToAccount(sqlite.database, FROM, TO, MOVED_AT);
-    await moveActiveCommitmentsToAccount(sqlite.database, FROM, TO, MOVED_AT);
+    await updateUnpaidPaymentsAccount(sqlite.database, FROM, TO, MOVED_AT);
+    await updateActiveCommitmentsAccount(sqlite.database, FROM, TO, MOVED_AT);
 
     expect(amounts()).toEqual(before);
   });

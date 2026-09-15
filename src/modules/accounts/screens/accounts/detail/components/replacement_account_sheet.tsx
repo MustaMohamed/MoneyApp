@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Radio, RadioGroup } from 'heroui-native';
 import { View } from 'react-native';
@@ -7,14 +6,12 @@ import { Button } from '@/components/ui/button';
 import { SHEET_FOOTER_CLEARANCE, Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { CoreTokens } from '@/constants/theme_tokens';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { AccountColorTile } from '@/modules/accounts/components/account_color_tile';
 import type { AccountCommitmentRef } from '@/modules/commitments/database/commitments';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatCurrencyAmount } from '@/utils/format_amount';
-import { ms } from '@/utils/responsive';
 
-import { TYPE_OPTIONS } from '../../../../components/account_type_pill';
 import type { Account } from '../../../../store/account.store';
 import {
   buildReplacementCommitmentRow,
@@ -135,13 +132,12 @@ export function ReplacementAccountSheet({
               className="border-separator min-h-14 gap-3 border-b px-4 py-3"
               style={{ flexDirection: 'row', alignItems: 'center' }}
             >
-              <View style={{ width: ms(20), alignItems: 'center', justifyContent: 'center' }}>
-                <MaterialCommunityIcons
-                  name={TYPE_OPTIONS.find((o) => o.type === item.type)?.icon ?? 'bank'}
-                  size={ms(18)}
-                  color={item.color ?? CoreTokens.text2}
-                />
-              </View>
+              <AccountColorTile
+                color={item.color}
+                type={item.type}
+                size={Size.accountTile}
+                glyphSize={Size.iconXs}
+              />
               <View style={{ flex: 1 }}>
                 <Text
                   className="font-sora-semibold text-foreground"

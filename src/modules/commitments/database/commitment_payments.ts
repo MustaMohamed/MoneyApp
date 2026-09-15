@@ -180,7 +180,7 @@ export async function deleteUnpaidPaymentsByCommitment(
 }
 
 // Keys on the commitments that still name `fromAccountId`, so it must run before they move.
-export async function moveUnpaidPaymentsToAccount(
+export async function updateUnpaidPaymentsAccount(
   db: SQLiteDatabase,
   fromAccountId: string,
   toAccountId: string,

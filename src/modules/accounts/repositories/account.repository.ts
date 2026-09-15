@@ -1,10 +1,10 @@
 import uuid from 'react-native-uuid';
 
 import { getDb } from '@/database/client';
-import { moveUnpaidPaymentsToAccount } from '@/modules/commitments/database/commitment_payments';
+import { updateUnpaidPaymentsAccount } from '@/modules/commitments/database/commitment_payments';
 import {
   clearCommitmentAccount,
-  moveActiveCommitmentsToAccount,
+  updateActiveCommitmentsAccount,
 } from '@/modules/commitments/database/commitments';
 import { roundMoney } from '@/utils/money';
 
@@ -137,8 +137,8 @@ export class AccountRepository implements IAccountRepository {
         if (!replacement || replacement.is_deleted === 1) throw new AccountNotFoundError();
         if (replacement.is_archived === 1) throw new AccountArchivedError();
         // Payments first: their subquery finds the commitments only while they still name `id`.
-        await moveUnpaidPaymentsToAccount(db, id, replacementAccountId, now);
-        await moveActiveCommitmentsToAccount(db, id, replacementAccountId, now);
+        await updateUnpaidPaymentsAccount(db, id, replacementAccountId, now);
+        await updateActiveCommitmentsAccount(db, id, replacementAccountId, now);
       }
       if ((await setAccountDeleted(db, id, now)) !== 1) throw new AccountNotFoundError();
       await clearCommitmentAccount(db, id, now);

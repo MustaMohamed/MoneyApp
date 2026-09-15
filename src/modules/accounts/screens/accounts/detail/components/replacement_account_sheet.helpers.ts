@@ -9,7 +9,7 @@ import { COUNT_DISPLAY_DECIMALS } from './account_facts.helpers';
 
 type Commitments = Readonly<AccountCommitmentRef[]>;
 
-export interface ReplacementCommitmentRow {
+interface ReplacementCommitmentRow {
   id: string;
   name: string;
   amount: string;

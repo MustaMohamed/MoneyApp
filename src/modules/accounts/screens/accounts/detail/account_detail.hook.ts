@@ -142,6 +142,8 @@ export function useAccountDetail() {
   }, [isMovingAndDeleting]);
 
   const account = accounts.find((a) => a.id === id);
+  const replacementOptions = accounts;
+  const hasReplacementAccount = replacementOptions.length > 0;
 
   const archived = useMemo(
     () =>
@@ -337,11 +339,11 @@ export function useAccountDetail() {
   const handleDelete = async () => {
     if (!archived || useAccountDetailState.getState().isDeleting) return;
     // Commitments an active account can take over go through the sheet instead of losing their account.
-    if (archived.activeCommitments.length > 0 && accounts.length > 0) {
+    if (archived.activeCommitments.length > 0 && hasReplacementAccount) {
       setDeleteVisible(false);
       setDeleteError(undefined);
       setMoveAndDeleteError(undefined);
-      setReplacementAccountId(accounts[0].id);
+      setReplacementAccountId(replacementOptions[0].id);
       setReplacementVisible(true);
       return;
     }
@@ -383,7 +385,7 @@ export function useAccountDetail() {
   const handleMoveAndDelete = async () => {
     const detailState = useAccountDetailState.getState();
     if (!archived || detailState.isMovingAndDeleting) return;
-    const replacement = accounts.find((a) => a.id === detailState.replacementAccountId);
+    const replacement = replacementOptions.find((a) => a.id === detailState.replacementAccountId);
     if (!replacement) return;
     // Read before the write, which scrubs the name and reloads both lists.
     const name = resolveAccountName(archived.account);
@@ -494,8 +496,8 @@ export function useAccountDetail() {
       replacementAccountId,
       isMovingAndDeleting,
       moveAndDeleteError,
-      replacementOptions: accounts,
-      hasReplacementAccount: accounts.length > 0,
+      replacementOptions,
+      hasReplacementAccount,
       activity: { status: activityStatus, rows: activityRows, monthFacts },
     },
     form,

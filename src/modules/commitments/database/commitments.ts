@@ -131,7 +131,7 @@ export async function clearCommitmentAccount(
   );
 }
 
-export async function moveActiveCommitmentsToAccount(
+export async function updateActiveCommitmentsAccount(
   db: SQLiteDatabase,
   fromAccountId: string,
   toAccountId: string,
