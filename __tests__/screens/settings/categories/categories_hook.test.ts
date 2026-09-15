@@ -13,6 +13,7 @@ jest.mock('@/modules/categories/screens/settings/categories/categories.store', (
 import { act, renderHook } from '@testing-library/react-native';
 
 import { CategoryType, PROTECTED_CATEGORY_IDS } from '@/constants/enums';
+import { CategoryNameTakenError } from '@/modules/categories/repositories/category.errors';
 import { useCategories } from '@/modules/categories/screens/settings/categories/categories.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Category } from '@/modules/categories/store/category.store';
@@ -308,8 +309,7 @@ describe('useCategories — handleSave name-duplicate error (TC-06)', () => {
   });
 
   it('re-throws when addCategory rejects with a duplicate name error', async () => {
-    const dupError = new Error('A category named "Food" already exists in expense');
-    setupMocks({ addCategory: jest.fn().mockRejectedValue(dupError) });
+    setupMocks({ addCategory: jest.fn().mockRejectedValue(new CategoryNameTakenError()) });
 
     const { result } = await renderHook(() => useCategories());
 
@@ -322,7 +322,7 @@ describe('useCategories — handleSave name-duplicate error (TC-06)', () => {
           color: '#C9',
         });
       }),
-    ).rejects.toThrow('already exists');
+    ).rejects.toThrow(CategoryNameTakenError);
   });
 });
 

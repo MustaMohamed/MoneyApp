@@ -3,6 +3,7 @@ import * as SQLite from 'expo-sqlite';
 
 import { CategoryType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
+import { CategoryNameTakenError } from '@/modules/categories/repositories/category.errors';
 import {
   CategoryRepository,
   type NewCategoryInput,
@@ -117,6 +118,20 @@ describe('CategoryRepository.add', () => {
     };
     expect(row.sort_order).toBeGreaterThan(21);
   });
+
+  it('refuses a padded name that matches a category of the same type in another casing', async () => {
+    await expect(repo.add({ ...baseInput, name: ' groceries ' })).rejects.toThrow(
+      CategoryNameTakenError,
+    );
+  });
+
+  it('keeps a leading non-breaking space as typed', async () => {
+    const created = await repo.add({ ...baseInput, name: ' Trip' });
+    const row = realDb.prepare('SELECT name FROM categories WHERE id = ?').get(created.id) as {
+      name: string;
+    };
+    expect(row.name).toBe(' Trip');
+  });
 });
 
 describe('CategoryRepository.update', () => {
@@ -158,6 +173,41 @@ describe('CategoryRepository.update', () => {
       }
     ).updated_at;
     expect(after).not.toBe(before);
+  });
+
+  it('stores the name without its surrounding whitespace', async () => {
+    const created = await repo.add(baseInput);
+
+    await repo.update(created.id, { name: ' Vacation ', icon: 'beach', color: '#3D7A5F' });
+
+    const row = realDb.prepare('SELECT name FROM categories WHERE id = ?').get(created.id) as {
+      name: string;
+    };
+    expect(row.name).toBe('Vacation');
+  });
+
+  it('refuses a name another category of the same type holds and leaves the row unchanged', async () => {
+    const created = await repo.add(baseInput);
+
+    await expect(
+      repo.update(created.id, { name: 'groceries', icon: 'beach', color: '#3D7A5F' }),
+    ).rejects.toThrow(CategoryNameTakenError);
+
+    const row = realDb.prepare('SELECT name FROM categories WHERE id = ?').get(created.id) as {
+      name: string;
+    };
+    expect(row.name).toBe('Travel');
+  });
+
+  it('accepts the row keeping its own name in another casing', async () => {
+    const created = await repo.add(baseInput);
+
+    await repo.update(created.id, { name: 'TRAVEL', icon: 'airplane', color: '#185FA5' });
+
+    const row = realDb.prepare('SELECT name FROM categories WHERE id = ?').get(created.id) as {
+      name: string;
+    };
+    expect(row.name).toBe('TRAVEL');
   });
 });
 
