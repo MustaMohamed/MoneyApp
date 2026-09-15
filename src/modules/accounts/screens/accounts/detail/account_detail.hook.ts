@@ -279,6 +279,12 @@ export function useAccountDetail() {
     } finally {
       setUnarchiving(false);
     }
+    // A failed reload leaves both lists stale, so pop over the slot's row instead of a blank loading frame.
+    if (useAccountStore.getState().loadError) {
+      toast.show({ label: Strings.accountsArchivedRestored(name), variant: 'success' });
+      router.back();
+      return;
+    }
     // Once restored the slot must not hold the pre-restore row at `ready`, or a later Archive paints it.
     useArchivedAccountDetailStore.getState().reset();
     // The focus effect does not re-run on a store change; the store owns the error status the card renders.

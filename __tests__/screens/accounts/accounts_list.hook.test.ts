@@ -545,7 +545,6 @@ describe('useAccountsList — unarchive from a row', () => {
   it('sets no row line when the write landed and the reload failed', async () => {
     mockUnarchive.mockImplementationOnce(async () => {
       storeState = { ...storeState, loadError: true };
-      throw new Error('reload failed');
     });
     const { result } = await renderHook(() => useAccountsList());
 
@@ -556,6 +555,26 @@ describe('useAccountsList — unarchive from a row', () => {
     expect(result.current.state.archived.unarchiveError).toBeUndefined();
     expect(result.current.state.archived.unarchivingId).toBeUndefined();
     expect(result.current.state.content).toBe('error');
+    expect(useToast().toast.show).toHaveBeenCalledTimes(1);
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: 'Old HSBC restored.',
+      variant: 'success',
+    });
+  });
+
+  it('reports a rejection with the row line even while the last read failed', async () => {
+    storeState = { ...storeState, loadError: true };
+    mockUnarchive.mockRejectedValueOnce(new AccountNameTakenError());
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.unarchive('arch-1');
+    });
+
+    expect(result.current.state.archived.unarchiveError).toEqual({
+      id: 'arch-1',
+      message: Strings.accountsArchivedNameTaken,
+    });
     expect(useToast().toast.show).not.toHaveBeenCalled();
   });
 
