@@ -19,6 +19,7 @@ import { stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
 import { resolveTransactionDeleteError } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { resolveAccountName } from '@/utils/account_name';
 
 import {
   buildTransactionDetailPresentation,
@@ -265,7 +266,7 @@ export function useTransactionDetail(id: string) {
       isEditable: isMutable,
       isDeletable: isMutable,
       archivedAccountLine: archivedLeg
-        ? Strings.transactionAccountArchived(archivedLeg.name)
+        ? Strings.transactionAccountArchived(resolveAccountName(archivedLeg))
         : undefined,
     },
     openDeleteConfirm,
