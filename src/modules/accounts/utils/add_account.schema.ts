@@ -14,7 +14,7 @@ import { isAccountNameTaken } from './account_name_taken';
 export function createAddAccountSchema(accounts: Account[]) {
   return z
     .object({
-      name: z.string().min(1, Strings.errNameRequired).max(30, Strings.errNameTooLong),
+      name: z.string().trim().min(1, Strings.errNameRequired).max(30, Strings.errNameTooLong),
       // Blank gets its own copy — 'Numbers only.' against an empty field read as a non sequitur (screen-review N2, nice 10).
       balance: z
         .string()
@@ -32,11 +32,11 @@ export function createAddAccountSchema(accounts: Account[]) {
       due_day: z.string().optional(),
     })
     .superRefine((data, ctx) => {
-      if (isAccountNameTaken(accounts, data.name)) {
+      if (data.name.length > 0 && isAccountNameTaken(accounts, data.name)) {
         ctx.addIssue({
           code: 'custom',
           path: ['name'],
-          message: Strings.errNameDuplicateNamed(data.name.trim()),
+          message: Strings.errNameDuplicateNamed(data.name),
         });
       }
 

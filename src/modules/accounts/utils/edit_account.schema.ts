@@ -9,9 +9,10 @@ export function createEditAccountSchema(accounts: Account[], accountId: string) 
   return z.object({
     name: z
       .string()
+      .trim()
       .min(1, Strings.errNameRequired)
       .max(30, Strings.errNameTooLong)
-      .refine((n) => !isAccountNameTaken(accounts, n, accountId), {
+      .refine((n) => n.length === 0 || !isAccountNameTaken(accounts, n, accountId), {
         message: Strings.errNameDuplicate,
       }),
     color: z.string(),
