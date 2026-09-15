@@ -55,10 +55,6 @@ export default function AccountDetailScreen() {
       isDeleteVisible,
       isDeleting,
       deleteError,
-      isReplacementVisible,
-      replacementAccountId,
-      isMovingAndDeleting,
-      moveAndDeleteError,
       replacementOptions,
       hasReplacementAccount,
       activity,
@@ -75,9 +71,6 @@ export default function AccountDetailScreen() {
     setDeleteVisible,
     closeDelete,
     handleDelete,
-    selectReplacement,
-    closeReplacement,
-    handleMoveAndDelete,
     handleConfirmBalanceReviewed,
     onBack,
     retryActivity,
@@ -154,18 +147,9 @@ export default function AccountDetailScreen() {
               errorMessage={deleteError}
             />
             <ReplacementAccountSheet
-              isOpen={isReplacementVisible}
               account={archived.account}
               commitments={archived.activeCommitments}
               options={replacementOptions}
-              selectedId={replacementAccountId}
-              busy={isMovingAndDeleting}
-              errorMessage={moveAndDeleteError}
-              onSelect={selectReplacement}
-              onConfirm={() => {
-                void handleMoveAndDelete();
-              }}
-              onCancel={closeReplacement}
             />
           </>
         ) : null}

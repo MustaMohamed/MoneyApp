@@ -17,18 +17,12 @@ import {
   buildReplacementCommitmentRow,
   resolveMoveSheetCopy,
 } from './replacement_account_sheet.helpers';
+import { useReplacementAccountSheet } from './replacement_account_sheet.hook';
 
 interface ReplacementAccountSheetProps {
-  isOpen: boolean;
   account: Account;
   commitments: Readonly<AccountCommitmentRef[]>;
   options: Account[];
-  selectedId: string | undefined;
-  busy: boolean;
-  errorMessage?: string;
-  onSelect: (id: string) => void;
-  onConfirm: () => void;
-  onCancel: () => void;
 }
 
 const bodyStyle = { fontSize: Type.body, lineHeight: lineHeightFor(Type.body) };
@@ -36,17 +30,19 @@ const nameStyle = { fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bo
 const captionStyle = { fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) };
 
 export function ReplacementAccountSheet({
-  isOpen,
   account,
   commitments,
   options,
-  selectedId,
-  busy,
-  errorMessage,
-  onSelect,
-  onConfirm,
-  onCancel,
 }: ReplacementAccountSheetProps) {
+  const {
+    state: { isOpen, selectedId, busy, errorMessage },
+    selectReplacement: onSelect,
+    closeReplacement: onCancel,
+    handleMoveAndDelete,
+  } = useReplacementAccountSheet({ account, commitments, options });
+  const onConfirm = () => {
+    void handleMoveAndDelete();
+  };
   const { title, body } = resolveMoveSheetCopy({
     commitments,
     accountName: resolveAccountName(account),

@@ -1,6 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
-import { BackHandler } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useToast } from '@/components/ui/toast';
@@ -27,7 +26,7 @@ import { useAccountDetailState } from './account_detail.state';
 import { useArchivedAccountDetailStore } from './archived_account_detail.store';
 import { buildActivityRowPresentation } from './components/account_activity.helpers';
 import { buildMonthFacts } from './components/account_facts.helpers';
-import { resolveMovedToast } from './components/replacement_account_sheet.helpers';
+import { useReplacementAccountSheetState } from './components/replacement_account_sheet.state';
 
 const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions' as const;
 const ACCOUNTS_LIST = '/accounts' as const;
@@ -43,7 +42,6 @@ export function useAccountDetail() {
   const archiveAccount = useAccountStore.getState().archiveAccount;
   const unarchiveAccount = useAccountStore.getState().unarchiveAccount;
   const deleteAccount = useAccountStore.getState().deleteAccount;
-  const deleteAccountMovingCommitments = useAccountStore.getState().deleteAccountMovingCommitments;
   const adjustBalance = useAccountStore.getState().adjustBalance;
   const confirmBalanceReviewed = useAccountStore.getState().confirmBalanceReviewed;
   const {
@@ -61,10 +59,6 @@ export function useAccountDetail() {
     isDeleteVisible,
     isDeleting,
     deleteError,
-    isReplacementVisible,
-    replacementAccountId,
-    isMovingAndDeleting,
-    moveAndDeleteError,
   } = useAccountDetailState(
     useShallow((s) => ({
       isEditing: s.isEditing,
@@ -81,10 +75,6 @@ export function useAccountDetail() {
       isDeleteVisible: s.isDeleteVisible,
       isDeleting: s.isDeleting,
       deleteError: s.deleteError,
-      isReplacementVisible: s.isReplacementVisible,
-      replacementAccountId: s.replacementAccountId,
-      isMovingAndDeleting: s.isMovingAndDeleting,
-      moveAndDeleteError: s.moveAndDeleteError,
     })),
   );
   const setEditing = useAccountDetailState.getState().setEditing;
@@ -101,11 +91,8 @@ export function useAccountDetail() {
   const setDeleteVisible = useAccountDetailState.getState().setDeleteVisible;
   const setDeleting = useAccountDetailState.getState().setDeleting;
   const setDeleteError = useAccountDetailState.getState().setDeleteError;
-  const setReplacementVisible = useAccountDetailState.getState().setReplacementVisible;
-  const setReplacementAccountId = useAccountDetailState.getState().setReplacementAccountId;
-  const setMovingAndDeleting = useAccountDetailState.getState().setMovingAndDeleting;
-  const setMoveAndDeleteError = useAccountDetailState.getState().setMoveAndDeleteError;
   const reset = useAccountDetailState.getState().reset;
+  const openReplacementSheet = useReplacementAccountSheetState.getState().open;
   const { activityStatus, activitySnapshot } = useAccountActivityStore(
     useShallow((s) => ({ activityStatus: s.status, activitySnapshot: s.snapshot })),
   );
@@ -117,6 +104,7 @@ export function useAccountDetail() {
   useEffect(
     () => () => {
       reset();
+      useReplacementAccountSheetState.getState().reset();
       // Bumps the generation too, so a result racing an archive is dropped (M14).
       useAccountActivityStore.getState().reset();
       useArchivedAccountDetailStore.getState().reset();
@@ -133,13 +121,6 @@ export function useAccountDetail() {
     });
     return unsubscribe;
   }, [navigation]);
-
-  // HeroUI closes the idle sheet on hardware back; only the busy window must keep the press from the screen.
-  useEffect(() => {
-    if (!isMovingAndDeleting) return undefined;
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
-    return () => subscription.remove();
-  }, [isMovingAndDeleting]);
 
   const account = accounts.find((a) => a.id === id);
   const replacementOptions = accounts;
@@ -342,9 +323,7 @@ export function useAccountDetail() {
     if (archived.activeCommitments.length > 0 && hasReplacementAccount) {
       setDeleteVisible(false);
       setDeleteError(undefined);
-      setMoveAndDeleteError(undefined);
-      setReplacementAccountId(replacementOptions[0].id);
-      setReplacementVisible(true);
+      openReplacementSheet(replacementOptions[0].id);
       return;
     }
     // Read before the write, which scrubs the name.
@@ -369,46 +348,6 @@ export function useAccountDetail() {
   const closeDelete = () => {
     setDeleteVisible(false);
     setDeleteError(undefined);
-  };
-
-  const selectReplacement = (replacementId: string) => {
-    if (useAccountDetailState.getState().isMovingAndDeleting) return;
-    setReplacementAccountId(replacementId);
-  };
-
-  const closeReplacement = () => {
-    if (useAccountDetailState.getState().isMovingAndDeleting) return;
-    setReplacementVisible(false);
-    setMoveAndDeleteError(undefined);
-  };
-
-  const handleMoveAndDelete = async () => {
-    const detailState = useAccountDetailState.getState();
-    if (!archived || detailState.isMovingAndDeleting) return;
-    const replacement = replacementOptions.find((a) => a.id === detailState.replacementAccountId);
-    if (!replacement) return;
-    // Read before the write, which scrubs the name and reloads both lists.
-    const name = resolveAccountName(archived.account);
-    const replacementName = resolveAccountName(replacement);
-    const commitments = archived.activeCommitments;
-    setMoveAndDeleteError(undefined);
-    setMovingAndDeleting(true);
-    try {
-      await deleteAccountMovingCommitments(id, replacement.id);
-    } catch (error) {
-      console.error('[accountDetail] deleteAccountMovingCommitments failed:', error);
-      setMoveAndDeleteError(Strings.accountDetailDeleteError);
-      return;
-    } finally {
-      setMovingAndDeleting(false);
-    }
-    // Outside the try, and the pop before the toast so it lands on the screen the detail came from.
-    setReplacementVisible(false);
-    router.back();
-    toast.show({
-      label: resolveMovedToast({ accountName: name, commitments, replacementName }),
-      variant: 'success',
-    });
   };
 
   const handleConfirmBalanceReviewed = async () => {
@@ -492,10 +431,6 @@ export function useAccountDetail() {
       isDeleteVisible,
       isDeleting,
       deleteError,
-      isReplacementVisible,
-      replacementAccountId,
-      isMovingAndDeleting,
-      moveAndDeleteError,
       replacementOptions,
       hasReplacementAccount,
       activity: { status: activityStatus, rows: activityRows, monthFacts },
@@ -512,9 +447,6 @@ export function useAccountDetail() {
     setDeleteVisible,
     closeDelete,
     handleDelete,
-    selectReplacement,
-    closeReplacement,
-    handleMoveAndDelete,
     handleConfirmBalanceReviewed,
     onBack,
     retryActivity,
