@@ -20,7 +20,7 @@ import { useCommitmentDetailStore } from '@/modules/commitments/screens/commitme
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-type DetailParams = { id: string; originTxId?: string };
+type DetailParams = { id: string; originTxId?: string; originTxCopy?: string };
 
 const mockGetPaymentsByCommitment = jest.fn();
 const mockSkipPayment = jest.fn();
@@ -219,6 +219,21 @@ describe('useCommitmentDetail', () => {
 
     expect(router.push).toHaveBeenCalledWith(
       '/stacked/commitments/commitment-1/edit?originTxId=tx-1',
+    );
+  });
+
+  it('carries the tabbed origin copy to the edit when opened from the tabbed transaction', async () => {
+    mockPathname.current = '/stacked/commitments/pay-1';
+    mockParams = { id: 'pay-1', originTxId: 'tx-1', originTxCopy: 'tabbed' };
+    commitmentsState = [commitment];
+    paymentsState = [payment];
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    await act(async () => result.current.goToEdit());
+
+    expect(router.push).toHaveBeenCalledWith(
+      '/stacked/commitments/commitment-1/edit?originTxId=tx-1&originTxCopy=tabbed',
     );
   });
 

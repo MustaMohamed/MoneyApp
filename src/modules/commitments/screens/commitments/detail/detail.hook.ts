@@ -61,9 +61,14 @@ function findCurrentPayment(payments: CommitmentPayment[]): CommitmentPayment | 
 
 export function useCommitmentDetail() {
   const owner = useId();
-  const { id: paymentId, originTxId } = useLocalSearchParams<{
+  const {
+    id: paymentId,
+    originTxId,
+    originTxCopy,
+  } = useLocalSearchParams<{
     id: string;
     originTxId?: string;
+    originTxCopy?: string;
   }>();
   const stackedPrefix = stackedPrefixOf(usePathname());
 
@@ -200,8 +205,8 @@ export function useCommitmentDetail() {
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;
-    router.push(commitmentEditRoute(commitment.id, stackedPrefix, originTxId));
-  }, [commitment, stackedPrefix, originTxId]);
+    router.push(commitmentEditRoute(commitment.id, stackedPrefix, originTxId, originTxCopy));
+  }, [commitment, stackedPrefix, originTxId, originTxCopy]);
 
   const goBack = useCallback(() => {
     router.back();

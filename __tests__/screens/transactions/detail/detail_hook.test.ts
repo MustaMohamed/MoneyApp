@@ -361,7 +361,9 @@ describe('useTransactionDetail commitment navigation', () => {
     expect(mockGetCommitmentPaymentById).toHaveBeenCalledWith('payment-1');
     expect(loadCommitments).not.toHaveBeenCalled();
     expect(setSelectedMonth).toHaveBeenCalledWith('2026-04');
-    expect(router.push).toHaveBeenCalledWith('/commitments/payment-1');
+    expect(router.push).toHaveBeenCalledWith(
+      '/stacked/commitments/payment-1?originTxId=transaction-1&originTxCopy=tabbed',
+    );
   });
 
   it('keeps the stacked copy inside the stacked subtree', async () => {

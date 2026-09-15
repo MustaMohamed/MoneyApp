@@ -7,7 +7,11 @@ import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_to
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { STACKED_PREFIX, type StackedPrefix } from '@/modules/navigation/domain/stacked_route';
+import {
+  STACKED_PREFIX,
+  type StackedPrefix,
+  TABBED_ORIGIN,
+} from '@/modules/navigation/domain/stacked_route';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { resolveAccountName } from '@/utils/account_name';
 import {
@@ -189,15 +193,16 @@ export function getAccountTypeIcon(type: string | undefined): IconName {
   return 'card-bulleted-outline';
 }
 
-export function getCommitmentPaymentRoute<P extends StackedPrefix>(
+export function getCommitmentPaymentRoute(
   paymentId: string,
-  prefix: P,
-  // Required, never optional: an omitted origin is a silent wrong landing, so it must not compile.
-  originTransactionId: string | undefined,
-): `${P}/commitments/${string}` | `${P}/commitments/${string}?originTxId=${string}` {
-  // Only the mirror needs the origin; the tabbed href stays byte-identical whatever the caller passes.
-  if (prefix === STACKED_PREFIX && originTransactionId) {
-    return `${prefix}/commitments/${paymentId}?originTxId=${originTransactionId}`;
+  originPrefix: StackedPrefix,
+  originTransactionId: string,
+):
+  | `${typeof STACKED_PREFIX}/commitments/${string}?originTxId=${string}`
+  | `${typeof STACKED_PREFIX}/commitments/${string}?originTxId=${string}&originTxCopy=${typeof TABBED_ORIGIN}` {
+  // Always the stacked twin, so the detail sits above the tabs; the origin's copy rides on `originTxCopy`.
+  if (originPrefix === '') {
+    return `${STACKED_PREFIX}/commitments/${paymentId}?originTxId=${originTransactionId}&originTxCopy=${TABBED_ORIGIN}`;
   }
-  return `${prefix}/commitments/${paymentId}`;
+  return `${STACKED_PREFIX}/commitments/${paymentId}?originTxId=${originTransactionId}`;
 }

@@ -8,13 +8,15 @@ import type { Commitment } from '@/modules/commitments/entities/commitment.entit
 import { useEditCommitment } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.hook';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { TABBED_ORIGIN } from '@/modules/navigation/domain/stacked_route';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 const mockRouterBack = jest.fn();
+const mockRouterDismissAll = jest.fn();
 const mockRouterDismissTo = jest.fn();
 const mockRouterReplace = jest.fn();
 const mockPathname = { current: '/commitments/com-1/edit' };
-let mockParams: { id: string; originTxId?: string } = { id: 'com-1' };
+let mockParams: { id: string; originTxId?: string; originTxCopy?: string } = { id: 'com-1' };
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -23,6 +25,7 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({
     back: mockRouterBack,
     replace: mockRouterReplace,
+    dismissAll: mockRouterDismissAll,
     dismissTo: mockRouterDismissTo,
   }),
 }));
@@ -173,6 +176,35 @@ describe('useEditCommitment', () => {
 
     expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
     expect(mockRouterDismissTo).toHaveBeenCalledWith('/stacked/transactions/detail/tx-1');
+    expect(mockRouterReplace).not.toHaveBeenCalled();
+  });
+
+  it('saving from a mirror opened on a tabbed transaction pops every screen above the tabs', async () => {
+    mockPathname.current = '/stacked/commitments/com-1/edit';
+    mockParams = { id: 'com-1', originTxId: 'tx-1', originTxCopy: TABBED_ORIGIN };
+    const { result } = await renderHook(() => useEditCommitment());
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(updateCommitmentMock).toHaveBeenCalled();
+    expect(mockRouterDismissAll).toHaveBeenCalled();
+    expect(mockRouterDismissTo).not.toHaveBeenCalled();
+  });
+
+  it('deactivating from a mirror opened on a tabbed transaction pops every screen above the tabs', async () => {
+    mockPathname.current = '/stacked/commitments/com-1/edit';
+    mockParams = { id: 'com-1', originTxId: 'tx-1', originTxCopy: TABBED_ORIGIN };
+    const { result } = await renderHook(() => useEditCommitment());
+
+    await act(async () => {
+      await result.current.confirmDeactivate();
+    });
+
+    expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
+    expect(mockRouterDismissAll).toHaveBeenCalled();
+    expect(mockRouterDismissTo).not.toHaveBeenCalled();
     expect(mockRouterReplace).not.toHaveBeenCalled();
   });
 

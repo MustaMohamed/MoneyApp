@@ -8,6 +8,7 @@ import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import {
   STACKED_PREFIX,
+  TABBED_ORIGIN,
   stackedPrefixOf,
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
@@ -26,7 +27,11 @@ export type { CommitmentFormValues };
 export function useEditCommitment() {
   const owner = useId();
   const router = useRouter();
-  const { id, originTxId } = useLocalSearchParams<{ id: string; originTxId?: string }>();
+  const { id, originTxId, originTxCopy } = useLocalSearchParams<{
+    id: string;
+    originTxId?: string;
+    originTxCopy?: string;
+  }>();
   const stackedPrefix = stackedPrefixOf(usePathname());
 
   const accounts = useAccountStore((s) => s.accounts);
@@ -65,9 +70,11 @@ export function useEditCommitment() {
     return () => release(owner);
   }, [owner, claim, release]);
 
-  // POP_TO selects by route name, so it steps over any duplicate edit or payment a double-tap appended.
   function leaveStackedSubtree() {
-    if (originTxId) router.dismissTo(stackedTransactionDetailRoute(originTxId));
+    // `(tabs)` is index 0 of the `(app)` Stack, so popping to the top lands on the tabbed transaction.
+    if (originTxCopy === TABBED_ORIGIN) router.dismissAll();
+    // POP_TO selects by route name, so it steps over any duplicate edit or payment a double-tap appended.
+    else if (originTxId) router.dismissTo(stackedTransactionDetailRoute(originTxId));
     else router.back();
   }
 

@@ -95,24 +95,16 @@ describe('getAccountTypeIcon', () => {
 });
 
 describe('getCommitmentPaymentRoute', () => {
-  it('uses the payment id expected by the commitment detail route', () => {
-    expect(getCommitmentPaymentRoute('payment-1', '', undefined)).toBe('/commitments/payment-1');
-  });
-
-  it('stays in the stacked subtree when opened from a stacked transaction', () => {
-    expect(getCommitmentPaymentRoute('payment-1', STACKED_PREFIX, undefined)).toBe(
-      '/stacked/commitments/payment-1',
+  it('opens the stacked twin above the tabs and marks the tabbed origin copy', () => {
+    expect(getCommitmentPaymentRoute('payment-1', '', 'tx-1')).toBe(
+      '/stacked/commitments/payment-1?originTxId=tx-1&originTxCopy=tabbed',
     );
   });
 
-  it('carries the origin transaction on the stacked href', () => {
+  it('opens the stacked twin with the origin transaction from a stacked transaction', () => {
     expect(getCommitmentPaymentRoute('payment-1', STACKED_PREFIX, 'tx-1')).toBe(
       '/stacked/commitments/payment-1?originTxId=tx-1',
     );
-  });
-
-  it('leaves the tabbed href bare when an origin transaction is passed', () => {
-    expect(getCommitmentPaymentRoute('payment-1', '', 'tx-1')).toBe('/commitments/payment-1');
   });
 });
 
