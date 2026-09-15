@@ -360,8 +360,13 @@ describe('useCommitmentDetail', () => {
       .mockResolvedValueOnce(rentHistory)
       .mockReturnValueOnce(lateRent.promise)
       .mockReturnValueOnce(gym.promise);
+    const seen: string[] = [];
 
-    const { result, rerender } = await renderHook(() => useCommitmentDetail());
+    const { result, rerender } = await renderHook(() => {
+      const hook = useCommitmentDetail();
+      seen.push(hook.state.viewState);
+      return hook;
+    });
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     const owner = result.current.state.owner;
 
@@ -369,6 +374,7 @@ describe('useCommitmentDetail', () => {
     await rerender({});
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
 
+    const seenBeforeMove = seen.length;
     mockParams = { id: otherPayment.id };
     await rerender({});
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(3));
@@ -383,6 +389,9 @@ describe('useCommitmentDetail', () => {
 
     expect(useCommitmentDetailStore.getState().entries[owner].allPayments).toBe(rentHistory);
     expect(result.current.state.viewState).toBe('loading');
+    const seenWhileMoving = seen.slice(seenBeforeMove);
+    expect(seenWhileMoving.length).toBeGreaterThan(0);
+    expect(seenWhileMoving).not.toContain('ready');
 
     await act(async () => {
       gym.resolve(gymHistory);
