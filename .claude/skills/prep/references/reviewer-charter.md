@@ -10,7 +10,7 @@ You are reviewing an implementation plan you did not write, for a ticket you wil
 
 Check, in order:
 
-1. **Coverage.** Every Acceptance line lands in a step or a test. Every Rule is honoured by the steps that could break it. `Verify emulator` on the header means the plan has a Screens section naming states. A Flag means the matching rules file was followed and, for money path, data-loss migration, native change and secure store, a decision record step exists. Name what is missing.
+1. **Coverage.** Every Acceptance line lands in a step or a test. Every Rule is honoured by the steps that could break it. `Verify emulator` on the header means the plan's Screens section names `emulator-verify/features/<screen>.md` files and states that exist in their tables; a state the file lacks is a finding unless a step adds it to the file. An Acceptance line that describes a screen state with no matching row is a gap in the file, not only in the plan. A Flag means the matching rules file was followed and, for money path, data-loss migration, native change and secure store, a decision record step exists. Name what is missing.
 2. **No extra work.** A step that serves nothing in Acceptance, or that reaches into Out of scope, is a finding. Scope creep is a defect here.
 3. **Reality.** Spot-check every named file and symbol with LSP. A path that does not exist, a symbol that moved, a call site LSP finds that the plan does not, is a finding.
 4. **Tests.** Each behavioural step has its proving test, at a layer the repo tests (`.claude/rules/tests.md`): logic-only `.ts` under `__tests__/`, integration cycles in Jest against real SQLite, no render tests. Would each test fail if the behaviour regressed?
