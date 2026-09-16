@@ -40,7 +40,7 @@ export function Input({
     <HTextField isInvalid={invalid} isDisabled={isDisabled} isRequired={isRequired}>
       {label ? <Label>{label}</Label> : null}
       {suffix ? (
-        <InputGroup>
+        <InputGroup isDisabled={isDisabled}>
           <InputGroup.Input
             className={cn('font-inter py-2 text-[16px]', className)}
             style={[

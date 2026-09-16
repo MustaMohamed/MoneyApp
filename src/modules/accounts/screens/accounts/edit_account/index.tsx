@@ -27,9 +27,9 @@ import {
 } from '../../../components/account_form/field_message_rail';
 import { useEditAccount } from './edit_account.hook';
 
-// D1's read-only box: HeroUI's `disabled:opacity-disabled` never reaches the Android TextInput.
+// HeroUI's disabled field only halves its opacity; D1's read-only box is surface, separator border and 70% text, fully opaque.
 const LOCKED_FIELD_CLASS =
-  'bg-surface border-separator android:border-separator text-foreground/70';
+  'bg-surface border-separator android:border-separator text-foreground/70 disabled:opacity-100';
 
 // An empty rail is shorter than a one-line error, so the helperless name rail reserves the error's height.
 const NAME_RAIL_MIN_HEIGHT = Math.max(
@@ -109,7 +109,6 @@ export default function EditAccountScreen() {
             <Input
               value={ACCOUNT_TYPE_LABELS[account.type]}
               isDisabled
-              editable={false}
               className={LOCKED_FIELD_CLASS}
               accessibilityLabel={Strings.editAccountTypeLabel}
               suffix={LOCK_GLYPH}
@@ -121,7 +120,6 @@ export default function EditAccountScreen() {
             <Input
               value={account.currency}
               isDisabled
-              editable={false}
               className={LOCKED_FIELD_CLASS}
               accessibilityLabel={Strings.accountCurrencyLabel}
               suffix={LOCK_GLYPH}
@@ -136,7 +134,6 @@ export default function EditAccountScreen() {
             <Input
               value={formatCurrencyParts(account.opening_balance, account.currency).value}
               isDisabled
-              editable={false}
               className={LOCKED_FIELD_CLASS}
               accessibilityLabel={Strings.accountBalanceLabel}
               suffix={
