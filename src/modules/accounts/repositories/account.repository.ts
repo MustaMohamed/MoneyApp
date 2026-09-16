@@ -20,6 +20,7 @@ import {
   setAccountDeleted,
   setAccountUnarchived,
   updateAccount,
+  type UpdateAccountInput,
 } from '../database/accounts';
 import type { Account } from '../entities/account.entity';
 import { isAccountNameTaken } from '../utils/account_name_taken';
@@ -41,16 +42,7 @@ export type NewAccountInput = Omit<
   | 'balance_review_required'
 >;
 
-export type UpdateAccountInput = Pick<
-  Account,
-  | 'name'
-  | 'color'
-  | 'credit_limit'
-  | 'minimum_payment'
-  | 'statement_due_day'
-  | 'interest_tracking'
-  | 'apr'
->;
+export type { UpdateAccountInput };
 
 export interface IAccountRepository {
   getAll(): Promise<Account[]>;

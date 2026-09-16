@@ -102,19 +102,21 @@ export async function addAccount(db: SQLiteDatabase, account: Account): Promise<
   );
 }
 
+export type UpdateAccountInput = Pick<
+  Account,
+  | 'name'
+  | 'color'
+  | 'credit_limit'
+  | 'minimum_payment'
+  | 'statement_due_day'
+  | 'interest_tracking'
+  | 'apr'
+>;
+
 export async function updateAccount(
   db: SQLiteDatabase,
   id: string,
-  data: Pick<
-    Account,
-    | 'name'
-    | 'color'
-    | 'credit_limit'
-    | 'minimum_payment'
-    | 'statement_due_day'
-    | 'interest_tracking'
-    | 'apr'
-  > & { updated_at: string },
+  data: UpdateAccountInput & { updated_at: string },
 ): Promise<void> {
   await db.runAsync(
     `UPDATE accounts
