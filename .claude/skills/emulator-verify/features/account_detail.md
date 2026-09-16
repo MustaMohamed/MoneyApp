@@ -1,0 +1,47 @@
+# Account detail, active
+
+Route `/accounts/[id]`. Screen `src/modules/accounts/screens/accounts/detail/index.tsx`, hero `detail/components/balance_hero.tsx`, facts `account_fact_row.tsx`, activity `account_activity_card.tsx`, sheet `adjust_balance_sheet.tsx`, dialog `archive_confirmation_dialog.tsx`, alert `balance_review_alert.tsx`. Frames C1, C2, C2b, C3, F2, G1, G2.
+
+## Reach it
+
+- User path: accounts list row tap, or the dashboard account card.
+- Script: `id=$($MQA db "select id from accounts where name='<n>'" | tail -1)` then `$MQA tap '<n>'` from the list. There is no deep link with an id in the recipes yet; add one here when `moneyapp://accounts/<id>` is confirmed.
+- Header: title is the account name, `Edit` and `More` on the right.
+
+## States
+
+The canvas draws one account type per frame. Every state below is checked on a bank account and on a credit card unless the row says otherwise; the card variant is the one three tickets found missing.
+
+| State | Frame | Force | Proof |
+|---|---|---|---|
+| bank with recent activity | C1 | seeded bank with 3+ transactions this month | hero balance, `This month in` / `This month out`, activity rows; shot |
+| credit card, under limit | C2 (`CardsDetail`) | seeded card with limit, min payment, due day, APR | facts render limit, available, min, due, APR two decimals with `%`; shot |
+| credit card, over limit | no frame, ruled MA-029 | seed `current_balance` past `credit_limit` | caption `Over limit` on hero, dashboard and list; `mqa ui` |
+| bank overdrawn | no frame, ruled MA-027 | seed negative balance | sign is U+2212 on the hero; `mqa ui` |
+| balance review alert | C2b | seed a card flagged for review | alert card with `Adjust balance`; shot |
+| no transactions | C3 | seeded account with none | activity empty block, `Add a transaction`; shot |
+| activity loading | F2 | source force on the activity resolver | skeleton in the activity card; shot |
+| activity load error | no frame, ruled at `/boundaries 384` | source force | inline `LoadErrorAlert` in the activity card's place, `Try again` |
+| adjust balance sheet, positive | G1 | `$MQA tap 'Adjust balance'` | sheet open, prefilled; shot |
+| adjust balance sheet, overdrawn | no frame, MA-030 | on the overdrawn bank | prefill carries the sign; keyboard carries the minus; `mqa ui` |
+| adjust balance sheet, keyboard up | no frame, MA-033 | tap the amount field | `Save` reachable above the keyboard; shot |
+| archive dialog | G2 | `$MQA tap 'More'`, `$MQA tap 'Archive'` | title `Archive <name>?`, body from `accountDetailArchiveBody`, flat buttons; shot |
+| archive failure | no frame, MA-046 | source force on the write | error copy; db unchanged |
+| blank-named | no frame, MA-059 | seed push `name = ''` | header and hero read `Unnamed account` |
+
+## Outbound
+
+| Action | Lands on | Back lands on |
+|---|---|---|
+| `See all` in the activity card | Transactions filtered to this account, current month (C5) | this detail |
+| activity row tap | transaction detail, stacked twin above the tabs | this detail |
+| `Add a transaction` (C3) | add form with this account preselected | this detail |
+| `Edit` | `/accounts/[id]/edit` (MA-078; until it merges, the inline edit) | this detail |
+| `Archive` confirmed | archived detail (C4) | accounts list |
+| Back | accounts list, or the dashboard when opened from its card | n/a |
+
+## Gotchas
+
+- Every push from here into a tab screen needs the stacked twin (MA-040); a bare `(tabs)` href mounts a second tab bar and the shot shows two.
+- A committed write whose reload fails must not read as a failed write (MA-069); a failure state shot is judged against `mqa db`, not the toast alone.
+- The hero's `.id-bal` is 30 point with a 16 point `.cur` span at 80% opacity; measure from `ui.xml` bounds ÷ 2.625.

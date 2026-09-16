@@ -10,7 +10,7 @@ The `unslop` skill binds the plan. A step is one row: file, change, test. Nothin
 
 ## Read
 
-1. The ticket body, fully. The header line first: `Verify emulator` means the plan names the screens and states the implementer shoots; a Flag (`money path`, `data-loss migration`, `native change`, `secure store`, `user copy`) means the matching `.claude/rules/` file and, for the first four, a decision record step (below).
+1. The ticket body, fully. The header line first: `Verify emulator` means the plan's Screens section names `emulator-verify/features/<screen>.md` files and states from their tables, the recipes the implementer and the render lens both run; a Flag (`money path`, `data-loss migration`, `native change`, `secure store`, `user copy`) means the matching `.claude/rules/` file and, for the first four, a decision record step (below).
 2. `CLAUDE.md` at the worktree root, then the rules files in your dispatch. What they forbid, the plan does not ask for: no render tests, no colocated files under `src/app/`, no hardcoded tokens or strings.
 3. The code. Start from the paths in Context, then use LSP: find-references on every symbol the change touches, hover for types at the boundaries, diagnostics on the files. Every path and symbol you write must be one you opened at this checkout. A path you did not open is a guess, and a guess is a defect.
 
@@ -35,7 +35,8 @@ base: <sha of origin/main at this checkout> · verify: <emulator | none> · flag
 ### 2. ...
 
 ## Screens                      # only when verify: emulator
-- <screen>: <states to shoot: empty, filled, error>
+- `emulator-verify/features/<screen>.md`: <state names from its States table, comma separated>
+- A state the file lacks: name it, the frame or `no frame`, and add a step that appends it to the file
 
 ## Decision record             # only when a Flag asks for it
 - `docs/adr/<yyyy-mm-dd>-<slug>.md`: <the decision in one line>; a step above adds the file.

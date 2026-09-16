@@ -78,6 +78,10 @@ own. `mqa claims` shows a stale lease as free and names its old holder.
 A fourth concurrent ticket queues. That is the design, not a bug: add a slot by creating
 another AVD and extending `MQA_SLOTS`.
 
+## The feature map, read before scoping
+
+`features/` next to this file holds one file per screen: how to reach it, every state it can be in with the canvas frame, how to force the state, and what proves it. A walk is assembled by copying those recipes for the states the plan names; nothing is explored. A state the file does not carry is a state the design did not draw: add it to the file, with its frame or `no frame` and the ticket, before shooting it. `features/README.md` has the rule and the file shape.
+
 ## Scope the walk before you run it
 
 **If a unit test can assert it, the emulator must not.** The emulator's job is
