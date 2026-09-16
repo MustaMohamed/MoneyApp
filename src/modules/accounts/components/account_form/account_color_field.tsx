@@ -16,10 +16,11 @@ export interface AccountColorFieldProps {
   ownerId: string;
   value: string;
   onChange: (hex: string) => void;
+  label?: string;
 }
 
 /** Safe to mount inside ScreenScroll: `BottomSheet.Portal` renders into the root PortalHost. */
-export function AccountColorField({ ownerId, value, onChange }: AccountColorFieldProps) {
+export function AccountColorField({ ownerId, value, onChange, label }: AccountColorFieldProps) {
   const model = resolveColorTriggerModel(value);
   const isOpen = useAccountColorSheetState((s) => s.openOwner === ownerId);
   const open = useAccountColorSheetState.getState().open;
@@ -27,7 +28,7 @@ export function AccountColorField({ ownerId, value, onChange }: AccountColorFiel
 
   return (
     <>
-      <FormLabelText label={Strings.accountColorLabel} />
+      <FormLabelText label={label ?? Strings.accountColorLabel} />
       <PressableFeedback
         testID="account-color-trigger"
         accessibilityRole="button"

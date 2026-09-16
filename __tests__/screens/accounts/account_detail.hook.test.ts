@@ -549,14 +549,24 @@ describe('useAccountDetail', () => {
     expect(mockArchiveAccount).not.toHaveBeenCalled();
   });
 
-  it('leaves edit mode instead of navigating back when editing', async () => {
+  it('Back pops the detail even while the unreachable inline edit is on', async () => {
     mockDetailState({ isEditing: true });
     const { result } = await renderHook(() => useAccountDetail());
 
     await act(() => result.current.onBack());
 
-    expect(mockSetEditing).toHaveBeenCalledWith(false);
-    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockSetEditing).not.toHaveBeenCalled();
+  });
+
+  it('Edit pushes the edit screen for this account', async () => {
+    mockAccounts([mkAccount()]);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.goToEdit());
+
+    expect(mockPush).toHaveBeenCalledWith('/accounts/acc-1/edit');
+    expect(mockSetEditing).not.toHaveBeenCalled();
   });
 
   it('prevents navigation removal while editing and exits edit mode', async () => {
