@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { Strings } from '@/constants/strings';
 import { useAccountFormState } from '@/modules/accounts/components/account_form/account_form.state';
 import { useAddAccountApp } from '@/modules/accounts/screens/accounts/add_account/add_account.hook';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -23,13 +24,16 @@ const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 // `addAccount` must republish `mockAccounts`, as the real store's `loadAccounts()` does.
 const mockAddAccount = jest.fn();
 let mockAccounts: { id: string; name: string }[] = [];
+let mockArchivedAccounts: { id: string; name: string }[] = [];
 let mockLoadError = false;
 
 function setup() {
   mockAccounts = [];
+  mockArchivedAccounts = [];
   mockLoadError = false;
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: mockAccounts,
+    archivedAccounts: mockArchivedAccounts,
     loadError: mockLoadError,
     addAccount: mockAddAccount,
     loadAccounts: mockLoadAccounts,
@@ -87,6 +91,22 @@ describe('useAddAccountApp', () => {
 
     expect(mockAddAccount).toHaveBeenCalledTimes(1);
     expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('a name an archived account holds is refused before the write (MA-076)', async () => {
+    mockArchivedAccounts = [{ id: 'arch', name: 'new account' }];
+    const { result } = await renderHook(() => useAddAccountApp());
+    await fillValidDraft(result);
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(mockAddAccount).not.toHaveBeenCalled();
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('name').error?.message).toBe(
+      Strings.errNameDuplicateNamed('New Account'),
+    );
   });
 
   it('a committed add whose reload failed pops once with no save error and inserts once', async () => {

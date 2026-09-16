@@ -33,7 +33,7 @@ The row count is still checked after the write, and a `0` there throws `AccountN
 
 SQLite's `LOWER` folds ASCII only, so a SQL-side check would let a restored account collide with an active one whose name differs by a non-ASCII case pair. The comparison is `name.trim().toLowerCase()` over `getAccounts(db)`, and it is the one `isAccountNameTaken` (`utils/account_name_taken.ts`) holds: the add schema and the rename check call the same helper, the latter passing the edited account's own id as `excludeId`.
 
-The list is the active one, so two archived accounts may share a name and neither blocks the other until one is restored. That follows from the schema, which has no `UNIQUE` on `name` (audit L12): an active and an archived account can already share one today. Widened for the edit check by MA-074 (#503), which passes the archived list beside the active one; the add check is widened by MA-076 (#505).
+The list is the active one, so among rows saved before the add and edit checks were widened, two archived accounts may share a name and neither blocks the other until one is restored. That follows from the schema, which has no `UNIQUE` on `name` (audit L12): an active and an archived account saved before then may share one too. Widened over both lists for the edit check by MA-074 (#503) and for the add check by MA-076 (#505); each passes the archived list beside the active one.
 
 A concurrent add between the read and the write could seat a duplicate. There is one local writer, and it is the same window `delete` accepts.
 
@@ -47,7 +47,7 @@ What a restore changes is which rows the archived-filtered readers return. Every
 
 ## 5. One sort-order rule, on both paths
 
-Adding an account and restoring one both assign **one past the highest active `sort_order`**, and both yield `0` when no active account is left. The restore does it in SQL, `COALESCE(MAX(sort_order), -1) + 1` over the active rows (`accounts.ts:145`); the add does it in JavaScript over the store's active list (`use_account_form.hook.ts:52`), which is the same set the query reads.
+Adding an account and restoring one both assign **one past the highest active `sort_order`**, and both yield `0` when no active account is left. The restore does it in SQL, `COALESCE(MAX(sort_order), -1) + 1` over the active rows (`accounts.ts:145`); the add does it in JavaScript over the store's active list (`onValid` in `use_account_form.hook.ts`), which is the same set the query reads.
 
 The add used to assign the active count instead. That collides after any restore: a restore raises the maximum above the count, so the next added account takes a number a restored account already holds. Nothing was lost, because both list queries order by `sort_order ASC, created_at ASC` and a tie breaks on creation time, but the two rules disagreed and only the tiebreak hid it.
 

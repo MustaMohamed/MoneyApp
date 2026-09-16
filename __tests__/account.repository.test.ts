@@ -1,7 +1,9 @@
 import Database from 'better-sqlite3';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { MIGRATIONS } from '@/database/migrations';
+import { createAccountFormDefaults } from '@/modules/accounts/components/account_form/account_form.helpers';
 import { addAccount } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
@@ -10,6 +12,7 @@ import {
 } from '@/modules/accounts/repositories/account.errors';
 import { parseAdjustInput } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
+import { createAddAccountSchema } from '@/modules/accounts/utils/add_account.schema';
 import { insertTransactionRow } from '@/modules/transactions/database/transactions';
 import { AccountRepository } from '@/repositories/account.repository';
 import type { NewAccountInput, UpdateAccountInput } from '@/repositories/account.repository';
@@ -55,6 +58,12 @@ const baseInput: NewAccountInput = {
 };
 
 const repo = new AccountRepository();
+
+const addDraft = (name: string) => ({
+  ...createAccountFormDefaults(Currency.EGP),
+  name,
+  balance: '1000',
+});
 
 describe('AccountRepository.add — TC-09', () => {
   it('sets current_balance = opening_balance', async () => {
@@ -362,6 +371,18 @@ describe('AccountRepository.archive — TC-M15-02', () => {
     ).updated_at;
     expect(after).not.toBe(before);
   });
+
+  it('the add schema over both lists refuses the archived name (MA-076)', async () => {
+    const { id } = await repo.add(baseInput);
+    await repo.archive(id);
+
+    const schema = createAddAccountSchema(await repo.getAll(), await repo.getArchived());
+    const result = schema.safeParse(addDraft('cib savings'));
+
+    expect(result.error?.issues.map((i) => i.message)).toEqual([
+      Strings.errNameDuplicateNamed('cib savings'),
+    ]);
+  });
 });
 
 describe('a soft-deleted account leaves both lists — MA-020', () => {
@@ -390,6 +411,16 @@ describe('a soft-deleted account leaves both lists — MA-020', () => {
 
   it('is not listed among the archived', async () => {
     await expect(repo.getArchived()).resolves.toEqual([]);
+  });
+
+  it('the add schema over both lists accepts a name only a deleted account held (MA-076)', async () => {
+    const { id } = await repo.add({ ...baseInput, name: 'Old Wallet' });
+    await repo.archive(id);
+    await repo.delete(id);
+
+    const schema = createAddAccountSchema(await repo.getAll(), await repo.getArchived());
+
+    expect(schema.safeParse(addDraft('Old Wallet')).success).toBe(true);
   });
 
   it('still resolves by id, so a transaction can label it', async () => {

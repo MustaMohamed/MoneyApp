@@ -25,10 +25,12 @@ const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 const mockReplace = jest.fn();
 
 let mockAccounts: { id: string; name: string }[] = [];
+let mockArchivedAccounts: { id: string; name: string }[] = [];
 let mockLoadError = false;
 
 function setup(isAddingMore?: string) {
   mockAccounts = [];
+  mockArchivedAccounts = [];
   mockLoadError = false;
   const { useLocalSearchParams, useRouter } = require('expo-router');
   (useLocalSearchParams as jest.Mock).mockReturnValue(
@@ -38,6 +40,7 @@ function setup(isAddingMore?: string) {
 
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: mockAccounts,
+    archivedAccounts: mockArchivedAccounts,
     loadError: mockLoadError,
     addAccount: mockAddAccount,
     loadAccounts: mockLoadAccounts,
@@ -111,6 +114,20 @@ describe('useAddAccount', () => {
     expect(mockSetStep.mock.invocationCallOrder[0]).toBeLessThan(
       mockReplace.mock.invocationCallOrder[0],
     );
+  });
+
+  it('a name an archived account holds is refused before the write (MA-076)', async () => {
+    mockArchivedAccounts = [{ id: 'arch', name: 'cib savings' }];
+    const { result } = await renderHook(() => useAddAccount());
+    await fillAndSubmit(result);
+
+    expect(mockAddAccount).not.toHaveBeenCalled();
+    expect(mockSetStep).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(result.current.form.getFieldState('name').error?.message).toBe(
+      Strings.errNameDuplicateNamed('CIB Savings'),
+    );
+    expect(result.current.state.statusMessage).toBeFalsy();
   });
 
   it('a rejecting insert writes no step, does not navigate, and shows n2SaveError', async () => {

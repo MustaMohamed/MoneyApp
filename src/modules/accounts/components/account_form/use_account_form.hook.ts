@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
+import { useShallow } from 'zustand/react/shallow';
 
 import type { Currency } from '@/constants/enums';
 import { useInit } from '@/utils/use_init.hook';
@@ -29,8 +30,13 @@ export function useAccountForm({
   saveErrorMessage,
   onSaved,
 }: UseAccountFormOptions): AccountFormApi {
-  const accounts = useAccountStore((s) => s.accounts);
-  const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
+  const { accounts, archivedAccounts } = useAccountStore(
+    useShallow((s) => ({ accounts: s.accounts, archivedAccounts: s.archivedAccounts })),
+  );
+  const schema = useMemo(
+    () => createAddAccountSchema(accounts, archivedAccounts),
+    [accounts, archivedAccounts],
+  );
   const form = useZodForm(schema, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
