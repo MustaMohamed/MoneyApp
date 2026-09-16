@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 
 import { FieldMessageTrack } from '../../../../components/account_form/field_message_rail';
 
-// HeroUI's disabled field only halves its opacity; D1's read-only box is surface, separator border and 70% text, fully opaque.
+// HeroUI's disabled field and suffix halve their opacity; D1's read-only box is surface, separator border and 70% text, fully opaque.
 const LOCKED_FIELD_CLASS =
   'bg-surface border-separator android:border-separator text-foreground/70 disabled:opacity-100';
+const LOCKED_SUFFIX_CLASS = 'opacity-100';
 
 interface Props {
   label: string;
@@ -28,6 +29,7 @@ export function LockedField({ label, value, suffix, helper }: Props): React.Reac
         className={LOCKED_FIELD_CLASS}
         accessibilityLabel={label}
         suffix={suffix}
+        suffixClassName={LOCKED_SUFFIX_CLASS}
       />
       <FieldMessageTrack helper={helper} />
     </>
