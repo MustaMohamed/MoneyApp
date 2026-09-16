@@ -28,8 +28,9 @@ export function useEditAccount() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const accounts = useAccountStore((s) => s.accounts);
-  const archivedAccounts = useAccountStore((s) => s.archivedAccounts);
+  const { accounts, archivedAccounts } = useAccountStore(
+    useShallow((s) => ({ accounts: s.accounts, archivedAccounts: s.archivedAccounts })),
+  );
   const updateAccount = useAccountStore.getState().updateAccount;
   const { saving, saveError } = useEditAccountState(
     useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY),
