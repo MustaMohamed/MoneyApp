@@ -8,10 +8,8 @@ describe('accountDetailState initial state', () => {
   it('starts with all booleans false', () => {
     const state = useAccountDetailState.getState();
 
-    expect(state.isEditing).toBe(false);
     expect(state.isAdjustVisible).toBe(false);
     expect(state.isArchiveVisible).toBe(false);
-    expect(state.isSaving).toBe(false);
     expect(state.isAdjusting).toBe(false);
     expect(state.isArchiving).toBe(false);
     expect(state.isConfirmingBalanceReview).toBe(false);
@@ -27,14 +25,6 @@ describe('accountDetailState setters', () => {
     useAccountDetailState.getState().reset();
   });
 
-  it('setEditing toggles', () => {
-    useAccountDetailState.getState().setEditing(true);
-    expect(useAccountDetailState.getState().isEditing).toBe(true);
-
-    useAccountDetailState.getState().setEditing(false);
-    expect(useAccountDetailState.getState().isEditing).toBe(false);
-  });
-
   it('setAdjustVisible toggles', () => {
     useAccountDetailState.getState().setAdjustVisible(true);
     expect(useAccountDetailState.getState().isAdjustVisible).toBe(true);
@@ -46,14 +36,6 @@ describe('accountDetailState setters', () => {
   it('setArchiveVisible toggles', () => {
     useAccountDetailState.getState().setArchiveVisible(true);
     expect(useAccountDetailState.getState().isArchiveVisible).toBe(true);
-  });
-
-  it('setSaving toggles', () => {
-    useAccountDetailState.getState().setSaving(true);
-    expect(useAccountDetailState.getState().isSaving).toBe(true);
-
-    useAccountDetailState.getState().setSaving(false);
-    expect(useAccountDetailState.getState().isSaving).toBe(false);
   });
 
   it('setAdjusting toggles', () => {
@@ -135,10 +117,8 @@ describe('accountDetailState reset', () => {
   });
 
   it('resets every flag to false', () => {
-    useAccountDetailState.getState().setEditing(true);
     useAccountDetailState.getState().setAdjustVisible(true);
     useAccountDetailState.getState().setArchiveVisible(true);
-    useAccountDetailState.getState().setSaving(true);
     useAccountDetailState.getState().setAdjusting(true);
     useAccountDetailState.getState().setArchiving(true);
     useAccountDetailState.getState().setConfirmingBalanceReview(true);
@@ -152,10 +132,8 @@ describe('accountDetailState reset', () => {
     useAccountDetailState.getState().reset();
 
     const state = useAccountDetailState.getState();
-    expect(state.isEditing).toBe(false);
     expect(state.isAdjustVisible).toBe(false);
     expect(state.isArchiveVisible).toBe(false);
-    expect(state.isSaving).toBe(false);
     expect(state.isAdjusting).toBe(false);
     expect(state.isArchiving).toBe(false);
     expect(state.isConfirmingBalanceReview).toBe(false);

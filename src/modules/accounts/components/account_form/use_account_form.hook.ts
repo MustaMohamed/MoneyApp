@@ -69,7 +69,7 @@ export function useAccountForm({
     // Terminal: without it the `inserted` bypass below re-runs `onSaved` after a successful save.
     if (latch.completed) return;
 
-    // Re-validating now fails `errNameDuplicate` against the row this form just created.
+    // Re-validating now fails `errNameDuplicateNamed` against the row this form just created.
     if (latch.inserted) return onValid(form.getValues());
     return handleSubmit();
   };

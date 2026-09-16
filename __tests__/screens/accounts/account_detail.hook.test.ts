@@ -33,9 +33,6 @@ const mockSlotRetry = jest.fn(() => Promise.resolve());
 const mockSlotReset = jest.fn();
 const mockSeedAccountFilter = jest.fn();
 const mockOpenAdd = jest.fn();
-type BeforeRemoveEvent = { preventDefault: () => void };
-type BeforeRemoveHandler = (event: BeforeRemoveEvent) => void;
-const mockAddListener = jest.fn<() => void, [string, BeforeRemoveHandler]>(() => jest.fn());
 const mockToast = { show: jest.fn() };
 
 // The wrapper, not HeroUI, so `show` sees exactly what the call site passed.
@@ -51,7 +48,6 @@ jest.mock('expo-router', () => ({
     push: mockPush,
     dismissTo: mockDismissTo,
   }),
-  useNavigation: () => ({ addListener: mockAddListener }),
 }));
 jest.mock('@/utils/run_after_interactions', () => ({
   runAfterInteractions: (task: () => void) => {
@@ -126,7 +122,6 @@ function mockAccounts(accounts: Account[]): void {
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
     loadError: accountLoadError,
-    updateAccount: mockUpdateAccount,
     archiveAccount: mockArchiveAccount,
     unarchiveAccount: mockUnarchiveAccount,
     deleteAccount: mockDeleteAccount,
@@ -175,10 +170,8 @@ const rafSpy = jest.spyOn(global, 'requestAnimationFrame').mockImplementation((c
 
 afterAll(() => rafSpy.mockRestore());
 
-const mockSetEditing = jest.fn();
 const mockSetAdjustVisible = jest.fn();
 const mockSetArchiveVisible = jest.fn();
-const mockSetSaving = jest.fn();
 const mockSetAdjusting = jest.fn();
 const mockSetArchiving = jest.fn();
 const mockSetConfirmingBalanceReview = jest.fn();
@@ -189,7 +182,6 @@ const mockSetUnarchiveError = jest.fn();
 const mockReset = jest.fn();
 const mockConfirmBalanceReviewed = jest.fn();
 const mockAdjustBalance = jest.fn();
-const mockUpdateAccount = jest.fn();
 const mockArchiveAccount = jest.fn();
 const mockUnarchiveAccount = jest.fn();
 const mockDeleteAccount = jest.fn();
@@ -200,10 +192,8 @@ const mockOpenReplacementSheet = jest.fn();
 const mockReplacementSheetReset = jest.fn();
 
 type DetailStateMock = {
-  isEditing: boolean;
   isAdjustVisible: boolean;
   isArchiveVisible: boolean;
-  isSaving: boolean;
   isAdjusting: boolean;
   isArchiving: boolean;
   isConfirmingBalanceReview: boolean;
@@ -214,10 +204,8 @@ type DetailStateMock = {
   isDeleteVisible: boolean;
   isDeleting: boolean;
   deleteError: string | undefined;
-  setEditing: jest.Mock;
   setAdjustVisible: jest.Mock;
   setArchiveVisible: jest.Mock;
-  setSaving: jest.Mock;
   setAdjusting: jest.Mock;
   setArchiving: jest.Mock;
   setConfirmingBalanceReview: jest.Mock;
@@ -233,10 +221,8 @@ type DetailStateMock = {
 
 function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStateMock {
   return {
-    isEditing: false,
     isAdjustVisible: false,
     isArchiveVisible: false,
-    isSaving: false,
     isAdjusting: false,
     isArchiving: false,
     isConfirmingBalanceReview: false,
@@ -247,10 +233,8 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     isDeleteVisible: false,
     isDeleting: false,
     deleteError: undefined,
-    setEditing: mockSetEditing,
     setAdjustVisible: mockSetAdjustVisible,
     setArchiveVisible: mockSetArchiveVisible,
-    setSaving: mockSetSaving,
     setAdjusting: mockSetAdjusting,
     setArchiving: mockSetArchiving,
     setConfirmingBalanceReview: mockSetConfirmingBalanceReview,
@@ -269,12 +253,10 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
 function mockDetailState(overrides: Partial<DetailStateMock> = {}) {
   const store = createDetailStore(overrides);
   attachMockSelectorStore(useAccountDetailState as unknown as jest.Mock, () => store);
-  return store;
 }
 
 function setup() {
   jest.clearAllMocks();
-  mockAddListener.mockReturnValue(jest.fn());
   mockRetry.mockReturnValue(Promise.resolve());
   mockSlotEnsure.mockReturnValue(Promise.resolve());
   mockSlotRetry.mockReturnValue(Promise.resolve());
@@ -301,10 +283,8 @@ describe('useAccountDetail', () => {
   it('returns local UI state as plain booleans', async () => {
     const { result } = await renderHook(() => useAccountDetail());
 
-    expect(result.current.state.isEditing).toBe(false);
     expect(result.current.state.isAdjustVisible).toBe(false);
     expect(result.current.state.isArchiveVisible).toBe(false);
-    expect(result.current.state.isSaving).toBe(false);
     expect(result.current.state.isAdjusting).toBe(false);
     expect(result.current.state.isArchiving).toBe(false);
     expect(result.current.state.isConfirmingBalanceReview).toBe(false);
@@ -313,7 +293,6 @@ describe('useAccountDetail', () => {
 
   it('exposes the handler surface the screen consumes', async () => {
     const { result } = await renderHook(() => useAccountDetail());
-    expect(typeof result.current.handleSave).toBe('function');
     expect(typeof result.current.handleAdjustBalance).toBe('function');
     expect(typeof result.current.handleArchive).toBe('function');
     expect(typeof result.current.handleConfirmBalanceReviewed).toBe('function');
@@ -382,80 +361,6 @@ describe('useAccountDetail', () => {
     expect(mockSetAdjustVisible).not.toHaveBeenCalledWith(false);
     // `finally` still runs, so the Save Balance button must not stay spinning.
     expect(mockSetAdjusting).toHaveBeenLastCalledWith(false);
-  });
-
-  it('closes the edit and pops to the list when the update landed and the reload failed', async () => {
-    mockAccounts([mkAccount()]);
-    mockUpdateAccount.mockImplementationOnce(async () => {
-      accountLoadError = true;
-    });
-    const { result } = await renderHook(() => useAccountDetail());
-
-    await act(() => result.current.handleSave());
-
-    expect(mockUpdateAccount).toHaveBeenCalledWith('acc-1', {
-      name: 'CIB',
-      color: '#1B2B4B',
-      credit_limit: null,
-      minimum_payment: null,
-      statement_due_day: null,
-      interest_tracking: 0,
-      apr: null,
-    });
-    expect(mockSetEditing).toHaveBeenCalledWith(false);
-    expect(mockSetEditing.mock.invocationCallOrder.at(-1)).toBeLessThan(
-      mockDismissTo.mock.invocationCallOrder[0] ?? 0,
-    );
-    expect(mockDismissTo.mock.calls).toEqual([['/accounts']]);
-    expect(mockSetSaving).toHaveBeenLastCalledWith(false);
-    expect(mockBack).not.toHaveBeenCalled();
-  });
-
-  it("the inline name and colour save passes a card's stored credit values through unchanged", async () => {
-    mockAccounts([
-      mkAccount({
-        type: AccountType.CreditCard,
-        credit_limit: 5000,
-        minimum_payment: 500,
-        statement_due_day: 15,
-        interest_tracking: 1,
-        apr: 24.99,
-      }),
-    ]);
-    mockUpdateAccount.mockResolvedValue(undefined);
-    const { result } = await renderHook(() => useAccountDetail());
-
-    await act(() => result.current.handleSave());
-
-    expect(mockUpdateAccount.mock.calls).toEqual([
-      [
-        'acc-1',
-        {
-          name: 'CIB',
-          color: '#1B2B4B',
-          credit_limit: 5000,
-          minimum_payment: 500,
-          statement_due_day: 15,
-          interest_tracking: 1,
-          apr: 24.99,
-        },
-      ],
-    ]);
-  });
-
-  it('keeps the edit open and stays on the screen when the update rejects', async () => {
-    const failure = new Error('db write failed');
-    mockAccounts([mkAccount()]);
-    mockUpdateAccount.mockRejectedValue(failure);
-    const { result } = await renderHook(() => useAccountDetail());
-
-    await act(async () => {
-      await expect(result.current.handleSave()).rejects.toBe(failure);
-    });
-
-    expect(mockSetEditing).not.toHaveBeenCalledWith(false);
-    expect(mockDismissTo).not.toHaveBeenCalled();
-    expect(mockSetSaving).toHaveBeenLastCalledWith(false);
   });
 
   it('closes the adjust sheet and pops to the list when the adjustment landed and the reload failed', async () => {
@@ -549,14 +454,12 @@ describe('useAccountDetail', () => {
     expect(mockArchiveAccount).not.toHaveBeenCalled();
   });
 
-  it('Back pops the detail even while the unreachable inline edit is on', async () => {
-    mockDetailState({ isEditing: true });
+  it('Back pops the detail', async () => {
     const { result } = await renderHook(() => useAccountDetail());
 
     await act(() => result.current.onBack());
 
     expect(mockBack).toHaveBeenCalledTimes(1);
-    expect(mockSetEditing).not.toHaveBeenCalled();
   });
 
   it('Edit pushes the edit screen for this account', async () => {
@@ -566,21 +469,6 @@ describe('useAccountDetail', () => {
     await act(() => result.current.goToEdit());
 
     expect(mockPush).toHaveBeenCalledWith('/accounts/acc-1/edit');
-    expect(mockSetEditing).not.toHaveBeenCalled();
-  });
-
-  it('prevents navigation removal while editing and exits edit mode', async () => {
-    mockDetailState({ isEditing: true });
-    const preventDefault = jest.fn();
-
-    await renderHook(() => useAccountDetail());
-    const beforeRemoveHandler = mockAddListener.mock.calls.find(
-      ([event]) => event === 'beforeRemove',
-    )?.[1];
-    beforeRemoveHandler?.({ preventDefault });
-
-    expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(mockSetEditing).toHaveBeenCalledWith(false);
   });
 
   it('loads the activity on focus, stamped with the current mutation version', async () => {
@@ -666,22 +554,6 @@ describe('useAccountDetail', () => {
 
     expect(mockPush).toHaveBeenCalledWith('/stacked/transactions/detail/tx-9');
     expect(mockNavigate).not.toHaveBeenCalled();
-  });
-
-  it('reads latest edit state when a registered beforeRemove handler fires later', async () => {
-    const store = mockDetailState({ isEditing: false });
-    const preventDefault = jest.fn();
-
-    await renderHook(() => useAccountDetail());
-    const beforeRemoveHandler = mockAddListener.mock.calls.find(
-      ([event]) => event === 'beforeRemove',
-    )?.[1];
-
-    store.isEditing = true;
-    beforeRemoveHandler?.({ preventDefault });
-
-    expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(mockSetEditing).toHaveBeenCalledWith(false);
   });
 });
 

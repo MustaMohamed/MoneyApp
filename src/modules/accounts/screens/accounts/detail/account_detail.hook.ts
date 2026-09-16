@@ -1,4 +1,4 @@
-import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -11,15 +11,12 @@ import { useTransactionsScreenStore } from '@/modules/transactions/screens/trans
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { resolveAccountName } from '@/utils/account_name';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
-import { useZodForm } from '@/utils/use_zod_form.hook';
 import { currentYearMonth } from '@/utils/year_month';
 
-import { DEFAULT_ACCOUNT_COLOR } from '../../../constants/account_palette';
 import { AccountNameTakenError } from '../../../repositories/account.errors';
 import type { AccountActivityLoadInput } from '../../../repositories/account_activity.repository';
 import type { ArchivedAccountDetailLoadInput } from '../../../repositories/archived_account_detail.repository';
 import { useAccountStore } from '../../../store/account.store';
-import { createEditAccountSchema } from '../../../utils/edit_account.schema';
 import { useAccountActivityStore } from './account_activity.store';
 import { resolveViewState } from './account_detail.helpers';
 import { useAccountDetailState } from './account_detail.state';
@@ -37,21 +34,17 @@ const editAccountRoute = (accountId: string): `/accounts/${string}/edit` =>
 export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const navigation = useNavigation();
   const { toast } = useToast();
 
   const accounts = useAccountStore((s) => s.accounts);
-  const updateAccount = useAccountStore.getState().updateAccount;
   const archiveAccount = useAccountStore.getState().archiveAccount;
   const unarchiveAccount = useAccountStore.getState().unarchiveAccount;
   const deleteAccount = useAccountStore.getState().deleteAccount;
   const adjustBalance = useAccountStore.getState().adjustBalance;
   const confirmBalanceReviewed = useAccountStore.getState().confirmBalanceReviewed;
   const {
-    isEditing,
     isAdjustVisible,
     isArchiveVisible,
-    isSaving,
     isAdjusting,
     isArchiving,
     isConfirmingBalanceReview,
@@ -64,10 +57,8 @@ export function useAccountDetail() {
     deleteError,
   } = useAccountDetailState(
     useShallow((s) => ({
-      isEditing: s.isEditing,
       isAdjustVisible: s.isAdjustVisible,
       isArchiveVisible: s.isArchiveVisible,
-      isSaving: s.isSaving,
       isAdjusting: s.isAdjusting,
       isArchiving: s.isArchiving,
       isConfirmingBalanceReview: s.isConfirmingBalanceReview,
@@ -80,10 +71,8 @@ export function useAccountDetail() {
       deleteError: s.deleteError,
     })),
   );
-  const setEditing = useAccountDetailState.getState().setEditing;
   const setAdjustVisible = useAccountDetailState.getState().setAdjustVisible;
   const setArchiveVisible = useAccountDetailState.getState().setArchiveVisible;
-  const setSaving = useAccountDetailState.getState().setSaving;
   const setAdjusting = useAccountDetailState.getState().setAdjusting;
   const setArchiving = useAccountDetailState.getState().setArchiving;
   const setConfirmingBalanceReview = useAccountDetailState.getState().setConfirmingBalanceReview;
@@ -114,16 +103,6 @@ export function useAccountDetail() {
     },
     [reset],
   );
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      const currentState = useAccountDetailState.getState();
-      if (!currentState.isEditing) return;
-      e.preventDefault();
-      currentState.setEditing(false);
-    });
-    return unsubscribe;
-  }, [navigation]);
 
   const account = accounts.find((a) => a.id === id);
   const replacementOptions = accounts;
@@ -219,46 +198,10 @@ export function useAccountDetail() {
     [account, activitySnapshot, id],
   );
 
-  const editSchema = useMemo(() => createEditAccountSchema(accounts, id), [accounts, id]);
-
-  const form = useZodForm(editSchema, {
-    defaultValues: {
-      name: account?.name ?? '',
-      color: account?.color ?? DEFAULT_ACCOUNT_COLOR,
-    },
-  });
-
-  useEffect(() => {
-    if (account) {
-      form.reset({ name: account.name, color: account.color ?? DEFAULT_ACCOUNT_COLOR });
-    }
-  }, [account, form]);
-
   // Nothing on the active detail reads `loadError`, so a landed write over a failed reload pops to the list that does.
   const popIfReloadFailed = () => {
     if (useAccountStore.getState().loadError) router.dismissTo(ACCOUNTS_LIST);
   };
-
-  const handleSave = form.handleSubmit(async (data) => {
-    if (!id || !account) return;
-    setSaving(true);
-    try {
-      await updateAccount(id, {
-        name: data.name.trim(),
-        color: data.color,
-        credit_limit: account.credit_limit,
-        minimum_payment: account.minimum_payment,
-        statement_due_day: account.statement_due_day,
-        interest_tracking: account.interest_tracking,
-        apr: account.apr,
-      });
-    } finally {
-      setSaving(false);
-    }
-    // Before the pop: `beforeRemove` cancels a removal while editing.
-    setEditing(false);
-    popIfReloadFailed();
-  });
 
   const handleAdjustBalance = async (newBalance: number) => {
     if (!id) return;
@@ -424,10 +367,8 @@ export function useAccountDetail() {
       account,
       viewState,
       archived,
-      isEditing,
       isAdjustVisible,
       isArchiveVisible,
-      isSaving,
       isAdjusting,
       isArchiving,
       isConfirmingBalanceReview,
@@ -442,9 +383,6 @@ export function useAccountDetail() {
       hasReplacementAccount,
       activity: { status: activityStatus, rows: activityRows, monthFacts },
     },
-    form,
-    setEditing,
-    handleSave,
     setAdjustVisible,
     handleAdjustBalance,
     setArchiveVisible,
