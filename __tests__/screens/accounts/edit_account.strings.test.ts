@@ -26,3 +26,20 @@ describe('edit account copy (D1, F3)', () => {
     expect(Strings.accountTypeLabel).toBe('Account type');
   });
 });
+
+describe('shared credit copy (D2, D3)', () => {
+  it('ships the due-day helper and its range error byte-exact', () => {
+    expect(Strings.accountDueDayHelper).toBe('Day of the month, 1 to 31.');
+    expect(Strings.errDueDayRange).toBe('Between 1 and 31.');
+  });
+
+  it('ships the interest helper byte-exact', () => {
+    expect(Strings.accountInterestHelper).toBe(
+      'Estimate interest from the APR on the revolving balance.',
+    );
+  });
+
+  it('suffixes APR with a percent sign', () => {
+    expect(Strings.accountAprSuffix).toBe('%');
+  });
+});

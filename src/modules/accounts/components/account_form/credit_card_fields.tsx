@@ -5,6 +5,8 @@ import { Controller, useWatch, type Control, type UseFormReturn } from 'react-ho
 import { Box } from '@/components/ui/box';
 import { FormLabelText } from '@/components/ui/form_label_text';
 import { Input } from '@/components/ui/input';
+import { CURRENCY_CONFIG } from '@/constants/currency';
+import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 
@@ -13,12 +15,37 @@ import { FieldMessageRail } from './field_message_rail';
 
 export interface CreditCardFieldsProps<T extends CreditFieldValues> {
   form: UseFormReturn<T>;
+  /** Suffixes the two money fields with its code and APR with `%`. */
+  currency?: Currency;
+  /** Drops the limit, minimum and APR helpers and reserves their error lines instead. */
+  hideHelpers?: boolean;
 }
 
-export function CreditCardFields<T extends CreditFieldValues>({ form }: CreditCardFieldsProps<T>) {
+/** `InputGroup.Suffix` does not auto-wrap children; a bare string crashes without `Typography`. */
+function FieldSuffix({ text }: { text: string }) {
+  return (
+    <Typography
+      className="font-sora text-content-secondary"
+      style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+    >
+      {text}
+    </Typography>
+  );
+}
+
+export function CreditCardFields<T extends CreditFieldValues>({
+  form,
+  currency,
+  hideHelpers,
+}: CreditCardFieldsProps<T>) {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- T extends CreditFieldValues, so every field name this file uses exists on the form
   const control = form.control as unknown as Control<CreditFieldValues>;
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
+  const moneySuffix = currency ? <FieldSuffix text={CURRENCY_CONFIG[currency].code} /> : undefined;
+  const aprSuffix = currency ? <FieldSuffix text={Strings.accountAprSuffix} /> : undefined;
+  // Credit limit faults wrap to two lines in a half-width cell; APR faults fit one at full width.
+  const moneyReserve = hideHelpers ? 2 : undefined;
+  const aprReserve = hideHelpers ? 1 : undefined;
 
   return (
     <>
@@ -36,13 +63,15 @@ export function CreditCardFields<T extends CreditFieldValues>({ form }: CreditCa
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
                 accessibilityLabel={Strings.accountCreditLimitLabel}
+                suffix={moneySuffix}
               />
             )}
           />
           <FieldMessageRail
             control={control}
             name="credit_limit"
-            helper={Strings.accountCreditLimitHelper}
+            helper={hideHelpers ? undefined : Strings.accountCreditLimitHelper}
+            reserveErrorLines={moneyReserve}
           />
         </Box>
         <Box style={{ flex: 1 }}>
@@ -58,13 +87,15 @@ export function CreditCardFields<T extends CreditFieldValues>({ form }: CreditCa
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
                 accessibilityLabel={Strings.accountMinPaymentLabel}
+                suffix={moneySuffix}
               />
             )}
           />
           <FieldMessageRail
             control={control}
             name="min_payment"
-            helper={Strings.accountMinPaymentHelper}
+            helper={hideHelpers ? undefined : Strings.accountMinPaymentHelper}
+            reserveErrorLines={moneyReserve}
           />
         </Box>
       </Box>
@@ -135,10 +166,16 @@ export function CreditCardFields<T extends CreditFieldValues>({ form }: CreditCa
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
                 accessibilityLabel={Strings.accountAprLabel}
+                suffix={aprSuffix}
               />
             )}
           />
-          <FieldMessageRail control={control} name="apr" helper={Strings.accountAprHelper} />
+          <FieldMessageRail
+            control={control}
+            name="apr"
+            helper={hideHelpers ? undefined : Strings.accountAprHelper}
+            reserveErrorLines={aprReserve}
+          />
         </Box>
       ) : null}
     </>

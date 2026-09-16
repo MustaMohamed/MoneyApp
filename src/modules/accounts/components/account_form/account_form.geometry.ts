@@ -14,6 +14,21 @@ export const FIELD_MESSAGE_RAIL_STYLE = {
 /** Unscaled, matching HeroUI `FieldError`'s own 20pt line-height so the rail cannot shift. */
 export const FIELD_MESSAGE_TEXT_LINE_HEIGHT = 20;
 
+/** A helperless rail reserves its error's lines, so the rows below stay put when one lands. */
+export function fieldMessageRailStyle(reserveErrorLines?: 1 | 2): {
+  minHeight: number;
+  paddingTop: number;
+} {
+  if (reserveErrorLines === undefined) return FIELD_MESSAGE_RAIL_STYLE;
+  return {
+    ...FIELD_MESSAGE_RAIL_STYLE,
+    minHeight: Math.max(
+      Size.fieldMessageTrack,
+      Size.fieldRailTextInset + reserveErrorLines * FIELD_MESSAGE_TEXT_LINE_HEIGHT,
+    ),
+  };
+}
+
 /** Error-state alert glyph — mockup `.msg svg`: 13px box, 2px top inset, 5px gap (mockup.html:559-560). */
 export const FIELD_MESSAGE_GLYPH = {
   size: ms(13),

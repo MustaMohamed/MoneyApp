@@ -25,13 +25,13 @@ const card = makeTestAccount({
 });
 
 describe('buildEditAccountDraft', () => {
-  it('drafts a card past EGP display decimals as the stored number', () => {
+  it('drafts the limit and the minimum at two decimals, APR and due day as stored', () => {
     expect(buildEditAccountDraft(card)).toEqual({
       name: 'CIB Visa',
       color: '#1B2B4B',
       interest_tracking: true,
-      credit_limit: '1500.5',
-      min_payment: '200',
+      credit_limit: '1,500.50',
+      min_payment: '200.00',
       due_day: '15',
       apr: '24.5',
     });
@@ -51,8 +51,21 @@ describe('buildEditAccountDraft', () => {
     });
   });
 
-  it('drafts a whole amount with no grouping and no decimals', () => {
-    expect(buildEditAccountDraft({ ...card, credit_limit: 8450 }).credit_limit).toBe('8450');
+  it('drafts a whole limit grouped at two decimals', () => {
+    expect(buildEditAccountDraft({ ...card, credit_limit: 8450 }).credit_limit).toBe('8,450.00');
+  });
+
+  it('drafts a card with no minimum as an empty minimum', () => {
+    expect(buildEditAccountDraft({ ...card, minimum_payment: null }).min_payment).toBe('');
+  });
+
+  it('round-trips a grouped 8,450.00 limit back to 8450', () => {
+    const wholeLimit = { ...card, credit_limit: 8450 };
+    const parsed = createEditAccountFormSchema([wholeLimit], [], wholeLimit).parse(
+      buildEditAccountDraft(wholeLimit),
+    );
+
+    expect(toUpdateAccountInput(parsed, wholeLimit).credit_limit).toBe(8450);
   });
 
   it('drafts every empty credit column as empty text with tracking off', () => {

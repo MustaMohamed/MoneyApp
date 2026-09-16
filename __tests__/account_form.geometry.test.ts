@@ -8,6 +8,8 @@ import {
   CURRENCY_CELL_WIDTH,
   CURRENCY_SEGMENT_WIDTH,
   FIELD_MESSAGE_RAIL_STYLE,
+  FIELD_MESSAGE_TEXT_LINE_HEIGHT,
+  fieldMessageRailStyle,
   resolveBalanceField,
 } from '@/modules/accounts/components/account_form/account_form.geometry';
 import { TYPE_OPTIONS } from '@/modules/accounts/components/account_type_pill';
@@ -25,6 +27,30 @@ describe('FIELD_MESSAGE_RAIL_STYLE', () => {
 
   it('is never smaller than one --text-sm line at base font scale', () => {
     expect(FIELD_MESSAGE_RAIL_STYLE.minHeight).toBeGreaterThanOrEqual(20);
+  });
+});
+
+describe('fieldMessageRailStyle', () => {
+  it('returns the shared rail style itself when no error lines are reserved', () => {
+    expect(fieldMessageRailStyle()).toBe(FIELD_MESSAGE_RAIL_STYLE);
+  });
+
+  it('reserves one error line as a floor, never a height', () => {
+    const style = fieldMessageRailStyle(1);
+
+    expect(style.minHeight).toBe(
+      Math.max(Size.fieldMessageTrack, Size.fieldRailTextInset + FIELD_MESSAGE_TEXT_LINE_HEIGHT),
+    );
+    expect(style.paddingTop).toBe(Size.fieldRailTextInset);
+    expect('height' in style).toBe(false);
+  });
+
+  it('reserves two error lines above the one-line floor, never a height', () => {
+    const style = fieldMessageRailStyle(2);
+
+    expect(style.minHeight).toBe(Size.fieldRailTextInset + 2 * FIELD_MESSAGE_TEXT_LINE_HEIGHT);
+    expect(style.minHeight).toBeGreaterThan(fieldMessageRailStyle(1).minHeight);
+    expect('height' in style).toBe(false);
   });
 });
 

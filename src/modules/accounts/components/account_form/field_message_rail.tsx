@@ -16,25 +16,27 @@ import { Colors, Type } from '@/constants/theme';
 
 import {
   FIELD_MESSAGE_GLYPH,
-  FIELD_MESSAGE_RAIL_STYLE,
   FIELD_MESSAGE_TEXT_LINE_HEIGHT,
+  fieldMessageRailStyle,
 } from './account_form.geometry';
 
 export interface FieldMessageRailProps<T extends FieldValues> {
   control: Control<T>;
   name: FieldPath<T>;
   helper?: string;
+  reserveErrorLines?: 1 | 2;
 }
 
 export interface FieldMessageTrackProps {
   error?: string;
   helper?: string;
+  reserveErrorLines?: 1 | 2;
 }
 
 /** Holds a fixed message track, so helper and error copy swap without shifting anything. */
-export function FieldMessageTrack({ error, helper }: FieldMessageTrackProps) {
+export function FieldMessageTrack({ error, helper, reserveErrorLines }: FieldMessageTrackProps) {
   return (
-    <Box style={FIELD_MESSAGE_RAIL_STYLE} accessibilityLiveRegion="polite">
+    <Box style={fieldMessageRailStyle(reserveErrorLines)} accessibilityLiveRegion="polite">
       {error ? (
         <Box
           style={{
@@ -76,10 +78,17 @@ export function FieldMessageRail<T extends FieldValues>({
   control,
   name,
   helper,
+  reserveErrorLines,
 }: FieldMessageRailProps<T>) {
   const { errors } = useFormState({ control, name });
   // oxlint-disable-next-line typescript/no-unsafe-assignment -- RHF's `get` returns any; `errors` at a field path holds a FieldError
   const fieldError: FieldError | undefined = get(errors, name);
 
-  return <FieldMessageTrack error={fieldError?.message} helper={helper} />;
+  return (
+    <FieldMessageTrack
+      error={fieldError?.message}
+      helper={helper}
+      reserveErrorLines={reserveErrorLines}
+    />
+  );
 }
