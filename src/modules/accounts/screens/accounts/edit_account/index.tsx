@@ -25,11 +25,8 @@ import {
   FieldMessageRail,
   FieldMessageTrack,
 } from '../../../components/account_form/field_message_rail';
+import { LockedField } from './components/locked_field';
 import { useEditAccount } from './edit_account.hook';
-
-// HeroUI's disabled field only halves its opacity; D1's read-only box is surface, separator border and 70% text, fully opaque.
-const LOCKED_FIELD_CLASS =
-  'bg-surface border-separator android:border-separator text-foreground/70 disabled:opacity-100';
 
 // An empty rail is shorter than a one-line error, so the helperless name rail reserves the error's height.
 const NAME_RAIL_MIN_HEIGHT = Math.max(
@@ -105,37 +102,28 @@ export default function EditAccountScreen() {
 
         <Box className="pt-1" style={{ flexDirection: 'row', gap: Spacing.xs }}>
           <Box style={{ flex: 1 }}>
-            <FormLabelText label={Strings.editAccountTypeLabel} />
-            <Input
+            <LockedField
+              label={Strings.editAccountTypeLabel}
               value={ACCOUNT_TYPE_LABELS[account.type]}
-              isDisabled
-              className={LOCKED_FIELD_CLASS}
-              accessibilityLabel={Strings.editAccountTypeLabel}
               suffix={LOCK_GLYPH}
+              helper={isCreditCard ? undefined : Strings.editAccountTypeHelper}
             />
-            <FieldMessageTrack helper={isCreditCard ? undefined : Strings.editAccountTypeHelper} />
           </Box>
           <Box style={{ flex: 1 }}>
-            <FormLabelText label={Strings.accountCurrencyLabel} />
-            <Input
+            <LockedField
+              label={Strings.accountCurrencyLabel}
               value={account.currency}
-              isDisabled
-              className={LOCKED_FIELD_CLASS}
-              accessibilityLabel={Strings.accountCurrencyLabel}
               suffix={LOCK_GLYPH}
             />
-            <FieldMessageTrack />
           </Box>
         </Box>
 
         {isCreditCard ? null : (
           <Box className="pt-1">
-            <FormLabelText label={Strings.accountBalanceLabel} />
-            <Input
+            <LockedField
+              label={Strings.accountBalanceLabel}
               value={formatCurrencyParts(account.opening_balance, account.currency).value}
-              isDisabled
-              className={LOCKED_FIELD_CLASS}
-              accessibilityLabel={Strings.accountBalanceLabel}
+              helper={Strings.editAccountBalanceHelper}
               suffix={
                 <Box style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
                   <Typography
@@ -148,7 +136,6 @@ export default function EditAccountScreen() {
                 </Box>
               }
             />
-            <FieldMessageTrack helper={Strings.editAccountBalanceHelper} />
           </Box>
         )}
       </ScreenScroll>
