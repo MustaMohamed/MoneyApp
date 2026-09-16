@@ -3,9 +3,11 @@ import {
   AccountFormMappingError,
   createAccountFormDefaults,
   toNewAccountInput,
+  toUpdateAccountInput,
 } from '@/modules/accounts/components/account_form/account_form.helpers';
 import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_palette';
 import type { AddAccountFormData } from '@/modules/accounts/utils/add_account.schema';
+import type { EditAccountFormData } from '@/modules/accounts/utils/edit_account.schema';
 
 const baseData = (overrides: Partial<AddAccountFormData> = {}): AddAccountFormData => ({
   name: 'CIB Savings',
@@ -419,5 +421,82 @@ describe('createAccountFormDefaults', () => {
     expect(defaults.min_payment).toBe('');
     expect(defaults.due_day).toBe('');
     expect(defaults.interest_tracking).toBe(false);
+  });
+});
+
+describe('toUpdateAccountInput', () => {
+  const card = { type: AccountType.CreditCard };
+  const editData = (overrides: Partial<EditAccountFormData> = {}): EditAccountFormData => ({
+    name: 'CIB Visa',
+    color: DEFAULT_ACCOUNT_COLOR,
+    interest_tracking: false,
+    credit_limit: '5,000',
+    apr: '',
+    min_payment: '',
+    due_day: '',
+    ...overrides,
+  });
+
+  it.each([
+    ['5,000.005', 5000],
+    ['5,000.015', 5000.02],
+  ])('credit limit %p → %p, half-even at 2dp', (credit_limit, expected) => {
+    expect(toUpdateAccountInput(editData({ credit_limit }), card).credit_limit).toBe(expected);
+  });
+
+  it("min payment '  7  ' → 7 and due day '15' → 15", () => {
+    const result = toUpdateAccountInput(editData({ min_payment: '  7  ', due_day: '15' }), card);
+    expect(result.minimum_payment).toBe(7);
+    expect(result.statement_due_day).toBe(15);
+  });
+
+  it.each([
+    ['24.995', 25],
+    ['24.985', 24.98],
+  ])('tracking on with APR %p → %p', (apr, expected) => {
+    const result = toUpdateAccountInput(editData({ interest_tracking: true, apr }), card);
+    expect(result.interest_tracking).toBe(1);
+    expect(result.apr).toBe(expected);
+  });
+
+  it('tracking off with an APR typed → tracking 0 and APR null in the same object', () => {
+    const result = toUpdateAccountInput(editData({ interest_tracking: false, apr: '24.99' }), card);
+    expect(result.interest_tracking).toBe(0);
+    expect(result.apr).toBeNull();
+  });
+
+  it('a Bank account with every credit field filled and tracking on → the five credit columns empty', () => {
+    const data = editData({
+      credit_limit: '5,000',
+      min_payment: '200',
+      due_day: '15',
+      interest_tracking: true,
+      apr: '24.99',
+    });
+    expect(toUpdateAccountInput(data, { type: AccountType.Bank })).toMatchObject({
+      credit_limit: null,
+      minimum_payment: null,
+      statement_due_day: null,
+      interest_tracking: 0,
+      apr: null,
+    });
+  });
+
+  it('trims the name and passes the colour through', () => {
+    const result = toUpdateAccountInput(editData({ name: '  CIB Visa  ', color: '#5BA597' }), card);
+    expect(result.name).toBe('CIB Visa');
+    expect(result.color).toBe('#5BA597');
+  });
+
+  it('returns exactly the seven update keys, never a balance', () => {
+    expect(Object.keys(toUpdateAccountInput(editData(), card)).sort()).toEqual([
+      'apr',
+      'color',
+      'credit_limit',
+      'interest_tracking',
+      'minimum_payment',
+      'name',
+      'statement_due_day',
+    ]);
   });
 });
