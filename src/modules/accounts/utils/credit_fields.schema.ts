@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { Strings } from '@/constants/strings';
 import {
@@ -7,13 +7,16 @@ import {
   parsePositiveDecimal,
 } from '@/utils/parse_decimal';
 
-export type CreditFieldValues = {
-  interest_tracking: boolean;
-  credit_limit?: string;
-  apr?: string;
-  min_payment?: string;
-  due_day?: string;
+/** The five credit fields, spread into the add and the edit form object. */
+export const creditFieldsShape = {
+  interest_tracking: z.boolean(),
+  credit_limit: z.string().optional(),
+  apr: z.string().optional(),
+  min_payment: z.string().optional(),
+  due_day: z.string().optional(),
 };
+
+export type CreditFieldValues = z.infer<z.ZodObject<typeof creditFieldsShape>>;
 
 /** The one credit-field check behind the add and the edit schema; only the comparand differs. */
 export function addCreditFieldIssues(

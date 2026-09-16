@@ -7,7 +7,7 @@ import { isBlankName } from '@/utils/strip_format_chars';
 
 import type { Account } from '../store/account.store';
 import { isAccountNameTaken } from './account_name_taken';
-import { addCreditFieldIssues } from './credit_fields.schema';
+import { addCreditFieldIssues, creditFieldsShape } from './credit_fields.schema';
 
 export function createAddAccountSchema(accounts: Account[]) {
   return z
@@ -27,11 +27,7 @@ export function createAddAccountSchema(accounts: Account[]) {
       selected_type: z.enum(AccountType),
       selected_color: z.string(),
       currency: z.enum(Currency),
-      interest_tracking: z.boolean(),
-      credit_limit: z.string().optional(),
-      apr: z.string().optional(),
-      min_payment: z.string().optional(),
-      due_day: z.string().optional(),
+      ...creditFieldsShape,
     })
     .superRefine((data, ctx) => {
       if (!isBlankName(data.name) && isAccountNameTaken(accounts, data.name)) {
