@@ -253,7 +253,6 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
 function mockDetailState(overrides: Partial<DetailStateMock> = {}) {
   const store = createDetailStore(overrides);
   attachMockSelectorStore(useAccountDetailState as unknown as jest.Mock, () => store);
-  return store;
 }
 
 function setup() {
