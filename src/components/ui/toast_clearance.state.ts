@@ -19,7 +19,6 @@ export const useToastClearanceState = create<ToastClearanceState>((set) => ({
   reset: () => set(INITIAL_STATE),
 }));
 
-// The install/remove pair a focus effect returns: publish now, clear on blur.
 export function holdToastClearance(px: number): () => void {
   const { publish, clear } = useToastClearanceState.getState();
   publish(px);
