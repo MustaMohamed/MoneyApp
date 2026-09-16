@@ -41,10 +41,16 @@ export type NewAccountInput = Omit<
   | 'balance_review_required'
 >;
 
-export type UpdateAccountInput = {
-  name: string;
-  color: string | null;
-};
+export type UpdateAccountInput = Pick<
+  Account,
+  | 'name'
+  | 'color'
+  | 'credit_limit'
+  | 'minimum_payment'
+  | 'statement_due_day'
+  | 'interest_tracking'
+  | 'apr'
+>;
 
 export interface IAccountRepository {
   getAll(): Promise<Account[]>;

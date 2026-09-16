@@ -1,16 +1,20 @@
 import Database from 'better-sqlite3';
 
-import { AccountType, Currency } from '@/constants/enums';
+import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
+import { addAccount } from '@/modules/accounts/database/accounts';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   AccountArchivedError,
   AccountNotFoundError,
 } from '@/modules/accounts/repositories/account.errors';
 import { parseAdjustInput } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
+import { insertTransactionRow } from '@/modules/transactions/database/transactions';
 import { AccountRepository } from '@/repositories/account.repository';
-import type { NewAccountInput } from '@/repositories/account.repository';
+import type { NewAccountInput, UpdateAccountInput } from '@/repositories/account.repository';
 import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
+import { makeTestAccount, makeTestTransaction } from '@/test_helpers/transaction';
 
 const sqlite = getExpoSQLiteTestDatabase();
 let realDb: ReturnType<typeof Database>;
@@ -26,6 +30,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  realDb.exec('DELETE FROM transactions');
   realDb.exec('DELETE FROM accounts');
 });
 
@@ -169,11 +174,99 @@ describe('AccountRepository.add color — TC-11', () => {
 });
 
 describe('AccountRepository.update — TC-M15-01', () => {
+  const CARD_ID = 'card-1';
+  const PAYMENT_ID = 'payment-1';
+  const NO_CREDIT = {
+    credit_limit: null,
+    minimum_payment: null,
+    statement_due_day: null,
+    interest_tracking: 0,
+    apr: null,
+  } as const;
+
+  async function seedCardWithPayment(card: Partial<Account> = {}): Promise<void> {
+    await addAccount(
+      sqlite.database,
+      makeTestAccount({
+        id: CARD_ID,
+        name: 'CIB Visa',
+        type: AccountType.CreditCard,
+        opening_balance: 8450,
+        current_balance: 4300,
+        revolving_balance: 1200,
+        credit_limit: 5000,
+        minimum_payment: 500,
+        statement_due_day: 15,
+        interest_tracking: 1,
+        apr: 24.99,
+        ...card,
+      }),
+    );
+    await addAccount(
+      sqlite.database,
+      makeTestAccount({ id: 'bank-1', name: 'CIB', type: AccountType.Bank }),
+    );
+    await insertTransactionRow(
+      sqlite.database,
+      makeTestTransaction({
+        id: PAYMENT_ID,
+        type: TransactionType.CCPayment,
+        account_id: 'bank-1',
+        to_account_id: CARD_ID,
+        category_id: null,
+        minimum_payment_snapshot: 500,
+      }),
+    );
+  }
+
+  const readCard = () =>
+    realDb.prepare('SELECT * FROM accounts WHERE id = ?').get(CARD_ID) as Record<string, unknown>;
+
+  it('writes name, colour and the five credit columns, and leaves every other column and a payment snapshot as they were', async () => {
+    await seedCardWithPayment();
+    const before = readCard();
+    const change: UpdateAccountInput = {
+      name: 'After',
+      color: '#3D7A5F',
+      credit_limit: 7000,
+      minimum_payment: 700,
+      statement_due_day: 20,
+      interest_tracking: 0,
+      apr: null,
+    };
+
+    await repo.update(CARD_ID, change);
+
+    const after = readCard();
+    expect(after).toEqual({ ...before, ...change, updated_at: after.updated_at });
+    expect(after.updated_at).not.toBe(before.updated_at);
+    const payment = realDb
+      .prepare('SELECT minimum_payment_snapshot FROM transactions WHERE id = ?')
+      .get(PAYMENT_ID) as { minimum_payment_snapshot: number };
+    expect(payment.minimum_payment_snapshot).toBe(500);
+  });
+
+  it('tracking on with an APR writes interest_tracking 1 and the APR', async () => {
+    await seedCardWithPayment({ interest_tracking: 0, apr: null });
+
+    await repo.update(CARD_ID, {
+      name: 'CIB Visa',
+      color: null,
+      credit_limit: 5000,
+      minimum_payment: 500,
+      statement_due_day: 15,
+      interest_tracking: 1,
+      apr: 24.99,
+    });
+
+    expect(readCard()).toMatchObject({ interest_tracking: 1, apr: 24.99 });
+  });
+
   it('updates name and color', async () => {
     await repo.add({ ...baseInput, name: 'Before' });
     const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
 
-    await repo.update(id, { name: 'After', color: '#3D7A5F' });
+    await repo.update(id, { name: 'After', color: '#3D7A5F', ...NO_CREDIT });
 
     const row = realDb.prepare('SELECT name, color FROM accounts WHERE id = ?').get(id) as {
       name: string;
@@ -193,7 +286,7 @@ describe('AccountRepository.update — TC-M15-01', () => {
     ).updated_at;
 
     await new Promise((r) => setTimeout(r, 10));
-    await repo.update(id, { name: 'X', color: null });
+    await repo.update(id, { name: 'X', color: null, ...NO_CREDIT });
 
     const after = (
       realDb.prepare('SELECT updated_at FROM accounts WHERE id = ?').get(id) as {

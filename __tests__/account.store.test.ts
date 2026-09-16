@@ -5,7 +5,11 @@ import {
   EMPTY_ACCOUNT_LOOKUP,
   EMPTY_ACCOUNTS,
 } from '@/modules/accounts/store/account.store';
-import type { IAccountRepository, NewAccountInput } from '@/repositories/account.repository';
+import type {
+  IAccountRepository,
+  NewAccountInput,
+  UpdateAccountInput,
+} from '@/repositories/account.repository';
 
 const mockAccount: Account = {
   id: 'test-id',
@@ -506,17 +510,27 @@ describe('accountStore.addAccount', () => {
 });
 
 describe('accountStore.updateAccount', () => {
-  it('delegates to repo.update with id and data', async () => {
+  const change: UpdateAccountInput = {
+    name: 'New Name',
+    color: '#C9973A',
+    credit_limit: 7000,
+    minimum_payment: 700,
+    statement_due_day: 20,
+    interest_tracking: 1,
+    apr: 24.99,
+  };
+
+  it('delegates to repo.update with id and exactly the seven-field payload', async () => {
     const repo = makeRepo();
     const store = createAccountStore(repo);
-    await store.getState().updateAccount('test-id', { name: 'New Name', color: '#C9973A' });
-    expect(repo.update).toHaveBeenCalledWith('test-id', { name: 'New Name', color: '#C9973A' });
+    await store.getState().updateAccount('test-id', change);
+    expect(jest.mocked(repo.update).mock.calls).toEqual([['test-id', change]]);
   });
 
   it('reloads accounts after updating', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
     const store = createAccountStore(repo);
-    await store.getState().updateAccount('test-id', { name: 'New Name', color: null });
+    await store.getState().updateAccount('test-id', { ...change, color: null });
     expect(repo.getAll).toHaveBeenCalledTimes(1);
     expect(store.getState().accounts).toEqual([mockAccount]);
   });
@@ -525,7 +539,7 @@ describe('accountStore.updateAccount', () => {
     const repo = makeRepo({ update: jest.fn().mockRejectedValue(new Error('update failed')) });
     const store = createAccountStore(repo);
     await expect(
-      store.getState().updateAccount('test-id', { name: 'x', color: null }),
+      store.getState().updateAccount('test-id', { ...change, name: 'x', color: null }),
     ).rejects.toThrow('update failed');
     expect(repo.getAll).not.toHaveBeenCalled();
   });
@@ -535,10 +549,10 @@ describe('accountStore.updateAccount', () => {
     const store = createAccountStore(repo);
 
     await expect(
-      store.getState().updateAccount('test-id', { name: 'New Name', color: null }),
+      store.getState().updateAccount('test-id', { ...change, color: null }),
     ).resolves.toBeUndefined();
 
-    expect(repo.update).toHaveBeenCalledWith('test-id', { name: 'New Name', color: null });
+    expect(repo.update).toHaveBeenCalledWith('test-id', { ...change, color: null });
     expect(store.getState().loadError).toBe(true);
   });
 });

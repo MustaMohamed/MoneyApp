@@ -237,10 +237,18 @@ export function useAccountDetail() {
   };
 
   const handleSave = form.handleSubmit(async (data) => {
-    if (!id) return;
+    if (!id || !account) return;
     setSaving(true);
     try {
-      await updateAccount(id, { name: data.name.trim(), color: data.color });
+      await updateAccount(id, {
+        name: data.name.trim(),
+        color: data.color,
+        credit_limit: account.credit_limit,
+        minimum_payment: account.minimum_payment,
+        statement_due_day: account.statement_due_day,
+        interest_tracking: account.interest_tracking,
+        apr: account.apr,
+      });
     } finally {
       setSaving(false);
     }
