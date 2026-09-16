@@ -1,3 +1,5 @@
+import type { PlatformOSType } from 'react-native';
+
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -66,6 +68,16 @@ export function resolveStatusTrack(footnote: string, message?: string): StatusTr
     tone: 'idle',
     a11y: { accessibilityLiveRegion: 'polite' },
   };
+}
+
+/** Android's IME height already excludes the navigation bar `Screen` pads, so only iOS subtracts the inset. */
+export function resolveKeyboardLift(
+  platform: PlatformOSType,
+  keyboardHeight: number,
+  bottomInset: number,
+): number {
+  const lift = platform === 'android' ? keyboardHeight : keyboardHeight - bottomInset;
+  return Math.max(lift, 0);
 }
 
 /** N1 ambient wash from mockup.html:428-433, as viewport fractions plus ms()-scaled radii. */

@@ -18,6 +18,7 @@ export interface InputProps extends HInputProps {
   errorMessage?: string;
   isRequired?: boolean;
   suffix?: ReactNode;
+  suffixClassName?: string;
   /** Caps `errorMessage` at N lines; uncapped it wraps and widens a fixed-height slot. */
   errorNumberOfLines?: number;
 }
@@ -32,6 +33,7 @@ export function Input({
   isDisabled,
   isRequired,
   suffix,
+  suffixClassName,
   style,
   ...inputProps
 }: InputProps) {
@@ -40,7 +42,7 @@ export function Input({
     <HTextField isInvalid={invalid} isDisabled={isDisabled} isRequired={isRequired}>
       {label ? <Label>{label}</Label> : null}
       {suffix ? (
-        <InputGroup>
+        <InputGroup isDisabled={isDisabled}>
           <InputGroup.Input
             className={cn('font-inter py-2 text-[16px]', className)}
             style={[
@@ -52,7 +54,9 @@ export function Input({
             ]}
             {...inputProps}
           />
-          <InputGroup.Suffix isDecorative>{suffix}</InputGroup.Suffix>
+          <InputGroup.Suffix isDecorative className={suffixClassName}>
+            {suffix}
+          </InputGroup.Suffix>
         </InputGroup>
       ) : (
         <HInput

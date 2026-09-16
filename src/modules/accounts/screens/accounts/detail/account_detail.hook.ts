@@ -31,6 +31,9 @@ import { useReplacementAccountSheetState } from './components/replacement_accoun
 const TRANSACTIONS_TAB = '/(app)/(tabs)/transactions' as const;
 const ACCOUNTS_LIST = '/accounts' as const;
 
+const editAccountRoute = (accountId: string): `/accounts/${string}/edit` =>
+  `/accounts/${accountId}/edit`;
+
 export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -375,13 +378,9 @@ export function useAccountDetail() {
     popIfReloadFailed();
   };
 
-  const onBack = () => {
-    if (isEditing) {
-      setEditing(false);
-    } else {
-      router.back();
-    }
-  };
+  const onBack = () => router.back();
+
+  const goToEdit = () => router.push(editAccountRoute(id));
 
   // Nothing to catch: a failed retry publishes `initialError`, which the card renders and logs.
   const retryActivity = () => {
@@ -457,6 +456,7 @@ export function useAccountDetail() {
     handleDelete,
     handleConfirmBalanceReviewed,
     onBack,
+    goToEdit,
     retryActivity,
     retryArchivedRead,
     goToTransaction,

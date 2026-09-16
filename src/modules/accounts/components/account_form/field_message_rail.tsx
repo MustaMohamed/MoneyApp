@@ -26,17 +26,13 @@ export interface FieldMessageRailProps<T extends FieldValues> {
   helper?: string;
 }
 
-/** Holds a fixed message track, so helper and error copy swap without shifting anything. */
-export function FieldMessageRail<T extends FieldValues>({
-  control,
-  name,
-  helper,
-}: FieldMessageRailProps<T>) {
-  const { errors } = useFormState({ control, name });
-  // oxlint-disable-next-line typescript/no-unsafe-assignment -- RHF's `get` returns any; `errors` at a field path holds a FieldError
-  const fieldError: FieldError | undefined = get(errors, name);
-  const error = fieldError?.message;
+export interface FieldMessageTrackProps {
+  error?: string;
+  helper?: string;
+}
 
+/** Holds a fixed message track, so helper and error copy swap without shifting anything. */
+export function FieldMessageTrack({ error, helper }: FieldMessageTrackProps) {
   return (
     <Box style={FIELD_MESSAGE_RAIL_STYLE} accessibilityLiveRegion="polite">
       {error ? (
@@ -73,4 +69,17 @@ export function FieldMessageRail<T extends FieldValues>({
       ) : null}
     </Box>
   );
+}
+
+/** The track bound to one form field's error. */
+export function FieldMessageRail<T extends FieldValues>({
+  control,
+  name,
+  helper,
+}: FieldMessageRailProps<T>) {
+  const { errors } = useFormState({ control, name });
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- RHF's `get` returns any; `errors` at a field path holds a FieldError
+  const fieldError: FieldError | undefined = get(errors, name);
+
+  return <FieldMessageTrack error={fieldError?.message} helper={helper} />;
 }

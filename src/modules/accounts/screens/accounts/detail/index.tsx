@@ -44,7 +44,6 @@ export default function AccountDetailScreen() {
       isEditing,
       isAdjustVisible,
       isArchiveVisible,
-      isSaving,
       isAdjusting,
       isArchiving,
       isConfirmingBalanceReview,
@@ -60,8 +59,6 @@ export default function AccountDetailScreen() {
       activity,
     },
     form,
-    setEditing,
-    handleSave,
     setAdjustVisible,
     handleAdjustBalance,
     setArchiveVisible,
@@ -73,13 +70,14 @@ export default function AccountDetailScreen() {
     handleDelete,
     handleConfirmBalanceReviewed,
     onBack,
+    goToEdit,
     retryActivity,
     retryArchivedRead,
     goToTransaction,
     goToAllTransactions,
     addTransactionForAccount,
   } = useAccountDetail();
-  const { headerStyle, triggerEditToggle, fieldEntering, fieldExiting } = useAccountDetailAnim();
+  const { headerStyle, fieldEntering, fieldExiting } = useAccountDetailAnim();
   const {
     control,
     formState: { errors },
@@ -166,34 +164,15 @@ export default function AccountDetailScreen() {
           title={resolveAccountName(account)}
           onBack={onBack}
           right={
-            isEditing ? (
-              <PressableFeedback
-                onPress={() => {
-                  triggerEditToggle();
-                  void handleSave();
-                }}
-                isDisabled={isSaving}
-                hitSlop={hitSlop}
-                className="bg-gold-500 border-gold-500 h-9 w-9 items-center justify-center rounded-[8px] border"
-              >
-                <Typography className="font-sora-bold text-accent-foreground text-[11px]">
-                  {Strings.accountDetailSave}
-                </Typography>
-              </PressableFeedback>
-            ) : (
-              <PressableFeedback
-                onPress={() => {
-                  triggerEditToggle();
-                  setEditing(true);
-                }}
-                hitSlop={hitSlop}
-                className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
-              >
-                <Typography className="font-sora-bold text-accent text-[11px]">
-                  {Strings.accountDetailEdit}
-                </Typography>
-              </PressableFeedback>
-            )
+            <PressableFeedback
+              onPress={goToEdit}
+              hitSlop={hitSlop}
+              className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
+            >
+              <Typography className="font-sora-bold text-accent text-[11px]">
+                {Strings.accountDetailEdit}
+              </Typography>
+            </PressableFeedback>
           }
         />
       </Animated.View>
