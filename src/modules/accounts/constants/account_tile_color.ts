@@ -15,8 +15,11 @@ const FALLBACK_TILE_COLORS: Readonly<AccountTileColors> = Object.freeze({
   glyph: findAccountColor(DEFAULT_ACCOUNT_COLOR)?.tickColor ?? CoreTokens.text1,
 });
 
-// The hero gradient's middle stop; a ring that clears it clears the list card surface too.
-const HOLLOW_BACKDROP = HERO_GRADIENT_COLORS[1];
+/** Canvas `C4ArchivedDetail` `.hero`: an archived account's hero sits at 85% opacity. */
+export const ARCHIVED_HERO_OPACITY = 0.85;
+
+// The hero gradient's middle stop as the archived hero paints it; a ring that clears it clears the list card surface too.
+const HOLLOW_BACKDROP = mixHex(HERO_GRADIENT_COLORS[1], CoreTokens.bg, ARCHIVED_HERO_OPACITY);
 const HOLLOW_MIN_CONTRAST_RATIO = 3;
 const HOLLOW_SHARE_STEP = 0.05;
 const HOLLOW_STEP_COUNT = Math.ceil(1 / HOLLOW_SHARE_STEP);
@@ -25,12 +28,13 @@ function resolveHollowTileColor(hex: string): string {
   for (let step = 0; step <= HOLLOW_STEP_COUNT; step += 1) {
     const share = Math.max(0, 1 - step * HOLLOW_SHARE_STEP);
     const candidate = step === 0 ? hex : mixHex(hex, CoreTokens.text1, share);
-    if (contrastRatio(candidate, HOLLOW_BACKDROP) >= HOLLOW_MIN_CONTRAST_RATIO) return candidate;
+    const painted = mixHex(candidate, CoreTokens.bg, ARCHIVED_HERO_OPACITY);
+    if (contrastRatio(painted, HOLLOW_BACKDROP) >= HOLLOW_MIN_CONTRAST_RATIO) return candidate;
   }
   return CoreTokens.text1;
 }
 
-/** Filled takes the palette entry's tick colour on its fill; hollow steps the account colour until it clears 3:1 on the hero. */
+/** Filled takes the palette entry's tick colour on its fill; hollow steps the account colour until it clears 3:1 on the archived hero as painted. */
 export function resolveAccountTileColors(
   color: string | null,
   variant: AccountTileVariant = 'filled',

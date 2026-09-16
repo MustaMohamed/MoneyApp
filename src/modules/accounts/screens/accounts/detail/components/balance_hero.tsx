@@ -11,14 +11,11 @@ import { AcctTokens } from '@/constants/theme_tokens';
 import { AccountColorTile } from '@/modules/accounts/components/account_color_tile';
 import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
+import { ARCHIVED_HERO_OPACITY } from '@/modules/accounts/constants/account_tile_color';
 import { resolveAccountName } from '@/utils/account_name';
 
 import type { Account } from '../../../../store/account.store';
-import {
-  ARCHIVED_HERO_OPACITY,
-  HERO_CURRENCY_GAP,
-  HERO_CURRENCY_OPACITY,
-} from './balance_hero.geometry';
+import { HERO_CURRENCY_GAP, HERO_CURRENCY_OPACITY } from './balance_hero.geometry';
 import {
   buildHeroCaption,
   buildHeroHeading,
