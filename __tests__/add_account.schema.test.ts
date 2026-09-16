@@ -29,6 +29,8 @@ const accountFixture = (name: string): Account => ({
   updated_at: '2026-04-29T00:00:00.000Z',
 });
 
+const archivedFixture = (name: string): Account => ({ ...accountFixture(name), is_archived: 1 });
+
 const baseData = (overrides: Record<string, unknown> = {}) => ({
   name: 'My Account',
   balance: '1000',
@@ -46,8 +48,9 @@ const baseData = (overrides: Record<string, unknown> = {}) => ({
 function fieldErrors(
   data: Record<string, unknown>,
   accounts: Account[] = emptyAccounts,
+  archivedAccounts: Account[] = emptyAccounts,
 ): Record<string, string> {
-  const result = createAddAccountSchema(accounts).safeParse(data);
+  const result = createAddAccountSchema(accounts, archivedAccounts).safeParse(data);
   if (result.success) return {};
   return Object.fromEntries(result.error.issues.map((i) => [String(i.path[0]), i.message]));
 }
@@ -93,7 +96,7 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     });
 
     it('whitespace-only name beside a blank-named account → errNameRequired alone, no duplicate', () => {
-      const result = createAddAccountSchema([accountFixture('')]).safeParse(
+      const result = createAddAccountSchema([accountFixture('')], emptyAccounts).safeParse(
         baseData({ name: '   ' }),
       );
       expect(result.success).toBe(false);
@@ -104,7 +107,9 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     });
 
     it('surrounding spaces are removed from the parsed name', () => {
-      const result = createAddAccountSchema(emptyAccounts).safeParse(baseData({ name: ' Cash ' }));
+      const result = createAddAccountSchema(emptyAccounts, emptyAccounts).safeParse(
+        baseData({ name: ' Cash ' }),
+      );
       expect(result.success).toBe(true);
       expect(result.data?.name).toBe('Cash');
     });
@@ -128,9 +133,36 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
       expect(errs.name).toBe(Strings.errNameDuplicateNamed('Bank One'));
     });
 
+    it('surrounding spaces against an archived "savings" → errNameDuplicateNamed with the trimmed name', () => {
+      const archived = [archivedFixture('savings')];
+      const errs = fieldErrors(baseData({ name: ' Savings ' }), emptyAccounts, archived);
+      expect(errs.name).toBe(Strings.errNameDuplicateNamed('Savings'));
+    });
+
+    it('an archived name differing only by a leading mark → errNameDuplicateNamed', () => {
+      const archived = [archivedFixture('\u200FSavings')];
+      const errs = fieldErrors(baseData({ name: 'Savings' }), emptyAccounts, archived);
+      expect(errs.name).toBe(Strings.errNameDuplicateNamed('Savings'));
+    });
+
+    it('whitespace-only name beside a blank-named archived account → errNameRequired alone', () => {
+      const archived = [archivedFixture('')];
+      const nameMessages = createAddAccountSchema(emptyAccounts, archived)
+        .safeParse(baseData({ name: '   ' }))
+        .error?.issues.filter((i) => i.path[0] === 'name')
+        .map((i) => i.message);
+      expect(nameMessages).toEqual([Strings.errNameRequired]);
+    });
+
+    it('a name held in neither list → valid', () => {
+      const archived = [archivedFixture('Savings')];
+      const errs = fieldErrors(baseData({ name: 'Wallet' }), [accountFixture('Cash')], archived);
+      expect(errs.name).toBeUndefined();
+    });
+
     describe('invisible-only names', () => {
       const nameMessagesFor = (name: string, accounts: Account[]) =>
-        createAddAccountSchema(accounts)
+        createAddAccountSchema(accounts, emptyAccounts)
           .safeParse(baseData({ name }))
           .error?.issues.filter((i) => i.path[0] === 'name')
           .map((i) => i.message);
@@ -150,14 +182,14 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
       });
 
       it('a zero-width joiner inside a name parses as typed', () => {
-        const result = createAddAccountSchema(emptyAccounts).safeParse(
+        const result = createAddAccountSchema(emptyAccounts, emptyAccounts).safeParse(
           baseData({ name: 'Ca\u200Dsh' }),
         );
         expect(result.data?.name).toBe('Ca\u200Dsh');
       });
 
       it('a leading mark survives the trim', () => {
-        const result = createAddAccountSchema(emptyAccounts).safeParse(
+        const result = createAddAccountSchema(emptyAccounts, emptyAccounts).safeParse(
           baseData({ name: ' \u200FCash ' }),
         );
         expect(result.data?.name).toBe('\u200FCash');

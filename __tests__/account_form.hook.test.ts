@@ -16,11 +16,14 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 
 const mockAddAccount = jest.fn();
 let mockAccounts: { id: string; name: string; sort_order: number }[] = [];
+let mockArchivedAccounts: { id: string; name: string }[] = [];
 
 function setup() {
   mockAccounts = [{ id: 'a1', name: 'Existing', sort_order: 0 }];
+  mockArchivedAccounts = [];
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: mockAccounts,
+    archivedAccounts: mockArchivedAccounts,
     addAccount: mockAddAccount,
   }));
 }

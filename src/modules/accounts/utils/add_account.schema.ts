@@ -9,7 +9,7 @@ import type { Account } from '../store/account.store';
 import { isAccountNameTaken } from './account_name_taken';
 import { addCreditFieldIssues, creditFieldsShape } from './credit_fields.schema';
 
-export function createAddAccountSchema(accounts: Account[]) {
+export function createAddAccountSchema(accounts: Account[], archivedAccounts: Account[]) {
   return z
     .object({
       name: z
@@ -30,7 +30,10 @@ export function createAddAccountSchema(accounts: Account[]) {
       ...creditFieldsShape,
     })
     .superRefine((data, ctx) => {
-      if (!isBlankName(data.name) && isAccountNameTaken(accounts, data.name)) {
+      if (
+        !isBlankName(data.name) &&
+        isAccountNameTaken([...accounts, ...archivedAccounts], data.name)
+      ) {
         ctx.addIssue({
           code: 'custom',
           path: ['name'],

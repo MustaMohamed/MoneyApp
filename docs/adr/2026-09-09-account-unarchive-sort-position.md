@@ -33,7 +33,7 @@ The row count is still checked after the write, and a `0` there throws `AccountN
 
 SQLite's `LOWER` folds ASCII only, so a SQL-side check would let a restored account collide with an active one whose name differs by a non-ASCII case pair. The comparison is `name.trim().toLowerCase()` over `getAccounts(db)`, and it is the one `isAccountNameTaken` (`utils/account_name_taken.ts`) holds: the add schema and the rename check call the same helper, the latter passing the edited account's own id as `excludeId`.
 
-The list is the active one, so two archived accounts may share a name and neither blocks the other until one is restored. That follows from the schema, which has no `UNIQUE` on `name` (audit L12): an active and an archived account can already share one today. Widened for the edit check by MA-074 (#503), which passes the archived list beside the active one; the add check is widened by MA-076 (#505).
+The list is the active one, so two archived accounts may share a name and neither blocks the other until one is restored. That follows from the schema, which has no `UNIQUE` on `name` (audit L12): an active and an archived account can already share one today. Widened over both lists for the edit check by MA-074 (#503) and for the add check by MA-076 (#505); each passes the archived list beside the active one.
 
 A concurrent add between the read and the write could seat a duplicate. There is one local writer, and it is the same window `delete` accepts.
 
