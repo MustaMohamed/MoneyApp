@@ -21,6 +21,8 @@ import { INITIAL_UI_ENTRY, useEditAccountState } from './edit_account.state';
 
 const ACCOUNTS_LIST = '/accounts' as const;
 
+const accountDetailRoute = (accountId: string): `/accounts/${string}` => `/accounts/${accountId}`;
+
 export function useEditAccount() {
   const owner = useId();
   const router = useRouter();
@@ -82,7 +84,8 @@ export function useEditAccount() {
     }
     // The detail never reads `loadError`, so a landed write over a failed reload pops to the list that does.
     if (useAccountStore.getState().loadError) router.dismissTo(ACCOUNTS_LIST);
-    else router.back();
+    // POP_TO selects by route, so it steps over a duplicate edit a double tap pushed and never pops the detail.
+    else router.dismissTo(accountDetailRoute(account.id));
   }
 
   const statusMessage = resolveEditStatusMessage({

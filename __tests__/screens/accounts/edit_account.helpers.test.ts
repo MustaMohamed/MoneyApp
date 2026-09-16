@@ -7,6 +7,7 @@ import {
   countFieldErrors,
   resolveEditStatusMessage,
 } from '@/modules/accounts/screens/accounts/edit_account/edit_account.helpers';
+import { createEditAccountFormSchema } from '@/modules/accounts/utils/edit_account.schema';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 const card = makeTestAccount({
@@ -24,20 +25,22 @@ const card = makeTestAccount({
 });
 
 describe('buildEditAccountDraft', () => {
-  it('drafts a card past EGP display decimals at the stored precision', () => {
+  it('drafts a card past EGP display decimals as the stored number', () => {
     expect(buildEditAccountDraft(card)).toEqual({
       name: 'CIB Visa',
       color: '#1B2B4B',
       interest_tracking: true,
-      credit_limit: '1,500.50',
-      min_payment: '200.00',
+      credit_limit: '1500.5',
+      min_payment: '200',
       due_day: '15',
-      apr: '24.50',
+      apr: '24.5',
     });
   });
 
-  it('round-trips the draft to the five stored credit values unchanged', () => {
-    expect(toUpdateAccountInput(buildEditAccountDraft(card), card)).toEqual({
+  it('round-trips the draft through the edit schema to the five stored credit values unchanged', () => {
+    const parsed = createEditAccountFormSchema([card], [], card).parse(buildEditAccountDraft(card));
+
+    expect(toUpdateAccountInput(parsed, card)).toEqual({
       name: 'CIB Visa',
       color: '#1B2B4B',
       credit_limit: 1500.5,
@@ -48,8 +51,8 @@ describe('buildEditAccountDraft', () => {
     });
   });
 
-  it('keeps the grouping comma on a whole amount', () => {
-    expect(buildEditAccountDraft({ ...card, credit_limit: 8450 }).credit_limit).toBe('8,450.00');
+  it('drafts a whole amount with no grouping and no decimals', () => {
+    expect(buildEditAccountDraft({ ...card, credit_limit: 8450 }).credit_limit).toBe('8450');
   });
 
   it('drafts every empty credit column as empty text with tracking off', () => {

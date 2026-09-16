@@ -106,7 +106,7 @@ async function submit(hook: Hook) {
 describe('useEditAccount', () => {
   beforeEach(setup);
 
-  it('sends a bank name and colour with its stored credit columns, then returns', async () => {
+  it('sends a bank name and colour with its stored credit columns, then dismisses to its detail', async () => {
     const hook = await renderHook(() => useEditAccount());
 
     await edit(hook, { name: 'CIB Payroll', color: '#7A2E3B' });
@@ -121,8 +121,9 @@ describe('useEditAccount', () => {
       interest_tracking: 0,
       apr: null,
     });
-    expect(mockBack).toHaveBeenCalledTimes(1);
-    expect(mockDismissTo).not.toHaveBeenCalled();
+    expect(mockDismissTo).toHaveBeenCalledWith('/accounts/acc-1');
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
+    expect(mockBack).not.toHaveBeenCalled();
   });
 
   it('sends a card colour change with its stored credit values unchanged', async () => {
@@ -141,7 +142,8 @@ describe('useEditAccount', () => {
       interest_tracking: 1,
       apr: 24.5,
     });
-    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo).toHaveBeenCalledWith('/accounts/card-1');
+    expect(mockBack).not.toHaveBeenCalled();
   });
 
   it('keeps every value and shows the failure line when the write is rejected', async () => {
