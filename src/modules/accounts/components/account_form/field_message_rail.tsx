@@ -1,7 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Typography } from 'heroui-native';
 import React from 'react';
-import { useFormState, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
+import {
+  get,
+  useFormState,
+  type Control,
+  type FieldError,
+  type FieldPath,
+  type FieldValues,
+} from 'react-hook-form';
 
 import { Box } from '@/components/ui/box';
 import { FormErrorText } from '@/components/ui/form_error_text';
@@ -25,8 +32,10 @@ export function FieldMessageRail<T extends FieldValues>({
   name,
   helper,
 }: FieldMessageRailProps<T>) {
-  const formState = useFormState({ control, name });
-  const error = control.getFieldState(name, formState).error?.message;
+  const { errors } = useFormState({ control, name });
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- RHF's `get` returns any; `errors` at a field path holds a FieldError
+  const fieldError: FieldError | undefined = get(errors, name);
+  const error = fieldError?.message;
 
   return (
     <Box style={FIELD_MESSAGE_RAIL_STYLE} accessibilityLiveRegion="polite">
