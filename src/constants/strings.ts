@@ -20,7 +20,6 @@ export const Strings = {
   currencySaveError: 'Could not save rate. Try again.',
 
   // Add Account
-  o4SectionName: 'ACCOUNT NAME',
   accountCurrencyA11y: 'Account currency',
 
   // Account form
@@ -161,7 +160,6 @@ export const Strings = {
   // O4 validation errors
   errNameRequired: 'Enter a name for this account.',
   errNameTooLong: 'Name must be 30 characters or less',
-  errNameDuplicate: 'This name is already used',
   errBalanceInvalid: 'Please enter a valid amount',
   errCreditLimitRequired: 'Credit limit is required for credit cards',
   errAprRequired: "Please enter your card's APR",
@@ -280,7 +278,6 @@ export const Strings = {
 
   // Account Detail (U3)
   accountDetailEdit: 'Edit',
-  accountDetailSave: 'Save',
   accountDetailCancel: 'Cancel',
   accountDetailMore: 'More',
   accountDetailBalance: 'Current balance',
