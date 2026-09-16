@@ -113,6 +113,15 @@ const FORM_FIELDS = [
   'apr',
 ] as const satisfies readonly (keyof EditAccountFormData)[];
 
+// Fails `tsc` when a form field is missing from `FORM_FIELDS`, which `edit()` would otherwise skip.
+const EVERY_FORM_FIELD_LISTED: Exclude<
+  keyof EditAccountFormData,
+  (typeof FORM_FIELDS)[number]
+> extends never
+  ? true
+  : never = true;
+void EVERY_FORM_FIELD_LISTED;
+
 async function edit(hook: Hook, values: Partial<EditAccountFormData>) {
   await act(async () => {
     for (const field of FORM_FIELDS) {
@@ -309,6 +318,21 @@ describe('useEditAccount', () => {
       );
     });
 
+    it('drops the APR fault and its count when tracking is turned off after a refused save', async () => {
+      const hook = await renderHook(() => useEditAccount());
+
+      await edit(hook, { apr: '' });
+      await submit(hook);
+
+      expect(hook.result.current.state.statusMessage).toBe('Fix the 1 fields marked above.');
+
+      await edit(hook, { interest_tracking: false });
+
+      expect(hook.result.current.form.formState.errors.apr).toBeUndefined();
+      expect(hook.result.current.state.statusMessage).toBeUndefined();
+      expect(mockUpdateAccount).not.toHaveBeenCalled();
+    });
+
     it('requires an APR once tracking is turned on and counts one field to fix', async () => {
       mockParams = { id: 'card-3' };
       const hook = await renderHook(() => useEditAccount());
@@ -327,7 +351,9 @@ describe('useEditAccount', () => {
       await edit(hook, { due_day: '45' });
       await submit(hook);
 
-      expect(hook.result.current.form.formState.errors.due_day?.message).toBe('Between 1 and 31.');
+      expect(hook.result.current.form.formState.errors.due_day?.message).toBe(
+        Strings.errDueDayRange,
+      );
       expect(mockUpdateAccount).not.toHaveBeenCalled();
     });
 
@@ -338,7 +364,7 @@ describe('useEditAccount', () => {
       await submit(hook);
 
       expect(hook.result.current.form.formState.errors.min_payment?.message).toBe(
-        'More than you owe.',
+        Strings.errMinPaymentExceedsOwed,
       );
       expect(mockUpdateAccount).not.toHaveBeenCalled();
     });

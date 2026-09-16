@@ -28,6 +28,10 @@ describe('edit account copy (D1, F3)', () => {
 });
 
 describe('shared credit copy (D2, D3)', () => {
+  it('ships the minimum-payment fault byte-exact', () => {
+    expect(Strings.errMinPaymentExceedsOwed).toBe('More than you owe.');
+  });
+
   it('ships the due-day helper and its range error byte-exact', () => {
     expect(Strings.accountDueDayHelper).toBe('Day of the month, 1 to 31.');
     expect(Strings.errDueDayRange).toBe('Between 1 and 31.');

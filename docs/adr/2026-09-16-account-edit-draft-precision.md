@@ -17,6 +17,8 @@ APR is not money and keeps `formatStoredMoneyText` (`src/utils/money_text.ts`), 
 
 The cost, accepted 2026-09-16 in /prep: the credit inputs are unmasked, so deleting one digit of `8,450.00` leaves `8,40.00`, which `DECIMAL_PATTERN` refuses and the save marks "Numbers only.".
 
+The grouped draft also rules out the house mask, since `maskMoneyFieldText` (`src/utils/money_text.ts`) refuses any one-character insert or delete that leaves a comma, so `maskFieldText('amount', …)` wired onto these inputs as `set_budget_sheet.tsx` wires it would refuse typing and backspace in `8,450.00`, and masking them means moving the two money fields' draft to ungrouped text in the same change.
+
 ## 2. Every save sends the full editable set
 
 A save sends name, colour and the five credit columns through `toUpdateAccountInput`, unchanged values included. The update is one `UPDATE` over those seven columns (ADR 2026-09-16 account-edit-credit-columns §1), so it never reads a partial object and never needs to know which fields the user touched. A non-card sends its credit columns empty with tracking off, which is what they already hold.
@@ -34,4 +36,4 @@ Both new props on `CreditCardFields` are optional and the add slot passes neithe
 After a save:
 
 - the detail hero's available credit and over-limit line, the detail facts, and the accounts list caption's limit and available figures read the store row that `writeThenReload` reloads, so they show the new values on return.
-- the dashboard account card's limit, available or over-limit line and due date, and the net-worth breakdown's due date, read the dashboard snapshot. The dashboard's blur calls `invalidate()` (`dashboard.hook.ts:95`), so the snapshot reloads on its next focus.
+- the dashboard account card's limit, available or over-limit line and due date, and the net-worth breakdown's due date, read the dashboard snapshot. The dashboard's blur calls `invalidate()` (`dashboard.hook.ts:95`), so the snapshot reloads on its next focus. That reload rides audit L26's blur `invalidate()`, so the L26 fix must also refresh the dashboard after an account write, as `transactionMutationVersion` does for transactions (`dashboard.hook.ts:100-106`).
