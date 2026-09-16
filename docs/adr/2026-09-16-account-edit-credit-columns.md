@@ -9,7 +9,7 @@ The account update writes name, colour and the five credit columns in one statem
 
 ## 1. One `UPDATE`, eight columns
 
-`updateAccount` (`accounts.ts:105`) sets `name`, `color`, `credit_limit`, `minimum_payment`, `statement_due_day`, `interest_tracking`, `apr` and `updated_at` under `WHERE id = ?`, and names no other column. `UpdateAccountInput` is the entity `Pick` of the first seven, so a caller has no field to pass a balance in. Type, currency and opening balance are never editable (epic #378). `current_balance` and `revolving_balance` keep the three writers ADR 2026-09-09 §4 lists, `applyAccountDelta`, `setAccountBalance` and `addAccount`, and the current balance moves through Adjust balance only.
+`updateAccount` (`accounts.ts:116`) sets `name`, `color`, `credit_limit`, `minimum_payment`, `statement_due_day`, `interest_tracking`, `apr` and `updated_at` under `WHERE id = ?`, and names no other column. `UpdateAccountInput` is the entity `Pick` of the first seven, so a caller has no field to pass a balance in. Type, currency and opening balance are never editable (epic #378). `current_balance` and `revolving_balance` keep the three writers ADR 2026-09-09 §4 lists, `applyAccountDelta`, `setAccountBalance` and `addAccount`, and the current balance moves through Adjust balance only.
 
 Turning Track interest off maps to `interest_tracking = 0` and `apr = NULL` in the same object, so one statement cannot store tracking off beside a stale APR.
 
@@ -30,7 +30,7 @@ The edit schema's name check reads the active and the archived lists, taken as t
 
 ## 3. The edit rounds where the add rounds
 
-`toUpdateAccountInput` (`account_form.helpers.ts:87`) reuses `optionalAmount`, `optionalDay` and `optionalPercent`: credit limit and minimum payment are parsed and rounded half-even to 2dp, APR is quantized to 2dp, and due day is kept only as an integer. This extends ADR 2026-08-22 §5's form-layer exception to a second mapper and adds no `roundMoney` call site, so §6 check 1 stays clean. §5's named follow-up, moving that rounding into `AccountRepository`'s write methods, now covers `update` beside `add`.
+`toUpdateAccountInput` (`account_form.helpers.ts:97`) reuses `optionalAmount`, `optionalDay` and `optionalPercent`: credit limit and minimum payment are parsed and rounded half-even to 2dp, APR is quantized to 2dp, and due day is kept only as an integer. This extends ADR 2026-08-22 §5's form-layer exception to a second mapper and adds no `roundMoney` call site, so §6 check 1 stays clean. §5's named follow-up, moving that rounding into `AccountRepository`'s write methods, now covers `update` beside `add`.
 
 ## 4. An edit changes later payments only
 
