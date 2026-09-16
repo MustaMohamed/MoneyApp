@@ -160,6 +160,7 @@ describe('useEditAccount', () => {
     expect(hook.result.current.state.statusMessage).toBe(Strings.editAccountSaveError);
     expect(hook.result.current.state.saving).toBe(false);
     expect(mockBack).not.toHaveBeenCalled();
+    expect(mockDismissTo).not.toHaveBeenCalled();
     consoleError.mockRestore();
   });
 
