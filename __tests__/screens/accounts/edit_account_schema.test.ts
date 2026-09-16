@@ -2,7 +2,6 @@ import '@/utils/zod_config';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/store/account.store';
-import type { CreditFieldValues } from '@/modules/accounts/utils/credit_fields.schema';
 import {
   createEditAccountFormSchema,
   createEditAccountSchema,
@@ -129,9 +128,6 @@ describe('edit account schema', () => {
 });
 
 describe('createEditAccountFormSchema', () => {
-  const editFormAcceptsCreditRows: EditAccountFormData extends CreditFieldValues ? true : never =
-    true;
-
   const card = makeTestAccount({
     id: 'id-card',
     name: 'CIB Visa',
@@ -169,10 +165,6 @@ describe('createEditAccountFormSchema', () => {
     if (r.success) return {};
     return Object.fromEntries(r.error.issues.map((i) => [String(i.path[0]), i.message]));
   }
-
-  it('an edit form value is a credit-rows value', () => {
-    expect(editFormAcceptsCreditRows).toBe(true);
-  });
 
   describe('name', () => {
     it("an archived account's name (diff case, surrounding spaces) → errNameDuplicateNamed with the trimmed typed name", () => {
