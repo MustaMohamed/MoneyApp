@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useId, useMemo } from 'react';
+import { useWatch } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType } from '@/constants/enums';
@@ -68,6 +69,12 @@ export function useEditAccount() {
     reValidateMode: 'onChange',
     defaultValues: account ? buildEditAccountDraft(account) : undefined,
   });
+
+  // APR unmounts with tracking off, and after a submit only the switch revalidates, so its fault would stay counted.
+  const interestTracking = useWatch({ control: form.control, name: 'interest_tracking' });
+  useEffect(() => {
+    if (!interestTracking) form.clearErrors('apr');
+  }, [interestTracking, form]);
 
   async function onValid(data: EditAccountFormData) {
     // Read off the store: two taps in one frame both see the render's `saving` as false.

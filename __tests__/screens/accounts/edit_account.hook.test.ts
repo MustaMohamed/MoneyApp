@@ -5,6 +5,7 @@ import { Strings } from '@/constants/strings';
 import { useEditAccount } from '@/modules/accounts/screens/accounts/edit_account/edit_account.hook';
 import { useEditAccountState } from '@/modules/accounts/screens/accounts/edit_account/edit_account.state';
 import { useAccountStore, type Account } from '@/modules/accounts/store/account.store';
+import type { EditAccountFormData } from '@/modules/accounts/utils/edit_account.schema';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -57,6 +58,18 @@ const paidDownCard = makeTestAccount({
   current_balance: 100,
 });
 
+const untrackedCard = makeTestAccount({
+  id: 'card-3',
+  name: 'QNB Classic',
+  type: AccountType.CreditCard,
+  currency: Currency.EGP,
+  credit_limit: 20000,
+  minimum_payment: 200,
+  current_balance: 900,
+  interest_tracking: 0,
+  apr: null,
+});
+
 const archived = makeTestAccount({ id: 'arch-1', name: 'Old Savings', is_archived: 1 });
 
 const mockUpdateAccount = jest.fn<Promise<void>, [string, unknown]>();
@@ -67,7 +80,7 @@ let loadError = false;
 function setup() {
   jest.clearAllMocks();
   mockParams = { id: 'acc-1' };
-  accounts = [bank, card, paidDownCard];
+  accounts = [bank, card, paidDownCard, untrackedCard];
   archivedAccounts = [archived];
   loadError = false;
   mockUpdateAccount.mockResolvedValue(undefined);
@@ -90,10 +103,31 @@ function deferred<T>() {
 
 type Hook = Awaited<ReturnType<typeof renderHook<ReturnType<typeof useEditAccount>, unknown>>>;
 
-async function edit(hook: Hook, values: { name?: string; color?: string }) {
+const FORM_FIELDS = [
+  'name',
+  'color',
+  'credit_limit',
+  'min_payment',
+  'due_day',
+  'interest_tracking',
+  'apr',
+] as const satisfies readonly (keyof EditAccountFormData)[];
+
+// Fails `tsc` when a form field is missing from `FORM_FIELDS`, which `edit()` would otherwise skip.
+const EVERY_FORM_FIELD_LISTED: Exclude<
+  keyof EditAccountFormData,
+  (typeof FORM_FIELDS)[number]
+> extends never
+  ? true
+  : never = true;
+void EVERY_FORM_FIELD_LISTED;
+
+async function edit(hook: Hook, values: Partial<EditAccountFormData>) {
   await act(async () => {
-    if (values.name !== undefined) hook.result.current.form.setValue('name', values.name);
-    if (values.color !== undefined) hook.result.current.form.setValue('color', values.color);
+    for (const field of FORM_FIELDS) {
+      const value = values[field];
+      if (value !== undefined) hook.result.current.form.setValue(field, value);
+    }
   });
 }
 
@@ -230,6 +264,120 @@ describe('useEditAccount', () => {
     expect(hook.result.current.state.statusMessage).toBe('Fix the 1 fields marked above.');
     expect(hook.result.current.form.formState.errors.name).toBeUndefined();
     expect(mockUpdateAccount).not.toHaveBeenCalled();
+  });
+
+  describe('a card credit block', () => {
+    beforeEach(() => {
+      mockParams = { id: 'card-1' };
+    });
+
+    it('sends every edited credit value with name and colour unchanged, then dismisses to its detail', async () => {
+      const hook = await renderHook(() => useEditAccount());
+
+      await edit(hook, {
+        credit_limit: '12,000.00',
+        min_payment: '300',
+        due_day: '5',
+        apr: '19.9',
+      });
+      await submit(hook);
+
+      expect(mockUpdateAccount).toHaveBeenCalledWith('card-1', {
+        name: 'CIB Visa',
+        color: '#1B2B4B',
+        credit_limit: 12000,
+        minimum_payment: 300,
+        statement_due_day: 5,
+        interest_tracking: 1,
+        apr: 19.9,
+      });
+      expect(mockDismissTo).toHaveBeenCalledWith('/accounts/card-1');
+    });
+
+    it('saves a limit below what the card owes', async () => {
+      const hook = await renderHook(() => useEditAccount());
+
+      await edit(hook, { credit_limit: '500' });
+      await submit(hook);
+
+      expect(mockUpdateAccount).toHaveBeenCalledWith(
+        'card-1',
+        expect.objectContaining({ credit_limit: 500 }),
+      );
+    });
+
+    it('sends tracking off with an empty APR', async () => {
+      const hook = await renderHook(() => useEditAccount());
+
+      await edit(hook, { interest_tracking: false });
+      await submit(hook);
+
+      expect(mockUpdateAccount).toHaveBeenCalledWith(
+        'card-1',
+        expect.objectContaining({ interest_tracking: 0, apr: null }),
+      );
+    });
+
+    it('drops the APR fault and its count when tracking is turned off after a refused save', async () => {
+      const hook = await renderHook(() => useEditAccount());
+
+      await edit(hook, { apr: '' });
+      await submit(hook);
+
+      expect(hook.result.current.state.statusMessage).toBe('Fix the 1 fields marked above.');
+
+      await edit(hook, { interest_tracking: false });
+
+      expect(hook.result.current.form.formState.errors.apr).toBeUndefined();
+      expect(hook.result.current.state.statusMessage).toBeUndefined();
+      expect(mockUpdateAccount).not.toHaveBeenCalled();
+    });
+
+    it('requires an APR once tracking is turned on and counts one field to fix', async () => {
+      mockParams = { id: 'card-3' };
+      const hook = await renderHook(() => useEditAccount());
+
+      await edit(hook, { interest_tracking: true });
+      await submit(hook);
+
+      expect(hook.result.current.form.formState.errors.apr?.message).toBe(Strings.errAprRequired);
+      expect(hook.result.current.state.statusMessage).toBe('Fix the 1 fields marked above.');
+      expect(mockUpdateAccount).not.toHaveBeenCalled();
+    });
+
+    it('marks a due day outside 1 to 31', async () => {
+      const hook = await renderHook(() => useEditAccount());
+
+      await edit(hook, { due_day: '45' });
+      await submit(hook);
+
+      expect(hook.result.current.form.formState.errors.due_day?.message).toBe(
+        Strings.errDueDayRange,
+      );
+      expect(mockUpdateAccount).not.toHaveBeenCalled();
+    });
+
+    it('marks a minimum payment above what the card owes', async () => {
+      const hook = await renderHook(() => useEditAccount());
+
+      await edit(hook, { min_payment: '950' });
+      await submit(hook);
+
+      expect(hook.result.current.form.formState.errors.min_payment?.message).toBe(
+        Strings.errMinPaymentExceedsOwed,
+      );
+      expect(mockUpdateAccount).not.toHaveBeenCalled();
+    });
+
+    it('counts an empty name and an out-of-range due day as two fields to fix (D3)', async () => {
+      const hook = await renderHook(() => useEditAccount());
+
+      await edit(hook, { name: '', due_day: '45' });
+      await submit(hook);
+
+      expect(hook.result.current.state.statusMessage).toBe('Fix the 2 fields marked above.');
+      expect(mockUpdateAccount).not.toHaveBeenCalled();
+    });
   });
 
   it('returns on mount for an id no active account holds', async () => {
