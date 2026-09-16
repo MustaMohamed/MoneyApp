@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { MIGRATIONS } from '@/database/migrations';
+import { createAccountFormDefaults } from '@/modules/accounts/components/account_form/account_form.helpers';
 import { addAccount } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
@@ -59,16 +60,9 @@ const baseInput: NewAccountInput = {
 const repo = new AccountRepository();
 
 const addDraft = (name: string) => ({
+  ...createAccountFormDefaults(Currency.EGP),
   name,
   balance: '1000',
-  selected_type: AccountType.Bank,
-  selected_color: '#1B2B4B',
-  currency: Currency.EGP,
-  interest_tracking: false,
-  credit_limit: '',
-  apr: '',
-  min_payment: '',
-  due_day: '',
 });
 
 describe('AccountRepository.add — TC-09', () => {
