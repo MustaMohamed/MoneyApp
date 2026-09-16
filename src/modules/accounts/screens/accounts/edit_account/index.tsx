@@ -20,11 +20,22 @@ import { useKeyboardLiftAnim } from '@/modules/onboarding/components/onboarding_
 import { formatCurrencyParts } from '@/utils/format_amount';
 
 import { AccountColorField } from '../../../components/account_form/account_color_field';
+import { FIELD_MESSAGE_TEXT_LINE_HEIGHT } from '../../../components/account_form/account_form.geometry';
 import {
   FieldMessageRail,
   FieldMessageTrack,
 } from '../../../components/account_form/field_message_rail';
 import { useEditAccount } from './edit_account.hook';
+
+// D1's read-only box: HeroUI's `disabled:opacity-disabled` never reaches the Android TextInput.
+const LOCKED_FIELD_CLASS =
+  'bg-surface border-separator android:border-separator text-foreground/70';
+
+// An empty rail is shorter than a one-line error, so the helperless name rail reserves the error's height.
+const NAME_RAIL_MIN_HEIGHT = Math.max(
+  Size.fieldMessageTrack,
+  Size.fieldRailTextInset + FIELD_MESSAGE_TEXT_LINE_HEIGHT,
+);
 
 const LOCK_GLYPH = (
   <MaterialCommunityIcons name="lock-outline" size={Size.iconSm} color={CoreTokens.text2} />
@@ -72,7 +83,9 @@ export default function EditAccountScreen() {
             />
           )}
         />
-        <FieldMessageRail control={form.control} name="name" />
+        <Box style={{ minHeight: NAME_RAIL_MIN_HEIGHT }}>
+          <FieldMessageRail control={form.control} name="name" />
+        </Box>
 
         <Box className="pt-1">
           <Controller
@@ -97,6 +110,7 @@ export default function EditAccountScreen() {
               value={ACCOUNT_TYPE_LABELS[account.type]}
               isDisabled
               editable={false}
+              className={LOCKED_FIELD_CLASS}
               accessibilityLabel={Strings.editAccountTypeLabel}
               suffix={LOCK_GLYPH}
             />
@@ -108,6 +122,7 @@ export default function EditAccountScreen() {
               value={account.currency}
               isDisabled
               editable={false}
+              className={LOCKED_FIELD_CLASS}
               accessibilityLabel={Strings.accountCurrencyLabel}
               suffix={LOCK_GLYPH}
             />
@@ -122,6 +137,7 @@ export default function EditAccountScreen() {
               value={formatCurrencyParts(account.opening_balance, account.currency).value}
               isDisabled
               editable={false}
+              className={LOCKED_FIELD_CLASS}
               accessibilityLabel={Strings.accountBalanceLabel}
               suffix={
                 <Box style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
