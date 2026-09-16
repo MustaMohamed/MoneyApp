@@ -17,7 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/text';
-import { Colors, FontFamily, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
@@ -31,8 +31,6 @@ export interface FABProps {
   /** Bottom offset from the bottom of the screen in dp. Caller provides tab bar height + 16. */
   bottomOffset?: number;
 }
-
-const FAB_SIZE = ms(56);
 
 // Duration for close animation: 3 items × 40ms stagger + ~150ms anim + 10ms buffer.
 const CLOSE_DURATION_MS = 280;
@@ -266,9 +264,9 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.interMedium,
   },
   fab: {
-    width: FAB_SIZE,
-    height: FAB_SIZE,
-    borderRadius: FAB_SIZE / 2,
+    width: Size.fab,
+    height: Size.fab,
+    borderRadius: Size.fab / 2,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',

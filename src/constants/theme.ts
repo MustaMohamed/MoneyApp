@@ -148,6 +148,7 @@ export const Size = {
   headerHeight: ms(56),
   // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
+  fab: ms(56),
   backBtn: ms(40),
   /** Compact brand mark, mockup § B header, `<svg width="30" height="30">`. */
   logoMark: ms(30),

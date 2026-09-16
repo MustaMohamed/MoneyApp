@@ -2,12 +2,14 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import {
   ToastProvider,
   useToast as useHeroToast,
+  type ToastInsets,
   type ToastProviderProps,
   type ToastShowOptions,
 } from 'heroui-native';
 import { useMemo, type ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { useToastClearanceState } from '@/components/ui/toast_clearance.state';
 import { Colors, Size } from '@/constants/theme';
 
 /** One toast at a time, at the bottom — the app's only toast configuration. */
@@ -16,8 +18,18 @@ export const TOAST_PROVIDER_PROPS = {
   defaultProps: { placement: 'bottom' },
 } satisfies ToastProviderProps;
 
+// Undefined keeps HeroUI's safe-area default, the position on a screen without the tab bar.
+export function resolveToastInsets(bottomClearance: number | undefined): ToastInsets | undefined {
+  return bottomClearance === undefined ? undefined : { bottom: bottomClearance };
+}
+
 export function AppToastProvider({ children }: { children: ReactNode }) {
-  return <ToastProvider {...TOAST_PROVIDER_PROPS}>{children}</ToastProvider>;
+  const bottomClearance = useToastClearanceState((state) => state.bottomClearance);
+  return (
+    <ToastProvider {...TOAST_PROVIDER_PROPS} insets={resolveToastInsets(bottomClearance)}>
+      {children}
+    </ToastProvider>
+  );
 }
 
 // DefaultToast stretches the icon slot to the row's height, so the glyph centres itself.

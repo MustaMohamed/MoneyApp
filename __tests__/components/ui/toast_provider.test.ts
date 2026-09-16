@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { TOAST_PROVIDER_PROPS } from '@/components/ui/toast';
+import { TOAST_PROVIDER_PROPS, resolveToastInsets } from '@/components/ui/toast';
 
 const layout = readFileSync(resolve(process.cwd(), 'src/app/_layout.tsx'), 'utf8');
 
@@ -12,6 +12,16 @@ describe('the app toast configuration', () => {
 
   it('shows one at a time', () => {
     expect(TOAST_PROVIDER_PROPS.maxVisibleToasts).toBe(1);
+  });
+});
+
+describe('resolveToastInsets', () => {
+  it("leaves HeroUI's default insets when no tab bar holds a clearance", () => {
+    expect(resolveToastInsets(undefined)).toBeUndefined();
+  });
+
+  it('sets only the bottom inset to a held clearance', () => {
+    expect(resolveToastInsets(120)).toStrictEqual({ bottom: 120 });
   });
 });
 
