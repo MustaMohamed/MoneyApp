@@ -7,10 +7,15 @@ import {
   DEFAULT_ACCOUNT_COLOR,
   contrastRatio,
 } from '@/modules/accounts/constants/account_palette';
-import { resolveAccountTileColors } from '@/modules/accounts/constants/account_tile_color';
+import {
+  ARCHIVED_HERO_OPACITY,
+  resolveAccountTileColors,
+} from '@/modules/accounts/constants/account_tile_color';
 
 const OPAQUE_UPPER_HEX = /^#[0-9A-F]{6}$/;
-const HOLLOW_HERO_BACKDROP = HERO_GRADIENT_COLORS[1];
+const paintOnArchivedHero = (hex: string): string =>
+  mixHex(hex, CoreTokens.bg, ARCHIVED_HERO_OPACITY);
+const HOLLOW_HERO_BACKDROP = paintOnArchivedHero(HERO_GRADIENT_COLORS[1]);
 const HOLLOW_MIN_RATIO = 3;
 
 describe('resolveAccountTileColors', () => {
@@ -68,13 +73,15 @@ describe('resolveAccountTileColors — the hollow variant C4 draws on an archive
   });
 
   it.each([...ACCOUNT_PALETTE.map((entry) => entry.hex), DEFAULT_ACCOUNT_COLOR, '#ABCDEF', null])(
-    'rings %s at 3:1 or better on the hero and on the list card',
+    'rings %s at 3:1 or better on the archived hero as painted and on the list card',
     (hex) => {
       const { background, glyph, border } = resolveAccountTileColors(hex, 'hollow');
       expect(background).toBe(Colors.shared.transparent);
       expect(border).toBe(glyph);
       expect(glyph).toMatch(OPAQUE_UPPER_HEX);
-      expect(contrastRatio(glyph, HOLLOW_HERO_BACKDROP)).toBeGreaterThanOrEqual(HOLLOW_MIN_RATIO);
+      expect(
+        contrastRatio(paintOnArchivedHero(glyph), HOLLOW_HERO_BACKDROP),
+      ).toBeGreaterThanOrEqual(HOLLOW_MIN_RATIO);
       expect(contrastRatio(glyph, CoreTokens.surface)).toBeGreaterThanOrEqual(HOLLOW_MIN_RATIO);
     },
   );
@@ -97,11 +104,13 @@ describe('resolveAccountTileColors — the hollow variant C4 draws on an archive
   it('steps midnight rich to the first mix that clears, since it does not clear', () => {
     const hex = AcctTokens.midnight.rich;
     const { glyph } = resolveAccountTileColors(hex, 'hollow');
-    expect(contrastRatio(hex, HOLLOW_HERO_BACKDROP)).toBeLessThan(HOLLOW_MIN_RATIO);
-    expect(glyph).toBe(mixHex(hex, CoreTokens.text1, 0.55));
-    expect(contrastRatio(mixHex(hex, CoreTokens.text1, 0.6), HOLLOW_HERO_BACKDROP)).toBeLessThan(
+    expect(contrastRatio(paintOnArchivedHero(hex), HOLLOW_HERO_BACKDROP)).toBeLessThan(
       HOLLOW_MIN_RATIO,
     );
+    expect(glyph).toBe(mixHex(hex, CoreTokens.text1, 0.5));
+    expect(
+      contrastRatio(paintOnArchivedHero(mixHex(hex, CoreTokens.text1, 0.55)), HOLLOW_HERO_BACKDROP),
+    ).toBeLessThan(HOLLOW_MIN_RATIO);
   });
 
   it.each(['#ABCDEF', null])('rings %s in the stepped fallback colour', (hex) => {
