@@ -393,7 +393,15 @@ describe('useAccountDetail', () => {
 
     await act(() => result.current.handleSave());
 
-    expect(mockUpdateAccount).toHaveBeenCalledWith('acc-1', { name: 'CIB', color: '#1B2B4B' });
+    expect(mockUpdateAccount).toHaveBeenCalledWith('acc-1', {
+      name: 'CIB',
+      color: '#1B2B4B',
+      credit_limit: null,
+      minimum_payment: null,
+      statement_due_day: null,
+      interest_tracking: 0,
+      apr: null,
+    });
     expect(mockSetEditing).toHaveBeenCalledWith(false);
     expect(mockSetEditing.mock.invocationCallOrder.at(-1)).toBeLessThan(
       mockDismissTo.mock.invocationCallOrder[0] ?? 0,
@@ -401,6 +409,38 @@ describe('useAccountDetail', () => {
     expect(mockDismissTo.mock.calls).toEqual([['/accounts']]);
     expect(mockSetSaving).toHaveBeenLastCalledWith(false);
     expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("the inline name and colour save passes a card's stored credit values through unchanged", async () => {
+    mockAccounts([
+      mkAccount({
+        type: AccountType.CreditCard,
+        credit_limit: 5000,
+        minimum_payment: 500,
+        statement_due_day: 15,
+        interest_tracking: 1,
+        apr: 24.99,
+      }),
+    ]);
+    mockUpdateAccount.mockResolvedValue(undefined);
+    const { result } = await renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleSave());
+
+    expect(mockUpdateAccount.mock.calls).toEqual([
+      [
+        'acc-1',
+        {
+          name: 'CIB',
+          color: '#1B2B4B',
+          credit_limit: 5000,
+          minimum_payment: 500,
+          statement_due_day: 15,
+          interest_tracking: 1,
+          apr: 24.99,
+        },
+      ],
+    ]);
   });
 
   it('keeps the edit open and stays on the screen when the update rejects', async () => {

@@ -2,15 +2,12 @@ import { z } from 'zod';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import {
-  parseDecimalText,
-  parseNonNegativeDecimal,
-  parsePositiveDecimal,
-} from '@/utils/parse_decimal';
+import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
 import { isBlankName } from '@/utils/strip_format_chars';
 
 import type { Account } from '../store/account.store';
 import { isAccountNameTaken } from './account_name_taken';
+import { addCreditFieldIssues, creditFieldsShape } from './credit_fields.schema';
 
 export function createAddAccountSchema(accounts: Account[]) {
   return z
@@ -30,11 +27,7 @@ export function createAddAccountSchema(accounts: Account[]) {
       selected_type: z.enum(AccountType),
       selected_color: z.string(),
       currency: z.enum(Currency),
-      interest_tracking: z.boolean(),
-      credit_limit: z.string().optional(),
-      apr: z.string().optional(),
-      min_payment: z.string().optional(),
-      due_day: z.string().optional(),
+      ...creditFieldsShape,
     })
     .superRefine((data, ctx) => {
       if (!isBlankName(data.name) && isAccountNameTaken(accounts, data.name)) {
@@ -45,81 +38,10 @@ export function createAddAccountSchema(accounts: Account[]) {
         });
       }
 
-      // All credit rules sit below this, so a leftover credit draft cannot block a non-credit save.
-      if (data.selected_type !== AccountType.CreditCard) return;
-
-      const creditLimitRaw = data.credit_limit?.trim();
-      if (!creditLimitRaw) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['credit_limit'],
-          message: Strings.errCreditLimitRequired,
-        });
-      } else if (parseNonNegativeDecimal(creditLimitRaw) === undefined) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['credit_limit'],
-          message: Strings.errAmountInvalid,
-        });
-      } else if (parsePositiveDecimal(creditLimitRaw) === undefined) {
-        // Debt above the limit is valid; this rule only rejects a non-positive limit.
-        ctx.addIssue({
-          code: 'custom',
-          path: ['credit_limit'],
-          message: Strings.errCreditLimitPositive,
-        });
-      }
-
-      const minPaymentRaw = data.min_payment?.trim();
-      if (minPaymentRaw) {
-        const parsedMinPayment = parseNonNegativeDecimal(minPaymentRaw);
-        if (parsedMinPayment === undefined) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['min_payment'],
-            message: Strings.errAmountInvalid,
-          });
-        } else {
-          // Compare only once the balance parses; an invalid balance is not a min-payment error.
-          const parsedBalance = parseNonNegativeDecimal(data.balance);
-          if (parsedBalance !== undefined && parsedMinPayment > parsedBalance) {
-            ctx.addIssue({
-              code: 'custom',
-              path: ['min_payment'],
-              message: Strings.errMinPaymentExceedsOwed,
-            });
-          }
-        }
-      }
-
-      const dueDayRaw = data.due_day?.trim();
-      if (dueDayRaw) {
-        const parsedDueDay = parseDecimalText(dueDayRaw);
-        if (
-          parsedDueDay === undefined ||
-          !Number.isInteger(parsedDueDay) ||
-          parsedDueDay < 1 ||
-          parsedDueDay > 31
-        ) {
-          ctx.addIssue({ code: 'custom', path: ['due_day'], message: Strings.errDueDayRange });
-        }
-      }
-
-      // `DECIMAL_PATTERN` admits no minus sign, so the range check only ever sees a value >= 0.
-      if (data.interest_tracking) {
-        const aprRaw = data.apr?.trim();
-        if (!aprRaw) {
-          ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAprRequired });
-        } else {
-          const parsedApr = parseDecimalText(aprRaw);
-          if (parsedApr === undefined) {
-            ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAmountInvalid });
-          } else if (parsedApr > 100) {
-            // 0 is valid (promotional-rate card); 100 is a sanity ceiling, not a market maximum.
-            ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAprRange });
-          }
-        }
-      }
+      addCreditFieldIssues(data, ctx, {
+        isCreditCard: data.selected_type === AccountType.CreditCard,
+        owed: parseNonNegativeDecimal(data.balance),
+      });
     });
 }
 

@@ -1,10 +1,16 @@
 import { AccountType, type Currency } from '@/constants/enums';
-import type { NewAccountInput } from '@/modules/accounts/repositories/account.repository';
+import type {
+  NewAccountInput,
+  UpdateAccountInput,
+} from '@/modules/accounts/repositories/account.repository';
 import { roundMoney } from '@/utils/money';
 import { parseDecimalText, parseNonNegativeDecimal } from '@/utils/parse_decimal';
 
 import { DEFAULT_ACCOUNT_COLOR } from '../../constants/account_palette';
+import type { Account } from '../../entities/account.entity';
 import type { AddAccountFormData } from '../../utils/add_account.schema';
+import type { CreditFieldValues } from '../../utils/credit_fields.schema';
+import type { EditAccountFormData } from '../../utils/edit_account.schema';
 
 /** A required amount failed to parse; `useAccountForm` surfaces it and no row is written. */
 export class AccountFormMappingError extends Error {
@@ -55,6 +61,20 @@ export function createAccountFormDefaults(initialCurrency: Currency): AddAccount
   };
 }
 
+function toCreditColumns(
+  data: CreditFieldValues,
+  isCC: boolean,
+): Omit<UpdateAccountInput, 'name' | 'color'> {
+  return {
+    credit_limit: isCC ? optionalAmount(data.credit_limit) : null,
+    minimum_payment: isCC ? optionalAmount(data.min_payment) : null,
+    statement_due_day: isCC ? optionalDay(data.due_day) : null,
+    // `interest_tracking` persists 0 on non-credit types, not what a retained credit draft left.
+    interest_tracking: isCC && data.interest_tracking ? 1 : 0,
+    apr: isCC && data.interest_tracking ? optionalPercent(data.apr) : null,
+  };
+}
+
 export function toNewAccountInput(
   data: AddAccountFormData,
   options: { sortOrder: number },
@@ -69,12 +89,18 @@ export function toNewAccountInput(
     color: data.selected_color,
     // Type decides this, never `opening_balance`; null means the balance is never tracked.
     revolving_balance: isCC ? 0 : null,
-    // `interest_tracking` persists 0 on non-credit types, not what a retained credit draft left.
-    interest_tracking: isCC && data.interest_tracking ? 1 : 0,
     sort_order: options.sortOrder,
-    credit_limit: isCC ? optionalAmount(data.credit_limit) : null,
-    minimum_payment: isCC ? optionalAmount(data.min_payment) : null,
-    statement_due_day: isCC ? optionalDay(data.due_day) : null,
-    apr: isCC && data.interest_tracking ? optionalPercent(data.apr) : null,
+    ...toCreditColumns(data, isCC),
+  };
+}
+
+export function toUpdateAccountInput(
+  data: EditAccountFormData,
+  account: Pick<Account, 'type'>,
+): UpdateAccountInput {
+  return {
+    name: data.name.trim(),
+    color: data.color,
+    ...toCreditColumns(data, account.type === AccountType.CreditCard),
   };
 }
