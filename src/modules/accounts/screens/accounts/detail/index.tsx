@@ -1,14 +1,9 @@
 import { PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
-import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
-import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { FormErrorText } from '@/components/ui/form_error_text';
-import { FormSectionLabel } from '@/components/ui/form_section_label';
-import { Input } from '@/components/ui/input';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { LoadingCenter } from '@/components/ui/loading_center';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -18,8 +13,6 @@ import { Strings } from '@/constants/strings';
 import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 import { resolveAccountName } from '@/utils/account_name';
 
-import { AccountColorField } from '../../../components/account_form/account_color_field';
-import { useAccountDetailAnim } from './account_detail.anim';
 import { useAccountDetail } from './account_detail.hook';
 import { AccountActivityCard } from './components/account_activity_card';
 import { AccountFactRow } from './components/account_fact_row';
@@ -41,7 +34,6 @@ export default function AccountDetailScreen() {
       account,
       viewState,
       archived,
-      isEditing,
       isAdjustVisible,
       isArchiveVisible,
       isAdjusting,
@@ -58,7 +50,6 @@ export default function AccountDetailScreen() {
       hasReplacementAccount,
       activity,
     },
-    form,
     setAdjustVisible,
     handleAdjustBalance,
     setArchiveVisible,
@@ -77,22 +68,12 @@ export default function AccountDetailScreen() {
     goToAllTransactions,
     addTransactionForAccount,
   } = useAccountDetail();
-  const { headerStyle, fieldEntering, fieldExiting } = useAccountDetailAnim();
-  const {
-    control,
-    formState: { errors },
-  } = form;
 
   // `viewState` is 'active' exactly when `account` resolves; the guard is what narrows it.
   if (!account) {
     return (
       <Screen>
-        <Animated.View style={headerStyle}>
-          <StackHeader
-            title={archived ? resolveAccountName(archived.account) : ''}
-            onBack={onBack}
-          />
-        </Animated.View>
+        <StackHeader title={archived ? resolveAccountName(archived.account) : ''} onBack={onBack} />
 
         {viewState === 'loading' ? <LoadingCenter /> : null}
 
@@ -159,23 +140,21 @@ export default function AccountDetailScreen() {
 
   return (
     <Screen>
-      <Animated.View style={headerStyle}>
-        <StackHeader
-          title={resolveAccountName(account)}
-          onBack={onBack}
-          right={
-            <PressableFeedback
-              onPress={goToEdit}
-              hitSlop={hitSlop}
-              className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
-            >
-              <Typography className="font-sora-bold text-accent text-[11px]">
-                {Strings.accountDetailEdit}
-              </Typography>
-            </PressableFeedback>
-          }
-        />
-      </Animated.View>
+      <StackHeader
+        title={resolveAccountName(account)}
+        onBack={onBack}
+        right={
+          <PressableFeedback
+            onPress={goToEdit}
+            hitSlop={hitSlop}
+            className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
+          >
+            <Typography className="font-sora-bold text-accent text-[11px]">
+              {Strings.accountDetailEdit}
+            </Typography>
+          </PressableFeedback>
+        }
+      />
 
       <ScreenScroll
         contentContainerStyle={{ paddingBottom: 32 }}
@@ -183,7 +162,7 @@ export default function AccountDetailScreen() {
       >
         <BalanceHero account={account} />
 
-        {!isEditing && shouldShowBalanceReview(account) ? (
+        {shouldShowBalanceReview(account) ? (
           <BalanceReviewAlert
             onAdjust={() => setAdjustVisible(true)}
             onConfirm={() => {
@@ -193,34 +172,6 @@ export default function AccountDetailScreen() {
             errorMessage={balanceReviewError}
           />
         ) : null}
-
-        {isEditing && (
-          <Animated.View entering={fieldEntering} exiting={fieldExiting} className="mx-4 mt-4">
-            <FormSectionLabel>{Strings.o4SectionName}</FormSectionLabel>
-            <Controller
-              control={control}
-              name="name"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <Input
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  maxLength={30}
-                  isInvalid={!!errors.name}
-                />
-              )}
-            />
-            <FormErrorText message={errors.name?.message} />
-
-            <Controller
-              control={control}
-              name="color"
-              render={({ field: { value, onChange } }) => (
-                <AccountColorField ownerId="accounts/detail" value={value} onChange={onChange} />
-              )}
-            />
-          </Animated.View>
-        )}
 
         <DetailRowsCard>
           {facts.map((fact, index) => (
@@ -234,40 +185,36 @@ export default function AccountDetailScreen() {
           ))}
         </DetailRowsCard>
 
-        {!isEditing && (
-          <>
-            <Box style={{ flexDirection: 'row' }} className="mx-4 mt-4 gap-2">
-              <Box style={{ flex: 1 }}>
-                <Button
-                  variant="secondary"
-                  flat
-                  icon="pencil-outline"
-                  label={Strings.accountDetailAdjustBalance}
-                  onPress={() => setAdjustVisible(true)}
-                />
-              </Box>
-              <Box style={{ flex: 1 }}>
-                <Button
-                  variant="secondary"
-                  flat
-                  tone="danger"
-                  icon="archive-outline"
-                  label={Strings.accountDetailArchive}
-                  onPress={() => setArchiveVisible(true)}
-                />
-              </Box>
-            </Box>
-            {/* The card's own header and container carry `mx-4`, so it is the Box's sibling. */}
-            <AccountActivityCard
-              status={activity.status}
-              rows={activity.rows}
-              onRowPress={goToTransaction}
-              onSeeAll={goToAllTransactions}
-              onAdd={addTransactionForAccount}
-              onRetry={retryActivity}
+        <Box style={{ flexDirection: 'row' }} className="mx-4 mt-4 gap-2">
+          <Box style={{ flex: 1 }}>
+            <Button
+              variant="secondary"
+              flat
+              icon="pencil-outline"
+              label={Strings.accountDetailAdjustBalance}
+              onPress={() => setAdjustVisible(true)}
             />
-          </>
-        )}
+          </Box>
+          <Box style={{ flex: 1 }}>
+            <Button
+              variant="secondary"
+              flat
+              tone="danger"
+              icon="archive-outline"
+              label={Strings.accountDetailArchive}
+              onPress={() => setArchiveVisible(true)}
+            />
+          </Box>
+        </Box>
+        {/* The card's own header and container carry `mx-4`, so it is the Box's sibling. */}
+        <AccountActivityCard
+          status={activity.status}
+          rows={activity.rows}
+          onRowPress={goToTransaction}
+          onSeeAll={goToAllTransactions}
+          onAdd={addTransactionForAccount}
+          onRetry={retryActivity}
+        />
       </ScreenScroll>
 
       <AdjustBalanceSheet
