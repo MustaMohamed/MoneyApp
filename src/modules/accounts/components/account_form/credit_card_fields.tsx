@@ -1,6 +1,6 @@
 import { ControlField, Label, Typography } from 'heroui-native';
 import React from 'react';
-import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useWatch, type Control, type UseFormReturn } from 'react-hook-form';
 
 import { Box } from '@/components/ui/box';
 import { FormLabelText } from '@/components/ui/form_label_text';
@@ -8,15 +8,16 @@ import { Input } from '@/components/ui/input';
 import { Strings } from '@/constants/strings';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 
-import type { AddAccountFormData } from '../../utils/add_account.schema';
+import type { CreditFieldValues } from '../../utils/credit_fields.schema';
 import { FieldMessageRail } from './field_message_rail';
 
-export interface CreditCardFieldsProps {
-  form: UseFormReturn<AddAccountFormData>;
+export interface CreditCardFieldsProps<T extends CreditFieldValues> {
+  form: UseFormReturn<T>;
 }
 
-export function CreditCardFields({ form }: CreditCardFieldsProps) {
-  const { control } = form;
+export function CreditCardFields<T extends CreditFieldValues>({ form }: CreditCardFieldsProps<T>) {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- T extends CreditFieldValues, so every field name this file uses exists on the form
+  const control = form.control as unknown as Control<CreditFieldValues>;
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
 
   return (
