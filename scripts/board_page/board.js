@@ -513,10 +513,20 @@
   } catch {
     /* storage is a convenience */
   }
+  // the views are laid out in px from the stage width, so a stage that changes width (window, page scrollbar) is redrawn
   let resizeTimer;
-  window.addEventListener('resize', () => {
+  let drawnAt = 0;
+  const stages = ['v-focus', 'v-tree', 'v-graph'].map($);
+  new ResizeObserver(() => {
+    const w = stages[0].clientWidth;
+    if (!board || w === drawnAt) return;
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => board && drawAll(), 150);
-  });
+    resizeTimer = setTimeout(() => {
+      drawnAt = w;
+      drawFocus();
+      drawTree();
+      drawGraph();
+    }, 100);
+  }).observe(stages[0]);
   void load(false);
 })();

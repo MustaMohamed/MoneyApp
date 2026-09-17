@@ -43,6 +43,9 @@
 * {
   box-sizing: border-box;
 }
+html {
+  scrollbar-gutter: stable;
+}
 body {
   margin: 0;
   background: var(--page);
@@ -209,8 +212,7 @@ a.b {
 }
 .stage {
   position: relative;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
 }
 .canvas {
   position: relative;
@@ -552,6 +554,10 @@ dialog pre {
   .board,
   #heroes {
     grid-template-columns: 1fr;
+  }
+  .stage {
+    overflow-x: auto;
+    padding-bottom: 14px;
   }
 }
 
