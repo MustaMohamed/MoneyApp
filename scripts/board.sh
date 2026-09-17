@@ -149,6 +149,7 @@ usage: bash scripts/board.sh <command> ...
   promote <issue>              Defined leaves with a Reviewed date, under a marked parent, every Depends on closed -> Ready For Development, and a Defined parent follows its first child there: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
   next-ma                      print the next MA-nnn (highest in any issue title, plus one)
   next [<issue>] [--json]      read-only: every open ticket with the command to run next, ranked, from board_next.mjs; no model, about five seconds
+  serve [<port>]               the board page on http://127.0.0.1:<port> (default 4178): the ranked tickets, the dependency views, and Fix buttons that run status, promote and add after you confirm
 EOF
   exit 2
 }
@@ -207,6 +208,11 @@ case "$cmd" in
       esac
     done
     node "$(dirname "$0")/board_next.mjs" --format "$fmt" ${scope[@]+"${scope[@]}"} </dev/null
+    ;;
+  serve)
+    port=${1:-4178}
+    case "$port" in ''|*[!0-9]*) usage ;; esac
+    exec node "$(dirname "$0")/board_server.mjs" --port "$port"
     ;;
   next-ma)
     [ $# -eq 0 ] || usage

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" data-look="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MoneyApp board</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/board.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <h1>MoneyApp board</h1>
+        <span class="dim" id="fetched">reading Project #2…</span>
+        <button class="b sm" id="refresh">Refresh</button>
+        <span class="sp"></span>
+        <button class="b sm" id="theme">Light</button>
+      </header>
+      <p class="banner" id="banner" hidden></p>
+
+      <div id="heroes"></div>
+
+      <section class="p stagep">
+        <h2>What holds it and what it frees</h2>
+        <p class="cap" id="focusnote">Pick a ticket anywhere on the page.</p>
+        <div class="stage" id="v-focus"></div>
+      </section>
+      <section class="p stagep">
+        <h2>Every ticket, under its parent</h2>
+        <p class="cap">
+          A red outline holds the picked ticket, a green one is freed by it. Closed tickets fold
+          into one card.
+        </p>
+        <div class="stage" id="v-tree"></div>
+      </section>
+      <section class="p stagep">
+        <h2>Every dependency, left to right</h2>
+        <p class="cap">
+          A ticket sits to the right of everything it waits on, so the left column is what can move
+          now.
+        </p>
+        <div class="stage" id="v-graph"></div>
+      </section>
+
+      <div class="board">
+        <section class="p">
+          <h2>Every listed ticket, ranked <span class="dim" id="count"></span></h2>
+          <p class="cap">
+            Ranked by what acting on it is worth: tickets it frees first, delivery before defining,
+            then board order. A ticket nobody can act on has no rank.
+          </p>
+          <div class="tools">
+            <input
+              id="q"
+              type="search"
+              placeholder="Filter: MA-047, #448, review, /ship, drift…"
+              aria-label="Filter tickets"
+            />
+            <div id="chips"></div>
+          </div>
+          <div class="tbl">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Ticket and issue</th>
+                  <th>Status</th>
+                  <th>Who acts</th>
+                  <th>PR</th>
+                  <th class="num">Waits on</th>
+                  <th class="num">Frees</th>
+                  <th>Next</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+          <p class="dim" id="none" hidden>No ticket matches. Clear the filter to see them all.</p>
+        </section>
+        <aside class="col">
+          <section class="p"><div id="drawer"></div></section>
+          <section class="p">
+            <h2>Load</h2>
+            <ul class="side" id="load"></ul>
+          </section>
+          <section class="p">
+            <h2>Board disagrees with GitHub <span class="dim" id="driftN"></span></h2>
+            <p class="cap">Fix runs the exact board.sh command after you confirm.</p>
+            <ul class="side" id="drift"></ul>
+          </section>
+          <section class="p">
+            <h2>Run from this page</h2>
+            <ul class="log" id="log">
+              <li class="quiet">
+                Nothing yet. Every command the page runs is listed here with its output.
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <dialog id="dlg">
+      <h3>Run this on the board?</h3>
+      <p id="dlgP"></p>
+      <pre id="dlgC"></pre>
+      <div class="rowb end">
+        <button class="b" id="dlgNo">Cancel</button
+        ><button class="b danger" id="dlgYes">Run it</button>
+      </div>
+    </dialog>
+    <div class="toast" id="toast" hidden></div>
+    <script src="/board.js"></script>
+  </body>
+</html>
