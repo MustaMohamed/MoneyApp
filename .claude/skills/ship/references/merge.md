@@ -35,7 +35,12 @@ Then wait. **The human merges, never the conductor.** A PR comment from the huma
 Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the end. In order:
 
 1. Confirm: `gh pr view <pr-url> --json state,mergedAt`, always with the URL. Then `git -C /Users/musta/Code/projects/practice/MoneyApp checkout main && git pull --ff-only origin main`.
-2. Size write-back, one line on the ticket, so the next planner sees the calibration: `gh issue comment <n> --body "Delivered: <additions> additions, <files> files (gh pr view <pr> --json additions,changedFiles) · planned ~<n> lines"`, the planned figure from the plan header.
+2. Size write-back, one line on the ticket, so the next planner sees the calibration: `gh issue comment <n> --body "Delivered: <outside> lines outside tests, <tests> in tests, <files> files · planned ~<n> lines"`, the planned figure from the plan header and the two line counts from:
+
+   ```bash
+   gh pr view <pr> --json files -q '[.files[] | select(.path | test("^__tests__/|\\.test\\.|^src/test_helpers/") | not) | .additions] | add, [.files[] | select(.path | test("^__tests__/|\\.test\\.|^src/test_helpers/")) | .additions] | add'
+   ```
+
 3. `gh issue view <n> --json state` reads closed (`Closes #<n>` did it; close explicitly only if the keyword was missing). `bash scripts/board.sh status <n> Done`, then `bash scripts/board.sh promote <parent>`: it moves the siblings the close unblocked to Ready For Development and closes the parent when its last child closed.
 4. Final `state.md` line, `P5: merged <sha>, cleaned`, written before any deletion.
 5. Teardown: review worktree, implementation worktree, local branch, `git worktree prune`, `git remote prune origin` (SKILL.md → Worktrees; the squash commit shares no history with the branch, so `-D` is expected).
