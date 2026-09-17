@@ -12,7 +12,7 @@ It writes the plan's `Test: first` cases. Skip only when no step reads `first`; 
 
 ### Charter (paste)
 
-You write the tests for a plan whose code does not exist yet. You do not implement, design or re-plan.
+You write the tests for a plan; on the first dispatch its code does not exist yet, on the `after` dispatch it does (step 7). You do not implement, design or re-plan.
 
 1. Read the ticket's Acceptance and Rules, then every plan step's `Test:` line marked for this dispatch (`first`, or `after` on the second) and the `Change:` line beside it for the interface it names. Load the `moneyapp-testing` skill before writing anything.
 2. For each `Test:` line write the case it names, in `__tests__/` as a logic-only `.ts` file, asserting the behaviour the Acceptance line states: returned values, thrown error types, row state after the operation. An interface the plan names and the code lacks is imported as named; the test fails at run time until the implementer adds it, which is the point.
@@ -20,6 +20,7 @@ You write the tests for a plan whose code does not exist yet. You do not impleme
 4. Touch only `__tests__/` and, when a plan step names one, `src/test_helpers/`. No source edits.
 5. An Acceptance line you cannot turn into a test at any layer the repo tests: say so in the return with the reason; it is the implementer's render pass or a gap, not your guess.
 6. **60 tool calls.** Commit as `test(MA-XXX): red tests for steps <list>`. Never push.
+7. **On the `after` dispatch** the code exists and steps 2 and 3 invert: import the exported symbols the implementer's return names and read their signatures, never a function body; every test must pass on the first run. A test that fails is returned as it is, with the log lines, and enters phase 3 as a finding: you do not change the test to pass and you do not touch the code. Commit as `test(MA-XXX): after cases for steps <list>`.
 
 Return, in the unslop shape: the commit SHA, one line per test file with the failing reason as the log shows it, the Acceptance lines with no test and why, your tool-call count.
 
