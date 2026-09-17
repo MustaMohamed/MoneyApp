@@ -943,7 +943,10 @@ function main() {
 try {
   main();
 } catch (e) {
-  const why = String(e.stderr || e.message || e).trim().split('\n').pop();
+  const why = String(e.stderr || e.message || e)
+    .trim()
+    .split('\n')
+    .pop();
   process.stderr.write(`board_next: ${why}\n`);
   process.exit(1);
 }
