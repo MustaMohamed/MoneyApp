@@ -34,7 +34,7 @@ Work is defined on GitHub and delivered from GitHub. Nothing about a piece of wo
 
 **The board is the state.** Project #2, Status field: Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Defined means the ticket is in the standard shape. Ready For Development means pullable: `/issue-review` passed it, `Reviewed <date>` on its header line, and every depends-on closed. A parent's column mirrors its furthest child, Ready For Development with the first child there, In Progress with the first child started, Done with the last child closed; a parent is never pulled, `/prep` and `/ship` take leaves only. Row order within a column is priority. `scripts/board.sh` is the one way to write the board, and its `promote` is the only thing that closes a parent, when every child closed as completed. `status:*` labels are retired; never write one.
 
-`/board [n] [graph|text]` reads it: every open ticket with the skill or command to run next, grouped by who acts, and the dependency graph as an inline widget when the shape needs it. `scripts/board_next.mjs` carries the rules, one per row of the table below, and writes nothing.
+`/board [n] [graph|text]` reads it: every open ticket with the skill or command to run next, grouped by who acts, and the dependency graph as an inline widget when the shape needs it. A plain poll needs no session: `bash scripts/board.sh next [n]` prints the same text report from a terminal in about five seconds, `--json` for a script. `scripts/board_next.mjs` carries the rules, one per row of the table below, and writes nothing.
 
 Every move, who makes it, and on what. Nothing else moves a row.
 

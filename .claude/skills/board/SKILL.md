@@ -8,6 +8,10 @@ argument-hint: "[<issue number>] [graph | text]"
 
 One read of Project #2, one action per open ticket, the dependency graph when the shape needs it. `scripts/board_next.mjs` fetches the board and decides; this skill shows the result and stops. The rules are the CLAUDE.md transition table, encoded in `decide()` in the script and pinned by `__tests__/scripts/board_next.test.ts`. The skill writes nothing: no board.sh, no issue edits, no dispatch. Every command in the report is the user's to run, or to hand to the skill it names.
 
+## A poll needs no session
+
+`bash scripts/board.sh next [<issue>]` in a terminal prints the same text report in about five seconds with no model; `--json` gives the actions for a script. On the accounts redesign 38 `/board` calls cost 74.5M tokens, 16 of them sessions opened for one poll. Use this skill when the graph is wanted or the report needs reading with the user; otherwise run the command.
+
 ## Steps
 
 1. Arguments: an issue number scopes the report to that issue and its sub-issues, all levels down; `graph` or `text` forces the medium. Neither is required.
