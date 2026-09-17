@@ -1,0 +1,40 @@
+name: Board on merge
+
+# Moves the board when a PR merges, so nobody has to type "merged": every issue the PR closes goes to Done and its parent is promoted.
+# Needs the BOARD_TOKEN secret: a classic PAT with `repo` and `project` scopes. GITHUB_TOKEN cannot write Projects v2.
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  board:
+    name: Done and promote
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Move the closed issues to Done and promote their parents
+        env:
+          GH_TOKEN: ${{ secrets.BOARD_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::BOARD_TOKEN secret is missing: a classic PAT with repo and project scopes. The board was not moved; run scripts/board.sh by hand." >&2
+            exit 1
+          fi
+          issues=$(gh pr view "$PR" --repo "$REPO" --json closingIssuesReferences --jq '.closingIssuesReferences[].number')
+          if [ -z "$issues" ]; then
+            echo "PR #$PR closes no issue; nothing to move."
+            exit 0
+          fi
+          for n in $issues; do
+            bash scripts/board.sh status "$n" Done
+            parent=$(gh api "repos/$REPO/issues/$n/parent" --jq .number 2>/dev/null) || parent=""
+            case "$parent" in
+              ''|*[!0-9]*) echo "#$n has no parent; nothing to promote." ;;
+              *) bash scripts/board.sh promote "$parent" ;;
+            esac
+          done
