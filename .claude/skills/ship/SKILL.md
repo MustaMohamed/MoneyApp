@@ -56,7 +56,7 @@ Load `references/<phase>.md` on entering a phase. The file is the method; this t
 
 | # | Phase | Actor | Board | Exit |
 |---|---|---|---|---|
-| 1 | Implement | test writer (60 tool calls), then composed implementer (120), two subagents in sequence | In Progress at dispatch | red tests committed, then green: parity chain, render pass when `Verify emulator`, committed, not pushed |
+| 1 | Implement | test writer for `first` cases (60 tool calls), composed implementer (120), test writer for `after` cases (60), in sequence | In Progress at dispatch | red tests committed, then green: parity chain, render pass when `Verify emulator`, committed, not pushed |
 | 2 | Battery | conductor pushes and opens the PR; lenses in parallel | In Review | every lens report in |
 | 3 | Triage and fix | conductor; verifier in deep mode; implementer fixes | Awaiting Human on a dispute or a cap | consolidated fixes pushed |
 | 4 | Re-check | one fresh re-checker per pushed fix | | all fixed, no new findings; cap 2 cycles with phase 3 |

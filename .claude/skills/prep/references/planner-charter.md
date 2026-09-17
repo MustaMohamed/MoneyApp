@@ -30,7 +30,7 @@ base: <sha of origin/main at this checkout> · verify: <emulator | none> · flag
 ### 1. <what this step makes true>
 - File: `path` (`symbol`, `path:line` where it helps)
 - Change: one or two sentences. Interfaces and invariants precisely; edit-level detail only where exactly one sequence is safe.
-- Test: `__tests__/<path>` and the case it adds, written first. `none` with the reason when the repo forbids a test at that layer.
+- Test: `first` | `after` | `none` · `__tests__/<path>` and the case it adds. `first` when the case asserts behaviour through an interface that exists today or whose signature the Change line states in full (a store action, a repository function, a resolver): the test writer writes it before the implementer runs. `after` when the step's interface is the implementer's to shape: the test writer writes it once the code exists, from Acceptance and the exported signatures, never from the bodies. `none` with the reason when the repo forbids a test at that layer. On the accounts redesign 190 of 197 implementer returns deviated from the plan at line level and 4 tickets at interface level; `first` tests survive the former, and the latter is a discrepancy that amends the plan.
 
 ### 2. ...
 
@@ -59,7 +59,7 @@ Rules for the steps:
 
 - Order them so the branch compiles and tests pass after every step. Look across steps for declaration order, import cycles, seed and registration order; these are the properties only the whole plan can catch.
 - Full cycles (store → repository → SQLite) are Jest integration tests against a real database, per the `moneyapp-testing` skill. Never plan an emulator scenario for behaviour a test can assert; the emulator pass covers pixels.
-- Test-first where the repo tests that layer. Logic-only `.ts` tests under `__tests__/`; no component render tests.
+- Test-first where the repo tests that layer and the interface is fixed; `after` where the implementer shapes it. Logic-only `.ts` tests under `__tests__/`; no component render tests.
 - Line-level detail rots the moment real code exists. The implementer elaborates at execution time and the current code wins on detail; give it interfaces, invariants, order and tests.
 - Amending: change only the steps the discrepancy names; leave the rest byte-identical; add one line under Risks saying what was amended and why.
 
