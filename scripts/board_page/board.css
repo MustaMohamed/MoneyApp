@@ -75,8 +75,7 @@ button {
   display: none !important;
 }
 .wrap {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
 }
 .dim {
   color: var(--muted);

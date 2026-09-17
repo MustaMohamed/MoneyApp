@@ -124,7 +124,7 @@
     const left = f.waitsOn.filter((n) => byN.has(n));
     const right = f.frees;
     const W = widthOf(el);
-    const cw = Math.min(280, (W - 252) / 3);
+    const cw = Math.min(340, (W - 252) / 3);
     const gy = 10;
     const rows = Math.max(1, left.length, right.length);
     const H = 40 + rows * (CH + gy);
@@ -178,9 +178,10 @@
     const top = roots.map((r) => walk(r, 0));
     const W = widthOf(el);
     const gap = 70;
-    const cw = Math.min(270, (W - gap * deepest - 8) / (deepest + 1));
+    const cw = Math.min(340, (W - gap * deepest - 8) / (deepest + 1));
     const rh = CH + 8;
-    const x = (d) => d * (cw + gap);
+    const pitch = deepest ? Math.min((W - cw - 8) / deepest, cw + 320) : 0;
+    const x = (d) => d * pitch;
     const y = (r) => 30 + r * rh + CH / 2;
     let paths = '';
     let body = ['top level', 'its tasks', 'children of a split task', 'split again']
@@ -232,10 +233,11 @@
     }
     const W = widthOf(el);
     const gap = 80;
-    const cw = Math.min(maxD < 2 ? 340 : 270, (W - gap * maxD - 8) / (maxD + 1));
+    const cw = Math.min(340, (W - gap * maxD - 8) / (maxD + 1));
     const rh = CH + 8;
     const tall = Math.max(...cols.map((c) => c.length));
-    const xOf = (d) => d * (cw + gap);
+    const pitch = maxD ? Math.min((W - cw - 8) / maxD, cw + 320) : 0;
+    const xOf = (d) => d * pitch;
     const yOf = (a) => 30 + (rowOf[a.number] + (tall - cols[a.depth].length) / 2) * rh + CH / 2;
     let paths = '';
     let body = cols
