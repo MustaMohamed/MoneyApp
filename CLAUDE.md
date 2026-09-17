@@ -117,7 +117,7 @@ Gotcha: even pinned, `expo-doctor` validates against Expo's **live** requirement
 **After I merge a PR**, without being asked:
 
 1. `git checkout main` and pull.
-2. Confirm the merge closed the ticket: `Closes #N` does it, and closed **is** the done signal. `bash scripts/board.sh status <N> Done` in case the board automation is off. Then `bash scripts/board.sh promote <parent>`: it moves the children the close unblocked to Ready For Development, and closes a parent whose children are all closed, at every level up.
+2. Confirm the merge closed the ticket: `Closes #N` does it, and closed **is** the done signal. The `Board on merge` Action then runs `board.sh status <N> Done` and `promote <parent>` on the server (needs the `BOARD_TOKEN` repo secret); `bash scripts/board.sh get <N>` reads Done once it has. If the run failed, run both by hand: `promote` moves the children the close unblocked to Ready For Development, and closes a parent whose children are all closed, at every level up.
 3. Remove the ticket's worktree if it had one, and `git worktree prune`; a branch checked out in a worktree cannot be deleted.
 4. Delete the merged local branch and `git remote prune origin`.
 5. **`npm ci` if the merge moved `package-lock.json`**, otherwise `node_modules` silently belongs to neither branch, and every later verification runs against a tree that matches nothing.

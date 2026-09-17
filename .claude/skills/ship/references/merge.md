@@ -28,7 +28,14 @@ A fix loop after this point (a PR comment from the human) dispatches with `~/.sh
 - Accepted trade-offs and every adjudication that shaped this PR, already in the PR body's Trade-offs section.
 - Open disputes: none, or the both-sides summary awaiting the ruling.
 
-Then wait. **The human merges, never the conductor.** A PR comment from the human routes through phase 3 (fix, re-check, back here).
+Then wait, with a watch on the merge so the word "merged" is never needed. **The human merges, never the conductor.** A PR comment from the human routes through phase 3 (fix, re-check, back here).
+
+```bash
+# Bash tool, run_in_background: true. Exits when the PR merges or closes; the notification starts the post-merge list.
+until gh pr view <pr-url> --json state --jq .state | grep -qE 'MERGED|CLOSED'; do sleep 60; done; gh pr view <pr-url> --json state,mergedAt
+```
+
+`CLOSED` without `mergedAt` is a closed PR, not a merge: stop and ask.
 
 ## After the merge
 
@@ -41,7 +48,7 @@ Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the 
    gh pr view <pr> --json files -q '[.files[] | select(.path | test("^__tests__/|\\.test\\.|^src/test_helpers/") | not) | .additions] | add, [.files[] | select(.path | test("^__tests__/|\\.test\\.|^src/test_helpers/")) | .additions] | add'
    ```
 
-3. `gh issue view <n> --json state` reads closed (`Closes #<n>` did it; close explicitly only if the keyword was missing). `bash scripts/board.sh status <n> Done`, then `bash scripts/board.sh promote <parent>`: it moves the siblings the close unblocked to Ready For Development and closes the parent when its last child closed.
+3. `gh issue view <n> --json state` reads closed (`Closes #<n>` did it; close explicitly only if the keyword was missing). The `Board on merge` Action (`.github/workflows/board-on-merge.yml`) runs `board.sh status <n> Done` and `promote <parent>` on the server within a minute or two; `bash scripts/board.sh get <n>` reads Done when it has. If it has not (`gh run list --workflow board-on-merge.yml --limit 1` shows a failure, usually the missing `BOARD_TOKEN` secret), run the two commands here; both are idempotent.
 4. Final `state.md` line, `P5: merged <sha>, cleaned`, written before any deletion.
 5. Teardown: review worktree, implementation worktree, local branch, `git worktree prune`, `git remote prune origin` (SKILL.md → Worktrees; the squash commit shares no history with the branch, so `-D` is expected).
 6. `npm ci` in the primary checkout if the merge moved `package-lock.json`.
