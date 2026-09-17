@@ -21,7 +21,7 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 - Designs, attachments, the epic; or `none`.
 
 ## Out of scope
-- Short points naming what this task is not for, each with the owning task.
+- Short points naming what this task is not for, each with the owning task. Never another site of this task's own defect: a site of the same check, resolver, slot or string belongs in Acceptance, and a task that fixes a defect fixes it at every site one `git grep` finds.
 
 ## Context
 - What the code shows today, for whoever delivers this without the conversation: the screen or path, what happens now against what is wanted, reproduction steps, the files and symbols involved, prior art, the danger surfaces met. The one section where file paths belong. `/boundaries` on a task fills it; `/tickets` writes what its scout found, or `none`.
