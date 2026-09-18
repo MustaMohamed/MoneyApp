@@ -58,6 +58,7 @@ function makeRepo(overrides: Partial<IAccountRepository> = {}): IAccountReposito
     update: jest.fn().mockResolvedValue(undefined),
     archive: jest.fn().mockResolvedValue(undefined),
     unarchive: jest.fn().mockResolvedValue(undefined),
+    reorder: jest.fn().mockResolvedValue(undefined),
     delete: jest.fn().mockResolvedValue(undefined),
     adjustBalance: jest.fn().mockResolvedValue(undefined),
     confirmBalanceReviewed: jest.fn().mockResolvedValue(undefined),
@@ -663,6 +664,82 @@ describe('accountStore.unarchiveAccount', () => {
     expect(repo.unarchive).toHaveBeenCalledWith('archived');
     expect(store.getState().loadError).toBe(true);
     expect(store.getState().archivedAccounts).toEqual([archived]);
+  });
+});
+
+describe('accountStore.reorderAccounts', () => {
+  const first: Account = { ...mockAccount, id: 'first', name: 'First', sort_order: 0 };
+  const second: Account = { ...mockAccount, id: 'second', name: 'Second', sort_order: 1 };
+  const third: Account = { ...mockAccount, id: 'third', name: 'Third', sort_order: 2 };
+
+  it('delegates to repo.reorder with the ids and publishes the list the reload reads', async () => {
+    const reordered = [
+      { ...second, sort_order: 0 },
+      { ...first, sort_order: 1 },
+    ];
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValueOnce([first, second]).mockResolvedValueOnce(reordered),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccounts();
+
+    await expect(store.getState().reorderAccounts(['second', 'first'])).resolves.toBeUndefined();
+
+    expect(repo.reorder).toHaveBeenCalledWith(['second', 'first']);
+    expect(repo.getAll).toHaveBeenCalledTimes(2);
+    expect(store.getState().accounts).toEqual(reordered);
+    expect(store.getState().loadError).toBe(false);
+  });
+
+  it('rejects with the repository error after re-reading the saved order', async () => {
+    const failure = new Error('reorder refused');
+    const saved = [first, second, third];
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValueOnce([first, second]).mockResolvedValueOnce(saved),
+      reorder: jest.fn().mockRejectedValue(failure),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccounts();
+
+    await expect(store.getState().reorderAccounts(['second', 'first'])).rejects.toBe(failure);
+
+    expect(repo.getAll).toHaveBeenCalledTimes(2);
+    expect(store.getState().accounts).toEqual(saved);
+    expect(store.getState().loadError).toBe(false);
+  });
+
+  it('resolves when the write lands and only the reload after it fails', async () => {
+    const repo = makeRepo({
+      getAll: jest
+        .fn()
+        .mockResolvedValueOnce([first, second])
+        .mockRejectedValueOnce(new Error('reload failed')),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccounts();
+
+    await expect(store.getState().reorderAccounts(['second', 'first'])).resolves.toBeUndefined();
+
+    expect(repo.reorder).toHaveBeenCalledWith(['second', 'first']);
+    expect(store.getState().loadError).toBe(true);
+  });
+
+  it('rejects with the write error, not the reload error, when both fail', async () => {
+    const writeFailure = new Error('reorder failed');
+    const repo = makeRepo({
+      getAll: jest
+        .fn()
+        .mockResolvedValueOnce([first, second])
+        .mockRejectedValueOnce(new Error('reload failed')),
+      reorder: jest.fn().mockRejectedValue(writeFailure),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccounts();
+
+    await expect(store.getState().reorderAccounts(['second', 'first'])).rejects.toBe(writeFailure);
+
+    expect(repo.getAll).toHaveBeenCalledTimes(2);
+    expect(store.getState().loadError).toBe(true);
   });
 });
 

@@ -183,6 +183,21 @@ export async function setAccountUnarchived(
   return result.changes;
 }
 
+/** A position change is not an edit of the row, so `updated_at` stays. */
+export async function setAccountSortOrder(
+  db: SQLiteDatabase,
+  id: string,
+  sortOrder: number,
+): Promise<number> {
+  const result = await db.runAsync(
+    `UPDATE accounts
+        SET sort_order = ?
+      WHERE id = ? AND is_archived = 0 AND is_deleted = 0`,
+    [sortOrder, id],
+  );
+  return result.changes;
+}
+
 export async function setAccountBalance(
   db: SQLiteDatabase,
   id: string,

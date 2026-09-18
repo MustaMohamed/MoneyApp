@@ -18,6 +18,7 @@ import {
   getArchivedAccounts,
   setAccountBalance,
   setAccountDeleted,
+  setAccountSortOrder,
   setAccountUnarchived,
   updateAccount,
   type UpdateAccountInput,
@@ -29,6 +30,7 @@ import {
   AccountNameTakenError,
   AccountNotArchivedError,
   AccountNotFoundError,
+  AccountReorderInvalidError,
 } from './account.errors';
 
 export type NewAccountInput = Omit<
@@ -53,6 +55,7 @@ export interface IAccountRepository {
   update(id: string, data: UpdateAccountInput): Promise<void>;
   archive(id: string): Promise<void>;
   unarchive(id: string): Promise<void>;
+  reorder(orderedIds: string[]): Promise<void>;
   delete(id: string, replacementAccountId?: string): Promise<void>;
   adjustBalance(id: string, newBalance: number): Promise<void>;
   confirmBalanceReviewed(id: string): Promise<void>;
@@ -120,6 +123,28 @@ export class AccountRepository implements IAccountRepository {
 
     const now = new Date().toISOString();
     if ((await setAccountUnarchived(db, id, now)) !== 1) throw new AccountNotFoundError();
+  }
+
+  async reorder(orderedIds: string[]): Promise<void> {
+    const db = await getDb();
+    const active = await getAccounts(db);
+    const activeIds = new Set(active.map((account) => account.id));
+    if (
+      orderedIds.length !== active.length ||
+      new Set(orderedIds).size !== orderedIds.length ||
+      orderedIds.some((id) => !activeIds.has(id))
+    ) {
+      throw new AccountReorderInvalidError();
+    }
+    if (orderedIds.every((id, index) => id === active[index].id)) return;
+
+    await db.withTransactionAsync(async () => {
+      for (const [index, id] of orderedIds.entries()) {
+        if ((await setAccountSortOrder(db, id, index)) !== 1) {
+          throw new AccountReorderInvalidError();
+        }
+      }
+    });
   }
 
   async delete(id: string, replacementAccountId?: string): Promise<void> {
