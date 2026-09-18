@@ -12,22 +12,71 @@
       "header": "Scope locked 2026-09-01.",
       "parent": null,
       "children": [
-        { "number": 101, "state": "open" },
-        { "number": 102, "state": "open" },
-        { "number": 103, "state": "open" },
-        { "number": 104, "state": "open" },
-        { "number": 105, "state": "open" },
-        { "number": 106, "state": "open" },
-        { "number": 107, "state": "open" },
-        { "number": 108, "state": "open" },
-        { "number": 109, "state": "open" },
-        { "number": 110, "state": "open" },
-        { "number": 111, "state": "closed", "stateReason": "completed" },
-        { "number": 113, "state": "open" },
-        { "number": 115, "state": "open" },
-        { "number": 117, "state": "open" },
-        { "number": 118, "state": "open" },
-        { "number": 120, "state": "open" }
+        {
+          "number": 101,
+          "state": "open"
+        },
+        {
+          "number": 102,
+          "state": "open"
+        },
+        {
+          "number": 103,
+          "state": "open"
+        },
+        {
+          "number": 104,
+          "state": "open"
+        },
+        {
+          "number": 105,
+          "state": "open"
+        },
+        {
+          "number": 106,
+          "state": "open"
+        },
+        {
+          "number": 107,
+          "state": "open"
+        },
+        {
+          "number": 108,
+          "state": "open"
+        },
+        {
+          "number": 109,
+          "state": "open"
+        },
+        {
+          "number": 110,
+          "state": "open"
+        },
+        {
+          "number": 111,
+          "state": "closed",
+          "stateReason": "completed"
+        },
+        {
+          "number": 113,
+          "state": "open"
+        },
+        {
+          "number": 115,
+          "state": "open"
+        },
+        {
+          "number": 117,
+          "state": "open"
+        },
+        {
+          "number": 118,
+          "state": "open"
+        },
+        {
+          "number": 120,
+          "state": "open"
+        }
       ],
       "branches": [],
       "prs": [],
@@ -101,7 +150,12 @@
       "header": "Part of #100 · Depends on nothing · Verify emulator · Flags none · Reviewed 2026-09-07",
       "parent": 100,
       "children": [],
-      "branches": [{ "name": "feat/MA-104-implementing", "committedDate": "2026-09-08T04:00:00Z" }],
+      "branches": [
+        {
+          "name": "feat/MA-104-implementing",
+          "committedDate": "2026-09-08T04:00:00Z"
+        }
+      ],
       "prs": [],
       "comments": []
     },
@@ -137,7 +191,12 @@
       "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
       "parent": 100,
       "children": [],
-      "branches": [{ "name": "feat/MA-106-planned", "committedDate": "2026-09-07T04:00:00Z" }],
+      "branches": [
+        {
+          "name": "feat/MA-106-planned",
+          "committedDate": "2026-09-07T04:00:00Z"
+        }
+      ],
       "prs": [],
       "comments": []
     },
@@ -252,7 +311,13 @@
       "milestone": "MA-fixture",
       "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-06",
       "parent": 100,
-      "children": [{ "number": 112, "state": "closed", "stateReason": "completed" }],
+      "children": [
+        {
+          "number": 112,
+          "state": "closed",
+          "stateReason": "completed"
+        }
+      ],
       "branches": [],
       "prs": [],
       "comments": []
@@ -281,8 +346,14 @@
       "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
       "parent": 100,
       "children": [
-        { "number": 114, "state": "open" },
-        { "number": 116, "state": "open" }
+        {
+          "number": 114,
+          "state": "open"
+        },
+        {
+          "number": 116,
+          "state": "open"
+        }
       ],
       "branches": [],
       "prs": [],
@@ -325,7 +396,12 @@
       "milestone": "MA-fixture",
       "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
       "parent": 100,
-      "children": [{ "number": 119, "state": "open" }],
+      "children": [
+        {
+          "number": 119,
+          "state": "open"
+        }
+      ],
       "branches": [],
       "prs": [],
       "comments": []
@@ -423,7 +499,12 @@
       "milestone": "MA-fixture",
       "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
       "parent": null,
-      "children": [{ "number": 126, "state": "open" }],
+      "children": [
+        {
+          "number": 126,
+          "state": "open"
+        }
+      ],
       "branches": [],
       "prs": [],
       "comments": []
@@ -451,7 +532,12 @@
       "milestone": "MA-fixture",
       "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
       "parent": null,
-      "children": [{ "number": 128, "state": "open" }],
+      "children": [
+        {
+          "number": 128,
+          "state": "open"
+        }
+      ],
       "branches": [],
       "prs": [],
       "comments": []
@@ -488,6 +574,33 @@
           "checks": "PENDING",
           "reviewDecision": null,
           "updatedAt": "2026-09-08T09:50:00Z"
+        }
+      ],
+      "comments": []
+    },
+    {
+      "number": 131,
+      "status": "In Progress",
+      "title": "MA-131 — Parent named by a stray closing keyword",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": 100,
+      "children": [
+        {
+          "number": 104,
+          "state": "open"
+        }
+      ],
+      "branches": [],
+      "prs": [
+        {
+          "number": 531,
+          "state": "MERGED",
+          "checks": "SUCCESS",
+          "reviewDecision": null,
+          "updatedAt": "2026-09-08T10:00:00Z"
         }
       ],
       "comments": []

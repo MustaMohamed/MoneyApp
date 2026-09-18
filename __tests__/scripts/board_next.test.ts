@@ -10,6 +10,15 @@ interface Action {
   bucket: string;
   action: string;
   command?: string;
+  actor?: string;
+  runnable?: boolean;
+  rank?: number;
+  unblocks?: number;
+  frees?: number[];
+  waitsOn?: number[];
+  reviewed?: string | null;
+  pr?: { number: number; state: string; url: string } | null;
+  progress?: { total: number; closed: number; open: number[] } | null;
 }
 
 function run(...args: string[]): { status: number | null; stdout: string; stderr: string } {
@@ -91,6 +100,7 @@ describe('board_next rule table', () => {
     [121, 'wait', 'Blocked on #104', undefined],
     [125, 'wait', 'parent, children at Todo lead', undefined],
     [100, 'wait', 'parent, mirrors its children', undefined],
+    [131, 'wait', 'parent, mirrors its children', undefined],
   ];
 
   test.each(rows)('#%i lands in %s: %s', (n, bucket, action, command) => {
@@ -179,5 +189,56 @@ describe('board_next html', () => {
     expect(p(113)).toMatchObject({ kids: 1, done: 1 });
     expect(html).toContain('r.clientWidth');
     expect(html).toContain('ResizeObserver');
+  });
+});
+
+describe('board_next card fields', () => {
+  const list = actions();
+
+  test('a parent with an open child never gets a close command from a merged PR that names it', () => {
+    const a = byNumber(list, 131);
+    expect(a.command).toBeUndefined();
+    expect(a.actor).toBe('nobody');
+  });
+
+  test('who acts: a merge is yours, a skill is a session, board.sh is the page, a wait is nobody', () => {
+    expect(byNumber(list, 101).actor).toBe('you');
+    expect(byNumber(list, 108).actor).toBe('session');
+    expect(byNumber(list, 120).actor).toBe('you');
+    expect(byNumber(list, 113).actor).toBe('page');
+    expect(byNumber(list, 114).actor).toBe('nobody');
+  });
+
+  test('only a literal board.sh command is runnable from the page', () => {
+    expect(byNumber(list, 113).runnable).toBe(true);
+    expect(byNumber(list, 122).runnable).toBe(false);
+    expect(byNumber(list, 108).runnable).toBe(false);
+  });
+
+  test('frees and waits on mirror each other, and the rank puts what frees the most first', () => {
+    expect(byNumber(list, 108).frees).toEqual([119]);
+    expect(byNumber(list, 119).waitsOn).toEqual([108]);
+    expect(byNumber(list, 114).rank).toBeUndefined();
+    const ranked = list
+      .filter((a) => a.rank !== undefined)
+      .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
+    expect(ranked.map((a) => a.rank)).toEqual(ranked.map((_, i) => i + 1));
+    const freeing = ranked.filter((a) => (a.unblocks ?? 0) > 0).length;
+    expect(ranked.slice(0, freeing).every((a) => (a.unblocks ?? 0) > 0)).toBe(true);
+  });
+
+  test('a card gets its PR, its review date and a parent its progress', () => {
+    expect(byNumber(list, 101).pr).toMatchObject({ number: 501, state: 'OPEN' });
+    expect(byNumber(list, 109).reviewed).toBe('none');
+    expect(byNumber(list, 115).progress).toEqual({ total: 2, closed: 0, open: [114, 116] });
+  });
+
+  test('next names the first ticket for you, for a session and for the page', () => {
+    const out = JSON.parse(run('--format', 'json').stdout) as {
+      next: Record<string, number | null>;
+    };
+    expect(out.next.you).toBe(101);
+    expect(typeof out.next.session).toBe('number');
+    expect(typeof out.next.page).toBe('number');
   });
 });

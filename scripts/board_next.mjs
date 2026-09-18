@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { parseRunnable } from './board_run.mjs';
+
 const OWNER = 'MustaMohamed';
 const NAME = 'MoneyApp';
 const REPO = `${OWNER}/${NAME}`;
@@ -293,7 +295,8 @@ function decide(item, ctx) {
       action: 'Done but the issue is open',
       command: `close it or bash scripts/board.sh status ${n} <column>`,
     };
-  if (mergedPr && !openPr)
+  const openChild = (item.children ?? []).some((c) => c.state === 'open');
+  if (mergedPr && !openPr && !openChild)
     return {
       bucket: 'drift',
       action: `PR #${mergedPr.number} merged, issue still open`,
@@ -472,6 +475,28 @@ function decide(item, ctx) {
   };
 }
 
+function actorOf(d) {
+  if (d.bucket === 'yours') return 'you';
+  if (d.bucket === 'wait' || !d.command) return 'nobody';
+  if (parseRunnable(d.command)) return 'page';
+  if (/^\/(boundaries|tickets|epic)\b/.test(d.command)) return 'you';
+  return d.command.startsWith('/') ? 'session' : 'you';
+}
+
+function prOf(item) {
+  const prs = item.prs ?? [];
+  const p = prs.find((x) => x.state === 'OPEN') ?? prs.find((x) => x.state === 'MERGED') ?? prs[0];
+  if (!p) return null;
+  return {
+    number: p.number,
+    state: p.state,
+    checks: p.checks ?? 'NONE',
+    reviewDecision: p.reviewDecision ?? null,
+    updatedAt: p.updatedAt ?? null,
+    url: `https://github.com/${REPO}/pull/${p.number}`,
+  };
+}
+
 function buildContext(snapshot) {
   const byNumber = new Map();
   snapshot.items.forEach((it, i) => byNumber.set(it.number, { ...it, boardIndex: i }));
@@ -541,6 +566,21 @@ function analyze(snapshot, scope) {
       command: d.command,
       rank: d.rank ?? 0,
       boardIndex: it.boardIndex,
+      url: `${ISSUE_URL}${it.number}`,
+      actor: actorOf(d),
+      runnable: parseRunnable(d.command) !== null,
+      reviewed: headerReviewed(it.header),
+      verify: /Verify emulator/.test(it.header ?? ''),
+      flags: (/Flags ([^·]+)/.exec(it.header ?? '')?.[1] ?? 'none').trim(),
+      pr: prOf(it),
+      progress:
+        (it.children ?? []).length > 0
+          ? {
+              total: it.children.length,
+              closed: it.children.filter((c) => c.state === 'closed').length,
+              open: it.children.filter((c) => c.state === 'open').map((c) => c.number),
+            }
+          : null,
     });
   }
   actions.sort(
@@ -567,12 +607,46 @@ function analyze(snapshot, scope) {
   for (const a of openNodes) deepestChain = Math.max(deepestChain, depthOf(a.number));
   const openLeaves = openNodes.filter((a) => !a.isParent).length;
   for (const a of actions) a.rank = undefined;
+
+  const waiters = new Map();
+  for (const a of openNodes) {
+    a.waitsOn = a.deps.filter((d) => !d.closed).map((d) => d.number);
+    a.depth = depthOf(a.number);
+    for (const d of a.waitsOn) waiters.set(d, [...(waiters.get(d) ?? []), a.number]);
+  }
+  for (const a of openNodes) {
+    a.frees = waiters.get(a.number) ?? [];
+    const seen = new Set();
+    const stack = [...a.frees];
+    while (stack.length) {
+      const x = stack.pop();
+      if (seen.has(x)) continue;
+      seen.add(x);
+      stack.push(...(waiters.get(x) ?? []));
+    }
+    a.unblocks = seen.size;
+  }
+  const defineCmd = (a) => /^\/(issue-review|boundaries|tickets)/.test(a.command ?? '');
+  const ranked = openNodes
+    .filter((a) => a.actor !== 'nobody')
+    .sort(
+      (a, b) =>
+        b.unblocks - a.unblocks ||
+        Number(defineCmd(a)) - Number(defineCmd(b)) ||
+        BUCKETS.indexOf(a.bucket) - BUCKETS.indexOf(b.bucket) ||
+        a.boardIndex - b.boardIndex,
+    );
+  ranked.forEach((a, i) => {
+    a.rank = i + 1;
+  });
+  const firstFor = (who) => ranked.find((a) => a.actor === who)?.number ?? null;
   return {
     fetchedAt: snapshot.fetchedAt,
     scope: scope ?? null,
     openLeaves,
     deepestChain,
     graph: openLeaves > 8 || deepestChain >= 2,
+    next: { you: firstFor('you'), session: firstFor('session'), page: firstFor('page') },
     actions,
     ctx,
   };
@@ -940,4 +1014,13 @@ function main() {
   }
 }
 
-main();
+try {
+  main();
+} catch (e) {
+  const why = String(e.stderr || e.message || e)
+    .trim()
+    .split('\n')
+    .pop();
+  process.stderr.write(`board_next: ${why}\n`);
+  process.exit(1);
+}
