@@ -35,6 +35,7 @@ export type AccountStore = typeof INITIAL_STATE & {
   updateAccount: (id: string, data: UpdateAccountInput) => Promise<void>;
   archiveAccount: (id: string) => Promise<void>;
   unarchiveAccount: (id: string) => Promise<void>;
+  reorderAccounts: (orderedIds: string[]) => Promise<void>;
   deleteAccount: (id: string) => Promise<void>;
   deleteAccountMovingCommitments: (id: string, replacementAccountId: string) => Promise<void>;
   adjustBalance: (id: string, newBalance: number) => Promise<void>;
@@ -147,6 +148,20 @@ export function createAccountStore(repo: IAccountRepository) {
         archiveAccount: (id) => writeThenReload('archiveAccount', () => repo.archive(id)),
 
         unarchiveAccount: (id) => writeThenReload('unarchiveAccount', () => repo.unarchive(id)),
+
+        // A refused order means the list it was built from is stale, so the failure path reloads too.
+        reorderAccounts: async (orderedIds) => {
+          try {
+            await repo.reorder(orderedIds);
+          } catch (err) {
+            console.error('[accountStore] reorderAccounts failed:', err);
+            throw err;
+          } finally {
+            await get()
+              .loadAccounts()
+              .catch(() => undefined);
+          }
+        },
 
         deleteAccount: async (id) => {
           await writeThenReload('deleteAccount', () => repo.delete(id));

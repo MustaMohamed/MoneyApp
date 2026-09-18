@@ -25,3 +25,10 @@ export class AccountNameTakenError extends Error {
     this.name = 'AccountNameTakenError';
   }
 }
+
+export class AccountReorderInvalidError extends Error {
+  constructor() {
+    super('The order must name every active account exactly once');
+    this.name = 'AccountReorderInvalidError';
+  }
+}
