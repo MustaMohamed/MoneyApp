@@ -51,17 +51,24 @@ export function createAccountStore(repo: IAccountRepository) {
   return createMoneyAppSelectors(
     create<AccountStore>((set, get) => {
       // A landed write must not read as a failed one because the reload after it failed; `loadAccounts` publishes `loadError`.
-      const writeThenReload = async <T>(tag: string, write: () => Promise<T>): Promise<T> => {
+      const writeThenReload = async <T>(
+        tag: string,
+        write: () => Promise<T>,
+        { reloadOnFailure = false }: { reloadOnFailure?: boolean } = {},
+      ): Promise<T> => {
+        const reload = () =>
+          get()
+            .loadAccounts()
+            .catch(() => undefined);
         let result: T;
         try {
           result = await write();
         } catch (err) {
           console.error(`[accountStore] ${tag} failed:`, err);
+          if (reloadOnFailure) await reload();
           throw err;
         }
-        await get()
-          .loadAccounts()
-          .catch(() => undefined);
+        await reload();
         return result;
       };
 
@@ -150,18 +157,10 @@ export function createAccountStore(repo: IAccountRepository) {
         unarchiveAccount: (id) => writeThenReload('unarchiveAccount', () => repo.unarchive(id)),
 
         // A refused order means the list it was built from is stale, so the failure path reloads too.
-        reorderAccounts: async (orderedIds) => {
-          try {
-            await repo.reorder(orderedIds);
-          } catch (err) {
-            console.error('[accountStore] reorderAccounts failed:', err);
-            throw err;
-          } finally {
-            await get()
-              .loadAccounts()
-              .catch(() => undefined);
-          }
-        },
+        reorderAccounts: (orderedIds) =>
+          writeThenReload('reorderAccounts', () => repo.reorder(orderedIds), {
+            reloadOnFailure: true,
+          }),
 
         deleteAccount: async (id) => {
           await writeThenReload('deleteAccount', () => repo.delete(id));

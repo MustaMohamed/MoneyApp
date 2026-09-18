@@ -3,7 +3,6 @@ import Database from 'better-sqlite3';
 import { AccountType, Currency } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
 import * as accountsDb from '@/modules/accounts/database/accounts';
-import { setAccountSortOrder } from '@/modules/accounts/database/accounts';
 import { AccountReorderInvalidError } from '@/modules/accounts/repositories/account.errors';
 import { AccountRepository } from '@/modules/accounts/repositories/account.repository';
 import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
@@ -203,7 +202,7 @@ describe('setAccountSortOrder — one active row, its position only', () => {
   it('reports one change on an active row and changes nothing but its position', async () => {
     const before = allRows();
 
-    await expect(setAccountSortOrder(sqlite.database, 'c', 9)).resolves.toBe(1);
+    await expect(accountsDb.setAccountSortOrder(sqlite.database, 'c', 9)).resolves.toBe(1);
 
     const after = allRows();
     expect(withoutSortOrder(after)).toEqual(withoutSortOrder(before));
@@ -215,7 +214,7 @@ describe('setAccountSortOrder — one active row, its position only', () => {
     async (id) => {
       const before = allRows();
 
-      await expect(setAccountSortOrder(sqlite.database, id, 9)).resolves.toBe(0);
+      await expect(accountsDb.setAccountSortOrder(sqlite.database, id, 9)).resolves.toBe(0);
 
       expect(allRows()).toEqual(before);
     },
@@ -235,6 +234,7 @@ describe('AccountRepository.reorder — the new order is stored and read back', 
   it('reads the same order through a fresh repository over the same database', async () => {
     await repo.reorder(['e', 'c', 'b', 'a']);
 
+    expect(realDb.inTransaction).toBe(false);
     const relaunched = await new AccountRepository().getAll();
     expect(relaunched.map((account) => account.id)).toEqual(['e', 'c', 'b', 'a']);
   });
@@ -299,6 +299,18 @@ describe('AccountRepository.reorder — atomicity over a real transaction', () =
 
     expect(spy).toHaveBeenCalledTimes(2);
     expect(spy).toHaveBeenNthCalledWith(1, expect.anything(), 'e', 0);
+    expect(positions()).toEqual(SEEDED_POSITIONS);
+  });
+
+  it('refuses and rolls back when a row left the active set before its write', async () => {
+    const real = accountsDb.setAccountSortOrder;
+    jest
+      .spyOn(accountsDb, 'setAccountSortOrder')
+      .mockImplementationOnce(real)
+      .mockResolvedValueOnce(0);
+
+    await expect(repo.reorder(['e', 'c', 'b', 'a'])).rejects.toThrow(AccountReorderInvalidError);
+
     expect(positions()).toEqual(SEEDED_POSITIONS);
   });
 });
