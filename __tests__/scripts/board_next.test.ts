@@ -209,6 +209,12 @@ describe('board_next card fields', () => {
     expect(byNumber(list, 114).actor).toBe('nobody');
   });
 
+  test('a ticket in delivery is a session only with ship state on this machine', () => {
+    expect(byNumber(list, 104).actor).toBe('session');
+    expect(byNumber(list, 129).actor).toBe('nobody');
+    expect(byNumber(list, 105).actor).toBe('nobody');
+  });
+
   test('only a literal board.sh command is runnable from the page', () => {
     expect(byNumber(list, 113).runnable).toBe(true);
     expect(byNumber(list, 122).runnable).toBe(false);

@@ -57,6 +57,7 @@
   // line three of the card: who acts, then the command, the PR link, the Fix button, or the reason nothing runs
   function actionLine(a) {
     const who = `<span class="td-who">${WHO[a.actor]}</span>`;
+    if (a.actor === 'nobody') return `${who}<span class="td-text">${esc(a.action)}</span>`;
     if (a.actor === 'you' && a.pr?.state === 'OPEN' && /^merge PR/.test(a.action))
       return `${who}<a href="${a.pr.url}" target="_blank" rel="noopener">${esc(a.action)}</a>`;
     if (a.runnable)
