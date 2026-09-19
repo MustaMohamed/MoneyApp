@@ -24,8 +24,8 @@ Route `/accounts`. Screen `src/modules/accounts/screens/accounts/list/index.tsx`
 | unarchive name clash | no frame, MA-046 | an active account with the archived name | toast `An active account already has this name. Rename it first.`; db unchanged |
 | row lifted mid-drag | B6 | device QA only | gesture feel is not emulator evidence |
 | blank-named row | no frame, MA-059 | seed push `name = ''` | row reads `Unnamed account` |
-| grip on every active row | B6 | seed with n active accounts, All selected | `mqa ui \| grep -c '^Reorder '` equals the active count; one shot of a row for the glyph |
-| filtered, reorder off | B7 | `$MQA tap '<type>'` on the rail with at least one row of that type | `Reorder is off while a filter is on.` present, `mqa ui \| grep -c '^Reorder '` is 1 (the note shares the word); shot |
+| grip on every active row | B6, MA-084 | seed with n active accounts, All selected | `mqa ui \| grep -c 'content-desc="Reorder '` equals the visible row count (the active count when every row fits); one shot of a row for the glyph |
+| filtered, reorder off | B7, MA-084 | `$MQA tap '<type>'` on the rail with at least one row of that type | `mqa ui \| grep -c 'content-desc="Reorder '` is 0; `Reorder is off while a filter is on.` present once the card's end is on screen; shot |
 
 Per-type captions (MA-024) are one row each in B1; a caption check is `mqa ui`, not a shot.
 
@@ -43,3 +43,4 @@ Per-type captions (MA-024) are one row each in B1; a caption check is `mqa ui`, 
 - The dashboard drops the Accounts segment at zero active accounts; use the deep link for B2 and B3.
 - Toasts clear the tab bar and the `+` button (MA-077); a toast shot is judged for that inset.
 - The archived card collapses on mount only; a filter change does not reset it.
+- The rail scrolls sideways: at 411dp `Credit Card` sits off-screen and `mqa tap` on it does nothing; tap a visible chip.
