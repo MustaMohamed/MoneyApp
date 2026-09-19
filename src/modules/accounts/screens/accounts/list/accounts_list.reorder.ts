@@ -85,3 +85,38 @@ export function resolveRowShift(input: {
   if (toIndex <= index && index < fromIndex) return 1;
   return 0;
 }
+
+/** Signed px a second under a held finger: ramps to `maxRate` at the viewport's edge, and the nearer edge wins where the zones overlap. */
+export function resolveEdgeScrollRate(input: {
+  fingerY: number;
+  viewportHeight: number;
+  zoneHeight: number;
+  maxRate: number;
+}): number {
+  'worklet';
+  const { fingerY, viewportHeight, zoneHeight, maxRate } = input;
+  if (viewportHeight <= 0 || zoneHeight <= 0 || maxRate <= 0) return 0;
+  const bottomZoneTop = viewportHeight - zoneHeight;
+  const inTop = fingerY < zoneHeight;
+  const inBottom = fingerY > bottomZoneTop;
+  if (inTop && (!inBottom || fingerY < viewportHeight / 2)) {
+    return -maxRate * Math.min(1, (zoneHeight - fingerY) / zoneHeight);
+  }
+  if (inBottom) return maxRate * Math.min(1, (fingerY - bottomZoneTop) / zoneHeight);
+  return 0;
+}
+
+/** The offset after one step: up no further than the first row's top, down no further than the last row's bottom, never backwards. */
+export function resolveEdgeScrollOffset(input: {
+  offset: number;
+  step: number;
+  firstRowTop: number;
+  lastRowBottom: number;
+  viewportHeight: number;
+}): number {
+  'worklet';
+  const { offset, step, firstRowTop, lastRowBottom, viewportHeight } = input;
+  if (step < 0) return Math.max(offset + step, Math.min(offset, firstRowTop));
+  if (step > 0) return Math.min(offset + step, Math.max(offset, lastRowBottom - viewportHeight));
+  return offset;
+}

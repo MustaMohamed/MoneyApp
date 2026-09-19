@@ -37,6 +37,7 @@ export default function AccountsListScreen() {
       canLift,
       content,
       emptyState,
+      hasScroll,
       isReorderable,
       isLifted,
       isRetrying,
@@ -56,7 +57,11 @@ export default function AccountsListScreen() {
     setArchivedExpanded,
     unarchive,
   } = useAccountsList();
-  const { drag, slotStyle, liftedStyle } = useAccountsListDragAnim({ isLifted });
+  const { drag, slotStyle, liftedStyle, scrollRef, onCardLayout } = useAccountsListDragAnim({
+    isLifted,
+    count: rows.length,
+    hasScroll,
+  });
 
   return (
     <Screen>
@@ -77,25 +82,10 @@ export default function AccountsListScreen() {
         }
       />
 
-      {content === 'error' ? (
-        // `edges={[]}`: the outer `Screen` already pads top and bottom.
-        <ErrorState
-          edges={[]}
-          flat
-          iconName="alert-circle-outline"
-          title={Strings.accountsReadErrorTitle}
-          description={Strings.accountsReadErrorDescription}
-          actionLabel={Strings.accountsReadErrorRetry}
-          actionAccessibilityLabel={Strings.accountsReadErrorRetry}
-          onAction={() => void retry()}
-          isActionLoading={isRetrying}
-          isActionDisabled={isRetrying}
-          testID="accounts-load-error"
-        />
-      ) : emptyState === 'noAccounts' ? (
-        <EmptyState variant="accounts" onAction={goToAddAccount} />
-      ) : (
+      {hasScroll ? (
         <ScreenScroll
+          ref={scrollRef}
+          scrollEventThrottle={16}
           contentContainerStyle={{ paddingBottom: Spacing.xxl }}
           showsVerticalScrollIndicator={false}
           scrollEnabled={!isLifted}
@@ -127,45 +117,49 @@ export default function AccountsListScreen() {
                 />
               ) : (
                 <>
-                  <ListCard style={ACCOUNTS_LIST_CARD_STYLE}>
-                    {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
-                    {rows.map(({ account, caption }, index) => (
-                      <AccountListRow
-                        key={`${account.id}:${liftGeneration}`}
-                        account={account}
-                        caption={caption}
-                        index={index}
-                        count={rows.length}
-                        drag={drag}
-                        isLifted={isLifted}
-                        canLift={canLift}
-                        showSeparator={index > 0}
-                        onPress={goToAccount}
-                        onMove={
-                          isReorderable ? (direction) => void moveRow(index, direction) : undefined
-                        }
-                        onLift={liftRow}
-                        onRelease={releaseRow}
-                      />
-                    ))}
-                    {liftedRow === undefined ? null : (
-                      <>
-                        <Animated.View
-                          pointerEvents="none"
-                          style={[
-                            ACCOUNTS_LIST_DROP_SLOT_STYLE,
-                            ACCOUNTS_LIST_FLOATING_STYLE,
-                            slotStyle,
-                          ]}
+                  <View onLayout={onCardLayout}>
+                    <ListCard style={ACCOUNTS_LIST_CARD_STYLE}>
+                      {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
+                      {rows.map(({ account, caption }, index) => (
+                        <AccountListRow
+                          key={`${account.id}:${liftGeneration}`}
+                          account={account}
+                          caption={caption}
+                          index={index}
+                          count={rows.length}
+                          drag={drag}
+                          isLifted={isLifted}
+                          canLift={canLift}
+                          showSeparator={index > 0}
+                          onPress={goToAccount}
+                          onMove={
+                            isReorderable
+                              ? (direction) => void moveRow(index, direction)
+                              : undefined
+                          }
+                          onLift={liftRow}
+                          onRelease={releaseRow}
                         />
-                        <LiftedAccountRow
-                          account={liftedRow.account}
-                          caption={liftedRow.caption}
-                          style={liftedStyle}
-                        />
-                      </>
-                    )}
-                  </ListCard>
+                      ))}
+                      {liftedRow === undefined ? null : (
+                        <>
+                          <Animated.View
+                            pointerEvents="none"
+                            style={[
+                              ACCOUNTS_LIST_DROP_SLOT_STYLE,
+                              ACCOUNTS_LIST_FLOATING_STYLE,
+                              slotStyle,
+                            ]}
+                          />
+                          <LiftedAccountRow
+                            account={liftedRow.account}
+                            caption={liftedRow.caption}
+                            style={liftedStyle}
+                          />
+                        </>
+                      )}
+                    </ListCard>
+                  </View>
                   {isReorderable ? null : (
                     <Typography
                       className="text-content-secondary font-inter"
@@ -190,6 +184,23 @@ export default function AccountsListScreen() {
             onUnarchive={(id) => void unarchive(id)}
           />
         </ScreenScroll>
+      ) : content === 'error' ? (
+        // `edges={[]}`: the outer `Screen` already pads top and bottom.
+        <ErrorState
+          edges={[]}
+          flat
+          iconName="alert-circle-outline"
+          title={Strings.accountsReadErrorTitle}
+          description={Strings.accountsReadErrorDescription}
+          actionLabel={Strings.accountsReadErrorRetry}
+          actionAccessibilityLabel={Strings.accountsReadErrorRetry}
+          onAction={() => void retry()}
+          isActionLoading={isRetrying}
+          isActionDisabled={isRetrying}
+          testID="accounts-load-error"
+        />
+      ) : (
+        <EmptyState variant="accounts" onAction={goToAddAccount} />
       )}
     </Screen>
   );
