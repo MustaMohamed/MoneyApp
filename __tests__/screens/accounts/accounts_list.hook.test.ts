@@ -252,7 +252,7 @@ describe('useAccountsList', () => {
     expect(result.current.state.content).toBe('error');
   });
 
-  it('mounts the scroll with rows and on a filtered-to-empty list, not on a load error or with no accounts', async () => {
+  it('mounts the scroll with rows, on a filtered-to-empty list and with only archived accounts, not on a load error or with no accounts', async () => {
     storeState = { ...storeState, loadError: true };
     const errored = await renderHook(() => useAccountsList());
     expect(errored.result.current.state.hasScroll).toBe(false);
@@ -262,7 +262,12 @@ describe('useAccountsList', () => {
     expect(empty.result.current.state.emptyState).toBe('noAccounts');
     expect(empty.result.current.state.hasScroll).toBe(false);
 
-    storeState = { ...storeState, accounts };
+    storeState = { ...storeState, archivedAccounts: [oldHsbc], archivedCount: 1 };
+    const archivedOnly = await renderHook(() => useAccountsList());
+    expect(archivedOnly.result.current.state.emptyState).toBe('archivedOnly');
+    expect(archivedOnly.result.current.state.hasScroll).toBe(true);
+
+    storeState = { ...storeState, accounts, archivedAccounts: NO_ARCHIVED, archivedCount: 0 };
     const listed = await renderHook(() => useAccountsList());
     expect(listed.result.current.state.hasScroll).toBe(true);
 
