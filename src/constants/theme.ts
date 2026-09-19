@@ -61,7 +61,7 @@ export const Colors = {
 } as const;
 
 /** The alpha suffixes in use, as `#RRGGBBAA` hex pairs. New values are a deliberate edit here. */
-export type AlphaHex = '1A' | '1F' | '22' | '2E' | '40' | '55' | '75' | 'CC';
+export type AlphaHex = '1A' | '1F' | '22' | '2E' | '40' | '55' | '73' | '75' | '80' | 'CC';
 
 /**
  * `#RRGGBB` token or runtime colour (account swatch, category colour) + alpha pair → `#RRGGBBAA`.
@@ -208,6 +208,8 @@ export const Size = {
   archivedCardHeaderHeight: ms(52),
   archivedRowMinHeight: ms(56),
   reorderGripSlot: ms(16),
+  /** Accounts list B6: the lifted row sits 6 in from the card's sides. */
+  liftedRowInset: ms(6),
   inlineLinkChevron: ms(14),
   /** A1: "See all" sits 6 under the accounts count. */
   inlineLinkOffset: ms(6),
