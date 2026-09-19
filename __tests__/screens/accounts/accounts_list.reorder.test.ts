@@ -5,6 +5,8 @@ import {
   MOVE_DOWN_ACTION,
   MOVE_UP_ACTION,
   resolveDropIndex,
+  resolveEdgeScrollOffset,
+  resolveEdgeScrollRate,
   resolveMoveActionDirection,
   resolveMoveTarget,
   resolveReorderedIds,
@@ -178,5 +180,96 @@ describe('resolveRowShift', () => {
 
   it('shifts nothing while the slot is on the lifted row', () => {
     expect(shifts(2, 2)).toEqual([0, 0, 0, 0, 0]);
+  });
+});
+
+describe('resolveEdgeScrollRate', () => {
+  const zone = { viewportHeight: 600, zoneHeight: 64, maxRate: 256 };
+  const rateAt = (fingerY: number) => resolveEdgeScrollRate({ ...zone, fingerY });
+  // -0 and 0 both mean no scroll, and `toBe` tells them apart.
+  const expectNoScroll = (rate: number) => expect(Math.abs(rate)).toBe(0);
+
+  it('scrolls nothing mid-viewport', () => {
+    expectNoScroll(rateAt(300));
+  });
+
+  it('scrolls nothing on the inner edge of either zone', () => {
+    expectNoScroll(rateAt(64));
+    expectNoScroll(rateAt(536));
+  });
+
+  it('scrolls up in the top zone and down in the bottom zone', () => {
+    expect(rateAt(10)).toBeLessThan(0);
+    expect(rateAt(590)).toBeGreaterThan(0);
+  });
+
+  it('runs at half the rate half-way into each zone', () => {
+    expect(rateAt(32)).toBe(-128);
+    expect(rateAt(568)).toBe(128);
+  });
+
+  it('runs at the full rate on the viewport edge', () => {
+    expect(rateAt(0)).toBe(-256);
+    expect(rateAt(600)).toBe(256);
+  });
+
+  it('holds the full rate for a finger past either edge', () => {
+    expect(rateAt(-20)).toBe(-256);
+    expect(rateAt(620)).toBe(256);
+  });
+
+  it('scrolls nothing before the viewport is measured, or with no zone or no rate', () => {
+    expectNoScroll(resolveEdgeScrollRate({ ...zone, viewportHeight: 0, fingerY: 0 }));
+    expectNoScroll(resolveEdgeScrollRate({ ...zone, zoneHeight: 0, fingerY: 0 }));
+    expectNoScroll(resolveEdgeScrollRate({ ...zone, maxRate: 0, fingerY: 0 }));
+    expectNoScroll(resolveEdgeScrollRate({ ...zone, maxRate: -256, fingerY: 600 }));
+  });
+
+  it('takes the nearer edge when the two zones overlap', () => {
+    const short = { viewportHeight: 100, zoneHeight: 64, maxRate: 256 };
+
+    expect(resolveEdgeScrollRate({ ...short, fingerY: 40 })).toBe(-96);
+    expect(resolveEdgeScrollRate({ ...short, fingerY: 60 })).toBe(96);
+  });
+});
+
+describe('resolveEdgeScrollOffset', () => {
+  const card = { firstRowTop: 200, lastRowBottom: 1400, viewportHeight: 600 };
+  const nextOffset = (offset: number, step: number) =>
+    resolveEdgeScrollOffset({ ...card, offset, step });
+
+  it('steps up by the whole step short of the first row', () => {
+    expect(nextOffset(500, -4)).toBe(496);
+  });
+
+  it('stops on the first row when the step would pass it', () => {
+    expect(nextOffset(202, -4)).toBe(200);
+    expect(nextOffset(200, -4)).toBe(200);
+  });
+
+  it('stays put going up once the header above the first row is on screen', () => {
+    expect(nextOffset(150, -4)).toBe(150);
+  });
+
+  it('steps down by the whole step short of the last row', () => {
+    expect(nextOffset(500, 4)).toBe(504);
+  });
+
+  it('stops with the last row on the viewport bottom when the step would pass it', () => {
+    expect(nextOffset(798, 4)).toBe(800);
+    expect(nextOffset(800, 4)).toBe(800);
+  });
+
+  it('stays put going down once the content below the last row is on screen', () => {
+    expect(nextOffset(850, 4)).toBe(850);
+  });
+
+  it('returns the offset for a zero step', () => {
+    expect(nextOffset(500, 0)).toBe(500);
+    expect(nextOffset(150, 0)).toBe(150);
+  });
+
+  it('never scrolls down when the last row already sits inside the viewport', () => {
+    expect(resolveEdgeScrollOffset({ ...card, lastRowBottom: 500, offset: 0, step: 4 })).toBe(0);
   });
 });
