@@ -409,12 +409,15 @@ function decide(item, ctx) {
     return { bucket: 'pull', action: `Planned, branch ${br.name}`, command: `/ship ${n}` };
   }
 
+  // /ship resumes only from ~/.ship state; a ticket in delivery without it belongs to another session or machine
+  const owned = ctx.shipState.has(ma);
   if (item.status === 'In Progress') {
     if (openPr)
       return {
         bucket: 'drift',
         action: `In Progress with PR #${openPr.number} open`,
         command: `/ship ${n}`,
+        owned,
       };
     const br = (item.branches ?? [])[0];
     const parts = ['implementing'];
@@ -423,12 +426,12 @@ function decide(item, ctx) {
     parts.push(
       ctx.shipState.has(ma) ? 'ship state on this machine' : 'no ship state on this machine',
     );
-    return { bucket: 'flight', action: parts.join(', '), command: `/ship ${n}` };
+    return { bucket: 'flight', action: parts.join(', '), command: `/ship ${n}`, owned };
   }
 
   if (item.status === 'In Review') {
     if (!openPr)
-      return { bucket: 'drift', action: 'In Review without a PR', command: `/ship ${n}` };
+      return { bucket: 'drift', action: 'In Review without a PR', command: `/ship ${n}`, owned };
     const checks =
       openPr.checks === 'SUCCESS'
         ? 'green'
@@ -441,6 +444,7 @@ function decide(item, ctx) {
       bucket: 'flight',
       action: `battery running on PR #${openPr.number}, checks ${checks}`,
       command: `/ship ${n}`,
+      owned,
     };
   }
 
@@ -478,6 +482,7 @@ function decide(item, ctx) {
 function actorOf(d) {
   if (d.bucket === 'yours') return 'you';
   if (d.bucket === 'wait' || !d.command) return 'nobody';
+  if (d.owned === false) return 'nobody';
   if (parseRunnable(d.command)) return 'page';
   if (/^\/(boundaries|tickets|epic)\b/.test(d.command)) return 'you';
   return d.command.startsWith('/') ? 'session' : 'you';
