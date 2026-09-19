@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
+import * as Haptics from 'expo-haptics';
 
 import { useToast } from '@/components/ui/toast';
 import { AccountType, Currency } from '@/constants/enums';
@@ -29,6 +30,12 @@ jest.mock('@/components/ui/toast', () => ({
 }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: mockBack }),
+}));
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(() => Promise.resolve()),
+  notificationAsync: jest.fn(() => Promise.resolve()),
+  selectionAsync: jest.fn(() => Promise.resolve()),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
@@ -839,5 +846,237 @@ describe('useAccountsList — moving a row writes the order once', () => {
 
     expect(mockReorder).toHaveBeenCalledTimes(1);
     expect(useToast().toast.show).not.toHaveBeenCalled();
+  });
+});
+
+describe('useAccountsList — lifting a row and dropping it', () => {
+  const rowIds = (rows: { account: Account }[]) => rows.map((row) => row.account.id);
+  const impact = () => jest.mocked(Haptics.impactAsync);
+
+  beforeEach(() => {
+    storeState = { ...storeState, accounts: [...accounts, usdWallet] };
+  });
+
+  it('lifts the row and fires the light impact once', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.liftRow('acc-2');
+    });
+
+    expect(result.current.state.liftedId).toBe('acc-2');
+    expect(useAccountsListState.getState().liftedId).toBe('acc-2');
+    expect(impact().mock.calls).toEqual([[Haptics.ImpactFeedbackStyle.Light]]);
+  });
+
+  it('a second lift while a row is lifted changes nothing and fires nothing more', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.liftRow('acc-1');
+    });
+    await act(() => {
+      result.current.liftRow('acc-2');
+    });
+
+    expect(result.current.state.liftedId).toBe('acc-1');
+    expect(impact()).toHaveBeenCalledTimes(1);
+  });
+
+  it('under a type filter reports lifting off, lifts nothing and fires nothing', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.canLift).toBe(true);
+
+    await act(() => {
+      result.current.selectType(AccountType.Bank);
+    });
+    expect(result.current.state.canLift).toBe(false);
+
+    await act(() => {
+      result.current.liftRow('acc-1');
+    });
+
+    expect(useAccountsListState.getState()).toHaveProperty('liftedId', undefined);
+    expect(impact()).not.toHaveBeenCalled();
+  });
+
+  it('while a write is in flight reports lifting off and lifts nothing, then frees it', async () => {
+    const write = deferred<void>();
+    mockReorder.mockReturnValueOnce(write.promise);
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.canLift).toBe(true);
+
+    let pending: Promise<void> = Promise.resolve();
+    await act(() => {
+      pending = result.current.moveRow(0, 'down');
+    });
+    expect(result.current.state.canLift).toBe(false);
+
+    await act(() => {
+      result.current.liftRow('acc-3');
+    });
+    expect(useAccountsListState.getState()).toHaveProperty('liftedId', undefined);
+    expect(impact()).not.toHaveBeenCalled();
+
+    await act(async () => {
+      write.resolve();
+      await pending;
+    });
+    expect(result.current.state.canLift).toBe(true);
+  });
+
+  it('a drop at a new index clears the lift in the update that shows the new order, and writes once', async () => {
+    const write = deferred<void>();
+    mockReorder.mockReturnValueOnce(write.promise);
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.liftRow('acc-1');
+    });
+    let pending: Promise<void> = Promise.resolve();
+    await act(() => {
+      pending = result.current.releaseRow('acc-1', 0, 2);
+    });
+
+    expect(result.current.state.liftedId).toBeUndefined();
+    expect(rowIds(result.current.state.rows)).toEqual(['acc-2', 'acc-3', 'acc-1']);
+    expect(mockReorder.mock.calls).toEqual([[['acc-2', 'acc-3', 'acc-1']]]);
+
+    await act(async () => {
+      write.resolve();
+      await pending;
+    });
+
+    expect(mockReorder).toHaveBeenCalledTimes(1);
+    expect(useToast().toast.show).not.toHaveBeenCalled();
+  });
+
+  it('a drop where the row started clears the lift and writes nothing', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.liftRow('acc-2');
+    });
+    await act(async () => {
+      await result.current.releaseRow('acc-2', 1, 1);
+    });
+
+    expect(result.current.state.liftedId).toBeUndefined();
+    expect(useAccountsListState.getState().liftedId).toBeUndefined();
+    expect(mockReorder).not.toHaveBeenCalled();
+    expect(useToast().toast.show).not.toHaveBeenCalled();
+    expect(rowIds(result.current.state.rows)).toEqual(['acc-1', 'acc-2', 'acc-3']);
+  });
+
+  it('a release for a row that is not the lifted one changes nothing', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.releaseRow('acc-1', 0, 2);
+    });
+    expect(mockReorder).not.toHaveBeenCalled();
+
+    await act(() => {
+      result.current.liftRow('acc-1');
+    });
+    await act(async () => {
+      await result.current.releaseRow('acc-2', 1, 0);
+    });
+
+    expect(result.current.state.liftedId).toBe('acc-1');
+    expect(mockReorder).not.toHaveBeenCalled();
+  });
+
+  it('a failed drop toasts the reorder error once, keeps the saved order, and clears the lift', async () => {
+    mockReorder.mockRejectedValueOnce(new Error('db error'));
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.liftRow('acc-1');
+    });
+    await act(async () => {
+      await expect(result.current.releaseRow('acc-1', 0, 2)).resolves.toBeUndefined();
+    });
+
+    expect(useToast().toast.show).toHaveBeenCalledTimes(1);
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: Strings.accountsReorderError,
+      variant: 'danger',
+    });
+    expect(rowIds(result.current.state.rows)).toEqual(['acc-1', 'acc-2', 'acc-3']);
+    expect(result.current.state.liftedId).toBeUndefined();
+  });
+
+  it('the row press opens nothing while a row is lifted, and opens again after the release', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.liftRow('acc-1');
+    });
+    await act(() => {
+      result.current.goToAccount('acc-2');
+    });
+    expect(mockPush).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.releaseRow('acc-1', 0, 0);
+    });
+    await act(() => {
+      result.current.goToAccount('acc-2');
+    });
+
+    expect(mockPush.mock.calls).toEqual([['/accounts/acc-2']]);
+  });
+
+  it('unmount clears the lift', async () => {
+    const { result, unmount } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.liftRow('acc-1');
+    });
+    expect(useAccountsListState.getState().liftedId).toBe('acc-1');
+
+    await unmount();
+
+    expect(useAccountsListState.getState().liftedId).toBeUndefined();
+  });
+
+  it('fires nothing on the drop: the lift is the only vibration', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.liftRow('acc-1');
+    });
+    await act(async () => {
+      await result.current.releaseRow('acc-1', 0, 2);
+    });
+
+    expect(mockReorder).toHaveBeenCalledTimes(1);
+    expect(impact().mock.calls).toEqual([[Haptics.ImpactFeedbackStyle.Light]]);
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
+    expect(Haptics.selectionAsync).not.toHaveBeenCalled();
+  });
+
+  it('reports the lifted row and whether a row is lifted, following liftedId', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.isLifted).toBe(false);
+    expect(result.current.state.liftedRow).toBeUndefined();
+
+    await act(() => {
+      result.current.liftRow('acc-2');
+    });
+
+    expect(result.current.state.isLifted).toBe(true);
+    expect(result.current.state.liftedRow).toBe(
+      result.current.state.rows.find((row) => row.account.id === 'acc-2'),
+    );
+    expect(result.current.state.liftedRow?.account.id).toBe('acc-2');
+
+    await act(async () => {
+      await result.current.releaseRow('acc-2', 1, 1);
+    });
+
+    expect(result.current.state.isLifted).toBe(false);
+    expect(result.current.state.liftedRow).toBeUndefined();
   });
 });

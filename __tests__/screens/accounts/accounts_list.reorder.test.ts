@@ -4,9 +4,11 @@ import {
   MOVE_ACTIONS,
   MOVE_DOWN_ACTION,
   MOVE_UP_ACTION,
+  resolveDropIndex,
   resolveMoveActionDirection,
   resolveMoveTarget,
   resolveReorderedIds,
+  resolveRowShift,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.reorder';
 
 describe('resolveMoveTarget', () => {
@@ -110,5 +112,71 @@ describe('resolveMoveActionDirection', () => {
   it('maps any other action name to nothing', () => {
     expect(resolveMoveActionDirection('activate')).toBeUndefined();
     expect(resolveMoveActionDirection('')).toBeUndefined();
+  });
+});
+
+describe('resolveDropIndex', () => {
+  const cell = { cellHeight: 64, count: 4 };
+
+  it('stays on the lifted row with no translation', () => {
+    expect(resolveDropIndex({ ...cell, fromIndex: 1, translationY: 0 })).toBe(1);
+  });
+
+  it('keeps the row in place short of half a cell', () => {
+    expect(resolveDropIndex({ ...cell, fromIndex: 1, translationY: 31 })).toBe(1);
+    expect(resolveDropIndex({ ...cell, fromIndex: 1, translationY: -31 })).toBe(1);
+  });
+
+  it('rounds half a cell down, or past half a cell up, to the neighbour', () => {
+    expect(resolveDropIndex({ ...cell, fromIndex: 1, translationY: 32 })).toBe(2);
+    expect(resolveDropIndex({ ...cell, fromIndex: 1, translationY: -40 })).toBe(0);
+  });
+
+  it('moves as many rows as the translation spans', () => {
+    expect(resolveDropIndex({ fromIndex: 1, translationY: 130, cellHeight: 65, count: 4 })).toBe(3);
+    expect(resolveDropIndex({ ...cell, fromIndex: 3, translationY: -128 })).toBe(1);
+  });
+
+  it('keeps the slot on the first row above the first row', () => {
+    expect(resolveDropIndex({ ...cell, fromIndex: 1, translationY: -500 })).toBe(0);
+    expect(resolveDropIndex({ ...cell, fromIndex: 0, translationY: -64 })).toBe(0);
+  });
+
+  it('keeps the slot on the last row below the last row', () => {
+    expect(resolveDropIndex({ ...cell, fromIndex: 1, translationY: 1000 })).toBe(3);
+    expect(resolveDropIndex({ ...cell, fromIndex: 3, translationY: 64 })).toBe(3);
+  });
+
+  it('returns the lifted index when the cell height is not measured yet', () => {
+    expect(resolveDropIndex({ fromIndex: 2, translationY: 200, cellHeight: 0, count: 4 })).toBe(2);
+    expect(resolveDropIndex({ fromIndex: 2, translationY: 200, cellHeight: -64, count: 4 })).toBe(
+      2,
+    );
+  });
+
+  it('returns the lifted index for an empty list', () => {
+    expect(resolveDropIndex({ fromIndex: 0, translationY: 200, cellHeight: 64, count: 0 })).toBe(0);
+  });
+});
+
+describe('resolveRowShift', () => {
+  const shifts = (fromIndex: number, toIndex: number) =>
+    [0, 1, 2, 3, 4].map((index) => resolveRowShift({ index, fromIndex, toIndex }));
+
+  it('shifts the rows between a downward lift and its target up one cell', () => {
+    expect(shifts(1, 3)).toEqual([0, 0, -1, -1, 0]);
+  });
+
+  it('shifts the rows between an upward lift and its target down one cell', () => {
+    expect(shifts(3, 1)).toEqual([0, 1, 1, 0, 0]);
+  });
+
+  it('shifts only the neighbour for a one-row move', () => {
+    expect(shifts(0, 1)).toEqual([0, -1, 0, 0, 0]);
+    expect(shifts(4, 3)).toEqual([0, 0, 0, 1, 0]);
+  });
+
+  it('shifts nothing while the slot is on the lifted row', () => {
+    expect(shifts(2, 2)).toEqual([0, 0, 0, 0, 0]);
   });
 });

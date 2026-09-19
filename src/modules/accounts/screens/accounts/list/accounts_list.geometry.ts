@@ -1,6 +1,15 @@
 import type { Insets, TextStyle, ViewStyle } from 'react-native';
 
-import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import {
+  Colors,
+  Radius,
+  Size,
+  Spacing,
+  TouchSize,
+  Type,
+  lineHeightFor,
+  withAlpha,
+} from '@/constants/theme';
 
 /** B1 `.cb-row`, 12 on the right; layout keys sit here because `style` beats `className` in RN. */
 export const ACCOUNTS_LIST_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({
@@ -68,10 +77,44 @@ export const ACCOUNTS_LIST_REORDER_NOTE_STYLE: Readonly<TextStyle> = Object.free
   textAlign: 'center',
 });
 
+/** B6 grip slot, the row's and the lifted copy's: the glyph centred in the reserved width. */
+export const ACCOUNTS_LIST_GRIP_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze({
+  width: Size.reorderGripSlot,
+  alignItems: 'center',
+});
+
 /** B6 grip: none on the left, or a tap on the balance's edge stops opening the account. */
 export const ACCOUNTS_LIST_GRIP_HIT_SLOP: Readonly<Insets> = Object.freeze({
   top: (TouchSize.min - Size.reorderGripSlot) / 2,
   bottom: (TouchSize.min - Size.reorderGripSlot) / 2,
   right: TouchSize.min - Size.reorderGripSlot,
   left: 0,
+});
+
+/** B6 lifted row: 1px accent/50 at radius 12, margin 4/6; the fill is a class on the inner View, and no shadow in either mode. */
+export const ACCOUNTS_LIST_LIFTED_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({
+  borderWidth: Size.hairline,
+  borderColor: withAlpha(Colors.dark.gold, '80'),
+  borderRadius: Radius.md,
+  marginVertical: Spacing.xxs,
+  marginHorizontal: Size.liftedRowInset,
+  overflow: 'hidden',
+});
+
+/** B6: the slot and the lifted copy float over the active card's rows, from its top edge. */
+export const ACCOUNTS_LIST_FLOATING_STYLE: Readonly<ViewStyle> = Object.freeze({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+});
+
+/** B6 drop slot: a transparent dashed accent/45 outline, a row tall, at radius 12. */
+export const ACCOUNTS_LIST_DROP_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze({
+  minHeight: Size.accountListRowMinHeight,
+  borderWidth: Size.hairline,
+  borderStyle: 'dashed',
+  borderColor: withAlpha(Colors.dark.gold, '73'),
+  borderRadius: Radius.md,
+  backgroundColor: Colors.shared.transparent,
 });

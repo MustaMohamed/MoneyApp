@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -60,6 +61,10 @@ export function useAccountsList() {
   const pendingOrder = useAccountsListState((s) => s.pendingOrder);
   const setPendingOrder = useAccountsListState.getState().setPendingOrder;
   const setReordering = useAccountsListState.getState().setReordering;
+  const isReordering = useAccountsListState((s) => s.isReordering);
+  const liftedId = useAccountsListState((s) => s.liftedId);
+  const liftGeneration = useAccountsListState((s) => s.liftGeneration);
+  const setLiftedId = useAccountsListState.getState().setLiftedId;
   const { toast } = useToast();
   const { rate, isManualOverride, rateUpdatedAt } = useCurrencyStore(
     useShallow((state) => ({
@@ -78,6 +83,8 @@ export function useAccountsList() {
     resetArchivedCard();
     return resetArchivedCard;
   }, [resetArchivedCard]);
+
+  useEffect(() => () => setLiftedId(undefined), [setLiftedId]);
 
   // Decided once here and passed down; never re-derived as `rate > 0` when displaying.
   const rateUsable = isRateUsable({ rate, rateUpdatedAt, isManualOverride });
@@ -106,6 +113,10 @@ export function useAccountsList() {
     [allRows, pendingOrder, selectedType],
   );
   const isReorderable = isAccountsListReorderable(selectedType);
+  const liftedRow = useMemo(
+    () => (liftedId === undefined ? undefined : rows.find((row) => row.account.id === liftedId)),
+    [liftedId, rows],
+  );
 
   const emptyState = resolveAccountsListEmptyState({
     activeCount: accounts.length,
@@ -118,7 +129,13 @@ export function useAccountsList() {
     [archivedAccounts, archivedCardType],
   );
 
-  const goToAccount = useCallback((id: string) => router.push(`/accounts/${id}`), [router]);
+  const goToAccount = useCallback(
+    (id: string) => {
+      if (useAccountsListState.getState().liftedId !== undefined) return;
+      router.push(`/accounts/${id}`);
+    },
+    [router],
+  );
   const goToAddAccount = useCallback(() => router.push('/accounts/add_account'), [router]);
   const onBack = useCallback(() => router.back(), [router]);
 
@@ -198,10 +215,36 @@ export function useAccountsList() {
     [dropRow],
   );
 
+  const liftRow = useCallback(
+    (id: string) => {
+      const listState = useAccountsListState.getState();
+      if (listState.liftedId !== undefined || listState.isReordering) return;
+      if (!isAccountsListReorderable(listState.selectedType)) return;
+      setLiftedId(id);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [setLiftedId],
+  );
+
+  // Clearing the lift before the drop's first await lands it in the commit that applies the pending order.
+  const releaseRow = useCallback(
+    async (id: string, fromIndex: number, toIndex: number) => {
+      if (useAccountsListState.getState().liftedId !== id) return;
+      setLiftedId(undefined);
+      await dropRow(fromIndex, toIndex);
+    },
+    [dropRow, setLiftedId],
+  );
+
   return {
     state: {
       rows,
       isReorderable,
+      liftedId,
+      isLifted: liftedId !== undefined,
+      liftedRow,
+      liftGeneration,
+      canLift: isReorderable && !isReordering,
       archivedCount,
       isRetrying,
       selectedType,
@@ -226,5 +269,7 @@ export function useAccountsList() {
     unarchive,
     dropRow,
     moveRow,
+    liftRow,
+    releaseRow,
   };
 }

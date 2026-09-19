@@ -58,3 +58,30 @@ export function applyPendingOrder<T>(
   }
   return ordered;
 }
+
+/** The slot's index under a drag: the nearest cell to the translation, clamped to the rows on screen. */
+export function resolveDropIndex(input: {
+  fromIndex: number;
+  translationY: number;
+  cellHeight: number;
+  count: number;
+}): number {
+  'worklet';
+  const { fromIndex, translationY, cellHeight, count } = input;
+  if (count <= 0 || cellHeight <= 0) return fromIndex;
+  const target = fromIndex + Math.round(translationY / cellHeight);
+  return Math.min(Math.max(target, 0), count - 1);
+}
+
+/** The cells a row moves to make room for the slot: rows between the lift and its target shift one toward the lift. */
+export function resolveRowShift(input: {
+  index: number;
+  fromIndex: number;
+  toIndex: number;
+}): -1 | 0 | 1 {
+  'worklet';
+  const { index, fromIndex, toIndex } = input;
+  if (fromIndex < index && index <= toIndex) return -1;
+  if (toIndex <= index && index < fromIndex) return 1;
+  return 0;
+}

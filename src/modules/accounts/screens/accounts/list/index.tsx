@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback, Separator, Typography } from 'heroui-native';
-import React from 'react';
+import { PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { ErrorState } from '@/components/ui/error_state';
@@ -14,8 +14,11 @@ import { Strings } from '@/constants/strings';
 import { Radius, Size, Spacing } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
+import { useAccountsListDragAnim } from './accounts_list.anim';
 import {
   ACCOUNTS_LIST_CARD_STYLE,
+  ACCOUNTS_LIST_DROP_SLOT_STYLE,
+  ACCOUNTS_LIST_FLOATING_STYLE,
   ACCOUNTS_LIST_RAIL_STYLE,
   ACCOUNTS_LIST_REORDER_NOTE_STYLE,
 } from './accounts_list.geometry';
@@ -23,6 +26,7 @@ import { useAccountsList } from './accounts_list.hook';
 import { ACCOUNTS_LIST_TYPE_FILTERS } from './accounts_list.presentation';
 import { AccountListRow } from './components/account_list_row';
 import { ArchivedCard } from './components/archived_card';
+import { LiftedAccountRow } from './components/lifted_account_row';
 
 export default function AccountsListScreen() {
   const {
@@ -30,22 +34,29 @@ export default function AccountsListScreen() {
       rows,
       archived,
       archivedCount,
+      canLift,
       content,
       emptyState,
       isReorderable,
+      isLifted,
       isRetrying,
+      liftedRow,
+      liftGeneration,
       selectedType,
       sectionTitle,
     },
     goToAccount,
     goToAddAccount,
+    liftRow,
     moveRow,
     onBack,
+    releaseRow,
     retry,
     selectType,
     setArchivedExpanded,
     unarchive,
   } = useAccountsList();
+  const { drag, slotStyle, liftedStyle } = useAccountsListDragAnim({ isLifted });
 
   return (
     <Screen>
@@ -87,6 +98,7 @@ export default function AccountsListScreen() {
         <ScreenScroll
           contentContainerStyle={{ paddingBottom: Spacing.xxl }}
           showsVerticalScrollIndicator={false}
+          scrollEnabled={!isLifted}
         >
           <View style={ACCOUNTS_LIST_RAIL_STYLE}>
             <SegmentFilter
@@ -118,20 +130,41 @@ export default function AccountsListScreen() {
                   <ListCard style={ACCOUNTS_LIST_CARD_STYLE}>
                     {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
                     {rows.map(({ account, caption }, index) => (
-                      <React.Fragment key={account.id}>
-                        {index > 0 ? <Separator thickness={Size.hairline} /> : null}
-                        <AccountListRow
-                          account={account}
-                          caption={caption}
-                          onPress={goToAccount}
-                          onMove={
-                            isReorderable
-                              ? (direction) => void moveRow(index, direction)
-                              : undefined
-                          }
-                        />
-                      </React.Fragment>
+                      <AccountListRow
+                        key={`${account.id}:${liftGeneration}`}
+                        account={account}
+                        caption={caption}
+                        index={index}
+                        count={rows.length}
+                        drag={drag}
+                        isLifted={isLifted}
+                        canLift={canLift}
+                        showSeparator={index > 0}
+                        onPress={goToAccount}
+                        onMove={
+                          isReorderable ? (direction) => void moveRow(index, direction) : undefined
+                        }
+                        onLift={liftRow}
+                        onRelease={releaseRow}
+                      />
                     ))}
+                    {liftedRow === undefined ? null : (
+                      <>
+                        <Animated.View
+                          pointerEvents="none"
+                          style={[
+                            ACCOUNTS_LIST_DROP_SLOT_STYLE,
+                            ACCOUNTS_LIST_FLOATING_STYLE,
+                            slotStyle,
+                          ]}
+                        />
+                        <LiftedAccountRow
+                          account={liftedRow.account}
+                          caption={liftedRow.caption}
+                          style={liftedStyle}
+                        />
+                      </>
+                    )}
                   </ListCard>
                   {isReorderable ? null : (
                     <Typography
