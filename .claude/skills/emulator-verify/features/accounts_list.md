@@ -24,6 +24,8 @@ Route `/accounts`. Screen `src/modules/accounts/screens/accounts/list/index.tsx`
 | unarchive name clash | no frame, MA-046 | an active account with the archived name | toast `An active account already has this name. Rename it first.`; db unchanged |
 | row lifted mid-drag | B6 | device QA only | gesture feel is not emulator evidence |
 | blank-named row | no frame, MA-059 | seed push `name = ''` | row reads `Unnamed account` |
+| grip on every active row | B6 | seed with n active accounts, All selected | `mqa ui \| grep -c '^Reorder '` equals the active count; one shot of a row for the glyph |
+| filtered, reorder off | B7 | `$MQA tap '<type>'` on the rail with at least one row of that type | `Reorder is off while a filter is on.` present, `mqa ui \| grep -c '^Reorder '` is 1 (the note shares the word); shot |
 
 Per-type captions (MA-024) are one row each in B1; a caption check is `mqa ui`, not a shot.
 
