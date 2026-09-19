@@ -14,6 +14,7 @@ import { AccountNameTakenError } from '../../../repositories/account.errors';
 import { useAccountStore } from '../../../store/account.store';
 import { resolveAccountCaption, resolveAccountsListContent } from './accounts_list.helpers';
 import {
+  isAccountsListReorderable,
   matchesAccountsListType,
   resolveAccountsListEmptyState,
   resolveAccountsListSectionTitle,
@@ -104,7 +105,7 @@ export function useAccountsList() {
         : allRows.filter((row) => matchesAccountsListType(row.account.type, selectedType)),
     [allRows, pendingOrder, selectedType],
   );
-  const isReorderable = selectedType === 'all';
+  const isReorderable = isAccountsListReorderable(selectedType);
 
   const emptyState = resolveAccountsListEmptyState({
     activeCount: accounts.length,
@@ -168,7 +169,7 @@ export function useAccountsList() {
   const dropRow = useCallback(
     async (fromIndex: number, toIndex: number) => {
       const listState = useAccountsListState.getState();
-      if (listState.isReordering || listState.selectedType !== 'all') return;
+      if (listState.isReordering || !isAccountsListReorderable(listState.selectedType)) return;
       const ids = useAccountStore.getState().accounts.map((account) => account.id);
       const next = resolveReorderedIds(ids, fromIndex, toIndex);
       if (next === undefined) return;

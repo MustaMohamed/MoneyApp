@@ -17,10 +17,13 @@ import {
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
   ACCOUNTS_LIST_ROW_STYLE,
 } from '../accounts_list.geometry';
-import type { ReorderDirection } from '../accounts_list.reorder';
+import {
+  MOVE_DOWN_ACTION,
+  MOVE_UP_ACTION,
+  type ReorderDirection,
+  resolveMoveActionDirection,
+} from '../accounts_list.reorder';
 
-const MOVE_UP_ACTION = 'moveUp';
-const MOVE_DOWN_ACTION = 'moveDown';
 const MOVE_ACTIONS = [
   { name: MOVE_UP_ACTION, label: Strings.accountsReorderMoveUp },
   { name: MOVE_DOWN_ACTION, label: Strings.accountsReorderMoveDown },
@@ -46,8 +49,8 @@ export function AccountListRow({ account, caption, onPress, onMove }: AccountLis
     onMove === undefined
       ? undefined
       : (event: AccessibilityActionEvent) => {
-          if (event.nativeEvent.actionName === MOVE_UP_ACTION) onMove('up');
-          else if (event.nativeEvent.actionName === MOVE_DOWN_ACTION) onMove('down');
+          const direction = resolveMoveActionDirection(event.nativeEvent.actionName);
+          if (direction !== undefined) onMove(direction);
         };
   const moveActions = onMove === undefined ? undefined : MOVE_ACTIONS;
 
@@ -136,7 +139,7 @@ export function AccountListRow({ account, caption, onPress, onMove }: AccountLis
         >
           {/* `Colors.dark.text3` is the canvas `--muted`. */}
           <MaterialCommunityIcons
-            name="drag"
+            name="drag-vertical"
             size={Size.reorderGripSlot}
             color={Colors.dark.text3}
           />

@@ -17,7 +17,7 @@ Route `/accounts`. Screen `src/modules/accounts/screens/accounts/list/index.tsx`
 | no accounts at all | B3 | `mqa reset`, finish onboarding with one account, delete it | empty title from `strings.ts` `accountsList*Empty*`; `+` present in header; shot |
 | archived card collapsed | B4 | one archived account, fresh mount | `Archived` present, the archived row absent |
 | archived card expanded | B5 | `$MQA tap 'Archived'` | archived row present with `type · balance` caption and `Unarchive` |
-| filtered to one type | B7 | `$MQA tap '<type>'` on the rail | rows of other types absent; the archived card ignores the filter |
+| filtered to one type | B7 | `$MQA tap '<type>'` on the rail | rows of other types absent; the archived card follows the filter (MA-048): only archived rows of the selected type, no card when none |
 | filtered to zero | no frame, ruled MA-022 | filter to a type with no active account | the shipped filtered empty state; no `+` change |
 | load error | F1 | source force in the list resolver | `Couldn't load your accounts` and `Try again`; shot |
 | after unarchive | G3 | B5 then `$MQA tap 'Unarchive'` | toast `<name> restored.`; row lands last among active rows; `mqa db "select archived_at from accounts where name='<n>'"` is null |
@@ -25,6 +25,7 @@ Route `/accounts`. Screen `src/modules/accounts/screens/accounts/list/index.tsx`
 | row lifted mid-drag | B6 | device QA only | gesture feel is not emulator evidence |
 | blank-named row | no frame, MA-059 | seed push `name = ''` | row reads `Unnamed account` |
 | grip on every active row | B6, MA-084 | seed with n active accounts, All selected | `mqa ui \| grep -c 'content-desc="Reorder '` equals the visible row count (the active count when every row fits); one shot of a row for the glyph |
+| grip tap absorbed | B6, MA-084 | All selected | tap the grip by `mqa find 'Reorder <name>'`, never by coordinates: the screen stays on `/accounts` (the `content-desc="Reorder ` nodes are still in `mqa ui`); then tap the row: the account detail opens; one shot per tap |
 | filtered, reorder off | B7, MA-084 | `$MQA tap '<type>'` on the rail with at least one row of that type | `mqa ui \| grep -c 'content-desc="Reorder '` is 0; `Reorder is off while a filter is on.` present once the card's end is on screen; shot |
 
 Per-type captions (MA-024) are one row each in B1; a caption check is `mqa ui`, not a shot.

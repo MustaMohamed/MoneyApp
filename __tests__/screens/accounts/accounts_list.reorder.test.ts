@@ -1,5 +1,8 @@
 import {
   applyPendingOrder,
+  MOVE_DOWN_ACTION,
+  MOVE_UP_ACTION,
+  resolveMoveActionDirection,
   resolveMoveTarget,
   resolveReorderedIds,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.reorder';
@@ -82,5 +85,20 @@ describe('applyPendingOrder', () => {
     expect(ordered[0]).toBe(c);
     expect(ordered[1]).toBe(a);
     expect(ordered[2]).toBe(b);
+  });
+});
+
+describe('resolveMoveActionDirection', () => {
+  it('maps the Move up action to up', () => {
+    expect(resolveMoveActionDirection(MOVE_UP_ACTION)).toBe('up');
+  });
+
+  it('maps the Move down action to down', () => {
+    expect(resolveMoveActionDirection(MOVE_DOWN_ACTION)).toBe('down');
+  });
+
+  it('maps any other action name to nothing', () => {
+    expect(resolveMoveActionDirection('activate')).toBeUndefined();
+    expect(resolveMoveActionDirection('')).toBeUndefined();
   });
 });

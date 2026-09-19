@@ -2,6 +2,7 @@ import { AccountType } from '@/constants/enums';
 import { TYPE_OPTIONS } from '@/modules/accounts/components/account_type_pill';
 import {
   ACCOUNTS_LIST_TYPE_FILTERS,
+  isAccountsListReorderable,
   resolveAccountsListEmptyState,
   resolveAccountsListSectionTitle,
   matchesAccountsListType,
@@ -80,5 +81,15 @@ describe('matchesAccountsListType', () => {
     [AccountType.SmartWallet, AccountType.Bank, false],
   ] as const)('%s under %s matches: %s', (type, filter, expected) => {
     expect(matchesAccountsListType(type, filter)).toBe(expected);
+  });
+});
+
+describe('isAccountsListReorderable', () => {
+  it('is on under All', () => {
+    expect(isAccountsListReorderable('all')).toBe(true);
+  });
+
+  it.each(Object.values(AccountType))('is off under the %s filter', (type) => {
+    expect(isAccountsListReorderable(type)).toBe(false);
   });
 });

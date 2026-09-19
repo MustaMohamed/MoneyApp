@@ -1,5 +1,14 @@
 export type ReorderDirection = 'up' | 'down';
 
+export const MOVE_UP_ACTION = 'moveUp';
+export const MOVE_DOWN_ACTION = 'moveDown';
+
+export function resolveMoveActionDirection(actionName: string): ReorderDirection | undefined {
+  if (actionName === MOVE_UP_ACTION) return 'up';
+  if (actionName === MOVE_DOWN_ACTION) return 'down';
+  return undefined;
+}
+
 export function resolveMoveTarget(
   index: number,
   direction: ReorderDirection,
