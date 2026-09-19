@@ -14,6 +14,7 @@ import {
   ACCOUNTS_LIST_ARCHIVED_ROW_STYLE,
   ACCOUNTS_LIST_CARD_STYLE,
   ACCOUNTS_LIST_DROP_SLOT_STYLE,
+  ACCOUNTS_LIST_EDGE_SCROLL,
   ACCOUNTS_LIST_FLOATING_STYLE,
   ACCOUNTS_LIST_GRIP_HIT_SLOP,
   ACCOUNTS_LIST_GRIP_SLOT_STYLE,
@@ -340,5 +341,29 @@ describe('accounts list grip slot and floating layer geometry (B6)', () => {
       'top',
     ]);
     expect(Object.isFrozen(ACCOUNTS_LIST_FLOATING_STYLE)).toBe(true);
+  });
+});
+
+describe('accounts list edge scroll geometry (B6)', () => {
+  it('is a zone one row tall at each end of the viewport', () => {
+    expect(Size.accountListRowMinHeight).toBe(ms(64));
+    expect(ACCOUNTS_LIST_EDGE_SCROLL.zoneHeight).toBe(Size.accountListRowMinHeight);
+    expect(ACCOUNTS_LIST_EDGE_SCROLL.zoneHeight).toBe(ms(64));
+  });
+
+  it('scrolls at most four rows a second', () => {
+    expect(ACCOUNTS_LIST_EDGE_SCROLL.maxRatePerSecond).toBe(4 * Size.accountListRowMinHeight);
+  });
+
+  it('carries exactly these keys', () => {
+    expect(Object.keys(ACCOUNTS_LIST_EDGE_SCROLL).sort()).toEqual([
+      'maxRatePerSecond',
+      'zoneHeight',
+    ]);
+  });
+
+  it('is frozen', () => {
+    expect(ACCOUNTS_LIST_EDGE_SCROLL).toEqual(expect.any(Object));
+    expect(Object.isFrozen(ACCOUNTS_LIST_EDGE_SCROLL)).toBe(true);
   });
 });

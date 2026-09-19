@@ -118,3 +118,12 @@ export const ACCOUNTS_LIST_DROP_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze(
   borderRadius: Radius.md,
   backgroundColor: Colors.shared.transparent,
 });
+
+const EDGE_SCROLL_ROWS_PER_SECOND = 4;
+
+/** B6 edge scroll: a zone a row tall at each end of the viewport, and the rate at its outer edge. */
+export const ACCOUNTS_LIST_EDGE_SCROLL: Readonly<{ zoneHeight: number; maxRatePerSecond: number }> =
+  Object.freeze({
+    zoneHeight: Size.accountListRowMinHeight,
+    maxRatePerSecond: Size.accountListRowMinHeight * EDGE_SCROLL_ROWS_PER_SECOND,
+  });

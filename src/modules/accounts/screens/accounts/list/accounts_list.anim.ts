@@ -1,17 +1,28 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import type { LayoutChangeEvent } from 'react-native';
+import type { LayoutChangeEvent, ScrollView } from 'react-native';
 import { Gesture, type PanGesture } from 'react-native-gesture-handler';
 import {
+  type FrameInfo,
+  measure,
+  scrollTo,
   type SharedValue,
+  useAnimatedRef,
   useAnimatedStyle,
+  useFrameCallback,
   useReducedMotion,
+  useScrollOffset,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { ACCOUNTS_LIST_GRIP_HIT_SLOP } from './accounts_list.geometry';
-import { resolveDropIndex, resolveRowShift } from './accounts_list.reorder';
+import { ACCOUNTS_LIST_EDGE_SCROLL, ACCOUNTS_LIST_GRIP_HIT_SLOP } from './accounts_list.geometry';
+import {
+  resolveDropIndex,
+  resolveEdgeScrollOffset,
+  resolveEdgeScrollRate,
+  resolveRowShift,
+} from './accounts_list.reorder';
 
 /** The FAB's long-press value (`fab.tsx`), so a long-press lifts after the same hold everywhere. */
 const LIFT_LONG_PRESS_MS = 500;
@@ -19,31 +30,160 @@ const LIFT_SCALE = 1.02;
 export const LIFT_DURATION_MS = 150;
 export const SHIFT_DURATION_MS = 150;
 
-/** One drag per screen; `-1` in both indices means no row is lifted. */
+/** One drag per screen; `-1` in both indices means no row is lifted. `translationY` is the finger's plus the edge scroll since the lift, in the card's coordinates. */
 export interface ListDrag {
   liftedIndex: SharedValue<number>;
   targetIndex: SharedValue<number>;
   translationY: SharedValue<number>;
   cellHeight: SharedValue<number>;
+  fingerTranslationY: SharedValue<number>;
+  fingerAbsoluteY: SharedValue<number>;
+  isHolding: SharedValue<boolean>;
+  scrollOffset: SharedValue<number>;
+  liftScrollOffset: SharedValue<number>;
+  edgeScrollOffset: SharedValue<number>;
   reducedMotion: boolean;
 }
 
-/** `isLifted` is the React side's `liftedId !== undefined`: styles snap to rest the commit it turns false. */
-export function useAccountsListDragAnim(input: { isLifted: boolean }) {
-  const { isLifted } = input;
+function trackLiftedRow(drag: ListDrag, count: number) {
+  'worklet';
+  drag.translationY.value =
+    drag.fingerTranslationY.value + (drag.edgeScrollOffset.value - drag.liftScrollOffset.value);
+  drag.targetIndex.value = resolveDropIndex({
+    fromIndex: drag.liftedIndex.value,
+    translationY: drag.translationY.value,
+    cellHeight: drag.cellHeight.value,
+    count,
+  });
+}
+
+/** `isLifted` is the React side's `liftedId !== undefined`: styles snap to rest the commit it turns false. `hasScroll` is whether a `ScreenScroll` mounts to take `scrollRef`. */
+export function useAccountsListDragAnim(input: {
+  isLifted: boolean;
+  count: number;
+  hasScroll: boolean;
+}) {
+  const { isLifted, count, hasScroll } = input;
   const liftedIndex = useSharedValue(-1);
   const targetIndex = useSharedValue(-1);
   const translationY = useSharedValue(0);
   const cellHeight = useSharedValue(0);
+  const fingerTranslationY = useSharedValue(0);
+  const fingerAbsoluteY = useSharedValue(0);
+  const isHolding = useSharedValue(false);
+  const liftScrollOffset = useSharedValue(0);
+  const edgeScrollOffset = useSharedValue(0);
+  const viewportTop = useSharedValue(0);
+  const viewportHeight = useSharedValue(0);
+  const firstRowTop = useSharedValue(0);
+  const lastRowBottom = useSharedValue(0);
   const reducedMotion = useReducedMotion();
+  const scrollRef = useAnimatedRef<ScrollView>();
+  // A ref with no mounted scroll view warns once per mount, so the error and no-accounts states pass none.
+  const scrollOffset = useScrollOffset(hasScroll ? scrollRef : null);
+
+  const drag: ListDrag = useMemo(
+    () => ({
+      liftedIndex,
+      targetIndex,
+      translationY,
+      cellHeight,
+      fingerTranslationY,
+      fingerAbsoluteY,
+      isHolding,
+      scrollOffset,
+      liftScrollOffset,
+      edgeScrollOffset,
+      reducedMotion,
+    }),
+    [
+      cellHeight,
+      edgeScrollOffset,
+      fingerAbsoluteY,
+      fingerTranslationY,
+      isHolding,
+      liftScrollOffset,
+      liftedIndex,
+      reducedMotion,
+      scrollOffset,
+      targetIndex,
+      translationY,
+    ],
+  );
+
+  // Steps from the offset it last requested, never the live one, so scroll-event latency cannot slow it.
+  const onFrame = useCallback(
+    (frame: FrameInfo) => {
+      'worklet';
+      if (!drag.isHolding.value) return;
+      if (viewportHeight.value === 0) {
+        const viewport = measure(scrollRef);
+        if (viewport === null) return;
+        viewportTop.value = viewport.pageY;
+        viewportHeight.value = viewport.height;
+      }
+      const elapsedMs = frame.timeSincePreviousFrame;
+      if (elapsedMs === null) return;
+      const rate = resolveEdgeScrollRate({
+        fingerY: drag.fingerAbsoluteY.value - viewportTop.value,
+        viewportHeight: viewportHeight.value,
+        zoneHeight: ACCOUNTS_LIST_EDGE_SCROLL.zoneHeight,
+        maxRate: ACCOUNTS_LIST_EDGE_SCROLL.maxRatePerSecond,
+      });
+      if (rate === 0) {
+        drag.edgeScrollOffset.value = drag.scrollOffset.value;
+        return;
+      }
+      const next = resolveEdgeScrollOffset({
+        offset: drag.edgeScrollOffset.value,
+        step: (rate * elapsedMs) / 1000,
+        firstRowTop: firstRowTop.value,
+        lastRowBottom: lastRowBottom.value,
+        viewportHeight: viewportHeight.value,
+      });
+      if (next !== drag.edgeScrollOffset.value) {
+        drag.edgeScrollOffset.value = next;
+        scrollTo(scrollRef, 0, next, false);
+      }
+      trackLiftedRow(drag, count);
+    },
+    [count, drag, firstRowTop, lastRowBottom, scrollRef, viewportHeight, viewportTop],
+  );
+  const frameCallback = useFrameCallback(onFrame, false);
 
   // The only reset of the indices: the gesture leaves them parked until the commit that clears the lift.
   useEffect(() => {
+    frameCallback.setActive(isLifted);
     if (isLifted) return;
     liftedIndex.value = -1;
     targetIndex.value = -1;
     translationY.value = 0;
-  }, [isLifted, liftedIndex, targetIndex, translationY]);
+    isHolding.value = false;
+    fingerTranslationY.value = 0;
+    fingerAbsoluteY.value = 0;
+    viewportTop.value = 0;
+    viewportHeight.value = 0;
+  }, [
+    fingerAbsoluteY,
+    fingerTranslationY,
+    frameCallback,
+    isHolding,
+    isLifted,
+    liftedIndex,
+    targetIndex,
+    translationY,
+    viewportHeight,
+    viewportTop,
+  ]);
+
+  const onCardLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      const { y, height } = e.nativeEvent.layout;
+      firstRowTop.value = y;
+      lastRowBottom.value = y + height;
+    },
+    [firstRowTop, lastRowBottom],
+  );
 
   const slotStyle = useAnimatedStyle(
     () => ({
@@ -67,12 +207,7 @@ export function useAccountsListDragAnim(input: { isLifted: boolean }) {
     };
   }, [isLifted, reducedMotion]);
 
-  const drag: ListDrag = useMemo(
-    () => ({ liftedIndex, targetIndex, translationY, cellHeight, reducedMotion }),
-    [cellHeight, liftedIndex, reducedMotion, targetIndex, translationY],
-  );
-
-  return { drag, slotStyle, liftedStyle };
+  return { drag, slotStyle, liftedStyle, scrollRef, onCardLayout };
 }
 
 /** `onFinalize` is the one exit: a cancel and a drop both release, so the lift always clears. Only the row that owns the lift writes the drag. */
@@ -103,26 +238,27 @@ export function useLiftGesture(input: {
         .shouldCancelWhenOutside(false)
         // RNGH hit-tests the detector's own box; the pressable's `hitSlop` never reaches it.
         .hitSlop(ACCOUNTS_LIST_GRIP_HIT_SLOP)
-        .onStart(() => {
+        .onStart((e) => {
           'worklet';
           if (drag.liftedIndex.value === -1) {
             drag.liftedIndex.value = index;
             drag.targetIndex.value = index;
             drag.translationY.value = 0;
             drag.cellHeight.value = rowHeight.value;
+            drag.isHolding.value = true;
+            drag.fingerTranslationY.value = 0;
+            drag.fingerAbsoluteY.value = e.absoluteY;
+            drag.liftScrollOffset.value = drag.scrollOffset.value;
+            drag.edgeScrollOffset.value = drag.scrollOffset.value;
           }
           scheduleOnRN(onLift, id);
         })
         .onUpdate((e) => {
           'worklet';
           if (drag.liftedIndex.value !== index) return;
-          drag.translationY.value = e.translationY;
-          drag.targetIndex.value = resolveDropIndex({
-            fromIndex: index,
-            translationY: e.translationY,
-            cellHeight: drag.cellHeight.value,
-            count,
-          });
+          drag.fingerTranslationY.value = e.translationY;
+          drag.fingerAbsoluteY.value = e.absoluteY;
+          trackLiftedRow(drag, count);
         })
         .onFinalize((_e, success) => {
           'worklet';
@@ -130,6 +266,7 @@ export function useLiftGesture(input: {
           const to = ownsLift && success ? drag.targetIndex.value : index;
           // Parks the copy in the slot until React commits.
           if (ownsLift) {
+            drag.isHolding.value = false;
             drag.targetIndex.value = to;
             drag.translationY.value = (to - index) * drag.cellHeight.value;
           }
