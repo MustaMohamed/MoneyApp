@@ -1,6 +1,6 @@
-import type { TextStyle, ViewStyle } from 'react-native';
+import type { Insets, TextStyle, ViewStyle } from 'react-native';
 
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 
 /** B1 `.cb-row`, 12 on the right; layout keys sit here because `style` beats `className` in RN. */
 export const ACCOUNTS_LIST_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({
@@ -57,4 +57,21 @@ export const ACCOUNTS_LIST_RAIL_STYLE: Readonly<ViewStyle> = Object.freeze({
   marginHorizontal: Spacing.md,
   marginTop: Spacing.xxs,
   marginBottom: Spacing.xxs,
+});
+
+/** B7 `.note`, 12 over 16, centred, margin 12 16 0 under the active card. */
+export const ACCOUNTS_LIST_REORDER_NOTE_STYLE: Readonly<TextStyle> = Object.freeze({
+  fontSize: Type.caption,
+  lineHeight: lineHeightFor(Type.caption),
+  marginTop: Spacing.sm,
+  marginHorizontal: Spacing.md,
+  textAlign: 'center',
+});
+
+/** B6 grip: none on the left, or a tap on the balance's edge stops opening the account. */
+export const ACCOUNTS_LIST_GRIP_HIT_SLOP: Readonly<Insets> = Object.freeze({
+  top: (TouchSize.min - Size.reorderGripSlot) / 2,
+  bottom: (TouchSize.min - Size.reorderGripSlot) / 2,
+  right: TouchSize.min - Size.reorderGripSlot,
+  left: 0,
 });

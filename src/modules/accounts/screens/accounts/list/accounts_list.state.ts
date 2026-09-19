@@ -16,6 +16,9 @@ interface AccountsListStateShape {
   isArchivedExpanded: boolean;
   unarchivingId: string | undefined;
   unarchiveError: AccountsListUnarchiveError | undefined;
+  /** The order on screen while a reorder write is in flight, until the store reloads. */
+  pendingOrder: string[] | undefined;
+  isReordering: boolean;
 }
 
 type AccountsListState = AccountsListStateShape & {
@@ -24,6 +27,8 @@ type AccountsListState = AccountsListStateShape & {
   setArchivedExpanded: (v: boolean) => void;
   setUnarchivingId: (id: string | undefined) => void;
   setUnarchiveError: (e: AccountsListUnarchiveError | undefined) => void;
+  setPendingOrder: (order: string[] | undefined) => void;
+  setReordering: (v: boolean) => void;
   resetArchivedCard: () => void;
   reset: () => void;
 };
@@ -35,6 +40,8 @@ const INITIAL_STATE: AccountsListStateShape = {
   isArchivedExpanded: false,
   unarchivingId: undefined,
   unarchiveError: undefined,
+  pendingOrder: undefined,
+  isReordering: false,
 };
 
 export function createAccountsListState() {
@@ -46,6 +53,8 @@ export function createAccountsListState() {
       setArchivedExpanded: (v) => set({ isArchivedExpanded: v }),
       setUnarchivingId: (id) => set({ unarchivingId: id }),
       setUnarchiveError: (e) => set({ unarchiveError: e }),
+      setPendingOrder: (order) => set({ pendingOrder: order }),
+      setReordering: (v) => set({ isReordering: v }),
       // Per field: the selected type survives, and only `unarchive`'s own `finally` clears the lock.
       resetArchivedCard: () =>
         set({

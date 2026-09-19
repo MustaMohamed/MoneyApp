@@ -19,6 +19,12 @@ import {
   resolveAccountsListSectionTitle,
   resolveArchivedCardType,
 } from './accounts_list.presentation';
+import {
+  applyPendingOrder,
+  type ReorderDirection,
+  resolveMoveTarget,
+  resolveReorderedIds,
+} from './accounts_list.reorder';
 import { useAccountsListState } from './accounts_list.state';
 import {
   resolveArchivedCardRows,
@@ -38,6 +44,7 @@ export function useAccountsList() {
   );
   const loadAccounts = useAccountStore.getState().loadAccounts;
   const unarchiveAccount = useAccountStore.getState().unarchiveAccount;
+  const reorderAccounts = useAccountStore.getState().reorderAccounts;
   const isRetrying = useAccountsListState((s) => s.isRetrying);
   const setRetrying = useAccountsListState.getState().setRetrying;
   const selectedType = useAccountsListState((s) => s.selectedType);
@@ -49,6 +56,9 @@ export function useAccountsList() {
   const setUnarchivingId = useAccountsListState.getState().setUnarchivingId;
   const setUnarchiveError = useAccountsListState.getState().setUnarchiveError;
   const resetArchivedCard = useAccountsListState.getState().resetArchivedCard;
+  const pendingOrder = useAccountsListState((s) => s.pendingOrder);
+  const setPendingOrder = useAccountsListState.getState().setPendingOrder;
+  const setReordering = useAccountsListState.getState().setReordering;
   const { toast } = useToast();
   const { rate, isManualOverride, rateUpdatedAt } = useCurrencyStore(
     useShallow((state) => ({
@@ -86,14 +96,15 @@ export function useAccountsList() {
     [accounts, baseCurrency, rate, rateUsable, statsMap],
   );
 
-  // A narrow over the same row objects: a filter change re-derives no caption (ADR 2026-09-07).
+  // A narrow or a pending order over the same row objects: neither re-derives a caption (ADR 2026-09-07).
   const rows = useMemo(
     () =>
       selectedType === 'all'
-        ? allRows
+        ? applyPendingOrder(allRows, pendingOrder, (row) => row.account.id)
         : allRows.filter((row) => matchesAccountsListType(row.account.type, selectedType)),
-    [allRows, selectedType],
+    [allRows, pendingOrder, selectedType],
   );
+  const isReorderable = selectedType === 'all';
 
   const emptyState = resolveAccountsListEmptyState({
     activeCount: accounts.length,
@@ -153,9 +164,43 @@ export function useAccountsList() {
     [setArchivedExpanded, setUnarchiveError, setUnarchivingId, toast, unarchiveAccount],
   );
 
+  // The store reloads on success and on failure, so releasing the pending order shows the saved one.
+  const dropRow = useCallback(
+    async (fromIndex: number, toIndex: number) => {
+      const listState = useAccountsListState.getState();
+      if (listState.isReordering || listState.selectedType !== 'all') return;
+      const ids = useAccountStore.getState().accounts.map((account) => account.id);
+      const next = resolveReorderedIds(ids, fromIndex, toIndex);
+      if (next === undefined) return;
+
+      setReordering(true);
+      setPendingOrder(next);
+      try {
+        await reorderAccounts(next);
+      } catch {
+        toast.show({ label: Strings.accountsReorderError, variant: 'danger' });
+      } finally {
+        setPendingOrder(undefined);
+        setReordering(false);
+      }
+    },
+    [reorderAccounts, setPendingOrder, setReordering, toast],
+  );
+
+  const moveRow = useCallback(
+    async (index: number, direction: ReorderDirection) => {
+      const count = useAccountStore.getState().accounts.length;
+      const target = resolveMoveTarget(index, direction, count);
+      if (target === undefined) return;
+      await dropRow(index, target);
+    },
+    [dropRow],
+  );
+
   return {
     state: {
       rows,
+      isReorderable,
       archivedCount,
       isRetrying,
       selectedType,
@@ -178,5 +223,7 @@ export function useAccountsList() {
     selectType: setSelectedType,
     setArchivedExpanded,
     unarchive,
+    dropRow,
+    moveRow,
   };
 }
