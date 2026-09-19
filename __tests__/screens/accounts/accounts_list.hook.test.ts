@@ -251,6 +251,28 @@ describe('useAccountsList', () => {
 
     expect(result.current.state.content).toBe('error');
   });
+
+  it('mounts the scroll with rows and on a filtered-to-empty list, not on a load error or with no accounts', async () => {
+    storeState = { ...storeState, loadError: true };
+    const errored = await renderHook(() => useAccountsList());
+    expect(errored.result.current.state.hasScroll).toBe(false);
+
+    storeState = { ...storeState, loadError: false, accounts: [], archivedCount: 0 };
+    const empty = await renderHook(() => useAccountsList());
+    expect(empty.result.current.state.emptyState).toBe('noAccounts');
+    expect(empty.result.current.state.hasScroll).toBe(false);
+
+    storeState = { ...storeState, accounts };
+    const listed = await renderHook(() => useAccountsList());
+    expect(listed.result.current.state.hasScroll).toBe(true);
+
+    await act(() => {
+      listed.result.current.selectType(AccountType.CreditCard);
+    });
+
+    expect(listed.result.current.state.emptyState).toBe('filtered');
+    expect(listed.result.current.state.hasScroll).toBe(true);
+  });
 });
 
 describe('useAccountsList — the type filter narrows the rows', () => {

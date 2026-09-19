@@ -37,6 +37,7 @@ export default function AccountsListScreen() {
       canLift,
       content,
       emptyState,
+      hasScroll,
       isReorderable,
       isLifted,
       isRetrying,
@@ -59,7 +60,7 @@ export default function AccountsListScreen() {
   const { drag, slotStyle, liftedStyle, scrollRef, onCardLayout } = useAccountsListDragAnim({
     isLifted,
     count: rows.length,
-    hasScroll: content !== 'error' && emptyState !== 'noAccounts',
+    hasScroll,
   });
 
   return (
@@ -81,24 +82,7 @@ export default function AccountsListScreen() {
         }
       />
 
-      {content === 'error' ? (
-        // `edges={[]}`: the outer `Screen` already pads top and bottom.
-        <ErrorState
-          edges={[]}
-          flat
-          iconName="alert-circle-outline"
-          title={Strings.accountsReadErrorTitle}
-          description={Strings.accountsReadErrorDescription}
-          actionLabel={Strings.accountsReadErrorRetry}
-          actionAccessibilityLabel={Strings.accountsReadErrorRetry}
-          onAction={() => void retry()}
-          isActionLoading={isRetrying}
-          isActionDisabled={isRetrying}
-          testID="accounts-load-error"
-        />
-      ) : emptyState === 'noAccounts' ? (
-        <EmptyState variant="accounts" onAction={goToAddAccount} />
-      ) : (
+      {hasScroll ? (
         <ScreenScroll
           ref={scrollRef}
           scrollEventThrottle={16}
@@ -200,6 +184,23 @@ export default function AccountsListScreen() {
             onUnarchive={(id) => void unarchive(id)}
           />
         </ScreenScroll>
+      ) : content === 'error' ? (
+        // `edges={[]}`: the outer `Screen` already pads top and bottom.
+        <ErrorState
+          edges={[]}
+          flat
+          iconName="alert-circle-outline"
+          title={Strings.accountsReadErrorTitle}
+          description={Strings.accountsReadErrorDescription}
+          actionLabel={Strings.accountsReadErrorRetry}
+          actionAccessibilityLabel={Strings.accountsReadErrorRetry}
+          onAction={() => void retry()}
+          isActionLoading={isRetrying}
+          isActionDisabled={isRetrying}
+          testID="accounts-load-error"
+        />
+      ) : (
+        <EmptyState variant="accounts" onAction={goToAddAccount} />
       )}
     </Screen>
   );

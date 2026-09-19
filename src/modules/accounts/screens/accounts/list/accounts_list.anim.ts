@@ -42,11 +42,19 @@ export interface ListDrag {
   scrollOffset: SharedValue<number>;
   liftScrollOffset: SharedValue<number>;
   edgeScrollOffset: SharedValue<number>;
-  viewportTop: SharedValue<number>;
-  viewportHeight: SharedValue<number>;
-  firstRowTop: SharedValue<number>;
-  lastRowBottom: SharedValue<number>;
   reducedMotion: boolean;
+}
+
+function trackLiftedRow(drag: ListDrag, count: number) {
+  'worklet';
+  drag.translationY.value =
+    drag.fingerTranslationY.value + (drag.edgeScrollOffset.value - drag.liftScrollOffset.value);
+  drag.targetIndex.value = resolveDropIndex({
+    fromIndex: drag.liftedIndex.value,
+    translationY: drag.translationY.value,
+    cellHeight: drag.cellHeight.value,
+    count,
+  });
 }
 
 /** `isLifted` is the React side's `liftedId !== undefined`: styles snap to rest the commit it turns false. `hasScroll` is whether a `ScreenScroll` mounts to take `scrollRef`. */
@@ -86,10 +94,6 @@ export function useAccountsListDragAnim(input: {
       scrollOffset,
       liftScrollOffset,
       edgeScrollOffset,
-      viewportTop,
-      viewportHeight,
-      firstRowTop,
-      lastRowBottom,
       reducedMotion,
     }),
     [
@@ -97,17 +101,13 @@ export function useAccountsListDragAnim(input: {
       edgeScrollOffset,
       fingerAbsoluteY,
       fingerTranslationY,
-      firstRowTop,
       isHolding,
-      lastRowBottom,
       liftScrollOffset,
       liftedIndex,
       reducedMotion,
       scrollOffset,
       targetIndex,
       translationY,
-      viewportHeight,
-      viewportTop,
     ],
   );
 
@@ -116,17 +116,17 @@ export function useAccountsListDragAnim(input: {
     (frame: FrameInfo) => {
       'worklet';
       if (!drag.isHolding.value) return;
-      if (drag.viewportHeight.value === 0) {
+      if (viewportHeight.value === 0) {
         const viewport = measure(scrollRef);
         if (viewport === null) return;
-        drag.viewportTop.value = viewport.pageY;
-        drag.viewportHeight.value = viewport.height;
+        viewportTop.value = viewport.pageY;
+        viewportHeight.value = viewport.height;
       }
       const elapsedMs = frame.timeSincePreviousFrame;
       if (elapsedMs === null) return;
       const rate = resolveEdgeScrollRate({
-        fingerY: drag.fingerAbsoluteY.value - drag.viewportTop.value,
-        viewportHeight: drag.viewportHeight.value,
+        fingerY: drag.fingerAbsoluteY.value - viewportTop.value,
+        viewportHeight: viewportHeight.value,
         zoneHeight: ACCOUNTS_LIST_EDGE_SCROLL.zoneHeight,
         maxRate: ACCOUNTS_LIST_EDGE_SCROLL.maxRatePerSecond,
       });
@@ -137,24 +137,17 @@ export function useAccountsListDragAnim(input: {
       const next = resolveEdgeScrollOffset({
         offset: drag.edgeScrollOffset.value,
         step: (rate * elapsedMs) / 1000,
-        firstRowTop: drag.firstRowTop.value,
-        lastRowBottom: drag.lastRowBottom.value,
-        viewportHeight: drag.viewportHeight.value,
+        firstRowTop: firstRowTop.value,
+        lastRowBottom: lastRowBottom.value,
+        viewportHeight: viewportHeight.value,
       });
       if (next !== drag.edgeScrollOffset.value) {
         drag.edgeScrollOffset.value = next;
         scrollTo(scrollRef, 0, next, false);
       }
-      drag.translationY.value =
-        drag.fingerTranslationY.value + (drag.edgeScrollOffset.value - drag.liftScrollOffset.value);
-      drag.targetIndex.value = resolveDropIndex({
-        fromIndex: drag.liftedIndex.value,
-        translationY: drag.translationY.value,
-        cellHeight: drag.cellHeight.value,
-        count,
-      });
+      trackLiftedRow(drag, count);
     },
-    [count, drag, scrollRef],
+    [count, drag, firstRowTop, lastRowBottom, scrollRef, viewportHeight, viewportTop],
   );
   const frameCallback = useFrameCallback(onFrame, false);
 
@@ -265,14 +258,7 @@ export function useLiftGesture(input: {
           if (drag.liftedIndex.value !== index) return;
           drag.fingerTranslationY.value = e.translationY;
           drag.fingerAbsoluteY.value = e.absoluteY;
-          drag.translationY.value =
-            e.translationY + (drag.edgeScrollOffset.value - drag.liftScrollOffset.value);
-          drag.targetIndex.value = resolveDropIndex({
-            fromIndex: index,
-            translationY: drag.translationY.value,
-            cellHeight: drag.cellHeight.value,
-            count,
-          });
+          trackLiftedRow(drag, count);
         })
         .onFinalize((_e, success) => {
           'worklet';

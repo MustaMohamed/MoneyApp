@@ -123,6 +123,10 @@ export function useAccountsList() {
     archivedCount,
     visibleCount: rows.length,
   });
+  // The unfiltered active count: a filtered-to-empty list is not an empty screen.
+  const content = resolveAccountsListContent({ loadError, accountCount: allRows.length });
+  // One source for the screen's `ScreenScroll` mount and the drag's scroll observer.
+  const hasScroll = content !== 'error' && emptyState !== 'noAccounts';
   const archivedCardType = resolveArchivedCardType({ emptyState, selectedType });
   const archivedRows = useMemo(
     () => resolveArchivedCardRows(archivedAccounts, archivedCardType),
@@ -249,9 +253,9 @@ export function useAccountsList() {
       isRetrying,
       selectedType,
       sectionTitle: resolveAccountsListSectionTitle(selectedType),
-      // The unfiltered active count: a filtered-to-empty list is not an empty screen.
-      content: resolveAccountsListContent({ loadError, accountCount: allRows.length }),
+      content,
       emptyState,
+      hasScroll,
       archived: {
         rows: archivedRows,
         summary: resolveArchivedSummary(archivedRows),
