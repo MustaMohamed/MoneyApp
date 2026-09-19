@@ -95,6 +95,14 @@ export const ACCOUNTS_LIST_LIFTED_ROW_STYLE: Readonly<ViewStyle> = Object.freeze
   overflow: 'hidden',
 });
 
+/** B6: the slot and the lifted copy float over the active card's rows, from its top edge. */
+export const ACCOUNTS_LIST_FLOATING_STYLE: Readonly<ViewStyle> = Object.freeze({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+});
+
 /** B6 drop slot: a transparent dashed accent/45 outline, a row tall, at radius 12. */
 export const ACCOUNTS_LIST_DROP_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze({
   minHeight: Size.accountListRowMinHeight,

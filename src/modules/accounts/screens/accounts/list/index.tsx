@@ -1,6 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { ErrorState } from '@/components/ui/error_state';
@@ -16,6 +17,8 @@ import { CoreTokens } from '@/constants/theme_tokens';
 import { useAccountsListDragAnim } from './accounts_list.anim';
 import {
   ACCOUNTS_LIST_CARD_STYLE,
+  ACCOUNTS_LIST_DROP_SLOT_STYLE,
+  ACCOUNTS_LIST_FLOATING_STYLE,
   ACCOUNTS_LIST_RAIL_STYLE,
   ACCOUNTS_LIST_REORDER_NOTE_STYLE,
 } from './accounts_list.geometry';
@@ -23,6 +26,7 @@ import { useAccountsList } from './accounts_list.hook';
 import { ACCOUNTS_LIST_TYPE_FILTERS } from './accounts_list.presentation';
 import { AccountListRow } from './components/account_list_row';
 import { ArchivedCard } from './components/archived_card';
+import { LiftedAccountRow } from './components/lifted_account_row';
 
 export default function AccountsListScreen() {
   const {
@@ -51,7 +55,8 @@ export default function AccountsListScreen() {
     unarchive,
   } = useAccountsList();
   const isLifted = liftedId !== undefined;
-  const { drag } = useAccountsListDragAnim({ isLifted });
+  const { drag, slotStyle, liftedStyle } = useAccountsListDragAnim({ isLifted });
+  const liftedRow = rows.find((row) => row.account.id === liftedId);
 
   return (
     <Screen>
@@ -93,6 +98,7 @@ export default function AccountsListScreen() {
         <ScreenScroll
           contentContainerStyle={{ paddingBottom: Spacing.xxl }}
           showsVerticalScrollIndicator={false}
+          scrollEnabled={!isLifted}
         >
           <View style={ACCOUNTS_LIST_RAIL_STYLE}>
             <SegmentFilter
@@ -142,6 +148,23 @@ export default function AccountsListScreen() {
                         onRelease={(id, from, to) => void releaseRow(id, from, to)}
                       />
                     ))}
+                    {liftedRow === undefined ? null : (
+                      <>
+                        <Animated.View
+                          pointerEvents="none"
+                          style={[
+                            ACCOUNTS_LIST_DROP_SLOT_STYLE,
+                            ACCOUNTS_LIST_FLOATING_STYLE,
+                            slotStyle,
+                          ]}
+                        />
+                        <LiftedAccountRow
+                          account={liftedRow.account}
+                          caption={liftedRow.caption}
+                          style={liftedStyle}
+                        />
+                      </>
+                    )}
                   </ListCard>
                   {isReorderable ? null : (
                     <Typography
