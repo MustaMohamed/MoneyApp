@@ -48,3 +48,4 @@ Per-type captions (MA-024) are one row each in B1; a caption check is `mqa ui`, 
 - The archived card collapses on mount only; a filter change does not reset it.
 - The rail scrolls sideways: at 411dp `Credit Card` sits off-screen and `mqa tap` on it does nothing; tap a visible chip.
 - `input draganddrop` cannot hold, and a MOVE that stops inside an edge zone keeps the list scrolling until UP, so the mid-hold shot of `drop after an edge scroll` is taken with the finger down.
+- The pan activates on the first MOVE after the 500 ms hold, and RNGH measures `translationY` from that point, so the first MOVE's distance never reaches the copy: a 132 px first step leaves the copy 50 dp above the finger (MA-083, logged `fingerTranslationY` against `absoluteY`). Make the first MOVE a few px when the shot judges the copy against the finger.
