@@ -17,6 +17,7 @@ const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockLoadAccounts = jest.fn<Promise<void>, []>();
 const mockUnarchive = jest.fn<Promise<void>, [string]>();
+const mockReorder = jest.fn<Promise<void>, [string[]]>();
 const mockToast = { show: jest.fn() };
 
 jest.mock('zustand/react/shallow', () => ({
@@ -74,6 +75,7 @@ let storeState = {
   loadError: false,
   loadAccounts: mockLoadAccounts,
   unarchiveAccount: mockUnarchive,
+  reorderAccounts: mockReorder,
 };
 
 let currencyState: {
@@ -100,6 +102,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockLoadAccounts.mockResolvedValue(undefined);
   mockUnarchive.mockResolvedValue(undefined);
+  mockReorder.mockResolvedValue(undefined);
   storeState = {
     accounts,
     archivedAccounts: NO_ARCHIVED,
@@ -107,6 +110,7 @@ beforeEach(() => {
     loadError: false,
     loadAccounts: mockLoadAccounts,
     unarchiveAccount: mockUnarchive,
+    reorderAccounts: mockReorder,
   };
   currencyState = {
     rate: 50,
@@ -689,6 +693,151 @@ describe('useAccountsList — unarchive from a row', () => {
     });
 
     expect(mockUnarchive).not.toHaveBeenCalled();
+    expect(useToast().toast.show).not.toHaveBeenCalled();
+  });
+});
+
+describe('useAccountsList — moving a row writes the order once', () => {
+  const rowIds = (rows: { account: Account }[]) => rows.map((row) => row.account.id);
+
+  it('reports reorder on under All', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.isReorderable).toBe(true);
+  });
+
+  it('moves the first row down through one write, showing that order until the write settles', async () => {
+    const write = deferred<void>();
+    mockReorder.mockReturnValueOnce(write.promise);
+    const { result } = await renderHook(() => useAccountsList());
+    const before = result.current.state.rows;
+
+    let pending: Promise<void> = Promise.resolve();
+    await act(() => {
+      pending = result.current.moveRow(0, 'down');
+    });
+
+    expect(mockReorder.mock.calls).toEqual([[['acc-2', 'acc-1']]]);
+    expect(rowIds(result.current.state.rows)).toEqual(['acc-2', 'acc-1']);
+    // The same row objects in a new order: a move re-derives no caption.
+    expect(result.current.state.rows[0]).toBe(before[1]);
+    expect(result.current.state.rows[1]).toBe(before[0]);
+
+    await act(async () => {
+      write.resolve();
+      await pending;
+    });
+
+    // The mocked store keeps its order, so these rows prove the pending order was released.
+    expect(rowIds(result.current.state.rows)).toEqual(['acc-1', 'acc-2']);
+  });
+
+  it('moves the second row up through one write', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.moveRow(1, 'up');
+    });
+
+    expect(mockReorder.mock.calls).toEqual([[['acc-2', 'acc-1']]]);
+  });
+
+  it('writes nothing for up on the first row or down on the last', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.moveRow(0, 'up');
+    });
+    await act(async () => {
+      await result.current.moveRow(1, 'down');
+    });
+
+    expect(mockReorder).not.toHaveBeenCalled();
+    expect(useToast().toast.show).not.toHaveBeenCalled();
+    expect(rowIds(result.current.state.rows)).toEqual(['acc-1', 'acc-2']);
+  });
+
+  it('drops the first of three rows at the end, shifting the two between', async () => {
+    storeState = { ...storeState, accounts: [...accounts, usdWallet] };
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.dropRow(0, 2);
+    });
+
+    expect(mockReorder.mock.calls).toEqual([[['acc-2', 'acc-3', 'acc-1']]]);
+  });
+
+  it('under a type filter reports reorder off and writes nothing', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(() => {
+      result.current.selectType(AccountType.Bank);
+    });
+
+    expect(result.current.state.isReorderable).toBe(false);
+
+    await act(async () => {
+      await result.current.moveRow(0, 'down');
+    });
+    await act(async () => {
+      await result.current.dropRow(0, 1);
+    });
+
+    expect(mockReorder).not.toHaveBeenCalled();
+  });
+
+  it('a second move while the first write is in flight writes nothing more', async () => {
+    const write = deferred<void>();
+    mockReorder.mockReturnValueOnce(write.promise);
+    const { result } = await renderHook(() => useAccountsList());
+
+    let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
+    await act(() => {
+      first = result.current.moveRow(0, 'down');
+    });
+    await act(() => {
+      second = result.current.moveRow(1, 'up');
+    });
+
+    expect(mockReorder).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      write.resolve();
+      await Promise.all([first, second]);
+    });
+  });
+
+  it('a rejected write toasts the failure once, leaves the store order, and frees the next move', async () => {
+    mockReorder.mockRejectedValueOnce(new Error('db error'));
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await expect(result.current.moveRow(0, 'down')).resolves.toBeUndefined();
+    });
+
+    expect(useToast().toast.show).toHaveBeenCalledTimes(1);
+    expect(useToast().toast.show).toHaveBeenCalledWith({
+      label: Strings.accountsReorderError,
+      variant: 'danger',
+    });
+    expect(rowIds(result.current.state.rows)).toEqual(['acc-1', 'acc-2']);
+
+    await act(async () => {
+      await result.current.moveRow(0, 'down');
+    });
+
+    expect(mockReorder).toHaveBeenCalledTimes(2);
+  });
+
+  it('a landed write shows no toast', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+
+    await act(async () => {
+      await result.current.moveRow(0, 'down');
+    });
+
+    expect(mockReorder).toHaveBeenCalledTimes(1);
     expect(useToast().toast.show).not.toHaveBeenCalled();
   });
 });

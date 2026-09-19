@@ -124,3 +124,51 @@ describe('accountsListState — the archived card', () => {
     expect(store.getState().unarchiveError).toBeUndefined();
   });
 });
+
+describe('accountsListState — the reorder write', () => {
+  const order = ['acc-2', 'acc-1'];
+
+  it('starts with no pending order and no write in flight', () => {
+    const store = createAccountsListState();
+    expect(store.getState()).toHaveProperty('pendingOrder', undefined);
+    expect(store.getState().isReordering).toBe(false);
+  });
+
+  it('round-trips the pending order', () => {
+    const store = createAccountsListState();
+    store.getState().setPendingOrder(order);
+    expect(store.getState().pendingOrder).toEqual(order);
+    store.getState().setPendingOrder(undefined);
+    expect(store.getState().pendingOrder).toBeUndefined();
+  });
+
+  it('round-trips the write lock', () => {
+    const store = createAccountsListState();
+    store.getState().setReordering(true);
+    expect(store.getState().isReordering).toBe(true);
+    store.getState().setReordering(false);
+    expect(store.getState().isReordering).toBe(false);
+  });
+
+  it('reset clears the pending order and the lock', () => {
+    const store = createAccountsListState();
+    store.getState().setPendingOrder(order);
+    store.getState().setReordering(true);
+
+    store.getState().reset();
+
+    expect(store.getState().pendingOrder).toBeUndefined();
+    expect(store.getState().isReordering).toBe(false);
+  });
+
+  it('resetArchivedCard leaves a write in flight locked, with its pending order', () => {
+    const store = createAccountsListState();
+    store.getState().setPendingOrder(order);
+    store.getState().setReordering(true);
+
+    store.getState().resetArchivedCard();
+
+    expect(store.getState().pendingOrder).toEqual(order);
+    expect(store.getState().isReordering).toBe(true);
+  });
+});
