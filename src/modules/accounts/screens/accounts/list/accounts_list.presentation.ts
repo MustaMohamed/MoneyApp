@@ -45,6 +45,11 @@ export function matchesAccountsListType(
   return filter === 'all' || type === filter;
 }
 
+/** The one reorder rule: the grip, its actions and the write all read it. */
+export function isAccountsListReorderable(selectedType: AccountsListTypeFilter): boolean {
+  return selectedType === 'all';
+}
+
 /** Under the archived-only state the card holds every archived account, so that state's count stays true. */
 export function resolveArchivedCardType(input: {
   emptyState: AccountsListEmptyState;

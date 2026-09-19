@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback, Separator } from 'heroui-native';
+import { PressableFeedback, Separator, Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -14,7 +14,11 @@ import { Strings } from '@/constants/strings';
 import { Radius, Size, Spacing } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { ACCOUNTS_LIST_CARD_STYLE, ACCOUNTS_LIST_RAIL_STYLE } from './accounts_list.geometry';
+import {
+  ACCOUNTS_LIST_CARD_STYLE,
+  ACCOUNTS_LIST_RAIL_STYLE,
+  ACCOUNTS_LIST_REORDER_NOTE_STYLE,
+} from './accounts_list.geometry';
 import { useAccountsList } from './accounts_list.hook';
 import { ACCOUNTS_LIST_TYPE_FILTERS } from './accounts_list.presentation';
 import { AccountListRow } from './components/account_list_row';
@@ -28,12 +32,14 @@ export default function AccountsListScreen() {
       archivedCount,
       content,
       emptyState,
+      isReorderable,
       isRetrying,
       selectedType,
       sectionTitle,
     },
     goToAccount,
     goToAddAccount,
+    moveRow,
     onBack,
     retry,
     selectType,
@@ -108,15 +114,34 @@ export default function AccountsListScreen() {
                   onAction={() => selectType('all')}
                 />
               ) : (
-                <ListCard style={ACCOUNTS_LIST_CARD_STYLE}>
-                  {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
-                  {rows.map(({ account, caption }, index) => (
-                    <React.Fragment key={account.id}>
-                      {index > 0 ? <Separator thickness={Size.hairline} /> : null}
-                      <AccountListRow account={account} caption={caption} onPress={goToAccount} />
-                    </React.Fragment>
-                  ))}
-                </ListCard>
+                <>
+                  <ListCard style={ACCOUNTS_LIST_CARD_STYLE}>
+                    {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
+                    {rows.map(({ account, caption }, index) => (
+                      <React.Fragment key={account.id}>
+                        {index > 0 ? <Separator thickness={Size.hairline} /> : null}
+                        <AccountListRow
+                          account={account}
+                          caption={caption}
+                          onPress={goToAccount}
+                          onMove={
+                            isReorderable
+                              ? (direction) => void moveRow(index, direction)
+                              : undefined
+                          }
+                        />
+                      </React.Fragment>
+                    ))}
+                  </ListCard>
+                  {isReorderable ? null : (
+                    <Typography
+                      className="text-content-secondary font-inter"
+                      style={ACCOUNTS_LIST_REORDER_NOTE_STYLE}
+                    >
+                      {Strings.accountsReorderFilterNote}
+                    </Typography>
+                  )}
+                </>
               )}
             </>
           )}

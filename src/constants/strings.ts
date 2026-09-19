@@ -389,6 +389,11 @@ export const Strings = {
   accountCaptionSavings: (start: string, change: string) => `Month start ${start} · ${change}`,
   accountCaptionCard: (limit: string, available: string) =>
     `Limit ${limit} · available ${available}`,
+  accountsReorderGrip: (name: string) => `Reorder ${name}`,
+  accountsReorderMoveUp: 'Move up',
+  accountsReorderMoveDown: 'Move down',
+  accountsReorderFilterNote: 'Reorder is off while a filter is on.',
+  accountsReorderError: "Couldn't save the new order. Nothing was changed.",
 
   // Accounts list: archived card (B4, B5, G3)
   accountsArchivedTitle: 'Archived',

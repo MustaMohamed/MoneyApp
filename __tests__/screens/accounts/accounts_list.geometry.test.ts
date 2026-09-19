@@ -1,10 +1,12 @@
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   ACCOUNTS_LIST_ARCHIVED_CARD_STYLE,
   ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE,
   ACCOUNTS_LIST_ARCHIVED_ROW_STYLE,
   ACCOUNTS_LIST_CARD_STYLE,
+  ACCOUNTS_LIST_GRIP_HIT_SLOP,
   ACCOUNTS_LIST_RAIL_STYLE,
+  ACCOUNTS_LIST_REORDER_NOTE_STYLE,
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
   ACCOUNTS_LIST_ROW_STYLE,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.geometry';
@@ -166,5 +168,53 @@ describe('accounts list type rail geometry (B7)', () => {
 
   it('is frozen', () => {
     expect(Object.isFrozen(ACCOUNTS_LIST_RAIL_STYLE)).toBe(true);
+  });
+});
+
+describe('accounts list reorder note geometry (B7)', () => {
+  it('is the 12 caption over its paired line height', () => {
+    expect(ACCOUNTS_LIST_REORDER_NOTE_STYLE.fontSize).toBe(Type.caption);
+    expect(ACCOUNTS_LIST_REORDER_NOTE_STYLE.lineHeight).toBe(lineHeightFor(Type.caption));
+  });
+
+  it('sits 12 under the active card in the card gutter, centred', () => {
+    expect(ACCOUNTS_LIST_REORDER_NOTE_STYLE.marginTop).toBe(Spacing.sm);
+    expect(ACCOUNTS_LIST_REORDER_NOTE_STYLE.marginHorizontal).toBe(Spacing.md);
+    expect(ACCOUNTS_LIST_REORDER_NOTE_STYLE.textAlign).toBe('center');
+  });
+
+  it('carries exactly these keys', () => {
+    expect(Object.keys(ACCOUNTS_LIST_REORDER_NOTE_STYLE).sort()).toEqual([
+      'fontSize',
+      'lineHeight',
+      'marginHorizontal',
+      'marginTop',
+      'textAlign',
+    ]);
+  });
+
+  it('is frozen', () => {
+    // `Object.isFrozen` is true for a missing export too, so the object is asserted first.
+    expect(ACCOUNTS_LIST_REORDER_NOTE_STYLE).toEqual(expect.any(Object));
+    expect(Object.isFrozen(ACCOUNTS_LIST_REORDER_NOTE_STYLE)).toBe(true);
+  });
+});
+
+describe('accounts list grip hit slop (B6)', () => {
+  it('adds nothing on the left, so a tap on the balance edge still opens the account', () => {
+    expect(ACCOUNTS_LIST_GRIP_HIT_SLOP.left).toBe(0);
+  });
+
+  it('lifts the 16 slot to the touch floor vertically and to the right', () => {
+    const { top, bottom, right } = ACCOUNTS_LIST_GRIP_HIT_SLOP;
+    expect(Size.reorderGripSlot + Number(top) + Number(bottom)).toBeGreaterThanOrEqual(
+      TouchSize.min,
+    );
+    expect(Size.reorderGripSlot + Number(right)).toBeGreaterThanOrEqual(TouchSize.min);
+  });
+
+  it('is frozen', () => {
+    expect(ACCOUNTS_LIST_GRIP_HIT_SLOP).toEqual(expect.any(Object));
+    expect(Object.isFrozen(ACCOUNTS_LIST_GRIP_HIT_SLOP)).toBe(true);
   });
 });

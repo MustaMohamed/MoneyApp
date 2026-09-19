@@ -28,3 +28,17 @@ describe('accounts list type-filter copy (B7)', () => {
     expect(Strings.accountTypeFilterAccessibility).toBe('Account type filter');
   });
 });
+
+describe('accounts list reorder copy (B6, B7)', () => {
+  it('ships the four fixed strings byte-exact', () => {
+    expect(Strings.accountsReorderMoveUp).toBe('Move up');
+    expect(Strings.accountsReorderMoveDown).toBe('Move down');
+    expect(Strings.accountsReorderFilterNote).toBe('Reorder is off while a filter is on.');
+    expect(Strings.accountsReorderError).toBe("Couldn't save the new order. Nothing was changed.");
+  });
+
+  it('labels the grip with the account name the row shows, unnamed included', () => {
+    expect(Strings.accountsReorderGrip('CIB Current')).toBe('Reorder CIB Current');
+    expect(Strings.accountsReorderGrip(Strings.unnamedAccount)).toBe('Reorder Unnamed account');
+  });
+});
