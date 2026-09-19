@@ -38,8 +38,10 @@ export default function AccountsListScreen() {
       content,
       emptyState,
       isReorderable,
+      isLifted,
       isRetrying,
-      liftedId,
+      liftedRow,
+      liftGeneration,
       selectedType,
       sectionTitle,
     },
@@ -54,9 +56,7 @@ export default function AccountsListScreen() {
     setArchivedExpanded,
     unarchive,
   } = useAccountsList();
-  const isLifted = liftedId !== undefined;
   const { drag, slotStyle, liftedStyle } = useAccountsListDragAnim({ isLifted });
-  const liftedRow = rows.find((row) => row.account.id === liftedId);
 
   return (
     <Screen>
@@ -131,7 +131,7 @@ export default function AccountsListScreen() {
                     {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
                     {rows.map(({ account, caption }, index) => (
                       <AccountListRow
-                        key={account.id}
+                        key={`${account.id}:${liftGeneration}`}
                         account={account}
                         caption={caption}
                         index={index}
@@ -145,7 +145,7 @@ export default function AccountsListScreen() {
                           isReorderable ? (direction) => void moveRow(index, direction) : undefined
                         }
                         onLift={liftRow}
-                        onRelease={(id, from, to) => void releaseRow(id, from, to)}
+                        onRelease={releaseRow}
                       />
                     ))}
                     {liftedRow === undefined ? null : (

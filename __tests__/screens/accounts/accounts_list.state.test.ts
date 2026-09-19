@@ -205,3 +205,34 @@ describe('accountsListState — the lifted row', () => {
     expect(store.getState().liftedId).toBe('acc-1');
   });
 });
+
+describe('accountsListState — the lift generation', () => {
+  it('counts a lift when it clears, not when it is set', () => {
+    const store = createAccountsListState();
+    expect(store.getState().liftGeneration).toBe(0);
+
+    store.getState().setLiftedId('acc-1');
+    expect(store.getState().liftGeneration).toBe(0);
+
+    store.getState().setLiftedId(undefined);
+    expect(store.getState().liftGeneration).toBe(1);
+  });
+
+  it('leaves the count alone when nothing was lifted', () => {
+    const store = createAccountsListState();
+
+    store.getState().setLiftedId(undefined);
+
+    expect(store.getState().liftGeneration).toBe(0);
+  });
+
+  it('reset restores the count', () => {
+    const store = createAccountsListState();
+    store.getState().setLiftedId('acc-1');
+    store.getState().setLiftedId(undefined);
+
+    store.getState().reset();
+
+    expect(store.getState().liftGeneration).toBe(0);
+  });
+});

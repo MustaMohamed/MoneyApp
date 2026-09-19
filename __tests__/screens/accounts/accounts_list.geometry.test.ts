@@ -14,7 +14,9 @@ import {
   ACCOUNTS_LIST_ARCHIVED_ROW_STYLE,
   ACCOUNTS_LIST_CARD_STYLE,
   ACCOUNTS_LIST_DROP_SLOT_STYLE,
+  ACCOUNTS_LIST_FLOATING_STYLE,
   ACCOUNTS_LIST_GRIP_HIT_SLOP,
+  ACCOUNTS_LIST_GRIP_SLOT_STYLE,
   ACCOUNTS_LIST_LIFTED_ROW_STYLE,
   ACCOUNTS_LIST_RAIL_STYLE,
   ACCOUNTS_LIST_REORDER_NOTE_STYLE,
@@ -310,5 +312,33 @@ describe('accounts list drop slot geometry (B6)', () => {
   it('is frozen', () => {
     expect(ACCOUNTS_LIST_DROP_SLOT_STYLE).toEqual(expect.any(Object));
     expect(Object.isFrozen(ACCOUNTS_LIST_DROP_SLOT_STYLE)).toBe(true);
+  });
+});
+
+describe('accounts list grip slot and floating layer geometry (B6)', () => {
+  it('centres the grip glyph in the reserved 16 slot, for the row and the lifted copy', () => {
+    expect(ACCOUNTS_LIST_GRIP_SLOT_STYLE).toEqual({
+      width: Size.reorderGripSlot,
+      alignItems: 'center',
+    });
+    expect(Size.reorderGripSlot).toBe(ms(16));
+    expect(Object.keys(ACCOUNTS_LIST_GRIP_SLOT_STYLE).sort()).toEqual(['alignItems', 'width']);
+    expect(Object.isFrozen(ACCOUNTS_LIST_GRIP_SLOT_STYLE)).toBe(true);
+  });
+
+  it('floats the slot and the copy from the card top, edge to edge', () => {
+    expect(ACCOUNTS_LIST_FLOATING_STYLE).toEqual({
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+    });
+    expect(Object.keys(ACCOUNTS_LIST_FLOATING_STYLE).sort()).toEqual([
+      'left',
+      'position',
+      'right',
+      'top',
+    ]);
+    expect(Object.isFrozen(ACCOUNTS_LIST_FLOATING_STYLE)).toBe(true);
   });
 });

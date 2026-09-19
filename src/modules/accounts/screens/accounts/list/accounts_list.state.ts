@@ -21,6 +21,8 @@ interface AccountsListStateShape {
   isReordering: boolean;
   /** The row a long-press on its grip has lifted, until the gesture ends. */
   liftedId: string | undefined;
+  /** Counts ended lifts; the rows key on it so the commit that ends one mounts them with plain styles. */
+  liftGeneration: number;
 }
 
 type AccountsListState = AccountsListStateShape & {
@@ -46,6 +48,7 @@ const INITIAL_STATE: AccountsListStateShape = {
   pendingOrder: undefined,
   isReordering: false,
   liftedId: undefined,
+  liftGeneration: 0,
 };
 
 export function createAccountsListState() {
@@ -59,7 +62,12 @@ export function createAccountsListState() {
       setUnarchiveError: (e) => set({ unarchiveError: e }),
       setPendingOrder: (order) => set({ pendingOrder: order }),
       setReordering: (v) => set({ isReordering: v }),
-      setLiftedId: (id) => set({ liftedId: id }),
+      setLiftedId: (id) =>
+        set((s) =>
+          id === undefined && s.liftedId !== undefined
+            ? { liftedId: undefined, liftGeneration: s.liftGeneration + 1 }
+            : { liftedId: id },
+        ),
       // Per field: the selected type survives, and only `unarchive`'s own `finally` clears the lock.
       resetArchivedCard: () =>
         set({

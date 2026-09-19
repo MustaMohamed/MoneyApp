@@ -112,6 +112,7 @@ import {
   useLiftGesture,
   useRowShiftStyle,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.anim';
+import { ACCOUNTS_LIST_GRIP_HIT_SLOP } from '@/modules/accounts/screens/accounts/list/accounts_list.geometry';
 
 const CELL = 65;
 const COUNT = 5;
@@ -309,6 +310,12 @@ describe('useLiftGesture: the grip pan', () => {
     expect(argsOf(screen, 'shouldCancelWhenOutside')).toEqual([[false]]);
   });
 
+  it('hit-tests the grip with the same insets the grip pressable uses', async () => {
+    const screen = await renderScreen();
+
+    expect(argsOf(screen, 'hitSlop')).toEqual([[ACCOUNTS_LIST_GRIP_HIT_SLOP]]);
+  });
+
   it('is disabled when the row cannot lift', async () => {
     const screen = await renderScreen({ enabled: false });
 
@@ -407,6 +414,57 @@ describe('useLiftGesture: the grip pan', () => {
       targetIndex: -1,
       translationY: 0,
     });
+  });
+});
+
+describe('useLiftGesture: a second grip while another row owns the lift', () => {
+  async function ownedByRowZero() {
+    const screen = await renderScreen();
+    await act(() => {
+      screen.result.current.lift.onLayout(layoutOf(CELL + 10));
+    });
+    await liftedAt(screen, 0, 2);
+    return screen;
+  }
+  const ownersDrag = { liftedIndex: 0, targetIndex: 2, translationY: 130 };
+
+  it('asks to lift on start but writes nothing into the drag', async () => {
+    const screen = await ownedByRowZero();
+
+    await act(() => {
+      handler(screen, 'onStart')({ translationY: 0 });
+    });
+
+    expect(screen.props.onLift).toHaveBeenCalledTimes(1);
+    expect(screen.props.onLift).toHaveBeenCalledWith(ROW_ID);
+    expect(valuesOf(screen.result.current.drag)).toEqual(ownersDrag);
+    expect(screen.result.current.drag.cellHeight.value).toBe(CELL);
+  });
+
+  it('moves nothing on update', async () => {
+    const screen = await ownedByRowZero();
+
+    await act(() => {
+      handler(screen, 'onStart')({ translationY: 0 });
+    });
+    await act(() => {
+      handler(screen, 'onUpdate')({ translationY: 200 });
+    });
+
+    expect(valuesOf(screen.result.current.drag)).toEqual(ownersDrag);
+  });
+
+  it('releases in place on a successful end, leaving the owner its target', async () => {
+    const screen = await ownedByRowZero();
+
+    await act(() => {
+      handler(screen, 'onStart')({ translationY: 0 });
+    });
+    await finalize(screen, true);
+
+    expect(screen.props.onRelease).toHaveBeenCalledTimes(1);
+    expect(screen.props.onRelease).toHaveBeenCalledWith(ROW_ID, 1, 1);
+    expect(valuesOf(screen.result.current.drag)).toEqual(ownersDrag);
   });
 });
 

@@ -13,14 +13,14 @@ Route `/accounts`. Screen `src/modules/accounts/screens/accounts/list/index.tsx`
 | State | Frame | Force | Proof |
 |---|---|---|---|
 | populated, all five types | B1 | seed with one bank, cash, wallet, savings and card | `mqa ui \| grep -c` each name = 1; one shot for row geometry |
-| zero active, archived present | B2 | seed: every account `archived_at` set | `Your accounts` absent, `Archived` card present; shot |
+| zero active, archived present | B2 | seed: every account `is_archived = 1` | `Your accounts` absent, `Archived` card present; shot |
 | no accounts at all | B3 | `mqa reset`, finish onboarding with one account, delete it | empty title from `strings.ts` `accountsList*Empty*`; `+` present in header; shot |
 | archived card collapsed | B4 | one archived account, fresh mount | `Archived` present, the archived row absent |
 | archived card expanded | B5 | `$MQA tap 'Archived'` | archived row present with `type · balance` caption and `Unarchive` |
 | filtered to one type | B7 | `$MQA tap '<type>'` on the rail | rows of other types absent; the archived card follows the filter (MA-048): only archived rows of the selected type, no card when none |
 | filtered to zero | no frame, ruled MA-022 | filter to a type with no active account | the shipped filtered empty state; no `+` change |
 | load error | F1 | source force in the list resolver | `Couldn't load your accounts` and `Try again`; shot |
-| after unarchive | G3 | B5 then `$MQA tap 'Unarchive'` | toast `<name> restored.`; row lands last among active rows; `mqa db "select archived_at from accounts where name='<n>'"` is null |
+| after unarchive | G3 | B5 then `$MQA tap 'Unarchive'` | toast `<name> restored.`; row lands last among active rows; `mqa db "select is_archived from accounts where name='<n>'"` is 0 |
 | unarchive name clash | no frame, MA-046 | an active account with the archived name | toast `An active account already has this name. Rename it first.`; db unchanged |
 | row lifted mid-drag | B6 | device QA only | gesture feel is not emulator evidence |
 | blank-named row | no frame, MA-059 | seed push `name = ''` | row reads `Unnamed account` |

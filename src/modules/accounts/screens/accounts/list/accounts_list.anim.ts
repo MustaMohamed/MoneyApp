@@ -10,11 +10,12 @@ import {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { ACCOUNTS_LIST_GRIP_HIT_SLOP } from './accounts_list.geometry';
 import { resolveDropIndex, resolveRowShift } from './accounts_list.reorder';
 
-/** The FAB's long-press, so the two long-presses on this screen feel the same. */
-export const LIFT_LONG_PRESS_MS = 500;
-export const LIFT_SCALE = 1.02;
+/** The FAB's long-press value (`fab.tsx`), so a long-press lifts after the same hold everywhere. */
+const LIFT_LONG_PRESS_MS = 500;
+const LIFT_SCALE = 1.02;
 export const LIFT_DURATION_MS = 150;
 export const SHIFT_DURATION_MS = 150;
 
@@ -74,7 +75,7 @@ export function useAccountsListDragAnim(input: { isLifted: boolean }) {
   return { drag, slotStyle, liftedStyle };
 }
 
-/** `onFinalize` is the one exit: a cancel and a drop both release, so the lift always clears. */
+/** `onFinalize` is the one exit: a cancel and a drop both release, so the lift always clears. Only the row that owns the lift writes the drag. */
 export function useLiftGesture(input: {
   drag: ListDrag;
   id: string;
@@ -82,7 +83,7 @@ export function useLiftGesture(input: {
   count: number;
   enabled: boolean;
   onLift: (id: string) => void;
-  onRelease: (id: string, fromIndex: number, toIndex: number) => void;
+  onRelease: (id: string, fromIndex: number, toIndex: number) => Promise<void>;
 }): { gesture: PanGesture; onLayout: (e: LayoutChangeEvent) => void } {
   const { drag, id, index, count, enabled, onLift, onRelease } = input;
   const rowHeight = useSharedValue(0);
@@ -100,16 +101,21 @@ export function useLiftGesture(input: {
         .activateAfterLongPress(LIFT_LONG_PRESS_MS)
         .enabled(enabled)
         .shouldCancelWhenOutside(false)
+        // RNGH hit-tests the detector's own box; the pressable's `hitSlop` never reaches it.
+        .hitSlop(ACCOUNTS_LIST_GRIP_HIT_SLOP)
         .onStart(() => {
           'worklet';
-          drag.liftedIndex.value = index;
-          drag.targetIndex.value = index;
-          drag.translationY.value = 0;
-          drag.cellHeight.value = rowHeight.value;
+          if (drag.liftedIndex.value === -1) {
+            drag.liftedIndex.value = index;
+            drag.targetIndex.value = index;
+            drag.translationY.value = 0;
+            drag.cellHeight.value = rowHeight.value;
+          }
           scheduleOnRN(onLift, id);
         })
         .onUpdate((e) => {
           'worklet';
+          if (drag.liftedIndex.value !== index) return;
           drag.translationY.value = e.translationY;
           drag.targetIndex.value = resolveDropIndex({
             fromIndex: index,
@@ -120,9 +126,10 @@ export function useLiftGesture(input: {
         })
         .onFinalize((_e, success) => {
           'worklet';
-          const to = success ? drag.targetIndex.value : index;
-          // Parks the copy in the slot until React commits; a grip that never lifted leaves another row's drag alone.
-          if (drag.liftedIndex.value === index) {
+          const ownsLift = drag.liftedIndex.value === index;
+          const to = ownsLift && success ? drag.targetIndex.value : index;
+          // Parks the copy in the slot until React commits.
+          if (ownsLift) {
             drag.targetIndex.value = to;
             drag.translationY.value = (to - index) * drag.cellHeight.value;
           }

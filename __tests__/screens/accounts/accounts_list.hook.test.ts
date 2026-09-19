@@ -1056,4 +1056,27 @@ describe('useAccountsList — lifting a row and dropping it', () => {
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();
     expect(Haptics.selectionAsync).not.toHaveBeenCalled();
   });
+
+  it('reports the lifted row and whether a row is lifted, following liftedId', async () => {
+    const { result } = await renderHook(() => useAccountsList());
+    expect(result.current.state.isLifted).toBe(false);
+    expect(result.current.state.liftedRow).toBeUndefined();
+
+    await act(() => {
+      result.current.liftRow('acc-2');
+    });
+
+    expect(result.current.state.isLifted).toBe(true);
+    expect(result.current.state.liftedRow).toBe(
+      result.current.state.rows.find((row) => row.account.id === 'acc-2'),
+    );
+    expect(result.current.state.liftedRow?.account.id).toBe('acc-2');
+
+    await act(async () => {
+      await result.current.releaseRow('acc-2', 1, 1);
+    });
+
+    expect(result.current.state.isLifted).toBe(false);
+    expect(result.current.state.liftedRow).toBeUndefined();
+  });
 });

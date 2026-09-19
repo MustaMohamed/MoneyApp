@@ -7,6 +7,7 @@ import { Colors, Size } from '@/constants/theme';
 import type { Account } from '../../../../entities/account.entity';
 import {
   ACCOUNTS_LIST_FLOATING_STYLE,
+  ACCOUNTS_LIST_GRIP_SLOT_STYLE,
   ACCOUNTS_LIST_LIFTED_ROW_STYLE,
   ACCOUNTS_LIST_ROW_STYLE,
 } from '../accounts_list.geometry';
@@ -33,7 +34,7 @@ export function LiftedAccountRow({
       <View className="bg-surface-secondary" style={ACCOUNTS_LIST_LIFTED_ROW_STYLE}>
         <View style={ACCOUNTS_LIST_ROW_STYLE}>
           <AccountListRowBody account={account} caption={caption} />
-          <View style={{ width: Size.reorderGripSlot, alignItems: 'center' }}>
+          <View style={ACCOUNTS_LIST_GRIP_SLOT_STYLE}>
             <MaterialCommunityIcons
               name="drag-vertical"
               size={Size.reorderGripSlot}

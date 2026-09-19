@@ -63,6 +63,7 @@ export function useAccountsList() {
   const setReordering = useAccountsListState.getState().setReordering;
   const isReordering = useAccountsListState((s) => s.isReordering);
   const liftedId = useAccountsListState((s) => s.liftedId);
+  const liftGeneration = useAccountsListState((s) => s.liftGeneration);
   const setLiftedId = useAccountsListState.getState().setLiftedId;
   const { toast } = useToast();
   const { rate, isManualOverride, rateUpdatedAt } = useCurrencyStore(
@@ -112,6 +113,10 @@ export function useAccountsList() {
     [allRows, pendingOrder, selectedType],
   );
   const isReorderable = isAccountsListReorderable(selectedType);
+  const liftedRow = useMemo(
+    () => (liftedId === undefined ? undefined : rows.find((row) => row.account.id === liftedId)),
+    [liftedId, rows],
+  );
 
   const emptyState = resolveAccountsListEmptyState({
     activeCount: accounts.length,
@@ -236,6 +241,9 @@ export function useAccountsList() {
       rows,
       isReorderable,
       liftedId,
+      isLifted: liftedId !== undefined,
+      liftedRow,
+      liftGeneration,
       canLift: isReorderable && !isReordering,
       archivedCount,
       isRetrying,

@@ -77,6 +77,12 @@ export const ACCOUNTS_LIST_REORDER_NOTE_STYLE: Readonly<TextStyle> = Object.free
   textAlign: 'center',
 });
 
+/** B6 grip slot, the row's and the lifted copy's: the glyph centred in the reserved width. */
+export const ACCOUNTS_LIST_GRIP_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze({
+  width: Size.reorderGripSlot,
+  alignItems: 'center',
+});
+
 /** B6 grip: none on the left, or a tap on the balance's edge stops opening the account. */
 export const ACCOUNTS_LIST_GRIP_HIT_SLOP: Readonly<Insets> = Object.freeze({
   top: (TouchSize.min - Size.reorderGripSlot) / 2,
@@ -110,5 +116,5 @@ export const ACCOUNTS_LIST_DROP_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze(
   borderStyle: 'dashed',
   borderColor: withAlpha(Colors.dark.gold, '73'),
   borderRadius: Radius.md,
-  backgroundColor: 'transparent',
+  backgroundColor: Colors.shared.transparent,
 });

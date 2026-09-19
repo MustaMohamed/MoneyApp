@@ -17,6 +17,7 @@ import type { Account } from '../../../../entities/account.entity';
 import { type ListDrag, useLiftGesture, useRowShiftStyle } from '../accounts_list.anim';
 import {
   ACCOUNTS_LIST_GRIP_HIT_SLOP,
+  ACCOUNTS_LIST_GRIP_SLOT_STYLE,
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
   ACCOUNTS_LIST_ROW_STYLE,
 } from '../accounts_list.geometry';
@@ -43,7 +44,7 @@ interface AccountListRowProps {
   isLifted: boolean;
   canLift: boolean;
   onLift: (id: string) => void;
-  onRelease: (id: string, fromIndex: number, toIndex: number) => void;
+  onRelease: (id: string, fromIndex: number, toIndex: number) => Promise<void>;
   showSeparator: boolean;
 }
 
@@ -174,7 +175,7 @@ export function AccountListRow({
               animation={false}
               onPress={absorbGripPress}
               hitSlop={ACCOUNTS_LIST_GRIP_HIT_SLOP}
-              style={{ width: Size.reorderGripSlot, alignItems: 'center' }}
+              style={ACCOUNTS_LIST_GRIP_SLOT_STYLE}
               accessibilityRole="button"
               accessibilityLabel={Strings.accountsReorderGrip(resolveAccountName(account))}
               accessibilityActions={moveActions}
