@@ -1,10 +1,21 @@
-import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import {
+  Colors,
+  Radius,
+  Size,
+  Spacing,
+  TouchSize,
+  Type,
+  lineHeightFor,
+  withAlpha,
+} from '@/constants/theme';
 import {
   ACCOUNTS_LIST_ARCHIVED_CARD_STYLE,
   ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE,
   ACCOUNTS_LIST_ARCHIVED_ROW_STYLE,
   ACCOUNTS_LIST_CARD_STYLE,
+  ACCOUNTS_LIST_DROP_SLOT_STYLE,
   ACCOUNTS_LIST_GRIP_HIT_SLOP,
+  ACCOUNTS_LIST_LIFTED_ROW_STYLE,
   ACCOUNTS_LIST_RAIL_STYLE,
   ACCOUNTS_LIST_REORDER_NOTE_STYLE,
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
@@ -216,5 +227,88 @@ describe('accounts list grip hit slop (B6)', () => {
   it('is frozen', () => {
     expect(ACCOUNTS_LIST_GRIP_HIT_SLOP).toEqual(expect.any(Object));
     expect(Object.isFrozen(ACCOUNTS_LIST_GRIP_HIT_SLOP)).toBe(true);
+  });
+});
+
+function rgbaOf(hex: string) {
+  const [r, g, b, a] = [1, 3, 5, 7].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return { r, g, b, a: a / 255 };
+}
+
+const noShadowKeys = (style: object) =>
+  Object.keys(style).filter((key) => key.startsWith('shadow') || key === 'elevation');
+
+describe('accounts list lifted row geometry (B6)', () => {
+  it('is a 1px accent/50 border at radius 12, inset 4 vertically and 6 horizontally', () => {
+    expect(Radius.md).toBe(ms(12));
+    expect(Size.liftedRowInset).toBe(ms(6));
+    expect(ACCOUNTS_LIST_LIFTED_ROW_STYLE).toEqual({
+      borderWidth: Size.hairline,
+      borderColor: withAlpha(Colors.dark.gold, '80'),
+      borderRadius: Radius.md,
+      marginVertical: Spacing.xxs,
+      marginHorizontal: Size.liftedRowInset,
+      overflow: 'hidden',
+    });
+  });
+
+  it('borders in the canvas accent, rgba(212,164,76,.5)', () => {
+    const { r, g, b, a } = rgbaOf(String(ACCOUNTS_LIST_LIFTED_ROW_STYLE.borderColor));
+    expect([r, g, b]).toEqual([212, 164, 76]);
+    expect(a).toBeCloseTo(0.5, 2);
+  });
+
+  it('carries exactly these keys, and no shadow or elevation', () => {
+    expect(Object.keys(ACCOUNTS_LIST_LIFTED_ROW_STYLE).sort()).toEqual([
+      'borderColor',
+      'borderRadius',
+      'borderWidth',
+      'marginHorizontal',
+      'marginVertical',
+      'overflow',
+    ]);
+    expect(noShadowKeys(ACCOUNTS_LIST_LIFTED_ROW_STYLE)).toEqual([]);
+  });
+
+  it('is frozen', () => {
+    expect(ACCOUNTS_LIST_LIFTED_ROW_STYLE).toEqual(expect.any(Object));
+    expect(Object.isFrozen(ACCOUNTS_LIST_LIFTED_ROW_STYLE)).toBe(true);
+  });
+});
+
+describe('accounts list drop slot geometry (B6)', () => {
+  it('is a transparent dashed 1px accent/45 slot at radius 12, as tall as a row', () => {
+    expect(ACCOUNTS_LIST_DROP_SLOT_STYLE).toEqual({
+      minHeight: Size.accountListRowMinHeight,
+      borderWidth: Size.hairline,
+      borderStyle: 'dashed',
+      borderColor: withAlpha(Colors.dark.gold, '73'),
+      borderRadius: Radius.md,
+      backgroundColor: 'transparent',
+    });
+    expect(ACCOUNTS_LIST_DROP_SLOT_STYLE.minHeight).toBe(ACCOUNTS_LIST_ROW_STYLE.minHeight);
+  });
+
+  it('borders in the canvas accent, rgba(212,164,76,.45)', () => {
+    const { r, g, b, a } = rgbaOf(String(ACCOUNTS_LIST_DROP_SLOT_STYLE.borderColor));
+    expect([r, g, b]).toEqual([212, 164, 76]);
+    expect(a).toBeCloseTo(0.45, 2);
+  });
+
+  it('carries exactly these keys, and no shadow or elevation', () => {
+    expect(Object.keys(ACCOUNTS_LIST_DROP_SLOT_STYLE).sort()).toEqual([
+      'backgroundColor',
+      'borderColor',
+      'borderRadius',
+      'borderStyle',
+      'borderWidth',
+      'minHeight',
+    ]);
+    expect(noShadowKeys(ACCOUNTS_LIST_DROP_SLOT_STYLE)).toEqual([]);
+  });
+
+  it('is frozen', () => {
+    expect(ACCOUNTS_LIST_DROP_SLOT_STYLE).toEqual(expect.any(Object));
+    expect(Object.isFrozen(ACCOUNTS_LIST_DROP_SLOT_STYLE)).toBe(true);
   });
 });

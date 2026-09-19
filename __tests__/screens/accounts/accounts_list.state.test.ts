@@ -172,3 +172,36 @@ describe('accountsListState — the reorder write', () => {
     expect(store.getState().isReordering).toBe(true);
   });
 });
+
+describe('accountsListState — the lifted row', () => {
+  it('starts with no row lifted', () => {
+    const store = createAccountsListState();
+    expect(store.getState()).toHaveProperty('liftedId', undefined);
+  });
+
+  it('round-trips the lifted id', () => {
+    const store = createAccountsListState();
+    store.getState().setLiftedId('acc-1');
+    expect(store.getState().liftedId).toBe('acc-1');
+    store.getState().setLiftedId(undefined);
+    expect(store.getState().liftedId).toBeUndefined();
+  });
+
+  it('reset clears the lifted id', () => {
+    const store = createAccountsListState();
+    store.getState().setLiftedId('acc-1');
+
+    store.getState().reset();
+
+    expect(store.getState()).toHaveProperty('liftedId', undefined);
+  });
+
+  it('resetArchivedCard leaves a lifted row lifted', () => {
+    const store = createAccountsListState();
+    store.getState().setLiftedId('acc-1');
+
+    store.getState().resetArchivedCard();
+
+    expect(store.getState().liftedId).toBe('acc-1');
+  });
+});
