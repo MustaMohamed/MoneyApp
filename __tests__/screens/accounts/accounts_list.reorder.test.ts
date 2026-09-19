@@ -1,5 +1,7 @@
+import { Strings } from '@/constants/strings';
 import {
   applyPendingOrder,
+  MOVE_ACTIONS,
   MOVE_DOWN_ACTION,
   MOVE_UP_ACTION,
   resolveMoveActionDirection,
@@ -95,6 +97,14 @@ describe('resolveMoveActionDirection', () => {
 
   it('maps the Move down action to down', () => {
     expect(resolveMoveActionDirection(MOVE_DOWN_ACTION)).toBe('down');
+  });
+
+  it('pairs each announced label with the action that moves that way, and carries only those two', () => {
+    const nameOf = (label: string) => MOVE_ACTIONS.find((action) => action.label === label)?.name;
+
+    expect(MOVE_ACTIONS).toHaveLength(2);
+    expect(resolveMoveActionDirection(nameOf(Strings.accountsReorderMoveUp) ?? '')).toBe('up');
+    expect(resolveMoveActionDirection(nameOf(Strings.accountsReorderMoveDown) ?? '')).toBe('down');
   });
 
   it('maps any other action name to nothing', () => {

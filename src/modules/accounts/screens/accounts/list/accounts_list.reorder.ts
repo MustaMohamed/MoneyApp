@@ -1,7 +1,15 @@
+import { Strings } from '@/constants/strings';
+
 export type ReorderDirection = 'up' | 'down';
 
 export const MOVE_UP_ACTION = 'moveUp';
 export const MOVE_DOWN_ACTION = 'moveDown';
+
+/** The row's and the grip's accessibility actions: each label beside the name that moves that way. */
+export const MOVE_ACTIONS: ReadonlyArray<{ name: string; label: string }> = [
+  { name: MOVE_UP_ACTION, label: Strings.accountsReorderMoveUp },
+  { name: MOVE_DOWN_ACTION, label: Strings.accountsReorderMoveDown },
+];
 
 export function resolveMoveActionDirection(actionName: string): ReorderDirection | undefined {
   if (actionName === MOVE_UP_ACTION) return 'up';

@@ -18,16 +18,10 @@ import {
   ACCOUNTS_LIST_ROW_STYLE,
 } from '../accounts_list.geometry';
 import {
-  MOVE_DOWN_ACTION,
-  MOVE_UP_ACTION,
+  MOVE_ACTIONS,
   type ReorderDirection,
   resolveMoveActionDirection,
 } from '../accounts_list.reorder';
-
-const MOVE_ACTIONS = [
-  { name: MOVE_UP_ACTION, label: Strings.accountsReorderMoveUp },
-  { name: MOVE_DOWN_ACTION, label: Strings.accountsReorderMoveDown },
-];
 
 // The grip's own press absorbs a tap, so it never reaches the row and opens the account.
 const absorbGripPress = () => undefined;
