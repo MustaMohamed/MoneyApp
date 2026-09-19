@@ -1,9 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { ListGroup, Typography } from 'heroui-native';
-import { View } from 'react-native';
+import { ListGroup, PressableFeedback, Typography } from 'heroui-native';
+import { type AccessibilityActionEvent, View } from 'react-native';
 
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
-import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
+import { Strings } from '@/constants/strings';
+import { Colors, Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
@@ -12,21 +13,43 @@ import { resolveAccountRowA11yLabel } from '../../../../constants/account_row_a1
 import { resolveAccountTileColors } from '../../../../constants/account_tile_color';
 import type { Account } from '../../../../entities/account.entity';
 import {
+  ACCOUNTS_LIST_GRIP_HIT_SLOP,
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
   ACCOUNTS_LIST_ROW_STYLE,
 } from '../accounts_list.geometry';
+import type { ReorderDirection } from '../accounts_list.reorder';
+
+const MOVE_UP_ACTION = 'moveUp';
+const MOVE_DOWN_ACTION = 'moveDown';
+const MOVE_ACTIONS = [
+  { name: MOVE_UP_ACTION, label: Strings.accountsReorderMoveUp },
+  { name: MOVE_DOWN_ACTION, label: Strings.accountsReorderMoveDown },
+];
+
+// The grip's own press absorbs a tap, so it never reaches the row and opens the account.
+const absorbGripPress = () => undefined;
 
 interface AccountListRowProps {
   account: Account;
   /** The row's live figure line; the a11y label keeps the type label instead. */
   caption: string;
   onPress: (id: string) => void;
+  /** Undefined while reorder is off: an empty grip slot and no actions. */
+  onMove: ((direction: ReorderDirection) => void) | undefined;
 }
 
-export function AccountListRow({ account, caption, onPress }: AccountListRowProps) {
+export function AccountListRow({ account, caption, onPress, onMove }: AccountListRowProps) {
   // Two nodes, not `formatCurrencyAmount`: B1 stacks the value over the code.
   const { value, code } = formatCurrencyParts(account.current_balance, account.currency);
   const tile = resolveAccountTileColors(account.color);
+  const onMoveAction =
+    onMove === undefined
+      ? undefined
+      : (event: AccessibilityActionEvent) => {
+          if (event.nativeEvent.actionName === MOVE_UP_ACTION) onMove('up');
+          else if (event.nativeEvent.actionName === MOVE_DOWN_ACTION) onMove('down');
+        };
+  const moveActions = onMove === undefined ? undefined : MOVE_ACTIONS;
 
   return (
     <ListGroup.Item
@@ -34,6 +57,9 @@ export function AccountListRow({ account, caption, onPress }: AccountListRowProp
       style={ACCOUNTS_LIST_ROW_STYLE}
       accessibilityRole="button"
       accessibilityLabel={resolveAccountRowA11yLabel(account)}
+      // The item is one focus stop on iOS and swallows the grip, so it carries the moves too.
+      accessibilityActions={moveActions}
+      onAccessibilityAction={onMoveAction}
     >
       {/* Runtime hex: className is build-time only. */}
       <ListGroup.ItemPrefix
@@ -95,8 +121,27 @@ export function AccountListRow({ account, caption, onPress }: AccountListRowProp
         </Typography>
       </ListGroup.ItemSuffix>
 
-      {/* Empty by design: MA-016 puts the reorder grip here. */}
-      <View style={{ width: Size.reorderGripSlot }} />
+      {onMoveAction === undefined ? (
+        <View style={{ width: Size.reorderGripSlot }} />
+      ) : (
+        <PressableFeedback
+          animation={false}
+          onPress={absorbGripPress}
+          hitSlop={ACCOUNTS_LIST_GRIP_HIT_SLOP}
+          style={{ width: Size.reorderGripSlot, alignItems: 'center' }}
+          accessibilityRole="button"
+          accessibilityLabel={Strings.accountsReorderGrip(resolveAccountName(account))}
+          accessibilityActions={moveActions}
+          onAccessibilityAction={onMoveAction}
+        >
+          {/* `Colors.dark.text3` is the canvas `--muted`. */}
+          <MaterialCommunityIcons
+            name="drag"
+            size={Size.reorderGripSlot}
+            color={Colors.dark.text3}
+          />
+        </PressableFeedback>
+      )}
     </ListGroup.Item>
   );
 }
