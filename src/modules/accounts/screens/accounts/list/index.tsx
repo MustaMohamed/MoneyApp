@@ -1,6 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback, Separator, Typography } from 'heroui-native';
-import React from 'react';
+import { PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { EmptyState } from '@/components/ui/empty_state';
@@ -14,6 +13,7 @@ import { Strings } from '@/constants/strings';
 import { Radius, Size, Spacing } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
+import { useAccountsListDragAnim } from './accounts_list.anim';
 import {
   ACCOUNTS_LIST_CARD_STYLE,
   ACCOUNTS_LIST_RAIL_STYLE,
@@ -30,22 +30,28 @@ export default function AccountsListScreen() {
       rows,
       archived,
       archivedCount,
+      canLift,
       content,
       emptyState,
       isReorderable,
       isRetrying,
+      liftedId,
       selectedType,
       sectionTitle,
     },
     goToAccount,
     goToAddAccount,
+    liftRow,
     moveRow,
     onBack,
+    releaseRow,
     retry,
     selectType,
     setArchivedExpanded,
     unarchive,
   } = useAccountsList();
+  const isLifted = liftedId !== undefined;
+  const { drag } = useAccountsListDragAnim({ isLifted });
 
   return (
     <Screen>
@@ -118,19 +124,23 @@ export default function AccountsListScreen() {
                   <ListCard style={ACCOUNTS_LIST_CARD_STYLE}>
                     {/* Not virtualized: a `FlatList` nested in `ScreenScroll` virtualizes nothing. */}
                     {rows.map(({ account, caption }, index) => (
-                      <React.Fragment key={account.id}>
-                        {index > 0 ? <Separator thickness={Size.hairline} /> : null}
-                        <AccountListRow
-                          account={account}
-                          caption={caption}
-                          onPress={goToAccount}
-                          onMove={
-                            isReorderable
-                              ? (direction) => void moveRow(index, direction)
-                              : undefined
-                          }
-                        />
-                      </React.Fragment>
+                      <AccountListRow
+                        key={account.id}
+                        account={account}
+                        caption={caption}
+                        index={index}
+                        count={rows.length}
+                        drag={drag}
+                        isLifted={isLifted}
+                        canLift={canLift}
+                        showSeparator={index > 0}
+                        onPress={goToAccount}
+                        onMove={
+                          isReorderable ? (direction) => void moveRow(index, direction) : undefined
+                        }
+                        onLift={liftRow}
+                        onRelease={(id, from, to) => void releaseRow(id, from, to)}
+                      />
                     ))}
                   </ListCard>
                   {isReorderable ? null : (
