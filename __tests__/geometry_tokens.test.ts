@@ -1,5 +1,5 @@
 import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
+import { ms, msFont } from '@/utils/responsive';
 
 // jest-expo mocks Dimensions at 750pt, so scale clamps to 1.15; assert through ms(), not literals.
 describe('zero-shift geometry tokens', () => {
@@ -20,6 +20,11 @@ describe('zero-shift geometry tokens', () => {
     expect(Size.reorderGripSlot).toBe(ms(16));
     expect(Size.inlineLinkChevron).toBe(ms(14));
     expect(Size.inlineLinkOffset).toBe(ms(6));
+  });
+
+  it('locks the 10pt pill label value and pairs it with a line box that holds it', () => {
+    expect(Type.pillLabel).toBe(msFont(10));
+    expect(lineHeightFor(Type.pillLabel)).toBeGreaterThanOrEqual(Type.pillLabel);
   });
 
   it('the N4 value slot stays taller than the number it has to hold', () => {
