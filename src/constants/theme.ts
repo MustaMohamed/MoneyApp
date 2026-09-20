@@ -87,6 +87,7 @@ export const Type = {
   chipMeta: msFont(7.5),
   chip: msFont(9),
   compactBadge: msFont(9.5),
+  pillLabel: msFont(10),
   overline: msFont(10.5),
   micro: msFont(11),
   detail: msFont(11.5),

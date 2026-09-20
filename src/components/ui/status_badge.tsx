@@ -3,6 +3,8 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { Type, lineHeightFor } from '@/constants/theme';
+
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 export interface StatusBadgeProps {
@@ -15,7 +17,10 @@ export interface StatusBadgeProps {
 }
 
 const ICON_SIZE = { sm: 10, md: 12 } as const;
-const LABEL_CLASS = { sm: 'font-inter text-[10px]', md: 'font-inter text-[11px]' } as const;
+const LABEL_STYLE = {
+  sm: { fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) },
+  md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
+} as const;
 
 export function StatusBadge({ label, fill, foreground, icon, size = 'sm' }: StatusBadgeProps) {
   return (
@@ -30,7 +35,7 @@ export function StatusBadge({ label, fill, foreground, icon, size = 'sm' }: Stat
       {icon != null ? (
         <MaterialCommunityIcons name={icon} size={ICON_SIZE[size]} color={foreground} />
       ) : null}
-      <Typography className={LABEL_CLASS[size]} style={{ color: foreground }}>
+      <Typography className="font-inter" style={{ color: foreground, ...LABEL_STYLE[size] }}>
         {label}
       </Typography>
     </View>

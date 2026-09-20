@@ -33,8 +33,12 @@ export function SectionHeader({ title, count, action }: SectionHeaderProps) {
           }}
         >
           <Typography
-            className="font-sora-bold text-[12px]"
-            style={{ color: Colors.shared.cairoGold }}
+            className="font-sora-bold"
+            style={{
+              color: Colors.shared.cairoGold,
+              fontSize: Type.caption,
+              lineHeight: lineHeightFor(Type.caption),
+            }}
           >
             {count}
           </Typography>

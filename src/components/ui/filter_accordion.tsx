@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
@@ -73,7 +74,15 @@ export function FilterAccordionShell({
                 <Text className="font-inter-semibold text-[13px]">{title}</Text>
                 {count > 0 ? (
                   <View className="bg-accent/15 min-w-[18px] items-center rounded-full px-1.5">
-                    <Text className="font-inter-bold text-accent text-[10px]">{count}</Text>
+                    <Text
+                      className="font-inter-bold text-accent"
+                      style={{
+                        fontSize: Type.pillLabel,
+                        lineHeight: lineHeightFor(Type.pillLabel),
+                      }}
+                    >
+                      {count}
+                    </Text>
                   </View>
                 ) : null}
               </View>

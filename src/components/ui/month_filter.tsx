@@ -3,7 +3,7 @@ import { PressableFeedback } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 import { type MonthFilterProps, useMonthFilter } from './month_filter.hook';
 import { Sheet } from './sheet';
@@ -54,7 +54,10 @@ export function MonthFilter(props: MonthFilterProps) {
           className="bg-accent h-8 flex-1 items-center justify-center rounded-full px-2.5"
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
-            <Text className="font-sora-bold text-accent-foreground text-[11px]">
+            <Text
+              className="font-sora-bold text-accent-foreground"
+              style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+            >
               {monthFilter.state.selectedLabel}
             </Text>
             <MaterialCommunityIcons
