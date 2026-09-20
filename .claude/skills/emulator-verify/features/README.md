@@ -27,6 +27,10 @@ Four sections, in this order: `Reach it` (route, user path, deep link), `States`
 | [archived_account.md](archived_account.md) | `/accounts/[id]`, archived, and the delete flow | C4, E1 to E4, F4, F5 |
 | [edit_account.md](edit_account.md) | `/accounts/[id]/edit` | D1 to D3, F3 |
 | [add_account.md](add_account.md) | `/accounts/add_account` | not redesigned |
+| [dashboard.md](dashboard.md) | `/dashboard` | not redesigned |
+| [commitments.md](commitments.md) | `/commitments`, and its filter sheet | not redesigned |
+| [transactions.md](transactions.md) | `/transactions` | not redesigned |
+| [budget.md](budget.md) | `/budget`, and its copy sheet | not redesigned |
 
 ## Maintenance
 

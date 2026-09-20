@@ -27,6 +27,7 @@ The canvas draws one account type per frame. Every state below is checked on a b
 | adjust balance sheet, keyboard up | no frame, MA-033 | tap the amount field | `Save` reachable above the keyboard; shot |
 | archive dialog | G2 | `$MQA tap 'More'`, `$MQA tap 'Archive'` | title `Archive <name>?`, body from `accountDetailArchiveBody`, flat buttons; shot |
 | archive failure | no frame, MA-046 | source force on the write | error copy; db unchanged |
+| status badge line box | C1/C2, MA-086 | the hero as it mounts on each account | the hero `StatusBadge`'s `mqa ui` bounds ÷ 2.625 read `lineHeightFor(msFont(10))` + 4 = 18 ± 1 high on both; one shot per account. The `md` size has no live site and rests on the lint pair alone |
 | blank-named | no frame, MA-059 | seed push `name = ''` | header and hero read `Unnamed account` |
 
 ## Outbound
