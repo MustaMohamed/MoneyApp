@@ -12,7 +12,7 @@ Route `/dashboard`, the first tab. Screen `src/modules/dashboard/screens/dashboa
 
 | State | Frame | Force | Proof |
 |---|---|---|---|
-| section count badges | no frame, MA-086 | seed push one savings, ten bank and one hundred cash accounts, all `is_archived = 0` | each section badge's `mqa ui` bounds ÷ 2.625 reads height 20 ± 1 and width ≥ height at `1`, `10` and `100`; one shot of the section header rows |
+| section count badges | no frame, MA-086 | seed push so three types carry a one-, two- and three-digit count (one savings, fifteen bank, one hundred cash, all `is_archived = 0`), then the `Accounts` segment | each badge label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(12))` = 16 ± 1 high, so the pill is 16 + 4 (`py-0.5`) = 20 at every count; the pill stays wider than it is tall (label width + 16 for `px-2`); one shot of the section header rows |
 
 ## Outbound
 

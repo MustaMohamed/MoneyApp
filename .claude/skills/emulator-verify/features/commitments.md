@@ -12,9 +12,9 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 
 | State | Frame | Force | Proof |
 |---|---|---|---|
-| summary percentage pill | no frame, MA-086 | any seeded commitment, so the summary header leaves its skeleton | the `%` pill's `mqa ui` bounds ÷ 2.625 read `lineHeightFor(msFont(13))` + 4 = 22 ± 1 high; one shot of the summary card |
-| filter accordion count pill | no frame, MA-086 | open the filter sheet, expand one accordion, select two options | the count pill's bounds ÷ 2.625 read `lineHeightFor(msFont(10))` = 14 ± 1 high and ≥ 18 wide; one shot of the accordion header row |
-| month filter pill | no frame, MA-086 | the rail as it mounts | the pill's bounds ÷ 2.625 read 32 high, and the label's bounds sit centred inside it within ± 1; one shot of the rail |
+| summary percentage pill | no frame, MA-086 | any seeded commitment, so the summary header leaves its skeleton | the `%` label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(13))` = 18 ± 1 high, so the pill is 18 + 4 (`py-0.5`) = 22; one shot of the summary card |
+| filter accordion count pill | no frame, MA-086 | open the filter sheet, expand one accordion, select two options | the count label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(10))` = 14 ± 1 high — the pill has no vertical padding, so that is the pill — and label width + 12 (`px-1.5`) clears the `min-w-[18px]` floor; one shot of the accordion header row |
+| month filter pill | no frame, MA-086 | the rail as it mounts | the pill is the clickable `<label>, open month picker` node: its bounds ÷ 2.625 read 32 high (`h-8`), and the label `TextView` inside sits centred within ± 1 (8.4 above, 8.4 below, at `lineHeightFor(msFont(11))` = 15); one shot of the rail |
 
 ## Outbound
 

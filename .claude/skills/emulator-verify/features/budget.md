@@ -12,8 +12,8 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 
 | State | Frame | Force | Proof |
 |---|---|---|---|
-| month filter pill | no frame, MA-086 | the screen as it mounts | the pill's `mqa ui` bounds ÷ 2.625 read 32 high, and the label's bounds sit centred inside it within ± 1; one shot of the pill row |
-| copy sheet month filter | no frame, MA-086 | open the copy sheet | the source pill reads 32 high with the label centred within ± 1; one shot of the `Copy from` row |
+| month filter pill | no frame, MA-086 | the screen as it mounts | the pill is the clickable `<label>, open month picker` node: its bounds ÷ 2.625 read 32 high (`h-8`), and the label `TextView` inside sits centred within ± 1 (8.4 above, 8.4 below, at `lineHeightFor(msFont(11))` = 15); one shot of the pill row |
+| copy sheet month filter | no frame, MA-086 | open the copy sheet | the source pill reads 32 high with its label `TextView` centred within ± 1, the same read as above; one shot of the `Copy from` row |
 
 ## Outbound
 

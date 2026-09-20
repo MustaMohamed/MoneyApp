@@ -13,6 +13,7 @@ On the accounts redesign (#378) the render lens ran a median 99 messages per tic
 - **Implementer and lens run the same recipe.** The render pass proves the states the plan names; the lens re-runs the same recipes on the pushed SHA and judges the shots against the frame. Neither invents scenarios.
 - **Proof is `mqa ui` or `mqa db` first, a shot only for what is visual.** `grep -c` over `mqa ui` answers "did this text render"; a screenshot answers proportion and placement.
 - **Density is 2.625, not 3.** Geometry comes from `ui.xml` bounds divided by 2.625, never from PNG pixels.
+- **A padded pill has no node of its own.** React Native flattens a `View` with no touch handler or accessibility role, so a badge's container never reaches `ui.xml` — only its label `TextView` does. Measure the label's line box and add the container's padding (`py-0.5` is 2 dp each side), or measure the clickable ancestor when there is one (MA-086).
 
 ## File shape
 

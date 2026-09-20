@@ -11,7 +11,7 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 
 | State | Frame | Force | Proof |
 |---|---|---|---|
-| month filter pill | no frame, MA-086 | the rail as it mounts | the pill's `mqa ui` bounds ÷ 2.625 read 32 high, and the label's bounds sit centred inside it within ± 1; one shot of the rail |
+| month filter pill | no frame, MA-086 | the rail as it mounts | the pill is the clickable `<label>, open month picker` node: its bounds ÷ 2.625 read 32 high (`h-8`), and the label `TextView` inside sits centred within ± 1 (8.4 above, 8.4 below, at `lineHeightFor(msFont(11))` = 15); one shot of the rail |
 
 ## Outbound
 
