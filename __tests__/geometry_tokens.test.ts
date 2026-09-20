@@ -24,7 +24,7 @@ describe('zero-shift geometry tokens', () => {
 
   it('locks the 10pt pill label value and pairs it with a line box that holds it', () => {
     expect(Type.pillLabel).toBe(msFont(10));
-    expect(lineHeightFor(Type.pillLabel)).toBeGreaterThanOrEqual(Type.pillLabel);
+    expect(lineHeightFor(Type.pillLabel)).toBe(Math.round(Type.pillLabel * 1.3));
   });
 
   it('the N4 value slot stays taller than the number it has to hold', () => {

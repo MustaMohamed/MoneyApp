@@ -14,7 +14,6 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 |---|---|---|---|
 | summary percentage pill | no frame, MA-086 | any seeded commitment, so the summary header leaves its skeleton | the `%` label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(13))` = 18 ± 1 high, so the pill is 18 + 4 (`py-0.5`) = 22; one shot of the summary card |
 | filter accordion count pill | no frame, MA-086 | open the filter sheet, expand one accordion, select two options | the count label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(10))` = 14 ± 1 high — the pill has no vertical padding, so that is the pill — and label width + 12 (`px-1.5`) clears the `min-w-[18px]` floor; one shot of the accordion header row |
-| month filter pill | no frame, MA-086 | the rail as it mounts | the pill is the clickable `<label>, open month picker` node: its bounds ÷ 2.625 read 32 high (`h-8`), and the label `TextView` inside sits centred within ± 1 (8.4 above, 8.4 below, at `lineHeightFor(msFont(11))` = 15); one shot of the rail |
 
 ## Outbound
 
@@ -30,6 +29,8 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 - The count pill draws only at `count > 0`: an accordion with nothing selected has no pill to measure.
 - `filter_accordion.tsx` is shared with the transactions filter sheet; a height read here holds there, and a divergence is a caller override.
 - The accordion pill has no vertical padding, so its height is the line box alone — 14, not 18 like the padded pills.
+- The month pill in the rail is the shared `month_filter.tsx`, measured once as `month filter pill` in `transactions.md` § States; that read holds here, so do not re-measure it — a divergence is a caller override.
+- A deep link does not dismiss an open bottom sheet: the filter sheet stays mounted over the next screen and its nodes answer the reads. `am force-stop` before the next state.
 
 ## Seeding and forcing states
 

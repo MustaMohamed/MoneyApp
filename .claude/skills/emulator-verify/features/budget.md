@@ -12,8 +12,7 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 
 | State | Frame | Force | Proof |
 |---|---|---|---|
-| month filter pill | no frame, MA-086 | the screen as it mounts | the pill is the clickable `<label>, open month picker` node: its bounds ÷ 2.625 read 32 high (`h-8`), and the label `TextView` inside sits centred within ± 1 (8.4 above, 8.4 below, at `lineHeightFor(msFont(11))` = 15); one shot of the pill row |
-| copy sheet month filter | no frame, MA-086 | open the copy sheet | the source pill reads 32 high with its label `TextView` centred within ± 1, the same read as above; one shot of the `Copy from` row |
+| copy sheet month filter | no frame, MA-086 | open the copy sheet | the source pill is the clickable `<label>, open month picker` node: its bounds ÷ 2.625 read 32 high (`h-8`) with the label `TextView` centred within ± 1, the same read `transactions.md` makes on the rail; one shot of the `Copy from` row |
 
 ## Outbound
 
@@ -27,7 +26,8 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 ## Gotchas
 
 - The copy sheet's pill hides its step buttons, so it is wider than the screen's at the same height; measure the pill, not the row.
-- `month_filter.tsx` is shared with the commitments and transactions rails; a height read here holds there, and a divergence is a caller override.
+- The screen's own month pill is the shared `month_filter.tsx`, measured once as `month filter pill` in `transactions.md` § States; that read holds here, so only the copy sheet's caller (`showStepButtons={false}`) is measured on this screen.
+- A deep link does not dismiss an open bottom sheet: the copy sheet stays mounted over the next screen and its nodes answer the reads. `am force-stop` before the next state.
 
 ## Seeding and forcing states
 
