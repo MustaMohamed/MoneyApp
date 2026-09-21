@@ -5,7 +5,7 @@ Route `/accounts/[id]`. Screen `src/modules/accounts/screens/accounts/detail/ind
 ## Reach it
 
 - User path: accounts list row tap, or the dashboard account card.
-- Script: `id=$($MQA db "select id from accounts where name='<n>'" | tail -1)` then `$MQA tap '<n>'` from the list. There is no deep link with an id in the recipes yet; add one here when `moneyapp://accounts/<id>` is confirmed.
+- Script: `id=$($MQA db "select id from accounts where name='<n>'" | sed -n 's/.*"id": "\(.*\)".*/\1/p')` then `$MQA tap '<n>'` from the list. There is no deep link with an id in the recipes yet; add one here when `moneyapp://accounts/<id>` is confirmed.
 - Header: title is the account name, `Edit` on the right. There is no `More`: `Archive` is a body button beside `Adjust balance` (`detail/index.tsx:199-206`).
 
 ## States

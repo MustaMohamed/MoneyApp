@@ -5,7 +5,7 @@ Route `/budget/plans/[id]`. Screen `src/modules/budget/screens/budget/spending_p
 ## Reach it
 
 - User path: the `Budget` tab, the `Plans` lens (`Strings.budgetPlansTab`), then a plan card.
-- Script: `id=$($MQA db "select id from spending_plans where name='<n>'" | tail -1)` then `adb shell am start -a android.intent.action.VIEW -d "moneyapp://budget/plans/$id"`. Use it for every plan after the first: the list route reaches only the cards on screen (§ Gotchas).
+- Script: `id=$($MQA db "select id from spending_plans where name='<n>'" | sed -n 's/.*"id": "\(.*\)".*/\1/p')` then `adb shell am start -a android.intent.action.VIEW -d "moneyapp://budget/plans/$id"`. Use it for every plan after the first: the list route reaches only the cards on screen (§ Gotchas).
 
 ## States
 

@@ -32,10 +32,10 @@ export const TRANSACTION_ROW_NOTE_TRACK_HEIGHT = lineHeightFor(TRANSACTION_ROW_N
 export const TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT = lineHeightFor(
   TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
 );
-// 5, not the canvas's 6: TRANSACTION_ROW_TITLE_BADGE_HEIGHT is all but unscaled, so 6 clips the content column below 375dp.
+// 5, not the canvas's 6: at 6 the content column overflows ms(60)'s box in a ~358-367 dp band, where the row height rounds down faster than the type tracks.
 export const TRANSACTION_ROW_VERTICAL_PADDING = ms(5);
 export const TRANSACTION_ROW_CONTEXT_GAP = ms(2);
-// Mirrors TypeBadge's `sm` box (type_badge.tsx:28,46-49,81): its label line box plus the unscaled `py-[2px]` and 1 dp border it carries on each side, 18 at the 390 base width.
+// Mirrors TypeBadge's `sm` box (type_badge.tsx:28,46-49,81): its label line box plus the unscaled `py-[2px]` and 1 dp border it carries on each side.
 export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT = lineHeightFor(Type.compactBadge) + 2 * (2 + 1);
 
 const FALLBACK_ICON: IconName = 'shape-outline';
