@@ -5,7 +5,7 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 ## Reach it
 
 - User path: the `Transactions` tab, or `See all` in an account detail's activity card.
-- Script: `$MQA tap 'Transactions'` on the tab bar, or `adb shell am start -a android.intent.action.VIEW -d "moneyapp://transactions"`.
+- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://transactions"`, or the tab bar's exact content-desc from `mqa ui`; the bare `$MQA tap 'Transactions'` is refused.
 
 ## States
 

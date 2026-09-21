@@ -5,7 +5,7 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 ## Reach it
 
 - User path: the `Budget` tab.
-- Script: `$MQA tap 'Budget'` on the tab bar, or `adb shell am start -a android.intent.action.VIEW -d "moneyapp://budget"`.
+- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://budget"`, or the tab bar's exact content-desc from `mqa ui`; the bare `$MQA tap 'Budget'` is refused.
 - The copy sheet opens from the `Copy` tool on the screen: `$MQA tap` by its accessibility label `Copy budget`.
 
 ## States

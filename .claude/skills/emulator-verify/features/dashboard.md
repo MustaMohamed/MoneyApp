@@ -5,7 +5,7 @@ Route `/dashboard`, the first tab. Screen `src/modules/dashboard/screens/dashboa
 ## Reach it
 
 - User path: the app opens here once onboarding is complete.
-- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://dashboard"`, or `$MQA tap 'Dashboard'` on the tab bar.
+- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://dashboard"`, or the tab bar's exact content-desc from `mqa ui`; the bare `$MQA tap 'Dashboard'` is refused.
 - Section label per account type (`Bank`, `Cash`, `Wallet`, `Savings`, `Credit Card`), each with its count badge on the right.
 
 ## States
@@ -27,7 +27,7 @@ Route `/dashboard`, the first tab. Screen `src/modules/dashboard/screens/dashboa
 ## Gotchas
 
 - A section header renders only while its type has at least one active account; a zero count draws no badge at all (`section_header.tsx`, `count > 0`).
-- The badge is the shared `SectionHeader`, the same component `/accounts` and `/accounts/[id]` render — a height read here and there must agree, and a divergence is a caller override, not the component.
+- The badge is the shared `SectionHeader`, the same component `/accounts` renders — a height read here and there must agree, and a divergence is a caller override, not the component.
 - The title is the same shared `section_header.tsx`; the 16 read here holds on every screen that renders it (`/accounts`, `/accounts/[id]`), so it is measured once.
 - The manual-rate pill draws only while the stored rate is a manual override; clearing it in Settings removes the pill, and there is no seed that forces it without the Settings walk.
 
