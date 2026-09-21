@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, cn } from 'heroui-native';
 import React from 'react';
 
-import { Colors, Radius, Size } from '@/constants/theme';
+import { Colors, Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 
 import { type SegmentedTabsScrollAlign, useSegmentedTabsScroll } from './tabs.hook';
 
@@ -11,6 +11,9 @@ const TABS_LIST_PADDING = 3;
 // The form vocabulary is small radii — inputs and tiles sit at Radius.md — so the solid-gold track overrides HeroUI's pill `--radius-3xl` (user ruling 2026-09-01); the fill is concentric inside the list padding.
 export const SOLID_GOLD_TRACK_RADIUS = Radius.md;
 export const SOLID_GOLD_SELECTED_RADIUS = Math.max(SOLID_GOLD_TRACK_RADIUS - TABS_LIST_PADDING, 0);
+
+// The pair stays in one object: the rule visits each `ObjectExpression` alone, so splitting it across a `style` array reports the `fontSize` half as missing.
+const COMPACT_LABEL_STYLE = { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
 
 export type SegmentedTabsCorners = 'pill' | 'form';
 
@@ -131,10 +134,9 @@ export function SegmentedTabs<T extends string>({
           numberOfLines={1}
           adjustsFontSizeToFit={isCompact || segmentWidth != null}
           minimumFontScale={0.85}
-          className={
-            isCompact ? (isSelected ? 'font-inter-bold text-[11px]' : 'text-[11px]') : undefined
-          }
+          className={isCompact && isSelected ? 'font-inter-bold' : undefined}
           style={[
+            isCompact ? COMPACT_LABEL_STYLE : undefined,
             isCompact || segmentWidth != null ? { flexShrink: 1 } : undefined,
             isSolidGold && isSelected ? { color: Colors.shared.midnightBlue } : undefined,
             isCompact && !isSelected ? { color: Colors.dark.text2 } : undefined,

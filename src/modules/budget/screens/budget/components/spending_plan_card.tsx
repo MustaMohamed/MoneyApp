@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Spacing } from '@/constants/theme';
+import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import { SpendingPlanAllocationChip } from '@/modules/budget/screens/budget/components/spending_plan_allocation_chip';
 import { SpendingPlanCategoryChip } from '@/modules/budget/screens/budget/components/spending_plan_category_chip';
@@ -51,7 +51,10 @@ export function SpendingPlanCard({ row, onOpenDetails, onDelete }: SpendingPlanC
               accessibilityLabel={row.card.statusLabel}
               className="min-h-6 px-2 py-0"
             >
-              <Chip.Label className="font-inter-semibold text-[11.5px] capitalize">
+              <Chip.Label
+                className="font-inter-semibold capitalize"
+                style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail) }}
+              >
                 {row.card.statusLabel}
               </Chip.Label>
             </Chip>
@@ -136,7 +139,10 @@ export function SpendingPlanCard({ row, onOpenDetails, onDelete }: SpendingPlanC
                 accessibilityLabel={chip.accessibilityLabel}
                 className="bg-background min-h-7.5 min-w-7.5 rounded-full p-0"
               >
-                <Chip.Label className="font-inter-semibold text-foreground text-[14px]">
+                <Chip.Label
+                  className="font-inter-semibold text-foreground"
+                  style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+                >
                   {chip.label}
                 </Chip.Label>
               </Chip>

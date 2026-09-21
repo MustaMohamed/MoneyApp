@@ -5,13 +5,15 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 ## Reach it
 
 - User path: the `Transactions` tab, or `See all` in an account detail's activity card.
-- Script: `$MQA tap 'Transactions'` on the tab bar, or `adb shell am start -a android.intent.action.VIEW -d "moneyapp://transactions"`.
+- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://transactions"`, or the tab bar's exact content-desc from `mqa ui`; the bare `$MQA tap 'Transactions'` is refused.
 
 ## States
 
 | State | Frame | Force | Proof |
 |---|---|---|---|
 | month filter pill | no frame, MA-086 | the rail as it mounts | the pill is the clickable `<label>, open month picker` node: its bounds ÷ 2.625 read 32 high (`h-8`), and the label `TextView` inside sits centred within ± 1 (8.4 above, 8.4 below, at `lineHeightFor(msFont(11))` = 15); one shot of the rail |
+| type badge, sm | no frame, MA-087 | a transaction owned by a commitment payment (`commitment_payment_id` set — pay a commitment, or seed push) | the row badge label (`Strings.typeBadgeCommitment`) `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(9.5))` = 13 ± 1, so the badge is 19 (13 + `py-[2px]` + the 1 dp `border` pair), and the row height is unchanged from base (`TRANSACTION_ROW_HEIGHT`); one shot of the row |
+| compact tab label | no frame, MA-087 | the rail as it mounts, one segment selected | the selected and an unselected segment label `TextView` both read `lineHeightFor(msFont(11))` = 15 ± 1, centred in the 28 trigger (`h-7`) within ± 1; one shot of the rail |
 
 ## Outbound
 
@@ -24,6 +26,10 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 ## Gotchas
 
 - `month_filter.tsx` is shared with commitments and budget; a height read here holds there, and a divergence is a caller override.
+- This list's group headers are `DateHeader`, not the shared `section_header.tsx` (`index.tsx:82-86`); the `section title` state belongs to `dashboard.md` and `accounts_list.md`.
+- `TypeBadge` renders at `sm` in the row and `md` in the detail hero; `md` is measured on `transaction_detail.md`.
+- The compact `SegmentedTabs` is shared with the accounts-list rail and the transaction form's type tabs; one read holds on all three, and a divergence is a caller override.
+- `adjustsFontSizeToFit` with a 0.85 floor can shrink a long compact label below 11 px — read a short label for the line box, and judge a shrunk one against the 28 track only.
 - The pill's `h-8` is a fixed track: its height does not move with the label, so the pill state is about the label sitting centred in the track, not about the track growing.
 
 ## Seeding and forcing states

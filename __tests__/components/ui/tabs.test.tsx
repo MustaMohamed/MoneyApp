@@ -2,7 +2,7 @@ import { render, within } from '@testing-library/react-native';
 import type { ComponentProps, ReactNode } from 'react';
 
 import { SOLID_GOLD_SELECTED_RADIUS, SegmentedTabs } from '@/components/ui/tabs';
-import { Colors, Radius } from '@/constants/theme';
+import { Colors, Radius, Type, lineHeightFor } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -159,8 +159,16 @@ describe('SegmentedTabs', () => {
       'className',
       expect.stringContaining('gap-0.5'),
     );
-    expect(getByText('All')).toHaveProp('className', 'font-inter-bold text-[11px]');
-    expect(getByText('Overdue')).toHaveProp('className', 'text-[11px]');
+    expect(getByText('All')).toHaveStyle({
+      fontSize: Type.micro,
+      lineHeight: lineHeightFor(Type.micro),
+    });
+    // Weight has no style form here: the family class is its only expression (ui.md § Fonts), so these two stay on className (tests.md:28).
+    expect(getByText('All')).toHaveProp('className', 'font-inter-bold');
+    expect(getByText('Overdue')).toHaveStyle({
+      fontSize: Type.micro,
+      lineHeight: lineHeightFor(Type.micro),
+    });
     expect(getByText('Overdue')).not.toHaveProp('className', 'font-inter-bold');
     expect(getByText('Overdue')).toHaveStyle({ color: Colors.dark.text2 });
     expect(getByText('All')).not.toHaveStyle({ color: Colors.dark.text2 });

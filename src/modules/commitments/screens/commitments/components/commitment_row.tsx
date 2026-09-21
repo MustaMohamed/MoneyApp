@@ -7,7 +7,7 @@ import { Box } from '@/components/ui/box';
 import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { withAlpha } from '@/constants/theme';
+import { Type, lineHeightFor, withAlpha } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 import { formatShortDate } from '@/utils/format_date';
@@ -127,7 +127,14 @@ function CommitmentRowComponent({
               size={11}
               color={statusColor}
             />
-            <Text className="font-inter text-[10px]" style={{ color: statusColor }}>
+            <Text
+              className="font-inter"
+              style={{
+                color: statusColor,
+                fontSize: Type.pillLabel,
+                lineHeight: lineHeightFor(Type.pillLabel),
+              }}
+            >
               {statusLabel}
             </Text>
           </View>

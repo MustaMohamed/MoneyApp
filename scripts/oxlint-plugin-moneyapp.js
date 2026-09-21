@@ -21,6 +21,36 @@ function isLineHeightForCall(value) {
   );
 }
 
+function sizeExpressionKey(node) {
+  switch (node.type) {
+    case 'Identifier':
+      return node.name;
+    case 'MemberExpression':
+      return !node.computed &&
+        node.object.type === 'Identifier' &&
+        node.property.type === 'Identifier'
+        ? `${node.object.name}.${node.property.name}`
+        : null;
+    case 'CallExpression': {
+      if (node.callee.type !== 'Identifier') return null;
+      const args = node.arguments.map(sizeExpressionKey);
+      return args.every((a) => a !== null) ? `${node.callee.name}(${args.join(',')})` : null;
+    }
+    case 'Literal':
+      return typeof node.value === 'number' ? String(node.value) : null;
+    default:
+      return null;
+  }
+}
+
+// A shape the key cannot express, or a call that is not `lineHeightFor(oneArgument)`, keeps the callee-only behaviour.
+function lineHeightForArgumentDiffers(call, fontSizeValue) {
+  if (call.arguments.length !== 1) return false;
+  const argumentKey = sizeExpressionKey(call.arguments[0]);
+  const fontSizeKey = sizeExpressionKey(fontSizeValue);
+  return argumentKey !== null && fontSizeKey !== null && argumentKey !== fontSizeKey;
+}
+
 // FieldMessageRail pairs an unscaled 20 with HeroUI FieldError's own unscaled CSS line-height.
 function isFieldMessageIdentifier(value) {
   return value.type === 'Identifier' && value.name === 'FIELD_MESSAGE_TEXT_LINE_HEIGHT';
@@ -45,13 +75,15 @@ module.exports = {
         type: 'problem',
         docs: {
           description:
-            'An object literal setting fontSize must pair lineHeight via lineHeightFor(...) (theme.ts:106) in the same object.',
+            'An object literal setting fontSize must pair lineHeight via lineHeightFor(...) (theme.ts:106) in the same object, called with the same expression fontSize takes.',
         },
         messages: {
           missing:
             'fontSize has no lineHeight in this object — pair it with lineHeightFor(...) (theme.ts:106) or the className line-height drifts from it.',
           unpaired:
             'lineHeight here is not lineHeightFor(...) (theme.ts:106) or the verbatim FIELD_MESSAGE_TEXT_LINE_HEIGHT — a hand-written value can drift from fontSize. An aliased or re-exported reference to that constant still warns (only the exact identifier is recognized): revert the alias, do not wrap it in lineHeightFor(...) — that wrap is the drift this carve-out exists to prevent.',
+          mismatched:
+            'lineHeightFor(...) is called with something other than the fontSize in this object, so the line box is sized for a different font — pass the same expression fontSize takes. A shape this rule cannot read (a ternary, a template literal, a spread) is not compared at all.',
         },
       },
       create(context) {
@@ -66,12 +98,13 @@ module.exports = {
               context.report({ node: fontSizeProp, messageId: 'missing' });
               return;
             }
-            if (
-              isLineHeightForCall(lineHeightProp.value) ||
-              isFieldMessageIdentifier(lineHeightProp.value)
-            ) {
+            if (isLineHeightForCall(lineHeightProp.value)) {
+              if (lineHeightForArgumentDiffers(lineHeightProp.value, fontSizeProp.value)) {
+                context.report({ node: fontSizeProp, messageId: 'mismatched' });
+              }
               return;
             }
+            if (isFieldMessageIdentifier(lineHeightProp.value)) return;
             context.report({ node: fontSizeProp, messageId: 'unpaired' });
           },
         };
