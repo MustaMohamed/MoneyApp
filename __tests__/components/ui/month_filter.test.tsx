@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { MonthFilter } from '@/components/ui/month_filter';
 import { Strings } from '@/constants/strings';
+import { Type, lineHeightFor } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@/components/ui/sheet', () => ({
@@ -36,10 +37,10 @@ describe('MonthFilter', () => {
       'className',
       expect.stringContaining('w-8'),
     );
-    expect(getByText('August 2026')).toHaveProp(
-      'className',
-      expect.stringContaining('text-[11px]'),
-    );
+    expect(getByText('August 2026')).toHaveStyle({
+      fontSize: Type.micro,
+      lineHeight: lineHeightFor(Type.micro),
+    });
   });
 
   it('shows the selected month without the extra label', async () => {

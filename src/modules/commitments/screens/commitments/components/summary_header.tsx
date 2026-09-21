@@ -6,7 +6,7 @@ import { View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { formatCurrencyTotals } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
@@ -104,7 +104,14 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
               style={{ backgroundColor: Colors.dark.goldTint }}
               className="rounded-full px-2 py-0.5"
             >
-              <Text className="font-sora-bold text-[13px]" style={{ color: GoldTokens[500] }}>
+              <Text
+                className="font-sora-bold"
+                style={{
+                  color: GoldTokens[500],
+                  fontSize: Type.meta,
+                  lineHeight: lineHeightFor(Type.meta),
+                }}
+              >
                 {progressPct}%
               </Text>
             </View>

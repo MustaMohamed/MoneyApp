@@ -13,6 +13,7 @@ On the accounts redesign (#378) the render lens ran a median 99 messages per tic
 - **Implementer and lens run the same recipe.** The render pass proves the states the plan names; the lens re-runs the same recipes on the pushed SHA and judges the shots against the frame. Neither invents scenarios.
 - **Proof is `mqa ui` or `mqa db` first, a shot only for what is visual.** `grep -c` over `mqa ui` answers "did this text render"; a screenshot answers proportion and placement.
 - **Density is 2.625, not 3.** Geometry comes from `ui.xml` bounds divided by 2.625, never from PNG pixels.
+- **A padded pill has no node of its own.** React Native flattens a `View` with no touch handler or accessibility role, so a badge's container never reaches `ui.xml` — only its label `TextView` does. Measure the label's line box and add the container's padding (`py-0.5` is 2 dp each side), or measure the clickable ancestor when there is one (MA-086).
 
 ## File shape
 
@@ -27,6 +28,10 @@ Four sections, in this order: `Reach it` (route, user path, deep link), `States`
 | [archived_account.md](archived_account.md) | `/accounts/[id]`, archived, and the delete flow | C4, E1 to E4, F4, F5 |
 | [edit_account.md](edit_account.md) | `/accounts/[id]/edit` | D1 to D3, F3 |
 | [add_account.md](add_account.md) | `/accounts/add_account` | not redesigned |
+| [dashboard.md](dashboard.md) | `/dashboard` | not redesigned |
+| [commitments.md](commitments.md) | `/commitments`, and its filter sheet | not redesigned |
+| [transactions.md](transactions.md) | `/transactions` | not redesigned |
+| [budget.md](budget.md) | `/budget`, and its copy sheet | not redesigned |
 
 ## Maintenance
 

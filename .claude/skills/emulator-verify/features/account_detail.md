@@ -6,7 +6,7 @@ Route `/accounts/[id]`. Screen `src/modules/accounts/screens/accounts/detail/ind
 
 - User path: accounts list row tap, or the dashboard account card.
 - Script: `id=$($MQA db "select id from accounts where name='<n>'" | tail -1)` then `$MQA tap '<n>'` from the list. There is no deep link with an id in the recipes yet; add one here when `moneyapp://accounts/<id>` is confirmed.
-- Header: title is the account name, `Edit` and `More` on the right.
+- Header: title is the account name, `Edit` on the right. There is no `More`: `Archive` is a body button beside `Adjust balance` (`detail/index.tsx:199-206`).
 
 ## States
 
@@ -25,8 +25,9 @@ The canvas draws one account type per frame. Every state below is checked on a b
 | adjust balance sheet, positive | G1 | `$MQA tap 'Adjust balance'` | sheet open, prefilled; shot |
 | adjust balance sheet, overdrawn | no frame, MA-030 | on the overdrawn bank | prefill carries the sign; keyboard carries the minus; `mqa ui` |
 | adjust balance sheet, keyboard up | no frame, MA-033 | tap the amount field | `Save` reachable above the keyboard; shot |
-| archive dialog | G2 | `$MQA tap 'More'`, `$MQA tap 'Archive'` | title `Archive <name>?`, body from `accountDetailArchiveBody`, flat buttons; shot |
+| archive dialog | G2 | `$MQA tap 'Archive'` on the body button | title `Archive <name>?`, body from `accountDetailArchiveBody`, flat buttons; shot |
 | archive failure | no frame, MA-046 | source force on the write | error copy; db unchanged |
+| status badge line box | C1/C2, MA-086 | the hero as it mounts on each account | the badge label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(10))` = 14 ± 1 high, so the pill is 14 + 4 (`py-0.5`) = 18, on both; one shot per account. The `md` size has no live site and rests on the lint pair alone |
 | blank-named | no frame, MA-059 | seed push `name = ''` | header and hero read `Unnamed account` |
 
 ## Outbound
