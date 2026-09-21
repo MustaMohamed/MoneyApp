@@ -5,6 +5,7 @@ import { tv } from 'tailwind-variants';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 
 export type TypeBadgeKind = 'commitment' | 'goal' | 'bill';
@@ -39,13 +40,13 @@ const labelVariants = tv({
       goal: 'text-success',
       bill: 'text-warning',
     },
-    size: {
-      sm: 'text-[9.5px]',
-      md: 'text-[11px]',
-    },
   },
-  defaultVariants: { size: 'sm' },
 });
+
+const LABEL_STYLE = {
+  sm: { fontSize: Type.compactBadge, lineHeight: lineHeightFor(Type.compactBadge) },
+  md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
+} as const;
 
 const ICON: Record<TypeBadgeKind, React.ComponentProps<typeof MaterialCommunityIcons>['name']> = {
   commitment: 'clock-outline',
@@ -77,7 +78,9 @@ export function TypeBadge({ type, size = 'sm' }: Props): React.ReactElement {
         size={size === 'sm' ? 10 : 12}
         color={ICON_COLOR[type]}
       />
-      <Text className={labelVariants({ type, size })}>{LABEL[type]}</Text>
+      <Text className={labelVariants({ type })} style={LABEL_STYLE[size]}>
+        {LABEL[type]}
+      </Text>
     </View>
   );
 }

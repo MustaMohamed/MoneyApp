@@ -22,7 +22,10 @@ export function SectionHeader({ title, count, action }: SectionHeaderProps) {
       className="mt-4 mb-2 flex-row items-center justify-between"
       style={{ flexDirection: 'row', marginHorizontal: Spacing.md }}
     >
-      <Typography className="font-inter-semibold text-muted text-[12px] tracking-wide uppercase">
+      <Typography
+        className="font-inter-semibold text-muted tracking-wide uppercase"
+        style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
+      >
         {title}
       </Typography>
       {count !== undefined && count > 0 ? (

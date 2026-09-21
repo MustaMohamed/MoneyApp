@@ -4,7 +4,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { Size, Spacing } from '@/constants/theme';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import type { SpendingPlanDetailVM } from '@/modules/budget/screens/budget/spending_plans.types';
 
@@ -47,7 +47,10 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
             accessibilityLabel={detail.statusLabel}
             className="min-h-6 px-2 py-0"
           >
-            <Chip.Label className="font-inter-semibold text-[11.5px] capitalize">
+            <Chip.Label
+              className="font-inter-semibold capitalize"
+              style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail) }}
+            >
               {detail.statusLabel}
             </Chip.Label>
           </Chip>

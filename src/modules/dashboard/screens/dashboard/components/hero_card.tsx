@@ -167,9 +167,12 @@ export function HeroCard({
               }}
             />
             <Text
-              variant="caption"
               className="uppercase"
-              style={{ color: Colors.shared.cairoGold }}
+              style={{
+                color: Colors.shared.cairoGold,
+                fontSize: Type.micro,
+                lineHeight: lineHeightFor(Type.micro),
+              }}
             >
               {Strings.currencyManualShort}
             </Text>

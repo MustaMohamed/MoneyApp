@@ -4,7 +4,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { Size, Spacing } from '@/constants/theme';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import type { SpendingPlanCardAllocationChipVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -42,10 +42,17 @@ export function SpendingPlanAllocationChip({
         testID={`spending-plan-allocation-chip-copy:${allocation.categoryId}`}
         className="items-start"
       >
-        <Text className="font-inter-semibold text-foreground text-[13px]" numberOfLines={1}>
+        <Text
+          className="font-inter-semibold text-foreground"
+          style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+          numberOfLines={1}
+        >
           {allocation.amountLabel}
         </Text>
-        <Text className="font-inter-semibold text-content-secondary text-[11px]">
+        <Text
+          className="font-inter-semibold text-content-secondary"
+          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+        >
           {allocation.percentageLabel}
         </Text>
       </View>

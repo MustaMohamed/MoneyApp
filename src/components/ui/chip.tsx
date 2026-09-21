@@ -58,10 +58,10 @@ export function SelectablePill({
         <View style={{ backgroundColor: dotColor }} className="h-2 w-2 rounded-full" />
       ) : null}
       <Chip.Label
-        className={cn(
-          'text-[11px]',
-          selected ? 'text-accent font-inter-semibold' : 'text-foreground/70 font-inter-medium',
-        )}
+        className={
+          selected ? 'text-accent font-inter-semibold' : 'text-foreground/70 font-inter-medium'
+        }
+        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
       >
         {label}
       </Chip.Label>
