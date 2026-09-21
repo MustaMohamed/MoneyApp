@@ -12,7 +12,7 @@ const TABS_LIST_PADDING = 3;
 export const SOLID_GOLD_TRACK_RADIUS = Radius.md;
 export const SOLID_GOLD_SELECTED_RADIUS = Math.max(SOLID_GOLD_TRACK_RADIUS - TABS_LIST_PADDING, 0);
 
-// One literal, so `moneyapp/font-size-pairs-line-height` reads the pair.
+// The pair stays in one object: the rule visits each `ObjectExpression` alone, so splitting it across a `style` array reports the `fontSize` half as missing.
 const COMPACT_LABEL_STYLE = { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
 
 export type SegmentedTabsCorners = 'pill' | 'form';

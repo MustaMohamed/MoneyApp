@@ -4,8 +4,8 @@ Route `/commitments/add`. Screen `src/modules/commitments/screens/commitments/ad
 
 ## Reach it
 
-- User path: the `Commitments` tab, then the add action in the header.
-- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://commitments/add"`, or the `Commitments` tab by its exact content-desc from `mqa ui`, then the add action (`commitments.md` § Outbound); the bare `$MQA tap 'Commitments'` is refused.
+- User path: the `Commitments` tab, then the FAB (`Add`) and its `Add Commitment` item.
+- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://commitments/add"`, or the `Commitments` tab by its exact content-desc from `mqa ui`, then the FAB's `Add Commitment` (`commitments.md` § Outbound); the bare `$MQA tap 'Commitments'` is refused.
 
 ## States
 

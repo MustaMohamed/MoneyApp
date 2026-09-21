@@ -163,6 +163,7 @@ describe('SegmentedTabs', () => {
       fontSize: Type.micro,
       lineHeight: lineHeightFor(Type.micro),
     });
+    // Weight has no style form here: the family class is its only expression (ui.md § Fonts), so these two stay on className (tests.md:28).
     expect(getByText('All')).toHaveProp('className', 'font-inter-bold');
     expect(getByText('Overdue')).toHaveStyle({
       fontSize: Type.micro,
