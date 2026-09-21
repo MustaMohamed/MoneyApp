@@ -11,7 +11,7 @@ Route `/transactions/detail/[id]`, and its `/stacked` twin when reached from a s
 
 | State | Frame | Force | Proof |
 |---|---|---|---|
-| type badge, md | no frame, MA-087 | open the commitment-owned transaction from `transactions.md` § States (`type badge, sm`) | the hero badge label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(11))` = 15 ± 1, so the badge is 15 + 8 (`py-1`) = 23; one shot of the hero |
+| type badge, md | no frame, MA-087 | open the commitment-owned transaction from `transactions.md` § States (`type badge, sm`) | the hero badge label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(11))` = 15 ± 1, so the badge is 25 (15 + `py-1` + the 1 dp `border` pair); one shot of the hero |
 
 ## Outbound
 

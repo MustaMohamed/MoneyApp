@@ -30,6 +30,7 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 
 - The copy sheet's pill hides its step buttons, so it is wider than the screen's at the same height; measure the pill, not the row.
 - The screen's own month pill is the shared `month_filter.tsx`, measured once as `month filter pill` in `transactions.md` § States; that read holds here, so only the copy sheet's caller (`showStepButtons={false}`) is measured on this screen.
+- The three plan-card states need seeded spending plans; a device with none shows the lens's empty state and no card to measure. Build the seed before the walk (`README.md` § Seeding and forcing states).
 - The `Plans` lens is a segment on this screen, not a route; the three plan-card states are all on one shot of a seeded card.
 - The allocation chip reads 33 at 411 dp, one above its `min-h-8` floor, because its two stacked line boxes are 18 + 15. That is the state's proof, not a defect (MA-087).
 - A plan seed that produces all four statuses needs dates on both sides of today; time is not an input on the emulator, so build the seed against the device date.
