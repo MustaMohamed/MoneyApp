@@ -36,6 +36,7 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 - The row status pill is a `View` with no touch handler: it is flattened out of `ui.xml`, so read the label `TextView` and add `py-0.5`, or measure the painted pill on the shot.
 - `FilterOptionPillList` renders the shared `SelectablePill` and is the same component the transactions filter sheet renders; the adornment branch is measured here and the adornment-free branch on `add_commitment.md`, one read each.
 - A deep link does not dismiss an open bottom sheet: the filter sheet stays mounted over the next screen and its nodes answer the reads. `am force-stop` before the next state.
+- The tab bar's clickable node carries the icon glyph before the label (`B, Budget` on Budget), so `$MQA tap 'Commitments'` matches only the non-clickable text and is refused; tap the exact content-desc from `mqa ui`, or use the deep link.
 
 ## Seeding and forcing states
 

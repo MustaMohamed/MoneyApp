@@ -35,7 +35,7 @@ export const TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT = lineHeightFor(
 // 5, not the canvas's 6: TRANSACTION_ROW_TITLE_BADGE_HEIGHT is unscaled, so 6 clips the content column below 375dp.
 export const TRANSACTION_ROW_VERTICAL_PADDING = ms(5);
 export const TRANSACTION_ROW_CONTEXT_GAP = ms(2);
-// Mirrors TypeBadge's unscaled `sm` box (type_badge.tsx:27,43,75-80); the render pass catches drift.
+// Mirrors TypeBadge's `sm` box (type_badge.tsx:27,46-49,81), which scales with Type.compactBadge; 18 is its value at the 390 base width.
 export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT = 18;
 
 const FALLBACK_ICON: IconName = 'shape-outline';

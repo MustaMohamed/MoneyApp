@@ -36,6 +36,7 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 - A plan seed that produces all four statuses needs dates on both sides of today; time is not an input on the emulator, so build the seed against the device date.
 - The plan card's status chip is byte-identical to the detail summary's on `spending_plan_detail.md`; one read holds on both.
 - A deep link does not dismiss an open bottom sheet: the copy sheet stays mounted over the next screen and its nodes answer the reads. `am force-stop` before the next state.
+- The tab bar's clickable node carries the icon glyph before the label (`B, Budget`), so `$MQA tap 'Budget'` matches only the non-clickable text and is refused; tap the exact content-desc from `mqa ui`, or use the deep link.
 
 ## Seeding and forcing states
 
