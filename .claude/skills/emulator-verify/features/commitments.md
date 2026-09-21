@@ -14,6 +14,9 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 |---|---|---|---|
 | summary percentage pill | no frame, MA-086 | any seeded commitment, so the summary header leaves its skeleton | the `%` label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(13))` = 18 ± 1 high, so the pill is 18 + 4 (`py-0.5`) = 22; one shot of the summary card |
 | filter accordion count pill | no frame, MA-086 | open the filter sheet, expand one accordion, select two options | the count label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(10))` = 14 ± 1 high — the pill has no vertical padding, so that is the pill — and label width + 12 (`px-1.5`) clears the `min-w-[18px]` floor; one shot of the accordion header row |
+| section title | no frame, MA-087 | any seeded commitment, so a list header draws | the same read `dashboard.md` § States makes: the uppercase title's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(12))` = 16 ± 1; one shot of the header row |
+| row status pill | no frame, MA-087 | seed payments in the five statuses (`Overdue`, `Due`, `Upcoming`, `Paid`, `Skipped`, `commitment_status.ts:23-29`); `Paid` and `Skipped` may need the status filter to show | each status label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(10))` = 14 ± 1, so the pill is 14 + 4 (`py-0.5`) = 18, and the five pills are equal on one shot of the list |
+| filter sheet option pill, with adornment | no frame, MA-087 | open the filter sheet, expand `Category` | each option label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(11))` = 15 ± 1; the pill is the clickable `button` node (`accessibilityRole="button"`), 27 high (15 + `py-1.5`) at every label length; one shot of the expanded accordion |
 
 ## Outbound
 
@@ -30,6 +33,9 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 - `filter_accordion.tsx` is shared with the transactions filter sheet; a height read here holds there, and a divergence is a caller override.
 - The accordion pill has no vertical padding, so its height is the line box alone — 14, not 18 like the padded pills.
 - The month pill in the rail is the shared `month_filter.tsx`, measured once as `month filter pill` in `transactions.md` § States; that read holds here, so do not re-measure it — a divergence is a caller override.
+- The section title is the shared `section_header.tsx`, measured once as `section title` in `dashboard.md` § States; that read holds on every list, and a divergence is a caller override.
+- The row status pill is a `View` with no touch handler: it is flattened out of `ui.xml`, so read the label `TextView` and add `py-0.5`, or measure the painted pill on the shot.
+- `FilterOptionPillList` renders the shared `SelectablePill` and is the same component the transactions filter sheet renders; the adornment branch is measured here and the adornment-free branch on `add_commitment.md`, one read each.
 - A deep link does not dismiss an open bottom sheet: the filter sheet stays mounted over the next screen and its nodes answer the reads. `am force-stop` before the next state.
 
 ## Seeding and forcing states

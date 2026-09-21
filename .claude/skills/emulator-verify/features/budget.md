@@ -13,6 +13,9 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 | State | Frame | Force | Proof |
 |---|---|---|---|
 | copy sheet month filter | no frame, MA-086 | open the copy sheet | the source pill is the clickable `<label>, open month picker` node: its bounds ÷ 2.625 read 32 high (`h-8`) with the label `TextView` centred within ± 1, the same read `transactions.md` makes on the rail; one shot of the `Copy from` row |
+| plan card status chip | no frame, MA-087 | the `Plans` lens (`Strings.budgetPlansTab`) with plans seeded in the four statuses (`Upcoming`, `On track`, `Watch`, `Over`, `spending_plans.helpers.ts:71-74`) | each status label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(11.5))` = 16 ± 1, the chip's `min-h-6` (24) holds it so the chip reads 24, and the title row is unchanged from base; one shot |
+| plan card 'more' chip | no frame, MA-087 | a plan with four or more categories (`spending_plans.helpers.ts:459-483`: three chips show, the rest fold) | the `+N` label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(14))` = 19 ± 1, the chip's `min-h-7.5 min-w-7.5` (30) holds it so the chip reads 30 and stays round; same shot |
+| plan card allocation chip | no frame, MA-087 | a plan with an allocated category | the amount `TextView` reads `lineHeightFor(msFont(13))` = 18 ± 1 and the percentage `lineHeightFor(msFont(11))` = 15 ± 1; the stacked boxes are 33, above the chip's `min-h-8` (32) floor, so the chip reads 33; same shot |
 
 ## Outbound
 
@@ -27,6 +30,10 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 
 - The copy sheet's pill hides its step buttons, so it is wider than the screen's at the same height; measure the pill, not the row.
 - The screen's own month pill is the shared `month_filter.tsx`, measured once as `month filter pill` in `transactions.md` § States; that read holds here, so only the copy sheet's caller (`showStepButtons={false}`) is measured on this screen.
+- The `Plans` lens is a segment on this screen, not a route; the three plan-card states are all on one shot of a seeded card.
+- The allocation chip reads 33 at 411 dp, one above its `min-h-8` floor, because its two stacked line boxes are 18 + 15. That is the state's proof, not a defect (MA-087).
+- A plan seed that produces all four statuses needs dates on both sides of today; time is not an input on the emulator, so build the seed against the device date.
+- The plan card's status chip is byte-identical to the detail summary's on `spending_plan_detail.md`; one read holds on both.
 - A deep link does not dismiss an open bottom sheet: the copy sheet stays mounted over the next screen and its nodes answer the reads. `am force-stop` before the next state.
 
 ## Seeding and forcing states

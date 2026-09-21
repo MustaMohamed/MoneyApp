@@ -12,6 +12,9 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 | State | Frame | Force | Proof |
 |---|---|---|---|
 | month filter pill | no frame, MA-086 | the rail as it mounts | the pill is the clickable `<label>, open month picker` node: its bounds ÷ 2.625 read 32 high (`h-8`), and the label `TextView` inside sits centred within ± 1 (8.4 above, 8.4 below, at `lineHeightFor(msFont(11))` = 15); one shot of the rail |
+| section title | no frame, MA-087 | any seeded transaction, so a date header draws | the same read `dashboard.md` § States makes: the uppercase title's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(12))` = 16 ± 1; one shot of a header row |
+| type badge, sm | no frame, MA-087 | a transaction owned by a commitment payment (`commitment_payment_id` set — pay a commitment, or seed push) | the row badge label (`Strings.typeBadgeCommitment`) `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(9.5))` = 13 ± 1, so the badge is 13 + 4 (`py-[2px]`) = 17, and the row height is unchanged from base (`TRANSACTION_ROW_HEIGHT`); one shot of the row |
+| compact tab label | no frame, MA-087 | the rail as it mounts, one segment selected | the selected and an unselected segment label `TextView` both read `lineHeightFor(msFont(11))` = 15 ± 1, centred in the 28 trigger (`h-7`) within ± 1; one shot of the rail |
 
 ## Outbound
 
@@ -24,6 +27,10 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 ## Gotchas
 
 - `month_filter.tsx` is shared with commitments and budget; a height read here holds there, and a divergence is a caller override.
+- The section title is the shared `section_header.tsx`, measured once as `section title` in `dashboard.md` § States; that read holds here.
+- `TypeBadge` renders at `sm` in the row and `md` in the detail hero; `md` is measured on `transaction_detail.md`.
+- The compact `SegmentedTabs` is shared with the accounts-list rail and the transaction form's type tabs; one read holds on all three, and a divergence is a caller override.
+- `adjustsFontSizeToFit` with a 0.85 floor can shrink a long compact label below 11 px — read a short label for the line box, and judge a shrunk one against the 28 track only.
 - The pill's `h-8` is a fixed track: its height does not move with the label, so the pill state is about the label sitting centred in the track, not about the track growing.
 
 ## Seeding and forcing states

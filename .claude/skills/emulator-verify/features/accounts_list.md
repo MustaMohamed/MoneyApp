@@ -44,6 +44,7 @@ Per-type captions (MA-024) are one row each in B1; a caption check is `mqa ui`, 
 
 ## Gotchas
 
+- The `Your accounts` header title is the shared `section_header.tsx`, measured once as `section title` in `dashboard.md` § States (16); that read holds here and needs no state of its own.
 - The dashboard drops the Accounts segment at zero active accounts; use the deep link for B2 and B3.
 - Toasts clear the tab bar and the `+` button (MA-077); a toast shot is judged for that inset.
 - The archived card collapses on mount only; a filter change does not reset it.

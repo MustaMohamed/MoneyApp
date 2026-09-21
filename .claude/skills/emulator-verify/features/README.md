@@ -30,8 +30,12 @@ Four sections, in this order: `Reach it` (route, user path, deep link), `States`
 | [add_account.md](add_account.md) | `/accounts/add_account` | not redesigned |
 | [dashboard.md](dashboard.md) | `/dashboard` | not redesigned |
 | [commitments.md](commitments.md) | `/commitments`, and its filter sheet | not redesigned |
+| [add_commitment.md](add_commitment.md) | `/commitments/add` | not redesigned |
+| [commitment_detail.md](commitment_detail.md) | `/stacked/commitments/[id]` | not redesigned |
 | [transactions.md](transactions.md) | `/transactions` | not redesigned |
+| [transaction_detail.md](transaction_detail.md) | `/transactions/detail/[id]` | not redesigned |
 | [budget.md](budget.md) | `/budget`, and its copy sheet | not redesigned |
+| [spending_plan_detail.md](spending_plan_detail.md) | `/budget/plans/[id]` | not redesigned |
 
 ## Maintenance
 
