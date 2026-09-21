@@ -2,9 +2,7 @@
 # The one writer to Project #2 "MoneyApp", and the only closer of a parent whose children all closed as completed. Field and option ids live here only.
 set -euo pipefail
 
-OWNER=MustaMohamed
 REPO=MustaMohamed/MoneyApp
-PROJECT=2
 PROJECT_ID=PVT_kwHOAPEDM84BiHOr
 STATUS_FIELD=PVTSSF_lAHOAPEDM84BiHOrzhhAbFg
 
@@ -23,9 +21,28 @@ option_id() {
   esac
 }
 
+# The board's items in position order, shaped like gh project item-list's JSON. gh project resolves --owner through organization(login:), which needs read:org; this needs only project.
+items_json() {
+  gh api graphql --paginate --slurp -f project="$PROJECT_ID" -f query='
+    query($project: ID!, $endCursor: String) {
+      node(id: $project) { ... on ProjectV2 { items(first: 100, after: $endCursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes { id
+          content { ... on Issue { number } ... on PullRequest { number } }
+          fieldValueByName(name: "Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } } } }' \
+    | jq '{items: [.[].data.node.items.nodes[] | {id, status: (.fieldValueByName.name // ""), content: {number: .content.number}}]}'
+}
+
+set_status() {
+  gh api graphql -f query='
+    mutation($project: ID!, $item: ID!, $field: ID!, $option: String!) {
+      updateProjectV2ItemFieldValue(input: {projectId: $project, itemId: $item, fieldId: $field,
+        value: {singleSelectOptionId: $option}}) { projectV2Item { id } } }' \
+    -f project="$PROJECT_ID" -f item="$1" -f field="$STATUS_FIELD" -f option="$2" >/dev/null
+}
+
 item_id() {
-  gh project item-list "$PROJECT" --owner "$OWNER" --limit 500 --format json \
-    --jq ".items[] | select(.content.number == $1) | .id"
+  items_json | jq -r --argjson n "$1" '.items[] | select(.content.number == $n) | .id'
 }
 
 # Prints the issue numbers a ticket header depends on, "NONE" for "nothing", "MISSING" without the field, "UNPARSED" when the field has no (#N).
@@ -63,7 +80,7 @@ promote() {
     [ -z "$extras" ] || candidates=$(printf '%s\n%s\n' "$candidates" "$(printf '%s\n' "$extras" | sed $'s/^/dep\x1f/')")
   fi
 
-  items=$(gh project item-list "$PROJECT" --owner "$OWNER" --limit 500 --format json)
+  items=$(items_json)
 
   while IFS="$US" read -r kind num state reason line; do
     case "$num" in ''|*[!0-9]*) continue ;; esac
@@ -108,8 +125,7 @@ promote() {
       continue
     fi
     id=$(jq -r --argjson n "$num" '.items[] | select(.content.number == $n) | .id' <<<"$items")
-    gh project item-edit --project-id "$PROJECT_ID" --id "$id" \
-      --field-id "$STATUS_FIELD" --single-select-option-id "$(option_id "Ready For Development")" >/dev/null
+    set_status "$id" "$(option_id "Ready For Development")"
     echo "#$num -> Ready For Development"
     promoted=$((promoted + 1))
   done <<<"$candidates"
@@ -165,16 +181,18 @@ case "$cmd" in
     if [ -n "$id" ]; then
       echo "$id"
     else
-      gh project item-add "$PROJECT" --owner "$OWNER" \
-        --url "https://github.com/$REPO/issues/$1" --format json --jq .id
+      content=$(gh api "repos/$REPO/issues/$1" --jq .node_id)
+      gh api graphql -f query='
+        mutation($project: ID!, $content: ID!) {
+          addProjectV2ItemById(input: {projectId: $project, contentId: $content}) { item { id } } }' \
+        -f project="$PROJECT_ID" -f content="$content" --jq .data.addProjectV2ItemById.item.id
     fi
     ;;
   status)
     [ $# -eq 2 ] || usage
     opt=$(option_id "$2")
     id=$(bash "$0" add "$1")
-    gh project item-edit --project-id "$PROJECT_ID" --id "$id" \
-      --field-id "$STATUS_FIELD" --single-select-option-id "$opt" >/dev/null
+    set_status "$id" "$opt"
     echo "#$1 -> $2"
     if [ "$2" = "In Progress" ]; then
       parent=$(gh api "repos/$REPO/issues/$1/parent" --jq .number 2>/dev/null) || parent=""
@@ -185,8 +203,7 @@ case "$cmd" in
     ;;
   get)
     [ $# -eq 1 ] || usage
-    gh project item-list "$PROJECT" --owner "$OWNER" --limit 500 --format json \
-      --jq ".items[] | select(.content.number == $1) | .status"
+    items_json | jq -r --argjson n "$1" '.items[] | select(.content.number == $n) | .status'
     ;;
   link)
     [ $# -eq 2 ] || usage
