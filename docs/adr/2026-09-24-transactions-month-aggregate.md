@@ -11,7 +11,7 @@
 
 `buildTransactionFilterSql` builds the rows' filter predicates once: the date range, type, search, accounts, categories and the amount range with its currency. It returns the search joins, the `WHERE` clause and the bound parameters. `getTransactions` and both aggregate statements interpolate its output, so a predicate that changes for the rows changes for the aggregate in the same edit.
 
-The builder adds each clause only when its filter is set. No `? IS NULL OR` chain is left (audit L34). A month-only or search query plans `SEARCH transaction_row USING INDEX idx_transactions_date (transaction_date>? AND transaction_date<?)`. A type, account or category filter plans that filter's equality index. Neither plans a table scan, and `__tests__/database_get_transactions_filter.test.ts` and `__tests__/transactions_month_aggregate.test.ts` assert this with `EXPLAIN QUERY PLAN`.
+The builder adds each clause only when its filter is set. No `? IS NULL OR` chain is left (audit L34). A month-only or search query plans a range search on the date index, `SEARCH transaction_row USING INDEX idx_transactions_date (transaction_date>?…`. A type, account or category filter plans that filter's equality index. Neither plans a table scan, and `__tests__/database_get_transactions_filter.test.ts` and `__tests__/transactions_month_aggregate.test.ts` assert this with `EXPLAIN QUERY PLAN`.
 
 ## 2. Days and tally take the full filter; the hero takes the accounts filter alone
 
