@@ -25,6 +25,7 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 | row, card credit | no frame, C13 caption, MA-090 | an income on a credit card | one shot: the tile in the card's colour, the `credit-card-refund` glyph and `+<amount>` in info blue |
 | row, deleted counterparty | no frame, Finding 11, MA-090 | soft-delete an account that has a transaction (`archived_account.md` E4) | one shot of the hollow graphite tile; the row's content-desc in `mqa ui` reads `Deleted Account` |
 | row, archived account | no frame, MA-090 | archive an account that has a transaction | one shot: the tile filled in its colour, no archived treatment; the row's content-desc in `mqa ui` reads the account name |
+| row, long note | no frame, MA-090 cycle 1 | seed push an expense whose note is longer than the caption track | `mqa ui` reads the note and the time as separate nodes; one shot of the row: the note ends in an ellipsis, the time node ` · <h:mm AM or PM>` is whole, the amount and its code line untouched |
 
 ## Outbound
 
