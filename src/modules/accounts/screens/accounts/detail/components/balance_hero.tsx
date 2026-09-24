@@ -1,6 +1,7 @@
 import { Typography } from 'heroui-native';
 import { View } from 'react-native';
 
+import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { StatusBadge } from '@/components/ui/status_badge';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
@@ -8,7 +9,6 @@ import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { AcctTokens } from '@/constants/theme_tokens';
-import { AccountColorTile } from '@/modules/accounts/components/account_color_tile';
 import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import { ARCHIVED_HERO_OPACITY } from '@/modules/accounts/constants/account_tile_color';
