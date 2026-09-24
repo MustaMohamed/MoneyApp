@@ -14,6 +14,7 @@ interface TransactionsStateShape {
   totalsStatus: TransactionTotalsStatus;
   scrollOffset: number;
   scrollQueryKey: string | null;
+  pullRefreshing: boolean;
 }
 
 type TransactionsState = TransactionsStateShape & {
@@ -22,6 +23,7 @@ type TransactionsState = TransactionsStateShape & {
   failTotalsLoad: (hasData: boolean) => void;
   activateScrollQuery: (queryKey: string) => void;
   setScrollOffset: (queryKey: string, offset: number) => void;
+  setPullRefreshing: (value: boolean) => void;
   reset: () => void;
 };
 
@@ -29,6 +31,7 @@ const INITIAL_STATE: TransactionsStateShape = {
   totalsStatus: 'idle',
   scrollOffset: 0,
   scrollQueryKey: null,
+  pullRefreshing: false,
 };
 
 export const useTransactionsState = createMoneyAppSelectors(
@@ -49,6 +52,7 @@ export const useTransactionsState = createMoneyAppSelectors(
           ? { scrollOffset: normalizedOffset }
           : state;
       }),
+    setPullRefreshing: (pullRefreshing) => set({ pullRefreshing }),
     reset: () => set(INITIAL_STATE),
   })),
 );

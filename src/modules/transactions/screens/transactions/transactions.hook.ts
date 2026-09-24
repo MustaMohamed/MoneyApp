@@ -109,11 +109,13 @@ export function useTransactions() {
   const setDraft = useFilterStore.getState().setDraft;
 
   const totalsStatus = useTransactionsState.useState.totalsStatus();
+  const pullRefreshing = useTransactionsState.useState.pullRefreshing();
   const beginTotalsLoad = useTransactionsState.getState().beginTotalsLoad;
   const resolveTotalsLoad = useTransactionsState.getState().resolveTotalsLoad;
   const failTotalsLoad = useTransactionsState.getState().failTotalsLoad;
   const activateScrollQuery = useTransactionsState.getState().activateScrollQuery;
   const setScrollOffset = useTransactionsState.getState().setScrollOffset;
+  const setPullRefreshing = useTransactionsState.getState().setPullRefreshing;
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const periodRange = useMemo(() => resolvePeriod(period), [period]);
@@ -342,11 +344,16 @@ export function useTransactions() {
   }, []);
 
   const onRefresh = useCallback(async () => {
-    await Promise.all([
-      refresh().catch((err) => console.error('[transactions] refresh failed:', err)),
-      loadTotals(true),
-    ]);
-  }, [loadTotals, refresh]);
+    setPullRefreshing(true);
+    try {
+      await Promise.all([
+        refresh().catch((err) => console.error('[transactions] refresh failed:', err)),
+        loadTotals(true),
+      ]);
+    } finally {
+      setPullRefreshing(false);
+    }
+  }, [loadTotals, refresh, setPullRefreshing]);
 
   const previousLabel = useMemo(() => {
     const prev = previousPeriod(period);
@@ -449,7 +456,7 @@ export function useTransactions() {
       showFirstLoadError: presentation.showFirstLoadError,
       loadErrorVariant: presentation.loadErrorVariant,
       paginationError: presentation.showPaginationRetry,
-      refreshing: presentation.showRefreshIndicator,
+      refreshing: pullRefreshing && presentation.showRefreshIndicator,
       emptyVariant,
       searchQuery,
       activeFilter,
