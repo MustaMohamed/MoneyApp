@@ -1,7 +1,11 @@
 import { create } from 'zustand';
+import { shallow } from 'zustand/shallow';
 
 import { TransactionType } from '@/constants/enums';
-import type { PeriodTotals } from '@/modules/transactions/database/transactions';
+import type {
+  PeriodTotals,
+  TransactionDayAggregate,
+} from '@/modules/transactions/database/transactions';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import { EMPTY_FILTERS, type AdvancedFilters } from './filter/filter.store';
@@ -10,8 +14,12 @@ import { currentYearMonth, type TransactionPeriod } from './transactions.helpers
 export type TransactionFilter = TransactionType | 'all';
 
 export interface TransactionTotalsState {
+  queryKey: string;
   current: PeriodTotals;
   previous: PeriodTotals | null;
+  days: TransactionDayAggregate[];
+  matchCount: number;
+  matchNetEgp: number;
 }
 
 interface StateShape {
@@ -21,6 +29,7 @@ interface StateShape {
   appliedFilters: AdvancedFilters;
   totals: TransactionTotalsState | null;
   totalsYearMonth: string | null;
+  totalsQueryKey: string | null;
   totalsRequestId: number;
 }
 
@@ -31,9 +40,13 @@ type TransactionsScreenStore = StateShape & {
   setAppliedFilters: (f: AdvancedFilters) => void;
   seedAccountFilter: (accountId: string, yearMonth: string) => void;
   clearSearch: () => void;
-  beginTotalsRequest: (yearMonth: string, preserveData: boolean) => number;
-  resolveTotals: (yearMonth: string, requestId: number, totals: TransactionTotalsState) => boolean;
-  failTotals: (yearMonth: string, requestId: number) => boolean;
+  beginTotalsRequest: (queryKey: string, yearMonth: string, preserveData: boolean) => number;
+  resolveTotals: (
+    queryKey: string,
+    requestId: number,
+    totals: Omit<TransactionTotalsState, 'queryKey'>,
+  ) => boolean;
+  failTotals: (queryKey: string, requestId: number) => boolean;
   hasTotalsForMonth: (yearMonth: string) => boolean;
   reset: () => void;
 };
@@ -46,6 +59,7 @@ function initialState(): StateShape {
     appliedFilters: EMPTY_FILTERS,
     totals: null,
     totalsYearMonth: null,
+    totalsQueryKey: null,
     totalsRequestId: 0,
   };
 }
@@ -66,26 +80,32 @@ export const useTransactionsScreenStore = createMoneyAppSelectors(
         appliedFilters: { ...EMPTY_FILTERS, accountIds: [accountId] },
       }),
     clearSearch: () => set({ searchQuery: '' }),
-    beginTotalsRequest: (yearMonth, preserveData) => {
+    beginTotalsRequest: (queryKey, yearMonth, preserveData) => {
       const state = get();
       const requestId = state.totalsRequestId + 1;
       const keepTotals = preserveData && state.totalsYearMonth === yearMonth;
       set({
         totals: keepTotals ? state.totals : null,
         totalsYearMonth: yearMonth,
+        totalsQueryKey: queryKey,
         totalsRequestId: requestId,
       });
       return requestId;
     },
-    resolveTotals: (yearMonth, requestId, totals) => {
+    resolveTotals: (queryKey, requestId, totals) => {
       const state = get();
-      if (state.totalsYearMonth !== yearMonth || state.totalsRequestId !== requestId) return false;
-      set({ totals });
+      if (state.totalsQueryKey !== queryKey || state.totalsRequestId !== requestId) return false;
+      const held = state.totals;
+      // M25: equal scoped figures keep their identity so the hero skips a keystroke's render.
+      const current = held && shallow(held.current, totals.current) ? held.current : totals.current;
+      const previous =
+        held && shallow(held.previous, totals.previous) ? held.previous : totals.previous;
+      set({ totals: { ...totals, queryKey, current, previous } });
       return true;
     },
-    failTotals: (yearMonth, requestId) => {
+    failTotals: (queryKey, requestId) => {
       const state = get();
-      return state.totalsYearMonth === yearMonth && state.totalsRequestId === requestId;
+      return state.totalsQueryKey === queryKey && state.totalsRequestId === requestId;
     },
     hasTotalsForMonth: (yearMonth) => {
       const state = get();

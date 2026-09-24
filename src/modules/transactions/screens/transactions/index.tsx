@@ -104,15 +104,25 @@ export default function TransactionsScreen(): React.ReactElement {
   const showRowsSkeleton = state.showInitialSkeleton;
   const listSections = state.sections;
 
+  const totalsCurrent = state.totals?.current ?? null;
+  const totalsPrevious = state.totals?.previous ?? null;
+  const totalsLoading = state.totals === null;
+  const totalsStrip = useMemo(
+    () => (
+      <TotalsStrip
+        current={totalsCurrent}
+        previous={totalsPrevious}
+        previousLabel={state.previousLabel}
+        isLoading={totalsLoading}
+      />
+    ),
+    [state.previousLabel, totalsCurrent, totalsLoading, totalsPrevious],
+  );
+
   const listHeaderComponent = useMemo(
     () => (
       <View testID="transactions-list-header">
-        <TotalsStrip
-          current={state.totals?.current ?? null}
-          previous={state.totals?.previous ?? null}
-          previousLabel={state.previousLabel}
-          isLoading={state.totals === null}
-        />
+        {totalsStrip}
         <SearchRow
           value={state.searchQuery}
           onChange={setSearchQuery}
@@ -121,14 +131,7 @@ export default function TransactionsScreen(): React.ReactElement {
         />
       </View>
     ),
-    [
-      openFilter,
-      setSearchQuery,
-      state.activeFilterCount,
-      state.previousLabel,
-      state.searchQuery,
-      state.totals,
-    ],
+    [openFilter, setSearchQuery, state.activeFilterCount, state.searchQuery, totalsStrip],
   );
 
   const listEmptyComponent = useMemo(

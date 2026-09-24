@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteBindValue, SQLiteDatabase } from 'expo-sqlite';
 
 import type { Currency } from '@/constants/enums';
 import { TransactionType } from '@/constants/enums';
@@ -111,7 +111,8 @@ export interface TransactionListQuery {
 }
 
 const PAGE_SIZE_DEFAULT = 30;
-const TRANSACTION_LIST_ORDER = `transaction_date DESC,
+const NEWEST_DAY_FIRST = 'transaction_date DESC';
+const TRANSACTION_LIST_ORDER = `${NEWEST_DAY_FIRST},
   transaction_time DESC,
   created_at DESC,
   id DESC`;
@@ -124,125 +125,134 @@ function buildInClause(n: number): string {
   return Array(n).fill('?').join(',');
 }
 
-export async function getTransactions(
-  db: SQLiteDatabase,
-  query: TransactionListQuery = {},
-): Promise<Transaction[]> {
-  const limit = query.limit ?? PAGE_SIZE_DEFAULT;
-  const offset = query.offset ?? 0;
+type TransactionListFilterInput = Omit<TransactionListQuery, 'limit' | 'offset'>;
 
-  const typeParam: string | null = query.type ?? null;
-  const trimmed = query.search?.trim();
-  const searchParam: string | null = trimmed && trimmed.length > 0 ? trimmed : null;
-  const likePattern = searchParam !== null ? `%${escapeLike(searchParam)}%` : null;
-  const numericSearch = searchParam !== null ? (parseDecimalText(searchParam) ?? null) : null;
-  const searchProjection =
-    searchParam === null
-      ? ''
-      : `
+interface TransactionFilterSql {
+  joins: string;
+  where: string;
+  params: SQLiteBindValue[];
+}
+
+const SEARCH_JOINS = `
     CROSS JOIN (SELECT ? AS pattern, ? AS numeric_amount) search
-    LEFT JOIN accounts source_account ON source_account.id = t.account_id
-    LEFT JOIN accounts destination_account ON destination_account.id = t.to_account_id
-    LEFT JOIN categories category ON category.id = t.category_id
-    LEFT JOIN budgets budget ON budget.id = t.budget_id
-    LEFT JOIN commitment_payments payment ON payment.id = t.commitment_payment_id
+    LEFT JOIN accounts destination_account ON destination_account.id = transaction_row.to_account_id
+    LEFT JOIN categories category ON category.id = transaction_row.category_id
+    LEFT JOIN budgets budget ON budget.id = transaction_row.budget_id
+    LEFT JOIN commitment_payments payment ON payment.id = transaction_row.commitment_payment_id
     LEFT JOIN commitments commitment ON commitment.id = payment.commitment_id`;
-  const searchPredicate =
-    searchParam === null
-      ? ''
-      : `
-      AND (
-        t.note LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-        OR source_account.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+
+const SOURCE_ACCOUNT_JOIN =
+  'JOIN accounts account_row ON account_row.id = transaction_row.account_id';
+
+const SEARCH_PREDICATE = `(
+        transaction_row.note LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR account_row.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
         OR destination_account.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
         OR category.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
         OR budget.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
         OR commitment.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
         OR payment.notes LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-        OR REPLACE(t.type, '_', ' ') LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-        OR CASE t.type
+        OR REPLACE(transaction_row.type, '_', ' ') LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR CASE transaction_row.type
              WHEN 'cc_payment' THEN 'Credit Pay Credit Card Payment'
              WHEN 'expense' THEN 'Expense'
              WHEN 'income' THEN 'Income'
              WHEN 'transfer' THEN 'Transfer'
            END LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
         OR (
-          t.type = 'income'
-          AND source_account.type = 'credit_card'
+          transaction_row.type = 'income'
+          AND account_row.type = 'credit_card'
           AND 'Card credit' LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
         )
         OR (
           search.numeric_amount IS NOT NULL
           AND (
-            t.amount = search.numeric_amount
-            OR t.to_amount = search.numeric_amount
-            OR t.egp_amount = search.numeric_amount
+            transaction_row.amount = search.numeric_amount
+            OR transaction_row.to_amount = search.numeric_amount
+            OR transaction_row.egp_amount = search.numeric_amount
           )
         )
       )`;
 
+function buildTransactionFilterSql(
+  query: TransactionListFilterInput,
+  sourceAccountJoined: boolean,
+): TransactionFilterSql {
+  const clauses: string[] = [];
+  const whereParams: SQLiteBindValue[] = [];
+  const trimmed = query.search?.trim();
+  const searchText = trimmed && trimmed.length > 0 ? trimmed : undefined;
   const accountIds = query.accountIds ?? [];
   const categoryIds = query.categoryIds ?? [];
-  const accountListEmpty = accountIds.length === 0 ? 1 : 0;
-  const categoryListEmpty = categoryIds.length === 0 ? 1 : 0;
-  const accountIn = buildInClause(Math.max(accountIds.length, 1));
-  const categoryIn = buildInClause(Math.max(categoryIds.length, 1));
-  const accountParams = accountIds.length === 0 ? [''] : accountIds;
-  const categoryParams = categoryIds.length === 0 ? [''] : categoryIds;
-
-  const dateFrom = query.dateFrom ?? null;
-  const dateTo = query.dateTo ?? null;
-
-  const amountMin = query.amountMin ?? null;
-  const amountMax = query.amountMax ?? null;
   const amountCurrency = query.amountCurrency ?? null;
+  // Unary + keeps a dated query on idx_transactions_date: with no ANALYZE, SQLite prefers an equality index.
+  const equality = query.dateFrom !== undefined || query.dateTo !== undefined ? '+' : '';
 
-  const sql = `
-    SELECT t.* FROM transactions t
-    ${searchProjection}
-    WHERE (? IS NULL OR t.type = ?)
-      ${searchPredicate}
-      AND (
-        ? = 1
-        OR t.account_id    IN (${accountIn})
-        OR t.to_account_id IN (${accountIn})
-      )
-      AND (
-        ? = 1
-        OR t.category_id IN (${categoryIn})
-        -- NULL category_id rows (transfers, CC payments) are intentionally excluded
-        -- when a category filter is active. This is by design per spec §6.3.
-      )
-      AND (? IS NULL OR t.transaction_date >= ?)
-      AND (? IS NULL OR t.transaction_date <= ?)
-      AND (? IS NULL OR (t.currency = ? AND t.amount >= ?))
-      AND (? IS NULL OR (t.currency = ? AND t.amount <= ?))
+  if (query.dateFrom !== undefined) {
+    clauses.push('transaction_row.transaction_date >= ?');
+    whereParams.push(query.dateFrom);
+  }
+  if (query.dateTo !== undefined) {
+    clauses.push('transaction_row.transaction_date <= ?');
+    whereParams.push(query.dateTo);
+  }
+  if (query.type !== undefined) {
+    clauses.push(`${equality}transaction_row.type = ?`);
+    whereParams.push(query.type);
+  }
+  if (searchText !== undefined) clauses.push(SEARCH_PREDICATE);
+  if (accountIds.length > 0) {
+    const accountIn = buildInClause(accountIds.length);
+    clauses.push(
+      `(${equality}transaction_row.account_id IN (${accountIn}) OR ${equality}transaction_row.to_account_id IN (${accountIn}))`,
+    );
+    whereParams.push(...accountIds, ...accountIds);
+  }
+  // NULL category_id rows (transfers, CC payments) drop out under a category filter, per spec §6.3.
+  if (categoryIds.length > 0) {
+    clauses.push(
+      `${equality}transaction_row.category_id IN (${buildInClause(categoryIds.length)})`,
+    );
+    whereParams.push(...categoryIds);
+  }
+  if (query.amountMin !== undefined) {
+    clauses.push('transaction_row.currency = ? AND transaction_row.amount >= ?');
+    whereParams.push(amountCurrency, query.amountMin);
+  }
+  if (query.amountMax !== undefined) {
+    clauses.push('transaction_row.currency = ? AND transaction_row.amount <= ?');
+    whereParams.push(amountCurrency, query.amountMax);
+  }
+
+  const joinParams: SQLiteBindValue[] =
+    searchText === undefined
+      ? []
+      : [`%${escapeLike(searchText)}%`, parseDecimalText(searchText) ?? null];
+  return {
+    joins:
+      searchText === undefined
+        ? ''
+        : `${SEARCH_JOINS}${sourceAccountJoined ? '' : `\n    LEFT ${SOURCE_ACCOUNT_JOIN}`}`,
+    where: clauses.length === 0 ? '' : `WHERE ${clauses.join('\n      AND ')}`,
+    params: [...joinParams, ...whereParams],
+  };
+}
+
+export async function getTransactions(
+  db: SQLiteDatabase,
+  query: TransactionListQuery = {},
+): Promise<Transaction[]> {
+  const limit = query.limit ?? PAGE_SIZE_DEFAULT;
+  const offset = query.offset ?? 0;
+  const filter = buildTransactionFilterSql(query, false);
+  return db.getAllAsync<Transaction>(
+    `SELECT transaction_row.* FROM transactions transaction_row
+    ${filter.joins}
+    ${filter.where}
     ORDER BY ${TRANSACTION_LIST_ORDER}
-    LIMIT ? OFFSET ?
-  `;
-
-  return db.getAllAsync<Transaction>(sql, [
-    ...(searchParam === null ? [] : [likePattern, numericSearch]),
-    typeParam,
-    typeParam,
-    accountListEmpty,
-    ...accountParams,
-    ...accountParams,
-    categoryListEmpty,
-    ...categoryParams,
-    dateFrom,
-    dateFrom,
-    dateTo,
-    dateTo,
-    amountMin,
-    amountCurrency,
-    amountMin,
-    amountMax,
-    amountCurrency,
-    amountMax,
-    limit,
-    offset,
-  ]);
+    LIMIT ? OFFSET ?`,
+    [...filter.params, limit, offset],
+  );
 }
 
 export async function getTransactionsByAccount(
@@ -308,22 +318,82 @@ export async function getPeriodTotals(
   db: SQLiteDatabase,
   range: { from: string; to: string },
 ): Promise<PeriodTotals> {
-  const row = await db.getFirstAsync<{
-    income: number | null;
-    expense: number | null;
-  }>(
+  return getTransactionScopedTotals(db, { dateFrom: range.from, dateTo: range.to });
+}
+
+export interface TransactionDayAggregate {
+  date: string;
+  netEgp: number;
+  count: number;
+}
+
+export interface TransactionMonthAggregate {
+  days: TransactionDayAggregate[];
+  matchCount: number;
+  matchNetEgp: number;
+  scoped: PeriodTotals;
+}
+
+export type TransactionAggregateQuery = Omit<TransactionListFilterInput, 'dateFrom' | 'dateTo'> & {
+  dateFrom: string;
+  dateTo: string;
+};
+
+export type TransactionTotalsScope = Pick<
+  TransactionAggregateQuery,
+  'dateFrom' | 'dateTo' | 'accountIds'
+>;
+
+/** Out, In and Net over the date range, scoped by the accounts filter alone; other filters are ignored. */
+export async function getTransactionScopedTotals(
+  db: SQLiteDatabase,
+  scope: TransactionTotalsScope,
+): Promise<PeriodTotals> {
+  const filter = buildTransactionFilterSql(
+    { dateFrom: scope.dateFrom, dateTo: scope.dateTo, accountIds: scope.accountIds },
+    true,
+  );
+  const row = await db.getFirstAsync<{ income: number | null; expense: number | null }>(
     `SELECT
        COALESCE(SUM((${REPORTING_SIGN_SQL.in}) * transaction_row.egp_amount), 0) AS income,
        COALESCE(SUM((${REPORTING_SIGN_SQL.out}) * transaction_row.egp_amount), 0) AS expense
      FROM transactions transaction_row
-     JOIN accounts account_row ON account_row.id = transaction_row.account_id
-     WHERE transaction_row.transaction_date >= ?
-       AND transaction_row.transaction_date <= ?`,
-    [range.from, range.to],
+     ${SOURCE_ACCOUNT_JOIN}
+     ${filter.where}`,
+    filter.params,
   );
   const incomeEgp = row?.income ?? 0;
   const expenseEgp = row?.expense ?? 0;
   return { incomeEgp, expenseEgp, netEgp: incomeEgp - expenseEgp };
+}
+
+/** Days and tally take the full filter; `scoped` is `getTransactionScopedTotals` over the same query. */
+export async function getTransactionMonthAggregate(
+  db: SQLiteDatabase,
+  query: TransactionAggregateQuery,
+): Promise<TransactionMonthAggregate> {
+  const filtered = buildTransactionFilterSql(query, true);
+  const dayRows = await db.getAllAsync<{ date: string; net: number; count: number }>(
+    `SELECT
+       transaction_row.transaction_date AS date,
+       COALESCE(SUM(((${REPORTING_SIGN_SQL.in}) - (${REPORTING_SIGN_SQL.out})) * transaction_row.egp_amount), 0) AS net,
+       COUNT(*) AS count
+     FROM transactions transaction_row
+     ${SOURCE_ACCOUNT_JOIN}
+     ${filtered.joins}
+     ${filtered.where}
+     GROUP BY transaction_row.transaction_date
+     ORDER BY transaction_row.${NEWEST_DAY_FIRST}`,
+    filtered.params,
+  );
+  const scoped = await getTransactionScopedTotals(db, query);
+  const days = dayRows.map((row) => ({ date: row.date, netEgp: row.net, count: row.count }));
+  return {
+    days,
+    matchCount: days.reduce((total, day) => total + day.count, 0),
+    matchNetEgp: days.reduce((total, day) => total + day.netEgp, 0),
+    scoped,
+  };
 }
 
 export async function updateTransactionRow(

@@ -1,6 +1,6 @@
 # Transactions
 
-Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transactions/index.tsx`, month pill from `src/components/ui/filter_rail.tsx`, filter sheet `filter/index.tsx` over the shared `src/components/ui/filter_accordion.tsx`. Frames B1 and B2 come from the transactions canvas (https://claude.ai/artifact/7QJH3AFeoQAXtWmx5vAP2s, epic #543), not `~/.ship/MoneyApp/canvas/`, whose B1 and B2 are the accounts list.
+Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transactions/index.tsx`, month pill from `src/components/ui/filter_rail.tsx`, filter sheet `filter/index.tsx` over the shared `src/components/ui/filter_accordion.tsx`. Frames A2, B1 and B2 come from the transactions canvas (https://claude.ai/artifact/7QJH3AFeoQAXtWmx5vAP2s, epic #543), not `~/.ship/MoneyApp/canvas/`, whose B1 and B2 are the accounts list.
 
 ## Reach it
 
@@ -26,6 +26,9 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 | row, deleted counterparty | no frame, Finding 11, MA-090 | soft-delete an account that has a transaction (`archived_account.md` E4) | one shot of the hollow graphite tile; the row's content-desc in `mqa ui` reads `Deleted Account` |
 | row, archived account | no frame, MA-090 | archive an account that has a transaction | one shot: the tile filled in its colour, no archived treatment; the row's content-desc in `mqa ui` reads the account name |
 | row, long note | no frame, MA-090 cycle 1 | seed push an expense whose note is longer than the caption track | `mqa ui` reads the note and the time as separate nodes; one shot of the row: the note ends in an ellipsis, the time node ` · <h:mm AM or PM>` is whole, the amount and its code line untouched |
+| totals strip, account-scoped from the sheet | A2, MA-102 | seed two bank accounts, each with two expenses this month of different sizes; open the filter sheet, expand `Accounts`, select one, Apply | the strip's Expense equals `mqa db` `select sum(egp_amount) from transactions where account_id='<id>' and type='expense' and transaction_date between '<month start>' and '<month end>'`, not the two-account sum; switching the type tab and typing a search leave Income, Expense and Net unchanged (`mqa ui` before and after); one shot of the strip |
+| totals strip, seeded from See all | A2, MA-102; C5 on `account_detail.md` | account detail of one of those accounts, `See all` | the same three values as the sheet path, and the filter button reads `Filter, 1 active`; one shot of the strip |
+| totals strip, empty month | no frame, MA-102 | the month pill to a month with no rows | Income, Expense and Net read zero, with no skeleton and no error alert (`mqa ui`); one shot of the strip |
 
 ## Outbound
 

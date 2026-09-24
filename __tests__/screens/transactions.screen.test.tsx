@@ -262,8 +262,12 @@ describe('TransactionsScreen', () => {
       showInitialSkeleton: false,
       refreshing: true,
       totals: {
+        queryKey: 'july',
         current: { incomeEgp: 1000, expenseEgp: 500, netEgp: 500 },
         previous: { incomeEgp: 900, expenseEgp: 400, netEgp: 500 },
+        days: [],
+        matchCount: 0,
+        matchNetEgp: 0,
       },
       totalsStatus: 'refreshing',
       sections: [

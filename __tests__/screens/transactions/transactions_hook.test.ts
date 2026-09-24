@@ -4,7 +4,12 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { getPeriodTotals } from '@/modules/transactions/database/transactions';
+import type {
+  PeriodTotals,
+  TransactionAggregateQuery,
+  TransactionMonthAggregate,
+  TransactionTotalsScope,
+} from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
 import { useFilterState } from '@/modules/transactions/screens/transactions/filter/filter.state';
@@ -68,8 +73,18 @@ jest.mock('@/database/client', () => ({
   getDb: jest.fn().mockResolvedValue({}),
 }));
 
-jest.mock('@/modules/transactions/database/transactions', () => ({
-  getPeriodTotals: jest.fn().mockResolvedValue({ incomeEgp: 0, expenseEgp: 0, netEgp: 0 }),
+const mockGetMonthAggregate = jest.fn<
+  Promise<TransactionMonthAggregate>,
+  [TransactionAggregateQuery]
+>();
+const mockGetScopedTotals = jest.fn<Promise<PeriodTotals>, [TransactionTotalsScope]>();
+
+jest.mock('@/modules/transactions/repositories/transaction.repository', () => ({
+  ...jest.requireActual<object>('@/modules/transactions/repositories/transaction.repository'),
+  transactionRepository: {
+    getMonthAggregate: (query: TransactionAggregateQuery) => mockGetMonthAggregate(query),
+    getScopedTotals: (scope: TransactionTotalsScope) => mockGetScopedTotals(scope),
+  },
 }));
 
 jest.mock('@/modules/accounts/store/account.store', () => ({
@@ -85,6 +100,17 @@ jest.mock('@/modules/transactions/store/transaction.store', () => ({
 }));
 
 const EMPTY_TOTALS = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+const EMPTY_AGGREGATE: TransactionMonthAggregate = {
+  days: [],
+  matchCount: 0,
+  matchNetEgp: 0,
+  scoped: EMPTY_TOTALS,
+};
+
+function expectFullTotalsLoads(times: number): void {
+  expect(mockGetMonthAggregate).toHaveBeenCalledTimes(times);
+  expect(mockGetScopedTotals).toHaveBeenCalledTimes(times);
+}
 
 let setQuery: jest.Mock;
 let refresh: jest.Mock;
@@ -192,13 +218,15 @@ beforeEach(() => {
   useTransactionsState.getState().reset();
   useFilterState.getState().reset();
   useFilterStore.getState().resetDraft();
-  jest.mocked(getPeriodTotals).mockReset();
-  jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+  mockGetMonthAggregate.mockReset();
+  mockGetMonthAggregate.mockResolvedValue(EMPTY_AGGREGATE);
+  mockGetScopedTotals.mockReset();
+  mockGetScopedTotals.mockResolvedValue(EMPTY_TOTALS);
 });
 
 describe('useTransactions screen orchestration', () => {
   beforeEach(() => {
-    jest.mocked(getPeriodTotals).mockReturnValue(new Promise(() => {}));
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
   });
 
   it('owns opening the global add transaction form', async () => {
@@ -268,17 +296,18 @@ describe('useTransactions screen orchestration', () => {
 });
 
 describe('useTransactions monthly totals', () => {
-  it('keeps totals independent from search and filters', async () => {
-    await renderHook(() => useTransactions());
-
-    await waitFor(() => {
-      expect(getPeriodTotals).toHaveBeenCalledTimes(2);
-    });
-    jest.mocked(getPeriodTotals).mockClear();
-    setQuery.mockClear();
+  it("reloads the aggregate under the new key and keeps the scoped totals' identity", async () => {
+    const current = { incomeEgp: 22300, expenseEgp: 9400, netEgp: 12900 };
+    const previous = { incomeEgp: 0, expenseEgp: 9400, netEgp: -9400 };
+    mockGetMonthAggregate.mockImplementation(async (query) => ({
+      ...EMPTY_AGGREGATE,
+      matchCount: query.search === 'coffee' ? 2 : 0,
+      scoped: { ...(query.dateFrom === '2026-07-01' ? current : previous) },
+    }));
+    mockGetScopedTotals.mockImplementation(async () => ({ ...previous }));
+    const { result } = await renderHook(() => useTransactions());
 
     await act(() => {
-      useTransactionsScreenStore.getState().setSearchQuery('coffee');
       useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
       useTransactionsScreenStore.getState().setAppliedFilters({
         ...EMPTY_FILTERS,
@@ -287,25 +316,90 @@ describe('useTransactions monthly totals', () => {
         amountMin: 100,
       });
     });
-
     await waitFor(() => {
-      expect(setQuery).toHaveBeenCalled();
+      expect(mockGetMonthAggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ type: TransactionType.Expense, accountIds: ['acc-1'] }),
+      );
+      expect(result.current.state.totalsStatus).toBe('ready');
+      expect(result.current.state.totals).toMatchObject({ current, previous });
     });
+    const heldCurrent = result.current.state.totals?.current;
+    const heldPrevious = result.current.state.totals?.previous;
+    mockGetMonthAggregate.mockClear();
+    mockGetScopedTotals.mockClear();
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    });
+    await waitFor(() => {
+      expect(useTransactionsScreenStore.getState().totals?.matchCount).toBe(2);
+    });
+
+    expect(mockGetMonthAggregate).toHaveBeenCalledTimes(1);
+    expect(mockGetMonthAggregate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: 'coffee',
+        type: TransactionType.Expense,
+        dateFrom: '2026-07-01',
+        dateTo: '2026-07-31',
+        accountIds: ['acc-1'],
+      }),
+    );
+    expect(mockGetScopedTotals).not.toHaveBeenCalled();
+    expect(result.current.state.totals?.current).toBe(heldCurrent);
+    expect(result.current.state.totals?.previous).toBe(heldPrevious);
+  });
+
+  it('does not publish an aggregate for a key the controls left', async () => {
+    let resolveLeft: ((aggregate: TransactionMonthAggregate) => void) | undefined;
+    mockGetMonthAggregate.mockImplementation((query) => {
+      if (query.search === 'rent' && query.dateFrom === '2026-07-01') {
+        return new Promise<TransactionMonthAggregate>((resolve) => {
+          resolveLeft = resolve;
+        });
+      }
+      return Promise.resolve({ ...EMPTY_AGGREGATE, matchCount: query.search === 'rental' ? 5 : 0 });
+    });
+    const { result } = await renderHook(() => useTransactions());
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('rent');
+    });
+    await waitFor(() => expect(resolveLeft).toBeDefined());
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('rental');
+    });
+    await waitFor(() => {
+      expect(useTransactionsScreenStore.getState().totals?.matchCount).toBe(5);
+    });
+
     await act(async () => {
+      resolveLeft?.({
+        ...EMPTY_AGGREGATE,
+        matchCount: 9,
+        scoped: { incomeEgp: 700, expenseEgp: 100, netEgp: 600 },
+      });
       await Promise.resolve();
     });
 
-    expect(getPeriodTotals).not.toHaveBeenCalled();
+    expect(useTransactionsScreenStore.getState().totals).toMatchObject({
+      current: EMPTY_TOTALS,
+      matchCount: 5,
+    });
+    expect(useTransactionsScreenStore.getState().totalsQueryKey).toBe(
+      getTransactionQueryKey({ ...JULY_QUERY, search: 'rental' }),
+    );
+    expect(result.current.state.totalsStatus).toBe('ready');
   });
 
   it('clears loaded totals while a new month is loading', async () => {
     const initialCurrent = { incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 };
     const initialPrevious = { incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 };
-    jest
-      .mocked(getPeriodTotals)
-      .mockResolvedValueOnce(initialCurrent)
-      .mockResolvedValueOnce(initialPrevious)
+    mockGetMonthAggregate
+      .mockResolvedValueOnce({ ...EMPTY_AGGREGATE, scoped: initialCurrent })
       .mockReturnValue(new Promise(() => {}));
+    mockGetScopedTotals.mockResolvedValueOnce(initialPrevious);
 
     const { result } = await renderHook(() => useTransactions());
 
@@ -325,26 +419,24 @@ describe('useTransactions monthly totals', () => {
   it('keeps same-month totals visible while revalidating after remount', async () => {
     const initialCurrent = { incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 };
     const initialPrevious = { incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 };
-    jest
-      .mocked(getPeriodTotals)
-      .mockResolvedValueOnce(initialCurrent)
-      .mockResolvedValueOnce(initialPrevious);
+    mockGetMonthAggregate.mockResolvedValueOnce({ ...EMPTY_AGGREGATE, scoped: initialCurrent });
+    mockGetScopedTotals.mockResolvedValueOnce(initialPrevious);
 
     const first = await renderHook(() => useTransactions());
 
     await waitFor(() => {
-      expect(first.result.current.state.totals).toEqual({
+      expect(first.result.current.state.totals).toMatchObject({
         current: initialCurrent,
         previous: initialPrevious,
       });
     });
 
     await first.unmount();
-    jest.mocked(getPeriodTotals).mockReturnValue(new Promise(() => {}));
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
 
     const second = await renderHook(() => useTransactions());
 
-    expect(second.result.current.state.totals).toEqual({
+    expect(second.result.current.state.totals).toMatchObject({
       current: initialCurrent,
       previous: initialPrevious,
     });
@@ -353,7 +445,7 @@ describe('useTransactions monthly totals', () => {
       await Promise.resolve();
     });
 
-    expect(second.result.current.state.totals).toEqual({
+    expect(second.result.current.state.totals).toMatchObject({
       current: initialCurrent,
       previous: initialPrevious,
     });
@@ -361,7 +453,7 @@ describe('useTransactions monthly totals', () => {
 
   it('exposes a first-load totals error without writing financial zeroes', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.mocked(getPeriodTotals).mockRejectedValue(new Error('db down'));
+    mockGetMonthAggregate.mockRejectedValue(new Error('db down'));
 
     const { result } = await renderHook(() => useTransactions());
 
@@ -378,38 +470,119 @@ describe('useTransactions monthly totals', () => {
     const initialPrevious = { incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 };
     const refreshedCurrent = { incomeEgp: 26000, expenseEgp: 12000, netEgp: 14000 };
     const refreshedPrevious = { incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 };
-    jest
-      .mocked(getPeriodTotals)
-      .mockResolvedValueOnce(initialCurrent)
+    mockGetMonthAggregate
+      .mockResolvedValueOnce({ ...EMPTY_AGGREGATE, scoped: initialCurrent })
+      .mockResolvedValueOnce({ ...EMPTY_AGGREGATE, scoped: refreshedCurrent });
+    mockGetScopedTotals
       .mockResolvedValueOnce(initialPrevious)
-      .mockResolvedValueOnce(refreshedCurrent)
       .mockResolvedValueOnce(refreshedPrevious);
 
     const { result } = await renderHook(() => useTransactions());
 
     await waitFor(() => {
-      expect(result.current.state.totals).toEqual({
+      expect(result.current.state.totals).toMatchObject({
         current: initialCurrent,
         previous: initialPrevious,
       });
     });
-    jest.mocked(getPeriodTotals).mockClear();
+    mockGetMonthAggregate.mockClear();
+    mockGetScopedTotals.mockClear();
 
     await act(async () => {
       await result.current.onRefresh();
     });
 
-    expect(getPeriodTotals).toHaveBeenCalledTimes(2);
-    expect(result.current.state.totals).toEqual({
+    expect(mockGetMonthAggregate).toHaveBeenCalledTimes(1);
+    expect(mockGetScopedTotals).toHaveBeenCalledTimes(1);
+    expect(result.current.state.totals).toMatchObject({
       current: refreshedCurrent,
       previous: refreshedPrevious,
     });
   });
 });
 
+describe('useTransactions previous-month and key-driven loads', () => {
+  async function renderReady() {
+    const rendered = await renderHook((_props: Record<string, never>) => useTransactions(), {
+      initialProps: {},
+    });
+    await waitFor(() => expect(rendered.result.current.state.totalsStatus).toBe('ready'));
+    mockGetMonthAggregate.mockClear();
+    mockGetScopedTotals.mockClear();
+    return rendered;
+  }
+
+  it('an accounts filter change re-fetches the previous month under that filter', async () => {
+    const { result } = await renderReady();
+
+    await act(() => {
+      useTransactionsScreenStore
+        .getState()
+        .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1'] });
+    });
+    await waitFor(() => expect(mockGetScopedTotals).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+
+    expect(mockGetMonthAggregate).toHaveBeenCalledTimes(1);
+    expect(mockGetScopedTotals).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dateFrom: '2026-06-01',
+        dateTo: '2026-06-30',
+        accountIds: ['acc-1'],
+      }),
+    );
+  });
+
+  it('a write re-fetches the previous month', async () => {
+    const { result, rerender } = await renderReady();
+
+    transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
+    await rerender({});
+    await waitFor(() => expect(mockGetScopedTotals).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+
+    expect(mockGetMonthAggregate).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed search load keeps the refresh banner and the previous key on the held data', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = await renderReady();
+    mockGetMonthAggregate.mockRejectedValueOnce(new Error('db down'));
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('refreshErrorWithData'));
+
+    expect(useTransactionsScreenStore.getState().totals?.queryKey).toBe(
+      getTransactionQueryKey(JULY_QUERY),
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('a whitespace-only search change does not reload the aggregate', async () => {
+    const { result } = await renderReady();
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('food');
+    });
+    await waitFor(() => expect(mockGetMonthAggregate).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+    mockGetMonthAggregate.mockClear();
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('food ');
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mockGetMonthAggregate).not.toHaveBeenCalled();
+  });
+});
+
 describe('useTransactions query ownership', () => {
   beforeEach(() => {
-    jest.mocked(getPeriodTotals).mockReturnValue(new Promise(() => {}));
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
   });
 
   it('does not render rows owned by a different query', async () => {
@@ -462,7 +635,7 @@ describe('useTransactions query ownership', () => {
   });
 
   it('MA-089: shows the refresh indicator only while a user pull is in flight', async () => {
-    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    mockGetMonthAggregate.mockResolvedValue(EMPTY_AGGREGATE);
     setupStores({ transactions: [TRANSACTION], status: 'refreshing' });
     let resolveRefresh!: () => void;
     refresh.mockReturnValue(
@@ -518,7 +691,7 @@ describe('useTransactions query ownership', () => {
   });
 
   it('MA-089: a totals-only Retry leaves the flag of a pull in flight alone', async () => {
-    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    mockGetMonthAggregate.mockResolvedValue(EMPTY_AGGREGATE);
     setupStores({ transactions: [TRANSACTION], status: 'refreshing' });
     const { result } = await renderHook(() => useTransactions());
     await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
@@ -670,7 +843,7 @@ describe('useTransactions query ownership', () => {
   });
 
   it('revalidates the visible snapshot and totals when the screen regains focus', async () => {
-    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    mockGetMonthAggregate.mockResolvedValue(EMPTY_AGGREGATE);
     transactionStoreState = {
       ...transactionStoreState,
       transactions: [TRANSACTION],
@@ -678,7 +851,7 @@ describe('useTransactions query ownership', () => {
     };
     await renderHook(() => useTransactions());
 
-    await waitFor(() => expect(getPeriodTotals).toHaveBeenCalledTimes(2));
+    await waitFor(() => expectFullTotalsLoads(1));
     expect(mockFocusEffectCallback).toBeDefined();
 
     let firstCleanup: void | (() => void) = undefined;
@@ -687,14 +860,15 @@ describe('useTransactions query ownership', () => {
     });
     await act(() => firstCleanup?.());
     refresh.mockClear();
-    jest.mocked(getPeriodTotals).mockClear();
+    mockGetMonthAggregate.mockClear();
+    mockGetScopedTotals.mockClear();
 
     await act(() => {
       mockFocusEffectCallback?.();
     });
 
     expect(refresh).not.toHaveBeenCalled();
-    expect(getPeriodTotals).not.toHaveBeenCalled();
+    expect(mockGetMonthAggregate).not.toHaveBeenCalled();
 
     await act(async () => {
       await mockInteractionTasks[1]?.callback();
@@ -702,7 +876,7 @@ describe('useTransactions query ownership', () => {
 
     await waitFor(() => {
       expect(refresh).toHaveBeenCalledTimes(1);
-      expect(getPeriodTotals).toHaveBeenCalledTimes(2);
+      expectFullTotalsLoads(1);
     });
   });
 
@@ -732,7 +906,7 @@ describe('useTransactions query ownership', () => {
   });
 
   it('skips revalidation when rows and totals change while focus work is pending', async () => {
-    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    mockGetMonthAggregate.mockResolvedValue(EMPTY_AGGREGATE);
     transactionStoreState = {
       ...transactionStoreState,
       transactions: [TRANSACTION],
@@ -740,14 +914,15 @@ describe('useTransactions query ownership', () => {
     };
     await renderHook(() => useTransactions());
 
-    await waitFor(() => expect(getPeriodTotals).toHaveBeenCalledTimes(2));
+    await waitFor(() => expectFullTotalsLoads(1));
     let firstCleanup: void | (() => void) = undefined;
     await act(() => {
       firstCleanup = mockFocusEffectCallback?.();
       firstCleanup?.();
     });
     refresh.mockClear();
-    jest.mocked(getPeriodTotals).mockClear();
+    mockGetMonthAggregate.mockClear();
+    mockGetScopedTotals.mockClear();
 
     await act(() => {
       mockFocusEffectCallback?.();
@@ -759,11 +934,15 @@ describe('useTransactions query ownership', () => {
     };
     await act(() => {
       const totalsStore = useTransactionsScreenStore.getState();
-      const requestId = totalsStore.beginTotalsRequest('2026-07', true);
+      const julyKey = getTransactionQueryKey(JULY_QUERY);
+      const requestId = totalsStore.beginTotalsRequest(julyKey, '2026-07', true);
       useTransactionsState.getState().beginTotalsLoad(true);
-      totalsStore.resolveTotals('2026-07', requestId, {
+      totalsStore.resolveTotals(julyKey, requestId, {
         current: EMPTY_TOTALS,
         previous: EMPTY_TOTALS,
+        days: [],
+        matchCount: 0,
+        matchNetEgp: 0,
       });
       useTransactionsState.getState().resolveTotalsLoad();
     });
@@ -773,7 +952,7 @@ describe('useTransactions query ownership', () => {
     });
 
     expect(refresh).not.toHaveBeenCalled();
-    expect(getPeriodTotals).not.toHaveBeenCalled();
+    expect(mockGetMonthAggregate).not.toHaveBeenCalled();
   });
 
   it('still revalidates after pagination changes the rows without replacing the snapshot', async () => {
@@ -826,7 +1005,7 @@ describe('useTransactions query ownership', () => {
   });
 
   it('cancels pending focus revalidation when the screen blurs', async () => {
-    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    mockGetMonthAggregate.mockResolvedValue(EMPTY_AGGREGATE);
     transactionStoreState = {
       ...transactionStoreState,
       transactions: [TRANSACTION],
@@ -834,9 +1013,10 @@ describe('useTransactions query ownership', () => {
     };
     await renderHook(() => useTransactions());
 
-    await waitFor(() => expect(getPeriodTotals).toHaveBeenCalledTimes(2));
+    await waitFor(() => expectFullTotalsLoads(1));
     refresh.mockClear();
-    jest.mocked(getPeriodTotals).mockClear();
+    mockGetMonthAggregate.mockClear();
+    mockGetScopedTotals.mockClear();
 
     let cleanup: void | (() => void) = undefined;
     await act(() => {
@@ -849,7 +1029,7 @@ describe('useTransactions query ownership', () => {
 
     expect(mockInteractionTasks[0]?.cancel).toHaveBeenCalledTimes(1);
     expect(refresh).not.toHaveBeenCalled();
-    expect(getPeriodTotals).not.toHaveBeenCalled();
+    expect(mockGetMonthAggregate).not.toHaveBeenCalled();
   });
 
   it('tracks scrolling without publishing offsets until the screen blurs', async () => {
@@ -953,7 +1133,7 @@ describe('useTransactions query ownership', () => {
       snapshotKey: undefined,
       status: 'firstLoadError',
     });
-    jest.mocked(getPeriodTotals).mockRejectedValue(new Error('totals unavailable'));
+    mockGetMonthAggregate.mockRejectedValue(new Error('totals unavailable'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = await renderHook(() => useTransactions());
@@ -966,7 +1146,7 @@ describe('useTransactions query ownership', () => {
 
   it('distinguishes a first totals load failure from a refresh failure', async () => {
     setupStores({ transactions: [TRANSACTION], status: 'ready' });
-    jest.mocked(getPeriodTotals).mockRejectedValue(new Error('totals unavailable'));
+    mockGetMonthAggregate.mockRejectedValue(new Error('totals unavailable'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = await renderHook(() => useTransactions());
@@ -978,7 +1158,7 @@ describe('useTransactions query ownership', () => {
 
   it('floats the account lookup error over a row with an unresolved account and retries the lookup', async () => {
     setupStores({ transactions: [TRANSACTION], status: 'ready' }, { accountLookupError: true });
-    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    mockGetMonthAggregate.mockResolvedValue(EMPTY_AGGREGATE);
 
     const { result } = await renderHook(() => useTransactions());
 
@@ -996,7 +1176,7 @@ describe('useTransactions query ownership', () => {
       { transactions: [TRANSACTION], status: 'ready' },
       { accountLookupError: true, accountLookupById: { 'account-1': makeTestAccount() } },
     );
-    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    mockGetMonthAggregate.mockResolvedValue(EMPTY_AGGREGATE);
 
     const { result } = await renderHook(() => useTransactions());
 
