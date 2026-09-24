@@ -18,7 +18,7 @@ Parent, on every body that has one:
 
 - **P1 Rules carried.** Every parent Rule that applies appears in this body's Rules in plain words.
 - **P2 Serves the parent.** The body serves one Building bullet of the parent, or one Acceptance line of a task parent, and builds nothing the parent excludes.
-- **P3 One PR.** Against the real files, the change is one PR a reviewer reads in one sitting, with one outcome. Bigger: an `ask` delta proposing its own breakdown. A body at Todo was chosen by the user for its own breakdown and is exempt.
+- **P3 Size.** Count per `.claude/skills/tickets/references/splitting.md` § Size gate: the map's file list, or your own when there is no map, every file a Rule or an Acceptance line implies included, with a line estimate per file from the code as it is; one outcome. Over the gate, or at it, is an `ask` delta proposing the seam. A body whose `Size:` line disagrees with the count, or lacks one, gets a mechanical delta with the counted list. Never take the body's figure as the count. A body at Todo was chosen by the user for its own breakdown and is exempt.
 - **P4 Header true to the code.** `Verify emulator` if and only if the change alters what a screen shows or what the app writes. Flags match the migrations, money paths, native config and copy the change touches.
 - **P5 Edges real.** Every Depends on names a dependency the code supports, written as `MA-nnn (#N)` with the number from the milestone sheet. A dependency the code shows and the header omits is a delta, including the parent's own Depends on for a chain's first link.
 

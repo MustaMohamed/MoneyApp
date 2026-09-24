@@ -71,6 +71,6 @@ The issue body is in the ticket standard: header line `Part of · Depends on · 
 ## Rules
 
 - The plan is a file on the branch, nowhere else: not in an issue comment beyond the one-line pointer, not in this conversation, not on main.
-- A plan that names more than 12 files outside tests, more than 8 steps, more than ~400 changed lines outside tests and generated files, or serves more than one product outcome, is a gap ("sized past one PR"), not a plan. `/tickets` is the only splitter. The conductor checks the first three mechanically before the commit; the reviewer is not the last line.
+- A plan that names more than 12 files outside tests, more than 8 steps, more than ~400 changed lines outside tests and generated files, or serves more than one product outcome, is a gap ("sized past one PR"), not a plan; the definition is `.claude/skills/tickets/references/splitting.md` § Size gate, counted at `/tickets` and `/issue-review` before any ticket reaches here. `/tickets` is the only splitter. The conductor checks the first three mechanically before the commit; the reviewer is not the last line. A return here names, in the comment, the files the ticket's `Size:` line missed.
 - The planner names files and symbols it opened; a guessed path is a finding at review and a defect at delivery.
 - One planner, one reviewer per round. No panel; the ticket standard already bounds the size a panel was for.
