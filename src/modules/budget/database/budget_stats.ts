@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { REPORTING_SIGN_SQL } from '@/modules/transactions/database/reporting_sign';
 
-// Net spend per (category, month); credits on credit-card accounts subtract from expenses.
+// Net spend per (category, month).
 export async function getCategorySpendByMonth(
   db: SQLiteDatabase,
   yearMonths: string[],

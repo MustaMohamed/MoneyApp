@@ -2,7 +2,6 @@ import Database from 'better-sqlite3';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
-import { getMonthExpenseStats, getPeriodTotals } from '@/database/transactions';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   getBudgetSpendByMonth,
@@ -14,6 +13,10 @@ import {
   getDashboardTransactionFactRows,
   resolveDashboardMonthWindow,
 } from '@/modules/dashboard/database/dashboard_snapshot';
+import {
+  getMonthExpenseStats,
+  getPeriodTotals,
+} from '@/modules/transactions/database/transactions';
 import type {
   LedgerAccountSnapshot,
   TransactionPolicyCommand,
@@ -149,6 +152,14 @@ const TRANSACTIONS: Transaction[] = [
   }),
 ];
 
+const SEEDED_ROW_BY_CLASS = {
+  expense: 'tx_expense',
+  income: 'tx_income',
+  card_credit: 'tx_card_credit',
+  transfer: 'tx_transfer',
+  cc_payment: 'tx_cc_payment',
+} satisfies Record<TransactionReportingClass, string>;
+
 function snapshotOf(accountId: string): LedgerAccountSnapshot {
   const account = ACCOUNTS.find((candidate) => candidate.id === accountId);
   if (!account) throw new Error(`unseeded account ${accountId}`);
@@ -250,14 +261,11 @@ afterAll(() => {
 describe('every query on the reporting sign agrees with the domain classifier', () => {
   it('seeds one row of every reporting class', () => {
     expect(new Set(FOLDED.map((entry) => entry.reportingClass))).toEqual(
-      new Set<TransactionReportingClass>([
-        'expense',
-        'income',
-        'card_credit',
-        'transfer',
-        'cc_payment',
-      ]),
+      new Set(Object.keys(SEEDED_ROW_BY_CLASS)),
     );
+    for (const [reportingClass, rowId] of Object.entries(SEEDED_ROW_BY_CLASS)) {
+      expect(FOLDED.find((entry) => entry.row.id === rowId)?.reportingClass).toBe(reportingClass);
+    }
     expect(expectedFoodSpend).toBeGreaterThan(0);
   });
 

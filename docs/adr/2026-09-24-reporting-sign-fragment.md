@@ -37,4 +37,4 @@ Multiplying by -1, 0 or 1 is exact in IEEE doubles, so every figure is the one t
 
 ## 5. A new sum by the rule outside the fragment is a defect
 
-A query that sums or counts by Out or In imports `REPORTING_SIGN_SQL`, from `@/modules/transactions/database/reporting_sign` or the `@/database/transactions` barrel. MA-102's month aggregate is the first consumer. `git grep -l "WHEN transaction_row.type = 'income' AND account_row.type = 'credit_card'" -- src` lists the fragment's file and nothing else.
+A query that sums or counts by Out or In imports `REPORTING_SIGN_SQL` from `@/modules/transactions/database/reporting_sign`. MA-102's month aggregate is the first consumer. `git grep -l "WHEN transaction_row.type = 'income' AND account_row.type = 'credit_card'" -- src` lists the fragment's file and nothing else, but it catches that one spelling of the Out rule only; the agreement suite is what ties the six named queries to the classifier.
