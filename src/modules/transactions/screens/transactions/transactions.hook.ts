@@ -11,7 +11,7 @@ import {
   mergeAccountsById,
 } from '@/modules/accounts/store/account_lookup.helpers';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { getPeriodTotals } from '@/modules/transactions/database/transactions';
+import { getTransactionMonthAggregate } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { resolveTransactionDeleteError } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
@@ -121,43 +121,6 @@ export function useTransactions() {
   const periodRange = useMemo(() => resolvePeriod(period), [period]);
   const previousPeriodRange = useMemo(() => resolvePeriod(previousPeriod(period)), [period]);
 
-  const loadTotals = useCallback(
-    async (preserveData = false, shouldApply: () => boolean = () => true) => {
-      const targetYearMonth = period.yearMonth;
-      if (!shouldApply()) return;
-      const hasPreservedData = preserveData && hasTotalsForMonth(targetYearMonth);
-      const requestId = beginTotalsRequest(targetYearMonth, preserveData);
-      beginTotalsLoad(hasPreservedData);
-      try {
-        const db = await getDb();
-        const current = await getPeriodTotals(db, periodRange);
-        const previous = await getPeriodTotals(db, previousPeriodRange);
-        if (shouldApply() && resolveTotals(targetYearMonth, requestId, { current, previous })) {
-          resolveTotalsLoad();
-        }
-      } catch (err) {
-        console.error('[transactions] loadTotals failed:', err);
-        if (shouldApply() && failTotals(targetYearMonth, requestId)) {
-          failTotalsLoad(hasTotalsForMonth(targetYearMonth));
-        }
-      }
-    },
-    [
-      beginTotalsRequest,
-      beginTotalsLoad,
-      failTotals,
-      failTotalsLoad,
-      hasTotalsForMonth,
-      period.yearMonth,
-      periodRange,
-      previousPeriodRange,
-      resolveTotals,
-      resolveTotalsLoad,
-    ],
-  );
-  const loadTotalsRef = useRef(loadTotals);
-  loadTotalsRef.current = loadTotals;
-
   const transactionQuery = useMemo(() => {
     const trimmed = debouncedSearch.trim();
     return {
@@ -172,6 +135,59 @@ export function useTransactions() {
     () => getTransactionQueryKey(transactionQuery),
     [transactionQuery],
   );
+
+  const loadTotals = useCallback(
+    async (preserveData = false, shouldApply: () => boolean = () => true) => {
+      const targetYearMonth = period.yearMonth;
+      const targetQueryKey = activeQueryKey;
+      if (!shouldApply()) return;
+      const hasPreservedData = preserveData && hasTotalsForMonth(targetYearMonth);
+      const requestId = beginTotalsRequest(targetQueryKey, targetYearMonth, preserveData);
+      beginTotalsLoad(hasPreservedData);
+      try {
+        const db = await getDb();
+        const month = await getTransactionMonthAggregate(db, transactionQuery);
+        const previous = await getTransactionMonthAggregate(db, {
+          dateFrom: previousPeriodRange.from,
+          dateTo: previousPeriodRange.to,
+          accountIds: transactionQuery.accountIds,
+        });
+        if (
+          shouldApply() &&
+          resolveTotals(targetQueryKey, requestId, {
+            current: month.scoped,
+            previous: previous.scoped,
+            days: month.days,
+            matchCount: month.matchCount,
+            matchNetEgp: month.matchNetEgp,
+          })
+        ) {
+          resolveTotalsLoad();
+        }
+      } catch (err) {
+        console.error('[transactions] loadTotals failed:', err);
+        if (shouldApply() && failTotals(targetQueryKey, requestId)) {
+          failTotalsLoad(hasTotalsForMonth(targetYearMonth));
+        }
+      }
+    },
+    [
+      activeQueryKey,
+      beginTotalsRequest,
+      beginTotalsLoad,
+      failTotals,
+      failTotalsLoad,
+      hasTotalsForMonth,
+      period.yearMonth,
+      previousPeriodRange,
+      resolveTotals,
+      resolveTotalsLoad,
+      transactionQuery,
+    ],
+  );
+  const loadTotalsRef = useRef(loadTotals);
+  loadTotalsRef.current = loadTotals;
+
   const activeQueryKeyRef = useRef(activeQueryKey);
   activeQueryKeyRef.current = activeQueryKey;
   const hasCurrentSnapshot = snapshotKey === activeQueryKey;
@@ -250,7 +266,7 @@ export function useTransactions() {
     return () => {
       cancelled = true;
     };
-  }, [loadTotals, mutationVersion, period.yearMonth]);
+  }, [activeQueryKey, loadTotals, mutationVersion, period.yearMonth]);
 
   useFocusEffect(
     useCallback(() => {
@@ -265,13 +281,12 @@ export function useTransactions() {
         focusTransactionState.snapshotKey === focusQueryKey &&
         focusTransactionState.queryKey === focusQueryKey &&
         focusTransactionState.status !== 'refreshing';
-      const focusYearMonth = useTransactionsScreenStore.getState().period.yearMonth;
       const focusTotalsState = useTransactionsScreenStore.getState();
       const focusTotalsUiState = useTransactionsState.getState();
       const focusTotalsRequestId = focusTotalsState.totalsRequestId;
       const shouldRefreshTotals =
         !isFirstFocus &&
-        focusTotalsState.totalsYearMonth === focusYearMonth &&
+        focusTotalsState.totalsQueryKey === focusQueryKey &&
         focusTotalsUiState.totalsStatus !== 'initialLoading' &&
         focusTotalsUiState.totalsStatus !== 'refreshing';
       attemptScrollRestoreRef.current();
@@ -291,7 +306,7 @@ export function useTransactions() {
         const totalsState = useTransactionsScreenStore.getState();
         const totalsAreUnchanged =
           shouldRefreshTotals &&
-          totalsState.totalsYearMonth === focusYearMonth &&
+          totalsState.totalsQueryKey === focusQueryKey &&
           totalsState.totalsRequestId === focusTotalsRequestId;
         if (totalsAreUnchanged) void loadTotalsRef.current(true);
       });
