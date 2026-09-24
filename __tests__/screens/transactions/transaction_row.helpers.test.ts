@@ -76,6 +76,8 @@ describe('buildTransactionRowPresentation, one case per type', () => {
     expect(row).toMatchObject({
       title: 'Groceries',
       caption: 'Carrefour · 6:40 PM',
+      captionLead: 'Carrefour',
+      captionTime: '6:40 PM',
       primaryAmount: '−1,240',
       secondaryLine: 'EGP',
       glyphName: 'cart',
@@ -102,6 +104,7 @@ describe('buildTransactionRowPresentation, one case per type', () => {
     expect(row).toMatchObject({
       title: 'Salary',
       caption: '9:15 AM',
+      captionTime: '9:15 AM',
       primaryAmount: '+22,300',
       secondaryLine: 'EGP',
       glyphName: 'cash',
@@ -229,6 +232,7 @@ describe('buildTransactionRowPresentation, amounts and captions', () => {
       caption: 'Figma · 11:20 AM',
       primaryAmount: '−15.00',
       secondaryLine: '≈ 735 EGP @ 49.00',
+      accessibilityLabel: 'Groceries, Payoneer, Figma · 11:20 AM, −15.00 USD, ≈ 735 EGP @ 49.00',
     });
   });
 
@@ -329,7 +333,7 @@ describe('buildTransactionRowPresentation, the spoken account', () => {
         account: cib,
         toAccount: payoneer,
       }).accessibilityLabel,
-    ).toBe('Transfer, CIB Current → Payoneer, CIB Current → Payoneer · 12:00 PM, 100 EGP');
+    ).toBe('Transfer, CIB Current → Payoneer · 12:00 PM, 100 EGP');
   });
 
   it('draws an archived account filled in its colour and speaks its name', () => {
@@ -381,9 +385,12 @@ describe('buildTransactionRowPresentation, the caption override', () => {
     expect(overridden.accessibilityLabel).toBe(
       shipped.accessibilityLabel.replace(shipped.caption, overridden.caption),
     );
+    expect(overridden).toMatchObject({ captionLead: 'From CIB Current', captionTime: '18 Sep' });
     expect({
       ...overridden,
       caption: shipped.caption,
+      captionLead: shipped.captionLead,
+      captionTime: shipped.captionTime,
       accessibilityLabel: shipped.accessibilityLabel,
     }).toEqual(shipped);
   });
@@ -442,6 +449,43 @@ describe('buildTransactionRowPresentation, ownership', () => {
     expect(row.accessibilityLabel).toBe(
       `Groceries, CIB Current, 12:00 PM, −100 EGP, ${Strings.typeBadgeCommitment}`,
     );
+  });
+});
+
+describe('buildTransactionRowPresentation, the destination line and the spoken pair', () => {
+  it('reads the code for a same-currency card payment and for an unresolved destination', () => {
+    const payment = makeTestTransaction({
+      type: TransactionType.CCPayment,
+      amount: 3_000,
+      egp_amount: 3_000,
+      to_amount: 3_000,
+      account_id: cib.id,
+      to_account_id: visa.id,
+      category_id: null,
+    });
+
+    expect(
+      buildTransactionRowPresentation({ tx: payment, account: cib, toAccount: visa }).secondaryLine,
+    ).toBe('EGP');
+    expect(buildTransactionRowPresentation({ tx: payment, account: cib }).secondaryLine).toBe(
+      'EGP',
+    );
+  });
+
+  it('speaks the pair again when a caller replaces the lead', () => {
+    const payment = makeTestTransaction({
+      type: TransactionType.CCPayment,
+      account_id: cib.id,
+      to_account_id: visa.id,
+      category_id: null,
+    });
+
+    expect(
+      buildTransactionRowPresentation(
+        { tx: payment, account: cib, toAccount: visa },
+        { lead: 'From CIB Current', time: '18 Sep' },
+      ).accessibilityLabel,
+    ).toBe(`${Strings.addTxTypeCCPayment}, CIB Current → Visa, From CIB Current · 18 Sep, 100 EGP`);
   });
 });
 

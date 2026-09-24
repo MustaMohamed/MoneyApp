@@ -50,7 +50,7 @@ export function AccountActivityCard({
       )}
       <DetailRowsCard>
         {body === 'loading' ? (
-          <TransactionRowsSkeleton rows={SKELETON_ROWS} showDateHeader={false} />
+          <TransactionRowsSkeleton rows={SKELETON_ROWS} showDateHeader={false} showTile={false} />
         ) : body === 'error' ? (
           <LoadErrorAlert
             mode="inline"

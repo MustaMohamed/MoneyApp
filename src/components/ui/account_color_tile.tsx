@@ -11,7 +11,7 @@ interface AccountColorTileProps {
   type: AccountType;
   size: number;
   glyphSize: number;
-  /** C4's archived treatment: a ring in the account colour instead of a fill. */
+  /** A ring instead of a fill: C4's archived account, and a transaction row's deleted counterparty. */
   hollow?: boolean;
 }
 

@@ -17,9 +17,10 @@ import type { Transaction } from '../../../entities/transaction.entity';
 import { useRowPressScale } from './transaction_row.anim';
 import {
   buildTransactionRowPresentation,
-  type RowTile,
+  type RowTileSet,
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
+  TRANSACTION_ROW_CAPTION_SEPARATOR,
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_DUAL_OFFSET,
   TRANSACTION_ROW_DUAL_RING,
@@ -47,29 +48,32 @@ interface BodyProps {
 
 const DUAL_TILE_TOP = (Size.accountTile - Size.dualTile) / 2;
 
-function RowTiles({ tiles }: { tiles: RowTile[] }): React.ReactElement | null {
+function RowTiles({ tiles }: { tiles: RowTileSet }): React.ReactElement | null {
   if (tiles.length === 0) return null;
-  const [first, second] = tiles;
   if (tiles.length === 1) {
+    const [only] = tiles;
     return (
       <View testID="transaction-row-tiles">
         <AccountColorTile
-          color={first.color}
-          type={first.type}
-          hollow={first.hollow}
+          color={only.color}
+          type={only.type}
+          hollow={only.hollow}
           size={Size.accountTile}
           glyphSize={Size.iconXs}
         />
       </View>
     );
   }
+  const [first, second] = tiles;
   return (
+    // The ring takes no layout, as the frame's box-shadow does: it draws past the box's right edge.
     <View
       testID="transaction-row-tiles"
       style={{
-        width: TRANSACTION_ROW_DUAL_OFFSET + Size.dualTile + TRANSACTION_ROW_DUAL_RING,
+        width: TRANSACTION_ROW_DUAL_OFFSET + Size.dualTile,
         height: Size.accountTile,
         flexShrink: 0,
+        overflow: 'visible',
       }}
     >
       <View style={{ position: 'absolute', top: DUAL_TILE_TOP, left: 0 }}>
@@ -153,17 +157,35 @@ export function TransactionRowBody({ presentation, onPress }: BodyProps): React.
                 </Text>
               ) : null}
             </View>
-            <Text
-              className="font-inter text-content-secondary"
-              style={{
-                fontSize: TRANSACTION_ROW_CAPTION_FONT_SIZE,
-                lineHeight: lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
-                marginTop: TRANSACTION_ROW_LINE_GAP,
-              }}
-              numberOfLines={1}
-            >
-              {presentation.caption}
-            </Text>
+            {/* The lead clips first; the time never ellipsizes. */}
+            <View style={{ flexDirection: 'row', marginTop: TRANSACTION_ROW_LINE_GAP }}>
+              {presentation.captionLead === undefined ? null : (
+                <Text
+                  className="font-inter text-content-secondary"
+                  style={{
+                    fontSize: TRANSACTION_ROW_CAPTION_FONT_SIZE,
+                    lineHeight: lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+                    flexShrink: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {presentation.captionLead}
+                </Text>
+              )}
+              <Text
+                className="font-inter text-content-secondary"
+                style={{
+                  fontSize: TRANSACTION_ROW_CAPTION_FONT_SIZE,
+                  lineHeight: lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+                  flexShrink: 0,
+                }}
+                numberOfLines={1}
+              >
+                {presentation.captionLead === undefined
+                  ? presentation.captionTime
+                  : `${TRANSACTION_ROW_CAPTION_SEPARATOR}${presentation.captionTime}`}
+              </Text>
+            </View>
           </View>
           <View
             testID="transaction-row-value-track"

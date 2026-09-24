@@ -2,7 +2,7 @@ import { SkeletonGroup } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Size, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, lineHeightFor } from '@/constants/theme';
 
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
@@ -18,11 +18,14 @@ const DEFAULT_ROWS = 5;
 interface Props {
   rows?: number;
   showDateHeader?: boolean;
+  /** Off where the loaded rows draw no account tile, the account detail's activity card. */
+  showTile?: boolean;
 }
 
 export function TransactionRowsSkeleton({
   rows = DEFAULT_ROWS,
   showDateHeader = true,
+  showTile = true,
 }: Props): React.ReactElement {
   const rowIndexes = Array.from({ length: rows }, (_, index) => index);
   return (
@@ -41,11 +44,16 @@ export function TransactionRowsSkeleton({
             style={{ height: TRANSACTION_ROW_HEIGHT, justifyContent: 'center' }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-3">
-              <SkeletonGroup.Item
-                testID="transaction-row-skeleton-icon"
-                className="rounded-lg"
-                style={{ width: Size.accountTile, height: Size.accountTile }}
-              />
+              {showTile ? (
+                <SkeletonGroup.Item
+                  testID="transaction-row-skeleton-icon"
+                  style={{
+                    width: Size.accountTile,
+                    height: Size.accountTile,
+                    borderRadius: Radius.sm,
+                  }}
+                />
+              ) : null}
               <View style={{ flex: 1 }}>
                 <SkeletonGroup.Item
                   className={row % 2 === 0 ? 'w-32 rounded-md' : 'w-24 rounded-md'}

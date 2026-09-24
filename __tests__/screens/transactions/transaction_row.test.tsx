@@ -139,12 +139,14 @@ describe('TransactionRow ownership actions', () => {
       flex: 1,
       minWidth: 0,
     });
-    const caption = screen.getByText(/^Split with Omar at the counter · /);
-    expect(caption.props.numberOfLines).toBe(1);
-    expect(caption).toHaveStyle({
+    const lead = screen.getByText('Split with Omar at the counter');
+    expect(lead.props.numberOfLines).toBe(1);
+    expect(lead).toHaveStyle({
       fontSize: TRANSACTION_ROW_CAPTION_FONT_SIZE,
       lineHeight: lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+      flexShrink: 1,
     });
+    expect(screen.getByText(/· \d{1,2}:\d{2} [AP]M$/)).toHaveStyle({ flexShrink: 0 });
     expect(TRANSACTION_ROW_HEIGHT).toBe(ms(60));
   });
 

@@ -231,26 +231,33 @@ describe('buildActivityRowPresentation', () => {
   });
 
   it.each([
-    ['a categorised expense', { tx: expense, account: cib, category }, cib.id],
+    ['a categorised expense', { tx: expense, account: cib, category }, cib.id, ''],
     [
       'a card payment on the paid card',
       { tx: cardPayment, account: cib, toAccount: visa },
       visa.id,
+      'CIB Current → Visa, ',
     ],
-  ])('changes the caption and the tiles of %s, and nothing else', (_, input, openAccountId) => {
-    const shipped = buildTransactionRowPresentation(input);
-    const activity = buildActivityRowPresentation(input, now, openAccountId);
+  ])(
+    'changes the caption and the tiles of %s, and nothing else',
+    (_, input, openAccountId, spokenPair) => {
+      const shipped = buildTransactionRowPresentation(input);
+      const activity = buildActivityRowPresentation(input, now, openAccountId);
 
-    expect(activity.accessibilityLabel).toBe(
-      shipped.accessibilityLabel.replace(shipped.caption, activity.caption),
-    );
-    expect({
-      ...activity,
-      caption: shipped.caption,
-      tiles: shipped.tiles,
-      accessibilityLabel: shipped.accessibilityLabel,
-    }).toEqual(shipped);
-  });
+      // A replaced lead no longer speaks the pair, so the label names it on its own.
+      expect(activity.accessibilityLabel).toBe(
+        shipped.accessibilityLabel.replace(shipped.caption, `${spokenPair}${activity.caption}`),
+      );
+      expect({
+        ...activity,
+        caption: shipped.caption,
+        captionLead: shipped.captionLead,
+        captionTime: shipped.captionTime,
+        tiles: shipped.tiles,
+        accessibilityLabel: shipped.accessibilityLabel,
+      }).toEqual(shipped);
+    },
+  );
 });
 
 describe('resolveActivityCardView', () => {

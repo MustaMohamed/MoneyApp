@@ -1,5 +1,6 @@
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import {
   buildTransactionRowPresentation,
   resolveRowTile,
@@ -64,11 +65,10 @@ export function buildActivityRowPresentation(
     tx.type === TransactionType.CCPayment && tx.to_account_id === openAccountId
       ? Strings.accountActivityFromAccount(resolveAccountName(account))
       : undefined;
-  const twoAccount = tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment;
   const other = tx.account_id === openAccountId ? toAccount : account;
 
   return {
     ...buildTransactionRowPresentation(input, { lead, time }),
-    tiles: twoAccount ? [resolveRowTile(other)] : [],
+    tiles: requiresDestination(tx.type) ? [resolveRowTile(other)] : [],
   };
 }

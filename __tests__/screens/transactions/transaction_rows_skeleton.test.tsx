@@ -55,4 +55,13 @@ describe('TransactionRowsSkeleton', () => {
       lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE),
     ]);
   });
+
+  it('draws no tile when the loaded rows draw none', async () => {
+    const { queryAllByTestId, getAllByTestId } = await render(
+      <TransactionRowsSkeleton showTile={false} />,
+    );
+
+    expect(queryAllByTestId('transaction-row-skeleton-icon')).toHaveLength(0);
+    expect(getAllByTestId('transaction-row-skeleton')).toHaveLength(5);
+  });
 });
