@@ -15,6 +15,7 @@ function input(
     hasLoadedOnce: true,
     paginationError: false,
     accountLookupError: false,
+    userRefreshing: false,
     ...overrides,
   };
 }
@@ -39,8 +40,18 @@ describe('buildTransactionsPresentation', () => {
     ],
     [
       'empty refresh',
-      { listStatus: 'refreshing', rowCount: 0 },
+      { listStatus: 'refreshing', rowCount: 0, userRefreshing: true },
       { showEmptyState: true, showRefreshIndicator: true },
+    ],
+    [
+      'refresh the user did not start',
+      { listStatus: 'refreshing', userRefreshing: false },
+      { showRefreshIndicator: false },
+    ],
+    [
+      'first-load retry the user tapped',
+      { listStatus: 'initialLoading', rowCount: 0, hasLoadedOnce: false, userRefreshing: true },
+      { showRefreshIndicator: false, showInitialSkeleton: true },
     ],
     [
       'first-load failure',

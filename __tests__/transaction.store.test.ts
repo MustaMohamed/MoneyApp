@@ -739,3 +739,109 @@ describe('transactionStore — race guard', () => {
     consoleSpy.mockRestore();
   });
 });
+
+describe('transactionStore refresh window (MA-089)', () => {
+  function rowsOf(count: number): Transaction[] {
+    return Array.from({ length: count }, (_, i) => makeTransaction({ id: `t${i}` }));
+  }
+
+  function idsOf(count: number): string[] {
+    return rowsOf(count).map((t) => t.id);
+  }
+
+  async function loadThreePages(repo: MockTransactionRepository) {
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+    await useStore.getState().loadMore();
+    await useStore.getState().loadMore();
+    return useStore;
+  }
+
+  const flushRefresh = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+  it('refetches a partial last page in whole pages and keeps hasMore false', async () => {
+    const repo = makeRepo(rowsOf(75));
+    const useStore = await loadThreePages(repo);
+    expect(useStore.getState().transactions).toHaveLength(75);
+    expect(useStore.getState().hasMore).toBe(false);
+    repo.getAll.mockClear();
+
+    await useStore.getState().refresh();
+
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+    expect(repo.getAll).toHaveBeenCalledWith({ limit: 90, offset: 0 });
+    expect(useStore.getState().transactions.map((t) => t.id)).toEqual(idsOf(75));
+    expect(useStore.getState().hasMore).toBe(false);
+  });
+
+  it('keeps the loaded rows when a refresh fails and retries the whole window', async () => {
+    const repo = makeRepo(rowsOf(95));
+    const useStore = await loadThreePages(repo);
+    repo.getAll.mockRejectedValueOnce(new Error('refresh failed'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(useStore.getState().refresh()).rejects.toThrow('refresh failed');
+
+    expect(useStore.getState().transactions.map((t) => t.id)).toEqual(idsOf(90));
+    expect(useStore.getState().status).toBe('refreshErrorWithData');
+
+    repo.getAll.mockClear();
+    await useStore.getState().retry();
+    consoleSpy.mockRestore();
+
+    expect(repo.getAll).toHaveBeenCalledWith({ limit: 90, offset: 0 });
+    expect(useStore.getState()).toMatchObject({ status: 'ready', hasMore: true });
+    expect(useStore.getState().transactions.map((t) => t.id)).toEqual(idsOf(90));
+  });
+
+  it('refreshes the loaded window but resets a new query to one page', async () => {
+    const repo = makeRepo(rowsOf(95));
+    const useStore = await loadThreePages(repo);
+
+    await useStore.getState().refresh();
+    expect(repo.getAll).toHaveBeenLastCalledWith({ limit: 90, offset: 0 });
+
+    await useStore.getState().setQuery({ type: TransactionType.Income });
+    expect(repo.getAll).toHaveBeenLastCalledWith({
+      type: TransactionType.Income,
+      limit: PAGE_SIZE,
+      offset: 0,
+    });
+  });
+
+  it('keeps every loaded row across an edit made from the list', async () => {
+    const repo = makeRepo(rowsOf(95));
+    const useStore = await loadThreePages(repo);
+
+    await useStore.getState().updateTransaction('t60', {
+      amount: 250,
+      currency: Currency.EGP,
+      egp_amount: 250,
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+    await flushRefresh();
+
+    const { transactions } = useStore.getState();
+    expect(transactions.map((t) => t.id)).toEqual(idsOf(90));
+    expect(transactions.find((t) => t.id === 't60')?.amount).toBe(250);
+  });
+
+  it('keeps the loaded row count across an add made from the list', async () => {
+    const repo = makeRepo(rowsOf(95));
+    const useStore = await loadThreePages(repo);
+
+    await useStore.getState().addTransaction({
+      type: TransactionType.Expense,
+      amount: 50,
+      currency: Currency.EGP,
+      egp_amount: 50,
+      account_id: 'acc-1',
+      category_id: 'cat_food',
+    });
+    await flushRefresh();
+
+    expect(useStore.getState().transactions.map((t) => t.id)).toEqual(['tx-new', ...idsOf(89)]);
+    expect(useStore.getState().hasMore).toBe(true);
+  });
+});

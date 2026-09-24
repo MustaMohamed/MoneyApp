@@ -109,11 +109,13 @@ export function useTransactions() {
   const setDraft = useFilterStore.getState().setDraft;
 
   const totalsStatus = useTransactionsState.useState.totalsStatus();
+  const userRefreshing = useTransactionsState.useState.userRefreshing();
   const beginTotalsLoad = useTransactionsState.getState().beginTotalsLoad;
   const resolveTotalsLoad = useTransactionsState.getState().resolveTotalsLoad;
   const failTotalsLoad = useTransactionsState.getState().failTotalsLoad;
   const activateScrollQuery = useTransactionsState.getState().activateScrollQuery;
   const setScrollOffset = useTransactionsState.getState().setScrollOffset;
+  const setUserRefreshing = useTransactionsState.getState().setUserRefreshing;
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const periodRange = useMemo(() => resolvePeriod(period), [period]);
@@ -342,11 +344,16 @@ export function useTransactions() {
   }, []);
 
   const onRefresh = useCallback(async () => {
-    await Promise.all([
-      refresh().catch((err) => console.error('[transactions] refresh failed:', err)),
-      loadTotals(true),
-    ]);
-  }, [loadTotals, refresh]);
+    setUserRefreshing(true);
+    try {
+      await Promise.all([
+        refresh().catch((err) => console.error('[transactions] refresh failed:', err)),
+        loadTotals(true),
+      ]);
+    } finally {
+      setUserRefreshing(false);
+    }
+  }, [loadTotals, refresh, setUserRefreshing]);
 
   const previousLabel = useMemo(() => {
     const prev = previousPeriod(period);
@@ -362,6 +369,7 @@ export function useTransactions() {
     hasLoadedOnce: hasCurrentSnapshot,
     paginationError: hasCurrentSnapshot && paginationError,
     accountLookupError: showAccountLookupError,
+    userRefreshing,
   });
   const emptyVariant: EmptyVariant = !presentation.showEmptyState
     ? 'none'
@@ -395,24 +403,30 @@ export function useTransactions() {
     [displayTotals, loadTotals],
   );
   const retryFailedLoads = useCallback(async () => {
-    await Promise.all([
-      (listStatus === 'firstLoadError' || listStatus === 'refreshErrorWithData'
-        ? retry()
-        : Promise.resolve()
-      ).catch((error) => console.error('[transactions] retry failed:', error)),
-      displayTotalsStatus === 'firstLoadError' || displayTotalsStatus === 'refreshErrorWithData'
-        ? retryTotals()
-        : Promise.resolve(),
-      showAccountLookupError
-        ? loadAccountLookup(transactionAccountIds).catch(() => {})
-        : Promise.resolve(),
-    ]);
+    const retriesList = listStatus === 'firstLoadError' || listStatus === 'refreshErrorWithData';
+    if (retriesList) setUserRefreshing(true);
+    try {
+      await Promise.all([
+        (retriesList ? retry() : Promise.resolve()).catch((error) =>
+          console.error('[transactions] retry failed:', error),
+        ),
+        displayTotalsStatus === 'firstLoadError' || displayTotalsStatus === 'refreshErrorWithData'
+          ? retryTotals()
+          : Promise.resolve(),
+        showAccountLookupError
+          ? loadAccountLookup(transactionAccountIds).catch(() => {})
+          : Promise.resolve(),
+      ]);
+    } finally {
+      if (retriesList) setUserRefreshing(false);
+    }
   }, [
     displayTotalsStatus,
     listStatus,
     loadAccountLookup,
     retry,
     retryTotals,
+    setUserRefreshing,
     showAccountLookupError,
     transactionAccountIds,
   ]);

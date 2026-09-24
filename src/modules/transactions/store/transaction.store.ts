@@ -79,6 +79,9 @@ export function createTransactionStore(repo: ITransactionRepository) {
         pageRequestId++;
         const current = get();
         const canPreserve = preserveSnapshot && current.snapshotKey === key;
+        const limit = canPreserve
+          ? PAGE_SIZE * Math.max(1, Math.ceil(current.transactions.length / PAGE_SIZE))
+          : PAGE_SIZE;
 
         if (canPreserve) {
           set({
@@ -102,9 +105,9 @@ export function createTransactionStore(repo: ITransactionRepository) {
         }
 
         try {
-          const rows = await repo.getAll({ ...filters, limit: PAGE_SIZE, offset: 0 });
+          const rows = await repo.getAll({ ...filters, limit, offset: 0 });
           if (myId !== replaceRequestId || get().queryKey !== key) return;
-          const hasMore = rows.length === PAGE_SIZE;
+          const hasMore = rows.length === limit;
           set({
             transactions: rows,
             hasMore,
