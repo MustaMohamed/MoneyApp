@@ -517,6 +517,26 @@ describe('useTransactions query ownership', () => {
     expect(result.current.state.refreshing).toBe(false);
   });
 
+  it('MA-089: a totals-only Retry leaves the flag of a pull in flight alone', async () => {
+    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    setupStores({ transactions: [TRANSACTION], status: 'refreshing' });
+    const { result } = await renderHook(() => useTransactions());
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+
+    await act(() => {
+      useTransactionsState.getState().failTotalsLoad(true);
+      useTransactionsState.getState().setUserRefreshing(true);
+    });
+    expect(result.current.state.totalsStatus).toBe('refreshErrorWithData');
+    expect(result.current.state.refreshing).toBe(true);
+
+    await act(() => result.current.retryFailedLoads());
+
+    expect(retry).not.toHaveBeenCalled();
+    expect(useTransactionsState.getState().userRefreshing).toBe(true);
+    expect(result.current.state.refreshing).toBe(true);
+  });
+
   it('MA-089: holds three loaded pages and their offset across a detail round-trip', async () => {
     const julyKey = getTransactionQueryKey(JULY_QUERY);
     const loaded: Transaction[] = Array.from({ length: 90 }, (_, i) => ({

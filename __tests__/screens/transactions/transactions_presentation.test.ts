@@ -49,6 +49,11 @@ describe('buildTransactionsPresentation', () => {
       { showRefreshIndicator: false },
     ],
     [
+      'first-load retry the user tapped',
+      { listStatus: 'initialLoading', rowCount: 0, hasLoadedOnce: false, userRefreshing: true },
+      { showRefreshIndicator: false, showInitialSkeleton: true },
+    ],
+    [
       'first-load failure',
       { listStatus: 'firstLoadError', rowCount: 0, hasLoadedOnce: false },
       { showFirstLoadError: true, showEmptyState: false, loadErrorVariant: 'none' },

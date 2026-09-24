@@ -403,13 +403,13 @@ export function useTransactions() {
     [displayTotals, loadTotals],
   );
   const retryFailedLoads = useCallback(async () => {
-    setUserRefreshing(true);
+    const retriesList = listStatus === 'firstLoadError' || listStatus === 'refreshErrorWithData';
+    if (retriesList) setUserRefreshing(true);
     try {
       await Promise.all([
-        (listStatus === 'firstLoadError' || listStatus === 'refreshErrorWithData'
-          ? retry()
-          : Promise.resolve()
-        ).catch((error) => console.error('[transactions] retry failed:', error)),
+        (retriesList ? retry() : Promise.resolve()).catch((error) =>
+          console.error('[transactions] retry failed:', error),
+        ),
         displayTotalsStatus === 'firstLoadError' || displayTotalsStatus === 'refreshErrorWithData'
           ? retryTotals()
           : Promise.resolve(),
@@ -418,7 +418,7 @@ export function useTransactions() {
           : Promise.resolve(),
       ]);
     } finally {
-      setUserRefreshing(false);
+      if (retriesList) setUserRefreshing(false);
     }
   }, [
     displayTotalsStatus,
