@@ -6,6 +6,8 @@ export {
   getTransactionById,
   deleteTransactionRow,
   getPeriodTotals,
+  getTransactionMonthAggregate,
+  buildTransactionFilterSql,
   updateTransactionRow,
 } from '@/modules/transactions/database/transactions';
 export type {
@@ -13,5 +15,10 @@ export type {
   TransactionListQuery,
   UpdateTransactionInput,
   PeriodTotals,
+  TransactionMonthAggregate,
+  TransactionDayAggregate,
+  TransactionAggregateQuery,
+  TransactionListFilterInput,
+  TransactionFilterSql,
 } from '@/modules/transactions/database/transactions';
 export { REPORTING_SIGN_SQL } from '@/modules/transactions/database/reporting_sign';
