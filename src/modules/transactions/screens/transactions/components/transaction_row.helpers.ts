@@ -5,6 +5,13 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
+import {
+  AccentCCTokens,
+  AcctTokens,
+  CoreTokens,
+  GoldTokens,
+  InfoTokens,
+} from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -21,20 +28,18 @@ import { formatTime12h } from '@/utils/format_time_12h';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName =React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-export const TRANSACTION_ROW_ICON_SIZE = ms(36);
-export const TRANSACTION_ROW_VALUE_WIDTH = ms(120);
 export const TRANSACTION_ROW_HEIGHT = ms(60);
-export const TRANSACTION_ROW_NOTE_FONT_SIZE = Type.chip;
-export const TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE = Type.overline;
-export const TRANSACTION_ROW_NOTE_TRACK_HEIGHT = lineHeightFor(TRANSACTION_ROW_NOTE_FONT_SIZE);
-export const TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT = lineHeightFor(
-  TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
-);
-// 5, not the canvas's 6: at 6 the content column overflows ms(60)'s box in a ~358-367 dp band, where the row height rounds down faster than the type tracks.
-export const TRANSACTION_ROW_VERTICAL_PADDING = ms(5);
-export const TRANSACTION_ROW_CONTEXT_GAP = ms(2);
+export const TRANSACTION_ROW_TITLE_FONT_SIZE = Type.bodyStrong;
+export const TRANSACTION_ROW_CAPTION_FONT_SIZE = Type.micro;
+export const TRANSACTION_ROW_AMOUNT_FONT_SIZE = Type.bodyStrong;
+export const TRANSACTION_ROW_CODE_FONT_SIZE = Type.micro;
+export const TRANSACTION_ROW_LINE_GAP = ms(2);
+// A1 `.dual`: the second tile sits 16 in from the first, ringed in the row's background.
+export const TRANSACTION_ROW_DUAL_OFFSET = ms(16);
+export const TRANSACTION_ROW_DUAL_RING = ms(2);
+export const TRANSACTION_ROW_DUAL_RING_COLOR = CoreTokens.bg;
 // Mirrors TypeBadge's `sm` box (type_badge.tsx:28,46-49,81): its label line box plus the unscaled `py-[2px]` and 1 dp border it carries on each side.
 export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT = lineHeightFor(Type.compactBadge) + 2 * (2 + 1);
 
@@ -47,24 +52,50 @@ export interface TransactionRowPresentationInput {
   category?: Category;
 }
 
+export interface RowTile {
+  color: string | null;
+  type: AccountType;
+  hollow: boolean;
+}
+
+/** A caller's replacement for the caption's lead (the note, or from → to) and its time. */
+export interface TransactionRowCaption {
+  lead?: string;
+  time?: string;
+}
+
 export interface TransactionRowPresentation {
   title: string;
-  context: string;
+  caption: string;
   primaryAmount: string;
-  secondaryAmount?: string;
-  rateText?: string;
-  note?: string;
+  secondaryLine: string;
   ownershipLabel?: string;
   isCommitmentOwned: boolean;
-  iconName: IconName;
+  glyphName: IconName;
+  glyphColor: string;
   amountClassName: string;
-  iconBackgroundClassName: string;
-  timeText: string;
+  tiles: RowTile[];
   accessibilityLabel: string;
 }
 
 export function isCardCredit(tx: Transaction, account?: Account): boolean {
   return tx.type === TransactionType.Income && account?.type === AccountType.CreditCard;
+}
+
+function isTwoAccount(tx: Transaction): boolean {
+  return tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment;
+}
+
+/** An unresolved or deleted account draws the hollow graphite tile; an archived one stays filled. */
+export function resolveRowTile(account: Account | undefined): RowTile {
+  if (account === undefined || account.is_deleted === 1) {
+    return {
+      color: AcctTokens.graphite.rich,
+      type: account?.type ?? AccountType.Bank,
+      hollow: true,
+    };
+  }
+  return { color: account.color, type: account.type, hollow: false };
 }
 
 function titleFor(tx: Transaction, account?: Account, category?: Category): string {
@@ -74,20 +105,14 @@ function titleFor(tx: Transaction, account?: Account, category?: Category): stri
   return category?.name ?? Strings.uncategorized;
 }
 
-function contextFor(
-  tx: Transaction,
-  account?: Account,
-  toAccount?: Account,
-  category?: Category,
-): string {
-  const sourceName = resolveAccountName(account);
-  if (isCardCredit(tx, account)) {
-    return `${category?.name ?? Strings.uncategorized} · ${sourceName}`;
-  }
-  if (tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment) {
-    return `${sourceName} → ${resolveAccountName(toAccount)}`;
-  }
-  return sourceName;
+function accountPair(account?: Account, toAccount?: Account): string {
+  return `${resolveAccountName(account)} → ${resolveAccountName(toAccount)}`;
+}
+
+function leadFor(tx: Transaction, account?: Account, toAccount?: Account): string | undefined {
+  if (isTwoAccount(tx)) return accountPair(account, toAccount);
+  // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- a blank note leaves the time alone
+  return tx.note?.trim() || undefined;
 }
 
 function primaryAmountFor(tx: Transaction, cardCredit: boolean): string {
@@ -98,17 +123,19 @@ function primaryAmountFor(tx: Transaction, cardCredit: boolean): string {
         ? PLUS_SIGN
         : '';
   const { text, printsAsZero } = formatDisplayMagnitude(tx.amount, tx.currency);
-  const value = `${text} ${CURRENCY_CONFIG[tx.currency].code}`;
-  return signAmountText(value, cardCredit ? PLUS_SIGN : sign, printsAsZero);
+  return signAmountText(text, cardCredit ? PLUS_SIGN : sign, printsAsZero);
 }
 
-function destinationAmountFor(tx: Transaction, toAccount?: Account): string | undefined {
-  if (tx.type !== TransactionType.Transfer && tx.type !== TransactionType.CCPayment) {
-    if (tx.currency === Currency.EGP) return undefined;
-    return `≈ ${formatCurrencyAmount(tx.egp_amount, Currency.EGP)}`;
+function secondaryLineFor(tx: Transaction, toAccount?: Account): string {
+  const code = CURRENCY_CONFIG[tx.currency].code;
+  if (isTwoAccount(tx)) {
+    if (tx.to_amount === null) return code;
+    return `→ ${formatCurrencyAmount(tx.to_amount, toAccount?.currency ?? Currency.EGP)}`;
   }
-  if (tx.to_amount === null) return undefined;
-  return `→ ${formatCurrencyAmount(tx.to_amount, toAccount?.currency ?? Currency.EGP)}`;
+  if (tx.currency === Currency.EGP) return code;
+  const egp = `≈ ${formatCurrencyAmount(tx.egp_amount, Currency.EGP)}`;
+  if (tx.exchange_rate === null) return egp;
+  return `${egp} @ ${formatRateDisplayMagnitude(tx.exchange_rate).text}`;
 }
 
 function amountClassNameFor(tx: Transaction, cardCredit: boolean): string {
@@ -119,57 +146,68 @@ function amountClassNameFor(tx: Transaction, cardCredit: boolean): string {
   return 'text-accent-cc';
 }
 
-function iconBackgroundClassNameFor(tx: Transaction, cardCredit: boolean): string {
-  if (cardCredit) return 'bg-info/15';
-  if (tx.type === TransactionType.Income) return 'bg-success/15';
-  if (tx.type === TransactionType.Expense) return 'bg-danger/15';
-  if (tx.type === TransactionType.Transfer) return 'bg-info/15';
-  return 'bg-accent-cc/15';
-}
-
-function iconFor(tx: Transaction, cardCredit: boolean, category?: Category): IconName {
-  if (cardCredit) return 'credit-card-refund';
-  if (tx.type === TransactionType.Transfer) return 'swap-horizontal';
-  if (tx.type === TransactionType.CCPayment) return 'credit-card-refund';
-  return toIconName(category?.icon, FALLBACK_ICON);
+function glyphFor(
+  tx: Transaction,
+  cardCredit: boolean,
+  category?: Category,
+): { glyphName: IconName; glyphColor: string } {
+  if (cardCredit) return { glyphName: 'credit-card-refund', glyphColor: InfoTokens[500] };
+  if (tx.type === TransactionType.Transfer) {
+    return { glyphName: 'swap-horizontal', glyphColor: InfoTokens[500] };
+  }
+  if (tx.type === TransactionType.CCPayment) {
+    return { glyphName: 'credit-card-refund', glyphColor: AccentCCTokens[500] };
+  }
+  return {
+    glyphName: toIconName(category?.icon, FALLBACK_ICON),
+    glyphColor: category?.color ?? GoldTokens[500],
+  };
 }
 
 export function buildTransactionRowPresentation(
   { tx, account, toAccount, category }: TransactionRowPresentationInput,
-  contextOverride?: string,
+  captionOverride?: TransactionRowCaption,
 ): TransactionRowPresentation {
   const cardCredit = isCardCredit(tx, account);
+  const twoAccount = isTwoAccount(tx);
   const title = titleFor(tx, account, category);
-  const context = contextOverride ?? contextFor(tx, account, toAccount, category);
+  const caption = [
+    captionOverride?.lead ?? leadFor(tx, account, toAccount),
+    captionOverride?.time ?? formatTime12h(tx.transaction_time),
+  ]
+    .filter((part): part is string => part !== undefined && part !== '')
+    .join(' · ');
   const primaryAmount = primaryAmountFor(tx, cardCredit);
-  const secondaryAmount = destinationAmountFor(tx, toAccount);
+  const secondaryLine = secondaryLineFor(tx, toAccount);
   const ownershipLabel =
     tx.commitment_payment_id !== null
       ? Strings.typeBadgeCommitment
       : tx.budget_id !== null
         ? Strings.transactionBudgetAssigned
         : undefined;
-  const timeText = formatTime12h(tx.transaction_time);
+  // The tile carries no label, so the account is spoken here or nowhere.
+  const accountNames = twoAccount ? accountPair(account, toAccount) : resolveAccountName(account);
 
   return {
     title,
-    context,
+    caption,
     primaryAmount,
-    secondaryAmount,
-    rateText:
-      tx.exchange_rate === null
-        ? undefined
-        : `@ ${formatRateDisplayMagnitude(tx.exchange_rate).text}`,
-    // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- blank notes are intentionally omitted
-    note: tx.note?.trim() || undefined,
+    secondaryLine,
     ownershipLabel,
     isCommitmentOwned: tx.commitment_payment_id !== null,
-    iconName: iconFor(tx, cardCredit, category),
+    ...glyphFor(tx, cardCredit, category),
     amountClassName: amountClassNameFor(tx, cardCredit),
-    iconBackgroundClassName: iconBackgroundClassNameFor(tx, cardCredit),
-    timeText,
-    accessibilityLabel: [title, context, primaryAmount, secondaryAmount, ownershipLabel]
-      .filter((value): value is string => value !== undefined)
+    tiles: twoAccount
+      ? [resolveRowTile(account), resolveRowTile(toAccount)]
+      : [resolveRowTile(account)],
+    accessibilityLabel: [
+      title,
+      accountNames,
+      caption,
+      `${primaryAmount} ${secondaryLine}`,
+      ownershipLabel,
+    ]
+      .filter((value): value is string => value !== undefined && value !== '')
       .join(', '),
   };
 }

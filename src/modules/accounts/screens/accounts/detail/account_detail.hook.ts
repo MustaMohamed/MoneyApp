@@ -172,7 +172,6 @@ export function useAccountDetail() {
       const category = tx.category_id ? categoriesById.get(tx.category_id) : undefined;
       return {
         id: tx.id,
-        category,
         presentation: buildActivityRowPresentation(
           {
             tx,

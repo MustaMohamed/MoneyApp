@@ -2,7 +2,7 @@ import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import {
   buildTransactionRowPresentation,
-  isCardCredit,
+  resolveRowTile,
   type TransactionRowPresentation,
   type TransactionRowPresentationInput,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
@@ -52,39 +52,23 @@ export function formatActivityDayLabel(
   return `${Number(day)} ${MONTHS_SHORT[Number(month) - 1]}`;
 }
 
-/** The detail's second line is the transaction's own context; the category joins the date wherever the title does not already carry it. */
-function activityContext(
-  { tx, account, category }: TransactionRowPresentationInput,
-  dayLabel: string,
-  openAccountId: string,
-): { context?: string; timeText: string } {
-  if (tx.type === TransactionType.CCPayment && tx.to_account_id === openAccountId) {
-    return {
-      context: Strings.accountActivityFromAccount(resolveAccountName(account)),
-      timeText: dayLabel,
-    };
-  }
-  // No override: the shared builder's own transfer, card-payment and account-name branches stand.
-  if (tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment) {
-    return { timeText: dayLabel };
-  }
-  if (!category) return { timeText: dayLabel };
-  if (isCardCredit(tx, account)) return { context: `${category.name} · ${dayLabel}`, timeText: '' };
-  return { context: dayLabel, timeText: '' };
-}
-
-/** The shipped row presentation with the detail's own second line and time slot. */
+/** The shipped row with the day label for its time, and the counterparty's tile alone: the open account is the card's own identity. */
 export function buildActivityRowPresentation(
   input: TransactionRowPresentationInput,
   now: Date,
   openAccountId: string,
 ): TransactionRowPresentation {
-  const dayLabel = formatActivityDayLabel(
-    input.tx.transaction_date,
-    input.tx.transaction_time,
-    now,
-  );
-  const { context, timeText } = activityContext(input, dayLabel, openAccountId);
+  const { tx, account, toAccount } = input;
+  const time = formatActivityDayLabel(tx.transaction_date, tx.transaction_time, now);
+  const lead =
+    tx.type === TransactionType.CCPayment && tx.to_account_id === openAccountId
+      ? Strings.accountActivityFromAccount(resolveAccountName(account))
+      : undefined;
+  const twoAccount = tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment;
+  const other = tx.account_id === openAccountId ? toAccount : account;
 
-  return { ...buildTransactionRowPresentation(input, context), timeText };
+  return {
+    ...buildTransactionRowPresentation(input, { lead, time }),
+    tiles: twoAccount ? [resolveRowTile(other)] : [],
+  };
 }

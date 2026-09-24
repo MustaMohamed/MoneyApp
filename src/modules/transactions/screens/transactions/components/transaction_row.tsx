@@ -4,12 +4,12 @@ import React, { useCallback, useMemo } from 'react';
 import { View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
+import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
 import { Strings } from '@/constants/strings';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
-import { GoldTokens } from '@/constants/theme_tokens';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 
@@ -17,15 +17,16 @@ import type { Transaction } from '../../../entities/transaction.entity';
 import { useRowPressScale } from './transaction_row.anim';
 import {
   buildTransactionRowPresentation,
-  TRANSACTION_ROW_CONTEXT_GAP,
+  type RowTile,
+  TRANSACTION_ROW_AMOUNT_FONT_SIZE,
+  TRANSACTION_ROW_CAPTION_FONT_SIZE,
+  TRANSACTION_ROW_CODE_FONT_SIZE,
+  TRANSACTION_ROW_DUAL_OFFSET,
+  TRANSACTION_ROW_DUAL_RING,
+  TRANSACTION_ROW_DUAL_RING_COLOR,
   TRANSACTION_ROW_HEIGHT,
-  TRANSACTION_ROW_ICON_SIZE,
-  TRANSACTION_ROW_NOTE_FONT_SIZE,
-  TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
-  TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
-  TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
-  TRANSACTION_ROW_VALUE_WIDTH,
-  TRANSACTION_ROW_VERTICAL_PADDING,
+  TRANSACTION_ROW_LINE_GAP,
+  TRANSACTION_ROW_TITLE_FONT_SIZE,
   type TransactionRowPresentation,
 } from './transaction_row.helpers';
 
@@ -41,16 +42,69 @@ interface Props {
 
 interface BodyProps {
   presentation: TransactionRowPresentation;
-  category?: Category;
   onPress: () => void;
 }
 
+const DUAL_TILE_TOP = (Size.accountTile - Size.dualTile) / 2;
+
+function RowTiles({ tiles }: { tiles: RowTile[] }): React.ReactElement | null {
+  if (tiles.length === 0) return null;
+  const [first, second] = tiles;
+  if (tiles.length === 1) {
+    return (
+      <View testID="transaction-row-tiles">
+        <AccountColorTile
+          color={first.color}
+          type={first.type}
+          hollow={first.hollow}
+          size={Size.accountTile}
+          glyphSize={Size.iconXs}
+        />
+      </View>
+    );
+  }
+  return (
+    <View
+      testID="transaction-row-tiles"
+      style={{
+        width: TRANSACTION_ROW_DUAL_OFFSET + Size.dualTile + TRANSACTION_ROW_DUAL_RING,
+        height: Size.accountTile,
+        flexShrink: 0,
+      }}
+    >
+      <View style={{ position: 'absolute', top: DUAL_TILE_TOP, left: 0 }}>
+        <AccountColorTile
+          color={first.color}
+          type={first.type}
+          hollow={first.hollow}
+          size={Size.dualTile}
+          glyphSize={Size.rowGlyph}
+        />
+      </View>
+      <View
+        style={{
+          position: 'absolute',
+          top: DUAL_TILE_TOP - TRANSACTION_ROW_DUAL_RING,
+          left: TRANSACTION_ROW_DUAL_OFFSET - TRANSACTION_ROW_DUAL_RING,
+          borderWidth: TRANSACTION_ROW_DUAL_RING,
+          borderColor: TRANSACTION_ROW_DUAL_RING_COLOR,
+          borderRadius: Radius.sm + TRANSACTION_ROW_DUAL_RING,
+        }}
+      >
+        <AccountColorTile
+          color={second.color}
+          type={second.type}
+          hollow={second.hollow}
+          size={Size.dualTile}
+          glyphSize={Size.rowGlyph}
+        />
+      </View>
+    </View>
+  );
+}
+
 /** The row without its swipe wrapper — the read-only list on the account detail renders this. */
-export function TransactionRowBody({
-  presentation,
-  category,
-  onPress,
-}: BodyProps): React.ReactElement {
+export function TransactionRowBody({ presentation, onPress }: BodyProps): React.ReactElement {
   const { scale, onPressIn, onPressOut } = useRowPressScale();
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isCommitmentOwned = presentation.isCommitmentOwned;
@@ -66,33 +120,24 @@ export function TransactionRowBody({
     >
       <Animated.View
         testID="transaction-row"
-        style={[
-          animStyle,
-          { height: TRANSACTION_ROW_HEIGHT, paddingVertical: TRANSACTION_ROW_VERTICAL_PADDING },
-        ]}
+        style={[animStyle, { height: TRANSACTION_ROW_HEIGHT, justifyContent: 'center' }]}
         className="border-separator border-b px-4"
       >
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
-          <View
-            testID="transaction-row-icon-track"
-            className={`mt-0.5 items-center justify-center rounded-lg ${presentation.iconBackgroundClassName}`}
-            style={{
-              width: TRANSACTION_ROW_ICON_SIZE,
-              height: TRANSACTION_ROW_ICON_SIZE,
-              flexShrink: 0,
-            }}
-          >
-            <MaterialCommunityIcons
-              name={presentation.iconName}
-              size={Size.iconSm}
-              color={category?.color ?? GoldTokens[500]}
-            />
-          </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-3">
+          <RowTiles tiles={presentation.tiles} />
           <View testID="transaction-row-content-track" style={{ flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1.5">
+              <MaterialCommunityIcons
+                name={presentation.glyphName}
+                size={Size.rowGlyph}
+                color={presentation.glyphColor}
+              />
               <Text
-                className="font-sora-bold text-foreground min-w-0 shrink"
-                style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+                className="font-inter-medium text-foreground min-w-0 shrink"
+                style={{
+                  fontSize: TRANSACTION_ROW_TITLE_FONT_SIZE,
+                  lineHeight: lineHeightFor(TRANSACTION_ROW_TITLE_FONT_SIZE),
+                }}
                 numberOfLines={1}
               >
                 {presentation.title}
@@ -109,84 +154,41 @@ export function TransactionRowBody({
               ) : null}
             </View>
             <Text
-              className="font-inter-medium text-foreground/55"
+              className="font-inter text-content-secondary"
               style={{
-                fontSize: Type.overline,
-                lineHeight: lineHeightFor(Type.overline),
-                marginTop: TRANSACTION_ROW_CONTEXT_GAP,
+                fontSize: TRANSACTION_ROW_CAPTION_FONT_SIZE,
+                lineHeight: lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+                marginTop: TRANSACTION_ROW_LINE_GAP,
               }}
               numberOfLines={1}
             >
-              {presentation.context}
+              {presentation.caption}
             </Text>
-            <View
-              testID="transaction-row-note-track"
-              className="justify-end"
-              style={{ height: TRANSACTION_ROW_NOTE_TRACK_HEIGHT }}
-            >
-              {presentation.note ? (
-                <Text
-                  className="font-inter text-muted italic"
-                  style={{
-                    fontSize: TRANSACTION_ROW_NOTE_FONT_SIZE,
-                    lineHeight: lineHeightFor(TRANSACTION_ROW_NOTE_FONT_SIZE),
-                  }}
-                  numberOfLines={1}
-                >
-                  {presentation.note}
-                </Text>
-              ) : null}
-            </View>
           </View>
           <View
             testID="transaction-row-value-track"
-            style={{ width: TRANSACTION_ROW_VALUE_WIDTH, alignItems: 'flex-end', flexShrink: 0 }}
+            style={{ flexShrink: 0, alignItems: 'flex-end' }}
           >
             <Text
-              className={`font-sora-bold ${presentation.amountClassName}`}
-              style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+              className={`font-sora tabular-nums ${presentation.amountClassName}`}
+              style={{
+                fontSize: TRANSACTION_ROW_AMOUNT_FONT_SIZE,
+                lineHeight: lineHeightFor(TRANSACTION_ROW_AMOUNT_FONT_SIZE),
+              }}
               numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.72}
             >
               {presentation.primaryAmount}
             </Text>
-            <View
-              testID="transaction-row-secondary-amount-track"
-              className="items-end justify-end"
-              style={{ height: TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT }}
-            >
-              {presentation.secondaryAmount ? (
-                <Text
-                  className="font-inter-medium text-foreground/60"
-                  style={{
-                    fontSize: TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
-                    lineHeight: lineHeightFor(TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE),
-                  }}
-                  numberOfLines={1}
-                >
-                  {presentation.secondaryAmount}
-                  {presentation.rateText ? (
-                    // The Text wrapper's default variant sets its own size, colour and family, so a nested chip inherits none of the three.
-                    <Text
-                      className="text-foreground/40"
-                      style={{
-                        fontSize: TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
-                        lineHeight: lineHeightFor(TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE),
-                      }}
-                    >
-                      {' '}
-                      {presentation.rateText}
-                    </Text>
-                  ) : null}
-                </Text>
-              ) : null}
-            </View>
             <Text
-              className="font-inter text-foreground/40"
-              style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+              className="font-inter text-content-secondary tabular-nums"
+              style={{
+                fontSize: TRANSACTION_ROW_CODE_FONT_SIZE,
+                lineHeight: lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE),
+                marginTop: TRANSACTION_ROW_LINE_GAP,
+              }}
+              numberOfLines={1}
             >
-              {presentation.timeText}
+              {presentation.secondaryLine}
             </Text>
           </View>
         </View>
@@ -243,7 +245,7 @@ function TransactionRowComponent({
       disabled={isCommitmentOwned}
       accessibilityLabel={presentation.accessibilityLabel}
     >
-      <TransactionRowBody presentation={presentation} category={category} onPress={handlePress} />
+      <TransactionRowBody presentation={presentation} onPress={handlePress} />
     </SwipeableRow>
   );
 }
