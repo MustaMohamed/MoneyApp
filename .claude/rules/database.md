@@ -23,7 +23,7 @@ Types only — no logic, no cross-imports from `database/`; may import `@/consta
 
 - SQL for one table; first param always `db: SQLiteDatabase`. Verbs: `get*` SELECT · `add*` INSERT · `set*` INSERT OR REPLACE/UPDATE · `update*` UPDATE · `delete*` DELETE. Business logic lives in stores/repositories, not queries.
 - **Index-friendly predicates** (audit L2/L34 — both hot-path queries were full-scanning):
-  - Never wrap an indexed column in a function: `substr(transaction_date, ...)` defeats `idx_transactions_date`. Use half-open ranges instead: `transaction_date >= :start AND transaction_date < :end`.
+  - Never wrap an indexed column in a function: `substr(transaction_date, ...)` defeats `idx_transactions_date`. Put the bare indexed column in a range instead: half-open (`transaction_date >= :start AND transaction_date < :end`), or an inclusive `<= :end` on a date-only column (`docs/adr/2026-09-24-transactions-month-aggregate.md` §1).
   - Avoid `(:param IS NULL OR column = :param)` optional-filter chains — SQLite cannot plan them against an index. Build the WHERE clause conditionally in TS with a placeholder list.
 - Multi-statement write sequences that must be atomic go through `withTransactionAsync` / `withExclusiveTransactionAsync` — never sequential awaits on the raw connection.
 - **Never store derived time-state in a column that also stores durable user actions.** A `status` stamped at insert relative to "today" is stale the next day (audit H1/H2 root cause — commitment payments frozen at `upcoming` forever). Derive time-dependent state at read time, or age it explicitly inside the housekeeping transaction.
