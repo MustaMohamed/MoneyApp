@@ -11,6 +11,7 @@ export interface TransactionsPresentationInput {
   hasLoadedOnce: boolean;
   paginationError: boolean;
   accountLookupError: boolean;
+  userRefreshing: boolean;
 }
 
 export interface TransactionsPresentation {
@@ -32,7 +33,7 @@ export function buildTransactionsPresentation(
     showInitialSkeleton: isInitial && input.rowCount === 0,
     showEmptyState: input.hasLoadedOnce && input.rowCount === 0 && !showFirstLoadError,
     showFirstLoadError,
-    showRefreshIndicator: input.listStatus === 'refreshing',
+    showRefreshIndicator: input.userRefreshing && input.listStatus === 'refreshing',
     loadErrorVariant: showFirstLoadError
       ? 'none'
       : input.listStatus === 'refreshErrorWithData' || input.totalsStatus === 'refreshErrorWithData'

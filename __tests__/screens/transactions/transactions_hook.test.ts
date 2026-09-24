@@ -488,6 +488,35 @@ describe('useTransactions query ownership', () => {
     expect(result.current.state.refreshing).toBe(false);
   });
 
+  it('MA-089: shows the refresh indicator while a tapped Retry refetches the loaded rows', async () => {
+    setupStores({ transactions: [TRANSACTION], status: 'refreshErrorWithData' });
+    let resolveRetry!: () => void;
+    retry.mockImplementation(() => {
+      transactionStoreState = { ...transactionStoreState, status: 'refreshing' };
+      return new Promise<void>((resolve) => {
+        resolveRetry = resolve;
+      });
+    });
+    const { result } = await renderHook(() => useTransactions());
+    expect(result.current.state.refreshing).toBe(false);
+
+    let tapped: Promise<void> | undefined;
+    await act(() => {
+      tapped = result.current.retryFailedLoads();
+    });
+
+    expect(retry).toHaveBeenCalledTimes(1);
+    expect(result.current.state.sections).toHaveLength(1);
+    expect(result.current.state.refreshing).toBe(true);
+
+    await act(async () => {
+      resolveRetry();
+      await tapped;
+    });
+
+    expect(result.current.state.refreshing).toBe(false);
+  });
+
   it('MA-089: holds three loaded pages and their offset across a detail round-trip', async () => {
     const julyKey = getTransactionQueryKey(JULY_QUERY);
     const loaded: Transaction[] = Array.from({ length: 90 }, (_, i) => ({
