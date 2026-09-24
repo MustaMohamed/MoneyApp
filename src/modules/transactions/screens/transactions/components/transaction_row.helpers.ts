@@ -28,7 +28,7 @@ import { formatTime12h } from '@/utils/format_time_12h';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
-type IconName =React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 export const TRANSACTION_ROW_HEIGHT = ms(60);
 export const TRANSACTION_ROW_TITLE_FONT_SIZE = Type.bodyStrong;
