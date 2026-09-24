@@ -398,6 +398,51 @@ describe('getTransactions — combined axes', () => {
   });
 });
 
+describe('getTransactions — query plan', () => {
+  const TRANSACTION_TABLE_ROW = /^(SEARCH|SCAN) (t|transaction_row)\b/;
+  const MONTH = { dateFrom: '2026-05-01', dateTo: '2026-05-31' };
+
+  function planOfLastQuery(): string[] {
+    const call = sqlite.getAllAsync.mock.calls.at(-1);
+    if (!call) throw new Error('Expected a transaction list query');
+    const [sql, ...rest] = call;
+    return realDb
+      .prepare(`EXPLAIN QUERY PLAN ${sql}`)
+      .all(...getSQLiteParams(rest))
+      .filter(isQueryPlanRow)
+      .map((row) => row.detail);
+  }
+
+  it.each([
+    { shape: 'month only', query: MONTH, pinsDateIndex: true },
+    { shape: '+ type', query: { ...MONTH, type: TransactionType.Expense }, pinsDateIndex: false },
+    { shape: '+ accountIds', query: { ...MONTH, accountIds: ['acc_a'] }, pinsDateIndex: false },
+    { shape: '+ search', query: { ...MONTH, search: 'coffee' }, pinsDateIndex: true },
+  ])(
+    '$shape searches the transactions table by index, never scans it',
+    async ({ query, pinsDateIndex }) => {
+      await insert({ id: 'in-range', transaction_date: '2026-05-10' });
+      await insert({ id: 'out-of-range', transaction_date: '2026-04-10' });
+
+      await getTransactions(mockDb, query);
+      const plan = planOfLastQuery();
+      const tableRows = plan.filter((detail) => TRANSACTION_TABLE_ROW.test(detail));
+
+      expect(tableRows.length).toBeGreaterThan(0);
+      for (const detail of plan) expect(detail).not.toMatch(/^SCAN (t|transaction_row)\b/);
+      for (const detail of tableRows)
+        expect(detail).toMatch(/^SEARCH (t|transaction_row) USING INDEX /);
+      if (pinsDateIndex) {
+        for (const detail of tableRows) {
+          expect(detail).toMatch(
+            /^SEARCH (t|transaction_row) USING INDEX idx_transactions_date \(transaction_date>\?/,
+          );
+        }
+      }
+    },
+  );
+});
+
 describe('getTransactions — deterministic pagination', () => {
   it('returns stable, non-overlapping pages when transaction timestamps match', async () => {
     const expectedIds: string[] = [];

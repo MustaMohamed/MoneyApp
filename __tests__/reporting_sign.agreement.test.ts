@@ -16,6 +16,7 @@ import {
 import {
   getMonthExpenseStats,
   getPeriodTotals,
+  getTransactionMonthAggregate,
 } from '@/modules/transactions/database/transactions';
 import type {
   LedgerAccountSnapshot,
@@ -283,6 +284,29 @@ describe('every query on the reporting sign agrees with the domain classifier', 
 
     expect(totals.incomeEgp).toBe(expectedIn);
     expect(totals.expenseEgp).toBe(expectedOut);
+  });
+
+  it('month aggregate', async () => {
+    const aggregate = await getTransactionMonthAggregate(db, {
+      dateFrom: '2026-05-01',
+      dateTo: '2026-05-31',
+    });
+    const dates = [...new Set(TRANSACTIONS.map((row) => row.transaction_date))].sort().reverse();
+
+    expect(aggregate.scoped.incomeEgp).toBe(expectedIn);
+    expect(aggregate.scoped.expenseEgp).toBe(expectedOut);
+    expect(aggregate.matchNetEgp).toBe(expectedIn - expectedOut);
+    expect(aggregate.matchCount).toBe(TRANSACTIONS.length);
+    expect(aggregate.days).toEqual(
+      dates.map((date) => ({
+        date,
+        netEgp: fold(
+          (entry) => entry.effect.incomeEgp - entry.effect.spendingEgp,
+          (entry) => entry.row.transaction_date === date,
+        ),
+        count: FOLDED.filter((entry) => entry.row.transaction_date === date).length,
+      })),
+    );
   });
 
   it('category spend', async () => {
