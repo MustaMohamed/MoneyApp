@@ -1,5 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { REPORTING_SIGN_SQL } from '@/modules/transactions/database/reporting_sign';
+
 // Net spend per (category, month); credits on credit-card accounts subtract from expenses.
 export async function getCategorySpendByMonth(
   db: SQLiteDatabase,
@@ -10,12 +12,7 @@ export async function getCategorySpendByMonth(
   const rows = await db.getAllAsync<{ category_id: string; ym: string; spent: number }>(
     `SELECT transaction_row.category_id AS category_id,
             substr(transaction_row.transaction_date, 1, 7) AS ym,
-            COALESCE(SUM(CASE
-              WHEN transaction_row.type = 'expense' THEN transaction_row.egp_amount
-              WHEN transaction_row.type = 'income' AND account_row.type = 'credit_card'
-                THEN -transaction_row.egp_amount
-              ELSE 0
-            END), 0) AS spent
+            COALESCE(SUM((${REPORTING_SIGN_SQL.out}) * transaction_row.egp_amount), 0) AS spent
        FROM transactions transaction_row
        JOIN accounts account_row ON account_row.id = transaction_row.account_id
       WHERE transaction_row.type IN ('expense', 'income')
@@ -41,12 +38,7 @@ export async function getBudgetSpendByMonth(
   const placeholders = yearMonths.map(() => '?').join(',');
   const rows = await db.getAllAsync<{ budget_id: string; spent: number }>(
     `SELECT budget.id AS budget_id,
-            COALESCE(SUM(CASE
-              WHEN transaction_row.type = 'expense' THEN transaction_row.egp_amount
-              WHEN transaction_row.type = 'income' AND account_row.type = 'credit_card'
-                THEN -transaction_row.egp_amount
-              ELSE 0
-            END), 0) AS spent
+            COALESCE(SUM((${REPORTING_SIGN_SQL.out}) * transaction_row.egp_amount), 0) AS spent
        FROM budgets budget
        LEFT JOIN transactions transaction_row
          ON transaction_row.budget_id = budget.id
@@ -95,12 +87,7 @@ export async function getSpendingPlanSpend(
   const rows = await db.getAllAsync<{ plan_id: string; category_id: string; spent: number }>(
     `SELECT plan.id AS plan_id,
             assignment.category_id AS category_id,
-            COALESCE(SUM(CASE
-              WHEN transaction_row.type = 'expense' THEN transaction_row.egp_amount
-              WHEN transaction_row.type = 'income' AND account_row.type = 'credit_card'
-                THEN -transaction_row.egp_amount
-              ELSE 0
-            END), 0) AS spent
+            COALESCE(SUM((${REPORTING_SIGN_SQL.out}) * transaction_row.egp_amount), 0) AS spent
        FROM spending_plans plan
        JOIN spending_plan_categories assignment ON assignment.plan_id = plan.id
        LEFT JOIN transactions transaction_row

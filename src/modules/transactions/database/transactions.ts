@@ -5,6 +5,7 @@ import { TransactionType } from '@/constants/enums';
 import { parseDecimalText } from '@/utils/parse_decimal';
 
 import type { Transaction } from '../entities/transaction.entity';
+import { REPORTING_SIGN_SQL } from './reporting_sign';
 
 export interface MonthExpenseStats {
   totalEgp: number;
@@ -30,20 +31,15 @@ export async function getMonthExpenseStats(
     cnt: number;
   }>(
     `SELECT
+       COALESCE(SUM((${REPORTING_SIGN_SQL.out}) * transaction_row.egp_amount), 0) AS total,
        COALESCE(SUM(CASE
-         WHEN transaction_row.type = 'expense' THEN transaction_row.egp_amount
-         ELSE -transaction_row.egp_amount
-       END), 0) AS total,
-       COALESCE(SUM(CASE
-         WHEN transaction_row.currency = 'EGP' AND transaction_row.type = 'expense'
-           THEN transaction_row.amount
-         WHEN transaction_row.currency = 'EGP' THEN -transaction_row.amount
+         WHEN transaction_row.currency = 'EGP'
+           THEN (${REPORTING_SIGN_SQL.out}) * transaction_row.amount
          ELSE 0
        END), 0) AS egp_native,
        COALESCE(SUM(CASE
-         WHEN transaction_row.currency = 'USD' AND transaction_row.type = 'expense'
-           THEN transaction_row.amount
-         WHEN transaction_row.currency = 'USD' THEN -transaction_row.amount
+         WHEN transaction_row.currency = 'USD'
+           THEN (${REPORTING_SIGN_SQL.out}) * transaction_row.amount
          ELSE 0
        END), 0) AS usd_native,
        COUNT(*) AS cnt
@@ -317,17 +313,8 @@ export async function getPeriodTotals(
     expense: number | null;
   }>(
     `SELECT
-       COALESCE(SUM(CASE
-         WHEN transaction_row.type = 'income' AND account_row.type <> 'credit_card'
-           THEN transaction_row.egp_amount
-         ELSE 0
-       END), 0) AS income,
-       COALESCE(SUM(CASE
-         WHEN transaction_row.type = 'expense' THEN transaction_row.egp_amount
-         WHEN transaction_row.type = 'income' AND account_row.type = 'credit_card'
-           THEN -transaction_row.egp_amount
-         ELSE 0
-       END), 0) AS expense
+       COALESCE(SUM((${REPORTING_SIGN_SQL.in}) * transaction_row.egp_amount), 0) AS income,
+       COALESCE(SUM((${REPORTING_SIGN_SQL.out}) * transaction_row.egp_amount), 0) AS expense
      FROM transactions transaction_row
      JOIN accounts account_row ON account_row.id = transaction_row.account_id
      WHERE transaction_row.transaction_date >= ?

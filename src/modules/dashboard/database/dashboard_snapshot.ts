@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { REPORTING_SIGN_SQL } from '@/modules/transactions/database/reporting_sign';
 import { shiftYearMonth } from '@/utils/year_month';
 
 export interface DashboardMonthWindow {
@@ -50,29 +51,15 @@ export async function getDashboardTransactionFactRows(
          WHEN transaction_row.transaction_date >= ? THEN transaction_row.category_id
          ELSE NULL
        END AS category_id,
+       COALESCE(SUM((${REPORTING_SIGN_SQL.in}) * transaction_row.egp_amount), 0) AS income_egp,
+       COALESCE(SUM((${REPORTING_SIGN_SQL.out}) * transaction_row.egp_amount), 0) AS expense_egp,
        COALESCE(SUM(CASE
-         WHEN transaction_row.type = 'income' AND account_row.type <> 'credit_card'
-           THEN transaction_row.egp_amount
-         ELSE 0
-       END), 0) AS income_egp,
-       COALESCE(SUM(CASE
-         WHEN transaction_row.type = 'expense' THEN transaction_row.egp_amount
-         WHEN transaction_row.type = 'income' AND account_row.type = 'credit_card'
-           THEN -transaction_row.egp_amount
-         ELSE 0
-       END), 0) AS expense_egp,
-       COALESCE(SUM(CASE
-         WHEN transaction_row.currency = 'USD' AND transaction_row.type = 'expense'
-           THEN transaction_row.amount
          WHEN transaction_row.currency = 'USD'
-           AND transaction_row.type = 'income'
-           AND account_row.type = 'credit_card'
-           THEN -transaction_row.amount
+           THEN (${REPORTING_SIGN_SQL.out}) * transaction_row.amount
          ELSE 0
        END), 0) AS usd_native,
        COALESCE(SUM(CASE
-         WHEN transaction_row.type = 'expense' THEN 1
-         WHEN transaction_row.type = 'income' AND account_row.type = 'credit_card' THEN 1
+         WHEN (${REPORTING_SIGN_SQL.out}) <> 0 THEN 1
          ELSE 0
        END), 0) AS transaction_count
      FROM transactions transaction_row INDEXED BY idx_transactions_date
