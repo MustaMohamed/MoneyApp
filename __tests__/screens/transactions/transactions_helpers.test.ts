@@ -1,14 +1,20 @@
+import { Strings } from '@/constants/strings';
 import {
   buildTotalsPresentation,
+  buildTransactionsHeroModel,
   currentYearMonth,
   resolvePeriod,
+  resolveTransactionsHeroMode,
   previousPeriod,
   computeDeltaPct,
   polarityColor,
   formatSignedAmount,
   expenseSharePct,
   deltaDisplay,
+  type TransactionsHeroInput,
 } from '@/modules/transactions/screens/transactions/transactions.helpers';
+import type { TransactionTotalsStatus } from '@/modules/transactions/screens/transactions/transactions.state';
+import { formatMonthYear } from '@/utils/format_date';
 
 describe('currentYearMonth', () => {
   it('returns YYYY-MM for a Date', () => {
@@ -221,5 +227,173 @@ describe('transactions summary presentation helpers', () => {
       polarity: 'bad',
     });
     expect(deltaDisplay('net', null)).toBeNull();
+  });
+});
+
+describe('buildTransactionsHeroModel', () => {
+  const DASH = '—';
+  const AUGUST = { incomeEgp: 20_000, expenseEgp: 16_900, netEgp: 3_100 };
+
+  function hero(overrides: Partial<TransactionsHeroInput> = {}) {
+    return buildTransactionsHeroModel({
+      mode: 'figures',
+      current: { incomeEgp: 22_300, expenseEgp: 9_400, netEgp: 12_900 },
+      previous: AUGUST,
+      yearMonth: '2026-09',
+      today: '2026-09-24',
+      ...overrides,
+    });
+  }
+
+  it('prints the month within income: figures, rail, share caption and days-left caption (A1)', () => {
+    expect(hero()).toMatchObject({
+      mode: 'figures',
+      title: 'Out this month',
+      monthLabel: formatMonthYear('2026-09'),
+      out: '9,400',
+      in: '22,300',
+      net: '12,900',
+      leftOfIncome: '58%',
+      railPct: 42,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsExpenseShareA11y(42),
+      shareCaption: '42% of income spent',
+      caption: '6 days left · Aug 16,900',
+    });
+  });
+
+  it('formats EGP at 0 dp', () => {
+    expect(
+      hero({ current: { incomeEgp: 22_300.4, expenseEgp: 9_399.6, netEgp: 12_900.8 } }),
+    ).toMatchObject({ out: '9,400', in: '22,300', net: '12,901' });
+  });
+
+  it('titles the hero with the account when the filter holds exactly one', () => {
+    expect(hero({ accountLabel: 'Wallet' }).title).toBe('Out this month · Wallet');
+  });
+
+  it('signs Left of income past 100% spent and fills the rail in danger', () => {
+    expect(hero({ current: { incomeEgp: 1_000, expenseEgp: 1_200, netEgp: -200 } })).toMatchObject({
+      net: '−200',
+      leftOfIncome: '−20%',
+      railPct: 100,
+      railDanger: true,
+      railAccessibilityLabel: Strings.totalsExpenseShareA11y(120),
+      shareCaption: '120% of income spent',
+    });
+  });
+
+  it('drives the rail, its label and the caption from one rounded share', () => {
+    expect(hero({ current: { incomeEgp: 1_000, expenseEgp: 1_004, netEgp: -4 } })).toMatchObject({
+      leftOfIncome: '0%',
+      railPct: 100,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsExpenseShareA11y(100),
+      shareCaption: '100% of income spent',
+    });
+  });
+
+  it('prints a dash and an empty rail when the month has no income', () => {
+    expect(hero({ current: { incomeEgp: 0, expenseEgp: 500, netEgp: -500 } })).toMatchObject({
+      out: '500',
+      in: '0',
+      net: '−500',
+      leftOfIncome: DASH,
+      railPct: 0,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsNoIncome,
+      shareCaption: null,
+    });
+  });
+
+  it('reduces Out by a card credit and signs it with U+2212', () => {
+    const model = hero({ current: { incomeEgp: 1_000, expenseEgp: -50, netEgp: 1_050 } });
+    expect(model).toMatchObject({ out: '−50', net: '1,050', railPct: 0, railDanger: false });
+    expect(model.out).not.toContain('-');
+  });
+
+  it('prints zeros and a dash for a month with no rows (A5)', () => {
+    expect(hero({ current: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } })).toMatchObject({
+      out: '0',
+      in: '0',
+      net: '0',
+      leftOfIncome: DASH,
+      railPct: 0,
+      shareCaption: null,
+    });
+  });
+
+  it('drops the days segment outside the current month (A16)', () => {
+    expect(hero({ yearMonth: '2026-08', today: '2026-09-24' }).caption).toBe('Jul 16,900');
+  });
+
+  it('reads 0 days left on the last day of a 30-day month', () => {
+    expect(hero({ today: '2026-09-30' }).caption).toBe('0 days left · Aug 16,900');
+  });
+
+  it('counts days left against a 31-day month', () => {
+    expect(hero({ yearMonth: '2026-10', today: '2026-10-01' }).caption).toBe(
+      '30 days left · Sep 16,900',
+    );
+    expect(hero({ yearMonth: '2026-10', today: '2026-10-31' }).caption).toBe(
+      '0 days left · Sep 16,900',
+    );
+  });
+
+  it('counts days left against a leap February and a common one', () => {
+    expect(hero({ yearMonth: '2028-02', today: '2028-02-10' }).caption).toBe(
+      '19 days left · Jan 16,900',
+    );
+    expect(hero({ yearMonth: '2027-02', today: '2027-02-10' }).caption).toBe(
+      '18 days left · Jan 16,900',
+    );
+  });
+
+  it("prints a dash for last month's Out when last month has no figures", () => {
+    expect(hero({ previous: null }).caption).toBe('6 days left · Aug —');
+    expect(hero({ previous: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } }).caption).toBe(
+      '6 days left · Aug —',
+    );
+  });
+
+  it('prints dashes and keeps the caption when no figures loaded for the month', () => {
+    expect(hero({ mode: 'dashes', current: null, previous: null })).toMatchObject({
+      mode: 'dashes',
+      out: DASH,
+      in: DASH,
+      net: DASH,
+      leftOfIncome: DASH,
+      railPct: 0,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsNoIncome,
+      shareCaption: null,
+      caption: '6 days left · Aug —',
+    });
+  });
+});
+
+describe('resolveTransactionsHeroMode', () => {
+  const STATUSES: TransactionTotalsStatus[] = [
+    'idle',
+    'initialLoading',
+    'ready',
+    'refreshing',
+    'firstLoadError',
+    'refreshErrorWithData',
+  ];
+
+  it.each(STATUSES)('keeps the figures on screen for %s once totals exist', (status) => {
+    expect(resolveTransactionsHeroMode(status, true)).toBe('figures');
+  });
+
+  it.each<[TransactionTotalsStatus, string]>([
+    ['idle', 'skeleton'],
+    ['initialLoading', 'skeleton'],
+    ['ready', 'skeleton'],
+    ['refreshing', 'skeleton'],
+    ['firstLoadError', 'dashes'],
+    ['refreshErrorWithData', 'skeleton'],
+  ])('resolves %s without totals to %s', (status, mode) => {
+    expect(resolveTransactionsHeroMode(status, false)).toBe(mode);
   });
 });

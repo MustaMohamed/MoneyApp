@@ -499,6 +499,140 @@ describe('useTransactions monthly totals', () => {
       previous: refreshedPrevious,
     });
   });
+
+  describe('hero model', () => {
+    const JULY = { incomeEgp: 22300, expenseEgp: 9400, netEgp: 12900 };
+    const JUNE = { incomeEgp: 20000, expenseEgp: 16900, netEgp: 3100 };
+
+    function serveFigures(): void {
+      mockGetMonthAggregate.mockImplementation(async (query) => ({
+        ...EMPTY_AGGREGATE,
+        matchCount: query.search === 'coffee' ? 2 : 0,
+        scoped: { ...JULY },
+      }));
+      mockGetScopedTotals.mockImplementation(async () => ({ ...JUNE }));
+    }
+
+    it('M25: keeps its identity across a search keystroke', async () => {
+      serveFigures();
+      const { result } = await renderHook(() => useTransactions());
+      await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+      const held = result.current.state.hero;
+      expect(held).toMatchObject({ mode: 'figures', out: '9,400' });
+      mockGetMonthAggregate.mockClear();
+
+      await act(() => {
+        useTransactionsScreenStore.getState().setSearchQuery('coffee');
+      });
+      await waitFor(() => {
+        expect(useTransactionsScreenStore.getState().totals?.matchCount).toBe(2);
+        expect(result.current.state.totalsStatus).toBe('ready');
+      });
+
+      expect(mockGetMonthAggregate).toHaveBeenCalledTimes(1);
+      expect(result.current.state.hero).toBe(held);
+    });
+
+    it('keeps its identity across a type tab switch', async () => {
+      serveFigures();
+      const { result } = await renderHook(() => useTransactions());
+      await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+      const held = result.current.state.hero;
+      expect(held).toMatchObject({ mode: 'figures', out: '9,400' });
+      mockGetMonthAggregate.mockClear();
+
+      await act(() => {
+        useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
+      });
+      await waitFor(() => {
+        expect(mockGetMonthAggregate).toHaveBeenCalledWith(
+          expect.objectContaining({ type: TransactionType.Expense }),
+        );
+        expect(result.current.state.totalsStatus).toBe('ready');
+      });
+
+      expect(result.current.state.hero).toBe(held);
+    });
+
+    it('titles itself with the one filtered account, and plainly for two', async () => {
+      setupStores(
+        {},
+        {
+          accounts: [
+            makeTestAccount({ id: 'acc-1', name: 'Wallet' }),
+            makeTestAccount({ id: 'acc-2', name: 'Bank' }),
+          ],
+        },
+      );
+      const { result } = await renderHook(() => useTransactions());
+
+      await act(() => {
+        useTransactionsScreenStore
+          .getState()
+          .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1'] });
+      });
+      await waitFor(() =>
+        expect(result.current.state.hero).toMatchObject({ title: 'Out this month · Wallet' }),
+      );
+
+      await act(() => {
+        useTransactionsScreenStore
+          .getState()
+          .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1', 'acc-2'] });
+      });
+      await waitFor(() =>
+        expect(result.current.state.hero).toMatchObject({ title: 'Out this month' }),
+      );
+    });
+
+    it('is a skeleton and disables the search while the month loads', async () => {
+      mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+
+      const { result } = await renderHook(() => useTransactions());
+
+      expect(result.current.state.hero).toMatchObject({ mode: 'skeleton' });
+      expect(result.current.state.searchDisabled).toBe(true);
+    });
+
+    it('prints dashes over the kept rows when the first load fails, the search live', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      setupStores({ transactions: [TRANSACTION], status: 'ready' });
+      mockGetMonthAggregate.mockRejectedValue(new Error('db down'));
+
+      const { result } = await renderHook(() => useTransactions());
+      await waitFor(() => expect(result.current.state.totalsStatus).toBe('firstLoadError'));
+
+      expect(result.current.state.hero).toMatchObject({ mode: 'dashes', out: '—' });
+      expect(result.current.state.loadErrorVariant).toBe('totals');
+      expect(result.current.state.searchDisabled).toBe(false);
+      expect(result.current.state.sections).toHaveLength(1);
+      consoleSpy.mockRestore();
+    });
+
+    it('keeps the figures on screen and floats the figures alert when a refresh fails', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      let failing = false;
+      mockGetMonthAggregate.mockImplementation(async () => {
+        if (failing) throw new Error('db down');
+        return { ...EMPTY_AGGREGATE, scoped: { ...JULY } };
+      });
+      mockGetScopedTotals.mockImplementation(async () => ({ ...JUNE }));
+      const { result } = await renderHook(() => useTransactions());
+      await waitFor(() =>
+        expect(result.current.state.hero).toMatchObject({ mode: 'figures', out: '9,400' }),
+      );
+
+      failing = true;
+      await act(async () => {
+        await result.current.onRefresh();
+      });
+
+      expect(result.current.state.totalsStatus).toBe('refreshErrorWithData');
+      expect(result.current.state.hero).toMatchObject({ mode: 'figures', out: '9,400' });
+      expect(result.current.state.loadErrorVariant).toBe('totals');
+      consoleSpy.mockRestore();
+    });
+  });
 });
 
 describe('useTransactions previous-month and key-driven loads', () => {
