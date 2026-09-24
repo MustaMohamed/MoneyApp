@@ -13,9 +13,35 @@
 ## Limits on every cut
 
 - One outcome per task. Two outcomes are two tasks.
-- A task is one PR a reviewer reads in one sitting. A bigger one is cut again here, or, the user's choice at stop 1, created at Todo for its own `/tickets` run later.
+- A task is one PR, per § Size gate below. A bigger one is cut again here, or, the user's choice at stop 1, created at Todo for its own `/tickets` run later.
 - A chain's first link stands alone. A chain whose first link nobody can use is a layer cut and `/issue-review` rejects it.
 - Preludes are the one allowed non-user-visible task: a migration or data layer a later task needs, isolated because it carries sign-off or data-loss risk. A prelude names the task that consumes it. MA-020 is one.
+
+## Size gate
+
+One PR is a counted thing, and every step counts it the same way: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body, `/prep`'s planner and reviewer on the plan. A task fits when both hold:
+
+- at most 12 files outside `__tests__/` and generated code
+- at most ~400 changed lines outside tests; the implementer writes about 2.5 times that once tests are in (MA-039: 558 lines outside tests, 936 in tests)
+
+`/prep` adds a third, at most 8 plan steps.
+
+The file list is built from the body, never taken from it. Every file Context names as changing, plus every file a Rule or an Acceptance line implies, each named by path:
+
+- a shared constant is its file under `src/constants` and every consumer that reads it
+- a new component is its file and every file that mounts it
+- a new or changed string is `src/constants/strings.ts`
+- a lock, a resolver or a formatter is the helpers file that holds it
+- a hook, state or session file changed by one line counts as a file
+- `Verify emulator` is `.claude/skills/emulator-verify/features/<screen>.md` and, when that file is new, the README index row
+
+Lines are estimated per file from what it looks like today, then summed. A count at the cap is over it: ten files and ~400 lines leave no room for what the planner finds with LSP, and MA-104 (#566) went from 10 to 14 files that way after passing review. The list is written into the task's Context as its last bullet:
+
+```
+- Size: <k> files outside tests, ~<n> lines, at <sha>: <the paths, comma separated>
+```
+
+The next step disputes the list, not the number. Over the gate: `/tickets` cuts again before the split is shown, or the user creates the task at Todo for its own run; `/issue-review` returns an `ask` proposing the seam; `/prep` returns the ticket. A gate reached at `/prep` is a miss at the two steps before it.
 
 ## Order
 
