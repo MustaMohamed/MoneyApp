@@ -83,3 +83,15 @@ describe('useTransactionsState scroll ownership', () => {
     });
   });
 });
+
+describe('useTransactionsState pull refresh (MA-089)', () => {
+  it('starts off, follows setPullRefreshing, and reset clears it', () => {
+    expect(useTransactionsState.getState().pullRefreshing).toBe(false);
+
+    useTransactionsState.getState().setPullRefreshing(true);
+    expect(useTransactionsState.getState().pullRefreshing).toBe(true);
+
+    useTransactionsState.getState().reset();
+    expect(useTransactionsState.getState().pullRefreshing).toBe(false);
+  });
+});

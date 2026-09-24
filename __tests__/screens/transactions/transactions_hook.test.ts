@@ -457,8 +457,109 @@ describe('useTransactions query ownership', () => {
     const { result } = await renderHook(() => useTransactions());
 
     expect(result.current.state.sections).toHaveLength(1);
-    expect(result.current.state.refreshing).toBe(true);
+    expect(result.current.state.refreshing).toBe(false);
     expect(result.current.state.showInitialSkeleton).toBe(false);
+  });
+
+  it('MA-089: shows the refresh indicator only while a user pull is in flight', async () => {
+    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    setupStores({ transactions: [TRANSACTION], status: 'refreshing' });
+    let resolveRefresh!: () => void;
+    refresh.mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveRefresh = resolve;
+      }),
+    );
+    const { result } = await renderHook(() => useTransactions());
+
+    let pull: Promise<void> | undefined;
+    await act(() => {
+      pull = result.current.onRefresh();
+    });
+
+    expect(result.current.state.sections).toHaveLength(1);
+    expect(result.current.state.refreshing).toBe(true);
+
+    await act(async () => {
+      resolveRefresh();
+      await pull;
+    });
+
+    expect(result.current.state.refreshing).toBe(false);
+  });
+
+  it('MA-089: holds three loaded pages and their offset across a detail round-trip', async () => {
+    const julyKey = getTransactionQueryKey(JULY_QUERY);
+    const loaded: Transaction[] = Array.from({ length: 90 }, (_, i) => ({
+      ...TRANSACTION,
+      id: `tx-${i}`,
+      transaction_date: `2026-07-${String(30 - Math.floor(i / 3)).padStart(2, '0')}`,
+    }));
+    const loadedIds = loaded.map((tx) => tx.id);
+    setupStores({ transactions: loaded, status: 'ready', hasMore: true });
+    const scrollTo = jest.fn();
+    const { result, rerender } = await renderHook(
+      (_props: Record<string, never>) => useTransactions(),
+      { initialProps: {} },
+    );
+    Object.defineProperty(result.current.state.listRef, 'current', {
+      configurable: true,
+      value: { getScrollResponder: () => ({ scrollTo }) },
+    });
+
+    let cleanup: void | (() => void) = undefined;
+    await act(() => {
+      cleanup = mockFocusEffectCallback?.();
+    });
+    await act(() => {
+      result.current.onListScrollEnd({ nativeEvent: { contentOffset: { y: 2400 } } });
+    });
+    await act(() => cleanup?.());
+
+    expect(setQuery).toHaveBeenCalledWith(JULY_QUERY);
+    expect(setQuery).not.toHaveBeenCalledWith(expect.not.objectContaining(JULY_QUERY));
+    expect(transactionStoreState.reset).not.toHaveBeenCalled();
+    expect(useTransactionsState.getState()).toMatchObject({
+      scrollQueryKey: julyKey,
+      scrollOffset: 2400,
+    });
+    refresh.mockClear();
+
+    await act(() => {
+      mockFocusEffectCallback?.();
+    });
+
+    await waitFor(() => {
+      expect(scrollTo).toHaveBeenCalledWith({ y: 2400, animated: false });
+    });
+    expect(scrollTo).not.toHaveBeenCalledWith({ y: 0, animated: false });
+
+    await act(async () => {
+      await mockInteractionTasks[mockInteractionTasks.length - 1]?.callback();
+    });
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    transactionStoreState = {
+      ...transactionStoreState,
+      transactions: loaded.map((tx) => ({ ...tx })),
+      replacementRequestId: 2,
+    };
+    await rerender({});
+
+    const shownIds = result.current.state.sections.flatMap((section) =>
+      section.data.map((tx) => tx.id),
+    );
+    expect(shownIds).toEqual(loadedIds);
+    expect(result.current.state.hasMore).toBe(true);
+    expect(scrollTo).not.toHaveBeenCalledWith({ y: 0, animated: false });
+
+    await act(() => {
+      result.current.setSelectedMonth('2026-06');
+    });
+
+    expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: false });
+    expect(setQuery).toHaveBeenCalledWith(JUNE_QUERY);
   });
 
   it('never presents the previous month rows during a month transition', async () => {
