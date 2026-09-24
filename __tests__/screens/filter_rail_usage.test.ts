@@ -36,25 +36,6 @@ describe('feature screen filter rail usage', () => {
     expect(segment).not.toMatch(/\buse(?:Callback|Effect|Memo|Reducer|State)\b/);
   });
 
-  it('transactions uses FilterRail with every transaction filter', () => {
-    const text = source('src/modules/transactions/screens/transactions/index.tsx');
-
-    expect(text).toContain('FilterRail');
-    expect(text).toContain('TRANSACTION_FILTERS');
-    expect(text).toContain('TransactionType.Income');
-    expect(text).toContain('TransactionType.Expense');
-    expect(text).toContain('TransactionType.Transfer');
-    expect(text).toContain('TransactionType.CCPayment');
-    expect(text).toContain('view-grid');
-    expect(text).toContain('arrow-down-circle-outline');
-    expect(text).toContain('arrow-up-circle-outline');
-    expect(text).toContain('swap-horizontal');
-    expect(text).toContain('credit-card-refund');
-    expect(text).not.toContain('select-all');
-    expect(text).not.toContain('view-list-outline');
-    expect(text).not.toContain('TypeChips');
-  });
-
   it('commitments uses FilterRail with every status filter', () => {
     const text = source('src/modules/commitments/screens/commitments/index.tsx');
     const statusText = source('src/modules/commitments/screens/commitments/commitment_status.ts');

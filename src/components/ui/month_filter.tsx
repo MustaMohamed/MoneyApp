@@ -9,6 +9,9 @@ import { type MonthFilterProps, useMonthFilter } from './month_filter.hook';
 import { Sheet } from './sheet';
 import { Text } from './text';
 
+// The h-8 pill reaches a 44 target, beside the step buttons' 32 + 8.
+const MONTH_PILL_HIT_SLOP = { top: 6, bottom: 6 } as const;
+
 interface IconButtonProps {
   icon: 'chevron-left' | 'chevron-right';
   accessibilityLabel: string;
@@ -51,6 +54,7 @@ export function MonthFilter(props: MonthFilterProps) {
           onPress={monthFilter.onOpenPicker}
           accessibilityRole="button"
           accessibilityLabel={monthFilter.state.openPickerAccessibilityLabel}
+          hitSlop={MONTH_PILL_HIT_SLOP}
           className="bg-accent h-8 flex-1 items-center justify-center rounded-full px-2.5"
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>

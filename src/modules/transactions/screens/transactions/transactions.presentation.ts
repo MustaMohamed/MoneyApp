@@ -36,9 +36,9 @@ export function buildTransactionsPresentation(
     showRefreshIndicator: input.userRefreshing && input.listStatus === 'refreshing',
     loadErrorVariant: showFirstLoadError
       ? 'none'
-      : input.listStatus === 'refreshErrorWithData' || input.totalsStatus === 'refreshErrorWithData'
+      : input.listStatus === 'refreshErrorWithData'
         ? 'refresh'
-        : input.totalsStatus === 'firstLoadError'
+        : input.totalsStatus === 'firstLoadError' || input.totalsStatus === 'refreshErrorWithData'
           ? 'totals'
           : input.accountLookupError
             ? 'accounts'

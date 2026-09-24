@@ -15,6 +15,7 @@ export interface SegmentFilterProps<T extends string = string> {
   filters: ReadonlyArray<SegmentFilterOption<T>>;
   accessibilityLabel: string;
   corners?: SegmentedTabsCorners;
+  triggerHitSlop?: number;
 }
 
 export function useSegmentFilter<T extends string>({ filters }: SegmentFilterProps<T>) {

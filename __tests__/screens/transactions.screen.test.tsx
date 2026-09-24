@@ -41,12 +41,22 @@ jest.mock('@/components/ui/screen', () => ({
     return <View>{children}</View>;
   },
 }));
-jest.mock('@/components/ui/filter_rail', () => ({
-  FilterRail: ({ selectedMonth }: { selectedMonth: string }) => {
+jest.mock('@/components/ui/month_filter', () => ({
+  MonthFilter: ({ selectedMonth }: { selectedMonth: string }) => {
     const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
     return (
-      <View testID="transactions-filter-rail">
+      <View testID="transactions-month-filter">
         <Text>{selectedMonth}</Text>
+      </View>
+    );
+  },
+}));
+jest.mock('@/components/ui/segment_filter', () => ({
+  SegmentFilter: ({ selectedFilter }: { selectedFilter: string }) => {
+    const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
+    return (
+      <View testID="transactions-segment-filter">
+        <Text>{`filter:${selectedFilter}`}</Text>
       </View>
     );
   },
@@ -58,12 +68,17 @@ jest.mock('@/components/ui/empty_state', () => ({
   },
 }));
 jest.mock('@/components/ui/swipeable_row', () => ({ closeAllRows: jest.fn() }));
-jest.mock('@/modules/transactions/screens/transactions/components/totals_strip', () => ({
-  TotalsStrip: ({ isLoading }: { isLoading?: boolean }) => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>{`Totals loading:${String(isLoading)}`}</Text>;
-  },
-}));
+jest.mock('@/modules/transactions/screens/transactions/components/transactions_hero', () => {
+  const heroRenders = { count: 0 };
+  return {
+    heroRenders,
+    TransactionsHero: ({ model }: { model: { mode: string } }) => {
+      const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+      heroRenders.count += 1;
+      return <Text testID="transactions-hero-mock">{`hero:${model.mode}`}</Text>;
+    },
+  };
+});
 jest.mock('@/modules/transactions/screens/transactions/components/search_row', () => ({
   SearchRow: ({ value }: { value: string }) => {
     const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -119,6 +134,21 @@ const baseTransactionsState: TransactionsScreenState = {
   totals: null,
   totalsStatus: 'initialLoading',
   previousLabel: 'July 2026',
+  hero: {
+    mode: 'skeleton',
+    title: 'Out this month',
+    monthLabel: 'August 2026',
+    out: '—',
+    in: '—',
+    net: '—',
+    leftOfIncome: '—',
+    railPct: 0,
+    railDanger: false,
+    railAccessibilityLabel: 'No income this month',
+    shareCaption: null,
+    caption: 'Jul —',
+  },
+  searchDisabled: true,
   listRef: { current: null },
   pendingDeleteId: null,
   deleteBusy: false,
@@ -181,7 +211,8 @@ describe('TransactionsScreen', () => {
   it('keeps scope controls fixed while summary and search scroll with the ledger', async () => {
     const { getByTestId } = await render(<TransactionsScreen />);
 
-    expect(getByTestId('transactions-filter-rail')).toBeTruthy();
+    expect(getByTestId('transactions-month-filter')).toBeTruthy();
+    expect(getByTestId('transactions-segment-filter')).toBeTruthy();
     expect(getByTestId('transactions-list-header')).toBeTruthy();
     expect(getByTestId('transactions-list')).toHaveProp('ListHeaderComponent');
   });
@@ -270,6 +301,8 @@ describe('TransactionsScreen', () => {
         matchNetEgp: 0,
       },
       totalsStatus: 'refreshing',
+      hero: { ...baseTransactionsState.hero, mode: 'figures' },
+      searchDisabled: false,
       sections: [
         {
           key: 'TODAY',
@@ -303,7 +336,7 @@ describe('TransactionsScreen', () => {
 
     const { getByText, queryByTestId } = await render(<TransactionsScreen />);
 
-    expect(getByText('Totals loading:false')).toBeTruthy();
+    expect(getByText('hero:figures')).toBeTruthy();
     expect(getByText('Transaction row')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
   });

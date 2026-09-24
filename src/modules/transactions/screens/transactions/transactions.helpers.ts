@@ -7,7 +7,10 @@ import {
   formatDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
-import { currentYearMonth, shiftYearMonth } from '@/utils/year_month';
+import { formatMonthYear } from '@/utils/format_date';
+import { MONTHS_SHORT, currentYearMonth, shiftYearMonth } from '@/utils/year_month';
+
+import type { TransactionTotalsStatus } from './transactions.state';
 
 export { currentYearMonth };
 
@@ -136,5 +139,119 @@ export function deltaDisplay(
     direction: deltaPct > 0 ? 'up' : deltaPct < 0 ? 'down' : 'flat',
     label: `${Math.abs(deltaPct)}%`,
     polarity: polarityColor(metric, deltaPct),
+  };
+}
+
+export type TransactionsHeroMode = 'skeleton' | 'dashes' | 'figures';
+
+export interface TransactionsHeroInput {
+  mode: TransactionsHeroMode;
+  current: PeriodTotals | null;
+  previous: PeriodTotals | null;
+  /** The selected month, `YYYY-MM`. */
+  yearMonth: string;
+  /** `YYYY-MM-DD`; the caller reads the clock, never this layer. */
+  today: string;
+  /** Set only when the sheet's account filter holds exactly one account. */
+  accountLabel?: string;
+}
+
+export interface TransactionsHeroModel {
+  mode: TransactionsHeroMode;
+  title: string;
+  monthLabel: string;
+  out: string;
+  in: string;
+  net: string;
+  leftOfIncome: string;
+  railPct: number;
+  railDanger: boolean;
+  railAccessibilityLabel: string;
+  shareCaption: string | null;
+  caption: string;
+}
+
+export function resolveTransactionsHeroMode(
+  status: TransactionTotalsStatus,
+  hasTotals: boolean,
+): TransactionsHeroMode {
+  if (hasTotals) return 'figures';
+  return status === 'firstLoadError' ? 'dashes' : 'skeleton';
+}
+
+function formatHeroAmount(value: number): string {
+  const { text, printsAsZero } = formatDisplayMagnitude(value, Currency.EGP);
+  return signAmountText(text, value < 0 ? MINUS_SIGN : '', printsAsZero);
+}
+
+function lastMonthOutCaption(yearMonth: string, previous: PeriodTotals | null): string {
+  const lastMonth = shiftYearMonth(yearMonth, -1);
+  const amount =
+    previous === null || (previous.incomeEgp === 0 && previous.expenseEgp === 0)
+      ? Strings.transactionsHeroUnavailable
+      : formatHeroAmount(previous.expenseEgp);
+  return Strings.transactionsHeroLastMonthOut(
+    MONTHS_SHORT[Number(lastMonth.slice(5, 7)) - 1],
+    amount,
+  );
+}
+
+function daysLeftInMonth(yearMonth: string, today: string): number | null {
+  if (today.slice(0, 7) !== yearMonth) return null;
+  const lastDay = Number(resolvePeriod({ type: 'month', yearMonth }).to.slice(8, 10));
+  return Math.max(lastDay - Number(today.slice(8, 10)), 0);
+}
+
+export function buildTransactionsHeroModel(input: TransactionsHeroInput): TransactionsHeroModel {
+  const title =
+    input.accountLabel !== undefined
+      ? Strings.transactionsHeroTitleScoped(input.accountLabel)
+      : Strings.transactionsHeroTitle;
+  const lastMonth = lastMonthOutCaption(input.yearMonth, input.previous);
+  const daysLeft = daysLeftInMonth(input.yearMonth, input.today);
+  const caption =
+    daysLeft === null ? lastMonth : `${Strings.transactionsHeroDaysLeft(daysLeft)} · ${lastMonth}`;
+  const base = {
+    mode: input.mode,
+    title,
+    monthLabel: formatMonthYear(input.yearMonth),
+    caption,
+  };
+  const current = input.mode === 'figures' ? input.current : null;
+
+  if (current === null) {
+    return {
+      ...base,
+      out: Strings.transactionsHeroUnavailable,
+      in: Strings.transactionsHeroUnavailable,
+      net: Strings.transactionsHeroUnavailable,
+      leftOfIncome: Strings.transactionsHeroUnavailable,
+      railPct: 0,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsNoIncome,
+      shareCaption: null,
+    };
+  }
+
+  const hasIncome = current.incomeEgp > 0;
+  const share = hasIncome ? Math.round((current.expenseEgp / current.incomeEgp) * 100) : null;
+  const left = hasIncome
+    ? Math.round(((current.incomeEgp - current.expenseEgp) / current.incomeEgp) * 100)
+    : null;
+
+  return {
+    ...base,
+    out: formatHeroAmount(current.expenseEgp),
+    in: formatHeroAmount(current.incomeEgp),
+    net: formatHeroAmount(current.netEgp),
+    leftOfIncome:
+      left === null
+        ? Strings.transactionsHeroUnavailable
+        : signAmountText(`${Math.abs(left)}%`, left < 0 ? MINUS_SIGN : ''),
+    railPct: share === null ? 0 : Math.max(0, Math.min(100, share)),
+    railDanger: share !== null && share > 100,
+    railAccessibilityLabel:
+      share === null ? Strings.totalsNoIncome : Strings.totalsExpenseShareA11y(share),
+    shareCaption: share === null ? null : Strings.transactionsHeroShareSpent(share),
   };
 }

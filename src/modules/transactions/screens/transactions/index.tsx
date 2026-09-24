@@ -4,29 +4,30 @@ import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
 import { EmptyState } from '@/components/ui/empty_state';
-import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
+import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen } from '@/components/ui/screen';
+import { SegmentFilter, type SegmentFilterOption } from '@/components/ui/segment_filter';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Size } from '@/constants/theme';
+import { Colors, Size, Spacing } from '@/constants/theme';
 import { AccentCCTokens, GoldTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
 
 import { DateHeader } from './components/date_header';
 import { SearchRow } from './components/search_row';
-import { TotalsStrip } from './components/totals_strip';
 import { TransactionLoadError } from './components/transaction_load_error';
 import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
+import { TransactionsHero } from './components/transactions_hero';
 import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
 import { FilterSheet } from './filter';
 import { useTransactions } from './transactions.hook';
 import type { TransactionSection } from './transactions.hook';
 import type { TransactionFilter } from './transactions.store';
 
-const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
+const TRANSACTION_FILTERS: SegmentFilterOption<TransactionFilter>[] = [
   {
     value: 'all',
     label: Strings.filterAll,
@@ -55,6 +56,7 @@ const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
 ];
 
 const LIST_BOTTOM_CLEARANCE = ms(160);
+const TYPE_TAB_HIT_SLOP = 8;
 const SCROLL_POSITION_THROTTLE_MS = 100;
 
 export default function TransactionsScreen(): React.ReactElement {
@@ -104,34 +106,30 @@ export default function TransactionsScreen(): React.ReactElement {
   const showRowsSkeleton = state.showInitialSkeleton;
   const listSections = state.sections;
 
-  const totalsCurrent = state.totals?.current ?? null;
-  const totalsPrevious = state.totals?.previous ?? null;
-  const totalsLoading = state.totals === null;
-  const totalsStrip = useMemo(
-    () => (
-      <TotalsStrip
-        current={totalsCurrent}
-        previous={totalsPrevious}
-        previousLabel={state.previousLabel}
-        isLoading={totalsLoading}
-      />
-    ),
-    [state.previousLabel, totalsCurrent, totalsLoading, totalsPrevious],
-  );
+  // A memoised element lets React skip the hero when the header re-renders on a keystroke (M25).
+  const hero = useMemo(() => <TransactionsHero model={state.hero} />, [state.hero]);
 
   const listHeaderComponent = useMemo(
     () => (
       <View testID="transactions-list-header">
-        {totalsStrip}
+        {hero}
         <SearchRow
           value={state.searchQuery}
           onChange={setSearchQuery}
           onOpenFilter={openFilter}
           activeFilterCount={state.activeFilterCount}
+          disabled={state.searchDisabled}
         />
       </View>
     ),
-    [openFilter, setSearchQuery, state.activeFilterCount, state.searchQuery, totalsStrip],
+    [
+      hero,
+      openFilter,
+      setSearchQuery,
+      state.activeFilterCount,
+      state.searchDisabled,
+      state.searchQuery,
+    ],
   );
 
   const listEmptyComponent = useMemo(
@@ -183,14 +181,17 @@ export default function TransactionsScreen(): React.ReactElement {
       </Surface>
       <Separator />
 
-      <FilterRail
-        selectedMonth={state.selectedMonth}
-        onSelectedMonthChange={setSelectedMonth}
-        selectedFilter={state.activeFilter}
-        onSelectedFilterChange={setActiveFilter}
-        filters={TRANSACTION_FILTERS}
-        filterAccessibilityLabel={Strings.transactionTypeFilterAccessibility}
-      />
+      <View className="px-4 pt-1 pb-1" style={{ gap: Spacing.xxs }}>
+        <MonthFilter selectedMonth={state.selectedMonth} onSelectedMonthChange={setSelectedMonth} />
+        <SegmentFilter
+          selectedFilter={state.activeFilter}
+          onSelectedFilterChange={setActiveFilter}
+          filters={TRANSACTION_FILTERS}
+          corners="form"
+          triggerHitSlop={TYPE_TAB_HIT_SLOP}
+          accessibilityLabel={Strings.transactionTypeFilterAccessibility}
+        />
+      </View>
 
       <View style={{ flex: 1 }}>
         <SectionList

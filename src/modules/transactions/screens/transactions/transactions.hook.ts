@@ -17,7 +17,7 @@ import { useTransactionFormState } from '@/modules/transactions/screens/transact
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import type { TransactionListStatus } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
-import { formatMonthYear } from '@/utils/format_date';
+import { formatMonthYear, toLocalDateString } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
@@ -31,7 +31,12 @@ import {
 } from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';
 import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
-import { previousPeriod, resolvePeriod } from './transactions.helpers';
+import {
+  buildTransactionsHeroModel,
+  previousPeriod,
+  resolvePeriod,
+  resolveTransactionsHeroMode,
+} from './transactions.helpers';
 import { buildTransactionsPresentation } from './transactions.presentation';
 import { useTransactionsState } from './transactions.state';
 import { type TransactionTotalsState, useTransactionsScreenStore } from './transactions.store';
@@ -426,6 +431,26 @@ export function useTransactions() {
   const displayTotals = totalsYearMonth === period.yearMonth ? totals : null;
   const displayTotalsStatus =
     totalsYearMonth === period.yearMonth ? totalsStatus : 'initialLoading';
+  const scopedAccountLabel =
+    appliedFilters.accountIds.length === 1
+      ? accountLabelsById.get(appliedFilters.accountIds[0])?.name
+      : undefined;
+  const today = toLocalDateString(new Date());
+  const heroMode = resolveTransactionsHeroMode(displayTotalsStatus, displayTotals !== null);
+  const heroCurrent = displayTotals?.current ?? null;
+  const heroPrevious = displayTotals?.previous ?? null;
+  const hero = useMemo(
+    () =>
+      buildTransactionsHeroModel({
+        mode: heroMode,
+        current: heroCurrent,
+        previous: heroPrevious,
+        yearMonth: period.yearMonth,
+        today,
+        accountLabel: scopedAccountLabel,
+      }),
+    [heroCurrent, heroMode, heroPrevious, period.yearMonth, scopedAccountLabel, today],
+  );
   const presentation = buildTransactionsPresentation({
     listStatus,
     totalsStatus: displayTotalsStatus,
@@ -540,6 +565,8 @@ export function useTransactions() {
       totals: displayTotals,
       totalsStatus: displayTotalsStatus,
       previousLabel,
+      hero,
+      searchDisabled: heroMode === 'skeleton',
       listRef,
       pendingDeleteId: deleteAction.pendingPayload,
       deleteBusy: deleteAction.busy,
