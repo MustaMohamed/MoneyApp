@@ -17,7 +17,7 @@ On the accounts redesign (#378) the render lens ran a median 99 messages per tic
 
 ## File shape
 
-Four sections, in this order: `Reach it` (route, user path, deep link), `States` (table: state, frame, force, proof), `Outbound` (every action that leaves the screen and where Back lands), `Gotchas`. Frames are the canvas ids from `~/.ship/MoneyApp/canvas/README.md`; the artboard source is the measurement, the PNG is the look.
+Four sections, in this order: `Reach it` (route, user path, deep link), `States` (table: state, frame, force, proof), `Outbound` (every action that leaves the screen and where Back lands), `Gotchas`. Frames are the canvas ids from `~/.ship/MoneyApp/canvas/README.md`, except in a feature file whose header names another canvas, which takes its frame ids from that canvas; the artboard source is the measurement, the PNG is the look.
 
 ## Files
 
@@ -32,7 +32,7 @@ Four sections, in this order: `Reach it` (route, user path, deep link), `States`
 | [commitments.md](commitments.md) | `/commitments`, and its filter sheet | not redesigned |
 | [add_commitment.md](add_commitment.md) | `/commitments/add` | not redesigned |
 | [commitment_detail.md](commitment_detail.md) | `/stacked/commitments/[id]` | not redesigned |
-| [transactions.md](transactions.md) | `/transactions` | not redesigned |
+| [transactions.md](transactions.md) | `/transactions`, and its filter sheet | B1, B2 (transactions canvas) |
 | [transaction_detail.md](transaction_detail.md) | `/transactions/detail/[id]` | not redesigned |
 | [budget.md](budget.md) | `/budget`, and its copy sheet | not redesigned |
 | [spending_plan_detail.md](spending_plan_detail.md) | `/budget/plans/[id]` | not redesigned |

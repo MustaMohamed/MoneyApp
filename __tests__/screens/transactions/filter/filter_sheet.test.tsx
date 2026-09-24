@@ -43,18 +43,20 @@ jest.mock('@/components/ui/button', () => ({
   Button: ({
     label,
     variant,
+    flat,
     onPress,
     isDisabled,
   }: {
     label: string;
     variant?: string;
+    flat?: boolean;
     onPress?: () => void;
     isDisabled?: boolean;
   }) => {
     const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return (
       <Pressable accessibilityRole="button" disabled={isDisabled} onPress={onPress}>
-        <Text>{`${variant}:${label}`}</Text>
+        <Text>{`${variant}${flat ? ':flat' : ''}:${label}`}</Text>
       </Pressable>
     );
   },
@@ -126,8 +128,8 @@ describe('FilterSheet', () => {
     const { getByText, getByTestId } = await render(<FilterSheet />);
 
     expect(FILTER_SHEET_ACTION_STYLE).toEqual({ flex: 1 });
-    expect(getByText(`secondary:${Strings.filterReset}`)).toBeTruthy();
-    expect(getByText(`primary:${Strings.filterApplyWithCount(2)}`)).toBeTruthy();
+    expect(getByText(`secondary:flat:${Strings.filterReset}`)).toBeTruthy();
+    expect(getByText(`primary:flat:${Strings.filterApplyWithCount(2)}`)).toBeTruthy();
     expect(getByTestId('filter-reset-action')).toHaveStyle(FILTER_SHEET_ACTION_STYLE);
     expect(getByTestId('filter-apply-action')).toHaveStyle(FILTER_SHEET_ACTION_STYLE);
   });
@@ -135,10 +137,10 @@ describe('FilterSheet', () => {
   it('wires Reset and Apply actions from the footer', async () => {
     const { getByText } = await render(<FilterSheet />);
 
-    await fireEvent.press(getByText(`secondary:${Strings.filterReset}`));
+    await fireEvent.press(getByText(`secondary:flat:${Strings.filterReset}`));
     expect(mockResetDraft).toHaveBeenCalled();
 
-    await fireEvent.press(getByText(`primary:${Strings.filterApplyWithCount(2)}`));
+    await fireEvent.press(getByText(`primary:flat:${Strings.filterApplyWithCount(2)}`));
     expect(mockApplyDraft).toHaveBeenCalled();
   });
 });

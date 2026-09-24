@@ -30,6 +30,7 @@ export function FilterSheet(): React.ReactElement {
           <Box testID="filter-reset-action" style={FILTER_SHEET_ACTION_STYLE}>
             <Button
               variant="secondary"
+              flat
               label={Strings.filterReset}
               onPress={f.resetDraft}
               isDisabled={!f.state.canReset}
@@ -38,6 +39,7 @@ export function FilterSheet(): React.ReactElement {
           <Box testID="filter-apply-action" style={FILTER_SHEET_ACTION_STYLE}>
             <Button
               variant="primary"
+              flat
               label={
                 f.state.draftCount > 0
                   ? Strings.filterApplyWithCount(f.state.draftCount)
