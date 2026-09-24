@@ -1,300 +1,616 @@
-import {
-  AccountType,
-  BudgetGroup,
-  CategoryType,
-  Currency,
-  TransactionType,
-} from '@/constants/enums';
+import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
-import type { Account } from '@/modules/accounts/entities/account.entity';
-import type { Category } from '@/modules/categories/entities/category.entity';
-import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { lineHeightFor } from '@/constants/theme';
+import {
+  AccentCCTokens,
+  AccentTokens,
+  AcctTokens,
+  GoldTokens,
+  InfoTokens,
+} from '@/constants/theme_tokens';
 import {
   buildTransactionRowPresentation,
-  TRANSACTION_ROW_CONTEXT_GAP,
+  resolveRowTile,
+  TRANSACTION_ROW_AMOUNT_FONT_SIZE,
+  TRANSACTION_ROW_CAPTION_FONT_SIZE,
+  TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_HEIGHT,
-  TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
-  TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
+  TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_BADGE_HEIGHT,
-  TRANSACTION_ROW_VERTICAL_PADDING,
+  TRANSACTION_ROW_TITLE_FONT_SIZE,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+import { makeTestAccount, makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
 
-const now = '2026-07-20T12:00:00.000Z';
+const cib = makeTestAccount({
+  id: 'cib',
+  name: 'CIB Current',
+  type: AccountType.Bank,
+  color: AcctTokens.lapis.rich,
+});
+const payoneer = makeTestAccount({
+  id: 'payoneer',
+  name: 'Payoneer',
+  type: AccountType.SmartWallet,
+  currency: Currency.USD,
+  color: AcctTokens.nile.rich,
+});
+const visa = makeTestAccount({
+  id: 'visa',
+  name: 'Visa',
+  type: AccountType.CreditCard,
+  color: AcctTokens.plum.rich,
+});
+const groceries = makeTestCategory({
+  id: 'groceries',
+  name: 'Groceries',
+  icon: 'cart',
+  color: AccentTokens.spice,
+});
+const salary = makeTestCategory({
+  id: 'salary',
+  name: 'Salary',
+  type: CategoryType.Income,
+  icon: 'cash',
+  color: AccentTokens.nile,
+});
 
-function account(overrides: Partial<Account>): Account {
-  return {
-    id: 'account-1',
-    name: 'Daily wallet',
-    type: AccountType.Bank,
-    currency: Currency.EGP,
-    opening_balance: 0,
-    current_balance: 0,
-    color: null,
-    credit_limit: null,
-    revolving_balance: null,
-    minimum_payment: null,
-    statement_due_day: null,
-    interest_tracking: 0,
-    apr: null,
-    is_archived: 0,
-    balance_review_required: 0,
-    is_deleted: 0,
-    sort_order: 0,
-    created_at: now,
-    updated_at: now,
-    ...overrides,
-  };
-}
+const cibTile = { color: AcctTokens.lapis.rich, type: AccountType.Bank, hollow: false };
+const payoneerTile = { color: AcctTokens.nile.rich, type: AccountType.SmartWallet, hollow: false };
+const visaTile = { color: AcctTokens.plum.rich, type: AccountType.CreditCard, hollow: false };
 
-function transaction(overrides: Partial<Transaction>): Transaction {
-  return {
-    id: 'tx-1',
-    type: TransactionType.Expense,
-    amount: 100,
-    currency: Currency.EGP,
-    egp_amount: 100,
-    exchange_rate: null,
-    to_amount: null,
-    minimum_payment_snapshot: null,
-    revolving_balance_delta: null,
-    account_id: 'account-1',
-    to_account_id: null,
-    category_id: 'category-1',
-    budget_id: null,
-    note: null,
-    transaction_date: '2026-07-20',
-    transaction_time: '12:00:00',
-    commitment_payment_id: null,
-    installment_id: null,
-    created_at: now,
-    updated_at: now,
-    ...overrides,
-  };
-}
+describe('buildTransactionRowPresentation, one case per type', () => {
+  it('draws an expense with the category glyph, note · time and a minus-signed amount over EGP', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({
+        amount: 1_240,
+        egp_amount: 1_240,
+        account_id: cib.id,
+        category_id: groceries.id,
+        note: 'Carrefour',
+        transaction_time: '18:40:00',
+      }),
+      account: cib,
+      category: groceries,
+    });
 
-const category: Category = {
-  id: 'category-1',
-  name: 'Food & Dining',
-  type: CategoryType.Expense,
-  icon: 'silverware-fork-knife',
-  color: '#ffffff',
-  budget_group: BudgetGroup.Need,
-  is_default: 0,
-  sort_order: 0,
-  created_at: now,
-  updated_at: now,
-};
+    expect(row).toMatchObject({
+      title: 'Groceries',
+      caption: 'Carrefour · 6:40 PM',
+      captionLead: 'Carrefour',
+      captionTime: '6:40 PM',
+      primaryAmount: '−1,240',
+      secondaryLine: 'EGP',
+      glyphName: 'cart',
+      glyphColor: AccentTokens.spice,
+      amountClassName: 'text-danger',
+    });
+    expect(row.tiles).toEqual([cibTile]);
+  });
 
-describe('buildTransactionRowPresentation', () => {
-  it('shows both native transfer amounts with direction-aware account copy', () => {
-    const source = account({ id: 'usd', name: 'USD wallet', currency: Currency.USD });
-    const destination = account({ id: 'egp', name: 'CIB', currency: Currency.EGP });
+  it('draws an income with a plus-signed amount in the positive colour', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({
+        type: TransactionType.Income,
+        amount: 22_300,
+        egp_amount: 22_300,
+        account_id: cib.id,
+        category_id: salary.id,
+        transaction_time: '09:15:00',
+      }),
+      account: cib,
+      category: salary,
+    });
+
+    expect(row).toMatchObject({
+      title: 'Salary',
+      caption: '9:15 AM',
+      captionTime: '9:15 AM',
+      primaryAmount: '+22,300',
+      secondaryLine: 'EGP',
+      glyphName: 'cash',
+      glyphColor: AccentTokens.nile,
+      amountClassName: 'text-success',
+    });
+    expect(row.tiles).toEqual([cibTile]);
+  });
+
+  it('draws a transfer with both tiles, from → to · time and an unsigned amount over the destination amount', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({
+        type: TransactionType.Transfer,
+        amount: 5_000,
+        egp_amount: 5_000,
+        exchange_rate: 49,
+        to_amount: 102.04,
+        account_id: cib.id,
+        to_account_id: payoneer.id,
+        category_id: null,
+        transaction_time: '10:30:00',
+      }),
+      account: cib,
+      toAccount: payoneer,
+    });
+
+    expect(row).toMatchObject({
+      title: Strings.transferTitle,
+      caption: 'CIB Current → Payoneer · 10:30 AM',
+      primaryAmount: '5,000',
+      secondaryLine: '→ 102.04 USD',
+      glyphName: 'swap-horizontal',
+      glyphColor: InfoTokens[500],
+      amountClassName: 'text-info',
+    });
+    expect(row.tiles).toEqual([cibTile, payoneerTile]);
+  });
+
+  it('draws a card payment with both tiles and an unsigned amount in the card accent', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({
+        type: TransactionType.CCPayment,
+        amount: 3_000,
+        egp_amount: 3_000,
+        account_id: cib.id,
+        to_account_id: visa.id,
+        category_id: null,
+        transaction_time: '20:05:00',
+      }),
+      account: cib,
+      toAccount: visa,
+    });
+
+    expect(row).toMatchObject({
+      title: Strings.addTxTypeCCPayment,
+      caption: 'CIB Current → Visa · 8:05 PM',
+      primaryAmount: '3,000',
+      secondaryLine: 'EGP',
+      glyphName: 'credit-card-refund',
+      glyphColor: AccentCCTokens[500],
+      amountClassName: 'text-accent-cc',
+    });
+    expect(row.tiles).toEqual([cibTile, visaTile]);
+  });
+
+  it('draws a card credit on the card tile with the refund glyph and a plus-signed amount in info blue', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({
+        type: TransactionType.Income,
+        amount: 450,
+        egp_amount: 450,
+        account_id: visa.id,
+        category_id: salary.id,
+        note: 'Refund',
+        transaction_time: '13:00:00',
+      }),
+      account: visa,
+      category: salary,
+    });
+
+    expect(row).toMatchObject({
+      title: Strings.cardCreditTitle,
+      caption: 'Refund · 1:00 PM',
+      primaryAmount: '+450',
+      secondaryLine: 'EGP',
+      glyphName: 'credit-card-refund',
+      glyphColor: InfoTokens[500],
+      amountClassName: 'text-info',
+    });
+    expect(row.tiles).toEqual([visaTile]);
+  });
+
+  it('gives an uncategorised expense the fallback glyph in gold', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: makeTestTransaction({ account_id: cib.id, category_id: null }),
+        account: cib,
+      }),
+    ).toMatchObject({
+      title: Strings.uncategorized,
+      glyphName: 'shape-outline',
+      glyphColor: GoldTokens[500],
+    });
+  });
+});
+
+describe('buildTransactionRowPresentation, amounts and captions', () => {
+  it('shows a USD expense over its EGP amount and rate, the note caption unchanged', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: makeTestTransaction({
+          amount: 15,
+          currency: Currency.USD,
+          egp_amount: 735,
+          exchange_rate: 49,
+          account_id: payoneer.id,
+          category_id: groceries.id,
+          note: 'Figma',
+          transaction_time: '11:20:00',
+        }),
+        account: payoneer,
+        category: groceries,
+      }),
+    ).toMatchObject({
+      caption: 'Figma · 11:20 AM',
+      primaryAmount: '−15.00',
+      secondaryLine: '≈ 735 EGP @ 49.00',
+      accessibilityLabel: 'Groceries, Payoneer, Figma · 11:20 AM, −15.00 USD, ≈ 735 EGP @ 49.00',
+    });
+  });
+
+  it('leaves a sub-unit USD expense unescalated, its 2dp precision already carrying the magnitude', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: makeTestTransaction({
+          amount: 0.4,
+          currency: Currency.USD,
+          egp_amount: 20,
+          exchange_rate: 50,
+          account_id: payoneer.id,
+        }),
+        account: payoneer,
+        category: groceries,
+      }),
+    ).toMatchObject({
+      primaryAmount: '−0.40',
+      secondaryLine: '≈ 20 EGP @ 50.00',
+    });
+  });
+
+  it('falls back to the currency code on a transfer with no destination amount', () => {
+    const usdSavings = makeTestAccount({
+      id: 'usd-2',
+      name: 'USD Savings',
+      currency: Currency.USD,
+    });
 
     expect(
       buildTransactionRowPresentation({
-        tx: transaction({
+        tx: makeTestTransaction({
           type: TransactionType.Transfer,
           amount: 100,
           currency: Currency.USD,
-          egp_amount: 4_850,
-          exchange_rate: 48.5,
-          to_amount: 4_850,
-          account_id: source.id,
-          to_account_id: destination.id,
+          egp_amount: 4_900,
+          exchange_rate: 49,
+          to_amount: null,
+          account_id: payoneer.id,
+          to_account_id: usdSavings.id,
           category_id: null,
         }),
-        account: source,
-        toAccount: destination,
+        account: payoneer,
+        toAccount: usdSavings,
       }),
     ).toMatchObject({
-      title: Strings.transferTitle,
-      context: 'USD wallet → CIB',
-      primaryAmount: '100.00 USD',
-      secondaryAmount: '→ 4,850 EGP',
+      primaryAmount: '100.00',
+      secondaryLine: 'USD',
     });
   });
 
-  it('presents income into a credit card as a Card credit', () => {
-    const card = account({
-      id: 'card',
-      name: 'Visa',
-      type: AccountType.CreditCard,
-      currency: Currency.EGP,
-    });
+  it('trims the note, and a blank note leaves the time alone', () => {
+    const input = { account: cib, category: groceries };
 
     expect(
       buildTransactionRowPresentation({
-        tx: transaction({ type: TransactionType.Income, account_id: card.id }),
-        account: card,
-        category,
-      }),
-    ).toMatchObject({
-      title: Strings.cardCreditTitle,
-      context: 'Food & Dining · Visa',
-      primaryAmount: '+100 EGP',
-      amountClassName: 'text-info',
-    });
-  });
-
-  it('keeps source ownership compact and explicit', () => {
-    expect(
-      buildTransactionRowPresentation({
-        tx: transaction({ commitment_payment_id: 'payment-1' }),
-        account: account({}),
-        category,
-      }).ownershipLabel,
-    ).toBe(Strings.typeBadgeCommitment);
-
-    expect(
-      buildTransactionRowPresentation({
-        tx: transaction({ budget_id: 'budget-1' }),
-        account: account({}),
-        category,
-      }).ownershipLabel,
-    ).toBe(Strings.transactionBudgetAssigned);
-  });
-
-  it('normalizes notes and formats large values without changing the row contract', () => {
-    expect(
-      buildTransactionRowPresentation({
-        tx: transaction({ amount: 1_250_000, egp_amount: 1_250_000, note: '  Annual rent  ' }),
-        account: account({}),
-        category,
-      }),
-    ).toMatchObject({
-      primaryAmount: '−1,250,000 EGP',
-      note: 'Annual rent',
-    });
-  });
-
-  it('shows the EGP equivalent and captured rate for a USD expense', () => {
-    expect(
-      buildTransactionRowPresentation({
-        tx: transaction({
-          amount: 20,
-          currency: Currency.USD,
-          egp_amount: 1_000,
-          exchange_rate: 50,
+        ...input,
+        tx: makeTestTransaction({
+          amount: 1_250_000,
+          egp_amount: 1_250_000,
+          note: '  Annual rent  ',
         }),
-        account: account({ currency: Currency.USD }),
-        category,
       }),
-    ).toMatchObject({
-      primaryAmount: '−20.00 USD',
-      secondaryAmount: '≈ 1,000 EGP',
-      rateText: '@ 50.00',
-    });
+    ).toMatchObject({ caption: 'Annual rent · 12:00 PM', primaryAmount: '−1,250,000' });
+    expect(
+      buildTransactionRowPresentation({ ...input, tx: makeTestTransaction({ note: '   ' }) })
+        .caption,
+    ).toBe('12:00 PM');
   });
+});
 
-  it('leaves a sub-unit USD expense unescalated — its 2dp precision already carries the magnitude', () => {
+describe('buildTransactionRowPresentation, the spoken account', () => {
+  it('speaks the account name on an expense, whose tile has no label', () => {
     expect(
       buildTransactionRowPresentation({
-        tx: transaction({ amount: 0.4, currency: Currency.USD, egp_amount: 20 }),
-        account: account({ currency: Currency.USD }),
-        category,
-      }),
-    ).toMatchObject({
-      primaryAmount: '−0.40 USD',
-    });
+        tx: makeTestTransaction({
+          amount: 1_240,
+          egp_amount: 1_240,
+          account_id: cib.id,
+          note: 'Carrefour',
+          transaction_time: '18:40:00',
+        }),
+        account: cib,
+        category: groceries,
+      }).accessibilityLabel,
+    ).toBe('Groceries, CIB Current, Carrefour · 6:40 PM, −1,240 EGP');
   });
 
-  it('takes the context line from the surface when one is passed, and nothing else', () => {
-    const input = { tx: transaction({}), account: account({}), category };
-    const shipped = buildTransactionRowPresentation(input);
-    const overridden = buildTransactionRowPresentation(input, '6 Sep');
+  it('speaks both account names on a transfer', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: makeTestTransaction({
+          type: TransactionType.Transfer,
+          account_id: cib.id,
+          to_account_id: payoneer.id,
+          category_id: null,
+        }),
+        account: cib,
+        toAccount: payoneer,
+      }).accessibilityLabel,
+    ).toBe('Transfer, CIB Current → Payoneer · 12:00 PM, 100 EGP');
+  });
 
-    expect(overridden.context).toBe('6 Sep');
-    expect(shipped.context).toBe('Daily wallet');
-    expect(overridden.accessibilityLabel.split(', ')[1]).toBe('6 Sep');
+  it('draws an archived account filled in its colour and speaks its name', () => {
+    const archived = makeTestAccount({
+      id: 'old',
+      name: 'Old Savings',
+      type: AccountType.PhysicalSavings,
+      color: AcctTokens.jade.rich,
+      is_archived: 1,
+    });
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({ account_id: archived.id }),
+      account: archived,
+      category: groceries,
+    });
+
+    expect(row.tiles).toEqual([
+      { color: AcctTokens.jade.rich, type: AccountType.PhysicalSavings, hollow: false },
+    ]);
+    expect(row.accessibilityLabel.split(', ')[1]).toBe('Old Savings');
+  });
+});
+
+describe('buildTransactionRowPresentation, the caption override', () => {
+  const expenseInput = {
+    tx: makeTestTransaction({ account_id: cib.id, note: 'Carrefour' }),
+    account: cib,
+    category: groceries,
+  };
+  const transferInput = {
+    tx: makeTestTransaction({
+      type: TransactionType.Transfer,
+      account_id: cib.id,
+      to_account_id: payoneer.id,
+      category_id: null,
+    }),
+    account: cib,
+    toAccount: payoneer,
+  };
+
+  it('replaces the lead and the time, and nothing else', () => {
+    const shipped = buildTransactionRowPresentation(expenseInput);
+    const overridden = buildTransactionRowPresentation(expenseInput, {
+      lead: 'From CIB Current',
+      time: '18 Sep',
+    });
+
+    expect(overridden.caption).toBe('From CIB Current · 18 Sep');
+    expect(overridden.accessibilityLabel).toBe(
+      shipped.accessibilityLabel.replace(shipped.caption, overridden.caption),
+    );
+    expect(overridden).toMatchObject({ captionLead: 'From CIB Current', captionTime: '18 Sep' });
     expect({
       ...overridden,
-      context: shipped.context,
+      caption: shipped.caption,
+      captionLead: shipped.captionLead,
+      captionTime: shipped.captionTime,
       accessibilityLabel: shipped.accessibilityLabel,
     }).toEqual(shipped);
   });
 
-  it('gives commitment ownership precedence over a named budget', () => {
+  it('keeps the note or the from → to lead when only the time is overridden', () => {
+    expect(buildTransactionRowPresentation(expenseInput, { time: 'Yesterday' }).caption).toBe(
+      'Carrefour · Yesterday',
+    );
+    expect(buildTransactionRowPresentation(transferInput, { time: 'Yesterday' }).caption).toBe(
+      'CIB Current → Payoneer · Yesterday',
+    );
+  });
+
+  it('reads the overridden time alone when the row has no note and no lead', () => {
     expect(
-      buildTransactionRowPresentation({
-        tx: transaction({ commitment_payment_id: 'payment-1', budget_id: 'budget-1' }),
-        account: account({}),
-        category,
+      buildTransactionRowPresentation(
+        { ...expenseInput, tx: makeTestTransaction({ account_id: cib.id, note: null }) },
+        { time: 'Yesterday' },
+      ).caption,
+    ).toBe('Yesterday');
+  });
+});
+
+describe('buildTransactionRowPresentation, ownership', () => {
+  it('labels a budget-assigned row and speaks the label last', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({ account_id: cib.id, budget_id: 'budget-1' }),
+      account: cib,
+      category: groceries,
+    });
+
+    expect(row).toMatchObject({
+      ownershipLabel: Strings.transactionBudgetAssigned,
+      isCommitmentOwned: false,
+    });
+    expect(row.accessibilityLabel).toBe(
+      `Groceries, CIB Current, 12:00 PM, −100 EGP, ${Strings.transactionBudgetAssigned}`,
+    );
+  });
+
+  it('gives commitment ownership precedence over a named budget', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({
+        account_id: cib.id,
+        commitment_payment_id: 'payment-1',
+        budget_id: 'budget-1',
       }),
-    ).toMatchObject({
+      account: cib,
+      category: groceries,
+    });
+
+    expect(row).toMatchObject({
       ownershipLabel: Strings.typeBadgeCommitment,
       isCommitmentOwned: true,
     });
+    expect(row.accessibilityLabel).toBe(
+      `Groceries, CIB Current, 12:00 PM, −100 EGP, ${Strings.typeBadgeCommitment}`,
+    );
   });
 });
 
-describe('buildTransactionRowPresentation — deleted accounts (MA-020)', () => {
-  const deletedSource = account({ id: 'gone', name: '', is_archived: 1, is_deleted: 1 });
-  const deletedTarget = account({ id: 'gone-too', name: '', is_archived: 1, is_deleted: 1 });
+describe('buildTransactionRowPresentation, the destination line and the spoken pair', () => {
+  it('reads the code for a same-currency card payment and for an unresolved destination', () => {
+    const payment = makeTestTransaction({
+      type: TransactionType.CCPayment,
+      amount: 3_000,
+      egp_amount: 3_000,
+      to_amount: 3_000,
+      account_id: cib.id,
+      to_account_id: visa.id,
+      category_id: null,
+    });
 
-  it('reads "Deleted Account" as the context of an expense', () => {
     expect(
-      buildTransactionRowPresentation({
-        tx: transaction({ account_id: deletedSource.id }),
-        account: deletedSource,
-      }).context,
-    ).toBe(Strings.deletedAccount);
+      buildTransactionRowPresentation({ tx: payment, account: cib, toAccount: visa }).secondaryLine,
+    ).toBe('EGP');
+    expect(buildTransactionRowPresentation({ tx: payment, account: cib }).secondaryLine).toBe(
+      'EGP',
+    );
+  });
+
+  it('speaks the pair again when a caller replaces the lead', () => {
+    const payment = makeTestTransaction({
+      type: TransactionType.CCPayment,
+      account_id: cib.id,
+      to_account_id: visa.id,
+      category_id: null,
+    });
+
+    expect(
+      buildTransactionRowPresentation(
+        { tx: payment, account: cib, toAccount: visa },
+        { lead: 'From CIB Current', time: '18 Sep' },
+      ).accessibilityLabel,
+    ).toBe(`${Strings.addTxTypeCCPayment}, CIB Current → Visa, From CIB Current · 18 Sep, 100 EGP`);
+  });
+});
+
+describe('resolveRowTile', () => {
+  it('draws a live account filled in its colour with its type', () => {
+    expect(resolveRowTile(visa)).toEqual(visaTile);
+  });
+
+  it('draws an unresolved account as the hollow graphite tile', () => {
+    expect(resolveRowTile(undefined)).toEqual({
+      color: AcctTokens.graphite.rich,
+      type: AccountType.Bank,
+      hollow: true,
+    });
+  });
+});
+
+describe('buildTransactionRowPresentation, deleted accounts (MA-020)', () => {
+  const deletedSource = makeTestAccount({
+    id: 'gone',
+    name: '',
+    type: AccountType.Bank,
+    color: AcctTokens.lapis.rich,
+    is_archived: 1,
+    is_deleted: 1,
+  });
+  const deletedTarget = makeTestAccount({
+    id: 'gone-too',
+    name: '',
+    type: AccountType.SmartWallet,
+    color: AcctTokens.nile.rich,
+    is_archived: 1,
+    is_deleted: 1,
+  });
+  const hollowBank = { color: AcctTokens.graphite.rich, type: AccountType.Bank, hollow: true };
+  const hollowWallet = {
+    color: AcctTokens.graphite.rich,
+    type: AccountType.SmartWallet,
+    hollow: true,
+  };
+
+  it('draws a deleted expense account hollow graphite and speaks "Deleted Account"', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({ account_id: deletedSource.id }),
+      account: deletedSource,
+      category: groceries,
+    });
+
+    expect(row.tiles).toEqual([hollowBank]);
+    expect(row.accessibilityLabel.split(', ')[1]).toBe(Strings.deletedAccount);
+  });
+
+  it('draws the deleted side of a transfer hollow and names it in the caption', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({
+        type: TransactionType.Transfer,
+        account_id: cib.id,
+        to_account_id: deletedTarget.id,
+        category_id: null,
+      }),
+      account: cib,
+      toAccount: deletedTarget,
+    });
+
+    expect(row.tiles).toEqual([cibTile, hollowWallet]);
+    expect(row.caption).toBe(`CIB Current → ${Strings.deletedAccount} · 12:00 PM`);
   });
 
   it('reads "Deleted Account" on both sides of a transfer between two deleted accounts', () => {
-    expect(
-      buildTransactionRowPresentation({
-        tx: transaction({
-          type: TransactionType.Transfer,
-          account_id: deletedSource.id,
-          to_account_id: deletedTarget.id,
-          category_id: null,
-        }),
-        account: deletedSource,
-        toAccount: deletedTarget,
-      }).context,
-    ).toBe(`${Strings.deletedAccount} → ${Strings.deletedAccount}`);
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({
+        type: TransactionType.Transfer,
+        account_id: deletedSource.id,
+        to_account_id: deletedTarget.id,
+        category_id: null,
+      }),
+      account: deletedSource,
+      toAccount: deletedTarget,
+    });
+
+    expect(row.tiles).toEqual([hollowBank, hollowWallet]);
+    expect(row.caption).toBe(`${Strings.deletedAccount} → ${Strings.deletedAccount} · 12:00 PM`);
   });
 
-  it('keeps the card-credit branch, with the deleted card named by the label', () => {
-    const deletedCard = account({
+  it('keeps the card-credit branch on a deleted card, its tile hollow', () => {
+    const deletedCard = makeTestAccount({
       id: 'gone-card',
       name: '',
       type: AccountType.CreditCard,
+      color: AcctTokens.plum.rich,
       is_archived: 1,
       is_deleted: 1,
     });
-
-    expect(
-      buildTransactionRowPresentation({
-        tx: transaction({ type: TransactionType.Income, account_id: deletedCard.id }),
-        account: deletedCard,
-        category,
-      }),
-    ).toMatchObject({
-      title: Strings.cardCreditTitle,
-      context: `Food & Dining · ${Strings.deletedAccount}`,
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({ type: TransactionType.Income, account_id: deletedCard.id }),
+      account: deletedCard,
+      category: groceries,
     });
+
+    expect(row.title).toBe(Strings.cardCreditTitle);
+    expect(row.tiles).toEqual([
+      { color: AcctTokens.graphite.rich, type: AccountType.CreditCard, hollow: true },
+    ]);
+    expect(row.accessibilityLabel.split(', ')[1]).toBe(Strings.deletedAccount);
   });
 });
 
-describe('buildTransactionRowPresentation — blank-named accounts (MA-062)', () => {
-  const blankSource = account({ id: 'blank', name: '' });
-  const blankTarget = account({ id: 'blank-too', name: '' });
+describe('buildTransactionRowPresentation, blank-named accounts (MA-062)', () => {
+  const blankSource = makeTestAccount({ id: 'blank', name: '' });
+  const blankTarget = makeTestAccount({ id: 'blank-too', name: '' });
 
-  it('reads "Unnamed account" as the context of an expense', () => {
+  it('speaks "Unnamed account" on an expense', () => {
     expect(
       buildTransactionRowPresentation({
-        tx: transaction({ account_id: blankSource.id }),
+        tx: makeTestTransaction({ account_id: blankSource.id }),
         account: blankSource,
-      }).context,
-    ).toBe(Strings.unnamedAccount);
+        category: groceries,
+      }).accessibilityLabel,
+    ).toBe(`Groceries, ${Strings.unnamedAccount}, 12:00 PM, −100 EGP`);
   });
 
-  it('reads "Unnamed account" on both sides of a transfer between two blank-named accounts', () => {
+  it('reads "Unnamed account" on both sides of a transfer caption', () => {
     expect(
       buildTransactionRowPresentation({
-        tx: transaction({
+        tx: makeTestTransaction({
           type: TransactionType.Transfer,
           account_id: blankSource.id,
           to_account_id: blankTarget.id,
@@ -302,26 +618,30 @@ describe('buildTransactionRowPresentation — blank-named accounts (MA-062)', ()
         }),
         account: blankSource,
         toAccount: blankTarget,
-      }).context,
-    ).toBe(`${Strings.unnamedAccount} → ${Strings.unnamedAccount}`);
+      }).caption,
+    ).toBe(`${Strings.unnamedAccount} → ${Strings.unnamedAccount} · 12:00 PM`);
   });
 });
 
-describe('transaction row track geometry', () => {
-  it('keeps both columns inside the row box', () => {
-    // The row's own `border-b` comes out of the content box alongside the padding.
-    const innerBox = TRANSACTION_ROW_HEIGHT - 2 * TRANSACTION_ROW_VERTICAL_PADDING - 1;
-    const valueColumn =
-      lineHeightFor(Type.body) +
-      TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT +
-      lineHeightFor(Type.overline);
+describe('transaction row line geometry', () => {
+  // The row's own `border-b` comes out of its content box.
+  const innerBox = TRANSACTION_ROW_HEIGHT - 1;
+
+  it('fits the title row, the gap and the caption inside the row', () => {
     const contentColumn =
-      Math.max(lineHeightFor(Type.meta), TRANSACTION_ROW_TITLE_BADGE_HEIGHT) +
-      TRANSACTION_ROW_CONTEXT_GAP +
-      lineHeightFor(Type.overline) +
-      TRANSACTION_ROW_NOTE_TRACK_HEIGHT;
+      Math.max(lineHeightFor(TRANSACTION_ROW_TITLE_FONT_SIZE), TRANSACTION_ROW_TITLE_BADGE_HEIGHT) +
+      TRANSACTION_ROW_LINE_GAP +
+      lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE);
+
+    expect(contentColumn).toBeLessThanOrEqual(innerBox);
+  });
+
+  it('fits the amount, the gap and the code line inside the row', () => {
+    const valueColumn =
+      lineHeightFor(TRANSACTION_ROW_AMOUNT_FONT_SIZE) +
+      TRANSACTION_ROW_LINE_GAP +
+      lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE);
 
     expect(valueColumn).toBeLessThanOrEqual(innerBox);
-    expect(contentColumn).toBeLessThanOrEqual(innerBox);
   });
 });

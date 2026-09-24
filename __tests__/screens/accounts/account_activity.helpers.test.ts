@@ -1,5 +1,6 @@
 import { AccountType, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { AcctTokens } from '@/constants/theme_tokens';
 import type { AccountActivityStatus } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
 import {
   type ActivityCardBody,
@@ -59,133 +60,204 @@ describe('formatActivityDayLabel', () => {
 });
 
 describe('buildActivityRowPresentation', () => {
-  const now = localDate(2026, 9, 8);
-  const tx = makeTestTransaction({ transaction_date: '2026-09-06', transaction_time: '14:30:00' });
-  const account = makeTestAccount({ id: 'account-1', name: 'CIB', type: AccountType.Bank });
-  const card = makeTestAccount({ id: 'card-1', name: 'Visa', type: AccountType.CreditCard });
-  const payoneer = makeTestAccount({ id: 'account-2', name: 'Payoneer' });
-  const category = makeTestCategory({ id: 'category-1', name: 'Food' });
+  const now = localDate(2026, 9, 20);
+  const cib = makeTestAccount({
+    id: 'cib',
+    name: 'CIB Current',
+    type: AccountType.Bank,
+    color: AcctTokens.lapis.rich,
+  });
+  const payoneer = makeTestAccount({
+    id: 'payoneer',
+    name: 'Payoneer',
+    type: AccountType.SmartWallet,
+    color: AcctTokens.nile.rich,
+  });
+  const visa = makeTestAccount({
+    id: 'visa',
+    name: 'Visa',
+    type: AccountType.CreditCard,
+    color: AcctTokens.plum.rich,
+  });
+  const category = makeTestCategory({ id: 'category-1', name: 'Groceries' });
+  const cibTile = { color: AcctTokens.lapis.rich, type: AccountType.Bank, hollow: false };
+  const payoneerTile = {
+    color: AcctTokens.nile.rich,
+    type: AccountType.SmartWallet,
+    hollow: false,
+  };
+  const visaTile = { color: AcctTokens.plum.rich, type: AccountType.CreditCard, hollow: false };
 
-  it('moves the date onto the second line of a categorised expense', () => {
-    const activity = buildActivityRowPresentation({ tx, account, category }, now, account.id);
-
-    expect(activity.context).toBe('6 Sep');
-    expect(activity.timeText).toBe('');
+  const expense = makeTestTransaction({
+    account_id: cib.id,
+    category_id: category.id,
+    note: 'Carrefour',
+    transaction_date: '2026-09-20',
+    transaction_time: '18:40:00',
+  });
+  const transfer = makeTestTransaction({
+    type: TransactionType.Transfer,
+    account_id: cib.id,
+    to_account_id: payoneer.id,
+    category_id: null,
+    transaction_date: '2026-09-19',
+  });
+  const cardPayment = makeTestTransaction({
+    type: TransactionType.CCPayment,
+    account_id: cib.id,
+    to_account_id: visa.id,
+    category_id: null,
+    transaction_date: '2026-09-18',
   });
 
-  it('keeps the account on the second line of an uncategorised row, date in the time slot', () => {
-    const activity = buildActivityRowPresentation({ tx, account }, now, account.id);
-
-    expect(activity.context).toBe('CIB');
-    expect(activity.timeText).toBe('6 Sep');
-  });
-
-  it('joins the category and the date on a card credit, whose title carries neither', () => {
+  it('reads note · Today on a categorised expense, with no tile', () => {
     const activity = buildActivityRowPresentation(
-      { tx: { ...tx, type: TransactionType.Income, account_id: card.id }, account: card, category },
+      { tx: expense, account: cib, category },
       now,
-      card.id,
+      cib.id,
     );
 
-    expect(activity.context).toBe('Food · 6 Sep');
-    expect(activity.timeText).toBe('');
+    expect(activity.caption).toBe(`Carrefour · ${Strings.accountActivityToday('6:40 PM')}`);
+    expect(activity.tiles).toEqual([]);
   });
 
-  it('leaves a transfer on source → destination with its date in the time slot', () => {
+  it('reads the day label alone when the row has no note', () => {
     const activity = buildActivityRowPresentation(
-      {
-        tx: { ...tx, type: TransactionType.Transfer, to_account_id: payoneer.id },
-        account,
-        toAccount: payoneer,
-      },
+      { tx: { ...expense, note: null, transaction_date: '2026-09-19' }, account: cib, category },
       now,
-      account.id,
+      cib.id,
     );
 
-    expect(activity.context).toBe('CIB → Payoneer');
-    expect(activity.timeText).toBe('6 Sep');
+    expect(activity.caption).toBe(Strings.accountActivityYesterday);
+    expect(activity.tiles).toEqual([]);
   });
 
-  it('reads a card payment as source → destination on the paying account', () => {
-    const activity = buildActivityRowPresentation(
-      {
-        tx: { ...tx, type: TransactionType.CCPayment, to_account_id: card.id },
-        account,
-        toAccount: card,
-      },
-      now,
-      account.id,
-    );
-
-    expect(activity.context).toBe('CIB → Visa');
-    expect(activity.timeText).toBe('6 Sep');
-  });
-
-  it('reads a card payment as the other side alone on the card it paid', () => {
-    const activity = buildActivityRowPresentation(
-      {
-        tx: { ...tx, type: TransactionType.CCPayment, to_account_id: card.id },
-        account,
-        toAccount: card,
-      },
-      now,
-      card.id,
-    );
-
-    expect(activity.context).toBe('From CIB');
-    expect(activity.timeText).toBe('6 Sep');
-  });
-
-  it('names a deleted payer "Deleted Account" on the card it paid — MA-020', () => {
-    const deleted = makeTestAccount({ id: 'account-1', name: '', is_archived: 1, is_deleted: 1 });
+  it('keeps the card credit title with the day label and no tile', () => {
     const activity = buildActivityRowPresentation(
       {
-        tx: { ...tx, type: TransactionType.CCPayment, to_account_id: card.id },
-        account: deleted,
-        toAccount: card,
+        tx: {
+          ...expense,
+          type: TransactionType.Income,
+          account_id: visa.id,
+          note: null,
+          transaction_date: '2026-09-18',
+        },
+        account: visa,
+        category,
       },
       now,
-      card.id,
+      visa.id,
     );
 
-    expect(activity.context).toBe(`From ${Strings.deletedAccount}`);
+    expect(activity.title).toBe(Strings.cardCreditTitle);
+    expect(activity.caption).toBe('18 Sep');
+    expect(activity.tiles).toEqual([]);
   });
 
-  it('names a blank-named payer "Unnamed account" on the card it paid — MA-059', () => {
-    const blank = makeTestAccount({ id: 'account-1', name: '' });
+  it("shows a transfer from the open account with the destination's tile only", () => {
     const activity = buildActivityRowPresentation(
-      {
-        tx: { ...tx, type: TransactionType.CCPayment, to_account_id: card.id },
-        account: blank,
-        toAccount: card,
-      },
+      { tx: transfer, account: cib, toAccount: payoneer },
       now,
-      card.id,
+      cib.id,
     );
 
-    expect(activity.context).toBe(`From ${Strings.unnamedAccount}`);
+    expect(activity.caption).toBe('CIB Current → Payoneer · Yesterday');
+    expect(activity.tiles).toEqual([payoneerTile]);
   });
 
-  it('speaks the new second line where the shipped label speaks the account', () => {
-    const shipped = buildTransactionRowPresentation({ tx, account, category });
-    const activity = buildActivityRowPresentation({ tx, account, category }, now, account.id);
+  it("shows a transfer into the open account with the source's tile only", () => {
+    const activity = buildActivityRowPresentation(
+      { tx: transfer, account: cib, toAccount: payoneer },
+      now,
+      payoneer.id,
+    );
 
-    expect(shipped.accessibilityLabel.split(', ')[1]).toBe('CIB');
-    expect(activity.accessibilityLabel.split(', ')[1]).toBe('6 Sep');
+    expect(activity.caption).toBe('CIB Current → Payoneer · Yesterday');
+    expect(activity.tiles).toEqual([cibTile]);
   });
 
-  it('changes the context, the label and the time slot, and nothing else', () => {
-    const shipped = buildTransactionRowPresentation({ tx, account, category });
-    const activity = buildActivityRowPresentation({ tx, account, category }, now, account.id);
+  it("shows a card payment on the paying account with the card's tile", () => {
+    const activity = buildActivityRowPresentation(
+      { tx: cardPayment, account: cib, toAccount: visa },
+      now,
+      cib.id,
+    );
 
-    expect(shipped.timeText).toBe('2:30 PM');
-    expect({
-      ...activity,
-      context: shipped.context,
-      timeText: shipped.timeText,
-      accessibilityLabel: shipped.accessibilityLabel,
-    }).toEqual(shipped);
+    expect(activity.caption).toBe('CIB Current → Visa · 18 Sep');
+    expect(activity.tiles).toEqual([visaTile]);
   });
+
+  it("reads From <payer> on the card it paid, with the payer's tile", () => {
+    const activity = buildActivityRowPresentation(
+      { tx: cardPayment, account: cib, toAccount: visa },
+      now,
+      visa.id,
+    );
+
+    expect(activity.caption).toBe('From CIB Current · 18 Sep');
+    expect(activity.tiles).toEqual([cibTile]);
+  });
+
+  it('names a deleted payer "Deleted Account" on the card it paid, its tile hollow graphite (MA-020)', () => {
+    const deleted = makeTestAccount({
+      id: 'cib',
+      name: '',
+      type: AccountType.Bank,
+      color: AcctTokens.lapis.rich,
+      is_archived: 1,
+      is_deleted: 1,
+    });
+    const activity = buildActivityRowPresentation(
+      { tx: cardPayment, account: deleted, toAccount: visa },
+      now,
+      visa.id,
+    );
+
+    expect(activity.caption).toBe(`From ${Strings.deletedAccount} · 18 Sep`);
+    expect(activity.tiles).toEqual([
+      { color: AcctTokens.graphite.rich, type: AccountType.Bank, hollow: true },
+    ]);
+  });
+
+  it('names a blank-named payer "Unnamed account" on the card it paid (MA-059)', () => {
+    const blank = makeTestAccount({ id: 'cib', name: '' });
+    const activity = buildActivityRowPresentation(
+      { tx: cardPayment, account: blank, toAccount: visa },
+      now,
+      visa.id,
+    );
+
+    expect(activity.caption).toBe(`From ${Strings.unnamedAccount} · 18 Sep`);
+  });
+
+  it.each([
+    ['a categorised expense', { tx: expense, account: cib, category }, cib.id, ''],
+    [
+      'a card payment on the paid card',
+      { tx: cardPayment, account: cib, toAccount: visa },
+      visa.id,
+      'CIB Current → Visa, ',
+    ],
+  ])(
+    'changes the caption and the tiles of %s, and nothing else',
+    (_, input, openAccountId, spokenPair) => {
+      const shipped = buildTransactionRowPresentation(input);
+      const activity = buildActivityRowPresentation(input, now, openAccountId);
+
+      // A replaced lead no longer speaks the pair, so the label names it on its own.
+      expect(activity.accessibilityLabel).toBe(
+        shipped.accessibilityLabel.replace(shipped.caption, `${spokenPair}${activity.caption}`),
+      );
+      expect({
+        ...activity,
+        caption: shipped.caption,
+        captionLead: shipped.captionLead,
+        captionTime: shipped.captionTime,
+        tiles: shipped.tiles,
+        accessibilityLabel: shipped.accessibilityLabel,
+      }).toEqual(shipped);
+    },
+  );
 });
 
 describe('resolveActivityCardView', () => {

@@ -4,15 +4,14 @@ import { View } from 'react-native';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import type { AccountType } from '@/constants/enums';
 import { Radius, Size } from '@/constants/theme';
-
-import { resolveAccountTileColors } from '../constants/account_tile_color';
+import { resolveAccountTileColors } from '@/modules/accounts/constants/account_tile_color';
 
 interface AccountColorTileProps {
   color: string | null;
   type: AccountType;
   size: number;
   glyphSize: number;
-  /** C4's archived treatment: a ring in the account colour instead of a fill. */
+  /** A ring instead of a fill: C4's archived account, and a transaction row's deleted counterparty. */
   hollow?: boolean;
 }
 

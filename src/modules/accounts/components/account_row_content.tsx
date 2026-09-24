@@ -1,12 +1,12 @@
 import { View } from 'react-native';
 
+import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { Text } from '@/components/ui/text';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Account } from '../entities/account.entity';
-import { AccountColorTile } from './account_color_tile';
 
 const nameStyle = { fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) };
 const balanceStyle = { fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) };

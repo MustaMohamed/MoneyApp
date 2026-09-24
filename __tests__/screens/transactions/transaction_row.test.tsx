@@ -9,12 +9,10 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { TransactionRow } from '@/modules/transactions/screens/transactions/components/transaction_row';
 import {
+  TRANSACTION_ROW_AMOUNT_FONT_SIZE,
+  TRANSACTION_ROW_CAPTION_FONT_SIZE,
+  TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_HEIGHT,
-  TRANSACTION_ROW_NOTE_FONT_SIZE,
-  TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
-  TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
-  TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
-  TRANSACTION_ROW_VERTICAL_PADDING,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { ms } from '@/utils/responsive';
 
@@ -102,7 +100,7 @@ describe('TransactionRow ownership actions', () => {
     expect(mockSwipeableRow.mock.calls[0][0].actions).toHaveLength(2);
   });
 
-  it('uses stable icon, content, and value tracks for long row content', async () => {
+  it('keeps the row height and clips a long note to one caption line', async () => {
     const source: Account = {
       id: 'account',
       name: 'A very long source account name that must truncate',
@@ -136,29 +134,19 @@ describe('TransactionRow ownership actions', () => {
       />,
     );
 
-    expect(screen.getByTestId('transaction-row')).toHaveStyle({
-      height: TRANSACTION_ROW_HEIGHT,
-      paddingVertical: TRANSACTION_ROW_VERTICAL_PADDING,
-    });
-    expect(screen.getByTestId('transaction-row-icon-track')).toHaveStyle({
-      width: ms(36),
-      height: ms(36),
-    });
+    expect(screen.getByTestId('transaction-row')).toHaveStyle({ height: TRANSACTION_ROW_HEIGHT });
     expect(screen.getByTestId('transaction-row-content-track')).toHaveStyle({
       flex: 1,
       minWidth: 0,
     });
-    expect(screen.getByTestId('transaction-row-value-track')).toHaveStyle({ width: ms(120) });
-    expect(screen.getByTestId('transaction-row-note-track')).toHaveStyle({
-      height: TRANSACTION_ROW_NOTE_TRACK_HEIGHT,
+    const lead = screen.getByText('Split with Omar at the counter');
+    expect(lead.props.numberOfLines).toBe(1);
+    expect(lead).toHaveStyle({
+      fontSize: TRANSACTION_ROW_CAPTION_FONT_SIZE,
+      lineHeight: lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+      flexShrink: 1,
     });
-    expect(screen.getByText('Split with Omar at the counter')).toHaveStyle({
-      fontSize: TRANSACTION_ROW_NOTE_FONT_SIZE,
-      lineHeight: lineHeightFor(TRANSACTION_ROW_NOTE_FONT_SIZE),
-    });
-    expect(screen.getByTestId('transaction-row-secondary-amount-track')).toHaveStyle({
-      height: TRANSACTION_ROW_SECONDARY_AMOUNT_TRACK_HEIGHT,
-    });
+    expect(screen.getByText(/· \d{1,2}:\d{2} [AP]M$/)).toHaveStyle({ flexShrink: 0 });
     expect(TRANSACTION_ROW_HEIGHT).toBe(ms(60));
   });
 
@@ -206,11 +194,13 @@ describe('TransactionRow ownership actions', () => {
       />,
     );
 
-    expect(getByText('100.00 USD')).toBeTruthy();
-    expect(getByText('→ 4,850 EGP @ 48.50')).toBeTruthy();
-    expect(getByText('@ 48.50')).toHaveStyle({
-      fontSize: TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE,
-      lineHeight: lineHeightFor(TRANSACTION_ROW_SECONDARY_AMOUNT_FONT_SIZE),
+    expect(getByText('100.00')).toHaveStyle({
+      fontSize: TRANSACTION_ROW_AMOUNT_FONT_SIZE,
+      lineHeight: lineHeightFor(TRANSACTION_ROW_AMOUNT_FONT_SIZE),
+    });
+    expect(getByText('→ 4,850 EGP')).toHaveStyle({
+      fontSize: TRANSACTION_ROW_CODE_FONT_SIZE,
+      lineHeight: lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE),
     });
   });
 });

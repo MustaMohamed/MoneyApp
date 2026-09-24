@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { useToast } from '@/components/ui/toast';
-import { AccountType, Currency } from '@/constants/enums';
+import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountNameTakenError } from '@/modules/accounts/repositories/account.errors';
 import type { AccountActivitySnapshot } from '@/modules/accounts/repositories/account_activity.repository';
@@ -25,6 +25,7 @@ const mockNavigate = jest.fn();
 const mockPush = jest.fn();
 const mockDismissTo = jest.fn();
 const mockFocusEffect = jest.fn<void, [() => void | (() => void)]>();
+const mockLoadAccountLookup = jest.fn(() => Promise.resolve());
 const mockEnsure = jest.fn();
 const mockRetry = jest.fn(() => Promise.resolve());
 const mockActivityReset = jest.fn();
@@ -118,9 +119,12 @@ function mkAccount(overrides: Partial<Account> = {}): Account {
 
 let accountLoadError = false;
 
-function mockAccounts(accounts: Account[]): void {
+function mockAccounts(accounts: Account[], accountLookupById: Record<string, Account> = {}): void {
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
+    archivedAccounts: [],
+    accountLookupById,
+    loadAccountLookup: mockLoadAccountLookup,
     loadError: accountLoadError,
     archiveAccount: mockArchiveAccount,
     unarchiveAccount: mockUnarchiveAccount,
@@ -594,10 +598,11 @@ describe('useAccountDetail — the activity slice the screen renders', () => {
     ]);
     expect(result.current.state.activity.rows).toHaveLength(1);
     expect(result.current.state.activity.rows[0]?.id).toBe('tx-1');
-    expect(result.current.state.activity.rows[0]?.presentation.context).toBe('CIB');
+    expect(result.current.state.activity.rows[0]?.presentation.caption).toBe('22 Jul');
+    expect(result.current.state.activity.rows[0]?.presentation.tiles).toEqual([]);
   });
 
-  it('moves the date onto the second line once the row has a category', async () => {
+  it('titles a categorised row by its category over the day label', async () => {
     mockAccounts([mkAccount()]);
     attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
       categories: [makeTestCategory({ id: 'category-1', name: 'Food' })],
@@ -610,8 +615,42 @@ describe('useAccountDetail — the activity slice the screen renders', () => {
     });
     const { result } = await renderHook(() => useAccountDetail());
 
-    expect(result.current.state.activity.rows[0]?.presentation.context).toBe('22 Jul');
-    expect(result.current.state.activity.rows[0]?.presentation.timeText).toBe('');
+    expect(result.current.state.activity.rows[0]?.presentation.title).toBe('Food');
+    expect(result.current.state.activity.rows[0]?.presentation.caption).toBe('22 Jul');
+  });
+
+  it('resolves an archived counterparty through the account lookup, its tile filled and named', async () => {
+    const oldSavings = mkAccount({
+      id: 'acc-old',
+      name: 'Old Savings',
+      type: AccountType.PhysicalSavings,
+      color: '#3D7A5F',
+      is_archived: 1,
+    });
+    mockAccounts([mkAccount()], { [oldSavings.id]: oldSavings });
+    mockActivity({
+      accountId: 'acc-1',
+      rows: [
+        makeTestTransaction({
+          id: 'tx-1',
+          type: TransactionType.Transfer,
+          account_id: 'acc-1',
+          to_account_id: oldSavings.id,
+          category_id: null,
+        }),
+      ],
+      stats: { month_in: 0, month_out: 0, week_in: 0, week_out: 0 },
+      loadedAt: new Date('2026-09-15T12:00:00.000Z').getTime(),
+    });
+    const { result } = await renderHook(() => useAccountDetail());
+
+    expect(mockLoadAccountLookup).toHaveBeenCalledWith(['acc-1', oldSavings.id]);
+    expect(result.current.state.activity.rows[0]?.presentation.tiles).toEqual([
+      { color: '#3D7A5F', type: AccountType.PhysicalSavings, hollow: false },
+    ]);
+    expect(result.current.state.activity.rows[0]?.presentation.caption).toBe(
+      'CIB → Old Savings · 22 Jul',
+    );
   });
 
   it('ignores a snapshot belonging to another account', async () => {

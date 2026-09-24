@@ -3,7 +3,6 @@ import React from 'react';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { SectionHeader } from '@/components/ui/section_header';
 import { Strings } from '@/constants/strings';
-import type { Category } from '@/modules/categories/entities/category.entity';
 import { TransactionRowBody } from '@/modules/transactions/screens/transactions/components/transaction_row';
 import type { TransactionRowPresentation } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { TransactionRowsSkeleton } from '@/modules/transactions/screens/transactions/components/transaction_rows_skeleton';
@@ -18,7 +17,6 @@ const SKELETON_ROWS = 3;
 interface AccountActivityRow {
   id: string;
   presentation: TransactionRowPresentation;
-  category?: Category;
 }
 
 interface Props {
@@ -52,7 +50,7 @@ export function AccountActivityCard({
       )}
       <DetailRowsCard>
         {body === 'loading' ? (
-          <TransactionRowsSkeleton rows={SKELETON_ROWS} showDateHeader={false} />
+          <TransactionRowsSkeleton rows={SKELETON_ROWS} showDateHeader={false} showTile={false} />
         ) : body === 'error' ? (
           <LoadErrorAlert
             mode="inline"
@@ -69,7 +67,6 @@ export function AccountActivityCard({
             <TransactionRowBody
               key={row.id}
               presentation={row.presentation}
-              category={row.category}
               onPress={() => onRowPress(row.id)}
             />
           ))

@@ -204,6 +204,10 @@ export const Size = {
   colorDot: ms(20),
   /** Accounts list B1: colour tile, row minimum, the grip slot MA-016 fills, the See-all chevron. */
   accountTile: ms(28),
+  /** Transactions A1: the category glyph before a row's title, and each dual tile's account glyph. */
+  rowGlyph: ms(14),
+  /** Transactions A1 `.dual`: each of the two overlapped tiles on a transfer or card payment row. */
+  dualTile: ms(24),
   accountListRowMinHeight: ms(64),
   /** Accounts list B4 `.lg-acc` header and B5 `.ar-row` minimum. */
   archivedCardHeaderHeight: ms(52),

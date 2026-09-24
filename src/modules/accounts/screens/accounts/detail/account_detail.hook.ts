@@ -17,6 +17,7 @@ import { AccountNameTakenError } from '../../../repositories/account.errors';
 import type { AccountActivityLoadInput } from '../../../repositories/account_activity.repository';
 import type { ArchivedAccountDetailLoadInput } from '../../../repositories/archived_account_detail.repository';
 import { useAccountStore } from '../../../store/account.store';
+import { getTransactionAccountIds, mergeAccountsById } from '../../../store/account_lookup.helpers';
 import { useAccountActivityStore } from './account_activity.store';
 import { resolveViewState } from './account_detail.helpers';
 import { useAccountDetailState } from './account_detail.state';
@@ -36,7 +37,14 @@ export function useAccountDetail() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const accounts = useAccountStore((s) => s.accounts);
+  const { accounts, archivedAccounts, accountLookupById } = useAccountStore(
+    useShallow((s) => ({
+      accounts: s.accounts,
+      archivedAccounts: s.archivedAccounts,
+      accountLookupById: s.accountLookupById,
+    })),
+  );
+  const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const archiveAccount = useAccountStore.getState().archiveAccount;
   const unarchiveAccount = useAccountStore.getState().unarchiveAccount;
   const deleteAccount = useAccountStore.getState().deleteAccount;
@@ -162,7 +170,22 @@ export function useAccountDetail() {
     }, [activityInput, archivedInput, id]),
   );
 
-  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  // The activity's counterparties may be archived or deleted; the list's lookup resolves them.
+  const activityAccountIds = useMemo(
+    () =>
+      activitySnapshot?.accountId === id
+        ? activitySnapshot.rows.flatMap((tx) => getTransactionAccountIds(tx))
+        : [],
+    [activitySnapshot, id],
+  );
+  useEffect(() => {
+    // The store records the failure in accountLookupError; an unresolved row reads Unknown account.
+    loadAccountLookup(activityAccountIds).catch(() => {});
+  }, [activityAccountIds, loadAccountLookup]);
+  const accountsById = useMemo(
+    () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
+    [accountLookupById, accounts, archivedAccounts],
+  );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const activityRows = useMemo(() => {
@@ -172,7 +195,6 @@ export function useAccountDetail() {
       const category = tx.category_id ? categoriesById.get(tx.category_id) : undefined;
       return {
         id: tx.id,
-        category,
         presentation: buildActivityRowPresentation(
           {
             tx,
