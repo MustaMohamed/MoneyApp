@@ -594,10 +594,11 @@ describe('useAccountDetail — the activity slice the screen renders', () => {
     ]);
     expect(result.current.state.activity.rows).toHaveLength(1);
     expect(result.current.state.activity.rows[0]?.id).toBe('tx-1');
-    expect(result.current.state.activity.rows[0]?.presentation.context).toBe('CIB');
+    expect(result.current.state.activity.rows[0]?.presentation.caption).toBe('22 Jul');
+    expect(result.current.state.activity.rows[0]?.presentation.tiles).toEqual([]);
   });
 
-  it('moves the date onto the second line once the row has a category', async () => {
+  it('titles a categorised row by its category over the day label', async () => {
     mockAccounts([mkAccount()]);
     attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
       categories: [makeTestCategory({ id: 'category-1', name: 'Food' })],
@@ -610,8 +611,8 @@ describe('useAccountDetail — the activity slice the screen renders', () => {
     });
     const { result } = await renderHook(() => useAccountDetail());
 
-    expect(result.current.state.activity.rows[0]?.presentation.context).toBe('22 Jul');
-    expect(result.current.state.activity.rows[0]?.presentation.timeText).toBe('');
+    expect(result.current.state.activity.rows[0]?.presentation.title).toBe('Food');
+    expect(result.current.state.activity.rows[0]?.presentation.caption).toBe('22 Jul');
   });
 
   it('ignores a snapshot belonging to another account', async () => {
