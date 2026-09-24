@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { getDb } from '@/database/client';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
   findMissingAccountIds,
@@ -11,8 +10,8 @@ import {
   mergeAccountsById,
 } from '@/modules/accounts/store/account_lookup.helpers';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { getTransactionMonthAggregate } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { transactionRepository } from '@/modules/transactions/repositories/transaction.repository';
 import { resolveTransactionDeleteError } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
@@ -35,12 +34,23 @@ import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
 import { previousPeriod, resolvePeriod } from './transactions.helpers';
 import { buildTransactionsPresentation } from './transactions.presentation';
 import { useTransactionsState } from './transactions.state';
-import { useTransactionsScreenStore } from './transactions.store';
+import { type TransactionTotalsState, useTransactionsScreenStore } from './transactions.store';
 
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
 export type TransactionSection = { key: string; data: Transaction[] };
 type ScrollOffsetEvent = { nativeEvent: { contentOffset: { y: number } } };
 type ScrollPosition = { queryKey: string | null; offset: number };
+type TotalsLoadOptions = {
+  preserveData?: boolean;
+  reusePrevious?: boolean;
+  shouldApply?: () => boolean;
+};
+type HeldPreviousTotals = {
+  yearMonth: string;
+  accountScope: string;
+  mutationVersion: number;
+  totals: TransactionTotalsState['previous'];
+};
 
 export function useTransactions() {
   const router = useRouter();
@@ -136,57 +146,96 @@ export function useTransactions() {
     [transactionQuery],
   );
 
+  const totalsInput = {
+    query: transactionQuery,
+    queryKey: activeQueryKey,
+    yearMonth: period.yearMonth,
+    previousRange: previousPeriodRange,
+    mutationVersion,
+  };
+  const totalsInputRef = useRef(totalsInput);
+  totalsInputRef.current = totalsInput;
+  const heldPreviousRef = useRef<HeldPreviousTotals | null>(null);
+
   const loadTotals = useCallback(
-    async (preserveData = false, shouldApply: () => boolean = () => true) => {
-      const targetYearMonth = period.yearMonth;
-      const targetQueryKey = activeQueryKey;
+    async ({
+      preserveData = false,
+      reusePrevious = false,
+      shouldApply = () => true,
+    }: TotalsLoadOptions = {}) => {
+      const {
+        query,
+        queryKey,
+        yearMonth,
+        previousRange,
+        mutationVersion: version,
+      } = totalsInputRef.current;
       if (!shouldApply()) return;
-      const hasPreservedData = preserveData && hasTotalsForMonth(targetYearMonth);
-      const requestId = beginTotalsRequest(targetQueryKey, targetYearMonth, preserveData);
+      const hasPreservedData = preserveData && hasTotalsForMonth(yearMonth);
+      const requestId = beginTotalsRequest(queryKey, yearMonth, preserveData);
       beginTotalsLoad(hasPreservedData);
+      const accountScope = JSON.stringify([...(query.accountIds ?? [])].sort());
+      const held = heldPreviousRef.current;
+      const reusable =
+        reusePrevious &&
+        held?.yearMonth === yearMonth &&
+        held.accountScope === accountScope &&
+        held.mutationVersion === version
+          ? held
+          : undefined;
+      const ownsRequest = () => {
+        const totalsState = useTransactionsScreenStore.getState();
+        return (
+          shouldApply() &&
+          totalsState.totalsQueryKey === queryKey &&
+          totalsState.totalsRequestId === requestId
+        );
+      };
       try {
-        const db = await getDb();
-        const month = await getTransactionMonthAggregate(db, transactionQuery);
-        const previous = await getTransactionMonthAggregate(db, {
-          dateFrom: previousPeriodRange.from,
-          dateTo: previousPeriodRange.to,
-          accountIds: transactionQuery.accountIds,
-        });
+        const month = await transactionRepository.getMonthAggregate(query);
+        if (!ownsRequest()) return;
+        const previous = reusable
+          ? reusable.totals
+          : await transactionRepository.getScopedTotals({
+              ...query,
+              dateFrom: previousRange.from,
+              dateTo: previousRange.to,
+            });
         if (
           shouldApply() &&
-          resolveTotals(targetQueryKey, requestId, {
+          resolveTotals(queryKey, requestId, {
             current: month.scoped,
-            previous: previous.scoped,
+            previous,
             days: month.days,
             matchCount: month.matchCount,
             matchNetEgp: month.matchNetEgp,
           })
         ) {
+          heldPreviousRef.current = {
+            yearMonth,
+            accountScope,
+            mutationVersion: version,
+            totals: previous,
+          };
           resolveTotalsLoad();
         }
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);
-        if (shouldApply() && failTotals(targetQueryKey, requestId)) {
-          failTotalsLoad(hasTotalsForMonth(targetYearMonth));
+        if (shouldApply() && failTotals(queryKey, requestId)) {
+          failTotalsLoad(hasTotalsForMonth(yearMonth));
         }
       }
     },
     [
-      activeQueryKey,
       beginTotalsRequest,
       beginTotalsLoad,
       failTotals,
       failTotalsLoad,
       hasTotalsForMonth,
-      period.yearMonth,
-      previousPeriodRange,
       resolveTotals,
       resolveTotalsLoad,
-      transactionQuery,
     ],
   );
-  const loadTotalsRef = useRef(loadTotals);
-  loadTotalsRef.current = loadTotals;
 
   const activeQueryKeyRef = useRef(activeQueryKey);
   activeQueryKeyRef.current = activeQueryKey;
@@ -261,12 +310,12 @@ export function useTransactions() {
     let cancelled = false;
     const totalsState = useTransactionsScreenStore.getState();
     const preserveData =
-      totalsState.totalsYearMonth === period.yearMonth && totalsState.totals !== null;
-    void loadTotals(preserveData, () => !cancelled);
+      totalsState.totalsYearMonth === totalsState.period.yearMonth && totalsState.totals !== null;
+    void loadTotals({ preserveData, reusePrevious: true, shouldApply: () => !cancelled });
     return () => {
       cancelled = true;
     };
-  }, [activeQueryKey, loadTotals, mutationVersion, period.yearMonth]);
+  }, [activeQueryKey, loadTotals, mutationVersion]);
 
   useFocusEffect(
     useCallback(() => {
@@ -308,7 +357,7 @@ export function useTransactions() {
           shouldRefreshTotals &&
           totalsState.totalsQueryKey === focusQueryKey &&
           totalsState.totalsRequestId === focusTotalsRequestId;
-        if (totalsAreUnchanged) void loadTotalsRef.current(true);
+        if (totalsAreUnchanged) void loadTotals({ preserveData: true });
       });
 
       return () => {
@@ -324,7 +373,7 @@ export function useTransactions() {
           scrollRestoreFrameRef.current = null;
         }
       };
-    }, [refresh, setScrollOffset]),
+    }, [loadTotals, refresh, setScrollOffset]),
   );
 
   const accountsById = useMemo(
@@ -363,7 +412,7 @@ export function useTransactions() {
     try {
       await Promise.all([
         refresh().catch((err) => console.error('[transactions] refresh failed:', err)),
-        loadTotals(true),
+        loadTotals({ preserveData: true }),
       ]);
     } finally {
       setUserRefreshing(false);
@@ -414,7 +463,7 @@ export function useTransactions() {
   );
 
   const retryTotals = useCallback(
-    () => loadTotals(displayTotals !== null),
+    () => loadTotals({ preserveData: displayTotals !== null }),
     [displayTotals, loadTotals],
   );
   const retryFailedLoads = useCallback(async () => {

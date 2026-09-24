@@ -38,14 +38,14 @@ describe('useTransactionsScreenStore totals ownership', () => {
   const JULY_KEY = 'july';
   const JULY_SEARCH_KEY = 'july:coffee';
   const AUGUST_KEY = 'august';
-  const older: TransactionTotalsState = {
+  const older: Omit<TransactionTotalsState, 'queryKey'> = {
     current: { incomeEgp: 100, expenseEgp: 80, netEgp: 20 },
     previous: null,
     days: [],
     matchCount: 0,
     matchNetEgp: 0,
   };
-  const newer: TransactionTotalsState = {
+  const newer: Omit<TransactionTotalsState, 'queryKey'> = {
     current: { incomeEgp: 300, expenseEgp: 100, netEgp: 200 },
     previous: null,
     days: [],
@@ -62,7 +62,7 @@ describe('useTransactionsScreenStore totals ownership', () => {
 
     expect(useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, first, older)).toBe(false);
     expect(useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, second, newer)).toBe(true);
-    expect(useTransactionsScreenStore.getState().totals).toEqual(newer);
+    expect(useTransactionsScreenStore.getState().totals).toEqual({ ...newer, queryKey: JULY_KEY });
   });
 
   it('rejects completion owned by another month', () => {
@@ -96,7 +96,10 @@ describe('useTransactionsScreenStore totals ownership', () => {
     expect(
       useTransactionsScreenStore.getState().resolveTotals(JULY_SEARCH_KEY, search, newer),
     ).toBe(true);
-    expect(useTransactionsScreenStore.getState().totals).toEqual(newer);
+    expect(useTransactionsScreenStore.getState().totals).toEqual({
+      ...newer,
+      queryKey: JULY_SEARCH_KEY,
+    });
   });
 
   it('preserves only same-month totals when requested, across a key change', () => {
@@ -106,13 +109,27 @@ describe('useTransactionsScreenStore totals ownership', () => {
     useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, first, older);
 
     useTransactionsScreenStore.getState().beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', true);
-    expect(useTransactionsScreenStore.getState().totals).toEqual(older);
+    expect(useTransactionsScreenStore.getState().totals).toEqual({ ...older, queryKey: JULY_KEY });
     expect(useTransactionsScreenStore.getState().totalsQueryKey).toBe(JULY_SEARCH_KEY);
     expect(useTransactionsScreenStore.getState().hasTotalsForMonth('2026-07')).toBe(true);
 
     useTransactionsScreenStore.getState().beginTotalsRequest(AUGUST_KEY, '2026-08', true);
     expect(useTransactionsScreenStore.getState().totals).toBeNull();
     expect(useTransactionsScreenStore.getState().hasTotalsForMonth('2026-07')).toBe(false);
+  });
+
+  it('stamps the resolved data with the key it was computed for, which a same-month begin keeps', () => {
+    const first = useTransactionsScreenStore
+      .getState()
+      .beginTotalsRequest(JULY_KEY, '2026-07', false);
+    useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, first, older);
+    expect(useTransactionsScreenStore.getState().totals?.queryKey).toBe(JULY_KEY);
+
+    useTransactionsScreenStore.getState().beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', true);
+    expect(useTransactionsScreenStore.getState()).toMatchObject({
+      totalsQueryKey: JULY_SEARCH_KEY,
+      totals: { queryKey: JULY_KEY },
+    });
   });
 
   it('reports whether a failed request still owns the current key', () => {

@@ -1,11 +1,10 @@
 import { create } from 'zustand';
 
-import { Currency, type TransactionType } from '@/constants/enums';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import type { Transaction } from '../entities/transaction.entity';
 import {
-  TransactionRepository,
+  transactionRepository,
   type ITransactionRepository,
   type NewTransactionInput,
   type TransactionListQuery,
@@ -17,17 +16,7 @@ export type { Transaction, NewTransactionInput, TransactionListQuery, UpdateTran
 
 export const PAGE_SIZE = 30;
 
-export interface TransactionListFilters {
-  type?: TransactionType;
-  search?: string;
-  accountIds?: string[];
-  categoryIds?: string[];
-  dateFrom?: string;
-  dateTo?: string;
-  amountMin?: number;
-  amountMax?: number;
-  amountCurrency?: Currency;
-}
+export type TransactionListFilters = Omit<TransactionListQuery, 'limit' | 'offset'>;
 
 export type TransactionListStatus =
   | 'idle'
@@ -227,4 +216,4 @@ export function createTransactionStore(repo: ITransactionRepository) {
   );
 }
 
-export const useTransactionStore = createTransactionStore(new TransactionRepository());
+export const useTransactionStore = createTransactionStore(transactionRepository);

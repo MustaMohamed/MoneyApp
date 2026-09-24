@@ -7,7 +7,8 @@ import {
   resolveDashboardMonthWindow,
   type DashboardTransactionFactRow,
 } from '@/modules/dashboard/database/dashboard_snapshot';
-import { createMockSQLiteDatabase, getSQLiteParams, isQueryPlanRow } from '@/test_helpers/sqlite';
+import { createMockSQLiteDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
+import { explainQueryPlan } from '@/test_helpers/sqlite_fixtures';
 
 const sqlite = createMockSQLiteDatabase();
 const NOW = '2026-07-23T10:00:00.000Z';
@@ -241,8 +242,7 @@ describe('getDashboardTransactionFactRows', () => {
   it('uses the transaction-date index for a range search', async () => {
     await getDashboardTransactionFactRows(sqlite.database, resolveDashboardMonthWindow('2026-07'));
     const [sql, params] = sqlite.getAllAsync.mock.calls[0];
-    const plan = realDb.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...getSQLiteParams([params]));
-    const details = plan.filter(isQueryPlanRow).map((row) => row.detail);
+    const details = explainQueryPlan(realDb, sql, [params]);
 
     expect(
       details.some((detail) =>

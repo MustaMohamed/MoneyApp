@@ -1,7 +1,4 @@
-import Database from 'better-sqlite3';
-
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
-import { MIGRATIONS } from '@/database/migrations';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   getBudgetSpendByMonth,
@@ -30,6 +27,7 @@ import {
 } from '@/modules/transactions/domain/transaction_policy';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
+import { createSeededDatabase, type RealSQLiteDatabase } from '@/test_helpers/sqlite_fixtures';
 import { makeTestAccount, makeTestBudget, makeTestTransaction } from '@/test_helpers/transaction';
 
 const MONTH = '2026-05';
@@ -231,26 +229,16 @@ const expectedBudgetSpend = fold(
 
 const sqlite = getExpoSQLiteTestDatabase();
 const db = sqlite.database;
-let realDb: ReturnType<typeof Database>;
-
-function insertRow(table: string, record: object): void {
-  const columns = Object.keys(record);
-  realDb
-    .prepare(
-      `INSERT INTO ${table} (${columns.join(',')}) VALUES (${columns.map((column) => `@${column}`).join(',')})`,
-    )
-    .run(record);
-}
+let realDb: RealSQLiteDatabase;
 
 beforeAll(() => {
-  realDb = new Database(':memory:');
-  realDb.pragma('foreign_keys = ON');
-  realDb.exec(MIGRATIONS.map((migration) => migration.up).join('\n'));
-  for (const account of ACCOUNTS) insertRow('accounts', account);
-  insertRow('budgets', BUDGET);
-  insertRow('spending_plans', PLAN);
-  insertRow('spending_plan_categories', PLAN_CATEGORY);
-  for (const transaction of TRANSACTIONS) insertRow('transactions', transaction);
+  realDb = createSeededDatabase([
+    ['accounts', ACCOUNTS],
+    ['budgets', [BUDGET]],
+    ['spending_plans', [PLAN]],
+    ['spending_plan_categories', [PLAN_CATEGORY]],
+    ['transactions', TRANSACTIONS],
+  ]);
   bridgeBetterSQLite(sqlite, realDb);
 });
 

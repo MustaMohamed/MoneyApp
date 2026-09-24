@@ -16,11 +16,17 @@ import { toLocalDateString } from '@/utils/format_date';
 import {
   deleteTransactionRow,
   getTransactionById,
+  getTransactionMonthAggregate,
   getTransactions,
   getTransactionsByAccount,
+  getTransactionScopedTotals,
   insertTransactionRow,
   updateTransactionRow,
+  type PeriodTotals,
+  type TransactionAggregateQuery,
   type TransactionListQuery,
+  type TransactionMonthAggregate,
+  type TransactionTotalsScope,
   type UpdateTransactionInput,
 } from '../database/transactions';
 import { resolveTransactionAmounts, TransactionAmountError } from '../domain/transaction_amounts';
@@ -76,6 +82,11 @@ export interface ITransactionRepository {
   add(data: NewTransactionInput): Promise<Transaction>;
   delete(id: string): Promise<void>;
   update(id: string, data: UpdateTransactionInput): Promise<void>;
+}
+
+export interface ITransactionTotalsRepository {
+  getMonthAggregate(query: TransactionAggregateQuery): Promise<TransactionMonthAggregate>;
+  getScopedTotals(scope: TransactionTotalsScope): Promise<PeriodTotals>;
 }
 
 export class TransactionBudgetAssignmentError extends TransactionValidationError {}
@@ -250,10 +261,20 @@ function assertOwnership(transaction: Transaction): void {
   if (transaction.commitment_payment_id) throw new TransactionOwnershipError();
 }
 
-export class TransactionRepository implements ITransactionRepository {
+export class TransactionRepository implements ITransactionRepository, ITransactionTotalsRepository {
   async getAll(query: TransactionListQuery = {}): Promise<Transaction[]> {
     const db = await getDb();
     return getTransactions(db, query);
+  }
+
+  async getMonthAggregate(query: TransactionAggregateQuery): Promise<TransactionMonthAggregate> {
+    const db = await getDb();
+    return getTransactionMonthAggregate(db, query);
+  }
+
+  async getScopedTotals(scope: TransactionTotalsScope): Promise<PeriodTotals> {
+    const db = await getDb();
+    return getTransactionScopedTotals(db, scope);
   }
 
   async getByAccount(accountId: string, limit = 30, offset = 0): Promise<Transaction[]> {
@@ -442,3 +463,5 @@ export class TransactionRepository implements ITransactionRepository {
     });
   }
 }
+
+export const transactionRepository = new TransactionRepository();

@@ -1,7 +1,4 @@
-import Database from 'better-sqlite3';
-
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
-import { MIGRATIONS } from '@/database/migrations';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type {
   TransactionAggregateQuery,
@@ -9,12 +6,12 @@ import type {
 } from '@/modules/transactions/database/transactions';
 import { getTransactionMonthAggregate } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sqlite';
 import {
-  bridgeBetterSQLite,
-  getExpoSQLiteTestDatabase,
-  getSQLiteParams,
-  isQueryPlanRow,
-} from '@/test_helpers/sqlite';
+  createSeededDatabase,
+  explainQueryPlan,
+  type RealSQLiteDatabase,
+} from '@/test_helpers/sqlite_fixtures';
 import { makeTestAccount, makeTestTransaction } from '@/test_helpers/transaction';
 
 const NOW = '2026-05-01T12:00:00.000Z';
@@ -142,23 +139,13 @@ const MAY_SCOPED = { incomeEgp: 22300, expenseEgp: 10750, netEgp: 11550 };
 
 const sqlite = getExpoSQLiteTestDatabase();
 const db = sqlite.database;
-let realDb: ReturnType<typeof Database>;
-
-function insertRow(table: string, record: object): void {
-  const columns = Object.keys(record);
-  realDb
-    .prepare(
-      `INSERT INTO ${table} (${columns.join(',')}) VALUES (${columns.map((column) => `@${column}`).join(',')})`,
-    )
-    .run(record);
-}
+let realDb: RealSQLiteDatabase;
 
 beforeAll(() => {
-  realDb = new Database(':memory:');
-  realDb.pragma('foreign_keys = ON');
-  realDb.exec(MIGRATIONS.map((migration) => migration.up).join('\n'));
-  for (const account of ACCOUNTS) insertRow('accounts', account);
-  for (const transaction of TRANSACTIONS) insertRow('transactions', transaction);
+  realDb = createSeededDatabase([
+    ['accounts', ACCOUNTS],
+    ['transactions', TRANSACTIONS],
+  ]);
   bridgeBetterSQLite(sqlite, realDb);
 });
 
@@ -367,20 +354,14 @@ describe('getTransactionMonthAggregate — query plan', () => {
 
   function planOf(call: [string, ...unknown[]]): string[] {
     const [sql, ...rest] = call;
-    return realDb
-      .prepare(`EXPLAIN QUERY PLAN ${sql}`)
-      .all(...getSQLiteParams(rest))
-      .filter(isQueryPlanRow)
-      .map((row) => row.detail);
+    return explainQueryPlan(realDb, sql, rest);
   }
 
-  function expectIndexedSearch(plan: string[], pinsDateIndex: boolean): void {
+  function expectDateIndexSearch(plan: string[]): void {
     const tableRows = plan.filter((detail) => TRANSACTION_TABLE_ROW.test(detail));
     expect(tableRows.length).toBeGreaterThan(0);
     for (const detail of plan) expect(detail).not.toMatch(/^SCAN (t|transaction_row)\b/);
-    for (const detail of tableRows)
-      expect(detail).toMatch(/^SEARCH (t|transaction_row) USING INDEX /);
-    if (pinsDateIndex) for (const detail of tableRows) expect(detail).toMatch(DATE_RANGE_SEARCH);
+    for (const detail of tableRows) expect(detail).toMatch(DATE_RANGE_SEARCH);
   }
 
   it.each<{ shape: string; query: TransactionAggregateQuery }>([
@@ -390,19 +371,19 @@ describe('getTransactionMonthAggregate — query plan', () => {
     { shape: 'a type', query: { ...MAY, type: TransactionType.Expense } },
     { shape: 'an account', query: { ...MAY, accountIds: ['acc_bank'] } },
     { shape: 'a category', query: { ...MAY, categoryIds: ['cat_housing'] } },
-  ])('$shape: every statement searches the transactions table by index', async ({ query }) => {
-    sqlite.getAllAsync.mockClear();
-    sqlite.getFirstAsync.mockClear();
+  ])(
+    '$shape: every statement searches the transactions table by the date index',
+    async ({ query }) => {
+      sqlite.getAllAsync.mockClear();
+      sqlite.getFirstAsync.mockClear();
 
-    await getTransactionMonthAggregate(db, query);
+      await getTransactionMonthAggregate(db, query);
 
-    const filtered = [...sqlite.getAllAsync.mock.calls];
-    const scoped = [...sqlite.getFirstAsync.mock.calls];
-    expect(filtered.length).toBeGreaterThan(0);
-    expect(scoped.length).toBeGreaterThan(0);
-    const fullFilterPinsDate =
-      query.type === undefined && query.accountIds === undefined && query.categoryIds === undefined;
-    for (const call of filtered) expectIndexedSearch(planOf(call), fullFilterPinsDate);
-    for (const call of scoped) expectIndexedSearch(planOf(call), query.accountIds === undefined);
-  });
+      const filtered = [...sqlite.getAllAsync.mock.calls];
+      const scoped = [...sqlite.getFirstAsync.mock.calls];
+      expect(filtered.length).toBeGreaterThan(0);
+      expect(scoped.length).toBeGreaterThan(0);
+      for (const call of [...filtered, ...scoped]) expectDateIndexSearch(planOf(call));
+    },
+  );
 });

@@ -3,7 +3,8 @@ import Database from 'better-sqlite3';
 import { Currency, TransactionType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
 import { getTransactions, insertTransactionRow } from '@/database/transactions';
-import { getExpoSQLiteTestDatabase, getSQLiteParams, isQueryPlanRow } from '@/test_helpers/sqlite';
+import { getExpoSQLiteTestDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
+import { explainQueryPlan } from '@/test_helpers/sqlite_fixtures';
 import { makeTestTransaction } from '@/test_helpers/transaction';
 
 const sqlite = getExpoSQLiteTestDatabase();
@@ -349,14 +350,10 @@ describe('getTransactions — expanded search projection', () => {
     expect(call).toBeDefined();
     if (!call) throw new Error('Expected a transaction search query');
     const [sql, ...rest] = call;
-    const params = getSQLiteParams(rest);
-    const plan = realDb
-      .prepare(`EXPLAIN QUERY PLAN ${sql}`)
-      .all(...params)
-      .filter(isQueryPlanRow);
+    const plan = explainQueryPlan(realDb, sql, rest);
 
     expect(rows.map((row) => row.id)).toEqual(['history-599']);
-    expect(plan.map((step) => step.detail).join('\n')).not.toMatch(/CORRELATED SCALAR SUBQUERY/i);
+    expect(plan.join('\n')).not.toMatch(/CORRELATED SCALAR SUBQUERY/i);
   });
 });
 
@@ -406,21 +403,18 @@ describe('getTransactions — query plan', () => {
     const call = sqlite.getAllAsync.mock.calls.at(-1);
     if (!call) throw new Error('Expected a transaction list query');
     const [sql, ...rest] = call;
-    return realDb
-      .prepare(`EXPLAIN QUERY PLAN ${sql}`)
-      .all(...getSQLiteParams(rest))
-      .filter(isQueryPlanRow)
-      .map((row) => row.detail);
+    return explainQueryPlan(realDb, sql, rest);
   }
 
   it.each([
-    { shape: 'month only', query: MONTH, pinsDateIndex: true },
-    { shape: '+ type', query: { ...MONTH, type: TransactionType.Expense }, pinsDateIndex: false },
-    { shape: '+ accountIds', query: { ...MONTH, accountIds: ['acc_a'] }, pinsDateIndex: false },
-    { shape: '+ search', query: { ...MONTH, search: 'coffee' }, pinsDateIndex: true },
+    { shape: 'month only', query: MONTH },
+    { shape: '+ type', query: { ...MONTH, type: TransactionType.Expense } },
+    { shape: '+ accountIds', query: { ...MONTH, accountIds: ['acc_a'] } },
+    { shape: '+ categoryIds', query: { ...MONTH, categoryIds: ['cat_food'] } },
+    { shape: '+ search', query: { ...MONTH, search: 'coffee' } },
   ])(
-    '$shape searches the transactions table by index, never scans it',
-    async ({ query, pinsDateIndex }) => {
+    '$shape searches the transactions table by the date index, never scans it',
+    async ({ query }) => {
       await insert({ id: 'in-range', transaction_date: '2026-05-10' });
       await insert({ id: 'out-of-range', transaction_date: '2026-04-10' });
 
@@ -430,14 +424,10 @@ describe('getTransactions — query plan', () => {
 
       expect(tableRows.length).toBeGreaterThan(0);
       for (const detail of plan) expect(detail).not.toMatch(/^SCAN (t|transaction_row)\b/);
-      for (const detail of tableRows)
-        expect(detail).toMatch(/^SEARCH (t|transaction_row) USING INDEX /);
-      if (pinsDateIndex) {
-        for (const detail of tableRows) {
-          expect(detail).toMatch(
-            /^SEARCH (t|transaction_row) USING INDEX idx_transactions_date \(transaction_date>\?/,
-          );
-        }
+      for (const detail of tableRows) {
+        expect(detail).toMatch(
+          /^SEARCH (t|transaction_row) USING INDEX idx_transactions_date \(transaction_date>\?/,
+        );
       }
     },
   );

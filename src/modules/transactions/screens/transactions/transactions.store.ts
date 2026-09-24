@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { shallow } from 'zustand/shallow';
 
 import { TransactionType } from '@/constants/enums';
 import type {
@@ -13,6 +14,7 @@ import { currentYearMonth, type TransactionPeriod } from './transactions.helpers
 export type TransactionFilter = TransactionType | 'all';
 
 export interface TransactionTotalsState {
+  queryKey: string;
   current: PeriodTotals;
   previous: PeriodTotals | null;
   days: TransactionDayAggregate[];
@@ -39,7 +41,11 @@ type TransactionsScreenStore = StateShape & {
   seedAccountFilter: (accountId: string, yearMonth: string) => void;
   clearSearch: () => void;
   beginTotalsRequest: (queryKey: string, yearMonth: string, preserveData: boolean) => number;
-  resolveTotals: (queryKey: string, requestId: number, totals: TransactionTotalsState) => boolean;
+  resolveTotals: (
+    queryKey: string,
+    requestId: number,
+    totals: Omit<TransactionTotalsState, 'queryKey'>,
+  ) => boolean;
   failTotals: (queryKey: string, requestId: number) => boolean;
   hasTotalsForMonth: (yearMonth: string) => boolean;
   reset: () => void;
@@ -56,14 +62,6 @@ function initialState(): StateShape {
     totalsQueryKey: null,
     totalsRequestId: 0,
   };
-}
-
-function isSamePeriodTotals(held: PeriodTotals, next: PeriodTotals): boolean {
-  return (
-    held.incomeEgp === next.incomeEgp &&
-    held.expenseEgp === next.expenseEgp &&
-    held.netEgp === next.netEgp
-  );
 }
 
 export const useTransactionsScreenStore = createMoneyAppSelectors(
@@ -99,13 +97,10 @@ export const useTransactionsScreenStore = createMoneyAppSelectors(
       if (state.totalsQueryKey !== queryKey || state.totalsRequestId !== requestId) return false;
       const held = state.totals;
       // M25: equal scoped figures keep their identity so the hero skips a keystroke's render.
-      const current =
-        held && isSamePeriodTotals(held.current, totals.current) ? held.current : totals.current;
+      const current = held && shallow(held.current, totals.current) ? held.current : totals.current;
       const previous =
-        held?.previous && totals.previous && isSamePeriodTotals(held.previous, totals.previous)
-          ? held.previous
-          : totals.previous;
-      set({ totals: { ...totals, current, previous } });
+        held && shallow(held.previous, totals.previous) ? held.previous : totals.previous;
+      set({ totals: { ...totals, queryKey, current, previous } });
       return true;
     },
     failTotals: (queryKey, requestId) => {
