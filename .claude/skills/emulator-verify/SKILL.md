@@ -36,7 +36,7 @@ python itself). `mqa help` is complete; do not read the script to learn it.
 | `bounds <sel>...` | every match: x, y, width and height in dp, enabled or disabled, selected |
 | `tap <sel>` · `fill <sel> <text>` · `type` · `clear` · `key <code>` · `back` | act; `tap` and `fill` first wait up to 10 s for their target, and `fill` focuses, clears and types in one call |
 | `wait <sel> [ms]` | block until a selector is on screen (default 10000 ms) |
-| `scroll <up\|down> [--until <sel>]` | reach an off-screen target in one call |
+| `scroll <up\|down> [--until <sel>]` | a raw drag under both engines (agent-device's own scroll does not move this app's lists); `--until` swipes until the selector is on screen, 15 at most |
 | `shot [name] [--crop <sel>] [--out <dir>]` | screencap (~0.2 s), cropped to the largest match |
 | `db "<sql>"` · `logs [n]` | query the on-device SQLite · recent JS errors and crashes |
 | `walk <script.sh>` · `step <label>` | run a whole scenario in one call |

@@ -665,22 +665,31 @@ cmd_wait() {
   done
 }
 
-cmd_scroll() {
-  local dir="${1:?usage: mqa scroll <up|down> [--until <selector>]}" H
-  shift
-  if uses_ad; then
-    need_device
-    if [ "${1:-}" = --until ]; then ad scroll "$dir" --until "$(sel "${2:?--until <selector>}")"; else ad scroll "$dir"; fi
-    return
-  fi
-  [ "${1:-}" != --until ] || die "scroll --until needs the agent-device engine"
+# A raw drag under both engines: agent-device's synthesized scroll reports "moved nothing" on this app's transaction list.
+swipe_once() {
+  local H
+  cmd_ime_down   # an open keyboard turns the drag into typing, or a gesture that leaves the app
   H="$(a shell wm size | sed -n 's/.*: [0-9]*x\([0-9]*\).*/\1/p' | tr -d '\r')"; H="${H:-1920}"
-  case "$dir" in
-    down) a shell input swipe 540 $((H * 7 / 10)) 540 $((H * 3 / 10)) 400 ;;
-    up) a shell input swipe 540 $((H * 3 / 10)) 540 $((H * 7 / 10)) 400 ;;
-    *) die "usage: mqa scroll <up|down>" ;;
+  case "$1" in
+    down) a shell input swipe 540 $((H * 7 / 10)) 540 $((H * 3 / 10)) 600 ;;
+    up) a shell input swipe 540 $((H * 3 / 10)) 540 $((H * 7 / 10)) 600 ;;
+    *) die "usage: mqa scroll <up|down> [--until <selector>]" ;;
   esac
-  dump
+}
+
+cmd_scroll() {
+  local dir="${1:?usage: mqa scroll <up|down> [--until <selector>]}" target="" f i
+  shift
+  need_device
+  if [ "${1:-}" = --until ]; then target="${2:?--until <selector>}"; fi
+  if [ -z "$target" ]; then swipe_once "$dir"; uses_ad || dump; return; fi
+  for ((i = 0; i <= 15; i++)); do
+    f="$(snap_file)"
+    if query rect "$f" "$(sel "$target")" >/dev/null 2>&1; then echo "reached $target after $i swipes"; return; fi
+    [ "$i" -lt 15 ] || break
+    swipe_once "$dir"; sleep 0.4
+  done
+  die "scroll: $target not on screen after 15 swipes $dir"
 }
 
 cmd_open() {
@@ -786,7 +795,8 @@ screen      read [scope] | ui       what is on screen; a scope lists what is dra
             tap <sel> | fill <sel> <text>   each waits up to 10 s for its target first
             type <text> | clear | key <code> | back | tapxy <x> <y>
             wait <sel> [ms]         wait for the value you are about to assert (default 10000)
-            scroll <up|down> [--until <sel>] | park | ime-down
+            scroll <up|down> [--until <sel>]   a raw drag; --until swipes until the selector is on screen
+            park | ime-down
 evidence    shot [name] [--crop <sel>] [--out <dir>] | db "<sql>" | logs [n]
 scripts     walk <script.sh> | step <label>
 
