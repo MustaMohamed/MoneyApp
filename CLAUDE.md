@@ -12,7 +12,7 @@ The `unslop` skill is the output contract for every reply, agent return, review,
 
 ## When to stop
 
-When a step doesn't need me, keep going, and put status in the same message as the next action. Stop and ask on a critical trigger below, or before a destructive operation that no skill or routine in this file directs: deleting data, force-pushing, rewriting published history. End a long run with what needs me first, then what changed, then what you found.
+When a step doesn't need me, keep going, and put status in the same message as the next action. Stop and ask when you can't continue without me, on a critical trigger below, or before a destructive operation that no skill or routine in this file directs: deleting data, force-pushing, rewriting published history. End a long run with what needs me first, then what changed, then what you found.
 
 Critical triggers (wake me; everywhere else proceed):
 
