@@ -3,6 +3,8 @@ paths:
   - "src/modules/onboarding/**"
   - "src/modules/accounts/**"
   - "src/modules/dashboard/**"
+  - "src/app/index.tsx"
+  - "src/constants/secure_store_keys.ts"
 ---
 
 # Business rules

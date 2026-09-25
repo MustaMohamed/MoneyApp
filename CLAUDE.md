@@ -8,11 +8,11 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 
 ## Answering me
 
-The `unslop` skill is the output contract for every reply, agent return, review, plan, spec and record; the prompt hook restates its short form each turn. `primitive`, `surface` and `harness` are domain terms here, exempt from its jargon rule where they name the real thing. `npm run lint` fails on its banned method-certification phrases anywhere outside `docs/scopes/` and `docs/superpowers/`, which are frozen history.
+The `unslop` skill is the output contract for every reply, agent return, review, plan, spec and record; the prompt hook restates its short form each turn. `primitive`, `surface` and `harness` are domain terms here, exempt from its jargon rule where they name the real thing. `npm run lint` fails on its banned method-certification phrases, in any case, in any tracked `.md` file outside `docs/scopes/` and `docs/superpowers/`, which are frozen history.
 
 ## When to stop
 
-When a step doesn't need me, keep going, and put status in the same message as the next action. Stop and ask when you can't continue without me, on a critical trigger below, or before a destructive operation that no skill or routine in this file directs: deleting data, force-pushing, rewriting published history. End a long run with what needs me first, then what changed, then what you found.
+When a step doesn't need me, keep going, and put status in the same message as the next action. Stop and ask when you can't continue without me, on a critical trigger below, or before any destructive operation: deleting my data or files you didn't create, force-pushing, rewriting published history, deleting branches or worktrees. The standing requests, which need no ask, are `/ship`'s rebase and `--force-with-lease` push when main moved, its teardown after the merge, and the post-merge list below. Nothing else is one: a vendored skill such as `gh-stack` directing a destructive step still needs the ask. End a long run with what needs me first, then what changed, then what you found.
 
 Critical triggers (wake me; everywhere else proceed):
 
@@ -30,11 +30,12 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 ## Workflow
 
 - **Always branch before any work. Never commit to `main`.** Branches: `feat/x`, `refactor/x`, `fix/x`, `perf/x`; task branches add the ID, `feat/MA-042-slug`.
-- The issue is the record. `.work/<MA-id>/` (the `/prep` plan, branch-only, removed before merge) and `~/.ship/MoneyApp/` (`/ship` state) hold transient working files.
+- The issue is the record. `.work/<MA-id>/` (the `/prep` plan, branch-only, removed before merge) and `~/.ship/MoneyApp/MA-XXX/` (`/ship` state) hold transient working files. `~/.ship/MoneyApp/canvas/` is not transient: it holds the design frames render checks measure against.
 - Define before code: `/epic`, then `/boundaries <n>`, `/tickets <parent>`, `/issue-review <n>`. `/issue-review` is the only road to Ready For Development.
 - Deliver a leaf: `/prep <n>` takes it to Planned with the plan committed on the ticket branch; `/ship <n>` takes it to merged. `/ship` alone pulls the top Planned row. One human gate: the merge.
 - The board is the state: Project #2, Status field, Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Row order within a column is priority.
 - `scripts/board.sh` is the only writer. Its `promote` is the only move from Defined to Ready For Development and the only thing that closes a parent. Never write a `status:*` label.
+- Two moves are by hand with `board.sh status`: Blocked to Ready For Development (`promote` refuses a Blocked row), and a parent to In Progress when its first child starts, carried up at every level.
 - Read the board with `/board [n] [graph|text]`, or `bash scripts/board.sh next [n]` from a terminal (`--json` for a script).
 - A leaf task is one PR, and the unit that gets a branch and `Closes #N`. A parent is never pulled; it mirrors its furthest child and closes through its children.
 - Every move, who makes it and on what, plus the hierarchy and the size gate: [docs/workflow.md](docs/workflow.md). Nothing else moves a row.
@@ -45,7 +46,7 @@ Gotcha: **device QA does not run in the worktree.** A worktree whose `node_modul
 
 ## Team
 
-One dispatchable agent, `@layla` (`.claude/agents/layla.md`), for a money ruling that must be written into an issue. Name a file path for the ruling in the dispatch, outside the repo (the session scratchpad), and paste that file into the issue unedited. Five inline personas through the `moneyapp-expert-panel` skill, `[layla]` `[marcus]` `[sarah]` `[tariq]` `[dev]`: advisory, no files, no dispatch. `/prep` composes its planner and reviewer, `/ship` its implementer and review lenses; the define skills use read-only scouts, and `/issue-review` dispatches fresh reviewers for every lens.
+One dispatchable agent, `@layla` (`.claude/agents/layla.md`), for a money ruling that must be written into an issue. Name a file path for the ruling in the dispatch, outside the repo (the session scratchpad); the file's lines go under the issue's `## Rules` heading unchanged. Five inline personas through the `moneyapp-expert-panel` skill, `[layla]` `[marcus]` `[sarah]` `[tariq]` `[dev]`: advisory, no files, no dispatch. `/prep` composes its planner and reviewer, `/ship` its implementer and review lenses; the define skills use read-only scouts, and `/issue-review` dispatches fresh reviewers for every lens.
 
 Gotcha: **editing an agent definition is snapshotted at session start; creating a new one is not.** A new file in `.claude/agents/` registers and becomes dispatchable immediately, but editing an existing one does not affect subagents dispatched later in that same session. Restart the session before testing an agent change. Skills and path-scoped rules in `.claude/rules/` have neither problem; they load live, including inside subagents.
 
