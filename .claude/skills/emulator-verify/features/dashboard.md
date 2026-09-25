@@ -5,7 +5,7 @@ Route `/dashboard`, the first tab. Screen `src/modules/dashboard/screens/dashboa
 ## Reach it
 
 - User path: the app opens here once onboarding is complete.
-- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://dashboard"`, or the tab bar's exact content-desc from `mqa ui`; the bare `$MQA tap 'Home'` is refused (`Strings.tabHome`; no node reads `Dashboard`).
+- Script: `mqa open /dashboard`, or the tab bar's exact content-desc from `mqa ui`; the bare `$MQA tap 'Home'` is refused under the uiautomator engine (`Strings.tabHome`; no node reads `Dashboard`).
 - Section label per account type (`Bank`, `Cash`, `Wallet`, `Savings`, `Credit Card`), each with its count badge on the right.
 
 ## States

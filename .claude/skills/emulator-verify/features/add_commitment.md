@@ -5,7 +5,7 @@ Route `/commitments/add`. Screen `src/modules/commitments/screens/commitments/ad
 ## Reach it
 
 - User path: the `Commitments` tab, then the FAB (`Add`) and its `Add Commitment` item.
-- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://commitments/add"`, or the `Commitments` tab by its exact content-desc from `mqa ui`, then the FAB's `Add Commitment` (`commitments.md` § Outbound); the bare `$MQA tap 'Commitments'` is refused.
+- Script: `mqa open /commitments/add`, or the `Commitments` tab by its exact content-desc from `mqa ui`, then the FAB's `Add Commitment` (`commitments.md` § Outbound); the bare `$MQA tap 'Commitments'` is refused under the uiautomator engine.
 
 ## States
 
@@ -23,7 +23,7 @@ Route `/commitments/add`. Screen `src/modules/commitments/screens/commitments/ad
 ## Gotchas
 
 - `SelectablePill` is shared with the commitments and transactions filter sheets (`FilterOptionPillList`, `filter_accordion.tsx`). Its two container branches are measured once each: the adornment-free branch here (`px-3 py-1`, 25) and the adornment branch on `commitments.md` (`px-2.5 py-1.5`, 29). Both numbers include `SelectablePill`'s own 1 dp `border` pair, which the label-plus-padding arithmetic alone misses. A divergence is a caller override.
-- The pill's `Chip` carries `accessibilityRole="button"`, so unlike a padded badge it reaches `ui.xml` and is measured directly.
+- The pill's `Chip` carries `accessibilityRole="button"`, so unlike a padded badge it reaches the accessibility tree and is measured directly.
 
 ## Seeding and forcing states
 

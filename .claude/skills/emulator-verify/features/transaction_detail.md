@@ -24,7 +24,7 @@ Route `/transactions/detail/[id]`, and its `/stacked` twin when reached from a s
 ## Gotchas
 
 - `TypeBadge` is shared with the transaction row, which renders it at `sm`. The two sizes are measured once each, `sm` on `transactions.md` and `md` here; a divergence is a caller override.
-- The badge wrapper carries `accessibilityRole="text"`, so it reaches `ui.xml`: read the label `TextView` for the line box and the wrapper for the padded height.
+- The badge wrapper carries `accessibilityRole="text"`, so it reaches the accessibility tree: read the label `TextView` for the line box and the wrapper for the padded height.
 
 ## Seeding and forcing states
 

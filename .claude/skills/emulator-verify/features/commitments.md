@@ -5,7 +5,7 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 ## Reach it
 
 - User path: the `Commitments` tab.
-- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://commitments"`, or the tab bar's exact content-desc from `mqa ui`; the bare `$MQA tap 'Commitments'` is refused.
+- Script: `mqa open /commitments`, or the tab bar's exact content-desc from `mqa ui`; the bare `$MQA tap 'Commitments'` is refused under the uiautomator engine.
 - The filter sheet opens from the tune icon beside the search field: `$MQA tap` by its accessibility label `Filter` (`Filter, N active` once a filter is on).
 
 ## States
@@ -34,7 +34,7 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 - The accordion pill has no vertical padding, so its height is the line box alone — 14, not 18 like the padded pills.
 - The month pill in the rail is the shared `month_filter.tsx`, measured once as `month filter pill` in `transactions.md` § States; that read holds here, so do not re-measure it — a divergence is a caller override.
 - This list's group headers are `DateHeader`, not the shared `section_header.tsx` (`index.tsx:123-127`), and read 14 — the `section title` state belongs to `dashboard.md` and `accounts_list.md`.
-- The row status pill is a `View` with no touch handler: it is flattened out of `ui.xml`, so read the label `TextView` and add `py-0.5`, or measure the painted pill on the shot.
+- The row status pill is a `View` with no touch handler: it is flattened out of the accessibility tree, so read the label `TextView` and add `py-0.5`, or measure the painted pill on the shot.
 - `FilterOptionPillList` renders the shared `SelectablePill` and is the same component the transactions filter sheet renders; the adornment branch is measured here and the adornment-free branch on `add_commitment.md`, one read each.
 - A deep link does not dismiss an open bottom sheet: the filter sheet stays mounted over the next screen and its nodes answer the reads. `am force-stop` before the next state.
 - The tab bar's clickable node carries the icon glyph before the label (`B, Budget` on Budget), so `$MQA tap 'Commitments'` matches only the non-clickable text and is refused; tap the exact content-desc from `mqa ui`, or use the deep link.

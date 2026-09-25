@@ -24,6 +24,21 @@ EMU="$HOME/Library/Android/sdk/emulator/emulator"
 
 die() { echo "mqa: $*" >&2; exit 1; }
 
+# Screen engine: agent-device (a devDependency) unless MQA_UI=uiautomator; Android allows one per device at a time.
+AD_BIN="${MQA_AGENT_DEVICE:-$ROOT/node_modules/.bin/agent-device}"
+if [ -n "${MQA_UI:-}" ]; then ENGINE="$MQA_UI"; elif [ -x "$AD_BIN" ]; then ENGINE=agent-device; else ENGINE=uiautomator; fi
+case "$ENGINE" in agent-device | uiautomator) ;; *) die "MQA_UI must be agent-device or uiautomator" ;; esac
+HELPER_PKG=com.callstack.agentdevice.snapshothelper
+DENSITY=2.625
+READY_DEFAULT='label="󰓡, Transactions"'
+
+# The shell's first python3 can be an Intel build that dies with "Bad CPU type"; take the first one that runs.
+PY="${MQA_PYTHON:-}"
+if [ -z "$PY" ]; then
+  for p in /usr/bin/python3 python3; do if "$p" -c '' 2>/dev/null; then PY="$p"; break; fi; done
+fi
+[ -n "$PY" ] || die "no runnable python3 (set MQA_PYTHON)"
+
 # --- device leases ----------------------------------------------------------
 # Three tickets verify in parallel, so a session must own one device outright.
 # The claim cannot live in MQA_SERIAL: an agent's shell calls do not carry env
@@ -125,18 +140,22 @@ Guessing here would drive another session's device. Run: mqa claim   (see: mqa c
 # types a letter instead. Always dismiss the IME before tapping by coordinate.
 dump() {
   need_device
+  # While agent-device's helper holds UI automation, uiautomator prints "Killed" and exits 0.
+  if helper_holds; then die "an agent-device session holds UI automation on $S. Run: mqa down   (or drop MQA_UI=uiautomator)"; fi
   # Write then rename: a torn ui.xml read by a concurrent invocation would
   # otherwise parse as "element not found", i.e. a false negative.
   a exec-out uiautomator dump /dev/tty 2>/dev/null > "$WORK/ui.xml.$$"
   mv -f "$WORK/ui.xml.$$" "$WORK/ui.xml"
-  [ -s "$WORK/ui.xml" ] || die "empty UI dump (app not foreground?)"
+  grep -q '<hierarchy' "$WORK/ui.xml" || die "uiautomator returned no hierarchy: $(head -c 120 "$WORK/ui.xml")"
 }
+
+helper_holds() { a shell pidof "$HELPER_PKG" >/dev/null 2>&1; }
 
 # Emit "x y clickable|text" per match, clickable first: an RN Pressable wraps a
 # non-clickable Text carrying the same label, and only the wrapper responds.
 locate() {
-  python3 - "$WORK/ui.xml" "$1" <<'PY'
-import re, sys
+  "$PY" - "$WORK/ui.xml" "$1" <<'PY'
+import html, re, sys
 xml = open(sys.argv[1], encoding='utf8').read()
 target = sys.argv[2]
 hits = []
@@ -144,7 +163,8 @@ for m in re.finditer(r'<node[^>]*?>', xml):
     n = m.group(0)
     t = re.search(r' text="([^"]*)"', n)
     d = re.search(r' content-desc="([^"]*)"', n)
-    if (t.group(1) if t else '') != target and (d.group(1) if d else '') != target:
+    vals = {v for g in (t, d) if g for v in (g.group(1), html.unescape(g.group(1)))}
+    if target not in vals:
         continue
     b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
     if not b:
@@ -252,7 +272,7 @@ print_claim() {
   local slot="$1"
   cat <<EOF
 slot $slot  $(slot_avd "$slot")  $(slot_serial "$slot")  metro :$(slot_port "$slot")
-  npx expo start --port $(slot_port "$slot")   # in this worktree, then: mqa launch
+  next: mqa up   # starts Metro on :$(slot_port "$slot") from this worktree and launches the app
 EOF
 }
 
@@ -297,6 +317,8 @@ EOF
 cmd_release() {
   local slot
   slot="$(my_slot)" || { echo "nothing claimed for $(worktree)"; return; }
+  # An open agent-device session leaves its headless keyboard active for the next holder.
+  if [ -x "$AD_BIN" ] && [ -n "$S" ]; then ad close >/dev/null 2>&1 || true; fi
   rm -f "$LEASE_DIR/$slot"
   echo "released slot $slot ($(slot_serial "$slot")). The emulator is left running."
 }
@@ -391,15 +413,15 @@ cmd_needs_build() {
   return 1
 }
 
-# The dev client's floating Tools bubble captures taps near the header's
-# right-hand action even from coordinates outside its reported bounds, because
-# it lives in a separate window that uiautomator does not dump. Drag it to the
-# bottom of the screen for the session rather than hunting for a safe pixel.
+# The dev client's floating Tools bubble captures taps near the header's right-hand action; drag it from where it is, never from a fixed pixel.
 cmd_park() {
   need_device
-  local h
-  h="$(a shell wm size | sed -n 's/.*: [0-9]*x\([0-9]*\).*/\1/p' | tr -d '\r')"
-  a shell input swipe 971 174 971 "$(( ${h:-2400} - 900 ))" 800
+  local f r x y w h H
+  f="$(snap_file)"
+  r="$(query rect "$f" 'label="Tools"' 2>/dev/null)" || { echo "no Tools bubble on screen; nothing to park"; return 0; }
+  read -r x y w h <<<"$r"
+  H="$(a shell wm size | sed -n 's/.*: [0-9]*x\([0-9]*\).*/\1/p' | tr -d '\r')"
+  a shell input swipe "$((x + w / 2))" "$((y + h / 2))" "$((x + w / 2))" "$((${H:-1920} - 900))" 800
   echo "parked the dev-client Tools bubble"
 }
 
@@ -419,9 +441,33 @@ cmd_step() { printf '\n=== %s\n' "$*"; }
 # --- observation ------------------------------------------------------------
 cmd_shot() {
   need_device
-  local out="$WORK/${1:-shot}.png"
-  a exec-out screencap -p > "$out"
-  echo "$out"
+  local name="${1:-shot}" crop="" out="$WORK" f r="" png
+  [ $# -eq 0 ] || shift
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --crop) crop="${2:?--crop <selector>}"; shift 2 ;;
+      --out) out="${2:?--out <dir>}"; shift 2 ;;
+      *) die "usage: mqa shot [name] [--crop <selector>] [--out <dir>]" ;;
+    esac
+  done
+  mkdir -p "$out"; png="$out/$name.png"
+  if [ -n "$crop" ]; then f="$(snap_file)"; r="$(query rect "$f" "$crop")"; fi
+  a exec-out screencap -p > "$png"
+  # shellcheck disable=SC2086 -- deliberate word splitting: x y w h
+  [ -z "$r" ] || crop_png "$png" $r
+  echo "$png"
+}
+
+crop_png() {
+  if "$PY" -c 'import PIL' 2>/dev/null; then
+    "$PY" -c 'import sys; from PIL import Image; p = sys.argv[1]; x, y, w, h = map(int, sys.argv[2:]); Image.open(p).crop((x, y, x + w, y + h)).save(p)' "$@"
+    return
+  fi
+  # sips leaves the image whole, and exits 0, when a crop touches the bottom edge; stop one pixel short.
+  local H h="$5"
+  H="$(sips -g pixelHeight "$1" | awk '/pixelHeight/{print $2}')"
+  [ $(($3 + h)) -lt "$H" ] || h=$((H - $3 - 1))
+  sips -c "$h" "$4" --cropOffset "$3" "$2" "$1" >/dev/null
 }
 
 cmd_ui() { dump; grep -oE '(text|content-desc)="[^"]+"' "$WORK/ui.xml" | sort -u || true; }
@@ -461,36 +507,302 @@ cmd_db() {
   '
 }
 
+# --- screen engine -----------------------------------------------------------
+ad() { AGENT_DEVICE_NO_UPDATE_NOTIFIER=1 AGENT_DEVICE_ANDROID_DEVICE_ALLOWLIST="$S" "$AD_BIN" "$@"; }
+need_ad() { [ -x "$AD_BIN" ] || die "agent-device is missing at $AD_BIN: run npm install, or set MQA_UI=uiautomator"; }
+uses_ad() { [ "$ENGINE" = agent-device ] && need_ad; }
+# Give an action's target up to 10 s to render, as locate_retry does for uiautomator; the action itself reports a miss.
+ad_settle() {
+  case "$1" in
+    @*) ;;
+    '~'*) ad wait text "${1#\~}" 10000 >/dev/null 2>&1 || true ;;
+    *) ad wait "$(sel "$1")" 10000 >/dev/null 2>&1 || true ;;
+  esac
+}
+
+# Selectors: label="…" or text="…" is an exact label or text, id="…" a testID, ~text a substring, @eN a snapshot ref; bare text is a label (and, in bounds, shot and read, also a testID).
+sel() { case "$1" in *=* | @* | '~'*) printf '%s' "$1" ;; *) printf 'label="%s"' "$1" ;; esac; }
+
+# The current screen as a file query can read: agent-device JSON, or a uiautomator dump.
+snap_file() {
+  need_device
+  if uses_ad; then
+    ad snapshot --json > "$WORK/snap.json"
+    echo "$WORK/snap.json"
+  else
+    dump
+    echo "$WORK/ui.xml"
+  fi
+}
+
+# query bounds <file> <sel>...: each match in dp · query rect <file> <sel>: px rect of the largest match · query within <file> <scope>: what is drawn inside it.
+query() {
+  "$PY" - "$DENSITY" "$@" <<'PY'
+import json, re, sys
+D = float(sys.argv[1]); mode, path, sels = sys.argv[2], sys.argv[3], sys.argv[4:]
+raw = open(path, encoding='utf8').read()
+nodes = []
+def add(cls, label, text, nid, x, y, w, h, enabled, selected):
+    nodes.append(dict(cls=cls.split('.')[-1], label=label, text=text, id=nid, x=x, y=y, w=w, h=h, enabled=enabled, selected=selected))
+if raw.lstrip().startswith('{'):
+    def walk(o):
+        if isinstance(o, dict):
+            if 'rect' in o:
+                r = o['rect']
+                add(o.get('type', ''), o.get('label') or '', o.get('value') or '', o.get('identifier') or '',
+                    r['x'], r['y'], r['width'], r['height'], o.get('enabled', True), bool(o.get('selected')))
+            for v in o.values(): walk(v)
+        elif isinstance(o, list):
+            for v in o: walk(v)
+    walk(json.loads(raw))
+else:
+    import xml.etree.ElementTree as ET
+    for c in ET.fromstring(raw[raw.index('<hierarchy'):raw.rindex('</hierarchy>') + len('</hierarchy>')]).iter('node'):
+        b = re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', c.get('bounds', ''))
+        x1, y1, x2, y2 = map(int, b.groups()) if b else (0, 0, 0, 0)
+        add(c.get('class', ''), c.get('content-desc') or c.get('text', ''), c.get('text', ''), c.get('resource-id', ''),
+            x1, y1, x2 - x1, y2 - y1, c.get('enabled') == 'true', c.get('selected') == 'true')
+def match(n, s):
+    if s.startswith('~'): return s[1:] in n['label'] or s[1:] in n['text']
+    k, eq, v = s.partition('=')
+    if not eq: return s in (n['label'], n['text'], n['id'])
+    v = v.strip('"')
+    if k == 'id': return n['id'] == v or n['id'].endswith('/' + v)
+    if k in ('label', 'text'): return v in (n['label'], n['text'])
+    sys.exit(f'mqa: unknown selector {s}')
+def line(n, indent=''):
+    state = ('enabled' if n['enabled'] else 'disabled') + (' selected' if n['selected'] else '')
+    return f"{indent}{n['cls']} label={n['label']!r} x={n['x'] / D:.1f} y={n['y'] / D:.1f} w={n['w'] / D:.1f} h={n['h'] / D:.2f}dp {state}"
+if mode == 'within':
+    s = sels[0]
+    roots = [n for n in nodes if match(n, s)] or [n for n in nodes if s in n['label']]
+    if not roots: sys.exit(f'mqa: nothing on screen matches {s}')
+    r, t = roots[0], 2
+    print(line(r))
+    inside = [n for n in nodes if n is not r and (n['label'] or n['text']) and r['x'] - t <= n['x'] and r['y'] - t <= n['y']
+              and n['x'] + n['w'] <= r['x'] + r['w'] + t and n['y'] + n['h'] <= r['y'] + r['h'] + t]
+    for n in sorted(inside, key=lambda n: (n['y'], n['x'])): print(line(n, '  '))
+    sys.exit()
+if mode == 'rect':
+    hits = [n for n in nodes if match(n, sels[0])]
+    if not hits: sys.exit(f'mqa: no node matches {sels[0]}')
+    n = max(hits, key=lambda n: n['w'] * n['h'])
+    print(n['x'], n['y'], n['w'], n['h'])
+    sys.exit()
+for s in sels:
+    hits = [n for n in nodes if match(n, s)]
+    if not hits: print(f'{s}: no match')
+    for n in hits: print(f"{s}: {line(n)}")
+PY
+}
+
+cmd_bounds() {
+  [ $# -ge 1 ] || die "usage: mqa bounds <selector>..."
+  local f
+  f="$(snap_file)"
+  query bounds "$f" "$@"
+}
+
+cmd_read() {
+  if uses_ad; then
+    need_device
+    if [ -z "${1:-}" ]; then ad snapshot -i; return; fi
+  elif [ -z "${1:-}" ]; then
+    cmd_ui; return
+  fi
+  # A scope lists every labelled node drawn inside it: React Native flattens a testID container's children out of the tree.
+  local f
+  f="$(snap_file)"
+  query within "$f" "$1"
+}
+
+cmd_press() {
+  local t="${1:?usage: mqa tap <selector>}" f r x y w h
+  if uses_ad; then
+    need_device
+    ad_settle "$t"
+    case "$t" in '~'*) ad find "${t#\~}" click ;; *) ad press "$(sel "$t")" ;; esac
+    return
+  fi
+  case "$t" in
+    id=* | '~'*)
+      f="$(snap_file)"; r="$(query rect "$f" "$t")"; read -r x y w h <<<"$r"
+      a shell input tap "$((x + w / 2))" "$((y + h / 2))"; dump
+      echo "tapped $t at $((x + w / 2)) $((y + h / 2))" ;;
+    label=* | text=*) t="${t#*=}"; t="${t#\"}"; cmd_tap "${t%\"}" ;;
+    *) cmd_tap "$t" ;;
+  esac
+}
+
+cmd_fill() {
+  local t="${1:?usage: mqa fill <selector> <text>}" text="${2?usage: mqa fill <selector> <text>}"
+  if uses_ad; then
+    need_device
+    ad_settle "$t"
+    case "$t" in '~'*) ad find "${t#\~}" fill "$text" ;; *) ad fill "$(sel "$t")" "$text" ;; esac
+    return
+  fi
+  cmd_press "$t" >/dev/null
+  grep -oE '<node[^>]*class="android.widget.EditText"[^>]*>' "$WORK/ui.xml" | grep -q 'focused="true"' \
+    || die "fill: no text field has focus after tapping $t"
+  cmd_clear; cmd_type "$text"; echo "filled $t"
+}
+
+# Wait on the value you are about to assert, never on a nearby label: the totals strip settles after the filter badge.
+cmd_wait() {
+  local t="${1:?usage: mqa wait <selector> [ms]}" ms="${2:-10000}" end
+  if uses_ad; then
+    need_device
+    case "$t" in '~'*) ad wait text "${t#\~}" "$ms" >/dev/null ;; *) ad wait "$(sel "$t")" "$ms" >/dev/null ;; esac
+    echo "saw $t"; return
+  fi
+  end=$((SECONDS + (ms + 999) / 1000))
+  while :; do
+    dump
+    if query rect "$WORK/ui.xml" "$(sel "$t")" >/dev/null 2>&1; then echo "saw $t"; return; fi
+    [ "$SECONDS" -lt "$end" ] || die "timed out after ${ms}ms waiting for $t"
+    sleep 0.5
+  done
+}
+
+cmd_scroll() {
+  local dir="${1:?usage: mqa scroll <up|down> [--until <selector>]}" H
+  shift
+  if uses_ad; then
+    need_device
+    if [ "${1:-}" = --until ]; then ad scroll "$dir" --until "$(sel "${2:?--until <selector>}")"; else ad scroll "$dir"; fi
+    return
+  fi
+  [ "${1:-}" != --until ] || die "scroll --until needs the agent-device engine"
+  H="$(a shell wm size | sed -n 's/.*: [0-9]*x\([0-9]*\).*/\1/p' | tr -d '\r')"; H="${H:-1920}"
+  case "$dir" in
+    down) a shell input swipe 540 $((H * 7 / 10)) 540 $((H * 3 / 10)) 400 ;;
+    up) a shell input swipe 540 $((H * 3 / 10)) 540 $((H * 7 / 10)) 400 ;;
+    *) die "usage: mqa scroll <up|down>" ;;
+  esac
+  dump
+}
+
+cmd_open() {
+  local u="${1:?usage: mqa open <route|url>}"
+  case "$u" in *://*) ;; /*) u="$SCHEME:/$u" ;; *) u="$SCHEME://$u" ;; esac
+  need_device
+  if uses_ad; then ad open "$u" >/dev/null; else a shell am start -a android.intent.action.VIEW -d "$u" >/dev/null; fi
+  echo "opened $u"
+}
+
+cmd_key() { need_device; a shell input keyevent "${1:?keycode}"; uses_ad || dump; }
+
+cmd_down() {
+  need_device
+  if [ -x "$AD_BIN" ]; then ad close >/dev/null 2>&1 || true; fi
+  echo "closed the agent-device session on $S; the system keyboard is back"
+}
+
+# --- Metro -------------------------------------------------------------------
+metro_pid() { lsof -nP -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | head -1 || true; }
+metro_cwd() { lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | tail -1; }
+metro_up() { curl -s --max-time 2 "http://127.0.0.1:$PORT/status" 2>/dev/null | grep -q packager-status:running; }
+
+# One Metro per worktree on the claimed port; a moved HEAD restarts it with --clear, since a cached transform serves the old commit.
+cmd_metro() {
+  need_device
+  local sub="${1:-start}" wt head pid cwd="" i log="$WORK/metro.log"
+  wt="$(worktree)"; head="$(git -C "$wt" rev-parse HEAD)"; pid="$(metro_pid)"
+  [ -z "$pid" ] || cwd="$(metro_cwd "$pid")"
+  case "$sub" in
+    status)
+      if [ -n "$pid" ]; then echo "Metro :$PORT pid $pid from $cwd, started at $(cut -c1-8 "$WORK/metro.head" 2>/dev/null || echo unknown)"; else echo "no Metro on :$PORT"; fi
+      return ;;
+    stop)
+      [ -n "$pid" ] || { echo "no Metro on :$PORT"; return; }
+      [ "$cwd" = "$wt" ] || die "Metro on :$PORT runs from $cwd, not this worktree; not stopping it"
+      kill "$pid"; rm -f "$WORK/metro.head"; echo "stopped Metro on :$PORT"
+      return ;;
+    start | restart) ;;
+    *) die "usage: mqa metro [start|restart|stop|status]" ;;
+  esac
+  if [ -n "$pid" ]; then
+    [ "$cwd" = "$wt" ] || die "port :$PORT is held by $cwd, which would serve another branch to this device; stop it first"
+    if [ "$sub" = start ] && [ "$(cat "$WORK/metro.head" 2>/dev/null)" = "$head" ] && metro_up; then
+      echo "Metro :$PORT already serves $wt at ${head:0:8}"; return
+    fi
+    kill "$pid"
+    for ((i = 0; i < 20; i++)); do [ -n "$(metro_pid)" ] || break; sleep 0.5; done
+  fi
+  # Redirect the whole group: a backgrounded list that keeps the caller's stdout makes `mqa up | tail` wait on Metro forever.
+  (cd "$wt" && exec nohup npx expo start --port "$PORT" --clear) < /dev/null > "$log" 2>&1 &
+  echo "$head" > "$WORK/metro.head"
+  for ((i = 0; i < 180; i++)); do metro_up && break; sleep 1; done
+  metro_up || die "Metro did not answer on :$PORT within 180 s; see $log"
+  echo "Metro :$PORT from $wt at ${head:0:8} (log: $log)"
+}
+
+# Metro, a cold launch on it, and the first screen: the start of every run.
+cmd_up() {
+  need_device
+  local ready="$READY_DEFAULT" url try
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --ready) ready="$(sel "${2:?--ready <selector>}")"; shift 2 ;;
+      *) die "usage: mqa up [--ready <selector>]" ;;
+    esac
+  done
+  cmd_metro start >/dev/null
+  url="$SCHEME://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$PORT"
+  a reverse "tcp:$PORT" "tcp:$PORT" >/dev/null
+  if uses_ad; then
+    ad close >/dev/null 2>&1 || true
+    for try in 1 2; do
+      a shell am force-stop "$PKG"
+      ad open "$PKG" "$url" --platform android --serial "$S" >/dev/null
+      # One launch in four left the device on the home screen; a second open recovers it.
+      if ad wait "$ready" 90000 >/dev/null 2>&1; then break; fi
+      [ "$try" = 1 ] || die "the app never showed $ready. Check: mqa logs"
+    done
+    ad react-native dismiss-overlay >/dev/null 2>&1 || true
+  else
+    a shell am force-stop "$PKG"
+    a shell am start -a android.intent.action.VIEW -d "$url" >/dev/null
+    cmd_wait "$ready" 90000 >/dev/null
+  fi
+  echo "ready: $S, Metro :$PORT, engine $ENGINE"
+}
+
 usage() {
   cat <<'EOF'
-mqa — drive the MoneyApp dev client on an Android emulator and read state back.
+mqa: drive the MoneyApp dev client on an Android emulator and read state back.
+Call it as `bash .claude/skills/emulator-verify/mqa.sh <verb>` from the worktree.
 
-  claim [slot] | release | claims      one device per worktree
-  boot [slot] | install | launch | reset   lifecycle
-  needs-build [base] | build | abi     build decision (default base: origin/main)
-  walk <script.sh> | step <label>      scripted scenarios
-  ui | find <label> | shot [name]      observe
-  tap <label> | tapxy <x> <y> | park   interact
-  type <text> | clear | key <code>     text entry
-  back | ime-down                      navigation
-  db "<sql>" | logs [n]                state
+device      claim [slot] | release | claims | boot [slot]
+build       needs-build [base] | build | install | abi | reset
+run         up [--ready <sel>]      Metro for this worktree, cold launch, first screen, dev overlays cleared
+            down                    close the agent-device session (restores the keyboard)
+            metro [start|restart|stop|status]
+            open <route|url>        /transactions or moneyapp://…
+screen      read [scope] | ui       what is on screen; a scope lists what is drawn inside that container
+            bounds <sel>...         each match: x y w h in dp, enabled/disabled, selected
+            find <label>            bounds of one label
+            tap <sel> | fill <sel> <text>   each waits up to 10 s for its target first
+            type <text> | clear | key <code> | back | tapxy <x> <y>
+            wait <sel> [ms]         wait for the value you are about to assert (default 10000)
+            scroll <up|down> [--until <sel>] | park | ime-down
+evidence    shot [name] [--crop <sel>] [--out <dir>] | db "<sql>" | logs [n]
+scripts     walk <script.sh> | step <label>
 
-env: MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK MQA_SLOTS MQA_LEASE_DIR MQA_LEASE_TTL
+selectors   label="…" or text="…" exact · id="…" testID · ~text substring · @eN ref (agent-device)
+            bare text = a label; in bounds, shot --crop and read it also matches a testID
+engine      agent-device (default when installed) or MQA_UI=uiautomator; one per device at a time
+env         MQA_UI MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK MQA_SLOTS MQA_LEASE_DIR MQA_LEASE_TTL MQA_PYTHON
 
-Three slots run in parallel, one per worktree. The claim is keyed on the
-worktree, so it survives between shell calls and there is nothing to export:
+Slots: 1 emulator-5554 :8082 · 2 emulator-5556 :8083 · 3 emulator-5558 :8084, one per worktree.
 
-  slot 1  Pixel_2_API_34    emulator-5554  metro :8082
-  slot 2  Pixel_2_API_34_2  emulator-5556  metro :8083
-  slot 3  Pixel_2_API_34_3  emulator-5558  metro :8084
-
-Cheapest correct run, in order:
-  mqa claim                                      # boots a free device, prints its Metro port
-  mqa needs-build && mqa build && mqa install    # exits 1 when a rebuild is not needed
-  npx expo start --port <the port claim printed> &
-  mqa launch && mqa park
+A run, in order:
+  mqa claim                                      # a free device for this worktree
+  mqa needs-build || { mqa build && mqa install; }   # exits 1 when no rebuild is needed
+  mqa up                                         # Metro, launch, first screen
   mqa walk scenarios.sh                          # one call, not one per tap
-  mqa release                                    # when the ticket is done
+  mqa down && mqa release
 EOF
 }
 
@@ -505,18 +817,26 @@ case "${1:-help}" in
   abi)      cmd_abi ;;
   build)    cmd_build ;;
   needs-build) cmd_needs_build "${2:-origin/main}" ;;
+  metro)    cmd_metro "${2:-start}" ;;
+  up)       shift; cmd_up "$@" ;;
+  down)     cmd_down ;;
+  open)     cmd_open "${2:-}" ;;
   park)     cmd_park ;;
   walk)     cmd_walk "${2:?walk script}" ;;
   step)     shift; cmd_step "$@" ;;
-  shot)     cmd_shot "${2:-shot}" ;;
-  ui)       cmd_ui ;;
-  find)     dump; locate "${2:?label}" ;;
-  tap)      cmd_tap "${2:?label}" ;;
-  tapxy)    need_device; cmd_ime_down; a shell input tap "${2:?x}" "${3:?y}"; dump ;;
-  type)     cmd_type "${2:?text}" ;;
-  clear)    cmd_clear ;;
-  key)      need_device; a shell input keyevent "${2:?keycode}"; dump ;;
-  back)     cmd_back ;;
+  shot)     shift; cmd_shot "$@" ;;
+  ui | read) cmd_read "${2:-}" ;;
+  bounds)   shift; cmd_bounds "$@" ;;
+  find)     if uses_ad; then cmd_bounds "$(sel "${2:?label}")"; else dump; locate "${2:?label}"; fi ;;
+  tap)      cmd_press "${2:?selector}" ;;
+  fill)     cmd_fill "${2:?selector}" "${3?text}" ;;
+  wait)     cmd_wait "${2:?selector}" "${3:-10000}" ;;
+  scroll)   shift; cmd_scroll "$@" ;;
+  tapxy)    need_device; if uses_ad; then ad press "${2:?x}" "${3:?y}"; else cmd_ime_down; a shell input tap "${2:?x}" "${3:?y}"; dump; fi ;;
+  type)     if uses_ad; then need_device; ad type "${2:?text}"; else cmd_type "${2:?text}"; fi ;;
+  clear)    if uses_ad; then need_device; a shell input keyevent 123 $(printf '67 %.0s' $(seq 1 60)); else cmd_clear; fi ;;
+  key)      cmd_key "${2:?keycode}" ;;
+  back)     if uses_ad; then need_device; ad back; else cmd_back; fi ;;
   ime-down) cmd_ime_down ;;
   db)       shift; cmd_db "$@" ;;
   logs)     cmd_logs "${2:-40}" ;;
