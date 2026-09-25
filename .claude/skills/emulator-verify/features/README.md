@@ -11,9 +11,9 @@ On the accounts redesign (#378) the render lens ran a median 99 messages per tic
 - **A state not in the file is a state the design did not draw.** Before shooting it, add it here with its frame or `no frame` and the ticket that introduces it.
 - **Prep names files and states, never prose.** The plan's Screens section is `features/<screen>.md`: the state names. The reviewer refuses a state the file does not carry.
 - **Implementer and lens run the same recipe.** The render pass proves the states the plan names; the lens re-runs the same recipes on the pushed SHA and judges the shots against the frame. Neither invents scenarios.
-- **Proof is `mqa ui` or `mqa db` first, a shot only for what is visual.** `grep -c` over `mqa ui` answers "did this text render"; a screenshot answers proportion and placement.
-- **Density is 2.625, not 3.** Geometry comes from `ui.xml` bounds divided by 2.625, never from PNG pixels.
-- **A padded pill has no node of its own.** React Native flattens a `View` with no touch handler or accessibility role, so a badge's container never reaches `ui.xml` — only its label `TextView` does. Measure the label's line box and add the container's padding (`py-0.5` is 2 dp each side), or measure the clickable ancestor when there is one (MA-086).
+- **Proof is `mqa bounds`, `mqa read` or `mqa db` first, a shot only for what is visual.** `grep -c` over `mqa read` answers "did this text render"; a cropped shot answers proportion and placement. Grep a label's own text (`grep -c '"Reorder '`): it matches both the agent-device output and the uiautomator dump.
+- **Density is 2.625, not 3.** Geometry comes from `mqa bounds`, which prints dp: "bounds ÷ 2.625" in these files is the division it already did. Never measure PNG pixels.
+- **A padded pill has no node of its own.** React Native flattens a `View` with no touch handler or accessibility role, so a badge's container never reaches the accessibility tree and `mqa bounds` finds no node for it; only its label `TextView` does. Measure the label's line box and add the container's padding (`py-0.5` is 2 dp each side), or measure the clickable ancestor when there is one (MA-086).
 
 ## File shape
 
@@ -45,6 +45,6 @@ A merged ticket that adds a state, an action or a route edits its file in the sa
 
 The recipes reference three mechanisms from the `emulator-verify` skill and its memory:
 
-- **Deep link**: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://accounts"` opens any expo-router route while the dev client runs. The only way into `/accounts` at zero active accounts.
+- **Deep link**: `mqa open /accounts` opens any expo-router route while the dev client runs. The only way into `/accounts` at zero active accounts.
 - **Seed push**: build a seed on the host with `better-sqlite3` (`PRAGMA journal_mode=DELETE`), `am force-stop`, remove `-wal` and `-shm`, `base64` the file through `run-as`. `mqa db` reads a pulled copy and never writes the device.
 - **Source force**: a state no data can produce (`loadError` on the list) is one line in the screen's own resolver, reverted with `git status` clean before and after.

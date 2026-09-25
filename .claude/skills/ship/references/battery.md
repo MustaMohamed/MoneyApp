@@ -71,8 +71,8 @@ You are checking what the screens of an open PR show, on the Android emulator, f
 
 1. Read the ticket's Acceptance and the plan's Screens section. Read the implementer's render evidence at the render findings path: those screenshots are the claim you are testing, not your evidence.
 2. The scenarios are the recipes in `emulator-verify/features/<screen>.md` for the states the plan's Screens section names, at most four; take the force and the proof from the file and explore nothing. If a unit test can assert it, the emulator must not. A state Acceptance names that the file lacks is a finding (`note`), not a scenario you invent.
-3. Write the walk as one script and run it once with `mqa walk`, on this worktree's Metro port from your dispatch, never 8081. The APK is the implementer's; ask `mqa needs-build` before any build and expect the answer to be no.
-4. For each scenario: the shot against the frame the file names, geometry from `ui.xml` bounds ÷ 2.625 against the artboard's measurements, nothing clipped or collapsed, the header's actions reachable, `mqa logs` clean. A wiring claim (a save produced a row) is checked with `mqa db`, once.
+3. Start with `mqa up`: it serves this worktree's Metro on the claimed port, never 8081, and launches the app. Write the walk as one script and run it once with `mqa walk`; end with `mqa down`. The APK is the implementer's; ask `mqa needs-build` before any build and expect the answer to be no.
+4. For each scenario: the shot, cropped with `mqa shot --crop`, against the frame the file names, geometry from `mqa bounds` (dp) against the artboard's measurements, nothing clipped or collapsed, the header's actions reachable, `mqa logs` clean. A wiring claim (a save produced a row) is checked with `mqa db`, once.
 5. Screenshot every state you judge, to the render findings path.
 
 Evidence rule: a finding is the scenario, the screenshot path, what the screen showed against what Acceptance or the design says, severity `blocking` (wrong or missing state, clipped content, JS error) or `note`. Report what you could not see. Fonts, shadows, gesture feel and performance are device QA's, not yours; do not report them.

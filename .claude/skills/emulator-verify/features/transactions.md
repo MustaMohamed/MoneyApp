@@ -5,7 +5,7 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 ## Reach it
 
 - User path: the `Transactions` tab, or `See all` in an account detail's activity card.
-- Script: `adb shell am start -a android.intent.action.VIEW -d "moneyapp://transactions"`, or the tab bar's exact content-desc from `mqa ui`; the bare `$MQA tap 'Transactions'` is refused.
+- Script: `mqa open /transactions`, or the tab bar's exact content-desc from `mqa ui`; the bare `$MQA tap 'Transactions'` is refused under the uiautomator engine.
 - The filter sheet opens from the tune icon beside the search field: `$MQA tap` by its accessibility label `Filter` (`Strings.filterSearchButtonAccessibility`; `Filter, N active`, `Strings.filterAccessibilityWithActiveCount`, once a filter is on).
 
 ## States

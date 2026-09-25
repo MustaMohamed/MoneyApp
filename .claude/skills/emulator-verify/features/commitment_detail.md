@@ -23,7 +23,7 @@ Route `/stacked/commitments/[id]` from the list, `/commitments/[id]` on the tab 
 
 ## Gotchas
 
-- The pill is a `View` with no touch handler, so it is flattened out of `ui.xml`: read the label `TextView` and add `py-0.5` (2 dp each side), or measure the painted pill on the shot (`README.md` § The rule).
+- The pill is a `View` with no touch handler, so it is flattened out of the accessibility tree: read the label `TextView` and add `py-0.5` (2 dp each side), or measure the painted pill on the shot (`README.md` § The rule).
 - `Mark as paid` is the only way to `Paid` without a seed push, and it does not come back — use one commitment per status, or re-push the seed.
 
 ## Seeding and forcing states

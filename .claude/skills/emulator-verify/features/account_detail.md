@@ -48,5 +48,5 @@ The canvas draws one account type per frame. Every state below is checked on a b
 
 - Every push from here into a tab screen needs the stacked twin (MA-040); a bare `(tabs)` href mounts a second tab bar and the shot shows two.
 - A committed write whose reload fails must not read as a failed write (MA-069); a failure state shot is judged against `mqa db`, not the toast alone.
-- The hero's `.id-bal` is 30 point with a 16 point `.cur` span at 80% opacity; measure from `ui.xml` bounds ÷ 2.625.
+- The hero's `.id-bal` is 30 point with a 16 point `.cur` span at 80% opacity; measure with `mqa bounds`, which prints dp.
 - The activity card's `Recent activity` title is the shared `section_header.tsx`, rendered on both branches (`account_activity_card.tsx:46,51`) and measured once as `section title` in `dashboard.md` § States (16); that read holds here and needs no state of its own.

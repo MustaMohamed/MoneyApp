@@ -73,6 +73,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "~29.5.14",
     "@types/react": "~19.2.17",
+    "agent-device": "0.21.13",
     "babel-plugin-react-compiler": "^1.0.0",
     "babel-preset-expo": "~57.0.0",
     "better-sqlite3": "^12.11.1",

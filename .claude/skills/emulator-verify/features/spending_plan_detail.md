@@ -5,7 +5,7 @@ Route `/budget/plans/[id]`. Screen `src/modules/budget/screens/budget/spending_p
 ## Reach it
 
 - User path: the `Budget` tab, the `Plans` lens (`Strings.budgetPlansTab`), then a plan card.
-- Script: `id=$($MQA db "select id from spending_plans where name='<n>'" | sed -n 's/.*"id": "\(.*\)".*/\1/p')` then `adb shell am start -a android.intent.action.VIEW -d "moneyapp://budget/plans/$id"`. Use it for every plan after the first: the list route reaches only the cards on screen (§ Gotchas).
+- Script: `id=$($MQA db "select id from spending_plans where name='<n>'" | sed -n 's/.*"id": "\(.*\)".*/\1/p')` then `mqa open /budget/plans/$id`. Use it for every plan after the first: the list route reaches only the cards on screen (§ Gotchas).
 
 ## States
 
@@ -24,7 +24,7 @@ Route `/budget/plans/[id]`. Screen `src/modules/budget/screens/budget/spending_p
 ## Gotchas
 
 - The summary's status chip is byte-identical to the card's on `budget.md`; one read holds on both, and a divergence is a caller override.
-- The chip carries `accessibilityRole="text"`, so it reaches `ui.xml` and the 24 is read from the chip node rather than composed from the label.
+- The chip carries `accessibilityRole="text"`, so it reaches the accessibility tree and the 24 is read from the chip node rather than composed from the label.
 - Back restores the `Plans` list to its previous scroll offset, so a scroll-and-find loop re-reads the cards it already visited and never brings the off-screen ones up; walking all four statuses costs a deep link per plan, not a second visit to the list (MA-087 render lens reached 2 of 4 this way).
 
 ## Seeding and forcing states
