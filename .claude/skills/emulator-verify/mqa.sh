@@ -28,7 +28,6 @@ die() { echo "mqa: $*" >&2; exit 1; }
 AD_BIN="${MQA_AGENT_DEVICE:-$ROOT/node_modules/.bin/agent-device}"
 if [ -n "${MQA_UI:-}" ]; then ENGINE="$MQA_UI"; elif [ -x "$AD_BIN" ]; then ENGINE=agent-device; else ENGINE=uiautomator; fi
 case "$ENGINE" in agent-device | uiautomator) ;; *) die "MQA_UI must be agent-device or uiautomator" ;; esac
-HELPER_PKG=com.callstack.agentdevice.snapshothelper
 DENSITY=2.625
 READY_DEFAULT='label="󰓡, Transactions"'
 
@@ -140,16 +139,17 @@ Guessing here would drive another session's device. Run: mqa claim   (see: mqa c
 # types a letter instead. Always dismiss the IME before tapping by coordinate.
 dump() {
   need_device
-  # While agent-device's helper holds UI automation, uiautomator prints "Killed" and exits 0.
-  if helper_holds; then die "an agent-device session holds UI automation on $S. Run: mqa down   (or drop MQA_UI=uiautomator)"; fi
   # Write then rename: a torn ui.xml read by a concurrent invocation would
   # otherwise parse as "element not found", i.e. a false negative.
   a exec-out uiautomator dump /dev/tty 2>/dev/null > "$WORK/ui.xml.$$"
   mv -f "$WORK/ui.xml.$$" "$WORK/ui.xml"
-  grep -q '<hierarchy' "$WORK/ui.xml" || die "uiautomator returned no hierarchy: $(head -c 120 "$WORK/ui.xml")"
+  if ! grep -q '<hierarchy' "$WORK/ui.xml"; then held_die; die "uiautomator returned no hierarchy: $(head -c 120 "$WORK/ui.xml")"; fi
 }
 
-helper_holds() { a shell pidof "$HELPER_PKG" >/dev/null 2>&1; }
+# While agent-device's helper holds UI automation, uiautomator prints "Killed" and exits 0; a lingering helper process alone proves nothing.
+held_die() {
+  if grep -qs Killed "$WORK/ui.xml"; then die "an agent-device session holds UI automation on $S. Run: mqa down   (or drop MQA_UI=uiautomator)"; fi
+}
 
 # Emit "x y clickable|text" per match, clickable first: an RN Pressable wraps a
 # non-clickable Text carrying the same label, and only the wrapper responds.
@@ -656,11 +656,18 @@ cmd_wait() {
     case "$t" in '~'*) ad wait text "${t#\~}" "$ms" >/dev/null ;; *) ad wait "$(sel "$t")" "$ms" >/dev/null ;; esac
     echo "saw $t"; return
   fi
-  end=$((SECONDS + (ms + 999) / 1000))
+  ua_poll "$t" "$ms" || die "timed out after ${ms}ms waiting for $t"
+  echo "saw $t"
+}
+
+# Poll uiautomator dumps for a selector; returns 1 on timeout instead of exiting, so callers can retry.
+ua_poll() {
+  local end=$((SECONDS + ($2 + 999) / 1000))
   while :; do
-    dump
-    if query rect "$WORK/ui.xml" "$(sel "$t")" >/dev/null 2>&1; then echo "saw $t"; return; fi
-    [ "$SECONDS" -lt "$end" ] || die "timed out after ${ms}ms waiting for $t"
+    # A dump taken mid-launch can come back empty; that is "not yet", not a failure. A held device is.
+    if (dump) >/dev/null 2>&1 && query rect "$WORK/ui.xml" "$(sel "$1")" >/dev/null 2>&1; then return 0; fi
+    held_die
+    [ "$SECONDS" -lt "$end" ] || return 1
     sleep 0.5
   done
 }
@@ -750,7 +757,7 @@ cmd_metro() {
 # Metro, a cold launch on it, and the first screen: the start of every run.
 cmd_up() {
   need_device
-  local ready="$READY_DEFAULT" url try
+  local ready="$READY_DEFAULT" ready_ms="${MQA_READY_MS:-90000}" url try
   while [ $# -gt 0 ]; do
     case "$1" in
       --ready) ready="$(sel "${2:?--ready <selector>}")"; shift 2 ;;
@@ -760,21 +767,21 @@ cmd_up() {
   cmd_metro start >/dev/null
   url="$SCHEME://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$PORT"
   a reverse "tcp:$PORT" "tcp:$PORT" >/dev/null
-  if uses_ad; then
-    ad close >/dev/null 2>&1 || true
-    for try in 1 2; do
-      a shell am force-stop "$PKG"
-      ad open "$PKG" "$url" --platform android --serial "$S" >/dev/null
-      # One launch in four left the device on the home screen; a second open recovers it.
-      if ad wait "$ready" 90000 >/dev/null 2>&1; then break; fi
-      [ "$try" = 1 ] || die "the app never showed $ready. Check: mqa logs"
-    done
-    ad react-native dismiss-overlay >/dev/null 2>&1 || true
-  else
+  if uses_ad; then ad close >/dev/null 2>&1 || true; fi
+  # A launch can stall: one agent-device open in four left the home screen, one uiautomator launch in nine sat 92 s. A second launch recovers it.
+  for try in 1 2; do
     a shell am force-stop "$PKG"
-    a shell am start -a android.intent.action.VIEW -d "$url" >/dev/null
-    cmd_wait "$ready" 90000 >/dev/null
-  fi
+    if uses_ad; then
+      ad open "$PKG" "$url" --platform android --serial "$S" >/dev/null
+      if ad wait "$ready" "$ready_ms" >/dev/null 2>&1; then break; fi
+    else
+      a shell am start -a android.intent.action.VIEW -d "$url" >/dev/null
+      if ua_poll "$ready" "$ready_ms"; then break; fi
+    fi
+    [ "$try" = 1 ] || die "the app never showed $ready after two launches. Check: mqa logs"
+    echo "launch $try stalled; relaunching" >&2
+  done
+  if uses_ad; then ad react-native dismiss-overlay >/dev/null 2>&1 || true; fi
   echo "ready: $S, Metro :$PORT, engine $ENGINE"
 }
 
@@ -803,7 +810,7 @@ scripts     walk <script.sh> | step <label>
 selectors   label="…" or text="…" exact · id="…" testID · ~text substring · @eN ref (agent-device)
             bare text = a label; in bounds, shot --crop and read it also matches a testID
 engine      agent-device (default when installed) or MQA_UI=uiautomator; one per device at a time
-env         MQA_UI MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK MQA_SLOTS MQA_LEASE_DIR MQA_LEASE_TTL MQA_PYTHON
+env         MQA_UI MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK MQA_SLOTS MQA_LEASE_DIR MQA_LEASE_TTL MQA_PYTHON MQA_READY_MS
 
 Slots: 1 emulator-5554 :8082 · 2 emulator-5556 :8083 · 3 emulator-5558 :8084, one per worktree.
 

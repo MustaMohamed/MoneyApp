@@ -28,7 +28,7 @@ python itself). `mqa help` is complete; do not read the script to learn it.
 |---|---|
 | `claim [slot]` · `release` · `claims` | take one of three devices for this worktree · give it back · who holds what |
 | `needs-build [base]` · `build` · `install` | **ask before you build**: exit 0 only when the native surface moved · single-ABI debug APK · install it |
-| `up [--ready <sel>]` | Metro for this worktree on the claimed port, a cold launch on it, wait for the tab bar, dev overlays cleared |
+| `up [--ready <sel>]` | Metro for this worktree on the claimed port, a cold launch on it, wait for the tab bar (a stalled launch is relaunched once), dev overlays cleared |
 | `down` | close the agent-device session; the system keyboard comes back |
 | `metro [start\|restart\|stop\|status]` | the Metro part of `up` on its own |
 | `open <route\|url>` | deep link: `/transactions`, `/accounts`, or a full `moneyapp://` URL |
