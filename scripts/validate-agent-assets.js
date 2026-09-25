@@ -193,6 +193,26 @@ for (const dir of roots) {
 const claudeMd = path.join(root, 'CLAUDE.md');
 if (fs.existsSync(claudeMd)) checkPathRefs(claudeMd, fs.readFileSync(claudeMd, 'utf8'));
 
+// unslop rule 2 bans method certification; frozen history and the files that quote the phrases to ban them are exempt.
+const certification = spawnSync(
+  'git',
+  [
+    'grep',
+    '-nE',
+    'rather than assumed|rather than inferred|not inferred|not assumed',
+    '--',
+    '.',
+    ':!docs/scopes',
+    ':!docs/superpowers',
+    ':!.claude/skills/unslop',
+    ':!scripts/validate-agent-assets.js',
+  ],
+  { cwd: root, encoding: 'utf8' },
+);
+if (certification.status > 1) errors.push(`git grep failed\n${certification.stderr}`);
+else if (certification.stdout.trim())
+  errors.push(`method certification (unslop rule 2):\n${certification.stdout.trim()}`);
+
 if (errors.length > 0) {
   console.error(errors.join('\n'));
   process.exit(1);

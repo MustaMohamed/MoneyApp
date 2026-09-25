@@ -6,7 +6,7 @@ argument-hint: "[<issue number>] [graph | text]"
 
 # Board
 
-One read of Project #2, one action per open ticket, the dependency graph when the shape needs it. `scripts/board_next.mjs` fetches the board and decides; this skill shows the result and stops. The rules are the CLAUDE.md transition table, encoded in `decide()` in the script and pinned by `__tests__/scripts/board_next.test.ts`. The skill writes nothing: no board.sh, no issue edits, no dispatch. Every command in the report is the user's to run, or to hand to the skill it names.
+One read of Project #2, one action per open ticket, the dependency graph when the shape needs it. `scripts/board_next.mjs` fetches the board and decides; this skill shows the result and stops. The rules are the transition table in `docs/workflow.md`, encoded in `decide()` in the script and pinned by `__tests__/scripts/board_next.test.ts`. The skill writes nothing: no board.sh, no issue edits, no dispatch. Every command in the report is the user's to run, or to hand to the skill it names.
 
 ## A poll needs no session
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Read-only view of Project #2: every open ticket, its dependencies, and the next action per the CLAUDE.md transition table. board.sh stays the only writer.
+// Read-only view of Project #2: every open ticket, its dependencies, and the next action per the transition table in docs/workflow.md. board.sh stays the only writer.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
