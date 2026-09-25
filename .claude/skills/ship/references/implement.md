@@ -28,7 +28,7 @@ Return, in the unslop shape: the commit SHA, one line per test file with the fai
 
 Never dispatch `@layla`; she rules on money and writes no code. Assemble the prompt from three layers:
 
-1. **Repo layer.** Required reading in this order: the worktree's `CLAUDE.md`, then the `.claude/rules/` files matching the plan's files (`database.md`, `ui.md`, `state.md`, `money.md`, `tests.md`, `review.md`). Name the two verification commands: the fast subset, `npm run format:check && npm run lint && npm run typecheck && npm test -- --ci`, per commit; the full CI parity chain from `CLAUDE.md` → Commands, once, before hand-off.
+1. **Repo layer.** Required reading in this order: the worktree's `CLAUDE.md`, then the `.claude/rules/` files matching the plan's files (`database.md`, `ui.md`, `state.md`, `money.md`, `tests.md`, `review.md`, `business.md`). Name the two verification commands: the fast subset, `npm run format:check && npm run lint && npm run typecheck && npm test -- --ci`, per commit; the full CI parity chain from `CLAUDE.md` → Commands, once, before hand-off.
 2. **Task layer.** From the plan header and the ticket: the module, the conventions that are load-bearing for this change (UI: HeroUI primitive first, tokens through `ms()`/`msFont()`, copy in `constants/strings.ts`, no `useState` in `index.tsx`; money: rounding and formatting per the `money-rules` skill; DB: `null` only for DB-mapped nullable columns), the decision record the plan names, and, for `Verify emulator`, the plan's Screens section and the Metro port this worktree owns (never 8081).
 3. **Charter layer.** The contract below, verbatim.
 
