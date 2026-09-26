@@ -10,7 +10,6 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
-import { resolveTransactionFormStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import {
   installMockAddTransaction,
@@ -65,13 +64,6 @@ const mockBudget = (id: string, name: string): Budget =>
     id,
     category_id: mockCategoryExpense.id,
     name,
-  });
-
-const footerStatus = (state: ReturnType<typeof useAddTransaction>['state']) =>
-  resolveTransactionFormStatus({
-    errors: state.errors,
-    budgetLookupError: state.budgetLookupError,
-    saveError: state.errorMessage,
   });
 
 const originalLoadAccounts = useAccountStore.getState().loadAccounts;
@@ -295,7 +287,7 @@ describe('useAddTransaction — validation', () => {
     expect(result.current.state.errors.rate).toBeDefined();
     expect(addTx).not.toHaveBeenCalled();
     expect(Object.values(result.current.state.errors).filter(Boolean)).toHaveLength(1);
-    expect(footerStatus(result.current.state)).toBe('Fix the 1 field marked above.');
+    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
   });
 
   it('D6: an empty amount and no category read Fix the 2 fields, then 1 once the amount is typed', async () => {
@@ -308,12 +300,41 @@ describe('useAddTransaction — validation', () => {
     expect(result.current.state.errors.amount).toBeDefined();
     expect(result.current.state.errors.category).toBeDefined();
     expect(Object.values(result.current.state.errors).filter(Boolean)).toHaveLength(2);
-    expect(footerStatus(result.current.state)).toBe('Fix the 2 fields marked above.');
+    expect(result.current.state.status).toBe('Fix the 2 fields marked above.');
     expect(addTx).not.toHaveBeenCalled();
 
     await act(() => result.current.setAmountStr('5'));
 
-    expect(footerStatus(result.current.state)).toBe('Fix the 1 field marked above.');
+    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
+  });
+
+  it('MA-105: picking the missing category after a failed Save clears its fault and the count', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr('5'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
+
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+
+    await waitFor(() => expect(result.current.state.status).toBeUndefined());
+    expect(result.current.state.errors.category).toBeUndefined();
+    expect(addTx).not.toHaveBeenCalled();
+  });
+
+  it('MA-105: a switch to Transfer after a failed Save drops the hidden Category fault and counts To', async () => {
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr('5'));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.errors.category).toBeDefined();
+
+    await act(() => result.current.setType(TransactionType.Transfer));
+
+    await waitFor(() => expect(result.current.state.errors.toAccount).toBeDefined());
+    expect(result.current.state.errors.category).toBeUndefined();
+    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
   });
 
   it('uses expense categories and budgets for a Card credit', async () => {

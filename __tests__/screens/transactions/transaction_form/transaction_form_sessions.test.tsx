@@ -181,6 +181,7 @@ function createHookState(
       },
       errorMessage: undefined,
       budgetLookupError: undefined,
+      status: undefined,
       formDataReady: false,
       formDataLoadError: false,
       saving: false,
@@ -250,6 +251,7 @@ function createEditHookState(
       },
       errorMessage: undefined,
       budgetLookupError: undefined,
+      status: undefined,
       formDataReady: false,
       formDataLoadError: false,
       saving: false,
@@ -341,18 +343,8 @@ describe('transaction form sessions', () => {
     expect(mockRequestAccountCreation).toHaveBeenCalledWith(1);
   });
 
-  it('MA-105: publishes the two-field validation summary on the Add footer', async () => {
-    await renderAdd({
-      formDataReady: true,
-      errors: {
-        amount: 'Enter an amount',
-        account: undefined,
-        toAccount: undefined,
-        category: 'Pick a category',
-        budget: undefined,
-        rate: undefined,
-      },
-    });
+  it('MA-105: publishes the hook status line on the Add footer', async () => {
+    await renderAdd({ formDataReady: true, status: 'Fix the 2 fields marked above.' });
 
     await waitFor(() =>
       expect(useTransactionFormState.getState().footer.status).toBe(
@@ -362,75 +354,10 @@ describe('transaction form sessions', () => {
   });
 
   it('MA-105: publishes the save failure on the Add footer when no field is at fault', async () => {
-    await renderAdd({ formDataReady: true, errorMessage: Strings.transactionSaveError });
+    await renderAdd({ formDataReady: true, status: Strings.transactionSaveError });
 
     await waitFor(() =>
       expect(useTransactionFormState.getState().footer.status).toBe(Strings.transactionSaveError),
-    );
-  });
-
-  it('MA-105: leaves a budget lookup failure out of the Add footer count', async () => {
-    const lookupFailed = 'Could not load matching budgets. Try again.';
-    const errors = {
-      amount: undefined,
-      account: undefined,
-      toAccount: undefined,
-      category: undefined,
-      budget: lookupFailed,
-      rate: undefined,
-    };
-    const lookupOnly = await renderAdd({
-      formDataReady: true,
-      budgetLookupError: lookupFailed,
-      errors,
-    });
-    await waitFor(() =>
-      expect(useTransactionFormState.getState().footer).toMatchObject({ visible: true }),
-    );
-    expect(useTransactionFormState.getState().footer.status).toBeUndefined();
-    await lookupOnly.unmount();
-
-    await renderAdd({
-      formDataReady: true,
-      budgetLookupError: lookupFailed,
-      errors: { ...errors, amount: 'Enter an amount' },
-    });
-
-    await waitFor(() =>
-      expect(useTransactionFormState.getState().footer.status).toBe(
-        'Fix the 1 field marked above.',
-      ),
-    );
-  });
-
-  it('MA-105: counts the rate row on the Edit footer', async () => {
-    useTransactionFormState.getState().openEdit(tx);
-    mockUseEditTransaction.mockReturnValue(
-      createEditHookState({
-        formDataReady: true,
-        errors: {
-          amount: undefined,
-          category: undefined,
-          budget: undefined,
-          rate: 'Enter a rate',
-        },
-      }),
-    );
-
-    await render(
-      <EditTransactionSession
-        sessionId={2}
-        tx={tx}
-        onRegisterSubmit={jest.fn()}
-        onClose={jest.fn()}
-        onSaved={jest.fn()}
-      />,
-    );
-
-    await waitFor(() =>
-      expect(useTransactionFormState.getState().footer.status).toBe(
-        'Fix the 1 field marked above.',
-      ),
     );
   });
 

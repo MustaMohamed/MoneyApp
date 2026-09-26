@@ -28,8 +28,10 @@ import {
   REFINE_DESPITE_FIELD_ERRORS,
   resolveDestinationFloorError,
   resolveTransactionFormSemantics,
+  resolveTransactionFormStatus,
   resolveTransactionSaveError,
   toTransactionTimestamp,
+  type TransactionFormFieldErrors,
 } from './transaction_form.helpers';
 import { type TransactionFormPrerequisiteController } from './transaction_form_prerequisites.helpers';
 
@@ -360,7 +362,7 @@ export function useAddTransaction(
     category: form.formState.errors.categoryId?.message,
     budget: budgetLookupError ?? form.formState.errors.budgetId?.message,
     rate: form.formState.errors.exchangeRate?.message,
-  };
+  } satisfies TransactionFormFieldErrors;
 
   useEffect(() => {
     form.setValue('toAccountId', '');
@@ -426,6 +428,19 @@ export function useAddTransaction(
     semantics.usesBudget,
     type,
   ]);
+
+  function syncAmountValue() {
+    const amountStr = useAddTransactionStore.getState().amountStr;
+    form.setValue('amount', parseDecimalText(amountStr) ?? Number.NaN);
+  }
+
+  // After a failed Save, every pick re-runs full validation against the schema this render built.
+  useEffect(() => {
+    if (!form.formState.isSubmitted) return;
+    syncAmountValue();
+    void form.trigger();
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [schema, accountId, toAccountId, categoryId, formBudgetId, date]);
 
   async function onValid(data: AddTransactionFormValues) {
     const formState = useAddTransactionState.getState();
@@ -542,7 +557,7 @@ export function useAddTransaction(
   function selectBudget(budget: Budget) {
     clearError();
     setBudgetId(budget.id);
-    form.setValue('budgetId', budget.id, { shouldValidate: true });
+    form.setValue('budgetId', budget.id);
     setShowBudgetPicker(false);
   }
 
@@ -569,6 +584,11 @@ export function useAddTransaction(
       errors,
       errorMessage,
       budgetLookupError,
+      status: resolveTransactionFormStatus({
+        errors,
+        budgetLookupError,
+        saveError: errorMessage,
+      }),
       formDataReady: effectiveDataStatus === 'ready',
       formDataLoadError: effectiveDataStatus === 'error',
       saving,
@@ -625,8 +645,7 @@ export function useAddTransaction(
     retryBudgetLookup,
     retryFormData: prerequisites?.retry ?? ignorePrerequisiteRetry,
     handleSave: () => {
-      const amountStr = useAddTransactionStore.getState().amountStr;
-      form.setValue('amount', parseDecimalText(amountStr) ?? Number.NaN);
+      syncAmountValue();
       return form.handleSubmit(onValid)();
     },
   };

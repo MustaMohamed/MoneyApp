@@ -8,7 +8,6 @@ import { TransactionFormLoading } from '@/modules/transactions/screens/transacti
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 
-import { resolveTransactionFormStatus } from './transaction_form.helpers';
 import type { RegisterTransactionFormSubmit } from './transaction_form_host.hook';
 import { useTransactionFormPrerequisites } from './transaction_form_prerequisites.hook';
 import { useTransactionFormSession } from './transaction_form_session.hook';
@@ -42,11 +41,7 @@ export function EditTransactionSession(props: EditTransactionSessionProps): Reac
       visible: true,
       saving: hook.state.saving,
       disabled: footerDisabled,
-      status: resolveTransactionFormStatus({
-        errors: hook.state.errors,
-        budgetLookupError: hook.state.budgetLookupError,
-        saveError: hook.state.errorMessage,
-      }),
+      status: hook.state.status,
     },
     onRegisterSubmit: props.onRegisterSubmit,
   });

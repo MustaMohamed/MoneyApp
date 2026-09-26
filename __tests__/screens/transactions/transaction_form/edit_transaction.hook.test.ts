@@ -11,7 +11,6 @@ import { TransactionAccountArchivedError } from '@/modules/transactions/reposito
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
-import { resolveTransactionFormStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import {
   installMockUpdateTransaction,
@@ -173,13 +172,7 @@ describe('useEditTransaction', () => {
 
     expect(result.current.state.errors.amount).toBeDefined();
     expect(result.current.state.errors.rate).toBeDefined();
-    expect(
-      resolveTransactionFormStatus({
-        errors: result.current.state.errors,
-        budgetLookupError: result.current.state.budgetLookupError,
-        saveError: result.current.state.errorMessage,
-      }),
-    ).toBe('Fix the 2 fields marked above.');
+    expect(result.current.state.status).toBe('Fix the 2 fields marked above.');
     expect(updateTx).not.toHaveBeenCalled();
   });
 
@@ -522,6 +515,32 @@ describe('useEditTransaction', () => {
     await act(async () => result.current.handleSave());
 
     expect(result.current.state.errors.budget).toBeDefined();
+    expect(updateTx).not.toHaveBeenCalled();
+  });
+
+  it('MA-105: moving to a category with no budgets after a failed Save clears the Budget fault', async () => {
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockImplementation(async (categoryId, month) =>
+        categoryId === 'c1' && month === '2026-06'
+          ? [mockBudget('june-1'), mockBudget('june-2')]
+          : [],
+      );
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await act(() => result.current.setDate('2026-06-02'));
+    await waitFor(() => expect(result.current.state.availableBudgets).toHaveLength(2));
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.errors.budget).toBeDefined();
+    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
+
+    await act(() => result.current.selectCategory(mockCategoryShop));
+
+    await waitFor(() => expect(result.current.state.errors.budget).toBeUndefined());
+    expect(result.current.state.budgetsLoading).toBe(false);
+    expect(result.current.state.status).toBeUndefined();
     expect(updateTx).not.toHaveBeenCalled();
   });
 });
