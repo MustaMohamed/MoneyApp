@@ -4,13 +4,12 @@ import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
 import { EmptyState } from '@/components/ui/empty_state';
-import { MonthFilter } from '@/components/ui/month_filter';
+import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
 import { Screen } from '@/components/ui/screen';
-import { SegmentFilter, type SegmentFilterOption } from '@/components/ui/segment_filter';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Spacing } from '@/constants/theme';
+import { Colors, Size } from '@/constants/theme';
 import { AccentCCTokens, GoldTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
@@ -27,7 +26,7 @@ import { useTransactions } from './transactions.hook';
 import type { TransactionSection } from './transactions.hook';
 import type { TransactionFilter } from './transactions.store';
 
-const TRANSACTION_FILTERS: SegmentFilterOption<TransactionFilter>[] = [
+const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
   {
     value: 'all',
     label: Strings.filterAll,
@@ -56,7 +55,6 @@ const TRANSACTION_FILTERS: SegmentFilterOption<TransactionFilter>[] = [
 ];
 
 const LIST_BOTTOM_CLEARANCE = ms(160);
-const TYPE_TAB_HIT_SLOP = 8;
 const SCROLL_POSITION_THROTTLE_MS = 100;
 
 export default function TransactionsScreen(): React.ReactElement {
@@ -181,17 +179,14 @@ export default function TransactionsScreen(): React.ReactElement {
       </Surface>
       <Separator />
 
-      <View className="px-4 pt-1 pb-1" style={{ gap: Spacing.xxs }}>
-        <MonthFilter selectedMonth={state.selectedMonth} onSelectedMonthChange={setSelectedMonth} />
-        <SegmentFilter
-          selectedFilter={state.activeFilter}
-          onSelectedFilterChange={setActiveFilter}
-          filters={TRANSACTION_FILTERS}
-          corners="form"
-          triggerHitSlop={TYPE_TAB_HIT_SLOP}
-          accessibilityLabel={Strings.transactionTypeFilterAccessibility}
-        />
-      </View>
+      <FilterRail
+        selectedMonth={state.selectedMonth}
+        onSelectedMonthChange={setSelectedMonth}
+        selectedFilter={state.activeFilter}
+        onSelectedFilterChange={setActiveFilter}
+        filters={TRANSACTION_FILTERS}
+        filterAccessibilityLabel={Strings.transactionTypeFilterAccessibility}
+      />
 
       <View style={{ flex: 1 }}>
         <SectionList

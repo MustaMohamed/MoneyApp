@@ -41,22 +41,12 @@ jest.mock('@/components/ui/screen', () => ({
     return <View>{children}</View>;
   },
 }));
-jest.mock('@/components/ui/month_filter', () => ({
-  MonthFilter: ({ selectedMonth }: { selectedMonth: string }) => {
+jest.mock('@/components/ui/filter_rail', () => ({
+  FilterRail: ({ selectedMonth }: { selectedMonth: string }) => {
     const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
     return (
-      <View testID="transactions-month-filter">
+      <View testID="transactions-filter-rail">
         <Text>{selectedMonth}</Text>
-      </View>
-    );
-  },
-}));
-jest.mock('@/components/ui/segment_filter', () => ({
-  SegmentFilter: ({ selectedFilter }: { selectedFilter: string }) => {
-    const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
-    return (
-      <View testID="transactions-segment-filter">
-        <Text>{`filter:${selectedFilter}`}</Text>
       </View>
     );
   },
@@ -137,7 +127,7 @@ const baseTransactionsState: TransactionsScreenState = {
   hero: {
     mode: 'skeleton',
     title: 'Out this month',
-    monthLabel: 'August 2026',
+    monthLabel: 'August',
     out: '—',
     in: '—',
     net: '—',
@@ -211,8 +201,7 @@ describe('TransactionsScreen', () => {
   it('keeps scope controls fixed while summary and search scroll with the ledger', async () => {
     const { getByTestId } = await render(<TransactionsScreen />);
 
-    expect(getByTestId('transactions-month-filter')).toBeTruthy();
-    expect(getByTestId('transactions-segment-filter')).toBeTruthy();
+    expect(getByTestId('transactions-filter-rail')).toBeTruthy();
     expect(getByTestId('transactions-list-header')).toBeTruthy();
     expect(getByTestId('transactions-list')).toHaveProp('ListHeaderComponent');
   });
