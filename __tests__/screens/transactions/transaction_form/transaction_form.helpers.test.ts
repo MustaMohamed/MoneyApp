@@ -7,6 +7,7 @@ import {
 } from '@/modules/transactions/repositories/transaction.errors';
 import {
   countTransactionFormFieldErrors,
+  resolveBudgetFieldError,
   resolveDestinationFloorError,
   resolveTransactionDeleteError,
   resolveTransactionFormSemantics,
@@ -310,6 +311,25 @@ describe('MA-105 footer status line', () => {
         budgetLookupError: lookupFailed,
       }),
     ).toBeUndefined();
+  });
+
+  it('counts every key the errors type carries, and no budget fault behind a lookup failure', () => {
+    const errors: Required<TransactionFormFieldErrors> = {
+      amount: 'Enter an amount',
+      account: 'Pick an account',
+      toAccount: 'Pick where the money goes',
+      category: 'Pick a category',
+      budget: 'Pick a budget',
+      rate: 'Enter a rate',
+    };
+
+    expect(countTransactionFormFieldErrors(errors)).toBe(6);
+    expect(countTransactionFormFieldErrors({ budget: lookupFailed }, lookupFailed)).toBe(0);
+  });
+
+  it('reads a budget error as a field fault only without a lookup failure', () => {
+    expect(resolveBudgetFieldError('Pick a budget', lookupFailed)).toBeUndefined();
+    expect(resolveBudgetFieldError('Pick a budget', undefined)).toBe('Pick a budget');
   });
 
   it('returns the save error when no field is at fault', () => {

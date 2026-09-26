@@ -180,17 +180,22 @@ export const REFINE_DESPITE_FIELD_ERRORS = {
     typeof payload.value === 'object' && payload.value !== null,
 };
 
+/** A failed budget lookup rides on `errors.budget` but is a data error, not a field fault. */
+export function resolveBudgetFieldError(
+  budgetError: string | undefined,
+  budgetLookupError: string | undefined,
+): string | undefined {
+  return budgetLookupError === undefined ? budgetError : undefined;
+}
+
 export function countTransactionFormFieldErrors(
   errors: TransactionFormFieldErrors,
   budgetLookupError?: string,
 ): number {
-  const { amount, account, toAccount, category, budget, rate } = errors;
-  const fieldCount = [amount, account, toAccount, category, rate].filter(
+  const { budget, ...fields } = errors;
+  return [...Object.values(fields), resolveBudgetFieldError(budget, budgetLookupError)].filter(
     (message) => message !== undefined,
   ).length;
-  // A failed budget lookup rides on `errors.budget` but is a data error, not a field fault.
-  const budgetCount = budget !== undefined && budgetLookupError === undefined ? 1 : 0;
-  return fieldCount + budgetCount;
 }
 
 export function resolveTransactionFormStatus(input: {
@@ -199,5 +204,5 @@ export function resolveTransactionFormStatus(input: {
   saveError?: string;
 }): string | undefined {
   const count = countTransactionFormFieldErrors(input.errors, input.budgetLookupError);
-  return count > 0 ? Strings.transactionFormFixFields(count) : input.saveError;
+  return count > 0 ? Strings.fixFieldsMarkedAbove(count) : input.saveError;
 }

@@ -30,6 +30,7 @@ import {
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form_geometry';
 import { TypeTabs } from './components/type_tabs';
+import { resolveBudgetFieldError } from './transaction_form.helpers';
 import type { TransactionFormMode } from './transaction_form.types';
 
 interface Props {
@@ -95,8 +96,7 @@ function ValidationSlot({ testID, message }: ValidationSlotProps) {
         message={message}
         numberOfLines={1}
         disableAnimation
-        className="text-center"
-        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro), textAlign: 'center' }}
       />
     </View>
   );
@@ -145,7 +145,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
-  const budgetFieldError = budgetLookupError === undefined ? budgetError : undefined;
+  const budgetFieldError = resolveBudgetFieldError(budgetError, budgetLookupError);
 
   return (
     <View style={{ flex: 1 }}>
@@ -214,7 +214,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           {accountError !== undefined ? <DangerRing testID="from-account-ring" /> : null}
         </View>
 
-        <ListCard testID="transaction-form-fact-group" style={{ overflow: 'hidden' }}>
+        <ListCard testID="transaction-form-fact-group">
           {isTransferOrCC ? (
             <View className={FACT_CELL_CLASS}>
               <FormPickerRow
