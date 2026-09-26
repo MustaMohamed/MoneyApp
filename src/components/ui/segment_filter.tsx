@@ -23,7 +23,6 @@ export function SegmentFilter<T extends string>(props: SegmentFilterProps<T>) {
       segmentWidth={Size.filterSegmentCompactWidth}
       density="compact"
       corners={props.corners}
-      triggerHitSlop={props.triggerHitSlop}
       accessibilityLabel={props.accessibilityLabel}
     />
   );

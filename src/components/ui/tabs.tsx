@@ -65,8 +65,6 @@ export interface SegmentedTabsProps<T extends string = string> {
   corners?: SegmentedTabsCorners;
   /** Every trigger is non-interactive; the selected indicator still shows. */
   isDisabled?: boolean;
-  /** Vertical hit slop on every trigger; undefined leaves the trigger's own target. */
-  triggerHitSlop?: number;
 }
 
 export function SegmentedTabs<T extends string>({
@@ -83,14 +81,11 @@ export function SegmentedTabs<T extends string>({
   density = 'default',
   corners = 'pill',
   isDisabled,
-  triggerHitSlop,
 }: SegmentedTabsProps<T>): React.ReactElement {
   const isSolidGold = variant === 'solid-gold';
   const isScrollable = layout === 'scrollable';
   const isCompact = density === 'compact';
   const radii = resolveSolidGoldRadii({ isCompact, corners });
-  const hitSlop =
-    triggerHitSlop === undefined ? undefined : { top: triggerHitSlop, bottom: triggerHitSlop };
   const scrollBehavior = useSegmentedTabsScroll({
     scrollAlign,
     value,
@@ -126,7 +121,6 @@ export function SegmentedTabs<T extends string>({
         style={triggerStyle}
         accessibilityLabel={seg.accessibilityLabel ?? seg.label}
         isDisabled={isDisabled}
-        hitSlop={hitSlop}
       >
         {seg.icon ? (
           <MaterialCommunityIcons

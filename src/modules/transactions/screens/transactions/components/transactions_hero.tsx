@@ -167,12 +167,7 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
         <View
           accessibilityRole="progressbar"
           accessibilityLabel={model.railAccessibilityLabel}
-          accessibilityValue={{
-            min: 0,
-            max: 100,
-            now: model.railPct,
-            text: model.railAccessibilityLabel,
-          }}
+          accessibilityValue={{ min: 0, max: 100, now: model.railPct }}
           className="bg-default/40 overflow-hidden rounded-full"
           style={{ height: TRANSACTIONS_HERO_GEOMETRY.rail }}
         >
