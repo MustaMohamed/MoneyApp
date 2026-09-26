@@ -95,6 +95,15 @@ describe('computeDeltaPct', () => {
     expect(computeDeltaPct(102.5, 100)).toBe(3);
     expect(computeDeltaPct(102.4, 100)).toBe(2);
   });
+
+  it('rounds a half up in integer cents, multiplied before dividing: 14.5 to 15, −14.5 to −14', () => {
+    expect(computeDeltaPct(1_145, 1_000)).toBe(15);
+    expect(computeDeltaPct(855, 1_000)).toBe(-14);
+  });
+
+  it('reads a float-noise previous as 0 cents and returns null', () => {
+    expect(computeDeltaPct(100, 1e-13)).toBeNull();
+  });
 });
 
 describe('buildTotalsPresentation', () => {
@@ -394,6 +403,99 @@ describe('buildTransactionsHeroModel', () => {
       railAccessibilityLabel: Strings.transactionsTotalsLoadError,
       shareCaption: undefined,
       caption: '6 days left · Aug —',
+    });
+  });
+
+  describe("change against last month's full Out", () => {
+    it('reads a fall as down, good, and names last month in full (A1)', () => {
+      expect(hero()).toMatchObject({
+        lastMonthChange: {
+          direction: 'down',
+          polarity: 'good',
+          label: '44%',
+          accessibilityLabel: 'Spent 44% less than August',
+        },
+        caption: '6 days left · Aug 16,900',
+      });
+    });
+
+    it('reads a rise as up, bad (option B)', () => {
+      expect(
+        hero({
+          current: { incomeEgp: 22_300, expenseEgp: 17_538, netEgp: 4_762 },
+          previous: { incomeEgp: 20_000, expenseEgp: 7_400, netEgp: 12_600 },
+        }),
+      ).toMatchObject({
+        lastMonthChange: {
+          direction: 'up',
+          polarity: 'bad',
+          label: '137%',
+          accessibilityLabel: 'Spent 137% more than August',
+        },
+        caption: '6 days left · Aug 7,400',
+      });
+    });
+
+    it('reads an equal Out as flat, neutral, the same as last month', () => {
+      expect(
+        hero({ current: { incomeEgp: 22_300, expenseEgp: 16_900, netEgp: 5_400 } }),
+      ).toMatchObject({
+        lastMonthChange: {
+          direction: 'flat',
+          polarity: 'neutral',
+          label: '0%',
+          accessibilityLabel: 'Spent the same as August',
+        },
+      });
+    });
+
+    it('rounds the change once in cents, a half up', () => {
+      expect(
+        hero({
+          current: { incomeEgp: 22_300, expenseEgp: 1_145, netEgp: 21_155 },
+          previous: { incomeEgp: 20_000, expenseEgp: 1_000, netEgp: 19_000 },
+        }),
+      ).toMatchObject({
+        lastMonthChange: {
+          direction: 'up',
+          label: '15%',
+          accessibilityLabel: 'Spent 15% more than August',
+        },
+      });
+    });
+
+    it('compares a past month with the month before it (A16)', () => {
+      expect(hero({ yearMonth: '2026-08', today: '2026-09-24' })).toMatchObject({
+        lastMonthChange: { accessibilityLabel: 'Spent 44% less than July' },
+        caption: 'Jul 16,900',
+      });
+    });
+
+    it('names December across the year boundary', () => {
+      expect(hero({ yearMonth: '2027-01', today: '2027-01-10' })).toMatchObject({
+        lastMonthChange: { accessibilityLabel: 'Spent 44% less than December' },
+      });
+    });
+
+    it.each<[string, Partial<TransactionsHeroInput>, string]>([
+      ['last month has no figures', { previous: null }, '6 days left · Aug —'],
+      [
+        "last month's In and Out are both 0",
+        { previous: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } },
+        '6 days left · Aug —',
+      ],
+      [
+        "last month's Out is 0",
+        { previous: { incomeEgp: 500, expenseEgp: 0, netEgp: 500 } },
+        '6 days left · Aug 0',
+      ],
+      [
+        'no figures loaded for this month',
+        { mode: 'dashes', current: null },
+        '6 days left · Aug 16,900',
+      ],
+    ])('prints no change when %s', (_case, overrides, caption) => {
+      expect(hero(overrides)).toMatchObject({ lastMonthChange: undefined, caption });
     });
   });
 });
