@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import React from 'react';
-import { View, type ViewProps } from 'react-native';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -267,16 +266,6 @@ describe('TransactionFormBody fact rows', () => {
 });
 
 describe('TransactionFormLoading', () => {
-  // The jest.setup.js heroui-native mock carries no SkeletonGroup; the rest of this file needs that mock.
-  beforeAll(() => {
-    const Group = ({ children }: React.PropsWithChildren<object>) =>
-      React.createElement(View, null, children);
-    const Item = (props: ViewProps) => React.createElement(View, props);
-    Object.assign(jest.requireMock<Record<string, unknown>>('heroui-native'), {
-      SkeletonGroup: Object.assign(Group, { Item }),
-    });
-  });
-
   it('draws the account bar and four fact rows at the loaded fact-row height', async () => {
     await render(<TransactionFormLoading />);
 
