@@ -179,6 +179,7 @@ export interface TransactionsHeroModel {
   /** The currency code the three figures and Out print in. */
   currencyCode: string;
   in: string;
+  inPolarity: PolaritySignal;
   net: string;
   netPolarity: PolaritySignal;
   leftOfIncome: string;
@@ -330,6 +331,7 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
       ...base,
       out: Strings.transactionsHeroUnavailable,
       in: Strings.transactionsHeroUnavailable,
+      inPolarity: 'neutral',
       net: Strings.transactionsHeroUnavailable,
       netPolarity: 'neutral',
       leftOfIncome: Strings.transactionsHeroUnavailable,
@@ -353,6 +355,7 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
     ...base,
     out: formatHeroAmount(current.expenseEgp),
     in: formatHeroAmount(current.incomeEgp),
+    inPolarity: 'good',
     ...heroNet(current.netEgp),
     leftOfIncome:
       left === undefined

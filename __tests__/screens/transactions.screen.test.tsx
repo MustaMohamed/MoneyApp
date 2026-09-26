@@ -130,6 +130,7 @@ const baseTransactionsState: TransactionsScreenState = {
     currencyCode: 'EGP',
     out: '—',
     in: '—',
+    inPolarity: 'neutral',
     net: '—',
     netPolarity: 'neutral',
     leftOfIncome: '—',

@@ -36,8 +36,8 @@ const CHANGE_ICON: Record<DeltaDirection, ComponentProps<typeof MaterialCommunit
   flat: 'arrow-right',
 };
 
-// Frame A1 and the money-colour ADR's decision 5: Net takes its flow colour, neutral at 0.
-const NET_CLASS: Record<PolaritySignal, string> = {
+// Frame A1 and the money-colour ADR's decision 5: In and Net take their flow colour, neutral on a dash or 0.
+const FLOW_CLASS: Record<PolaritySignal, string> = {
   good: 'text-success',
   bad: 'text-danger',
   neutral: 'text-foreground',
@@ -220,13 +220,13 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
             label={Strings.transactionsHeroIn}
             value={model.in}
             align="left"
-            valueClassName="text-success"
+            valueClassName={FLOW_CLASS[model.inPolarity]}
           />
           <HeroColumn
             label={Strings.transactionsHeroNet}
             value={model.net}
             align="center"
-            valueClassName={NET_CLASS[model.netPolarity]}
+            valueClassName={FLOW_CLASS[model.netPolarity]}
           />
           <HeroColumn
             label={Strings.transactionsHeroLeftOfIncome}
