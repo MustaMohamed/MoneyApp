@@ -136,6 +136,7 @@ const baseTransactionsState: TransactionsScreenState = {
     railAccessibilityLabel: 'No income this month',
     shareCaption: undefined,
     caption: 'Jul —',
+    lastMonthChange: undefined,
   },
   searchDisabled: true,
   listRef: { current: null },

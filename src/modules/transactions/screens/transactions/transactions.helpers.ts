@@ -57,8 +57,9 @@ export function previousPeriod(selection: TransactionPeriod): TransactionPeriod 
 }
 
 export function computeDeltaPct(current: number, previous: number): number | null {
-  if (previous === 0) return null;
-  return Math.round(((current - previous) / Math.abs(previous)) * 100);
+  const previousCents = toCents(previous);
+  if (previousCents === 0) return null;
+  return Math.round(((toCents(current) - previousCents) * 100) / Math.abs(previousCents));
 }
 
 export function polarityColor(metric: TotalsMetric, deltaPct: number): PolaritySignal {
@@ -177,6 +178,14 @@ export interface TransactionsHeroModel {
   railAccessibilityLabel: string;
   shareCaption: string | undefined;
   caption: string;
+  lastMonthChange: TransactionsHeroChange | undefined;
+}
+
+export interface TransactionsHeroChange {
+  direction: DeltaDirection;
+  polarity: PolaritySignal;
+  label: string;
+  accessibilityLabel: string;
 }
 
 export function totalsScopeKey(yearMonth: string, accountIds: readonly string[] = []): string {
@@ -230,6 +239,28 @@ function heroShareCaption({ state, rawExpenseSharePct }: TotalsPresentation): st
   return Strings.transactionsHeroShareSpent(rawExpenseSharePct);
 }
 
+function fullMonthName(yearMonth: string): string {
+  return new Date(`${yearMonth}-01T12:00:00`).toLocaleDateString('en-US', { month: 'long' });
+}
+
+function resolveLastMonthChange(
+  expenseEgp: number,
+  previous: PeriodTotals | null,
+  yearMonth: string,
+): TransactionsHeroChange | undefined {
+  const deltaPct = previous === null ? null : computeDeltaPct(expenseEgp, previous.expenseEgp);
+  const delta = deltaDisplay('expense', deltaPct);
+  if (deltaPct === null || delta === null) return undefined;
+  const month = fullMonthName(shiftYearMonth(yearMonth, -1));
+  const accessibilityLabel =
+    delta.direction === 'up'
+      ? Strings.transactionsHeroSpentMore(Math.abs(deltaPct), month)
+      : delta.direction === 'down'
+        ? Strings.transactionsHeroSpentLess(Math.abs(deltaPct), month)
+        : Strings.transactionsHeroSpentSame(month);
+  return { ...delta, accessibilityLabel };
+}
+
 function daysLeftInMonth(yearMonth: string, today: string): number | undefined {
   if (today.slice(0, 7) !== yearMonth) return undefined;
   const lastDay = Number(resolvePeriod({ type: 'month', yearMonth }).to.slice(8, 10));
@@ -250,9 +281,7 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
   const base = {
     mode: input.mode,
     title,
-    monthLabel: new Date(`${input.yearMonth}-01T12:00:00`).toLocaleDateString('en-US', {
-      month: 'long',
-    }),
+    monthLabel: fullMonthName(input.yearMonth),
     caption,
   };
   const current = input.mode === 'figures' ? input.current : null;
@@ -269,6 +298,7 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
       railAccessibilityLabel:
         input.mode === 'dashes' ? Strings.transactionsTotalsLoadError : Strings.totalsNoIncome,
       shareCaption: undefined,
+      lastMonthChange: undefined,
     };
   }
 
@@ -292,5 +322,6 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
     railDanger: share.hasOverflow,
     railAccessibilityLabel: share.accessibilityLabel,
     shareCaption: heroShareCaption(share),
+    lastMonthChange: resolveLastMonthChange(current.expenseEgp, input.previous, input.yearMonth),
   };
 }

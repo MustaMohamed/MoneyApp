@@ -1,6 +1,8 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Skeleton, Typography } from 'heroui-native';
-import React from 'react';
+import React, { type ComponentProps } from 'react';
 import { View } from 'react-native';
+import { withUniwind } from 'uniwind';
 
 import { HeroShell } from '@/components/ui/hero_shell';
 import { CURRENCY_CONFIG } from '@/constants/currency';
@@ -8,7 +10,12 @@ import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
-import type { TransactionsHeroModel } from '../transactions.helpers';
+import type {
+  DeltaDirection,
+  PolaritySignal,
+  TransactionsHeroChange,
+  TransactionsHeroModel,
+} from '../transactions.helpers';
 
 // Each loaded row takes its text's line height, so the skeleton's bars match it to the dp.
 const TRANSACTIONS_HERO_GEOMETRY = {
@@ -22,6 +29,21 @@ const TRANSACTIONS_HERO_GEOMETRY = {
 const HERO_ROW_GAP = Spacing.sm;
 const HERO_SHELL_STYLE = { marginTop: Spacing.xs, marginBottom: Spacing.xs } as const;
 const HERO_CURRENCY_CODE = CURRENCY_CONFIG[Currency.EGP].code;
+
+// Without `withUniwind` the icon's `styleDefaults` win and its `className` colour is a no-op.
+const ChangeIcon = withUniwind(MaterialCommunityIcons);
+
+const CHANGE_ICON: Record<DeltaDirection, ComponentProps<typeof MaterialCommunityIcons>['name']> = {
+  up: 'arrow-up',
+  down: 'arrow-down',
+  flat: 'arrow-right',
+};
+
+const CHANGE_CLASS: Record<PolaritySignal, string> = {
+  good: 'text-success',
+  bad: 'text-danger',
+  neutral: 'text-foreground/50',
+};
 const HERO_BODY_STYLE = { gap: HERO_ROW_GAP } as const;
 
 type ColumnAlign = 'left' | 'center' | 'right';
@@ -56,6 +78,29 @@ function HeroColumn({
         style={{ textAlign: align, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
       >
         {value}
+      </Typography>
+    </View>
+  );
+}
+
+function LastMonthChange({ change }: { change: TransactionsHeroChange }): React.ReactElement {
+  return (
+    <View
+      accessible
+      accessibilityLabel={change.accessibilityLabel}
+      style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 0 }}
+    >
+      <ChangeIcon
+        name={CHANGE_ICON[change.direction]}
+        size={TRANSACTIONS_HERO_GEOMETRY.caption}
+        className={CHANGE_CLASS[change.polarity]}
+      />
+      <Typography
+        numberOfLines={1}
+        className={`font-sora-bold tabular-nums ${CHANGE_CLASS[change.polarity]}`}
+        style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+      >
+        {change.label}
       </Typography>
     </View>
   );
@@ -209,6 +254,9 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
           >
             {model.caption}
           </Typography>
+          {model.lastMonthChange !== undefined ? (
+            <LastMonthChange change={model.lastMonthChange} />
+          ) : null}
         </View>
       </View>
     </HeroShell>
