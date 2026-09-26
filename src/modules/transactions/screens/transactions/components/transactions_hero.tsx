@@ -36,7 +36,7 @@ const CHANGE_ICON: Record<DeltaDirection, ComponentProps<typeof MaterialCommunit
   flat: 'arrow-right',
 };
 
-// Frame A1 and the money-colour ADR's decision 5: In and Net take their flow colour, neutral on a dash or 0.
+// Frame A1 and the money-colour ADR's decision 5: In in success, Net by sign and neutral at 0; both neutral on a dash.
 const FLOW_CLASS: Record<PolaritySignal, string> = {
   good: 'text-success',
   bad: 'text-danger',
