@@ -5,6 +5,7 @@ import {
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_FOOTER_CLEARANCE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
+  TRANSACTION_FORM_STATUS_GAP,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
 
 describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
@@ -30,7 +31,7 @@ describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
 describe('transaction form content inset', () => {
   it('clears the bare CTA footer plus the status track at its two-line cap and its gap', () => {
     expect(TRANSACTION_FORM_FOOTER_CLEARANCE).toBe(
-      SHEET_FOOTER_CLEARANCE + Size.statusTrack + Spacing.xs,
+      SHEET_FOOTER_CLEARANCE + Size.statusTrack + TRANSACTION_FORM_STATUS_GAP,
     );
   });
 

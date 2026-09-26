@@ -4,9 +4,15 @@ import { ms } from '@/utils/responsive';
 
 export const FACT_ROW_MIN_HEIGHT = TouchSize.min;
 
+/** The gap between the status track and Save. */
+export const TRANSACTION_FORM_STATUS_GAP = Spacing.xs;
+
 /** The bare CTA's clearance plus the status track at its two-line cap and its gap above Save. */
 export const TRANSACTION_FORM_FOOTER_CLEARANCE =
-  SHEET_FOOTER_CLEARANCE + Size.statusTrack + Spacing.xs;
+  SHEET_FOOTER_CLEARANCE + Size.statusTrack + TRANSACTION_FORM_STATUS_GAP;
+
+/** D6: the sheet's 16 padding plus the hero's 16 margin, since the hero root spans the sheet width. */
+export const AMOUNT_RING_INSET = Spacing.xxl;
 
 export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
   padding: Spacing.md,

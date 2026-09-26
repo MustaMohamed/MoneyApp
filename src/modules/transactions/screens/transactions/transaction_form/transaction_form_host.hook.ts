@@ -142,7 +142,7 @@ export function useTransactionFormHost() {
       sessionId,
       editingTx,
       footer,
-      prerequisiteStatus,
+      showsStatusTrack: prerequisiteStatus === 'ready',
       isOpen: phase === 'open',
       isDismissable: !footer.saving && !activeFormSaving,
       title: mode === 'edit' ? Strings.editTxTitle : Strings.addTxTitle,

@@ -6,13 +6,14 @@ import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { maskMoneyFieldText } from '@/utils/money_text';
 
 import type { TransactionFormMode } from '../transaction_form.types';
 import { DangerRing } from './danger_ring';
 import { useTransactionAmount } from './transaction_amount.hook';
+import { AMOUNT_RING_INSET } from './transaction_form_geometry';
 
 const amountClass = tv({
   base: 'font-sora min-h-0 rounded-none border-0 bg-transparent px-0 py-0',
@@ -78,9 +79,8 @@ export function AmountHero({
         placeholder={Strings.addTxAmountPlaceholder}
         placeholderTextColor={CoreTokens.text2}
       />
-      {/* D6: the sheet's 16 padding plus the hero's 16 margin, since this root spans the sheet width. */}
       {invalid ? (
-        <DangerRing testID="amount-hero-ring" inset={Spacing.xxl} radius={Radius.md} />
+        <DangerRing testID="amount-hero-ring" inset={AMOUNT_RING_INSET} radius={Radius.md} />
       ) : null}
     </View>
   );

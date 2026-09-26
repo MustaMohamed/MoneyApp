@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { StatusTrack } from '@/components/ui/status_track';
 import { Strings } from '@/constants/strings';
-import { Spacing } from '@/constants/theme';
 
 import { AddTransactionSession } from './add_transaction_session';
+import { TRANSACTION_FORM_STATUS_GAP } from './components/transaction_form_geometry';
 import { EditTransactionSession } from './edit_transaction_session';
 import { useTransactionFormHost } from './transaction_form_host.hook';
 
@@ -34,10 +34,10 @@ export function TransactionFormHost(): React.ReactElement {
       footer={
         state.footer.visible ? (
           <View>
-            {state.prerequisiteStatus === 'ready' ? (
+            {state.showsStatusTrack ? (
               <>
                 <StatusTrack testID="transaction-form-status" message={state.footer.status} />
-                <View style={{ height: Spacing.xs }} />
+                <View style={{ height: TRANSACTION_FORM_STATUS_GAP }} />
               </>
             ) : null}
             <Button
