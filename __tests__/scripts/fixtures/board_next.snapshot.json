@@ -672,6 +672,38 @@
       "branches": [],
       "prs": [],
       "comments": ["Blocked on a ruling: which screen owns the tally"]
+    },
+    {
+      "number": 144,
+      "status": "Blocked",
+      "title": "MA-144 — Blocked, header names the open dep",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on MA-104 (#104) · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "size": {
+        "files": 4,
+        "lines": 120
+      }
+    },
+    {
+      "number": 145,
+      "status": "Blocked",
+      "title": "MA-145 — Ruling answered, blocked again",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": ["Blocked on a ruling: which screen owns the tally", "Blocked on #104"]
     }
   ],
   "offBoard": [

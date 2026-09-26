@@ -395,14 +395,17 @@ function decide(item, ctx) {
     return { bucket: 'drift', action: 'Depends on has no (#N)', command: 'fix the header line' };
 
   if (item.status === 'Blocked') {
-    const ruling = (item.comments ?? []).some((c) => /^Blocked on a ruling: /.test(c));
-    if (ruling)
+    const notes = item.comments ?? [];
+    const lastRuling = notes.findLastIndex((c) => /^Blocked on a ruling: /.test(c));
+    const lastIssue = notes.findLastIndex((c) => /Blocked on #\d+/.test(c));
+    if (lastRuling > lastIssue)
       return {
         bucket: 'yours',
         action: 'Blocked on a ruling from /prep',
         command: `bash scripts/board.sh status ${n} "Ready For Development"`,
       };
-    const on = blockedOn(item.comments ?? []);
+    const named = blockedOn(lastRuling === -1 ? notes : notes.slice(lastRuling + 1));
+    const on = named.length ? named : openDeps;
     if (on.length === 0) return { bucket: 'wait', action: 'Blocked, no "Blocked on #m" comment' };
     const stillOpen = on.filter((m) => !ctx.isClosed(m));
     if (stillOpen.length)

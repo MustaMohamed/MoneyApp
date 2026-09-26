@@ -111,6 +111,8 @@ describe('board_next rule table', () => {
     [122, 'define', 'Blocked on #111, closed', 'bash scripts/board.sh status 122 <column>'],
     [114, 'wait', 'marked, waits on #104', undefined],
     [121, 'wait', 'Blocked on #104', undefined],
+    [144, 'wait', 'Blocked on #104', undefined],
+    [145, 'wait', 'Blocked on #104', undefined],
     [125, 'wait', 'parent, children at Todo lead', undefined],
     [100, 'wait', 'parent, mirrors its children', undefined],
     [131, 'wait', 'parent, mirrors its children', undefined],

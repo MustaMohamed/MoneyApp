@@ -23,7 +23,7 @@ Every move, who makes it, and on what. Nothing else moves a row.
 | Todo, Defined | Blocked | `/boundaries` | the lock waits on another issue; comment `Blocked on #m` |
 | Blocked | Ready For Development | by hand, `board.sh status` | promote reports it and refuses to move it |
 | Ready For Development | Planned | `/prep` | plan committed on the ticket branch |
-| Ready For Development | Ready For Development, trimmed | `/prep` | the plan counted over the size gate: the ticket keeps the first seam, and the remainder is a new sibling at Defined, `Reviewed none` |
+| Ready For Development | Ready For Development, trimmed | `/prep` | the plan counted over the size gate: the ticket keeps the first seam, the remainder is a new sibling at Defined, `Reviewed none`, and each ticket that depended on the remainder gains it in Depends on |
 | Ready For Development | Blocked | `/prep` | a gap nobody answers in the session; comment `Blocked on a ruling: <gap>` |
 | Planned | In Progress | `/ship` phase 1 | implementer dispatched |
 | Defined, parent | In Progress | `board.sh status`, carried up from the child, at every level | the first child reaches In Progress; the parent stays there until its last child closes |
