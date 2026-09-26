@@ -323,6 +323,28 @@ describe('useAddTransaction — validation', () => {
     expect(addTx).not.toHaveBeenCalled();
   });
 
+  it('MA-105: a category picked before any Save rings no field', async () => {
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+
+    expect(Object.values(result.current.state.errors).filter(Boolean)).toEqual([]);
+  });
+
+  it('MA-105: an amount typed after a failed Save stays clear when a category is picked', async () => {
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.errors.amount).toBeDefined();
+
+    await act(() => result.current.setAmountStr('5'));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+
+    await waitFor(() => expect(result.current.state.errors.category).toBeUndefined());
+    expect(result.current.state.errors.amount).toBeUndefined();
+  });
+
   it('MA-105: a switch to Transfer after a failed Save drops the hidden Category fault and counts To', async () => {
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
     await act(() => result.current.setAmountStr('5'));
