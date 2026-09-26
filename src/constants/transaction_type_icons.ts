@@ -4,7 +4,7 @@ import type React from 'react';
 import { TransactionType } from '@/constants/enums';
 import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 
-export type TransactionTypeIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type TransactionTypeIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /** One glyph and colour per transaction type, the set the list's type tabs draw. */
 export const TRANSACTION_TYPE_ICONS: Record<
