@@ -6,7 +6,7 @@ argument-hint: "<parent issue number> [--rewrite]"
 
 # Tickets
 
-Phase 3 of the define workflow. Cuts a parent, an epic at Defined, a task at Todo, or a leaf at Defined or Ready For Development, into tasks in the ticket standard, as sub-issues on the parent's milestone. Two stops for the user: the split choice and the creation. Writes nothing to disk. The `unslop` skill binds every body.
+Phase 3 of the define workflow. Cuts a parent, an epic at Defined, a task at Todo, or a leaf at Defined, into tasks in the ticket standard, as sub-issues on the parent's milestone. Two stops for the user: the split choice and the creation. Writes nothing to disk. The `unslop` skill binds every body.
 
 ## Preconditions
 
@@ -14,9 +14,9 @@ Phase 3 of the define workflow. Cuts a parent, an epic at Defined, a task at Tod
 
 - Defined, body starting with `Scope locked`, no sub-issues yet: an epic.
 - Todo: a task created for its own breakdown. A task at Todo meant to stay one leaf goes to `/boundaries` instead.
-- Defined or Ready For Development, body in the ticket standard, no sub-issues: a leaf that turned out bigger than one PR, cut further here as it is, with no reset to Todo.
+- Defined, body in the ticket standard, no sub-issues: a leaf `/issue-review` counted over the size gate, cut further here as it is, with no reset to Todo.
 
-Sub-issues: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq length`. Children already exist: `--rewrite` here or `/issue-review <n>`, never a second cut; both accept the parent at Defined or at In Progress, where it sits once a child is in delivery. Planned or later: a branch exists and the ticket is in delivery; say so and stop. Anything else: say what you found and stop. `--rewrite` needs existing children: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq '.[].number'`.
+Sub-issues: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq length`. Children already exist: `--rewrite` here or `/issue-review <n>`, never a second cut; both accept the parent at Defined, Ready For Development or In Progress, the columns it mirrors from its children. A leaf at Ready For Development is refused: it was counted within the gate and only `/prep` takes it; reply `Next: /prep <n>` and stop. Planned or later: a branch exists and the ticket is in delivery; say so and stop. Anything else: say what you found and stop. `--rewrite` needs existing children: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq '.[].number'`.
 
 ## Steps
 
@@ -32,9 +32,9 @@ Sub-issues: `gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --jq lengt
    bash scripts/board.sh status <child> Defined        # created for its own breakdown: Todo
    ```
 
-   `--rewrite`: `gh issue edit <child> --body "$BODY"` keeps number, title and an existing Context, writes the header with `Reviewed none`, and touches only a child at Todo, Defined or Ready For Development; a rewritten child at Ready For Development goes back, `bash scripts/board.sh status <child> Defined`, since its review no longer stands. A child past that is in delivery, listed as skipped, and left alone.
+   `--rewrite`: `gh issue edit <child> --body "$BODY"` keeps number, title and an existing Context, writes the header with `Reviewed none`, and touches only a child at Todo or Defined. A child at Ready For Development or past it is listed as skipped and left alone.
 
-   Once, after the last ticket: `gh issue comment <parent> --body "Cut: <delivery | module | incremental, or the mix named>"`, so `/issue-review` can check the set against it. The parent stays at Defined, or returns there when it was a leaf at Ready For Development, `bash scripts/board.sh status <parent> Defined`, with `Reviewed none` on its header; a parent is never pulled, follows its first child to Ready For Development through `board.sh promote`, closes through its children, and `/issue-review` marks it before any child. No child is promoted here: Ready For Development is `/issue-review`'s to give.
+   Once, after the last ticket: `gh issue comment <parent> --body "Cut: <delivery | module | incremental, or the mix named>"`, so `/issue-review` can check the set against it. The parent stays at Defined, with `Reviewed none` on its header; a parent is never pulled, follows its first child to Ready For Development through `board.sh promote`, closes through its children, and `/issue-review` marks it before any child. No child is promoted here: Ready For Development is `/issue-review`'s to give.
 6. **Reply** with the numbers created, each with its status, and `Next: /issue-review <parent>`, the step that makes them pullable.
 
 ## Ordering

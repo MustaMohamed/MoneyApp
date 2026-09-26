@@ -26,7 +26,7 @@ One PR is a counted thing, and every step counts it the same way: `/tickets` on 
 
 `/prep` adds a third, at most 8 plan steps.
 
-**The gate is hard.** No step waives it and no ruling does: not a reviewer, not the conductor, not the user in the session. More scope than the gate holds is another ticket. A plan past the gate is returned even when the extra lines were ruled in, and scope added at `/ship` (a ruling, a note that is another ticket's Acceptance, a ticket folded in) is recounted with the plan's figure; over the gate, the addition leaves the PR as its own ticket. The three PRs that went around the gate were the three costliest `/ship` runs of 71 merged 09-06 to 09-26: #422 planned at ~540, #575 at ~620 by ruling, #580 planned at ~265 and delivered at 866 lines after two tickets were folded in at review. Each cost 154M to 176M against ~86M from the size fit, and the three spawned 8 follow-up tickets.
+**The gate is hard.** No step waives it and no ruling does: not a reviewer, not the conductor, not the user in the session. More scope than the gate holds is another ticket. A plan past the gate is trimmed at a seam even when the extra lines were ruled in, and scope added at `/ship` (a ruling, a note that is another ticket's Acceptance, a ticket folded in) is recounted with the plan's figure; over the gate, the addition leaves the PR as its own ticket. The three PRs that went around the gate were the three costliest `/ship` runs of 71 merged 09-06 to 09-26: #422 planned at ~540, #575 at ~620 by ruling, #580 planned at ~265 and delivered at 866 lines after two tickets were folded in at review. Each cost 154M to 176M against ~86M from the size fit, and the three spawned 8 follow-up tickets.
 
 **400 is a planned figure.** Delivered lines run 1.35 times the plan at the median and 1.64 times at p75 across 56 plans, so a plan at ~400 ships about 540 lines, under the ~700 where ship cost per line turns up (111k per line at 400 to 699 delivered, 168k past 700). A delivered PR past 400 from a plan within the gate is the gate working; the planned figure is the one never exceeded.
 
@@ -45,7 +45,7 @@ Lines are estimated per file from what it looks like today, then summed. A count
 - Size: <k> files outside tests, ~<n> lines, at <sha>: <the paths, comma separated>
 ```
 
-The next step disputes the list, not the number. Over the gate: `/tickets` cuts again before the split is shown, or the user creates the task at Todo for its own run; `/issue-review` returns an `ask` proposing the seam, answered with a seam or Todo, never with the body kept whole; `/prep` returns the ticket; `/ship` makes the addition its own ticket. A gate reached at `/prep` is a miss at the two steps before it.
+The next step disputes the list, not the number. Over the gate: `/tickets` cuts again before the split is shown, or the user creates the task at Todo for its own run; `/issue-review` returns an `ask` proposing the seam, answered with a seam or Todo, never with the body kept whole, and leaves the ticket unmarked at Defined for `/tickets`; `board.sh promote` refuses a leaf whose `Size:` line is missing or over the gate; `/prep` trims the ticket at one seam, keeps it at Ready For Development and opens the remainder as a sibling at Defined; `/ship` makes the addition its own ticket. A gate reached at `/prep` is a miss at the two steps before it.
 
 ## Floor
 
@@ -65,7 +65,7 @@ Cross-epic: two tasks in different epics of one milestone that touch the same mo
 
 ## Recursion
 
-The rules are the same at every level; only the parent changes. `/tickets <task>` cuts a task into sub-issues with the next MA numbers, at Defined, and leaves that task at Defined as a parent. The task is either one created at Todo for its own breakdown or a leaf at Defined or Ready For Development that turned out bigger than one PR; the leaf keeps its body and its children's Acceptance covers it line by line. A parent stays at Defined, is never planned, and closes when its last child closes.
+The rules are the same at every level; only the parent changes. `/tickets <task>` cuts a task into sub-issues with the next MA numbers, at Defined, and leaves that task at Defined as a parent. The task is either one created at Todo for its own breakdown or a leaf at Defined that `/issue-review` counted over the gate; the leaf keeps its body and its children's Acceptance covers it line by line. A parent stays at Defined, is never planned, and closes when its last child closes.
 
 ## The nine tickets on #378, as a worked check
 
