@@ -345,6 +345,22 @@ describe('useAddTransaction — validation', () => {
     expect(result.current.state.errors.amount).toBeUndefined();
   });
 
+  it('MA-105: a rate typed after a failed Save clears its fault and the count', async () => {
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.setAmountStr('5'));
+    await act(() => result.current.selectAccount(mockAccountUSD));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+    await act(() => result.current.setExchangeRate(''));
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.errors.rate).toBeDefined();
+    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
+
+    await act(() => result.current.setExchangeRate('50'));
+
+    await waitFor(() => expect(result.current.state.errors.rate).toBeUndefined());
+    expect(result.current.state.status).toBeUndefined();
+  });
+
   it('MA-105: a switch to Transfer after a failed Save drops the hidden Category fault and counts To', async () => {
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
     await act(() => result.current.setAmountStr('5'));

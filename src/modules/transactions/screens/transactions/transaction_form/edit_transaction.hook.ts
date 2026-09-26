@@ -345,13 +345,13 @@ export function useEditTransaction(
     form.setValue('amount', parseDecimalText(amountStr) ?? Number.NaN);
   }
 
-  // After a failed Save, every pick re-runs full validation against the schema this render built.
+  // After a failed Save, every pick or rate edit re-runs full validation against the schema this render built.
   useEffect(() => {
     if (!form.formState.isSubmitted) return;
     syncAmountValue();
     void form.trigger();
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [schema, categoryId, formBudgetId, date]);
+  }, [schema, categoryId, formBudgetId, date, exchangeRate]);
 
   async function onValid(data: EditTransactionFormValues) {
     const formState = useEditTransactionState.getState();

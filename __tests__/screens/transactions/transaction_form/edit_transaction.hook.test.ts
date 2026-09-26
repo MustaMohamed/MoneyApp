@@ -152,6 +152,31 @@ describe('useEditTransaction', () => {
     expect(updateTx).not.toHaveBeenCalled();
   });
 
+  it('MA-105: a rate typed after a failed Save clears its fault and the count', async () => {
+    const usdTx = {
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 500,
+      exchange_rate: 50,
+    };
+    useEditTransactionStore.getState().loadFromTx(usdTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await act(() => result.current.setExchangeRate(''));
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.errors.rate).toBeDefined();
+    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
+
+    await act(() => result.current.setExchangeRate('50'));
+
+    await waitFor(() => expect(result.current.state.errors.rate).toBeUndefined());
+    expect(result.current.state.status).toBeUndefined();
+    expect(updateTx).not.toHaveBeenCalled();
+  });
+
   it('MA-105: an empty amount does not hide the rate fault, and Save reads Fix the 2 fields', async () => {
     const usdTx = {
       ...mockTxExpense,
