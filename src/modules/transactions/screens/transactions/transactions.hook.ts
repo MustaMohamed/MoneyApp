@@ -17,7 +17,7 @@ import { useTransactionFormState } from '@/modules/transactions/screens/transact
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import type { TransactionListStatus } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
-import { formatMonthYear, toLocalDateString } from '@/utils/format_date';
+import { toLocalDateString } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
@@ -36,6 +36,7 @@ import {
   previousPeriod,
   resolvePeriod,
   resolveTransactionsHeroMode,
+  totalsScopeKey,
 } from './transactions.helpers';
 import { buildTransactionsPresentation } from './transactions.presentation';
 import { useTransactionsState } from './transactions.state';
@@ -124,6 +125,7 @@ export function useTransactions() {
   const setDraft = useFilterStore.getState().setDraft;
 
   const totalsStatus = useTransactionsState.useState.totalsStatus();
+  const failedTotalsScope = useTransactionsState.useState.failedTotalsScope();
   const userRefreshing = useTransactionsState.useState.userRefreshing();
   const beginTotalsLoad = useTransactionsState.getState().beginTotalsLoad;
   const resolveTotalsLoad = useTransactionsState.getState().resolveTotalsLoad;
@@ -227,7 +229,7 @@ export function useTransactions() {
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);
         if (shouldApply() && failTotals(queryKey, requestId)) {
-          failTotalsLoad(hasTotalsForMonth(yearMonth));
+          failTotalsLoad(hasTotalsForMonth(yearMonth), totalsScopeKey(yearMonth, query.accountIds));
         }
       }
     },
@@ -424,10 +426,6 @@ export function useTransactions() {
     }
   }, [loadTotals, refresh, setUserRefreshing]);
 
-  const previousLabel = useMemo(() => {
-    const prev = previousPeriod(period);
-    return formatMonthYear(prev.yearMonth);
-  }, [period]);
   const displayTotals = totalsYearMonth === period.yearMonth ? totals : null;
   const displayTotalsStatus =
     totalsYearMonth === period.yearMonth ? totalsStatus : 'initialLoading';
@@ -436,7 +434,11 @@ export function useTransactions() {
       ? accountLabelsById.get(appliedFilters.accountIds[0])?.name
       : undefined;
   const today = toLocalDateString(new Date());
-  const heroMode = resolveTransactionsHeroMode(displayTotalsStatus, displayTotals !== null);
+  const heroMode = resolveTransactionsHeroMode(
+    displayTotalsStatus,
+    displayTotals !== null,
+    failedTotalsScope === totalsScopeKey(period.yearMonth, transactionQuery.accountIds),
+  );
   const heroCurrent = displayTotals?.current ?? null;
   const heroPrevious = displayTotals?.previous ?? null;
   const hero = useMemo(
@@ -564,7 +566,6 @@ export function useTransactions() {
       appliedFilterSummary,
       totals: displayTotals,
       totalsStatus: displayTotalsStatus,
-      previousLabel,
       hero,
       searchDisabled: heroMode === 'skeleton',
       listRef,

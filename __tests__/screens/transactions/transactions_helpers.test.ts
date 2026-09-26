@@ -301,7 +301,7 @@ describe('buildTransactionsHeroModel', () => {
       railPct: 0,
       railDanger: false,
       railAccessibilityLabel: Strings.totalsNoIncome,
-      shareCaption: null,
+      shareCaption: undefined,
     });
   });
 
@@ -338,7 +338,7 @@ describe('buildTransactionsHeroModel', () => {
       net: '0',
       leftOfIncome: DASH,
       railPct: 0,
-      shareCaption: null,
+      shareCaption: undefined,
     });
   });
 
@@ -392,7 +392,7 @@ describe('buildTransactionsHeroModel', () => {
       railPct: 0,
       railDanger: false,
       railAccessibilityLabel: Strings.transactionsTotalsLoadError,
-      shareCaption: null,
+      shareCaption: undefined,
       caption: '6 days left · Aug —',
     });
   });
@@ -409,7 +409,8 @@ describe('resolveTransactionsHeroMode', () => {
   ];
 
   it.each(STATUSES)('keeps the figures on screen for %s once totals exist', (status) => {
-    expect(resolveTransactionsHeroMode(status, true)).toBe('figures');
+    expect(resolveTransactionsHeroMode(status, true, false)).toBe('figures');
+    expect(resolveTransactionsHeroMode(status, true, true)).toBe('figures');
   });
 
   it.each<[TransactionTotalsStatus, string]>([
@@ -420,6 +421,56 @@ describe('resolveTransactionsHeroMode', () => {
     ['firstLoadError', 'dashes'],
     ['refreshErrorWithData', 'skeleton'],
   ])('resolves %s without totals to %s', (status, mode) => {
-    expect(resolveTransactionsHeroMode(status, false)).toBe(mode);
+    expect(resolveTransactionsHeroMode(status, false, false)).toBe(mode);
+  });
+
+  it.each<[TransactionTotalsStatus, string]>([
+    ['idle', 'skeleton'],
+    ['initialLoading', 'dashes'],
+    ['ready', 'skeleton'],
+    ['refreshing', 'skeleton'],
+    ['firstLoadError', 'dashes'],
+    ['refreshErrorWithData', 'skeleton'],
+  ])('resolves %s to %s while the failed month and scope reload', (status, mode) => {
+    expect(resolveTransactionsHeroMode(status, false, true)).toBe(mode);
+  });
+});
+
+describe('share and Left of income in integer cents, multiplied before dividing', () => {
+  function figures(incomeEgp: number, expenseEgp: number) {
+    const current = { incomeEgp, expenseEgp, netEgp: incomeEgp - expenseEgp };
+    return {
+      totals: buildTotalsPresentation(current),
+      hero: buildTransactionsHeroModel({
+        mode: 'figures',
+        current,
+        previous: null,
+        yearMonth: '2026-09',
+        today: '2026-09-24',
+      }),
+    };
+  }
+
+  it('rounds In 1,000 Out 1,005 up to 101, over income', () => {
+    const { totals, hero } = figures(1_000, 1_005);
+    expect(totals.rawExpenseSharePct).toBe(101);
+    expect(hero).toMatchObject({
+      railDanger: true,
+      railPct: 100,
+      shareCaption: '101% of income spent',
+      railAccessibilityLabel: Strings.totalsExpenseShareA11y(101),
+    });
+  });
+
+  it('rounds In 1,000 Out 145 up to 15', () => {
+    const { totals, hero } = figures(1_000, 145);
+    expect(totals.rawExpenseSharePct).toBe(15);
+    expect(hero).toMatchObject({ railPct: 15, shareCaption: '15% of income spent' });
+  });
+
+  it('reads In 1,000 Out 1,035 as −3% left and a 104 share', () => {
+    const { totals, hero } = figures(1_000, 1_035);
+    expect(totals.rawExpenseSharePct).toBe(104);
+    expect(hero).toMatchObject({ leftOfIncome: '−3%', shareCaption: '104% of income spent' });
   });
 });

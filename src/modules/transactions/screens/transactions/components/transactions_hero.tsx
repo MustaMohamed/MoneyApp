@@ -3,6 +3,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { HeroShell } from '@/components/ui/hero_shell';
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
@@ -10,7 +11,7 @@ import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { TransactionsHeroModel } from '../transactions.helpers';
 
 // Each loaded row takes its text's line height, so the skeleton's bars match it to the dp.
-export const TRANSACTIONS_HERO_GEOMETRY = {
+const TRANSACTIONS_HERO_GEOMETRY = {
   header: lineHeightFor(Type.overline),
   amount: lineHeightFor(Type.hero),
   columns: lineHeightFor(Type.micro) + Spacing.xxxs + lineHeightFor(Type.body),
@@ -19,7 +20,8 @@ export const TRANSACTIONS_HERO_GEOMETRY = {
 } as const;
 
 const HERO_ROW_GAP = Spacing.sm;
-const HERO_SHELL_STYLE = { marginTop: Spacing.xs } as const;
+const HERO_SHELL_STYLE = { marginTop: Spacing.xs, marginBottom: Spacing.xs } as const;
+const HERO_CURRENCY_CODE = CURRENCY_CONFIG[Currency.EGP].code;
 const HERO_BODY_STYLE = { gap: HERO_ROW_GAP } as const;
 
 type ColumnAlign = 'left' | 'center' | 'right';
@@ -34,7 +36,11 @@ function HeroColumn({
   align: ColumnAlign;
 }): React.ReactElement {
   return (
-    <View style={{ flex: 1, gap: Spacing.xxxs }}>
+    <View
+      accessible
+      accessibilityLabel={`${label} ${value}`}
+      style={{ flex: 1, gap: Spacing.xxxs }}
+    >
       <Typography
         numberOfLines={1}
         className="font-inter text-foreground/55"
@@ -44,6 +50,8 @@ function HeroColumn({
       </Typography>
       <Typography
         numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}
         className="font-sora-semibold text-foreground tabular-nums"
         style={{ textAlign: align, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
       >
@@ -122,6 +130,8 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
 
         {/* A container `gap`, not a `marginLeft` on a nested Text: RN Android drops margins on inline text. */}
         <View
+          accessible
+          accessibilityLabel={`${model.out} ${HERO_CURRENCY_CODE}`}
           style={{
             flexDirection: 'row',
             alignItems: 'baseline',
@@ -144,7 +154,7 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
               lineHeight: lineHeightFor(Type.subhead),
             }}
           >
-            {Currency.EGP}
+            {HERO_CURRENCY_CODE}
           </Typography>
         </View>
 

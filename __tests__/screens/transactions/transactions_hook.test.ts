@@ -609,6 +609,61 @@ describe('useTransactions monthly totals', () => {
       consoleSpy.mockRestore();
     });
 
+    it.each<[string, () => void]>([
+      ['a search keystroke', () => useTransactionsScreenStore.getState().setSearchQuery('c')],
+      [
+        'a type tab',
+        () => useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense),
+      ],
+    ])(
+      'keeps the dashes and the search live while %s reloads a failed month',
+      async (_, change) => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        setupStores({ transactions: [TRANSACTION], status: 'ready' });
+        mockGetMonthAggregate.mockRejectedValueOnce(new Error('db down'));
+
+        const { result } = await renderHook(() => useTransactions());
+        await waitFor(() => expect(result.current.state.totalsStatus).toBe('firstLoadError'));
+        expect(result.current.state.hero.mode).toBe('dashes');
+        mockGetMonthAggregate.mockClear();
+        mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+
+        await act(() => {
+          change();
+        });
+        await waitFor(() => {
+          expect(mockGetMonthAggregate).toHaveBeenCalledTimes(1);
+          expect(result.current.state.totalsStatus).toBe('initialLoading');
+        });
+
+        expect(result.current.state.hero.mode).toBe('dashes');
+        expect(result.current.state.searchDisabled).toBe(false);
+        consoleSpy.mockRestore();
+      },
+    );
+
+    it('shows the skeleton when the account scope changes after a failed first load', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      setupStores({ transactions: [TRANSACTION], status: 'ready' });
+      mockGetMonthAggregate.mockRejectedValueOnce(new Error('db down'));
+
+      const { result } = await renderHook(() => useTransactions());
+      await waitFor(() => expect(result.current.state.totalsStatus).toBe('firstLoadError'));
+      mockGetMonthAggregate.mockClear();
+      mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+
+      await act(() => {
+        useTransactionsScreenStore
+          .getState()
+          .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1'] });
+      });
+      await waitFor(() => expect(result.current.state.totalsStatus).toBe('initialLoading'));
+
+      expect(result.current.state.hero.mode).toBe('skeleton');
+      expect(result.current.state.searchDisabled).toBe(true);
+      consoleSpy.mockRestore();
+    });
+
     it('keeps the figures on screen and floats the figures alert when a refresh fails', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       let failing = false;

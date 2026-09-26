@@ -15,10 +15,12 @@ The hero reads `scoped.expenseEgp` as Out, `scoped.incomeEgp` as In and `scoped.
 
 | Figure | Formula |
 |---|---|
-| Left of income | `Math.round((In − Out) / In × 100)`, a dash when In ≤ 0 |
-| Share of income spent | `Math.round(Out / In × 100)`, no share when In ≤ 0; when Out < 0, whatever In is, no share either: the caption and the rail's label read `Credits exceed expenses` and the rail stays empty |
+| Left of income | `Math.round((toCents(In) − toCents(Out)) × 100 / toCents(In))`, a dash when In ≤ 0 |
+| Share of income spent | `Math.round(toCents(Out) × 100 / toCents(In))`, no share when In ≤ 0; when Out < 0, whatever In is, no share either: the caption and the rail's label read `Credits exceed expenses` and the rail stays empty |
 
-The share is rounded once and that one integer drives the rail's width (clamped to 0..100), its danger colour (share > 100), its accessibility label and the `<n>% of income spent` caption, as `buildTotalsPresentation` does. `computeDeltaPct` rounds the same way. No money value rounds in this layer: the sums stay at the 2 dp the rows persist, and display truncation belongs to the formatter.
+Both percentages work in integer cents (`toCents`, `src/utils/money.ts`) and multiply before they divide. Float division first puts a share that sits on a half just under it: In 1,000 Out 1,005 gives `100.49999999999999`, which rounds to 100 on a gold rail instead of 101 in danger, and In 1,000 Out 1,035 prints `−4%` left instead of `−3%`. The user ruled on 2026-09-26 that `buildTotalsPresentation` takes the same order, so the dashboard card's share changes only where it sat on a half.
+
+The hero reads its share from `buildTotalsPresentation`: that one rounded integer drives the rail's width (clamped to 0..100), its danger colour (share > 100), its accessibility label and the `<n>% of income spent` caption. No money value rounds in this layer: the sums stay at the 2 dp the rows persist, and display truncation belongs to the formatter.
 
 ## 3. EGP, through the money formatters
 

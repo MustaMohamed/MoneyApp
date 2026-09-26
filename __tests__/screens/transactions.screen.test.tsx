@@ -123,7 +123,6 @@ const baseTransactionsState: TransactionsScreenState = {
   appliedFilterSummary: '',
   totals: null,
   totalsStatus: 'initialLoading',
-  previousLabel: 'July 2026',
   hero: {
     mode: 'skeleton',
     title: 'Out this month',
@@ -135,7 +134,7 @@ const baseTransactionsState: TransactionsScreenState = {
     railPct: 0,
     railDanger: false,
     railAccessibilityLabel: 'No income this month',
-    shareCaption: null,
+    shareCaption: undefined,
     caption: 'Jul —',
   },
   searchDisabled: true,
