@@ -5,8 +5,9 @@ import { View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { AccountType, type Currency } from '@/constants/enums';
-import { AccountColors, Colors, Size, lineHeightFor, withAlpha } from '@/constants/theme';
+import { Colors, Size, lineHeightFor, withAlpha } from '@/constants/theme';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
+import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_palette';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
@@ -43,7 +44,7 @@ export function AccountCard({
   width,
   onPress,
 }: AccountCardProps) {
-  const color = account.color ?? AccountColors[0];
+  const color = account.color ?? DEFAULT_ACCOUNT_COLOR;
   const isCreditCard = account.type === AccountType.CreditCard;
   const icon = ACCOUNT_TYPE_ICONS[account.type];
   const infoRows = buildInfoRows(account, rate, stats, isRateUsable, baseCurrency);
