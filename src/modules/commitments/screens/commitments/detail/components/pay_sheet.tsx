@@ -14,6 +14,7 @@ import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
+import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatCurrencyAmount } from '@/utils/format_amount';
@@ -177,7 +178,7 @@ export function PaySheet({ owner, commitment, payment }: Props) {
                       'bank'
                     }
                     size={ms(18)}
-                    color={state.selectedAccount.color ?? CoreTokens.text2}
+                    color={resolveAccountGlyphColor(state.selectedAccount.color)}
                   />
                   <View style={{ flex: 1 }}>
                     <Text className="font-sora-semibold text-foreground text-[15px]">

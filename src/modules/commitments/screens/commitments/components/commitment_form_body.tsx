@@ -25,6 +25,7 @@ import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
+import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
@@ -383,7 +384,7 @@ export function CommitmentFormBody({
                 <MaterialCommunityIcons
                   name={TYPE_OPTIONS.find((o) => o.type === selectedAccount.type)?.icon ?? 'bank'}
                   size={ms(16)}
-                  color={selectedAccount.color ?? CoreTokens.text2}
+                  color={resolveAccountGlyphColor(selectedAccount.color)}
                 />
                 <Text className="font-sora-semibold text-foreground flex-1 text-[15px]">
                   {resolveAccountName(selectedAccount)}

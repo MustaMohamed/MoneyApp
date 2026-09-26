@@ -12,6 +12,7 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
+import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
@@ -195,7 +196,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                     : 'bank-outline'
                 }
                 size={Size.iconXs}
-                color={selectedAccount?.color ?? CoreTokens.text2}
+                color={resolveAccountGlyphColor(selectedAccount?.color)}
               />
             }
             suffix={
@@ -232,7 +233,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                         : 'bank-outline'
                     }
                     size={Size.iconXs}
-                    color={selectedToAccount?.color ?? CoreTokens.text2}
+                    color={resolveAccountGlyphColor(selectedToAccount?.color)}
                   />
                 }
                 suffix={

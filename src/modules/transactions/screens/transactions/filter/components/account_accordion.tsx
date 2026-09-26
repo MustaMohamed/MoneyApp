@@ -4,7 +4,7 @@ import React from 'react';
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { FilterAccordionShell, FilterOptionPillList } from '@/components/ui/filter_accordion';
 import { Strings } from '@/constants/strings';
-import { CoreTokens } from '@/constants/theme_tokens';
+import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { resolveAccountName } from '@/utils/account_name';
 import { ms } from '@/utils/responsive';
@@ -39,7 +39,7 @@ export function AccountAccordion({
         <MaterialCommunityIcons
           name={TYPE_OPTIONS.find((option) => option.type === account.type)?.icon ?? 'bank'}
           size={ms(13)}
-          color={account.color ?? CoreTokens.text2}
+          color={resolveAccountGlyphColor(account.color)}
         />
       ),
     };
