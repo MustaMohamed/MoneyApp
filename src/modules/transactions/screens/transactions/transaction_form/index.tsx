@@ -31,6 +31,7 @@ export function TransactionFormHost(): React.ReactElement {
         state.footer.visible ? (
           <Button
             variant="primary"
+            flat
             label={state.mode === 'edit' ? Strings.editTxSaveCta : Strings.addTxSaveCta}
             isLoading={state.footer.saving}
             isDisabled={state.footer.disabled}

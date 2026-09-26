@@ -1,9 +1,11 @@
 import { ListGroup, cn } from 'heroui-native';
 import type { ReactNode } from 'react';
-import type { TextStyle } from 'react-native';
+import { View, type TextStyle } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { TouchSize, Type, lineHeightFor } from '@/constants/theme';
+
+export const FACT_ROW_MIN_HEIGHT = TouchSize.min;
 
 interface FormPickerRowProps {
   testID: string;
@@ -18,6 +20,7 @@ interface FormPickerRowProps {
   valueStyle?: TextStyle;
 }
 
+/** Canvas `.fact`: key left, value right on one line, at the 44 touch floor, a hairline below. */
 export function FormPickerRow({
   testID,
   label,
@@ -31,37 +34,44 @@ export function FormPickerRow({
   valueStyle,
 }: FormPickerRowProps): React.ReactElement {
   return (
-    <ListGroup variant="secondary" className="rounded-md">
-      <ListGroup.Item
-        testID={testID}
-        onPress={disabled ? undefined : onPress}
-        disabled={disabled}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityState={{ disabled }}
-        className="gap-2 px-3 py-3"
+    <ListGroup.Item
+      testID={testID}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      className="border-separator flex-row items-center justify-between gap-3 border-b px-0 py-2"
+      style={{ minHeight: FACT_ROW_MIN_HEIGHT }}
+    >
+      <ListGroup.ItemDescription
+        className="font-inter text-content-secondary"
+        style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
       >
-        {prefix ? <ListGroup.ItemPrefix>{prefix}</ListGroup.ItemPrefix> : null}
-        <ListGroup.ItemContent style={{ minWidth: 0 }}>
-          <ListGroup.ItemDescription
-            className="font-inter"
-            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-          >
-            {label}
-          </ListGroup.ItemDescription>
-          <ListGroup.ItemTitle
-            numberOfLines={1}
-            className={cn('font-sora-semibold', valueClassName)}
-            style={[
-              { fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) },
-              valueStyle,
-            ]}
-          >
-            {value}
-          </ListGroup.ItemTitle>
-        </ListGroup.ItemContent>
-        <ListGroup.ItemSuffix>{suffix}</ListGroup.ItemSuffix>
-      </ListGroup.Item>
-    </ListGroup>
+        {label}
+      </ListGroup.ItemDescription>
+      <View
+        className="flex-row items-center gap-2"
+        style={{ flex: 1, minWidth: 0, justifyContent: 'flex-end' }}
+      >
+        {prefix}
+        <ListGroup.ItemTitle
+          numberOfLines={1}
+          className={cn('font-sora text-foreground tabular-nums', valueClassName)}
+          style={[
+            {
+              flexShrink: 1,
+              textAlign: 'right',
+              fontSize: Type.body,
+              lineHeight: lineHeightFor(Type.body),
+            },
+            valueStyle,
+          ]}
+        >
+          {value}
+        </ListGroup.ItemTitle>
+        {suffix}
+      </View>
+    </ListGroup.Item>
   );
 }

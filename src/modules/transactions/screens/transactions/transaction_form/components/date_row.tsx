@@ -8,10 +8,10 @@ import { Strings } from '@/constants/strings';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate } from '@/utils/format_date';
-import { ms } from '@/utils/responsive';
 
 import { DatePickerSheet } from './date_picker_sheet';
 import { useTransactionDatePicker } from './date_picker_sheet.hook';
+import { FACT_ROW_MIN_HEIGHT } from './form_picker_row';
 
 interface Props {
   ownerId: string;
@@ -19,42 +19,55 @@ interface Props {
   onChange: (next: string) => void;
 }
 
-export const DATE_ROW_HEIGHT = ms(54);
-
 export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement {
   const picker = useTransactionDatePicker(ownerId, value, onChange);
   const formatted = formatLongDate(value);
 
   return (
-    <View className="mt-2">
+    <View>
       <PressableFeedback
         testID="date-row"
         onPress={picker.open}
         accessibilityRole="button"
         accessibilityLabel={`${Strings.addTxDateLabel}: ${formatted}`}
-        className="bg-default rounded-md px-3"
+        className="border-separator gap-3 border-b py-2"
         style={{
-          height: DATE_ROW_HEIGHT,
+          minHeight: FACT_ROW_MIN_HEIGHT,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
-        <View>
+        <Text
+          className="font-inter text-content-secondary"
+          style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+        >
+          {Strings.addTxDateLabel}
+        </Text>
+        <View
+          className="gap-2"
+          style={{
+            flex: 1,
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+          }}
+        >
           <Text
-            className="font-inter text-muted"
-            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-          >
-            {Strings.addTxDateLabel}
-          </Text>
-          <Text
-            className="font-sora-semibold text-foreground"
-            style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
+            numberOfLines={1}
+            className="font-sora text-foreground tabular-nums"
+            style={{
+              flexShrink: 1,
+              textAlign: 'right',
+              fontSize: Type.body,
+              lineHeight: lineHeightFor(Type.body),
+            }}
           >
             {formatted}
           </Text>
+          <MaterialCommunityIcons name="calendar" size={Size.iconSm} color={CoreTokens.text2} />
         </View>
-        <MaterialCommunityIcons name="calendar" size={Size.iconSm} color={CoreTokens.text2} />
       </PressableFeedback>
 
       {picker.state.showAndroidPicker ? (

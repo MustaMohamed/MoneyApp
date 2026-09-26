@@ -5,10 +5,21 @@ import { Strings } from '@/constants/strings';
 import { Radius, Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
-import { TRANSACTION_FORM_ERROR_SLOT_HEIGHT } from '../transaction_form_body';
-import { DATE_ROW_HEIGHT } from './date_row';
+import { FACT_ROW_MIN_HEIGHT } from './form_picker_row';
 
-const PICKER_ROWS = [0, 1];
+export const TRANSACTION_FORM_SKELETON_GEOMETRY = {
+  tabBar: ms(36),
+  amount: ms(40),
+  accountRow: FACT_ROW_MIN_HEIGHT,
+  factRow: FACT_ROW_MIN_HEIGHT,
+  factRowCount: 4,
+  keyBar: { width: ms(60), height: ms(14) },
+  valueBar: { width: ms(100), height: ms(14) },
+  rowGap: Spacing.md,
+} as const;
+
+const GEOMETRY = TRANSACTION_FORM_SKELETON_GEOMETRY;
+const FACT_ROWS = Array.from({ length: GEOMETRY.factRowCount }, (_, row) => row);
 
 export function TransactionFormLoading(): React.ReactElement {
   return (
@@ -21,7 +32,7 @@ export function TransactionFormLoading(): React.ReactElement {
         <View className="border-separator border-b px-4 py-2">
           <SkeletonGroup.Item
             className="w-full"
-            style={{ height: ms(36), borderRadius: Radius.sm }}
+            style={{ height: GEOMETRY.tabBar, borderRadius: Radius.sm }}
           />
         </View>
         <View className="border-separator min-h-8 justify-center border-b px-4 py-1.5">
@@ -33,29 +44,31 @@ export function TransactionFormLoading(): React.ReactElement {
         >
           <SkeletonGroup.Item
             className="w-40"
-            style={{ height: ms(40), borderRadius: Radius.sm }}
+            style={{ height: GEOMETRY.amount, borderRadius: Radius.sm }}
           />
         </View>
-        <View style={{ height: TRANSACTION_FORM_ERROR_SLOT_HEIGHT }} />
-        <View style={{ flex: 1, padding: Spacing.md, gap: Spacing.xs }}>
-          {PICKER_ROWS.map((row) => (
-            <View key={row}>
-              <SkeletonGroup.Item
-                className="w-full"
-                style={{ height: DATE_ROW_HEIGHT, borderRadius: Radius.md }}
-              />
-              <View style={{ height: TRANSACTION_FORM_ERROR_SLOT_HEIGHT }} />
-            </View>
-          ))}
+        <View style={{ flex: 1, padding: Spacing.md }}>
           <SkeletonGroup.Item
             className="w-full"
-            style={{ height: DATE_ROW_HEIGHT, marginTop: Spacing.xs, borderRadius: Radius.md }}
+            style={{ height: GEOMETRY.accountRow, borderRadius: Radius.sm }}
           />
-          <SkeletonGroup.Item
-            className="w-full"
-            style={{ height: DATE_ROW_HEIGHT, borderRadius: Radius.md }}
-          />
-          <View style={{ height: TRANSACTION_FORM_ERROR_SLOT_HEIGHT }} />
+          <View style={{ marginTop: GEOMETRY.rowGap }}>
+            {FACT_ROWS.map((row) => (
+              <View
+                key={row}
+                className="border-separator border-b"
+                style={{
+                  minHeight: GEOMETRY.factRow,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <SkeletonGroup.Item className="rounded-md" style={GEOMETRY.keyBar} />
+                <SkeletonGroup.Item className="rounded-md" style={GEOMETRY.valueBar} />
+              </View>
+            ))}
+          </View>
         </View>
       </SkeletonGroup>
     </View>

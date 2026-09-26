@@ -20,7 +20,7 @@ import { ms } from '@/utils/responsive';
 
 import { AmountHero } from './components/amount_hero';
 import { DateRow } from './components/date_row';
-import { FormPickerRow } from './components/form_picker_row';
+import { FACT_ROW_MIN_HEIGHT, FormPickerRow } from './components/form_picker_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import { TypeTabs } from './components/type_tabs';
 import type { TransactionFormMode } from './transaction_form.types';
@@ -346,10 +346,13 @@ export function TransactionFormBody(props: Props): React.ReactElement {
 
         <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} />
 
-        <View className="bg-default rounded-md px-3 py-3">
+        <View
+          className="gap-3 py-2"
+          style={{ minHeight: FACT_ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center' }}
+        >
           <Text
-            className="font-inter text-muted"
-            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+            className="font-inter text-content-secondary"
+            style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
           >
             {Strings.addTxNoteLabel}
           </Text>
@@ -361,8 +364,14 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             onFocus={onInputFocus}
             onBlur={onInputBlur}
             variant="secondary"
-            className="font-inter text-foreground min-h-8 rounded-none border-0 bg-transparent p-0"
-            style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+            className="font-sora text-foreground min-h-8 rounded-none border-0 bg-transparent p-0 tabular-nums"
+            style={{
+              flex: 1,
+              minWidth: 0,
+              textAlign: 'right',
+              fontSize: Type.body,
+              lineHeight: lineHeightFor(Type.body),
+            }}
           />
         </View>
         <ValidationSlot testID="form-error-slot" message={errorMessage} />
