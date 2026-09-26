@@ -19,7 +19,7 @@
 
 ## Size gate
 
-One PR is a counted thing, and every step counts it the same way: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body, `/prep`'s planner and reviewer on the plan, `/ship` whenever scope is added after the plan. A task fits when both hold:
+One PR is a counted thing, and every step counts it the same way: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body with one sizer per leaf that counts from LSP references as the planner does, `/prep`'s planner and reviewer on the plan, `/ship` whenever scope is added after the plan. A task fits when both hold:
 
 - at most 12 files outside `__tests__/` and generated code
 - at most ~400 changed lines outside tests; the implementer writes about 2.5 times that once tests are in (MA-039: 558 lines outside tests, 936 in tests)
