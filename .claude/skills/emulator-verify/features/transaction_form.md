@@ -18,7 +18,7 @@ The add and edit sheet, over any tab. Host `src/modules/transactions/screens/tra
 | add transfer, To row | D3, MA-110 | the `Transfer` tab | `to-account-row` bounds read 44 or more high; its picker lists the non-card accounts without the From account (`mqa read`); one shot of the rows |
 | add card payment, To row | D4, MA-110 | the `CC Payment` tab | the `to-account-row` picker lists credit cards only (`mqa read`); one shot of the rows |
 | edit | D8, MA-110 | a seeded expense's detail, the header edit icon | `mqa read` greps `Edit transaction` twice (the sheet title and the detail's icon label under it); the tab triggers read `enabled=false` with their glyphs; Save reads `Save changes`; `from-account-row` reads `enabled=false`; one shot of the sheet |
-| loading | D15, MA-110 | source force: in `transaction_form_prerequisites.hook.ts:56` replace the `loadPrerequisites(mode, editingTx)` call with `new Promise<void>(() => {})`, then open `add expense`; revert with `git status` clean after | content-desc `Loading transaction` present; Save reads `enabled=false`; under the amount's separator one full-width account bar, then four rows each 44 or more high with a hairline, a short key bar left and a longer value bar right; one shot of the sheet |
+| loading | D15, MA-110 | source force: in `transaction_form_host.state.ts:92` (`getOpeningState`) replace the `prerequisiteStatus` ternary with `'loading' as const`, `mqa up` for a cold launch, then open `add expense`; revert with `git status` clean after | content-desc `Loading transaction` present; Save reads `enabled=false`; under the amount's separator one full-width account bar, then four rows each 44 or more high with a hairline, a short key bar left and a longer value bar right; one shot of the sheet |
 
 ## Outbound
 
@@ -32,7 +32,10 @@ The add and edit sheet, over any tab. Host `src/modules/transactions/screens/tra
 
 - The detail's edit icon label (`Strings.detailEditAccessibility`) equals the sheet title in edit, so `grep -c 'Edit transaction'` over `mqa read` on the detail counts one before the sheet opens and two after. The FAB menu pill reads `Add Transaction` (title case, `fab.tsx:143`), the sheet title `Add transaction`: grep the sheet title case-sensitively.
 - The compact `SegmentedTabs` is shared with the list's type tabs and the accounts-list rail (`transactions.md` § Gotchas); one read of a trigger holds on all three, and a divergence is a caller override.
-- The fact rows are `ListGroup.Item` pressables: they are the clickable nodes, so `mqa bounds` on the row's testID, not on its key or value text.
+- The fact rows are `ListGroup.Item` pressables: they are the clickable nodes, so `mqa bounds` on the row's testID, not on its key or value text. A 44 dp row reads 43.81 or 44.19 (115 or 116 px): one device pixel of rounding, not a short row.
+- The skeleton needs the opening status forced, not the loader: once the account and category stores have loaded (any tab does it), `getOpeningState` opens the sheet `ready` and `loadPrerequisites` never runs, so a never-settling loader shows nothing.
+- Never `mqa ime-down` with the sheet open under the agent-device engine: the keyboard is headless, the key is Back, and Back closes the sheet. `fill` the amount and tap on.
+- The type tab triggers share their labels with the list's filter rail behind the sheet (`Income`, `Transfer`), so `tap 'Income'` is ambiguous; tap the sheet's trigger by its position (`tapxy`, from `mqa bounds 'label="Income"'`, the match at y 259).
 
 ## Seeding and forcing states
 
