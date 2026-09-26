@@ -38,6 +38,7 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 - Two moves are by hand with `board.sh status`: Blocked to Ready For Development (`promote` refuses a Blocked row), and a parent to In Progress when its first child starts, carried up at every level.
 - Read the board with `/board [n] [graph|text]`, or `bash scripts/board.sh next [n]` from a terminal (`--json` for a script).
 - A leaf task is one PR, and the unit that gets a branch and `Closes #N`. A parent is never pulled; it mirrors its furthest child and closes through its children.
+- **The size gate is hard: ~400 planned lines outside tests, 12 files, 8 steps.** No ruling lifts it, mine included. Scope added during `/ship` is recounted, and over the gate it is a new ticket, not this PR. Definition and evidence: `.claude/skills/tickets/references/splitting.md` § Size gate.
 - Every move, who makes it and on what, plus the hierarchy and the size gate: [docs/workflow.md](docs/workflow.md). Nothing else moves a row.
 - CI parity before pushing to a PR branch: the chain in *Commands*. CI is the last line of defence, not the first.
 - Emulator verification runs on tickets whose header line says `Verify emulator`: anything that changes what a screen shows or what the app writes. The `emulator-verify` skill has the mechanics, including the `mqa claim` lease and when a Gradle build is needed.

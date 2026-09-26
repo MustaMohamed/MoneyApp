@@ -46,14 +46,16 @@ The issue body is in the ticket standard: header line `Part of · Depends on · 
 
 5. **Review.** Dispatch one fresh reviewer, `subagent_type: general-purpose`: [references/reviewer-charter.md](references/reviewer-charter.md) verbatim, the issue body verbatim, the plan path, the worktree path. `findings` → re-dispatch the planner with the findings verbatim and the objective "revise the plan for exactly these findings", then a fresh reviewer. Cap two rounds; a finding the planner disputes goes to the user with both sides, and the ruling is applied by one more planner dispatch. Round count and verdicts go into the reply, not into the plan.
 
-6. **Size gate, then commit, push, board.** Conductor only. Before the commit, three counts over the plan file; any one over its line returns the ticket exactly as a planner gap does (step 4), whatever the reviewer said:
+6. **Size gate, then commit, push, board.** Conductor only. Before the commit, three counts over the plan file; any one over its line returns the ticket exactly as a planner gap does (step 4), whatever the reviewer or a ruling said. The gate is hard ([splitting.md § Size gate](../tickets/references/splitting.md)); there is no override to ask for:
 
    ```bash
    P=<worktree>/.work/MA-XXX/plan.md
    grep -cE '^### [0-9]+\.' "$P"                                                         # steps, over 8 returns
    grep -oE '^- File: `[^`]+`' "$P" | grep -v __tests__ | sort -u | wc -l                 # files outside tests, over 12 returns
-   grep -oE 'expected diff: ~[0-9]+' "$P" | grep -oE '[0-9]+'                              # over 400 returns
+   grep -oE 'expected diff: ~?[0-9]+' "$P" | head -1 | grep -oE '[0-9]+'                    # over 400 returns; no figure returns too
    ```
+
+   `--amend` runs the same counts on the amended plan. Over any line, the amendment is refused: the planner is re-dispatched to amend without the added scope, and that scope becomes its own ticket, through `/tickets` or, from `/ship`, a triage deferral. The branch and its commits stay.
 
 
    ```bash
@@ -71,6 +73,6 @@ The issue body is in the ticket standard: header line `Part of · Depends on · 
 ## Rules
 
 - The plan is a file on the branch, nowhere else: not in an issue comment beyond the one-line pointer, not in this conversation, not on main.
-- A plan that names more than 12 files outside tests, more than 8 steps, more than ~400 changed lines outside tests and generated files, or serves more than one product outcome, is a gap ("sized past one PR"), not a plan; the definition is `.claude/skills/tickets/references/splitting.md` § Size gate, counted at `/tickets` and `/issue-review` before any ticket reaches here. `/tickets` is the only splitter. The conductor checks the first three mechanically before the commit; the reviewer is not the last line. A return here names, in the comment, the files the ticket's `Size:` line missed.
+- A plan that names more than 12 files outside tests, more than 8 steps, more than ~400 changed lines outside tests and generated files, or serves more than one product outcome outside a § Floor bundle, is a gap ("sized past one PR"), not a plan, and no ruling makes it one; the definition is `.claude/skills/tickets/references/splitting.md` § Size gate, counted at `/tickets` and `/issue-review` before any ticket reaches here. `/tickets` is the only splitter. The conductor checks the first three mechanically before the commit; the reviewer is not the last line. A return here names, in the comment, the files the ticket's `Size:` line missed.
 - The planner names files and symbols it opened; a guessed path is a finding at review and a defect at delivery.
 - One planner, one reviewer per round. No panel; the ticket standard already bounds the size a panel was for.
