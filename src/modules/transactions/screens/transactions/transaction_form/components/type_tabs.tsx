@@ -3,12 +3,29 @@ import { View } from 'react-native';
 import { SegmentedTabs, type TabSegment } from '@/components/ui/tabs';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
 
 const TYPE_SEGMENTS: ReadonlyArray<TabSegment<TransactionType>> = [
-  { value: TransactionType.Expense, label: Strings.addTxTypeExpense },
-  { value: TransactionType.Income, label: Strings.addTxTypeIncome },
-  { value: TransactionType.Transfer, label: Strings.addTxTypeTransfer },
-  { value: TransactionType.CCPayment, label: Strings.addTxTypeCCPayment },
+  {
+    value: TransactionType.Expense,
+    label: Strings.addTxTypeExpense,
+    icon: TRANSACTION_TYPE_ICONS[TransactionType.Expense],
+  },
+  {
+    value: TransactionType.Income,
+    label: Strings.addTxTypeIncome,
+    icon: TRANSACTION_TYPE_ICONS[TransactionType.Income],
+  },
+  {
+    value: TransactionType.Transfer,
+    label: Strings.addTxTypeTransfer,
+    icon: TRANSACTION_TYPE_ICONS[TransactionType.Transfer],
+  },
+  {
+    value: TransactionType.CCPayment,
+    label: Strings.addTxTypeCCPayment,
+    icon: TRANSACTION_TYPE_ICONS[TransactionType.CCPayment],
+  },
 ];
 
 interface Props {
@@ -31,7 +48,8 @@ export function TypeTabs({ active, incomeLabel, onSelect, isDisabled }: Props): 
         onValueChange={onSelect}
         variant="solid-gold"
         density="compact"
-        listClassName="h-9 w-full rounded-lg"
+        corners="form"
+        listClassName="h-9 w-full"
         accessibilityLabel={Strings.addTxTypeSelectorA11y}
         isDisabled={isDisabled}
       />

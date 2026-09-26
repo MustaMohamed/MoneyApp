@@ -858,7 +858,7 @@ export const Strings = {
   settingsCategoriesDesc: 'Manage expense and income categories',
 
   // U6 Add Transaction sheet
-  addTxTitle: 'Add Transaction',
+  addTxTitle: 'Add transaction',
   addTxTypeExpense: 'Expense',
   addTxTypeIncome: 'Income',
   addTxTypeCardCredit: 'Card credit',
@@ -893,7 +893,7 @@ export const Strings = {
   addTxRateResetAccessibility: 'Reset exchange rate to the global rate',
   addTxRatePlaceholder: '0.00',
   addTxSaveCta: 'Save',
-  editTxSaveCta: 'Save Changes',
+  editTxSaveCta: 'Save changes',
   addTxErrAmountRequired: 'Enter an amount',
   addTxErrAmountZero: 'Amount must be at least 0.01',
   addTxErrAccountRequired: 'Select an account',
@@ -960,8 +960,7 @@ export const Strings = {
   detailNote: 'NOTE',
   detailNoteEmpty: 'No note',
   capturedBadge: 'Captured',
-  editTransaction: 'Edit Transaction',
-  editTxTitle: 'Edit Transaction',
+  editTxTitle: 'Edit transaction',
   deleteTransaction: 'Delete',
   deleteConfirmTitle: 'Delete this transaction?',
   deleteConfirmBody: 'The account balance will be restored. This cannot be undone.',
