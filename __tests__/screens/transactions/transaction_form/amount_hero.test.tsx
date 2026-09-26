@@ -113,4 +113,29 @@ describe('AmountHero', () => {
 
     expect(onChange).toHaveBeenCalledWith('1.');
   });
+
+  it('MA-105: rings the amount entry only while it is invalid, over the row and outside its layout', async () => {
+    const { queryByTestId, getByTestId, rerender } = await render(
+      <AmountHero
+        onChange={jest.fn()}
+        type={TransactionType.Expense}
+        currency={Currency.EGP}
+        mode="add"
+      />,
+    );
+
+    expect(queryByTestId('amount-hero-ring')).toBeNull();
+
+    await rerender(
+      <AmountHero
+        onChange={jest.fn()}
+        type={TransactionType.Expense}
+        currency={Currency.EGP}
+        mode="add"
+        invalid
+      />,
+    );
+
+    expect(getByTestId('amount-hero-ring')).toHaveStyle({ position: 'absolute' });
+  });
 });

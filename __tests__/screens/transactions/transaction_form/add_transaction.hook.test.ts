@@ -10,6 +10,7 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
+import { resolveTransactionFormStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import {
   installMockAddTransaction,
@@ -64,6 +65,13 @@ const mockBudget = (id: string, name: string): Budget =>
     id,
     category_id: mockCategoryExpense.id,
     name,
+  });
+
+const footerStatus = (state: ReturnType<typeof useAddTransaction>['state']) =>
+  resolveTransactionFormStatus({
+    errors: state.errors,
+    budgetLookupError: state.budgetLookupError,
+    saveError: state.errorMessage,
   });
 
 const originalLoadAccounts = useAccountStore.getState().loadAccounts;
@@ -286,6 +294,26 @@ describe('useAddTransaction — validation', () => {
 
     expect(result.current.state.errors.rate).toBeDefined();
     expect(addTx).not.toHaveBeenCalled();
+    expect(Object.values(result.current.state.errors).filter(Boolean)).toHaveLength(1);
+    expect(footerStatus(result.current.state)).toBe('Fix the 1 field marked above.');
+  });
+
+  it('D6: an empty amount and no category read Fix the 2 fields, then 1 once the amount is typed', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.selectAccount(mockAccountEGP));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.amount).toBeDefined();
+    expect(result.current.state.errors.category).toBeDefined();
+    expect(Object.values(result.current.state.errors).filter(Boolean)).toHaveLength(2);
+    expect(footerStatus(result.current.state)).toBe('Fix the 2 fields marked above.');
+    expect(addTx).not.toHaveBeenCalled();
+
+    await act(() => result.current.setAmountStr('5'));
+
+    expect(footerStatus(result.current.state)).toBe('Fix the 1 field marked above.');
   });
 
   it('uses expense categories and budgets for a Card credit', async () => {
@@ -360,9 +388,7 @@ describe('useAddTransaction — validation', () => {
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     await act(async () => result.current.handleSave());
 
-    expect(result.current.state.errorMessage).toBe(
-      'Could not save this transaction. Please try again.',
-    );
+    expect(result.current.state.errorMessage).toBe(Strings.transactionSaveError);
     expect(useAddTransactionStore.getState().amountStr).toBe('5');
     expect(result.current.state.categoryId).toBe('c1');
     expect(onClose).not.toHaveBeenCalled();

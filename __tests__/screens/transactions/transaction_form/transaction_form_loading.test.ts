@@ -1,6 +1,9 @@
-import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   FACT_ROW_MIN_HEIGHT,
+  TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
+  TRANSACTION_FORM_FOOTER_CLEARANCE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
 
@@ -22,8 +25,20 @@ describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
     expect(TRANSACTION_FORM_SKELETON_GEOMETRY.keyBar.height).toBe(lineHeightFor(Type.body));
     expect(TRANSACTION_FORM_SKELETON_GEOMETRY.valueBar.height).toBe(lineHeightFor(Type.body));
   });
+});
 
-  it('spaces the account bar from the first fact row by Spacing.md', () => {
-    expect(TRANSACTION_FORM_SKELETON_GEOMETRY).toMatchObject({ rowGap: Spacing.md });
+describe('transaction form content inset', () => {
+  it('clears the bare CTA footer plus the status track at its two-line cap and its gap', () => {
+    expect(TRANSACTION_FORM_FOOTER_CLEARANCE).toBe(
+      SHEET_FOOTER_CLEARANCE + Size.statusTrack + Spacing.xs,
+    );
+  });
+
+  it('pads the body and the skeleton alike and gaps their rows by Spacing.xs', () => {
+    expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE).toEqual({
+      padding: Spacing.md,
+      gap: Spacing.xs,
+      paddingBottom: TRANSACTION_FORM_FOOTER_CLEARANCE,
+    });
   });
 });

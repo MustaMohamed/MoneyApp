@@ -257,9 +257,7 @@ describe('useEditTransaction', () => {
 
     await act(async () => result.current.handleSave());
 
-    expect(result.current.state.errorMessage).toBe(
-      'Could not save this transaction. Please try again.',
-    );
+    expect(result.current.state.errorMessage).toBe(Strings.transactionSaveError);
     expect(result.current.state.note).toBe('keep this edit');
     expect(onClose).not.toHaveBeenCalled();
     expect(onSaved).not.toHaveBeenCalled();

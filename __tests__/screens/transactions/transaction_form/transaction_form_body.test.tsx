@@ -18,12 +18,18 @@ jest.mock('@/components/ui/sheet', () => ({
   SHEET_FOOTER_CLEARANCE: 777,
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
 }));
+const mockAmountHeroProps: Array<{ invalid?: boolean }> = [];
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/amount_hero',
   () => {
     const ReactLocal = jest.requireActual<typeof import('react')>('react');
     const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
-    return { AmountHero: () => ReactLocal.createElement(RNView, { testID: 'amount-hero' }) };
+    return {
+      AmountHero: (props: { invalid?: boolean }) => {
+        mockAmountHeroProps.push(props);
+        return ReactLocal.createElement(RNView, { testID: 'amount-hero' });
+      },
+    };
   },
 );
 jest.mock(
@@ -43,10 +49,13 @@ jest.mock(
   () => ({ TypeTabs: () => null }),
 );
 
-import { FACT_ROW_MIN_HEIGHT } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
+import { Size, Spacing } from '@/constants/theme';
+import {
+  FACT_ROW_MIN_HEIGHT,
+  TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
+} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import {
-  TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
   TransactionFormBody,
 } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
@@ -85,36 +94,107 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
 };
 
 describe('TransactionFormBody geometry', () => {
-  it('reserves the shared sticky-footer clearance below the last field', () => {
-    expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE.paddingBottom).toBe(777);
+  it('reserves the sheet footer clearance plus the status track and its gap below the last field', () => {
+    expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE.paddingBottom).toBe(
+      777 + Size.statusTrack + Spacing.xs,
+    );
   });
 
-  it('reserves validation geometry before and after errors appear', async () => {
-    const { rerender } = await render(<TransactionFormBody {...baseProps} />);
+  it('keeps only the amount slot and draws no ring before any error', async () => {
+    mockAmountHeroProps.length = 0;
+    await render(<TransactionFormBody {...baseProps} showBudgetField />);
 
+    expect(screen.getByTestId('amount-error-slot')).toHaveStyle({
+      minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
+    });
     for (const id of [
-      'amount-error-slot',
       'account-error-slot',
       'category-error-slot',
-      'form-error-slot',
+      'budget-error-slot',
+      'from-account-ring',
+      'category-ring',
+      'budget-ring',
     ]) {
-      expect(screen.getByTestId(id)).toHaveStyle({ minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT });
+      expect(screen.queryByTestId(id)).toBeNull();
     }
+    expect(mockAmountHeroProps.at(-1)).toMatchObject({ invalid: false });
+  });
+
+  it('marks the amount hero invalid while the amount has an error', async () => {
+    mockAmountHeroProps.length = 0;
+    await render(<TransactionFormBody {...baseProps} amountError="Enter an amount" />);
+
+    expect(mockAmountHeroProps.at(-1)).toMatchObject({ invalid: true });
+    expect(screen.getByText('Enter an amount')).toBeTruthy();
+  });
+
+  it('rings each fact row at fault without moving it and reads its message as a hint', async () => {
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        showBudgetField
+        accountError="Account is required"
+        categoryError="Category is required"
+        budgetError="Pick a budget"
+      />,
+    );
+
+    for (const [row, ring, message] of [
+      ['from-account-row', 'from-account-ring', 'Account is required'],
+      ['category-row', 'category-ring', 'Category is required'],
+      ['budget-row', 'budget-ring', 'Pick a budget'],
+    ]) {
+      expect(screen.getByTestId(ring)).toHaveStyle({ position: 'absolute' });
+      expect(screen.getByTestId(row)).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+      expect(screen.getByTestId(row)).toHaveProp('accessibilityHint', message);
+      expect(screen.queryByText(message)).toBeNull();
+    }
+  });
+
+  it('rings the To row on a transfer', async () => {
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        type={TransactionType.Transfer}
+        toAccountError="Pick where the money goes"
+      />,
+    );
+
+    expect(screen.queryByTestId('to-account-error-slot')).toBeNull();
+    expect(screen.getByTestId('to-account-ring')).toHaveStyle({ position: 'absolute' });
+    expect(screen.getByTestId('to-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    expect(screen.getByTestId('to-account-row')).toHaveProp(
+      'accessibilityHint',
+      'Pick where the money goes',
+    );
+    expect(screen.queryByText('Pick where the money goes')).toBeNull();
+  });
+
+  it('rings the budget row for a budget fault but not for a lookup failure, which is a data error', async () => {
+    const lookupError = 'Could not load matching budgets. Try again.';
+    const { rerender } = await render(
+      <TransactionFormBody {...baseProps} showBudgetField budgetError="Pick a budget" />,
+    );
+
+    expect(screen.getByTestId('budget-ring')).toHaveStyle({ position: 'absolute' });
 
     await rerender(
       <TransactionFormBody
         {...baseProps}
-        amountError="Amount is required"
-        accountError="Account is required"
-        categoryError="Category is required"
-        errorMessage="Could not save transaction"
+        showBudgetField
+        budgetLookupError={lookupError}
+        budgetError={lookupError}
       />,
     );
 
-    expect(screen.getByText('Amount is required')).toBeTruthy();
-    expect(screen.getByText('Account is required')).toBeTruthy();
-    expect(screen.getByText('Category is required')).toBeTruthy();
-    expect(screen.getByText('Could not save transaction')).toBeTruthy();
+    expect(screen.queryByTestId('budget-ring')).toBeNull();
+    expect(within(screen.getByTestId('budget-row')).getByText(lookupError)).toBeTruthy();
+  });
+
+  it('leaves the save failure to the footer track: the body has no form-level slot', async () => {
+    await render(<TransactionFormBody {...baseProps} />);
+
+    expect(screen.queryByTestId('form-error-slot')).toBeNull();
   });
 
   it('keeps long picker values in one truncating content column', async () => {
@@ -285,5 +365,18 @@ describe('TransactionFormLoading', () => {
     const group = within(screen.getByTestId('transaction-form-skeleton-fact-group'));
     expect(group.getAllByTestId('transaction-form-skeleton-fact-row')).toHaveLength(4);
     expect(group.queryByTestId('transaction-form-skeleton-account-row')).toBeNull();
+  });
+
+  it('scrolls the skeleton with the loaded body content style so its fourth row clears the footer', async () => {
+    const skeleton = await render(<TransactionFormLoading />);
+    const skeletonStyle = screen.getByTestId('transaction-form-skeleton-scroll').props
+      .contentContainerStyle;
+    await skeleton.unmount();
+
+    await render(<TransactionFormBody {...baseProps} />);
+    const bodyStyle = screen.getByTestId('transaction-form-scroll').props.contentContainerStyle;
+
+    expect(bodyStyle).toBe(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE);
+    expect(skeletonStyle).toBe(bodyStyle);
   });
 });

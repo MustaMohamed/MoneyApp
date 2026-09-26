@@ -1,9 +1,11 @@
-import { act, render, renderHook } from '@testing-library/react-native';
+import { act, render, renderHook, screen } from '@testing-library/react-native';
 import React from 'react';
 import { View } from 'react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+
+jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 
 const mockSheetFrames: Array<{
   instanceId: number;
@@ -186,6 +188,71 @@ describe('TransactionFormHost', () => {
     );
 
     expect(mockSheetFrames.at(-1)).toMatchObject({ hasFooter: true });
+  });
+
+  it('MA-105: draws the published status line on the track above Save once the form is ready', async () => {
+    await render(<TransactionFormHost />);
+    await act(() => useTransactionFormState.getState().openAdd());
+    await act(() => useTransactionFormState.setState({ prerequisiteStatus: 'ready' }));
+    const sessionId = useTransactionFormState.getState().sessionId;
+
+    await act(() =>
+      useTransactionFormState.getState().publishFooter(sessionId, {
+        visible: true,
+        saving: false,
+        disabled: false,
+        status: 'Fix the 2 fields marked above.',
+      }),
+    );
+
+    expect(screen.getByTestId('transaction-form-status')).toHaveTextContent(
+      'Fix the 2 fields marked above.',
+      { exact: true },
+    );
+    expect(screen.getByTestId('save-button')).toBeTruthy();
+  });
+
+  it('MA-105: keeps the track present and empty when no status is published', async () => {
+    await render(<TransactionFormHost />);
+    await act(() => useTransactionFormState.getState().openAdd());
+    await act(() => useTransactionFormState.setState({ prerequisiteStatus: 'ready' }));
+    const sessionId = useTransactionFormState.getState().sessionId;
+
+    await act(() =>
+      useTransactionFormState.getState().publishFooter(sessionId, {
+        visible: true,
+        saving: false,
+        disabled: false,
+      }),
+    );
+
+    expect(screen.getByTestId('transaction-form-status')).toHaveTextContent('', { exact: true });
+    expect(screen.getByTestId('save-button')).toBeTruthy();
+  });
+
+  it('MA-105: draws Save alone while the form loads and the track only once it is ready', async () => {
+    await render(<TransactionFormHost />);
+    await act(() => useTransactionFormState.getState().openAdd());
+    await act(() => useTransactionFormState.setState({ prerequisiteStatus: 'loading' }));
+    const sessionId = useTransactionFormState.getState().sessionId;
+    await act(() =>
+      useTransactionFormState.getState().publishFooter(sessionId, {
+        visible: true,
+        saving: false,
+        disabled: true,
+        status: 'Fix the 1 field marked above.',
+      }),
+    );
+
+    expect(screen.queryByTestId('transaction-form-status')).toBeNull();
+    expect(screen.getByTestId('save-button')).toBeTruthy();
+
+    await act(() => useTransactionFormState.setState({ prerequisiteStatus: 'ready' }));
+
+    expect(screen.getByTestId('transaction-form-status')).toHaveTextContent(
+      'Fix the 1 field marked above.',
+      { exact: true },
+    );
   });
 
   it('ignores duplicate Save presses until the registered submit settles', async () => {
