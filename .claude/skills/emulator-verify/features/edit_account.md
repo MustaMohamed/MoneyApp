@@ -14,7 +14,7 @@ Route `/accounts/[id]/edit` (MA-078, open at 2026-09-17; until it merges the det
 |---|---|---|---|
 | bank, editable name and colour | D1 | open on a bank | name and colour tile editable, three locked rows; shot |
 | credit card, credit block | D2 | open on a card | limit, min payment, due day, APR with currency and `%` suffixes (MA-079); shot |
-| validation error, zero shift | D3 | clear the name, `$MQA tap 'Save'` | error under the field, no layout shift against D1 in `mqa bounds`; shot |
+| validation error, zero shift | D3 | clear the name, `$MQA tap 'Save'` | error under the field, no layout shift against D1 in `mqa bounds`; the status track reads `Fix the 1 field marked above.` (MA-105); shot |
 | duplicate name including archived | no frame, ruled MA-074 | type an archived account's name | refusal copy; db unchanged |
 | whitespace or invisible name | no frame, MA-054 and MA-064 | `$MQA type '   '` | refused; `mqa db` name unchanged |
 | save failure | F3 | source force on the update | `Couldn't save your changes. Nothing was changed. Try again.` in the status track; db unchanged; shot |
