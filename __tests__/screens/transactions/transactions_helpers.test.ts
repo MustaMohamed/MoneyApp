@@ -14,7 +14,6 @@ import {
   type TransactionsHeroInput,
 } from '@/modules/transactions/screens/transactions/transactions.helpers';
 import type { TransactionTotalsStatus } from '@/modules/transactions/screens/transactions/transactions.state';
-import { formatMonthYear } from '@/utils/format_date';
 
 describe('currentYearMonth', () => {
   it('returns YYYY-MM for a Date', () => {
@@ -249,7 +248,7 @@ describe('buildTransactionsHeroModel', () => {
     expect(hero()).toMatchObject({
       mode: 'figures',
       title: 'Out this month',
-      monthLabel: formatMonthYear('2026-09'),
+      monthLabel: 'September',
       out: '9,400',
       in: '22,300',
       net: '12,900',
@@ -306,10 +305,30 @@ describe('buildTransactionsHeroModel', () => {
     });
   });
 
-  it('reduces Out by a card credit and signs it with U+2212', () => {
+  it('reduces Out by a card credit, signs it with U+2212 and reads Credits exceed expenses', () => {
     const model = hero({ current: { incomeEgp: 1_000, expenseEgp: -50, netEgp: 1_050 } });
-    expect(model).toMatchObject({ out: '−50', net: '1,050', railPct: 0, railDanger: false });
-    expect(model.out).not.toContain('-');
+    expect(model).toMatchObject({
+      out: '−50',
+      net: '1,050',
+      leftOfIncome: '105%',
+      railPct: 0,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsNetCredit,
+      shareCaption: Strings.totalsNetCredit,
+    });
+    const strings = Object.values(model).filter((v): v is string => typeof v === 'string');
+    for (const text of strings) expect(text).not.toContain('-');
+  });
+
+  it('reads Credits exceed expenses with no income when Out is below 0', () => {
+    expect(hero({ current: { incomeEgp: 0, expenseEgp: -50, netEgp: 50 } })).toMatchObject({
+      out: '−50',
+      leftOfIncome: DASH,
+      railPct: 0,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsNetCredit,
+      shareCaption: Strings.totalsNetCredit,
+    });
   });
 
   it('prints zeros and a dash for a month with no rows (A5)', () => {
@@ -324,11 +343,18 @@ describe('buildTransactionsHeroModel', () => {
   });
 
   it('drops the days segment outside the current month (A16)', () => {
-    expect(hero({ yearMonth: '2026-08', today: '2026-09-24' }).caption).toBe('Jul 16,900');
+    expect(hero({ yearMonth: '2026-08', today: '2026-09-24' })).toMatchObject({
+      monthLabel: 'August',
+      caption: 'Jul 16,900',
+    });
   });
 
   it('reads 0 days left on the last day of a 30-day month', () => {
     expect(hero({ today: '2026-09-30' }).caption).toBe('0 days left · Aug 16,900');
+  });
+
+  it('reads 1 day left in the singular on the day before the last', () => {
+    expect(hero({ today: '2026-09-29' }).caption).toBe('1 day left · Aug 16,900');
   });
 
   it('counts days left against a 31-day month', () => {
@@ -365,7 +391,7 @@ describe('buildTransactionsHeroModel', () => {
       leftOfIncome: DASH,
       railPct: 0,
       railDanger: false,
-      railAccessibilityLabel: Strings.totalsNoIncome,
+      railAccessibilityLabel: Strings.transactionsTotalsLoadError,
       shareCaption: null,
       caption: '6 days left · Aug —',
     });
