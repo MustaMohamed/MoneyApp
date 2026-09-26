@@ -1,7 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import React from 'react';
+import { StyleSheet } from 'react-native';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { TouchSize } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@gorhom/bottom-sheet', () => {
@@ -38,6 +41,7 @@ jest.mock(
   () => ({ TypeTabs: () => null }),
 );
 
+import { FACT_ROW_MIN_HEIGHT } from '@/modules/transactions/screens/transactions/transaction_form/components/form_picker_row';
 import {
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
@@ -76,6 +80,22 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   setNote: jest.fn(),
   currency: Currency.EGP,
 };
+
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
+// Without this, `toHaveStyle({ minHeight: undefined })` matches any row that lacks a minHeight.
+function expectFactRowMinimumDefined(): void {
+  expect(FACT_ROW_MIN_HEIGHT).toBe(TouchSize.min);
+}
+
+function closestFactRow(element: HostElement): HostElement | null {
+  let node = element.parent;
+  while (node) {
+    if (StyleSheet.flatten(node.props.style)?.minHeight === FACT_ROW_MIN_HEIGHT) return node;
+    node = node.parent;
+  }
+  return null;
+}
 
 describe('TransactionFormBody geometry', () => {
   it('reserves the shared sticky-footer clearance below the last field', () => {
@@ -163,5 +183,66 @@ describe('TransactionFormBody geometry', () => {
     await fireEvent.press(screen.getByTestId('category-row'));
     expect(onOpenAccountPicker).toHaveBeenCalledTimes(1);
     expect(onOpenCategoryPicker).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('TransactionFormBody fact rows', () => {
+  it('draws the account and category pickers as fact rows with key and value', async () => {
+    await render(<TransactionFormBody {...baseProps} />);
+
+    expectFactRowMinimumDefined();
+    expect(screen.getByTestId('from-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    expect(screen.getByTestId('category-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+
+    const categoryRow = within(screen.getByTestId('category-row'));
+    expect(categoryRow.getByText('Category')).toBeTruthy();
+    expect(categoryRow.getByText('Select Category')).toBeTruthy();
+  });
+
+  it('draws the To row as a fact row that stays locked on edit', async () => {
+    const onOpenToPicker = jest.fn();
+    const { rerender } = await render(
+      <TransactionFormBody
+        {...baseProps}
+        type={TransactionType.Transfer}
+        locked
+        onOpenToPicker={onOpenToPicker}
+      />,
+    );
+
+    expectFactRowMinimumDefined();
+    expect(screen.getByTestId('to-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    expect(screen.getByTestId('to-account-row')).toHaveProp('accessibilityState', {
+      disabled: true,
+    });
+    await fireEvent.press(screen.getByTestId('to-account-row'));
+    expect(onOpenToPicker).not.toHaveBeenCalled();
+
+    await rerender(
+      <TransactionFormBody
+        {...baseProps}
+        type={TransactionType.Transfer}
+        locked={false}
+        onOpenToPicker={onOpenToPicker}
+      />,
+    );
+
+    await fireEvent.press(screen.getByTestId('to-account-row'));
+    expect(onOpenToPicker).toHaveBeenCalledTimes(1);
+  });
+
+  it('types the note into the Note fact row', async () => {
+    const setNote = jest.fn();
+    await render(<TransactionFormBody {...baseProps} setNote={setNote} />);
+
+    expectFactRowMinimumDefined();
+    const input = screen.getByPlaceholderText(Strings.addTxNotePlaceholder);
+    const noteRow = closestFactRow(input);
+    expect(noteRow).not.toBeNull();
+    if (!noteRow) return;
+    expect(within(noteRow).getByText(Strings.addTxNoteLabel)).toBeTruthy();
+
+    await fireEvent.changeText(input, 'Lunch with the team');
+    expect(setNote).toHaveBeenCalledWith('Lunch with the team');
   });
 });
