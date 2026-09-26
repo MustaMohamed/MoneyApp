@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { TRANSACTION_FORM_CONTENT_CONTAINER_STYLE } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
+import { ms } from '@/utils/responsive';
+
 const PRESENTATION_FILES = [
   'src/modules/budget/screens/budget/index.tsx',
   'src/modules/budget/screens/budget/components/summary_card.tsx',
@@ -303,6 +306,6 @@ describe('budget categories presentation architecture', () => {
 
     expect(form).not.toMatch(/size=\{18\}|gap: 8|padding: 16|paddingBottom: 24/);
     expect(form).toContain('size={Size.iconSm}');
-    expect(form).toContain('gap: ms(8)');
+    expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE.gap).toBe(ms(8));
   });
 });
