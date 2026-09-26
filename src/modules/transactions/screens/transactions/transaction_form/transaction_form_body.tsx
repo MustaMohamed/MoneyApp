@@ -6,7 +6,7 @@ import { View } from 'react-native';
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { ListCard } from '@/components/ui/list_card';
-import { SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -21,10 +21,14 @@ import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
 import { AmountHero } from './components/amount_hero';
+import { DangerRing } from './components/danger_ring';
 import { DateRow } from './components/date_row';
 import { FormPickerRow } from './components/form_picker_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
-import { FACT_ROW_MIN_HEIGHT } from './components/transaction_form_geometry';
+import {
+  FACT_ROW_MIN_HEIGHT,
+  TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
+} from './components/transaction_form_geometry';
 import { TypeTabs } from './components/type_tabs';
 import type { TransactionFormMode } from './transaction_form.types';
 
@@ -54,7 +58,6 @@ interface Props {
   onOpenBudgetPicker: () => void;
   onRetryBudgetLookup: () => void;
   budgetError?: string;
-  errorMessage?: string;
   /** The rate demand flag (either side USD), not the source currency. */
   requiresRate: boolean;
   exchangeRate: string;
@@ -70,12 +73,6 @@ interface Props {
   currency: Currency;
 }
 
-export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
-  padding: ms(16),
-  paddingBottom: SHEET_FOOTER_CLEARANCE,
-  gap: ms(8),
-};
-
 export const TRANSACTION_FORM_ERROR_SLOT_HEIGHT = ms(16);
 
 // Canvas `.fact`: 16 inset, a hairline under every fact but the last (Note).
@@ -84,22 +81,21 @@ const FACT_CELL_CLASS = 'border-separator border-b px-4';
 interface ValidationSlotProps {
   testID: string;
   message?: string;
-  centered?: boolean;
 }
 
-function ValidationSlot({ testID, message, centered = false }: ValidationSlotProps) {
+function ValidationSlot({ testID, message }: ValidationSlotProps) {
   return (
     <View
       testID={testID}
       style={{ minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT }}
-      className={centered ? 'justify-center px-4' : 'justify-center'}
+      className="justify-center px-4"
       accessibilityLiveRegion="polite"
     >
       <FormErrorText
         message={message}
         numberOfLines={1}
         disableAnimation
-        className={centered ? 'text-center' : undefined}
+        className="text-center"
         style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
       />
     </View>
@@ -133,7 +129,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     onOpenBudgetPicker,
     onRetryBudgetLookup,
     budgetError,
-    errorMessage,
     requiresRate,
     exchangeRate,
     setExchangeRate,
@@ -150,6 +145,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
+  const budgetFieldError = budgetLookupError === undefined ? budgetError : undefined;
 
   return (
     <View style={{ flex: 1 }}>
@@ -169,10 +165,17 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         </Text>
       </View>
 
-      <AmountHero onChange={setAmountStr} type={type} currency={currency} mode={formMode} />
-      <ValidationSlot testID="amount-error-slot" message={amountError} centered />
+      <AmountHero
+        onChange={setAmountStr}
+        type={type}
+        currency={currency}
+        mode={formMode}
+        invalid={amountError !== undefined}
+      />
+      <ValidationSlot testID="amount-error-slot" message={amountError} />
 
       <BottomSheetScrollView
+        testID="transaction-form-scroll"
         style={{ flex: 1 }}
         contentContainerStyle={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}
         keyboardShouldPersistTaps="handled"
@@ -184,6 +187,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             onPress={locked ? undefined : onOpenAccountPicker}
             disabled={locked}
             label={isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
+            accessibilityHint={accountError}
             value={
               selectedAccount ? resolveAccountName(selectedAccount) : Strings.addTxPickAccountTitle
             }
@@ -207,10 +211,10 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               />
             }
           />
-          <ValidationSlot testID="account-error-slot" message={accountError} />
+          {accountError !== undefined ? <DangerRing testID="from-account-ring" /> : null}
         </View>
 
-        <ListCard testID="transaction-form-fact-group">
+        <ListCard testID="transaction-form-fact-group" style={{ overflow: 'hidden' }}>
           {isTransferOrCC ? (
             <View className={FACT_CELL_CLASS}>
               <FormPickerRow
@@ -219,6 +223,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 onPress={locked ? undefined : onOpenToPicker}
                 disabled={locked}
                 label={Strings.addTxToLabel}
+                accessibilityHint={toAccountError}
                 value={
                   selectedToAccount
                     ? resolveAccountName(selectedToAccount)
@@ -244,7 +249,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                   />
                 }
               />
-              <ValidationSlot testID="to-account-error-slot" message={toAccountError} />
+              {toAccountError !== undefined ? <DangerRing testID="to-account-ring" /> : null}
             </View>
           ) : null}
 
@@ -255,6 +260,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 divider={false}
                 onPress={onOpenCategoryPicker}
                 label={Strings.addTxCategoryLabel}
+                accessibilityHint={categoryError}
                 value={selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
                 prefix={
                   <MaterialCommunityIcons
@@ -273,7 +279,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                   />
                 }
               />
-              <ValidationSlot testID="category-error-slot" message={categoryError} />
+              {categoryError !== undefined ? <DangerRing testID="category-ring" /> : null}
             </View>
           ) : null}
 
@@ -293,6 +299,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 accessibilityLabel={
                   budgetLookupError ? Strings.addTxBudgetRetryA11y : Strings.addTxBudgetLabel
                 }
+                accessibilityHint={budgetFieldError}
                 label={Strings.addTxBudgetLabel}
                 value={
                   budgetsLoading
@@ -325,10 +332,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                   )
                 }
               />
-              <ValidationSlot
-                testID="budget-error-slot"
-                message={budgetLookupError ? undefined : budgetError}
-              />
+              {budgetFieldError !== undefined ? <DangerRing testID="budget-ring" /> : null}
             </View>
           ) : null}
 
@@ -384,7 +388,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             />
           </View>
         </ListCard>
-        <ValidationSlot testID="form-error-slot" message={errorMessage} />
       </BottomSheetScrollView>
     </View>
   );

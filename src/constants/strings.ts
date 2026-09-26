@@ -533,7 +533,9 @@ export const Strings = {
   addTxDatePickerTitle: 'Choose transaction date',
   addTxDatePickerCancel: 'Cancel',
   addTxDatePickerDone: 'Done',
-  transactionSaveError: 'Could not save this transaction. Please try again.',
+  transactionSaveError: "Couldn't save this transaction. Nothing was changed. Try again.",
+  transactionFormFixFields: (count: number) =>
+    count === 1 ? 'Fix the 1 field marked above.' : `Fix the ${count} fields marked above.`,
   transactionAccountArchived: (name: string) =>
     `${name} is archived. Restore it to change this transaction.`,
   viewCommitment: 'View commitment',

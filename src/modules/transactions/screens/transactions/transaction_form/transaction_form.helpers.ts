@@ -164,3 +164,40 @@ export function resolveTransactionSaveError(error: unknown): string {
   }
   return Strings.transactionSaveError;
 }
+
+export interface TransactionFormFieldErrors {
+  amount?: string;
+  account?: string;
+  toAccount?: string;
+  category?: string;
+  budget?: string;
+  rate?: string;
+}
+
+/** Zod skips a refinement after an aborting field issue; this runs it on any object so every fault reports on one Save. */
+export const REFINE_DESPITE_FIELD_ERRORS = {
+  when: (payload: { value: unknown }) =>
+    typeof payload.value === 'object' && payload.value !== null,
+};
+
+export function countTransactionFormFieldErrors(
+  errors: TransactionFormFieldErrors,
+  budgetLookupError?: string,
+): number {
+  const { amount, account, toAccount, category, budget, rate } = errors;
+  const fieldCount = [amount, account, toAccount, category, rate].filter(
+    (message) => message !== undefined,
+  ).length;
+  // A failed budget lookup rides on `errors.budget` but is a data error, not a field fault.
+  const budgetCount = budget !== undefined && budgetLookupError === undefined ? 1 : 0;
+  return fieldCount + budgetCount;
+}
+
+export function resolveTransactionFormStatus(input: {
+  errors: TransactionFormFieldErrors;
+  budgetLookupError?: string;
+  saveError?: string;
+}): string | undefined {
+  const count = countTransactionFormFieldErrors(input.errors, input.budgetLookupError);
+  return count > 0 ? Strings.transactionFormFixFields(count) : input.saveError;
+}

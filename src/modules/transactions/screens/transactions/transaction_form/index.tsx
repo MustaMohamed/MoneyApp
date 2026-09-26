@@ -1,6 +1,10 @@
+import { View } from 'react-native';
+
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
+import { StatusTrack } from '@/components/ui/status_track';
 import { Strings } from '@/constants/strings';
+import { Spacing } from '@/constants/theme';
 
 import { AddTransactionSession } from './add_transaction_session';
 import { EditTransactionSession } from './edit_transaction_session';
@@ -29,14 +33,22 @@ export function TransactionFormHost(): React.ReactElement {
       isDismissable={state.isDismissable}
       footer={
         state.footer.visible ? (
-          <Button
-            variant="primary"
-            flat
-            label={state.mode === 'edit' ? Strings.editTxSaveCta : Strings.addTxSaveCta}
-            isLoading={state.footer.saving}
-            isDisabled={state.footer.disabled}
-            onPress={handleSave}
-          />
+          <View>
+            {state.prerequisiteStatus === 'ready' ? (
+              <>
+                <StatusTrack testID="transaction-form-status" message={state.footer.status} />
+                <View style={{ height: Spacing.xs }} />
+              </>
+            ) : null}
+            <Button
+              variant="primary"
+              flat
+              label={state.mode === 'edit' ? Strings.editTxSaveCta : Strings.addTxSaveCta}
+              isLoading={state.footer.saving}
+              isDisabled={state.footer.disabled}
+              onPress={handleSave}
+            />
+          </View>
         ) : undefined
       }
     >

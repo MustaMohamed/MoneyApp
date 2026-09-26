@@ -30,6 +30,7 @@ import { buildDefaultsFromTx, type EditTransactionFormValues } from './edit_tran
 import { useEditTransactionState } from './edit_transaction.state';
 import { useEditTransactionStore } from './edit_transaction.store';
 import {
+  REFINE_DESPITE_FIELD_ERRORS,
   resolveDestinationFloorError,
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
@@ -112,7 +113,7 @@ function createEditSchema(
       if (destinationFloorError) {
         context.addIssue({ code: 'custom', message: destinationFloorError, path: ['amount'] });
       }
-    });
+    }, REFINE_DESPITE_FIELD_ERRORS);
 }
 
 export function useEditTransaction(

@@ -25,6 +25,7 @@ import { useAddTransactionState } from './add_transaction.state';
 import { useAddTransactionStore } from './add_transaction.store';
 import { resolveBudgetAssignment } from './budget_assignment.helpers';
 import {
+  REFINE_DESPITE_FIELD_ERRORS,
   resolveDestinationFloorError,
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
@@ -189,7 +190,7 @@ function createSchema(
       if (destinationFloorError) {
         ctx.addIssue({ code: 'custom', message: destinationFloorError, path: ['amount'] });
       }
-    });
+    }, REFINE_DESPITE_FIELD_ERRORS);
 }
 
 export function useAddTransaction(

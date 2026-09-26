@@ -19,6 +19,7 @@ export interface TransactionFormFooterState {
   visible: boolean;
   saving: boolean;
   disabled: boolean;
+  status?: string;
 }
 
 interface TransactionFormStateShape {

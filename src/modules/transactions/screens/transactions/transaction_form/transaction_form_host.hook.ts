@@ -25,13 +25,14 @@ interface RegisteredSubmit {
 
 export function useTransactionFormHost() {
   const router = useRouter();
-  const { mode, phase, sessionId, editingTx, footer } = useTransactionFormState(
+  const { mode, phase, sessionId, editingTx, footer, prerequisiteStatus } = useTransactionFormState(
     useShallow((state) => ({
       mode: state.mode,
       phase: state.phase,
       sessionId: state.sessionId,
       editingTx: state.editingTx,
       footer: state.footer,
+      prerequisiteStatus: state.prerequisiteStatus,
     })),
   );
   const submitRef = useRef<RegisteredSubmit | undefined>(undefined);
@@ -141,6 +142,7 @@ export function useTransactionFormHost() {
       sessionId,
       editingTx,
       footer,
+      prerequisiteStatus,
       isOpen: phase === 'open',
       isDismissable: !footer.saving && !activeFormSaving,
       title: mode === 'edit' ? Strings.editTxTitle : Strings.addTxTitle,

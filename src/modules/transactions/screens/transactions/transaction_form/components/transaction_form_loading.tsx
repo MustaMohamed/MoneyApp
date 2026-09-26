@@ -1,12 +1,16 @@
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { SkeletonGroup } from 'heroui-native';
 import { View } from 'react-native';
 
 import { ListCard } from '@/components/ui/list_card';
 import { Strings } from '@/constants/strings';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
-import { TRANSACTION_FORM_SKELETON_GEOMETRY } from './transaction_form_geometry';
+import {
+  TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
+  TRANSACTION_FORM_SKELETON_GEOMETRY,
+} from './transaction_form_geometry';
 
 const FACT_ROWS = Array.from(
   { length: TRANSACTION_FORM_SKELETON_GEOMETRY.factRowCount },
@@ -21,7 +25,7 @@ export function TransactionFormLoading(): React.ReactElement {
       style={{ flex: 1 }}
       accessibilityLabel={Strings.loadingTransactionA11y}
     >
-      <SkeletonGroup isLoading isSkeletonOnly>
+      <SkeletonGroup isLoading isSkeletonOnly style={{ flex: 1 }}>
         <View className="border-separator border-b px-4 py-2">
           <SkeletonGroup.Item
             className="w-full"
@@ -40,7 +44,12 @@ export function TransactionFormLoading(): React.ReactElement {
             style={{ height: TRANSACTION_FORM_SKELETON_GEOMETRY.amount, borderRadius: Radius.sm }}
           />
         </View>
-        <View style={{ padding: Spacing.md }}>
+        <BottomSheetScrollView
+          testID="transaction-form-skeleton-scroll"
+          style={{ flex: 1 }}
+          contentContainerStyle={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}
+          showsVerticalScrollIndicator={false}
+        >
           <SkeletonGroup.Item
             testID="transaction-form-skeleton-account-row"
             className="w-full"
@@ -49,10 +58,7 @@ export function TransactionFormLoading(): React.ReactElement {
               borderRadius: Radius.sm,
             }}
           />
-          <ListCard
-            testID="transaction-form-skeleton-fact-group"
-            style={{ marginTop: TRANSACTION_FORM_SKELETON_GEOMETRY.rowGap }}
-          >
+          <ListCard testID="transaction-form-skeleton-fact-group">
             {FACT_ROWS.map((row) => (
               <View
                 key={row}
@@ -76,7 +82,7 @@ export function TransactionFormLoading(): React.ReactElement {
               </View>
             ))}
           </ListCard>
-        </View>
+        </BottomSheetScrollView>
       </SkeletonGroup>
     </View>
   );

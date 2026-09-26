@@ -16,6 +16,7 @@ interface FormPickerRowProps {
   prefix?: ReactNode;
   suffix?: ReactNode;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   valueClassName?: string;
   valueStyle?: TextStyle;
   valueNumberOfLines?: number;
@@ -32,6 +33,7 @@ export function FormPickerRow({
   prefix,
   suffix,
   accessibilityLabel = Strings.addTxPickerAccessibility(label, value),
+  accessibilityHint,
   valueClassName,
   valueStyle,
   valueNumberOfLines = 1,
@@ -44,6 +46,7 @@ export function FormPickerRow({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled }}
       className={cn('gap-3 px-0 py-2', divider && 'border-separator border-b')}
       style={{
