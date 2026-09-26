@@ -61,14 +61,17 @@ export function StatusTrack({ footnote, message, testID }: StatusTrackProps) {
           />
         ) : null}
       </View>
-      <Typography
-        numberOfLines={2}
-        // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- STATUS_TRACK_LINE_HEIGHT is Math.floor(Size.statusTrack / 2) (src/components/ui/status_track.geometry.ts:5), sized so exactly two lines fit the fixed track at any device scale; lineHeightFor's 1.3 ratio would not guarantee that.
-        style={{ fontSize: Type.caption, lineHeight: STATUS_TRACK_LINE_HEIGHT, flex: 1 }}
-        className={cn(model.tone === 'error' ? 'text-danger' : 'text-content-secondary')}
-      >
-        {model.text}
-      </Typography>
+      {/* Android measures an empty Text at the font's own height, not the line height, so an empty track draws none. */}
+      {model.text ? (
+        <Typography
+          numberOfLines={2}
+          // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- STATUS_TRACK_LINE_HEIGHT is Math.floor(Size.statusTrack / 2) (src/components/ui/status_track.geometry.ts:5), sized so exactly two lines fit the fixed track at any device scale; lineHeightFor's 1.3 ratio would not guarantee that.
+          style={{ fontSize: Type.caption, lineHeight: STATUS_TRACK_LINE_HEIGHT, flex: 1 }}
+          className={cn(model.tone === 'error' ? 'text-danger' : 'text-content-secondary')}
+        >
+          {model.text}
+        </Typography>
+      ) : null}
     </View>
   );
 }
