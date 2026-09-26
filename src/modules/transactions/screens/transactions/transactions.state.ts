@@ -22,7 +22,7 @@ interface TransactionsStateShape {
 type TransactionsState = TransactionsStateShape & {
   beginTotalsLoad: (hasData: boolean) => void;
   resolveTotalsLoad: () => void;
-  failTotalsLoad: (hasData: boolean, scope?: string) => void;
+  failTotalsLoad: (hasData: boolean, scope: string) => void;
   activateScrollQuery: (queryKey: string) => void;
   setScrollOffset: (queryKey: string, offset: number) => void;
   setUserRefreshing: (value: boolean) => void;

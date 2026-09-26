@@ -1,9 +1,11 @@
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
+  formatAmount,
   formatDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
@@ -56,10 +58,15 @@ export function previousPeriod(selection: TransactionPeriod): TransactionPeriod 
   return { type: 'month', yearMonth: shiftYearMonth(selection.yearMonth, -1) };
 }
 
+// Integer cents, multiplied before dividing, so a percentage on a half rounds up (ruling 2026-09-26).
+function centsPct(numeratorCents: number, denominatorCents: number): number {
+  return Math.round((numeratorCents * 100) / denominatorCents);
+}
+
 export function computeDeltaPct(current: number, previous: number): number | null {
   const previousCents = toCents(previous);
   if (previousCents === 0) return null;
-  return Math.round(((toCents(current) - previousCents) * 100) / Math.abs(previousCents));
+  return centsPct(toCents(current) - previousCents, Math.abs(previousCents));
 }
 
 export function polarityColor(metric: TotalsMetric, deltaPct: number): PolaritySignal {
@@ -77,10 +84,9 @@ export function formatSignedAmount(value: number, metric: TotalsMetric): string 
 }
 
 export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentation {
-  // Integer cents, multiplied before dividing, so a share on a half rounds up (ruling 2026-09-26).
   const rawExpenseSharePct =
     current.incomeEgp > 0
-      ? Math.round((toCents(current.expenseEgp) * 100) / toCents(current.incomeEgp))
+      ? centsPct(toCents(current.expenseEgp), toCents(current.incomeEgp))
       : null;
   const railPct = Math.max(0, Math.min(100, rawExpenseSharePct ?? 0));
 
@@ -170,8 +176,11 @@ export interface TransactionsHeroModel {
   title: string;
   monthLabel: string;
   out: string;
+  /** The currency code the three figures and Out print in. */
+  currencyCode: string;
   in: string;
   net: string;
+  netPolarity: PolaritySignal;
   leftOfIncome: string;
   railPct: number;
   railDanger: boolean;
@@ -216,9 +225,20 @@ export function resolveTransactionsHeroMode(
   }
 }
 
+// The aggregate sums `egp_amount`, so every hero figure is EGP.
+const HERO_CURRENCY = Currency.EGP;
+
 function formatHeroAmount(value: number): string {
-  const { text, printsAsZero } = formatDisplayMagnitude(value, Currency.EGP);
+  const { text, printsAsZero } = formatDisplayMagnitude(value, HERO_CURRENCY);
   return signAmountText(text, value < 0 ? MINUS_SIGN : '', printsAsZero);
+}
+
+function heroNet(netEgp: number): Pick<TransactionsHeroModel, 'net' | 'netPolarity'> {
+  const { text, printsAsZero } = formatDisplayMagnitude(netEgp, HERO_CURRENCY);
+  if (printsAsZero) return { net: text, netPolarity: 'neutral' };
+  return netEgp > 0
+    ? { net: signAmountText(text, PLUS_SIGN), netPolarity: 'good' }
+    : { net: signAmountText(text, MINUS_SIGN), netPolarity: 'bad' };
 }
 
 function lastMonthOutCaption(yearMonth: string, previous: PeriodTotals | null): string {
@@ -234,10 +254,28 @@ function lastMonthOutCaption(yearMonth: string, previous: PeriodTotals | null): 
 }
 
 function heroShareCaption({ state, rawExpenseSharePct }: TotalsPresentation): string | undefined {
-  if (state === 'netCredit') return Strings.totalsNetCredit;
-  if (state === 'noIncome' || rawExpenseSharePct === null) return undefined;
-  return Strings.transactionsHeroShareSpent(rawExpenseSharePct);
+  switch (state) {
+    case 'netCredit':
+      return Strings.totalsNetCredit;
+    case 'noIncome':
+      return undefined;
+    case 'withinIncome':
+    case 'overIncome':
+      return rawExpenseSharePct === null
+        ? undefined
+        : Strings.transactionsHeroShareSpent(rawExpenseSharePct);
+    default: {
+      const unhandled: never = state;
+      return unhandled;
+    }
+  }
 }
+
+const CHANGE_SENTENCE: Record<DeltaDirection, (pct: string, month: string) => string> = {
+  up: Strings.transactionsHeroSpentMore,
+  down: Strings.transactionsHeroSpentLess,
+  flat: (_pct, month) => Strings.transactionsHeroSpentSame(month),
+};
 
 function fullMonthName(yearMonth: string): string {
   return new Date(`${yearMonth}-01T12:00:00`).toLocaleDateString('en-US', { month: 'long' });
@@ -252,13 +290,13 @@ function resolveLastMonthChange(
   const delta = deltaDisplay('expense', deltaPct);
   if (deltaPct === null || delta === null) return undefined;
   const month = fullMonthName(shiftYearMonth(yearMonth, -1));
-  const accessibilityLabel =
-    delta.direction === 'up'
-      ? Strings.transactionsHeroSpentMore(Math.abs(deltaPct), month)
-      : delta.direction === 'down'
-        ? Strings.transactionsHeroSpentLess(Math.abs(deltaPct), month)
-        : Strings.transactionsHeroSpentSame(month);
-  return { ...delta, accessibilityLabel };
+  const pct = formatAmount(Math.abs(deltaPct));
+  return {
+    direction: delta.direction,
+    polarity: delta.polarity,
+    label: `${pct}%`,
+    accessibilityLabel: CHANGE_SENTENCE[delta.direction](pct, month),
+  };
 }
 
 function daysLeftInMonth(yearMonth: string, today: string): number | undefined {
@@ -282,6 +320,7 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
     mode: input.mode,
     title,
     monthLabel: fullMonthName(input.yearMonth),
+    currencyCode: CURRENCY_CONFIG[HERO_CURRENCY].code,
     caption,
   };
   const current = input.mode === 'figures' ? input.current : null;
@@ -292,6 +331,7 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
       out: Strings.transactionsHeroUnavailable,
       in: Strings.transactionsHeroUnavailable,
       net: Strings.transactionsHeroUnavailable,
+      netPolarity: 'neutral',
       leftOfIncome: Strings.transactionsHeroUnavailable,
       railPct: 0,
       railDanger: false,
@@ -306,14 +346,14 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
   const incomeCents = toCents(current.incomeEgp);
   const left =
     current.incomeEgp > 0
-      ? Math.round(((incomeCents - toCents(current.expenseEgp)) * 100) / incomeCents)
+      ? centsPct(incomeCents - toCents(current.expenseEgp), incomeCents)
       : undefined;
 
   return {
     ...base,
     out: formatHeroAmount(current.expenseEgp),
     in: formatHeroAmount(current.incomeEgp),
-    net: formatHeroAmount(current.netEgp),
+    ...heroNet(current.netEgp),
     leftOfIncome:
       left === undefined
         ? Strings.transactionsHeroUnavailable

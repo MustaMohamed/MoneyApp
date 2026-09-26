@@ -1260,8 +1260,8 @@ export const Strings = {
   transactionsHeroShareSpent: (pct: number) => `${pct}% of income spent`,
   transactionsHeroDaysLeft: (days: number) => (days === 1 ? '1 day left' : `${days} days left`),
   transactionsHeroLastMonthOut: (month: string, amount: string) => `${month} ${amount}`,
-  transactionsHeroSpentMore: (pct: number, month: string) => `Spent ${pct}% more than ${month}`,
-  transactionsHeroSpentLess: (pct: number, month: string) => `Spent ${pct}% less than ${month}`,
+  transactionsHeroSpentMore: (pct: string, month: string) => `Spent ${pct}% more than ${month}`,
+  transactionsHeroSpentLess: (pct: string, month: string) => `Spent ${pct}% less than ${month}`,
   transactionsHeroSpentSame: (month: string) => `Spent the same as ${month}`,
   transactionsHeroUnavailable: '—',
 

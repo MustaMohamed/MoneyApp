@@ -52,8 +52,7 @@ type TotalsLoadOptions = {
   shouldApply?: () => boolean;
 };
 type HeldPreviousTotals = {
-  yearMonth: string;
-  accountScope: string;
+  scopeKey: string;
   mutationVersion: number;
   totals: TransactionTotalsState['previous'];
 };
@@ -181,13 +180,10 @@ export function useTransactions() {
       const hasPreservedData = preserveData && hasTotalsForMonth(yearMonth);
       const requestId = beginTotalsRequest(queryKey, yearMonth, preserveData);
       beginTotalsLoad(hasPreservedData);
-      const accountScope = JSON.stringify([...(query.accountIds ?? [])].sort());
+      const scopeKey = totalsScopeKey(yearMonth, query.accountIds);
       const held = heldPreviousRef.current;
       const reusable =
-        reusePrevious &&
-        held?.yearMonth === yearMonth &&
-        held.accountScope === accountScope &&
-        held.mutationVersion === version
+        reusePrevious && held?.scopeKey === scopeKey && held.mutationVersion === version
           ? held
           : undefined;
       const ownsRequest = () => {
@@ -219,8 +215,7 @@ export function useTransactions() {
           })
         ) {
           heldPreviousRef.current = {
-            yearMonth,
-            accountScope,
+            scopeKey,
             mutationVersion: version,
             totals: previous,
           };
@@ -229,7 +224,7 @@ export function useTransactions() {
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);
         if (shouldApply() && failTotals(queryKey, requestId)) {
-          failTotalsLoad(hasTotalsForMonth(yearMonth), totalsScopeKey(yearMonth, query.accountIds));
+          failTotalsLoad(hasTotalsForMonth(yearMonth), scopeKey);
         }
       }
     },

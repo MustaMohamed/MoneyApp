@@ -5,8 +5,6 @@ import { View } from 'react-native';
 import { withUniwind } from 'uniwind';
 
 import { HeroShell } from '@/components/ui/hero_shell';
-import { CURRENCY_CONFIG } from '@/constants/currency';
-import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
@@ -28,7 +26,6 @@ const TRANSACTIONS_HERO_GEOMETRY = {
 
 const HERO_ROW_GAP = Spacing.sm;
 const HERO_SHELL_STYLE = { marginTop: Spacing.xs, marginBottom: Spacing.xs } as const;
-const HERO_CURRENCY_CODE = CURRENCY_CONFIG[Currency.EGP].code;
 
 // Without `withUniwind` the icon's `styleDefaults` win and its `className` colour is a no-op.
 const ChangeIcon = withUniwind(MaterialCommunityIcons);
@@ -37,6 +34,13 @@ const CHANGE_ICON: Record<DeltaDirection, ComponentProps<typeof MaterialCommunit
   up: 'arrow-up',
   down: 'arrow-down',
   flat: 'arrow-right',
+};
+
+// Frame A1 and the money-colour ADR's decision 5: Net takes its flow colour, neutral at 0.
+const NET_CLASS: Record<PolaritySignal, string> = {
+  good: 'text-success',
+  bad: 'text-danger',
+  neutral: 'text-foreground',
 };
 
 const CHANGE_CLASS: Record<PolaritySignal, string> = {
@@ -52,10 +56,12 @@ function HeroColumn({
   label,
   value,
   align,
+  valueClassName,
 }: {
   label: string;
   value: string;
   align: ColumnAlign;
+  valueClassName: string;
 }): React.ReactElement {
   return (
     <View
@@ -74,7 +80,7 @@ function HeroColumn({
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.75}
-        className="font-sora-semibold text-foreground tabular-nums"
+        className={`font-sora-semibold tabular-nums ${valueClassName}`}
         style={{ textAlign: align, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
       >
         {value}
@@ -176,7 +182,7 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
         {/* A container `gap`, not a `marginLeft` on a nested Text: RN Android drops margins on inline text. */}
         <View
           accessible
-          accessibilityLabel={`${model.out} ${HERO_CURRENCY_CODE}`}
+          accessibilityLabel={`${model.out} ${model.currencyCode}`}
           style={{
             flexDirection: 'row',
             alignItems: 'baseline',
@@ -199,7 +205,7 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
               lineHeight: lineHeightFor(Type.subhead),
             }}
           >
-            {HERO_CURRENCY_CODE}
+            {model.currencyCode}
           </Typography>
         </View>
 
@@ -210,12 +216,23 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
             height: TRANSACTIONS_HERO_GEOMETRY.columns,
           }}
         >
-          <HeroColumn label={Strings.transactionsHeroIn} value={model.in} align="left" />
-          <HeroColumn label={Strings.transactionsHeroNet} value={model.net} align="center" />
+          <HeroColumn
+            label={Strings.transactionsHeroIn}
+            value={model.in}
+            align="left"
+            valueClassName="text-success"
+          />
+          <HeroColumn
+            label={Strings.transactionsHeroNet}
+            value={model.net}
+            align="center"
+            valueClassName={NET_CLASS[model.netPolarity]}
+          />
           <HeroColumn
             label={Strings.transactionsHeroLeftOfIncome}
             value={model.leftOfIncome}
             align="right"
+            valueClassName="text-foreground"
           />
         </View>
 
@@ -227,7 +244,7 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
           style={{ height: TRANSACTIONS_HERO_GEOMETRY.rail }}
         >
           <View
-            className={model.railDanger ? 'bg-danger rounded-full' : 'bg-accent rounded-full'}
+            className={model.railDanger ? 'bg-danger rounded-full' : 'bg-success rounded-full'}
             style={{ height: TRANSACTIONS_HERO_GEOMETRY.rail, width: `${model.railPct}%` }}
           />
         </View>
@@ -242,6 +259,8 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
         >
           <Typography
             numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
             className="font-inter text-foreground/55"
             style={{ flex: 1, fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
           >

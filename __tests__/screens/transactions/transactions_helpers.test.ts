@@ -260,7 +260,7 @@ describe('buildTransactionsHeroModel', () => {
       monthLabel: 'September',
       out: '9,400',
       in: '22,300',
-      net: '12,900',
+      net: '+12,900',
       leftOfIncome: '58%',
       railPct: 42,
       railDanger: false,
@@ -273,7 +273,7 @@ describe('buildTransactionsHeroModel', () => {
   it('formats EGP at 0 dp', () => {
     expect(
       hero({ current: { incomeEgp: 22_300.4, expenseEgp: 9_399.6, netEgp: 12_900.8 } }),
-    ).toMatchObject({ out: '9,400', in: '22,300', net: '12,901' });
+    ).toMatchObject({ out: '9,400', in: '22,300', net: '+12,901' });
   });
 
   it('titles the hero with the account when the filter holds exactly one', () => {
@@ -318,7 +318,7 @@ describe('buildTransactionsHeroModel', () => {
     const model = hero({ current: { incomeEgp: 1_000, expenseEgp: -50, netEgp: 1_050 } });
     expect(model).toMatchObject({
       out: '−50',
-      net: '1,050',
+      net: '+1,050',
       leftOfIncome: '105%',
       railPct: 0,
       railDanger: false,
@@ -406,7 +406,66 @@ describe('buildTransactionsHeroModel', () => {
     });
   });
 
+  describe('Net and its flow colour (frame A1, money-colour ADR decision 5)', () => {
+    it('signs a positive Net with + and reads good', () => {
+      expect(
+        hero({ current: { incomeEgp: 31_000, expenseEgp: 18_557, netEgp: 12_443 } }),
+      ).toMatchObject({ net: '+12,443', netPolarity: 'good', currencyCode: 'EGP' });
+    });
+
+    it('signs a negative Net with U+2212 and reads bad', () => {
+      expect(
+        hero({ current: { incomeEgp: 1_000, expenseEgp: 1_200, netEgp: -200 } }),
+      ).toMatchObject({ net: '−200', netPolarity: 'bad' });
+    });
+
+    it('prints a zero Net unsigned and neutral', () => {
+      expect(hero({ current: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } })).toMatchObject({
+        net: '0',
+        netPolarity: 'neutral',
+      });
+    });
+  });
+
   describe("change against last month's full Out", () => {
+    it('groups a change of 1,000% or more with a comma', () => {
+      expect(
+        hero({
+          current: { incomeEgp: 22_300, expenseEgp: 7_400, netEgp: 14_900 },
+          previous: { incomeEgp: 20_000, expenseEgp: 500, netEgp: 19_500 },
+        }),
+      ).toMatchObject({
+        lastMonthChange: { label: '1,380%', accessibilityLabel: 'Spent 1,380% more than August' },
+      });
+    });
+
+    it('keeps printing after a negative last month (ruled 2026-09-26)', () => {
+      expect(hero({ previous: { incomeEgp: 0, expenseEgp: -50, netEgp: 50 } })).toMatchObject({
+        lastMonthChange: {
+          direction: 'up',
+          polarity: 'bad',
+          label: '18,900%',
+          accessibilityLabel: 'Spent 18,900% more than August',
+        },
+      });
+    });
+
+    it('reads a month with nothing spent as down 100% (ruled 2026-09-26)', () => {
+      expect(
+        hero({
+          current: { incomeEgp: 22_300, expenseEgp: 0, netEgp: 22_300 },
+          previous: { incomeEgp: 20_000, expenseEgp: 7_400, netEgp: 12_600 },
+        }),
+      ).toMatchObject({
+        lastMonthChange: {
+          direction: 'down',
+          polarity: 'good',
+          label: '100%',
+          accessibilityLabel: 'Spent 100% less than August',
+        },
+      });
+    });
+
     it('reads a fall as down, good, and names last month in full (A1)', () => {
       expect(hero()).toMatchObject({
         lastMonthChange: {

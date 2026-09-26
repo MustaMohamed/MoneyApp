@@ -886,7 +886,7 @@ describe('useTransactions query ownership', () => {
     await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
 
     await act(() => {
-      useTransactionsState.getState().failTotalsLoad(true);
+      useTransactionsState.getState().failTotalsLoad(true, '2026-09|[]');
       useTransactionsState.getState().setUserRefreshing(true);
     });
     expect(result.current.state.totalsStatus).toBe('refreshErrorWithData');

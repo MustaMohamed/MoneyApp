@@ -116,7 +116,7 @@ export default function TransactionsScreen(): React.ReactElement {
           onChange={setSearchQuery}
           onOpenFilter={openFilter}
           activeFilterCount={state.activeFilterCount}
-          disabled={state.searchDisabled}
+          isDisabled={state.searchDisabled}
         />
       </View>
     ),
