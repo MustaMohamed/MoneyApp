@@ -30,7 +30,7 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 | totals strip, seeded from See all | A2, MA-102; C5 on `account_detail.md` | account detail of one of those accounts, `See all` | the same three values as the sheet path, and the filter button reads `Filter, 1 active`; one shot of the strip |
 | totals strip, empty month | no frame, MA-102 | the month pill to a month with no rows | Income, Expense and Net read zero, with no skeleton and no error alert (`mqa ui`); one shot of the strip |
 | row glyph, recoloured | no frame, MA-103 | the upgrade seed (`categories.md` § Gotchas): a Housing, a Bills and a Subscriptions expense dated today | one shot of the three rows on the bare list: the glyphs in `#5C7FC4`, `#5C7FC4` and `#B264A7`, readable on the dark screen |
-| filter accordion, category glyph | no frame, MA-103 | open the filter sheet, expand `Category` | one shot of the expanded accordion: each option glyph in its category tone |
+| filter accordion, category glyph | no frame, MA-103 | open the filter sheet, expand `Categories` (`$MQA tap 'label="Categories, All categories"'`) | one shot of the expanded accordion: each option glyph in its category tone |
 
 ## Outbound
 
