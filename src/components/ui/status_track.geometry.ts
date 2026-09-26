@@ -8,14 +8,20 @@ export const STATUS_TRACK_LINE_HEIGHT = Math.floor(Size.statusTrack / 2);
 export const STATUS_GLYPH_BOX = ms(14);
 export const STATUS_IDLE_DOT = ms(5);
 
-export type StatusTone = 'idle' | 'error';
-
-export interface StatusTrackModel {
-  text: string;
-  tone: StatusTone;
-  glyph: 'alert' | 'dot' | 'none';
-  a11y: { accessibilityLiveRegion: 'polite' | 'assertive'; accessibilityRole?: 'alert' };
-}
+/** Tone and glyph record one fact, so a mismatched pair does not compile. */
+export type StatusTrackModel =
+  | {
+      text: string;
+      tone: 'error';
+      glyph: 'alert';
+      a11y: { accessibilityLiveRegion: 'assertive'; accessibilityRole: 'alert' };
+    }
+  | {
+      text: string;
+      tone: 'idle';
+      glyph: 'dot' | 'none';
+      a11y: { accessibilityLiveRegion: 'polite' };
+    };
 
 /** An empty `message` is the absence of an error; with no footnote either, the track is one empty line. */
 export function resolveStatusTrack(
