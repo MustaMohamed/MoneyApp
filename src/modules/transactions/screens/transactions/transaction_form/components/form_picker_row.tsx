@@ -1,9 +1,11 @@
 import { ListGroup, cn } from 'heroui-native';
 import type { ReactNode } from 'react';
-import type { TextStyle } from 'react-native';
+import { View, type TextStyle } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
+
+import { FACT_ROW_MIN_HEIGHT } from './transaction_form_geometry';
 
 interface FormPickerRowProps {
   testID: string;
@@ -14,10 +16,14 @@ interface FormPickerRowProps {
   prefix?: ReactNode;
   suffix?: ReactNode;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   valueClassName?: string;
   valueStyle?: TextStyle;
+  valueNumberOfLines?: number;
+  divider?: boolean;
 }
 
+/** Canvas `.fact`: key left, value right, at the 44 touch floor, a hairline below unless `divider` is off. */
 export function FormPickerRow({
   testID,
   label,
@@ -27,41 +33,63 @@ export function FormPickerRow({
   prefix,
   suffix,
   accessibilityLabel = Strings.addTxPickerAccessibility(label, value),
+  accessibilityHint,
   valueClassName,
   valueStyle,
+  valueNumberOfLines = 1,
+  divider = true,
 }: FormPickerRowProps): React.ReactElement {
   return (
-    <ListGroup variant="secondary" className="rounded-md">
-      <ListGroup.Item
-        testID={testID}
-        onPress={disabled ? undefined : onPress}
-        disabled={disabled}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityState={{ disabled }}
-        className="gap-2 px-3 py-3"
+    <ListGroup.Item
+      testID={testID}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled }}
+      className={cn('gap-3 px-0 py-2', divider && 'border-separator border-b')}
+      style={{
+        minHeight: FACT_ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+    >
+      <ListGroup.ItemDescription
+        className="font-inter text-content-secondary"
+        style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
       >
-        {prefix ? <ListGroup.ItemPrefix>{prefix}</ListGroup.ItemPrefix> : null}
-        <ListGroup.ItemContent style={{ minWidth: 0 }}>
-          <ListGroup.ItemDescription
-            className="font-inter"
-            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-          >
-            {label}
-          </ListGroup.ItemDescription>
-          <ListGroup.ItemTitle
-            numberOfLines={1}
-            className={cn('font-sora-semibold', valueClassName)}
-            style={[
-              { fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) },
-              valueStyle,
-            ]}
-          >
-            {value}
-          </ListGroup.ItemTitle>
-        </ListGroup.ItemContent>
-        <ListGroup.ItemSuffix>{suffix}</ListGroup.ItemSuffix>
-      </ListGroup.Item>
-    </ListGroup>
+        {label}
+      </ListGroup.ItemDescription>
+      <View
+        className="gap-2"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+        }}
+      >
+        {prefix}
+        <ListGroup.ItemTitle
+          numberOfLines={valueNumberOfLines}
+          className={cn('font-sora text-foreground tabular-nums', valueClassName)}
+          style={[
+            {
+              flexShrink: 1,
+              textAlign: 'right',
+              fontSize: Type.body,
+              lineHeight: lineHeightFor(Type.body),
+            },
+            valueStyle,
+          ]}
+        >
+          {value}
+        </ListGroup.ItemTitle>
+        {suffix}
+      </View>
+    </ListGroup.Item>
   );
 }

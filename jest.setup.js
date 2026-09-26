@@ -83,6 +83,9 @@ jest.mock('heroui-native', () => {
   ListGroup.ItemDescription = passThrough(RNText);
   ListGroup.ItemSuffix = passThrough(View);
 
+  const SkeletonGroup = passThrough(View);
+  SkeletonGroup.Item = passThrough(View);
+
   const RadioGroupContext = React.createContext({
     value: undefined,
     onValueChange: undefined,
@@ -218,6 +221,7 @@ jest.mock('heroui-native', () => {
     Spinner,
     ListGroup,
     Separator,
+    SkeletonGroup,
     Surface,
     ToastProvider,
     Typography,

@@ -41,6 +41,7 @@ export function EditTransactionSession(props: EditTransactionSessionProps): Reac
       visible: true,
       saving: hook.state.saving,
       disabled: footerDisabled,
+      status: hook.state.status,
     },
     onRegisterSubmit: props.onRegisterSubmit,
   });
@@ -74,7 +75,6 @@ export function EditTransactionSession(props: EditTransactionSessionProps): Reac
           onOpenBudgetPicker={() => hook.setShowBudgetPicker(true)}
           onRetryBudgetLookup={hook.retryBudgetLookup}
           budgetError={hook.state.errors.budget}
-          errorMessage={hook.state.errorMessage}
           requiresRate={hook.state.requiresRate}
           exchangeRate={hook.state.exchangeRate}
           setExchangeRate={hook.setExchangeRate}

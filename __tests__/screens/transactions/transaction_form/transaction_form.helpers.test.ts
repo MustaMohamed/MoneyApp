@@ -6,11 +6,15 @@ import {
   TransactionValidationError,
 } from '@/modules/transactions/repositories/transaction.errors';
 import {
+  countTransactionFormFieldErrors,
+  resolveBudgetFieldError,
   resolveDestinationFloorError,
   resolveTransactionDeleteError,
   resolveTransactionFormSemantics,
+  resolveTransactionFormStatus,
   resolveTransactionSaveError,
   toTransactionTimestamp,
+  type TransactionFormFieldErrors,
 } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { makeTestAccount } from '@/test_helpers/transaction';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
@@ -248,5 +252,139 @@ describe('resolveDestinationFloorError', () => {
     expect(floor({ ...base, exchangeRateText: '0' })).toBeUndefined();
     expect(floor({ ...base, amount: 0.005 })).toBeUndefined();
     expect(floor({ ...base, amount: Number.NaN })).toBeUndefined();
+  });
+});
+
+describe('MA-105 footer status line', () => {
+  const lookupFailed = 'Could not load budgets';
+
+  it('counts one field at fault', () => {
+    const errors: TransactionFormFieldErrors = { amount: 'Enter an amount' };
+
+    expect(countTransactionFormFieldErrors(errors)).toBe(1);
+    expect(resolveTransactionFormStatus({ errors })).toBe('Fix the 1 field marked above.');
+  });
+
+  it('counts two fields at fault', () => {
+    const errors: TransactionFormFieldErrors = {
+      amount: 'Enter an amount',
+      category: 'Pick a category',
+    };
+
+    expect(countTransactionFormFieldErrors(errors)).toBe(2);
+    expect(resolveTransactionFormStatus({ errors })).toBe('Fix the 2 fields marked above.');
+  });
+
+  it('counts the rate row, which keeps its own inline line', () => {
+    expect(
+      countTransactionFormFieldErrors({ rate: 'Enter a rate', account: 'Pick an account' }),
+    ).toBe(2);
+    expect(resolveTransactionFormStatus({ errors: { rate: 'Enter a rate' } })).toBe(
+      'Fix the 1 field marked above.',
+    );
+  });
+
+  it('counts only the keys whose message is set', () => {
+    const errors: TransactionFormFieldErrors = {
+      amount: undefined,
+      account: undefined,
+      toAccount: undefined,
+      category: 'Pick a category',
+      budget: undefined,
+      rate: undefined,
+    };
+
+    expect(countTransactionFormFieldErrors(errors)).toBe(1);
+  });
+
+  it('counts the budget field without a lookup failure and not with one', () => {
+    expect(countTransactionFormFieldErrors({ budget: 'Pick a budget' })).toBe(1);
+    expect(
+      countTransactionFormFieldErrors(
+        { budget: lookupFailed, amount: 'Enter an amount' },
+        lookupFailed,
+      ),
+    ).toBe(1);
+    expect(
+      resolveTransactionFormStatus({
+        errors: { budget: lookupFailed },
+        budgetLookupError: lookupFailed,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('counts every key the errors type carries, and no budget fault behind a lookup failure', () => {
+    const errors: Required<TransactionFormFieldErrors> = {
+      amount: 'Enter an amount',
+      account: 'Pick an account',
+      toAccount: 'Pick where the money goes',
+      category: 'Pick a category',
+      budget: 'Pick a budget',
+      rate: 'Enter a rate',
+    };
+
+    expect(countTransactionFormFieldErrors(errors)).toBe(6);
+    expect(countTransactionFormFieldErrors({ budget: lookupFailed }, lookupFailed)).toBe(0);
+  });
+
+  it('reads a budget error as a field fault only without a lookup failure', () => {
+    expect(resolveBudgetFieldError('Pick a budget', lookupFailed)).toBeUndefined();
+    expect(resolveBudgetFieldError('Pick a budget', undefined)).toBe('Pick a budget');
+  });
+
+  it('returns the save error when no field is at fault', () => {
+    expect(
+      resolveTransactionFormStatus({ errors: {}, saveError: Strings.transactionSaveError }),
+    ).toBe(Strings.transactionSaveError);
+  });
+
+  it('puts the count line over a save error', () => {
+    expect(
+      resolveTransactionFormStatus({
+        errors: { amount: 'Enter an amount' },
+        saveError: Strings.transactionSaveError,
+      }),
+    ).toBe('Fix the 1 field marked above.');
+  });
+
+  it('is empty with no field at fault and no save error', () => {
+    expect(resolveTransactionFormStatus({ errors: {} })).toBeUndefined();
+  });
+
+  it.each([
+    [
+      'a plain Error',
+      new Error('write failed'),
+      "Couldn't save this transaction. Nothing was changed. Try again.",
+    ],
+    [
+      'an archived-account refusal',
+      new TransactionAccountArchivedError('source', makeTestAccount({ name: 'Old Card' })),
+      Strings.transactionAccountArchived('Old Card'),
+    ],
+    [
+      'an unstorable amount',
+      new TransactionAmountError('internal', 'unstorable'),
+      Strings.addTxErrAmountUnstorable,
+    ],
+    [
+      'a destination too small',
+      new TransactionAmountError('internal', 'zero-destination'),
+      Strings.addTxErrDestinationTooSmall,
+    ],
+    [
+      'a card credit past the card balance',
+      { issues: [{ code: 'card_credit_exceeds_liability' }] },
+      Strings.addTxErrCardCreditExceedsLiability,
+    ],
+    [
+      'a card payment past the card balance',
+      { issues: [{ code: 'cc_payment_exceeds_liability' }] },
+      Strings.addTxErrCcPaymentExceedsLiability,
+    ],
+  ])('carries %s to the track as its shipped line', (_label, error, line) => {
+    expect(
+      resolveTransactionFormStatus({ errors: {}, saveError: resolveTransactionSaveError(error) }),
+    ).toBe(line);
   });
 });

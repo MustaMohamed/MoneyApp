@@ -2,6 +2,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import { Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
 type AddTransactionHook =
@@ -180,6 +181,7 @@ function createHookState(
       },
       errorMessage: undefined,
       budgetLookupError: undefined,
+      status: undefined,
       formDataReady: false,
       formDataLoadError: false,
       saving: false,
@@ -249,6 +251,7 @@ function createEditHookState(
       },
       errorMessage: undefined,
       budgetLookupError: undefined,
+      status: undefined,
       formDataReady: false,
       formDataLoadError: false,
       saving: false,
@@ -338,6 +341,24 @@ describe('transaction form sessions', () => {
     );
     await fireEvent.press(screen.getByTestId('transaction-form-no-accounts'));
     expect(mockRequestAccountCreation).toHaveBeenCalledWith(1);
+  });
+
+  it('MA-105: publishes the hook status line on the Add footer', async () => {
+    await renderAdd({ formDataReady: true, status: 'Fix the 2 fields marked above.' });
+
+    await waitFor(() =>
+      expect(useTransactionFormState.getState().footer.status).toBe(
+        'Fix the 2 fields marked above.',
+      ),
+    );
+  });
+
+  it('MA-105: publishes the save failure on the Add footer when no field is at fault', async () => {
+    await renderAdd({ formDataReady: true, status: Strings.transactionSaveError });
+
+    await waitFor(() =>
+      expect(useTransactionFormState.getState().footer.status).toBe(Strings.transactionSaveError),
+    );
   });
 
   it('registers Edit submit and publishes saving footer state', async () => {

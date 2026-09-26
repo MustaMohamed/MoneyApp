@@ -1,9 +1,9 @@
 import { Strings } from '@/constants/strings';
 
 describe('edit account copy (D1, F3)', () => {
-  it('counts one fault with the same template as many', () => {
-    expect(Strings.editAccountFixFields(1)).toBe('Fix the 1 fields marked above.');
-    expect(Strings.editAccountFixFields(3)).toBe('Fix the 3 fields marked above.');
+  it('counts one fault in the singular and many in the plural', () => {
+    expect(Strings.fixFieldsMarkedAbove(1)).toBe('Fix the 1 field marked above.');
+    expect(Strings.fixFieldsMarkedAbove(3)).toBe('Fix the 3 fields marked above.');
   });
 
   it('ships the failure line byte-exact', () => {

@@ -152,6 +152,55 @@ describe('useEditTransaction', () => {
     expect(updateTx).not.toHaveBeenCalled();
   });
 
+  it('MA-105: a rate typed after a failed Save clears its fault and the count', async () => {
+    const usdTx = {
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 500,
+      exchange_rate: 50,
+    };
+    useEditTransactionStore.getState().loadFromTx(usdTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await act(() => result.current.setExchangeRate(''));
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.errors.rate).toBeDefined();
+    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
+
+    await act(() => result.current.setExchangeRate('50'));
+
+    await waitFor(() => expect(result.current.state.errors.rate).toBeUndefined());
+    expect(result.current.state.status).toBeUndefined();
+    expect(updateTx).not.toHaveBeenCalled();
+  });
+
+  it('MA-105: an empty amount does not hide the rate fault, and Save reads Fix the 2 fields', async () => {
+    const usdTx = {
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 500,
+      exchange_rate: 50,
+    };
+    useEditTransactionStore.getState().loadFromTx(usdTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await act(() => result.current.setAmountStr(''));
+    await act(() => result.current.setExchangeRate('50abc'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.amount).toBeDefined();
+    expect(result.current.state.errors.rate).toBeDefined();
+    expect(result.current.state.status).toBe('Fix the 2 fields marked above.');
+    expect(updateTx).not.toHaveBeenCalled();
+  });
+
   it('uses expense categories and budget eligibility for an existing Card credit', async () => {
     const creditTx = {
       ...mockTxExpense,
@@ -257,9 +306,7 @@ describe('useEditTransaction', () => {
 
     await act(async () => result.current.handleSave());
 
-    expect(result.current.state.errorMessage).toBe(
-      'Could not save this transaction. Please try again.',
-    );
+    expect(result.current.state.errorMessage).toBe(Strings.transactionSaveError);
     expect(result.current.state.note).toBe('keep this edit');
     expect(onClose).not.toHaveBeenCalled();
     expect(onSaved).not.toHaveBeenCalled();
@@ -493,6 +540,32 @@ describe('useEditTransaction', () => {
     await act(async () => result.current.handleSave());
 
     expect(result.current.state.errors.budget).toBeDefined();
+    expect(updateTx).not.toHaveBeenCalled();
+  });
+
+  it('MA-105: moving to a category with no budgets after a failed Save clears the Budget fault', async () => {
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockImplementation(async (categoryId, month) =>
+        categoryId === 'c1' && month === '2026-06'
+          ? [mockBudget('june-1'), mockBudget('june-2')]
+          : [],
+      );
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await act(() => result.current.setDate('2026-06-02'));
+    await waitFor(() => expect(result.current.state.availableBudgets).toHaveLength(2));
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.errors.budget).toBeDefined();
+    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
+
+    await act(() => result.current.selectCategory(mockCategoryShop));
+
+    await waitFor(() => expect(result.current.state.errors.budget).toBeUndefined());
+    expect(result.current.state.budgetsLoading).toBe(false);
+    expect(result.current.state.status).toBeUndefined();
     expect(updateTx).not.toHaveBeenCalled();
   });
 });

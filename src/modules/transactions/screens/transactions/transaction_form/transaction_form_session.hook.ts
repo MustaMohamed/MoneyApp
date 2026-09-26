@@ -26,7 +26,7 @@ export function useTransactionFormSession({
   const submitRef = useRef(submit);
   submitRef.current = submit;
   const handleSubmit = useCallback(() => submitRef.current(), []);
-  const { visible, saving, disabled } = footer;
+  const { visible, saving, disabled, status } = footer;
 
   useEffect(() => {
     onRegisterSubmit(sessionId, handleSubmit);
@@ -34,6 +34,6 @@ export function useTransactionFormSession({
   }, [handleSubmit, onRegisterSubmit, sessionId]);
 
   useEffect(() => {
-    publishFooter(sessionId, { visible, saving, disabled });
-  }, [disabled, publishFooter, saving, sessionId, visible]);
+    publishFooter(sessionId, { visible, saving, disabled, status });
+  }, [disabled, publishFooter, saving, sessionId, status, visible]);
 }

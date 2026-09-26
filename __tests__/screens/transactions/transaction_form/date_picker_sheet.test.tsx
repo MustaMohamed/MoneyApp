@@ -59,10 +59,8 @@ jest.mock('@/components/ui/button', () => ({
 
 import { Strings } from '@/constants/strings';
 import { useDatePickerSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/date_picker_sheet.state';
-import {
-  DATE_ROW_HEIGHT,
-  DateRow,
-} from '@/modules/transactions/screens/transactions/transaction_form/components/date_row';
+import { DateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/date_row';
+import { FACT_ROW_MIN_HEIGHT } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 
 describe('transaction date picker', () => {
@@ -187,11 +185,11 @@ describe('transaction date picker', () => {
     const screen = await render(
       <DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />,
     );
-    expect(screen.getByTestId('date-row')).toHaveStyle({ height: DATE_ROW_HEIGHT });
+    expect(screen.getByTestId('date-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
 
     await fireEvent.press(screen.getByTestId('date-row'));
 
-    expect(screen.getByTestId('date-row')).toHaveStyle({ height: DATE_ROW_HEIGHT });
+    expect(screen.getByTestId('date-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
     expect(screen.getByTestId('date-picker-done')).toHaveProp(
       'accessibilityLabel',
       Strings.addTxDatePickerDone,

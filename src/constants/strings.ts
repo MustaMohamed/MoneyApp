@@ -351,7 +351,6 @@ export const Strings = {
   editAccountFootnote: 'Changes apply everywhere this account appears.',
   editAccountCta: 'Save changes',
   editAccountSaveError: "Couldn't save your changes. Nothing was changed. Try again.",
-  editAccountFixFields: (count: number) => `Fix the ${count} fields marked above.`,
   accountDetailMonthInLabel: 'This month in',
   accountDetailMonthOutLabel: 'This month out',
   accountActivityTitle: 'Recent activity',
@@ -533,7 +532,9 @@ export const Strings = {
   addTxDatePickerTitle: 'Choose transaction date',
   addTxDatePickerCancel: 'Cancel',
   addTxDatePickerDone: 'Done',
-  transactionSaveError: 'Could not save this transaction. Please try again.',
+  transactionSaveError: "Couldn't save this transaction. Nothing was changed. Try again.",
+  fixFieldsMarkedAbove: (count: number) =>
+    count === 1 ? 'Fix the 1 field marked above.' : `Fix the ${count} fields marked above.`,
   transactionAccountArchived: (name: string) =>
     `${name} is archived. Restore it to change this transaction.`,
   viewCommitment: 'View commitment',
@@ -858,7 +859,7 @@ export const Strings = {
   settingsCategoriesDesc: 'Manage expense and income categories',
 
   // U6 Add Transaction sheet
-  addTxTitle: 'Add Transaction',
+  addTxTitle: 'Add transaction',
   addTxTypeExpense: 'Expense',
   addTxTypeIncome: 'Income',
   addTxTypeCardCredit: 'Card credit',
@@ -893,7 +894,7 @@ export const Strings = {
   addTxRateResetAccessibility: 'Reset exchange rate to the global rate',
   addTxRatePlaceholder: '0.00',
   addTxSaveCta: 'Save',
-  editTxSaveCta: 'Save Changes',
+  editTxSaveCta: 'Save changes',
   addTxErrAmountRequired: 'Enter an amount',
   addTxErrAmountZero: 'Amount must be at least 0.01',
   addTxErrAccountRequired: 'Select an account',
@@ -960,8 +961,7 @@ export const Strings = {
   detailNote: 'NOTE',
   detailNoteEmpty: 'No note',
   capturedBadge: 'Captured',
-  editTransaction: 'Edit Transaction',
-  editTxTitle: 'Edit Transaction',
+  editTxTitle: 'Edit transaction',
   deleteTransaction: 'Delete',
   deleteConfirmTitle: 'Delete this transaction?',
   deleteConfirmBody: 'The account balance will be restored. This cannot be undone.',

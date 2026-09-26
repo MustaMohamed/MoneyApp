@@ -21,17 +21,26 @@ export const ARCHIVED_HERO_OPACITY = 0.85;
 // The hero gradient's middle stop as the archived hero paints it; a ring that clears it clears the list card surface too.
 const HOLLOW_BACKDROP = mixHex(HERO_GRADIENT_COLORS[1], CoreTokens.bg, ARCHIVED_HERO_OPACITY);
 const HOLLOW_MIN_CONTRAST_RATIO = 3;
-const HOLLOW_SHARE_STEP = 0.05;
-const HOLLOW_STEP_COUNT = Math.ceil(1 / HOLLOW_SHARE_STEP);
+const TEXT_SHARE_STEP = 0.05;
+const TEXT_STEP_COUNT = Math.ceil(1 / TEXT_SHARE_STEP);
 
-function resolveHollowTileColor(hex: string): string {
-  for (let step = 0; step <= HOLLOW_STEP_COUNT; step += 1) {
-    const share = Math.max(0, 1 - step * HOLLOW_SHARE_STEP);
+/** `hex` unchanged when `clears` accepts it, else the first 5% step toward the text colour it accepts. */
+export function stepTowardText(hex: string, clears: (candidate: string) => boolean): string {
+  for (let step = 0; step <= TEXT_STEP_COUNT; step += 1) {
+    const share = Math.max(0, 1 - step * TEXT_SHARE_STEP);
     const candidate = step === 0 ? hex : mixHex(hex, CoreTokens.text1, share);
-    const painted = mixHex(candidate, CoreTokens.bg, ARCHIVED_HERO_OPACITY);
-    if (contrastRatio(painted, HOLLOW_BACKDROP) >= HOLLOW_MIN_CONTRAST_RATIO) return candidate;
+    if (clears(candidate)) return candidate;
   }
   return CoreTokens.text1;
+}
+
+function resolveHollowTileColor(hex: string): string {
+  return stepTowardText(
+    hex,
+    (candidate) =>
+      contrastRatio(mixHex(candidate, CoreTokens.bg, ARCHIVED_HERO_OPACITY), HOLLOW_BACKDROP) >=
+      HOLLOW_MIN_CONTRAST_RATIO,
+  );
 }
 
 /** Filled takes the palette entry's tick colour on its fill; hollow steps the account colour until it clears 3:1 on the archived hero as painted. */

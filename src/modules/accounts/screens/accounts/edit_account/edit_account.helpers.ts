@@ -40,6 +40,6 @@ export function resolveEditStatusMessage({
   errorCount: number;
   saveError?: string;
 }): string | undefined {
-  if (errorCount > 0) return Strings.editAccountFixFields(errorCount);
+  if (errorCount > 0) return Strings.fixFieldsMarkedAbove(errorCount);
   return saveError;
 }

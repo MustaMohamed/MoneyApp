@@ -3,11 +3,9 @@ import { Size } from '@/constants/theme';
 import {
   ONBOARDING_SHELL_TRACKS,
   ONBOARDING_TOTAL_STEPS,
-  STATUS_TRACK_LINE_HEIGHT,
   resolveAmbientWashGeometry,
   resolveKeyboardLift,
   resolveProgressRail,
-  resolveStatusTrack,
   type OnboardingStepIndex,
 } from '@/modules/onboarding/components/onboarding_shell/onboarding_shell.geometry';
 import { ms } from '@/utils/responsive';
@@ -18,11 +16,6 @@ describe('onboarding shell geometry', () => {
     expect(ONBOARDING_SHELL_TRACKS.progressRail).toBe(Size.progressRail);
     expect(ONBOARDING_SHELL_TRACKS.statusTrack).toBe(Size.statusTrack);
     expect(ONBOARDING_SHELL_TRACKS.cta).toBe(Size.onboardingCtaTrack);
-  });
-
-  it('holds exactly two status lines at every scale', () => {
-    expect(STATUS_TRACK_LINE_HEIGHT * 2).toBeLessThanOrEqual(Size.statusTrack);
-    expect(STATUS_TRACK_LINE_HEIGHT * 2).toBeGreaterThan(Size.statusTrack - 2);
   });
 });
 
@@ -44,46 +37,6 @@ describe('resolveProgressRail', () => {
     expect(model.stepLabel).toBe(`Step ${step} of 4`);
     expect(model.stepName).toBe(stepNames[step - 1]);
     expect(model.accessibilityLabel).toBe(`Step ${step} of 4, ${stepNames[step - 1]}`);
-  });
-});
-
-describe('resolveStatusTrack', () => {
-  it.each([
-    [
-      'idle footnote, no message',
-      Strings.n2Footnote,
-      undefined,
-      {
-        text: Strings.n2Footnote,
-        tone: 'idle' as const,
-        a11y: { accessibilityLiveRegion: 'polite' as const },
-      },
-    ],
-    [
-      'error message replaces the footnote',
-      Strings.n2Footnote,
-      'Could not save that.',
-      {
-        text: 'Could not save that.',
-        tone: 'error' as const,
-        a11y: {
-          accessibilityLiveRegion: 'assertive' as const,
-          accessibilityRole: 'alert' as const,
-        },
-      },
-    ],
-    [
-      'an empty string is not a failure — the track is never empty',
-      Strings.n2Footnote,
-      '',
-      {
-        text: Strings.n2Footnote,
-        tone: 'idle' as const,
-        a11y: { accessibilityLiveRegion: 'polite' as const },
-      },
-    ],
-  ])('%s', (_name, footnote, message, expected) => {
-    expect(resolveStatusTrack(footnote, message)).toEqual(expected);
   });
 });
 

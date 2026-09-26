@@ -1,14 +1,22 @@
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { SkeletonGroup } from 'heroui-native';
 import { View } from 'react-native';
 
+import { ListCard } from '@/components/ui/list_card';
 import { Strings } from '@/constants/strings';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
-import { TRANSACTION_FORM_ERROR_SLOT_HEIGHT } from '../transaction_form_body';
-import { DATE_ROW_HEIGHT } from './date_row';
+import {
+  TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
+  TRANSACTION_FORM_SKELETON_GEOMETRY,
+} from './transaction_form_geometry';
 
-const PICKER_ROWS = [0, 1];
+const FACT_ROWS = Array.from(
+  { length: TRANSACTION_FORM_SKELETON_GEOMETRY.factRowCount },
+  (_, row) => row,
+);
+const LAST_FACT_ROW = FACT_ROWS.length - 1;
 
 export function TransactionFormLoading(): React.ReactElement {
   return (
@@ -17,11 +25,11 @@ export function TransactionFormLoading(): React.ReactElement {
       style={{ flex: 1 }}
       accessibilityLabel={Strings.loadingTransactionA11y}
     >
-      <SkeletonGroup isLoading isSkeletonOnly>
+      <SkeletonGroup isLoading isSkeletonOnly style={{ flex: 1 }}>
         <View className="border-separator border-b px-4 py-2">
           <SkeletonGroup.Item
             className="w-full"
-            style={{ height: ms(36), borderRadius: Radius.sm }}
+            style={{ height: TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar, borderRadius: Radius.sm }}
           />
         </View>
         <View className="border-separator min-h-8 justify-center border-b px-4 py-1.5">
@@ -33,30 +41,48 @@ export function TransactionFormLoading(): React.ReactElement {
         >
           <SkeletonGroup.Item
             className="w-40"
-            style={{ height: ms(40), borderRadius: Radius.sm }}
+            style={{ height: TRANSACTION_FORM_SKELETON_GEOMETRY.amount, borderRadius: Radius.sm }}
           />
         </View>
-        <View style={{ height: TRANSACTION_FORM_ERROR_SLOT_HEIGHT }} />
-        <View style={{ flex: 1, padding: Spacing.md, gap: Spacing.xs }}>
-          {PICKER_ROWS.map((row) => (
-            <View key={row}>
-              <SkeletonGroup.Item
-                className="w-full"
-                style={{ height: DATE_ROW_HEIGHT, borderRadius: Radius.md }}
-              />
-              <View style={{ height: TRANSACTION_FORM_ERROR_SLOT_HEIGHT }} />
-            </View>
-          ))}
+        <BottomSheetScrollView
+          testID="transaction-form-skeleton-scroll"
+          style={{ flex: 1 }}
+          contentContainerStyle={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}
+          showsVerticalScrollIndicator={false}
+        >
           <SkeletonGroup.Item
+            testID="transaction-form-skeleton-account-row"
             className="w-full"
-            style={{ height: DATE_ROW_HEIGHT, marginTop: Spacing.xs, borderRadius: Radius.md }}
+            style={{
+              height: TRANSACTION_FORM_SKELETON_GEOMETRY.accountRow,
+              borderRadius: Radius.sm,
+            }}
           />
-          <SkeletonGroup.Item
-            className="w-full"
-            style={{ height: DATE_ROW_HEIGHT, borderRadius: Radius.md }}
-          />
-          <View style={{ height: TRANSACTION_FORM_ERROR_SLOT_HEIGHT }} />
-        </View>
+          <ListCard testID="transaction-form-skeleton-fact-group">
+            {FACT_ROWS.map((row) => (
+              <View
+                key={row}
+                testID="transaction-form-skeleton-fact-row"
+                className={row === LAST_FACT_ROW ? 'px-4' : 'border-separator border-b px-4'}
+                style={{
+                  minHeight: TRANSACTION_FORM_SKELETON_GEOMETRY.factRow,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <SkeletonGroup.Item
+                  className="rounded-md"
+                  style={TRANSACTION_FORM_SKELETON_GEOMETRY.keyBar}
+                />
+                <SkeletonGroup.Item
+                  className="rounded-md"
+                  style={TRANSACTION_FORM_SKELETON_GEOMETRY.valueBar}
+                />
+              </View>
+            ))}
+          </ListCard>
+        </BottomSheetScrollView>
       </SkeletonGroup>
     </View>
   );

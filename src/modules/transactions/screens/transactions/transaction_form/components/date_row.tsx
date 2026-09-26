@@ -1,61 +1,40 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { PressableFeedback } from 'heroui-native';
 import { Platform, View } from 'react-native';
 
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate } from '@/utils/format_date';
-import { ms } from '@/utils/responsive';
 
 import { DatePickerSheet } from './date_picker_sheet';
 import { useTransactionDatePicker } from './date_picker_sheet.hook';
+import { FormPickerRow } from './form_picker_row';
 
 interface Props {
   ownerId: string;
   value: string; // YYYY-MM-DD
   onChange: (next: string) => void;
+  divider?: boolean;
 }
 
-export const DATE_ROW_HEIGHT = ms(54);
-
-export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement {
+export function DateRow({ ownerId, value, onChange, divider }: Props): React.ReactElement {
   const picker = useTransactionDatePicker(ownerId, value, onChange);
   const formatted = formatLongDate(value);
 
   return (
-    <View className="mt-2">
-      <PressableFeedback
+    <View>
+      <FormPickerRow
         testID="date-row"
+        label={Strings.addTxDateLabel}
+        value={formatted}
         onPress={picker.open}
-        accessibilityRole="button"
+        divider={divider}
         accessibilityLabel={`${Strings.addTxDateLabel}: ${formatted}`}
-        className="bg-default rounded-md px-3"
-        style={{
-          height: DATE_ROW_HEIGHT,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <View>
-          <Text
-            className="font-inter text-muted"
-            style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-          >
-            {Strings.addTxDateLabel}
-          </Text>
-          <Text
-            className="font-sora-semibold text-foreground"
-            style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
-          >
-            {formatted}
-          </Text>
-        </View>
-        <MaterialCommunityIcons name="calendar" size={Size.iconSm} color={CoreTokens.text2} />
-      </PressableFeedback>
+        suffix={
+          <MaterialCommunityIcons name="calendar" size={Size.iconSm} color={CoreTokens.text2} />
+        }
+      />
 
       {picker.state.showAndroidPicker ? (
         <DateTimePicker

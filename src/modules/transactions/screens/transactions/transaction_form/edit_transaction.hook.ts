@@ -30,9 +30,12 @@ import { buildDefaultsFromTx, type EditTransactionFormValues } from './edit_tran
 import { useEditTransactionState } from './edit_transaction.state';
 import { useEditTransactionStore } from './edit_transaction.store';
 import {
+  REFINE_DESPITE_FIELD_ERRORS,
   resolveDestinationFloorError,
   resolveTransactionFormSemantics,
+  resolveTransactionFormStatus,
   resolveTransactionSaveError,
+  type TransactionFormFieldErrors,
 } from './transaction_form.helpers';
 import { type TransactionFormPrerequisiteController } from './transaction_form_prerequisites.helpers';
 
@@ -112,7 +115,7 @@ function createEditSchema(
       if (destinationFloorError) {
         context.addIssue({ code: 'custom', message: destinationFloorError, path: ['amount'] });
       }
-    });
+    }, REFINE_DESPITE_FIELD_ERRORS);
 }
 
 export function useEditTransaction(
@@ -267,7 +270,7 @@ export function useEditTransaction(
     category: form.formState.errors.categoryId?.message,
     budget: budgetLookupError ?? form.formState.errors.budgetId?.message,
     rate: form.formState.errors.exchangeRate?.message,
-  };
+  } satisfies TransactionFormFieldErrors;
 
   const budgetRequestRef = useRef(0);
   useEffect(() => {
@@ -336,6 +339,19 @@ export function useEditTransaction(
     semantics.usesBudget,
     type,
   ]);
+
+  function syncAmountValue() {
+    const amountStr = useEditTransactionStore.getState().amountStr;
+    form.setValue('amount', parseDecimalText(amountStr) ?? Number.NaN);
+  }
+
+  // After a failed Save, every pick or rate edit re-runs full validation against the schema this render built.
+  useEffect(() => {
+    if (!form.formState.isSubmitted) return;
+    syncAmountValue();
+    void form.trigger();
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [schema, categoryId, formBudgetId, date, exchangeRate]);
 
   async function onValid(data: EditTransactionFormValues) {
     const formState = useEditTransactionState.getState();
@@ -420,7 +436,7 @@ export function useEditTransaction(
   function selectBudget(budget: Budget) {
     clearError();
     setBudgetId(budget.id);
-    form.setValue('budgetId', budget.id, { shouldValidate: true });
+    form.setValue('budgetId', budget.id);
     setShowBudgetPicker(false);
   }
 
@@ -445,6 +461,11 @@ export function useEditTransaction(
       errors,
       errorMessage,
       budgetLookupError,
+      status: resolveTransactionFormStatus({
+        errors,
+        budgetLookupError,
+        saveError: errorMessage,
+      }),
       formDataReady: effectiveDataStatus === 'ready',
       formDataLoadError: effectiveDataStatus === 'error',
       saving,
@@ -490,8 +511,7 @@ export function useEditTransaction(
     retryBudgetLookup,
     retryFormData: prerequisites?.retry ?? ignorePrerequisiteRetry,
     handleSave: () => {
-      const amountStr = useEditTransactionStore.getState().amountStr;
-      form.setValue('amount', parseDecimalText(amountStr) ?? Number.NaN);
+      syncAmountValue();
       return form.handleSubmit(onValid)();
     },
   };

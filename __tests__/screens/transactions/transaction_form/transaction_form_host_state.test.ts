@@ -195,6 +195,27 @@ describe('useTransactionFormState', () => {
     });
   });
 
+  it('MA-105: stores a published status line and drops it on the next publish without one', () => {
+    useTransactionFormState.getState().openAdd();
+    const sessionId = useTransactionFormState.getState().sessionId;
+    useTransactionFormState.getState().publishFooter(sessionId, {
+      visible: true,
+      saving: false,
+      disabled: false,
+      status: 'Fix the 2 fields marked above.',
+    });
+
+    expect(useTransactionFormState.getState().footer.status).toBe('Fix the 2 fields marked above.');
+
+    useTransactionFormState.getState().publishFooter(sessionId, {
+      visible: true,
+      saving: false,
+      disabled: false,
+    });
+
+    expect(useTransactionFormState.getState().footer.status).toBeUndefined();
+  });
+
   it.each([
     ['add', () => useAddTransactionState.setState({ saving: true })],
     ['edit', () => useEditTransactionState.setState({ saving: true })],

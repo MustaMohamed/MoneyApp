@@ -14,13 +14,6 @@ export const ONBOARDING_SHELL_TRACKS = {
   cta: Size.onboardingCtaTrack,
 } as const;
 
-/** Derived from the track so two lines fit: at scale 1.15, ms(34) = 39 but 2 * ms(17) = 40. */
-export const STATUS_TRACK_LINE_HEIGHT = Math.floor(Size.statusTrack / 2);
-
-/** Glyph column from mockup.html:330-332 at 14; both states share it so the text edge holds. */
-export const STATUS_GLYPH_BOX = ms(14);
-export const STATUS_IDLE_DOT = ms(5);
-
 const STEP_NAMES: Record<OnboardingStepIndex, string> = {
   1: Strings.n1StepName,
   2: Strings.n2StepName,
@@ -42,31 +35,6 @@ export function resolveProgressRail(step: OnboardingStepIndex): ProgressRailMode
     stepLabel: Strings.onboardingStepOf(step),
     stepName,
     accessibilityLabel: Strings.onboardingProgressA11y(step, stepName),
-  };
-}
-
-export type StatusTone = 'idle' | 'error';
-
-export interface StatusTrackModel {
-  text: string;
-  tone: StatusTone;
-  a11y: { accessibilityLiveRegion: 'polite' | 'assertive'; accessibilityRole?: 'alert' };
-}
-
-/** An empty `message` is the absence of an error, so idle copy stays; the track is never empty. */
-export function resolveStatusTrack(footnote: string, message?: string): StatusTrackModel {
-  if (message) {
-    return {
-      text: message,
-      tone: 'error',
-      a11y: { accessibilityLiveRegion: 'assertive', accessibilityRole: 'alert' },
-    };
-  }
-
-  return {
-    text: footnote,
-    tone: 'idle',
-    a11y: { accessibilityLiveRegion: 'polite' },
   };
 }
 

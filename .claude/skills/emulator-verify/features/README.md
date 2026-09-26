@@ -34,6 +34,7 @@ Four sections, in this order: `Reach it` (route, user path, deep link), `States`
 | [commitment_detail.md](commitment_detail.md) | `/stacked/commitments/[id]` | not redesigned |
 | [transactions.md](transactions.md) | `/transactions`, and its filter sheet | B1, B2 (transactions canvas) |
 | [transaction_detail.md](transaction_detail.md) | `/transactions/detail/[id]` | not redesigned |
+| [transaction_form.md](transaction_form.md) | the add and edit sheet, over any tab | D1 to D4, D6 to D8, D15 (transactions canvas) |
 | [categories.md](categories.md) | `/settings/categories`, and its add and edit sheet | not redesigned |
 | [budget.md](budget.md) | `/budget`, and its copy sheet | not redesigned |
 | [spending_plan_detail.md](spending_plan_detail.md) | `/budget/plans/[id]` | not redesigned |

@@ -1,10 +1,10 @@
 import React, { type ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { StatusTrack } from '@/components/ui/status_track';
 import { Spacing } from '@/constants/theme';
 
 import { ONBOARDING_SHELL_TRACKS } from './onboarding_shell.geometry';
-import { OnboardingStatusTrack } from './onboarding_status_track';
 
 export interface OnboardingFooterProps {
   footnote: string;
@@ -19,7 +19,7 @@ export function OnboardingFooter({ footnote, message, cta }: OnboardingFooterPro
       className="border-separator border-t"
       style={{ paddingTop: Spacing.xxs, paddingHorizontal: Spacing.md, paddingBottom: Spacing.xs }}
     >
-      <OnboardingStatusTrack footnote={footnote} message={message} />
+      <StatusTrack footnote={footnote} message={message} />
       <View style={{ height: Spacing.xxs }} />
       <View style={{ height: ONBOARDING_SHELL_TRACKS.cta, justifyContent: 'center' }}>{cta}</View>
     </View>
