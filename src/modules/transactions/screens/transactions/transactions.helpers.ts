@@ -7,7 +7,6 @@ import {
   formatDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
-import { formatMonthYear } from '@/utils/format_date';
 import { MONTHS_SHORT, currentYearMonth, shiftYearMonth } from '@/utils/year_month';
 
 import type { TransactionTotalsStatus } from './transactions.state';
@@ -196,6 +195,23 @@ function lastMonthOutCaption(yearMonth: string, previous: PeriodTotals | null): 
   );
 }
 
+function heroShareLabels(
+  expenseEgp: number,
+  share: number | null,
+): Pick<TransactionsHeroModel, 'railAccessibilityLabel' | 'shareCaption'> {
+  if (expenseEgp < 0) {
+    return {
+      railAccessibilityLabel: Strings.totalsNetCredit,
+      shareCaption: Strings.totalsNetCredit,
+    };
+  }
+  if (share === null) return { railAccessibilityLabel: Strings.totalsNoIncome, shareCaption: null };
+  return {
+    railAccessibilityLabel: Strings.totalsExpenseShareA11y(share),
+    shareCaption: Strings.transactionsHeroShareSpent(share),
+  };
+}
+
 function daysLeftInMonth(yearMonth: string, today: string): number | null {
   if (today.slice(0, 7) !== yearMonth) return null;
   const lastDay = Number(resolvePeriod({ type: 'month', yearMonth }).to.slice(8, 10));
@@ -214,7 +230,9 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
   const base = {
     mode: input.mode,
     title,
-    monthLabel: formatMonthYear(input.yearMonth),
+    monthLabel: new Date(`${input.yearMonth}-01T12:00:00`).toLocaleDateString('en-US', {
+      month: 'long',
+    }),
     caption,
   };
   const current = input.mode === 'figures' ? input.current : null;
@@ -228,7 +246,8 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
       leftOfIncome: Strings.transactionsHeroUnavailable,
       railPct: 0,
       railDanger: false,
-      railAccessibilityLabel: Strings.totalsNoIncome,
+      railAccessibilityLabel:
+        input.mode === 'dashes' ? Strings.transactionsTotalsLoadError : Strings.totalsNoIncome,
       shareCaption: null,
     };
   }
@@ -250,8 +269,6 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
         : signAmountText(`${Math.abs(left)}%`, left < 0 ? MINUS_SIGN : ''),
     railPct: share === null ? 0 : Math.max(0, Math.min(100, share)),
     railDanger: share !== null && share > 100,
-    railAccessibilityLabel:
-      share === null ? Strings.totalsNoIncome : Strings.totalsExpenseShareA11y(share),
-    shareCaption: share === null ? null : Strings.transactionsHeroShareSpent(share),
+    ...heroShareLabels(current.expenseEgp, share),
   };
 }

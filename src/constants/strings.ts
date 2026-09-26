@@ -1258,7 +1258,7 @@ export const Strings = {
   transactionsHeroNet: 'Net',
   transactionsHeroLeftOfIncome: 'Left of income',
   transactionsHeroShareSpent: (pct: number) => `${pct}% of income spent`,
-  transactionsHeroDaysLeft: (days: number) => `${days} days left`,
+  transactionsHeroDaysLeft: (days: number) => (days === 1 ? '1 day left' : `${days} days left`),
   transactionsHeroLastMonthOut: (month: string, amount: string) => `${month} ${amount}`,
   transactionsHeroUnavailable: '—',
 
