@@ -16,6 +16,7 @@ Route `/commitments`, a tab. Screen `src/modules/commitments/screens/commitments
 | filter accordion count pill | no frame, MA-086 | open the filter sheet, expand one accordion, select two options | the count label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(10))` = 14 ± 1 high — the pill has no vertical padding, so that is the pill — and label width + 12 (`px-1.5`) clears the `min-w-[18px]` floor; one shot of the accordion header row |
 | row status pill | no frame, MA-087 | seed payments in the five statuses (`Overdue`, `Due`, `Upcoming`, `Paid`, `Skipped`, `commitment_status.ts:23-29`); `Paid` and `Skipped` may need the status filter to show | each status label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(10))` = 14 ± 1, so the pill is 14 + 4 (`py-0.5`) = 18, and the five pills are equal on one shot of the list |
 | filter sheet option pill, with adornment | no frame, MA-087 | open the filter sheet, expand `Category` | each option label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(11))` = 15 ± 1; the pill is the clickable `button` node (`accessibilityRole="button"`), 29 high (15 + `py-1.5` + the 1 dp `border` pair) at every label length; one shot of the expanded accordion |
+| row glyph, recoloured | no frame, MA-103 | the upgrade seed: `Walk Rent` on Housing | one shot of the row: the glyph in `#5C7FC4` on its tint box |
 
 ## Outbound
 

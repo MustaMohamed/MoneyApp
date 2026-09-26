@@ -12,6 +12,7 @@ Route `/stacked/commitments/[id]` from the list, `/commitments/[id]` on the tab 
 | State | Frame | Force | Proof |
 |---|---|---|---|
 | current-cycle status pill | no frame, MA-087 | open a commitment whose current payment is in each of `Overdue`, `Due`, `Upcoming`, then `Paid` after `Mark as paid` | the status label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(11))` = 15 ± 1, so the pill is 15 + 4 (`py-0.5`) = 19 at every status; one shot per status of the current-cycle card |
+| hero amount, neutral | no frame, MA-103 | the upgrade seed: open `Walk Rent` | `mqa read` carries the amount `TextView`; one shot of the hero: the amount in the foreground colour, not the category tone, and the glyph still in `#5C7FC4` |
 
 ## Outbound
 

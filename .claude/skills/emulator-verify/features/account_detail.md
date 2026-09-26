@@ -32,6 +32,7 @@ The canvas draws one account type per frame. Every state below is checked on a b
 | activity row, tile off | no frame, MA-090 | the seeded bank's expense with a note, dated today | one shot: no account tile, the category glyph before the title, caption `<note> · Today, <time>`; the row's bounds ÷ 2.625 read `ms(60)` = 63 ± 1 on the 411 dp Pixel_2 |
 | activity row, transfer | no frame, MA-090 | a transfer from the open account | one shot: the other account's single 28 tile, caption `<from> → <to> · <day label>` |
 | activity row, card payment, paid card | no frame, MA-090 | open the card a bank paid | `mqa ui` reads `From <payer> · <day label>`; one shot of the payer's tile |
+| activity row, glyph recoloured | no frame, MA-103 | the upgrade seed: open `Walk Bank`, whose activity card holds the Housing, Bills and Subscriptions expenses | one shot of the activity card: the glyphs in `#5C7FC4`, `#5C7FC4` and `#B264A7` on the card fill |
 
 ## Outbound
 
