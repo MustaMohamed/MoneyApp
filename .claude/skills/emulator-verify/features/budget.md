@@ -16,7 +16,7 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 | plan card status chip | no frame, MA-087 | the `Plans` lens (`Strings.budgetPlansTab`) with plans seeded in the four statuses (`Upcoming`, `On track`, `Watch`, `Over`, `spending_plans.helpers.ts:71-74`) | each status label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(11.5))` = 16 ± 1, the chip's `min-h-6` (24) holds it so the chip reads 24, and the title row is unchanged from base; one shot |
 | plan card 'more' chip | no frame, MA-087 | a plan with four or more categories (`spending_plans.helpers.ts:459-483`: three chips show, the rest fold) | the `+N` label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(14))` = 19 ± 1, the chip's `min-h-7.5 min-w-7.5` (30) holds it so the chip reads 30 and stays round; same shot |
 | plan card allocation chip | no frame, MA-087 | a plan with an allocated category | the amount `TextView` reads `lineHeightFor(msFont(13))` = 18 ± 1 and the percentage `lineHeightFor(msFont(11))` = 15 ± 1; the stacked boxes are 33, above the chip's `min-h-8` (32) floor, so the chip reads 33; same shot |
-| category chip glyph, recoloured | no frame, MA-103 | the upgrade seed: a budget on Housing for the current month | one shot of the Housing budget row: the glyph in `#5C7FC4` on its tint box |
+| category chip glyph, recoloured | no frame, MA-103 | the MA-103 seed (`categories.md` § Seeding and forcing states): a budget on Housing for the current month | one shot of the Housing budget row: the glyph in `#5C7FC4` on its tint box |
 
 ## Outbound
 
