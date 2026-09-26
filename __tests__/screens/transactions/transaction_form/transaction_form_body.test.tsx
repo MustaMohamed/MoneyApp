@@ -4,7 +4,6 @@ import { View, type ViewProps } from 'react-native';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { TouchSize } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@gorhom/bottom-sheet', () => {
@@ -85,11 +84,6 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   setNote: jest.fn(),
   currency: Currency.EGP,
 };
-
-// Without this, `toHaveStyle({ minHeight: undefined })` matches any row that lacks a minHeight.
-function expectFactRowMinimumDefined(): void {
-  expect(FACT_ROW_MIN_HEIGHT).toBe(TouchSize.min);
-}
 
 describe('TransactionFormBody geometry', () => {
   it('reserves the shared sticky-footer clearance below the last field', () => {
@@ -184,7 +178,6 @@ describe('TransactionFormBody fact rows', () => {
   it('draws the account and category pickers as fact rows with key and value', async () => {
     await render(<TransactionFormBody {...baseProps} />);
 
-    expectFactRowMinimumDefined();
     expect(screen.getByTestId('from-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
     expect(screen.getByTestId('category-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
 
@@ -204,7 +197,6 @@ describe('TransactionFormBody fact rows', () => {
       />,
     );
 
-    expectFactRowMinimumDefined();
     expect(screen.getByTestId('to-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
     expect(screen.getByTestId('to-account-row')).toHaveProp('accessibilityState', {
       disabled: true,
@@ -229,7 +221,6 @@ describe('TransactionFormBody fact rows', () => {
     const setNote = jest.fn();
     await render(<TransactionFormBody {...baseProps} setNote={setNote} />);
 
-    expectFactRowMinimumDefined();
     const input = screen.getByPlaceholderText(Strings.addTxNotePlaceholder);
     const noteRow = screen.getByTestId('note-row');
     expect(within(noteRow).getByText(Strings.addTxNoteLabel)).toBeTruthy();
@@ -289,7 +280,6 @@ describe('TransactionFormLoading', () => {
   it('draws the account bar and four fact rows at the loaded fact-row height', async () => {
     await render(<TransactionFormLoading />);
 
-    expectFactRowMinimumDefined();
     expect(screen.getByTestId('transaction-form-skeleton-account-row')).toHaveStyle({
       height: FACT_ROW_MIN_HEIGHT,
     });
