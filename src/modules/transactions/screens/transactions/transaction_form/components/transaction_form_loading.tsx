@@ -40,7 +40,7 @@ export function TransactionFormLoading(): React.ReactElement {
             style={{ height: TRANSACTION_FORM_SKELETON_GEOMETRY.amount, borderRadius: Radius.sm }}
           />
         </View>
-        <View style={{ flex: 1, padding: Spacing.md }}>
+        <View style={{ padding: Spacing.md }}>
           <SkeletonGroup.Item
             testID="transaction-form-skeleton-account-row"
             className="w-full"
