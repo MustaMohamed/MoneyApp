@@ -52,6 +52,7 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 ## Gotchas
 
 - `month_filter.tsx` is shared with commitments and budget; a height read here holds there, and a divergence is a caller override.
+- The `hero, change against last month` seed puts rows two and three months back, so on that device `hero, empty month` and `hero, past month` read differently: the first empty month over an empty month before it is four back, and one back shows a change node.
 - `mqa ui` returns nothing while the hero skeleton shimmers: `uiautomator dump` waits for an idle screen. Read the search field through `adb shell dumpsys activity top` instead.
 - A source-forced totals failure logs through `console.error`, so the dev LogBox toast sits over the tab bar in the shot; it is not the screen's alert.
 - This list's group headers are `DateHeader`, not the shared `section_header.tsx` (`index.tsx:82-86`); the `section title` state belongs to `dashboard.md` and `accounts_list.md`.
