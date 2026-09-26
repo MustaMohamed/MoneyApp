@@ -66,6 +66,11 @@ describe('buildTransactionsPresentation', () => {
     [
       'totals refresh failure',
       { totalsStatus: 'refreshErrorWithData' },
+      { loadErrorVariant: 'totals' },
+    ],
+    [
+      'list and totals refresh failures together',
+      { listStatus: 'refreshErrorWithData', totalsStatus: 'refreshErrorWithData' },
       { loadErrorVariant: 'refresh' },
     ],
     [

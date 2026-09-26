@@ -12,6 +12,8 @@ export type TransactionTotalsStatus =
 
 interface TransactionsStateShape {
   totalsStatus: TransactionTotalsStatus;
+  /** The month and account scope whose first totals load failed, until a load resolves. */
+  failedTotalsScope: string | undefined;
   scrollOffset: number;
   scrollQueryKey: string | null;
   userRefreshing: boolean;
@@ -20,7 +22,7 @@ interface TransactionsStateShape {
 type TransactionsState = TransactionsStateShape & {
   beginTotalsLoad: (hasData: boolean) => void;
   resolveTotalsLoad: () => void;
-  failTotalsLoad: (hasData: boolean) => void;
+  failTotalsLoad: (hasData: boolean, scope: string) => void;
   activateScrollQuery: (queryKey: string) => void;
   setScrollOffset: (queryKey: string, offset: number) => void;
   setUserRefreshing: (value: boolean) => void;
@@ -29,6 +31,7 @@ type TransactionsState = TransactionsStateShape & {
 
 const INITIAL_STATE: TransactionsStateShape = {
   totalsStatus: 'idle',
+  failedTotalsScope: undefined,
   scrollOffset: 0,
   scrollQueryKey: null,
   userRefreshing: false,
@@ -38,9 +41,13 @@ export const useTransactionsState = createMoneyAppSelectors(
   create<TransactionsState>((set) => ({
     ...INITIAL_STATE,
     beginTotalsLoad: (hasData) => set({ totalsStatus: hasData ? 'refreshing' : 'initialLoading' }),
-    resolveTotalsLoad: () => set({ totalsStatus: 'ready' }),
-    failTotalsLoad: (hasData) =>
-      set({ totalsStatus: hasData ? 'refreshErrorWithData' : 'firstLoadError' }),
+    resolveTotalsLoad: () => set({ totalsStatus: 'ready', failedTotalsScope: undefined }),
+    failTotalsLoad: (hasData, scope) =>
+      set(
+        hasData
+          ? { totalsStatus: 'refreshErrorWithData' }
+          : { totalsStatus: 'firstLoadError', failedTotalsScope: scope },
+      ),
     activateScrollQuery: (scrollQueryKey) =>
       set((state) =>
         state.scrollQueryKey === scrollQueryKey ? state : { scrollQueryKey, scrollOffset: 0 },

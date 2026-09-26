@@ -30,10 +30,10 @@ describe('useTransactionsState totals presentation', () => {
   });
 
   it('distinguishes first-load and refresh failures', () => {
-    useTransactionsState.getState().failTotalsLoad(false);
+    useTransactionsState.getState().failTotalsLoad(false, '2026-09|[]');
     expect(useTransactionsState.getState().totalsStatus).toBe('firstLoadError');
 
-    useTransactionsState.getState().failTotalsLoad(true);
+    useTransactionsState.getState().failTotalsLoad(true, '2026-09|[]');
     expect(useTransactionsState.getState().totalsStatus).toBe('refreshErrorWithData');
   });
 });

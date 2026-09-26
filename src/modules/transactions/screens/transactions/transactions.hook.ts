@@ -17,7 +17,7 @@ import { useTransactionFormState } from '@/modules/transactions/screens/transact
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import type { TransactionListStatus } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
-import { formatMonthYear } from '@/utils/format_date';
+import { toLocalDateString } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
@@ -31,7 +31,13 @@ import {
 } from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';
 import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
-import { previousPeriod, resolvePeriod } from './transactions.helpers';
+import {
+  buildTransactionsHeroModel,
+  previousPeriod,
+  resolvePeriod,
+  resolveTransactionsHeroMode,
+  totalsScopeKey,
+} from './transactions.helpers';
 import { buildTransactionsPresentation } from './transactions.presentation';
 import { useTransactionsState } from './transactions.state';
 import { type TransactionTotalsState, useTransactionsScreenStore } from './transactions.store';
@@ -46,8 +52,7 @@ type TotalsLoadOptions = {
   shouldApply?: () => boolean;
 };
 type HeldPreviousTotals = {
-  yearMonth: string;
-  accountScope: string;
+  scopeKey: string;
   mutationVersion: number;
   totals: TransactionTotalsState['previous'];
 };
@@ -119,6 +124,7 @@ export function useTransactions() {
   const setDraft = useFilterStore.getState().setDraft;
 
   const totalsStatus = useTransactionsState.useState.totalsStatus();
+  const failedTotalsScope = useTransactionsState.useState.failedTotalsScope();
   const userRefreshing = useTransactionsState.useState.userRefreshing();
   const beginTotalsLoad = useTransactionsState.getState().beginTotalsLoad;
   const resolveTotalsLoad = useTransactionsState.getState().resolveTotalsLoad;
@@ -174,13 +180,10 @@ export function useTransactions() {
       const hasPreservedData = preserveData && hasTotalsForMonth(yearMonth);
       const requestId = beginTotalsRequest(queryKey, yearMonth, preserveData);
       beginTotalsLoad(hasPreservedData);
-      const accountScope = JSON.stringify([...(query.accountIds ?? [])].sort());
+      const scopeKey = totalsScopeKey(yearMonth, query.accountIds);
       const held = heldPreviousRef.current;
       const reusable =
-        reusePrevious &&
-        held?.yearMonth === yearMonth &&
-        held.accountScope === accountScope &&
-        held.mutationVersion === version
+        reusePrevious && held?.scopeKey === scopeKey && held.mutationVersion === version
           ? held
           : undefined;
       const ownsRequest = () => {
@@ -212,8 +215,7 @@ export function useTransactions() {
           })
         ) {
           heldPreviousRef.current = {
-            yearMonth,
-            accountScope,
+            scopeKey,
             mutationVersion: version,
             totals: previous,
           };
@@ -222,7 +224,7 @@ export function useTransactions() {
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);
         if (shouldApply() && failTotals(queryKey, requestId)) {
-          failTotalsLoad(hasTotalsForMonth(yearMonth));
+          failTotalsLoad(hasTotalsForMonth(yearMonth), scopeKey);
         }
       }
     },
@@ -419,13 +421,33 @@ export function useTransactions() {
     }
   }, [loadTotals, refresh, setUserRefreshing]);
 
-  const previousLabel = useMemo(() => {
-    const prev = previousPeriod(period);
-    return formatMonthYear(prev.yearMonth);
-  }, [period]);
   const displayTotals = totalsYearMonth === period.yearMonth ? totals : null;
   const displayTotalsStatus =
     totalsYearMonth === period.yearMonth ? totalsStatus : 'initialLoading';
+  const scopedAccountLabel =
+    appliedFilters.accountIds.length === 1
+      ? accountLabelsById.get(appliedFilters.accountIds[0])?.name
+      : undefined;
+  const today = toLocalDateString(new Date());
+  const heroMode = resolveTransactionsHeroMode(
+    displayTotalsStatus,
+    displayTotals !== null,
+    failedTotalsScope === totalsScopeKey(period.yearMonth, transactionQuery.accountIds),
+  );
+  const heroCurrent = displayTotals?.current ?? null;
+  const heroPrevious = displayTotals?.previous ?? null;
+  const hero = useMemo(
+    () =>
+      buildTransactionsHeroModel({
+        mode: heroMode,
+        current: heroCurrent,
+        previous: heroPrevious,
+        yearMonth: period.yearMonth,
+        today,
+        accountLabel: scopedAccountLabel,
+      }),
+    [heroCurrent, heroMode, heroPrevious, period.yearMonth, scopedAccountLabel, today],
+  );
   const presentation = buildTransactionsPresentation({
     listStatus,
     totalsStatus: displayTotalsStatus,
@@ -539,7 +561,8 @@ export function useTransactions() {
       appliedFilterSummary,
       totals: displayTotals,
       totalsStatus: displayTotalsStatus,
-      previousLabel,
+      hero,
+      searchDisabled: heroMode === 'skeleton',
       listRef,
       pendingDeleteId: deleteAction.pendingPayload,
       deleteBusy: deleteAction.busy,

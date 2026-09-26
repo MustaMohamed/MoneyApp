@@ -13,6 +13,7 @@ interface Props {
   onChange: (s: string) => void;
   onOpenFilter: () => void;
   activeFilterCount: number;
+  isDisabled?: boolean;
 }
 
 export { FILTER_BADGE_STYLE, FILTER_BUTTON_COMPACT_STYLE, SEARCH_INPUT_COMPACT_STYLE };
@@ -22,6 +23,7 @@ export function SearchRow({
   onChange,
   onOpenFilter,
   activeFilterCount,
+  isDisabled,
 }: Props): React.ReactElement {
   return (
     <SearchFilterRow
@@ -31,6 +33,7 @@ export function SearchRow({
       onOpenFilter={onOpenFilter}
       activeFilterCount={activeFilterCount}
       filterBadgeTestID="filter-badge"
+      isDisabled={isDisabled}
     />
   );
 }

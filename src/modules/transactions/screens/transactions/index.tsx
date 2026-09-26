@@ -16,10 +16,10 @@ import { ms } from '@/utils/responsive';
 
 import { DateHeader } from './components/date_header';
 import { SearchRow } from './components/search_row';
-import { TotalsStrip } from './components/totals_strip';
 import { TransactionLoadError } from './components/transaction_load_error';
 import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
+import { TransactionsHero } from './components/transactions_hero';
 import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
 import { FilterSheet } from './filter';
 import { useTransactions } from './transactions.hook';
@@ -104,34 +104,30 @@ export default function TransactionsScreen(): React.ReactElement {
   const showRowsSkeleton = state.showInitialSkeleton;
   const listSections = state.sections;
 
-  const totalsCurrent = state.totals?.current ?? null;
-  const totalsPrevious = state.totals?.previous ?? null;
-  const totalsLoading = state.totals === null;
-  const totalsStrip = useMemo(
-    () => (
-      <TotalsStrip
-        current={totalsCurrent}
-        previous={totalsPrevious}
-        previousLabel={state.previousLabel}
-        isLoading={totalsLoading}
-      />
-    ),
-    [state.previousLabel, totalsCurrent, totalsLoading, totalsPrevious],
-  );
+  // A memoised element lets React skip the hero when the header re-renders on a keystroke (M25).
+  const hero = useMemo(() => <TransactionsHero model={state.hero} />, [state.hero]);
 
   const listHeaderComponent = useMemo(
     () => (
       <View testID="transactions-list-header">
-        {totalsStrip}
+        {hero}
         <SearchRow
           value={state.searchQuery}
           onChange={setSearchQuery}
           onOpenFilter={openFilter}
           activeFilterCount={state.activeFilterCount}
+          isDisabled={state.searchDisabled}
         />
       </View>
     ),
-    [openFilter, setSearchQuery, state.activeFilterCount, state.searchQuery, totalsStrip],
+    [
+      hero,
+      openFilter,
+      setSearchQuery,
+      state.activeFilterCount,
+      state.searchDisabled,
+      state.searchQuery,
+    ],
   );
 
   const listEmptyComponent = useMemo(

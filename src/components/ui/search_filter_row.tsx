@@ -19,6 +19,7 @@ interface SearchFilterRowProps {
   filterBadgeTestID: string;
   clearAccessibilityLabel?: string;
   filterAccessibilityLabel?: string;
+  isDisabled?: boolean;
 }
 
 const COMPACT_CONTROL_SIZE = ms(36);
@@ -60,6 +61,7 @@ export function SearchFilterRow({
   filterBadgeTestID,
   clearAccessibilityLabel = Strings.filterSearchClearAccessibility,
   filterAccessibilityLabel = Strings.filterSearchButtonAccessibility,
+  isDisabled,
 }: SearchFilterRowProps): React.ReactElement {
   const hasFilters = activeFilterCount > 0;
   const filterLabel = hasFilters
@@ -68,7 +70,7 @@ export function SearchFilterRow({
 
   return (
     <View className="mb-2 flex-row items-center gap-2 px-4">
-      <SearchField value={value} onChange={onChangeText} className="flex-1">
+      <SearchField value={value} onChange={onChangeText} isDisabled={isDisabled} className="flex-1">
         <SearchField.Group style={SEARCH_INPUT_COMPACT_STYLE}>
           <SearchField.SearchIcon iconProps={{ size: Size.iconXs, color: CoreTokens.text2 }} />
           <SearchField.Input

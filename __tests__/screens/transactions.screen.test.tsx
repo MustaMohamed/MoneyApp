@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { Currency, TransactionType } from '@/constants/enums';
@@ -58,12 +58,17 @@ jest.mock('@/components/ui/empty_state', () => ({
   },
 }));
 jest.mock('@/components/ui/swipeable_row', () => ({ closeAllRows: jest.fn() }));
-jest.mock('@/modules/transactions/screens/transactions/components/totals_strip', () => ({
-  TotalsStrip: ({ isLoading }: { isLoading?: boolean }) => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>{`Totals loading:${String(isLoading)}`}</Text>;
-  },
-}));
+jest.mock('@/modules/transactions/screens/transactions/components/transactions_hero', () => {
+  const heroRenders = { count: 0 };
+  return {
+    heroRenders,
+    TransactionsHero: ({ model }: { model: { mode: string } }) => {
+      const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+      heroRenders.count += 1;
+      return <Text testID="transactions-hero-mock">{`hero:${model.mode}`}</Text>;
+    },
+  };
+});
 jest.mock('@/modules/transactions/screens/transactions/components/search_row', () => ({
   SearchRow: ({ value }: { value: string }) => {
     const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -118,7 +123,25 @@ const baseTransactionsState: TransactionsScreenState = {
   appliedFilterSummary: '',
   totals: null,
   totalsStatus: 'initialLoading',
-  previousLabel: 'July 2026',
+  hero: {
+    mode: 'skeleton',
+    title: 'Out this month',
+    monthLabel: 'August',
+    currencyCode: 'EGP',
+    out: '—',
+    in: '—',
+    inPolarity: 'neutral',
+    net: '—',
+    netPolarity: 'neutral',
+    leftOfIncome: '—',
+    railPct: 0,
+    railDanger: false,
+    railAccessibilityLabel: 'No income this month',
+    shareCaption: undefined,
+    caption: 'Jul —',
+    lastMonthChange: undefined,
+  },
+  searchDisabled: true,
   listRef: { current: null },
   pendingDeleteId: null,
   deleteBusy: false,
@@ -126,6 +149,9 @@ const baseTransactionsState: TransactionsScreenState = {
 };
 
 const mockedUseTransactions = jest.mocked(useTransactions);
+const { heroRenders } = jest.requireMock<{ heroRenders: { count: number } }>(
+  '@/modules/transactions/screens/transactions/components/transactions_hero',
+);
 
 function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
   const hook = {
@@ -157,6 +183,7 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
 describe('TransactionsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    heroRenders.count = 0;
     mockUseTransactions();
   });
 
@@ -183,7 +210,31 @@ describe('TransactionsScreen', () => {
 
     expect(getByTestId('transactions-filter-rail')).toBeTruthy();
     expect(getByTestId('transactions-list-header')).toBeTruthy();
+    expect(
+      within(getByTestId('transactions-list-header')).getByTestId('transactions-hero-mock'),
+    ).toBeTruthy();
     expect(getByTestId('transactions-list')).toHaveProp('ListHeaderComponent');
+  });
+
+  it('does not re-render the hero on a search keystroke, only on a new hero model (M25)', async () => {
+    const hero = baseTransactionsState.hero;
+    mockUseTransactions({ hero });
+    const { getByText, rerender } = await render(<TransactionsScreen />);
+    const mounted = heroRenders.count;
+
+    expect(mounted).toBeGreaterThan(0);
+
+    mockUseTransactions({ hero, searchQuery: 'c' });
+    await rerender(<TransactionsScreen />);
+
+    expect(getByText('search:c')).toBeTruthy();
+    expect(heroRenders.count).toBe(mounted);
+
+    mockUseTransactions({ hero: { ...hero, mode: 'figures' }, searchQuery: 'c' });
+    await rerender(<TransactionsScreen />);
+
+    expect(getByText('hero:figures')).toBeTruthy();
+    expect(heroRenders.count).toBe(mounted + 1);
   });
 
   it('does not show row skeletons after loaded transactions render', async () => {
@@ -270,6 +321,8 @@ describe('TransactionsScreen', () => {
         matchNetEgp: 0,
       },
       totalsStatus: 'refreshing',
+      hero: { ...baseTransactionsState.hero, mode: 'figures' },
+      searchDisabled: false,
       sections: [
         {
           key: 'TODAY',
@@ -303,7 +356,7 @@ describe('TransactionsScreen', () => {
 
     const { getByText, queryByTestId } = await render(<TransactionsScreen />);
 
-    expect(getByText('Totals loading:false')).toBeTruthy();
+    expect(getByText('hero:figures')).toBeTruthy();
     expect(getByText('Transaction row')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
   });

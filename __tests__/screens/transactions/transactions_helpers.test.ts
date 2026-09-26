@@ -1,14 +1,19 @@
+import { Strings } from '@/constants/strings';
 import {
   buildTotalsPresentation,
+  buildTransactionsHeroModel,
   currentYearMonth,
   resolvePeriod,
+  resolveTransactionsHeroMode,
   previousPeriod,
   computeDeltaPct,
   polarityColor,
   formatSignedAmount,
   expenseSharePct,
   deltaDisplay,
+  type TransactionsHeroInput,
 } from '@/modules/transactions/screens/transactions/transactions.helpers';
+import type { TransactionTotalsStatus } from '@/modules/transactions/screens/transactions/transactions.state';
 
 describe('currentYearMonth', () => {
   it('returns YYYY-MM for a Date', () => {
@@ -89,6 +94,15 @@ describe('computeDeltaPct', () => {
     expect(computeDeltaPct(103, 100)).toBe(3);
     expect(computeDeltaPct(102.5, 100)).toBe(3);
     expect(computeDeltaPct(102.4, 100)).toBe(2);
+  });
+
+  it('rounds a half up in integer cents, multiplied before dividing: 14.5 to 15, −14.5 to −14', () => {
+    expect(computeDeltaPct(1_145, 1_000)).toBe(15);
+    expect(computeDeltaPct(855, 1_000)).toBe(-14);
+  });
+
+  it('reads a float-noise previous as 0 cents and returns null', () => {
+    expect(computeDeltaPct(100, 1e-13)).toBeNull();
   });
 });
 
@@ -221,5 +235,405 @@ describe('transactions summary presentation helpers', () => {
       polarity: 'bad',
     });
     expect(deltaDisplay('net', null)).toBeNull();
+  });
+});
+
+describe('buildTransactionsHeroModel', () => {
+  const DASH = '—';
+  const AUGUST = { incomeEgp: 20_000, expenseEgp: 16_900, netEgp: 3_100 };
+
+  function hero(overrides: Partial<TransactionsHeroInput> = {}) {
+    return buildTransactionsHeroModel({
+      mode: 'figures',
+      current: { incomeEgp: 22_300, expenseEgp: 9_400, netEgp: 12_900 },
+      previous: AUGUST,
+      yearMonth: '2026-09',
+      today: '2026-09-24',
+      ...overrides,
+    });
+  }
+
+  it('prints the month within income: figures, rail, share caption and days-left caption (A1)', () => {
+    expect(hero()).toMatchObject({
+      mode: 'figures',
+      title: 'Out this month',
+      monthLabel: 'September',
+      out: '9,400',
+      in: '22,300',
+      inPolarity: 'good',
+      net: '+12,900',
+      leftOfIncome: '58%',
+      railPct: 42,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsExpenseShareA11y(42),
+      shareCaption: '42% of income spent',
+      caption: '6 days left · Aug 16,900',
+    });
+  });
+
+  it('formats EGP at 0 dp', () => {
+    expect(
+      hero({ current: { incomeEgp: 22_300.4, expenseEgp: 9_399.6, netEgp: 12_900.8 } }),
+    ).toMatchObject({ out: '9,400', in: '22,300', net: '+12,901' });
+  });
+
+  it('titles the hero with the account when the filter holds exactly one', () => {
+    expect(hero({ accountLabel: 'Wallet' }).title).toBe('Out this month · Wallet');
+  });
+
+  it('signs Left of income past 100% spent and fills the rail in danger', () => {
+    expect(hero({ current: { incomeEgp: 1_000, expenseEgp: 1_200, netEgp: -200 } })).toMatchObject({
+      net: '−200',
+      leftOfIncome: '−20%',
+      railPct: 100,
+      railDanger: true,
+      railAccessibilityLabel: Strings.totalsExpenseShareA11y(120),
+      shareCaption: '120% of income spent',
+    });
+  });
+
+  it('drives the rail, its label and the caption from one rounded share', () => {
+    expect(hero({ current: { incomeEgp: 1_000, expenseEgp: 1_004, netEgp: -4 } })).toMatchObject({
+      leftOfIncome: '0%',
+      railPct: 100,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsExpenseShareA11y(100),
+      shareCaption: '100% of income spent',
+    });
+  });
+
+  it('prints a dash and an empty rail when the month has no income', () => {
+    expect(hero({ current: { incomeEgp: 0, expenseEgp: 500, netEgp: -500 } })).toMatchObject({
+      out: '500',
+      in: '0',
+      net: '−500',
+      leftOfIncome: DASH,
+      railPct: 0,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsNoIncome,
+      shareCaption: undefined,
+    });
+  });
+
+  it('reduces Out by a card credit, signs it with U+2212 and reads Credits exceed expenses', () => {
+    const model = hero({ current: { incomeEgp: 1_000, expenseEgp: -50, netEgp: 1_050 } });
+    expect(model).toMatchObject({
+      out: '−50',
+      net: '+1,050',
+      leftOfIncome: '105%',
+      railPct: 0,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsNetCredit,
+      shareCaption: Strings.totalsNetCredit,
+    });
+    const strings = Object.values(model).filter((v): v is string => typeof v === 'string');
+    for (const text of strings) expect(text).not.toContain('-');
+  });
+
+  it('reads Credits exceed expenses with no income when Out is below 0', () => {
+    expect(hero({ current: { incomeEgp: 0, expenseEgp: -50, netEgp: 50 } })).toMatchObject({
+      out: '−50',
+      leftOfIncome: DASH,
+      railPct: 0,
+      railDanger: false,
+      railAccessibilityLabel: Strings.totalsNetCredit,
+      shareCaption: Strings.totalsNetCredit,
+    });
+  });
+
+  it('prints zeros and a dash for a month with no rows (A5)', () => {
+    expect(hero({ current: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } })).toMatchObject({
+      out: '0',
+      in: '0',
+      net: '0',
+      leftOfIncome: DASH,
+      railPct: 0,
+      shareCaption: undefined,
+    });
+  });
+
+  it('drops the days segment outside the current month (A16)', () => {
+    expect(hero({ yearMonth: '2026-08', today: '2026-09-24' })).toMatchObject({
+      monthLabel: 'August',
+      caption: 'Jul 16,900',
+    });
+  });
+
+  it('reads 0 days left on the last day of a 30-day month', () => {
+    expect(hero({ today: '2026-09-30' }).caption).toBe('0 days left · Aug 16,900');
+  });
+
+  it('reads 1 day left in the singular on the day before the last', () => {
+    expect(hero({ today: '2026-09-29' }).caption).toBe('1 day left · Aug 16,900');
+  });
+
+  it('counts days left against a 31-day month', () => {
+    expect(hero({ yearMonth: '2026-10', today: '2026-10-01' }).caption).toBe(
+      '30 days left · Sep 16,900',
+    );
+    expect(hero({ yearMonth: '2026-10', today: '2026-10-31' }).caption).toBe(
+      '0 days left · Sep 16,900',
+    );
+  });
+
+  it('counts days left against a leap February and a common one', () => {
+    expect(hero({ yearMonth: '2028-02', today: '2028-02-10' }).caption).toBe(
+      '19 days left · Jan 16,900',
+    );
+    expect(hero({ yearMonth: '2027-02', today: '2027-02-10' }).caption).toBe(
+      '18 days left · Jan 16,900',
+    );
+  });
+
+  it("prints a dash for last month's Out when last month has no figures", () => {
+    expect(hero({ previous: null }).caption).toBe('6 days left · Aug —');
+    expect(hero({ previous: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } }).caption).toBe(
+      '6 days left · Aug —',
+    );
+  });
+
+  it('prints dashes and keeps the caption when no figures loaded for the month', () => {
+    expect(hero({ mode: 'dashes', current: null, previous: null })).toMatchObject({
+      mode: 'dashes',
+      out: DASH,
+      in: DASH,
+      inPolarity: 'neutral',
+      net: DASH,
+      leftOfIncome: DASH,
+      railPct: 0,
+      railDanger: false,
+      railAccessibilityLabel: Strings.transactionsTotalsLoadError,
+      shareCaption: undefined,
+      caption: '6 days left · Aug —',
+    });
+  });
+
+  describe('Net and its flow colour (frame A1, money-colour ADR decision 5)', () => {
+    it('signs a positive Net with + and reads good', () => {
+      expect(
+        hero({ current: { incomeEgp: 31_000, expenseEgp: 18_557, netEgp: 12_443 } }),
+      ).toMatchObject({ net: '+12,443', netPolarity: 'good', currencyCode: 'EGP' });
+    });
+
+    it('signs a negative Net with U+2212 and reads bad', () => {
+      expect(
+        hero({ current: { incomeEgp: 1_000, expenseEgp: 1_200, netEgp: -200 } }),
+      ).toMatchObject({ net: '−200', netPolarity: 'bad' });
+    });
+
+    it('prints a zero Net unsigned and neutral', () => {
+      expect(hero({ current: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } })).toMatchObject({
+        net: '0',
+        netPolarity: 'neutral',
+      });
+    });
+  });
+
+  describe("change against last month's full Out", () => {
+    it('groups a change of 1,000% or more with a comma', () => {
+      expect(
+        hero({
+          current: { incomeEgp: 22_300, expenseEgp: 7_400, netEgp: 14_900 },
+          previous: { incomeEgp: 20_000, expenseEgp: 500, netEgp: 19_500 },
+        }),
+      ).toMatchObject({
+        lastMonthChange: { label: '1,380%', accessibilityLabel: 'Spent 1,380% more than August' },
+      });
+    });
+
+    it('keeps printing after a negative last month (ruled 2026-09-26)', () => {
+      expect(hero({ previous: { incomeEgp: 0, expenseEgp: -50, netEgp: 50 } })).toMatchObject({
+        lastMonthChange: {
+          direction: 'up',
+          polarity: 'bad',
+          label: '18,900%',
+          accessibilityLabel: 'Spent 18,900% more than August',
+        },
+      });
+    });
+
+    it('reads a month with nothing spent as down 100% (ruled 2026-09-26)', () => {
+      expect(
+        hero({
+          current: { incomeEgp: 22_300, expenseEgp: 0, netEgp: 22_300 },
+          previous: { incomeEgp: 20_000, expenseEgp: 7_400, netEgp: 12_600 },
+        }),
+      ).toMatchObject({
+        lastMonthChange: {
+          direction: 'down',
+          polarity: 'good',
+          label: '100%',
+          accessibilityLabel: 'Spent 100% less than August',
+        },
+      });
+    });
+
+    it('reads a fall as down, good, and names last month in full (A1)', () => {
+      expect(hero()).toMatchObject({
+        lastMonthChange: {
+          direction: 'down',
+          polarity: 'good',
+          label: '44%',
+          accessibilityLabel: 'Spent 44% less than August',
+        },
+        caption: '6 days left · Aug 16,900',
+      });
+    });
+
+    it('reads a rise as up, bad (option B)', () => {
+      expect(
+        hero({
+          current: { incomeEgp: 22_300, expenseEgp: 17_538, netEgp: 4_762 },
+          previous: { incomeEgp: 20_000, expenseEgp: 7_400, netEgp: 12_600 },
+        }),
+      ).toMatchObject({
+        lastMonthChange: {
+          direction: 'up',
+          polarity: 'bad',
+          label: '137%',
+          accessibilityLabel: 'Spent 137% more than August',
+        },
+        caption: '6 days left · Aug 7,400',
+      });
+    });
+
+    it('reads an equal Out as flat, neutral, the same as last month', () => {
+      expect(
+        hero({ current: { incomeEgp: 22_300, expenseEgp: 16_900, netEgp: 5_400 } }),
+      ).toMatchObject({
+        lastMonthChange: {
+          direction: 'flat',
+          polarity: 'neutral',
+          label: '0%',
+          accessibilityLabel: 'Spent the same as August',
+        },
+      });
+    });
+
+    it('rounds the change once in cents, a half up', () => {
+      expect(
+        hero({
+          current: { incomeEgp: 22_300, expenseEgp: 1_145, netEgp: 21_155 },
+          previous: { incomeEgp: 20_000, expenseEgp: 1_000, netEgp: 19_000 },
+        }),
+      ).toMatchObject({
+        lastMonthChange: {
+          direction: 'up',
+          label: '15%',
+          accessibilityLabel: 'Spent 15% more than August',
+        },
+      });
+    });
+
+    it('compares a past month with the month before it (A16)', () => {
+      expect(hero({ yearMonth: '2026-08', today: '2026-09-24' })).toMatchObject({
+        lastMonthChange: { accessibilityLabel: 'Spent 44% less than July' },
+        caption: 'Jul 16,900',
+      });
+    });
+
+    it('names December across the year boundary', () => {
+      expect(hero({ yearMonth: '2027-01', today: '2027-01-10' })).toMatchObject({
+        lastMonthChange: { accessibilityLabel: 'Spent 44% less than December' },
+      });
+    });
+
+    it.each<[string, Partial<TransactionsHeroInput>, string]>([
+      ['last month has no figures', { previous: null }, '6 days left · Aug —'],
+      [
+        "last month's In and Out are both 0",
+        { previous: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } },
+        '6 days left · Aug —',
+      ],
+      [
+        "last month's Out is 0",
+        { previous: { incomeEgp: 500, expenseEgp: 0, netEgp: 500 } },
+        '6 days left · Aug 0',
+      ],
+      [
+        'no figures loaded for this month',
+        { mode: 'dashes', current: null },
+        '6 days left · Aug 16,900',
+      ],
+    ])('prints no change when %s', (_case, overrides, caption) => {
+      expect(hero(overrides)).toMatchObject({ lastMonthChange: undefined, caption });
+    });
+  });
+});
+
+describe('resolveTransactionsHeroMode', () => {
+  const STATUSES: TransactionTotalsStatus[] = [
+    'idle',
+    'initialLoading',
+    'ready',
+    'refreshing',
+    'firstLoadError',
+    'refreshErrorWithData',
+  ];
+
+  it.each(STATUSES)('keeps the figures on screen for %s once totals exist', (status) => {
+    expect(resolveTransactionsHeroMode(status, true, false)).toBe('figures');
+    expect(resolveTransactionsHeroMode(status, true, true)).toBe('figures');
+  });
+
+  it.each<[TransactionTotalsStatus, string]>([
+    ['idle', 'skeleton'],
+    ['initialLoading', 'skeleton'],
+    ['ready', 'skeleton'],
+    ['refreshing', 'skeleton'],
+    ['firstLoadError', 'dashes'],
+    ['refreshErrorWithData', 'skeleton'],
+  ])('resolves %s without totals to %s', (status, mode) => {
+    expect(resolveTransactionsHeroMode(status, false, false)).toBe(mode);
+  });
+
+  it.each<[TransactionTotalsStatus, string]>([
+    ['idle', 'skeleton'],
+    ['initialLoading', 'dashes'],
+    ['ready', 'skeleton'],
+    ['refreshing', 'skeleton'],
+    ['firstLoadError', 'dashes'],
+    ['refreshErrorWithData', 'skeleton'],
+  ])('resolves %s to %s while the failed month and scope reload', (status, mode) => {
+    expect(resolveTransactionsHeroMode(status, false, true)).toBe(mode);
+  });
+});
+
+describe('share and Left of income in integer cents, multiplied before dividing', () => {
+  function figures(incomeEgp: number, expenseEgp: number) {
+    const current = { incomeEgp, expenseEgp, netEgp: incomeEgp - expenseEgp };
+    return {
+      totals: buildTotalsPresentation(current),
+      hero: buildTransactionsHeroModel({
+        mode: 'figures',
+        current,
+        previous: null,
+        yearMonth: '2026-09',
+        today: '2026-09-24',
+      }),
+    };
+  }
+
+  it('rounds In 1,000 Out 1,005 up to 101, over income', () => {
+    const { totals, hero } = figures(1_000, 1_005);
+    expect(totals.rawExpenseSharePct).toBe(101);
+    expect(hero).toMatchObject({
+      railDanger: true,
+      railPct: 100,
+      shareCaption: '101% of income spent',
+      railAccessibilityLabel: Strings.totalsExpenseShareA11y(101),
+    });
+  });
+
+  it('rounds In 1,000 Out 145 up to 15', () => {
+    const { totals, hero } = figures(1_000, 145);
+    expect(totals.rawExpenseSharePct).toBe(15);
+    expect(hero).toMatchObject({ railPct: 15, shareCaption: '15% of income spent' });
+  });
+
+  it('reads In 1,000 Out 1,035 as −3% left and a 104 share', () => {
+    const { totals, hero } = figures(1_000, 1_035);
+    expect(totals.rawExpenseSharePct).toBe(104);
+    expect(hero).toMatchObject({ leftOfIncome: '−3%', shareCaption: '104% of income spent' });
   });
 });

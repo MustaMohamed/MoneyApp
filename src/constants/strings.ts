@@ -1246,10 +1246,24 @@ export const Strings = {
   totalsNetCredit: 'Credits exceed expenses',
   transactionsLoadError: 'Could not load transactions.',
   transactionsRefreshError: 'Could not refresh transactions.',
-  transactionsTotalsLoadError: 'Could not load monthly totals.',
+  transactionsTotalsLoadError: "Couldn't load this month's figures.",
   transactionsLoadMoreError: 'Could not load more transactions.',
   transactionsAccountLookupError: 'Could not load account details.',
-  transactionsLoadRetry: 'Retry',
+  transactionsLoadRetry: 'Try again',
+
+  // §6 Transactions: Hero
+  transactionsHeroTitle: 'Out this month',
+  transactionsHeroTitleScoped: (account: string) => `Out this month · ${account}`,
+  transactionsHeroIn: 'In',
+  transactionsHeroNet: 'Net',
+  transactionsHeroLeftOfIncome: 'Left of income',
+  transactionsHeroShareSpent: (pct: number) => `${pct}% of income spent`,
+  transactionsHeroDaysLeft: (days: number) => (days === 1 ? '1 day left' : `${days} days left`),
+  transactionsHeroLastMonthOut: (month: string, amount: string) => `${month} ${amount}`,
+  transactionsHeroSpentMore: (pct: string, month: string) => `Spent ${pct}% more than ${month}`,
+  transactionsHeroSpentLess: (pct: string, month: string) => `Spent ${pct}% less than ${month}`,
+  transactionsHeroSpentSame: (month: string) => `Spent the same as ${month}`,
+  transactionsHeroUnavailable: '—',
 
   // §6 Transactions: Type badges
   typeBadgeCommitment: 'Commitment',
