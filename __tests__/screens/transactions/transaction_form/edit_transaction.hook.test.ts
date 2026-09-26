@@ -11,6 +11,7 @@ import { TransactionAccountArchivedError } from '@/modules/transactions/reposito
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
+import { resolveTransactionFormStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import {
   installMockUpdateTransaction,
@@ -149,6 +150,36 @@ describe('useEditTransaction', () => {
 
     expect(result.current.state.selectedAccount?.id).toBe(mockAccountUSD.id);
     expect(result.current.state.errors.rate).toBeDefined();
+    expect(updateTx).not.toHaveBeenCalled();
+  });
+
+  it('MA-105: an empty amount does not hide the rate fault, and Save reads Fix the 2 fields', async () => {
+    const usdTx = {
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 500,
+      exchange_rate: 50,
+    };
+    useEditTransactionStore.getState().loadFromTx(usdTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await act(() => result.current.setAmountStr(''));
+    await act(() => result.current.setExchangeRate('50abc'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.amount).toBeDefined();
+    expect(result.current.state.errors.rate).toBeDefined();
+    expect(
+      resolveTransactionFormStatus({
+        errors: result.current.state.errors,
+        budgetLookupError: result.current.state.budgetLookupError,
+        saveError: result.current.state.errorMessage,
+      }),
+    ).toBe('Fix the 2 fields marked above.');
     expect(updateTx).not.toHaveBeenCalled();
   });
 
