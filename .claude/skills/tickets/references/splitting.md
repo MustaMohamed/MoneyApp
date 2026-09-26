@@ -12,19 +12,23 @@
 
 ## Limits on every cut
 
-- One outcome per task. Two outcomes are two tasks.
-- A task is one PR, per § Size gate below. A bigger one is cut again here, or, the user's choice at stop 1, created at Todo for its own `/tickets` run later.
+- One outcome per task. Two outcomes are two tasks, except a bundle under § Floor.
+- A task is one PR, per § Size gate below. A bigger one is cut again here, or, the user's choice at stop 1, created at Todo for its own `/tickets` run later. Keeping it whole is not a choice.
 - A chain's first link stands alone. A chain whose first link nobody can use is a layer cut and `/issue-review` rejects it.
 - Preludes are the one allowed non-user-visible task: a migration or data layer a later task needs, isolated because it carries sign-off or data-loss risk. A prelude names the task that consumes it. MA-020 is one.
 
 ## Size gate
 
-One PR is a counted thing, and every step counts it the same way: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body, `/prep`'s planner and reviewer on the plan. A task fits when both hold:
+One PR is a counted thing, and every step counts it the same way: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body, `/prep`'s planner and reviewer on the plan, `/ship` whenever scope is added after the plan. A task fits when both hold:
 
 - at most 12 files outside `__tests__/` and generated code
 - at most ~400 changed lines outside tests; the implementer writes about 2.5 times that once tests are in (MA-039: 558 lines outside tests, 936 in tests)
 
 `/prep` adds a third, at most 8 plan steps.
+
+**The gate is hard.** No step waives it and no ruling does: not a reviewer, not the conductor, not the user in the session. More scope than the gate holds is another ticket. A plan past the gate is returned even when the extra lines were ruled in, and scope added at `/ship` (a ruling, a note that is another ticket's Acceptance, a ticket folded in) is recounted with the plan's figure; over the gate, the addition leaves the PR as its own ticket. The three PRs that went around the gate were the three costliest `/ship` runs of 71 merged 09-06 to 09-26: #422 planned at ~540, #575 at ~620 by ruling, #580 planned at ~265 and delivered at 866 lines after two tickets were folded in at review. Each cost 154M to 176M against ~86M from the size fit, and the three spawned 8 follow-up tickets.
+
+**400 is a planned figure.** Delivered lines run 1.35 times the plan at the median and 1.64 times at p75 across 56 plans, so a plan at ~400 ships about 540 lines, under the ~700 where ship cost per line turns up (111k per line at 400 to 699 delivered, 168k past 700). A delivered PR past 400 from a plan within the gate is the gate working; the planned figure is the one never exceeded.
 
 The file list is built from the body, never taken from it. Every file Context names as changing, plus every file a Rule or an Acceptance line implies, each named by path:
 
@@ -41,7 +45,17 @@ Lines are estimated per file from what it looks like today, then summed. A count
 - Size: <k> files outside tests, ~<n> lines, at <sha>: <the paths, comma separated>
 ```
 
-The next step disputes the list, not the number. Over the gate: `/tickets` cuts again before the split is shown, or the user creates the task at Todo for its own run; `/issue-review` returns an `ask` proposing the seam; `/prep` returns the ticket. A gate reached at `/prep` is a miss at the two steps before it.
+The next step disputes the list, not the number. Over the gate: `/tickets` cuts again before the split is shown, or the user creates the task at Todo for its own run; `/issue-review` returns an `ask` proposing the seam, answered with a seam or Todo, never with the body kept whole; `/prep` returns the ticket; `/ship` makes the addition its own ticket. A gate reached at `/prep` is a miss at the two steps before it.
+
+## Floor
+
+A task under ~100 lines outside tests pays the full review battery, about 17M per PR before its first line. The 32 PRs under 100 lines took 627M of 2,530M ship tokens (25%) for 1,123 of 14,367 delivered lines (8%). A task that small is bundled:
+
+- with a sibling task in this cut, or an open ticket on the milestone, that changes the same screen or fixes the same defect family;
+- only while the bundle still fits the gate, recounted and written as one `Size:` line;
+- each outcome keeps its own Acceptance lines, under a bold lead-in that names it.
+
+No such sibling: the task stands alone. The bundle is the one exception to one outcome per task.
 
 ## Order
 
