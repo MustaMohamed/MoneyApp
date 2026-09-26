@@ -351,7 +351,6 @@ export const Strings = {
   editAccountFootnote: 'Changes apply everywhere this account appears.',
   editAccountCta: 'Save changes',
   editAccountSaveError: "Couldn't save your changes. Nothing was changed. Try again.",
-  editAccountFixFields: (count: number) => `Fix the ${count} fields marked above.`,
   accountDetailMonthInLabel: 'This month in',
   accountDetailMonthOutLabel: 'This month out',
   accountActivityTitle: 'Recent activity',
@@ -534,7 +533,7 @@ export const Strings = {
   addTxDatePickerCancel: 'Cancel',
   addTxDatePickerDone: 'Done',
   transactionSaveError: "Couldn't save this transaction. Nothing was changed. Try again.",
-  transactionFormFixFields: (count: number) =>
+  fixFieldsMarkedAbove: (count: number) =>
     count === 1 ? 'Fix the 1 field marked above.' : `Fix the ${count} fields marked above.`,
   transactionAccountArchived: (name: string) =>
     `${name} is archived. Restore it to change this transaction.`,

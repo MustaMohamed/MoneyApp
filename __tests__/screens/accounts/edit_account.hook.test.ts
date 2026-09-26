@@ -228,7 +228,7 @@ describe('useEditAccount', () => {
     await submit(hook);
 
     expect(hook.result.current.form.formState.errors.name?.message).toBe(Strings.errNameRequired);
-    expect(hook.result.current.state.statusMessage).toBe('Fix the 1 fields marked above.');
+    expect(hook.result.current.state.statusMessage).toBe('Fix the 1 field marked above.');
     expect(mockUpdateAccount).not.toHaveBeenCalled();
   });
 
@@ -261,7 +261,7 @@ describe('useEditAccount', () => {
     await edit(hook, { name: 'NBE Platinum' });
     await submit(hook);
 
-    expect(hook.result.current.state.statusMessage).toBe('Fix the 1 fields marked above.');
+    expect(hook.result.current.state.statusMessage).toBe('Fix the 1 field marked above.');
     expect(hook.result.current.form.formState.errors.name).toBeUndefined();
     expect(mockUpdateAccount).not.toHaveBeenCalled();
   });
@@ -324,7 +324,7 @@ describe('useEditAccount', () => {
       await edit(hook, { apr: '' });
       await submit(hook);
 
-      expect(hook.result.current.state.statusMessage).toBe('Fix the 1 fields marked above.');
+      expect(hook.result.current.state.statusMessage).toBe('Fix the 1 field marked above.');
 
       await edit(hook, { interest_tracking: false });
 
@@ -341,7 +341,7 @@ describe('useEditAccount', () => {
       await submit(hook);
 
       expect(hook.result.current.form.formState.errors.apr?.message).toBe(Strings.errAprRequired);
-      expect(hook.result.current.state.statusMessage).toBe('Fix the 1 fields marked above.');
+      expect(hook.result.current.state.statusMessage).toBe('Fix the 1 field marked above.');
       expect(mockUpdateAccount).not.toHaveBeenCalled();
     });
 

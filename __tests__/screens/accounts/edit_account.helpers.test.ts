@@ -106,8 +106,8 @@ describe('resolveEditStatusMessage', () => {
     expect(resolveEditStatusMessage({ errorCount: 0 })).toBeUndefined();
   });
 
-  it('counts faults with one template for every count', () => {
-    expect(resolveEditStatusMessage({ errorCount: 1 })).toBe('Fix the 1 fields marked above.');
+  it('counts faults in the singular at 1 and the plural above', () => {
+    expect(resolveEditStatusMessage({ errorCount: 1 })).toBe('Fix the 1 field marked above.');
     expect(resolveEditStatusMessage({ errorCount: 3 })).toBe('Fix the 3 fields marked above.');
   });
 

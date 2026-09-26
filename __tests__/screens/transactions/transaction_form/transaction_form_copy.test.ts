@@ -25,8 +25,8 @@ describe('MA-105 footer status track copy', () => {
   });
 
   it('counts the fields at fault in the singular at 1 and the plural above', () => {
-    expect(Strings.transactionFormFixFields(1)).toBe('Fix the 1 field marked above.');
-    expect(Strings.transactionFormFixFields(2)).toBe('Fix the 2 fields marked above.');
+    expect(Strings.fixFieldsMarkedAbove(1)).toBe('Fix the 1 field marked above.');
+    expect(Strings.fixFieldsMarkedAbove(2)).toBe('Fix the 2 fields marked above.');
   });
 
   it('keeps no string that still reads Could not save this transaction', () => {
