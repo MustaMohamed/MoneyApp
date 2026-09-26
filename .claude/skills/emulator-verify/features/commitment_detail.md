@@ -12,6 +12,7 @@ Route `/stacked/commitments/[id]` from the list, `/commitments/[id]` on the tab 
 | State | Frame | Force | Proof |
 |---|---|---|---|
 | current-cycle status pill | no frame, MA-087 | open a commitment whose current payment is in each of `Overdue`, `Due`, `Upcoming`, then `Paid` after `Mark as paid` | the status label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(11))` = 15 ± 1, so the pill is 15 + 4 (`py-0.5`) = 19 at every status; one shot per status of the current-cycle card |
+| hero amount, neutral | no frame, MA-103 | the MA-103 seed (`categories.md` § Seeding and forcing states): open `Walk Rent` from its list row | `mqa read` carries the amount `TextView`; one shot of the hero: the amount in the foreground colour, not the category tone, and the glyph still in `#5C7FC4` |
 
 ## Outbound
 
@@ -24,6 +25,7 @@ Route `/stacked/commitments/[id]` from the list, `/commitments/[id]` on the tab 
 ## Gotchas
 
 - The pill is a `View` with no touch handler, so it is flattened out of the accessibility tree: read the label `TextView` and add `py-0.5` (2 dp each side), or measure the painted pill on the shot (`README.md` § The rule).
+- A cold deep link to `/commitments/<id>` renders `Commitment not found`; open the detail from its list row (`$MQA tap 'label="<name>, <amount>, <status>"'`).
 - `Mark as paid` is the only way to `Paid` without a seed push, and it does not come back — use one commitment per status, or re-push the seed.
 
 ## Seeding and forcing states

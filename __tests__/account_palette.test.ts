@@ -82,7 +82,7 @@ describe('findAccountColor', () => {
   });
 
   it('returns undefined for a hex outside the palette', () => {
-    // `#3D7A5F` is an `AccountColors` value that no `AcctTokens` family carries.
+    // `#3D7A5F` is a retired category swatch that no `AcctTokens` family carries.
     expect(findAccountColor('#3D7A5F')).toBeUndefined();
     expect(findAccountColor('')).toBeUndefined();
   });

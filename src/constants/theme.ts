@@ -244,16 +244,16 @@ export const TouchSize = {
 } as const;
 
 export const AccountColors = [
-  '#1B2B4B',
-  '#C9973A',
-  '#3D7A5F',
-  '#C0442A',
-  '#4A2545',
-  '#185FA5',
-  '#D4830A',
-  '#2D7D6E',
-  '#7B3F8C',
-  '#C45C2A',
-  '#4A6FA5',
-  '#7A8B3C',
+  '#5C7FC4',
+  '#A2792C',
+  '#478D6E',
+  '#D5583E',
+  '#B264A7',
+  '#2381DF',
+  '#B67009',
+  '#338D7D',
+  '#A866BA',
+  '#CC602C',
+  '#5D81B6',
+  '#76873A',
 ] as const;

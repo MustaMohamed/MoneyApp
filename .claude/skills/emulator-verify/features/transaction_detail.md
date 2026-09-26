@@ -12,6 +12,7 @@ Route `/transactions/detail/[id]`, and its `/stacked` twin when reached from a s
 | State | Frame | Force | Proof |
 |---|---|---|---|
 | type badge, md | no frame, MA-087 | open the commitment-owned transaction from `transactions.md` § States (`type badge, sm`) | the hero badge label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(11))` = 15 ± 1, so the badge is 25 (15 + `py-1` + the 1 dp `border` pair); one shot of the hero |
+| hero pill, category tone | no frame, MA-103 | the MA-103 seed (`categories.md` § Seeding and forcing states): open the Housing expense | one shot of the hero pill: the glyph and the `Housing` label in `#5C7FC4` on the pill, readable on the hero gradient |
 
 ## Outbound
 

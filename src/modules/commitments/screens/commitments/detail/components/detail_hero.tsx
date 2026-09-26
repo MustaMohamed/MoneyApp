@@ -49,8 +49,8 @@ export function DetailHero({ commitment, category, payment, recurrenceLabel }: P
           {commitment.name}
         </Text>
         <Text
-          className="font-inter-semibold text-[16px]"
-          style={{ color: iconColor, opacity: 0.85 }}
+          className="font-inter-semibold text-foreground text-[16px]"
+          style={{ opacity: 0.85 }}
           numberOfLines={1}
         >
           {amountText}
