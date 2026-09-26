@@ -30,7 +30,11 @@ jest.mock(
 );
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/date_row',
-  () => ({ DateRow: () => null }),
+  () => {
+    const ReactLocal = jest.requireActual<typeof import('react')>('react');
+    const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
+    return { DateRow: () => ReactLocal.createElement(RNView, { testID: 'date-row' }) };
+  },
 );
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row',
@@ -234,6 +238,41 @@ describe('TransactionFormBody fact rows', () => {
     await fireEvent.changeText(input, 'Lunch with the team');
     expect(setNote).toHaveBeenCalledWith('Lunch with the team');
   });
+
+  it('holds the expense fact rows in one group card and leaves the From row outside it', async () => {
+    await render(<TransactionFormBody {...baseProps} />);
+
+    const group = within(screen.getByTestId('transaction-form-fact-group'));
+    expect(group.getByTestId('category-row')).toBeTruthy();
+    expect(group.getByTestId('date-row')).toBeTruthy();
+    expect(group.getByTestId('note-row')).toBeTruthy();
+    expect(group.queryByTestId('from-account-row')).toBeNull();
+  });
+
+  it('holds the To row in the group card on a transfer', async () => {
+    await render(<TransactionFormBody {...baseProps} type={TransactionType.Transfer} />);
+
+    const group = within(screen.getByTestId('transaction-form-fact-group'));
+    expect(group.getByTestId('to-account-row')).toBeTruthy();
+  });
+
+  it('gives the budget lookup failure two lines and a loaded budget one', async () => {
+    const lookupError = 'Could not load matching budgets. Try again.';
+    const { rerender } = await render(
+      <TransactionFormBody {...baseProps} showBudgetField budgetLookupError={lookupError} />,
+    );
+
+    expect(within(screen.getByTestId('budget-row')).getByText(lookupError)).toHaveProp(
+      'numberOfLines',
+      2,
+    );
+
+    await rerender(<TransactionFormBody {...baseProps} showBudgetField />);
+
+    expect(
+      within(screen.getByTestId('budget-row')).getByText(Strings.addTxPickBudgetTitle),
+    ).toHaveProp('numberOfLines', 1);
+  });
 });
 
 describe('TransactionFormLoading', () => {
@@ -259,5 +298,13 @@ describe('TransactionFormLoading', () => {
     for (const row of factRows) {
       expect(row).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
     }
+  });
+
+  it('holds the four skeleton fact rows in one group card below the account bar', async () => {
+    await render(<TransactionFormLoading />);
+
+    const group = within(screen.getByTestId('transaction-form-skeleton-fact-group'));
+    expect(group.getAllByTestId('transaction-form-skeleton-fact-row')).toHaveLength(4);
+    expect(group.queryByTestId('transaction-form-skeleton-account-row')).toBeNull();
   });
 });

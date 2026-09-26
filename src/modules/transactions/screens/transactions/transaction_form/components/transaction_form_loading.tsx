@@ -1,6 +1,7 @@
 import { SkeletonGroup } from 'heroui-native';
 import { View } from 'react-native';
 
+import { ListCard } from '@/components/ui/list_card';
 import { Strings } from '@/constants/strings';
 import { Radius, Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -11,6 +12,7 @@ const FACT_ROWS = Array.from(
   { length: TRANSACTION_FORM_SKELETON_GEOMETRY.factRowCount },
   (_, row) => row,
 );
+const LAST_FACT_ROW = FACT_ROWS.length - 1;
 
 export function TransactionFormLoading(): React.ReactElement {
   return (
@@ -47,12 +49,15 @@ export function TransactionFormLoading(): React.ReactElement {
               borderRadius: Radius.sm,
             }}
           />
-          <View style={{ marginTop: TRANSACTION_FORM_SKELETON_GEOMETRY.rowGap }}>
+          <ListCard
+            testID="transaction-form-skeleton-fact-group"
+            style={{ marginTop: TRANSACTION_FORM_SKELETON_GEOMETRY.rowGap }}
+          >
             {FACT_ROWS.map((row) => (
               <View
                 key={row}
                 testID="transaction-form-skeleton-fact-row"
-                className="border-separator border-b"
+                className={row === LAST_FACT_ROW ? 'px-4' : 'border-separator border-b px-4'}
                 style={{
                   minHeight: TRANSACTION_FORM_SKELETON_GEOMETRY.factRow,
                   flexDirection: 'row',
@@ -70,7 +75,7 @@ export function TransactionFormLoading(): React.ReactElement {
                 />
               </View>
             ))}
-          </View>
+          </ListCard>
         </View>
       </SkeletonGroup>
     </View>

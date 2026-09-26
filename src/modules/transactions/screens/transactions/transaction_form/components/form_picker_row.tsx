@@ -18,9 +18,11 @@ interface FormPickerRowProps {
   accessibilityLabel?: string;
   valueClassName?: string;
   valueStyle?: TextStyle;
+  valueNumberOfLines?: number;
+  divider?: boolean;
 }
 
-/** Canvas `.fact`: key left, value right on one line, at the 44 touch floor, a hairline below. */
+/** Canvas `.fact`: key left, value right, at the 44 touch floor, a hairline below unless `divider` is off. */
 export function FormPickerRow({
   testID,
   label,
@@ -32,6 +34,8 @@ export function FormPickerRow({
   accessibilityLabel = Strings.addTxPickerAccessibility(label, value),
   valueClassName,
   valueStyle,
+  valueNumberOfLines = 1,
+  divider = true,
 }: FormPickerRowProps): React.ReactElement {
   return (
     <ListGroup.Item
@@ -41,7 +45,7 @@ export function FormPickerRow({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
-      className="border-separator gap-3 border-b px-0 py-2"
+      className={cn('gap-3 px-0 py-2', divider && 'border-separator border-b')}
       style={{
         minHeight: FACT_ROW_MIN_HEIGHT,
         flexDirection: 'row',
@@ -67,7 +71,7 @@ export function FormPickerRow({
       >
         {prefix}
         <ListGroup.ItemTitle
-          numberOfLines={1}
+          numberOfLines={valueNumberOfLines}
           className={cn('font-sora text-foreground tabular-nums', valueClassName)}
           style={[
             {

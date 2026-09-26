@@ -15,9 +15,10 @@ interface Props {
   ownerId: string;
   value: string; // YYYY-MM-DD
   onChange: (next: string) => void;
+  divider?: boolean;
 }
 
-export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement {
+export function DateRow({ ownerId, value, onChange, divider }: Props): React.ReactElement {
   const picker = useTransactionDatePicker(ownerId, value, onChange);
   const formatted = formatLongDate(value);
 
@@ -28,6 +29,7 @@ export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement
         label={Strings.addTxDateLabel}
         value={formatted}
         onPress={picker.open}
+        divider={divider}
         accessibilityLabel={`${Strings.addTxDateLabel}: ${formatted}`}
         suffix={
           <MaterialCommunityIcons name="calendar" size={Size.iconSm} color={CoreTokens.text2} />

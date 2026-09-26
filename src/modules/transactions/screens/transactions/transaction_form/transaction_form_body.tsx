@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { FormErrorText } from '@/components/ui/form_error_text';
+import { ListCard } from '@/components/ui/list_card';
 import { SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
@@ -76,6 +77,9 @@ export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
 
 export const TRANSACTION_FORM_ERROR_SLOT_HEIGHT = ms(16);
 
+// Canvas `.fact`: 16 inset, a hairline under every fact but the last (Note).
+const FACT_CELL_CLASS = 'border-separator border-b px-4';
+
 interface ValidationSlotProps {
   testID: string;
   message?: string;
@@ -145,7 +149,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
-  const budgetValueFontSize = budgetLookupError ? Type.caption : Type.body;
 
   return (
     <View style={{ flex: 1 }}>
@@ -206,11 +209,12 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           <ValidationSlot testID="account-error-slot" message={accountError} />
         </View>
 
-        {isTransferOrCC ? (
-          <>
-            <View>
+        <ListCard testID="transaction-form-fact-group">
+          {isTransferOrCC ? (
+            <View className={FACT_CELL_CLASS}>
               <FormPickerRow
                 testID="to-account-row"
+                divider={false}
                 onPress={locked ? undefined : onOpenToPicker}
                 disabled={locked}
                 label={Strings.addTxToLabel}
@@ -241,14 +245,13 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               />
               <ValidationSlot testID="to-account-error-slot" message={toAccountError} />
             </View>
-          </>
-        ) : null}
+          ) : null}
 
-        {!isTransferOrCC ? (
-          <>
-            <View>
+          {!isTransferOrCC ? (
+            <View className={FACT_CELL_CLASS}>
               <FormPickerRow
                 testID="category-row"
+                divider={false}
                 onPress={onOpenCategoryPicker}
                 label={Strings.addTxCategoryLabel}
                 value={selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
@@ -271,14 +274,13 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               />
               <ValidationSlot testID="category-error-slot" message={categoryError} />
             </View>
-          </>
-        ) : null}
+          ) : null}
 
-        {showBudgetField ? (
-          <>
-            <View>
+          {showBudgetField ? (
+            <View className={FACT_CELL_CLASS}>
               <FormPickerRow
                 testID="budget-row"
+                divider={false}
                 onPress={
                   budgetsLoading
                     ? undefined
@@ -296,13 +298,13 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                     ? Strings.addTxBudgetLoading
                     : (budgetLookupError ?? selectedBudget?.name ?? Strings.addTxPickBudgetTitle)
                 }
-                valueClassName={
-                  budgetLookupError ? 'font-inter-medium text-danger' : 'text-foreground'
+                valueNumberOfLines={budgetLookupError ? 2 : undefined}
+                valueClassName={budgetLookupError ? 'font-inter-medium text-danger' : undefined}
+                valueStyle={
+                  budgetLookupError
+                    ? { fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }
+                    : undefined
                 }
-                valueStyle={{
-                  fontSize: budgetValueFontSize,
-                  lineHeight: lineHeightFor(budgetValueFontSize),
-                }}
                 prefix={
                   <MaterialCommunityIcons
                     name="wallet-outline"
@@ -327,56 +329,60 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 message={budgetLookupError ? undefined : budgetError}
               />
             </View>
-          </>
-        ) : null}
+          ) : null}
 
-        {requiresRate ? (
-          <TransactionExchangeRateRow
-            value={exchangeRate}
-            onChange={setExchangeRate}
-            overrideEnabled={rateOverride}
-            onToggleOverride={toggleRateOverride}
-            rateUpdatedAt={rateUpdatedAt}
-            mode={formMode}
-            type={type}
-            sourceCurrency={selectedAccount?.currency}
-            destinationCurrency={selectedToAccount?.currency}
-            error={rateError}
-          />
-        ) : null}
+          {requiresRate ? (
+            <View className="border-separator border-b px-4 pb-3">
+              <TransactionExchangeRateRow
+                value={exchangeRate}
+                onChange={setExchangeRate}
+                overrideEnabled={rateOverride}
+                onToggleOverride={toggleRateOverride}
+                rateUpdatedAt={rateUpdatedAt}
+                mode={formMode}
+                type={type}
+                sourceCurrency={selectedAccount?.currency}
+                destinationCurrency={selectedToAccount?.currency}
+                error={rateError}
+              />
+            </View>
+          ) : null}
 
-        <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} />
+          <View className={FACT_CELL_CLASS}>
+            <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} divider={false} />
+          </View>
 
-        <View
-          testID="note-row"
-          className="gap-3"
-          style={{ minHeight: FACT_ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center' }}
-        >
-          <Text
-            className="font-inter text-content-secondary"
-            style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+          <View
+            testID="note-row"
+            className="gap-3 px-4"
+            style={{ minHeight: FACT_ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center' }}
           >
-            {Strings.addTxNoteLabel}
-          </Text>
-          <Input
-            value={note}
-            onChangeText={setNote}
-            placeholder={Strings.addTxNotePlaceholder}
-            placeholderTextColor={CoreTokens.text2}
-            onFocus={onInputFocus}
-            onBlur={onInputBlur}
-            variant="secondary"
-            className="font-sora text-foreground rounded-none border-0 bg-transparent p-0 tabular-nums"
-            style={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: FACT_ROW_MIN_HEIGHT,
-              textAlign: 'right',
-              fontSize: Type.body,
-              lineHeight: lineHeightFor(Type.body),
-            }}
-          />
-        </View>
+            <Text
+              className="font-inter text-content-secondary"
+              style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+            >
+              {Strings.addTxNoteLabel}
+            </Text>
+            <Input
+              value={note}
+              onChangeText={setNote}
+              placeholder={Strings.addTxNotePlaceholder}
+              placeholderTextColor={CoreTokens.text2}
+              onFocus={onInputFocus}
+              onBlur={onInputBlur}
+              variant="secondary"
+              className="font-sora text-foreground rounded-none border-0 bg-transparent p-0 tabular-nums"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: FACT_ROW_MIN_HEIGHT,
+                textAlign: 'right',
+                fontSize: Type.body,
+                lineHeight: lineHeightFor(Type.body),
+              }}
+            />
+          </View>
+        </ListCard>
         <ValidationSlot testID="form-error-slot" message={errorMessage} />
       </BottomSheetScrollView>
     </View>
