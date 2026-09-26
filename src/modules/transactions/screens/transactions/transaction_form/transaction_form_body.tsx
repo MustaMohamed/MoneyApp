@@ -20,8 +20,9 @@ import { ms } from '@/utils/responsive';
 
 import { AmountHero } from './components/amount_hero';
 import { DateRow } from './components/date_row';
-import { FACT_ROW_MIN_HEIGHT, FormPickerRow } from './components/form_picker_row';
+import { FormPickerRow } from './components/form_picker_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
+import { FACT_ROW_MIN_HEIGHT } from './components/transaction_form_geometry';
 import { TypeTabs } from './components/type_tabs';
 import type { TransactionFormMode } from './transaction_form.types';
 
@@ -347,7 +348,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} />
 
         <View
-          className="gap-3 py-2"
+          testID="note-row"
+          className="gap-3"
           style={{ minHeight: FACT_ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center' }}
         >
           <Text
@@ -364,10 +366,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             onFocus={onInputFocus}
             onBlur={onInputBlur}
             variant="secondary"
-            className="font-sora text-foreground min-h-8 rounded-none border-0 bg-transparent p-0 tabular-nums"
+            className="font-sora text-foreground rounded-none border-0 bg-transparent p-0 tabular-nums"
             style={{
               flex: 1,
               minWidth: 0,
+              minHeight: FACT_ROW_MIN_HEIGHT,
               textAlign: 'right',
               fontSize: Type.body,
               lineHeight: lineHeightFor(Type.body),

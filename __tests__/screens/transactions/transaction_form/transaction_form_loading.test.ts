@@ -1,6 +1,8 @@
 import { Spacing, TouchSize } from '@/constants/theme';
-import { FACT_ROW_MIN_HEIGHT } from '@/modules/transactions/screens/transactions/transaction_form/components/form_picker_row';
-import { TRANSACTION_FORM_SKELETON_GEOMETRY } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
+import {
+  FACT_ROW_MIN_HEIGHT,
+  TRANSACTION_FORM_SKELETON_GEOMETRY,
+} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
 
 describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
   it('sizes the account bar and each fact row at the fact-row minimum', () => {

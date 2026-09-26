@@ -1,17 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { PressableFeedback } from 'heroui-native';
 import { Platform, View } from 'react-native';
 
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate } from '@/utils/format_date';
 
 import { DatePickerSheet } from './date_picker_sheet';
 import { useTransactionDatePicker } from './date_picker_sheet.hook';
-import { FACT_ROW_MIN_HEIGHT } from './form_picker_row';
+import { FormPickerRow } from './form_picker_row';
 
 interface Props {
   ownerId: string;
@@ -25,50 +23,16 @@ export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement
 
   return (
     <View>
-      <PressableFeedback
+      <FormPickerRow
         testID="date-row"
+        label={Strings.addTxDateLabel}
+        value={formatted}
         onPress={picker.open}
-        accessibilityRole="button"
         accessibilityLabel={`${Strings.addTxDateLabel}: ${formatted}`}
-        className="border-separator gap-3 border-b py-2"
-        style={{
-          minHeight: FACT_ROW_MIN_HEIGHT,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Text
-          className="font-inter text-content-secondary"
-          style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
-        >
-          {Strings.addTxDateLabel}
-        </Text>
-        <View
-          className="gap-2"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-          }}
-        >
-          <Text
-            numberOfLines={1}
-            className="font-sora text-foreground tabular-nums"
-            style={{
-              flexShrink: 1,
-              textAlign: 'right',
-              fontSize: Type.body,
-              lineHeight: lineHeightFor(Type.body),
-            }}
-          >
-            {formatted}
-          </Text>
+        suffix={
           <MaterialCommunityIcons name="calendar" size={Size.iconSm} color={CoreTokens.text2} />
-        </View>
-      </PressableFeedback>
+        }
+      />
 
       {picker.state.showAndroidPicker ? (
         <DateTimePicker

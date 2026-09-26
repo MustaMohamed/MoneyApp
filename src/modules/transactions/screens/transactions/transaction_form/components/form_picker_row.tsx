@@ -3,9 +3,9 @@ import type { ReactNode } from 'react';
 import { View, type TextStyle } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 
-export const FACT_ROW_MIN_HEIGHT = TouchSize.min;
+import { FACT_ROW_MIN_HEIGHT } from './transaction_form_geometry';
 
 interface FormPickerRowProps {
   testID: string;
@@ -41,8 +41,13 @@ export function FormPickerRow({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
-      className="border-separator flex-row items-center justify-between gap-3 border-b px-0 py-2"
-      style={{ minHeight: FACT_ROW_MIN_HEIGHT }}
+      className="border-separator gap-3 border-b px-0 py-2"
+      style={{
+        minHeight: FACT_ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
     >
       <ListGroup.ItemDescription
         className="font-inter text-content-secondary"
@@ -51,8 +56,14 @@ export function FormPickerRow({
         {label}
       </ListGroup.ItemDescription>
       <View
-        className="flex-row items-center gap-2"
-        style={{ flex: 1, minWidth: 0, justifyContent: 'flex-end' }}
+        className="gap-2"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+        }}
       >
         {prefix}
         <ListGroup.ItemTitle

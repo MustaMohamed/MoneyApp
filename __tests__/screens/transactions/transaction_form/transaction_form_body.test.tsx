@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { View, type ViewProps } from 'react-native';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -41,7 +41,8 @@ jest.mock(
   () => ({ TypeTabs: () => null }),
 );
 
-import { FACT_ROW_MIN_HEIGHT } from '@/modules/transactions/screens/transactions/transaction_form/components/form_picker_row';
+import { FACT_ROW_MIN_HEIGHT } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
+import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import {
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
@@ -81,20 +82,9 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   currency: Currency.EGP,
 };
 
-type HostElement = ReturnType<typeof screen.getByTestId>;
-
 // Without this, `toHaveStyle({ minHeight: undefined })` matches any row that lacks a minHeight.
 function expectFactRowMinimumDefined(): void {
   expect(FACT_ROW_MIN_HEIGHT).toBe(TouchSize.min);
-}
-
-function closestFactRow(element: HostElement): HostElement | null {
-  let node = element.parent;
-  while (node) {
-    if (StyleSheet.flatten(node.props.style)?.minHeight === FACT_ROW_MIN_HEIGHT) return node;
-    node = node.parent;
-  }
-  return null;
 }
 
 describe('TransactionFormBody geometry', () => {
@@ -237,12 +227,37 @@ describe('TransactionFormBody fact rows', () => {
 
     expectFactRowMinimumDefined();
     const input = screen.getByPlaceholderText(Strings.addTxNotePlaceholder);
-    const noteRow = closestFactRow(input);
-    expect(noteRow).not.toBeNull();
-    if (!noteRow) return;
+    const noteRow = screen.getByTestId('note-row');
     expect(within(noteRow).getByText(Strings.addTxNoteLabel)).toBeTruthy();
+    expect(input).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
 
     await fireEvent.changeText(input, 'Lunch with the team');
     expect(setNote).toHaveBeenCalledWith('Lunch with the team');
+  });
+});
+
+describe('TransactionFormLoading', () => {
+  // The jest.setup.js heroui-native mock carries no SkeletonGroup; the rest of this file needs that mock.
+  beforeAll(() => {
+    const Group = ({ children }: React.PropsWithChildren<object>) =>
+      React.createElement(View, null, children);
+    const Item = (props: ViewProps) => React.createElement(View, props);
+    Object.assign(jest.requireMock<Record<string, unknown>>('heroui-native'), {
+      SkeletonGroup: Object.assign(Group, { Item }),
+    });
+  });
+
+  it('draws the account bar and four fact rows at the loaded fact-row height', async () => {
+    await render(<TransactionFormLoading />);
+
+    expectFactRowMinimumDefined();
+    expect(screen.getByTestId('transaction-form-skeleton-account-row')).toHaveStyle({
+      height: FACT_ROW_MIN_HEIGHT,
+    });
+    const factRows = screen.getAllByTestId('transaction-form-skeleton-fact-row');
+    expect(factRows).toHaveLength(4);
+    for (const row of factRows) {
+      expect(row).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    }
   });
 });
