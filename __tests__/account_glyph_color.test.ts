@@ -38,7 +38,13 @@ describe('resolveAccountGlyphColor', () => {
     expect(resolveAccountGlyphColor('#C9973A')).toBe('#C9973A');
   });
 
-  it.each([undefined, null])('falls back to the secondary text colour for %s', (hex) => {
-    expect(resolveAccountGlyphColor(hex)).toBe(CoreTokens.text2);
-  });
+  it.each([undefined, null])(
+    'draws a colourless account (%s) at 3:1 or more on every backdrop',
+    (hex) => {
+      const glyph = resolveAccountGlyphColor(hex);
+      for (const [, backdrop] of BACKDROPS) {
+        expect(contrastRatio(glyph, backdrop)).toBeGreaterThanOrEqual(3);
+      }
+    },
+  );
 });

@@ -26,6 +26,5 @@ function clearsEveryBackdrop(candidate: string): boolean {
 
 /** An account colour drawn as a glyph, stepped toward the text colour until it clears 3:1; the stored colour is untouched. */
 export function resolveAccountGlyphColor(hex: string | null | undefined): string {
-  if (hex === null || hex === undefined) return CoreTokens.text2;
-  return stepTowardText(hex, clearsEveryBackdrop);
+  return stepTowardText(hex ?? CoreTokens.text2, clearsEveryBackdrop);
 }
