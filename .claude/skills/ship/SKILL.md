@@ -15,7 +15,7 @@ Delivery of one leaf task from Planned to Done, on the branch `/prep` created, t
 1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists: read it, announce phase, branch, PR and any open loop, load that phase's file, continue. Never redo a completed phase.
 2. Otherwise `bash scripts/board.sh get <n>`:
    - **Planned** → phase 1.
-   - **Ready For Development** with no sub-issues → run the `prep` skill on `<n>` first, in this session, then phase 1 without stopping. Prep's two stops survive (a gap, a disputed finding); a ticket plan returns to Todo ends the run with plan's `Next:` line. The board is the composition switch.
+   - **Ready For Development** with no sub-issues → run the `prep` skill on `<n>` first, in this session, then phase 1 without stopping. Prep's two stops survive (a gap or a trim, a disputed finding); a ticket prep moves to Blocked ends the run with prep's reply. The board is the composition switch.
    - **In Progress / In Review / Awaiting Human** with no `state.md` → another machine or session owns it; report the branch (`gh issue develop --list <n>`) and the PR (`gh pr list --head <branch> --state all`) and stop.
    - **Ready For Development** with sub-issues → a parent, its column mirrors its children; name the children at Ready For Development and stop, nothing is pulled from a parent.
    - Anything else → say what you found and stop.

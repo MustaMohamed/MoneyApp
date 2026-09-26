@@ -90,6 +90,7 @@ function normalizeIssue(c) {
     labels: (c.labels?.nodes ?? []).map((l) => l.name),
     milestone: c.milestone?.title ?? null,
     header: (c.body ?? '').split('\n')[0].trim(),
+    size: bodySize(c.body),
     parent: c.parent?.number ?? null,
     children: (c.subIssues?.nodes ?? []).map((s) => ({
       number: s.number,
@@ -216,6 +217,31 @@ function headerDeps(header) {
   if (field === 'nothing') return { has: true, deps: [], unparsed: false };
   const deps = [...field.matchAll(/#(\d+)/g)].map((x) => Number(x[1]));
   return { has: true, deps, unparsed: deps.length === 0 };
+}
+
+const GATE = { files: 12, lines: 400 };
+
+function bodySize(body) {
+  const line = (body ?? '')
+    .split('\n')
+    .filter((l) => /^\s*-\s*Size: /.test(l))
+    .pop();
+  if (!line) return null;
+  const files = /Size: (\d+) files?/.exec(line);
+  const span = /Size: \d+ files?[^,]*, ([^,]*) lines/.exec(line);
+  const lines = span ? [...span[1].matchAll(/\d+/g)].map((x) => Number(x[0])) : [];
+  if (!files || lines.length === 0) return { unparsed: true };
+  return { files: Number(files[1]), lines: Math.max(...lines) };
+}
+
+function overGate(size) {
+  return Boolean(size) && !size.unparsed && (size.files > GATE.files || size.lines > GATE.lines);
+}
+
+function sizeText(size) {
+  if (!size) return 'no Size line';
+  if (size.unparsed) return 'Size line unreadable';
+  return `${size.files} files, ~${size.lines} lines`;
 }
 
 function headerReviewed(header) {
@@ -369,7 +395,17 @@ function decide(item, ctx) {
     return { bucket: 'drift', action: 'Depends on has no (#N)', command: 'fix the header line' };
 
   if (item.status === 'Blocked') {
-    const on = blockedOn(item.comments ?? []);
+    const notes = item.comments ?? [];
+    const lastRuling = notes.findLastIndex((c) => /^Blocked on a ruling: /.test(c));
+    const lastIssue = notes.findLastIndex((c) => /Blocked on #\d+/.test(c));
+    if (lastRuling > lastIssue)
+      return {
+        bucket: 'yours',
+        action: 'Blocked on a ruling from /prep',
+        command: `bash scripts/board.sh status ${n} "Ready For Development"`,
+      };
+    const named = blockedOn(lastRuling === -1 ? notes : notes.slice(lastRuling + 1));
+    const on = named.length ? named : openDeps;
     if (on.length === 0) return { bucket: 'wait', action: 'Blocked, no "Blocked on #m" comment' };
     const stillOpen = on.filter((m) => !ctx.isClosed(m));
     if (stillOpen.length)
@@ -387,13 +423,13 @@ function decide(item, ctx) {
       return {
         bucket: 'drift',
         action: 'Ready For Development with Reviewed none',
-        command: `/issue-review ${n}`,
+        command: `bash scripts/board.sh status ${n} Defined`,
       };
     if (openDeps.length)
       return {
         bucket: 'drift',
         action: `Ready For Development with ${waits} open`,
-        command: `/issue-review ${n}`,
+        command: `bash scripts/board.sh status ${n} Blocked`,
       };
     return { bucket: 'pull', action: 'pullable', command: `/prep ${n}` };
   }
@@ -445,10 +481,24 @@ function decide(item, ctx) {
   }
 
   if (item.status === 'Defined') {
+    if (standard && overGate(item.size))
+      return {
+        bucket: 'define',
+        action: `over the size gate, ${sizeText(item.size)}`,
+        command: `/tickets ${n}`,
+        rank: 0,
+      };
     if (reviewed === 'none' || reviewed === null)
       return {
         bucket: 'define',
         action: 'Defined, Reviewed none',
+        command: `/issue-review ${n}`,
+        rank: 0,
+      };
+    if (standard && (!item.size || item.size.unparsed))
+      return {
+        bucket: 'define',
+        action: `marked, ${sizeText(item.size)}`,
         command: `/issue-review ${n}`,
         rank: 0,
       };
@@ -570,6 +620,7 @@ function analyze(snapshot, scope) {
       actor: actorOf(d),
       runnable: parseRunnable(d.command) !== null,
       reviewed: headerReviewed(it.header),
+      size: it.size ? sizeText(it.size) : null,
       verify: /Verify emulator/.test(it.header ?? ''),
       flags: (/Flags ([^·]+)/.exec(it.header ?? '')?.[1] ?? 'none').trim(),
       pr: prOf(it),
@@ -714,6 +765,8 @@ const FRIENDLY = [
   [/^Todo, deps closed$/, 'nothing blocks it'],
   [/^Todo$/, 'nothing blocks it'],
   [/^Defined, Reviewed none$/, 'not reviewed yet'],
+  [/^over the size gate, .*$/, 'too big for one PR, cut it'],
+  [/^marked, (no Size line|Size line unreadable)$/, 'reviewed, not sized'],
   [/^pullable$/, 'reviewed, unblocked'],
   [/^Planned, branch .*$/, 'planned, branch ready'],
   [/^marked$/, 'reviewed, waiting'],

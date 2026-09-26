@@ -76,6 +76,16 @@
         {
           "number": 120,
           "state": "open"
+        },
+        {
+          "number": 141,
+          "state": "open",
+          "stateReason": null
+        },
+        {
+          "number": 142,
+          "state": "open",
+          "stateReason": null
         }
       ],
       "branches": [],
@@ -226,7 +236,11 @@
       "children": [],
       "branches": [],
       "prs": [],
-      "comments": []
+      "comments": [],
+      "size": {
+        "files": 4,
+        "lines": 120
+      }
     },
     {
       "number": 109,
@@ -334,7 +348,11 @@
       "children": [],
       "branches": [],
       "prs": [],
-      "comments": []
+      "comments": [],
+      "size": {
+        "files": 4,
+        "lines": 120
+      }
     },
     {
       "number": 115,
@@ -385,7 +403,11 @@
       "children": [],
       "branches": [],
       "prs": [],
-      "comments": []
+      "comments": [],
+      "size": {
+        "files": 4,
+        "lines": 120
+      }
     },
     {
       "number": 118,
@@ -604,6 +626,84 @@
         }
       ],
       "comments": []
+    },
+    {
+      "number": 141,
+      "status": "Defined",
+      "title": "MA-141 — Marked, not sized",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on MA-111 (#111) · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": 100,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": []
+    },
+    {
+      "number": 142,
+      "status": "Defined",
+      "title": "MA-142 — Over the size gate",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 100,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "size": {
+        "files": 14,
+        "lines": 520
+      }
+    },
+    {
+      "number": 143,
+      "status": "Blocked",
+      "title": "MA-143 — Blocked on a ruling",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": ["Blocked on a ruling: which screen owns the tally"]
+    },
+    {
+      "number": 144,
+      "status": "Blocked",
+      "title": "MA-144 — Blocked, header names the open dep",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on MA-104 (#104) · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "size": {
+        "files": 4,
+        "lines": 120
+      }
+    },
+    {
+      "number": 145,
+      "status": "Blocked",
+      "title": "MA-145 — Ruling answered, blocked again",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": ["Blocked on a ruling: which screen owns the tally", "Blocked on #104"]
     }
   ],
   "offBoard": [

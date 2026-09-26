@@ -361,7 +361,7 @@
       <dt>Who acts</dt><dd>${WHO[a.actor]}</dd><dt>Why</dt><dd>${esc(a.action)}</dd>
       <dt>Next</dt><dd>${a.command ? `<code>${esc(a.command)}</code>` : '<span class="dim">nothing</span>'}</dd>
       <dt>PR</dt><dd>${a.pr ? `<a href="${a.pr.url}" target="_blank" rel="noopener">#${a.pr.number}</a>, ${a.pr.state.toLowerCase()}, checks ${String(a.pr.checks).toLowerCase()}${a.pr.reviewDecision ? `, ${a.pr.reviewDecision.toLowerCase().replace(/_/g, ' ')}` : ''}` : 'none'}</dd>
-      <dt>Reviewed</dt><dd>${esc(a.reviewed ?? 'no field')}</dd><dt>Checks on a device</dt><dd>${a.verify ? 'yes, needs an emulator slot' : 'no'}</dd><dt>Flags</dt><dd>${esc(a.flags)}</dd>
+      <dt>Reviewed</dt><dd>${esc(a.reviewed ?? 'no field')}</dd><dt>Size</dt><dd>${a.isParent ? 'parent, sized through its children' : esc(a.size ?? 'not sized')}${a.isParent || !a.size ? '' : ', gate 12 files, ~400 lines'}</dd><dt>Checks on a device</dt><dd>${a.verify ? 'yes, needs an emulator slot' : 'no'}</dd><dt>Flags</dt><dd>${esc(a.flags)}</dd>
       ${a.parent ? `<dt>Parent</dt><dd data-focus="${a.parent}" style="cursor:pointer">${label(a.parent)}</dd>` : ''}
       ${a.progress ? `<dt>Children</dt><dd>${a.progress.closed} of ${a.progress.total} closed</dd>` : ''}</dl>
       <h3>Waits on ${a.waitsOn?.length || 'nothing'}</h3><ul class="mini">${(a.waitsOn ?? []).map(li).join('')}</ul>

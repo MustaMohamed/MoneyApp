@@ -55,8 +55,19 @@ deps_of() {
   if [ -z "${field// /}" ]; then echo UNPARSED; else echo "$field"; fi
 }
 
+# Reads an issue body on stdin; prints "<files> <lines>" from its last Size: line, the upper figure of a range, "MISSING" without one, "UNPARSED" when a figure is absent.
+size_of() {
+  local line files lines
+  line=$(grep -E '^[[:space:]]*-[[:space:]]*Size: ' | tail -1 || true)
+  [ -n "$line" ] || { echo MISSING; return; }
+  files=$(printf '%s\n' "$line" | sed -nE 's/.*Size: ([0-9]+) files?.*/\1/p')
+  lines=$(printf '%s\n' "$line" | sed -nE 's/.*Size: [0-9]+ files?[^,]*, ([^,]*) lines.*/\1/p' | grep -oE '[0-9]+' | sort -n | tail -1 || true)
+  if [ -z "$files" ] || [ -z "$lines" ]; then echo UNPARSED; else echo "$files $lines"; fi
+}
+
 promote() {
-  local parent=$1 items milestone children child_re extras candidates kind num state reason line deps dep dstate blocked status id gp
+  local parent=$1 items milestone children child_re extras candidates kind num state reason line deps dep dstate blocked status id gp size
+  local MAX_FILES=12 MAX_LINES=400
   local total=0 open=0 completed=0 promoted=0 skipped=0 closed_cache=" " open_cache=" " US=$'\x1f'
 
   children=$(gh api "repos/$REPO/issues/$parent/sub_issues" --paginate \
@@ -120,6 +131,15 @@ promote() {
       if [ "$dstate" = "closed" ]; then closed_cache="$closed_cache$dep "; else open_cache="$open_cache$dep "; blocked=1; fi
     done
     [ "$blocked" -eq 0 ] || continue
+    size=$(gh api "repos/$REPO/issues/$num" --jq '.body // ""' | size_of)
+    case "$size" in
+      MISSING) echo "#$num: no Size: line in Context, skipped; /issue-review $num writes it" >&2; skipped=$((skipped + 1)); continue ;;
+      UNPARSED) echo "#$num: Size: line has no file or line figure, skipped" >&2; skipped=$((skipped + 1)); continue ;;
+    esac
+    if [ "${size% *}" -gt "$MAX_FILES" ] || [ "${size#* }" -gt "$MAX_LINES" ]; then
+      echo "#$num: Size: ${size% *} files, ~${size#* } lines is over the gate ($MAX_FILES files, ~$MAX_LINES lines), skipped; /tickets $num cuts it" >&2
+      skipped=$((skipped + 1)); continue
+    fi
     if [ "$status" = "Blocked" ]; then
       echo "#$num: Blocked with every dependency closed; move it by hand" >&2
       continue
@@ -162,7 +182,7 @@ usage: bash scripts/board.sh <command> ...
   status <issue> <Status>      set the Status field; Status is the option name, quoted if it has spaces. "In Progress" carries to every parent not already there
   get <issue>                  print the issue's current Status name
   link <parent> <child>        make <child> a sub-issue of <parent>
-  promote <issue>              Defined leaves with a Reviewed date, under a marked parent, every Depends on closed -> Ready For Development, and a Defined parent follows its first child there: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
+  promote <issue>              Defined leaves with a Reviewed date and a Size: line within the gate (12 files, ~400 lines), under a marked parent, every Depends on closed -> Ready For Development, and a Defined parent follows its first child there: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
   next-ma                      print the next MA-nnn (highest in any issue title, plus one)
   next [<issue>] [--json]      read-only: every open ticket with the command to run next, ranked, from board_next.mjs; no model, about five seconds
   serve [<port>]               the board page on http://127.0.0.1:<port> (default 4178): the ranked tickets, the dependency views, and Fix buttons that run status, promote and add after you confirm

@@ -44,6 +44,12 @@ describe('board_next rule table', () => {
 
   const rows: Array<[number, string, string, string | undefined]> = [
     [101, 'yours', 'merge PR #501', undefined],
+    [
+      143,
+      'yours',
+      'Blocked on a ruling from /prep',
+      'bash scripts/board.sh status 143 "Ready For Development"',
+    ],
     [102, 'yours', 'checks red on PR #502', '/ship 102'],
     [103, 'yours', 'no PR: a dispute or a cap', 'read ~/.ship/MoneyApp/MA-103/state.md'],
     [
@@ -65,7 +71,12 @@ describe('board_next rule table', () => {
       'bash scripts/board.sh status 115 "Ready For Development"',
     ],
     [118, 'drift', 'has sub-issues at Todo', 'bash scripts/board.sh status 118 Defined'],
-    [109, 'drift', 'Ready For Development with Reviewed none', '/issue-review 109'],
+    [
+      109,
+      'drift',
+      'Ready For Development with Reviewed none',
+      'bash scripts/board.sh status 109 Defined',
+    ],
     [107, 'drift', 'Planned without a linked branch', '/prep 107 --replan'],
     [105, 'drift', 'In Progress with PR #505 open', '/ship 105'],
     [
@@ -87,6 +98,8 @@ describe('board_next rule table', () => {
     [108, 'pull', 'pullable', '/prep 108'],
     [110, 'define', 'Defined, Reviewed none', '/issue-review 110'],
     [127, 'define', 'parent unmarked, a child at Defined', '/issue-review 127'],
+    [141, 'define', 'marked, no Size line', '/issue-review 141'],
+    [142, 'define', 'over the size gate, 14 files, ~520 lines', '/tickets 142'],
     [
       117,
       'define',
@@ -98,6 +111,8 @@ describe('board_next rule table', () => {
     [122, 'define', 'Blocked on #111, closed', 'bash scripts/board.sh status 122 <column>'],
     [114, 'wait', 'marked, waits on #104', undefined],
     [121, 'wait', 'Blocked on #104', undefined],
+    [144, 'wait', 'Blocked on #104', undefined],
+    [145, 'wait', 'Blocked on #104', undefined],
     [125, 'wait', 'parent, children at Todo lead', undefined],
     [100, 'wait', 'parent, mirrors its children', undefined],
     [131, 'wait', 'parent, mirrors its children', undefined],
