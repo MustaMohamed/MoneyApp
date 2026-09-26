@@ -27,6 +27,7 @@ import { FormPickerRow } from './components/form_picker_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import {
   FACT_ROW_MIN_HEIGHT,
+  FROM_RING_OUTSET,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form_geometry';
 import { TypeTabs } from './components/type_tabs';
@@ -211,7 +212,9 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               />
             }
           />
-          {accountError !== undefined ? <DangerRing testID="from-account-ring" /> : null}
+          {accountError !== undefined ? (
+            <DangerRing testID="from-account-ring" inset={-FROM_RING_OUTSET} />
+          ) : null}
         </View>
 
         <ListCard testID="transaction-form-fact-group">

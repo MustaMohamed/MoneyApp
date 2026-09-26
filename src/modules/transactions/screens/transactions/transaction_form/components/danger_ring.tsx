@@ -4,6 +4,7 @@ import { Size } from '@/constants/theme';
 
 interface DangerRingProps {
   testID: string;
+  /** Horizontal only; a negative value draws the ring outside its row. */
   inset?: number;
   radius?: number;
 }

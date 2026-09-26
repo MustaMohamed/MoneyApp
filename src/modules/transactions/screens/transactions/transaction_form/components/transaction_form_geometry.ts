@@ -14,6 +14,9 @@ export const TRANSACTION_FORM_FOOTER_CLEARANCE =
 /** D6: the sheet's 16 padding plus the hero's 16 margin, since the hero root spans the sheet width. */
 export const AMOUNT_RING_INSET = Spacing.xxl;
 
+/** The From row has no inset of its own, so its ring draws this far outside it, into the scroll padding. */
+export const FROM_RING_OUTSET = Spacing.xs;
+
 export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
   padding: Spacing.md,
   gap: Spacing.xs,
