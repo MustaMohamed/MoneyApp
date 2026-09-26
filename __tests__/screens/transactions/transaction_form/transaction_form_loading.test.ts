@@ -1,4 +1,4 @@
-import { Spacing, TouchSize } from '@/constants/theme';
+import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
@@ -16,6 +16,11 @@ describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
 
   it('draws four fact rows: Category, Budget, Date and Note', () => {
     expect(TRANSACTION_FORM_SKELETON_GEOMETRY).toMatchObject({ factRowCount: 4 });
+  });
+
+  it('sizes the key and value bars at the fact row text line box', () => {
+    expect(TRANSACTION_FORM_SKELETON_GEOMETRY.keyBar.height).toBe(lineHeightFor(Type.body));
+    expect(TRANSACTION_FORM_SKELETON_GEOMETRY.valueBar.height).toBe(lineHeightFor(Type.body));
   });
 
   it('spaces the account bar from the first fact row by Spacing.md', () => {
