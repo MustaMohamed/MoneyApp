@@ -28,12 +28,12 @@ export interface SelectablePillProps {
   onLayout?: PressableProps['onLayout'];
 }
 
-export const SELECTABLE_PILL_CONTAINER_CLASS = {
+const SELECTABLE_PILL_CONTAINER_CLASS = {
   selected: 'border-accent/50 bg-accent/15',
   unselected: 'border-border bg-default/40',
 } as const;
 
-export const SELECTABLE_PILL_LABEL_CLASS = {
+const SELECTABLE_PILL_LABEL_CLASS = {
   selected: 'text-accent font-inter-semibold',
   unselected: 'text-foreground/70 font-inter-medium',
 } as const;
