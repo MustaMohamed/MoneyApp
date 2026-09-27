@@ -10,7 +10,9 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
+import { resolveStripSelectedId } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import type { TransactionFormPrerequisiteStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
 import {
   installMockAddTransaction,
   makeTestAccount,
@@ -480,14 +482,14 @@ describe('useAddTransaction — validation', () => {
     expect(result.current.state.selectedAccount?.id).toBe(mockAccountUSD.id);
   });
 
-  it('opens with no account chosen when the opener names none', async () => {
+  it('opens on the first account when the opener names none', async () => {
     useTransactionFormState.getState().openAdd({ accountId: mockAccountUSD.id });
     useTransactionFormState.getState().openAdd();
 
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
 
-    expect(result.current.state.accountId).toBe('');
-    expect(result.current.state.selectedAccount).toBeNull();
+    await waitFor(() => expect(result.current.state.accountId).toBe(mockAccountEGP.id));
+    expect(result.current.state.selectedAccount?.id).toBe(mockAccountEGP.id);
   });
 
   it('preserves entered values while the sheet close animation is running', async () => {
@@ -580,8 +582,10 @@ describe('useAddTransaction — validation', () => {
     expect(result.current.state.errors.amount).toBeDefined();
   });
 
-  it('rejects expense without an account', async () => {
+  it('rejects expense without an account when no account exists to preselect', async () => {
+    useAccountStore.setState({ accounts: [], hasLoaded: true });
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    expect(result.current.state.accountId).toBe('');
     await act(() => result.current.setAmountStr('50'));
     await act(() => result.current.selectCategory(mockCategoryExpense));
     await act(async () => {
@@ -646,6 +650,92 @@ describe('useAddTransaction — validation', () => {
       await result.current.handleSave();
     });
     expect(result.current.state.errors.toAccount).toBeDefined();
+  });
+});
+
+describe('useAddTransaction — MA-111 account strip preselect', () => {
+  const renderWithStatus = (status: TransactionFormPrerequisiteStatus) =>
+    renderHook(
+      (props: { status: TransactionFormPrerequisiteStatus }) =>
+        useAddTransaction(jest.fn(), { status: props.status, retry: jest.fn() }),
+      { initialProps: { status } },
+    );
+
+  it('D1: opened with no seed, the first account is chosen and Save never reads Select an account', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+
+    await waitFor(() => expect(result.current.state.accountId).toBe(mockAccountEGP.id));
+    await act(() => result.current.setAmountStr('5'));
+    await act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.account).toBeUndefined();
+    expect(addTx).toHaveBeenCalledWith(expect.objectContaining({ account_id: mockAccountEGP.id }));
+  });
+
+  it('opened from an account detail, the seeded account stays and is the ringed tile', async () => {
+    useTransactionFormState.getState().openAdd({ accountId: mockAccountUSD.id });
+    const { result, rerender } = await renderWithStatus('loading');
+
+    await rerender({ status: 'ready' });
+
+    expect(result.current.state.accountId).toBe(mockAccountUSD.id);
+    expect(
+      resolveStripSelectedId(result.current.state.accountsForFrom, result.current.state.accountId),
+    ).toBe(mockAccountUSD.id);
+  });
+
+  it('waits for the ready state, then preselects once', async () => {
+    const { result, rerender } = await renderWithStatus('loading');
+    expect(result.current.state.accountId).toBe('');
+
+    await rerender({ status: 'ready' });
+    await waitFor(() => expect(result.current.state.accountId).toBe(mockAccountEGP.id));
+
+    await act(() => {
+      useAccountStore.setState({ accounts: [mockAccountUSD, mockAccountEGP, mockAccountCC] });
+    });
+    expect(result.current.state.accountId).toBe(mockAccountEGP.id);
+  });
+
+  it('D5: a preselected USD tile switches the amount to USD and seeds the rate through selectAccount', async () => {
+    useAccountStore.setState({ accounts: [mockAccountUSD, mockAccountEGP] });
+    const { result, rerender } = await renderWithStatus('loading');
+    // The mount default read 50; only selectAccount's seed can write the newer rate.
+    await act(() => {
+      useCurrencyStore.setState({ rate: 52 });
+    });
+
+    await rerender({ status: 'ready' });
+
+    await waitFor(() => expect(result.current.state.accountId).toBe(mockAccountUSD.id));
+    expect(result.current.state.selectedAccount?.currency).toBe(Currency.USD);
+    expect(result.current.state.requiresRate).toBe(true);
+    expect(result.current.state.exchangeRate).toBe('52');
+  });
+
+  it('D6: a type switch that excludes the chosen card keeps it, rings no tile, and Save counts the account', async () => {
+    const addTx = installMockAddTransaction();
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+    await act(() => result.current.selectAccount(mockAccountCC));
+    await act(() => result.current.setAmountStr('5'));
+
+    await act(() => result.current.setType(TransactionType.Transfer));
+    await act(() => result.current.selectToAccount(mockAccountEGP));
+
+    expect(result.current.state.accountId).toBe(mockAccountCC.id);
+    expect(
+      resolveStripSelectedId(result.current.state.accountsForFrom, result.current.state.accountId),
+    ).toBeUndefined();
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.accountId).toBe(mockAccountCC.id);
+    expect(result.current.state.errors.account).toBeDefined();
+    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
+    expect(addTx).not.toHaveBeenCalled();
   });
 });
 

@@ -190,7 +190,6 @@ function createHookState(
       accountsForFrom: [],
       accountsForTo: [],
       visibleCategories: [],
-      showAccountPicker: false,
       showToPicker: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
@@ -207,7 +206,6 @@ function createHookState(
     setNote: jest.fn(),
     setExchangeRate: jest.fn(),
     toggleRateOverride: jest.fn(),
-    setShowAccountPicker: jest.fn(),
     setShowToPicker: jest.fn(),
     setShowCategoryPicker: jest.fn(),
     setShowBudgetPicker: jest.fn(),
@@ -321,7 +319,6 @@ describe('transaction form sessions', () => {
   it('renders the ready Add form and keeps its nested pickers mounted', async () => {
     const screen = await renderAdd({
       formDataReady: true,
-      showAccountPicker: true,
       closingPickers: ['category'],
     });
 
