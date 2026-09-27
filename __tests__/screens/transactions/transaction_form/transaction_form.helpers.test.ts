@@ -660,7 +660,7 @@ describe('MA-122 locked strip and To row face', () => {
   });
 
   it('offers the To pick title and no tile on an unlocked empty To row', () => {
-    expect(resolveToRowFace({ locked: false, account: null })).toEqual({
+    expect(resolveToRowFace({ locked: false, account: undefined })).toEqual({
       value: Strings.addTxPickToTitle,
       tile: undefined,
     });
@@ -682,7 +682,7 @@ describe('MA-122 locked strip and To row face', () => {
   );
 
   it('draws a locked unresolved To account as Unknown account on the hollow tile', () => {
-    const face = resolveToRowFace({ locked: true, account: null });
+    const face = resolveToRowFace({ locked: true, account: undefined });
     expect(face.value).toBe(Strings.unknownAccount);
     expect(face.tile).toMatchObject(HOLLOW);
   });

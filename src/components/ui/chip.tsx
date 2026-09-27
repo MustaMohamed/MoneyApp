@@ -13,11 +13,17 @@ export interface SelectablePillProps {
   onPress: () => void;
   /** Leading adornment, drawn before the label. */
   startIcon?: React.ReactNode;
+  /** Trailing adornment, drawn after the label. */
+  endIcon?: React.ReactNode;
   checkable?: boolean;
   /** Forwarded to HeroUI `Chip`'s RN `Pressable` as `disabled`, not HeroUI's `isDisabled`. */
   disabled?: boolean;
+  testID?: string;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
+  labelStyle?: StyleProp<TextStyle>;
+  labelNumberOfLines?: number;
   hitSlop?: PressableProps['hitSlop'];
   onLayout?: PressableProps['onLayout'];
 }
@@ -38,16 +44,22 @@ export function SelectablePill({
   selected,
   onPress,
   startIcon,
+  endIcon,
   checkable = false,
   disabled = false,
+  testID,
   accessibilityLabel,
+  accessibilityHint,
   style,
+  labelStyle,
+  labelNumberOfLines,
   hitSlop,
   onLayout,
 }: SelectablePillProps): React.ReactElement {
-  const hasAdornment = startIcon !== undefined || checkable;
+  const hasAdornment = startIcon !== undefined || endIcon !== undefined || checkable;
   return (
     <Chip
+      testID={testID}
       size="sm"
       variant="secondary"
       color="default"
@@ -57,6 +69,7 @@ export function SelectablePill({
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
       style={style}
       hitSlop={hitSlop}
       onLayout={onLayout}
@@ -70,16 +83,18 @@ export function SelectablePill({
     >
       {startIcon}
       <Chip.Label
+        numberOfLines={labelNumberOfLines}
         className={
           selected ? SELECTABLE_PILL_LABEL_CLASS.selected : SELECTABLE_PILL_LABEL_CLASS.unselected
         }
-        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+        style={[{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }, labelStyle]}
       >
         {label}
       </Chip.Label>
       {checkable && selected ? (
         <MaterialCommunityIcons name="check" size={12} color={GoldTokens[500]} />
       ) : null}
+      {endIcon}
     </Chip>
   );
 }

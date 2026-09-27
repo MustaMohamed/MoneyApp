@@ -1,3 +1,5 @@
+import type { Insets } from 'react-native';
+
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Radius, Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -23,20 +25,20 @@ export const ACCOUNT_STRIP_TILE = Size.dualTile;
 export const ACCOUNT_STRIP_CHIP_PADDING_X = ms(10);
 export const ACCOUNT_STRIP_TILE_NAME_GAP = Spacing.xs;
 export const ACCOUNT_STRIP_DIMMED_OPACITY = 0.6;
-/** Lifts the 40-high chip to the touch floor; the strip's scroll pads it, since Android drops a touch outside the ScrollView. */
-export const ACCOUNT_STRIP_CHIP_SLOP_Y = Math.max(
-  0,
-  (TouchSize.min - ACCOUNT_STRIP_CHIP_HEIGHT) / 2,
-);
+/** Lifts the 40-high chip past the touch floor, plus 1 so Android's dp-to-px truncation of the slop still clears 44. */
+export const ACCOUNT_STRIP_CHIP_SLOP_Y =
+  Math.max(0, (TouchSize.min - ACCOUNT_STRIP_CHIP_HEIGHT) / 2) + Spacing.xxxxs;
 /** Horizontally the slop stops at half the gap, so a neighbour keeps its side. */
-export const ACCOUNT_STRIP_HIT_SLOP = {
+export const ACCOUNT_STRIP_HIT_SLOP: Readonly<Insets> = Object.freeze({
   top: ACCOUNT_STRIP_CHIP_SLOP_Y,
   bottom: ACCOUNT_STRIP_CHIP_SLOP_Y,
   left: ACCOUNT_STRIP_GAP / 2,
   right: ACCOUNT_STRIP_GAP / 2,
-};
-/** The strip wrapper's padding gives back the slop the scroll adds, so the strip's outer spacing holds. */
-export const ACCOUNT_STRIP_WRAPPER_PADDING_Y = Math.max(0, Spacing.xxs - ACCOUNT_STRIP_CHIP_SLOP_Y);
+});
+export const ACCOUNT_STRIP_INSET_X = Spacing.md;
+/** The strip row's padding above and below its chips; the scroll holds the slop, since Android drops a touch outside the ScrollView. */
+export const ACCOUNT_STRIP_PADDING_Y = Math.max(Spacing.xxs, ACCOUNT_STRIP_CHIP_SLOP_Y);
+export const ACCOUNT_STRIP_WRAPPER_PADDING_Y = ACCOUNT_STRIP_PADDING_Y - ACCOUNT_STRIP_CHIP_SLOP_Y;
 
 export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
   padding: Spacing.md,

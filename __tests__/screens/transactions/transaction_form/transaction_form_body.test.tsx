@@ -59,7 +59,10 @@ import {
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
-import { resolveLockedStripChips } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
+import {
+  resolveAccountStripChips,
+  resolveLockedStripChips,
+} from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import {
   TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
   TransactionFormBody,
@@ -76,9 +79,8 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   datePickerOwnerId: 'add:1',
   formMode: 'add',
   locked: false,
-  fromAccounts: [],
-  selectedAccountId: '',
-  onSelectAccount: jest.fn(),
+  stripChips: [],
+  onSelectStripChip: jest.fn(),
   type: TransactionType.Expense,
   typeLabel: 'Expense',
   typeSupportingText: 'Money spent',
@@ -146,7 +148,7 @@ describe('TransactionFormBody geometry', () => {
     await render(
       <TransactionFormBody
         {...baseProps}
-        fromAccounts={[stripAccount]}
+        stripChips={resolveAccountStripChips([stripAccount], undefined)}
         showBudgetField
         accountError="Account is required"
         categoryError="Category is required"
@@ -221,9 +223,8 @@ describe('TransactionFormBody geometry', () => {
     await render(
       <TransactionFormBody
         {...baseProps}
-        fromAccounts={[stripAccount]}
+        stripChips={resolveAccountStripChips([stripAccount], stripAccount.id)}
         selectedAccount={stripAccount}
-        selectedAccountId={stripAccount.id}
       />,
     );
 
@@ -233,14 +234,13 @@ describe('TransactionFormBody geometry', () => {
   });
 
   it('exposes stable chip and picker-row semantics and delegates presses', async () => {
-    const onSelectAccount = jest.fn();
+    const onSelectStripChip = jest.fn();
     const onOpenCategoryPicker = jest.fn();
     await render(
       <TransactionFormBody
         {...baseProps}
-        fromAccounts={[stripAccount]}
-        selectedAccountId={stripAccount.id}
-        onSelectAccount={onSelectAccount}
+        stripChips={resolveAccountStripChips([stripAccount], stripAccount.id)}
+        onSelectStripChip={onSelectStripChip}
         onOpenCategoryPicker={onOpenCategoryPicker}
       />,
     );
@@ -250,7 +250,7 @@ describe('TransactionFormBody geometry', () => {
     expect(chip).toHaveProp('accessibilityState', expect.objectContaining({ selected: true }));
     await fireEvent.press(chip);
     await fireEvent.press(screen.getByTestId('category-row'));
-    expect(onSelectAccount).toHaveBeenCalledWith(stripAccount);
+    expect(onSelectStripChip).toHaveBeenCalledWith(stripAccount.id);
     expect(onOpenCategoryPicker).toHaveBeenCalledTimes(1);
   });
 });
@@ -268,7 +268,7 @@ describe('TransactionFormBody fact rows', () => {
 
   it('says why the strip is empty when the type leaves no eligible account', async () => {
     await render(
-      <TransactionFormBody {...baseProps} type={TransactionType.Transfer} fromAccounts={[]} />,
+      <TransactionFormBody {...baseProps} type={TransactionType.Transfer} stripChips={[]} />,
     );
 
     expect(screen.getByTestId('account-strip-empty')).toHaveTextContent(
@@ -303,6 +303,9 @@ describe('TransactionFormBody fact rows', () => {
     expect(onOpenToPicker).not.toHaveBeenCalled();
     expect(screen.queryByTestId('from-account-row')).toBeNull();
     expect(screen.getByTestId('account-strip')).toBeTruthy();
+    expect(
+      within(screen.getByTestId('account-strip')).getByText(Strings.addTxFromLabel),
+    ).toBeTruthy();
     expect(screen.getByTestId('account-strip-chip-account-1')).toHaveProp(
       'accessibilityState',
       expect.objectContaining({ disabled: true }),

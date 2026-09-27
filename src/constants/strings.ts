@@ -877,7 +877,6 @@ export const Strings = {
   addTxSupportCardCredit: 'Reduces card debt and offsets spending.',
   addTxSupportTransfer: 'Moves money between your accounts.',
   addTxSupportCcPayment: 'Pays down a credit card from an asset account.',
-  addTxAccountLabel: 'Account',
   addTxFromLabel: 'From',
   addTxToLabel: 'To',
   addTxCategoryLabel: 'Category',

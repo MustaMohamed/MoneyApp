@@ -4,14 +4,14 @@ import { View } from 'react-native';
 
 import { ListCard } from '@/components/ui/list_card';
 import { Strings } from '@/constants/strings';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 import {
   ACCOUNT_STRIP_CHIP_RADIUS,
-  ACCOUNT_STRIP_CHIP_SLOP_Y,
   ACCOUNT_STRIP_GAP,
-  ACCOUNT_STRIP_WRAPPER_PADDING_Y,
+  ACCOUNT_STRIP_INSET_X,
+  ACCOUNT_STRIP_PADDING_Y,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
 } from './transaction_form_geometry';
@@ -45,12 +45,12 @@ export function TransactionFormLoading(): React.ReactElement {
         </View>
         <View
           className="border-separator border-b"
-          style={{ paddingVertical: ACCOUNT_STRIP_WRAPPER_PADDING_Y + ACCOUNT_STRIP_CHIP_SLOP_Y }}
+          style={{ paddingVertical: ACCOUNT_STRIP_PADDING_Y }}
         >
           <View
             testID="transaction-form-skeleton-strip"
             style={{
-              marginHorizontal: Spacing.md,
+              marginHorizontal: ACCOUNT_STRIP_INSET_X,
               flexDirection: 'row',
               gap: ACCOUNT_STRIP_GAP,
               overflow: 'hidden',

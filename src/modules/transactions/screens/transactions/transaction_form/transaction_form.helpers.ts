@@ -130,7 +130,6 @@ export function resolveAccountStripChips(
   );
 }
 
-/** Edit: the current account first and locked whatever its state, then the active eligible accounts dimmed. */
 export function resolveLockedStripChips(input: {
   type: TransactionType;
   currentId: string;
@@ -150,17 +149,16 @@ export function resolveLockedStripChips(input: {
 }
 
 /** A deleted To account, or a locked one that never resolved, draws the hollow tile, never the pick title. */
-export function resolveToRowFace(input: { locked: boolean; account: Account | null }): {
+export function resolveToRowFace(input: { locked: boolean; account: Account | undefined }): {
   value: string;
   tile: RowTile | undefined;
 } {
   const { locked, account } = input;
-  if (account === null && !locked) return { value: Strings.addTxPickToTitle, tile: undefined };
-  if (account !== null && account.is_deleted !== 1) {
-    return { value: resolveAccountName(account), tile: undefined };
+  if (account === undefined && !locked) {
+    return { value: Strings.addTxPickToTitle, tile: undefined };
   }
-  const resolved = account ?? undefined;
-  return { value: resolveAccountName(resolved), tile: resolveRowTile(resolved) };
+  const tile = resolveRowTile(account);
+  return { value: resolveAccountName(account), tile: tile.hollow ? tile : undefined };
 }
 
 export function resolveAccountPreselect(input: {

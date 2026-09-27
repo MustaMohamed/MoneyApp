@@ -11,7 +11,7 @@ The add sheet's From account is a horizontal strip of account chips instead of a
 
 `AccountStrip` renders `accounts`, rings the chip whose id is `selectedId`, and reports a press through `onSelect`. It reads no store and keeps no state. `selectedId` is `resolveStripSelectedId(accountsForFrom, accountId)` over RHF `accountId`, so the ring is always the form's value.
 
-Amended 2026-09-27 by MA-122 (#595): the strip renders `chips` built by `resolveAccountStripChips` from the eligible list and `resolveStripSelectedId`, and reports a press by id; it still reads no store and keeps no state.
+**Amended 2026-09-27, MA-122 (#595).** The strip renders `chips` and reports a press by id. On add the hook builds them with `resolveAccountStripChips` from the eligible list and `resolveStripSelectedId`, memoized beside `accountsForFrom`, and `selectAccountById` maps the pressed id back to its account before calling `selectAccount`. The strip still reads no store and keeps no state.
 
 ## 2. `selectAccount` is the only writer
 

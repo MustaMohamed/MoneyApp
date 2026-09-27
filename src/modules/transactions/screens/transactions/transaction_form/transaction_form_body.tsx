@@ -34,9 +34,7 @@ import {
 import { TypeTabs } from './components/type_tabs';
 import {
   type AccountStripChip,
-  resolveAccountStripChips,
   resolveBudgetFieldError,
-  resolveStripSelectedId,
   resolveToRowFace,
 } from './transaction_form.helpers';
 import type { TransactionFormMode } from './transaction_form.types';
@@ -83,12 +81,7 @@ interface BaseProps {
 type Props = BaseProps &
   (
     | { locked: true; lockedChips: AccountStripChip[] }
-    | {
-        locked: false;
-        fromAccounts: Account[];
-        selectedAccountId: string;
-        onSelectAccount: (account: Account) => void;
-      }
+    | { locked: false; stripChips: AccountStripChip[]; onSelectStripChip: (id: string) => void }
   );
 
 export const TRANSACTION_FORM_ERROR_SLOT_HEIGHT = ms(16);
@@ -163,7 +156,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   const budgetFieldError = resolveBudgetFieldError(budgetError, budgetLookupError);
   const stripCaption = isTransferOrCC ? Strings.addTxFromLabel : undefined;
-  const toRowFace = resolveToRowFace({ locked, account: selectedToAccount });
+  const toRowFace = resolveToRowFace({ locked, account: selectedToAccount ?? undefined });
 
   return (
     <View style={{ flex: 1 }}>
@@ -190,14 +183,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           <AccountStrip chips={props.lockedChips} caption={stripCaption} />
         ) : (
           <AccountStrip
-            chips={resolveAccountStripChips(
-              props.fromAccounts,
-              resolveStripSelectedId(props.fromAccounts, props.selectedAccountId),
-            )}
-            onSelect={(id) => {
-              const account = props.fromAccounts.find((candidate) => candidate.id === id);
-              if (account !== undefined) props.onSelectAccount(account);
-            }}
+            chips={props.stripChips}
+            onSelect={props.onSelectStripChip}
             caption={stripCaption}
             error={accountError}
             emptyText={
