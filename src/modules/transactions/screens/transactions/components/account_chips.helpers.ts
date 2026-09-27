@@ -1,3 +1,4 @@
+import { ACCOUNT_TYPE_ICONS, type AccountTypeIconName } from '@/constants/account_type_icons';
 import { Strings } from '@/constants/strings';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -8,7 +9,9 @@ export interface AccountChipModel {
   accountId: string | undefined;
   label: string;
   accessibilityLabel: string;
-  dotColor: string | undefined;
+  /** The account-type icon, as the sheet's account pill shows it; `undefined` on All accounts. */
+  iconName: AccountTypeIconName | undefined;
+  iconColor: string | undefined;
   selected: boolean;
 }
 
@@ -23,7 +26,8 @@ export function buildAccountChips(
       accountId: undefined,
       label: Strings.filterAllAccounts,
       accessibilityLabel: Strings.filterAllAccounts,
-      dotColor: undefined,
+      iconName: undefined,
+      iconColor: undefined,
       selected: accountIds.length === 0,
     },
     ...accounts.map((account) => {
@@ -32,7 +36,8 @@ export function buildAccountChips(
         accountId: account.id,
         label,
         accessibilityLabel: Strings.filterAccountAccessibility(label),
-        dotColor: resolveAccountGlyphColor(account.color),
+        iconName: ACCOUNT_TYPE_ICONS[account.type],
+        iconColor: resolveAccountGlyphColor(account.color),
         selected: account.id === onlyId,
       };
     }),

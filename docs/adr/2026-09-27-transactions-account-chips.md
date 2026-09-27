@@ -5,7 +5,7 @@
 - **Ticket:** MA-120
 - **Applies to:** `toggleAccountFilter`, `countFunnelFilters` and `pruneAccountFilter` in `src/modules/transactions/screens/transactions/filter/filter.helpers.ts`; `AccountChipModel` and `buildAccountChips` in `src/modules/transactions/screens/transactions/components/account_chips.helpers.ts`; `useTransactions` in `src/modules/transactions/screens/transactions/transactions.hook.ts`; `AccountChips` in `src/modules/transactions/screens/transactions/components/account_chips.tsx`
 
-A row of chips sits between the hero and the search field: All accounts first, then one chip per active account in list order. A chip is on when the applied account filter holds exactly its one account, and All accounts is on when it holds none.
+A row of chips sits between the hero and the search field: All accounts first, then one chip per active account in list order. A chip is on when the applied account filter holds exactly its one account, and All accounts is on when it holds none. Each account chip leads with its account-type icon in the account's glyph tone, matching the sheet's account pill, instead of the frame's coloured dot (ruled 2026-09-27).
 
 ## 1. The chip writes the applied account filter and nothing else
 

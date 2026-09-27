@@ -1,11 +1,22 @@
+import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import { buildAccountChips } from '@/modules/transactions/screens/transactions/components/account_chips.helpers';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 describe('buildAccountChips', () => {
-  const wallet = makeTestAccount({ id: 'acc-1', name: 'Wallet', color: '#1E88E5' });
-  const cib = makeTestAccount({ id: 'acc-2', name: 'CIB', color: '#43A047' });
+  const wallet = makeTestAccount({
+    id: 'acc-1',
+    name: 'Wallet',
+    color: '#1E88E5',
+    type: AccountType.Bank,
+  });
+  const cib = makeTestAccount({
+    id: 'acc-2',
+    name: 'CIB',
+    color: '#43A047',
+    type: AccountType.CreditCard,
+  });
   const accounts = [wallet, cib];
 
   it('puts All accounts first and on with no account applied', () => {
@@ -16,13 +27,14 @@ describe('buildAccountChips', () => {
       accountId: undefined,
       label: Strings.filterAllAccounts,
       accessibilityLabel: Strings.filterAllAccounts,
-      dotColor: undefined,
+      iconName: undefined,
+      iconColor: undefined,
       selected: true,
     });
     expect(chips.filter((chip) => chip.selected)).toHaveLength(1);
   });
 
-  it('lists one chip per account in list order with its id and dot colour', () => {
+  it('lists one chip per account in list order with its type icon and glyph tint', () => {
     const chips = buildAccountChips(accounts, []);
 
     expect(chips.slice(1)).toEqual([
@@ -30,14 +42,16 @@ describe('buildAccountChips', () => {
         accountId: 'acc-1',
         label: 'Wallet',
         accessibilityLabel: Strings.filterAccountAccessibility('Wallet'),
-        dotColor: resolveAccountGlyphColor('#1E88E5'),
+        iconName: 'bank',
+        iconColor: resolveAccountGlyphColor('#1E88E5'),
         selected: false,
       },
       {
         accountId: 'acc-2',
         label: 'CIB',
         accessibilityLabel: Strings.filterAccountAccessibility('CIB'),
-        dotColor: resolveAccountGlyphColor('#43A047'),
+        iconName: 'credit-card',
+        iconColor: resolveAccountGlyphColor('#43A047'),
         selected: false,
       },
     ]);
@@ -66,10 +80,10 @@ describe('buildAccountChips', () => {
     expect(chips[1].label).toBe(Strings.unnamedAccount);
   });
 
-  it('gives an account with no colour a dot colour', () => {
+  it('gives an account with no colour an icon tint', () => {
     const chips = buildAccountChips([makeTestAccount({ id: 'acc-9', color: null })], []);
 
-    expect(chips[1].dotColor).toBe(resolveAccountGlyphColor(null));
-    expect(typeof chips[1].dotColor).toBe('string');
+    expect(chips[1].iconColor).toBe(resolveAccountGlyphColor(null));
+    expect(typeof chips[1].iconColor).toBe('string');
   });
 });

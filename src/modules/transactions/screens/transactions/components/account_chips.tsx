@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   ScrollView,
@@ -35,6 +36,9 @@ const CHIP_HIT_SLOP = Object.freeze({
 });
 
 const CHIP_STYLE = Object.freeze({ minHeight: Size.compactChipHeight });
+
+/** The sheet's account pill draws its type icon at this size (`account_accordion.tsx`). */
+const CHIP_ICON_SIZE = ms(13);
 
 type ChipFrame = { x: number; width: number };
 
@@ -114,7 +118,15 @@ export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
             key={accountId ?? 'all'}
             label={chip.label}
             accessibilityLabel={chip.accessibilityLabel}
-            dotColor={chip.dotColor}
+            startIcon={
+              chip.iconName === undefined ? undefined : (
+                <MaterialCommunityIcons
+                  name={chip.iconName}
+                  size={CHIP_ICON_SIZE}
+                  color={chip.iconColor}
+                />
+              )
+            }
             selected={chip.selected}
             onPress={() => onToggle(accountId)}
             onLayout={
