@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Input, Spinner } from 'heroui-native';
+import { Input, Spinner, cn } from 'heroui-native';
 import { View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
@@ -10,7 +10,7 @@ import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -20,6 +20,7 @@ import { resolveAccountName } from '@/utils/account_name';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
+import { AccountStrip } from './components/account_strip';
 import { AmountHero } from './components/amount_hero';
 import { DangerRing } from './components/danger_ring';
 import { DateRow } from './components/date_row';
@@ -27,11 +28,10 @@ import { FormPickerRow } from './components/form_picker_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import {
   FACT_ROW_MIN_HEIGHT,
-  FROM_RING_OUTSET,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form_geometry';
 import { TypeTabs } from './components/type_tabs';
-import { resolveBudgetFieldError } from './transaction_form.helpers';
+import { resolveBudgetFieldError, resolveStripSelectedId } from './transaction_form.helpers';
 import type { TransactionFormMode } from './transaction_form.types';
 
 interface Props {
@@ -45,7 +45,9 @@ interface Props {
   setAmountStr: (v: string) => void;
   amountError?: string;
   selectedAccount: Account | null;
-  onOpenAccountPicker: () => void;
+  fromAccounts?: Account[];
+  selectedAccountId?: string;
+  onSelectAccount?: (account: Account) => void;
   accountError?: string;
   selectedToAccount: Account | null;
   onOpenToPicker: () => void;
@@ -115,7 +117,9 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     setAmountStr,
     amountError,
     selectedAccount,
-    onOpenAccountPicker,
+    fromAccounts = [],
+    selectedAccountId = '',
+    onSelectAccount,
     accountError,
     selectedToAccount,
     onOpenToPicker,
@@ -156,7 +160,9 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         onSelect={onSelectType}
         isDisabled={locked}
       />
-      <View className="border-separator min-h-8 justify-center border-b px-4 py-1.5">
+      <View
+        className={cn('min-h-8 justify-center px-4 py-1.5', locked && 'border-separator border-b')}
+      >
         <Text
           className="font-inter text-muted"
           style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
@@ -165,6 +171,17 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           {typeSupportingText}
         </Text>
       </View>
+      {!locked ? (
+        <View className="border-separator border-b" style={{ paddingVertical: Spacing.xxs }}>
+          <AccountStrip
+            accounts={fromAccounts}
+            selectedId={resolveStripSelectedId(fromAccounts, selectedAccountId)}
+            onSelect={(account) => onSelectAccount?.(account)}
+            caption={isTransferOrCC ? Strings.addTxFromLabel : undefined}
+            error={accountError}
+          />
+        </View>
+      ) : null}
 
       <AmountHero
         onChange={setAmountStr}
@@ -182,11 +199,10 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View>
+        {locked ? (
           <FormPickerRow
             testID="from-account-row"
-            onPress={locked ? undefined : onOpenAccountPicker}
-            disabled={locked}
+            disabled
             label={isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
             accessibilityHint={accountError}
             value={
@@ -206,16 +222,13 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             }
             suffix={
               <MaterialCommunityIcons
-                name={locked ? 'lock-outline' : 'chevron-right'}
+                name="lock-outline"
                 size={Size.iconSm}
                 color={CoreTokens.text2}
               />
             }
           />
-          {accountError !== undefined ? (
-            <DangerRing testID="from-account-ring" inset={-FROM_RING_OUTSET} />
-          ) : null}
-        </View>
+        ) : null}
 
         <ListCard testID="transaction-form-fact-group">
           {isTransferOrCC ? (

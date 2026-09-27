@@ -1,5 +1,6 @@
 import { AccountType, CategoryType, type Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   requiresDestination,
   requiresExchangeRate,
@@ -72,6 +73,28 @@ export function resolveTransactionFormSemantics(
     typeLabel: Strings.addTxTypeCCPayment,
     supportingText: Strings.addTxSupportCcPayment,
   };
+}
+
+export function resolveEligibleFromAccounts(type: TransactionType, accounts: Account[]): Account[] {
+  if (type === TransactionType.Transfer || type === TransactionType.CCPayment) {
+    return accounts.filter((account) => account.type !== AccountType.CreditCard);
+  }
+  return accounts;
+}
+
+export function resolveStripSelectedId(eligible: Account[], accountId: string): string | undefined {
+  return eligible.some((account) => account.id === accountId) ? accountId : undefined;
+}
+
+export function resolveAccountPreselect(input: {
+  ready: boolean;
+  done: boolean;
+  accountId: string;
+  eligible: Account[];
+}): Account | undefined {
+  const { ready, done, accountId, eligible } = input;
+  if (!ready || done || accountId !== '' || eligible.length === 0) return undefined;
+  return eligible[0];
 }
 
 export function toTransactionTimestamp(now: Date): { date: string; time: string } {
