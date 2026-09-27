@@ -28,6 +28,7 @@ describe('account strip geometry', () => {
     expect(ACCOUNT_STRIP_CHIP_HEIGHT + 2 * ACCOUNT_STRIP_CHIP_SLOP_Y).toBeGreaterThanOrEqual(
       TouchSize.min,
     );
+    expect(ACCOUNT_STRIP_CHIP_SLOP_Y).toBeGreaterThanOrEqual(Spacing.xxxxs);
     expect(ACCOUNT_STRIP_HIT_SLOP).toEqual({
       top: ACCOUNT_STRIP_CHIP_SLOP_Y,
       bottom: ACCOUNT_STRIP_CHIP_SLOP_Y,
