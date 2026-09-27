@@ -17,6 +17,7 @@ import { ms } from '@/utils/responsive';
 import { AccountChips } from './components/account_chips';
 import { DateHeader } from './components/date_header';
 import { SearchRow } from './components/search_row';
+import { SearchTally } from './components/search_tally';
 import { TransactionLoadError } from './components/transaction_load_error';
 import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
@@ -108,6 +109,7 @@ export default function TransactionsScreen(): React.ReactElement {
 
   // A memoised element lets React skip the hero when the header re-renders on a keystroke (M25).
   const hero = useMemo(() => <TransactionsHero model={state.hero} />, [state.hero]);
+  const tally = useMemo(() => <SearchTally model={state.tally} />, [state.tally]);
   const accountChips = useMemo(
     () => <AccountChips chips={state.accountChips} onToggle={toggleAccountChip} />,
     [state.accountChips, toggleAccountChip],
@@ -125,6 +127,7 @@ export default function TransactionsScreen(): React.ReactElement {
           activeFilterCount={state.activeFilterCount}
           isDisabled={state.searchDisabled}
         />
+        {tally}
       </View>
     ),
     [
@@ -135,6 +138,7 @@ export default function TransactionsScreen(): React.ReactElement {
       state.activeFilterCount,
       state.searchDisabled,
       state.searchQuery,
+      tally,
     ],
   );
 
