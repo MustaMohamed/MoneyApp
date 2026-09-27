@@ -23,11 +23,15 @@ import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
+import { buildAccountChips } from './components/account_chips.helpers';
 import {
   countActiveFilters,
+  countFunnelFilters,
   formatAppliedFilterSummary,
   labelAccountsById,
+  pruneAccountFilter,
   toQueryFilters,
+  toggleAccountFilter,
 } from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';
 import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
@@ -67,13 +71,13 @@ export function useTransactions() {
   const attemptScrollRestoreRef = useRef<() => void>(() => {});
   const currentScrollPositionRef = useRef<ScrollPosition>({ queryKey: null, offset: 0 });
 
-  const { searchQuery, activeFilter, period, appliedFilters, totals, totalsYearMonth } =
+  const { searchQuery, activeFilter, period, storedAppliedFilters, totals, totalsYearMonth } =
     useTransactionsScreenStore(
       useShallow((s) => ({
         searchQuery: s.searchQuery,
         activeFilter: s.activeFilter,
         period: s.period,
-        appliedFilters: s.appliedFilters,
+        storedAppliedFilters: s.appliedFilters,
         totals: s.totals,
         totalsYearMonth: s.totalsYearMonth,
       })),
@@ -109,14 +113,16 @@ export function useTransactions() {
   );
   const deleteAction = useConfirmAction(runDeleteTransaction);
 
-  const { accounts, archivedAccounts, accountLookupById, accountLookupError } = useAccountStore(
-    useShallow((s) => ({
-      accounts: s.accounts,
-      archivedAccounts: s.archivedAccounts,
-      accountLookupById: s.accountLookupById,
-      accountLookupError: s.accountLookupError,
-    })),
-  );
+  const { accounts, archivedAccounts, accountLookupById, accountLookupError, accountsLoaded } =
+    useAccountStore(
+      useShallow((s) => ({
+        accounts: s.accounts,
+        archivedAccounts: s.archivedAccounts,
+        accountLookupById: s.accountLookupById,
+        accountLookupError: s.accountLookupError,
+        accountsLoaded: s.hasLoaded,
+      })),
+    );
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
 
@@ -133,6 +139,19 @@ export function useTransactions() {
   const setScrollOffset = useTransactionsState.getState().setScrollOffset;
   const setUserRefreshing = useTransactionsState.getState().setUserRefreshing;
 
+  const effectiveFilters = useMemo(
+    () =>
+      accountsLoaded ? pruneAccountFilter(storedAppliedFilters, accounts) : storedAppliedFilters,
+    [accounts, accountsLoaded, storedAppliedFilters],
+  );
+  useEffect(() => {
+    if (!accountsLoaded) return;
+    // Prunes the store's current filter, never this render's, so a press that landed first survives.
+    const screenStore = useTransactionsScreenStore.getState();
+    const pruned = pruneAccountFilter(screenStore.appliedFilters, accounts);
+    if (pruned !== screenStore.appliedFilters) screenStore.setAppliedFilters(pruned);
+  }, [accounts, accountsLoaded, storedAppliedFilters]);
+
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const periodRange = useMemo(() => resolvePeriod(period), [period]);
   const previousPeriodRange = useMemo(() => resolvePeriod(previousPeriod(period)), [period]);
@@ -144,9 +163,9 @@ export function useTransactions() {
       type: activeFilter === 'all' ? undefined : activeFilter,
       dateFrom: periodRange.from,
       dateTo: periodRange.to,
-      ...toQueryFilters(appliedFilters),
+      ...toQueryFilters(effectiveFilters),
     };
-  }, [activeFilter, appliedFilters, debouncedSearch, periodRange]);
+  }, [activeFilter, debouncedSearch, effectiveFilters, periodRange]);
   const activeQueryKey = useMemo(
     () => getTransactionQueryKey(transactionQuery),
     [transactionQuery],
@@ -390,17 +409,26 @@ export function useTransactions() {
     () => groupTransactionsByDate(currentTransactions),
     [currentTransactions],
   );
-  const activeFilterCount = useMemo(() => countActiveFilters(appliedFilters), [appliedFilters]);
+  const activeFilterCount = useMemo(() => countFunnelFilters(effectiveFilters), [effectiveFilters]);
   const appliedFilterSummary = useMemo(
-    () => formatAppliedFilterSummary(appliedFilters, accountLabelsById, categoriesById),
-    [accountLabelsById, appliedFilters, categoriesById],
+    () => formatAppliedFilterSummary(effectiveFilters, accountLabelsById, categoriesById),
+    [accountLabelsById, categoriesById, effectiveFilters],
   );
-  const hasAdvancedFilters = activeFilterCount > 0;
+  const hasAdvancedFilters = countActiveFilters(effectiveFilters) > 0;
+  const accountChips = useMemo(
+    () => buildAccountChips(accounts, effectiveFilters.accountIds),
+    [accounts, effectiveFilters.accountIds],
+  );
 
   const handleOpenFilter = useCallback(() => {
-    setDraft(appliedFilters);
+    setDraft(effectiveFilters);
     openFilter();
-  }, [appliedFilters, openFilter, setDraft]);
+  }, [effectiveFilters, openFilter, setDraft]);
+
+  const toggleAccountChip = useCallback((accountId: string | undefined) => {
+    const screenStore = useTransactionsScreenStore.getState();
+    screenStore.setAppliedFilters(toggleAccountFilter(screenStore.appliedFilters, accountId));
+  }, []);
 
   const resetFilters = useCallback(() => {
     const screenStore = useTransactionsScreenStore.getState();
@@ -425,8 +453,8 @@ export function useTransactions() {
   const displayTotalsStatus =
     totalsYearMonth === period.yearMonth ? totalsStatus : 'initialLoading';
   const scopedAccountLabel =
-    appliedFilters.accountIds.length === 1
-      ? accountLabelsById.get(appliedFilters.accountIds[0])?.name
+    effectiveFilters.accountIds.length === 1
+      ? accountLabelsById.get(effectiveFilters.accountIds[0])?.name
       : undefined;
   const today = toLocalDateString(new Date());
   const heroMode = resolveTransactionsHeroMode(
@@ -559,6 +587,7 @@ export function useTransactions() {
       categoriesById,
       activeFilterCount,
       appliedFilterSummary,
+      accountChips,
       totals: displayTotals,
       totalsStatus: displayTotalsStatus,
       hero,
@@ -583,6 +612,7 @@ export function useTransactions() {
     retryFailedLoads,
     openFilter: handleOpenFilter,
     resetFilters,
+    toggleAccountChip,
     goToDetail,
     goToEdit,
     openAddTransaction,

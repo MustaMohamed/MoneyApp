@@ -14,6 +14,7 @@ import { AccentCCTokens, GoldTokens, InfoTokens, SemanticTokens } from '@/consta
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
 
+import { AccountChips } from './components/account_chips';
 import { DateHeader } from './components/date_header';
 import { SearchRow } from './components/search_row';
 import { TransactionLoadError } from './components/transaction_load_error';
@@ -68,6 +69,7 @@ export default function TransactionsScreen(): React.ReactElement {
     goToDetail,
     goToEdit,
     resetFilters,
+    toggleAccountChip,
     onRefresh,
     onEndReached,
     onListScroll,
@@ -106,11 +108,16 @@ export default function TransactionsScreen(): React.ReactElement {
 
   // A memoised element lets React skip the hero when the header re-renders on a keystroke (M25).
   const hero = useMemo(() => <TransactionsHero model={state.hero} />, [state.hero]);
+  const accountChips = useMemo(
+    () => <AccountChips chips={state.accountChips} onToggle={toggleAccountChip} />,
+    [state.accountChips, toggleAccountChip],
+  );
 
   const listHeaderComponent = useMemo(
     () => (
       <View testID="transactions-list-header">
         {hero}
+        {accountChips}
         <SearchRow
           value={state.searchQuery}
           onChange={setSearchQuery}
@@ -121,6 +128,7 @@ export default function TransactionsScreen(): React.ReactElement {
       </View>
     ),
     [
+      accountChips,
       hero,
       openFilter,
       setSearchQuery,

@@ -14,6 +14,29 @@ export function countActiveFilters(f: AdvancedFilters): number {
   return n;
 }
 
+/** One applied account is shown by its chip, so the funnel counts accounts only at two or more. */
+export function countFunnelFilters(f: AdvancedFilters): number {
+  return countActiveFilters(f) - (f.accountIds.length === 1 ? 1 : 0);
+}
+
+export function toggleAccountFilter(
+  f: AdvancedFilters,
+  accountId: string | undefined,
+): AdvancedFilters {
+  const isOnlyApplied = f.accountIds.length === 1 && f.accountIds[0] === accountId;
+  const accountIds = accountId === undefined || isOnlyApplied ? [] : [accountId];
+  return { ...f, accountIds };
+}
+
+export function pruneAccountFilter(
+  f: AdvancedFilters,
+  activeAccounts: readonly Account[],
+): AdvancedFilters {
+  const activeIds = new Set(activeAccounts.map((account) => account.id));
+  const accountIds = f.accountIds.filter((id) => activeIds.has(id));
+  return accountIds.length === f.accountIds.length ? f : { ...f, accountIds };
+}
+
 export function toQueryFilters(applied: AdvancedFilters): Partial<TransactionListFilters> {
   const out: Partial<TransactionListFilters> = {};
   if (applied.accountIds.length > 0) out.accountIds = applied.accountIds;
