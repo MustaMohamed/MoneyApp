@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip, cn } from 'heroui-native';
 import React from 'react';
-import { View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { type PressableProps, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
@@ -11,14 +11,15 @@ export interface SelectablePillProps {
   label: string;
   selected: boolean;
   onPress: () => void;
-  dotColor?: string;
-  /** Leading adornment; when provided it replaces the `dotColor` dot. */
+  /** Leading adornment, drawn before the label. */
   startIcon?: React.ReactNode;
   checkable?: boolean;
   /** Forwarded to HeroUI `Chip`'s RN `Pressable` as `disabled`, not HeroUI's `isDisabled`. */
   disabled?: boolean;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  hitSlop?: PressableProps['hitSlop'];
+  onLayout?: PressableProps['onLayout'];
 }
 
 export const SELECTABLE_PILL_CONTAINER_CLASS = {
@@ -36,14 +37,15 @@ export function SelectablePill({
   label,
   selected,
   onPress,
-  dotColor,
   startIcon,
   checkable = false,
   disabled = false,
   accessibilityLabel,
   style,
+  hitSlop,
+  onLayout,
 }: SelectablePillProps): React.ReactElement {
-  const hasAdornment = dotColor !== undefined || startIcon !== undefined || checkable;
+  const hasAdornment = startIcon !== undefined || checkable;
   return (
     <Chip
       size="sm"
@@ -56,6 +58,8 @@ export function SelectablePill({
       accessibilityState={{ selected, disabled }}
       accessibilityLabel={accessibilityLabel ?? label}
       style={style}
+      hitSlop={hitSlop}
+      onLayout={onLayout}
       className={cn(
         'rounded-full border',
         hasAdornment ? 'gap-1.5 px-2.5 py-1.5' : 'px-3 py-1',
@@ -64,11 +68,7 @@ export function SelectablePill({
           : SELECTABLE_PILL_CONTAINER_CLASS.unselected,
       )}
     >
-      {startIcon !== undefined ? (
-        startIcon
-      ) : dotColor !== undefined ? (
-        <View style={{ backgroundColor: dotColor }} className="h-2 w-2 rounded-full" />
-      ) : null}
+      {startIcon}
       <Chip.Label
         className={
           selected ? SELECTABLE_PILL_LABEL_CLASS.selected : SELECTABLE_PILL_LABEL_CLASS.unselected

@@ -25,7 +25,8 @@ const TRANSACTIONS_HERO_GEOMETRY = {
 } as const;
 
 const HERO_ROW_GAP = Spacing.sm;
-const HERO_SHELL_STYLE = { marginTop: Spacing.xs, marginBottom: Spacing.xs } as const;
+export const HERO_SHELL_MARGIN_BOTTOM = Spacing.xs;
+const HERO_SHELL_STYLE = { marginTop: Spacing.xs, marginBottom: HERO_SHELL_MARGIN_BOTTOM } as const;
 
 // Without `withUniwind` the icon's `styleDefaults` win and its `className` colour is a no-op.
 const ChangeIcon = withUniwind(MaterialCommunityIcons);

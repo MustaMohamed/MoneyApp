@@ -1373,3 +1373,259 @@ describe('useTransactions query ownership', () => {
     expect(result.current.state.loadErrorVariant).toBe('none');
   });
 });
+
+describe('useTransactions account chips', () => {
+  const WALLET = makeTestAccount({ id: 'acc-1', name: 'Wallet' });
+  const BANK = makeTestAccount({ id: 'acc-2', name: 'Bank' });
+  const OLD_CARD = makeTestAccount({ id: 'acc-9', name: 'Old card', is_archived: 1 });
+
+  function setupAccounts(
+    transactionOverrides: Record<string, unknown> = {},
+    accountOverrides: Record<string, unknown> = {},
+  ): void {
+    setupStores(transactionOverrides, {
+      accounts: [WALLET, BANK],
+      archivedAccounts: [OLD_CARD],
+      hasLoaded: true,
+      ...accountOverrides,
+    });
+  }
+
+  function emptySnapshotFor(query: Record<string, unknown>): Record<string, unknown> {
+    const key = getTransactionQueryKey({ ...JULY_QUERY, ...query });
+    return { transactions: [], status: 'empty', queryKey: key, snapshotKey: key };
+  }
+
+  function selectedLabels(chips: readonly { label: string; selected: boolean }[]): string[] {
+    return chips.filter((chip) => chip.selected).map((chip) => chip.label);
+  }
+
+  function appliedAccountIds(): string[] {
+    return useTransactionsScreenStore.getState().appliedFilters.accountIds;
+  }
+
+  function aggregateCallsCarrying(accountId: string): number {
+    return mockGetMonthAggregate.mock.calls.filter(([query]) =>
+      query.accountIds?.includes(accountId),
+    ).length;
+  }
+
+  it('lists All accounts first and on, then one chip per active account', async () => {
+    setupAccounts();
+    const { result } = await renderHook(() => useTransactions());
+
+    expect(result.current.state.accountChips.map((chip) => chip.label)).toEqual([
+      Strings.filterAllAccounts,
+      'Wallet',
+      'Bank',
+    ]);
+    expect(selectedLabels(result.current.state.accountChips)).toEqual([Strings.filterAllAccounts]);
+  });
+
+  it('a chip tap applies that one account, scopes the hero and leaves the funnel at 0', async () => {
+    setupAccounts();
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => result.current.toggleAccountChip('acc-1'));
+
+    expect(appliedAccountIds()).toEqual(['acc-1']);
+    expect(selectedLabels(result.current.state.accountChips)).toEqual(['Wallet']);
+    expect(result.current.state.activeFilterCount).toBe(0);
+    expect(result.current.state.hero).toMatchObject({ title: 'Out this month · Wallet' });
+    await waitFor(() =>
+      expect(mockGetMonthAggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ accountIds: ['acc-1'] }),
+      ),
+    );
+  });
+
+  it('tapping the on chip clears it and All accounts is on', async () => {
+    setupAccounts();
+    const { result } = await renderHook(() => useTransactions());
+    await act(() => result.current.toggleAccountChip('acc-1'));
+
+    await act(() => result.current.toggleAccountChip('acc-1'));
+
+    expect(appliedAccountIds()).toEqual([]);
+    expect(selectedLabels(result.current.state.accountChips)).toEqual([Strings.filterAllAccounts]);
+    expect(result.current.state.hero).toMatchObject({ title: 'Out this month' });
+  });
+
+  it('tapping All accounts clears two accounts the sheet applied and keeps the rest', async () => {
+    setupAccounts();
+    useTransactionsScreenStore
+      .getState()
+      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1', 'acc-2'], categoryIds: ['c1'] });
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => result.current.toggleAccountChip(undefined));
+
+    expect(useTransactionsScreenStore.getState().appliedFilters).toMatchObject({
+      accountIds: [],
+      categoryIds: ['c1'],
+    });
+    expect(selectedLabels(result.current.state.accountChips)).toEqual([Strings.filterAllAccounts]);
+  });
+
+  it('one account applied from the sheet lights that chip', async () => {
+    setupAccounts();
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => {
+      useTransactionsScreenStore
+        .getState()
+        .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-2'] });
+    });
+
+    expect(selectedLabels(result.current.state.accountChips)).toEqual(['Bank']);
+    expect(result.current.state.activeFilterCount).toBe(0);
+  });
+
+  it('two accounts applied from the sheet light no chip and count 1 on the funnel', async () => {
+    setupAccounts();
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => {
+      useTransactionsScreenStore
+        .getState()
+        .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1', 'acc-2'] });
+    });
+
+    expect(selectedLabels(result.current.state.accountChips)).toEqual([]);
+    expect(result.current.state.activeFilterCount).toBe(1);
+  });
+
+  it('See all from an account detail arrives with that chip on', async () => {
+    setupAccounts();
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => {
+      useTransactionsScreenStore.getState().seedAccountFilter('acc-1', '2026-07');
+    });
+
+    expect(selectedLabels(result.current.state.accountChips)).toEqual(['Wallet']);
+    expect(result.current.state.activeFilterCount).toBe(0);
+  });
+
+  it('drops the only applied account once archived: All accounts on, plain title, no count', async () => {
+    setupAccounts();
+    useTransactionsScreenStore
+      .getState()
+      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-9'] });
+
+    const { result } = await renderHook(() => useTransactions());
+
+    await waitFor(() => expect(appliedAccountIds()).toEqual([]));
+    expect(selectedLabels(result.current.state.accountChips)).toEqual([Strings.filterAllAccounts]);
+    expect(result.current.state.hero).toMatchObject({ title: 'Out this month' });
+    expect(result.current.state.activeFilterCount).toBe(0);
+    expect(aggregateCallsCarrying('acc-9')).toBe(0);
+  });
+
+  it('drops the only applied account once deleted, in neither account list', async () => {
+    setupAccounts();
+    useTransactionsScreenStore
+      .getState()
+      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-gone'] });
+
+    const { result } = await renderHook(() => useTransactions());
+
+    await waitFor(() => expect(appliedAccountIds()).toEqual([]));
+    expect(selectedLabels(result.current.state.accountChips)).toEqual([Strings.filterAllAccounts]);
+    expect(result.current.state.hero).toMatchObject({ title: 'Out this month' });
+    expect(result.current.state.activeFilterCount).toBe(0);
+    expect(aggregateCallsCarrying('acc-gone')).toBe(0);
+  });
+
+  it('keeps the other account on when one of two applied is archived', async () => {
+    setupAccounts();
+    useTransactionsScreenStore
+      .getState()
+      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1', 'acc-9'] });
+
+    const { result } = await renderHook(() => useTransactions());
+
+    await waitFor(() => expect(appliedAccountIds()).toEqual(['acc-1']));
+    expect(selectedLabels(result.current.state.accountChips)).toEqual(['Wallet']);
+    expect(result.current.state.hero).toMatchObject({ title: 'Out this month · Wallet' });
+    expect(result.current.state.activeFilterCount).toBe(0);
+    expect(aggregateCallsCarrying('acc-9')).toBe(0);
+  });
+
+  it('leaves the applied ids alone until the account store has loaded', async () => {
+    setupAccounts({}, { hasLoaded: false });
+    useTransactionsScreenStore
+      .getState()
+      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-9'] });
+
+    const { result } = await renderHook(() => useTransactions());
+    await waitFor(() => expect(mockGetMonthAggregate).toHaveBeenCalled());
+
+    expect(appliedAccountIds()).toEqual(['acc-9']);
+    expect(result.current.state.accountChips).toHaveLength(3);
+    expect(selectedLabels(result.current.state.accountChips)).toEqual([]);
+  });
+
+  it('one chip on with no rows for that account shows no results, not no transactions', async () => {
+    setupAccounts(emptySnapshotFor({ accountIds: ['acc-1'] }));
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => result.current.toggleAccountChip('acc-1'));
+
+    expect(result.current.state.emptyVariant).toBe('noResults');
+    expect(result.current.state.activeFilterCount).toBe(0);
+  });
+
+  it('no transactions with nothing on shows the no-transactions state and no funnel count', async () => {
+    setupAccounts(emptySnapshotFor({}));
+    const { result } = await renderHook(() => useTransactions());
+    await act(() => result.current.toggleAccountChip('acc-1'));
+
+    await act(() => result.current.toggleAccountChip(undefined));
+
+    expect(result.current.state.emptyVariant).toBe('noData');
+    expect(result.current.state.activeFilterCount).toBe(0);
+  });
+
+  it('a sheet filter matching nothing keeps its funnel count beside one chip on', async () => {
+    setupAccounts(emptySnapshotFor({ accountIds: ['acc-1'], categoryIds: ['c1'] }));
+    useTransactionsScreenStore
+      .getState()
+      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1'], categoryIds: ['c1'] });
+
+    const { result } = await renderHook(() => useTransactions());
+
+    expect(result.current.state.emptyVariant).toBe('noResults');
+    expect(result.current.state.activeFilterCount).toBe(1);
+    expect(selectedLabels(result.current.state.accountChips)).toEqual(['Wallet']);
+  });
+
+  it('keeps the chips identity across a search keystroke and a type tab switch', async () => {
+    setupAccounts();
+    const { result } = await renderHook(() => useTransactions());
+    const held = result.current.state.accountChips;
+    expect(held).toHaveLength(3);
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    });
+    expect(result.current.state.accountChips).toBe(held);
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
+    });
+    expect(result.current.state.accountChips).toBe(held);
+  });
+
+  it('a chip tap moves the selection while the month is still loading', async () => {
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+    setupAccounts();
+    const { result } = await renderHook(() => useTransactions());
+    expect(result.current.state.hero).toMatchObject({ mode: 'skeleton' });
+
+    await act(() => result.current.toggleAccountChip('acc-2'));
+
+    expect(selectedLabels(result.current.state.accountChips)).toEqual(['Bank']);
+    expect(appliedAccountIds()).toEqual(['acc-2']);
+  });
+});
