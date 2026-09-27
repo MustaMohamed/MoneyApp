@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { AcctTokens } from '@/constants/theme_tokens';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
@@ -415,6 +416,56 @@ describe('useEditTransaction', () => {
     expect(result.current).not.toHaveProperty('setType');
     expect(result.current).not.toHaveProperty('selectAccount');
     expect(result.current).not.toHaveProperty('selectToAccount');
+  });
+
+  it('MA-122: the locked strip draws the account first, locked and ringed, then the others dimmed', async () => {
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    expect(result.current.state.lockedStripChips).toEqual([
+      expect.objectContaining({ id: 'a1', selected: true, locked: true, dimmed: false }),
+      expect.objectContaining({ id: 'a-card', selected: false, locked: false, dimmed: true }),
+    ]);
+  });
+
+  it('MA-122: an archived account leads the locked strip, then the active accounts dimmed', async () => {
+    const usdTx = {
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 500,
+      exchange_rate: 50,
+    };
+    useEditTransactionStore.getState().loadFromTx(usdTx);
+    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    expect(result.current.state.lockedStripChips).toEqual([
+      expect.objectContaining({ id: 'a-usd', locked: true, selected: true, dimmed: false }),
+      expect.objectContaining({ id: 'a1', dimmed: true }),
+      expect.objectContaining({ id: 'a-card', dimmed: true }),
+    ]);
+  });
+
+  it('MA-122: a deleted account leads the locked strip as Deleted Account on the hollow tile', async () => {
+    const deletedAccount = makeTestAccount({
+      ...mockAccountEGP,
+      id: 'a-gone',
+      name: '',
+      is_deleted: 1,
+    });
+    useAccountStore.setState({ accountLookupById: { [deletedAccount.id]: deletedAccount } });
+    const deletedTx = { ...mockTxExpense, account_id: deletedAccount.id };
+    useEditTransactionStore.getState().loadFromTx(deletedTx);
+    const { result } = await renderHook(() => useEditTransaction(deletedTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    expect(result.current.state.lockedStripChips?.[0]).toMatchObject({
+      id: 'a-gone',
+      name: Strings.deletedAccount,
+      tile: { color: AcctTokens.graphite.rich, hollow: true },
+      locked: true,
+    });
   });
 
   it('allows category change', async () => {

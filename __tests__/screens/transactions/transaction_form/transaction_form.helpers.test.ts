@@ -1,5 +1,6 @@
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { AcctTokens } from '@/constants/theme_tokens';
 import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
 import {
   TransactionAccountArchivedError,
@@ -8,11 +9,14 @@ import {
 import {
   countTransactionFormFieldErrors,
   resolveAccountPreselect,
+  resolveAccountStripChips,
   resolveBudgetFieldError,
   resolveDestinationFloorError,
   resolveEligibleFromAccounts,
   resolveEligibleToAccounts,
+  resolveLockedStripChips,
   resolveStripSelectedId,
+  resolveToRowFace,
   resolveTransactionDeleteError,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
@@ -470,4 +474,216 @@ describe('MA-111 account strip resolvers', () => {
       expect(resolveEligibleToAccounts(type, accounts)).toBe(accounts);
     },
   );
+});
+
+describe('MA-122 locked strip and To row face', () => {
+  const HOLLOW = { color: AcctTokens.graphite.rich, hollow: true };
+  const cash = makeTestAccount({
+    id: 'cash',
+    name: 'Cash',
+    type: AccountType.PhysicalWallet,
+    color: AcctTokens.nile.rich,
+  });
+  const bank = makeTestAccount({
+    id: 'bank',
+    name: 'Bank',
+    type: AccountType.Bank,
+    color: AcctTokens.midnight.rich,
+  });
+  const card = makeTestAccount({
+    id: 'card',
+    name: 'Visa',
+    type: AccountType.CreditCard,
+    color: AcctTokens.gold.rich,
+  });
+  const accounts = [cash, bank, card];
+
+  it('locks an expense on its account first and dims the other active accounts in list order', () => {
+    expect(
+      resolveLockedStripChips({
+        type: TransactionType.Expense,
+        currentId: 'bank',
+        current: bank,
+        accounts,
+      }),
+    ).toEqual([
+      {
+        id: 'bank',
+        name: 'Bank',
+        tile: { color: AcctTokens.midnight.rich, type: AccountType.Bank, hollow: false },
+        selected: true,
+        locked: true,
+        dimmed: false,
+      },
+      {
+        id: 'cash',
+        name: 'Cash',
+        tile: { color: AcctTokens.nile.rich, type: AccountType.PhysicalWallet, hollow: false },
+        selected: false,
+        locked: false,
+        dimmed: true,
+      },
+      {
+        id: 'card',
+        name: 'Visa',
+        tile: { color: AcctTokens.gold.rich, type: AccountType.CreditCard, hollow: false },
+        selected: false,
+        locked: false,
+        dimmed: true,
+      },
+    ]);
+  });
+
+  it.each([TransactionType.Transfer, TransactionType.CCPayment])(
+    'locked %s dims no credit card',
+    (type) => {
+      const chips = resolveLockedStripChips({ type, currentId: 'bank', current: bank, accounts });
+      expect(chips).toEqual([
+        expect.objectContaining({ id: 'bank', locked: true }),
+        expect.objectContaining({ id: 'cash', dimmed: true }),
+      ]);
+    },
+  );
+
+  it('draws an archived current account first with its filled tile and no other archived chip', () => {
+    const archived = makeTestAccount({
+      id: 'old',
+      name: 'Old Bank',
+      type: AccountType.Bank,
+      color: AcctTokens.plum.rich,
+      is_archived: 1,
+    });
+    const chips = resolveLockedStripChips({
+      type: TransactionType.Expense,
+      currentId: 'old',
+      current: archived,
+      accounts,
+    });
+    expect(chips[0]).toEqual({
+      id: 'old',
+      name: 'Old Bank',
+      tile: { color: AcctTokens.plum.rich, type: AccountType.Bank, hollow: false },
+      selected: true,
+      locked: true,
+      dimmed: false,
+    });
+    expect(chips).toEqual([
+      expect.objectContaining({ id: 'old' }),
+      expect.objectContaining({ id: 'cash', dimmed: true }),
+      expect.objectContaining({ id: 'bank', dimmed: true }),
+      expect.objectContaining({ id: 'card', dimmed: true }),
+    ]);
+  });
+
+  it('names a deleted current account Deleted Account on the hollow graphite tile', () => {
+    const deleted = makeTestAccount({
+      id: 'gone',
+      name: '',
+      type: AccountType.Bank,
+      is_deleted: 1,
+    });
+    const [first] = resolveLockedStripChips({
+      type: TransactionType.Expense,
+      currentId: 'gone',
+      current: deleted,
+      accounts,
+    });
+    expect(first).toMatchObject({
+      id: 'gone',
+      name: Strings.deletedAccount,
+      tile: HOLLOW,
+      selected: true,
+      locked: true,
+      dimmed: false,
+    });
+  });
+
+  it('names an unresolved current account Unknown account on the hollow graphite tile', () => {
+    const chips = resolveLockedStripChips({
+      type: TransactionType.Expense,
+      currentId: 'missing',
+      current: undefined,
+      accounts,
+    });
+    expect(chips[0]).toMatchObject({
+      id: 'missing',
+      name: Strings.unknownAccount,
+      tile: HOLLOW,
+      selected: true,
+      locked: true,
+    });
+    expect(chips).toEqual([
+      expect.objectContaining({ id: 'missing' }),
+      expect.objectContaining({ id: 'cash', dimmed: true }),
+      expect.objectContaining({ id: 'bank', dimmed: true }),
+      expect.objectContaining({ id: 'card', dimmed: true }),
+    ]);
+  });
+
+  it('rings the eligible selected account on the add strip, none locked or dimmed', () => {
+    const chips = resolveAccountStripChips([cash, bank], 'bank');
+    expect(chips).toEqual([
+      {
+        id: 'cash',
+        name: 'Cash',
+        tile: { color: AcctTokens.nile.rich, type: AccountType.PhysicalWallet, hollow: false },
+        selected: false,
+        locked: false,
+        dimmed: false,
+      },
+      {
+        id: 'bank',
+        name: 'Bank',
+        tile: { color: AcctTokens.midnight.rich, type: AccountType.Bank, hollow: false },
+        selected: true,
+        locked: false,
+        dimmed: false,
+      },
+    ]);
+  });
+
+  it('rings no chip on the add strip for a card the Transfer list excludes', () => {
+    const eligible = resolveEligibleFromAccounts(TransactionType.Transfer, accounts);
+    const chips = resolveAccountStripChips(eligible, resolveStripSelectedId(eligible, 'card'));
+    expect(chips).toEqual([
+      expect.objectContaining({ id: 'cash', selected: false }),
+      expect.objectContaining({ id: 'bank', selected: false }),
+    ]);
+  });
+
+  it('rings no chip on the add strip when no account is chosen', () => {
+    const chips = resolveAccountStripChips([cash, bank], undefined);
+    expect(chips).toEqual([
+      expect.objectContaining({ id: 'cash', selected: false }),
+      expect.objectContaining({ id: 'bank', selected: false }),
+    ]);
+  });
+
+  it('offers the To pick title and no tile on an unlocked empty To row', () => {
+    expect(resolveToRowFace({ locked: false, account: null })).toEqual({
+      value: Strings.addTxPickToTitle,
+      tile: undefined,
+    });
+  });
+
+  it.each([true, false])('names a live To account with no tile when locked is %s', (locked) => {
+    expect(resolveToRowFace({ locked, account: bank })).toEqual({ value: 'Bank', tile: undefined });
+  });
+
+  it.each([true, false])(
+    'draws a deleted To account as Deleted Account on the hollow tile when locked is %s',
+    (locked) => {
+      const deleted = makeTestAccount({ id: 'gone', name: '', is_deleted: 1 });
+      const face = resolveToRowFace({ locked, account: deleted });
+      expect(face.value).toBe(Strings.deletedAccount);
+      expect(face.value).not.toBe(Strings.addTxPickToTitle);
+      expect(face.tile).toMatchObject(HOLLOW);
+    },
+  );
+
+  it('draws a locked unresolved To account as Unknown account on the hollow tile', () => {
+    const face = resolveToRowFace({ locked: true, account: null });
+    expect(face.value).toBe(Strings.unknownAccount);
+    expect(face.tile).toMatchObject(HOLLOW);
+  });
 });

@@ -1,6 +1,8 @@
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
+  ACCOUNT_STRIP_CHIP_HEIGHT,
+  ACCOUNT_STRIP_CHIP_WIDTH,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_FOOTER_CLEARANCE,
@@ -9,13 +11,16 @@ import {
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
 
 describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
-  it('sizes the account bar and each fact row at the fact-row minimum', () => {
-    // Without this, two undefined values would compare equal below.
+  it('draws the strip as three chip-sized bars and each fact row at the fact-row minimum', () => {
+    // Without these, undefined values would compare equal below.
+    expect(ACCOUNT_STRIP_CHIP_HEIGHT).toBeDefined();
     expect(FACT_ROW_MIN_HEIGHT).toBe(TouchSize.min);
     expect(TRANSACTION_FORM_SKELETON_GEOMETRY).toMatchObject({
-      accountRow: FACT_ROW_MIN_HEIGHT,
+      stripBar: { width: ACCOUNT_STRIP_CHIP_WIDTH, height: ACCOUNT_STRIP_CHIP_HEIGHT },
+      stripBarCount: 3,
       factRow: FACT_ROW_MIN_HEIGHT,
     });
+    expect(TRANSACTION_FORM_SKELETON_GEOMETRY).not.toHaveProperty('accountRow');
   });
 
   it('draws four fact rows: Category, Budget, Date and Note', () => {
