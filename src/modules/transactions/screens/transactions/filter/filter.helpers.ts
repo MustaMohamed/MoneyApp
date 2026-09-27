@@ -1,7 +1,9 @@
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { TransactionListFilters } from '@/modules/transactions/store/transaction.store';
 import { resolveAccountName } from '@/utils/account_name';
+import { MONEY_ROUNDING_DECIMALS, formatAmount } from '@/utils/format_amount';
 import { parseDecimalText } from '@/utils/parse_decimal';
 
 import type { AdvancedFilters } from './filter.store';
@@ -64,13 +66,24 @@ export interface AmountRangeValidation {
   rangeError: string | undefined;
 }
 
+// A bound past 2 dp would filter on a value the summary cannot print, so the sheet refuses it.
+function exceedsMoneyDecimals(text: string): boolean {
+  return (text.split('.')[1] ?? '').length > MONEY_ROUNDING_DECIMALS;
+}
+
 export function validateAmountRange(minText: string, maxText: string): AmountRangeValidation {
   const normalizedMin = minText.trim();
   const normalizedMax = maxText.trim();
   const min = parseAmountInput(normalizedMin);
   const max = parseAmountInput(normalizedMax);
-  const minError = normalizedMin && min === undefined ? Strings.filterAmountInvalid : undefined;
-  const maxError = normalizedMax && max === undefined ? Strings.filterAmountInvalid : undefined;
+  const minError =
+    normalizedMin && (min === undefined || exceedsMoneyDecimals(normalizedMin))
+      ? Strings.filterAmountInvalid
+      : undefined;
+  const maxError =
+    normalizedMax && (max === undefined || exceedsMoneyDecimals(normalizedMax))
+      ? Strings.filterAmountInvalid
+      : undefined;
   const rangeError =
     minError === undefined &&
     maxError === undefined &&
@@ -98,13 +111,21 @@ export function formatSelectionSummary(names: string[], allLabel: string): strin
 }
 
 export function formatAmountSummary(f: AdvancedFilters): string {
-  if (f.amountMin === undefined && f.amountMax === undefined)
-    return Strings.filterSummaryAmountEmpty;
-  const cur = f.amountCurrency;
-  if (f.amountMin !== undefined && f.amountMax !== undefined)
-    return `${f.amountMin}–${f.amountMax} ${cur}`;
-  if (f.amountMax !== undefined) return `${Strings.filterSummaryAmountUpTo} ${f.amountMax} ${cur}`;
-  return `${Strings.filterSummaryAmountFrom} ${f.amountMin} ${cur}`;
+  const { amountMin, amountMax, amountCurrency: cur } = f;
+  // A fractional bound keeps its cents, so the summary never rounds past the bound the filter applies.
+  const bound = (value: number) =>
+    formatAmount(
+      value,
+      Number.isInteger(value) ? CURRENCY_CONFIG[cur].decimals : MONEY_ROUNDING_DECIMALS,
+    );
+  if (amountMin === undefined) {
+    return amountMax === undefined
+      ? Strings.filterSummaryAmountEmpty
+      : `${Strings.filterSummaryAmountUpTo} ${bound(amountMax)} ${cur}`;
+  }
+  if (amountMax === undefined)
+    return `${Strings.filterSummaryAmountFrom} ${bound(amountMin)} ${cur}`;
+  return `${bound(amountMin)}–${bound(amountMax)} ${cur}`;
 }
 
 type NamedEntity = { name: string };

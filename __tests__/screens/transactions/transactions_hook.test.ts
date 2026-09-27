@@ -23,7 +23,7 @@ import { useTransactionsScreenStore } from '@/modules/transactions/screens/trans
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
-import { makeTestAccount } from '@/test_helpers/transaction';
+import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
 
 let mockFocusEffectCallback: (() => void | (() => void)) | undefined;
 const mockPush = jest.fn();
@@ -1627,5 +1627,313 @@ describe('useTransactions account chips', () => {
 
     expect(selectedLabels(result.current.state.accountChips)).toEqual(['Bank']);
     expect(appliedAccountIds()).toEqual(['acc-2']);
+  });
+});
+
+describe('useTransactions search tally', () => {
+  const WALLET = makeTestAccount({ id: 'acc-1', name: 'Wallet' });
+  const BANK = makeTestAccount({ id: 'acc-2', name: 'Bank' });
+  const FOOD = makeTestCategory({ id: 'cat-1', name: 'Food' });
+  const JULY = { incomeEgp: 22300, expenseEgp: 9400, netEgp: 12900 };
+
+  function setupNamed(): void {
+    setupStores({}, { accounts: [WALLET, BANK], hasLoaded: true });
+    attachMockSelectorStore(useCategoryStore, () => ({ categories: [FOOD] }));
+  }
+
+  function serveMatches(byQuery: (query: TransactionAggregateQuery) => [number, number]): void {
+    mockGetMonthAggregate.mockImplementation(async (query) => {
+      const [matchCount, matchNetEgp] = byQuery(query);
+      return { ...EMPTY_AGGREGATE, matchCount, matchNetEgp, scoped: { ...JULY } };
+    });
+  }
+
+  function applyBeforeMount(filters: Partial<typeof EMPTY_FILTERS>): void {
+    useTransactionsScreenStore.getState().setAppliedFilters({ ...EMPTY_FILTERS, ...filters });
+  }
+
+  async function renderReady() {
+    const rendered = await renderHook(() => useTransactions());
+    await waitFor(() => expect(rendered.result.current.state.totalsStatus).toBe('ready'));
+    return rendered;
+  }
+
+  it('a search reads its count and its signed EGP net, with no summary', async () => {
+    setupNamed();
+    serveMatches((query) => (query.search === 'coffee' ? [2, -2_100] : [45, -9_400]));
+    const { result } = await renderReady();
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    });
+    await waitFor(() => {
+      expect(useTransactionsScreenStore.getState().totals?.matchCount).toBe(2);
+      expect(result.current.state.totalsStatus).toBe('ready');
+    });
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'figures',
+      count: '2',
+      label: 'results in July',
+      sum: { text: '−2,100', currencyCode: 'EGP' },
+      filterSummary: undefined,
+    });
+  });
+
+  it('one applied account with no search reads the figures and leaves its name to the hero title', async () => {
+    setupNamed();
+    serveMatches(() => [3, -450]);
+    applyBeforeMount({ accountIds: ['acc-1'] });
+
+    const { result } = await renderReady();
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'figures',
+      count: '3',
+      label: 'results in July',
+      sum: { text: '−450' },
+      filterSummary: undefined,
+    });
+    expect(result.current.state.appliedFilterSummary).toBe('Wallet');
+  });
+
+  it('two applied accounts are named in the tally', async () => {
+    setupNamed();
+    serveMatches(() => [3, -450]);
+    applyBeforeMount({ accountIds: ['acc-1', 'acc-2'] });
+
+    const { result } = await renderReady();
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'figures',
+      filterSummary: 'Wallet, Bank',
+    });
+  });
+
+  it('one account plus a category reads the category alone', async () => {
+    setupNamed();
+    serveMatches(() => [3, -450]);
+    applyBeforeMount({ accountIds: ['acc-1'], categoryIds: ['cat-1'] });
+
+    const { result } = await renderReady();
+
+    expect(result.current.state.tally).toMatchObject({ mode: 'figures', filterSummary: 'Food' });
+  });
+
+  it('the applied account removed, with no search and no sheet filter, empties the slot', async () => {
+    setupNamed();
+    serveMatches(() => [3, -450]);
+    applyBeforeMount({ accountIds: ['acc-1'] });
+    const { result } = await renderReady();
+    expect(result.current.state.tally).toMatchObject({ mode: 'figures', count: '3' });
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setAppliedFilters(EMPTY_FILTERS);
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'empty',
+      count: undefined,
+      sum: undefined,
+      filterSummary: undefined,
+    });
+  });
+
+  it('a type tab alone leaves the slot empty', async () => {
+    setupNamed();
+    serveMatches(() => [3, -450]);
+    const { result } = await renderReady();
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
+    });
+    await waitFor(() => {
+      expect(mockGetMonthAggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ type: TransactionType.Expense }),
+      );
+      expect(result.current.state.totalsStatus).toBe('ready');
+    });
+
+    expect(result.current.state.tally).toMatchObject({ mode: 'empty', count: undefined });
+  });
+
+  it('a whitespace-only search leaves the slot empty', async () => {
+    setupNamed();
+    serveMatches(() => [3, -450]);
+    const { result } = await renderReady();
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('   ');
+    });
+
+    expect(result.current.state.tally).toMatchObject({ mode: 'empty', count: undefined });
+  });
+
+  it('is a skeleton while the first load with one account applied is in flight', async () => {
+    setupNamed();
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+    applyBeforeMount({ accountIds: ['acc-1'] });
+
+    const { result } = await renderHook(() => useTransactions());
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'skeleton',
+      count: undefined,
+      sum: undefined,
+      filterSummary: undefined,
+    });
+  });
+
+  it('reads the dash form with no sum when the first load with one account applied fails', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    setupNamed();
+    mockGetMonthAggregate.mockRejectedValue(new Error('db down'));
+    applyBeforeMount({ accountIds: ['acc-1'] });
+
+    const { result } = await renderHook(() => useTransactions());
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('firstLoadError'));
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'failed',
+      count: '—',
+      label: 'results in July',
+      sum: undefined,
+    });
+    consoleSpy.mockRestore();
+  });
+
+  it("reads the dash form, not the month's held count, when a search load fails", async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    setupNamed();
+    serveMatches(() => [45, -9_400]);
+    const { result } = await renderReady();
+    mockGetMonthAggregate.mockRejectedValueOnce(new Error('db down'));
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('refreshErrorWithData'));
+
+    expect(useTransactionsScreenStore.getState().totals?.matchCount).toBe(45);
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'failed',
+      count: '—',
+      sum: undefined,
+    });
+    expect(result.current.state.hero.mode).toBe('figures');
+    consoleSpy.mockRestore();
+  });
+
+  it('keeps the held count and sum when a refresh of the same query fails', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    setupNamed();
+    let failing = false;
+    mockGetMonthAggregate.mockImplementation(async () => {
+      if (failing) throw new Error('db down');
+      return { ...EMPTY_AGGREGATE, matchCount: 2, matchNetEgp: -2_100, scoped: { ...JULY } };
+    });
+    useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    const { result } = await renderReady();
+    expect(result.current.state.tally).toMatchObject({ mode: 'figures', count: '2' });
+
+    failing = true;
+    await act(async () => {
+      await result.current.onRefresh();
+    });
+
+    expect(result.current.state.totalsStatus).toBe('refreshErrorWithData');
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'figures',
+      count: '2',
+      sum: { text: '−2,100' },
+    });
+    consoleSpy.mockRestore();
+  });
+
+  it('one account plus an amount floor reads the amount alone', async () => {
+    setupNamed();
+    serveMatches(() => [3, -450]);
+    applyBeforeMount({ accountIds: ['acc-1'], amountMin: 500 });
+
+    const { result } = await renderReady();
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'figures',
+      filterSummary: 'From 500 EGP',
+    });
+  });
+
+  it("reads the skeleton, never the month's count, while a search load is in flight", async () => {
+    setupNamed();
+    serveMatches(() => [45, -9_400]);
+    const { result } = await renderReady();
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    });
+    await waitFor(() =>
+      expect(mockGetMonthAggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ search: 'coffee' }),
+      ),
+    );
+
+    expect(useTransactionsScreenStore.getState().totals?.matchCount).toBe(45);
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'skeleton',
+      count: undefined,
+      sum: undefined,
+    });
+    expect(result.current.state.hero.mode).toBe('figures');
+    expect(result.current.state.searchDisabled).toBe(false);
+  });
+
+  it('reads the skeleton, never the held count, while a retry of a failed search load is in flight', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    setupNamed();
+    serveMatches(() => [45, -9_400]);
+    const { result } = await renderReady();
+    mockGetMonthAggregate.mockRejectedValueOnce(new Error('db down'));
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('refreshErrorWithData'));
+    expect(result.current.state.tally).toMatchObject({ mode: 'failed', count: '—' });
+
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+    await act(() => {
+      void result.current.retryTotals();
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).not.toBe('refreshErrorWithData'));
+
+    expect(useTransactionsScreenStore.getState().totals?.matchCount).toBe(45);
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'skeleton',
+      count: undefined,
+      sum: undefined,
+    });
+    consoleSpy.mockRestore();
+  });
+
+  it('keeps the held count while a refresh of the same query is in flight', async () => {
+    setupNamed();
+    serveMatches(() => [2, -2_100]);
+    useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    const { result } = await renderReady();
+    expect(result.current.state.tally).toMatchObject({ mode: 'figures', count: '2' });
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+
+    await act(() => {
+      void result.current.onRefresh();
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('refreshing'));
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'figures',
+      count: '2',
+      sum: { text: '−2,100' },
+    });
   });
 });

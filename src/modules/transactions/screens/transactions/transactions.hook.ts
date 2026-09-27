@@ -36,9 +36,11 @@ import {
 import { useFilterState } from './filter/filter.state';
 import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
 import {
+  buildSearchTally,
   buildTransactionsHeroModel,
   previousPeriod,
   resolvePeriod,
+  resolveSearchTallyFiguresMode,
   resolveTransactionsHeroMode,
   totalsScopeKey,
 } from './transactions.helpers';
@@ -476,6 +478,44 @@ export function useTransactions() {
       }),
     [heroCurrent, heroMode, heroPrevious, period.yearMonth, scopedAccountLabel, today],
   );
+  const tallyFilterSummary = useMemo(
+    () =>
+      formatAppliedFilterSummary(
+        scopedAccountLabel === undefined
+          ? effectiveFilters
+          : { ...effectiveFilters, accountIds: [] },
+        accountLabelsById,
+        categoriesById,
+      ) ?? undefined,
+    [accountLabelsById, categoriesById, effectiveFilters, scopedAccountLabel],
+  );
+  const tallyIsOn = transactionQuery.search !== undefined || hasAdvancedFilters;
+  const tallyFiguresMode = resolveSearchTallyFiguresMode(
+    heroMode,
+    displayTotalsStatus,
+    displayTotals?.queryKey === activeQueryKey,
+  );
+  const tallyMatchCount = displayTotals?.matchCount;
+  const tallyMatchNetEgp = displayTotals?.matchNetEgp;
+  const tally = useMemo(
+    () =>
+      buildSearchTally({
+        isOn: tallyIsOn,
+        figuresMode: tallyFiguresMode,
+        matchCount: tallyMatchCount,
+        matchNetEgp: tallyMatchNetEgp,
+        yearMonth: period.yearMonth,
+        filterSummary: tallyFilterSummary,
+      }),
+    [
+      period.yearMonth,
+      tallyFiguresMode,
+      tallyFilterSummary,
+      tallyIsOn,
+      tallyMatchCount,
+      tallyMatchNetEgp,
+    ],
+  );
   const presentation = buildTransactionsPresentation({
     listStatus,
     totalsStatus: displayTotalsStatus,
@@ -591,6 +631,7 @@ export function useTransactions() {
       totals: displayTotals,
       totalsStatus: displayTotalsStatus,
       hero,
+      tally,
       searchDisabled: heroMode === 'skeleton',
       listRef,
       pendingDeleteId: deleteAction.pendingPayload,

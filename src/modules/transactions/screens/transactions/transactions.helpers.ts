@@ -26,6 +26,13 @@ export type TransactionPeriod = { type: 'month'; yearMonth: string };
 export type TotalsMetric = 'income' | 'expense' | 'net';
 
 export type PolaritySignal = 'good' | 'bad' | 'neutral';
+
+// Frame A1 and the money-colour ADR's decision 5: In in success, Net by sign and neutral at 0; both neutral on a dash.
+export const FLOW_CLASS: Record<PolaritySignal, string> = {
+  good: 'text-success',
+  bad: 'text-danger',
+  neutral: 'text-foreground',
+};
 export type DeltaDirection = 'up' | 'down' | 'flat';
 export type TotalsSummaryState = 'noIncome' | 'withinIncome' | 'overIncome' | 'netCredit';
 
@@ -234,12 +241,17 @@ function formatHeroAmount(value: number): string {
   return signAmountText(text, value < 0 ? MINUS_SIGN : '', printsAsZero);
 }
 
-function heroNet(netEgp: number): Pick<TransactionsHeroModel, 'net' | 'netPolarity'> {
+function formatSignedNet(netEgp: number): { text: string; polarity: PolaritySignal } {
   const { text, printsAsZero } = formatDisplayMagnitude(netEgp, HERO_CURRENCY);
-  if (printsAsZero) return { net: text, netPolarity: 'neutral' };
+  if (printsAsZero) return { text, polarity: 'neutral' };
   return netEgp > 0
-    ? { net: signAmountText(text, PLUS_SIGN), netPolarity: 'good' }
-    : { net: signAmountText(text, MINUS_SIGN), netPolarity: 'bad' };
+    ? { text: signAmountText(text, PLUS_SIGN), polarity: 'good' }
+    : { text: signAmountText(text, MINUS_SIGN), polarity: 'bad' };
+}
+
+function heroNet(netEgp: number): Pick<TransactionsHeroModel, 'net' | 'netPolarity'> {
+  const { text, polarity } = formatSignedNet(netEgp);
+  return { net: text, netPolarity: polarity };
 }
 
 function lastMonthOutCaption(yearMonth: string, previous: PeriodTotals | null): string {
@@ -367,4 +379,114 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
     shareCaption: heroShareCaption(share),
     lastMonthChange: resolveLastMonthChange(current.expenseEgp, input.previous, input.yearMonth),
   };
+}
+
+export type SearchTallyMode = 'empty' | 'skeleton' | 'failed' | 'figures';
+
+export interface SearchTallyInput {
+  isOn: boolean;
+  figuresMode: TransactionsHeroMode;
+  matchCount: number | undefined;
+  matchNetEgp: number | undefined;
+  yearMonth: string;
+  filterSummary: string | undefined;
+}
+
+export interface SearchTallyModel {
+  mode: SearchTallyMode;
+  count: string | undefined;
+  label: string;
+  filterSummary: string | undefined;
+  sum: { text: string; polarity: PolaritySignal; currencyCode: string } | undefined;
+  accessibilityLabel: string | undefined;
+}
+
+/** `holdsActiveQuery`: the held figures were loaded for the query on screen; another query's never print. */
+export function resolveSearchTallyFiguresMode(
+  heroMode: TransactionsHeroMode,
+  status: TransactionTotalsStatus,
+  holdsActiveQuery: boolean,
+): TransactionsHeroMode {
+  if (heroMode !== 'figures' || holdsActiveQuery) return heroMode;
+  switch (status) {
+    case 'refreshErrorWithData':
+    case 'firstLoadError':
+      return 'dashes';
+    case 'idle':
+    case 'initialLoading':
+    case 'ready':
+    case 'refreshing':
+      return 'skeleton';
+    default: {
+      const unhandled: never = status;
+      return unhandled;
+    }
+  }
+}
+
+const NO_TALLY_TEXT = {
+  count: undefined,
+  label: '',
+  filterSummary: undefined,
+  sum: undefined,
+  accessibilityLabel: undefined,
+} as const;
+
+function withAccessibilityLabel(
+  model: Omit<SearchTallyModel, 'accessibilityLabel'>,
+): SearchTallyModel {
+  const parts = [
+    model.count,
+    model.label,
+    model.filterSummary,
+    model.sum?.text,
+    model.sum?.currencyCode,
+  ];
+  return {
+    ...model,
+    accessibilityLabel: parts.filter((part): part is string => part !== undefined).join(' '),
+  };
+}
+
+export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
+  if (!input.isOn) return { mode: 'empty', ...NO_TALLY_TEXT };
+  if (input.figuresMode === 'skeleton') return { mode: 'skeleton', ...NO_TALLY_TEXT };
+
+  const month = fullMonthName(input.yearMonth);
+  const { matchCount, matchNetEgp, filterSummary } = input;
+
+  if (input.figuresMode === 'dashes' || matchCount === undefined || matchNetEgp === undefined) {
+    return withAccessibilityLabel({
+      mode: 'failed',
+      count: Strings.transactionsHeroUnavailable,
+      label: Strings.transactionsTallyResults(month),
+      filterSummary,
+      sum: undefined,
+    });
+  }
+  if (matchCount === 0) {
+    return withAccessibilityLabel({
+      mode: 'figures',
+      count: undefined,
+      label: Strings.transactionsTallyNoResults(month),
+      filterSummary,
+      sum: undefined,
+    });
+  }
+
+  const net = formatSignedNet(matchNetEgp);
+  return withAccessibilityLabel({
+    mode: 'figures',
+    count: formatAmount(matchCount),
+    label:
+      matchCount === 1
+        ? Strings.transactionsTallyOneResult(month)
+        : Strings.transactionsTallyResults(month),
+    filterSummary,
+    sum: {
+      text: net.text,
+      polarity: net.polarity,
+      currencyCode: CURRENCY_CONFIG[HERO_CURRENCY].code,
+    },
+  });
 }

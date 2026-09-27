@@ -926,7 +926,7 @@ export const Strings = {
   transactions: 'Transactions',
   loadingTransactionsA11y: 'Loading transactions',
   loadingTransactionA11y: 'Loading transaction',
-  searchTransactionsPlaceholder: 'Search transactions…',
+  searchTransactionsPlaceholder: 'Search transactions',
   filterAll: 'All',
   filterExpense: 'Expense',
   filterIncome: 'Income',
@@ -1263,6 +1263,11 @@ export const Strings = {
   transactionsHeroSpentLess: (pct: string, month: string) => `Spent ${pct}% less than ${month}`,
   transactionsHeroSpentSame: (month: string) => `Spent the same as ${month}`,
   transactionsHeroUnavailable: '—',
+
+  // §6 Transactions: Search tally
+  transactionsTallyResults: (month: string) => `results in ${month}`,
+  transactionsTallyOneResult: (month: string) => `result in ${month}`,
+  transactionsTallyNoResults: (month: string) => `No results in ${month}`,
 
   // §6 Transactions: Type badges
   typeBadgeCommitment: 'Commitment',

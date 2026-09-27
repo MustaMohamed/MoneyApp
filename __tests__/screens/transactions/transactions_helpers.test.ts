@@ -11,7 +11,11 @@ import {
   formatSignedAmount,
   expenseSharePct,
   deltaDisplay,
+  buildSearchTally,
+  resolveSearchTallyFiguresMode,
+  type SearchTallyInput,
   type TransactionsHeroInput,
+  type TransactionsHeroMode,
 } from '@/modules/transactions/screens/transactions/transactions.helpers';
 import type { TransactionTotalsStatus } from '@/modules/transactions/screens/transactions/transactions.state';
 
@@ -636,4 +640,162 @@ describe('share and Left of income in integer cents, multiplied before dividing'
     expect(totals.rawExpenseSharePct).toBe(104);
     expect(hero).toMatchObject({ leftOfIncome: '−3%', shareCaption: '104% of income spent' });
   });
+});
+
+describe('buildSearchTally', () => {
+  const DASH = '—';
+
+  function tally(overrides: Partial<SearchTallyInput> = {}) {
+    return buildSearchTally({
+      isOn: true,
+      figuresMode: 'figures',
+      matchCount: 2,
+      matchNetEgp: -2_100,
+      yearMonth: '2026-09',
+      filterSummary: undefined,
+      ...overrides,
+    });
+  }
+
+  it('reads 2 results in September with a U+2212 net and no summary (frame A3)', () => {
+    expect(tally()).toEqual({
+      mode: 'figures',
+      count: '2',
+      label: 'results in September',
+      filterSummary: undefined,
+      sum: { text: '−2,100', polarity: 'bad', currencyCode: 'EGP' },
+      accessibilityLabel: '2 results in September −2,100 EGP',
+    });
+  });
+
+  it('carries the applied-filter summary, read in line order as one label', () => {
+    expect(tally({ filterSummary: 'Food' })).toMatchObject({
+      mode: 'figures',
+      count: '2',
+      label: 'results in September',
+      sum: { text: '−2,100' },
+      filterSummary: 'Food',
+      accessibilityLabel: '2 results in September Food −2,100 EGP',
+    });
+  });
+
+  it('reads 1 result in September with its sum', () => {
+    expect(tally({ matchCount: 1, matchNetEgp: -350 })).toMatchObject({
+      mode: 'figures',
+      count: '1',
+      label: 'result in September',
+      sum: { text: '−350', polarity: 'bad', currencyCode: 'EGP' },
+    });
+  });
+
+  it('reads No results in September with no count and no sum, the summary kept', () => {
+    expect(tally({ matchCount: 0, matchNetEgp: 0, filterSummary: 'Food' })).toMatchObject({
+      mode: 'figures',
+      count: undefined,
+      label: 'No results in September',
+      sum: undefined,
+      filterSummary: 'Food',
+      accessibilityLabel: 'No results in September Food',
+    });
+  });
+
+  it('signs a positive net with + and reads good', () => {
+    expect(tally({ matchNetEgp: 300 }).sum).toEqual({
+      text: '+300',
+      polarity: 'good',
+      currencyCode: 'EGP',
+    });
+  });
+
+  it('prints a zero net unsigned and neutral', () => {
+    expect(tally({ matchNetEgp: 0 }).sum).toEqual({
+      text: '0',
+      polarity: 'neutral',
+      currencyCode: 'EGP',
+    });
+  });
+
+  it('prints the EGP net at 0 dp', () => {
+    expect(tally({ matchNetEgp: -2_100.49 }).sum).toMatchObject({
+      text: '−2,100',
+      polarity: 'bad',
+    });
+  });
+
+  it('groups a four-digit count', () => {
+    expect(tally({ matchCount: 1_240 })).toMatchObject({
+      count: '1,240',
+      label: 'results in September',
+    });
+  });
+
+  it('is a skeleton with no text and no label while the month loads', () => {
+    expect(tally({ figuresMode: 'skeleton', filterSummary: 'Food' })).toEqual({
+      mode: 'skeleton',
+      count: undefined,
+      label: '',
+      filterSummary: undefined,
+      sum: undefined,
+      accessibilityLabel: undefined,
+    });
+  });
+
+  it('reads — results in September with no sum when the figures failed, the summary kept', () => {
+    expect(tally({ figuresMode: 'dashes', filterSummary: 'Food' })).toMatchObject({
+      mode: 'failed',
+      count: DASH,
+      label: 'results in September',
+      sum: undefined,
+      filterSummary: 'Food',
+      accessibilityLabel: '— results in September Food',
+    });
+  });
+
+  it.each<SearchTallyInput['figuresMode']>(['skeleton', 'dashes', 'figures'])(
+    'is an empty slot with nothing on while the figures are %s',
+    (figuresMode) => {
+      expect(tally({ isOn: false, figuresMode, filterSummary: 'Food' })).toEqual({
+        mode: 'empty',
+        count: undefined,
+        label: '',
+        filterSummary: undefined,
+        sum: undefined,
+        accessibilityLabel: undefined,
+      });
+    },
+  );
+});
+
+describe('resolveSearchTallyFiguresMode', () => {
+  const STATUSES: TransactionTotalsStatus[] = [
+    'idle',
+    'initialLoading',
+    'ready',
+    'refreshing',
+    'refreshErrorWithData',
+    'firstLoadError',
+  ];
+
+  it.each(STATUSES)('keeps the figures held for the query on screen while %s', (status) => {
+    expect(resolveSearchTallyFiguresMode('figures', status, true)).toBe('figures');
+  });
+
+  it.each<[TransactionTotalsStatus, TransactionsHeroMode]>([
+    ['idle', 'skeleton'],
+    ['initialLoading', 'skeleton'],
+    ['ready', 'skeleton'],
+    ['refreshing', 'skeleton'],
+    ['refreshErrorWithData', 'dashes'],
+    ['firstLoadError', 'dashes'],
+  ])('never prints figures held for another query: %s reads %s', (status, mode) => {
+    expect(resolveSearchTallyFiguresMode('figures', status, false)).toBe(mode);
+  });
+
+  it.each<TransactionsHeroMode>(['skeleton', 'dashes'])(
+    'follows the hero while it shows %s',
+    (heroMode) => {
+      expect(resolveSearchTallyFiguresMode(heroMode, 'ready', false)).toBe(heroMode);
+      expect(resolveSearchTallyFiguresMode(heroMode, 'ready', true)).toBe(heroMode);
+    },
+  );
 });
