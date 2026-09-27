@@ -5,7 +5,7 @@ Route `/accounts/add_account`, and `(onboarding)/add_account` for N2. Screen `sr
 ## Reach it
 
 - User path: accounts list `+`, or Settings, or N2 during onboarding.
-- Script: `$MQA tap 'Add Account'` from Settings, or the `+` on the list header (`mqa park` first: the dev-client bubble sits over the header's right action).
+- Script: `$MQA tap 'Add Account'` from Settings, or the `+` on the list header (`mqa up` turns off the dev-client Tools button that sat over the header's right action).
 
 ## States
 

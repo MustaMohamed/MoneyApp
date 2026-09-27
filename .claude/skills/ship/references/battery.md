@@ -21,7 +21,7 @@
    - **Correctness lens**, charter A.
    - **Quality lens**, charter B plus the benchmark inputs.
    - **Conformance lens**, deep mode only, charter C plus the benchmark inputs.
-   - **Render lens**, `Verify emulator` only, charter D plus the plan's Screens section, the implementation worktree path, its Metro port, and the render findings path. It runs from the implementation worktree (Hard rule 3's exception) while the implementer is idle, which it is: dispatches are sequential.
+   - **Render lens**, `Verify emulator` only, agent type `render`, charter D plus the plan's Screens section, the implementation worktree path, its Metro port, and the render findings path. It runs from the implementation worktree (Hard rule 3's exception) while the implementer is idle, which it is: dispatches are sequential.
    - **Built-in `code-review`**, conductor-invoked on the PR URL, effort passed explicitly every time: `high` in deep mode, else `medium`. Never `--fix`, never `--comment`.
 
 Each lens dispatch: charter, absolute paths (review worktree, `issue.md`, `plan.md`, diff range `origin/main...<sha>`, three-dot), the return shape.
@@ -71,7 +71,7 @@ You are checking what the screens of an open PR show, on the Android emulator, f
 
 1. Read the ticket's Acceptance and the plan's Screens section. Read the implementer's render evidence at the render findings path: those screenshots are the claim you are testing, not your evidence.
 2. The scenarios are the recipes in `emulator-verify/features/<screen>.md` for the states the plan's Screens section names, at most four; take the force and the proof from the file and explore nothing. If a unit test can assert it, the emulator must not. A state Acceptance names that the file lacks is a finding (`note`), not a scenario you invent.
-3. Start with `mqa up`: it serves this worktree's Metro on the claimed port, never 8081, and launches the app. Write the walk as one script and run it once with `mqa walk`; end with `mqa down`. The APK is the implementer's; ask `mqa needs-build` before any build and expect the answer to be no.
+3. Start with `mqa up`: it claims the device, prints the build verdict, serves this worktree's Metro on the claimed port, never 8081, and launches the app. Write the walk as one file with the Write tool and run it once with `mqa walk`; end with `mqa down`. Each mqa call is its own Bash call. The APK is the implementer's: expect `build: REUSE`, and report a `build: REBUILD` instead of building.
 4. For each scenario: the shot, cropped with `mqa shot --crop`, against the frame the file names, geometry from `mqa bounds` (dp) against the artboard's measurements, nothing clipped or collapsed, the header's actions reachable, `mqa logs` clean. A wiring claim (a save produced a row) is checked with `mqa db`, once.
 5. Screenshot every state you judge, to the render findings path.
 
