@@ -16,7 +16,6 @@ import * as SystemUI from 'expo-system-ui';
 import { PortalHost } from 'heroui-native/portal';
 import { HeroUINativeProviderRaw } from 'heroui-native/provider-raw';
 import { useEffect } from 'react';
-import { LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableFreeze } from 'react-native-screens';
@@ -29,10 +28,6 @@ import { useAppInit } from '@/utils/use_layout_init.hook';
 void SplashScreen.preventAutoHideAsync();
 void SystemUI.setBackgroundColorAsync(Colors.dark.bg);
 enableFreeze(true);
-// expo-router's Android initial-link race sets state before mount (expo/expo#50282); its toast covers the tab bar.
-if (__DEV__) {
-  LogBox.ignoreLogs(["Can't perform a React state update on a component that hasn't mounted yet"]);
-}
 
 const AppTheme = {
   ...DarkTheme,

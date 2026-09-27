@@ -599,11 +599,13 @@ cmd_seed() {
   esac
 }
 
+top_activity() { a shell dumpsys activity activities 2>/dev/null | sed -n 's/.*topResumedActivity=ActivityRecord{[^ ]* [^ ]* \([^ ]*\).*/\1/p' | head -1 | tr -d '\r'; }
+
 cmd_state() {
   need_device
   local pid top
   pid="$(app_pid)" || true
-  top="$(a shell dumpsys activity activities 2>/dev/null | sed -n 's/.*topResumedActivity=ActivityRecord{[^ ]* [^ ]* \([^ ]*\).*/\1/p' | head -1 | tr -d '\r')" || true
+  top="$(top_activity)" || true
   if [ -n "$pid" ]; then echo "app: running, pid $pid"; else echo "app: not running"; fi
   echo "top activity: ${top:-none}"
   echo "keyboard: $(if ime_shown; then echo shown; else echo hidden; fi)"
@@ -622,13 +624,13 @@ ad() {
 }
 ad_explain() {
   grep -vE '^(Hint|Diagnostic ID|Diagnostics Log):|^Warning: android snapshots are slow' <<<"$AD_ERR" || true
-  case "$AD_ERR" in
-    *'snapshot helper failed'*'timed out'*)
-      echo "mqa: the screen never went idle, so it cannot be read (a looping animation such as a loading skeleton). Prove this state with mqa shot; tapxy still taps." ;;
-    *AMBIGUOUS_MATCH*) echo "mqa: more than one node matches; pick an exact label=\"…\" or id=\"…\" from mqa read" ;;
-  esac
+  if no_idle; then
+    echo "mqa: the screen never went idle, so it cannot be read (a looping animation such as a loading skeleton). Prove this state with mqa shot; tapxy still taps."
+  fi
+  case "$AD_ERR" in *AMBIGUOUS_MATCH*) echo "mqa: more than one node matches; pick an exact label=\"…\" or id=\"…\" from mqa read" ;; esac
 }
-no_idle() { case "$AD_ERR" in *'snapshot helper failed'*) return 0 ;; *) return 1 ;; esac; }
+# Only the accessibility timeout means a screen that never settles; agent-device's other helper failures are transient.
+no_idle() { case "$AD_ERR" in *'continuously changing app UI'* | *'snapshot helper failed'*'timed out'*) return 0 ;; *) return 1 ;; esac; }
 
 # On a miss, print what is on screen that looks like the target; skipped when the screen cannot be read at all.
 suggest() {
@@ -875,17 +877,15 @@ cmd_wait() {
   local t="${1:?usage: mqa wait <selector> [ms]}" ms="${2:-10000}" end
   if uses_ad; then
     need_device
-    if ! ad_wait "$t" "$ms" 2>/dev/null; then
-      # agent-device's wait can lose its capture session on a loaded device while a plain snapshot still reads: poll those for the same budget again.
-      if no_idle; then ad_explain >&2; return 1; fi
-      ad_poll "$t" "$ms" || { ad_explain >&2; suggest "$t"; return 1; }
-    fi
+    wait_or_poll "$t" "$ms" "$ms" || { ad_explain >&2; suggest "$t"; return 1; }
     echo "saw $t"; return
   fi
   ua_poll "$t" "$ms" || { suggest "$t"; die "timed out after ${ms}ms waiting for $t"; }
   echo "saw $t"
 }
 
+# agent-device's wait can lose its capture session on a loaded device while a plain snapshot still reads: poll those for $3 ms, after the optional gate command $4.
+wait_or_poll() { ad_wait "$1" "$2" 2>/dev/null || { ! no_idle && "${4:-true}" && ad_poll "$1" "$3"; }; }
 ad_wait() { case "$1" in '~'*) ad wait text "${1#\~}" "$2" >/dev/null ;; *) ad wait "$(sel "$1")" "$2" >/dev/null ;; esac; }
 ad_poll() {
   local end=$((SECONDS + ($2 + 999) / 1000)) err="$AD_ERR"
@@ -1034,6 +1034,14 @@ ensure_claim() {
   WORK="${MQA_WORK:-${TMPDIR:-/tmp}/mqa/$S}"; mkdir -p "$WORK"
 }
 
+# A launch whose app left the front relaunches at once; one in front has its dev overlays dismissed before the poll.
+front_and_clear() {
+  local err="$AD_ERR"
+  case "$(top_activity)" in "$PKG"/*) ;; *) return 1 ;; esac
+  ad react-native dismiss-overlay >/dev/null 2>&1 || true
+  AD_ERR="$err"
+}
+
 # A cold launch on this worktree's Metro, then the first screen.
 launch_ready() {
   local ready="$1" ready_ms="${MQA_READY_MS:-90000}" url try
@@ -1045,8 +1053,7 @@ launch_ready() {
     a shell am force-stop "$PKG"
     if uses_ad; then
       ad open "$PKG" "$url" --platform android --serial "$S" >/dev/null
-      # A lost capture session on a loaded device fails the wait while a plain snapshot still reads the tab bar.
-      if ad wait "$ready" "$ready_ms" >/dev/null 2>&1 || { ! no_idle && ad_poll "$ready" "${MQA_READY_POLL_MS:-15000}"; }; then break; fi
+      if wait_or_poll "$ready" "$ready_ms" "${MQA_READY_POLL_MS:-15000}" front_and_clear; then break; fi
     else
       a shell am start -a android.intent.action.VIEW -d "$url" >/dev/null
       if ua_poll "$ready" "$ready_ms"; then break; fi

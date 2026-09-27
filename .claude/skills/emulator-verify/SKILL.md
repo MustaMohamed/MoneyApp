@@ -32,13 +32,13 @@ Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a
 
 | Verb | Does |
 |---|---|
-| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (stop and ask on REBUILD); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (plain snapshots for 15 s more when agent-device's wait loses its capture session; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
+| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (stop and ask on REBUILD); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
 | `down` | close the agent-device session so the system keyboard comes back; the claim and Metro stay for the next run |
 | `open <route\|url>` | deep link: `/transactions`, `/accounts`, or a full `moneyapp://` URL |
 | `read [scope]` · `ui` | what is on screen: `@ref`, kind, label and testID, with a row's own texts folded into it; with a scope (a testID or a label), every labelled node drawn inside that container, in dp |
 | `bounds <sel>...` | every match: x, y, width and height in dp, testID, enabled or disabled, selected |
 | `tap <sel>` · `fill <sel> <text>` · `type` · `clear` · `key <code>` · `back` | act; `tap` and `fill` first wait up to 10 s for their target, and `fill` focuses, clears and types in one call. `tap` scrolls a target its list has moved out of view back in, and presses a match whose candidates all carry one label (a Pressable and the View inside it) |
-| `wait <sel> [ms]` | block until a selector is on screen (default 10000 ms); when agent-device's own wait loses its capture session on a loaded device, mqa polls plain snapshots for the same budget again |
+| `wait <sel> [ms]` | block until a selector is on screen (default 10000 ms); when agent-device's own wait fails for any reason but a screen that never goes idle (a lost capture session on a loaded device), mqa polls plain snapshots for the same budget again |
 | `scroll <up\|down> [--in <sel>] [--until <sel>]` | a raw drag under both engines (agent-device's own scroll does not move this app's lists), inside `<sel>` when given; `--until` stops when the selector is on screen, or when two swipes in a row no longer move the list (one still swipe can be a page loading) |
 | `shot [name] [--crop <sel>] [--out <dir>]` | screencap (~0.2 s); `--crop` cuts it to the largest node matching the selector, in pixels, no padding |
 | `db "<sql>"` · `schema [table]` | query the on-device SQLite · its tables and columns; read the columns before writing SQL |
