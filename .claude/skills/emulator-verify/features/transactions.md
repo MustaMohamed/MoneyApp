@@ -70,6 +70,7 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 - The pill's `h-8` is a fixed track: its height does not move with the label, so the pill state is about the label sitting centred in the track, not about the track growing.
 - An account chip and the filter sheet's account pill share the label `<account>, account filter`, so with the sheet open `tap 'label="<account>, account filter"'` matches both; pick the sheet's pill by `tapxy` on the centre of the match whose `bounds` sit below the chip row, or by its `@ref` from `mqa read` (MA-120). With the sheet closed the label matches the chip alone.
 - The search field is disabled while the hero skeleton shows, so the `search tally, skeleton` state is reached with an account applied through `See all`, never by typing (MA-121).
+- The search `EditText` answers to `label="Search transactions"` only while it is empty; with text in it, its label is the text. Tap `Clear search` before the next `fill` (MA-121).
 - A deep link does not dismiss an open bottom sheet: the filter sheet stays mounted over the next screen and its nodes answer the reads. `am force-stop` before the next state.
 
 ## Seeding and forcing states
