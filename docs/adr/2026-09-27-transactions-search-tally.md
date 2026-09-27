@@ -21,8 +21,8 @@ The line shows while a search, one applied account or a sheet filter is on. A se
 
 ## 4. The summary leaves out a lone account
 
-The hero title already carries one applied account's name, so the tally's summary omits it through `formatAppliedFilterSummary`'s `omitSingleAccount` option. Two or more accounts print by name, then categories and the amount range, as the sheet's summary does. The date header's context label keeps calling the function without the option and reads as before.
+The hero title carries one applied account's name through `scopedAccountLabel` in `useTransactions`. When `scopedAccountLabel` is set, the hook hands `formatAppliedFilterSummary` the filter with its account ids emptied, so the tally's summary prints the categories and the amount range alone. With two or more accounts `scopedAccountLabel` is unset, and the summary names them first, then the categories and the amount range, as the sheet's summary does. `formatAppliedFilterSummary` itself is unchanged, and the date header's context label reads as before.
 
-## 5. A failed load for another query reads the dash form
+## 5. Another query's figures never print
 
-When the aggregate fails for the query on screen while the store still holds figures from an earlier query, the tally reads `— results in <Month>` with no sum, since printing the held figures would show another query's count. A failed refresh of the same query keeps its figures. While a new query's load is in flight the previous figures stay on the line; marking them as stale belongs to MA-107.
+The store holds the last figures it loaded, tagged with their query key. The tally prints them only when that key is the query on screen, a rule `resolveSearchTallyFiguresMode` in `transactions.helpers.ts` decides from the totals status. While another query's load is pending the slot shows the skeleton, and when that load fails it reads `— results in <Month>` with no sum. A refresh of the same query, from a mutation, a focus reload or a pull, keeps its figures while it loads and after it fails. A first load and a first-load failure follow the hero's skeleton and dashes. Only the hero's skeleton disables the search field, so the field stays live while the tally shows its skeleton.
