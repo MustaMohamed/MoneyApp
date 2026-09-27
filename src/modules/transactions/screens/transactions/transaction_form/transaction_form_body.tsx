@@ -1,22 +1,22 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Input, Spinner, cn } from 'heroui-native';
+import { Input, Spinner } from 'heroui-native';
 import { View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
+import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { ListCard } from '@/components/ui/list_card';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { resolveAccountName } from '@/utils/account_name';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
@@ -27,11 +27,18 @@ import { DateRow } from './components/date_row';
 import { FormPickerRow } from './components/form_picker_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import {
+  ACCOUNT_STRIP_WRAPPER_PADDING_Y,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form_geometry';
 import { TypeTabs } from './components/type_tabs';
-import { resolveBudgetFieldError, resolveStripSelectedId } from './transaction_form.helpers';
+import {
+  type AccountStripChip,
+  resolveAccountStripChips,
+  resolveBudgetFieldError,
+  resolveStripSelectedId,
+  resolveToRowFace,
+} from './transaction_form.helpers';
 import type { TransactionFormMode } from './transaction_form.types';
 
 interface BaseProps {
@@ -75,7 +82,7 @@ interface BaseProps {
 
 type Props = BaseProps &
   (
-    | { locked: true }
+    | { locked: true; lockedChips: AccountStripChip[] }
     | {
         locked: false;
         fromAccounts: Account[];
@@ -155,6 +162,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   const budgetFieldError = resolveBudgetFieldError(budgetError, budgetLookupError);
+  const stripCaption = isTransferOrCC ? Strings.addTxFromLabel : undefined;
+  const toRowFace = resolveToRowFace({ locked, account: selectedToAccount });
 
   return (
     <View style={{ flex: 1 }}>
@@ -164,9 +173,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         onSelect={onSelectType}
         isDisabled={locked}
       />
-      <View
-        className={cn('min-h-8 justify-center px-4 py-1.5', locked && 'border-separator border-b')}
-      >
+      <View className="min-h-8 justify-center px-4 py-1.5">
         <Text
           className="font-inter text-muted"
           style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
@@ -175,13 +182,23 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           {typeSupportingText}
         </Text>
       </View>
-      {!props.locked ? (
-        <View className="border-separator border-b" style={{ paddingVertical: Spacing.xxs }}>
+      <View
+        className="border-separator border-b"
+        style={{ paddingVertical: ACCOUNT_STRIP_WRAPPER_PADDING_Y }}
+      >
+        {props.locked ? (
+          <AccountStrip chips={props.lockedChips} caption={stripCaption} />
+        ) : (
           <AccountStrip
-            accounts={props.fromAccounts}
-            selectedId={resolveStripSelectedId(props.fromAccounts, props.selectedAccountId)}
-            onSelect={props.onSelectAccount}
-            caption={isTransferOrCC ? Strings.addTxFromLabel : undefined}
+            chips={resolveAccountStripChips(
+              props.fromAccounts,
+              resolveStripSelectedId(props.fromAccounts, props.selectedAccountId),
+            )}
+            onSelect={(id) => {
+              const account = props.fromAccounts.find((candidate) => candidate.id === id);
+              if (account !== undefined) props.onSelectAccount(account);
+            }}
+            caption={stripCaption}
             error={accountError}
             emptyText={
               type === TransactionType.Transfer
@@ -191,8 +208,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                   : undefined
             }
           />
-        </View>
-      ) : null}
+        )}
+      </View>
 
       <AmountHero
         onChange={setAmountStr}
@@ -210,36 +227,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {locked ? (
-          <FormPickerRow
-            testID="from-account-row"
-            disabled
-            label={isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
-            value={
-              selectedAccount ? resolveAccountName(selectedAccount) : Strings.addTxPickAccountTitle
-            }
-            prefix={
-              <MaterialCommunityIcons
-                name={
-                  selectedAccount
-                    ? (TYPE_OPTIONS.find((option) => option.type === selectedAccount.type)?.icon ??
-                      'bank')
-                    : 'bank-outline'
-                }
-                size={Size.iconXs}
-                color={resolveAccountGlyphColor(selectedAccount?.color)}
-              />
-            }
-            suffix={
-              <MaterialCommunityIcons
-                name="lock-outline"
-                size={Size.iconSm}
-                color={CoreTokens.text2}
-              />
-            }
-          />
-        ) : null}
-
         <ListCard testID="transaction-form-fact-group">
           {isTransferOrCC ? (
             <View className={FACT_CELL_CLASS}>
@@ -250,22 +237,28 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 disabled={locked}
                 label={Strings.addTxToLabel}
                 accessibilityHint={toAccountError}
-                value={
-                  selectedToAccount
-                    ? resolveAccountName(selectedToAccount)
-                    : Strings.addTxPickToTitle
-                }
+                value={toRowFace.value}
                 prefix={
-                  <MaterialCommunityIcons
-                    name={
-                      selectedToAccount
-                        ? (TYPE_OPTIONS.find((option) => option.type === selectedToAccount.type)
-                            ?.icon ?? 'bank')
-                        : 'bank-outline'
-                    }
-                    size={Size.iconXs}
-                    color={resolveAccountGlyphColor(selectedToAccount?.color)}
-                  />
+                  toRowFace.tile !== undefined ? (
+                    <AccountColorTile
+                      color={toRowFace.tile.color}
+                      type={toRowFace.tile.type}
+                      size={Size.dualTile}
+                      glyphSize={Size.rowGlyph}
+                      hollow={toRowFace.tile.hollow}
+                    />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name={
+                        selectedToAccount
+                          ? (TYPE_OPTIONS.find((option) => option.type === selectedToAccount.type)
+                              ?.icon ?? 'bank')
+                          : 'bank-outline'
+                      }
+                      size={Size.iconXs}
+                      color={resolveAccountGlyphColor(selectedToAccount?.color)}
+                    />
+                  )
                 }
                 suffix={
                   <MaterialCommunityIcons

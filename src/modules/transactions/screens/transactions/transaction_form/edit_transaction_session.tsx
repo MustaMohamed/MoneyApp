@@ -55,6 +55,7 @@ export function EditTransactionSession(props: EditTransactionSessionProps): Reac
           datePickerOwnerId={`edit:${props.sessionId}`}
           formMode="edit"
           locked
+          lockedChips={hook.state.lockedStripChips}
           type={hook.state.type}
           typeLabel={hook.state.typeLabel}
           typeSupportingText={hook.state.typeSupportingText}

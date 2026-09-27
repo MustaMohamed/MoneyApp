@@ -11,6 +11,8 @@ The add sheet's From account is a horizontal strip of account chips instead of a
 
 `AccountStrip` renders `accounts`, rings the chip whose id is `selectedId`, and reports a press through `onSelect`. It reads no store and keeps no state. `selectedId` is `resolveStripSelectedId(accountsForFrom, accountId)` over RHF `accountId`, so the ring is always the form's value.
 
+Amended 2026-09-27 by MA-122 (#595): the strip renders `chips` built by `resolveAccountStripChips` from the eligible list and `resolveStripSelectedId`, and reports a press by id; it still reads no store and keeps no state.
+
 ## 2. `selectAccount` is the only writer
 
 A chip press and the preselect both call `selectAccount`, the function the picker sheet called before. It clears the category and budget when the semantics change, writes `accountId`, and seeds `exchangeRate` from the stored rate when the pair needs one and the user has not typed an override. Nothing else writes `accountId` on add, so the currency, the rate seed and the semantics clear follow every account change.

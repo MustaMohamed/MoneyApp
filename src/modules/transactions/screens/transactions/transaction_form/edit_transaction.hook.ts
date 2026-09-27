@@ -32,6 +32,7 @@ import { useEditTransactionStore } from './edit_transaction.store';
 import {
   REFINE_DESPITE_FIELD_ERRORS,
   resolveDestinationFloorError,
+  resolveLockedStripChips,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
   resolveTransactionSaveError,
@@ -198,6 +199,16 @@ export function useEditTransaction(
     [accountLookupById, accounts, archivedAccounts],
   );
   const selectedAccount = contextualAccounts.get(initialTx.account_id) ?? null;
+  const lockedStripChips = useMemo(
+    () =>
+      resolveLockedStripChips({
+        type,
+        currentId: initialTx.account_id,
+        current: contextualAccounts.get(initialTx.account_id),
+        accounts,
+      }),
+    [accounts, contextualAccounts, initialTx.account_id, type],
+  );
   const selectedToAccount = initialTx.to_account_id
     ? (contextualAccounts.get(initialTx.to_account_id) ?? null)
     : null;
@@ -445,6 +456,7 @@ export function useEditTransaction(
       type,
       selectedAccount,
       selectedToAccount,
+      lockedStripChips,
       selectedCategory,
       selectedBudget,
       categoryId,
