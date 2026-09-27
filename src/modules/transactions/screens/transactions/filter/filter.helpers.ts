@@ -16,11 +16,7 @@ export function countActiveFilters(f: AdvancedFilters): number {
 
 /** One applied account is shown by its chip, so the funnel counts accounts only at two or more. */
 export function countFunnelFilters(f: AdvancedFilters): number {
-  let n = 0;
-  if (f.accountIds.length >= 2) n++;
-  if (f.categoryIds.length > 0) n++;
-  if (hasAmountFilter(f)) n++;
-  return n;
+  return countActiveFilters(f) - (f.accountIds.length === 1 ? 1 : 0);
 }
 
 export function toggleAccountFilter(

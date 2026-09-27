@@ -23,6 +23,7 @@ import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
+import { buildAccountChips } from './components/account_chips.helpers';
 import {
   countActiveFilters,
   countFunnelFilters,
@@ -35,7 +36,6 @@ import {
 import { useFilterState } from './filter/filter.state';
 import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
 import {
-  buildAccountChips,
   buildTransactionsHeroModel,
   previousPeriod,
   resolvePeriod,
@@ -71,13 +71,13 @@ export function useTransactions() {
   const attemptScrollRestoreRef = useRef<() => void>(() => {});
   const currentScrollPositionRef = useRef<ScrollPosition>({ queryKey: null, offset: 0 });
 
-  const { searchQuery, activeFilter, period, appliedFilters, totals, totalsYearMonth } =
+  const { searchQuery, activeFilter, period, storedAppliedFilters, totals, totalsYearMonth } =
     useTransactionsScreenStore(
       useShallow((s) => ({
         searchQuery: s.searchQuery,
         activeFilter: s.activeFilter,
         period: s.period,
-        appliedFilters: s.appliedFilters,
+        storedAppliedFilters: s.appliedFilters,
         totals: s.totals,
         totalsYearMonth: s.totalsYearMonth,
       })),
@@ -140,14 +140,17 @@ export function useTransactions() {
   const setUserRefreshing = useTransactionsState.getState().setUserRefreshing;
 
   const effectiveFilters = useMemo(
-    () => (accountsLoaded ? pruneAccountFilter(appliedFilters, accounts) : appliedFilters),
-    [accounts, accountsLoaded, appliedFilters],
+    () =>
+      accountsLoaded ? pruneAccountFilter(storedAppliedFilters, accounts) : storedAppliedFilters,
+    [accounts, accountsLoaded, storedAppliedFilters],
   );
   useEffect(() => {
-    if (effectiveFilters !== appliedFilters) {
-      useTransactionsScreenStore.getState().setAppliedFilters(effectiveFilters);
-    }
-  }, [appliedFilters, effectiveFilters]);
+    if (!accountsLoaded) return;
+    // Prunes the store's current filter, never this render's, so a press that landed first survives.
+    const screenStore = useTransactionsScreenStore.getState();
+    const pruned = pruneAccountFilter(screenStore.appliedFilters, accounts);
+    if (pruned !== screenStore.appliedFilters) screenStore.setAppliedFilters(pruned);
+  }, [accounts, accountsLoaded, storedAppliedFilters]);
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const periodRange = useMemo(() => resolvePeriod(period), [period]);

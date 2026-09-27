@@ -26,6 +26,7 @@ export interface SelectablePillProps {
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
   hitSlop?: PressableProps['hitSlop'];
+  onLayout?: PressableProps['onLayout'];
 }
 
 /** HeroUI `Chip` has no `selected` boolean, so this wrapper owns the gold-tint styling. */
@@ -40,6 +41,7 @@ export function SelectablePill({
   accessibilityLabel,
   style,
   hitSlop,
+  onLayout,
 }: SelectablePillProps): React.ReactElement {
   const hasAdornment = dotColor !== undefined || startIcon !== undefined || checkable;
   return (
@@ -55,6 +57,7 @@ export function SelectablePill({
       accessibilityLabel={accessibilityLabel ?? label}
       style={style}
       hitSlop={hitSlop}
+      onLayout={onLayout}
       className={cn(
         'rounded-full border',
         hasAdornment ? 'gap-1.5 px-2.5 py-1.5' : 'px-3 py-1',

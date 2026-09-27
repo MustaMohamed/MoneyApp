@@ -3,7 +3,7 @@
 - **Date:** 2026-09-27
 - **Status:** accepted
 - **Ticket:** MA-120
-- **Applies to:** `toggleAccountFilter`, `countFunnelFilters` and `pruneAccountFilter` in `src/modules/transactions/screens/transactions/filter/filter.helpers.ts`; `buildAccountChips` in `src/modules/transactions/screens/transactions/transactions.helpers.ts`; `useTransactions` in `src/modules/transactions/screens/transactions/transactions.hook.ts`; `AccountChips` in `src/modules/transactions/screens/transactions/components/account_chips.tsx`
+- **Applies to:** `toggleAccountFilter`, `countFunnelFilters` and `pruneAccountFilter` in `src/modules/transactions/screens/transactions/filter/filter.helpers.ts`; `AccountChipModel` and `buildAccountChips` in `src/modules/transactions/screens/transactions/components/account_chips.helpers.ts`; `useTransactions` in `src/modules/transactions/screens/transactions/transactions.hook.ts`; `AccountChips` in `src/modules/transactions/screens/transactions/components/account_chips.tsx`
 
 A row of chips sits between the hero and the search field: All accounts first, then one chip per active account in list order. A chip is on when the applied account filter holds exactly its one account, and All accounts is on when it holds none.
 
