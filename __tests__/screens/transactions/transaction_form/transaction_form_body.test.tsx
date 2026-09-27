@@ -59,6 +59,13 @@ import {
   TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
   TransactionFormBody,
 } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
+import { makeTestAccount } from '@/test_helpers/transaction';
+
+const stripAccount = makeTestAccount({
+  id: 'account-1',
+  name: 'A very long account name that must not move the chevron',
+  type: AccountType.Bank,
+});
 
 const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   datePickerOwnerId: 'add:1',
@@ -70,7 +77,6 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   onSelectType: jest.fn(),
   setAmountStr: jest.fn(),
   selectedAccount: null,
-  onOpenAccountPicker: jest.fn(),
   selectedToAccount: null,
   onOpenToPicker: jest.fn(),
   selectedCategory: null,
@@ -111,7 +117,7 @@ describe('TransactionFormBody geometry', () => {
       'account-error-slot',
       'category-error-slot',
       'budget-error-slot',
-      'from-account-ring',
+      'account-strip-ring',
       'category-ring',
       'budget-ring',
     ]) {
@@ -132,6 +138,7 @@ describe('TransactionFormBody geometry', () => {
     await render(
       <TransactionFormBody
         {...baseProps}
+        fromAccounts={[stripAccount]}
         showBudgetField
         accountError="Account is required"
         categoryError="Category is required"
@@ -139,8 +146,13 @@ describe('TransactionFormBody geometry', () => {
       />,
     );
 
+    expect(screen.getByTestId('account-strip-ring')).toBeTruthy();
+    expect(screen.getByTestId('account-strip-chip-account-1')).toHaveProp(
+      'accessibilityHint',
+      'Account is required',
+    );
+    expect(screen.queryByText('Account is required')).toBeNull();
     for (const [row, ring, message] of [
-      ['from-account-row', 'from-account-ring', 'Account is required'],
       ['category-row', 'category-ring', 'Category is required'],
       ['budget-row', 'budget-ring', 'Pick a budget'],
     ]) {
@@ -197,67 +209,48 @@ describe('TransactionFormBody geometry', () => {
     expect(screen.queryByTestId('form-error-slot')).toBeNull();
   });
 
-  it('keeps long picker values in one truncating content column', async () => {
+  it('keeps a long account name on one line in its strip chip', async () => {
     await render(
       <TransactionFormBody
         {...baseProps}
-        selectedAccount={{
-          id: 'account-1',
-          name: 'A very long account name that must not move the chevron',
-          type: AccountType.Bank,
-          currency: Currency.EGP,
-          color: null,
-          opening_balance: 0,
-          current_balance: 0,
-          credit_limit: null,
-          revolving_balance: null,
-          minimum_payment: null,
-          statement_due_day: null,
-          interest_tracking: 0,
-          apr: null,
-          is_archived: 0,
-          balance_review_required: 0,
-          is_deleted: 0,
-          sort_order: 0,
-          created_at: '2026-07-21T00:00:00.000Z',
-          updated_at: '2026-07-21T00:00:00.000Z',
-        }}
+        fromAccounts={[stripAccount]}
+        selectedAccount={stripAccount}
+        selectedAccountId={stripAccount.id}
       />,
     );
 
-    expect(screen.getByText('A very long account name that must not move the chevron')).toHaveProp(
-      'numberOfLines',
-      1,
-    );
+    expect(
+      within(screen.getByTestId('account-strip-chip-account-1')).getByText(stripAccount.name),
+    ).toHaveProp('numberOfLines', 1);
   });
 
-  it('exposes stable picker-row semantics and delegates presses', async () => {
-    const onOpenAccountPicker = jest.fn();
+  it('exposes stable chip and picker-row semantics and delegates presses', async () => {
+    const onSelectAccount = jest.fn();
     const onOpenCategoryPicker = jest.fn();
     await render(
       <TransactionFormBody
         {...baseProps}
-        onOpenAccountPicker={onOpenAccountPicker}
+        fromAccounts={[stripAccount]}
+        selectedAccountId={stripAccount.id}
+        onSelectAccount={onSelectAccount}
         onOpenCategoryPicker={onOpenCategoryPicker}
       />,
     );
 
-    expect(screen.getByTestId('from-account-row')).toHaveProp('accessibilityRole', 'button');
-    expect(screen.getByTestId('from-account-row')).toHaveProp('accessibilityState', {
-      disabled: false,
-    });
-    await fireEvent.press(screen.getByTestId('from-account-row'));
+    const chip = screen.getByTestId('account-strip-chip-account-1');
+    expect(chip).toHaveProp('accessibilityRole', 'button');
+    expect(chip).toHaveProp('accessibilityState', expect.objectContaining({ selected: true }));
+    await fireEvent.press(chip);
     await fireEvent.press(screen.getByTestId('category-row'));
-    expect(onOpenAccountPicker).toHaveBeenCalledTimes(1);
+    expect(onSelectAccount).toHaveBeenCalledWith(stripAccount);
     expect(onOpenCategoryPicker).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('TransactionFormBody fact rows', () => {
-  it('draws the account and category pickers as fact rows with key and value', async () => {
+  it('draws the category picker as a fact row with key and value', async () => {
     await render(<TransactionFormBody {...baseProps} />);
 
-    expect(screen.getByTestId('from-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
     expect(screen.getByTestId('category-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
 
     const categoryRow = within(screen.getByTestId('category-row'));
@@ -282,6 +275,8 @@ describe('TransactionFormBody fact rows', () => {
     });
     await fireEvent.press(screen.getByTestId('to-account-row'));
     expect(onOpenToPicker).not.toHaveBeenCalled();
+    expect(screen.getByTestId('from-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    expect(screen.queryByTestId('account-strip')).toBeNull();
 
     await rerender(
       <TransactionFormBody
@@ -309,14 +304,16 @@ describe('TransactionFormBody fact rows', () => {
     expect(setNote).toHaveBeenCalledWith('Lunch with the team');
   });
 
-  it('holds the expense fact rows in one group card and leaves the From row outside it', async () => {
+  it('holds the expense fact rows in one group card and draws the strip outside it, with no From row', async () => {
     await render(<TransactionFormBody {...baseProps} />);
 
     const group = within(screen.getByTestId('transaction-form-fact-group'));
     expect(group.getByTestId('category-row')).toBeTruthy();
     expect(group.getByTestId('date-row')).toBeTruthy();
     expect(group.getByTestId('note-row')).toBeTruthy();
-    expect(group.queryByTestId('from-account-row')).toBeNull();
+    expect(screen.getByTestId('account-strip')).toBeTruthy();
+    expect(group.queryByTestId('account-strip')).toBeNull();
+    expect(screen.queryByTestId('from-account-row')).toBeNull();
   });
 
   it('holds the To row in the group card on a transfer', async () => {

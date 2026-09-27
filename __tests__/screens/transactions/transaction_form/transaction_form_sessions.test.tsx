@@ -311,7 +311,7 @@ describe('transaction form sessions', () => {
   it('mounts Add pickers closed so the first press can open an existing HeroUI sheet', async () => {
     const screen = await renderAdd({ formDataReady: true });
 
-    expect(screen.getAllByTestId('account-picker')).toHaveLength(2);
+    expect(screen.getAllByTestId('account-picker')).toHaveLength(1);
     expect(screen.getByTestId('category-picker')).toBeTruthy();
     expect(screen.getByTestId('budget-picker')).toBeTruthy();
   });
@@ -323,7 +323,7 @@ describe('transaction form sessions', () => {
     });
 
     expect(screen.getByTestId('transaction-form-body')).toBeTruthy();
-    expect(screen.getAllByTestId('account-picker')).toHaveLength(2);
+    expect(screen.getAllByTestId('account-picker')).toHaveLength(1);
     expect(screen.getByTestId('category-picker')).toBeTruthy();
   });
 
