@@ -3,9 +3,12 @@ import { Strings } from '@/constants/strings';
 import {
   advancedFiltersEqual,
   countActiveFilters,
+  countFunnelFilters,
   formatAppliedFilterSummary,
   labelAccountsById,
   parseAmountInput,
+  pruneAccountFilter,
+  toggleAccountFilter,
   validateAmountRange,
 } from '@/modules/transactions/screens/transactions/filter/filter.helpers';
 import {
@@ -143,6 +146,121 @@ describe('countActiveFilters', () => {
         amountMin: 100,
       }),
     ).toBe(3);
+  });
+});
+
+describe('countFunnelFilters', () => {
+  it('counts nothing with no filter applied', () => {
+    expect(countFunnelFilters(EMPTY_FILTERS)).toBe(0);
+  });
+
+  it('does not count one account, which the chip already shows', () => {
+    expect(countFunnelFilters({ ...EMPTY_FILTERS, accountIds: ['a1'] })).toBe(0);
+  });
+
+  it('counts two or more accounts as one', () => {
+    expect(countFunnelFilters({ ...EMPTY_FILTERS, accountIds: ['a1', 'a2'] })).toBe(1);
+    expect(countFunnelFilters({ ...EMPTY_FILTERS, accountIds: ['a1', 'a2', 'a3'] })).toBe(1);
+  });
+
+  it('counts the category and amount filters beside one account', () => {
+    expect(
+      countFunnelFilters({
+        ...EMPTY_FILTERS,
+        accountIds: ['a1'],
+        categoryIds: ['c1'],
+        amountMin: 100,
+      }),
+    ).toBe(2);
+  });
+
+  it('counts two accounts plus a category as two', () => {
+    expect(
+      countFunnelFilters({ ...EMPTY_FILTERS, accountIds: ['a1', 'a2'], categoryIds: ['c1'] }),
+    ).toBe(2);
+  });
+});
+
+describe('toggleAccountFilter', () => {
+  const others: Pick<
+    AdvancedFilters,
+    'categoryIds' | 'amountMin' | 'amountMax' | 'amountCurrency'
+  > = {
+    categoryIds: ['c1'],
+    amountMin: 100,
+    amountMax: 500,
+    amountCurrency: Currency.USD,
+  };
+
+  it('turns an account on from no account applied', () => {
+    expect(toggleAccountFilter({ ...EMPTY_FILTERS, ...others, accountIds: [] }, 'a1')).toEqual({
+      ...others,
+      accountIds: ['a1'],
+    });
+  });
+
+  it('clears the account when the on chip is tapped again', () => {
+    expect(toggleAccountFilter({ ...EMPTY_FILTERS, ...others, accountIds: ['a1'] }, 'a1')).toEqual({
+      ...others,
+      accountIds: [],
+    });
+  });
+
+  it('switches to another account with one applied', () => {
+    expect(toggleAccountFilter({ ...EMPTY_FILTERS, ...others, accountIds: ['a1'] }, 'a2')).toEqual({
+      ...others,
+      accountIds: ['a2'],
+    });
+  });
+
+  it('narrows two applied accounts to the tapped one', () => {
+    expect(
+      toggleAccountFilter({ ...EMPTY_FILTERS, ...others, accountIds: ['a1', 'a2'] }, 'a2'),
+    ).toEqual({ ...others, accountIds: ['a2'] });
+  });
+
+  it('clears two applied accounts when All accounts is tapped', () => {
+    expect(
+      toggleAccountFilter({ ...EMPTY_FILTERS, ...others, accountIds: ['a1', 'a2'] }, undefined),
+    ).toEqual({ ...others, accountIds: [] });
+  });
+
+  it('keeps no account applied when All accounts is tapped with none applied', () => {
+    expect(toggleAccountFilter({ ...EMPTY_FILTERS, ...others, accountIds: [] }, undefined)).toEqual(
+      { ...others, accountIds: [] },
+    );
+  });
+});
+
+describe('pruneAccountFilter', () => {
+  const wallet = makeTestAccount({ id: 'a1', name: 'Wallet' });
+  const cib = makeTestAccount({ id: 'a2', name: 'CIB' });
+
+  it('drops the only applied account once it is no longer active (archived)', () => {
+    const applied: AdvancedFilters = { ...EMPTY_FILTERS, accountIds: ['a3'], categoryIds: ['c1'] };
+    expect(pruneAccountFilter(applied, [wallet, cib])).toEqual({
+      ...applied,
+      accountIds: [],
+    });
+  });
+
+  it('keeps the other account when one of two applied is archived', () => {
+    const applied: AdvancedFilters = { ...EMPTY_FILTERS, accountIds: ['a1', 'a3'] };
+    expect(pruneAccountFilter(applied, [wallet, cib])).toEqual({
+      ...applied,
+      accountIds: ['a1'],
+    });
+  });
+
+  it('drops a deleted account id absent from the active list', () => {
+    const applied: AdvancedFilters = { ...EMPTY_FILTERS, accountIds: ['gone'], amountMin: 100 };
+    expect(pruneAccountFilter(applied, [])).toEqual({ ...applied, accountIds: [] });
+  });
+
+  it('returns the same filters object when nothing is dropped', () => {
+    const applied: AdvancedFilters = { ...EMPTY_FILTERS, accountIds: ['a1', 'a2'] };
+    expect(pruneAccountFilter(applied, [wallet, cib])).toBe(applied);
+    expect(pruneAccountFilter(EMPTY_FILTERS, [])).toBe(EMPTY_FILTERS);
   });
 });
 

@@ -79,6 +79,12 @@ jest.mock('@/modules/transactions/screens/transactions/components/search_row', (
     );
   },
 }));
+jest.mock('@/modules/transactions/screens/transactions/components/account_chips', () => ({
+  AccountChips: () => {
+    const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+    return <View testID="transactions-account-chips" />;
+  },
+}));
 jest.mock('@/modules/transactions/screens/transactions/components/transaction_row', () => ({
   TransactionRow: () => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -120,6 +126,7 @@ const baseTransactionsState: TransactionsScreenState = {
   accountsById: new Map(),
   categoriesById: new Map(),
   activeFilterCount: 0,
+  accountChips: [],
   appliedFilterSummary: '',
   totals: null,
   totalsStatus: 'initialLoading',
@@ -175,6 +182,7 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
     requestDelete: jest.fn(),
     confirmDelete: jest.fn(),
     cancelDelete: jest.fn(),
+    toggleAccountChip: jest.fn(),
   };
   mockedUseTransactions.mockReturnValue(hook);
   return hook;
