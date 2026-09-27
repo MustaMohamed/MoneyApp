@@ -11,6 +11,7 @@ import {
   resolveBudgetFieldError,
   resolveDestinationFloorError,
   resolveEligibleFromAccounts,
+  resolveEligibleToAccounts,
   resolveStripSelectedId,
   resolveTransactionDeleteError,
   resolveTransactionFormSemantics,
@@ -439,15 +440,34 @@ describe('MA-111 account strip resolvers', () => {
         accountId: '',
         eligible: [bank, usdBank],
       }),
-    ).toBe(bank);
+    ).toEqual({ done: true, account: bank });
   });
 
   it.each([
-    ['not ready', { ready: false, done: false, accountId: '', eligible: [bank, usdBank] }],
-    ['already done', { ready: true, done: true, accountId: '', eligible: [bank, usdBank] }],
-    ['seeded', { ready: true, done: false, accountId: 'usd-bank', eligible: [bank, usdBank] }],
-    ['an empty list', { ready: true, done: false, accountId: '', eligible: [] }],
-  ])('preselects nothing when %s', (_label, input) => {
-    expect(resolveAccountPreselect(input)).toBeUndefined();
+    ['not ready', { ready: false, done: false, accountId: '', eligible: [bank, usdBank] }, false],
+    ['already done', { ready: true, done: true, accountId: '', eligible: [bank, usdBank] }, true],
+    [
+      'seeded',
+      { ready: true, done: false, accountId: 'usd-bank', eligible: [bank, usdBank] },
+      true,
+    ],
+    ['an empty list', { ready: true, done: false, accountId: '', eligible: [] }, true],
+  ])('preselects nothing when %s', (_label, input, done) => {
+    expect(resolveAccountPreselect(input)).toEqual({ done, account: undefined });
   });
+
+  it('offers only the cards as a card payment destination', () => {
+    expect(resolveEligibleToAccounts(TransactionType.CCPayment, accounts)).toEqual([card, card2]);
+  });
+
+  it('offers no card as a transfer destination', () => {
+    expect(resolveEligibleToAccounts(TransactionType.Transfer, accounts)).toEqual([bank, usdBank]);
+  });
+
+  it.each([TransactionType.Expense, TransactionType.Income])(
+    '%s leaves the destination list unchanged',
+    (type) => {
+      expect(resolveEligibleToAccounts(type, accounts)).toBe(accounts);
+    },
+  );
 });

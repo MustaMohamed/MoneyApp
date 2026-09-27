@@ -29,6 +29,7 @@ import {
   resolveAccountPreselect,
   resolveDestinationFloorError,
   resolveEligibleFromAccounts,
+  resolveEligibleToAccounts,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
   resolveTransactionSaveError,
@@ -342,15 +343,7 @@ export function useAddTransaction(
     [accounts, type],
   );
 
-  const accountsForTo = useMemo(() => {
-    if (type === TransactionType.CCPayment) {
-      return accounts.filter((a) => a.type === AccountType.CreditCard);
-    }
-    if (type === TransactionType.Transfer) {
-      return accounts.filter((a) => a.type !== AccountType.CreditCard);
-    }
-    return accounts;
-  }, [accounts, type]);
+  const accountsForTo = useMemo(() => resolveEligibleToAccounts(type, accounts), [accounts, type]);
 
   const errors = {
     amount: form.formState.errors.amount?.message,
@@ -536,20 +529,14 @@ export function useAddTransaction(
   // Once per session, at the first ready state: a seeded account, or the first eligible one, settles it for good.
   const preselectDoneRef = useRef(false);
   useEffect(() => {
-    if (effectiveDataStatus !== 'ready') return;
-    if (accountId !== '') {
-      preselectDoneRef.current = true;
-      return;
-    }
-    const account = resolveAccountPreselect({
-      ready: true,
+    const { done, account } = resolveAccountPreselect({
+      ready: effectiveDataStatus === 'ready',
       done: preselectDoneRef.current,
       accountId,
       eligible: accountsForFrom,
     });
-    if (account === undefined) return;
-    preselectDoneRef.current = true;
-    selectAccount(account);
+    preselectDoneRef.current = done;
+    if (account !== undefined) selectAccount(account);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveDataStatus, accountId, accountsForFrom]);
 

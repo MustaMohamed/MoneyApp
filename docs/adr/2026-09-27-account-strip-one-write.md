@@ -17,7 +17,7 @@ A chip press and the preselect both call `selectAccount`, the function the picke
 
 ## 3. The preselect fires once per session
 
-At the first render where the form's data status is `ready`, a seeded `accountId` (the account detail's add path, through `openAdd`) settles the guard with no write. With no seeded account, `resolveAccountPreselect` returns the first eligible account, the guard is set, and `selectAccount` runs. The guard is a ref on the hook, so a later type switch cannot pass it; nothing re-preselects.
+`resolveAccountPreselect` takes the ready flag, the guard, the form's `accountId` and the eligible list, and returns `{ done, account }`: `done` turns true at the first ready pass whatever the outcome (a seeded `accountId` from the account detail's add path, a pick, or an empty eligible list), and `account` is the first eligible account only when there was no seeded one. The hook stores `done` in a ref and calls `selectAccount(account)` when `account` is defined. The guard is a ref on the hook, so a later type switch cannot pass it; nothing re-preselects.
 
 ## 4. A type switch that excludes the account keeps it
 

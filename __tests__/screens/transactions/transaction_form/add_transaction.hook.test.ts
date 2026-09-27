@@ -693,11 +693,18 @@ describe('useAddTransaction — MA-111 account strip preselect', () => {
 
     await rerender({ status: 'ready' });
     await waitFor(() => expect(result.current.state.accountId).toBe(mockAccountEGP.id));
+  });
 
-    await act(() => {
-      useAccountStore.setState({ accounts: [mockAccountUSD, mockAccountEGP, mockAccountCC] });
-    });
-    expect(result.current.state.accountId).toBe(mockAccountEGP.id);
+  it('settles the preselect at the first ready pass even when no account is eligible', async () => {
+    useAccountStore.setState({ accounts: [mockAccountCC] });
+    const { result, rerender } = await renderWithStatus('loading');
+    await act(() => result.current.setType(TransactionType.Transfer));
+
+    await rerender({ status: 'ready' });
+    expect(result.current.state.accountId).toBe('');
+
+    await act(() => result.current.setType(TransactionType.Expense));
+    expect(result.current.state.accountId).toBe('');
   });
 
   it('D5: a preselected USD tile switches the amount to USD and seeds the rate through selectAccount', async () => {

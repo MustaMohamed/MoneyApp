@@ -63,7 +63,7 @@ import { makeTestAccount } from '@/test_helpers/transaction';
 
 const stripAccount = makeTestAccount({
   id: 'account-1',
-  name: 'A very long account name that must not move the chevron',
+  name: 'A very long account name that must truncate to one line',
   type: AccountType.Bank,
 });
 
@@ -71,6 +71,9 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   datePickerOwnerId: 'add:1',
   formMode: 'add',
   locked: false,
+  fromAccounts: [],
+  selectedAccountId: '',
+  onSelectAccount: jest.fn(),
   type: TransactionType.Expense,
   typeLabel: 'Expense',
   typeSupportingText: 'Money spent',
@@ -256,6 +259,16 @@ describe('TransactionFormBody fact rows', () => {
     const categoryRow = within(screen.getByTestId('category-row'));
     expect(categoryRow.getByText('Category')).toBeTruthy();
     expect(categoryRow.getByText('Select Category')).toBeTruthy();
+  });
+
+  it('says why the strip is empty when the type leaves no eligible account', async () => {
+    await render(
+      <TransactionFormBody {...baseProps} type={TransactionType.Transfer} fromAccounts={[]} />,
+    );
+
+    expect(screen.getByTestId('account-strip-empty')).toHaveTextContent(
+      Strings.addTxErrTransferNoCc,
+    );
   });
 
   it('draws the To row as a fact row that stays locked on edit', async () => {

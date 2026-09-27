@@ -20,6 +20,7 @@ export const ACCOUNT_STRIP_GAP = Spacing.xs;
 export const ACCOUNT_STRIP_CHIP_RADIUS = Radius.md;
 export const ACCOUNT_STRIP_TILE = Size.dualTile;
 export const ACCOUNT_STRIP_CHIP_PADDING = { vertical: Spacing.xs, horizontal: Spacing.xxs };
+/** The canvas `.acct-strip .ac { gap: 6px }`; no theme token is 6. */
 export const ACCOUNT_STRIP_TILE_NAME_GAP = ms(6);
 export const ACCOUNT_STRIP_CHIP_MIN_HEIGHT =
   2 * ACCOUNT_STRIP_CHIP_PADDING.vertical +

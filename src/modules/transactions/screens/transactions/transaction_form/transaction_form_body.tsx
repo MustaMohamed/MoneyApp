@@ -34,10 +34,9 @@ import { TypeTabs } from './components/type_tabs';
 import { resolveBudgetFieldError, resolveStripSelectedId } from './transaction_form.helpers';
 import type { TransactionFormMode } from './transaction_form.types';
 
-interface Props {
+interface BaseProps {
   datePickerOwnerId: string;
   formMode: TransactionFormMode;
-  locked: boolean;
   type: TransactionType;
   typeLabel: string;
   typeSupportingText: string;
@@ -45,9 +44,6 @@ interface Props {
   setAmountStr: (v: string) => void;
   amountError?: string;
   selectedAccount: Account | null;
-  fromAccounts?: Account[];
-  selectedAccountId?: string;
-  onSelectAccount?: (account: Account) => void;
   accountError?: string;
   selectedToAccount: Account | null;
   onOpenToPicker: () => void;
@@ -76,6 +72,17 @@ interface Props {
   setNote: (v: string) => void;
   currency: Currency;
 }
+
+type Props = BaseProps &
+  (
+    | { locked: true }
+    | {
+        locked: false;
+        fromAccounts: Account[];
+        selectedAccountId: string;
+        onSelectAccount: (account: Account) => void;
+      }
+  );
 
 export const TRANSACTION_FORM_ERROR_SLOT_HEIGHT = ms(16);
 
@@ -117,9 +124,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     setAmountStr,
     amountError,
     selectedAccount,
-    fromAccounts = [],
-    selectedAccountId = '',
-    onSelectAccount,
     accountError,
     selectedToAccount,
     onOpenToPicker,
@@ -171,14 +175,21 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           {typeSupportingText}
         </Text>
       </View>
-      {!locked ? (
+      {!props.locked ? (
         <View className="border-separator border-b" style={{ paddingVertical: Spacing.xxs }}>
           <AccountStrip
-            accounts={fromAccounts}
-            selectedId={resolveStripSelectedId(fromAccounts, selectedAccountId)}
-            onSelect={(account) => onSelectAccount?.(account)}
+            accounts={props.fromAccounts}
+            selectedId={resolveStripSelectedId(props.fromAccounts, props.selectedAccountId)}
+            onSelect={props.onSelectAccount}
             caption={isTransferOrCC ? Strings.addTxFromLabel : undefined}
             error={accountError}
+            emptyText={
+              type === TransactionType.Transfer
+                ? Strings.addTxErrTransferNoCc
+                : type === TransactionType.CCPayment
+                  ? Strings.addTxErrCcPaymentSourceMustBeAsset
+                  : undefined
+            }
           />
         </View>
       ) : null}
@@ -204,7 +215,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             testID="from-account-row"
             disabled
             label={isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
-            accessibilityHint={accountError}
             value={
               selectedAccount ? resolveAccountName(selectedAccount) : Strings.addTxPickAccountTitle
             }
