@@ -261,6 +261,7 @@ function createEditHookState(
       availableBudgets: [],
       showBudgetField: false,
       rateUpdatedAt: null,
+      lockedStripChips: [],
       ...overrides,
     },
     setAmountStr: jest.fn(),

@@ -51,10 +51,15 @@ jest.mock(
 
 import { Size, Spacing } from '@/constants/theme';
 import {
+  ACCOUNT_STRIP_CHIP_HEIGHT,
+  ACCOUNT_STRIP_CHIP_RADIUS,
+  ACCOUNT_STRIP_CHIP_WIDTH,
+  ACCOUNT_STRIP_GAP,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
+import { resolveLockedStripChips } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import {
   TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
   TransactionFormBody,
@@ -271,13 +276,21 @@ describe('TransactionFormBody fact rows', () => {
     );
   });
 
-  it('draws the To row as a fact row that stays locked on edit', async () => {
+  it('draws the To row as a fact row that stays locked on edit, and the account as the locked strip', async () => {
     const onOpenToPicker = jest.fn();
+    const otherAccount = makeTestAccount({ id: 'account-2', type: AccountType.Bank });
+    const lockedChips = resolveLockedStripChips({
+      type: TransactionType.Transfer,
+      currentId: stripAccount.id,
+      current: stripAccount,
+      accounts: [stripAccount, otherAccount],
+    });
     const { rerender } = await render(
       <TransactionFormBody
         {...baseProps}
         type={TransactionType.Transfer}
         locked
+        lockedChips={lockedChips}
         onOpenToPicker={onOpenToPicker}
       />,
     );
@@ -288,8 +301,16 @@ describe('TransactionFormBody fact rows', () => {
     });
     await fireEvent.press(screen.getByTestId('to-account-row'));
     expect(onOpenToPicker).not.toHaveBeenCalled();
-    expect(screen.getByTestId('from-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
-    expect(screen.queryByTestId('account-strip')).toBeNull();
+    expect(screen.queryByTestId('from-account-row')).toBeNull();
+    expect(screen.getByTestId('account-strip')).toBeTruthy();
+    expect(screen.getByTestId('account-strip-chip-account-1')).toHaveProp(
+      'accessibilityState',
+      expect.objectContaining({ disabled: true }),
+    );
+    expect(screen.getByTestId('account-strip-chip-account-2')).toHaveProp(
+      'accessibilityState',
+      expect.objectContaining({ disabled: true }),
+    );
 
     await rerender(
       <TransactionFormBody
@@ -356,12 +377,22 @@ describe('TransactionFormBody fact rows', () => {
 });
 
 describe('TransactionFormLoading', () => {
-  it('draws the account bar and four fact rows at the loaded fact-row height', async () => {
+  it('draws the strip row of three chip-sized bars and four fact rows at the loaded fact-row height', async () => {
     await render(<TransactionFormLoading />);
 
-    expect(screen.getByTestId('transaction-form-skeleton-account-row')).toHaveStyle({
-      height: FACT_ROW_MIN_HEIGHT,
+    expect(screen.queryByTestId('transaction-form-skeleton-account-row')).toBeNull();
+    expect(screen.getByTestId('transaction-form-skeleton-strip')).toHaveStyle({
+      gap: ACCOUNT_STRIP_GAP,
     });
+    const bars = screen.getAllByTestId('transaction-form-skeleton-strip-bar');
+    expect(bars).toHaveLength(3);
+    for (const bar of bars) {
+      expect(bar).toHaveStyle({
+        width: ACCOUNT_STRIP_CHIP_WIDTH,
+        height: ACCOUNT_STRIP_CHIP_HEIGHT,
+        borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
+      });
+    }
     const factRows = screen.getAllByTestId('transaction-form-skeleton-fact-row');
     expect(factRows).toHaveLength(4);
     for (const row of factRows) {
@@ -369,12 +400,19 @@ describe('TransactionFormLoading', () => {
     }
   });
 
-  it('holds the four skeleton fact rows in one group card below the account bar', async () => {
+  it('holds the four skeleton fact rows in one group card and the strip bars outside the scroll', async () => {
     await render(<TransactionFormLoading />);
 
     const group = within(screen.getByTestId('transaction-form-skeleton-fact-group'));
     expect(group.getAllByTestId('transaction-form-skeleton-fact-row')).toHaveLength(4);
-    expect(group.queryByTestId('transaction-form-skeleton-account-row')).toBeNull();
+    const scroll = within(screen.getByTestId('transaction-form-skeleton-scroll'));
+    expect(scroll.queryByTestId('transaction-form-skeleton-strip')).toBeNull();
+    expect(scroll.queryAllByTestId('transaction-form-skeleton-strip-bar')).toHaveLength(0);
+    expect(
+      within(screen.getByTestId('transaction-form-skeleton-strip')).getAllByTestId(
+        'transaction-form-skeleton-strip-bar',
+      ),
+    ).toHaveLength(3);
   });
 
   it('scrolls the skeleton with the loaded body content style so its fourth row clears the footer', async () => {
