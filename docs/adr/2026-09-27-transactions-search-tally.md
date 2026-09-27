@@ -26,3 +26,7 @@ The hero title carries one applied account's name through `scopedAccountLabel` i
 ## 5. Another query's figures never print
 
 The store holds the last figures it loaded, tagged with their query key. The tally prints them only when that key is the query on screen, a rule `resolveSearchTallyFiguresMode` in `transactions.helpers.ts` decides from the totals status. While another query's load is pending the slot shows the skeleton, and when that load fails it reads `— results in <Month>` with no sum. A refresh of the same query, from a mutation, a focus reload or a pull, keeps its figures while it loads and after it fails. A first load and a first-load failure follow the hero's skeleton and dashes. Only the hero's skeleton disables the search field, so the field stays live while the tally shows its skeleton.
+
+## 6. An amount bound prints the value the filter applies
+
+The sheet accepts amount bounds with cents (`parseDecimalText`). A whole bound prints at `CURRENCY_CONFIG` decimals, EGP 0 and USD 2: `From 1,500 EGP`, `From 500.00 USD`. A bound with a fractional part prints at `MONEY_ROUNDING_DECIMALS`, the 2 dp `roundMoney` persists, so an Up to bound of 99.60 reads `Up to 99.60 EGP`, never `Up to 100 EGP` beside a 99.80 row the filter leaves out. `formatAmountSummary` picks one of the two named constants and passes it to `formatAmount`'s decimals parameter, as `.claude/rules/review.md` item 3 requires. The tally, the date header's context label and the filter sheet all print bounds through it.

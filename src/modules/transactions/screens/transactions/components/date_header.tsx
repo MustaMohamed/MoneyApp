@@ -22,7 +22,7 @@ export function DateHeader({ label, contextLabel }: Props): React.ReactElement {
         </Text>
         {contextLabel ? (
           <Text
-            className="font-inter-bold text-accent max-w-[55%] text-right"
+            className="font-inter-bold text-accent max-w-[55%]"
             style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
             numberOfLines={1}
           >

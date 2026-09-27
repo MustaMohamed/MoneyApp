@@ -1,17 +1,13 @@
 import { Skeleton, Typography } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 import { FLOW_CLASS, type SearchTallyModel } from '../transactions.helpers';
-
-const TALLY_LINE_HEIGHT = lineHeightFor(Type.micro);
-
-const SEARCH_TALLY_SLOT_HEIGHT = Spacing.xxs + TALLY_LINE_HEIGHT;
+import { resolveSearchTallyGeometry } from './transactions_text.geometry';
 
 const SLOT_STYLE = {
-  height: SEARCH_TALLY_SLOT_HEIGHT,
   paddingBottom: Spacing.xxs,
   flexDirection: 'row',
   alignItems: 'center',
@@ -25,7 +21,6 @@ const SUM_GROUP_STYLE = {
 } as const;
 const TEXT_STYLE = { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) } as const;
 const COUNT_LINE_STYLE = { ...TEXT_STYLE, flex: 1, minWidth: 0 } as const;
-const SKELETON_STYLE = { height: TALLY_LINE_HEIGHT } as const;
 
 function TallyLine({ model }: { model: SearchTallyModel }): React.ReactElement {
   return (
@@ -77,16 +72,17 @@ export const SearchTally = React.memo(function SearchTally({
 }: {
   model: SearchTallyModel;
 }): React.ReactElement {
+  const geometry = resolveSearchTallyGeometry(useWindowDimensions().fontScale);
   return (
     <View
       testID="transactions-search-tally"
       className="px-4"
-      style={SLOT_STYLE}
+      style={[SLOT_STYLE, { height: geometry.slotHeight }]}
       accessible={model.accessibilityLabel !== undefined}
       accessibilityLabel={model.accessibilityLabel}
     >
       {model.mode === 'skeleton' ? (
-        <Skeleton className="w-1/2 rounded-md" style={SKELETON_STYLE} />
+        <Skeleton className="w-1/2 rounded-md" style={{ height: geometry.lineHeight }} />
       ) : model.mode === 'empty' ? null : (
         <TallyLine model={model} />
       )}

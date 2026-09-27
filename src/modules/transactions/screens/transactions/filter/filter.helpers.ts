@@ -1,8 +1,9 @@
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { TransactionListFilters } from '@/modules/transactions/store/transaction.store';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatDisplayMagnitude } from '@/utils/format_amount';
+import { MONEY_ROUNDING_DECIMALS, formatAmount } from '@/utils/format_amount';
 import { parseDecimalText } from '@/utils/parse_decimal';
 
 import type { AdvancedFilters } from './filter.store';
@@ -100,7 +101,12 @@ export function formatSelectionSummary(names: string[], allLabel: string): strin
 
 export function formatAmountSummary(f: AdvancedFilters): string {
   const { amountMin, amountMax, amountCurrency: cur } = f;
-  const bound = (value: number) => formatDisplayMagnitude(value, cur).text;
+  // A fractional bound keeps its cents, so the summary never rounds past the bound the filter applies.
+  const bound = (value: number) =>
+    formatAmount(
+      value,
+      Number.isInteger(value) ? CURRENCY_CONFIG[cur].decimals : MONEY_ROUNDING_DECIMALS,
+    );
   if (amountMin === undefined) {
     return amountMax === undefined
       ? Strings.filterSummaryAmountEmpty

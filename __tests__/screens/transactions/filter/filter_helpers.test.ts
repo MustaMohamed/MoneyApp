@@ -154,6 +154,36 @@ describe('formatAppliedFilterSummary', () => {
       ),
     ).toBe('1,000–2,500 EGP');
   });
+
+  it('keeps the cents of a fractional bound, never rounding past it', () => {
+    expect(
+      formatAppliedFilterSummary(
+        { ...EMPTY_FILTERS, amountCurrency: Currency.EGP, amountMax: 99.6 },
+        accounts,
+        categories,
+      ),
+    ).toBe('Up to 99.60 EGP');
+  });
+
+  it('prints a whole USD bound at the currency decimals', () => {
+    expect(
+      formatAppliedFilterSummary(
+        { ...EMPTY_FILTERS, amountCurrency: Currency.USD, amountMin: 500 },
+        accounts,
+        categories,
+      ),
+    ).toBe('From 500.00 USD');
+  });
+
+  it('prints each bound of a range at its own precision', () => {
+    expect(
+      formatAppliedFilterSummary(
+        { ...EMPTY_FILTERS, amountCurrency: Currency.EGP, amountMin: 1_000, amountMax: 2_500.5 },
+        accounts,
+        categories,
+      ),
+    ).toBe('1,000–2,500.50 EGP');
+  });
 });
 
 describe('countActiveFilters', () => {

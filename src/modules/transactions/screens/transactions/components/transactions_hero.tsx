@@ -1,12 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Skeleton, Typography } from 'heroui-native';
 import React, { type ComponentProps } from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { withUniwind } from 'uniwind';
 
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Strings } from '@/constants/strings';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 import {
   type DeltaDirection,
@@ -15,15 +15,10 @@ import {
   type TransactionsHeroChange,
   type TransactionsHeroModel,
 } from '../transactions.helpers';
-
-// Each loaded row takes its text's line height, so the skeleton's bars match it to the dp.
-const TRANSACTIONS_HERO_GEOMETRY = {
-  header: lineHeightFor(Type.overline),
-  amount: lineHeightFor(Type.hero),
-  columns: lineHeightFor(Type.micro) + Spacing.xxxs + lineHeightFor(Type.body),
-  rail: Size.progressThin,
-  caption: lineHeightFor(Type.chip),
-} as const;
+import {
+  type TransactionsHeroGeometry,
+  resolveTransactionsHeroGeometry,
+} from './transactions_text.geometry';
 
 const HERO_ROW_GAP = Spacing.sm;
 export const HERO_SHELL_MARGIN_BOTTOM = Spacing.xs;
@@ -47,6 +42,13 @@ const HERO_BODY_STYLE = { gap: HERO_ROW_GAP } as const;
 
 type ColumnAlign = 'left' | 'center' | 'right';
 
+// Aligned by the column, not `textAlign`: Android draws a right-aligned ellipsised line past its box's leading edge.
+const COLUMN_ALIGN: Record<ColumnAlign, 'flex-start' | 'center' | 'flex-end'> = {
+  left: 'flex-start',
+  center: 'center',
+  right: 'flex-end',
+};
+
 function HeroColumn({
   label,
   value,
@@ -62,12 +64,12 @@ function HeroColumn({
     <View
       accessible
       accessibilityLabel={`${label} ${value}`}
-      style={{ flex: 1, gap: Spacing.xxxs }}
+      style={{ flex: 1, gap: Spacing.xxxs, alignItems: COLUMN_ALIGN[align] }}
     >
       <Typography
         numberOfLines={1}
         className="font-inter text-foreground/55"
-        style={{ textAlign: align, fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
       >
         {label}
       </Typography>
@@ -76,7 +78,7 @@ function HeroColumn({
         adjustsFontSizeToFit
         minimumFontScale={0.75}
         className={`font-sora-semibold tabular-nums ${valueClassName}`}
-        style={{ textAlign: align, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+        style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
       >
         {value}
       </Typography>
@@ -93,7 +95,7 @@ function LastMonthChange({ change }: { change: TransactionsHeroChange }): React.
     >
       <ChangeIcon
         name={CHANGE_ICON[change.direction]}
-        size={TRANSACTIONS_HERO_GEOMETRY.caption}
+        size={lineHeightFor(Type.chip)}
         className={CHANGE_CLASS[change.polarity]}
       />
       <Typography
@@ -107,38 +109,24 @@ function LastMonthChange({ change }: { change: TransactionsHeroChange }): React.
   );
 }
 
-function HeroSkeleton(): React.ReactElement {
+function HeroSkeleton({ geometry }: { geometry: TransactionsHeroGeometry }): React.ReactElement {
   return (
     <View testID="transactions-hero-skeleton" className="px-4 py-4" style={HERO_BODY_STYLE}>
-      <Skeleton
-        className="w-2/5 rounded-md"
-        style={{ height: TRANSACTIONS_HERO_GEOMETRY.header }}
-      />
-      <Skeleton
-        className="w-1/2 rounded-md"
-        style={{ height: TRANSACTIONS_HERO_GEOMETRY.amount }}
-      />
-      <Skeleton
-        className="w-full rounded-md"
-        style={{ height: TRANSACTIONS_HERO_GEOMETRY.columns }}
-      />
-      <Skeleton
-        className="w-full rounded-full"
-        style={{ height: TRANSACTIONS_HERO_GEOMETRY.rail }}
-      />
-      <Skeleton
-        className="w-3/5 rounded-md"
-        style={{ height: TRANSACTIONS_HERO_GEOMETRY.caption }}
-      />
+      <Skeleton className="w-2/5 rounded-md" style={{ height: geometry.header }} />
+      <Skeleton className="w-1/2 rounded-md" style={{ height: geometry.amount }} />
+      <Skeleton className="w-full rounded-md" style={{ height: geometry.columns }} />
+      <Skeleton className="w-full rounded-full" style={{ height: geometry.rail }} />
+      <Skeleton className="w-3/5 rounded-md" style={{ height: geometry.caption }} />
     </View>
   );
 }
 
 export function TransactionsHero({ model }: { model: TransactionsHeroModel }): React.ReactElement {
+  const geometry = resolveTransactionsHeroGeometry(useWindowDimensions().fontScale);
   if (model.mode === 'skeleton') {
     return (
       <HeroShell style={HERO_SHELL_STYLE}>
-        <HeroSkeleton />
+        <HeroSkeleton geometry={geometry} />
       </HeroShell>
     );
   }
@@ -151,7 +139,7 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
             flexDirection: 'row',
             alignItems: 'center',
             gap: Spacing.xs,
-            height: TRANSACTIONS_HERO_GEOMETRY.header,
+            height: geometry.header,
           }}
         >
           <Typography
@@ -182,7 +170,7 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
             flexDirection: 'row',
             alignItems: 'baseline',
             gap: Spacing.xs,
-            height: TRANSACTIONS_HERO_GEOMETRY.amount,
+            height: geometry.amount,
           }}
         >
           <Typography
@@ -208,7 +196,7 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
           style={{
             flexDirection: 'row',
             gap: Spacing.xs,
-            height: TRANSACTIONS_HERO_GEOMETRY.columns,
+            height: geometry.columns,
           }}
         >
           <HeroColumn
@@ -236,11 +224,11 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
           accessibilityLabel={model.railAccessibilityLabel}
           accessibilityValue={{ min: 0, max: 100, now: model.railPct }}
           className="bg-default/40 overflow-hidden rounded-full"
-          style={{ height: TRANSACTIONS_HERO_GEOMETRY.rail }}
+          style={{ height: geometry.rail }}
         >
           <View
             className={model.railDanger ? 'bg-danger rounded-full' : 'bg-success rounded-full'}
-            style={{ height: TRANSACTIONS_HERO_GEOMETRY.rail, width: `${model.railPct}%` }}
+            style={{ height: geometry.rail, width: `${model.railPct}%` }}
           />
         </View>
 
@@ -249,7 +237,7 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
             flexDirection: 'row',
             alignItems: 'center',
             gap: Spacing.xs,
-            height: TRANSACTIONS_HERO_GEOMETRY.caption,
+            height: geometry.caption,
           }}
         >
           <Typography

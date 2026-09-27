@@ -69,7 +69,7 @@ export function formatCurrencyTotals(totals: Map<Currency, number>): string {
 }
 
 // Mirrors `roundMoney`'s persisted 2dp (`src/utils/money.ts`), not any display precision.
-const MONEY_ROUNDING_DECIMALS = 2;
+export const MONEY_ROUNDING_DECIMALS = 2;
 
 // Matches a magnitude that prints as zero at the site's precision; input is always `Math.abs()`'d.
 // Not `SIGNED_ZERO` plus a character: different layer, different population. Do not fold the two.
