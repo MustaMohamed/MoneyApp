@@ -19,12 +19,13 @@
 
 ## Size gate
 
-One PR is a counted thing, and every step counts it the same way: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body with one sizer per leaf that counts from LSP references as the planner does, `/prep`'s planner and reviewer on the plan, `/ship` whenever scope is added after the plan. A task fits when both hold:
+One PR is a counted thing, and every step counts it the same way: `/tickets` on each candidate task before the split is shown, `/issue-review` on each body with one sizer per leaf that counts from LSP references as the planner does, `/prep`'s planner and reviewer on the plan, `/ship` whenever scope is added after the plan. A task fits when this holds:
 
-- at most 12 files outside `__tests__/` and generated code
 - at most ~400 changed lines outside tests; the implementer writes about 2.5 times that once tests are in (MA-039: 558 lines outside tests, 936 in tests)
 
-`/prep` adds a third, at most 8 plan steps.
+`/prep` adds a second, at most 8 plan steps.
+
+The number of files is not capped. A file changed only to follow a rename or a moved reference is in the list and adds its lines, and the lines are the gate.
 
 **The gate is hard.** No step waives it and no ruling does: not a reviewer, not the conductor, not the user in the session. More scope than the gate holds is another ticket. A plan past the gate is trimmed at a seam even when the extra lines were ruled in, and scope added at `/ship` (a ruling, a note that is another ticket's Acceptance, a ticket folded in) is recounted with the plan's figure; over the gate, the addition leaves the PR as its own ticket. The three PRs that went around the gate were the three costliest `/ship` runs of 71 merged 09-06 to 09-26: #422 planned at ~540, #575 at ~620 by ruling, #580 planned at ~265 and delivered at 866 lines after two tickets were folded in at review. Each cost 154M to 176M against ~86M from the size fit, and the three spawned 8 follow-up tickets.
 
@@ -39,7 +40,7 @@ The file list is built from the body, never taken from it. Every file Context na
 - a hook, state or session file changed by one line counts as a file
 - `Verify emulator` is `.claude/skills/emulator-verify/features/<screen>.md` and, when that file is new, the README index row
 
-Lines are estimated per file from what it looks like today, then summed. A count at the cap is over it: ten files and ~400 lines leave no room for what the planner finds with LSP, and MA-104 (#566) went from 10 to 14 files that way after passing review. The list is written into the task's Context as its last bullet:
+Lines are estimated per file from what it looks like today, then summed. A count at the cap is over it: ~400 lines leave no room for what the planner finds with LSP, and MA-104 (#566) went from 10 to 14 files that way after passing review. The list is written into the task's Context as its last bullet:
 
 ```
 - Size: <k> files outside tests, ~<n> lines, at <sha>: <the paths, comma separated>

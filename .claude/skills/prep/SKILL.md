@@ -59,12 +59,11 @@ The issue body is in the ticket standard: header line `Part of · Depends on · 
 
 5. **Review.** Dispatch one fresh reviewer, `subagent_type: general-purpose`: [references/reviewer-charter.md](references/reviewer-charter.md) verbatim, the issue body verbatim, the plan path, the worktree path. `findings` → re-dispatch the planner with the findings verbatim and the objective "revise the plan for exactly these findings", then a fresh reviewer. Cap two rounds; a finding the planner disputes goes to the user with both sides, and the ruling is applied by one more planner dispatch. Round count and verdicts go into the reply, not into the plan.
 
-6. **Size gate, then commit, push, board.** Conductor only. Before the commit, three counts over the plan file; any one over its line trims the ticket exactly as the planner's size gap does (step 4), whatever the reviewer or a ruling said; the planner is re-dispatched for the seam. The gate is hard ([splitting.md § Size gate](../tickets/references/splitting.md)); there is no override to ask for:
+6. **Size gate, then commit, push, board.** Conductor only. Before the commit, two counts over the plan file; either one over its line trims the ticket exactly as the planner's size gap does (step 4), whatever the reviewer or a ruling said; the planner is re-dispatched for the seam. The gate is hard ([splitting.md § Size gate](../tickets/references/splitting.md)); there is no override to ask for:
 
    ```bash
    P=<worktree>/.work/MA-XXX/plan.md
    grep -cE '^### [0-9]+\.' "$P"                                                         # steps, over 8 trims
-   grep -oE '^- File: `[^`]+`' "$P" | grep -v __tests__ | sort -u | wc -l                 # files outside tests, over 12 trims
    grep -oE 'expected diff: ~?[0-9]+' "$P" | head -1 | grep -oE '[0-9]+'                    # over 400 trims; no figure trims too
    ```
 
@@ -86,6 +85,6 @@ The issue body is in the ticket standard: header line `Part of · Depends on · 
 ## Rules
 
 - The plan is a file on the branch, nowhere else: not in an issue comment beyond the one-line pointer, not in this conversation, not on main.
-- A plan that names more than 12 files outside tests, more than 8 steps, more than ~400 changed lines outside tests and generated files, or serves more than one product outcome outside a § Floor bundle, is a gap ("sized past one PR"), not a plan, and no ruling makes it one; the definition is `.claude/skills/tickets/references/splitting.md` § Size gate, counted at `/tickets` and `/issue-review` before any ticket reaches here. `/tickets` is the only skill that cuts a ticket into children; a plan over the gate here is trimmed at one seam and the remainder is a sibling at Defined (step 4). The conductor checks the first three mechanically before the commit; the reviewer is not the last line. A trim names, in the comment, the files the ticket's `Size:` line missed, and each one is a miss at `/issue-review`.
+- A plan that names more than 8 steps, more than ~400 changed lines outside tests and generated files, or serves more than one product outcome outside a § Floor bundle, is a gap ("sized past one PR"), not a plan, and no ruling makes it one; the definition is `.claude/skills/tickets/references/splitting.md` § Size gate, counted at `/tickets` and `/issue-review` before any ticket reaches here. `/tickets` is the only skill that cuts a ticket into children; a plan over the gate here is trimmed at one seam and the remainder is a sibling at Defined (step 4). The conductor checks the first two mechanically before the commit; the reviewer is not the last line. A trim names, in the comment, the files the ticket's `Size:` line missed, and each one is a miss at `/issue-review`.
 - The planner names files and symbols it opened; a guessed path is a finding at review and a defect at delivery.
 - One planner, one reviewer per round. No panel; the ticket standard already bounds the size a panel was for.

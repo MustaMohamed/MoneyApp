@@ -67,7 +67,7 @@ size_of() {
 
 promote() {
   local parent=$1 items milestone children child_re extras candidates kind num state reason line deps dep dstate blocked status id gp size
-  local MAX_FILES=12 MAX_LINES=400
+  local MAX_LINES=400
   local total=0 open=0 completed=0 promoted=0 skipped=0 closed_cache=" " open_cache=" " US=$'\x1f'
 
   children=$(gh api "repos/$REPO/issues/$parent/sub_issues" --paginate \
@@ -136,8 +136,8 @@ promote() {
       MISSING) echo "#$num: no Size: line in Context, skipped; /issue-review $num writes it" >&2; skipped=$((skipped + 1)); continue ;;
       UNPARSED) echo "#$num: Size: line has no file or line figure, skipped" >&2; skipped=$((skipped + 1)); continue ;;
     esac
-    if [ "${size% *}" -gt "$MAX_FILES" ] || [ "${size#* }" -gt "$MAX_LINES" ]; then
-      echo "#$num: Size: ${size% *} files, ~${size#* } lines is over the gate ($MAX_FILES files, ~$MAX_LINES lines), skipped; /tickets $num cuts it" >&2
+    if [ "${size#* }" -gt "$MAX_LINES" ]; then
+      echo "#$num: Size: ${size% *} files, ~${size#* } lines is over the gate (~$MAX_LINES lines), skipped; /tickets $num cuts it" >&2
       skipped=$((skipped + 1)); continue
     fi
     if [ "$status" = "Blocked" ]; then
@@ -182,7 +182,7 @@ usage: bash scripts/board.sh <command> ...
   status <issue> <Status>      set the Status field; Status is the option name, quoted if it has spaces. "In Progress" carries to every parent not already there
   get <issue>                  print the issue's current Status name
   link <parent> <child>        make <child> a sub-issue of <parent>
-  promote <issue>              Defined leaves with a Reviewed date and a Size: line within the gate (12 files, ~400 lines), under a marked parent, every Depends on closed -> Ready For Development, and a Defined parent follows its first child there: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
+  promote <issue>              Defined leaves with a Reviewed date and a Size: line within the gate (~400 lines, any number of files), under a marked parent, every Depends on closed -> Ready For Development, and a Defined parent follows its first child there: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
   next-ma                      print the next MA-nnn (highest in any issue title, plus one)
   next [<issue>] [--json]      read-only: every open ticket with the command to run next, ranked, from board_next.mjs; no model, about five seconds
   serve [<port>]               the board page on http://127.0.0.1:<port> (default 4178): the ranked tickets, the dependency views, and Fix buttons that run status, promote and add after you confirm
