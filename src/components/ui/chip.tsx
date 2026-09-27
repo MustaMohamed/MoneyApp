@@ -1,13 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip, cn } from 'heroui-native';
 import React from 'react';
-import {
-  View,
-  type PressableProps,
-  type StyleProp,
-  type TextStyle,
-  type ViewStyle,
-} from 'react-native';
+import { type PressableProps, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
@@ -17,8 +11,7 @@ export interface SelectablePillProps {
   label: string;
   selected: boolean;
   onPress: () => void;
-  dotColor?: string;
-  /** Leading adornment; when provided it replaces the `dotColor` dot. */
+  /** Leading adornment, drawn before the label. */
   startIcon?: React.ReactNode;
   checkable?: boolean;
   /** Forwarded to HeroUI `Chip`'s RN `Pressable` as `disabled`, not HeroUI's `isDisabled`. */
@@ -34,7 +27,6 @@ export function SelectablePill({
   label,
   selected,
   onPress,
-  dotColor,
   startIcon,
   checkable = false,
   disabled = false,
@@ -43,7 +35,7 @@ export function SelectablePill({
   hitSlop,
   onLayout,
 }: SelectablePillProps): React.ReactElement {
-  const hasAdornment = dotColor !== undefined || startIcon !== undefined || checkable;
+  const hasAdornment = startIcon !== undefined || checkable;
   return (
     <Chip
       size="sm"
@@ -64,11 +56,7 @@ export function SelectablePill({
         selected ? 'border-accent/50 bg-accent/15' : 'border-border bg-default/40',
       )}
     >
-      {startIcon !== undefined ? (
-        startIcon
-      ) : dotColor !== undefined ? (
-        <View style={{ backgroundColor: dotColor }} className="h-2 w-2 rounded-full" />
-      ) : null}
+      {startIcon}
       <Chip.Label
         className={
           selected ? 'text-accent font-inter-semibold' : 'text-foreground/70 font-inter-medium'
