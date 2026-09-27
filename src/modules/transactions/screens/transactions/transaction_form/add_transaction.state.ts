@@ -4,11 +4,10 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import { completePickerClose, updateClosingPickers } from './picker_close_lifecycle.helpers';
 
-export type AddTransactionPicker = 'account' | 'toAccount' | 'category' | 'budget';
+export type AddTransactionPicker = 'toAccount' | 'category' | 'budget';
 
 interface AddTransactionStateShape {
   saving: boolean;
-  showAccountPicker: boolean;
   showToPicker: boolean;
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
@@ -22,7 +21,6 @@ interface AddTransactionStateShape {
 
 type AddTransactionState = AddTransactionStateShape & {
   setSaving: (v: boolean) => void;
-  setShowAccountPicker: (v: boolean) => void;
   setShowToPicker: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setShowBudgetPicker: (v: boolean) => void;
@@ -38,7 +36,6 @@ type AddTransactionState = AddTransactionStateShape & {
 
 const INITIAL_STATE: AddTransactionStateShape = {
   saving: false,
-  showAccountPicker: false,
   showToPicker: false,
   showCategoryPicker: false,
   showBudgetPicker: false,
@@ -54,16 +51,6 @@ export const useAddTransactionState = createMoneyAppSelectors(
   create<AddTransactionState>((set) => ({
     ...INITIAL_STATE,
     setSaving: (v) => set({ saving: v }),
-    setShowAccountPicker: (v) =>
-      set((state) => ({
-        showAccountPicker: v,
-        closingPickers: updateClosingPickers(
-          state.closingPickers,
-          'account',
-          state.showAccountPicker,
-          v,
-        ),
-      })),
     setShowToPicker: (v) =>
       set((state) => ({
         showToPicker: v,

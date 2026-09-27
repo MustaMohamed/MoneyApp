@@ -7,8 +7,12 @@ import {
 } from '@/modules/transactions/repositories/transaction.errors';
 import {
   countTransactionFormFieldErrors,
+  resolveAccountPreselect,
   resolveBudgetFieldError,
   resolveDestinationFloorError,
+  resolveEligibleFromAccounts,
+  resolveEligibleToAccounts,
+  resolveStripSelectedId,
   resolveTransactionDeleteError,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
@@ -387,4 +391,83 @@ describe('MA-105 footer status line', () => {
       resolveTransactionFormStatus({ errors: {}, saveError: resolveTransactionSaveError(error) }),
     ).toBe(line);
   });
+});
+
+describe('MA-111 account strip resolvers', () => {
+  const bank = makeTestAccount({ id: 'bank', name: 'Bank', type: AccountType.Bank });
+  const usdBank = makeTestAccount({
+    id: 'usd-bank',
+    name: 'USD Bank',
+    type: AccountType.Bank,
+    currency: Currency.USD,
+  });
+  const card = makeTestAccount({ id: 'card', name: 'Visa', type: AccountType.CreditCard });
+  const card2 = makeTestAccount({ id: 'card-2', name: 'Master', type: AccountType.CreditCard });
+  const accounts = [bank, card, usdBank, card2];
+
+  it.each([TransactionType.Expense, TransactionType.Income])(
+    '%s offers every account in list order',
+    (type) => {
+      expect(resolveEligibleFromAccounts(type, accounts)).toEqual([bank, card, usdBank, card2]);
+    },
+  );
+
+  it.each([TransactionType.Transfer, TransactionType.CCPayment])(
+    '%s drops the credit cards and keeps list order',
+    (type) => {
+      expect(resolveEligibleFromAccounts(type, accounts)).toEqual([bank, usdBank]);
+    },
+  );
+
+  it('rings the selected account when it is eligible', () => {
+    expect(resolveStripSelectedId([bank, usdBank], 'usd-bank')).toBe('usd-bank');
+  });
+
+  it('rings no tile for a card the Transfer list excludes', () => {
+    const eligible = resolveEligibleFromAccounts(TransactionType.Transfer, accounts);
+    expect(resolveStripSelectedId(eligible, 'card')).toBeUndefined();
+  });
+
+  it('rings no tile when no account is chosen', () => {
+    expect(resolveStripSelectedId([bank, usdBank], '')).toBeUndefined();
+  });
+
+  it('preselects the first eligible account at the first ready state', () => {
+    expect(
+      resolveAccountPreselect({
+        ready: true,
+        done: false,
+        accountId: '',
+        eligible: [bank, usdBank],
+      }),
+    ).toEqual({ done: true, account: bank });
+  });
+
+  it.each([
+    ['not ready', { ready: false, done: false, accountId: '', eligible: [bank, usdBank] }, false],
+    ['already done', { ready: true, done: true, accountId: '', eligible: [bank, usdBank] }, true],
+    [
+      'seeded',
+      { ready: true, done: false, accountId: 'usd-bank', eligible: [bank, usdBank] },
+      true,
+    ],
+    ['an empty list', { ready: true, done: false, accountId: '', eligible: [] }, true],
+  ])('preselects nothing when %s', (_label, input, done) => {
+    expect(resolveAccountPreselect(input)).toEqual({ done, account: undefined });
+  });
+
+  it('offers only the cards as a card payment destination', () => {
+    expect(resolveEligibleToAccounts(TransactionType.CCPayment, accounts)).toEqual([card, card2]);
+  });
+
+  it('offers no card as a transfer destination', () => {
+    expect(resolveEligibleToAccounts(TransactionType.Transfer, accounts)).toEqual([bank, usdBank]);
+  });
+
+  it.each([TransactionType.Expense, TransactionType.Income])(
+    '%s leaves the destination list unchanged',
+    (type) => {
+      expect(resolveEligibleToAccounts(type, accounts)).toBe(accounts);
+    },
+  );
 });

@@ -190,7 +190,6 @@ function createHookState(
       accountsForFrom: [],
       accountsForTo: [],
       visibleCategories: [],
-      showAccountPicker: false,
       showToPicker: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
@@ -207,7 +206,6 @@ function createHookState(
     setNote: jest.fn(),
     setExchangeRate: jest.fn(),
     toggleRateOverride: jest.fn(),
-    setShowAccountPicker: jest.fn(),
     setShowToPicker: jest.fn(),
     setShowCategoryPicker: jest.fn(),
     setShowBudgetPicker: jest.fn(),
@@ -313,7 +311,7 @@ describe('transaction form sessions', () => {
   it('mounts Add pickers closed so the first press can open an existing HeroUI sheet', async () => {
     const screen = await renderAdd({ formDataReady: true });
 
-    expect(screen.getAllByTestId('account-picker')).toHaveLength(2);
+    expect(screen.getAllByTestId('account-picker')).toHaveLength(1);
     expect(screen.getByTestId('category-picker')).toBeTruthy();
     expect(screen.getByTestId('budget-picker')).toBeTruthy();
   });
@@ -321,12 +319,11 @@ describe('transaction form sessions', () => {
   it('renders the ready Add form and keeps its nested pickers mounted', async () => {
     const screen = await renderAdd({
       formDataReady: true,
-      showAccountPicker: true,
       closingPickers: ['category'],
     });
 
     expect(screen.getByTestId('transaction-form-body')).toBeTruthy();
-    expect(screen.getAllByTestId('account-picker')).toHaveLength(2);
+    expect(screen.getAllByTestId('account-picker')).toHaveLength(1);
     expect(screen.getByTestId('category-picker')).toBeTruthy();
   });
 

@@ -59,7 +59,9 @@ export function AddTransactionSession(props: AddTransactionSessionProps): React.
           setAmountStr={hook.setAmountStr}
           amountError={hook.state.errors.amount}
           selectedAccount={hook.state.selectedAccount}
-          onOpenAccountPicker={() => hook.setShowAccountPicker(true)}
+          fromAccounts={hook.state.accountsForFrom}
+          selectedAccountId={hook.state.accountId}
+          onSelectAccount={hook.selectAccount}
           accountError={hook.state.errors.account}
           selectedToAccount={hook.state.selectedToAccount}
           onOpenToPicker={() => hook.setShowToPicker(true)}
@@ -93,17 +95,6 @@ export function AddTransactionSession(props: AddTransactionSessionProps): React.
         <TransactionFormLoading />
       )}
 
-      <AccountPickerSheet
-        isOpen={hook.state.showAccountPicker}
-        title={
-          hook.state.isTransferOrCC ? Strings.addTxPickFromTitle : Strings.addTxPickAccountTitle
-        }
-        accounts={hook.state.accountsForFrom}
-        selectedId={hook.state.accountId}
-        onSelect={hook.selectAccount}
-        onOpenChange={hook.setShowAccountPicker}
-        onCloseComplete={() => hook.completePickerClose('account')}
-      />
       <AccountPickerSheet
         isOpen={hook.state.showToPicker}
         title={Strings.addTxPickToTitle}

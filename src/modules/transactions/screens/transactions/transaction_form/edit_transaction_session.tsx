@@ -62,7 +62,6 @@ export function EditTransactionSession(props: EditTransactionSessionProps): Reac
           setAmountStr={hook.setAmountStr}
           amountError={hook.state.errors.amount}
           selectedAccount={hook.state.selectedAccount}
-          onOpenAccountPicker={() => {}}
           selectedToAccount={hook.state.selectedToAccount}
           onOpenToPicker={() => {}}
           selectedCategory={hook.state.selectedCategory}

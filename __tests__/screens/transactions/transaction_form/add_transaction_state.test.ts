@@ -6,7 +6,6 @@ describe('useAddTransactionState', () => {
   it('starts with only form-owned UI state', () => {
     expect(useAddTransactionState.getState()).toMatchObject({
       saving: false,
-      showAccountPicker: false,
       showToPicker: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
@@ -19,11 +18,15 @@ describe('useAddTransactionState', () => {
     });
   });
 
+  it('keeps no account picker flag once the strip replaces the row', () => {
+    expect(useAddTransactionState.getState()).not.toHaveProperty('showAccountPicker');
+    expect(useAddTransactionState.getState()).not.toHaveProperty('setShowAccountPicker');
+  });
+
   it('keeps picker flags independent', () => {
-    useAddTransactionState.getState().setShowAccountPicker(true);
+    useAddTransactionState.getState().setShowToPicker(true);
     expect(useAddTransactionState.getState()).toMatchObject({
-      showAccountPicker: true,
-      showToPicker: false,
+      showToPicker: true,
       showCategoryPicker: false,
       showBudgetPicker: false,
     });

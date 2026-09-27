@@ -26,7 +26,10 @@ import { useAddTransactionStore } from './add_transaction.store';
 import { resolveBudgetAssignment } from './budget_assignment.helpers';
 import {
   REFINE_DESPITE_FIELD_ERRORS,
+  resolveAccountPreselect,
   resolveDestinationFloorError,
+  resolveEligibleFromAccounts,
+  resolveEligibleToAccounts,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
   resolveTransactionSaveError,
@@ -224,7 +227,6 @@ export function useAddTransaction(
   const setBudgetId = useAddTransactionStore.getState().setBudgetId;
   const {
     saving,
-    showAccountPicker,
     showToPicker,
     showCategoryPicker,
     showBudgetPicker,
@@ -237,7 +239,6 @@ export function useAddTransaction(
   } = useAddTransactionState(
     useShallow((s) => ({
       saving: s.saving,
-      showAccountPicker: s.showAccountPicker,
       showToPicker: s.showToPicker,
       showCategoryPicker: s.showCategoryPicker,
       showBudgetPicker: s.showBudgetPicker,
@@ -250,7 +251,6 @@ export function useAddTransaction(
     })),
   );
   const setSaving = useAddTransactionState.getState().setSaving;
-  const setShowAccountPicker = useAddTransactionState.getState().setShowAccountPicker;
   const setShowToPicker = useAddTransactionState.getState().setShowToPicker;
   const setShowCategoryPicker = useAddTransactionState.getState().setShowCategoryPicker;
   const setShowBudgetPicker = useAddTransactionState.getState().setShowBudgetPicker;
@@ -338,22 +338,12 @@ export function useAddTransaction(
     [categories, semantics.categoryType],
   );
 
-  const accountsForFrom = useMemo(() => {
-    if (type === TransactionType.CCPayment || type === TransactionType.Transfer) {
-      return accounts.filter((a) => a.type !== AccountType.CreditCard);
-    }
-    return accounts;
-  }, [accounts, type]);
+  const accountsForFrom = useMemo(
+    () => resolveEligibleFromAccounts(type, accounts),
+    [accounts, type],
+  );
 
-  const accountsForTo = useMemo(() => {
-    if (type === TransactionType.CCPayment) {
-      return accounts.filter((a) => a.type === AccountType.CreditCard);
-    }
-    if (type === TransactionType.Transfer) {
-      return accounts.filter((a) => a.type !== AccountType.CreditCard);
-    }
-    return accounts;
-  }, [accounts, type]);
+  const accountsForTo = useMemo(() => resolveEligibleToAccounts(type, accounts), [accounts, type]);
 
   const errors = {
     amount: form.formState.errors.amount?.message,
@@ -534,8 +524,21 @@ export function useAddTransaction(
       form.setValue('exchangeRate', formatStoredMoneyText(rate));
       setRateOverride(false);
     }
-    setShowAccountPicker(false);
   }
+
+  // The first ready pass settles the preselect for the session, whatever it finds.
+  const preselectDoneRef = useRef(false);
+  useEffect(() => {
+    const { done, account } = resolveAccountPreselect({
+      ready: effectiveDataStatus === 'ready',
+      done: preselectDoneRef.current,
+      accountId,
+      eligible: accountsForFrom,
+    });
+    preselectDoneRef.current = done;
+    if (account !== undefined) selectAccount(account);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveDataStatus, accountId, accountsForFrom]);
 
   function selectToAccount(account: Account) {
     clearError();
@@ -597,7 +600,6 @@ export function useAddTransaction(
       accountsForFrom,
       accountsForTo,
       visibleCategories,
-      showAccountPicker,
       showToPicker,
       showCategoryPicker,
       showBudgetPicker,
@@ -633,7 +635,6 @@ export function useAddTransaction(
       form.setValue('exchangeRate', v);
     },
     toggleRateOverride,
-    setShowAccountPicker,
     setShowToPicker,
     setShowCategoryPicker,
     setShowBudgetPicker,

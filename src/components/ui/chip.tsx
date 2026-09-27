@@ -21,6 +21,16 @@ export interface SelectablePillProps {
   style?: StyleProp<ViewStyle>;
 }
 
+export const SELECTABLE_PILL_CONTAINER_CLASS = {
+  selected: 'border-accent/50 bg-accent/15',
+  unselected: 'border-border bg-default/40',
+} as const;
+
+export const SELECTABLE_PILL_LABEL_CLASS = {
+  selected: 'text-accent font-inter-semibold',
+  unselected: 'text-foreground/70 font-inter-medium',
+} as const;
+
 /** HeroUI `Chip` has no `selected` boolean, so this wrapper owns the gold-tint styling. */
 export function SelectablePill({
   label,
@@ -49,7 +59,9 @@ export function SelectablePill({
       className={cn(
         'rounded-full border',
         hasAdornment ? 'gap-1.5 px-2.5 py-1.5' : 'px-3 py-1',
-        selected ? 'border-accent/50 bg-accent/15' : 'border-border bg-default/40',
+        selected
+          ? SELECTABLE_PILL_CONTAINER_CLASS.selected
+          : SELECTABLE_PILL_CONTAINER_CLASS.unselected,
       )}
     >
       {startIcon !== undefined ? (
@@ -59,7 +71,7 @@ export function SelectablePill({
       ) : null}
       <Chip.Label
         className={
-          selected ? 'text-accent font-inter-semibold' : 'text-foreground/70 font-inter-medium'
+          selected ? SELECTABLE_PILL_LABEL_CLASS.selected : SELECTABLE_PILL_LABEL_CLASS.unselected
         }
         style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
       >
