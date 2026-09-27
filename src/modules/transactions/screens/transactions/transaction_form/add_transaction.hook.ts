@@ -526,7 +526,7 @@ export function useAddTransaction(
     }
   }
 
-  // Once per session, at the first ready state: a seeded account, or the first eligible one, settles it for good.
+  // The first ready pass settles the preselect for the session, whatever it finds.
   const preselectDoneRef = useRef(false);
   useEffect(() => {
     const { done, account } = resolveAccountPreselect({
