@@ -2,6 +2,7 @@ import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { TransactionListFilters } from '@/modules/transactions/store/transaction.store';
 import { resolveAccountName } from '@/utils/account_name';
+import { formatDisplayMagnitude } from '@/utils/format_amount';
 import { parseDecimalText } from '@/utils/parse_decimal';
 
 import type { AdvancedFilters } from './filter.store';
@@ -98,13 +99,16 @@ export function formatSelectionSummary(names: string[], allLabel: string): strin
 }
 
 export function formatAmountSummary(f: AdvancedFilters): string {
-  if (f.amountMin === undefined && f.amountMax === undefined)
-    return Strings.filterSummaryAmountEmpty;
-  const cur = f.amountCurrency;
-  if (f.amountMin !== undefined && f.amountMax !== undefined)
-    return `${f.amountMin}–${f.amountMax} ${cur}`;
-  if (f.amountMax !== undefined) return `${Strings.filterSummaryAmountUpTo} ${f.amountMax} ${cur}`;
-  return `${Strings.filterSummaryAmountFrom} ${f.amountMin} ${cur}`;
+  const { amountMin, amountMax, amountCurrency: cur } = f;
+  const bound = (value: number) => formatDisplayMagnitude(value, cur).text;
+  if (amountMin === undefined) {
+    return amountMax === undefined
+      ? Strings.filterSummaryAmountEmpty
+      : `${Strings.filterSummaryAmountUpTo} ${bound(amountMax)} ${cur}`;
+  }
+  if (amountMax === undefined)
+    return `${Strings.filterSummaryAmountFrom} ${bound(amountMin)} ${cur}`;
+  return `${bound(amountMin)}–${bound(amountMax)} ${cur}`;
 }
 
 type NamedEntity = { name: string };
@@ -147,11 +151,9 @@ export function formatAppliedFilterSummary(
   f: AdvancedFilters,
   accountsById: ReadonlyMap<string, NamedEntity>,
   categoriesById: ReadonlyMap<string, NamedEntity>,
-  options?: { omitSingleAccount?: boolean },
 ): string | null {
   const parts: string[] = [];
-  const omitAccounts = options?.omitSingleAccount === true && f.accountIds.length === 1;
-  const accountNames = omitAccounts ? [] : selectedNames(f.accountIds, accountsById);
+  const accountNames = selectedNames(f.accountIds, accountsById);
   const categoryNames = selectedNames(f.categoryIds, categoriesById);
 
   if (accountNames.length > 0) parts.push(formatSelectionSummary(accountNames, ''));

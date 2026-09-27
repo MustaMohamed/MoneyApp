@@ -1675,8 +1675,7 @@ describe('useTransactions search tally', () => {
       mode: 'figures',
       count: '2',
       label: 'results in July',
-      sum: '−2,100',
-      currencyCode: 'EGP',
+      sum: { text: '−2,100', currencyCode: 'EGP' },
       filterSummary: undefined,
     });
   });
@@ -1692,7 +1691,7 @@ describe('useTransactions search tally', () => {
       mode: 'figures',
       count: '3',
       label: 'results in July',
-      sum: '−450',
+      sum: { text: '−450' },
       filterSummary: undefined,
     });
     expect(result.current.state.appliedFilterSummary).toBe('Wallet');
@@ -1800,7 +1799,6 @@ describe('useTransactions search tally', () => {
       count: '—',
       label: 'results in July',
       sum: undefined,
-      currencyCode: undefined,
     });
     consoleSpy.mockRestore();
   });
@@ -1822,7 +1820,6 @@ describe('useTransactions search tally', () => {
       mode: 'failed',
       count: '—',
       sum: undefined,
-      currencyCode: undefined,
     });
     expect(result.current.state.hero.mode).toBe('figures');
     consoleSpy.mockRestore();
@@ -1849,8 +1846,94 @@ describe('useTransactions search tally', () => {
     expect(result.current.state.tally).toMatchObject({
       mode: 'figures',
       count: '2',
-      sum: '−2,100',
+      sum: { text: '−2,100' },
     });
     consoleSpy.mockRestore();
+  });
+
+  it('one account plus an amount floor reads the amount alone', async () => {
+    setupNamed();
+    serveMatches(() => [3, -450]);
+    applyBeforeMount({ accountIds: ['acc-1'], amountMin: 500 });
+
+    const { result } = await renderReady();
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'figures',
+      filterSummary: 'From 500 EGP',
+    });
+  });
+
+  it("reads the skeleton, never the month's count, while a search load is in flight", async () => {
+    setupNamed();
+    serveMatches(() => [45, -9_400]);
+    const { result } = await renderReady();
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    });
+    await waitFor(() =>
+      expect(mockGetMonthAggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ search: 'coffee' }),
+      ),
+    );
+
+    expect(useTransactionsScreenStore.getState().totals?.matchCount).toBe(45);
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'skeleton',
+      count: undefined,
+      sum: undefined,
+    });
+    expect(result.current.state.hero.mode).toBe('figures');
+    expect(result.current.state.searchDisabled).toBe(false);
+  });
+
+  it('reads the skeleton, never the held count, while a retry of a failed search load is in flight', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    setupNamed();
+    serveMatches(() => [45, -9_400]);
+    const { result } = await renderReady();
+    mockGetMonthAggregate.mockRejectedValueOnce(new Error('db down'));
+
+    await act(() => {
+      useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('refreshErrorWithData'));
+    expect(result.current.state.tally).toMatchObject({ mode: 'failed', count: '—' });
+
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+    await act(() => {
+      void result.current.retryTotals();
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).not.toBe('refreshErrorWithData'));
+
+    expect(useTransactionsScreenStore.getState().totals?.matchCount).toBe(45);
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'skeleton',
+      count: undefined,
+      sum: undefined,
+    });
+    consoleSpy.mockRestore();
+  });
+
+  it('keeps the held count while a refresh of the same query is in flight', async () => {
+    setupNamed();
+    serveMatches(() => [2, -2_100]);
+    useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    const { result } = await renderReady();
+    expect(result.current.state.tally).toMatchObject({ mode: 'figures', count: '2' });
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+
+    await act(() => {
+      void result.current.onRefresh();
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('refreshing'));
+
+    expect(result.current.state.tally).toMatchObject({
+      mode: 'figures',
+      count: '2',
+      sum: { text: '−2,100' },
+    });
   });
 });

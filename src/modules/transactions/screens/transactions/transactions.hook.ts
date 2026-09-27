@@ -40,6 +40,7 @@ import {
   buildTransactionsHeroModel,
   previousPeriod,
   resolvePeriod,
+  resolveSearchTallyFiguresMode,
   resolveTransactionsHeroMode,
   totalsScopeKey,
 } from './transactions.helpers';
@@ -479,30 +480,41 @@ export function useTransactions() {
   );
   const tallyFilterSummary = useMemo(
     () =>
-      formatAppliedFilterSummary(effectiveFilters, accountLabelsById, categoriesById, {
-        omitSingleAccount: true,
-      }),
-    [accountLabelsById, categoriesById, effectiveFilters],
+      formatAppliedFilterSummary(
+        scopedAccountLabel === undefined
+          ? effectiveFilters
+          : { ...effectiveFilters, accountIds: [] },
+        accountLabelsById,
+        categoriesById,
+      ) ?? undefined,
+    [accountLabelsById, categoriesById, effectiveFilters, scopedAccountLabel],
   );
-  // A failed load for this query must not print the count and sum another query left behind.
-  const tallyTotals =
-    displayTotalsStatus === 'refreshErrorWithData' && displayTotals?.queryKey !== activeQueryKey
-      ? null
-      : displayTotals;
   const tallyIsOn = transactionQuery.search !== undefined || hasAdvancedFilters;
-  const tallyMatchCount = tallyTotals?.matchCount ?? null;
-  const tallyMatchNetEgp = tallyTotals?.matchNetEgp ?? null;
+  const tallyFiguresMode = resolveSearchTallyFiguresMode(
+    heroMode,
+    displayTotalsStatus,
+    displayTotals?.queryKey === activeQueryKey,
+  );
+  const tallyMatchCount = displayTotals?.matchCount;
+  const tallyMatchNetEgp = displayTotals?.matchNetEgp;
   const tally = useMemo(
     () =>
       buildSearchTally({
         isOn: tallyIsOn,
-        figuresMode: heroMode,
+        figuresMode: tallyFiguresMode,
         matchCount: tallyMatchCount,
         matchNetEgp: tallyMatchNetEgp,
         yearMonth: period.yearMonth,
         filterSummary: tallyFilterSummary,
       }),
-    [heroMode, period.yearMonth, tallyFilterSummary, tallyIsOn, tallyMatchCount, tallyMatchNetEgp],
+    [
+      period.yearMonth,
+      tallyFiguresMode,
+      tallyFilterSummary,
+      tallyIsOn,
+      tallyMatchCount,
+      tallyMatchNetEgp,
+    ],
   );
   const presentation = buildTransactionsPresentation({
     listStatus,

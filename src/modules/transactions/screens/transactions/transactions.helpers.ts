@@ -26,6 +26,13 @@ export type TransactionPeriod = { type: 'month'; yearMonth: string };
 export type TotalsMetric = 'income' | 'expense' | 'net';
 
 export type PolaritySignal = 'good' | 'bad' | 'neutral';
+
+// Frame A1 and the money-colour ADR's decision 5: In in success, Net by sign and neutral at 0; both neutral on a dash.
+export const FLOW_CLASS: Record<PolaritySignal, string> = {
+  good: 'text-success',
+  bad: 'text-danger',
+  neutral: 'text-foreground',
+};
 export type DeltaDirection = 'up' | 'down' | 'flat';
 export type TotalsSummaryState = 'noIncome' | 'withinIncome' | 'overIncome' | 'netCredit';
 
@@ -379,69 +386,107 @@ export type SearchTallyMode = 'empty' | 'skeleton' | 'failed' | 'figures';
 export interface SearchTallyInput {
   isOn: boolean;
   figuresMode: TransactionsHeroMode;
-  matchCount: number | null;
-  matchNetEgp: number | null;
+  matchCount: number | undefined;
+  matchNetEgp: number | undefined;
   yearMonth: string;
-  filterSummary: string | null;
+  filterSummary: string | undefined;
 }
 
 export interface SearchTallyModel {
   mode: SearchTallyMode;
   count: string | undefined;
   label: string;
-  sum: string | undefined;
-  sumPolarity: PolaritySignal;
-  currencyCode: string | undefined;
   filterSummary: string | undefined;
+  sum: { text: string; polarity: PolaritySignal; currencyCode: string } | undefined;
+  accessibilityLabel: string | undefined;
 }
 
-const NO_TALLY_SUM = { sum: undefined, sumPolarity: 'neutral', currencyCode: undefined } as const;
+/** `holdsActiveQuery`: the held figures were loaded for the query on screen; another query's never print. */
+export function resolveSearchTallyFiguresMode(
+  heroMode: TransactionsHeroMode,
+  status: TransactionTotalsStatus,
+  holdsActiveQuery: boolean,
+): TransactionsHeroMode {
+  if (heroMode !== 'figures' || holdsActiveQuery) return heroMode;
+  switch (status) {
+    case 'refreshErrorWithData':
+    case 'firstLoadError':
+      return 'dashes';
+    case 'idle':
+    case 'initialLoading':
+    case 'ready':
+    case 'refreshing':
+      return 'skeleton';
+    default: {
+      const unhandled: never = status;
+      return unhandled;
+    }
+  }
+}
 
 const NO_TALLY_TEXT = {
-  ...NO_TALLY_SUM,
   count: undefined,
   label: '',
   filterSummary: undefined,
+  sum: undefined,
+  accessibilityLabel: undefined,
 } as const;
+
+function withAccessibilityLabel(
+  model: Omit<SearchTallyModel, 'accessibilityLabel'>,
+): SearchTallyModel {
+  const parts = [
+    model.count,
+    model.label,
+    model.filterSummary,
+    model.sum?.text,
+    model.sum?.currencyCode,
+  ];
+  return {
+    ...model,
+    accessibilityLabel: parts.filter((part): part is string => part !== undefined).join(' '),
+  };
+}
 
 export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
   if (!input.isOn) return { mode: 'empty', ...NO_TALLY_TEXT };
   if (input.figuresMode === 'skeleton') return { mode: 'skeleton', ...NO_TALLY_TEXT };
 
   const month = fullMonthName(input.yearMonth);
-  const filterSummary = input.filterSummary ?? undefined;
-  const { matchCount, matchNetEgp } = input;
+  const { matchCount, matchNetEgp, filterSummary } = input;
 
-  if (input.figuresMode === 'dashes' || matchCount === null || matchNetEgp === null) {
-    return {
+  if (input.figuresMode === 'dashes' || matchCount === undefined || matchNetEgp === undefined) {
+    return withAccessibilityLabel({
       mode: 'failed',
-      ...NO_TALLY_SUM,
       count: Strings.transactionsHeroUnavailable,
       label: Strings.transactionsTallyResults(month),
       filterSummary,
-    };
+      sum: undefined,
+    });
   }
   if (matchCount === 0) {
-    return {
+    return withAccessibilityLabel({
       mode: 'figures',
-      ...NO_TALLY_SUM,
       count: undefined,
       label: Strings.transactionsTallyNoResults(month),
       filterSummary,
-    };
+      sum: undefined,
+    });
   }
 
   const net = formatSignedNet(matchNetEgp);
-  return {
+  return withAccessibilityLabel({
     mode: 'figures',
     count: formatAmount(matchCount),
     label:
       matchCount === 1
         ? Strings.transactionsTallyOneResult(month)
         : Strings.transactionsTallyResults(month),
-    sum: net.text,
-    sumPolarity: net.polarity,
-    currencyCode: CURRENCY_CONFIG[HERO_CURRENCY].code,
     filterSummary,
-  };
+    sum: {
+      text: net.text,
+      polarity: net.polarity,
+      currencyCode: CURRENCY_CONFIG[HERO_CURRENCY].code,
+    },
+  });
 }

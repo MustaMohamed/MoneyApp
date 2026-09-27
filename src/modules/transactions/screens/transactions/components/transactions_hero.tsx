@@ -8,11 +8,12 @@ import { HeroShell } from '@/components/ui/hero_shell';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
-import type {
-  DeltaDirection,
-  PolaritySignal,
-  TransactionsHeroChange,
-  TransactionsHeroModel,
+import {
+  type DeltaDirection,
+  FLOW_CLASS,
+  type PolaritySignal,
+  type TransactionsHeroChange,
+  type TransactionsHeroModel,
 } from '../transactions.helpers';
 
 // Each loaded row takes its text's line height, so the skeleton's bars match it to the dp.
@@ -35,13 +36,6 @@ const CHANGE_ICON: Record<DeltaDirection, ComponentProps<typeof MaterialCommunit
   up: 'arrow-up',
   down: 'arrow-down',
   flat: 'arrow-right',
-};
-
-// Frame A1 and the money-colour ADR's decision 5: In in success, Net by sign and neutral at 0; both neutral on a dash.
-const FLOW_CLASS: Record<PolaritySignal, string> = {
-  good: 'text-success',
-  bad: 'text-danger',
-  neutral: 'text-foreground',
 };
 
 const CHANGE_CLASS: Record<PolaritySignal, string> = {
