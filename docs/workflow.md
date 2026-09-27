@@ -16,7 +16,7 @@ Every move, who makes it, and on what. Nothing else moves a row.
 |---|---|---|---|
 | none | Todo | `/epic`; `/tickets` for a child marked for its own breakdown; `board.sh status <n> Todo` for a task recorded by hand | issue created |
 | Todo | Defined | `/boundaries` at the lock; `/tickets` for each child it creates, `Reviewed none` on the header | body in the standard |
-| Defined | Ready For Development | `board.sh promote`, run by `/issue-review` on a pass and by the post-merge routine; never by hand | `Reviewed <date>` on the header and on the parent's, a `Size:` line in Context within 12 files and ~400 lines, every Depends on closed, no sub-issues |
+| Defined | Ready For Development | `board.sh promote`, run by `/issue-review` on a pass and by the post-merge routine; never by hand | `Reviewed <date>` on the header and on the parent's, a `Size:` line in Context within ~400 lines, any number of files, every Depends on closed, no sub-issues |
 | Defined epic, or a Defined leaf counted over the size gate | Defined, as a parent | `/tickets` after the cut | children created at Defined or Todo. A parent is reviewed and marked before its children, is never planned, and closes through its children |
 | Defined parent | Ready For Development | `board.sh promote`, when its first child gets there | the parent mirrors its children; nothing is pulled from it |
 | Ready For Development | Blocked | by hand, `board.sh status` | a Depends on names an open issue again; comment `Blocked on #m` |

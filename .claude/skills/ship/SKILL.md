@@ -122,7 +122,7 @@ Log entries are facts: SHAs, verdicts, counts, decisions, eight lines at most ea
 7. **The conductor never edits code**, including one-character fixes. The conductor's only commits are the rebase, the push of what the implementer committed, and the plan removal at phase 5.
 8. **Adjudicated findings stay adjudicated.** Triage closes a re-found item by citing the ledger; only new evidence reopens it. A fresh reviewer's confidence is not evidence.
 9. **Dispatch first, journal second.** Never leave an agent slot idle while writing `state.md` or PR text.
-10. **The size gate holds through delivery.** Scope added after the plan, by a ruling, a folded ticket or a note that is another ticket's Acceptance, is recounted with the plan's figure per `.claude/skills/tickets/references/splitting.md` § Size gate. Over ~400 planned lines, 12 files or 8 steps, the addition is its own ticket and never this PR, whoever asks.
+10. **The size gate holds through delivery.** Scope added after the plan, by a ruling, a folded ticket or a note that is another ticket's Acceptance, is recounted with the plan's figure per `.claude/skills/tickets/references/splitting.md` § Size gate. Over ~400 planned lines or 8 steps, the addition is its own ticket and never this PR, whoever asks.
 
 | Rationalization | Reality |
 |---|---|

@@ -219,7 +219,7 @@ function headerDeps(header) {
   return { has: true, deps, unparsed: deps.length === 0 };
 }
 
-const GATE = { files: 12, lines: 400 };
+const GATE = { lines: 400 };
 
 function bodySize(body) {
   const line = (body ?? '')
@@ -235,7 +235,7 @@ function bodySize(body) {
 }
 
 function overGate(size) {
-  return Boolean(size) && !size.unparsed && (size.files > GATE.files || size.lines > GATE.lines);
+  return Boolean(size) && !size.unparsed && size.lines > GATE.lines;
 }
 
 function sizeText(size) {
