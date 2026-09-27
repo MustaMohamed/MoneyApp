@@ -1,7 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip, cn } from 'heroui-native';
 import React from 'react';
-import { View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import {
+  View,
+  type PressableProps,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 
 import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
@@ -19,6 +25,7 @@ export interface SelectablePillProps {
   disabled?: boolean;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  hitSlop?: PressableProps['hitSlop'];
 }
 
 /** HeroUI `Chip` has no `selected` boolean, so this wrapper owns the gold-tint styling. */
@@ -32,6 +39,7 @@ export function SelectablePill({
   disabled = false,
   accessibilityLabel,
   style,
+  hitSlop,
 }: SelectablePillProps): React.ReactElement {
   const hasAdornment = dotColor !== undefined || startIcon !== undefined || checkable;
   return (
@@ -46,6 +54,7 @@ export function SelectablePill({
       accessibilityState={{ selected, disabled }}
       accessibilityLabel={accessibilityLabel ?? label}
       style={style}
+      hitSlop={hitSlop}
       className={cn(
         'rounded-full border',
         hasAdornment ? 'gap-1.5 px-2.5 py-1.5' : 'px-3 py-1',

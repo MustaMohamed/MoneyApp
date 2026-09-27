@@ -1,7 +1,10 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
+import { resolveAccountName } from '@/utils/account_name';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
@@ -367,4 +370,34 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
     shareCaption: heroShareCaption(share),
     lastMonthChange: resolveLastMonthChange(current.expenseEgp, input.previous, input.yearMonth),
   };
+}
+
+export interface AccountChipModel {
+  /** `undefined` is the All accounts chip. */
+  accountId: string | undefined;
+  label: string;
+  dotColor: string | undefined;
+  selected: boolean;
+}
+
+/** A chip is on only when the applied filter holds exactly its one account. */
+export function buildAccountChips(
+  accounts: readonly Account[],
+  accountIds: readonly string[],
+): AccountChipModel[] {
+  const onlyId = accountIds.length === 1 ? accountIds[0] : undefined;
+  return [
+    {
+      accountId: undefined,
+      label: Strings.filterAllAccounts,
+      dotColor: undefined,
+      selected: accountIds.length === 0,
+    },
+    ...accounts.map((account) => ({
+      accountId: account.id,
+      label: resolveAccountName(account),
+      dotColor: resolveAccountGlyphColor(account.color),
+      selected: account.id === onlyId,
+    })),
+  ];
 }
