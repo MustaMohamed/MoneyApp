@@ -1,29 +1,32 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Chip, cn } from 'heroui-native';
 import { View } from 'react-native';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
-import { SELECTABLE_PILL_CONTAINER_CLASS, SELECTABLE_PILL_LABEL_CLASS } from '@/components/ui/chip';
+import { SelectablePill } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
-import type { Account } from '@/modules/accounts/entities/account.entity';
-import { resolveAccountName } from '@/utils/account_name';
+import { CoreTokens } from '@/constants/theme_tokens';
 
+import type { AccountStripChip } from '../transaction_form.helpers';
 import { DangerRing } from './danger_ring';
 import {
-  ACCOUNT_STRIP_CHIP_MIN_HEIGHT,
-  ACCOUNT_STRIP_CHIP_PADDING,
+  ACCOUNT_STRIP_CHIP_HEIGHT,
+  ACCOUNT_STRIP_CHIP_PADDING_X,
   ACCOUNT_STRIP_CHIP_RADIUS,
+  ACCOUNT_STRIP_CHIP_SLOP_Y,
   ACCOUNT_STRIP_CHIP_WIDTH,
+  ACCOUNT_STRIP_DIMMED_OPACITY,
   ACCOUNT_STRIP_GAP,
+  ACCOUNT_STRIP_HIT_SLOP,
+  ACCOUNT_STRIP_INSET_X,
   ACCOUNT_STRIP_TILE,
   ACCOUNT_STRIP_TILE_NAME_GAP,
 } from './transaction_form_geometry';
 
 interface AccountStripProps {
-  accounts: Account[];
-  selectedId: string | undefined;
-  onSelect: (account: Account) => void;
+  chips: AccountStripChip[];
+  onSelect?: (id: string) => void;
   caption?: string;
   error?: string;
   /** Shown in place of the chips when the type leaves no eligible account. */
@@ -31,15 +34,14 @@ interface AccountStripProps {
 }
 
 export function AccountStrip({
-  accounts,
-  selectedId,
+  chips,
   onSelect,
   caption,
   error,
   emptyText,
 }: AccountStripProps): React.ReactElement {
   return (
-    <View testID="account-strip" style={{ marginHorizontal: Spacing.md }}>
+    <View testID="account-strip" style={{ marginHorizontal: ACCOUNT_STRIP_INSET_X }}>
       {caption !== undefined ? (
         <Text
           className="font-inter text-muted"
@@ -54,7 +56,7 @@ export function AccountStrip({
         </Text>
       ) : null}
       <View>
-        {accounts.length === 0 ? (
+        {chips.length === 0 ? (
           <Text
             testID="account-strip-empty"
             accessibilityHint={error}
@@ -73,60 +75,61 @@ export function AccountStrip({
             horizontal
             keyboardShouldPersistTaps="handled"
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: ACCOUNT_STRIP_GAP }}
+            contentContainerStyle={{
+              gap: ACCOUNT_STRIP_GAP,
+              paddingVertical: ACCOUNT_STRIP_CHIP_SLOP_Y,
+            }}
           >
-            {accounts.map((account) => {
-              const selected = account.id === selectedId;
-              const name = resolveAccountName(account);
-              return (
-                <Chip
-                  key={account.id}
-                  testID={`account-strip-chip-${account.id}`}
-                  size="sm"
-                  variant="secondary"
-                  color="default"
-                  animation="disable-all"
-                  onPress={() => onSelect(account)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={name}
-                  accessibilityHint={error}
-                  className={cn(
-                    'border',
-                    selected
-                      ? SELECTABLE_PILL_CONTAINER_CLASS.selected
-                      : SELECTABLE_PILL_CONTAINER_CLASS.unselected,
-                  )}
-                  style={{
-                    flexDirection: 'column',
-                    width: ACCOUNT_STRIP_CHIP_WIDTH,
-                    minHeight: ACCOUNT_STRIP_CHIP_MIN_HEIGHT,
-                    gap: ACCOUNT_STRIP_TILE_NAME_GAP,
-                    borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
-                    paddingVertical: ACCOUNT_STRIP_CHIP_PADDING.vertical,
-                    paddingHorizontal: ACCOUNT_STRIP_CHIP_PADDING.horizontal,
-                  }}
-                >
+            {chips.map((chip) => (
+              <SelectablePill
+                key={chip.id}
+                testID={`account-strip-chip-${chip.id}`}
+                label={chip.name}
+                selected={chip.selected}
+                onPress={() => onSelect?.(chip.id)}
+                disabled={chip.locked || chip.dimmed}
+                hitSlop={ACCOUNT_STRIP_HIT_SLOP}
+                accessibilityHint={error}
+                startIcon={
                   <AccountColorTile
-                    color={account.color}
-                    type={account.type}
+                    color={chip.tile.color}
+                    type={chip.tile.type}
                     size={ACCOUNT_STRIP_TILE}
                     glyphSize={Size.rowGlyph}
+                    hollow={chip.tile.hollow}
                   />
-                  <Chip.Label
-                    numberOfLines={1}
-                    className={
-                      selected
-                        ? SELECTABLE_PILL_LABEL_CLASS.selected
-                        : SELECTABLE_PILL_LABEL_CLASS.unselected
-                    }
-                    style={{ fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) }}
-                  >
-                    {name}
-                  </Chip.Label>
-                </Chip>
-              );
-            })}
+                }
+                endIcon={
+                  chip.locked ? (
+                    <MaterialCommunityIcons
+                      testID={`account-strip-lock-${chip.id}`}
+                      name="lock-outline"
+                      size={Size.iconMicro}
+                      color={CoreTokens.text2}
+                      style={{ marginLeft: 'auto' }}
+                    />
+                  ) : undefined
+                }
+                labelNumberOfLines={1}
+                labelStyle={{ flexShrink: 1, textAlign: 'left' }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  width: ACCOUNT_STRIP_CHIP_WIDTH,
+                  height: ACCOUNT_STRIP_CHIP_HEIGHT,
+                  gap: ACCOUNT_STRIP_TILE_NAME_GAP,
+                  borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
+                  paddingVertical: 0,
+                  paddingHorizontal: ACCOUNT_STRIP_CHIP_PADDING_X,
+                  // HeroUI's pressable root clips, and RNGH drops a hitSlop outside a clipping view on Android.
+                  overflow: 'visible',
+                  ...(chip.dimmed
+                    ? { opacity: ACCOUNT_STRIP_DIMMED_OPACITY, borderStyle: 'dashed' as const }
+                    : null),
+                }}
+              />
+            ))}
           </BottomSheetScrollView>
         )}
         {error !== undefined ? (

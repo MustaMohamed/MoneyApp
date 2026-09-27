@@ -27,9 +27,11 @@ import { resolveBudgetAssignment } from './budget_assignment.helpers';
 import {
   REFINE_DESPITE_FIELD_ERRORS,
   resolveAccountPreselect,
+  resolveAccountStripChips,
   resolveDestinationFloorError,
   resolveEligibleFromAccounts,
   resolveEligibleToAccounts,
+  resolveStripSelectedId,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
   resolveTransactionSaveError,
@@ -342,6 +344,11 @@ export function useAddTransaction(
     () => resolveEligibleFromAccounts(type, accounts),
     [accounts, type],
   );
+  const stripChips = useMemo(
+    () =>
+      resolveAccountStripChips(accountsForFrom, resolveStripSelectedId(accountsForFrom, accountId)),
+    [accountsForFrom, accountId],
+  );
 
   const accountsForTo = useMemo(() => resolveEligibleToAccounts(type, accounts), [accounts, type]);
 
@@ -526,6 +533,11 @@ export function useAddTransaction(
     }
   }
 
+  function selectAccountById(id: string) {
+    const account = accountsForFrom.find((candidate) => candidate.id === id);
+    if (account !== undefined) selectAccount(account);
+  }
+
   // The first ready pass settles the preselect for the session, whatever it finds.
   const preselectDoneRef = useRef(false);
   useEffect(() => {
@@ -598,6 +610,7 @@ export function useAddTransaction(
       accounts,
       hasAccounts: accounts.length > 0,
       accountsForFrom,
+      stripChips,
       accountsForTo,
       visibleCategories,
       showToPicker,
@@ -640,6 +653,7 @@ export function useAddTransaction(
     setShowBudgetPicker,
     completePickerClose,
     selectAccount,
+    selectAccountById,
     selectToAccount,
     selectCategory,
     selectBudget,

@@ -51,10 +51,18 @@ jest.mock(
 
 import { Size, Spacing } from '@/constants/theme';
 import {
+  ACCOUNT_STRIP_CHIP_HEIGHT,
+  ACCOUNT_STRIP_CHIP_RADIUS,
+  ACCOUNT_STRIP_CHIP_WIDTH,
+  ACCOUNT_STRIP_GAP,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
+import {
+  resolveAccountStripChips,
+  resolveLockedStripChips,
+} from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import {
   TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
   TransactionFormBody,
@@ -71,9 +79,8 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   datePickerOwnerId: 'add:1',
   formMode: 'add',
   locked: false,
-  fromAccounts: [],
-  selectedAccountId: '',
-  onSelectAccount: jest.fn(),
+  stripChips: [],
+  onSelectStripChip: jest.fn(),
   type: TransactionType.Expense,
   typeLabel: 'Expense',
   typeSupportingText: 'Money spent',
@@ -141,7 +148,7 @@ describe('TransactionFormBody geometry', () => {
     await render(
       <TransactionFormBody
         {...baseProps}
-        fromAccounts={[stripAccount]}
+        stripChips={resolveAccountStripChips([stripAccount], undefined)}
         showBudgetField
         accountError="Account is required"
         categoryError="Category is required"
@@ -216,9 +223,8 @@ describe('TransactionFormBody geometry', () => {
     await render(
       <TransactionFormBody
         {...baseProps}
-        fromAccounts={[stripAccount]}
+        stripChips={resolveAccountStripChips([stripAccount], stripAccount.id)}
         selectedAccount={stripAccount}
-        selectedAccountId={stripAccount.id}
       />,
     );
 
@@ -228,14 +234,13 @@ describe('TransactionFormBody geometry', () => {
   });
 
   it('exposes stable chip and picker-row semantics and delegates presses', async () => {
-    const onSelectAccount = jest.fn();
+    const onSelectStripChip = jest.fn();
     const onOpenCategoryPicker = jest.fn();
     await render(
       <TransactionFormBody
         {...baseProps}
-        fromAccounts={[stripAccount]}
-        selectedAccountId={stripAccount.id}
-        onSelectAccount={onSelectAccount}
+        stripChips={resolveAccountStripChips([stripAccount], stripAccount.id)}
+        onSelectStripChip={onSelectStripChip}
         onOpenCategoryPicker={onOpenCategoryPicker}
       />,
     );
@@ -245,7 +250,7 @@ describe('TransactionFormBody geometry', () => {
     expect(chip).toHaveProp('accessibilityState', expect.objectContaining({ selected: true }));
     await fireEvent.press(chip);
     await fireEvent.press(screen.getByTestId('category-row'));
-    expect(onSelectAccount).toHaveBeenCalledWith(stripAccount);
+    expect(onSelectStripChip).toHaveBeenCalledWith(stripAccount.id);
     expect(onOpenCategoryPicker).toHaveBeenCalledTimes(1);
   });
 });
@@ -263,7 +268,7 @@ describe('TransactionFormBody fact rows', () => {
 
   it('says why the strip is empty when the type leaves no eligible account', async () => {
     await render(
-      <TransactionFormBody {...baseProps} type={TransactionType.Transfer} fromAccounts={[]} />,
+      <TransactionFormBody {...baseProps} type={TransactionType.Transfer} stripChips={[]} />,
     );
 
     expect(screen.getByTestId('account-strip-empty')).toHaveTextContent(
@@ -271,13 +276,21 @@ describe('TransactionFormBody fact rows', () => {
     );
   });
 
-  it('draws the To row as a fact row that stays locked on edit', async () => {
+  it('draws the To row as a fact row that stays locked on edit, and the account as the locked strip', async () => {
     const onOpenToPicker = jest.fn();
+    const otherAccount = makeTestAccount({ id: 'account-2', type: AccountType.Bank });
+    const lockedChips = resolveLockedStripChips({
+      type: TransactionType.Transfer,
+      currentId: stripAccount.id,
+      current: stripAccount,
+      accounts: [stripAccount, otherAccount],
+    });
     const { rerender } = await render(
       <TransactionFormBody
         {...baseProps}
         type={TransactionType.Transfer}
         locked
+        lockedChips={lockedChips}
         onOpenToPicker={onOpenToPicker}
       />,
     );
@@ -288,8 +301,19 @@ describe('TransactionFormBody fact rows', () => {
     });
     await fireEvent.press(screen.getByTestId('to-account-row'));
     expect(onOpenToPicker).not.toHaveBeenCalled();
-    expect(screen.getByTestId('from-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
-    expect(screen.queryByTestId('account-strip')).toBeNull();
+    expect(screen.queryByTestId('from-account-row')).toBeNull();
+    expect(screen.getByTestId('account-strip')).toBeTruthy();
+    expect(
+      within(screen.getByTestId('account-strip')).getByText(Strings.addTxFromLabel),
+    ).toBeTruthy();
+    expect(screen.getByTestId('account-strip-chip-account-1')).toHaveProp(
+      'accessibilityState',
+      expect.objectContaining({ disabled: true }),
+    );
+    expect(screen.getByTestId('account-strip-chip-account-2')).toHaveProp(
+      'accessibilityState',
+      expect.objectContaining({ disabled: true }),
+    );
 
     await rerender(
       <TransactionFormBody
@@ -356,12 +380,22 @@ describe('TransactionFormBody fact rows', () => {
 });
 
 describe('TransactionFormLoading', () => {
-  it('draws the account bar and four fact rows at the loaded fact-row height', async () => {
+  it('draws the strip row of three chip-sized bars and four fact rows at the loaded fact-row height', async () => {
     await render(<TransactionFormLoading />);
 
-    expect(screen.getByTestId('transaction-form-skeleton-account-row')).toHaveStyle({
-      height: FACT_ROW_MIN_HEIGHT,
+    expect(screen.queryByTestId('transaction-form-skeleton-account-row')).toBeNull();
+    expect(screen.getByTestId('transaction-form-skeleton-strip')).toHaveStyle({
+      gap: ACCOUNT_STRIP_GAP,
     });
+    const bars = screen.getAllByTestId('transaction-form-skeleton-strip-bar');
+    expect(bars).toHaveLength(3);
+    for (const bar of bars) {
+      expect(bar).toHaveStyle({
+        width: ACCOUNT_STRIP_CHIP_WIDTH,
+        height: ACCOUNT_STRIP_CHIP_HEIGHT,
+        borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
+      });
+    }
     const factRows = screen.getAllByTestId('transaction-form-skeleton-fact-row');
     expect(factRows).toHaveLength(4);
     for (const row of factRows) {
@@ -369,12 +403,19 @@ describe('TransactionFormLoading', () => {
     }
   });
 
-  it('holds the four skeleton fact rows in one group card below the account bar', async () => {
+  it('holds the four skeleton fact rows in one group card and the strip bars outside the scroll', async () => {
     await render(<TransactionFormLoading />);
 
     const group = within(screen.getByTestId('transaction-form-skeleton-fact-group'));
     expect(group.getAllByTestId('transaction-form-skeleton-fact-row')).toHaveLength(4);
-    expect(group.queryByTestId('transaction-form-skeleton-account-row')).toBeNull();
+    const scroll = within(screen.getByTestId('transaction-form-skeleton-scroll'));
+    expect(scroll.queryByTestId('transaction-form-skeleton-strip')).toBeNull();
+    expect(scroll.queryAllByTestId('transaction-form-skeleton-strip-bar')).toHaveLength(0);
+    expect(
+      within(screen.getByTestId('transaction-form-skeleton-strip')).getAllByTestId(
+        'transaction-form-skeleton-strip-bar',
+      ),
+    ).toHaveLength(3);
   });
 
   it('scrolls the skeleton with the loaded body content style so its fourth row clears the footer', async () => {

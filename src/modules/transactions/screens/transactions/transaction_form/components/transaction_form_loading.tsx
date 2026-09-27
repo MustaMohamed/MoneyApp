@@ -8,10 +8,18 @@ import { Radius } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 import {
+  ACCOUNT_STRIP_CHIP_RADIUS,
+  ACCOUNT_STRIP_GAP,
+  ACCOUNT_STRIP_INSET_X,
+  ACCOUNT_STRIP_PADDING_Y,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
 } from './transaction_form_geometry';
 
+const STRIP_BARS = Array.from(
+  { length: TRANSACTION_FORM_SKELETON_GEOMETRY.stripBarCount },
+  (_, bar) => bar,
+);
 const FACT_ROWS = Array.from(
   { length: TRANSACTION_FORM_SKELETON_GEOMETRY.factRowCount },
   (_, row) => row,
@@ -32,8 +40,34 @@ export function TransactionFormLoading(): React.ReactElement {
             style={{ height: TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar, borderRadius: Radius.sm }}
           />
         </View>
-        <View className="border-separator min-h-8 justify-center border-b px-4 py-1.5">
+        <View className="min-h-8 justify-center px-4 py-1.5">
           <SkeletonGroup.Item className="h-3 w-2/3 rounded-md" />
+        </View>
+        <View
+          className="border-separator border-b"
+          style={{ paddingVertical: ACCOUNT_STRIP_PADDING_Y }}
+        >
+          <View
+            testID="transaction-form-skeleton-strip"
+            style={{
+              marginHorizontal: ACCOUNT_STRIP_INSET_X,
+              flexDirection: 'row',
+              gap: ACCOUNT_STRIP_GAP,
+              overflow: 'hidden',
+            }}
+          >
+            {STRIP_BARS.map((bar) => (
+              <SkeletonGroup.Item
+                key={bar}
+                testID="transaction-form-skeleton-strip-bar"
+                style={{
+                  ...TRANSACTION_FORM_SKELETON_GEOMETRY.stripBar,
+                  flexShrink: 0,
+                  borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
+                }}
+              />
+            ))}
+          </View>
         </View>
         <View
           className="border-separator items-center justify-center border-b py-4"
@@ -50,14 +84,6 @@ export function TransactionFormLoading(): React.ReactElement {
           contentContainerStyle={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}
           showsVerticalScrollIndicator={false}
         >
-          <SkeletonGroup.Item
-            testID="transaction-form-skeleton-account-row"
-            className="w-full"
-            style={{
-              height: TRANSACTION_FORM_SKELETON_GEOMETRY.accountRow,
-              borderRadius: Radius.sm,
-            }}
-          />
           <ListCard testID="transaction-form-skeleton-fact-group">
             {FACT_ROWS.map((row) => (
               <View

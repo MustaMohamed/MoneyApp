@@ -8,6 +8,10 @@ import {
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
 import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
+import {
+  type RowTile,
+  resolveRowTile,
+} from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { resolveAccountName } from '@/utils/account_name';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
@@ -94,6 +98,67 @@ export function resolveEligibleToAccounts(type: TransactionType, accounts: Accou
 
 export function resolveStripSelectedId(eligible: Account[], accountId: string): string | undefined {
   return eligible.some((account) => account.id === accountId) ? accountId : undefined;
+}
+
+export interface AccountStripChip {
+  id: string;
+  name: string;
+  tile: RowTile;
+  selected: boolean;
+  locked: boolean;
+  dimmed: boolean;
+}
+
+function toStripChip(
+  id: string,
+  account: Account | undefined,
+  state: Pick<AccountStripChip, 'selected' | 'locked' | 'dimmed'>,
+): AccountStripChip {
+  return { id, name: resolveAccountName(account), tile: resolveRowTile(account), ...state };
+}
+
+export function resolveAccountStripChips(
+  eligible: Account[],
+  selectedId: string | undefined,
+): AccountStripChip[] {
+  return eligible.map((account) =>
+    toStripChip(account.id, account, {
+      selected: account.id === selectedId,
+      locked: false,
+      dimmed: false,
+    }),
+  );
+}
+
+export function resolveLockedStripChips(input: {
+  type: TransactionType;
+  currentId: string;
+  current: Account | undefined;
+  accounts: Account[];
+}): AccountStripChip[] {
+  const { type, currentId, current, accounts } = input;
+  const others = resolveEligibleFromAccounts(type, accounts).filter(
+    (account) => account.id !== currentId,
+  );
+  return [
+    toStripChip(currentId, current, { selected: true, locked: true, dimmed: false }),
+    ...others.map((account) =>
+      toStripChip(account.id, account, { selected: false, locked: false, dimmed: true }),
+    ),
+  ];
+}
+
+/** A deleted To account, or a locked one that never resolved, draws the hollow tile, never the pick title. */
+export function resolveToRowFace(input: { locked: boolean; account: Account | undefined }): {
+  value: string;
+  tile: RowTile | undefined;
+} {
+  const { locked, account } = input;
+  if (account === undefined && !locked) {
+    return { value: Strings.addTxPickToTitle, tile: undefined };
+  }
+  const tile = resolveRowTile(account);
+  return { value: resolveAccountName(account), tile: tile.hollow ? tile : undefined };
 }
 
 export function resolveAccountPreselect(input: {

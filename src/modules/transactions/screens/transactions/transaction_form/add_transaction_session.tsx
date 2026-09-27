@@ -59,9 +59,8 @@ export function AddTransactionSession(props: AddTransactionSessionProps): React.
           setAmountStr={hook.setAmountStr}
           amountError={hook.state.errors.amount}
           selectedAccount={hook.state.selectedAccount}
-          fromAccounts={hook.state.accountsForFrom}
-          selectedAccountId={hook.state.accountId}
-          onSelectAccount={hook.selectAccount}
+          stripChips={hook.state.stripChips}
+          onSelectStripChip={hook.selectAccountById}
           accountError={hook.state.errors.account}
           selectedToAccount={hook.state.selectedToAccount}
           onOpenToPicker={() => hook.setShowToPicker(true)}

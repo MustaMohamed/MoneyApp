@@ -10,7 +10,6 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
-import { resolveStripSelectedId } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import type { TransactionFormPrerequisiteStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
 import {
@@ -682,9 +681,9 @@ describe('useAddTransaction — MA-111 account strip preselect', () => {
     await rerender({ status: 'ready' });
 
     expect(result.current.state.accountId).toBe(mockAccountUSD.id);
-    expect(
-      resolveStripSelectedId(result.current.state.accountsForFrom, result.current.state.accountId),
-    ).toBe(mockAccountUSD.id);
+    expect(result.current.state.stripChips.find((chip) => chip.selected)?.id).toBe(
+      mockAccountUSD.id,
+    );
   });
 
   it('waits for the ready state, then preselects once', async () => {
@@ -726,16 +725,14 @@ describe('useAddTransaction — MA-111 account strip preselect', () => {
   it('D6: a type switch that excludes the chosen card keeps it, rings no tile, and Save counts the account', async () => {
     const addTx = installMockAddTransaction();
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
-    await act(() => result.current.selectAccount(mockAccountCC));
+    await act(() => result.current.selectAccountById(mockAccountCC.id));
     await act(() => result.current.setAmountStr('5'));
 
     await act(() => result.current.setType(TransactionType.Transfer));
     await act(() => result.current.selectToAccount(mockAccountEGP));
 
     expect(result.current.state.accountId).toBe(mockAccountCC.id);
-    expect(
-      resolveStripSelectedId(result.current.state.accountsForFrom, result.current.state.accountId),
-    ).toBeUndefined();
+    expect(result.current.state.stripChips.find((chip) => chip.selected)).toBeUndefined();
 
     await act(async () => result.current.handleSave());
 
