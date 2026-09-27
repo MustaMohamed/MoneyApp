@@ -29,7 +29,7 @@ The store holds the last figures it loaded, tagged with their query key. The tal
 
 ## 6. An amount bound prints the value the filter applies
 
-The sheet accepts amount bounds with cents (`parseDecimalText`). A whole bound prints at `CURRENCY_CONFIG` decimals, EGP 0 and USD 2: `From 1,500 EGP`, `From 500.00 USD`. A bound with a fractional part prints at `MONEY_ROUNDING_DECIMALS`, the 2 dp `roundMoney` persists, so an Up to bound of 99.60 reads `Up to 99.60 EGP`, never `Up to 100 EGP` beside a 99.80 row the filter leaves out. `formatAmountSummary` picks one of the two named constants and passes it to `formatAmount`'s decimals parameter, as `.claude/rules/review.md` item 3 requires. The tally, the date header's context label and the filter sheet all print bounds through it.
+The sheet accepts amount bounds with cents (`parseDecimalText`). A whole bound prints at `CURRENCY_CONFIG` decimals, EGP 0 and USD 2: `From 1,500 EGP`, `From 500.00 USD`. A bound with a fractional part prints at `MONEY_ROUNDING_DECIMALS`, the 2 dp `roundMoney` persists, so an Up to bound of 99.60 reads `Up to 99.60 EGP`, never `Up to 100 EGP` beside a 99.80 row the filter leaves out. `formatAmountSummary` picks one of the two named constants and passes it to `formatAmount`'s decimals parameter, as `.claude/rules/review.md` item 3 requires. The tally, the date header's context label and the filter sheet all print bounds through it. The sheet refuses a bound with more than 2 decimals (`validateAmountRange`), so a printed bound is always the applied one.
 
 ## 7. Text the app scales itself, and the hero's cap
 

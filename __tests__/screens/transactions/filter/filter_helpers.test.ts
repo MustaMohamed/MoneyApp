@@ -350,6 +350,17 @@ describe('amount range validation', () => {
     expect(typeof validation.maxError).toBe('string');
   });
 
+  it('refuses a bound past two decimals, which no summary can print (MA-121)', () => {
+    const maxPast = validateAmountRange('', '99.996');
+    expect(maxPast.isValid).toBe(false);
+    expect(typeof maxPast.maxError).toBe('string');
+    const minPast = validateAmountRange('99.994', '');
+    expect(minPast.isValid).toBe(false);
+    expect(typeof minPast.minError).toBe('string');
+    expect(validateAmountRange('', '99.99')).toMatchObject({ isValid: true, max: 99.99 });
+    expect(validateAmountRange('1,000.5', '')).toMatchObject({ isValid: true, min: 1000.5 });
+  });
+
   it('rejects a minimum above the maximum', () => {
     const validation = validateAmountRange('500', '100');
     expect(validation).toMatchObject({

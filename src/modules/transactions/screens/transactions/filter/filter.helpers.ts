@@ -66,13 +66,24 @@ export interface AmountRangeValidation {
   rangeError: string | undefined;
 }
 
+// A bound past 2 dp would filter on a value the summary cannot print, so the sheet refuses it.
+function exceedsMoneyDecimals(text: string): boolean {
+  return (text.split('.')[1] ?? '').length > MONEY_ROUNDING_DECIMALS;
+}
+
 export function validateAmountRange(minText: string, maxText: string): AmountRangeValidation {
   const normalizedMin = minText.trim();
   const normalizedMax = maxText.trim();
   const min = parseAmountInput(normalizedMin);
   const max = parseAmountInput(normalizedMax);
-  const minError = normalizedMin && min === undefined ? Strings.filterAmountInvalid : undefined;
-  const maxError = normalizedMax && max === undefined ? Strings.filterAmountInvalid : undefined;
+  const minError =
+    normalizedMin && (min === undefined || exceedsMoneyDecimals(normalizedMin))
+      ? Strings.filterAmountInvalid
+      : undefined;
+  const maxError =
+    normalizedMax && (max === undefined || exceedsMoneyDecimals(normalizedMax))
+      ? Strings.filterAmountInvalid
+      : undefined;
   const rangeError =
     minError === undefined &&
     maxError === undefined &&
