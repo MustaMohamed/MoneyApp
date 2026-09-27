@@ -23,8 +23,8 @@ describe('SearchRow', () => {
     expect(typeof FILTER_BUTTON_COMPACT_STYLE.height).toBe('number');
     expect(typeof FILTER_BUTTON_COMPACT_STYLE.width).toBe('number');
     expect(typeof FILTER_BUTTON_COMPACT_STYLE.borderRadius).toBe('number');
-    expect(getByLabelText('Search transactions…')).toHaveProp('accessibilityRole', 'search');
-    expect(getByLabelText('Search transactions…')).toHaveProp('style', SEARCH_INPUT_COMPACT_STYLE);
+    expect(getByLabelText('Search transactions')).toHaveProp('accessibilityRole', 'search');
+    expect(getByLabelText('Search transactions')).toHaveProp('style', SEARCH_INPUT_COMPACT_STYLE);
     expect(getByLabelText('Filter')).toHaveProp('style', FILTER_BUTTON_COMPACT_STYLE);
   });
 
@@ -54,7 +54,7 @@ describe('SearchRow', () => {
       />,
     );
 
-    expect(active.getByLabelText('Search transactions…')).toHaveProp(
+    expect(active.getByLabelText('Search transactions')).toHaveProp(
       'style',
       SEARCH_INPUT_COMPACT_STYLE,
     );
@@ -72,7 +72,7 @@ describe('SearchRow', () => {
       />,
     );
 
-    await fireEvent.changeText(getByLabelText('Search transactions…'), 'rent');
+    await fireEvent.changeText(getByLabelText('Search transactions'), 'rent');
     expect(onChange).toHaveBeenCalledWith('rent');
 
     await fireEvent.press(getByLabelText('Clear search'));

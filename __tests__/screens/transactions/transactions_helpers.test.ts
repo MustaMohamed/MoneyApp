@@ -11,6 +11,8 @@ import {
   formatSignedAmount,
   expenseSharePct,
   deltaDisplay,
+  buildSearchTally,
+  type SearchTallyInput,
   type TransactionsHeroInput,
 } from '@/modules/transactions/screens/transactions/transactions.helpers';
 import type { TransactionTotalsStatus } from '@/modules/transactions/screens/transactions/transactions.state';
@@ -636,4 +638,127 @@ describe('share and Left of income in integer cents, multiplied before dividing'
     expect(totals.rawExpenseSharePct).toBe(104);
     expect(hero).toMatchObject({ leftOfIncome: '−3%', shareCaption: '104% of income spent' });
   });
+});
+
+describe('buildSearchTally', () => {
+  const DASH = '—';
+
+  function tally(overrides: Partial<SearchTallyInput> = {}) {
+    return buildSearchTally({
+      isOn: true,
+      figuresMode: 'figures',
+      matchCount: 2,
+      matchNetEgp: -2_100,
+      yearMonth: '2026-09',
+      filterSummary: null,
+      ...overrides,
+    });
+  }
+
+  it('reads 2 results in September with a U+2212 net and no summary (frame A3)', () => {
+    expect(tally()).toEqual({
+      mode: 'figures',
+      count: '2',
+      label: 'results in September',
+      sum: '−2,100',
+      sumPolarity: 'bad',
+      currencyCode: 'EGP',
+      filterSummary: undefined,
+    });
+  });
+
+  it('carries the applied-filter summary after the count and the sum', () => {
+    expect(tally({ filterSummary: 'Food' })).toMatchObject({
+      mode: 'figures',
+      count: '2',
+      label: 'results in September',
+      sum: '−2,100',
+      filterSummary: 'Food',
+    });
+  });
+
+  it('reads 1 result in September with its sum', () => {
+    expect(tally({ matchCount: 1, matchNetEgp: -350 })).toMatchObject({
+      mode: 'figures',
+      count: '1',
+      label: 'result in September',
+      sum: '−350',
+      sumPolarity: 'bad',
+      currencyCode: 'EGP',
+    });
+  });
+
+  it('reads No results in September with no count, no sum and no currency, the summary kept', () => {
+    expect(tally({ matchCount: 0, matchNetEgp: 0, filterSummary: 'Food' })).toMatchObject({
+      mode: 'figures',
+      count: undefined,
+      label: 'No results in September',
+      sum: undefined,
+      currencyCode: undefined,
+      filterSummary: 'Food',
+    });
+  });
+
+  it('signs a positive net with + and reads good', () => {
+    expect(tally({ matchNetEgp: 300 })).toMatchObject({
+      sum: '+300',
+      sumPolarity: 'good',
+      currencyCode: 'EGP',
+    });
+  });
+
+  it('prints a zero net unsigned and neutral', () => {
+    expect(tally({ matchNetEgp: 0 })).toMatchObject({
+      sum: '0',
+      sumPolarity: 'neutral',
+      currencyCode: 'EGP',
+    });
+  });
+
+  it('prints the EGP net at 0 dp', () => {
+    expect(tally({ matchNetEgp: -2_100.49 })).toMatchObject({ sum: '−2,100', sumPolarity: 'bad' });
+  });
+
+  it('groups a four-digit count', () => {
+    expect(tally({ matchCount: 1_240 })).toMatchObject({
+      count: '1,240',
+      label: 'results in September',
+    });
+  });
+
+  it('is a skeleton with no text while the month loads', () => {
+    expect(tally({ figuresMode: 'skeleton', filterSummary: 'Food' })).toMatchObject({
+      mode: 'skeleton',
+      count: undefined,
+      label: '',
+      sum: undefined,
+      currencyCode: undefined,
+      filterSummary: undefined,
+    });
+  });
+
+  it('reads — results in September with no sum when the figures failed, the summary kept', () => {
+    expect(tally({ figuresMode: 'dashes', filterSummary: 'Food' })).toMatchObject({
+      mode: 'failed',
+      count: DASH,
+      label: 'results in September',
+      sum: undefined,
+      currencyCode: undefined,
+      filterSummary: 'Food',
+    });
+  });
+
+  it.each<SearchTallyInput['figuresMode']>(['skeleton', 'dashes', 'figures'])(
+    'is an empty slot with nothing on while the figures are %s',
+    (figuresMode) => {
+      expect(tally({ isOn: false, figuresMode, filterSummary: 'Food' })).toMatchObject({
+        mode: 'empty',
+        count: undefined,
+        label: '',
+        sum: undefined,
+        currencyCode: undefined,
+        filterSummary: undefined,
+      });
+    },
+  );
 });

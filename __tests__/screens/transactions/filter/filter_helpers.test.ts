@@ -134,6 +134,67 @@ describe('formatAppliedFilterSummary', () => {
       formatAppliedFilterSummary({ ...EMPTY_FILTERS, accountIds: ['a1'] }, labels, categories),
     ).toBe(Strings.deletedAccount);
   });
+
+  describe('omitSingleAccount, for the search tally (MA-121)', () => {
+    const omit = { omitSingleAccount: true };
+
+    it('returns null for one account alone, which the hero title carries', () => {
+      expect(
+        formatAppliedFilterSummary(
+          { ...EMPTY_FILTERS, accountIds: ['a1'] },
+          accounts,
+          categories,
+          omit,
+        ),
+      ).toBeNull();
+    });
+
+    it('prints the category alone beside one account', () => {
+      expect(
+        formatAppliedFilterSummary(
+          { ...EMPTY_FILTERS, accountIds: ['a1'], categoryIds: ['c1'] },
+          accounts,
+          categories,
+          omit,
+        ),
+      ).toBe('Food');
+    });
+
+    it('prints the amount floor alone beside one account', () => {
+      expect(
+        formatAppliedFilterSummary(
+          { ...EMPTY_FILTERS, accountIds: ['a1'], amountCurrency: Currency.EGP, amountMin: 500 },
+          accounts,
+          categories,
+          omit,
+        ),
+      ).toBe('From 500 EGP');
+    });
+
+    it('names two accounts', () => {
+      expect(
+        formatAppliedFilterSummary(
+          { ...EMPTY_FILTERS, accountIds: ['a1', 'a2'] },
+          accounts,
+          categories,
+          omit,
+        ),
+      ).toBe('CIB, Wallet');
+    });
+
+    it('names three accounts through the selection summary', () => {
+      const threeAccounts = new Map([...accounts, ['a3', { name: 'Cash' }]]);
+
+      expect(
+        formatAppliedFilterSummary(
+          { ...EMPTY_FILTERS, accountIds: ['a1', 'a2', 'a3'] },
+          threeAccounts,
+          categories,
+          omit,
+        ),
+      ).toBe('CIB, Wallet +1');
+    });
+  });
 });
 
 describe('countActiveFilters', () => {
