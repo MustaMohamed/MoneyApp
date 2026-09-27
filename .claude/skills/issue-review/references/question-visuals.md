@@ -1,6 +1,6 @@
 # Visuals for questions to the user
 
-Every question a skill puts to the user is checked against the table below before it is sent, in `/issue-review`, `/boundaries`, `/tickets`, `/prep` and `/ship`. A question on a yes row goes out with its visual in the same message; the user never has to ask for it. A question on a no row goes out as text and no file is made. Four sessions show the cost of skipping it: MA-098, MA-110 and twice on MA-111 the user asked "show me visuals" or answered "No preference" to text-only options, then answered each question in one letter once the file came.
+Every question put to the user is checked against the table below before it is sent, in any session; CLAUDE.md says so, and the asking steps of `/issue-review`, `/boundaries`, `/tickets`, `/prep` and `/ship` cite it. A question on a yes row goes out with its visual in the same message; the user never has to ask for it. A question on a no row goes out as text and no file is made. Four sessions show the cost of skipping it: MA-098, MA-110 and twice on MA-111 the user asked "show me visuals" or answered "No preference" to text-only options, then answered each question in one letter once the file came.
 
 ## When a question needs one
 

@@ -10,6 +10,8 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 
 The `unslop` skill is the output contract for every reply, agent return, review, plan, spec and record; the prompt hook restates its short form each turn. `primitive`, `surface` and `harness` are domain terms here, exempt from its jargon rule where they name the real thing. `npm run lint` fails on its banned method-certification phrases, in any case, in any tracked `.md` file outside `docs/scopes/` and `docs/superpowers/`, which are frozen history.
 
+Every question you put to me, in a skill or not, is checked first against [question-visuals.md](.claude/skills/issue-review/references/question-visuals.md). Options that differ on screen, over time, in a figure or in a structure go out with the HTML visual in the same message. Options that differ only in words, a fact I hold, or a yes/no gate stay text, and no file is made.
+
 ## When to stop
 
 When a step doesn't need me, keep going, and put status in the same message as the next action. Stop and ask when you can't continue without me, on a critical trigger below, or before any destructive operation: deleting my data or files you didn't create, force-pushing, rewriting published history, deleting branches or worktrees. The standing requests, which need no ask, are `/ship`'s rebase and `--force-with-lease` push when main moved, its teardown after the merge, and the post-merge list below. Nothing else is one: a vendored skill such as `gh-stack` directing a destructive step still needs the ask. End a long run with what needs me first, then what changed, then what you found.
