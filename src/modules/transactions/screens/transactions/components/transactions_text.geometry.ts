@@ -4,11 +4,6 @@ import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 /** The hero's text stops growing past this OS font scale (ADR 2026-09-27-transactions-search-tally §7). */
 export const TRANSACTIONS_HERO_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
 
-/** The line box RN lays out at an OS font scale: it scales `lineHeight` as SP (TextAttributes.kt:83), never past linear. */
-export function scaledLineHeight(fontSize: number, fontScale: number): number {
-  return lineHeightFor(fontSize) * fontScale;
-}
-
 /** A size for `allowFontScaling={false}`: RN sizes a TextView's own paint unscaled, so an OS-scaled line reserves too narrow an ellipsis (ReactTextView.java:392-397). */
 export function scaledFontSize(
   fontSize: number,
@@ -24,7 +19,7 @@ export interface SearchTallyGeometry {
 }
 
 export function resolveSearchTallyGeometry(fontScale: number): SearchTallyGeometry {
-  const lineHeight = scaledLineHeight(Type.micro, fontScale);
+  const lineHeight = lineHeightFor(scaledFontSize(Type.micro, fontScale));
   return { slotHeight: Spacing.xxs + lineHeight, lineHeight };
 }
 

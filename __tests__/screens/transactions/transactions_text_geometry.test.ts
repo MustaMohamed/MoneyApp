@@ -4,18 +4,7 @@ import {
   resolveSearchTallyGeometry,
   resolveTransactionsHeroGeometry,
   scaledFontSize,
-  scaledLineHeight,
 } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
-
-describe('scaledLineHeight', () => {
-  it('is the theme line height at font scale 1.0', () => {
-    expect(scaledLineHeight(Type.micro, 1)).toBe(lineHeightFor(Type.micro));
-  });
-
-  it('doubles at font scale 2.0', () => {
-    expect(scaledLineHeight(Type.micro, 2)).toBe(lineHeightFor(Type.micro) * 2);
-  });
-});
 
 describe('scaledFontSize', () => {
   it('follows the font scale up to its cap', () => {
@@ -33,12 +22,16 @@ describe('resolveSearchTallyGeometry', () => {
     });
   });
 
-  it('grows the slot and the skeleton bar with the line at font scale 2.0', () => {
-    expect(resolveSearchTallyGeometry(2)).toEqual({
-      slotHeight: Spacing.xxs + lineHeightFor(Type.micro) * 2,
-      lineHeight: lineHeightFor(Type.micro) * 2,
-    });
-  });
+  it.each([1.3, 2])(
+    "sizes the line and the slot from the text's own scaled size at font scale %s",
+    (scale) => {
+      const lineHeight = lineHeightFor(scaledFontSize(Type.micro, scale));
+      expect(resolveSearchTallyGeometry(scale)).toEqual({
+        slotHeight: Spacing.xxs + lineHeight,
+        lineHeight,
+      });
+    },
+  );
 });
 
 describe('resolveTransactionsHeroGeometry', () => {
