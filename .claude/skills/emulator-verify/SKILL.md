@@ -224,12 +224,12 @@ $MQA wait 'label="Apply"'
 $MQA bounds 'label="Reset"' 'label="Apply"'
 $MQA shot footer_disabled --crop 'id="sheet-footer"' --out /tmp/render
 
-$MQA step "2 totals strip, one account"
-$MQA tap 'Accounts, All accounts'
-$MQA tap 'MA102 Alpha, account filter'
+$MQA step "2 totals strip, one category"
+$MQA tap 'Categories, All categories'
+$MQA tap 'Groceries, category filter'
 $MQA tap 'Apply (1)'
 $MQA wait '−2,100' 10000
-$MQA db "select sum(egp_amount) from transactions where account_id='ma102-alpha' and type='expense'"
+$MQA db "select sum(t.egp_amount) from transactions t join categories c on c.id = t.category_id where c.name = 'Groceries' and t.type = 'expense'"
 ```
 
 Then three Bash calls: `mqa up`, `mqa walk /tmp/walk.sh`, `mqa down`.
