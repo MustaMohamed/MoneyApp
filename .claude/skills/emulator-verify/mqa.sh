@@ -1045,7 +1045,8 @@ launch_ready() {
     a shell am force-stop "$PKG"
     if uses_ad; then
       ad open "$PKG" "$url" --platform android --serial "$S" >/dev/null
-      if ad wait "$ready" "$ready_ms" >/dev/null 2>&1; then break; fi
+      # A lost capture session on a loaded device fails the wait while a plain snapshot still reads the tab bar.
+      if ad wait "$ready" "$ready_ms" >/dev/null 2>&1 || { ! no_idle && ad_poll "$ready" "${MQA_READY_POLL_MS:-15000}"; }; then break; fi
     else
       a shell am start -a android.intent.action.VIEW -d "$url" >/dev/null
       if ua_poll "$ready" "$ready_ms"; then break; fi

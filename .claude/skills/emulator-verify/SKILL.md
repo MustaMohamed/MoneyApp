@@ -32,7 +32,7 @@ Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a
 
 | Verb | Does |
 |---|---|
-| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (stop and ask on REBUILD); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
+| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (stop and ask on REBUILD); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (plain snapshots for 15 s more when agent-device's wait loses its capture session; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
 | `down` | close the agent-device session so the system keyboard comes back; the claim and Metro stay for the next run |
 | `open <route\|url>` | deep link: `/transactions`, `/accounts`, or a full `moneyapp://` URL |
 | `read [scope]` · `ui` | what is on screen: `@ref`, kind, label and testID, with a row's own texts folded into it; with a scope (a testID or a label), every labelled node drawn inside that container, in dp |
