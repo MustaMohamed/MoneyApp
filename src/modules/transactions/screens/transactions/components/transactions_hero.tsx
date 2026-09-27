@@ -6,7 +6,7 @@ import { withUniwind } from 'uniwind';
 
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Strings } from '@/constants/strings';
-import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Spacing, lineHeightFor } from '@/constants/theme';
 
 import {
   type DeltaDirection,
@@ -54,11 +54,13 @@ function HeroColumn({
   value,
   align,
   valueClassName,
+  geometry,
 }: {
   label: string;
   value: string;
   align: ColumnAlign;
   valueClassName: string;
+  geometry: TransactionsHeroGeometry;
 }): React.ReactElement {
   return (
     <View
@@ -67,18 +69,20 @@ function HeroColumn({
       style={{ flex: 1, gap: Spacing.xxxs, alignItems: COLUMN_ALIGN[align] }}
     >
       <Typography
+        allowFontScaling={false}
         numberOfLines={1}
         className="font-inter text-foreground/55"
-        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+        style={{ fontSize: geometry.micro, lineHeight: lineHeightFor(geometry.micro) }}
       >
         {label}
       </Typography>
       <Typography
+        allowFontScaling={false}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.75}
         className={`font-sora-semibold tabular-nums ${valueClassName}`}
-        style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+        style={{ fontSize: geometry.body, lineHeight: lineHeightFor(geometry.body) }}
       >
         {value}
       </Typography>
@@ -86,7 +90,13 @@ function HeroColumn({
   );
 }
 
-function LastMonthChange({ change }: { change: TransactionsHeroChange }): React.ReactElement {
+function LastMonthChange({
+  change,
+  geometry,
+}: {
+  change: TransactionsHeroChange;
+  geometry: TransactionsHeroGeometry;
+}): React.ReactElement {
   return (
     <View
       accessible
@@ -95,13 +105,14 @@ function LastMonthChange({ change }: { change: TransactionsHeroChange }): React.
     >
       <ChangeIcon
         name={CHANGE_ICON[change.direction]}
-        size={lineHeightFor(Type.chip)}
+        size={geometry.caption}
         className={CHANGE_CLASS[change.polarity]}
       />
       <Typography
+        allowFontScaling={false}
         numberOfLines={1}
         className={`font-sora-bold tabular-nums ${CHANGE_CLASS[change.polarity]}`}
-        style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+        style={{ fontSize: geometry.chip, lineHeight: lineHeightFor(geometry.chip) }}
       >
         {change.label}
       </Typography>
@@ -143,20 +154,22 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
           }}
         >
           <Typography
+            allowFontScaling={false}
             numberOfLines={1}
             className="font-sora-semibold text-foreground/70"
             style={{
               flex: 1,
-              fontSize: Type.overline,
-              lineHeight: lineHeightFor(Type.overline),
+              fontSize: geometry.overline,
+              lineHeight: lineHeightFor(geometry.overline),
             }}
           >
             {model.title}
           </Typography>
           <Typography
+            allowFontScaling={false}
             numberOfLines={1}
             className="font-sora-semibold text-foreground/70"
-            style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+            style={{ fontSize: geometry.overline, lineHeight: lineHeightFor(geometry.overline) }}
           >
             {model.monthLabel}
           </Typography>
@@ -174,18 +187,24 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
           }}
         >
           <Typography
+            allowFontScaling={false}
             numberOfLines={1}
             className="font-sora-bold text-foreground tabular-nums"
-            style={{ flexShrink: 1, fontSize: Type.hero, lineHeight: lineHeightFor(Type.hero) }}
+            style={{
+              flexShrink: 1,
+              fontSize: geometry.hero,
+              lineHeight: lineHeightFor(geometry.hero),
+            }}
           >
             {model.out}
           </Typography>
           <Typography
+            allowFontScaling={false}
             className="font-sora-semibold text-foreground/70"
             style={{
               flexShrink: 0,
-              fontSize: Type.subhead,
-              lineHeight: lineHeightFor(Type.subhead),
+              fontSize: geometry.subhead,
+              lineHeight: lineHeightFor(geometry.subhead),
             }}
           >
             {model.currencyCode}
@@ -200,18 +219,21 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
           }}
         >
           <HeroColumn
+            geometry={geometry}
             label={Strings.transactionsHeroIn}
             value={model.in}
             align="left"
             valueClassName={FLOW_CLASS[model.inPolarity]}
           />
           <HeroColumn
+            geometry={geometry}
             label={Strings.transactionsHeroNet}
             value={model.net}
             align="center"
             valueClassName={FLOW_CLASS[model.netPolarity]}
           />
           <HeroColumn
+            geometry={geometry}
             label={Strings.transactionsHeroLeftOfIncome}
             value={model.leftOfIncome}
             align="right"
@@ -241,23 +263,29 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
           }}
         >
           <Typography
+            allowFontScaling={false}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.75}
             className="font-inter text-foreground/55"
-            style={{ flex: 1, fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+            style={{ flex: 1, fontSize: geometry.chip, lineHeight: lineHeightFor(geometry.chip) }}
           >
             {model.shareCaption ?? ''}
           </Typography>
           <Typography
+            allowFontScaling={false}
             numberOfLines={1}
             className="font-inter text-foreground/55"
-            style={{ flexShrink: 0, fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+            style={{
+              flexShrink: 0,
+              fontSize: geometry.chip,
+              lineHeight: lineHeightFor(geometry.chip),
+            }}
           >
             {model.caption}
           </Typography>
           {model.lastMonthChange !== undefined ? (
-            <LastMonthChange change={model.lastMonthChange} />
+            <LastMonthChange change={model.lastMonthChange} geometry={geometry} />
           ) : null}
         </View>
       </View>

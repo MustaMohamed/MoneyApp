@@ -1,7 +1,9 @@
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
+  TRANSACTIONS_HERO_MAX_FONT_SCALE,
   resolveSearchTallyGeometry,
   resolveTransactionsHeroGeometry,
+  scaledFontSize,
   scaledLineHeight,
 } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
 
@@ -12,6 +14,14 @@ describe('scaledLineHeight', () => {
 
   it('doubles at font scale 2.0', () => {
     expect(scaledLineHeight(Type.micro, 2)).toBe(lineHeightFor(Type.micro) * 2);
+  });
+});
+
+describe('scaledFontSize', () => {
+  it('follows the font scale up to its cap', () => {
+    expect(scaledFontSize(Type.overline, 1)).toBe(Type.overline);
+    expect(scaledFontSize(Type.overline, 2)).toBe(Type.overline * 2);
+    expect(scaledFontSize(Type.overline, 2, 1.3)).toBe(Type.overline * 1.3);
   });
 });
 
@@ -32,23 +42,39 @@ describe('resolveSearchTallyGeometry', () => {
 });
 
 describe('resolveTransactionsHeroGeometry', () => {
-  it("keeps today's rows at font scale 1.0", () => {
-    expect(resolveTransactionsHeroGeometry(1)).toEqual({
+  function heroAt(scale: number) {
+    const size = (fontSize: number) => fontSize * scale;
+    return {
+      overline: size(Type.overline),
+      hero: size(Type.hero),
+      subhead: size(Type.subhead),
+      micro: size(Type.micro),
+      body: size(Type.body),
+      chip: size(Type.chip),
+      header: lineHeightFor(size(Type.overline)),
+      amount: lineHeightFor(size(Type.hero)),
+      columns: lineHeightFor(size(Type.micro)) + Spacing.xxxs + lineHeightFor(size(Type.body)),
+      rail: Size.progressThin,
+      caption: lineHeightFor(size(Type.chip)),
+    };
+  }
+
+  it("keeps today's sizes and rows at font scale 1.0", () => {
+    expect(resolveTransactionsHeroGeometry(1)).toEqual(heroAt(1));
+    expect(resolveTransactionsHeroGeometry(1)).toMatchObject({
       header: lineHeightFor(Type.overline),
       amount: lineHeightFor(Type.hero),
       columns: lineHeightFor(Type.micro) + Spacing.xxxs + lineHeightFor(Type.body),
-      rail: Size.progressThin,
       caption: lineHeightFor(Type.chip),
     });
   });
 
-  it('doubles every text row at font scale 2.0 and keeps the rail', () => {
-    expect(resolveTransactionsHeroGeometry(2)).toEqual({
-      header: lineHeightFor(Type.overline) * 2,
-      amount: lineHeightFor(Type.hero) * 2,
-      columns: lineHeightFor(Type.micro) * 2 + Spacing.xxxs + lineHeightFor(Type.body) * 2,
-      rail: Size.progressThin,
-      caption: lineHeightFor(Type.chip) * 2,
-    });
+  it('scales every size and row at the cap, 1.3', () => {
+    expect(TRANSACTIONS_HERO_MAX_FONT_SCALE).toBe(1.3);
+    expect(resolveTransactionsHeroGeometry(1.3)).toEqual(heroAt(1.3));
+  });
+
+  it('returns the capped values at font scale 2.0', () => {
+    expect(resolveTransactionsHeroGeometry(2)).toEqual(heroAt(TRANSACTIONS_HERO_MAX_FONT_SCALE));
   });
 });
