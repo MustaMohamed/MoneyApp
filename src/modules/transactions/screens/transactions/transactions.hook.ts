@@ -36,6 +36,7 @@ import {
 import { useFilterState } from './filter/filter.state';
 import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
 import {
+  buildSearchTally,
   buildTransactionsHeroModel,
   previousPeriod,
   resolvePeriod,
@@ -476,6 +477,33 @@ export function useTransactions() {
       }),
     [heroCurrent, heroMode, heroPrevious, period.yearMonth, scopedAccountLabel, today],
   );
+  const tallyFilterSummary = useMemo(
+    () =>
+      formatAppliedFilterSummary(effectiveFilters, accountLabelsById, categoriesById, {
+        omitSingleAccount: true,
+      }),
+    [accountLabelsById, categoriesById, effectiveFilters],
+  );
+  // A failed load for this query must not print the count and sum another query left behind.
+  const tallyTotals =
+    displayTotalsStatus === 'refreshErrorWithData' && displayTotals?.queryKey !== activeQueryKey
+      ? null
+      : displayTotals;
+  const tallyIsOn = transactionQuery.search !== undefined || hasAdvancedFilters;
+  const tallyMatchCount = tallyTotals?.matchCount ?? null;
+  const tallyMatchNetEgp = tallyTotals?.matchNetEgp ?? null;
+  const tally = useMemo(
+    () =>
+      buildSearchTally({
+        isOn: tallyIsOn,
+        figuresMode: heroMode,
+        matchCount: tallyMatchCount,
+        matchNetEgp: tallyMatchNetEgp,
+        yearMonth: period.yearMonth,
+        filterSummary: tallyFilterSummary,
+      }),
+    [heroMode, period.yearMonth, tallyFilterSummary, tallyIsOn, tallyMatchCount, tallyMatchNetEgp],
+  );
   const presentation = buildTransactionsPresentation({
     listStatus,
     totalsStatus: displayTotalsStatus,
@@ -591,6 +619,7 @@ export function useTransactions() {
       totals: displayTotals,
       totalsStatus: displayTotalsStatus,
       hero,
+      tally,
       searchDisabled: heroMode === 'skeleton',
       listRef,
       pendingDeleteId: deleteAction.pendingPayload,

@@ -234,12 +234,17 @@ function formatHeroAmount(value: number): string {
   return signAmountText(text, value < 0 ? MINUS_SIGN : '', printsAsZero);
 }
 
-function heroNet(netEgp: number): Pick<TransactionsHeroModel, 'net' | 'netPolarity'> {
+function formatSignedNet(netEgp: number): { text: string; polarity: PolaritySignal } {
   const { text, printsAsZero } = formatDisplayMagnitude(netEgp, HERO_CURRENCY);
-  if (printsAsZero) return { net: text, netPolarity: 'neutral' };
+  if (printsAsZero) return { text, polarity: 'neutral' };
   return netEgp > 0
-    ? { net: signAmountText(text, PLUS_SIGN), netPolarity: 'good' }
-    : { net: signAmountText(text, MINUS_SIGN), netPolarity: 'bad' };
+    ? { text: signAmountText(text, PLUS_SIGN), polarity: 'good' }
+    : { text: signAmountText(text, MINUS_SIGN), polarity: 'bad' };
+}
+
+function heroNet(netEgp: number): Pick<TransactionsHeroModel, 'net' | 'netPolarity'> {
+  const { text, polarity } = formatSignedNet(netEgp);
+  return { net: text, netPolarity: polarity };
 }
 
 function lastMonthOutCaption(yearMonth: string, previous: PeriodTotals | null): string {
@@ -366,5 +371,77 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
     railAccessibilityLabel: share.accessibilityLabel,
     shareCaption: heroShareCaption(share),
     lastMonthChange: resolveLastMonthChange(current.expenseEgp, input.previous, input.yearMonth),
+  };
+}
+
+export type SearchTallyMode = 'empty' | 'skeleton' | 'failed' | 'figures';
+
+export interface SearchTallyInput {
+  isOn: boolean;
+  figuresMode: TransactionsHeroMode;
+  matchCount: number | null;
+  matchNetEgp: number | null;
+  yearMonth: string;
+  filterSummary: string | null;
+}
+
+export interface SearchTallyModel {
+  mode: SearchTallyMode;
+  count: string | undefined;
+  label: string;
+  sum: string | undefined;
+  sumPolarity: PolaritySignal;
+  currencyCode: string | undefined;
+  filterSummary: string | undefined;
+}
+
+const NO_TALLY_SUM = { sum: undefined, sumPolarity: 'neutral', currencyCode: undefined } as const;
+
+const NO_TALLY_TEXT = {
+  ...NO_TALLY_SUM,
+  count: undefined,
+  label: '',
+  filterSummary: undefined,
+} as const;
+
+export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
+  if (!input.isOn) return { mode: 'empty', ...NO_TALLY_TEXT };
+  if (input.figuresMode === 'skeleton') return { mode: 'skeleton', ...NO_TALLY_TEXT };
+
+  const month = fullMonthName(input.yearMonth);
+  const filterSummary = input.filterSummary ?? undefined;
+  const { matchCount, matchNetEgp } = input;
+
+  if (input.figuresMode === 'dashes' || matchCount === null || matchNetEgp === null) {
+    return {
+      mode: 'failed',
+      ...NO_TALLY_SUM,
+      count: Strings.transactionsHeroUnavailable,
+      label: Strings.transactionsTallyResults(month),
+      filterSummary,
+    };
+  }
+  if (matchCount === 0) {
+    return {
+      mode: 'figures',
+      ...NO_TALLY_SUM,
+      count: undefined,
+      label: Strings.transactionsTallyNoResults(month),
+      filterSummary,
+    };
+  }
+
+  const net = formatSignedNet(matchNetEgp);
+  return {
+    mode: 'figures',
+    count: formatAmount(matchCount),
+    label:
+      matchCount === 1
+        ? Strings.transactionsTallyOneResult(month)
+        : Strings.transactionsTallyResults(month),
+    sum: net.text,
+    sumPolarity: net.polarity,
+    currencyCode: CURRENCY_CONFIG[HERO_CURRENCY].code,
+    filterSummary,
   };
 }

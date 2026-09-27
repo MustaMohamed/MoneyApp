@@ -147,9 +147,11 @@ export function formatAppliedFilterSummary(
   f: AdvancedFilters,
   accountsById: ReadonlyMap<string, NamedEntity>,
   categoriesById: ReadonlyMap<string, NamedEntity>,
+  options?: { omitSingleAccount?: boolean },
 ): string | null {
   const parts: string[] = [];
-  const accountNames = selectedNames(f.accountIds, accountsById);
+  const omitAccounts = options?.omitSingleAccount === true && f.accountIds.length === 1;
+  const accountNames = omitAccounts ? [] : selectedNames(f.accountIds, accountsById);
   const categoryNames = selectedNames(f.categoryIds, categoriesById);
 
   if (accountNames.length > 0) parts.push(formatSelectionSummary(accountNames, ''));
