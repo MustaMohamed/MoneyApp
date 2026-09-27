@@ -145,7 +145,7 @@ Consequences: built-in `code-review` at `high` instead of `medium`, the conforma
 
 ## Fix loop
 
-Phase 2 findings pool into one triage (phase 3): CI read first, de-duplicate, close ledger matches, verify known FP classes, verifier in deep mode, then one consolidated `findings/cycle-<n>.md` and one fix dispatch. The conductor pushes the fix commits; the re-check (phase 4) reads the delta against the findings file. Cap: two phase 3 ↔ 4 cycles. On the cap, `board.sh status <n> "Awaiting Human"` and present the unresolved findings with the implementer's counter-arguments. An amendment (the plan was wrong, `plan --amend`) restarts the count; it is new design and new code. A lens or re-checker killed by a transient API error is re-run and does not count as a cycle. A dispute skips the loop: both sides to the human at once, the ruling into `## Adjudications`.
+Phase 2 findings pool into one triage (phase 3): CI read first, de-duplicate, close ledger matches, verify known FP classes, verifier in deep mode, then one consolidated `findings/cycle-<n>.md` and one fix dispatch. The conductor pushes the fix commits; the re-check (phase 4) reads the delta against the findings file. Cap: two phase 3 ↔ 4 cycles. On the cap, `board.sh status <n> "Awaiting Human"` and present the unresolved findings with the implementer's counter-arguments, with their visual per `.claude/skills/issue-review/references/question-visuals.md`. An amendment (the plan was wrong, `plan --amend`) restarts the count; it is new design and new code. A lens or re-checker killed by a transient API error is re-run and does not count as a cycle. A dispute skips the loop: both sides to the human at once, with its visual per the same file, the ruling into `## Adjudications`.
 
 ## Worktrees
 

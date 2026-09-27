@@ -10,7 +10,7 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 
 The `unslop` skill is the output contract for every reply, agent return, review, plan, spec and record; the prompt hook restates its short form each turn. `primitive`, `surface` and `harness` are domain terms here, exempt from its jargon rule where they name the real thing. `npm run lint` fails on its banned method-certification phrases, in any case, in any tracked `.md` file outside `docs/scopes/` and `docs/superpowers/`, which are frozen history.
 
-Every question you put to me, in a skill or not, is checked first against [question-visuals.md](.claude/skills/issue-review/references/question-visuals.md). Options that differ on screen, over time, in a figure or in a structure go out with the HTML visual in the same message. Options that differ only in words, a fact I hold, or a yes/no gate stay text, and no file is made.
+Every question the main session puts to me, in a skill or not, is checked first against [question-visuals.md](.claude/skills/issue-review/references/question-visuals.md), where the first matching row decides. Options that differ on screen, over time, in a figure or in a structure go out with the HTML visual in the same message. A gate confirming what I have just read, options that differ only in words, a fact I hold, and anything else stay text, and no file is made. A subagent returns its question as text and draws nothing; the session that asks me makes the visual.
 
 ## When to stop
 
@@ -31,7 +31,7 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 
 ## Workflow
 
-- **Always branch before any work. Never commit to `main`.** Branches: `feat/x`, `refactor/x`, `fix/x`, `perf/x`; task branches add the ID, `feat/MA-042-slug`.
+- **Always branch before any work. Never commit to `main`.** Branches: `feat/x`, `refactor/x`, `fix/x`, `perf/x`, `docs/<slug>` for a change to docs, skills or rules only; task branches add the ID, `feat/MA-042-slug`.
 - The issue is the record. `.work/<MA-id>/` (the `/prep` plan, branch-only, removed before merge) and `~/.ship/MoneyApp/MA-XXX/` (`/ship` state) hold transient working files. `~/.ship/MoneyApp/canvas/` is not transient: it holds the design frames render checks measure against.
 - Define before code: `/epic`, then `/boundaries <n>`, `/tickets <parent>`, `/issue-review <n>`. `/issue-review` is the only road to Ready For Development.
 - Ready For Development is one-way. `promote` refuses a leaf whose `Size:` line is missing or over the gate, a leaf counted over it stays at Defined for `/tickets`, and `/issue-review` and `/tickets` refuse a Ready leaf: only `/prep` takes one. A plan over the gate is trimmed at a seam with the remainder opened at Defined; an open gap sends the ticket to Blocked, never back.
