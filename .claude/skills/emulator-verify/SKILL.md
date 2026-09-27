@@ -19,32 +19,43 @@ Fonts, shadows, gesture feel, and performance still need the real device (`devic
 ## The tool
 
 `mqa.sh`, next to this file, is the only command a run needs. Call it from the worktree as
-`bash .claude/skills/emulator-verify/mqa.sh <verb>`; below, `mqa`. To chain calls in one
-Bash call, define `m() { bash .claude/skills/emulator-verify/mqa.sh "$@"; }`. Never
-`M="bash …"; $M` (zsh does not split it) and never a `PATH=` prefix (mqa picks a runnable
-python itself). `mqa help` is complete; do not read the script to learn it.
+`bash .claude/skills/emulator-verify/mqa.sh <verb>`, typed out in full, **one verb per Bash
+call**; below, `mqa` stands for that line. The worktree guard `/ship` runs under refuses a
+function or variable wrapped around it (`m() { … }`, `bash $M`) and a chain of calls: on
+26 Sep it refused 23 such calls in 14 agents, 3.4M tokens of turns. A sequence goes in a walk
+file (below). `mqa help` is complete; do not read the script to learn it.
+
+**A run is three calls:** `mqa up`, one `mqa walk`, `mqa down`. `up` claims this worktree's
+device when it has none, prints the build verdict, and starts or reuses this worktree's
+Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a run; on
+26 Sep agents spent 5.8 calls per run on them around `up`.
 
 | Verb | Does |
 |---|---|
-| `claim [slot]` · `release` · `claims` | take one of three devices for this worktree · give it back · who holds what |
-| `needs-build [base]` · `build` · `install` | **ask before you build**: exit 0 only when the native surface moved · single-ABI debug APK · install it |
-| `up [--ready <sel>]` | Metro for this worktree on the claimed port, a cold launch on it, wait for the tab bar (a stalled launch is relaunched once), dev overlays cleared |
-| `down` | close the agent-device session; the system keyboard comes back |
-| `metro [start\|restart\|stop\|status]` | the Metro part of `up` on its own |
+| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (stop and ask on REBUILD); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
+| `down` | close the agent-device session so the system keyboard comes back; the claim and Metro stay for the next run |
 | `open <route\|url>` | deep link: `/transactions`, `/accounts`, or a full `moneyapp://` URL |
-| `read [scope]` · `ui` | what is on screen; with a scope (a testID or a label), every labelled node drawn inside that container, in dp |
-| `bounds <sel>...` | every match: x, y, width and height in dp, enabled or disabled, selected |
-| `tap <sel>` · `fill <sel> <text>` · `type` · `clear` · `key <code>` · `back` | act; `tap` and `fill` first wait up to 10 s for their target, and `fill` focuses, clears and types in one call |
-| `wait <sel> [ms]` | block until a selector is on screen (default 10000 ms) |
-| `scroll <up\|down> [--until <sel>]` | a raw drag under both engines (agent-device's own scroll does not move this app's lists); `--until` swipes until the selector is on screen, 15 at most |
-| `shot [name] [--crop <sel>] [--out <dir>]` | screencap (~0.2 s), cropped to the largest match |
-| `db "<sql>"` · `logs [n]` | query the on-device SQLite · recent JS errors and crashes |
+| `read [scope]` · `ui` | what is on screen: `@ref`, kind, label and testID, with a row's own texts folded into it; with a scope (a testID or a label), every labelled node drawn inside that container, in dp |
+| `bounds <sel>...` | every match: x, y, width and height in dp, testID, enabled or disabled, selected |
+| `tap <sel>` · `fill <sel> <text>` · `type` · `clear` · `key <code>` · `back` | act; `tap` and `fill` first wait up to 10 s for their target, and `fill` focuses, clears and types in one call. `tap` scrolls a target its list has moved out of view back in, and presses a match whose candidates all carry one label (a Pressable and the View inside it) |
+| `wait <sel> [ms]` | block until a selector is on screen (default 10000 ms); when agent-device's own wait loses its capture session on a loaded device, mqa polls plain snapshots for the same budget again |
+| `scroll <up\|down> [--in <sel>] [--until <sel>]` | a raw drag under both engines (agent-device's own scroll does not move this app's lists), inside `<sel>` when given; `--until` stops when the selector is on screen, or when two swipes in a row no longer move the list (one still swipe can be a page loading) |
+| `shot [name] [--crop <sel>] [--out <dir>]` | screencap (~0.2 s); `--crop` cuts it to the largest node matching the selector, in pixels, no padding |
+| `db "<sql>"` · `schema [table]` | query the on-device SQLite · its tables and columns; read the columns before writing SQL |
+| `seed <file.db>` · `seed --save <file.db>` | replace the app's database and relaunch · save the device's database, WAL folded in, as a seed |
+| `logs [n] [--info] [--all]` · `state` | JS warnings, errors and crashes from the app's own process (`--info` adds console.log, `--all` every process) · pid, top activity, keyboard, Metro, engine |
 | `walk <script.sh>` · `step <label>` | run a whole scenario in one call |
-| `reset` · `park` · `ime-down` · `tapxy <x> <y>` | clear app data · move the dev-client Tools bubble · hide the keyboard · tap a pixel |
+| `reset` · `park` · `ime-down` · `tapxy <x> <y>` | clear app data · turn the dev-client Tools button off (`up` does it) · hide the keyboard · tap a pixel |
+| `needs-build [base] [--exit-code]` · `build` · `install` | the build verdict `up` prints (exit 0; `--exit-code` exits 0 to rebuild, 1 to reuse) · single-ABI debug APK · install it |
+| `claim [slot]` · `release` · `claims` · `metro [start\|restart\|stop\|status]` | what `up` does for you, to inspect or repair; `release` also stops this worktree's Metro |
+
+A miss prints the on-screen selectors closest to the one asked for, and a screen that never
+goes idle (a loading skeleton's looping shimmer) says so instead of retrying for 30 s a time.
 
 **Selectors.** `label="…"` or `text="…"` matches a label or a text exactly, `id="…"` a
 testID (`id="sheet-footer"`), `~text` a substring, `@e12` a ref printed by `read`. Bare text
-is a label; in `bounds`, `shot --crop` and `read` it also matches a testID. Tab labels start with an icon glyph that `read` prints; `mqa open /transactions`
+is a label; in `bounds`, `shot --crop` and `read` it also matches a testID. Take selectors
+from `mqa read`, which prints each node's testID, not from a grep of the source. Tab labels start with an icon glyph that `read` prints; `mqa open /transactions`
 reaches a tab without it. A node with both a text and an accessibility label reads as its
 text under agent-device (`+10,000`) and as its label under uiautomator (`Income +10,000`);
 `label="…"` matches either. React Native flattens a testID container's children out of
@@ -75,14 +86,23 @@ Measured on the same four transactions states, same device, same Metro (2026-09-
 | Scripted walk, four states after launch | 70.9 s | 21.8 s |
 | Render-lens agent on those states, tokens · time | 1.20M · 233 s | 0.91M · 137 s |
 
+In the field on 26 Sep (14 agents, four tickets) a walk step took 13.7 s median against
+20.6 s before, and a screen read 2.4 s against 5.3 s; the harness adds about 1.5 s to any call.
+
 The agent-device session switches the emulator to a headless test keyboard: typing works,
 the soft keyboard never draws. A state about the keyboard itself (a field the keyboard
 covers) runs under `MQA_UI=uiautomator`.
 
-## Claim a device before anything else
+**A screen that never goes idle cannot be read.** agent-device waits for the UI to settle
+before a snapshot; a looping animation (the transaction sheet's loading skeleton) never does,
+and each read, wait or tap on it fails after 30 s. mqa names the cause and a tap skips its
+press. Prove such a state with `shot`, and use `tapxy` to leave it.
+
+## The device claim
 
 Three tickets verify at once, so there are three emulators and a session owns one
-outright. **`mqa claim` is the first call of any run.**
+outright. **`mqa up` takes the claim** when this worktree holds none, preferring a free slot
+whose Metro port no other worktree's leftover server holds; `mqa claim <slot>` picks one by hand.
 
 | Slot | AVD | Serial | Metro |
 |---|---|---|---|
@@ -102,8 +122,9 @@ wrong Metro, two dumps at once returned a screen the app was not on, and state-s
 
 A lease goes stale when its worktree is deleted, or after `MQA_LEASE_TTL` (default 2h)
 without a call; every `mqa` call touches its own. `mqa claims` shows a stale lease as free
-and names its old holder. A fourth concurrent ticket queues: add a slot by creating another
-AVD and extending `MQA_SLOTS`.
+and names its old holder. `mqa release` gives the slot back and stops this worktree's Metro
+on its port, which would otherwise make the next holder's `up` refuse the port. A fourth
+concurrent ticket queues: add a slot by creating another AVD and extending `MQA_SLOTS`.
 
 ## The feature map, read before scoping
 
@@ -162,10 +183,12 @@ worktree, which needs three things the worktree does not have by default.
    `agent-device`.
 2. **An APK — but usually not a new one.** `mqa install` wants
    `android/app/build/outputs/apk/debug/app-debug.apk`, and `android/` is gitignored.
-   **Ask before building:** `mqa needs-build` exits 0 to rebuild, 1 to reuse. A rebuild is
+   **Ask before building:** `mqa up` prints `build: REUSE` or `build: REBUILD`. A rebuild is
    mandatory only when the **native surface** moved: `package.json`, `package-lock.json`,
-   `app.json`, `eas.json`, `patches/`, or anything under `android/`/`ios/`. Everything else
-   reaches the device over Metro. When you do need one:
+   `app.json`, `eas.json`, `patches/`, or anything under `android/`/`ios/`, and the APK on the
+   device was installed before the newest such change. An APK installed after it already
+   carries it, which is the render lens's case. Everything else reaches the device over Metro.
+   When you do need one:
 
    ```bash
    npx expo prebuild --platform android
@@ -179,20 +202,21 @@ worktree, which needs three things the worktree does not have by default.
    the port the claim owns, refuses a port another worktree's Metro holds, and restarts it
    with `--clear` when HEAD has moved since it started, since a cached transform serves the
    old commit. A change you made should be visible on the first screen you look at; if it
-   is not, suspect the bundle before the change.
+   is not, suspect the bundle before the change. Metro's log and the HEAD it started at are
+   in `$TMPDIR/mqa/<serial>/` (`metro.log`, `metro.head`).
 
 **Run the CI parity chain first, then build once.** The chain ends in
 `expo prebuild --no-install`, which regenerates `android/` and deletes any APK built there.
-Parity chain → `needs-build` → build if required → install once, and the render pass and
-the render lens share that APK.
+Parity chain → `mqa up` → on `build: REBUILD`, build and install once, then `mqa up` again;
+the render pass and the render lens share that APK.
 
 ## Drive the walk from a script, not one call at a time
 
 A walk driven one call per tap pays a model turn per interaction, and turns are most of the
-cost. Write the scenario once and run it in one call:
+cost. Write the scenario once, as a file, with the **Write tool** (a heredoc through Bash is
+a chain the guard can refuse), and run it in one call. This one is `/tmp/walk.sh`:
 
 ```bash
-cat > /tmp/walk.sh <<'SH'
 $MQA step "1 filter footer, disabled"
 $MQA open /transactions
 $MQA tap Filter
@@ -206,18 +230,21 @@ $MQA tap 'MA102 Alpha, account filter'
 $MQA tap 'Apply (1)'
 $MQA wait '−2,100' 10000
 $MQA db "select sum(egp_amount) from transactions where account_id='ma102-alpha' and type='expense'"
-SH
-mqa up && mqa walk /tmp/walk.sh
 ```
 
-`mqa walk` exports `$MQA` and runs the script under `-euo pipefail`, so the first failed
-step stops the walk instead of letting later assertions read a screen that never arrived.
-`mqa step` prints a separator, which is what makes one long output readable afterwards.
+Then three Bash calls: `mqa up`, `mqa walk /tmp/walk.sh`, `mqa down`.
+
+`mqa walk` sets `$MQA` to the absolute path of `mqa.sh`, so `$MQA <verb>` works from any
+directory, and runs the script from your current directory under `-euo pipefail`, so the
+first failed step stops the walk instead of letting later assertions read a screen that
+never arrived. Nothing else is exported. `mqa step` prints a separator, which is what makes
+one long output readable afterwards. When a step fails, fix that selector from the
+suggestions the failure printed and run the walk again; a second failure on the same step
+is a finding, not a third guess.
 
 Measure with `bounds`, not a parser of your own: it prints dp, divided by the Pixel 2's
 2.625. Screenshot only what is genuinely visual, and crop it: a full frame is ~1,500
-tokens, a cropped footer ~300. `mqa park` moves the dev-client Tools bubble when it sits
-over something under test; it finds the bubble first and does nothing when there is none.
+tokens, a cropped footer ~300. The dev-client Tools button sat over the transactions Filter button and a stack header's Back; `up` turns it off through the dev menu's own switch, and it stays off until `reset` clears the app data.
 
 ## Verifying logic, not just pixels
 
@@ -228,11 +255,21 @@ business rule actually held, instead of trusting the screen that reported it:
 mqa db "select name, opening_balance, current_balance, currency from accounts"
 ```
 
+Read the columns first with `mqa schema transactions`: dates are `transaction_date` and
+`transaction_time`, and deletion is `is_deleted` on accounts only. Three agents on 26 Sep
+lost a call each to a `date` column that does not exist.
+
 expo-sqlite runs in WAL mode: writes from seconds ago sit in `moneyapp.db-wal`, so the
 helper pulls `.db`, `-wal` and `-shm` together. Copying the `.db` alone gives you the full
 schema and stale rows — which reads as a clean pass. Query with the project's own
 `better-sqlite3`; the same rules apply as `money-rules` (assert on stored integers, not on
 formatted strings).
+
+**Seeds.** `mqa seed --save <file.db>` keeps a device state you built, WAL folded in.
+`mqa up --seed <file.db>` pushes one before the launch, and `mqa seed <file.db>` pushes and
+relaunches mid-run: stop the app, drop the WAL pair, stream the file through `run-as`, check
+the size. A seed built on the host with `better-sqlite3` uses `PRAGMA journal_mode=DELETE`.
+`mqa db` reads a pulled copy and never writes the device.
 
 ## Reporting
 
@@ -247,12 +284,20 @@ user's gate: this is "verified on emulator", never "QA passed".
 |---|---|
 | "It installed, so the build is current" | `expo prebuild --no-install` regenerates `android/` *and deletes any APK already built there*. Check `android/app/build/outputs/`. Run the parity chain **before** you build. |
 | Install fails with an opaque `IOException` | Emulator `/data` is full. `mqa install` prints free space; uninstall stale dev builds. |
-| Rebuilding because the branch changed | The branch reaches the device through Metro. Ask `mqa needs-build`. |
+| Rebuilding because the branch changed | The branch reaches the device through Metro. `mqa up` prints the verdict. |
+| `m() { bash …/mqa.sh "$@"; }`, `bash $M`, or two mqa calls chained | The worktree guard refuses all three and the turn is lost. One literal call per Bash call; sequences go in a walk file. |
+| `claim`, `claims`, `needs-build`, `metro status`, `help` before `up` | `up` does and prints all of it. A run is `up`, `walk`, `down`. |
+| Writing SQL from memory | `mqa schema <table>` first; there is no `date` column. |
+| Pushing a seed with a hand-written `adb … run-as … base64` | The guard refuses it. `mqa up --seed <file.db>` or `mqa seed <file.db>`. |
+| Grepping the source for a testID | `mqa read` prints every node's testID. |
+| `logcat --pid`, `pidof`, `dumpsys input_method` by hand | `mqa logs` is already scoped to the app's process; `mqa state` prints pid, top activity and keyboard. |
+| Reading or waiting on a loading skeleton | It never goes idle, so every read costs 30 s and fails. `shot` it. |
+| `scroll` inside a sheet from a full-screen drag | Pass `--in 'id="<the sheet's scroll view>"'` so the drag starts inside the list. |
 | Going wide "to be safe" | Measured on MA-007: the 9-scenario walk cost 2× the 4-scenario one **and missed the defect the short one found**. |
 | A walk driven one tool call per tap | Every call is a model turn. Put the scenario in a script and run `mqa walk`. |
 | Waiting on a nearby label, then reading the value | The value can lag the label (MA-102 totals strip). `mqa wait` on the value itself. |
 | Mixing engines in one run | The uiautomator engine refuses while an agent-device session holds the device. `mqa down` first, or stay on one engine. |
-| Reading `mqa.sh` to learn a verb | `mqa help` lists every verb and selector form. |
+| Reading `mqa.sh` to learn a verb | The table above and `mqa help` list every verb, flag and selector form. |
 | Writing a parser for bounds | `mqa bounds <sel>` prints dp, enabled or disabled, and selected. |
 | Tapping by screenshot coordinates | Use a selector. `tapxy` exists for a target with no label. |
 | Typing a value containing `&`, `;`, `'` or `$` | Under the uiautomator engine the text reaches the *device's* shell; `mqa type` quotes it. A raw `adb shell input text` truncates at the metacharacter **and still exits 0**. |
