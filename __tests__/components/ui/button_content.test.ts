@@ -6,6 +6,7 @@ import {
   type FlatButtonStyle,
   type FlatButtonTone,
 } from '@/components/ui/button.content';
+import { resolveCompactCtaHeight } from '@/components/ui/button.geometry';
 import { Strings } from '@/constants/strings';
 import { Colors, Radius, Size } from '@/constants/theme';
 
@@ -169,6 +170,18 @@ describe('resolveFlatButtonStyle', () => {
     expect(
       resolveFlatButtonStyle({ variant: 'secondary', flat: true, tone: 'accent' })?.style.height,
     ).toBe(36);
+  });
+
+  it('the compact accent arm grows with the label at font scale 2', () => {
+    expect(
+      resolveFlatButtonStyle({
+        variant: 'secondary',
+        flat: true,
+        tone: 'accent',
+        fontScale: 2,
+        size: 'md',
+      })?.style.height,
+    ).toBe(resolveCompactCtaHeight(2, 'md'));
   });
 
   it('no other flat shape pins a height', () => {

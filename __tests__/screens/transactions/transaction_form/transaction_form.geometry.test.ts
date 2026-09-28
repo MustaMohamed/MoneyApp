@@ -1,4 +1,5 @@
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   ACCOUNT_STRIP_CHIP_HEIGHT,
@@ -8,6 +9,7 @@ import {
   TRANSACTION_FORM_FOOTER_CLEARANCE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
   TRANSACTION_FORM_STATUS_GAP,
+  resolveTypeTabsGeometry,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 
 describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
@@ -30,6 +32,21 @@ describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
   it('sizes the key and value bars at the fact row text line box', () => {
     expect(TRANSACTION_FORM_SKELETON_GEOMETRY.keyBar.height).toBe(lineHeightFor(Type.body));
     expect(TRANSACTION_FORM_SKELETON_GEOMETRY.valueBar.height).toBe(lineHeightFor(Type.body));
+  });
+});
+
+describe('resolveTypeTabsGeometry', () => {
+  it('at font scale 1 keeps the 36 tab row and the skeleton tab bar', () => {
+    const g = resolveTypeTabsGeometry(1);
+    expect(g.listHeight).toBe(36);
+    expect(g.skeletonHeight).toBe(TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar);
+  });
+
+  it('at font scale 2 the skeleton is as tall as the tab row, which holds its triggers', () => {
+    const g = resolveTypeTabsGeometry(2);
+    const { compact } = resolveSegmentedTabsGeometry(2);
+    expect(g.skeletonHeight).toBe(g.listHeight);
+    expect(g.listHeight).toBeGreaterThanOrEqual(compact.triggerHeight + 2 * TABS_LIST_PADDING);
   });
 });
 
