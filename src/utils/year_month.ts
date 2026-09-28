@@ -15,6 +15,9 @@ export const MONTHS_SHORT = [
   'Dec',
 ] as const;
 
+/** Indexed by `Date.prototype.getDay()`. */
+export const WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
 export function currentYearMonth(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
 }

@@ -36,6 +36,7 @@ import {
 import { useFilterState } from './filter/filter.state';
 import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
 import {
+  buildDaySections,
   buildSearchTally,
   buildTransactionsHeroModel,
   previousPeriod,
@@ -43,13 +44,14 @@ import {
   resolveSearchTallyFiguresMode,
   resolveTransactionsHeroMode,
   totalsScopeKey,
+  type TransactionDaySection,
 } from './transactions.helpers';
 import { buildTransactionsPresentation } from './transactions.presentation';
 import { useTransactionsState } from './transactions.state';
 import { type TransactionTotalsState, useTransactionsScreenStore } from './transactions.store';
 
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
-export type TransactionSection = { key: string; data: Transaction[] };
+export type TransactionSection = TransactionDaySection;
 type ScrollOffsetEvent = { nativeEvent: { contentOffset: { y: number } } };
 type ScrollPosition = { queryKey: string | null; offset: number };
 type TotalsLoadOptions = {
@@ -407,15 +409,12 @@ export function useTransactions() {
   const showAccountLookupError =
     accountLookupError && findMissingAccountIds(transactionAccountIds, accountsById).length > 0;
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
-  const sections = useMemo(
-    () => groupTransactionsByDate(currentTransactions),
-    [currentTransactions],
-  );
+  const today = toLocalDateString(new Date());
+  const dayGroups = useMemo(() => {
+    const [year, month, day] = today.split('-').map(Number);
+    return groupTransactionsByDate(currentTransactions, new Date(year, month - 1, day));
+  }, [currentTransactions, today]);
   const activeFilterCount = useMemo(() => countFunnelFilters(effectiveFilters), [effectiveFilters]);
-  const appliedFilterSummary = useMemo(
-    () => formatAppliedFilterSummary(effectiveFilters, accountLabelsById, categoriesById),
-    [accountLabelsById, categoriesById, effectiveFilters],
-  );
   const hasAdvancedFilters = countActiveFilters(effectiveFilters) > 0;
   const accountChips = useMemo(
     () => buildAccountChips(accounts, effectiveFilters.accountIds),
@@ -458,7 +457,6 @@ export function useTransactions() {
     effectiveFilters.accountIds.length === 1
       ? accountLabelsById.get(effectiveFilters.accountIds[0])?.name
       : undefined;
-  const today = toLocalDateString(new Date());
   const heroMode = resolveTransactionsHeroMode(
     displayTotalsStatus,
     displayTotals !== null,
@@ -494,6 +492,17 @@ export function useTransactions() {
     heroMode,
     displayTotalsStatus,
     displayTotals?.queryKey === activeQueryKey,
+  );
+  const dayAggregates = displayTotals?.days;
+  const sections = useMemo(
+    () =>
+      buildDaySections({
+        groups: dayGroups,
+        days: dayAggregates,
+        figuresMode: tallyFiguresMode,
+        totalsStatus: displayTotalsStatus,
+      }),
+    [dayAggregates, dayGroups, displayTotalsStatus, tallyFiguresMode],
   );
   const tallyMatchCount = displayTotals?.matchCount;
   const tallyMatchNetEgp = displayTotals?.matchNetEgp;
@@ -626,7 +635,6 @@ export function useTransactions() {
       accountsById,
       categoriesById,
       activeFilterCount,
-      appliedFilterSummary,
       accountChips,
       totals: displayTotals,
       totalsStatus: displayTotalsStatus,
