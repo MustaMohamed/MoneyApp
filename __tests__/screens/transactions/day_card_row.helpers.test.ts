@@ -1,4 +1,4 @@
-import { PixelRatio } from 'react-native';
+import { PixelRatio, Platform } from 'react-native';
 
 import { Radius } from '@/constants/theme';
 import {
@@ -8,7 +8,44 @@ import {
   resolveDayCardSliceStyle,
   resolveDayCardSwipeCorners,
 } from '@/modules/transactions/screens/transactions/components/day_card_row.helpers';
-import { TRANSACTION_ROW_HEIGHT } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+
+const PIXEL_2_DENSITY = 2.625;
+
+interface LoadedDayCard {
+  inset: number;
+  border: number;
+  rowHeight: number;
+  resolveDayCardSliceStyle: typeof resolveDayCardSliceStyle;
+}
+
+// The constants compute at module load, so each platform and density loads a fresh copy after its mock.
+function loadDayCard(os: 'android' | 'ios', density: number): LoadedDayCard {
+  let loaded: LoadedDayCard | undefined;
+  jest.isolateModules(() => {
+    const isolated = jest.requireActual<{
+      Platform: typeof Platform;
+      PixelRatio: typeof PixelRatio;
+    }>('react-native');
+    jest.replaceProperty(isolated.Platform, 'OS', os);
+    jest.spyOn(isolated.PixelRatio, 'get').mockReturnValue(density);
+    const card = jest.requireActual<{
+      DAY_CARD_INSET: number;
+      DAY_CARD_BORDER_WIDTH: number;
+      resolveDayCardSliceStyle: typeof resolveDayCardSliceStyle;
+    }>('@/modules/transactions/screens/transactions/components/day_card_row.helpers');
+    const row = jest.requireActual<{ TRANSACTION_ROW_HEIGHT: number }>(
+      '@/modules/transactions/screens/transactions/components/transaction_row.helpers',
+    );
+    loaded = {
+      inset: card.DAY_CARD_INSET,
+      border: card.DAY_CARD_BORDER_WIDTH,
+      rowHeight: row.TRANSACTION_ROW_HEIGHT,
+      resolveDayCardSliceStyle: card.resolveDayCardSliceStyle,
+    };
+  });
+  if (loaded === undefined) throw new Error('day card helpers did not load');
+  return loaded;
+}
 
 describe('resolveDayCardSliceStyle', () => {
   const sides = {
@@ -31,12 +68,8 @@ describe('resolveDayCardSliceStyle', () => {
     expect(resolveDayCardSliceStyle(true, false)).toStrictEqual({ ...sides, ...top });
   });
 
-  it('closes the bottom of the card on the last row of a day, one device pixel over the row above', () => {
-    expect(resolveDayCardSliceStyle(false, true)).toStrictEqual({
-      ...sides,
-      ...bottom,
-      marginTop: -1 / PixelRatio.get(),
-    });
+  it('closes the bottom of the card on the last row of a day (jest-expo runs iOS)', () => {
+    expect(resolveDayCardSliceStyle(false, true)).toStrictEqual({ ...sides, ...bottom });
   });
 
   it('draws only the side borders on a middle row', () => {
@@ -54,6 +87,24 @@ describe('resolveDayCardSliceStyle', () => {
     [true, true],
   ])('sets no overflow on the slice (isFirst %s, isLast %s)', (isFirst, isLast) => {
     expect(resolveDayCardSliceStyle(isFirst, isLast)).not.toHaveProperty('overflow');
+  });
+});
+
+describe('the last slice per platform', () => {
+  it('overlaps the slice above by one device pixel on Android', () => {
+    const android = loadDayCard('android', PIXEL_2_DENSITY);
+
+    expect(android.resolveDayCardSliceStyle(false, true)).toHaveProperty(
+      'marginTop',
+      -1 / PIXEL_2_DENSITY,
+    );
+    expect(android.resolveDayCardSliceStyle(false, false)).not.toHaveProperty('marginTop');
+  });
+
+  it('does not overlap on iOS, where the fill offset is unmeasured', () => {
+    const ios = loadDayCard('ios', PIXEL_2_DENSITY);
+
+    expect(ios.resolveDayCardSliceStyle(false, true)).not.toHaveProperty('marginTop');
   });
 });
 
@@ -87,13 +138,14 @@ describe('resolveDayCardSwipeCorners', () => {
   });
 });
 
-describe('day card slice geometry', () => {
+describe('day card slice geometry at the Pixel_2 density', () => {
   it.each([
-    ['the inset', DAY_CARD_INSET],
-    ['the border', DAY_CARD_BORDER_WIDTH],
-    ['the row height', TRANSACTION_ROW_HEIGHT],
-  ])('draws %s in whole device pixels', (_name, size) => {
-    const pixels = size * PixelRatio.get();
+    ['the inset', 'inset'],
+    ['the border', 'border'],
+    ['the row height', 'rowHeight'],
+  ] as const)('draws %s in whole device pixels', (_name, key) => {
+    const pixels = loadDayCard('android', PIXEL_2_DENSITY)[key] * PIXEL_2_DENSITY;
+
     expect(pixels).toBeCloseTo(Math.round(pixels), 9);
   });
 });

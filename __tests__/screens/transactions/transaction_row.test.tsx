@@ -1,12 +1,13 @@
 import { render } from '@testing-library/react-native';
 import React from 'react';
-import { View } from 'react-native';
+import { PixelRatio, View } from 'react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { AccountType } from '@/constants/enums';
 import { lineHeightFor } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { resolveDayCardSwipeCorners } from '@/modules/transactions/screens/transactions/components/day_card_row.helpers';
 import { TransactionRow } from '@/modules/transactions/screens/transactions/components/transaction_row';
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
@@ -20,6 +21,7 @@ interface MockSwipeableRowProps {
   actions: unknown[];
   children: React.ReactNode;
   disabled?: boolean;
+  containerStyle?: unknown;
 }
 
 const mockSwipeableRow = jest.fn(({ children }: MockSwipeableRowProps) => <View>{children}</View>);
@@ -100,6 +102,21 @@ describe('TransactionRow ownership actions', () => {
     expect(mockSwipeableRow.mock.calls[0][0].actions).toHaveLength(2);
   });
 
+  it('hands the day card corners to the swipeable as its container style', async () => {
+    const corners = resolveDayCardSwipeCorners(true, false);
+    await render(
+      <TransactionRow
+        tx={transaction(null)}
+        onPress={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+        swipeContainerStyle={corners}
+      />,
+    );
+
+    expect(mockSwipeableRow.mock.calls[0][0].containerStyle).toBe(corners);
+  });
+
   it('keeps the row height and clips a long note to one caption line', async () => {
     const source: Account = {
       id: 'account',
@@ -147,7 +164,7 @@ describe('TransactionRow ownership actions', () => {
       flexShrink: 1,
     });
     expect(screen.getByText(/· \d{1,2}:\d{2} [AP]M$/)).toHaveStyle({ flexShrink: 0 });
-    expect(TRANSACTION_ROW_HEIGHT).toBe(ms(60));
+    expect(TRANSACTION_ROW_HEIGHT).toBe(PixelRatio.roundToNearestPixel(ms(60)));
   });
 
   it('renders the destination native amount for transfers', async () => {

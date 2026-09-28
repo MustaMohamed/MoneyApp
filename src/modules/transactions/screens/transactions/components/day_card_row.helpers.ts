@@ -1,4 +1,4 @@
-import { PixelRatio, type ViewStyle } from 'react-native';
+import { PixelRatio, Platform, type ViewStyle } from 'react-native';
 
 import { Radius, Size, Spacing } from '@/constants/theme';
 
@@ -27,8 +27,8 @@ const BOTTOM = {
   borderBottomRightRadius: DAY_CARD_RADIUS,
 };
 
-// A bottom-rounded slice's fill starts about 0.8 px below its top edge on Android; it overlaps the slice above by one device pixel.
-const LAST_OVERLAP = { marginTop: -1 / PixelRatio.get() };
+// Android starts a bottom-rounded slice's fill about 0.8 px below its top edge, so there a last slice overlaps the one above by a device pixel; iOS is unmeasured.
+const LAST_OVERLAP = Platform.OS === 'android' ? { marginTop: -1 / PixelRatio.get() } : {};
 
 const SLICE_STYLES: Record<SlicePosition, ViewStyle> = {
   first: Object.freeze({ ...SIDES, ...TOP }),
