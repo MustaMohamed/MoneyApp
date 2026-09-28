@@ -2,11 +2,11 @@ import React, { type ReactNode } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { CtaFooter } from '@/components/ui/cta_footer';
 import { useKeyboardLiftAnim } from '@/components/ui/keyboard_lift.anim';
 import { Screen } from '@/components/ui/screen';
 import { Colors } from '@/constants/theme';
 
-import { OnboardingFooter } from './onboarding_footer';
 import { OnboardingHeader } from './onboarding_header';
 import { OnboardingProgressRail } from './onboarding_progress_rail';
 import type { OnboardingStepIndex } from './onboarding_shell.geometry';
@@ -47,7 +47,7 @@ export function OnboardingShell({
         <OnboardingProgressRail step={step} />
         <View style={{ flex: 1 }}>{children}</View>
         <Animated.View style={keyboardLift}>
-          <OnboardingFooter footnote={footnote} message={statusMessage} cta={cta} />
+          <CtaFooter footnote={footnote} message={statusMessage} cta={cta} />
         </Animated.View>
       </Screen>
     </View>
