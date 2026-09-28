@@ -1,9 +1,12 @@
 import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
+import { Radius } from '@/constants/theme';
 import TransactionsScreen from '@/modules/transactions/screens/transactions';
 import { useTransactions } from '@/modules/transactions/screens/transactions/transactions.hook';
+import { makeTestTransaction } from '@/test_helpers/transaction';
 
 jest.mock('@/modules/transactions/screens/transactions/transactions.hook', () => ({
   useTransactions: jest.fn(),
@@ -82,12 +85,17 @@ jest.mock('@/modules/transactions/screens/transactions/components/account_chips'
     return <View testID="transactions-account-chips" />;
   },
 }));
-jest.mock('@/modules/transactions/screens/transactions/components/transaction_row', () => ({
-  TransactionRow: () => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>Transaction row</Text>;
-  },
-}));
+jest.mock('@/modules/transactions/screens/transactions/components/transaction_row', () => {
+  const rowSeparators = new Map<string, boolean | undefined>();
+  return {
+    rowSeparators,
+    TransactionRow: ({ tx, showSeparator }: { tx: { id: string }; showSeparator?: boolean }) => {
+      const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+      rowSeparators.set(tx.id, showSeparator);
+      return <Text testID={`transaction-row-${tx.id}`}>Transaction row</Text>;
+    },
+  };
+});
 jest.mock('@/modules/transactions/screens/transactions/components/day_header', () => ({
   DayHeader: ({ section }: { section: { label: string } }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -163,6 +171,39 @@ const mockedUseTransactions = jest.mocked(useTransactions);
 const { heroRenders } = jest.requireMock<{ heroRenders: { count: number } }>(
   '@/modules/transactions/screens/transactions/components/transactions_hero',
 );
+const { rowSeparators } = jest.requireMock<{ rowSeparators: Map<string, boolean | undefined> }>(
+  '@/modules/transactions/screens/transactions/components/transaction_row',
+);
+
+type DaySection = TransactionsScreenState['sections'][number];
+type HostNode = Parameters<typeof within>[0];
+
+function makeDaySection(key: string, ids: string[]): DaySection {
+  return {
+    key,
+    label: key,
+    figures: { mode: 'figures', net: '+100', currencyCode: 'EGP', count: String(ids.length) },
+    accessibilityLabel: key,
+    data: ids.map((id) => makeTestTransaction({ id, transaction_date: key })),
+  };
+}
+
+function flatStyle(node: { props: { style?: StyleProp<ViewStyle> } }): ViewStyle {
+  return StyleSheet.flatten(node.props.style);
+}
+
+function readSlice(slice: HostNode) {
+  const style = flatStyle(slice);
+  const row = within(slice).getByTestId(/^transaction-row-/);
+  const id = String(row.props.testID).replace('transaction-row-', '');
+  return {
+    id,
+    top: style.borderTopLeftRadius === Radius.lg && style.borderTopRightRadius === Radius.lg,
+    bottom:
+      style.borderBottomLeftRadius === Radius.lg && style.borderBottomRightRadius === Radius.lg,
+    noSeparator: rowSeparators.get(id) === false,
+  };
+}
 
 function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
   const hook = {
@@ -196,6 +237,7 @@ describe('TransactionsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     heroRenders.count = 0;
+    rowSeparators.clear();
     mockUseTransactions();
   });
 
@@ -238,6 +280,66 @@ describe('TransactionsScreen', () => {
 
     expect(getByText('hero:figures')).toBeTruthy();
     expect(heroRenders.count).toBe(mounted + 1);
+  });
+
+  it('draws each day as one card of row slices, closing on the rows left after a delete and growing on load more', async () => {
+    const loaded = {
+      emptyVariant: 'none',
+      listStatus: 'ready',
+      showInitialSkeleton: false,
+    } as const;
+    mockUseTransactions({
+      ...loaded,
+      sections: [
+        makeDaySection('2026-08-02', ['a1', 'a2', 'a3']),
+        makeDaySection('2026-08-01', ['b1']),
+      ],
+    });
+    const { getAllByTestId, rerender } = await render(<TransactionsScreen />);
+
+    expect(getAllByTestId('day-card-row').map(readSlice)).toEqual([
+      { id: 'a1', top: true, bottom: false, noSeparator: false },
+      { id: 'a2', top: false, bottom: false, noSeparator: false },
+      { id: 'a3', top: false, bottom: true, noSeparator: true },
+      { id: 'b1', top: true, bottom: true, noSeparator: true },
+    ]);
+
+    mockUseTransactions({
+      ...loaded,
+      sections: [makeDaySection('2026-08-02', ['a1', 'a2']), makeDaySection('2026-08-01', ['b1'])],
+    });
+    await rerender(<TransactionsScreen />);
+
+    expect(getAllByTestId('day-card-row').map(readSlice)).toEqual([
+      { id: 'a1', top: true, bottom: false, noSeparator: false },
+      { id: 'a2', top: false, bottom: true, noSeparator: true },
+      { id: 'b1', top: true, bottom: true, noSeparator: true },
+    ]);
+
+    mockUseTransactions({ ...loaded, sections: [makeDaySection('2026-08-02', ['a1', 'a2'])] });
+    await rerender(<TransactionsScreen />);
+
+    expect(getAllByTestId('day-card-row').map(readSlice)).toEqual([
+      { id: 'a1', top: true, bottom: false, noSeparator: false },
+      { id: 'a2', top: false, bottom: true, noSeparator: true },
+    ]);
+
+    mockUseTransactions({
+      ...loaded,
+      sections: [
+        makeDaySection('2026-08-02', ['a1', 'a2', 'a4']),
+        makeDaySection('2026-07-31', ['c1', 'c2']),
+      ],
+    });
+    await rerender(<TransactionsScreen />);
+
+    expect(getAllByTestId('day-card-row').map(readSlice)).toEqual([
+      { id: 'a1', top: true, bottom: false, noSeparator: false },
+      { id: 'a2', top: false, bottom: false, noSeparator: false },
+      { id: 'a4', top: false, bottom: true, noSeparator: true },
+      { id: 'c1', top: true, bottom: false, noSeparator: false },
+      { id: 'c2', top: false, bottom: true, noSeparator: true },
+    ]);
   });
 
   it('does not show row skeletons after loaded transactions render', async () => {
