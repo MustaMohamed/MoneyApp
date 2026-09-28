@@ -1,5 +1,6 @@
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import {
+  FILTER_BADGE_MAX_FONT_SCALE,
   SEARCH_INPUT_MAX_FONT_SCALE,
   resolveSearchFilterRowGeometry,
 } from '@/components/ui/search_filter_row.geometry';
@@ -79,9 +80,10 @@ describe('resolveSearchFilterRowGeometry', () => {
     expect(g.filterButton.height).toBe(g.input.height);
     expect(g.filterButton.width).toBe(ms(36));
     expect(g.badge.height).toBeGreaterThanOrEqual(
-      lineHeightFor(scaledFontSize(Type.chip, 2, SEARCH_INPUT_MAX_FONT_SCALE)),
+      lineHeightFor(scaledFontSize(Type.chip, 2, FILTER_BADGE_MAX_FONT_SCALE)),
     );
-    expect(g.badge).toEqual(resolveSearchFilterRowGeometry(SEARCH_INPUT_MAX_FONT_SCALE).badge);
+    expect(g.badge).toEqual(resolveSearchFilterRowGeometry(FILTER_BADGE_MAX_FONT_SCALE).badge);
     expect(g.badgeText.lineHeight).toBe(g.badge.height);
+    expect(g.badge.top + g.badge.height).toBeLessThanOrEqual(g.filterButton.height);
   });
 });

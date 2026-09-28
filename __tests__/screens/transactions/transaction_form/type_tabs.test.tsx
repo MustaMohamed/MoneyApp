@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react-native';
 import React from 'react';
-import { View } from 'react-native';
+import { Dimensions, View } from 'react-native';
 
 import type { SegmentedTabsProps } from '@/components/ui/tabs';
 import { TransactionType } from '@/constants/enums';
@@ -15,6 +15,7 @@ jest.mock('@/components/ui/tabs', () => ({
   SegmentedTabs: (props: SegmentedTabsProps<TransactionType>) => mockSegmentedTabs(props),
 }));
 
+import { resolveTypeTabsGeometry } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 import { TypeTabs } from '@/modules/transactions/screens/transactions/transaction_form/components/type_tabs';
 
 const ICONS_IN_TAB_ORDER = [
@@ -51,6 +52,9 @@ describe('TypeTabs', () => {
     expect(props.variant).toBe('solid-gold');
     expect(props.density).toBe('compact');
     expect(props.listClassName).toContain('w-full');
+    expect(props.listStyle).toEqual({
+      height: resolveTypeTabsGeometry(Dimensions.get('window').fontScale).listHeight,
+    });
 
     props.onValueChange(TransactionType.Transfer);
     expect(onSelect).toHaveBeenCalledWith(TransactionType.Transfer);

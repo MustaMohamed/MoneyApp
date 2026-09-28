@@ -253,6 +253,10 @@ describe('SegmentedTabs', () => {
       backgroundColor: Colors.shared.cairoGold,
       borderRadius: Radius.lg,
     });
+    expect(getByTestId('tabs-trigger-all')).toHaveStyle({
+      height: resolveSegmentedTabsGeometry(Dimensions.get('window').fontScale).compact
+        .triggerHeight,
+    });
     expect(getByTestId('tabs-indicator')).toHaveStyle({
       backgroundColor: Colors.shared.cairoGold,
       borderRadius: Radius.lg,

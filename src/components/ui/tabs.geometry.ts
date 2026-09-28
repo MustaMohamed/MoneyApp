@@ -1,4 +1,5 @@
 import {
+  HEROUI_TEXT_TYPE,
   type ScaledTextStyle,
   scaledTextStyle,
   scaledTextStyleAboveOne,
@@ -7,10 +8,11 @@ import { Size, Spacing, Type } from '@/constants/theme';
 
 // `.tabs__list--variant-primary`'s own padding, unscaled CSS.
 export const TABS_LIST_PADDING = 3;
+// `.tabs__scroll-view-content-container--variant-primary`'s own `padding-inline`, unscaled CSS.
+export const TABS_SCROLL_CONTENT_INSET = 1;
 
 export interface SegmentedTabsGeometry {
   compact: { label: ScaledTextStyle; triggerHeight: number; listHeight: number };
-  /** `undefined` at or below scale 1: the default label keeps HeroUI's own size and the OS scales it. */
   defaultLabel: ScaledTextStyle | undefined;
 }
 
@@ -26,6 +28,6 @@ export function resolveSegmentedTabsGeometry(fontScale: number): SegmentedTabsGe
       triggerHeight,
       listHeight: triggerHeight + 2 * TABS_LIST_PADDING,
     },
-    defaultLabel: scaledTextStyleAboveOne(Type.subhead, fontScale),
+    defaultLabel: scaledTextStyleAboveOne(HEROUI_TEXT_TYPE.base, fontScale),
   };
 }

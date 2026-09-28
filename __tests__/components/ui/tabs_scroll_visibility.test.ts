@@ -1,4 +1,5 @@
-import { getVisibleScrollOffset } from '@/components/ui/tabs.hook';
+import { TABS_SCROLL_CONTENT_INSET } from '@/components/ui/tabs.geometry';
+import { getSegmentScrollBox, getVisibleScrollOffset } from '@/components/ui/tabs.hook';
 
 describe('getVisibleScrollOffset', () => {
   it('does not scroll when the selected item is already fully visible', () => {
@@ -35,6 +36,13 @@ describe('getVisibleScrollOffset', () => {
         contentWidth: 660,
       }),
     ).toBe(126);
+    expect(
+      getVisibleScrollOffset({
+        currentOffset: 0,
+        viewportWidth: 300,
+        ...getSegmentScrollBox(6, 96, 7),
+      }),
+    ).toBe(TABS_SCROLL_CONTENT_INSET + 7 * 96 - 300);
   });
 
   it('clamps the scroll offset to the end of the content', () => {

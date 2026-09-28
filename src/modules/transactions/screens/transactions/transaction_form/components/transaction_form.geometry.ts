@@ -65,7 +65,6 @@ export const TRANSACTION_FORM_SKELETON_GEOMETRY = {
   valueBar: { width: ms(100), height: lineHeightFor(Type.body) },
 } as const;
 
-/** Above scale 1 the skeleton's tab shape is as tall as the type tab row; at or below it stays `tabBar`. */
 export function resolveTypeTabsGeometry(fontScale: number): {
   listHeight: number;
   skeletonHeight: number;

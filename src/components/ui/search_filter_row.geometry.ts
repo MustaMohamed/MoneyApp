@@ -8,6 +8,8 @@ import { Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 export const SEARCH_INPUT_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
+// Above it the badge covers the filter icon inside the button's clip.
+export const FILTER_BADGE_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
 
 const COMPACT_CONTROL_SIZE = ms(36);
 const FILTER_BADGE_SIZE = ms(16);
@@ -21,7 +23,6 @@ interface SearchInputBox {
 
 export interface SearchFilterRowGeometry {
   input: SearchInputBox;
-  /** `undefined` at or below scale 1: the input keeps HeroUI's own size and the OS scales it. */
   inputText: ScaledTextStyle | undefined;
   inputStyle: SearchInputBox & Partial<ScaledTextStyle>;
   filterButton: { height: number; width: number; borderRadius: number };
@@ -41,7 +42,7 @@ export function resolveSearchFilterRowGeometry(fontScale: number): SearchFilterR
     paddingTop: 0,
     paddingBottom: 0,
   };
-  const badgeFontSize = scaledFontSize(Type.chip, fontScale, SEARCH_INPUT_MAX_FONT_SCALE);
+  const badgeFontSize = scaledFontSize(Type.chip, fontScale, FILTER_BADGE_MAX_FONT_SCALE);
   const badgeSize = Math.max(FILTER_BADGE_SIZE, lineHeightFor(badgeFontSize));
   return {
     input,

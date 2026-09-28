@@ -150,6 +150,8 @@ export const Size = {
   compactSegmentTrack: 28,
   // Raw 32 for the same reason: the month pill's `h-8` track at scale 1.
   monthPillTrack: 32,
+  // Raw 32 for the same reason: the month picker's year arrows, formerly `h-8 w-8`.
+  monthYearStepTrack: 32,
   // Raw 36 for the same reason: the transaction form's type tab row, `h-9`, at scale 1.
   typeTabsTrack: 36,
   headerHeight: ms(56),

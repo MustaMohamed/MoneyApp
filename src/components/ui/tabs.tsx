@@ -89,9 +89,9 @@ export function SegmentedTabs<T extends string>({
   const geometry = resolveSegmentedTabsGeometry(useWindowDimensions().fontScale);
   const labelStyle = isCompact ? geometry.compact.label : geometry.defaultLabel;
   const sizeStyle =
-    segmentWidth || isCompact
+    segmentWidth != null || isCompact
       ? {
-          ...(segmentWidth ? { width: segmentWidth } : undefined),
+          ...(segmentWidth != null ? { width: segmentWidth } : undefined),
           ...(isCompact ? { height: geometry.compact.triggerHeight } : undefined),
         }
       : undefined;
@@ -145,9 +145,7 @@ export function SegmentedTabs<T extends string>({
           className={isCompact && isSelected ? 'font-inter-bold' : undefined}
           style={[
             labelStyle,
-            isCompact || segmentWidth != null || labelStyle !== undefined
-              ? { flexShrink: 1 }
-              : undefined,
+            segmentWidth != null || labelStyle !== undefined ? { flexShrink: 1 } : undefined,
             isSolidGold && isSelected ? { color: Colors.shared.midnightBlue } : undefined,
             isCompact && !isSelected ? { color: Colors.dark.text2 } : undefined,
           ]}

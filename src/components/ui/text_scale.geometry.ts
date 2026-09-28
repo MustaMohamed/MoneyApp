@@ -1,9 +1,16 @@
-import { lineHeightFor } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 
 export interface ScaledTextStyle {
   fontSize: number;
   lineHeight: number;
 }
+
+// The `Type` steps that match HeroUI's `text-sm`, `text-base`, `text-lg` at 390 dp.
+export const HEROUI_TEXT_TYPE = {
+  sm: Type.body,
+  base: Type.subhead,
+  lg: Type.title,
+} as const;
 
 /** A size for `allowFontScaling={false}`: RN sizes a TextView's own paint unscaled, so an OS-scaled line reserves too narrow an ellipsis (ReactTextView.java:392-397). */
 export function scaledFontSize(

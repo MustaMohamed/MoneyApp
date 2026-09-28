@@ -15,16 +15,10 @@ interface IconButtonProps {
   accessibilityLabel: string;
   onPress: () => void;
   testID?: string;
-  size?: number;
+  size: number;
 }
 
-function IconButton({
-  icon,
-  accessibilityLabel,
-  onPress,
-  testID,
-  size = Size.monthPillTrack,
-}: IconButtonProps) {
+function IconButton({ icon, accessibilityLabel, onPress, testID, size }: IconButtonProps) {
   return (
     <PressableFeedback
       testID={testID}
@@ -111,6 +105,7 @@ export function MonthFilter(props: MonthFilterProps) {
               icon="chevron-left"
               accessibilityLabel={Strings.monthPickerPreviousYearA11y}
               onPress={monthFilter.onPreviousPickerYear}
+              size={Size.monthYearStepTrack}
             />
             <Text className="font-sora-bold text-foreground text-[17px]">
               {monthFilter.state.pickerYear}
@@ -119,6 +114,7 @@ export function MonthFilter(props: MonthFilterProps) {
               icon="chevron-right"
               accessibilityLabel={Strings.monthPickerNextYearA11y}
               onPress={monthFilter.onNextPickerYear}
+              size={Size.monthYearStepTrack}
             />
           </View>
 
