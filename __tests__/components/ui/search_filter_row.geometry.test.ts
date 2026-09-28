@@ -69,6 +69,9 @@ describe('resolveSearchFilterRowGeometry', () => {
     expect(resolveSearchFilterRowGeometry(3).inputText).toEqual(
       resolveSearchFilterRowGeometry(2).inputText,
     );
+    expect(resolveSearchFilterRowGeometry(3).input).toEqual(
+      resolveSearchFilterRowGeometry(2).input,
+    );
   });
 
   it('at font scale 2 the filter button matches the input and the badge holds its count', () => {

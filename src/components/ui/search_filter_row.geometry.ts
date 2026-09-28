@@ -2,7 +2,6 @@ import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headlin
 import {
   type ScaledTextStyle,
   scaledFontSize,
-  scaledTextStyle,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
 import { Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
@@ -31,9 +30,10 @@ export interface SearchFilterRowGeometry {
 }
 
 export function resolveSearchFilterRowGeometry(fontScale: number): SearchFilterRowGeometry {
+  const inputText = scaledTextStyleAboveOne(Type.body, fontScale, SEARCH_INPUT_MAX_FONT_SCALE);
   const inputHeight = Math.max(
     COMPACT_CONTROL_SIZE,
-    scaledTextStyle(Type.body, fontScale, SEARCH_INPUT_MAX_FONT_SCALE).lineHeight + 2 * Spacing.xxs,
+    (inputText?.lineHeight ?? 0) + 2 * Spacing.xxs,
   );
   const input: SearchInputBox = {
     height: inputHeight,
@@ -41,7 +41,6 @@ export function resolveSearchFilterRowGeometry(fontScale: number): SearchFilterR
     paddingTop: 0,
     paddingBottom: 0,
   };
-  const inputText = scaledTextStyleAboveOne(Type.body, fontScale, SEARCH_INPUT_MAX_FONT_SCALE);
   const badgeFontSize = scaledFontSize(Type.chip, fontScale, SEARCH_INPUT_MAX_FONT_SCALE);
   const badgeSize = Math.max(FILTER_BADGE_SIZE, lineHeightFor(badgeFontSize));
   return {
