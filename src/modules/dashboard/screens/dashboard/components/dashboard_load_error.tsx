@@ -25,7 +25,7 @@ export function DashboardLoadError({
         retryLabel={Strings.dashboardLoadRetry}
         onRetry={onRetry}
         testID="dashboard-load-error"
-        clearsAddButton
+        clearsFab
       />
     );
   }

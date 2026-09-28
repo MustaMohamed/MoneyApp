@@ -1,3 +1,5 @@
+import { scaledFontSize } from '@/components/ui/text_scale.geometry';
+
 // `Sora_700Bold.ttf` metrics (unitsPerEm 1000): ascent 970, descent -290, lineGap 0.
 const SORA_ASCENT_EM = 0.97;
 const SORA_DESCENT_EM = 0.29;
@@ -24,13 +26,11 @@ export interface DisplayHeadlineGeometry {
 }
 
 export function resolveDisplayHeadlineGeometry(
-  scaledFontSize: number,
+  baseFontSize: number,
   fontScale: number,
   maxFontScale?: number,
 ): DisplayHeadlineGeometry {
-  const clampedFontScale =
-    maxFontScale === undefined ? fontScale : Math.min(fontScale, maxFontScale);
-  const fontSize = scaledFontSize * clampedFontScale;
+  const fontSize = scaledFontSize(baseFontSize, fontScale, maxFontScale);
   // Derive `boxHeight` from `baselineY`; ceiling the two separately can clip the descender.
   const baselineY = Math.ceil(fontSize * SORA_ASCENT_EM);
   const boxHeight = baselineY + Math.ceil(fontSize * SORA_DESCENT_EM);
@@ -52,13 +52,13 @@ export interface DisplayHeadlineTextStyle {
 
 /** Pair with `allowFontScaling={false}`; otherwise the OS scales this value a second time. */
 export function resolveDisplayHeadlineTextStyle(
-  scaledFontSize: number,
+  baseFontSize: number,
   fontScale: number,
   maxFontScale?: number,
 ): DisplayHeadlineTextStyle {
-  const g = resolveDisplayHeadlineGeometry(scaledFontSize, fontScale, maxFontScale);
+  const g = resolveDisplayHeadlineGeometry(baseFontSize, fontScale, maxFontScale);
   return {
-    // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- DISPLAY_HEADLINE_LINE_HEIGHT is the mockup's own 1.05 `.b-headline` ratio (line 5-6), literal-locked by display_headline.geometry.test.ts:85-92, not lineHeightFor's 1.3.
+    // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- DISPLAY_HEADLINE_LINE_HEIGHT is the mockup's own 1.05 `.b-headline` ratio (line 7-8), literal-locked by display_headline.geometry.test.ts:85-92, not lineHeightFor's 1.3.
     fontSize: g.fontSize,
     lineHeight: Math.round(g.fontSize * DISPLAY_HEADLINE_LINE_HEIGHT),
     letterSpacing: g.letterSpacing,

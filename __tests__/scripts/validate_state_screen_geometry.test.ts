@@ -138,16 +138,12 @@ describe('validate-state-screen-geometry.js — subprocess CLI contract (#338)',
     expect(result.stderr).toBe('');
   });
 
-  // §3 row 2. The import line goes; the resolver call stays, so only the import check fires.
+  // §3 row 2. The resolver leaves the merged import; its call stays, so only the import check fires.
   it('exits 1 when a component no longer imports the resolver', () => {
     const guard = makeFakeRoot([
       {
         rel: EMPTY_REL,
-        content: replaceOnce(
-          readComponent(EMPTY_REL),
-          "import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';\n",
-          '',
-        ),
+        content: replaceOnce(readComponent(EMPTY_REL), '  resolveStateScreenLayout,\n', ''),
       },
       { rel: ERROR_REL, content: readComponent(ERROR_REL) },
     ]);

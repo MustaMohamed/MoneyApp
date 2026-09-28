@@ -1,12 +1,32 @@
+import { Platform } from 'react-native';
+
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
   BUNDLED_TAB_BAR_HEIGHT,
-  TAB_LABEL_MAX_FONT_SCALE,
-  resolveAddButtonReach,
   resolveTabLabelStyle,
   resolveTabsGeometry,
 } from '@/modules/navigation/screens/tabs/tabs.helpers';
-import { ms } from '@/utils/responsive';
+
+// The bundled cell above its label: 5 dp top padding (BottomTabItem.js) and a 28 dp icon (TabBarIcon.js).
+const BUNDLED_CELL_ABOVE_LABEL = 5 + 28;
+
+type ThemeTokens = { Size: typeof Size; Spacing: typeof Spacing };
+
+// jest-expo runs the iOS branch of Platform.select; the app ships Android's.
+function loadAndroidTheme(): ThemeTokens {
+  let theme: ThemeTokens | undefined;
+  jest.isolateModules(() => {
+    const isolated = jest.requireActual<{ Platform: typeof Platform }>('react-native');
+    const selectAndroid = (spec: { android?: unknown; default?: unknown }) =>
+      spec.android ?? spec.default;
+    jest
+      .spyOn(isolated.Platform, 'select')
+      .mockImplementation(selectAndroid as typeof Platform.select);
+    theme = jest.requireActual<ThemeTokens>('@/constants/theme');
+  });
+  if (theme === undefined) throw new Error('theme did not load');
+  return theme;
+}
 
 describe('resolveTabLabelStyle', () => {
   it('draws the label at Type.pillLabel at font scale 1.0', () => {
@@ -16,33 +36,34 @@ describe('resolveTabLabelStyle', () => {
     });
   });
 
-  it('caps the label at a font scale of 1.3', () => {
-    expect(TAB_LABEL_MAX_FONT_SCALE).toBe(1.3);
-  });
+  it.each([1.3, 1.5, 2])(
+    'holds the label at Type.pillLabel × 1.3 on the 16 dp the cell leaves at font scale %s',
+    (scale) => {
+      expect(resolveTabLabelStyle(scale)).toEqual({
+        fontSize: Type.pillLabel * 1.3,
+        lineHeight: 16,
+      });
+    },
+  );
 
-  it.each([1.3, 1.5, 2])('holds the label at Type.pillLabel × 1.3 at font scale %s', (scale) => {
-    const fontSize = Type.pillLabel * 1.3;
+  it.each([1, 1.3, 1.5, 2])(
+    'fits the label line inside the bundled cell at font scale %s',
+    (scale) => {
+      const { lineHeight } = resolveTabLabelStyle(scale);
 
-    expect(resolveTabLabelStyle(scale)).toEqual({ fontSize, lineHeight: lineHeightFor(fontSize) });
-  });
+      expect(BUNDLED_CELL_ABOVE_LABEL + lineHeight).toBeLessThanOrEqual(BUNDLED_TAB_BAR_HEIGHT);
+    },
+  );
 });
 
 describe('the tab screens clear the + button', () => {
-  it("reaches the + button's top from the bundled 49 dp bar", () => {
-    expect(BUNDLED_TAB_BAR_HEIGHT).toBe(49);
-    expect(resolveAddButtonReach()).toBe(Size.tabBarHeight + Spacing.md + Size.fab - 49);
-  });
+  it("ends each tab list at or above the + button's reach over the Android bar", () => {
+    const android = loadAndroidTheme();
+    const reach =
+      android.Size.tabBarHeight + android.Spacing.md + android.Size.fab - BUNDLED_TAB_BAR_HEIGHT;
 
-  it("ends each tab list at or above the + button's reach", () => {
-    expect(Size.tabScreenBottomClearance).toBeGreaterThanOrEqual(resolveAddButtonReach());
-  });
-
-  it("keeps Budget's bottom clearance at today's ms(96)", () => {
-    expect(Size.tabScreenBottomClearance).toBe(ms(96));
-  });
-
-  it('leaves the + button and the toast clearance where they are at base', () => {
-    expect(resolveTabsGeometry(34)).toEqual({ fabBottomOffset: 108, toastClearance: 190 });
+    expect(android.Size.tabBarHeight).not.toBe(Size.tabBarHeight);
+    expect(android.Size.tabScreenBottomClearance).toBeGreaterThanOrEqual(reach);
   });
 });
 

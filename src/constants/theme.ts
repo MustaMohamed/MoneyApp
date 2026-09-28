@@ -150,7 +150,7 @@ export const Size = {
   // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
   fab: ms(56),
-  // Space below a tab screen's content, at or above the + button's reach over the bundled bar.
+  // Space below Home's, Commitments' and Budget's content, at or above the + button's reach over the bundled bar.
   tabScreenBottomClearance: ms(96),
   backBtn: ms(40),
   /** Compact brand mark, mockup § B header, `<svg width="30" height="30">`. */

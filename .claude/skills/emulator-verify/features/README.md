@@ -46,8 +46,9 @@ A merged ticket that adds a state, an action or a route edits its file in the sa
 
 ## Seeding and forcing states
 
-The recipes reference three mechanisms from the `emulator-verify` skill and its memory:
+The recipes reference four mechanisms from the `emulator-verify` skill and its memory:
 
 - **Deep link**: `mqa open /accounts` opens any expo-router route while the dev client runs. The only way into `/accounts` at zero active accounts.
 - **Seed push**: `mqa up --seed <file.db>` before a run, or `mqa seed <file.db>` mid-run (stops the app, drops the WAL pair, streams the file through `run-as`, checks the size, relaunches). `mqa seed --save <file.db>` keeps a device state you built. A seed built on the host with `better-sqlite3` uses `PRAGMA journal_mode=DELETE`. `mqa db` reads a pulled copy and never writes the device.
 - **Source force**: a state no data can produce (`loadError` on the list) is one line in the screen's own resolver, reverted with `git status` clean before and after.
+- **Font scale**: `adb -s <serial> shell settings put system font_scale <scale>` at each scale the row names, a cold launch after each, and `font_scale` back to 1.0 after the last.

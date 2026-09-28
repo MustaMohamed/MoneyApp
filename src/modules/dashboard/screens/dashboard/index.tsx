@@ -133,7 +133,7 @@ export default function DashboardScreen() {
           }}
         />
       ) : presentation.showAccountsEmptyState ? (
-        <EmptyState variant="accounts" onAction={goToAddAccount} clearsAddButton />
+        <EmptyState variant="accounts" onAction={goToAddAccount} clearsFab />
       ) : (
         <>
           <Tabs value={segment} onValueChange={onTabChange}>

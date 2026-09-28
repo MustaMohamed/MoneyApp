@@ -241,7 +241,7 @@ export default function CommitmentsScreen() {
           retryLabel={Strings.commitmentsLoadRetry}
           onRetry={() => void onRefresh()}
           testID="commitments-load-error"
-          clearsAddButton
+          clearsFab
         />
       ) : showCommitmentsEmptyState ? (
         <CommitmentsEmptyState onAdd={goToAdd} />

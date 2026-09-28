@@ -7,6 +7,9 @@ export const TAB_LABEL_MAX_FONT_SCALE = 1.3;
 // expo-router's bundled bar in raw dp, before the safe-area inset (bottom-tabs BottomTabBar.js, TABBAR_HEIGHT_UIKIT).
 export const BUNDLED_TAB_BAR_HEIGHT = 49;
 
+// The cell's room under its icon: 5 dp top padding (BottomTabItem.js tabVerticalUiKit), 28 dp icon (TabBarIcon.js ICON_SIZE_TALL).
+const TAB_LABEL_MAX_LINE_HEIGHT = BUNDLED_TAB_BAR_HEIGHT - 5 - 28;
+
 // HeroUI's custom bottom inset replaces its safe-area default, so the clearance carries the safe area itself.
 export function resolveTabsGeometry(
   safeAreaBottom: number,
@@ -25,10 +28,6 @@ export function resolveTabsGeometry(
 /** Pair with `tabBarAllowFontScaling: false`; otherwise the OS scales this size a second time. */
 export function resolveTabLabelStyle(fontScale: number): { fontSize: number; lineHeight: number } {
   const fontSize = scaledFontSize(Type.pillLabel, fontScale, TAB_LABEL_MAX_FONT_SCALE);
-  return { fontSize, lineHeight: lineHeightFor(fontSize) };
-}
-
-/** How far the + button's top reaches above the top of the bar a tab screen ends at. */
-export function resolveAddButtonReach(): number {
-  return Size.tabBarHeight + Spacing.md + Size.fab - BUNDLED_TAB_BAR_HEIGHT;
+  // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- capped at a fixed-track geometry constant, TAB_LABEL_MAX_LINE_HEIGHT.
+  return { fontSize, lineHeight: Math.min(lineHeightFor(fontSize), TAB_LABEL_MAX_LINE_HEIGHT) };
 }

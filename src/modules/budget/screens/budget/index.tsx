@@ -141,7 +141,7 @@ export default function BudgetScreen() {
           retryLabel={Strings.budgetLoadRetry}
           onRetry={() => void refresh()}
           testID="budget-load-error"
-          clearsAddButton
+          clearsFab
         />
       ) : state.presentation === 'coldLoading' ? (
         <ScreenScroll

@@ -24,7 +24,7 @@ export type LoadErrorAlertProps =
       fillPadding?: LoadErrorAlertFillPadding;
       minHeight?: number;
       /** A tab screen's state that does not scroll: centres above the + button. */
-      clearsAddButton?: boolean;
+      clearsFab?: boolean;
     })
   | (LoadErrorAlertCommonProps & {
       mode: 'inline';
@@ -110,7 +110,7 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
       style={{
         flex: 1,
         minHeight: props.minHeight,
-        paddingBottom: props.clearsAddButton === true ? bottomReserve : undefined,
+        paddingBottom: props.clearsFab === true ? bottomReserve : undefined,
       }}
       className={FILL_CLASS_NAME[fillPadding]}
     >

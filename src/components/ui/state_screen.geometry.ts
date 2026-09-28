@@ -124,7 +124,6 @@ export function resolveStateScreenLayout(kind: StateScreenKind): StateScreenLayo
   return STATE_SCREEN_LAYOUTS_BY_KIND[kind];
 }
 
-// Zero at and below 1.0, so a state that does not scroll draws as today there.
 export function resolveStateScreenBottomReserve(fontScale: number): number {
   return fontScale <= 1 ? 0 : Size.tabScreenBottomClearance;
 }

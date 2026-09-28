@@ -3,9 +3,10 @@ import React from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
-// Kept apart: the state-screen guard's suite removes the layout import by its exact line.
-import { resolveStateScreenBottomReserve } from '@/components/ui/state_screen.geometry';
-import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
+import {
+  resolveStateScreenBottomReserve,
+  resolveStateScreenLayout,
+} from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Spacing, Type, lineHeightFor } from '@/constants/theme';
@@ -26,22 +27,16 @@ export type EmptyStateVariant =
   | 'budget'
   | 'onboardingAccounts';
 
+interface EmptyStateCommonProps {
+  onAction?: () => void;
+  placement?: 'inline';
+  /** A tab screen's state that does not scroll: centres above the + button. */
+  clearsFab?: boolean;
+}
+
 export type EmptyStateProps =
-  | {
-      variant: 'accountsArchivedOnly';
-      archivedCount: number;
-      onAction?: () => void;
-      placement?: 'inline';
-      /** A tab screen's state that does not scroll: centres above the + button. */
-      clearsAddButton?: boolean;
-    }
-  | {
-      variant: Exclude<EmptyStateVariant, 'accountsArchivedOnly'>;
-      onAction?: () => void;
-      placement?: 'inline';
-      /** A tab screen's state that does not scroll: centres above the + button. */
-      clearsAddButton?: boolean;
-    };
+  | (EmptyStateCommonProps & { variant: 'accountsArchivedOnly'; archivedCount: number })
+  | (EmptyStateCommonProps & { variant: Exclude<EmptyStateVariant, 'accountsArchivedOnly'> });
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -151,7 +146,7 @@ export function resolveEmptyStatePlacement(
 
 export function EmptyState(props: EmptyStateProps) {
   const bottomReserve = resolveStateScreenBottomReserve(useWindowDimensions().fontScale);
-  const { onAction, clearsAddButton } = props;
+  const { onAction, clearsFab } = props;
   const config = VARIANT_CONFIG[props.variant];
   const placement = resolveEmptyStatePlacement(props.placement, config.placement);
   // Only `accountsArchivedOnly` carries a count, and only its description reads one.
@@ -164,7 +159,7 @@ export function EmptyState(props: EmptyStateProps) {
   const rootStyle =
     placement === 'inline'
       ? styles.rootInline
-      : [styles.root, clearsAddButton === true ? { paddingBottom: bottomReserve } : undefined];
+      : [styles.root, clearsFab === true ? { paddingBottom: bottomReserve } : undefined];
 
   return (
     <View style={rootStyle}>
