@@ -1,6 +1,7 @@
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 
 /** The hero's text stops growing past this OS font scale (ADR 2026-09-27-transactions-search-tally §7). */
 export const TRANSACTIONS_HERO_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
@@ -55,6 +56,16 @@ export function resolveTransactionsHeroGeometry(fontScale: number): Transactions
     caption: lineHeightFor(chip),
   };
 }
+
+/** The day header's row and insets, shared by the header and the list skeleton's header row. */
+export const DAY_HEADER_ROOT_STYLE = {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingHorizontal: Spacing.md,
+  paddingTop: Spacing.md,
+  paddingBottom: Spacing.xs,
+} as const;
+export const DAY_HEADER_NET_PLACEHOLDER_WIDTH = ms(70);
 
 export interface DayHeaderGeometry {
   fontSize: number;

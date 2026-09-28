@@ -5,6 +5,7 @@ import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Radius } from '@/constants/theme';
 import TransactionsScreen from '@/modules/transactions/screens/transactions';
+import { DAY_CARD_INNER_RADIUS } from '@/modules/transactions/screens/transactions/components/day_card_row.helpers';
 import { useTransactions } from '@/modules/transactions/screens/transactions/transactions.hook';
 import { makeTestTransaction } from '@/test_helpers/transaction';
 
@@ -87,11 +88,22 @@ jest.mock('@/modules/transactions/screens/transactions/components/account_chips'
 }));
 jest.mock('@/modules/transactions/screens/transactions/components/transaction_row', () => {
   const rowSeparators = new Map<string, boolean | undefined>();
+  const rowSwipeCorners = new Map<string, unknown>();
   return {
     rowSeparators,
-    TransactionRow: ({ tx, showSeparator }: { tx: { id: string }; showSeparator?: boolean }) => {
+    rowSwipeCorners,
+    TransactionRow: ({
+      tx,
+      showSeparator,
+      swipeContainerStyle,
+    }: {
+      tx: { id: string };
+      showSeparator?: boolean;
+      swipeContainerStyle?: unknown;
+    }) => {
       const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
       rowSeparators.set(tx.id, showSeparator);
+      rowSwipeCorners.set(tx.id, swipeContainerStyle);
       return <Text testID={`transaction-row-${tx.id}`}>Transaction row</Text>;
     },
   };
@@ -171,9 +183,10 @@ const mockedUseTransactions = jest.mocked(useTransactions);
 const { heroRenders } = jest.requireMock<{ heroRenders: { count: number } }>(
   '@/modules/transactions/screens/transactions/components/transactions_hero',
 );
-const { rowSeparators } = jest.requireMock<{ rowSeparators: Map<string, boolean | undefined> }>(
-  '@/modules/transactions/screens/transactions/components/transaction_row',
-);
+const { rowSeparators, rowSwipeCorners } = jest.requireMock<{
+  rowSeparators: Map<string, boolean | undefined>;
+  rowSwipeCorners: Map<string, StyleProp<ViewStyle>>;
+}>('@/modules/transactions/screens/transactions/components/transaction_row');
 
 type DaySection = TransactionsScreenState['sections'][number];
 type HostNode = Parameters<typeof within>[0];
@@ -238,6 +251,7 @@ describe('TransactionsScreen', () => {
     jest.clearAllMocks();
     heroRenders.count = 0;
     rowSeparators.clear();
+    rowSwipeCorners.clear();
     mockUseTransactions();
   });
 
@@ -280,6 +294,28 @@ describe('TransactionsScreen', () => {
 
     expect(getByText('hero:figures')).toBeTruthy();
     expect(heroRenders.count).toBe(mounted + 1);
+  });
+
+  it('rounds the swipe actions into the card corner on a first and a last row only', async () => {
+    mockUseTransactions({
+      emptyVariant: 'none',
+      listStatus: 'ready',
+      showInitialSkeleton: false,
+      sections: [
+        makeDaySection('2026-08-02', ['a1', 'a2', 'a3']),
+        makeDaySection('2026-08-01', ['b1']),
+      ],
+    });
+    await render(<TransactionsScreen />);
+
+    const corners = (id: string) => StyleSheet.flatten(rowSwipeCorners.get(id));
+    expect(corners('a1')).toStrictEqual({ borderTopRightRadius: DAY_CARD_INNER_RADIUS });
+    expect(corners('a2')).toStrictEqual({});
+    expect(corners('a3')).toStrictEqual({ borderBottomRightRadius: DAY_CARD_INNER_RADIUS });
+    expect(corners('b1')).toStrictEqual({
+      borderTopRightRadius: DAY_CARD_INNER_RADIUS,
+      borderBottomRightRadius: DAY_CARD_INNER_RADIUS,
+    });
   });
 
   it('draws each day as one card of row slices, closing on the rows left after a delete and growing on load more', async () => {

@@ -16,6 +16,7 @@ import { ms } from '@/utils/responsive';
 
 import { AccountChips } from './components/account_chips';
 import { DayCardRow } from './components/day_card_row';
+import { resolveDayCardSwipeCorners } from './components/day_card_row.helpers';
 import { DayHeader } from './components/day_header';
 import { SearchRow } from './components/search_row';
 import { SearchTally } from './components/search_tally';
@@ -94,9 +95,10 @@ export default function TransactionsScreen(): React.ReactElement {
 
   const renderItem = useCallback(
     ({ item, index, section }: SectionListRenderItemInfo<Transaction, TransactionSection>) => {
+      const isFirst = index === 0;
       const isLast = index === section.data.length - 1;
       return (
-        <DayCardRow isFirst={index === 0} isLast={isLast}>
+        <DayCardRow isFirst={isFirst} isLast={isLast}>
           <TransactionRow
             tx={item}
             account={state.accountsById.get(item.account_id)}
@@ -106,6 +108,7 @@ export default function TransactionsScreen(): React.ReactElement {
             onEdit={goToEdit}
             onDelete={requestDelete}
             showSeparator={!isLast}
+            swipeContainerStyle={resolveDayCardSwipeCorners(isFirst, isLast)}
           />
         </DayCardRow>
       );

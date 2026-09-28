@@ -1,6 +1,6 @@
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { lineHeightFor, Radius, Size, Spacing } from '@/constants/theme';
+import { lineHeightFor } from '@/constants/theme';
 import {
   AccentCCTokens,
   AccentTokens,
@@ -11,7 +11,6 @@ import {
 } from '@/constants/theme_tokens';
 import {
   buildTransactionRowPresentation,
-  resolveDayCardSliceStyle,
   resolveRowTile,
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
@@ -646,61 +645,6 @@ describe('transaction row line geometry', () => {
       lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE);
 
     expect(valueColumn).toBeLessThanOrEqual(innerBox);
-  });
-});
-
-describe('resolveDayCardSliceStyle', () => {
-  const sides = {
-    marginHorizontal: Spacing.md,
-    borderLeftWidth: Size.hairline,
-    borderRightWidth: Size.hairline,
-  };
-  const top = {
-    borderTopWidth: Size.hairline,
-    borderTopLeftRadius: Radius.lg,
-    borderTopRightRadius: Radius.lg,
-  };
-  const bottom = {
-    borderBottomWidth: Size.hairline,
-    borderBottomLeftRadius: Radius.lg,
-    borderBottomRightRadius: Radius.lg,
-  };
-
-  it('closes the top of the card on the first row of a day', () => {
-    expect(resolveDayCardSliceStyle(true, false)).toStrictEqual({ ...sides, ...top });
-  });
-
-  it('closes the bottom of the card on the last row of a day', () => {
-    expect(resolveDayCardSliceStyle(false, true)).toStrictEqual({ ...sides, ...bottom });
-  });
-
-  it('draws only the side borders on a middle row', () => {
-    const middle = resolveDayCardSliceStyle(false, false);
-
-    expect(middle).toStrictEqual(sides);
-    for (const key of [
-      'borderTopWidth',
-      'borderBottomWidth',
-      'borderTopLeftRadius',
-      'borderTopRightRadius',
-      'borderBottomLeftRadius',
-      'borderBottomRightRadius',
-    ]) {
-      expect(middle).not.toHaveProperty(key);
-    }
-  });
-
-  it('carries all four radii on a one-row day', () => {
-    expect(resolveDayCardSliceStyle(true, true)).toStrictEqual({ ...sides, ...top, ...bottom });
-  });
-
-  it.each([
-    [true, false],
-    [false, true],
-    [false, false],
-    [true, true],
-  ])('never clips the swipe actions (isFirst %s, isLast %s)', (isFirst, isLast) => {
-    expect(resolveDayCardSliceStyle(isFirst, isLast)).not.toHaveProperty('overflow');
   });
 });
 

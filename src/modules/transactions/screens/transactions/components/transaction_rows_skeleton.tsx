@@ -2,7 +2,7 @@ import { SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Spacing, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, lineHeightFor } from '@/constants/theme';
 
 import { DayCardRow } from './day_card_row';
 import {
@@ -13,7 +13,11 @@ import {
   TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
 } from './transaction_row.helpers';
-import { resolveDayHeaderGeometry } from './transactions_text.geometry';
+import {
+  DAY_HEADER_NET_PLACEHOLDER_WIDTH,
+  DAY_HEADER_ROOT_STYLE,
+  resolveDayHeaderGeometry,
+} from './transactions_text.geometry';
 
 const DEFAULT_ROWS = 5;
 
@@ -101,23 +105,18 @@ export function TransactionRowsSkeleton({
               <View key={card}>
                 <View
                   testID="transaction-day-skeleton-header"
-                  style={{
-                    height: headerHeight,
-                    paddingHorizontal: Spacing.md,
-                    paddingTop: Spacing.md,
-                    paddingBottom: Spacing.xs,
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                  style={[
+                    DAY_HEADER_ROOT_STYLE,
+                    { height: headerHeight, justifyContent: 'space-between' },
+                  ]}
                 >
                   <SkeletonGroup.Item
                     className="w-24 rounded-md"
                     style={{ height: headerLineHeight }}
                   />
                   <SkeletonGroup.Item
-                    className="w-20 rounded-md"
-                    style={{ height: headerLineHeight }}
+                    className="rounded-md"
+                    style={{ width: DAY_HEADER_NET_PLACEHOLDER_WIDTH, height: headerLineHeight }}
                   />
                 </View>
                 {rowIndexes.map((row) => {

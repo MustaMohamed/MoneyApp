@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
 import React, { useCallback, useMemo } from 'react';
-import { View } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
@@ -40,6 +40,7 @@ interface Props {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   showSeparator?: boolean;
+  swipeContainerStyle?: StyleProp<ViewStyle>;
 }
 
 interface BodyProps {
@@ -234,6 +235,7 @@ function TransactionRowComponent({
   onEdit,
   onDelete,
   showSeparator = true,
+  swipeContainerStyle,
 }: Props): React.ReactElement {
   const presentation = useMemo(
     () => buildTransactionRowPresentation({ tx, account, toAccount, category }),
@@ -272,6 +274,7 @@ function TransactionRowComponent({
       rowId={tx.id}
       actions={actions}
       disabled={isCommitmentOwned}
+      containerStyle={swipeContainerStyle}
       accessibilityLabel={presentation.accessibilityLabel}
     >
       <TransactionRowBody

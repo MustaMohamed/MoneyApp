@@ -1,7 +1,7 @@
 import type React from 'react';
 import { View } from 'react-native';
 
-import { resolveDayCardSliceStyle } from './transaction_row.helpers';
+import { resolveDayCardSliceStyle } from './day_card_row.helpers';
 
 interface Props {
   isFirst: boolean;

@@ -1,11 +1,11 @@
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
-import type { ViewStyle } from 'react-native';
+import { PixelRatio } from 'react-native';
 
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 import {
   AccentCCTokens,
   AcctTokens,
@@ -32,7 +32,8 @@ import { ms } from '@/utils/responsive';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-export const TRANSACTION_ROW_HEIGHT = ms(60);
+// Whole device pixels, so stacked rows and day-card slices meet on a pixel edge.
+export const TRANSACTION_ROW_HEIGHT = PixelRatio.roundToNearestPixel(ms(60));
 export const TRANSACTION_ROW_TITLE_FONT_SIZE = Type.bodyStrong;
 export const TRANSACTION_ROW_CAPTION_FONT_SIZE = Type.micro;
 export const TRANSACTION_ROW_AMOUNT_FONT_SIZE = Type.bodyStrong;
@@ -47,29 +48,6 @@ export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT = lineHeightFor(Type.compactBadg
 export const TRANSACTION_ROW_CAPTION_SEPARATOR = ' · ';
 
 const FALLBACK_ICON: IconName = 'shape-outline';
-
-/** One row's slice of its day's card; no `overflow`, so swipe actions draw whole past the corners. */
-export function resolveDayCardSliceStyle(isFirst: boolean, isLast: boolean): ViewStyle {
-  return {
-    marginHorizontal: Spacing.md,
-    borderLeftWidth: Size.hairline,
-    borderRightWidth: Size.hairline,
-    ...(isFirst
-      ? {
-          borderTopWidth: Size.hairline,
-          borderTopLeftRadius: Radius.lg,
-          borderTopRightRadius: Radius.lg,
-        }
-      : {}),
-    ...(isLast
-      ? {
-          borderBottomWidth: Size.hairline,
-          borderBottomLeftRadius: Radius.lg,
-          borderBottomRightRadius: Radius.lg,
-        }
-      : {}),
-  };
-}
 
 export interface TransactionRowPresentationInput {
   tx: Transaction;

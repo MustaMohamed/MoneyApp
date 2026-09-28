@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
@@ -32,6 +32,8 @@ export interface SwipeableRowProps {
   rowId?: string;
   disabled?: boolean;
   accessibilityLabel?: string;
+  /** The swipe container's style; its corner radii clip the action tiles. */
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 const ACTION_TILE_WIDTH = ms(72);
@@ -70,6 +72,7 @@ export function SwipeableRow({
   rowId: rowIdProp,
   disabled = false,
   accessibilityLabel,
+  containerStyle,
 }: SwipeableRowProps): React.ReactElement {
   const rowId = useRef(rowIdProp ?? genId()).current;
   const swipeableRef = useRef<SwipeableMethods>(null);
@@ -153,6 +156,7 @@ export function SwipeableRow({
     >
       <ReanimatedSwipeable
         ref={swipeableRef}
+        containerStyle={containerStyle}
         enabled={!disabled}
         renderRightActions={renderRightActions}
         rightThreshold={ACTION_TILE_WIDTH * 0.4}
