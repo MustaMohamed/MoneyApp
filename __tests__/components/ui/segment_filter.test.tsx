@@ -1,6 +1,8 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
 
 import { SegmentFilter } from '@/components/ui/segment_filter';
+import { resolveSegmentFilterWidth } from '@/components/ui/segment_filter.geometry';
 import { Size } from '@/constants/theme';
 
 jest.mock('@/components/ui/tabs', () => ({
@@ -92,7 +94,7 @@ describe('SegmentFilter', () => {
     expect(getByTestId('segment-filter-width-set')).toBeTruthy();
     expect(Size.filterSegmentCompactWidth).toBeLessThan(Size.filterSegmentWidth);
     expect(getByTestId('segment-filter-width-set')).toHaveTextContent(
-      String(Size.filterSegmentCompactWidth),
+      String(resolveSegmentFilterWidth(Dimensions.get('window').fontScale)),
     );
     expect(getByTestId('segment-filter-density')).toHaveTextContent('compact');
     expect(getByText('calendar-clock-outline')).toBeTruthy();

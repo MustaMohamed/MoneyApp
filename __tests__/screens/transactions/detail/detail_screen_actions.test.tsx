@@ -55,7 +55,8 @@ describe('transaction detail actions', () => {
     const screen = await render(<ActionRow onDelete={jest.fn()} />);
 
     expect(screen.queryByText(Strings.detailEditButton)).toBeNull();
-    expect(screen.getByText(Strings.detailDeleteButton)).toBeTruthy();
+    expect(screen.getByText(Strings.detailDeleteButton)).toHaveProp('allowFontScaling', false);
+    expect(screen.getByText(Strings.detailDeleteButton)).toHaveProp('numberOfLines', 1);
     expect(screen.queryByText(Strings.viewCommitment)).toBeNull();
   });
 });

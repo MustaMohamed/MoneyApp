@@ -1,13 +1,12 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
 
-import {
-  FILTER_BADGE_STYLE,
-  FILTER_BUTTON_COMPACT_STYLE,
-  SEARCH_INPUT_COMPACT_STYLE,
-  SearchRow,
-} from '@/modules/transactions/screens/transactions/components/search_row';
+import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_row.geometry';
+import { SearchRow } from '@/modules/transactions/screens/transactions/components/search_row';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+
+const geometry = resolveSearchFilterRowGeometry(Dimensions.get('window').fontScale);
 
 describe('SearchRow', () => {
   it('renders the compact search input and trailing filter button', async () => {
@@ -15,17 +14,9 @@ describe('SearchRow', () => {
       <SearchRow value="" onChange={jest.fn()} onOpenFilter={jest.fn()} activeFilterCount={0} />,
     );
 
-    expect(typeof SEARCH_INPUT_COMPACT_STYLE.height).toBe('number');
-    expect(SEARCH_INPUT_COMPACT_STYLE).toMatchObject({
-      height: FILTER_BUTTON_COMPACT_STYLE.height,
-      minHeight: FILTER_BUTTON_COMPACT_STYLE.height,
-    });
-    expect(typeof FILTER_BUTTON_COMPACT_STYLE.height).toBe('number');
-    expect(typeof FILTER_BUTTON_COMPACT_STYLE.width).toBe('number');
-    expect(typeof FILTER_BUTTON_COMPACT_STYLE.borderRadius).toBe('number');
     expect(getByLabelText('Search transactions')).toHaveProp('accessibilityRole', 'search');
-    expect(getByLabelText('Search transactions')).toHaveProp('style', SEARCH_INPUT_COMPACT_STYLE);
-    expect(getByLabelText('Filter')).toHaveProp('style', FILTER_BUTTON_COMPACT_STYLE);
+    expect(getByLabelText('Search transactions')).toHaveProp('style', geometry.inputStyle);
+    expect(getByLabelText('Filter')).toHaveProp('style', geometry.filterButton);
   });
 
   it('shows the active-filter badge only when advanced filters are applied', async () => {
@@ -38,8 +29,6 @@ describe('SearchRow', () => {
       <SearchRow value="" onChange={jest.fn()} onOpenFilter={jest.fn()} activeFilterCount={2} />,
     );
     expect(active.getByText('2')).toBeTruthy();
-    expect(FILTER_BADGE_STYLE.top).toBeGreaterThanOrEqual(0);
-    expect(FILTER_BADGE_STYLE.right).toBeGreaterThanOrEqual(0);
     expect(active.getByTestId('filter-badge')).toBeTruthy();
     expect(active.getByLabelText('Filter, 2 active')).toBeTruthy();
   });
@@ -54,10 +43,7 @@ describe('SearchRow', () => {
       />,
     );
 
-    expect(active.getByLabelText('Search transactions')).toHaveProp(
-      'style',
-      SEARCH_INPUT_COMPACT_STYLE,
-    );
+    expect(active.getByLabelText('Search transactions')).toHaveProp('style', geometry.inputStyle);
   });
 
   it('routes search changes and clearing through the controlled handler', async () => {

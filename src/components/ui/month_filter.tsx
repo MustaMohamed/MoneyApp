@@ -1,10 +1,11 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, Size, Spacing } from '@/constants/theme';
 
+import { resolveMonthPillGeometry } from './month_filter.geometry';
 import { type MonthFilterProps, useMonthFilter } from './month_filter.hook';
 import { Sheet } from './sheet';
 import { Text } from './text';
@@ -14,9 +15,10 @@ interface IconButtonProps {
   accessibilityLabel: string;
   onPress: () => void;
   testID?: string;
+  size: number;
 }
 
-function IconButton({ icon, accessibilityLabel, onPress, testID }: IconButtonProps) {
+function IconButton({ icon, accessibilityLabel, onPress, testID, size }: IconButtonProps) {
   return (
     <PressableFeedback
       testID={testID}
@@ -24,7 +26,8 @@ function IconButton({ icon, accessibilityLabel, onPress, testID }: IconButtonPro
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className="bg-default/60 h-8 w-8 items-center justify-center rounded-full"
+      className="bg-default/60 items-center justify-center rounded-full"
+      style={{ height: size, width: size }}
     >
       <MaterialCommunityIcons name={icon} size={20} color={Colors.dark.text1} />
     </PressableFeedback>
@@ -34,6 +37,7 @@ function IconButton({ icon, accessibilityLabel, onPress, testID }: IconButtonPro
 export function MonthFilter(props: MonthFilterProps) {
   const monthFilter = useMonthFilter(props);
   const showStepButtons = props.showStepButtons ?? true;
+  const pill = resolveMonthPillGeometry(useWindowDimensions().fontScale);
 
   return (
     <>
@@ -44,6 +48,7 @@ export function MonthFilter(props: MonthFilterProps) {
             icon="chevron-left"
             accessibilityLabel={Strings.monthFilterPreviousA11y}
             onPress={monthFilter.onPreviousMonth}
+            size={pill.height}
           />
         )}
         <PressableFeedback
@@ -51,12 +56,15 @@ export function MonthFilter(props: MonthFilterProps) {
           onPress={monthFilter.onOpenPicker}
           accessibilityRole="button"
           accessibilityLabel={monthFilter.state.openPickerAccessibilityLabel}
-          className="bg-accent h-8 flex-1 items-center justify-center rounded-full px-2.5"
+          className="bg-accent flex-1 items-center justify-center rounded-full px-2.5"
+          style={{ height: pill.height }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
             <Text
+              numberOfLines={1}
+              allowFontScaling={false}
               className="font-sora-bold text-accent-foreground"
-              style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+              style={{ ...pill.label, flexShrink: 1 }}
             >
               {monthFilter.state.selectedLabel}
             </Text>
@@ -73,6 +81,7 @@ export function MonthFilter(props: MonthFilterProps) {
             icon="chevron-right"
             accessibilityLabel={Strings.monthFilterNextA11y}
             onPress={monthFilter.onNextMonth}
+            size={pill.height}
           />
         )}
       </View>
@@ -96,6 +105,7 @@ export function MonthFilter(props: MonthFilterProps) {
               icon="chevron-left"
               accessibilityLabel={Strings.monthPickerPreviousYearA11y}
               onPress={monthFilter.onPreviousPickerYear}
+              size={Size.monthYearStepTrack}
             />
             <Text className="font-sora-bold text-foreground text-[17px]">
               {monthFilter.state.pickerYear}
@@ -104,6 +114,7 @@ export function MonthFilter(props: MonthFilterProps) {
               icon="chevron-right"
               accessibilityLabel={Strings.monthPickerNextYearA11y}
               onPress={monthFilter.onNextPickerYear}
+              size={Size.monthYearStepTrack}
             />
           </View>
 

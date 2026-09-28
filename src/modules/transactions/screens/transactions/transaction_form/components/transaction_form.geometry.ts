@@ -1,6 +1,7 @@
 import type { Insets } from 'react-native';
 
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import {
   Radius,
   Size,
@@ -63,3 +64,17 @@ export const TRANSACTION_FORM_SKELETON_GEOMETRY = {
   keyBar: { width: ms(60), height: lineHeightFor(Type.body) },
   valueBar: { width: ms(100), height: lineHeightFor(Type.body) },
 } as const;
+
+export function resolveTypeTabsGeometry(fontScale: number): {
+  listHeight: number;
+  skeletonHeight: number;
+} {
+  const listHeight = Math.max(
+    Size.typeTabsTrack,
+    resolveSegmentedTabsGeometry(fontScale).compact.listHeight,
+  );
+  return {
+    listHeight,
+    skeletonHeight: fontScale <= 1 ? TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar : listHeight,
+  };
+}

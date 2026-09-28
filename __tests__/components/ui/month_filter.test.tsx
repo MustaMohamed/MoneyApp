@@ -1,9 +1,10 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { Dimensions } from 'react-native';
 
 import { MonthFilter } from '@/components/ui/month_filter';
+import { resolveMonthPillGeometry } from '@/components/ui/month_filter.geometry';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@/components/ui/sheet', () => ({
@@ -21,14 +22,15 @@ jest.mock('@/components/ui/sheet', () => ({
 
 describe('MonthFilter', () => {
   it('uses compact controls inside the filter rail', async () => {
-    const { getByText } = await render(
+    const { getByTestId, getByText } = await render(
       <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={jest.fn()} />,
     );
 
-    expect(getByText('August 2026')).toHaveStyle({
-      fontSize: Type.micro,
-      lineHeight: lineHeightFor(Type.micro),
-    });
+    const pill = resolveMonthPillGeometry(Dimensions.get('window').fontScale);
+    expect(getByTestId('month-filter-open')).toHaveStyle({ height: pill.height });
+    expect(getByText('August 2026')).toHaveStyle(pill.label);
+    expect(getByText('August 2026')).toHaveProp('allowFontScaling', false);
+    expect(getByText('August 2026')).toHaveProp('numberOfLines', 1);
   });
 
   it('shows the selected month without the extra label', async () => {

@@ -1,8 +1,10 @@
 import { render, within } from '@testing-library/react-native';
 import type { ComponentProps, ReactNode } from 'react';
+import { Dimensions } from 'react-native';
 
 import { SOLID_GOLD_SELECTED_RADIUS, SegmentedTabs } from '@/components/ui/tabs';
-import { Colors, Radius, Type, lineHeightFor } from '@/constants/theme';
+import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
+import { Colors, Radius } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -146,16 +148,14 @@ describe('SegmentedTabs', () => {
       />,
     );
 
-    expect(getByText('All')).toHaveStyle({
-      fontSize: Type.micro,
-      lineHeight: lineHeightFor(Type.micro),
-    });
+    const compactLabel = resolveSegmentedTabsGeometry(Dimensions.get('window').fontScale).compact
+      .label;
+    expect(getByText('All')).toHaveStyle(compactLabel);
+    expect(getByText('All')).toHaveProp('allowFontScaling', false);
+    expect(getByText('All')).toHaveProp('numberOfLines', 1);
     // Weight has no style form here: the family class is its only expression (ui.md § Fonts), so these two stay on className (tests.md:28).
     expect(getByText('All')).toHaveProp('className', 'font-inter-bold');
-    expect(getByText('Overdue')).toHaveStyle({
-      fontSize: Type.micro,
-      lineHeight: lineHeightFor(Type.micro),
-    });
+    expect(getByText('Overdue')).toHaveStyle(compactLabel);
     expect(getByText('Overdue')).not.toHaveProp('className', 'font-inter-bold');
     expect(getByText('Overdue')).toHaveStyle({ color: Colors.dark.text2 });
     expect(getByText('All')).not.toHaveStyle({ color: Colors.dark.text2 });
@@ -252,6 +252,10 @@ describe('SegmentedTabs', () => {
     expect(getByTestId('tabs-trigger-all')).toHaveStyle({
       backgroundColor: Colors.shared.cairoGold,
       borderRadius: Radius.lg,
+    });
+    expect(getByTestId('tabs-trigger-all')).toHaveStyle({
+      height: resolveSegmentedTabsGeometry(Dimensions.get('window').fontScale).compact
+        .triggerHeight,
     });
     expect(getByTestId('tabs-indicator')).toHaveStyle({
       backgroundColor: Colors.shared.cairoGold,

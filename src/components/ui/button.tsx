@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button as HButton, Spinner, cn, type ButtonSize, type ButtonVariant } from 'heroui-native';
 import React from 'react';
-import { StyleSheet, type PressableProps } from 'react-native';
+import { StyleSheet, useWindowDimensions, type PressableProps } from 'react-native';
 
 import { Colors, Size } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
@@ -12,6 +12,7 @@ import {
   resolveFlatButtonStyle,
   type FlatButtonTone,
 } from './button.content';
+import { resolveButtonLabelStyle } from './button.geometry';
 
 // CTAs are Sora (.claude/rules/ui.md; mockup `.cta` uses the display face at 600) — HeroUI's own label ships Inter medium.
 const CTA_LABEL_FONT = 'font-sora-semibold';
@@ -60,7 +61,14 @@ export function Button({
     isLoading,
     loadingLabel,
   });
-  const flatStyle = resolveFlatButtonStyle({ variant, flat, tone });
+  const { fontScale } = useWindowDimensions();
+  const flatStyle = resolveFlatButtonStyle({ variant, flat, tone, fontScale, size });
+  const labelFontStyle = resolveButtonLabelStyle(size, fontScale);
+  const labelProps = {
+    numberOfLines: 1,
+    allowFontScaling: labelFontStyle === undefined,
+    style: { ...labelFontStyle, flexShrink: 1 },
+  };
 
   if (variant === 'primary' && flat) {
     return (
@@ -73,7 +81,9 @@ export function Button({
         style={flatStyle?.style}
       >
         {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
-        <HButton.Label className={CTA_LABEL_FONT}>{text}</HButton.Label>
+        <HButton.Label {...labelProps} className={CTA_LABEL_FONT}>
+          {text}
+        </HButton.Label>
       </HButton>
     );
   }
@@ -95,7 +105,7 @@ export function Button({
           pointerEvents="none"
         />
         {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
-        <HButton.Label className={cn(CTA_LABEL_FONT, 'text-accent-foreground')}>
+        <HButton.Label {...labelProps} className={cn(CTA_LABEL_FONT, 'text-accent-foreground')}>
           {text}
         </HButton.Label>
       </HButton>
@@ -121,7 +131,9 @@ export function Button({
     >
       {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
       {icon ? <MaterialCommunityIcons name={icon} size={Size.iconSm} color={iconColor} /> : null}
-      <HButton.Label className={cn(CTA_LABEL_FONT, flatStyle?.labelClass)}>{text}</HButton.Label>
+      <HButton.Label {...labelProps} className={cn(CTA_LABEL_FONT, flatStyle?.labelClass)}>
+        {text}
+      </HButton.Label>
     </HButton>
   );
 }

@@ -7,6 +7,7 @@ import type {
 } from 'react-native';
 
 import type { TabSegment } from './tabs';
+import { TABS_SCROLL_CONTENT_INSET } from './tabs.geometry';
 
 export type SegmentedTabsScrollAlign = 'start' | 'center' | 'end' | 'none' | 'visible';
 
@@ -40,6 +41,18 @@ export function getVisibleScrollOffset({
   const maxOffset = Math.max(0, contentWidth - viewportWidth);
 
   return Math.min(Math.max(0, unclampedOffset), maxOffset);
+}
+
+export function getSegmentScrollBox(
+  selectedIndex: number,
+  segmentWidth: number,
+  segmentCount: number,
+): Pick<VisibleScrollOffsetParams, 'itemX' | 'itemWidth' | 'contentWidth'> {
+  return {
+    itemX: TABS_SCROLL_CONTENT_INSET + selectedIndex * segmentWidth,
+    itemWidth: segmentWidth,
+    contentWidth: segmentCount * segmentWidth + 2 * TABS_SCROLL_CONTENT_INSET,
+  };
 }
 
 interface UseSegmentedTabsScrollParams<T extends string> {
@@ -84,9 +97,7 @@ export function useSegmentedTabsScroll<T extends string>({
     const nextOffset = getVisibleScrollOffset({
       currentOffset: currentOffsetRef.current,
       viewportWidth,
-      itemX: selectedIndex * segmentWidth,
-      itemWidth: segmentWidth,
-      contentWidth: segments.length * segmentWidth,
+      ...getSegmentScrollBox(selectedIndex, segmentWidth, segments.length),
     });
 
     if (nextOffset == null) return;

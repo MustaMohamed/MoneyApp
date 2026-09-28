@@ -1,10 +1,12 @@
-import { Size } from '@/constants/theme';
+import { useWindowDimensions } from 'react-native';
 
+import { resolveSegmentFilterWidth } from './segment_filter.geometry';
 import { type SegmentFilterProps, useSegmentFilter } from './segment_filter.hook';
 import { SegmentedTabs } from './tabs';
 
 export function SegmentFilter<T extends string>(props: SegmentFilterProps<T>) {
   const segmentFilter = useSegmentFilter(props);
+  const segmentWidth = resolveSegmentFilterWidth(useWindowDimensions().fontScale);
 
   return (
     <SegmentedTabs
@@ -20,7 +22,7 @@ export function SegmentFilter<T extends string>(props: SegmentFilterProps<T>) {
           ? 'self-stretch bg-default/60'
           : 'self-stretch rounded-full bg-default/60'
       }
-      segmentWidth={Size.filterSegmentCompactWidth}
+      segmentWidth={segmentWidth}
       density="compact"
       corners={props.corners}
       accessibilityLabel={props.accessibilityLabel}

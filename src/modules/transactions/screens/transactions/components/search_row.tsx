@@ -1,11 +1,6 @@
 import React from 'react';
 
-import {
-  FILTER_BADGE_STYLE,
-  FILTER_BUTTON_COMPACT_STYLE,
-  SEARCH_INPUT_COMPACT_STYLE,
-  SearchFilterRow,
-} from '@/components/ui/search_filter_row';
+import { SearchFilterRow } from '@/components/ui/search_filter_row';
 import { Strings } from '@/constants/strings';
 
 interface Props {
@@ -15,8 +10,6 @@ interface Props {
   activeFilterCount: number;
   isDisabled?: boolean;
 }
-
-export { FILTER_BADGE_STYLE, FILTER_BUTTON_COMPACT_STYLE, SEARCH_INPUT_COMPACT_STYLE };
 
 export function SearchRow({
   value,

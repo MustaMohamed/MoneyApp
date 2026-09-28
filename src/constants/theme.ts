@@ -146,6 +146,14 @@ export const Size = {
   onboardingCtaTrack: 48,
   // Raw 36 for the same reason: it overrides HeroUI's size="sm" track of 40 (button.css:43).
   compactCtaTrack: 36,
+  // Raw 28 for the same reason: the compact segment's `h-7` track at scale 1.
+  compactSegmentTrack: 28,
+  // Raw 32 for the same reason: the month pill's `h-8` track at scale 1.
+  monthPillTrack: 32,
+  // Raw 32 for the same reason: the month picker's year arrows, formerly `h-8 w-8`.
+  monthYearStepTrack: 32,
+  // Raw 36 for the same reason: the transaction form's type tab row, `h-9`, at scale 1.
+  typeTabsTrack: 36,
   headerHeight: ms(56),
   // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
