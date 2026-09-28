@@ -200,9 +200,11 @@ describe('TransactionsScreen', () => {
   });
 
   it('shows row skeletons instead of the list spinner during first load', async () => {
-    const { getByTestId, queryByText } = await render(<TransactionsScreen />);
+    const { getByTestId, getAllByTestId, queryByText } = await render(<TransactionsScreen />);
 
     expect(getByTestId('transaction-row-skeletons')).toBeTruthy();
+    expect(getAllByTestId('transaction-day-skeleton-header')).toHaveLength(2);
+    expect(getAllByTestId('transaction-row-skeleton')).toHaveLength(6);
     expect(queryByText('spinner')).toBeNull();
   });
 
