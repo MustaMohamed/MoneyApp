@@ -1709,6 +1709,7 @@ describe('useTransactions search tally', () => {
       mode: 'figures',
       filterSummary: 'Wallet, Bank',
     });
+    expect(result.current.state).not.toHaveProperty('appliedFilterSummary');
   });
 
   it('one account plus a category reads the category alone', async () => {
@@ -2037,21 +2038,5 @@ describe('useTransactions day sections', () => {
       { mode: 'failed', net: DASH },
     ]);
     consoleSpy.mockRestore();
-  });
-
-  it('leaves the applied-filter summary to the tally, out of the list state', async () => {
-    const WALLET = makeTestAccount({ id: 'acc-1', name: 'Wallet' });
-    const BANK = makeTestAccount({ id: 'acc-2', name: 'Bank' });
-    serveDay(-450, 3);
-    useTransactionsScreenStore
-      .getState()
-      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1', 'acc-2'] });
-    setupStores({}, { accounts: [WALLET, BANK], hasLoaded: true });
-
-    const { result } = await renderHook(() => useTransactions());
-    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
-
-    expect(result.current.state.tally).toMatchObject({ filterSummary: 'Wallet, Bank' });
-    expect(result.current.state).not.toHaveProperty('appliedFilterSummary');
   });
 });

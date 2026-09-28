@@ -13,6 +13,9 @@ export function scaledFontSize(
   return fontSize * Math.min(fontScale, maxFontScale);
 }
 
+/** Android reserves a truncated line's `…` in the paint's Roboto (0.669 em), and Inter SemiBold draws it at 0.956 em (StaticLayout.java:1189). */
+export const INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE = 1.45;
+
 export interface SearchTallyGeometry {
   slotHeight: number;
   lineHeight: number;

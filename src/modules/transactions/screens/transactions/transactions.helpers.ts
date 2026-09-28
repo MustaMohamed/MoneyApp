@@ -13,7 +13,7 @@ import {
   formatDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
-import type { TransactionSection } from '@/utils/group_transactions_by_date';
+import type { TransactionDateGroup } from '@/utils/group_transactions_by_date';
 import { toCents } from '@/utils/money';
 import {
   MONTHS_SHORT,
@@ -514,11 +514,16 @@ export type DayHeaderSpoken =
   | { mode: 'failed' }
   | { mode: 'figures'; netEgp: number; count: number };
 
+const SPOKEN_SIGN: Record<PolaritySignal, string | undefined> = {
+  good: Strings.spokenPlus,
+  bad: Strings.spokenMinus,
+  neutral: undefined,
+};
+
 function spokenDayNet(netEgp: number): string {
-  const { text, printsAsZero } = formatDisplayMagnitude(netEgp, HERO_CURRENCY);
-  const amount = `${text} ${CURRENCY_CONFIG[HERO_CURRENCY].code}`;
-  if (printsAsZero) return amount;
-  return `${netEgp > 0 ? Strings.spokenPlus : Strings.spokenMinus} ${amount}`;
+  const amount = `${formatDisplayMagnitude(netEgp, HERO_CURRENCY).text} ${CURRENCY_CONFIG[HERO_CURRENCY].code}`;
+  const sign = SPOKEN_SIGN[formatSignedNet(netEgp).polarity];
+  return sign === undefined ? amount : `${sign} ${amount}`;
 }
 
 export function composeDayHeaderAccessibilityLabel(label: string, spoken: DayHeaderSpoken): string {
@@ -541,7 +546,7 @@ export function composeDayHeaderAccessibilityLabel(label: string, spoken: DayHea
 }
 
 export interface DaySectionsInput {
-  groups: readonly TransactionSection[];
+  groups: readonly TransactionDateGroup[];
   days: readonly TransactionDayAggregate[] | undefined;
   figuresMode: TransactionsHeroMode;
   totalsStatus: TransactionTotalsStatus;
@@ -549,20 +554,9 @@ export interface DaySectionsInput {
 
 // A day the held aggregate lacks never reads 0 EGP (rulings 1 and 2, 2026-09-28).
 function missingDaySpoken(status: TransactionTotalsStatus): DayHeaderSpoken {
-  switch (status) {
-    case 'refreshErrorWithData':
-    case 'firstLoadError':
-      return { mode: 'failed' };
-    case 'idle':
-    case 'initialLoading':
-    case 'ready':
-    case 'refreshing':
-      return { mode: 'skeleton' };
-    default: {
-      const unhandled: never = status;
-      return unhandled;
-    }
-  }
+  return resolveSearchTallyFiguresMode('figures', status, false) === 'dashes'
+    ? { mode: 'failed' }
+    : { mode: 'skeleton' };
 }
 
 function dayFigures(spoken: DayHeaderSpoken): DayHeaderFigures {

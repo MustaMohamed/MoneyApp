@@ -409,10 +409,11 @@ export function useTransactions() {
   const showAccountLookupError =
     accountLookupError && findMissingAccountIds(transactionAccountIds, accountsById).length > 0;
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
-  const dayGroups = useMemo(
-    () => groupTransactionsByDate(currentTransactions),
-    [currentTransactions],
-  );
+  const today = toLocalDateString(new Date());
+  const dayGroups = useMemo(() => {
+    const [year, month, day] = today.split('-').map(Number);
+    return groupTransactionsByDate(currentTransactions, new Date(year, month - 1, day));
+  }, [currentTransactions, today]);
   const activeFilterCount = useMemo(() => countFunnelFilters(effectiveFilters), [effectiveFilters]);
   const hasAdvancedFilters = countActiveFilters(effectiveFilters) > 0;
   const accountChips = useMemo(
@@ -456,7 +457,6 @@ export function useTransactions() {
     effectiveFilters.accountIds.length === 1
       ? accountLabelsById.get(effectiveFilters.accountIds[0])?.name
       : undefined;
-  const today = toLocalDateString(new Date());
   const heroMode = resolveTransactionsHeroMode(
     displayTotalsStatus,
     displayTotals !== null,

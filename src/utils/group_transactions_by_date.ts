@@ -1,8 +1,8 @@
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/database/entities/transaction.entity';
-import { MONTHS_SHORT } from '@/utils/year_month';
+import { MONTHS_SHORT, WEEKDAYS_SHORT } from '@/utils/year_month';
 
-export interface TransactionSection {
+export interface TransactionDateGroup {
   /** The rows' `transaction_date`, `YYYY-MM-DD`. */
   key: string;
   label: string;
@@ -13,8 +13,8 @@ export interface TransactionSection {
 export function groupTransactionsByDate(
   txs: Transaction[],
   now: Date = new Date(),
-): TransactionSection[] {
-  const sections: TransactionSection[] = [];
+): TransactionDateGroup[] {
+  const sections: TransactionDateGroup[] = [];
   let currentKey: string | null = null;
 
   const today = ymd(now);
@@ -35,10 +35,9 @@ export function groupTransactionsByDate(
 function labelFor(date: string, today: string, yesterday: string, thisYear: number): string {
   if (date === today) return Strings.todayLabel;
   if (date === yesterday) return Strings.yesterdayLabel;
-  const [yStr, mStr, dStr] = date.split('-');
-  const year = Number(yStr);
-  const weekday = new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short' });
-  const label = `${weekday} ${Number(dStr)} ${MONTHS_SHORT[Number(mStr) - 1]}`;
+  const [year, month, day] = date.split('-').map(Number);
+  const weekday = WEEKDAYS_SHORT[new Date(year, month - 1, day).getDay()];
+  const label = `${weekday} ${day} ${MONTHS_SHORT[month - 1]}`;
   return year === thisYear ? label : `${label} ${year}`;
 }
 

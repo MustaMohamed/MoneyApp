@@ -25,7 +25,7 @@ After a failed load the header prints `—` with no currency code and no count p
 
 ## 5. The label
 
-Today and Yesterday read the word alone. Other days read `<Ddd> <d> <Mmm>`, and a day outside the current year carries the year, `<Ddd> <d> <Mmm> <yyyy>` (user ruling, day label, 2026-09-28). The stored strings are `Today` and `Yesterday`; the header's `uppercase` class draws the capitals. The weekday comes from `toLocaleDateString('en-US', { weekday: 'short' })`, the Hermes Intl dependency `fullMonthName` already has.
+Today and Yesterday read the word alone. Other days read `<Ddd> <d> <Mmm>`, and a day outside the current year carries the year, `<Ddd> <d> <Mmm> <yyyy>` (user ruling, day label, 2026-09-28). The stored strings are `Today` and `Yesterday`; the header's `uppercase` class draws the capitals. The weekday comes from `WEEKDAYS_SHORT` in `src/utils/year_month.ts`, indexed by the day's local `getDay()`, with no Intl call.
 
 ## 6. One accessibility item
 
@@ -34,6 +34,8 @@ The header root is `accessible` with one composed label, so a screen reader read
 ## 7. The header scales its own text, uncapped
 
 Every text takes `allowFontScaling={false}` and a size from `resolveDayHeaderGeometry(fontScale)`: `Type.caption` times the OS font scale with no cap, its `lineHeightFor` line box, a pill of that line box plus `Spacing.xxxs` above and below, and a fixed height of `Spacing.md` + the pill + `Spacing.xs` in all three modes. The fixed height keeps the pinned header from jumping when the figures land. The label takes the remaining width and ends in an ellipsis; the net and the pill never shrink.
+
+Android reserves a truncated line's `…` in the TextView paint's Roboto (0.669 em) and draws it in the span's face (Inter SemiBold 0.956 em), so the label's outer `Text` sizes that paint at `INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE` (1.45) times the size a nested `Text` draws at; any truncating text in a custom face needs a paint `…` at least as wide as its face's.
 
 ## 8. Why not `SectionHeader`
 

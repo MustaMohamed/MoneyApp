@@ -24,7 +24,7 @@ import {
 } from '@/modules/transactions/screens/transactions/transactions.helpers';
 import type { TransactionTotalsStatus } from '@/modules/transactions/screens/transactions/transactions.state';
 import { makeTestTransaction } from '@/test_helpers/transaction';
-import type { TransactionSection } from '@/utils/group_transactions_by_date';
+import type { TransactionDateGroup } from '@/utils/group_transactions_by_date';
 
 describe('currentYearMonth', () => {
   it('returns YYYY-MM for a Date', () => {
@@ -809,8 +809,8 @@ describe('resolveSearchTallyFiguresMode', () => {
 
 describe('buildDaySections', () => {
   const ROW = makeTestTransaction({ id: 'tx-1', egp_amount: 100, transaction_date: '2026-09-27' });
-  const YESTERDAY: TransactionSection = { key: '2026-09-27', label: 'Yesterday', data: [ROW] };
-  const OLDER: TransactionSection = {
+  const YESTERDAY: TransactionDateGroup = { key: '2026-09-27', label: 'Yesterday', data: [ROW] };
+  const OLDER: TransactionDateGroup = {
     key: '2026-09-25',
     label: 'Thu 25 Sep',
     data: [makeTestTransaction({ id: 'tx-2', transaction_date: '2026-09-25' })],
@@ -845,7 +845,22 @@ describe('buildDaySections', () => {
   });
 
   it('reads the full day from the first page when its rows straddle a page boundary', () => {
-    expect(figuresFor({ netEgp: -2_700, count: 6 })).toEqual({
+    const pageOneRows: TransactionDateGroup = {
+      key: '2026-09-27',
+      label: 'Yesterday',
+      data: [
+        makeTestTransaction({ id: 'tx-p1-a', egp_amount: 300, transaction_date: '2026-09-27' }),
+        makeTestTransaction({ id: 'tx-p1-b', egp_amount: 400, transaction_date: '2026-09-27' }),
+      ],
+    };
+
+    const [section] = build({
+      groups: [pageOneRows],
+      days: [{ date: '2026-09-27', netEgp: -2_700, count: 6 }],
+    });
+
+    expect(section.data).toHaveLength(2);
+    expect(section.figures).toEqual({
       mode: 'figures',
       net: '−2,700',
       currencyCode: 'EGP',
@@ -853,8 +868,8 @@ describe('buildDaySections', () => {
     });
   });
 
-  it('reads 0 with no sign on a day whose only row is a transfer', () => {
-    const transferDay: TransactionSection = {
+  it("reads the aggregate's 0 with no sign, not the row's amount, on a day whose only row is a transfer", () => {
+    const transferDay: TransactionDateGroup = {
       key: '2026-09-27',
       label: 'Yesterday',
       data: [
@@ -929,7 +944,7 @@ describe('buildDaySections', () => {
   });
 
   it("keeps the groups' order, keys, labels and row arrays", () => {
-    const TODAY: TransactionSection = {
+    const TODAY: TransactionDateGroup = {
       key: '2026-09-28',
       label: 'Today',
       data: [makeTestTransaction({ id: 'tx-0', transaction_date: '2026-09-28' })],
