@@ -89,6 +89,8 @@ export const DayHeader = React.memo(function DayHeader({ section }: Props): Reac
             className="rounded-full"
             style={[PILL_STYLE, { height: pillHeight }]}
             pointerEvents="none"
+            accessible={false}
+            focusable={false}
           >
             <Chip.Label
               className="font-sora-bold"
