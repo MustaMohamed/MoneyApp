@@ -9,11 +9,11 @@ Accounts and dashboard imported helpers from inside the dashboard, commitments a
 
 ## 1. A piece another module reads lives in the owner's `utils/` or in shared UI
 
-A helper or type another module imports lives in `src/modules/<owner>/utils/`, the folder accounts and categories already use, or in `src/components/ui/` when it is UI. It never lives under `screens/`. The footer and the keyboard lift went to shared UI rather than to onboarding's `components/`, because no app code outside onboarding imports from there.
+A helper or type another module imports lives in `src/modules/<owner>/utils/`, the folder accounts and categories already use, or in `src/components/ui/` when it is UI. It never lives under `screens/`. `utils/` holds the helpers and types other modules read, display helpers included, while money math and derivations go to `domain/`, where `.claude/rules/money.md` loads, and standalone fixed tables go to `constants/`. The footer and the keyboard lift left onboarding's `components/` for shared UI, because the ticket's Acceptance bars app code outside onboarding from importing there.
 
-The footer is `CtaFooter` in `cta_footer.tsx`, the rename PR #580 gave `OnboardingStatusTrack` when it became `StatusTrack`. Its props did not change. Its CTA slot reads `Size.onboardingCtaTrack`, the token `ONBOARDING_SHELL_TRACKS.cta` also reads, so both screens keep the 48 track.
+Audit M4 (`docs/superpowers/reviews/2026-07-29-full-technical-audit.md:401`) sent the budget type to `entities/` and both budget pieces out through the module barrel; this record keeps deep imports instead, because they are the house form, 1 barrel import in `src/modules` (`account_form.tsx:10`) against 212 deep imports from one module into another, and barrels are audit M2's work, as `docs/adr/2026-08-19-dashboard-net-worth-refusal.md:290-293` records.
 
-`commitment_status.ts` keeps its two entity imports relative. An alias import would move within the block when oxfmt sorts it, and `STATUS_LABELS` would leave lines 23-29, the range `.claude/skills/emulator-verify/features/commitments.md` cites.
+The footer is `CtaFooter` in `cta_footer.tsx`, the rename PR #580 gave `OnboardingStatusTrack` when it became `StatusTrack`. Its props did not change. Both screens keep the 48 track because `cta_footer.tsx:23` reads `Size.onboardingCtaTrack`. `ONBOARDING_SHELL_TRACKS.cta` has no reader in `src` after the move, and MA-137 (#625) removes it.
 
 ## 2. The module a piece left keeps no re-export
 
@@ -23,7 +23,7 @@ Every importer names the new path. A re-export in the old file, or a barrel `ind
 
 ## 3. The money helpers moved with bodies unchanged
 
-`formatOwnedAmountParts`, `formatCommitmentAmount` and `buildInfoRows` compose money strings on screen. Their bodies and JSDoc moved byte for byte, and so did `budgetBandColor` and `resolveKeyboardLift`. `net_worth_breakdown_sheet.helpers.test.ts`, `account_card.helpers.test.ts`, `commitment_status.test.ts`, `recurrence_label.test.ts` and `budget.helpers.test.ts` pass with no assertion changed. `git diff origin/main...HEAD -- __tests__` touches import statements only.
+`formatOwnedAmountParts`, `formatCommitmentAmount` and `buildInfoRows` compose money strings on screen. Their bodies moved byte for byte, and so did those of `budgetBandColor` and `resolveKeyboardLift`. Every comment on them moved unchanged except the seven-line JSDoc on `formatOwnedAmountParts`, which became one line under the comment rule in `CLAUDE.md` § Conventions. `net_worth_breakdown_sheet.helpers.test.ts`, `account_card.helpers.test.ts`, `commitment_status.test.ts`, `recurrence_label.test.ts` and `budget.helpers.test.ts` pass with no assertion changed.
 
 ## 4. Screen stores and module `components/` stay open
 

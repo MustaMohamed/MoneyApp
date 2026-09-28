@@ -8,6 +8,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { SectionHeader } from '@/components/ui/section_header';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -19,7 +20,6 @@ import { CommitmentsCard } from './components/commitments_card';
 import { DashboardLoadError } from './components/dashboard_load_error';
 import { HeroCard } from './components/hero_card';
 import { NetWorthBreakdownSheet } from './components/net_worth_breakdown_sheet';
-import { SectionHeader } from './components/section_header';
 import { StatCards } from './components/stat_cards';
 import { TotalBalanceStrip } from './components/total_balance_strip';
 import { TransactionsCard } from './components/transactions_card';

@@ -1,14 +1,8 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
-import { Currency } from '@/constants/enums';
+import type { Currency } from '@/constants/enums';
 import { MINUS_SIGN, formatDisplayMagnitude, signAmountText } from '@/utils/format_amount';
 
-/**
- * A magnitude the user owns (ADR 2026-08-27 decision 1): unsigned at zero or positive, `−` only
- * for a genuine negative (an overdrawn liquid/reserve total, an overdrawn account row, or the
- * assets sum) — never `+`. Also absorbs the `-0` float-noise artifact `computeLiquidityBreakdown`'s
- * per-total rounding can produce: `formatDisplayMagnitude`'s epsilon gate reads it as true zero,
- * so the sheet's asset rows stop printing `-0` (#332).
- */
+/** An owned magnitude (ADR 2026-08-27 decision 1) takes `−` only below zero and never `+`, and a `-0` from float noise prints unsigned (#332). */
 export function formatOwnedAmountParts(
   value: number,
   baseCurrency: Currency,

@@ -11,7 +11,7 @@ export interface CtaFooterProps {
   cta: ReactNode;
 }
 
-/** The CTA slot equals HeroUI's own 48 and never resizes — the zero-shift contract on the button (spec.md § Known disagreements 6). */
+/** The CTA slot is fixed at HeroUI's own button height, 48, so no state of the button shifts the footer. */
 export function CtaFooter({ footnote, message, cta }: CtaFooterProps) {
   return (
     <View
