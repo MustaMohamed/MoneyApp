@@ -60,3 +60,18 @@ export function resolveTransactionsHeroGeometry(fontScale: number): Transactions
     caption: lineHeightFor(chip),
   };
 }
+
+export interface DayHeaderGeometry {
+  fontSize: number;
+  lineHeight: number;
+  pillHeight: number;
+  height: number;
+}
+
+// Uncapped: the day header scales its text with the OS, so every box grows from the one scaled size.
+export function resolveDayHeaderGeometry(fontScale: number): DayHeaderGeometry {
+  const fontSize = scaledFontSize(Type.caption, fontScale);
+  const text = { fontSize, lineHeight: lineHeightFor(fontSize) };
+  const pillHeight = text.lineHeight + 2 * Spacing.xxxs;
+  return { ...text, pillHeight, height: Spacing.md + pillHeight + Spacing.xs };
+}

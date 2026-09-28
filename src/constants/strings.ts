@@ -940,8 +940,8 @@ export const Strings = {
   uncategorized: 'Uncategorized',
   noResultsHeadline: 'No transactions found',
   noResultsSubtext: 'Try a different search term or filter.',
-  todayLabel: 'TODAY',
-  yesterdayLabel: 'YESTERDAY',
+  todayLabel: 'Today',
+  yesterdayLabel: 'Yesterday',
 
   // U7 Transaction Detail
   goBackAccessibility: 'Go back',
@@ -1268,6 +1268,15 @@ export const Strings = {
   transactionsTallyResults: (month: string) => `results in ${month}`,
   transactionsTallyOneResult: (month: string) => `result in ${month}`,
   transactionsTallyNoResults: (month: string) => `No results in ${month}`,
+
+  // §6 Transactions: Day header, spoken
+  transactionsDayLoadingA11y: (day: string) => `${day}, loading`,
+  transactionsDayFailedA11y: (day: string) => `${day}, total unavailable`,
+  transactionsDayFiguresA11y: (day: string, net: string, count: string) =>
+    `${day}, ${net}, ${count} transactions`,
+  transactionsDayOneTransactionA11y: (day: string, net: string) => `${day}, ${net}, 1 transaction`,
+  spokenMinus: 'minus',
+  spokenPlus: 'plus',
 
   // §6 Transactions: Type badges
   typeBadgeCommitment: 'Commitment',
