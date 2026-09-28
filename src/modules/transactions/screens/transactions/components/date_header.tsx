@@ -8,10 +8,9 @@ import { scaledFontSize } from './transactions_text.geometry';
 
 interface Props {
   label: string;
-  contextLabel?: string | null;
 }
 
-export function DateHeader({ label, contextLabel }: Props): React.ReactElement {
+export function DateHeader({ label }: Props): React.ReactElement {
   const fontSize = scaledFontSize(Type.overline, useWindowDimensions().fontScale);
   return (
     <View className="bg-background px-4 pt-3 pb-1.5">
@@ -24,16 +23,6 @@ export function DateHeader({ label, contextLabel }: Props): React.ReactElement {
         >
           {label}
         </Text>
-        {contextLabel ? (
-          <Text
-            className="font-inter-bold text-accent max-w-[55%]"
-            style={{ fontSize, lineHeight: lineHeightFor(fontSize) }}
-            numberOfLines={1}
-            allowFontScaling={false}
-          >
-            {contextLabel}
-          </Text>
-        ) : null}
       </View>
     </View>
   );
