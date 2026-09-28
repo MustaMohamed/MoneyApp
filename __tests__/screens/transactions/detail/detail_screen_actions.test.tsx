@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 import { fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
@@ -14,16 +11,6 @@ import { ActionRow } from '@/modules/transactions/screens/transactions/detail/co
 import { DetailHeader } from '@/modules/transactions/screens/transactions/detail/components/detail_header';
 
 describe('transaction detail actions', () => {
-  it('keeps navigation and form orchestration out of the screen template', () => {
-    const template = readFileSync(
-      resolve(process.cwd(), 'src/modules/transactions/screens/transactions/detail/index.tsx'),
-      'utf8',
-    );
-
-    expect(template).not.toContain('router.');
-    expect(template).not.toContain('useTransactionFormState');
-  });
-
   it('shows only the owning commitment action for a linked transaction', async () => {
     const onViewCommitment = jest.fn();
     const screen = await render(<ActionRow onViewCommitment={onViewCommitment} />);

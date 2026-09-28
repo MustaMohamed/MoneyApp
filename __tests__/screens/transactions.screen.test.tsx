@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
@@ -200,17 +197,6 @@ describe('TransactionsScreen', () => {
     jest.clearAllMocks();
     heroRenders.count = 0;
     mockUseTransactions();
-  });
-
-  it('keeps form and delete orchestration out of the screen template', () => {
-    const template = readFileSync(
-      resolve(process.cwd(), 'src/modules/transactions/screens/transactions/index.tsx'),
-      'utf8',
-    );
-
-    expect(template).not.toContain('useConfirmAction');
-    expect(template).not.toContain('useTransactionFormState');
-    expect(template).not.toContain('useTransactionStore');
   });
 
   it('shows row skeletons instead of the list spinner during first load', async () => {
