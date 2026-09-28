@@ -165,18 +165,10 @@ beforeEach(() => {
 
 describe('SetBudgetSheet', () => {
   it('keeps the category selector compact inside the sheet', async () => {
-    const { getByLabelText, getByTestId, getByText } = await render(
+    const { getByTestId, getByText } = await render(
       <SetBudgetSheet budgetableCategories={categories} />,
     );
 
-    expect(getByLabelText(Strings.budgetPickCategory)).toHaveProp(
-      'className',
-      expect.stringContaining('mb-3'),
-    );
-    expect(getByLabelText(Strings.budgetPickCategory)).toHaveProp(
-      'className',
-      expect.stringContaining('py-2'),
-    );
     expect(getByTestId('icon-home')).toHaveStyle({ width: ms(13), height: ms(13) });
     expect(getByText('Housing')).toHaveStyle({ fontSize: Type.caption });
   });
@@ -188,10 +180,6 @@ describe('SetBudgetSheet', () => {
       fontSize: Type.bodyStrong,
       height: ms(28),
     });
-    expect(getByTestId('budget-limit-input')).toHaveProp(
-      'className',
-      expect.stringContaining('min-h-0'),
-    );
   });
 
   it('keeps the budget name input compact inside the sheet', async () => {

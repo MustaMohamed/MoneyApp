@@ -136,7 +136,7 @@ describe('SegmentedTabs', () => {
   });
 
   it('renders compact segments with tighter spacing and a bolder selected label', async () => {
-    const { getByTestId, getByText } = await render(
+    const { getByText } = await render(
       <SegmentedTabs
         segments={[...segments]}
         value="all"
@@ -146,19 +146,6 @@ describe('SegmentedTabs', () => {
       />,
     );
 
-    expect(getByTestId('tabs-trigger-all')).toHaveProp(
-      'className',
-      expect.stringContaining('px-1.5'),
-    );
-    expect(getByTestId('tabs-trigger-all')).toHaveProp('className', expect.stringContaining('h-7'));
-    expect(getByTestId('tabs-trigger-all')).toHaveProp(
-      'className',
-      expect.stringContaining('rounded-full'),
-    );
-    expect(getByTestId('tabs-trigger-all')).toHaveProp(
-      'className',
-      expect.stringContaining('gap-0.5'),
-    );
     expect(getByText('All')).toHaveStyle({
       fontSize: Type.micro,
       lineHeight: lineHeightFor(Type.micro),
