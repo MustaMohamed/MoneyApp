@@ -1,7 +1,15 @@
 import type { Insets } from 'react-native';
 
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
-import { Radius, Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import {
+  Radius,
+  Size,
+  Spacing,
+  TouchSize,
+  Type,
+  lineHeightFor,
+  touchFloorSlop,
+} from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 export const FACT_ROW_MIN_HEIGHT = TouchSize.min;
@@ -26,8 +34,7 @@ export const ACCOUNT_STRIP_CHIP_PADDING_X = ms(10);
 export const ACCOUNT_STRIP_TILE_NAME_GAP = Spacing.xs;
 export const ACCOUNT_STRIP_DIMMED_OPACITY = 0.6;
 /** Lifts the 40-high chip past the touch floor, plus 1 so Android's dp-to-px truncation of the slop still clears 44. */
-export const ACCOUNT_STRIP_CHIP_SLOP_Y =
-  Math.max(0, (TouchSize.min - ACCOUNT_STRIP_CHIP_HEIGHT) / 2) + Spacing.xxxxs;
+export const ACCOUNT_STRIP_CHIP_SLOP_Y = touchFloorSlop(ACCOUNT_STRIP_CHIP_HEIGHT) + Spacing.xxxxs;
 /** Horizontally the slop stops at half the gap, so a neighbour keeps its side. */
 export const ACCOUNT_STRIP_HIT_SLOP: Readonly<Insets> = Object.freeze({
   top: ACCOUNT_STRIP_CHIP_SLOP_Y,

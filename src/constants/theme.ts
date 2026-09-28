@@ -243,6 +243,11 @@ export const TouchSize = {
   min: 44,
 } as const;
 
+/** The hit-slop on each side that lifts `height` to the touch floor; zero at or past it. */
+export function touchFloorSlop(height: number): number {
+  return Math.max(0, (TouchSize.min - height) / 2);
+}
+
 export const AccountColors = [
   '#5C7FC4',
   '#A2792C',
