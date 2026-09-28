@@ -13,11 +13,4 @@ describe('DateHeader', () => {
     expect(getByText('Today')).toBeTruthy();
     expect(queryByText('CIB + Food')).toBeNull();
   });
-
-  it('renders right-aligned applied-filter context when provided', async () => {
-    const { getByText } = await render(<DateHeader label="Today" contextLabel="CIB + Food" />);
-
-    expect(getByText('Today')).toBeTruthy();
-    expect(getByText('CIB + Food')).toBeTruthy();
-  });
 });

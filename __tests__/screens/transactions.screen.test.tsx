@@ -91,10 +91,10 @@ jest.mock('@/modules/transactions/screens/transactions/components/transaction_ro
     return <Text>Transaction row</Text>;
   },
 }));
-jest.mock('@/modules/transactions/screens/transactions/components/date_header', () => ({
-  DateHeader: ({ label }: { label: string }) => {
+jest.mock('@/modules/transactions/screens/transactions/components/day_header', () => ({
+  DayHeader: ({ section }: { section: { label: string } }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>{label}</Text>;
+    return <Text>{section.label}</Text>;
   },
 }));
 jest.mock('@/modules/transactions/screens/transactions/components/tx_delete_confirm_sheet', () => ({
