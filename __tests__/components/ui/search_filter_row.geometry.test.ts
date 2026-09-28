@@ -84,6 +84,6 @@ describe('resolveSearchFilterRowGeometry', () => {
     );
     expect(g.badge).toEqual(resolveSearchFilterRowGeometry(FILTER_BADGE_MAX_FONT_SCALE).badge);
     expect(g.badgeText.lineHeight).toBe(g.badge.height);
-    expect(g.badge.top + g.badge.height).toBeLessThanOrEqual(g.filterButton.height);
+    expect(g.badge.top + g.badge.height).toBeLessThanOrEqual(g.filterButton.height / 2);
   });
 });
