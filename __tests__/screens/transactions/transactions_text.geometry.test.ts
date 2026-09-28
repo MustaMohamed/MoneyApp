@@ -1,19 +1,11 @@
+import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
   TRANSACTIONS_HERO_MAX_FONT_SCALE,
   resolveDayHeaderGeometry,
   resolveSearchTallyGeometry,
   resolveTransactionsHeroGeometry,
-  scaledFontSize,
 } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
-
-describe('scaledFontSize', () => {
-  it('follows the font scale up to its cap', () => {
-    expect(scaledFontSize(Type.overline, 1)).toBe(Type.overline);
-    expect(scaledFontSize(Type.overline, 2)).toBe(Type.overline * 2);
-    expect(scaledFontSize(Type.overline, 2, 1.3)).toBe(Type.overline * 1.3);
-  });
-});
 
 describe('resolveSearchTallyGeometry', () => {
   it("keeps today's slot at font scale 1.0", () => {
