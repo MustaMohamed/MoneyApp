@@ -6,7 +6,7 @@ import {
   type FlatButtonStyle,
   type FlatButtonTone,
 } from '@/components/ui/button.content';
-import { resolveCompactCtaHeight } from '@/components/ui/button.geometry';
+import { resolveButtonLabelStyle } from '@/components/ui/button.geometry';
 import { Strings } from '@/constants/strings';
 import { Colors, Radius, Size } from '@/constants/theme';
 
@@ -162,31 +162,41 @@ const flatRows: FlatRow[] = [
 
 describe('resolveFlatButtonStyle', () => {
   it.each(flatRows)('$variant flat=$flat tone=$tone', ({ variant, flat, tone, resolved }) => {
-    expect(resolveFlatButtonStyle({ variant, flat, tone })).toEqual(resolved);
+    expect(resolveFlatButtonStyle({ variant, flat, tone, size: 'md', fontScale: 1 })).toEqual(
+      resolved,
+    );
   });
 
   // The literal, not the token: a drifted `compactCtaTrack` must fail here, not on a device.
   it('the compact accent arm is 36 high, C4 `.unarch`', () => {
     expect(
-      resolveFlatButtonStyle({ variant: 'secondary', flat: true, tone: 'accent' })?.style.height,
-    ).toBe(36);
-  });
-
-  it('the compact accent arm grows with the label at font scale 2', () => {
-    expect(
       resolveFlatButtonStyle({
         variant: 'secondary',
         flat: true,
         tone: 'accent',
-        fontScale: 2,
         size: 'md',
+        fontScale: 1,
       })?.style.height,
-    ).toBe(resolveCompactCtaHeight(2, 'md'));
+    ).toBe(36);
+  });
+
+  it('the compact accent arm grows with the label at font scale 2', () => {
+    const height = resolveFlatButtonStyle({
+      variant: 'secondary',
+      flat: true,
+      tone: 'accent',
+      fontScale: 2,
+      size: 'md',
+    })?.style.height;
+    expect(height).toBeGreaterThanOrEqual(resolveButtonLabelStyle('md', 2)?.lineHeight ?? Infinity);
+    expect(height).toBeGreaterThan(Size.compactCtaTrack);
   });
 
   it('no other flat shape pins a height', () => {
     for (const variant of ['primary', 'secondary', 'ghost', 'danger'] as ButtonVariant[]) {
-      expect(resolveFlatButtonStyle({ variant, flat: true })?.style.height).toBeUndefined();
+      expect(
+        resolveFlatButtonStyle({ variant, flat: true, size: 'md', fontScale: 1 })?.style.height,
+      ).toBeUndefined();
     }
   });
 });

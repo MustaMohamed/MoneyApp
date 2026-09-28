@@ -3,7 +3,7 @@ import { PressableFeedback } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Size, Spacing } from '@/constants/theme';
 
 import { resolveMonthPillGeometry } from './month_filter.geometry';
 import { type MonthFilterProps, useMonthFilter } from './month_filter.hook';
@@ -15,9 +15,16 @@ interface IconButtonProps {
   accessibilityLabel: string;
   onPress: () => void;
   testID?: string;
+  size?: number;
 }
 
-function IconButton({ icon, accessibilityLabel, onPress, testID }: IconButtonProps) {
+function IconButton({
+  icon,
+  accessibilityLabel,
+  onPress,
+  testID,
+  size = Size.monthPillTrack,
+}: IconButtonProps) {
   return (
     <PressableFeedback
       testID={testID}
@@ -25,7 +32,8 @@ function IconButton({ icon, accessibilityLabel, onPress, testID }: IconButtonPro
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className="bg-default/60 h-8 w-8 items-center justify-center rounded-full"
+      className="bg-default/60 items-center justify-center rounded-full"
+      style={{ height: size, width: size }}
     >
       <MaterialCommunityIcons name={icon} size={20} color={Colors.dark.text1} />
     </PressableFeedback>
@@ -46,6 +54,7 @@ export function MonthFilter(props: MonthFilterProps) {
             icon="chevron-left"
             accessibilityLabel={Strings.monthFilterPreviousA11y}
             onPress={monthFilter.onPreviousMonth}
+            size={pill.height}
           />
         )}
         <PressableFeedback
@@ -78,6 +87,7 @@ export function MonthFilter(props: MonthFilterProps) {
             icon="chevron-right"
             accessibilityLabel={Strings.monthFilterNextA11y}
             onPress={monthFilter.onNextMonth}
+            size={pill.height}
           />
         )}
       </View>

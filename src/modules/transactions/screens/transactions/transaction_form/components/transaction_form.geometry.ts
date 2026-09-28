@@ -65,20 +65,17 @@ export const TRANSACTION_FORM_SKELETON_GEOMETRY = {
   valueBar: { width: ms(100), height: lineHeightFor(Type.body) },
 } as const;
 
-// The type tab row's `h-9` at scale 1.
-const TYPE_TABS_MIN_LIST_HEIGHT = 36;
-
-/** The type tab row and its skeleton shape share one height at every font scale. */
+/** Above scale 1 the skeleton's tab shape is as tall as the type tab row; at or below it stays `tabBar`. */
 export function resolveTypeTabsGeometry(fontScale: number): {
   listHeight: number;
   skeletonHeight: number;
 } {
   const listHeight = Math.max(
-    TYPE_TABS_MIN_LIST_HEIGHT,
+    Size.typeTabsTrack,
     resolveSegmentedTabsGeometry(fontScale).compact.listHeight,
   );
   return {
     listHeight,
-    skeletonHeight: Math.max(TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar, listHeight),
+    skeletonHeight: fontScale <= 1 ? TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar : listHeight,
   };
 }

@@ -1,9 +1,9 @@
 import type { ButtonSize } from 'heroui-native';
 
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
+import { Size, Type } from '@/constants/theme';
 
-// HeroUI's own label step per button size: `text-sm`, `text-base`, `text-lg`.
+// The `Type` steps that match HeroUI's `text-sm`, `text-base`, `text-lg` at 390 dp.
 const LABEL_FONT_SIZE: Record<ButtonSize, number> = {
   sm: Type.body,
   md: Type.subhead,
@@ -14,12 +14,10 @@ const LABEL_FONT_SIZE: Record<ButtonSize, number> = {
 export function resolveButtonLabelStyle(
   size: ButtonSize,
   fontScale: number,
-): { fontSize: number; lineHeight: number } | undefined {
-  if (fontScale <= 1) return undefined;
-  const fontSize = scaledFontSize(LABEL_FONT_SIZE[size], fontScale);
-  return { fontSize, lineHeight: lineHeightFor(fontSize) };
+): ScaledTextStyle | undefined {
+  return scaledTextStyleAboveOne(LABEL_FONT_SIZE[size], fontScale);
 }
 
-export function resolveCompactCtaHeight(fontScale: number, size: ButtonSize): number {
+export function resolveCompactCtaHeight(size: ButtonSize, fontScale: number): number {
   return Math.max(Size.compactCtaTrack, resolveButtonLabelStyle(size, fontScale)?.lineHeight ?? 0);
 }

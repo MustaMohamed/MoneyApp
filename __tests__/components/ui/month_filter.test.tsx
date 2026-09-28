@@ -29,6 +29,8 @@ describe('MonthFilter', () => {
     expect(getByText('August 2026')).toHaveStyle(
       resolveMonthPillGeometry(Dimensions.get('window').fontScale).label,
     );
+    expect(getByText('August 2026')).toHaveProp('allowFontScaling', false);
+    expect(getByText('August 2026')).toHaveProp('numberOfLines', 1);
   });
 
   it('shows the selected month without the extra label', async () => {

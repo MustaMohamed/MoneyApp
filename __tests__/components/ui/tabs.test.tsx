@@ -151,6 +151,8 @@ describe('SegmentedTabs', () => {
     const compactLabel = resolveSegmentedTabsGeometry(Dimensions.get('window').fontScale).compact
       .label;
     expect(getByText('All')).toHaveStyle(compactLabel);
+    expect(getByText('All')).toHaveProp('allowFontScaling', false);
+    expect(getByText('All')).toHaveProp('numberOfLines', 1);
     // Weight has no style form here: the family class is its only expression (ui.md § Fonts), so these two stay on className (tests.md:28).
     expect(getByText('All')).toHaveProp('className', 'font-inter-bold');
     expect(getByText('Overdue')).toHaveStyle(compactLabel);

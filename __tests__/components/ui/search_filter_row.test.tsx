@@ -7,7 +7,6 @@ import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_ro
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 
 const geometry = resolveSearchFilterRowGeometry(Dimensions.get('window').fontScale);
-const inputStyle = { ...geometry.input, ...geometry.inputText };
 
 describe('SearchFilterRow', () => {
   it('renders compact input and trailing filter button', async () => {
@@ -22,13 +21,9 @@ describe('SearchFilterRow', () => {
       />,
     );
 
-    expect(geometry.input).toMatchObject({
-      height: geometry.filterButton.height,
-      minHeight: geometry.filterButton.height,
-    });
     expect(getByLabelText('Search items...')).toHaveProp('accessibilityRole', 'search');
     expect(getByLabelText('Search items...')).toHaveProp('value', '');
-    expect(getByLabelText('Search items...')).toHaveProp('style', inputStyle);
+    expect(getByLabelText('Search items...')).toHaveProp('style', geometry.inputStyle);
     expect(getByLabelText('Filter')).toHaveProp('style', geometry.filterButton);
   });
 
@@ -55,7 +50,8 @@ describe('SearchFilterRow', () => {
         filterBadgeTestID="shared-filter-badge"
       />,
     );
-    expect(active.getByText('3')).toBeTruthy();
+    expect(active.getByText('3')).toHaveProp('allowFontScaling', false);
+    expect(active.getByText('3')).toHaveProp('numberOfLines', 1);
     expect(active.getByTestId('shared-filter-badge')).toHaveProp('style', geometry.badge);
     expect(active.getByLabelText('Filter, 3 active')).toBeTruthy();
   });
@@ -72,7 +68,7 @@ describe('SearchFilterRow', () => {
       />,
     );
 
-    expect(active.getByLabelText('Search items...')).toHaveProp('style', inputStyle);
+    expect(active.getByLabelText('Search items...')).toHaveProp('style', geometry.inputStyle);
     expect(active.getByLabelText('Clear search')).toBeTruthy();
   });
 

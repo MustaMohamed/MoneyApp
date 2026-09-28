@@ -48,6 +48,11 @@ describe('resolveTypeTabsGeometry', () => {
     expect(g.skeletonHeight).toBe(g.listHeight);
     expect(g.listHeight).toBeGreaterThanOrEqual(compact.triggerHeight + 2 * TABS_LIST_PADDING);
   });
+
+  it('at font scale 1.5 the skeleton is as tall as the tab row', () => {
+    const g = resolveTypeTabsGeometry(1.5);
+    expect(g.skeletonHeight).toBe(g.listHeight);
+  });
 });
 
 describe('transaction form content inset', () => {

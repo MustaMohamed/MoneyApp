@@ -88,6 +88,13 @@ export function SegmentedTabs<T extends string>({
   const radii = resolveSolidGoldRadii({ isCompact, corners });
   const geometry = resolveSegmentedTabsGeometry(useWindowDimensions().fontScale);
   const labelStyle = isCompact ? geometry.compact.label : geometry.defaultLabel;
+  const sizeStyle =
+    segmentWidth || isCompact
+      ? {
+          ...(segmentWidth ? { width: segmentWidth } : undefined),
+          ...(isCompact ? { height: geometry.compact.triggerHeight } : undefined),
+        }
+      : undefined;
   const scrollBehavior = useSegmentedTabsScroll({
     scrollAlign,
     value,
@@ -102,13 +109,6 @@ export function SegmentedTabs<T extends string>({
         ? {
             backgroundColor: Colors.shared.cairoGold,
             borderRadius: radii.selected,
-          }
-        : undefined;
-    const sizeStyle =
-      segmentWidth || isCompact
-        ? {
-            ...(segmentWidth ? { width: segmentWidth } : undefined),
-            ...(isCompact ? { height: geometry.compact.triggerHeight } : undefined),
           }
         : undefined;
     const triggerStyle =

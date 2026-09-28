@@ -4,7 +4,7 @@ import {
   resolveSearchFilterRowGeometry,
 } from '@/components/ui/search_filter_row.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Radius, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 describe('resolveSearchFilterRowGeometry', () => {
@@ -31,6 +31,12 @@ describe('resolveSearchFilterRowGeometry', () => {
       borderRadius: ms(16) / 2,
     });
     expect(g.badgeText.lineHeight).toBe(ms(16));
+    expect(g.inputStyle).toEqual({
+      height: ms(36),
+      minHeight: ms(36),
+      paddingTop: 0,
+      paddingBottom: 0,
+    });
   });
 
   it('at font scale 1 draws the badge count at Type.chip', () => {
@@ -41,8 +47,22 @@ describe('resolveSearchFilterRowGeometry', () => {
     const g = resolveSearchFilterRowGeometry(2);
     const fontSize = scaledFontSize(Type.body, 2, SEARCH_INPUT_MAX_FONT_SCALE);
     expect(g.inputText).toEqual({ fontSize, lineHeight: lineHeightFor(fontSize) });
-    expect(g.input.height).toBeGreaterThanOrEqual(g.inputText?.lineHeight ?? Infinity);
     expect(g.input.minHeight).toBe(g.input.height);
+    expect(g.inputStyle).toEqual({
+      height: g.input.height,
+      minHeight: g.input.height,
+      paddingTop: 0,
+      paddingBottom: 0,
+      fontSize,
+      lineHeight: lineHeightFor(fontSize),
+    });
+  });
+
+  it.each([2, 3])('at font scale %s keeps the input padding around its text line', (fontScale) => {
+    const g = resolveSearchFilterRowGeometry(fontScale);
+    expect(g.input.height - (g.inputText?.lineHeight ?? Infinity)).toBeGreaterThanOrEqual(
+      2 * Spacing.xxs,
+    );
   });
 
   it('stops growing the input text past the cap', () => {
@@ -55,7 +75,10 @@ describe('resolveSearchFilterRowGeometry', () => {
     const g = resolveSearchFilterRowGeometry(2);
     expect(g.filterButton.height).toBe(g.input.height);
     expect(g.filterButton.width).toBe(ms(36));
-    expect(g.badge.height).toBeGreaterThanOrEqual(lineHeightFor(scaledFontSize(Type.chip, 2)));
+    expect(g.badge.height).toBeGreaterThanOrEqual(
+      lineHeightFor(scaledFontSize(Type.chip, 2, SEARCH_INPUT_MAX_FONT_SCALE)),
+    );
+    expect(g.badge).toEqual(resolveSearchFilterRowGeometry(SEARCH_INPUT_MAX_FONT_SCALE).badge);
     expect(g.badgeText.lineHeight).toBe(g.badge.height);
   });
 });

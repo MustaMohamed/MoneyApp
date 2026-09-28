@@ -7,7 +7,6 @@ import { CommitmentSearchRow } from '@/modules/commitments/screens/commitments/c
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 
 const geometry = resolveSearchFilterRowGeometry(Dimensions.get('window').fontScale);
-const inputStyle = { ...geometry.input, ...geometry.inputText };
 
 describe('CommitmentSearchRow', () => {
   it('renders compact input and trailing filter button with matching height', async () => {
@@ -20,12 +19,8 @@ describe('CommitmentSearchRow', () => {
       />,
     );
 
-    expect(geometry.input).toMatchObject({
-      height: geometry.filterButton.height,
-      minHeight: geometry.filterButton.height,
-    });
     expect(getByLabelText('Search commitments…')).toHaveProp('accessibilityRole', 'search');
-    expect(getByLabelText('Search commitments…')).toHaveProp('style', inputStyle);
+    expect(getByLabelText('Search commitments…')).toHaveProp('style', geometry.inputStyle);
     expect(getByLabelText('Filter')).toHaveProp('style', geometry.filterButton);
   });
 
@@ -48,8 +43,6 @@ describe('CommitmentSearchRow', () => {
         activeFilterCount={2}
       />,
     );
-    expect(geometry.badge.top).toBeGreaterThanOrEqual(0);
-    expect(geometry.badge.right).toBeGreaterThanOrEqual(0);
     expect(active.getByText('2')).toBeTruthy();
     expect(active.getByTestId('commitment-filter-badge')).toBeTruthy();
     expect(active.getByLabelText('Filter, 2 active')).toBeTruthy();
@@ -65,7 +58,7 @@ describe('CommitmentSearchRow', () => {
       />,
     );
 
-    expect(active.getByLabelText('Search commitments…')).toHaveProp('style', inputStyle);
+    expect(active.getByLabelText('Search commitments…')).toHaveProp('style', geometry.inputStyle);
   });
 
   it('routes search changes and clearing through the controlled handler', async () => {

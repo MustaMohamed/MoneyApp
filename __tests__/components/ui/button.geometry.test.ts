@@ -27,12 +27,12 @@ describe('resolveButtonLabelStyle', () => {
 
 describe('resolveCompactCtaHeight', () => {
   it('is the compact CTA track at font scale 1', () => {
-    expect(resolveCompactCtaHeight(1, 'md')).toBe(Size.compactCtaTrack);
+    expect(resolveCompactCtaHeight('md', 1)).toBe(Size.compactCtaTrack);
   });
 
   it('at font scale 2 holds the md label line box', () => {
     const label = resolveButtonLabelStyle('md', 2);
-    expect(resolveCompactCtaHeight(2, 'md')).toBeGreaterThanOrEqual(label?.lineHeight ?? Infinity);
-    expect(resolveCompactCtaHeight(2, 'md')).toBeGreaterThanOrEqual(Size.compactCtaTrack);
+    expect(resolveCompactCtaHeight('md', 2)).toBeGreaterThanOrEqual(label?.lineHeight ?? Infinity);
+    expect(resolveCompactCtaHeight('md', 2)).toBeGreaterThanOrEqual(Size.compactCtaTrack);
   });
 });

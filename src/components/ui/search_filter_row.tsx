@@ -50,7 +50,7 @@ export function SearchFilterRow({
             autoCorrect={false}
             accessibilityLabel={placeholder}
             allowFontScaling={geometry.inputText === undefined}
-            style={{ ...geometry.input, ...geometry.inputText }}
+            style={geometry.inputStyle}
           />
           <SearchField.ClearButton accessibilityLabel={clearAccessibilityLabel} />
         </SearchField.Group>

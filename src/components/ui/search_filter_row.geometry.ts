@@ -1,5 +1,10 @@
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
+import {
+  type ScaledTextStyle,
+  scaledFontSize,
+  scaledTextStyle,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import { Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
@@ -8,29 +13,41 @@ export const SEARCH_INPUT_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
 const COMPACT_CONTROL_SIZE = ms(36);
 const FILTER_BADGE_SIZE = ms(16);
 
+interface SearchInputBox {
+  height: number;
+  minHeight: number;
+  paddingTop: 0;
+  paddingBottom: 0;
+}
+
 export interface SearchFilterRowGeometry {
-  input: { height: number; minHeight: number; paddingTop: 0; paddingBottom: 0 };
+  input: SearchInputBox;
   /** `undefined` at or below scale 1: the input keeps HeroUI's own size and the OS scales it. */
-  inputText: { fontSize: number; lineHeight: number } | undefined;
+  inputText: ScaledTextStyle | undefined;
+  inputStyle: SearchInputBox & Partial<ScaledTextStyle>;
   filterButton: { height: number; width: number; borderRadius: number };
   badge: { top: number; right: number; minWidth: number; height: number; borderRadius: number };
-  badgeText: { fontSize: number; lineHeight: number };
+  badgeText: ScaledTextStyle;
 }
 
 export function resolveSearchFilterRowGeometry(fontScale: number): SearchFilterRowGeometry {
-  const inputFontSize = scaledFontSize(Type.body, fontScale, SEARCH_INPUT_MAX_FONT_SCALE);
   const inputHeight = Math.max(
     COMPACT_CONTROL_SIZE,
-    lineHeightFor(inputFontSize) + 2 * Spacing.xxs,
+    scaledTextStyle(Type.body, fontScale, SEARCH_INPUT_MAX_FONT_SCALE).lineHeight + 2 * Spacing.xxs,
   );
-  const badgeFontSize = scaledFontSize(Type.chip, fontScale);
+  const input: SearchInputBox = {
+    height: inputHeight,
+    minHeight: inputHeight,
+    paddingTop: 0,
+    paddingBottom: 0,
+  };
+  const inputText = scaledTextStyleAboveOne(Type.body, fontScale, SEARCH_INPUT_MAX_FONT_SCALE);
+  const badgeFontSize = scaledFontSize(Type.chip, fontScale, SEARCH_INPUT_MAX_FONT_SCALE);
   const badgeSize = Math.max(FILTER_BADGE_SIZE, lineHeightFor(badgeFontSize));
   return {
-    input: { height: inputHeight, minHeight: inputHeight, paddingTop: 0, paddingBottom: 0 },
-    inputText:
-      fontScale <= 1
-        ? undefined
-        : { fontSize: inputFontSize, lineHeight: lineHeightFor(inputFontSize) },
+    input,
+    inputText,
+    inputStyle: { ...input, ...inputText },
     filterButton: { height: inputHeight, width: COMPACT_CONTROL_SIZE, borderRadius: Radius.md },
     badge: {
       top: ms(2),
