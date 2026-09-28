@@ -10,11 +10,11 @@ import {
 // The bundled cell above its label: 5 dp top padding (BottomTabItem.js) and a 28 dp icon (TabBarIcon.js).
 const BUNDLED_CELL_ABOVE_LABEL = 5 + 28;
 
-type ThemeTokens = { Size: typeof Size; Spacing: typeof Spacing };
+type AndroidTabs = { Size: typeof Size; resolveTabsGeometry: typeof resolveTabsGeometry };
 
 // jest-expo runs the iOS branch of Platform.select; the app ships Android's.
-function loadAndroidTheme(): ThemeTokens {
-  let theme: ThemeTokens | undefined;
+function loadAndroidTabs(): AndroidTabs {
+  let tabs: AndroidTabs | undefined;
   jest.isolateModules(() => {
     const isolated = jest.requireActual<{ Platform: typeof Platform }>('react-native');
     const selectAndroid = (spec: { android?: unknown; default?: unknown }) =>
@@ -22,10 +22,14 @@ function loadAndroidTheme(): ThemeTokens {
     jest
       .spyOn(isolated.Platform, 'select')
       .mockImplementation(selectAndroid as typeof Platform.select);
-    theme = jest.requireActual<ThemeTokens>('@/constants/theme');
+    const theme = jest.requireActual<{ Size: typeof Size }>('@/constants/theme');
+    const helpers = jest.requireActual<{ resolveTabsGeometry: typeof resolveTabsGeometry }>(
+      '@/modules/navigation/screens/tabs/tabs.helpers',
+    );
+    tabs = { Size: theme.Size, resolveTabsGeometry: helpers.resolveTabsGeometry };
   });
-  if (theme === undefined) throw new Error('theme did not load');
-  return theme;
+  if (tabs === undefined) throw new Error('tabs helpers did not load');
+  return tabs;
 }
 
 describe('resolveTabLabelStyle', () => {
@@ -58,11 +62,11 @@ describe('resolveTabLabelStyle', () => {
 
 describe('the tab screens clear the + button', () => {
   it("ends each tab list at or above the + button's reach over the Android bar", () => {
-    const android = loadAndroidTheme();
-    const reach =
-      android.Size.tabBarHeight + android.Spacing.md + android.Size.fab - BUNDLED_TAB_BAR_HEIGHT;
+    const android = loadAndroidTabs();
+    const { fabBottomOffset } = android.resolveTabsGeometry(0, false);
+    const reach = fabBottomOffset + android.Size.fab - BUNDLED_TAB_BAR_HEIGHT;
 
-    expect(android.Size.tabBarHeight).not.toBe(Size.tabBarHeight);
+    expect(fabBottomOffset).not.toBe(resolveTabsGeometry(0, false).fabBottomOffset);
     expect(android.Size.tabScreenBottomClearance).toBeGreaterThanOrEqual(reach);
   });
 });

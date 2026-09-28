@@ -2,7 +2,7 @@ import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 // The bar's height is fixed, so its label stops growing where the icon and the label still fit it.
-export const TAB_LABEL_MAX_FONT_SCALE = 1.3;
+const TAB_LABEL_MAX_FONT_SCALE = 1.3;
 
 // expo-router's bundled bar in raw dp, before the safe-area inset (bottom-tabs BottomTabBar.js, TABBAR_HEIGHT_UIKIT).
 export const BUNDLED_TAB_BAR_HEIGHT = 49;
