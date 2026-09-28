@@ -1,10 +1,11 @@
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
+import type { ViewStyle } from 'react-native';
 
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
   AccentCCTokens,
   AcctTokens,
@@ -37,15 +38,38 @@ export const TRANSACTION_ROW_CAPTION_FONT_SIZE = Type.micro;
 export const TRANSACTION_ROW_AMOUNT_FONT_SIZE = Type.bodyStrong;
 export const TRANSACTION_ROW_CODE_FONT_SIZE = Type.micro;
 export const TRANSACTION_ROW_LINE_GAP = ms(2);
-// A1 `.dual`: the second tile sits 16 in from the first, ringed in the row's background.
+// A1 `.dual`: the second tile sits 16 in from the first, ringed in the day card's surface.
 export const TRANSACTION_ROW_DUAL_OFFSET = ms(16);
 export const TRANSACTION_ROW_DUAL_RING = ms(2);
-export const TRANSACTION_ROW_DUAL_RING_COLOR = CoreTokens.bg;
+export const TRANSACTION_ROW_DUAL_RING_COLOR = CoreTokens.surface;
 // Mirrors TypeBadge's `sm` box (type_badge.tsx:28,46-49,81): its label line box plus the unscaled `py-[2px]` and 1 dp border it carries on each side.
 export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT = lineHeightFor(Type.compactBadge) + 2 * (2 + 1);
 export const TRANSACTION_ROW_CAPTION_SEPARATOR = ' · ';
 
 const FALLBACK_ICON: IconName = 'shape-outline';
+
+/** One row's slice of its day's card; no `overflow`, so swipe actions draw whole past the corners. */
+export function resolveDayCardSliceStyle(isFirst: boolean, isLast: boolean): ViewStyle {
+  return {
+    marginHorizontal: Spacing.md,
+    borderLeftWidth: Size.hairline,
+    borderRightWidth: Size.hairline,
+    ...(isFirst
+      ? {
+          borderTopWidth: Size.hairline,
+          borderTopLeftRadius: Radius.lg,
+          borderTopRightRadius: Radius.lg,
+        }
+      : {}),
+    ...(isLast
+      ? {
+          borderBottomWidth: Size.hairline,
+          borderBottomLeftRadius: Radius.lg,
+          borderBottomRightRadius: Radius.lg,
+        }
+      : {}),
+  };
+}
 
 export interface TransactionRowPresentationInput {
   tx: Transaction;

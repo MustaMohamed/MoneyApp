@@ -2,8 +2,8 @@
 
 - **Date:** 2026-09-28
 - **Status:** accepted
-- **Ticket:** MA-092
-- **Applies to:** `groupTransactionsByDate` in `src/utils/group_transactions_by_date.ts`; `buildDaySections` and `composeDayHeaderAccessibilityLabel` in `src/modules/transactions/screens/transactions/transactions.helpers.ts`; `useTransactions` in `transactions.hook.ts`; `DayHeader` in `components/day_header.tsx`; `resolveDayHeaderGeometry` in `components/transactions_text.geometry.ts`
+- **Ticket:** MA-092, MA-132
+- **Applies to:** `groupTransactionsByDate` in `src/utils/group_transactions_by_date.ts`; `buildDaySections` and `composeDayHeaderAccessibilityLabel` in `src/modules/transactions/screens/transactions/transactions.helpers.ts`; `useTransactions` in `transactions.hook.ts`; `DayHeader` in `components/day_header.tsx`; `resolveDayHeaderGeometry` in `components/transactions_text.geometry.ts`; `resolveDayCardSliceStyle` in `components/transaction_row.helpers.ts`; `DayCardRow` in `components/day_card_row.tsx`
 
 Each day in the transactions list opens under a header that reads the day, the day's net in EGP and a count pill. The header replaces `DateHeader` in this list; the commitments list keeps `DateHeader` unchanged.
 
@@ -40,3 +40,11 @@ Android reserves a truncated line's `…` in the TextView paint's Roboto (0.669 
 ## 8. Why not `SectionHeader`
 
 The shared `SectionHeader` has no slot for a net, leaves scaling to the OS and has no opaque background, which a header pinned over scrolling rows needs.
+
+## 9. A day's card is drawn as row slices
+
+Each row renders inside its own slice of the day's card, one list cell per row, so the `SectionList` keeps virtualising rows (user ruling, the build, 2026-09-28). `resolveDayCardSliceStyle(isFirst, isLast)` gives every slice the side borders and the `Spacing.md` margin, the first slice the top border and top radii, the last the bottom border and bottom radii; `DayCardRow` paints it on the surface fill. `ListCard` and `ListGroup` wrap all of a day's rows in one cell, so no HeroUI primitive or project wrapper fits a slice, and `DayCardRow` is a plain `View`.
+
+The slice sets no `overflow`, so a row's swipe actions draw whole past the card's rounded corners. The last row of a day draws no separator (`showSeparator` on `TransactionRow`), so the card's bottom border is the only line under it. The list's first-load skeleton draws the same slices, two day cards of three rows under header rows at the day header's height.
+
+If a device shows a seam between slices or swipe actions clipped at the corners, the fallback is one `ListCard` per day, taken by an amended plan, not during implementation.

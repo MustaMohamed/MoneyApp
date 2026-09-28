@@ -39,11 +39,13 @@ interface Props {
   onPress: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  showSeparator?: boolean;
 }
 
 interface BodyProps {
   presentation: TransactionRowPresentation;
   onPress: () => void;
+  showSeparator?: boolean;
 }
 
 const DUAL_TILE_TOP = (Size.accountTile - Size.dualTile) / 2;
@@ -108,7 +110,11 @@ function RowTiles({ tiles }: { tiles: RowTileSet }): React.ReactElement | null {
 }
 
 /** The row without its swipe wrapper — the read-only list on the account detail renders this. */
-export function TransactionRowBody({ presentation, onPress }: BodyProps): React.ReactElement {
+export function TransactionRowBody({
+  presentation,
+  onPress,
+  showSeparator = true,
+}: BodyProps): React.ReactElement {
   const { scale, onPressIn, onPressOut } = useRowPressScale();
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isCommitmentOwned = presentation.isCommitmentOwned;
@@ -125,7 +131,7 @@ export function TransactionRowBody({ presentation, onPress }: BodyProps): React.
       <Animated.View
         testID="transaction-row"
         style={[animStyle, { height: TRANSACTION_ROW_HEIGHT, justifyContent: 'center' }]}
-        className="border-separator border-b px-4"
+        className={showSeparator ? 'border-separator border-b px-4' : 'px-4'}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-3">
           <RowTiles tiles={presentation.tiles} />
@@ -227,6 +233,7 @@ function TransactionRowComponent({
   onPress,
   onEdit,
   onDelete,
+  showSeparator = true,
 }: Props): React.ReactElement {
   const presentation = useMemo(
     () => buildTransactionRowPresentation({ tx, account, toAccount, category }),
@@ -267,7 +274,11 @@ function TransactionRowComponent({
       disabled={isCommitmentOwned}
       accessibilityLabel={presentation.accessibilityLabel}
     >
-      <TransactionRowBody presentation={presentation} onPress={handlePress} />
+      <TransactionRowBody
+        presentation={presentation}
+        onPress={handlePress}
+        showSeparator={showSeparator}
+      />
     </SwipeableRow>
   );
 }
