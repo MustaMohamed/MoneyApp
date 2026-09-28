@@ -30,7 +30,7 @@ import {
   ACCOUNT_STRIP_WRAPPER_PADDING_Y,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
-} from './components/transaction_form_geometry';
+} from './components/transaction_form.geometry';
 import { TypeTabs } from './components/type_tabs';
 import {
   type AccountStripChip,

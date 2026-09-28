@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 
 import { SelectablePill } from '@/components/ui/chip';
-import { Size, Spacing, TouchSize } from '@/constants/theme';
+import { Size, Spacing, touchFloorSlop } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 import type { AccountChipModel } from './account_chips.helpers';
@@ -18,7 +18,7 @@ import { HERO_SHELL_MARGIN_BOTTOM } from './transactions_hero';
 const CHIP_GAP = ms(6);
 
 /** Lifts the compact chip to the touch floor; unscaled, so it can outgrow the scaled paddings on a small phone. */
-const CHIP_SLOP_Y = (TouchSize.min - Size.compactChipHeight) / 2;
+const CHIP_SLOP_Y = touchFloorSlop(Size.compactChipHeight);
 
 /** Android drops a touch outside the ScrollView, so each padding holds the whole slop. */
 const ROW_PADDING_TOP = Math.max(ms(9), CHIP_SLOP_Y);

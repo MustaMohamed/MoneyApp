@@ -7,7 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { DETAIL_ACCOUNT_ROW_HEIGHT, DETAIL_ROW_HEIGHT } from './detail_geometry';
+import { DETAIL_ACCOUNT_ROW_HEIGHT, DETAIL_ROW_HEIGHT } from './detail.geometry';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 

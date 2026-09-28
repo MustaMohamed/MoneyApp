@@ -11,7 +11,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import { resolveAccountName } from '@/utils/account_name';
 
 import { getAccountTypeIcon, type TransferCellText } from '../detail.helpers';
-import { DETAIL_TRANSFER_MIN_HEIGHT } from './detail_geometry';
+import { DETAIL_TRANSFER_MIN_HEIGHT } from './detail.geometry';
 
 interface Props {
   fromAccount: Account;

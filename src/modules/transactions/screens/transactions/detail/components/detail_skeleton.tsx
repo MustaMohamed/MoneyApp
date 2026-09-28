@@ -11,7 +11,7 @@ import {
   DETAIL_HERO_MIN_HEIGHT,
   DETAIL_NOTE_MIN_HEIGHT,
   DETAIL_TRANSFER_MIN_HEIGHT,
-} from './detail_geometry';
+} from './detail.geometry';
 
 interface Props {
   transaction?: Transaction | null;

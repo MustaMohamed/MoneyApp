@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { TRANSACTION_FORM_CONTENT_CONTAINER_STYLE } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
+import { TRANSACTION_FORM_CONTENT_CONTAINER_STYLE } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 import { ms } from '@/utils/responsive';
 
 const PRESENTATION_FILES = [

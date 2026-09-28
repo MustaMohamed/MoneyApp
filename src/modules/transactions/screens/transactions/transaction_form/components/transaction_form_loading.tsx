@@ -14,7 +14,7 @@ import {
   ACCOUNT_STRIP_PADDING_Y,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
-} from './transaction_form_geometry';
+} from './transaction_form.geometry';
 
 const STRIP_BARS = Array.from(
   { length: TRANSACTION_FORM_SKELETON_GEOMETRY.stripBarCount },

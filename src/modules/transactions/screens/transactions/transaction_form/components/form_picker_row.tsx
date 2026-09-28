@@ -5,7 +5,7 @@ import { View, type TextStyle } from 'react-native';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 
-import { FACT_ROW_MIN_HEIGHT } from './transaction_form_geometry';
+import { FACT_ROW_MIN_HEIGHT } from './transaction_form.geometry';
 
 interface FormPickerRowProps {
   testID: string;

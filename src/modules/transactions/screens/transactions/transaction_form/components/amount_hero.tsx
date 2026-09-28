@@ -13,7 +13,7 @@ import { maskMoneyFieldText } from '@/utils/money_text';
 import type { TransactionFormMode } from '../transaction_form.types';
 import { DangerRing } from './danger_ring';
 import { useTransactionAmount } from './transaction_amount.hook';
-import { AMOUNT_RING_INSET } from './transaction_form_geometry';
+import { AMOUNT_RING_INSET } from './transaction_form.geometry';
 
 const amountClass = tv({
   base: 'font-sora min-h-0 rounded-none border-0 bg-transparent px-0 py-0',
