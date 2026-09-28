@@ -16,7 +16,7 @@ paths:
 
 Placement and naming: `__tests__/`, `snake_case`, logic-only `.ts`. New tests follow that; the 43 `.tsx` render suites are a settled exception, not a pending one.
 
-**Render-suite policy (resolves audit M36, decided 2026-08-05): keep the files, don't add to them, prune by reading.** This reverses the earlier "delete them all" stance (recorded at audit M36) on measurement rather than preference — so don't "restore" the older policy. ~105 `fireEvent` interactions live across 25 of those suites, and none of the 25 has a same-named `.test.ts` counterpart; four have partial relatives (`set_budget_sheet.hook`/`.state`, `filter_rail_usage`, `budget_copy_sheet_geometry`) but none of those exercises a render→handler binding. Delete the suites and that wiring coverage goes with nothing inheriting it.
+**Render-suite policy (resolves audit M36, decided 2026-08-05): keep the files, don't add to them, prune by reading.** This reverses the earlier "delete them all" stance (recorded at audit M36) on measurement rather than preference — so don't "restore" the older policy. ~105 `fireEvent` interactions live across 25 of those suites, and none of the 25 has a same-named `.test.ts` counterpart; four have partial relatives (`set_budget_sheet.hook`/`.state`, `filter_rail_usage`, `budget_copy_sheet.geometry`) but none of those exercises a render→handler binding. Delete the suites and that wiring coverage goes with nothing inheriting it.
 
 **Keep vs prune, by what the assertion binds to — not by matcher name:**
 

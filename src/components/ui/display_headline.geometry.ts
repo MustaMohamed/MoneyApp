@@ -58,7 +58,7 @@ export function resolveDisplayHeadlineTextStyle(
 ): DisplayHeadlineTextStyle {
   const g = resolveDisplayHeadlineGeometry(scaledFontSize, fontScale, maxFontScale);
   return {
-    // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- DISPLAY_HEADLINE_LINE_HEIGHT is the mockup's own 1.05 `.b-headline` ratio (line 5-6), literal-locked by display_headline_geometry.test.ts:85-92, not lineHeightFor's 1.3.
+    // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- DISPLAY_HEADLINE_LINE_HEIGHT is the mockup's own 1.05 `.b-headline` ratio (line 5-6), literal-locked by display_headline.geometry.test.ts:85-92, not lineHeightFor's 1.3.
     fontSize: g.fontSize,
     lineHeight: Math.round(g.fontSize * DISPLAY_HEADLINE_LINE_HEIGHT),
     letterSpacing: g.letterSpacing,
