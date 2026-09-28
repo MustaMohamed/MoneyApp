@@ -66,7 +66,6 @@ jest.mock('heroui-native', () => {
     accessibilityLabel?: string;
   }) => (
     <Pressable
-      testID="checkbox-root"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ checked: Boolean(isSelected) }}
       onPress={() => onSelectedChange?.(!isSelected)}
