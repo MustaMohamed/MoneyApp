@@ -127,7 +127,6 @@ const baseTransactionsState: TransactionsScreenState = {
   categoriesById: new Map(),
   activeFilterCount: 0,
   accountChips: [],
-  appliedFilterSummary: '',
   totals: null,
   totalsStatus: 'initialLoading',
   hero: {
@@ -260,7 +259,10 @@ describe('TransactionsScreen', () => {
       showInitialSkeleton: false,
       sections: [
         {
-          key: 'TODAY',
+          key: '2026-08-01',
+          label: 'Today',
+          figures: { mode: 'figures', net: '+100', currencyCode: 'EGP', count: '1' },
+          accessibilityLabel: 'Today, plus 100 EGP, 1 transaction',
           data: [
             {
               id: 'tx-1',
@@ -341,7 +343,10 @@ describe('TransactionsScreen', () => {
       searchDisabled: false,
       sections: [
         {
-          key: 'TODAY',
+          key: '2026-08-01',
+          label: 'Today',
+          figures: { mode: 'figures', net: '+100', currencyCode: 'EGP', count: '1' },
+          accessibilityLabel: 'Today, plus 100 EGP, 1 transaction',
           data: [
             {
               id: 'tx-1',

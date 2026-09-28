@@ -280,7 +280,7 @@ describe('useTransactions screen orchestration', () => {
     expect(result.current.state.deleteErrorMessage).toBe(Strings.errDeleteFailed);
   });
 
-  it('MA-062: names a blank-named account "Unnamed account" in the applied filter summary', async () => {
+  it('MA-062: names a blank-named account "Unnamed account" in the hero title', async () => {
     setupStores({}, { accounts: [makeTestAccount({ id: 'account-1', name: '' })] });
     const { result } = await renderHook(() => useTransactions());
 
@@ -290,7 +290,9 @@ describe('useTransactions screen orchestration', () => {
         .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['account-1'] });
     });
 
-    expect(result.current.state.appliedFilterSummary).toBe(Strings.unnamedAccount);
+    expect(result.current.state.hero.title).toBe(
+      Strings.transactionsHeroTitleScoped(Strings.unnamedAccount),
+    );
     expect(result.current.state.accountsById.get('account-1')?.name).toBe('');
   });
 });
@@ -1694,7 +1696,6 @@ describe('useTransactions search tally', () => {
       sum: { text: '−450' },
       filterSummary: undefined,
     });
-    expect(result.current.state.appliedFilterSummary).toBe('Wallet');
   });
 
   it('two applied accounts are named in the tally', async () => {
@@ -1935,5 +1936,122 @@ describe('useTransactions search tally', () => {
       count: '2',
       sum: { text: '−2,100' },
     });
+  });
+});
+
+describe('useTransactions day sections', () => {
+  const DAY = TRANSACTION.transaction_date;
+  const COFFEE_KEY = getTransactionQueryKey({ ...JULY_QUERY, search: 'coffee' });
+  const DASH = Strings.transactionsHeroUnavailable;
+
+  function serveDay(netEgp: number, count: number): void {
+    mockGetMonthAggregate.mockResolvedValue({
+      ...EMPTY_AGGREGATE,
+      days: [{ date: DAY, netEgp, count }],
+      matchCount: count,
+      matchNetEgp: netEgp,
+    });
+  }
+
+  async function renderReadyRows() {
+    setupStores({ transactions: [TRANSACTION], status: 'ready' });
+    const rendered = await renderHook(() => useTransactions());
+    await waitFor(() => expect(rendered.result.current.state.totalsStatus).toBe('ready'));
+    return rendered;
+  }
+
+  async function searchCoffee(): Promise<void> {
+    await act(() => {
+      transactionStoreState.queryKey = COFFEE_KEY;
+      transactionStoreState.snapshotKey = COFFEE_KEY;
+      useTransactionsScreenStore.getState().setSearchQuery('coffee');
+    });
+    await waitFor(() =>
+      expect(mockGetMonthAggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ search: 'coffee' }),
+      ),
+    );
+  }
+
+  it("reads the day's net and count from the month aggregate, not from its one loaded row", async () => {
+    serveDay(-450, 3);
+    const { result } = await renderReadyRows();
+
+    expect(result.current.state.sections).toHaveLength(1);
+    expect(result.current.state.sections[0].data).toEqual([TRANSACTION]);
+    expect(result.current.state.sections[0].figures).toEqual({
+      mode: 'figures',
+      net: '−450',
+      currencyCode: 'EGP',
+      count: '3',
+    });
+  });
+
+  it("reads the skeleton, never the previous query's day net, while a search's aggregate is pending", async () => {
+    serveDay(-450, 3);
+    const { result } = await renderReadyRows();
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+
+    await searchCoffee();
+
+    expect(useTransactionsScreenStore.getState().totals?.days).toEqual([
+      { date: DAY, netEgp: -450, count: 3 },
+    ]);
+    expect(result.current.state.sections).toHaveLength(1);
+    expect(result.current.state.sections[0].figures).toEqual({ mode: 'skeleton' });
+  });
+
+  it('reads the dash alone once that search load rejects', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    serveDay(-450, 3);
+    const { result } = await renderReadyRows();
+    let rejectLoad!: (error: Error) => void;
+    mockGetMonthAggregate.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectLoad = reject;
+      }),
+    );
+
+    await searchCoffee();
+    expect(result.current.state.sections[0].figures).toEqual({ mode: 'skeleton' });
+
+    await act(async () => {
+      rejectLoad(new Error('db down'));
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('refreshErrorWithData'));
+
+    expect(result.current.state.sections[0].figures).toEqual({ mode: 'failed', net: DASH });
+    consoleSpy.mockRestore();
+  });
+
+  it('reads the dash alone on every day when the first load fails', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    setupStores({ transactions: [TRANSACTION, JUNE_TRANSACTION], status: 'ready' });
+    mockGetMonthAggregate.mockRejectedValue(new Error('db down'));
+
+    const { result } = await renderHook(() => useTransactions());
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('firstLoadError'));
+
+    expect(result.current.state.sections.map((section) => section.figures)).toEqual([
+      { mode: 'failed', net: DASH },
+      { mode: 'failed', net: DASH },
+    ]);
+    consoleSpy.mockRestore();
+  });
+
+  it('leaves the applied-filter summary to the tally, out of the list state', async () => {
+    const WALLET = makeTestAccount({ id: 'acc-1', name: 'Wallet' });
+    const BANK = makeTestAccount({ id: 'acc-2', name: 'Bank' });
+    serveDay(-450, 3);
+    useTransactionsScreenStore
+      .getState()
+      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1', 'acc-2'] });
+    setupStores({}, { accounts: [WALLET, BANK], hasLoaded: true });
+
+    const { result } = await renderHook(() => useTransactions());
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+
+    expect(result.current.state.tally).toMatchObject({ filterSummary: 'Wallet, Bank' });
+    expect(result.current.state).not.toHaveProperty('appliedFilterSummary');
   });
 });

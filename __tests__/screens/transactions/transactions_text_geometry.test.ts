@@ -1,6 +1,7 @@
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
   TRANSACTIONS_HERO_MAX_FONT_SCALE,
+  resolveDayHeaderGeometry,
   resolveSearchTallyGeometry,
   resolveTransactionsHeroGeometry,
   scaledFontSize,
@@ -70,4 +71,21 @@ describe('resolveTransactionsHeroGeometry', () => {
   it('returns the capped values at font scale 2.0', () => {
     expect(resolveTransactionsHeroGeometry(2)).toEqual(heroAt(TRANSACTIONS_HERO_MAX_FONT_SCALE));
   });
+});
+
+describe('resolveDayHeaderGeometry', () => {
+  it.each([1, 1.3, 2])(
+    'sizes the label, the pill and the header from the caption size at font scale %s, uncapped',
+    (scale) => {
+      const fontSize = Type.caption * scale;
+      const lineHeight = lineHeightFor(fontSize);
+      const pillHeight = lineHeight + 2 * Spacing.xxxs;
+      expect(resolveDayHeaderGeometry(scale)).toEqual({
+        fontSize,
+        lineHeight,
+        pillHeight,
+        height: Spacing.md + pillHeight + Spacing.xs,
+      });
+    },
+  );
 });
