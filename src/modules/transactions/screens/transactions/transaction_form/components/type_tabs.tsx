@@ -1,9 +1,11 @@
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { SegmentedTabs, type TabSegment } from '@/components/ui/tabs';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
+
+import { resolveTypeTabsGeometry } from './transaction_form.geometry';
 
 const TYPE_SEGMENTS: ReadonlyArray<TabSegment<TransactionType>> = [
   {
@@ -36,6 +38,7 @@ interface Props {
 }
 
 export function TypeTabs({ active, incomeLabel, onSelect, isDisabled }: Props): React.ReactElement {
+  const { listHeight } = resolveTypeTabsGeometry(useWindowDimensions().fontScale);
   const segments = TYPE_SEGMENTS.map((segment) =>
     segment.value === TransactionType.Income ? { ...segment, label: incomeLabel } : segment,
   );
@@ -49,7 +52,8 @@ export function TypeTabs({ active, incomeLabel, onSelect, isDisabled }: Props): 
         variant="solid-gold"
         density="compact"
         corners="form"
-        listClassName="h-9 w-full"
+        listClassName="w-full"
+        listStyle={{ height: listHeight }}
         accessibilityLabel={Strings.addTxTypeSelectorA11y}
         isDisabled={isDisabled}
       />

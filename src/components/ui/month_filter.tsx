@@ -1,10 +1,11 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 
+import { resolveMonthPillGeometry } from './month_filter.geometry';
 import { type MonthFilterProps, useMonthFilter } from './month_filter.hook';
 import { Sheet } from './sheet';
 import { Text } from './text';
@@ -34,6 +35,7 @@ function IconButton({ icon, accessibilityLabel, onPress, testID }: IconButtonPro
 export function MonthFilter(props: MonthFilterProps) {
   const monthFilter = useMonthFilter(props);
   const showStepButtons = props.showStepButtons ?? true;
+  const pill = resolveMonthPillGeometry(useWindowDimensions().fontScale);
 
   return (
     <>
@@ -51,12 +53,15 @@ export function MonthFilter(props: MonthFilterProps) {
           onPress={monthFilter.onOpenPicker}
           accessibilityRole="button"
           accessibilityLabel={monthFilter.state.openPickerAccessibilityLabel}
-          className="bg-accent h-8 flex-1 items-center justify-center rounded-full px-2.5"
+          className="bg-accent flex-1 items-center justify-center rounded-full px-2.5"
+          style={{ height: pill.height }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
             <Text
+              numberOfLines={1}
+              allowFontScaling={false}
               className="font-sora-bold text-accent-foreground"
-              style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+              style={{ ...pill.label, flexShrink: 1 }}
             >
               {monthFilter.state.selectedLabel}
             </Text>

@@ -1,6 +1,6 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { SkeletonGroup } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { ListCard } from '@/components/ui/list_card';
 import { Strings } from '@/constants/strings';
@@ -14,6 +14,7 @@ import {
   ACCOUNT_STRIP_PADDING_Y,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
+  resolveTypeTabsGeometry,
 } from './transaction_form.geometry';
 
 const STRIP_BARS = Array.from(
@@ -27,6 +28,7 @@ const FACT_ROWS = Array.from(
 const LAST_FACT_ROW = FACT_ROWS.length - 1;
 
 export function TransactionFormLoading(): React.ReactElement {
+  const { skeletonHeight } = resolveTypeTabsGeometry(useWindowDimensions().fontScale);
   return (
     <View
       testID="transaction-form-loading"
@@ -37,7 +39,7 @@ export function TransactionFormLoading(): React.ReactElement {
         <View className="border-separator border-b px-4 py-2">
           <SkeletonGroup.Item
             className="w-full"
-            style={{ height: TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar, borderRadius: Radius.sm }}
+            style={{ height: skeletonHeight, borderRadius: Radius.sm }}
           />
         </View>
         <View className="min-h-8 justify-center px-4 py-1.5">

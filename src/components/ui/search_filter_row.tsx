@@ -1,13 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback, SearchField } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Type } from '@/constants/theme';
+import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { ms } from '@/utils/responsive';
 
+import { resolveSearchFilterRowGeometry } from './search_filter_row.geometry';
 import { Text } from './text';
 
 interface SearchFilterRowProps {
@@ -22,36 +22,6 @@ interface SearchFilterRowProps {
   isDisabled?: boolean;
 }
 
-const COMPACT_CONTROL_SIZE = ms(36);
-const FILTER_BADGE_SIZE = ms(16);
-
-export const SEARCH_INPUT_COMPACT_STYLE = {
-  height: COMPACT_CONTROL_SIZE,
-  minHeight: COMPACT_CONTROL_SIZE,
-  paddingTop: 0,
-  paddingBottom: 0,
-} as const;
-
-export const FILTER_BUTTON_COMPACT_STYLE = {
-  height: COMPACT_CONTROL_SIZE,
-  width: COMPACT_CONTROL_SIZE,
-  borderRadius: Radius.md,
-} as const;
-
-export const FILTER_BADGE_STYLE = {
-  top: ms(2),
-  right: ms(2),
-  minWidth: FILTER_BADGE_SIZE,
-  height: FILTER_BADGE_SIZE,
-  borderRadius: FILTER_BADGE_SIZE / 2,
-} as const;
-
-const FILTER_BADGE_TEXT_STYLE = {
-  // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- lineHeight matches FILTER_BADGE_SIZE (the circular badge's own diameter, line 25) so the count centers inside it; lineHeightFor(Type.chip)'s 12px would not fill the 16px circle.
-  fontSize: Type.chip,
-  lineHeight: FILTER_BADGE_SIZE,
-} as const;
-
 export function SearchFilterRow({
   value,
   placeholder,
@@ -63,6 +33,7 @@ export function SearchFilterRow({
   filterAccessibilityLabel = Strings.filterSearchButtonAccessibility,
   isDisabled,
 }: SearchFilterRowProps): React.ReactElement {
+  const geometry = resolveSearchFilterRowGeometry(useWindowDimensions().fontScale);
   const hasFilters = activeFilterCount > 0;
   const filterLabel = hasFilters
     ? Strings.filterAccessibilityWithActiveCount(filterAccessibilityLabel, activeFilterCount)
@@ -71,14 +42,15 @@ export function SearchFilterRow({
   return (
     <View className="mb-2 flex-row items-center gap-2 px-4">
       <SearchField value={value} onChange={onChangeText} isDisabled={isDisabled} className="flex-1">
-        <SearchField.Group style={SEARCH_INPUT_COMPACT_STYLE}>
+        <SearchField.Group style={geometry.input}>
           <SearchField.SearchIcon iconProps={{ size: Size.iconXs, color: CoreTokens.text2 }} />
           <SearchField.Input
             placeholder={placeholder}
             returnKeyType="search"
             autoCorrect={false}
             accessibilityLabel={placeholder}
-            style={SEARCH_INPUT_COMPACT_STYLE}
+            allowFontScaling={geometry.inputText === undefined}
+            style={{ ...geometry.input, ...geometry.inputText }}
           />
           <SearchField.ClearButton accessibilityLabel={clearAccessibilityLabel} />
         </SearchField.Group>
@@ -89,18 +61,20 @@ export function SearchFilterRow({
         accessibilityRole="button"
         accessibilityLabel={filterLabel}
         className="bg-default/40 relative items-center justify-center"
-        style={FILTER_BUTTON_COMPACT_STYLE}
+        style={geometry.filterButton}
       >
         <MaterialCommunityIcons name="tune-variant" size={Size.iconSm} color={CoreTokens.text1} />
         {hasFilters ? (
           <View
             testID={filterBadgeTestID}
             className="bg-accent absolute items-center justify-center px-1"
-            style={FILTER_BADGE_STYLE}
+            style={geometry.badge}
           >
             <Text
+              numberOfLines={1}
+              allowFontScaling={false}
               className="font-inter-bold text-accent-foreground"
-              style={FILTER_BADGE_TEXT_STYLE}
+              style={geometry.badgeText}
             >
               {activeFilterCount}
             </Text>

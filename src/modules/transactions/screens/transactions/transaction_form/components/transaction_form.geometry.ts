@@ -1,6 +1,7 @@
 import type { Insets } from 'react-native';
 
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import {
   Radius,
   Size,
@@ -63,3 +64,21 @@ export const TRANSACTION_FORM_SKELETON_GEOMETRY = {
   keyBar: { width: ms(60), height: lineHeightFor(Type.body) },
   valueBar: { width: ms(100), height: lineHeightFor(Type.body) },
 } as const;
+
+// The type tab row's `h-9` at scale 1.
+const TYPE_TABS_MIN_LIST_HEIGHT = 36;
+
+/** The type tab row and its skeleton shape share one height at every font scale. */
+export function resolveTypeTabsGeometry(fontScale: number): {
+  listHeight: number;
+  skeletonHeight: number;
+} {
+  const listHeight = Math.max(
+    TYPE_TABS_MIN_LIST_HEIGHT,
+    resolveSegmentedTabsGeometry(fontScale).compact.listHeight,
+  );
+  return {
+    listHeight,
+    skeletonHeight: Math.max(TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar, listHeight),
+  };
+}

@@ -1,7 +1,9 @@
-import type { ButtonVariant } from 'heroui-native';
+import type { ButtonSize, ButtonVariant } from 'heroui-native';
 
 import { Strings } from '@/constants/strings';
 import { Colors, Radius, Size } from '@/constants/theme';
+
+import { resolveCompactCtaHeight } from './button.geometry';
 
 const FLAT_VARIANTS: ButtonVariant[] = ['primary', 'secondary', 'ghost', 'danger'];
 
@@ -18,10 +20,15 @@ export function resolveFlatButtonStyle({
   variant,
   flat,
   tone,
+  fontScale,
+  size,
 }: {
   variant: ButtonVariant;
   flat?: boolean;
   tone?: FlatButtonTone;
+  /** Read only by the compact accent arm, whose pinned height grows with its label. */
+  fontScale?: number;
+  size?: ButtonSize;
 }): FlatButtonStyle | undefined {
   if (flat !== true || !FLAT_VARIANTS.includes(variant)) return undefined;
   if (variant === 'ghost') {
@@ -33,7 +40,13 @@ export function resolveFlatButtonStyle({
   if (variant !== 'secondary') return { style: { borderRadius: Radius.cta } };
   if (tone === 'accent') {
     return {
-      style: { borderRadius: Radius.cta, height: Size.compactCtaTrack },
+      style: {
+        borderRadius: Radius.cta,
+        height:
+          fontScale === undefined || size === undefined
+            ? Size.compactCtaTrack
+            : resolveCompactCtaHeight(fontScale, size),
+      },
       rootClass: 'bg-accent-soft',
       labelClass: 'text-accent',
     };

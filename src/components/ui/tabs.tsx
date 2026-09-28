@@ -1,19 +1,16 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, cn } from 'heroui-native';
 import React from 'react';
+import { useWindowDimensions } from 'react-native';
 
-import { Colors, Radius, Size, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, Radius, Size } from '@/constants/theme';
 
+import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from './tabs.geometry';
 import { type SegmentedTabsScrollAlign, useSegmentedTabsScroll } from './tabs.hook';
 
-// `.tabs__list--variant-primary`'s own padding, unscaled CSS.
-const TABS_LIST_PADDING = 3;
 // The form vocabulary is small radii — inputs and tiles sit at Radius.md — so the solid-gold track overrides HeroUI's pill `--radius-3xl` (user ruling 2026-09-01); the fill is concentric inside the list padding.
 export const SOLID_GOLD_TRACK_RADIUS = Radius.md;
 export const SOLID_GOLD_SELECTED_RADIUS = Math.max(SOLID_GOLD_TRACK_RADIUS - TABS_LIST_PADDING, 0);
-
-// The pair stays in one object: the rule visits each `ObjectExpression` alone, so splitting it across a `style` array reports the `fontSize` half as missing.
-const COMPACT_LABEL_STYLE = { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) };
 
 export type SegmentedTabsCorners = 'pill' | 'form';
 
@@ -57,6 +54,8 @@ export interface SegmentedTabsProps<T extends string = string> {
   /** Scroll alignment for `'scrollable'`; `'visible'` scrolls the least to reveal it. */
   scrollAlign?: SegmentedTabsScrollAlign;
   listClassName?: string;
+  /** Merged into `Tabs.List`'s style, for a caller whose row height follows the font scale. */
+  listStyle?: { height: number };
   animation?: 'disable-all';
   accessibilityLabel?: string;
   segmentWidth?: number;
@@ -75,6 +74,7 @@ export function SegmentedTabs<T extends string>({
   layout = 'fixed',
   scrollAlign = 'center',
   listClassName,
+  listStyle,
   animation,
   accessibilityLabel,
   segmentWidth,
@@ -86,6 +86,8 @@ export function SegmentedTabs<T extends string>({
   const isScrollable = layout === 'scrollable';
   const isCompact = density === 'compact';
   const radii = resolveSolidGoldRadii({ isCompact, corners });
+  const geometry = resolveSegmentedTabsGeometry(useWindowDimensions().fontScale);
+  const labelStyle = isCompact ? geometry.compact.label : geometry.defaultLabel;
   const scrollBehavior = useSegmentedTabsScroll({
     scrollAlign,
     value,
@@ -102,12 +104,17 @@ export function SegmentedTabs<T extends string>({
             borderRadius: radii.selected,
           }
         : undefined;
+    const sizeStyle =
+      segmentWidth || isCompact
+        ? {
+            ...(segmentWidth ? { width: segmentWidth } : undefined),
+            ...(isCompact ? { height: geometry.compact.triggerHeight } : undefined),
+          }
+        : undefined;
     const triggerStyle =
-      segmentWidth && selectedSolidGoldStyle
-        ? [{ width: segmentWidth }, selectedSolidGoldStyle]
-        : segmentWidth
-          ? { width: segmentWidth }
-          : selectedSolidGoldStyle;
+      sizeStyle && selectedSolidGoldStyle
+        ? [sizeStyle, selectedSolidGoldStyle]
+        : (sizeStyle ?? selectedSolidGoldStyle);
 
     return (
       <Tabs.Trigger
@@ -116,7 +123,7 @@ export function SegmentedTabs<T extends string>({
         // Avoid flex-1 inside ScrollView content.
         className={cn(
           isScrollable ? undefined : 'flex-1',
-          isCompact ? 'h-7 gap-0.5 rounded-full px-1.5 py-0' : undefined,
+          isCompact ? 'gap-0.5 rounded-full px-1.5 py-0' : undefined,
         )}
         style={triggerStyle}
         accessibilityLabel={seg.accessibilityLabel ?? seg.label}
@@ -132,12 +139,15 @@ export function SegmentedTabs<T extends string>({
         <Tabs.Label
           // In RN the style prop wins over className, so it overrides the label color.
           numberOfLines={1}
+          allowFontScaling={labelStyle === undefined}
           adjustsFontSizeToFit={isCompact || segmentWidth != null}
           minimumFontScale={0.85}
           className={isCompact && isSelected ? 'font-inter-bold' : undefined}
           style={[
-            isCompact ? COMPACT_LABEL_STYLE : undefined,
-            isCompact || segmentWidth != null ? { flexShrink: 1 } : undefined,
+            labelStyle,
+            isCompact || segmentWidth != null || labelStyle !== undefined
+              ? { flexShrink: 1 }
+              : undefined,
             isSolidGold && isSelected ? { color: Colors.shared.midnightBlue } : undefined,
             isCompact && !isSelected ? { color: Colors.dark.text2 } : undefined,
           ]}
@@ -147,6 +157,9 @@ export function SegmentedTabs<T extends string>({
       </Tabs.Trigger>
     );
   });
+
+  const trackStyle =
+    isSolidGold && radii.track !== undefined ? { borderRadius: radii.track } : undefined;
 
   const indicator = (
     <Tabs.Indicator
@@ -172,7 +185,7 @@ export function SegmentedTabs<T extends string>({
     >
       <Tabs.List
         className={cn(listClassName)}
-        style={isSolidGold && radii.track !== undefined ? { borderRadius: radii.track } : undefined}
+        style={listStyle || trackStyle ? { ...listStyle, ...trackStyle } : undefined}
         accessibilityLabel={accessibilityLabel}
       >
         {isScrollable ? (
@@ -183,9 +196,7 @@ export function SegmentedTabs<T extends string>({
             onLayout={scrollBehavior.onLayout}
             scrollEventThrottle={scrollBehavior.scrollEventThrottle}
             // The scroll view repeats the list's 3xl radius in its own CSS — keep it in step with the overridden track.
-            style={
-              isSolidGold && radii.track !== undefined ? { borderRadius: radii.track } : undefined
-            }
+            style={trackStyle}
           >
             {indicator}
             {triggers}
