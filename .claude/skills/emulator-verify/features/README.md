@@ -37,6 +37,7 @@ Four sections, in this order: `Reach it` (route, user path, deep link), `States`
 | [transaction_form.md](transaction_form.md) | the add and edit sheet, over any tab | D1 to D8, D13 to D15, A15 (transactions canvas) |
 | [categories.md](categories.md) | `/settings/categories`, and its add and edit sheet | not redesigned |
 | [budget.md](budget.md) | `/budget`, and its copy sheet | not redesigned |
+| [goals.md](goals.md) | `/goals` | not redesigned |
 | [spending_plan_detail.md](spending_plan_detail.md) | `/budget/plans/[id]` | not redesigned |
 
 ## Maintenance
@@ -45,8 +46,9 @@ A merged ticket that adds a state, an action or a route edits its file in the sa
 
 ## Seeding and forcing states
 
-The recipes reference three mechanisms from the `emulator-verify` skill and its memory:
+The recipes reference four mechanisms from the `emulator-verify` skill and its memory:
 
 - **Deep link**: `mqa open /accounts` opens any expo-router route while the dev client runs. The only way into `/accounts` at zero active accounts.
 - **Seed push**: `mqa up --seed <file.db>` before a run, or `mqa seed <file.db>` mid-run (stops the app, drops the WAL pair, streams the file through `run-as`, checks the size, relaunches). `mqa seed --save <file.db>` keeps a device state you built. A seed built on the host with `better-sqlite3` uses `PRAGMA journal_mode=DELETE`. `mqa db` reads a pulled copy and never writes the device.
 - **Source force**: a state no data can produce (`loadError` on the list) is one line in the screen's own resolver, reverted with `git status` clean before and after.
+- **Font scale**: `adb -s <serial> shell settings put system font_scale <scale>` at each scale the row names, a cold launch after each, and `font_scale` back to 1.0 after the last.

@@ -1,5 +1,75 @@
-import { Size, Spacing } from '@/constants/theme';
-import { resolveTabsGeometry } from '@/modules/navigation/screens/tabs/tabs.helpers';
+import { Platform } from 'react-native';
+
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import {
+  BUNDLED_TAB_BAR_HEIGHT,
+  resolveTabLabelStyle,
+  resolveTabsGeometry,
+} from '@/modules/navigation/screens/tabs/tabs.helpers';
+
+// The bundled cell above its label: 5 dp top padding (BottomTabItem.js) and a 28 dp icon (TabBarIcon.js).
+const BUNDLED_CELL_ABOVE_LABEL = 5 + 28;
+
+type AndroidTabs = { Size: typeof Size; resolveTabsGeometry: typeof resolveTabsGeometry };
+
+// jest-expo runs the iOS branch of Platform.select; the app ships Android's.
+function loadAndroidTabs(): AndroidTabs {
+  let tabs: AndroidTabs | undefined;
+  jest.isolateModules(() => {
+    const isolated = jest.requireActual<{ Platform: typeof Platform }>('react-native');
+    const selectAndroid = (spec: { android?: unknown; default?: unknown }) =>
+      spec.android ?? spec.default;
+    jest
+      .spyOn(isolated.Platform, 'select')
+      .mockImplementation(selectAndroid as typeof Platform.select);
+    const theme = jest.requireActual<{ Size: typeof Size }>('@/constants/theme');
+    const helpers = jest.requireActual<{ resolveTabsGeometry: typeof resolveTabsGeometry }>(
+      '@/modules/navigation/screens/tabs/tabs.helpers',
+    );
+    tabs = { Size: theme.Size, resolveTabsGeometry: helpers.resolveTabsGeometry };
+  });
+  if (tabs === undefined) throw new Error('tabs helpers did not load');
+  return tabs;
+}
+
+describe('resolveTabLabelStyle', () => {
+  it('draws the label at Type.pillLabel at font scale 1.0', () => {
+    expect(resolveTabLabelStyle(1)).toEqual({
+      fontSize: Type.pillLabel,
+      lineHeight: lineHeightFor(Type.pillLabel),
+    });
+  });
+
+  it.each([1.3, 1.5, 2])(
+    'holds the label at Type.pillLabel × 1.3 on the 16 dp the cell leaves at font scale %s',
+    (scale) => {
+      expect(resolveTabLabelStyle(scale)).toEqual({
+        fontSize: Type.pillLabel * 1.3,
+        lineHeight: 16,
+      });
+    },
+  );
+
+  it.each([1, 1.3, 1.5, 2])(
+    'fits the label line inside the bundled cell at font scale %s',
+    (scale) => {
+      const { lineHeight } = resolveTabLabelStyle(scale);
+
+      expect(BUNDLED_CELL_ABOVE_LABEL + lineHeight).toBeLessThanOrEqual(BUNDLED_TAB_BAR_HEIGHT);
+    },
+  );
+});
+
+describe('the tab screens clear the + button', () => {
+  it("ends each tab list at or above the + button's reach over the Android bar", () => {
+    const android = loadAndroidTabs();
+    const { fabBottomOffset } = android.resolveTabsGeometry(0, false);
+    const reach = fabBottomOffset + android.Size.fab - BUNDLED_TAB_BAR_HEIGHT;
+
+    expect(fabBottomOffset).not.toBe(resolveTabsGeometry(0, false).fabBottomOffset);
+    expect(android.Size.tabScreenBottomClearance).toBeGreaterThanOrEqual(reach);
+  });
+});
 
 describe('resolveTabsGeometry', () => {
   it.each([false, true])(

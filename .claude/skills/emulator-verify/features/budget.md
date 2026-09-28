@@ -17,6 +17,9 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 | plan card 'more' chip | no frame, MA-087 | a plan with four or more categories (`spending_plans.helpers.ts:459-483`: three chips show, the rest fold) | the `+N` label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(14))` = 19 ± 1, the chip's `min-h-7.5 min-w-7.5` (30) holds it so the chip reads 30 and stays round; same shot |
 | plan card allocation chip | no frame, MA-087 | a plan with an allocated category | the amount `TextView` reads `lineHeightFor(msFont(13))` = 18 ± 1 and the percentage `lineHeightFor(msFont(11))` = 15 ± 1; the stacked boxes are 33, above the chip's `min-h-8` (32) floor, so the chip reads 33; same shot |
 | category chip glyph, recoloured | no frame, MA-103 | the MA-103 seed (`categories.md` § Seeding and forcing states): a budget on Housing for the current month | one shot of the Housing budget row: the glyph in `#5C7FC4` on its tint box |
+| add button clearance, populated | no frame, MA-125 | a seed with enough budgets this month that the `Budgets` lens scrolls; the `Font scale` force (README) at 1.0 and 2.0 | scrolled to its end (`mqa scroll down --until` its last row), at both scales, the last text node's bottom from `mqa bounds` is at or above the top of `fab-button`; one shot at 2.0 |
+| add button clearance, empty | no frame, MA-125 | an empty database: the budget empty state; the `Font scale` force (README) at 1.0 and 2.0 | at both scales, scrolled to its end, no text node's box intersects `fab-button`'s; one shot at 2.0 |
+| add button clearance, load error | no frame, MA-125 | source force: `throw new Error('forced')` as the first line of the `try` in `load` (`budget.store.ts`, the loader `budget.hook.ts` calls), reverted after; the `Font scale` force (README) at 1.0 and 2.0 | `budget-load-error` shows; at both scales no text node's box from `mqa bounds` intersects `fab-button`'s; one shot at 2.0 |
 
 ## Outbound
 

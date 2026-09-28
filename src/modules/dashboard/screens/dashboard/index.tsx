@@ -133,7 +133,7 @@ export default function DashboardScreen() {
           }}
         />
       ) : presentation.showAccountsEmptyState ? (
-        <EmptyState variant="accounts" onAction={goToAddAccount} />
+        <EmptyState variant="accounts" onAction={goToAddAccount} clearsFab />
       ) : (
         <>
           <Tabs value={segment} onValueChange={onTabChange}>
@@ -217,7 +217,7 @@ export default function DashboardScreen() {
                       onPress={goToCommitments}
                     />
 
-                    <View style={{ height: Spacing.xxl }} />
+                    <View style={{ height: Size.tabScreenBottomClearance }} />
                   </>
                 ) : (
                   <>
@@ -245,7 +245,7 @@ export default function DashboardScreen() {
                         />
                       </Animated.View>
                     ))}
-                    <View style={{ height: Spacing.xxl }} />
+                    <View style={{ height: Size.tabScreenBottomClearance }} />
                   </>
                 )}
               </View>

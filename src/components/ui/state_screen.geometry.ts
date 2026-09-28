@@ -123,3 +123,7 @@ const STATE_SCREEN_LAYOUTS_BY_KIND: Readonly<Record<StateScreenKind, StateScreen
 export function resolveStateScreenLayout(kind: StateScreenKind): StateScreenLayout {
   return STATE_SCREEN_LAYOUTS_BY_KIND[kind];
 }
+
+export function resolveStateScreenBottomReserve(fontScale: number): number {
+  return fontScale <= 1 ? 0 : Size.tabScreenBottomClearance;
+}

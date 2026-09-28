@@ -2,11 +2,26 @@ import {
   EMPTY_STATE_SCREEN_LAYOUT,
   ERROR_STATE_SCREEN_LAYOUT,
   STATE_SCREEN_LAYOUT,
+  resolveStateScreenBottomReserve,
   resolveStateScreenLayout,
 } from '@/components/ui/state_screen.geometry';
-import { Spacing } from '@/constants/theme';
+import { Size, Spacing } from '@/constants/theme';
 
 // jest-expo mocks a 750pt window, so `responsiveScale` clamps at 1.15: `ms(64)` reads 74 here.
+
+describe('resolveStateScreenBottomReserve — a state that does not scroll clears the + button only past 1.0', () => {
+  it.each([0.85, 1])('reserves nothing at font scale %s', (scale) => {
+    expect(resolveStateScreenBottomReserve(scale)).toBe(0);
+  });
+
+  it.each([1.15, 1.3, 2])(
+    "reserves the tab screens' bottom clearance at font scale %s",
+    (scale) => {
+      expect(Size.tabScreenBottomClearance).toBeGreaterThan(0);
+      expect(resolveStateScreenBottomReserve(scale)).toBe(Size.tabScreenBottomClearance);
+    },
+  );
+});
 
 const errorLayout = resolveStateScreenLayout('error');
 const emptyLayout = resolveStateScreenLayout('empty');

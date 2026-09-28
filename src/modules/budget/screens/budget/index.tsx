@@ -25,7 +25,6 @@ import { SpendingPlansLens } from '@/modules/budget/screens/budget/components/sp
 import { SummaryCard } from '@/modules/budget/screens/budget/components/summary_card';
 import { SpendingPlanSheet } from '@/modules/budget/screens/budget/spending_plan_sheet';
 import { formatMonthYear } from '@/utils/format_date';
-import { ms } from '@/utils/responsive';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 const LENS_SEGMENTS = [
@@ -142,10 +141,11 @@ export default function BudgetScreen() {
           retryLabel={Strings.budgetLoadRetry}
           onRetry={() => void refresh()}
           testID="budget-load-error"
+          clearsFab
         />
       ) : state.presentation === 'coldLoading' ? (
         <ScreenScroll
-          contentContainerStyle={{ paddingBottom: ms(96) }}
+          contentContainerStyle={{ paddingBottom: Size.tabScreenBottomClearance }}
           refreshControl={refreshControl}
         >
           <BudgetScreenSkeleton
@@ -161,7 +161,7 @@ export default function BudgetScreen() {
         </ScreenScroll>
       ) : state.lensTab === 'categories' ? (
         <ScreenScroll
-          contentContainerStyle={{ paddingBottom: ms(96) }}
+          contentContainerStyle={{ paddingBottom: Size.tabScreenBottomClearance }}
           refreshControl={refreshControl}
         >
           <SummaryCard summary={state.categoriesSummary} onSetIncome={openIncomeSheet} />
@@ -202,7 +202,7 @@ export default function BudgetScreen() {
         </ScreenScroll>
       ) : state.lensTab === 'plans' ? (
         <ScreenScroll
-          contentContainerStyle={{ paddingBottom: ms(96) }}
+          contentContainerStyle={{ paddingBottom: Size.tabScreenBottomClearance }}
           refreshControl={refreshControl}
         >
           <SpendingPlansLens
@@ -226,7 +226,7 @@ export default function BudgetScreen() {
         </ScreenScroll>
       ) : (
         <ScreenScroll
-          contentContainerStyle={{ paddingBottom: ms(96) }}
+          contentContainerStyle={{ paddingBottom: Size.tabScreenBottomClearance }}
           refreshControl={refreshControl}
         >
           <FiftyThirtyTwentyLens

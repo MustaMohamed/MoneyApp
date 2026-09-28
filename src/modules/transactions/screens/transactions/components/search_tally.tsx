@@ -2,10 +2,11 @@ import { Skeleton, Typography } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
+import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 import { FLOW_CLASS, type SearchTallyModel } from '../transactions.helpers';
-import { resolveSearchTallyGeometry, scaledFontSize } from './transactions_text.geometry';
+import { resolveSearchTallyGeometry } from './transactions_text.geometry';
 
 const SLOT_STYLE = {
   paddingBottom: Spacing.xxs,

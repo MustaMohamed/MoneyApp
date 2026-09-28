@@ -1,7 +1,8 @@
 import { Alert, type ButtonSize } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { resolveStateScreenBottomReserve } from '@/components/ui/state_screen.geometry';
 
 type LoadErrorAlertFloatingOffset = 'tabBar' | 'edge';
 type LoadErrorAlertFillPadding = 'default' | 'wide';
@@ -22,6 +23,8 @@ export type LoadErrorAlertProps =
       mode?: 'fill';
       fillPadding?: LoadErrorAlertFillPadding;
       minHeight?: number;
+      /** A tab screen's state that does not scroll: centres above the + button. */
+      clearsFab?: boolean;
     })
   | (LoadErrorAlertCommonProps & {
       mode: 'inline';
@@ -46,6 +49,7 @@ const FLOATING_CLASS_NAME: Record<LoadErrorAlertFloatingOffset, string> = {
 const INLINE_CLASS_NAME = 'px-4 py-3';
 
 export function LoadErrorAlert(props: LoadErrorAlertProps) {
+  const bottomReserve = resolveStateScreenBottomReserve(useWindowDimensions().fontScale);
   const { title, onRetry, retryLabel, flatRetry, retrySize = 'sm', testID } = props;
 
   // Two literals, not `flat={flatRetry}`: `ButtonProps` discriminates on `flat: true`.
@@ -103,7 +107,11 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
   return (
     <View
       testID={testID}
-      style={{ flex: 1, minHeight: props.minHeight }}
+      style={{
+        flex: 1,
+        minHeight: props.minHeight,
+        paddingBottom: props.clearsFab === true ? bottomReserve : undefined,
+      }}
       className={FILL_CLASS_NAME[fillPadding]}
     >
       {alert}

@@ -1,10 +1,14 @@
 import { useFocusEffect, usePathname, useRouter } from 'expo-router';
 import { useCallback } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { shouldHideGlobalFab } from '@/components/ui/fab_visibility';
 import { holdToastClearance } from '@/components/ui/toast_clearance.state';
-import { resolveTabsGeometry } from '@/modules/navigation/screens/tabs/tabs.helpers';
+import {
+  resolveTabLabelStyle,
+  resolveTabsGeometry,
+} from '@/modules/navigation/screens/tabs/tabs.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useAnySheetOpen } from '@/store/sheet_visibility.store';
 
@@ -38,4 +42,8 @@ export function useTabsLayout() {
     handleAddAccount,
     handleAddCommitment,
   };
+}
+
+export function useTabBarLabelStyle() {
+  return resolveTabLabelStyle(useWindowDimensions().fontScale);
 }

@@ -5,5 +5,5 @@ interface CommitmentsEmptyStateProps {
 }
 
 export function CommitmentsEmptyState({ onAdd }: CommitmentsEmptyStateProps) {
-  return <EmptyState variant="commitments" onAction={onAdd} />;
+  return <EmptyState variant="commitments" onAction={onAdd} clearsFab />;
 }

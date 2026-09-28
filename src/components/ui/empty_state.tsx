@@ -1,9 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
-import { resolveStateScreenLayout } from '@/components/ui/state_screen.geometry';
+import {
+  resolveStateScreenBottomReserve,
+  resolveStateScreenLayout,
+} from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Spacing, Type, lineHeightFor } from '@/constants/theme';
@@ -24,18 +27,16 @@ export type EmptyStateVariant =
   | 'budget'
   | 'onboardingAccounts';
 
+interface EmptyStateCommonProps {
+  onAction?: () => void;
+  placement?: 'inline';
+  /** A tab screen's state that does not scroll: centres above the + button. */
+  clearsFab?: boolean;
+}
+
 export type EmptyStateProps =
-  | {
-      variant: 'accountsArchivedOnly';
-      archivedCount: number;
-      onAction?: () => void;
-      placement?: 'inline';
-    }
-  | {
-      variant: Exclude<EmptyStateVariant, 'accountsArchivedOnly'>;
-      onAction?: () => void;
-      placement?: 'inline';
-    };
+  | (EmptyStateCommonProps & { variant: 'accountsArchivedOnly'; archivedCount: number })
+  | (EmptyStateCommonProps & { variant: Exclude<EmptyStateVariant, 'accountsArchivedOnly'> });
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -144,7 +145,8 @@ export function resolveEmptyStatePlacement(
 }
 
 export function EmptyState(props: EmptyStateProps) {
-  const { onAction } = props;
+  const bottomReserve = resolveStateScreenBottomReserve(useWindowDimensions().fontScale);
+  const { onAction, clearsFab } = props;
   const config = VARIANT_CONFIG[props.variant];
   const placement = resolveEmptyStatePlacement(props.placement, config.placement);
   // Only `accountsArchivedOnly` carries a count, and only its description reads one.
@@ -154,8 +156,13 @@ export function EmptyState(props: EmptyStateProps) {
       ? config.description(archivedCount)
       : config.description;
 
+  const rootStyle =
+    placement === 'inline'
+      ? styles.rootInline
+      : [styles.root, clearsFab === true ? { paddingBottom: bottomReserve } : undefined];
+
   return (
-    <View style={placement === 'inline' ? styles.rootInline : styles.root}>
+    <View style={rootStyle}>
       <View style={styles.iconCircle}>
         <MaterialCommunityIcons
           name={config.icon}
