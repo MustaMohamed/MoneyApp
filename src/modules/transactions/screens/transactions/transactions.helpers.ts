@@ -585,19 +585,21 @@ function dayFigures(spoken: DayHeaderSpoken): DayHeaderFigures {
   }
 }
 
+function resolveDaySpoken(
+  day: TransactionDayAggregate | undefined,
+  input: DaySectionsInput,
+): DayHeaderSpoken {
+  if (input.figuresMode === 'skeleton') return { mode: 'skeleton' };
+  if (input.figuresMode === 'dashes') return { mode: 'failed' };
+  if (day === undefined) return missingDaySpoken(input.totalsStatus);
+  return { mode: 'figures', netEgp: day.netEgp, count: day.count };
+}
+
 /** The day net and count come from the month aggregate only, never from the loaded rows. */
 export function buildDaySections(input: DaySectionsInput): TransactionDaySection[] {
   const daysByDate = new Map((input.days ?? []).map((day) => [day.date, day]));
   return input.groups.map((group) => {
-    const day = daysByDate.get(group.key);
-    const spoken: DayHeaderSpoken =
-      input.figuresMode === 'skeleton'
-        ? { mode: 'skeleton' }
-        : input.figuresMode === 'dashes'
-          ? { mode: 'failed' }
-          : day === undefined
-            ? missingDaySpoken(input.totalsStatus)
-            : { mode: 'figures', netEgp: day.netEgp, count: day.count };
+    const spoken = resolveDaySpoken(daysByDate.get(group.key), input);
     return {
       key: group.key,
       label: group.label,

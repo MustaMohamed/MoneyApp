@@ -15,7 +15,7 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 import { ms } from '@/utils/responsive';
 
 import { AccountChips } from './components/account_chips';
-import { DateHeader } from './components/date_header';
+import { DayHeader } from './components/day_header';
 import { SearchRow } from './components/search_row';
 import { SearchTally } from './components/search_tally';
 import { TransactionLoadError } from './components/transaction_load_error';
@@ -84,7 +84,7 @@ export default function TransactionsScreen(): React.ReactElement {
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: SectionListData<Transaction, TransactionSection> }) => (
-      <DateHeader label={section.label} />
+      <DayHeader section={section} />
     ),
     [],
   );

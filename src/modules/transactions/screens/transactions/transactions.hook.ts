@@ -409,6 +409,10 @@ export function useTransactions() {
   const showAccountLookupError =
     accountLookupError && findMissingAccountIds(transactionAccountIds, accountsById).length > 0;
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const dayGroups = useMemo(
+    () => groupTransactionsByDate(currentTransactions),
+    [currentTransactions],
+  );
   const activeFilterCount = useMemo(() => countFunnelFilters(effectiveFilters), [effectiveFilters]);
   const hasAdvancedFilters = countActiveFilters(effectiveFilters) > 0;
   const accountChips = useMemo(
@@ -493,12 +497,12 @@ export function useTransactions() {
   const sections = useMemo(
     () =>
       buildDaySections({
-        groups: groupTransactionsByDate(currentTransactions),
+        groups: dayGroups,
         days: dayAggregates,
         figuresMode: tallyFiguresMode,
         totalsStatus: displayTotalsStatus,
       }),
-    [currentTransactions, dayAggregates, displayTotalsStatus, tallyFiguresMode],
+    [dayAggregates, dayGroups, displayTotalsStatus, tallyFiguresMode],
   );
   const tallyMatchCount = displayTotals?.matchCount;
   const tallyMatchNetEgp = displayTotals?.matchNetEgp;
