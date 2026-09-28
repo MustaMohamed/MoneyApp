@@ -2,9 +2,8 @@ import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
-
-import { scaledFontSize } from './transactions_text.geometry';
 
 interface Props {
   label: string;
