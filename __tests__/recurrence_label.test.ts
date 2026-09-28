@@ -1,5 +1,5 @@
 import { RecurrencePeriod } from '@/constants/enums';
-import { buildRecurrenceLabel } from '@/modules/commitments/screens/commitments/recurrence_label';
+import { buildRecurrenceLabel } from '@/modules/commitments/utils/recurrence_label';
 
 describe('buildRecurrenceLabel', () => {
   it.each([

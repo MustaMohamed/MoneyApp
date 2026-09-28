@@ -6,8 +6,10 @@ import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
+import { CtaFooter } from '@/components/ui/cta_footer';
 import { FormLabelText } from '@/components/ui/form_label_text';
 import { Input } from '@/components/ui/input';
+import { useKeyboardLiftAnim } from '@/components/ui/keyboard_lift.anim';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
@@ -15,8 +17,6 @@ import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { OnboardingFooter } from '@/modules/onboarding/components/onboarding_shell/onboarding_footer';
-import { useKeyboardLiftAnim } from '@/modules/onboarding/components/onboarding_shell/onboarding_shell.anim';
 import { formatCurrencyParts } from '@/utils/format_amount';
 
 import { AccountColorField } from '../../../components/account_form/account_color_field';
@@ -146,7 +146,7 @@ export default function EditAccountScreen() {
       </ScreenScroll>
 
       <Animated.View style={keyboardLift}>
-        <OnboardingFooter
+        <CtaFooter
           footnote={Strings.editAccountFootnote}
           message={statusMessage}
           cta={

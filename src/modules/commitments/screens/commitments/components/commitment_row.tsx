@@ -10,18 +10,18 @@ import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor, withAlpha } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
-import { formatShortDate } from '@/utils/format_date';
-import { toIconName } from '@/utils/icon_name_guard';
-
-import type { Commitment } from '../../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 import {
   STATUS_COLORS,
   STATUS_ICONS,
   STATUS_LABELS,
   formatCommitmentAmount,
   resolveDisplayAmount,
-} from '../commitment_status';
+} from '@/modules/commitments/utils/commitment_status';
+import { formatShortDate } from '@/utils/format_date';
+import { toIconName } from '@/utils/icon_name_guard';
+
+import type { Commitment } from '../../../entities/commitment.entity';
+import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 
 interface CommitmentRowProps {
   payment: CommitmentPayment;

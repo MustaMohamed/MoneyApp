@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import { isRateUsable } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
-import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
+import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';

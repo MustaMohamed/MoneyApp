@@ -13,10 +13,14 @@ import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import {
+  STATUS_COLORS,
+  STATUS_ICONS,
+  STATUS_LABELS,
+} from '@/modules/commitments/utils/commitment_status';
 import { DateHeader } from '@/modules/transactions/screens/transactions/components/date_header';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
-import { STATUS_COLORS, STATUS_ICONS, STATUS_LABELS } from './commitment_status';
 import { useCommitments } from './commitments.hook';
 import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';

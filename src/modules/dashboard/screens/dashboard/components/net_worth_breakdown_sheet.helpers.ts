@@ -2,6 +2,7 @@ import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
+import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
@@ -48,24 +49,6 @@ export function resolveBreakdownRowColors(kind: BreakdownRowKind): {
 export function formatLiabilityRowValue(balance: number, baseCurrency: Currency): string {
   const { text, printsAsZero } = formatDisplayMagnitude(balance, baseCurrency);
   return signAmountText(text, balance < 0 ? PLUS_SIGN : MINUS_SIGN, printsAsZero);
-}
-
-/**
- * A magnitude the user owns (ADR 2026-08-27 decision 1): unsigned at zero or positive, `−` only
- * for a genuine negative (an overdrawn liquid/reserve total, an overdrawn account row, or the
- * assets sum) — never `+`. Also absorbs the `-0` float-noise artifact `computeLiquidityBreakdown`'s
- * per-total rounding can produce: `formatDisplayMagnitude`'s epsilon gate reads it as true zero,
- * so the sheet's asset rows stop printing `-0` (#332).
- */
-export function formatOwnedAmountParts(
-  value: number,
-  baseCurrency: Currency,
-): { value: string; code: string } {
-  const { text, printsAsZero } = formatDisplayMagnitude(value, baseCurrency);
-  return {
-    value: signAmountText(text, value < 0 ? MINUS_SIGN : '', printsAsZero),
-    code: CURRENCY_CONFIG[baseCurrency].code,
-  };
 }
 
 /** `amount.liabilities` shares `LiabilityRow.balance`'s owed-frame sign (positive owed, negative

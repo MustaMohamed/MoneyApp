@@ -17,9 +17,8 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
+import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
 import { ms } from '@/utils/responsive';
-
-import { formatOwnedAmountParts } from './net_worth_breakdown_sheet.helpers';
 
 // Intentionally 2 of the 3 shared hero stops.
 const TOTAL_BALANCE_GRADIENT_COLORS = [HERO_GRADIENT_COLORS[0], HERO_GRADIENT_COLORS[1]] as const;

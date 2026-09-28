@@ -3,7 +3,7 @@
 - **Date:** 2026-09-07
 - **Status:** accepted
 - **Ticket:** MA-024 (#398), under MA-015 (#381)
-- **Applies to:** `src/modules/accounts/screens/accounts/list/accounts_list.helpers.ts`, `src/modules/accounts/screens/accounts/list/accounts_list.hook.ts`, and `buildInfoRows` in `src/modules/dashboard/screens/dashboard/components/account_card.tsx`
+- **Applies to:** `src/modules/accounts/screens/accounts/list/accounts_list.helpers.ts`, `src/modules/accounts/screens/accounts/list/accounts_list.hook.ts`, and `buildInfoRows` in `src/modules/dashboard/utils/account_card.helpers.ts`
 
 The accounts list row now carries a live figure line under the name, one per account type. The figures are the dashboard card's, read from the card's own rows. The accounts module computes, converts, rounds and formats no amount.
 

@@ -6,7 +6,6 @@ import {
   buildBudgetCategoriesSummary,
   buildBudgetCopyRows,
   buildCategoryBudgetRows,
-  budgetBandColor,
   computeBudgetSummaryForMonth,
   computeBudgetHealth,
   computeCategoryHistory,
@@ -19,6 +18,7 @@ import {
   resolveLimitForMonth,
   type MonthResultVM,
 } from '@/modules/budget/screens/budget/budget.helpers';
+import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 
 const NOW = '2026-05-01T00:00:00.000Z';

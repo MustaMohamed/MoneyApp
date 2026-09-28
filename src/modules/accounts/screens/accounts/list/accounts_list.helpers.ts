@@ -3,10 +3,7 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, type Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
-import {
-  buildInfoRows,
-  type InfoRowKind,
-} from '@/modules/dashboard/screens/dashboard/components/account_card.helpers';
+import { buildInfoRows, type InfoRowKind } from '@/modules/dashboard/utils/account_card.helpers';
 import { formatRateDisplayMagnitude } from '@/utils/format_amount';
 
 import type { Account } from '../../../entities/account.entity';

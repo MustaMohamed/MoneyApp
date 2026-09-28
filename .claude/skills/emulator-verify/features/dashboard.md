@@ -1,6 +1,6 @@
 # Dashboard
 
-Route `/dashboard`, the first tab. Screen `src/modules/dashboard/screens/dashboard/index.tsx`, section headers from the shared `src/components/ui/section_header.tsx` through the module re-export. Not redesigned by #378; drawn as it is today. This file carries only the pill states MA-086 needs — add the rest when a ticket reaches them.
+Route `/dashboard`, the first tab. Screen `src/modules/dashboard/screens/dashboard/index.tsx`, section headers from the shared `src/components/ui/section_header.tsx`. Not redesigned by #378; drawn as it is today. This file carries only the pill states MA-086 needs — add the rest when a ticket reaches them.
 
 ## Reach it
 

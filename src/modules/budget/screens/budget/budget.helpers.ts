@@ -8,6 +8,11 @@ import type {
   CategoryBudgetRowVM,
   NamedBudgetVM,
 } from '@/modules/budget/screens/budget/budget_categories.types';
+import {
+  budgetBandColor,
+  type BudgetDashboardSummaryVM,
+  type OverallVM,
+} from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 
@@ -22,17 +27,6 @@ export interface CategoryBudgetVM {
   available: number;
   pct: number;
   status: BudgetStatus;
-}
-
-export interface OverallVM {
-  budgeted: number;
-  spent: number;
-  left: number;
-  pct: number;
-}
-
-export interface BudgetDashboardSummaryVM extends OverallVM {
-  categoryCount: number;
 }
 
 export interface MonthResultVM {
@@ -105,15 +99,6 @@ export function resolveLimitForMonth(
   yearMonth: string,
 ): number | null {
   return sumBudgetsForCategoryMonth(rows, categoryId, yearMonth);
-}
-
-/** Boundary: exactly 100% is `budgetNear`; only strictly above 1 is `budgetOver`. */
-export function budgetBandColor(pct: number): string {
-  if (pct > 1) return Colors.dark.budgetOver;
-  if (pct >= 0.9) return Colors.dark.budgetNear;
-  if (pct >= 0.8) return Colors.dark.budgetWatch;
-  if (pct >= 0.5) return Colors.dark.budgetSteady;
-  return Colors.dark.budgetUnder;
 }
 
 export function remainingLabel(remaining: number): { magnitude: number; label: 'left' | 'over' } {

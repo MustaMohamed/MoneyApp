@@ -3,11 +3,11 @@ import { Strings } from '@/constants/strings';
 import {
   formatLiabilityAmountParts,
   formatLiabilityRowValue,
-  formatOwnedAmountParts,
   resolveBreakdownRowColors,
   resolveNetWorthForeignCaption,
   shouldShowProportionBar,
 } from '@/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.helpers';
+import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
 import { formatAmount } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 

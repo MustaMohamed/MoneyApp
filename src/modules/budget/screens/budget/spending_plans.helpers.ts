@@ -29,17 +29,13 @@ import type {
   SpendingPlanStatusTone,
   SpendingPlanTimingVM,
 } from '@/modules/budget/screens/budget/spending_plans.types';
+import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';
 import { sumAllocations } from '@/utils/money';
 
-import {
-  BUDGET_WARNING_THRESHOLD,
-  budgetBandColor,
-  remainingLabel,
-  type BudgetStatus,
-} from './budget.helpers';
+import { BUDGET_WARNING_THRESHOLD, remainingLabel, type BudgetStatus } from './budget.helpers';
 
 export type {
   AllocationHelperVM,

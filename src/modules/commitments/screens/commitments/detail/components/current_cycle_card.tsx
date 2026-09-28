@@ -8,16 +8,16 @@ import { Text } from '@/components/ui/text';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor, withAlpha } from '@/constants/theme';
-import { formatShortDate } from '@/utils/format_date';
-
-import type { Commitment } from '../../../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
 import {
   STATUS_COLORS,
   STATUS_ICONS,
   STATUS_LABELS,
   formatCommitmentAmount,
-} from '../../commitment_status';
+} from '@/modules/commitments/utils/commitment_status';
+import { formatShortDate } from '@/utils/format_date';
+
+import type { Commitment } from '../../../../entities/commitment.entity';
+import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
 import { cardEntering } from '../detail.anim';
 
 interface Props {
