@@ -12,7 +12,7 @@ Route `/goals`, a tab. Screen `src/modules/goals/screens/goals/index.tsx`: a hea
 | State | Frame | Force | Proof |
 |---|---|---|---|
 | empty | no frame, MA-125 | any database; the screen reads none | `mqa read` reads `Goals`, `No goals set` (`Strings.emptyGoalsTitle`) and `Goals will appear here.` (`Strings.emptyGoalsSub`) once each; no text node's box from `mqa bounds` intersects `fab-button`'s; one shot |
-| empty, large font | no frame, MA-125 | `adb -s <serial> shell settings put system font_scale <scale>` at 1.0 and at 2.0, each followed by a cold launch; `font_scale` back to 1.0 after | at 2.0, from `mqa bounds`: the boxes of `Goals`, `No goals set` and `Goals will appear here.` intersect neither each other nor `fab-button`; each box is at least twice its height at 1.0, less 1 dp; at 1.0 the three boxes read the same ± 1 dp as on `main`, since the bottom reserve moves the state only above 1.0; a crop at 2.0 shows no glyph cut at the top or bottom |
+| empty, large font | no frame, MA-125 | `adb -s <serial> shell settings put system font_scale <scale>` at 1.0 and at 2.0, each followed by a cold launch; `font_scale` back to 1.0 after | at 2.0, from `mqa bounds`: the boxes of `Goals`, `No goals set` and `Goals will appear here.` intersect neither each other nor `fab-button`; each box grows with the scale (MA-125 read `No goals set` 27.8 to 45.3 dp and `Goals will appear here.` 17.9 to 34.7: the headline's line box grows 1.6 times, not 2, with its glyphs whole); a crop at 2.0 shows no glyph cut at the top or bottom |
 
 ## Outbound
 
