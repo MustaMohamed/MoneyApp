@@ -305,3 +305,12 @@ export function resolveTransactionFormStatus(input: {
   const count = countTransactionFormFieldErrors(input.errors, input.budgetLookupError);
   return count > 0 ? Strings.fixFieldsMarkedAbove(count) : input.saveError;
 }
+
+export function resolveTransactionFormFooterVisible(input: {
+  formDataLoadError: boolean;
+  formDataReady: boolean;
+  hasAccounts: boolean;
+}): boolean {
+  if (input.formDataLoadError) return false;
+  return !input.formDataReady || input.hasAccounts;
+}

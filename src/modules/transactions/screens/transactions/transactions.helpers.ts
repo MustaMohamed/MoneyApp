@@ -1,7 +1,11 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import type { PeriodTotals } from '@/modules/transactions/database/transactions';
+import type {
+  PeriodTotals,
+  TransactionDayAggregate,
+} from '@/modules/transactions/database/transactions';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
@@ -9,6 +13,7 @@ import {
   formatDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
+import type { TransactionDateGroup } from '@/utils/group_transactions_by_date';
 import { toCents } from '@/utils/money';
 import {
   MONTHS_SHORT,
@@ -488,5 +493,113 @@ export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
       polarity: net.polarity,
       currencyCode: CURRENCY_CONFIG[HERO_CURRENCY].code,
     },
+  });
+}
+
+export type DayHeaderFigures =
+  | { mode: 'skeleton' }
+  | { mode: 'failed'; net: string }
+  | { mode: 'figures'; net: string; currencyCode: string; count: string };
+
+export interface TransactionDaySection {
+  key: string;
+  label: string;
+  figures: DayHeaderFigures;
+  accessibilityLabel: string;
+  data: Transaction[];
+}
+
+export type DayHeaderSpoken =
+  | { mode: 'skeleton' }
+  | { mode: 'failed' }
+  | { mode: 'figures'; netEgp: number; count: number };
+
+const SPOKEN_SIGN: Record<PolaritySignal, string | undefined> = {
+  good: Strings.spokenPlus,
+  bad: Strings.spokenMinus,
+  neutral: undefined,
+};
+
+function spokenDayNet(netEgp: number): string {
+  const amount = `${formatDisplayMagnitude(netEgp, HERO_CURRENCY).text} ${CURRENCY_CONFIG[HERO_CURRENCY].code}`;
+  const sign = SPOKEN_SIGN[formatSignedNet(netEgp).polarity];
+  return sign === undefined ? amount : `${sign} ${amount}`;
+}
+
+export function composeDayHeaderAccessibilityLabel(label: string, spoken: DayHeaderSpoken): string {
+  switch (spoken.mode) {
+    case 'skeleton':
+      return Strings.transactionsDayLoadingA11y(label);
+    case 'failed':
+      return Strings.transactionsDayFailedA11y(label);
+    case 'figures': {
+      const net = spokenDayNet(spoken.netEgp);
+      return spoken.count === 1
+        ? Strings.transactionsDayOneTransactionA11y(label, net)
+        : Strings.transactionsDayFiguresA11y(label, net, formatAmount(spoken.count));
+    }
+    default: {
+      const unhandled: never = spoken;
+      return unhandled;
+    }
+  }
+}
+
+export interface DaySectionsInput {
+  groups: readonly TransactionDateGroup[];
+  days: readonly TransactionDayAggregate[] | undefined;
+  figuresMode: TransactionsHeroMode;
+  totalsStatus: TransactionTotalsStatus;
+}
+
+// A day the held aggregate lacks never reads 0 EGP (rulings 1 and 2, 2026-09-28).
+function missingDaySpoken(status: TransactionTotalsStatus): DayHeaderSpoken {
+  return resolveSearchTallyFiguresMode('figures', status, false) === 'dashes'
+    ? { mode: 'failed' }
+    : { mode: 'skeleton' };
+}
+
+function dayFigures(spoken: DayHeaderSpoken): DayHeaderFigures {
+  switch (spoken.mode) {
+    case 'skeleton':
+      return { mode: 'skeleton' };
+    case 'failed':
+      return { mode: 'failed', net: Strings.transactionsHeroUnavailable };
+    case 'figures':
+      return {
+        mode: 'figures',
+        net: formatSignedNet(spoken.netEgp).text,
+        currencyCode: CURRENCY_CONFIG[HERO_CURRENCY].code,
+        count: formatAmount(spoken.count),
+      };
+    default: {
+      const unhandled: never = spoken;
+      return unhandled;
+    }
+  }
+}
+
+function resolveDaySpoken(
+  day: TransactionDayAggregate | undefined,
+  input: DaySectionsInput,
+): DayHeaderSpoken {
+  if (input.figuresMode === 'skeleton') return { mode: 'skeleton' };
+  if (input.figuresMode === 'dashes') return { mode: 'failed' };
+  if (day === undefined) return missingDaySpoken(input.totalsStatus);
+  return { mode: 'figures', netEgp: day.netEgp, count: day.count };
+}
+
+/** The day net and count come from the month aggregate only, never from the loaded rows. */
+export function buildDaySections(input: DaySectionsInput): TransactionDaySection[] {
+  const daysByDate = new Map((input.days ?? []).map((day) => [day.date, day]));
+  return input.groups.map((group) => {
+    const spoken = resolveDaySpoken(daysByDate.get(group.key), input);
+    return {
+      key: group.key,
+      label: group.label,
+      figures: dayFigures(spoken),
+      accessibilityLabel: composeDayHeaderAccessibilityLabel(group.label, spoken),
+      data: group.data,
+    };
   });
 }

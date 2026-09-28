@@ -1,5 +1,10 @@
+import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import type { TransactionDayAggregate } from '@/modules/transactions/database/transactions';
 import {
+  buildDaySections,
+  composeDayHeaderAccessibilityLabel,
+  type DaySectionsInput,
   buildTotalsPresentation,
   buildTransactionsHeroModel,
   currentYearMonth,
@@ -18,6 +23,8 @@ import {
   type TransactionsHeroMode,
 } from '@/modules/transactions/screens/transactions/transactions.helpers';
 import type { TransactionTotalsStatus } from '@/modules/transactions/screens/transactions/transactions.state';
+import { makeTestTransaction } from '@/test_helpers/transaction';
+import type { TransactionDateGroup } from '@/utils/group_transactions_by_date';
 
 describe('currentYearMonth', () => {
   it('returns YYYY-MM for a Date', () => {
@@ -798,4 +805,230 @@ describe('resolveSearchTallyFiguresMode', () => {
       expect(resolveSearchTallyFiguresMode(heroMode, 'ready', true)).toBe(heroMode);
     },
   );
+});
+
+describe('buildDaySections', () => {
+  const ROW = makeTestTransaction({ id: 'tx-1', egp_amount: 100, transaction_date: '2026-09-27' });
+  const YESTERDAY: TransactionDateGroup = { key: '2026-09-27', label: 'Yesterday', data: [ROW] };
+  const OLDER: TransactionDateGroup = {
+    key: '2026-09-25',
+    label: 'Thu 25 Sep',
+    data: [makeTestTransaction({ id: 'tx-2', transaction_date: '2026-09-25' })],
+  };
+
+  function build(overrides: Partial<DaySectionsInput> = {}) {
+    return buildDaySections({
+      groups: [YESTERDAY],
+      days: [{ date: '2026-09-27', netEgp: -984, count: 3 }],
+      figuresMode: 'figures',
+      totalsStatus: 'ready',
+      ...overrides,
+    });
+  }
+
+  function figuresFor(day: Omit<TransactionDayAggregate, 'date'>) {
+    return build({ days: [{ date: '2026-09-27', ...day }] })[0].figures;
+  }
+
+  it("reads the day's net and count from the aggregate, never from the rows on screen", () => {
+    const [section] = build();
+
+    expect(section.key).toBe('2026-09-27');
+    expect(section.label).toBe('Yesterday');
+    expect(section.data).toBe(YESTERDAY.data);
+    expect(section.figures).toEqual({
+      mode: 'figures',
+      net: '−984',
+      currencyCode: 'EGP',
+      count: '3',
+    });
+  });
+
+  it('reads the full day from the first page when its rows straddle a page boundary', () => {
+    const pageOneRows: TransactionDateGroup = {
+      key: '2026-09-27',
+      label: 'Yesterday',
+      data: [
+        makeTestTransaction({ id: 'tx-p1-a', egp_amount: 300, transaction_date: '2026-09-27' }),
+        makeTestTransaction({ id: 'tx-p1-b', egp_amount: 400, transaction_date: '2026-09-27' }),
+      ],
+    };
+
+    const [section] = build({
+      groups: [pageOneRows],
+      days: [{ date: '2026-09-27', netEgp: -2_700, count: 6 }],
+    });
+
+    expect(section.data).toHaveLength(2);
+    expect(section.figures).toEqual({
+      mode: 'figures',
+      net: '−2,700',
+      currencyCode: 'EGP',
+      count: '6',
+    });
+  });
+
+  it("reads the aggregate's 0 with no sign, not the row's amount, on a day whose only row is a transfer", () => {
+    const transferDay: TransactionDateGroup = {
+      key: '2026-09-27',
+      label: 'Yesterday',
+      data: [
+        makeTestTransaction({
+          id: 'tx-transfer',
+          type: TransactionType.Transfer,
+          egp_amount: 5_000,
+          to_account_id: 'account-2',
+          transaction_date: '2026-09-27',
+        }),
+      ],
+    };
+
+    const [section] = build({
+      groups: [transferDay],
+      days: [{ date: '2026-09-27', netEgp: 0, count: 1 }],
+    });
+
+    expect(section.figures).toEqual({
+      mode: 'figures',
+      net: '0',
+      currencyCode: 'EGP',
+      count: '1',
+    });
+  });
+
+  it('signs a positive day net with + and groups its thousands', () => {
+    expect(figuresFor({ netEgp: 14_300, count: 2 })).toMatchObject({ net: '+14,300' });
+  });
+
+  it('prints the EGP day net at 0 dp with U+2212', () => {
+    expect(figuresFor({ netEgp: -1_234.56, count: 2 })).toMatchObject({ net: '−1,235' });
+  });
+
+  it('reads the skeleton on every day while the figures load', () => {
+    const sections = build({ groups: [YESTERDAY, OLDER], figuresMode: 'skeleton' });
+
+    expect(sections.map((section) => section.figures)).toEqual([
+      { mode: 'skeleton' },
+      { mode: 'skeleton' },
+    ]);
+  });
+
+  it('reads the dash alone on every day when the figures failed, with no count', () => {
+    const sections = build({ groups: [YESTERDAY, OLDER], figuresMode: 'dashes' });
+
+    expect(sections.map((section) => section.figures)).toEqual([
+      { mode: 'failed', net: '—' },
+      { mode: 'failed', net: '—' },
+    ]);
+    for (const section of sections) expect(section.figures).not.toHaveProperty('count');
+  });
+
+  it.each<[TransactionTotalsStatus, 'skeleton' | 'failed']>([
+    ['idle', 'skeleton'],
+    ['initialLoading', 'skeleton'],
+    ['ready', 'skeleton'],
+    ['refreshing', 'skeleton'],
+    ['refreshErrorWithData', 'failed'],
+    ['firstLoadError', 'failed'],
+  ])('a day the held aggregate lacks never reads 0 EGP: at %s it reads %s', (status, mode) => {
+    const [yesterday, older] = build({ groups: [YESTERDAY, OLDER], totalsStatus: status });
+
+    expect(yesterday.figures).toMatchObject({ mode: 'figures', net: '−984', count: '3' });
+    expect(older.figures).toEqual(
+      mode === 'skeleton' ? { mode: 'skeleton' } : { mode: 'failed', net: '—' },
+    );
+  });
+
+  it('reads the skeleton on every day when the figures hold no days at all', () => {
+    expect(build({ days: undefined })[0].figures).toEqual({ mode: 'skeleton' });
+  });
+
+  it("keeps the groups' order, keys, labels and row arrays", () => {
+    const TODAY: TransactionDateGroup = {
+      key: '2026-09-28',
+      label: 'Today',
+      data: [makeTestTransaction({ id: 'tx-0', transaction_date: '2026-09-28' })],
+    };
+    const groups = [TODAY, YESTERDAY, OLDER];
+
+    const sections = build({ groups });
+
+    expect(sections.map(({ key, label }) => ({ key, label }))).toEqual([
+      { key: '2026-09-28', label: 'Today' },
+      { key: '2026-09-27', label: 'Yesterday' },
+      { key: '2026-09-25', label: 'Thu 25 Sep' },
+    ]);
+    sections.forEach((section, index) => expect(section.data).toBe(groups[index].data));
+  });
+
+  it('gives each section the composed accessibility label for the mode its figures resolved to', () => {
+    const [figures, missing] = build({ groups: [YESTERDAY, OLDER] });
+    const [skeleton] = build({ figuresMode: 'skeleton' });
+    const [failed] = build({ figuresMode: 'dashes' });
+
+    expect(figures.accessibilityLabel).toBe(
+      composeDayHeaderAccessibilityLabel('Yesterday', {
+        mode: 'figures',
+        netEgp: -984,
+        count: 3,
+      }),
+    );
+    expect(figures.accessibilityLabel).toBe('Yesterday, minus 984 EGP, 3 transactions');
+    expect(missing.accessibilityLabel).toBe(
+      composeDayHeaderAccessibilityLabel('Thu 25 Sep', { mode: 'skeleton' }),
+    );
+    expect(skeleton.accessibilityLabel).toBe(
+      composeDayHeaderAccessibilityLabel('Yesterday', { mode: 'skeleton' }),
+    );
+    expect(failed.accessibilityLabel).toBe(
+      composeDayHeaderAccessibilityLabel('Yesterday', { mode: 'failed' }),
+    );
+  });
+});
+
+describe('composeDayHeaderAccessibilityLabel', () => {
+  it.each<[string, Parameters<typeof composeDayHeaderAccessibilityLabel>, string]>([
+    [
+      'a negative net and a plural count',
+      ['Yesterday', { mode: 'figures', netEgp: -984, count: 3 }],
+      'Yesterday, minus 984 EGP, 3 transactions',
+    ],
+    [
+      'the singular count',
+      ['Today', { mode: 'figures', netEgp: -85, count: 1 }],
+      'Today, minus 85 EGP, 1 transaction',
+    ],
+    [
+      'a positive net',
+      ['Today', { mode: 'figures', netEgp: 14_300, count: 2 }],
+      'Today, plus 14,300 EGP, 2 transactions',
+    ],
+    [
+      'a zero net with no sign word',
+      ['Today', { mode: 'figures', netEgp: 0, count: 1 }],
+      'Today, 0 EGP, 1 transaction',
+    ],
+    [
+      'a sub-pound net escalated to 2 dp as it is drawn',
+      ['Today', { mode: 'figures', netEgp: -0.4, count: 1 }],
+      'Today, minus 0.40 EGP, 1 transaction',
+    ],
+    [
+      'a net that prints as zero with no sign word',
+      ['Today', { mode: 'figures', netEgp: -0.004, count: 1 }],
+      'Today, 0.00 EGP, 1 transaction',
+    ],
+    ['the loading figures', ['Yesterday', { mode: 'skeleton' }], 'Yesterday, loading'],
+    ['the failed figures', ['Yesterday', { mode: 'failed' }], 'Yesterday, total unavailable'],
+    [
+      'a day outside the current year',
+      ['Sun 14 Dec 2025', { mode: 'figures', netEgp: -984, count: 1 }],
+      'Sun 14 Dec 2025, minus 984 EGP, 1 transaction',
+    ],
+  ])('reads %s', (_case, args, expected) => {
+    const label = composeDayHeaderAccessibilityLabel(...args);
+
+    expect(label).toBe(expected);
+    expect(label).not.toMatch(/[−+—]/);
+  });
 });

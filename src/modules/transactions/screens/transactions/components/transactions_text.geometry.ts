@@ -13,6 +13,9 @@ export function scaledFontSize(
   return fontSize * Math.min(fontScale, maxFontScale);
 }
 
+/** Android reserves a truncated line's `…` in the paint's Roboto (0.669 em), and Inter SemiBold draws it at 0.956 em (StaticLayout.java:1189). */
+export const INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE = 1.45;
+
 export interface SearchTallyGeometry {
   slotHeight: number;
   lineHeight: number;
@@ -59,4 +62,19 @@ export function resolveTransactionsHeroGeometry(fontScale: number): Transactions
     rail: Size.progressThin,
     caption: lineHeightFor(chip),
   };
+}
+
+export interface DayHeaderGeometry {
+  fontSize: number;
+  lineHeight: number;
+  pillHeight: number;
+  height: number;
+}
+
+// Uncapped: the day header scales its text with the OS, so every box grows from the one scaled size.
+export function resolveDayHeaderGeometry(fontScale: number): DayHeaderGeometry {
+  const fontSize = scaledFontSize(Type.caption, fontScale);
+  const text = { fontSize, lineHeight: lineHeightFor(fontSize) };
+  const pillHeight = text.lineHeight + 2 * Spacing.xxxs;
+  return { ...text, pillHeight, height: Spacing.md + pillHeight + Spacing.xs };
 }

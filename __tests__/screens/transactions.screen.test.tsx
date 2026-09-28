@@ -91,10 +91,10 @@ jest.mock('@/modules/transactions/screens/transactions/components/transaction_ro
     return <Text>Transaction row</Text>;
   },
 }));
-jest.mock('@/modules/transactions/screens/transactions/components/date_header', () => ({
-  DateHeader: ({ label }: { label: string }) => {
+jest.mock('@/modules/transactions/screens/transactions/components/day_header', () => ({
+  DayHeader: ({ section }: { section: { label: string } }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>{label}</Text>;
+    return <Text>{section.label}</Text>;
   },
 }));
 jest.mock('@/modules/transactions/screens/transactions/components/tx_delete_confirm_sheet', () => ({
@@ -127,7 +127,6 @@ const baseTransactionsState: TransactionsScreenState = {
   categoriesById: new Map(),
   activeFilterCount: 0,
   accountChips: [],
-  appliedFilterSummary: '',
   totals: null,
   totalsStatus: 'initialLoading',
   hero: {
@@ -260,7 +259,10 @@ describe('TransactionsScreen', () => {
       showInitialSkeleton: false,
       sections: [
         {
-          key: 'TODAY',
+          key: '2026-08-01',
+          label: 'Today',
+          figures: { mode: 'figures', net: '+100', currencyCode: 'EGP', count: '1' },
+          accessibilityLabel: 'Today, plus 100 EGP, 1 transaction',
           data: [
             {
               id: 'tx-1',
@@ -341,7 +343,10 @@ describe('TransactionsScreen', () => {
       searchDisabled: false,
       sections: [
         {
-          key: 'TODAY',
+          key: '2026-08-01',
+          label: 'Today',
+          figures: { mode: 'figures', net: '+100', currencyCode: 'EGP', count: '1' },
+          accessibilityLabel: 'Today, plus 100 EGP, 1 transaction',
           data: [
             {
               id: 'tx-1',

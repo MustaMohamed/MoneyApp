@@ -533,6 +533,7 @@ export const Strings = {
   addTxDatePickerCancel: 'Cancel',
   addTxDatePickerDone: 'Done',
   transactionSaveError: "Couldn't save this transaction. Nothing was changed. Try again.",
+  transactionSavedToast: 'Transaction saved.',
   fixFieldsMarkedAbove: (count: number) =>
     count === 1 ? 'Fix the 1 field marked above.' : `Fix the ${count} fields marked above.`,
   transactionAccountArchived: (name: string) =>
@@ -869,8 +870,8 @@ export const Strings = {
   addTxPickerAccessibility: (label: string, value: string) => `${label}, ${value}`,
   addTxAmountInputAccessibility: 'Transaction amount',
   addTxAmountPlaceholder: '0',
-  addTxDataLoadError: 'Could not load the accounts and categories needed for this transaction.',
-  addTxDataLoadRetry: 'Retry',
+  addTxDataLoadError: "Couldn't load your accounts and categories.",
+  addTxDataLoadRetry: 'Try again',
   cardCreditTitle: 'Card credit',
   addTxSupportExpense: 'Records spending from this account.',
   addTxSupportIncome: 'Adds cash received to this account.',
@@ -940,8 +941,8 @@ export const Strings = {
   uncategorized: 'Uncategorized',
   noResultsHeadline: 'No transactions found',
   noResultsSubtext: 'Try a different search term or filter.',
-  todayLabel: 'TODAY',
-  yesterdayLabel: 'YESTERDAY',
+  todayLabel: 'Today',
+  yesterdayLabel: 'Yesterday',
 
   // U7 Transaction Detail
   goBackAccessibility: 'Go back',
@@ -1268,6 +1269,15 @@ export const Strings = {
   transactionsTallyResults: (month: string) => `results in ${month}`,
   transactionsTallyOneResult: (month: string) => `result in ${month}`,
   transactionsTallyNoResults: (month: string) => `No results in ${month}`,
+
+  // §6 Transactions: Day header, spoken
+  transactionsDayLoadingA11y: (day: string) => `${day}, loading`,
+  transactionsDayFailedA11y: (day: string) => `${day}, total unavailable`,
+  transactionsDayFiguresA11y: (day: string, net: string, count: string) =>
+    `${day}, ${net}, ${count} transactions`,
+  transactionsDayOneTransactionA11y: (day: string, net: string) => `${day}, ${net}, 1 transaction`,
+  spokenMinus: 'minus',
+  spokenPlus: 'plus',
 
   // §6 Transactions: Type badges
   typeBadgeCommitment: 'Commitment',

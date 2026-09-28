@@ -1,4 +1,4 @@
-import { Alert } from 'heroui-native';
+import { Alert, type ButtonSize } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ interface LoadErrorAlertCommonProps {
   retryLabel: string;
   /** The redesigned screens' flat secondary on the retry; every other render site stays bordered. */
   flatRetry?: boolean;
+  retrySize?: ButtonSize;
   testID?: string;
 }
 
@@ -45,14 +46,14 @@ const FLOATING_CLASS_NAME: Record<LoadErrorAlertFloatingOffset, string> = {
 const INLINE_CLASS_NAME = 'px-4 py-3';
 
 export function LoadErrorAlert(props: LoadErrorAlertProps) {
-  const { title, onRetry, retryLabel, flatRetry, testID } = props;
+  const { title, onRetry, retryLabel, flatRetry, retrySize = 'sm', testID } = props;
 
   // Two literals, not `flat={flatRetry}`: `ButtonProps` discriminates on `flat: true`.
   const retryButton = flatRetry ? (
     <Button
       variant="secondary"
       flat
-      size="sm"
+      size={retrySize}
       label={retryLabel}
       accessibilityLabel={retryLabel}
       onPress={onRetry}
@@ -60,7 +61,7 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
   ) : (
     <Button
       variant="secondary"
-      size="sm"
+      size={retrySize}
       label={retryLabel}
       accessibilityLabel={retryLabel}
       onPress={onRetry}

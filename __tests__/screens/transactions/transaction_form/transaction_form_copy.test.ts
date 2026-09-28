@@ -37,3 +37,24 @@ describe('MA-105 footer status track copy', () => {
     expect(stale).toEqual([]);
   });
 });
+
+describe('MA-106 saved toast and prerequisite state copy', () => {
+  it('confirms a save as the canvas Copy note wrote it', () => {
+    expect(Strings.transactionSavedToast).toBe('Transaction saved.');
+  });
+
+  it('reads the form data failure and its retry as written, beside the shipped no-accounts title', () => {
+    expect(Strings.addTxDataLoadError).toBe("Couldn't load your accounts and categories.");
+    expect(Strings.addTxDataLoadRetry).toBe('Try again');
+    expect(Strings.addTxNoAccountsTitle).toBe('No Accounts Yet');
+  });
+
+  it('keeps no string that still reads Could not load the accounts and categories', () => {
+    const stale = Object.entries(Strings).filter(
+      ([, value]) =>
+        typeof value === 'string' && value.includes('Could not load the accounts and categories'),
+    );
+
+    expect(stale).toEqual([]);
+  });
+});

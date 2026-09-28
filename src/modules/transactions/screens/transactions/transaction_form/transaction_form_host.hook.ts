@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { BackHandler } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { useToast } from '@/components/ui/toast';
 import { Strings } from '@/constants/strings';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
@@ -25,6 +26,7 @@ interface RegisteredSubmit {
 
 export function useTransactionFormHost() {
   const router = useRouter();
+  const { toast } = useToast();
   const { mode, phase, sessionId, editingTx, footer, prerequisiteStatus } = useTransactionFormState(
     useShallow((state) => ({
       mode: state.mode,
@@ -133,7 +135,10 @@ export function useTransactionFormHost() {
   const handleCloseComplete = useCallback(() => {
     const postCloseAction = completeClose(sessionId);
     if (postCloseAction === 'addAccount') router.push('/accounts/add_account');
-  }, [completeClose, router, sessionId]);
+    if (postCloseAction === 'saved') {
+      toast.show({ label: Strings.transactionSavedToast, variant: 'success' });
+    }
+  }, [completeClose, router, sessionId, toast]);
 
   return {
     state: {
