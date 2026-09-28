@@ -17,10 +17,10 @@ export function useTabsLayout() {
     (state) => state.phase === 'open' || state.phase === 'closing',
   );
 
-  // The path half only, so an open sheet never moves the toast.
+  const pathHidesAddButton = shouldHideGlobalFab(pathname, false);
   const { fabBottomOffset, toastClearance } = resolveTabsGeometry(
     insets.bottom,
-    shouldHideGlobalFab(pathname, false),
+    pathHidesAddButton,
   );
 
   // Blur fires before the (app) Stack freezes this subtree, so the clearance drops on leaving the tabs.
@@ -31,7 +31,7 @@ export function useTabsLayout() {
 
   return {
     state: {
-      fabHidden: transactionFormVisible || shouldHideGlobalFab(pathname, anySheetOpen),
+      fabHidden: transactionFormVisible || anySheetOpen || pathHidesAddButton,
       fabBottomOffset,
     },
     handleAddTransaction: useTransactionFormState.getState().openAdd,

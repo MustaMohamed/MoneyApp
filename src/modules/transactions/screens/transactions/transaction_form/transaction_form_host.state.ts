@@ -9,6 +9,7 @@ import { useEditTransactionStore } from '@/modules/transactions/screens/transact
 import type { TransactionFormPrerequisiteStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import { resolveTransactionFormFooterVisible } from './transaction_form.helpers';
 import type { TransactionFormMode } from './transaction_form.types';
 import { areTransactionFormPrerequisitesReady } from './transaction_form_prerequisites.helpers';
 
@@ -89,13 +90,14 @@ function resetFormSessions(): void {
 function getOpeningState(mode: TransactionFormMode, editingTx: Transaction | null) {
   const ready = areTransactionFormPrerequisitesReady(mode, editingTx);
   const hasAccounts = useAccountStore.getState().accounts.length > 0;
+  const footerVisible = resolveTransactionFormFooterVisible({
+    formDataLoadError: false,
+    formDataReady: true,
+    hasAccounts: mode === 'edit' || hasAccounts,
+  });
   return {
     prerequisiteStatus: ready ? ('ready' as const) : ('idle' as const),
-    footer: ready
-      ? mode === 'add' && !hasAccounts
-        ? CLOSED_FOOTER
-        : READY_FOOTER
-      : LOADING_FOOTER,
+    footer: !ready ? LOADING_FOOTER : footerVisible ? READY_FOOTER : CLOSED_FOOTER,
   };
 }
 
