@@ -3,10 +3,8 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget, BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
-import {
-  budgetBandColor,
-  resolveLimitForMonth,
-} from '@/modules/budget/screens/budget/budget.helpers';
+import { resolveLimitForMonth } from '@/modules/budget/screens/budget/budget.helpers';
+import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import { formatAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 

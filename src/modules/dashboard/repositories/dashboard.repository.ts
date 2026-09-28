@@ -2,7 +2,7 @@ import { getDb } from '@/database/client';
 import { getAccountsStats, type AccountStats } from '@/modules/accounts/database/account_stats';
 import { getAccounts } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
-import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
+import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
 import { getPaymentsByMonth } from '@/modules/commitments/database/commitment_payments';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {

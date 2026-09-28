@@ -11,7 +11,7 @@ import {
   resolveAccountAggregationSign,
 } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
-import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
+import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type {
   DashboardBudgetLimitRow,
