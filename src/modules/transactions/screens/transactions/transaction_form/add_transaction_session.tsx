@@ -9,6 +9,7 @@ import { TransactionFormDataError } from '@/modules/transactions/screens/transac
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 
+import { resolveTransactionFormFooterVisible } from './transaction_form.helpers';
 import type { RegisterTransactionFormSubmit } from './transaction_form_host.hook';
 import { useTransactionFormPrerequisites } from './transaction_form_prerequisites.hook';
 import { useTransactionFormSession } from './transaction_form_session.hook';
@@ -23,7 +24,11 @@ export interface AddTransactionSessionProps {
 export function AddTransactionSession(props: AddTransactionSessionProps): React.ReactElement {
   const prerequisites = useTransactionFormPrerequisites(props.sessionId, 'add', null);
   const hook = useAddTransaction(() => props.onSaved(props.sessionId), prerequisites);
-  const footerVisible = !hook.state.formDataReady || hook.state.hasAccounts;
+  const footerVisible = resolveTransactionFormFooterVisible({
+    formDataLoadError: hook.state.formDataLoadError,
+    formDataReady: hook.state.formDataReady,
+    hasAccounts: hook.state.hasAccounts,
+  });
   const footerDisabled =
     hook.state.saving ||
     !hook.state.formDataReady ||

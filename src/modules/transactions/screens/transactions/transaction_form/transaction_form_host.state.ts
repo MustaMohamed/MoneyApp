@@ -13,7 +13,7 @@ import type { TransactionFormMode } from './transaction_form.types';
 import { areTransactionFormPrerequisitesReady } from './transaction_form_prerequisites.helpers';
 
 export type TransactionFormPhase = 'closed' | 'open' | 'closing';
-export type TransactionFormPostCloseAction = 'addAccount';
+export type TransactionFormPostCloseAction = 'addAccount' | 'saved';
 
 export interface TransactionFormFooterState {
   visible: boolean;
@@ -182,7 +182,7 @@ export const useTransactionFormState = createMoneyAppSelectors(
     completeSave: (sessionId) => {
       const state = get();
       if (state.phase !== 'open' || state.sessionId !== sessionId) return false;
-      set({ phase: 'closing' });
+      set({ phase: 'closing', postCloseAction: 'saved' });
       return true;
     },
 

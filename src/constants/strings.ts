@@ -533,6 +533,7 @@ export const Strings = {
   addTxDatePickerCancel: 'Cancel',
   addTxDatePickerDone: 'Done',
   transactionSaveError: "Couldn't save this transaction. Nothing was changed. Try again.",
+  transactionSavedToast: 'Transaction saved.',
   fixFieldsMarkedAbove: (count: number) =>
     count === 1 ? 'Fix the 1 field marked above.' : `Fix the ${count} fields marked above.`,
   transactionAccountArchived: (name: string) =>
@@ -869,8 +870,8 @@ export const Strings = {
   addTxPickerAccessibility: (label: string, value: string) => `${label}, ${value}`,
   addTxAmountInputAccessibility: 'Transaction amount',
   addTxAmountPlaceholder: '0',
-  addTxDataLoadError: 'Could not load the accounts and categories needed for this transaction.',
-  addTxDataLoadRetry: 'Retry',
+  addTxDataLoadError: "Couldn't load your accounts and categories.",
+  addTxDataLoadRetry: 'Try again',
   cardCreditTitle: 'Card credit',
   addTxSupportExpense: 'Records spending from this account.',
   addTxSupportIncome: 'Adds cash received to this account.',

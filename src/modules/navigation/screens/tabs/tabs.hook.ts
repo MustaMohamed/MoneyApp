@@ -17,7 +17,11 @@ export function useTabsLayout() {
     (state) => state.phase === 'open' || state.phase === 'closing',
   );
 
-  const { fabBottomOffset, toastClearance } = resolveTabsGeometry(insets.bottom);
+  // The path half only, so an open sheet never moves the toast.
+  const { fabBottomOffset, toastClearance } = resolveTabsGeometry(
+    insets.bottom,
+    shouldHideGlobalFab(pathname, false),
+  );
 
   // Blur fires before the (app) Stack freezes this subtree, so the clearance drops on leaving the tabs.
   useFocusEffect(useCallback(() => holdToastClearance(toastClearance), [toastClearance]));

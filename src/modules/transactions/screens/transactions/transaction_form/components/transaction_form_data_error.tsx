@@ -12,6 +12,7 @@ export function TransactionFormDataError({ onRetry }: Props): React.ReactElement
       title={Strings.addTxDataLoadError}
       retryLabel={Strings.addTxDataLoadRetry}
       onRetry={onRetry}
+      flatRetry
       testID="transaction-form-data-error"
     />
   );
