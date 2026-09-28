@@ -1,7 +1,7 @@
 # MA-118 — Test suites assert behaviour, not component source text (audit M35)
-base: 10b1540f · verify: none · flags: none · expected diff: ~0 lines
+base: 10b1540f · verify: none · flags: none · expected diff: ~1 line
 
-Files outside `__tests__/`: none. Every path below is a test file, read in full at the base.
+Files outside `__tests__/`: one, `.claude/rules/tests.md`, 1 line (step 2). Every other path below is a test file. All were read in full at the base.
 
 Reason codes for a deleted guard, used in the steps and copied into the PR body with each test name:
 
@@ -25,12 +25,13 @@ Reason codes for a deleted guard, used in the steps and copied into the PR body 
 - Test: `none` · the step is the test change; both suites run green with one test each.
 
 ### 2. The filter and tab-header suites hold no source text
-- File: `__tests__/screens/filter_component_architecture.test.ts`, `__tests__/screens/filter_rail_usage.test.ts`, `__tests__/screens/tab_screen_headers.test.ts`
+- File: `__tests__/screens/filter_component_architecture.test.ts`, `__tests__/screens/filter_rail_usage.test.ts`, `__tests__/screens/tab_screen_headers.test.ts`, `.claude/rules/tests.md:19`
 - Change:
   - `filter_component_architecture.test.ts`: delete the file. Both tests (`:47`, `:58`) are G.
   - `filter_rail_usage.test.ts`: delete the file. All three tests (`:13`, `:39`, `:58`) are G; the five `exists()` lines at `:21-25` assert that files are present, which a rename or a fold of `month_filter.state.ts` into its hook turns red with no change in behaviour.
   - `tab_screen_headers.test.ts`: keep `:51` 'does not keep the unused custom TabHeader wrapper' (`existsSync`). Delete `:22`, `:33`, `:39`, `:45` (G), `screenFiles` `:4-10`, `source()` `:12-14`, `herouiImport()` `:16-19`, `readFileSync` in `:1`.
-- Test: `none` · the step is the test change; `tab_screen_headers.test.ts` runs green with one test.
+  - `.claude/rules/tests.md:19`, in the commit that deletes `filter_rail_usage.test.ts`: `four have partial relatives (`set_budget_sheet.hook`/`.state`, `filter_rail_usage`, `budget_copy_sheet_geometry`)` becomes `three have partial relatives (`set_budget_sheet.hook`/`.state`, `budget_copy_sheet_geometry`)`. Every other character of the line stays. The edit removes one name and swaps one word, so it adds no path for `scripts/validate-agent-assets.js` to resolve and no phrase on its banned list; the file passes that script at the base.
+- Test: `none` · the step is the test change; `tab_screen_headers.test.ts` runs green with one test. `npm run lint` covers the markdown line.
 
 ### 3. The confirm and sheet source suites are gone
 - File: `__tests__/screens/shared/confirm_action_consumers.test.ts`, `__tests__/components/ui/confirm_surfaces_shape.test.ts`, `__tests__/components/ui/sheet_dismissibility.test.ts`
@@ -66,7 +67,7 @@ Reason codes for a deleted guard, used in the steps and copied into the PR body 
 
 ## Non-goals
 - No file under `src/`, `scripts/` or `.oxlintrc.json` changes; no lint rule or script check for a deleted guard.
-- `.claude/rules/tests.md` is not edited: its Prune bullet ("They live in ...") reads stale after this PR, and the policy text is MA-119's.
+- `.claude/rules/tests.md` outside step 2's edit on `:19`: the Prune bullet at `:24` ("They live in ...") reads stale after this PR, and the policy text is MA-119's.
 - `__tests__/app_layout_imports.test.ts` and `__tests__/screens/transactions/transaction_form/transaction_form_architecture.test.ts` stay until the guards task.
 - `__tests__/typography_tokens.test.ts`, `semantic_colour_agreement.test.ts`, `app_config_plugins.test.ts`, `app_icon_assets.test.ts`, `__tests__/scripts/validate_state_screen_geometry.test.ts`, `validate_money_formatting.test.ts`, `oxlint_font_size_rule.test.ts` are unchanged; the last two write fixtures to a temp folder and read no component.
 - No new render test or render case, and no new suite replacing a deleted one.
@@ -77,6 +78,7 @@ Reason codes for a deleted guard, used in the steps and copied into the PR body 
 - Once, before hand-off: the full CI parity chain from `CLAUDE.md`.
 - Once, before hand-off: `grep -rln "readFileSync" __tests__` returns the five carve-out suites, the two kept-until-guards suites and nothing else; `grep -rn "className" __tests__ --include="*.tsx"` returns `tabs.test.tsx:166-172` in its new position, the `Card` mock type in `__tests__/screens/dashboard/transactions_card.test.tsx:15`, and nothing else.
 - `git diff --stat origin/main -- src scripts` is empty.
+- `git diff --numstat origin/main -- .claude CLAUDE.md docs` lists `.claude/rules/tests.md` with 1 added and 1 removed, and nothing else; `grep -rn "filter_rail_usage" .claude __tests__` returns nothing.
 - Test lines: about 890 removed, none added. Six files deleted (`filter_component_architecture`, `filter_rail_usage`, `confirm_action_consumers`, `confirm_surfaces_shape`, `sheet_dismissibility`, `screen_safe_area`), eleven edited.
 - The PR body lists every deleted test by file and name with its reason code spelled out.
 
@@ -88,6 +90,10 @@ Reason codes for a deleted guard, used in the steps and copied into the PR body 
 - `__tests__/screens/filter_rail_usage.test.ts` is deleted whole, not edited: MA-117, MA-092, MA-125 and MA-106 do not name it.
 - Line numbers are the base's. Any merge into these files before `/ship` shifts them; the test names are the anchor.
 - Amended after review round 1: step 2 deletes `filter_rail_usage.test.ts` whole (its `exists() === true` lines break on a rename, and the `STATUS_ICONS` equality copied a typed table); step 4's range is `:28-44`; step 6 names the unused `getByTestId` at `tabs.test.tsx:139`.
+
+- `.claude/rules/tests.md:19` is one physical line that three Planned branches edit: this ticket drops `filter_rail_usage` and changes "four" to "three", MA-117 step 3 renames `budget_copy_sheet_geometry` to `budget_copy_sheet.geometry`, MA-119 step 1 rewrites the bold lead sentence. Each later merge conflicts on the line. The second and the third to merge resolve by keeping every edit already on main and adding their own, so the line ends with MA-119's bold lead, "three have partial relatives", and the list `set_budget_sheet.hook`/`.state`, `budget_copy_sheet.geometry`. If this ticket rebases, it keeps the lead and the dotted name as main has them.
+- MA-119's plan (its Non-goals and its second Risk) still says its own `/ship` rebase drops the mention when MA-118 merges first. With this amendment the rebase finds the mention gone and keeps this ticket's words.
+- Amended 2026-09-28 on the user's ruling that MA-118 owns the `filter_rail_usage` mention: step 2 edits `tests.md:19`, the Non-goal leaving it to MA-119 is narrowed to the rest of the file, and the header, the file count and Verification follow.
 
 ## Self-assessment
 The least sure part is the two tests kept for an `existsSync(...) === false` assertion alone (`spending_plan_styling_architecture.test.ts:27`, `tab_screen_headers.test.ts:51`). Acceptance bans reading a source file and asserting on its text, and these read nothing, so the literal reading keeps them under their old names, which now describe more than they assert. The ticket does not rule on file existence either way.
