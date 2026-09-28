@@ -8,7 +8,7 @@ import {
   TRANSACTION_FORM_FOOTER_CLEARANCE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
   TRANSACTION_FORM_STATUS_GAP,
-} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
+} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 
 describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
   it('draws the strip as three chip-sized bars and each fact row at the fact-row minimum', () => {

@@ -22,7 +22,7 @@ import {
   ACCOUNT_STRIP_INSET_X,
   ACCOUNT_STRIP_TILE,
   ACCOUNT_STRIP_TILE_NAME_GAP,
-} from './transaction_form_geometry';
+} from './transaction_form.geometry';
 
 interface AccountStripProps {
   chips: AccountStripChip[];

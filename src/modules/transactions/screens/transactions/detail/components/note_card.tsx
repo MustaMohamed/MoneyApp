@@ -8,7 +8,7 @@ import { Strings } from '@/constants/strings';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { DETAIL_NOTE_MIN_HEIGHT } from './detail_geometry';
+import { DETAIL_NOTE_MIN_HEIGHT } from './detail.geometry';
 
 interface Props {
   note: string | null;

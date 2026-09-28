@@ -6,7 +6,7 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 
-import { DETAIL_ACTION_MIN_HEIGHT } from './detail_geometry';
+import { DETAIL_ACTION_MIN_HEIGHT } from './detail.geometry';
 
 interface MutableProps {
   onDelete: () => void;

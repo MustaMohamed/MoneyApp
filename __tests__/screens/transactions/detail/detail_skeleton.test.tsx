@@ -7,7 +7,7 @@ import {
   DETAIL_ACCOUNT_ROW_HEIGHT,
   DETAIL_HERO_MIN_HEIGHT,
   DETAIL_ROW_HEIGHT,
-} from '@/modules/transactions/screens/transactions/detail/components/detail_geometry';
+} from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import { TransactionDetailSkeleton } from '@/modules/transactions/screens/transactions/detail/components/detail_skeleton';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);

@@ -8,7 +8,7 @@ import {
   ACCOUNT_STRIP_HIT_SLOP,
   ACCOUNT_STRIP_TILE,
   ACCOUNT_STRIP_TILE_NAME_GAP,
-} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
+} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 import { ms } from '@/utils/responsive';
 
 describe('account strip geometry', () => {

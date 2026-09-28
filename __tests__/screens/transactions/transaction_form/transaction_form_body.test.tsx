@@ -57,7 +57,7 @@ import {
   ACCOUNT_STRIP_GAP,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
-} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_geometry';
+} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import {
   resolveAccountStripChips,

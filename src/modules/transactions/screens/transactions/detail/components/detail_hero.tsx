@@ -11,7 +11,7 @@ import type { Category } from '@/modules/categories/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { toIconName } from '@/utils/icon_name_guard';
 
-import { DETAIL_HERO_MIN_HEIGHT } from './detail_geometry';
+import { DETAIL_HERO_MIN_HEIGHT } from './detail.geometry';
 
 interface Props {
   tx: Transaction;
