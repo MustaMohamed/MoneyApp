@@ -8,6 +8,7 @@ import { TransactionFormLoading } from '@/modules/transactions/screens/transacti
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 
+import { resolveTransactionFormFooterVisible } from './transaction_form.helpers';
 import type { RegisterTransactionFormSubmit } from './transaction_form_host.hook';
 import { useTransactionFormPrerequisites } from './transaction_form_prerequisites.hook';
 import { useTransactionFormSession } from './transaction_form_session.hook';
@@ -38,7 +39,11 @@ export function EditTransactionSession(props: EditTransactionSessionProps): Reac
     sessionId: props.sessionId,
     submit: hook.handleSave,
     footer: {
-      visible: true,
+      visible: resolveTransactionFormFooterVisible({
+        formDataLoadError: hook.state.formDataLoadError,
+        formDataReady: hook.state.formDataReady,
+        hasAccounts: true,
+      }),
       saving: hook.state.saving,
       disabled: footerDisabled,
       status: hook.state.status,

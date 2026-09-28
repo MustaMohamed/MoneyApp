@@ -32,6 +32,7 @@ export function NoAccountsEmpty({ onAddAccount }: Props): React.ReactElement {
         testID="no-accounts-cta"
         onPress={onAddAccount}
         variant="primary"
+        flat
         label={Strings.addTxNoAccountsCta}
       />
     </View>
