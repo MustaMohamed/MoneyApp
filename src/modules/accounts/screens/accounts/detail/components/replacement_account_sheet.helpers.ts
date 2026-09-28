@@ -1,7 +1,7 @@
 import { Strings } from '@/constants/strings';
 import type { AccountCommitmentRef } from '@/modules/commitments/database/commitments';
-import { formatCommitmentAmount } from '@/modules/commitments/screens/commitments/commitment_status';
-import { buildRecurrenceLabel } from '@/modules/commitments/screens/commitments/recurrence_label';
+import { formatCommitmentAmount } from '@/modules/commitments/utils/commitment_status';
+import { buildRecurrenceLabel } from '@/modules/commitments/utils/recurrence_label';
 import { formatAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';
 

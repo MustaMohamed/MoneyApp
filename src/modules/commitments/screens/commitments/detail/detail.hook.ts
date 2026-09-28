@@ -6,6 +6,7 @@ import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { buildRecurrenceLabel } from '@/modules/commitments/utils/recurrence_label';
 import { commitmentEditRoute, stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
 import { formatLongDate } from '@/utils/format_date';
 
@@ -13,7 +14,6 @@ import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 import { commitmentRepository } from '../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../store/commitment.store';
-import { buildRecurrenceLabel } from '../recurrence_label';
 import { usePaySheetState } from './components/pay_sheet.state';
 import { overlayStorePayments, resolveCommitmentDetailViewState } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useCommitmentDetailState } from './detail.state';

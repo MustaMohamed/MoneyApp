@@ -1,12 +1,12 @@
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { STATUS_COLORS, STATUS_LABELS } from '@/modules/commitments/utils/commitment_status';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
-import { STATUS_COLORS, STATUS_LABELS } from '../../commitment_status';
 
 interface Props {
   payment: CommitmentPayment;

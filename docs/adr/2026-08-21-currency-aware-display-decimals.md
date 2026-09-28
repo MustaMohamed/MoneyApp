@@ -178,7 +178,7 @@ over several additions — four-plus orders of headroom at realistic balances. N
 a narrower margin than before, accepted on that measurement.
 
 **The rule is universal, not composed-sign-only.** `formatCommitmentAmount`
-(`src/modules/commitments/screens/commitments/commitment_status.ts`) independently had the
+(`src/modules/commitments/utils/commitment_status.ts`) independently had the
 same defect for the same reason — it called `formatCurrencyAmount` directly instead of
 `formatDisplayMagnitude`, so a 0.40 EGP commitment read `"0 EGP"` on every commitments surface
 while the identical magnitude on a transaction row already escalated to `"0.40 EGP"`. It now

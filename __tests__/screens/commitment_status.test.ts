@@ -10,7 +10,7 @@ import type { CommitmentPayment } from '@/modules/commitments/entities/commitmen
 import {
   formatCommitmentAmount,
   resolveDisplayAmount,
-} from '@/modules/commitments/screens/commitments/commitment_status';
+} from '@/modules/commitments/utils/commitment_status';
 
 function mkPayment(over: Partial<CommitmentPayment>): CommitmentPayment {
   return {

@@ -7,8 +7,8 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { formatDisplayMagnitude } from '@/utils/format_amount';
 
-import type { Commitment } from '../../entities/commitment.entity';
-import type { CommitmentPayment } from '../../entities/commitment_payment.entity';
+import type { Commitment } from '../entities/commitment.entity';
+import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 

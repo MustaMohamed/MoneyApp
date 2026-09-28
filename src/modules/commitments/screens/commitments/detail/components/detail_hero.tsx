@@ -7,11 +7,11 @@ import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, withAlpha } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
+import { formatCommitmentAmount } from '@/modules/commitments/utils/commitment_status';
 import { toIconName } from '@/utils/icon_name_guard';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
-import { formatCommitmentAmount } from '../../commitment_status';
 import { heroEntering } from '../detail.anim';
 
 interface Props {

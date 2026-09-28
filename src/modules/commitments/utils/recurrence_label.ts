@@ -1,7 +1,7 @@
 import { RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
-import type { Commitment } from '../../entities/commitment.entity';
+import type { Commitment } from '../entities/commitment.entity';
 
 const PERIOD_LABEL: Record<RecurrencePeriod, string> = {
   [RecurrencePeriod.Days]: Strings.commitmentsRecurrencePeriodDay,
