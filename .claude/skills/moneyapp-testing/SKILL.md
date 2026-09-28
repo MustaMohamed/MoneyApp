@@ -7,7 +7,7 @@ description: Use when writing or modifying tests in MoneyApp — repository test
 
 ## Overview
 
-Logic-only `.ts` tests in `__tests__/` (snake_case) — no `.tsx` render tests. SQL is tested against a **real** SQLite engine (better-sqlite3 in-memory) bridged into the mocked expo-sqlite API, not against mocks of the query layer. The core principle: **a test that mocks the thing it claims to verify is vacuous** (audit M33 found atomicity tests that mocked the transaction wrapper into a pass-through — they'd pass with the logic deleted).
+Logic-only `.ts` tests in `__tests__/` (snake_case) — no new `.tsx` file; a case in an existing `.tsx` suite follows the Render-suite policy in `.claude/rules/tests.md`. SQL is tested against a **real** SQLite engine (better-sqlite3 in-memory) bridged into the mocked expo-sqlite API, not against mocks of the query layer. The core principle: **a test that mocks the thing it claims to verify is vacuous** (audit M33 found atomicity tests that mocked the transaction wrapper into a pass-through — they'd pass with the logic deleted).
 
 ## The bridge pattern (canonical: `__tests__/transaction.repository.test.ts`)
 
