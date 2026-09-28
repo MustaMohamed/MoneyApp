@@ -1,10 +1,10 @@
+import { resolveKeyboardLift } from '@/components/ui/keyboard_lift.geometry';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import {
   ONBOARDING_SHELL_TRACKS,
   ONBOARDING_TOTAL_STEPS,
   resolveAmbientWashGeometry,
-  resolveKeyboardLift,
   resolveProgressRail,
   type OnboardingStepIndex,
 } from '@/modules/onboarding/components/onboarding_shell/onboarding_shell.geometry';

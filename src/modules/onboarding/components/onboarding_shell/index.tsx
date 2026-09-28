@@ -2,13 +2,13 @@ import React, { type ReactNode } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { useKeyboardLiftAnim } from '@/components/ui/keyboard_lift.anim';
 import { Screen } from '@/components/ui/screen';
 import { Colors } from '@/constants/theme';
 
 import { OnboardingFooter } from './onboarding_footer';
 import { OnboardingHeader } from './onboarding_header';
 import { OnboardingProgressRail } from './onboarding_progress_rail';
-import { useKeyboardLiftAnim } from './onboarding_shell.anim';
 import type { OnboardingStepIndex } from './onboarding_shell.geometry';
 
 export interface OnboardingShellProps {

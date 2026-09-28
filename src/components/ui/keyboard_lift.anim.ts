@@ -3,7 +3,7 @@ import { Keyboard, Platform } from 'react-native';
 import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { resolveKeyboardLift } from './onboarding_shell.geometry';
+import { resolveKeyboardLift } from './keyboard_lift.geometry';
 
 const KEYBOARD_LIFT_MS = 160;
 
