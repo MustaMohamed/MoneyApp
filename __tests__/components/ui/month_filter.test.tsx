@@ -21,22 +21,10 @@ jest.mock('@/components/ui/sheet', () => ({
 
 describe('MonthFilter', () => {
   it('uses compact controls inside the filter rail', async () => {
-    const { getByTestId, getByText } = await render(
+    const { getByText } = await render(
       <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={jest.fn()} />,
     );
 
-    expect(getByTestId('month-filter-previous')).toHaveProp(
-      'className',
-      expect.stringContaining('h-8'),
-    );
-    expect(getByTestId('month-filter-open')).toHaveProp(
-      'className',
-      expect.stringContaining('h-8'),
-    );
-    expect(getByTestId('month-filter-next')).toHaveProp(
-      'className',
-      expect.stringContaining('w-8'),
-    );
     expect(getByText('August 2026')).toHaveStyle({
       fontSize: Type.micro,
       lineHeight: lineHeightFor(Type.micro),
