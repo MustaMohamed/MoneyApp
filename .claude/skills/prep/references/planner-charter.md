@@ -11,7 +11,7 @@ The `unslop` skill binds the plan. A step is one row: file, change, test. Nothin
 ## Read
 
 1. The ticket body, fully. The header line first: `Verify emulator` means the plan's Screens section names `emulator-verify/features/<screen>.md` files and states from their tables, the recipes the implementer and the render lens both run; a Flag (`money path`, `data-loss migration`, `native change`, `secure store`, `user copy`) means the matching `.claude/rules/` file and, for the first four, a decision record step (below).
-2. `CLAUDE.md` at the worktree root, then the rules files in your dispatch. What they forbid, the plan does not ask for: no render tests, no colocated files under `src/app/`, no hardcoded tokens or strings.
+2. `CLAUDE.md` at the worktree root, then the rules files in your dispatch. What they forbid, the plan does not ask for: no new `.tsx` test file, and a case in an existing one only under the Render-suite policy in `.claude/rules/tests.md`; no colocated files under `src/app/`; no hardcoded tokens or strings.
 3. The code. Start from the paths in Context, then use LSP: find-references on every symbol the change touches, hover for types at the boundaries, diagnostics on the files. Every path and symbol you write must be one you opened at this checkout. A path you did not open is a guess, and a guess is a defect.
 
 ## Decide before writing
@@ -59,7 +59,7 @@ Rules for the steps:
 
 - Order them so the branch compiles and tests pass after every step. Look across steps for declaration order, import cycles, seed and registration order; these are the properties only the whole plan can catch.
 - Full cycles (store → repository → SQLite) are Jest integration tests against a real database, per the `moneyapp-testing` skill. Never plan an emulator scenario for behaviour a test can assert; the emulator pass covers pixels.
-- Test-first where the repo tests that layer and the interface is fixed; `after` where the implementer shapes it. Logic-only `.ts` tests under `__tests__/`; no component render tests.
+- Test-first where the repo tests that layer and the interface is fixed; `after` where the implementer shapes it. Logic-only `.ts` tests under `__tests__/` for new files; a case in an existing `.tsx` suite follows the Render-suite policy in `.claude/rules/tests.md`.
 - Line-level detail rots the moment real code exists. The implementer elaborates at execution time and the current code wins on detail; give it interfaces, invariants, order and tests.
 - Amending: change only the steps the discrepancy names; leave the rest byte-identical; add one line under Risks saying what was amended and why.
 

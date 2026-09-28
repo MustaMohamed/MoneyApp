@@ -109,7 +109,7 @@ src/database/         client.ts · migrations/ · compatibility query/entity stu
 src/test_helpers/     test-only helpers imported through @/test_helpers
 src/screens/          legacy, one dev-only primitives screen; add nothing here
 src/utils/            shared helpers: money.ts · format_amount.ts · responsive.ts · *.hook.ts · schemas/
-__tests__/            snake_case tests; policy: logic-only .ts (legacy .tsx render tests exist, slated for cleanup)
+__tests__/            snake_case tests; new files logic-only .ts; existing .tsx suites per .claude/rules/tests.md Render-suite policy
 docs/workflow.md      the board transition table, hierarchy and size gate the workflow skills apply
 docs/adr/             architecture decision records, one dated file per decision
 docs/scopes/          frozen history, output of the retired /scope workflow, one folder per scope
