@@ -37,6 +37,7 @@ Four sections, in this order: `Reach it` (route, user path, deep link), `States`
 | [transaction_form.md](transaction_form.md) | the add and edit sheet, over any tab | D1 to D8, D13 to D15, A15 (transactions canvas) |
 | [categories.md](categories.md) | `/settings/categories`, and its add and edit sheet | not redesigned |
 | [budget.md](budget.md) | `/budget`, and its copy sheet | not redesigned |
+| [goals.md](goals.md) | `/goals` | not redesigned |
 | [spending_plan_detail.md](spending_plan_detail.md) | `/budget/plans/[id]` | not redesigned |
 
 ## Maintenance
