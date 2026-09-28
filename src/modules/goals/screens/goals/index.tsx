@@ -17,7 +17,7 @@ export default function GoalsScreen() {
         </View>
       </Surface>
       <Separator />
-      <EmptyState variant="goals" />
+      <EmptyState variant="goals" clearsAddButton />
     </Screen>
   );
 }

@@ -7,7 +7,7 @@ import { FAB } from '@/components/ui/fab';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 
-import { useTabsLayout } from './tabs.hook';
+import { useTabBarLabelStyle, useTabsLayout } from './tabs.hook';
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -33,6 +33,8 @@ export function FABOverlay() {
 }
 
 export default function TabsLayout(): React.ReactElement {
+  const tabBarLabelStyle = useTabBarLabelStyle();
+
   return (
     <>
       <Tabs
@@ -42,6 +44,8 @@ export default function TabsLayout(): React.ReactElement {
           freezeOnBlur: true,
           tabBarActiveTintColor: Colors.shared.cairoGold,
           tabBarInactiveTintColor: Colors.dark.text2,
+          tabBarAllowFontScaling: false,
+          tabBarLabelStyle,
           tabBarStyle: {
             backgroundColor: Colors.dark.surface,
             borderTopColor: Colors.dark.border,

@@ -241,6 +241,7 @@ export default function CommitmentsScreen() {
           retryLabel={Strings.commitmentsLoadRetry}
           onRetry={() => void onRefresh()}
           testID="commitments-load-error"
+          clearsAddButton
         />
       ) : showCommitmentsEmptyState ? (
         <CommitmentsEmptyState onAdd={goToAdd} />
@@ -261,7 +262,7 @@ export default function CommitmentsScreen() {
             />
           }
           ListEmptyComponent={listEmptyComponent}
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: Size.tabScreenBottomClearance }}
         />
       )}
 
