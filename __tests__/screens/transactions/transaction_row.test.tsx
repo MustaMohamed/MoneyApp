@@ -29,6 +29,19 @@ const mockSwipeableRow = jest.fn(({ children }: MockSwipeableRowProps) => <View>
 jest.mock('@/components/ui/swipeable_row', () => ({
   SwipeableRow: (props: MockSwipeableRowProps) => mockSwipeableRow(props),
 }));
+interface MockReanimatedSwipeableProps {
+  children: React.ReactNode;
+  containerStyle?: unknown;
+}
+
+const mockReanimatedSwipeable = jest.fn(({ children }: MockReanimatedSwipeableProps) => (
+  <View>{children}</View>
+));
+
+jest.mock('react-native-gesture-handler/ReanimatedSwipeable', () => ({
+  __esModule: true,
+  default: (props: MockReanimatedSwipeableProps) => mockReanimatedSwipeable(props),
+}));
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('react-native-reanimated', () => {
   const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -219,5 +232,22 @@ describe('TransactionRow ownership actions', () => {
       fontSize: TRANSACTION_ROW_CODE_FONT_SIZE,
       lineHeight: lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE),
     });
+  });
+});
+
+describe('SwipeableRow', () => {
+  it('hands its container style to the swipeable, whose corner radii clip the action tiles', async () => {
+    const { SwipeableRow: RealSwipeableRow } = jest.requireActual<
+      typeof import('@/components/ui/swipeable_row')
+    >('@/components/ui/swipeable_row');
+    const corners = resolveDayCardSwipeCorners(true, false);
+
+    await render(
+      <RealSwipeableRow actions={[]} containerStyle={corners}>
+        <View />
+      </RealSwipeableRow>,
+    );
+
+    expect(mockReanimatedSwipeable.mock.calls[0][0].containerStyle).toBe(corners);
   });
 });
