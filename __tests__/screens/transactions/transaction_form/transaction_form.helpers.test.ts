@@ -18,6 +18,7 @@ import {
   resolveStripSelectedId,
   resolveToRowFace,
   resolveTransactionDeleteError,
+  resolveTransactionFormFooterVisible,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
   resolveTransactionSaveError,
@@ -685,5 +686,49 @@ describe('MA-122 locked strip and To row face', () => {
     const face = resolveToRowFace({ locked: true, account: undefined });
     expect(face.value).toBe(Strings.unknownAccount);
     expect(face.tile).toMatchObject(HOLLOW);
+  });
+});
+
+describe('resolveTransactionFormFooterVisible', () => {
+  it.each([
+    { formDataReady: false, hasAccounts: false },
+    { formDataReady: false, hasAccounts: true },
+    { formDataReady: true, hasAccounts: false },
+    { formDataReady: true, hasAccounts: true },
+  ])('hides the footer while form data has failed (%o)', (input) => {
+    expect(resolveTransactionFormFooterVisible({ formDataLoadError: true, ...input })).toBe(false);
+  });
+
+  it.each([true, false])(
+    'shows the footer while form data loads, hasAccounts %s',
+    (hasAccounts) => {
+      expect(
+        resolveTransactionFormFooterVisible({
+          formDataLoadError: false,
+          formDataReady: false,
+          hasAccounts,
+        }),
+      ).toBe(true);
+    },
+  );
+
+  it('shows the footer once form data is ready with accounts', () => {
+    expect(
+      resolveTransactionFormFooterVisible({
+        formDataLoadError: false,
+        formDataReady: true,
+        hasAccounts: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('hides the footer once form data is ready with no accounts', () => {
+    expect(
+      resolveTransactionFormFooterVisible({
+        formDataLoadError: false,
+        formDataReady: true,
+        hasAccounts: false,
+      }),
+    ).toBe(false);
   });
 });

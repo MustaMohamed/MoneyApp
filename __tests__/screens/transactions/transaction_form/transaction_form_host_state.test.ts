@@ -280,6 +280,57 @@ describe('useTransactionFormState', () => {
     expect(useTransactionFormState.getState().phase).toBe('closed');
   });
 
+  it('returns saved from the close that follows an add save', () => {
+    useTransactionFormState.getState().openAdd();
+    const sessionId = useTransactionFormState.getState().sessionId;
+
+    expect(useTransactionFormState.getState().completeSave(sessionId)).toBe(true);
+    expect(useTransactionFormState.getState()).toMatchObject({
+      phase: 'closing',
+      postCloseAction: 'saved',
+    });
+
+    expect(useTransactionFormState.getState().completeClose(sessionId)).toBe('saved');
+    expect(useTransactionFormState.getState()).toMatchObject({
+      phase: 'closed',
+      postCloseAction: undefined,
+    });
+  });
+
+  it('returns saved from the close that follows an edit save', () => {
+    useTransactionFormState.getState().openEdit(createTransaction());
+    const sessionId = useTransactionFormState.getState().sessionId;
+
+    expect(useTransactionFormState.getState().completeSave(sessionId)).toBe(true);
+    expect(useTransactionFormState.getState().completeClose(sessionId)).toBe('saved');
+  });
+
+  it('returns nothing from a close without a save, after a saved session closed', () => {
+    useTransactionFormState.getState().openAdd();
+    const savedSession = useTransactionFormState.getState().sessionId;
+    useTransactionFormState.getState().completeSave(savedSession);
+    expect(useTransactionFormState.getState().completeClose(savedSession)).toBe('saved');
+
+    useTransactionFormState.getState().openAdd();
+    const dismissedSession = useTransactionFormState.getState().sessionId;
+
+    expect(useTransactionFormState.getState().requestClose()).toBe(true);
+    expect(useTransactionFormState.getState().completeClose(dismissedSession)).toBeUndefined();
+  });
+
+  it('leaves saved unset for a save from a replaced session and sets it for the current one', () => {
+    useTransactionFormState.getState().openAdd();
+    const addSession = useTransactionFormState.getState().sessionId;
+    useTransactionFormState.getState().openEdit(createTransaction('tx-2'));
+    const editSession = useTransactionFormState.getState().sessionId;
+
+    expect(useTransactionFormState.getState().completeSave(addSession)).toBe(false);
+    expect(useTransactionFormState.getState().postCloseAction).toBeUndefined();
+
+    expect(useTransactionFormState.getState().completeSave(editSession)).toBe(true);
+    expect(useTransactionFormState.getState().postCloseAction).toBe('saved');
+  });
+
   it('starts one prerequisite request for each session generation', () => {
     useTransactionFormState.getState().openAdd();
     const { sessionId, prerequisiteGeneration } = useTransactionFormState.getState();
