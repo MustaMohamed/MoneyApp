@@ -10,7 +10,7 @@ Inputs in your prompt: the ticket body with its number and title; the parent bod
 2. Open every file you name. A path you did not open is not in the list.
 3. Run LSP find-references on every symbol the change touches, and on every export whose signature or return shape changes. Each consumer that must change is a file in the list. Hover for types at the boundaries.
 4. Add the files § Size gate lists by rule: `src/constants/strings.ts` for any new or changed string, the helpers file for a lock, resolver or formatter, every file that mounts a new component, the `emulator-verify/features/<screen>.md` file on `Verify emulator`, the ADR a Flag asks for.
-5. Estimate the changed lines per file from the code as it is, then sum. Tests and generated code are outside the count.
+5. Estimate the changed lines per file from the code as it is, then sum. Tests and generated files, as § Size gate lists them, are outside the count.
 6. Count the outcomes. Two product outcomes outside a § Floor bundle is over the gate.
 
 ## Return
