@@ -7,6 +7,7 @@ import { isOverLimit } from '@/modules/accounts/constants/is_over_limit';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import { convertCurrency } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/store/account.store';
+import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
@@ -15,8 +16,6 @@ import {
   signAmountText,
 } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
-
-import { formatOwnedAmountParts } from './net_worth_breakdown_sheet.helpers';
 
 // 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;

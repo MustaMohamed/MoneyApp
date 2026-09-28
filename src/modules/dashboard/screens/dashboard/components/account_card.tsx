@@ -11,11 +11,11 @@ import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_pale
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
+import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
 import { resolveAccountName } from '@/utils/account_name';
 import { ms, msFont } from '@/utils/responsive';
 
 import { buildInfoRows } from './account_card.helpers';
-import { formatOwnedAmountParts } from './net_worth_breakdown_sheet.helpers';
 
 /** The carousel headline balance is negative-capable (overdraft), so it composes U+2212 (#332). */
 function ownedAmountText(value: number, currency: Currency): string {

@@ -10,11 +10,11 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { budgetBandColor } from '@/modules/budget/screens/budget/budget.helpers';
+import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
-import { formatOwnedAmountParts } from './net_worth_breakdown_sheet.helpers';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 interface Props {
