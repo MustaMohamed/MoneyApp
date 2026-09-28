@@ -1,13 +1,13 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
 
-import {
-  FILTER_BADGE_STYLE,
-  FILTER_BUTTON_COMPACT_STYLE,
-  SEARCH_INPUT_COMPACT_STYLE,
-  SearchFilterRow,
-} from '@/components/ui/search_filter_row';
+import { SearchFilterRow } from '@/components/ui/search_filter_row';
+import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_row.geometry';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+
+const geometry = resolveSearchFilterRowGeometry(Dimensions.get('window').fontScale);
+const inputStyle = { ...geometry.input, ...geometry.inputText };
 
 describe('SearchFilterRow', () => {
   it('renders compact input and trailing filter button', async () => {
@@ -22,14 +22,14 @@ describe('SearchFilterRow', () => {
       />,
     );
 
-    expect(SEARCH_INPUT_COMPACT_STYLE).toMatchObject({
-      height: FILTER_BUTTON_COMPACT_STYLE.height,
-      minHeight: FILTER_BUTTON_COMPACT_STYLE.height,
+    expect(geometry.input).toMatchObject({
+      height: geometry.filterButton.height,
+      minHeight: geometry.filterButton.height,
     });
     expect(getByLabelText('Search items...')).toHaveProp('accessibilityRole', 'search');
     expect(getByLabelText('Search items...')).toHaveProp('value', '');
-    expect(getByLabelText('Search items...')).toHaveProp('style', SEARCH_INPUT_COMPACT_STYLE);
-    expect(getByLabelText('Filter')).toHaveProp('style', FILTER_BUTTON_COMPACT_STYLE);
+    expect(getByLabelText('Search items...')).toHaveProp('style', inputStyle);
+    expect(getByLabelText('Filter')).toHaveProp('style', geometry.filterButton);
   });
 
   it('shows active badge only when filter count is positive', async () => {
@@ -56,7 +56,7 @@ describe('SearchFilterRow', () => {
       />,
     );
     expect(active.getByText('3')).toBeTruthy();
-    expect(active.getByTestId('shared-filter-badge')).toHaveProp('style', FILTER_BADGE_STYLE);
+    expect(active.getByTestId('shared-filter-badge')).toHaveProp('style', geometry.badge);
     expect(active.getByLabelText('Filter, 3 active')).toBeTruthy();
   });
 
@@ -72,10 +72,7 @@ describe('SearchFilterRow', () => {
       />,
     );
 
-    expect(active.getByLabelText('Search items...')).toHaveProp(
-      'style',
-      SEARCH_INPUT_COMPACT_STYLE,
-    );
+    expect(active.getByLabelText('Search items...')).toHaveProp('style', inputStyle);
     expect(active.getByLabelText('Clear search')).toBeTruthy();
   });
 

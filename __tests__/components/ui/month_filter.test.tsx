@@ -1,9 +1,10 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { Dimensions } from 'react-native';
 
 import { MonthFilter } from '@/components/ui/month_filter';
+import { resolveMonthPillGeometry } from '@/components/ui/month_filter.geometry';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@/components/ui/sheet', () => ({
@@ -25,10 +26,9 @@ describe('MonthFilter', () => {
       <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={jest.fn()} />,
     );
 
-    expect(getByText('August 2026')).toHaveStyle({
-      fontSize: Type.micro,
-      lineHeight: lineHeightFor(Type.micro),
-    });
+    expect(getByText('August 2026')).toHaveStyle(
+      resolveMonthPillGeometry(Dimensions.get('window').fontScale).label,
+    );
   });
 
   it('shows the selected month without the extra label', async () => {

@@ -1,13 +1,13 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
 
-import {
-  COMMITMENT_FILTER_BADGE_STYLE,
-  COMMITMENT_FILTER_BUTTON_STYLE,
-  COMMITMENT_SEARCH_INPUT_STYLE,
-  CommitmentSearchRow,
-} from '@/modules/commitments/screens/commitments/components/search_row';
+import { resolveSearchFilterRowGeometry } from '@/components/ui/search_filter_row.geometry';
+import { CommitmentSearchRow } from '@/modules/commitments/screens/commitments/components/search_row';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+
+const geometry = resolveSearchFilterRowGeometry(Dimensions.get('window').fontScale);
+const inputStyle = { ...geometry.input, ...geometry.inputText };
 
 describe('CommitmentSearchRow', () => {
   it('renders compact input and trailing filter button with matching height', async () => {
@@ -20,16 +20,13 @@ describe('CommitmentSearchRow', () => {
       />,
     );
 
-    expect(COMMITMENT_SEARCH_INPUT_STYLE).toMatchObject({
-      height: COMMITMENT_FILTER_BUTTON_STYLE.height,
-      minHeight: COMMITMENT_FILTER_BUTTON_STYLE.height,
+    expect(geometry.input).toMatchObject({
+      height: geometry.filterButton.height,
+      minHeight: geometry.filterButton.height,
     });
     expect(getByLabelText('Search commitments…')).toHaveProp('accessibilityRole', 'search');
-    expect(getByLabelText('Search commitments…')).toHaveProp(
-      'style',
-      COMMITMENT_SEARCH_INPUT_STYLE,
-    );
-    expect(getByLabelText('Filter')).toHaveProp('style', COMMITMENT_FILTER_BUTTON_STYLE);
+    expect(getByLabelText('Search commitments…')).toHaveProp('style', inputStyle);
+    expect(getByLabelText('Filter')).toHaveProp('style', geometry.filterButton);
   });
 
   it('shows the active filter badge only when advanced filters are applied', async () => {
@@ -51,8 +48,8 @@ describe('CommitmentSearchRow', () => {
         activeFilterCount={2}
       />,
     );
-    expect(COMMITMENT_FILTER_BADGE_STYLE.top).toBeGreaterThanOrEqual(0);
-    expect(COMMITMENT_FILTER_BADGE_STYLE.right).toBeGreaterThanOrEqual(0);
+    expect(geometry.badge.top).toBeGreaterThanOrEqual(0);
+    expect(geometry.badge.right).toBeGreaterThanOrEqual(0);
     expect(active.getByText('2')).toBeTruthy();
     expect(active.getByTestId('commitment-filter-badge')).toBeTruthy();
     expect(active.getByLabelText('Filter, 2 active')).toBeTruthy();
@@ -68,10 +65,7 @@ describe('CommitmentSearchRow', () => {
       />,
     );
 
-    expect(active.getByLabelText('Search commitments…')).toHaveProp(
-      'style',
-      COMMITMENT_SEARCH_INPUT_STYLE,
-    );
+    expect(active.getByLabelText('Search commitments…')).toHaveProp('style', inputStyle);
   });
 
   it('routes search changes and clearing through the controlled handler', async () => {
