@@ -15,6 +15,8 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 import { ms } from '@/utils/responsive';
 
 import { AccountChips } from './components/account_chips';
+import { DayCardRow } from './components/day_card_row';
+import { resolveDayCardSwipeCorners } from './components/day_card_row.helpers';
 import { DayHeader } from './components/day_header';
 import { SearchRow } from './components/search_row';
 import { SearchTally } from './components/search_tally';
@@ -57,6 +59,8 @@ const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
 ];
 
 const LIST_BOTTOM_CLEARANCE = ms(160);
+const SKELETON_DAY_CARDS = 2;
+const SKELETON_ROWS_PER_DAY = 3;
 const SCROLL_POSITION_THROTTLE_MS = 100;
 
 export default function TransactionsScreen(): React.ReactElement {
@@ -90,17 +94,25 @@ export default function TransactionsScreen(): React.ReactElement {
   );
 
   const renderItem = useCallback(
-    ({ item }: SectionListRenderItemInfo<Transaction, TransactionSection>) => (
-      <TransactionRow
-        tx={item}
-        account={state.accountsById.get(item.account_id)}
-        toAccount={item.to_account_id ? state.accountsById.get(item.to_account_id) : undefined}
-        category={item.category_id ? state.categoriesById.get(item.category_id) : undefined}
-        onPress={goToDetail}
-        onEdit={goToEdit}
-        onDelete={requestDelete}
-      />
-    ),
+    ({ item, index, section }: SectionListRenderItemInfo<Transaction, TransactionSection>) => {
+      const isFirst = index === 0;
+      const isLast = index === section.data.length - 1;
+      return (
+        <DayCardRow isFirst={isFirst} isLast={isLast}>
+          <TransactionRow
+            tx={item}
+            account={state.accountsById.get(item.account_id)}
+            toAccount={item.to_account_id ? state.accountsById.get(item.to_account_id) : undefined}
+            category={item.category_id ? state.categoriesById.get(item.category_id) : undefined}
+            onPress={goToDetail}
+            onEdit={goToEdit}
+            onDelete={requestDelete}
+            showSeparator={!isLast}
+            swipeContainerStyle={resolveDayCardSwipeCorners(isFirst, isLast)}
+          />
+        </DayCardRow>
+      );
+    },
     [goToDetail, goToEdit, requestDelete, state.accountsById, state.categoriesById],
   );
 
@@ -145,7 +157,7 @@ export default function TransactionsScreen(): React.ReactElement {
   const listEmptyComponent = useMemo(
     () =>
       showRowsSkeleton ? (
-        <TransactionRowsSkeleton />
+        <TransactionRowsSkeleton dayCards={SKELETON_DAY_CARDS} rows={SKELETON_ROWS_PER_DAY} />
       ) : state.showFirstLoadError ? (
         <TransactionLoadError variant="initial" onRetry={() => void retryFailedLoads()} />
       ) : state.emptyVariant === 'none' ? null : (

@@ -4,21 +4,15 @@ import { Text as RNText, View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Colors, Spacing, lineHeightFor } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
 
 import type { TransactionDaySection } from '../transactions.helpers';
 import {
+  DAY_HEADER_NET_PLACEHOLDER_WIDTH,
+  DAY_HEADER_ROOT_STYLE,
   INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE,
   resolveDayHeaderGeometry,
 } from './transactions_text.geometry';
 
-const ROOT_STYLE = {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingHorizontal: Spacing.md,
-  paddingTop: Spacing.md,
-  paddingBottom: Spacing.xs,
-} as const;
 const LABEL_STYLE = { flex: 1, minWidth: 0 } as const;
 const FIGURES_STYLE = {
   flexShrink: 0,
@@ -34,7 +28,6 @@ const PILL_STYLE = {
   paddingVertical: 0,
   paddingHorizontal: Spacing.xs,
 } as const;
-const SKELETON_WIDTH = ms(70);
 
 interface Props {
   section: Pick<TransactionDaySection, 'label' | 'figures' | 'accessibilityLabel'>;
@@ -52,7 +45,7 @@ export const DayHeader = React.memo(function DayHeader({ section }: Props): Reac
       accessible
       accessibilityLabel={section.accessibilityLabel}
       className="bg-background"
-      style={[ROOT_STYLE, { height }]}
+      style={[DAY_HEADER_ROOT_STYLE, { height }]}
     >
       {/* The outer size sets only the TextView's paint, so the `…` it reserves is as wide as the one Inter draws. */}
       <Text
@@ -70,7 +63,10 @@ export const DayHeader = React.memo(function DayHeader({ section }: Props): Reac
       </Text>
       <View style={FIGURES_STYLE}>
         {figures.mode === 'skeleton' ? (
-          <Skeleton className="rounded-md" style={{ width: SKELETON_WIDTH, height: lineHeight }} />
+          <Skeleton
+            className="rounded-md"
+            style={{ width: DAY_HEADER_NET_PLACEHOLDER_WIDTH, height: lineHeight }}
+          />
         ) : (
           <Text
             className="font-sora text-content-secondary tabular-nums"

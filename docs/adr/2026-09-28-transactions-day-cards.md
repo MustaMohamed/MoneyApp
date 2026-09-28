@@ -2,8 +2,8 @@
 
 - **Date:** 2026-09-28
 - **Status:** accepted
-- **Ticket:** MA-092
-- **Applies to:** `groupTransactionsByDate` in `src/utils/group_transactions_by_date.ts`; `buildDaySections` and `composeDayHeaderAccessibilityLabel` in `src/modules/transactions/screens/transactions/transactions.helpers.ts`; `useTransactions` in `transactions.hook.ts`; `DayHeader` in `components/day_header.tsx`; `resolveDayHeaderGeometry` in `components/transactions_text.geometry.ts`
+- **Ticket:** MA-092, MA-132
+- **Applies to:** `groupTransactionsByDate` in `src/utils/group_transactions_by_date.ts`; `buildDaySections` and `composeDayHeaderAccessibilityLabel` in `src/modules/transactions/screens/transactions/transactions.helpers.ts`; `useTransactions` in `transactions.hook.ts`; `DayHeader` in `components/day_header.tsx`; `resolveDayHeaderGeometry` in `components/transactions_text.geometry.ts`; `resolveDayCardSliceStyle` and `resolveDayCardSwipeCorners` in `components/day_card_row.helpers.ts`; `DayCardRow` in `components/day_card_row.tsx`; `containerStyle` on `SwipeableRow` in `src/components/ui/swipeable_row.tsx`
 
 Each day in the transactions list opens under a header that reads the day, the day's net in EGP and a count pill. The header replaces `DateHeader` in this list; the commitments list keeps `DateHeader` unchanged.
 
@@ -40,3 +40,11 @@ Android reserves a truncated line's `…` in the TextView paint's Roboto (0.669 
 ## 8. Why not `SectionHeader`
 
 The shared `SectionHeader` has no slot for a net, leaves scaling to the OS and has no opaque background, which a header pinned over scrolling rows needs.
+
+## 9. A day's card is drawn as row slices
+
+Each row renders inside its own slice of the day's card, one list cell per row, so the `SectionList` keeps virtualising rows (user ruling, the build, 2026-09-28). `resolveDayCardSliceStyle(isFirst, isLast)` in `day_card_row.helpers.ts` gives every slice the side borders and the `DAY_CARD_INSET` margin, the first slice the top border and top radii, the last the bottom border and bottom radii; `DayCardRow` paints it on the surface fill. `ListCard` and `ListGroup` wrap all of a day's rows in one cell, so no HeroUI primitive or project wrapper fits a slice, and `DayCardRow` is a plain `View`. HeroUI `Surface` does not fit either: its root clips (`overflow: hidden`, heroui-native `surface.css:5`) at a 3xl radius on every corner.
+
+The slice sets no `overflow`; the row's swipeable clips its own actions. On a first row its top-right corner, on a last row its bottom-right corner, and on a one-row day both, take the card's inner radius (`Radius.lg` less the border), so the outer tile follows the card's curve inside the border; middle rows stay square (user ruling, 2026-09-28). `resolveDayCardSwipeCorners` gives those corners, passed through `TransactionRow` to `SwipeableRow`'s `containerStyle`. The last row of a day draws no separator (`showSeparator` on `TransactionRow`), so the card's bottom border is the only line under it. The list's first-load skeleton draws the same slices, two day cards of three rows under header rows at the day header's height.
+
+Two adjacent slices meet without a background line only in whole device pixels: the inset, the border width and `TRANSACTION_ROW_HEIGHT` go through `PixelRatio.roundToNearestPixel`, since a fractional slice height left a background row between slices. Android starts a bottom-rounded slice's fill about 0.8 px below its top edge, so on Android a last slice overlaps the slice above by one device pixel. The overlap is an Android fill-offset correction only: iOS is unmeasured, and there it would paint surface over the separator's bottom pixel row. The one-`ListCard`-per-day fallback is ruled out (user ruling, 2026-09-28): the card stays row slices.

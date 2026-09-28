@@ -5,6 +5,7 @@ import {
   AccentCCTokens,
   AccentTokens,
   AcctTokens,
+  CoreTokens,
   GoldTokens,
   InfoTokens,
 } from '@/constants/theme_tokens';
@@ -14,6 +15,7 @@ import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
+  TRANSACTION_ROW_DUAL_RING_COLOR,
   TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_BADGE_HEIGHT,
@@ -624,7 +626,7 @@ describe('buildTransactionRowPresentation, blank-named accounts (MA-062)', () =>
 });
 
 describe('transaction row line geometry', () => {
-  // The row's own `border-b` comes out of its content box.
+  // A row with its separator is the smaller box: the `border-b` comes out of its content box.
   const innerBox = TRANSACTION_ROW_HEIGHT - 1;
 
   it('fits the title row, the gap and the caption inside the row', () => {
@@ -643,5 +645,11 @@ describe('transaction row line geometry', () => {
       lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE);
 
     expect(valueColumn).toBeLessThanOrEqual(innerBox);
+  });
+});
+
+describe('transaction row dual ring', () => {
+  it('rings the second tile in the card surface', () => {
+    expect(TRANSACTION_ROW_DUAL_RING_COLOR).toBe(CoreTokens.surface);
   });
 });
