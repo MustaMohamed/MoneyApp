@@ -92,7 +92,7 @@ Reason codes for a deleted guard, used in the steps and copied into the PR body 
 - Amended after review round 1: step 2 deletes `filter_rail_usage.test.ts` whole (its `exists() === true` lines break on a rename, and the `STATUS_ICONS` equality copied a typed table); step 4's range is `:28-44`; step 6 names the unused `getByTestId` at `tabs.test.tsx:139`.
 
 - `.claude/rules/tests.md:19` is one physical line that three Planned branches edit: this ticket drops `filter_rail_usage` and changes "four" to "three", MA-117 step 3 renames `budget_copy_sheet_geometry` to `budget_copy_sheet.geometry`, MA-119 step 1 rewrites the bold lead sentence. Each later merge conflicts on the line. The second and the third to merge resolve by keeping every edit already on main and adding their own, so the line ends with MA-119's bold lead, "three have partial relatives", and the list `set_budget_sheet.hook`/`.state`, `budget_copy_sheet.geometry`. If this ticket rebases, it keeps the lead and the dotted name as main has them.
-- MA-119's plan (its Non-goals and its second Risk) still says its own `/ship` rebase drops the mention when MA-118 merges first. With this amendment the rebase finds the mention gone and keeps this ticket's words.
+- MA-119's plan, amended at `cb0df64e`, agrees: it edits the bold lead of `tests.md:19` only and never the list of partial relatives, in either merge order.
 - Amended 2026-09-28 on the user's ruling that MA-118 owns the `filter_rail_usage` mention: step 2 edits `tests.md:19`, the Non-goal leaving it to MA-119 is narrowed to the rest of the file, and the header, the file count and Verification follow.
 
 ## Self-assessment
