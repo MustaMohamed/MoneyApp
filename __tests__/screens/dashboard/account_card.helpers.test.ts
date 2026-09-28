@@ -7,7 +7,7 @@ import {
   buildInfoRows,
   buildMonthRows,
   type InfoRowKind,
-} from '@/modules/dashboard/screens/dashboard/components/account_card.helpers';
+} from '@/modules/dashboard/utils/account_card.helpers';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 const STATS: AccountStats = { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
