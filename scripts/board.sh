@@ -65,8 +65,14 @@ size_of() {
   if [ -z "$files" ] || [ -z "$lines" ]; then echo UNPARSED; else echo "$files $lines"; fi
 }
 
+# Prints "<comment id> <html_url>" per open question record on an issue: a comment whose first line, less a trailing \r, is "Question: open".
+questions_of() {
+  gh api "repos/$REPO/issues/$1/comments" --paginate \
+    --jq '.[] | select((.body // "") | split("\n")[0] | rtrimstr("\r") == "Question: open") | "\(.id) \(.html_url)"'
+}
+
 promote() {
-  local parent=$1 items milestone children child_re extras candidates kind num state reason line deps dep dstate blocked status id gp size
+  local parent=$1 items milestone children child_re extras candidates kind num state reason line deps dep dstate blocked status id gp size records url parent_records
   local MAX_LINES=400
   local total=0 open=0 completed=0 promoted=0 skipped=0 closed_cache=" " open_cache=" " US=$'\x1f'
 
@@ -83,6 +89,11 @@ promote() {
   parent_line=$(gh api "repos/$REPO/issues/$parent" --jq '((.body // "") | split("\n")[0])')
   parent_marked=0; case "$parent_line" in *"Reviewed 20"[0-9][0-9]-*) parent_marked=1 ;; esac
   [ -z "$(gh api "repos/$REPO/issues/$parent" --jq '.labels[].name' | grep -x epic)" ] || parent_marked=1
+  parent_records=""
+  if [ -n "$children" ]; then
+    parent_records=$(questions_of "$parent") || { echo "board.sh: could not read the comments of #$parent" >&2; exit 1; }
+    [ -z "$parent_records" ] || parent_marked=0
+  fi
   if [ -n "$milestone" ] && [ -n "$children" ]; then
     child_re=$(printf '%s\n' "$children" | cut -d "$US" -f1 | paste -s -d '|' -)
     extras=$(gh issue list --repo "$REPO" --milestone "$milestone" --state open --limit 1000 --json number,body \
@@ -110,9 +121,19 @@ promote() {
       continue
     fi
     case "$status" in Defined|Blocked) ;; *) continue ;; esac
+    records=$(questions_of "$num") || { echo "#$num: could not read its comments, skipped" >&2; skipped=$((skipped + 1)); continue; }
+    if [ -n "$records" ]; then
+      while read -r _ url; do echo "#$num: open question $url, skipped; /queue asks answers it" >&2; done <<<"$records"
+      skipped=$((skipped + 1)); continue
+    fi
     case "$line" in *"Reviewed 20"[0-9][0-9]-*) ;; *) echo "#$num: no Reviewed date on the header, skipped" >&2; skipped=$((skipped + 1)); continue ;; esac
     if [ "$kind" = "child" ] && [ "$parent_marked" -eq 0 ]; then
-      echo "#$num: parent #$parent has no Reviewed date, skipped" >&2; skipped=$((skipped + 1)); continue
+      if [ -n "$parent_records" ]; then
+        while read -r _ url; do echo "#$num: parent #$parent has an open question $url, skipped; /queue asks answers it" >&2; done <<<"$parent_records"
+      else
+        echo "#$num: parent #$parent has no Reviewed date, skipped" >&2
+      fi
+      skipped=$((skipped + 1)); continue
     fi
     if [ "$(gh api "repos/$REPO/issues/$num/sub_issues" --jq length 2>/dev/null)" != "0" ]; then
       echo "#$num: a parent, closes through its children, skipped" >&2; skipped=$((skipped + 1)); continue
@@ -151,7 +172,7 @@ promote() {
   done <<<"$candidates"
 
   echo "#$parent: $total children, $open open, promoted $promoted, skipped $skipped"
-  if [ -n "$children" ] && [ "$(bash "$0" get "$parent")" = "Defined" ]; then
+  if [ -n "$children" ] && [ -z "$parent_records" ] && [ "$(bash "$0" get "$parent")" = "Defined" ]; then
     lift=$promoted
     [ "$lift" -gt 0 ] || for num in $(printf '%s\n' "$children" | cut -d "$US" -f1); do
       case "$(jq -r --argjson n "$num" '.items[] | select(.content.number == $n) | .status' <<<"$items")" in
@@ -182,7 +203,8 @@ usage: bash scripts/board.sh <command> ...
   status <issue> <Status>      set the Status field; Status is the option name, quoted if it has spaces. "In Progress" carries to every parent not already there
   get <issue>                  print the issue's current Status name
   link <parent> <child>        make <child> a sub-issue of <parent>
-  promote <issue>              Defined leaves with a Reviewed date and a Size: line within the gate (~400 lines, any number of files), under a marked parent, every Depends on closed -> Ready For Development, and a Defined parent follows its first child there: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children; every child completed -> parent closed, Done, then one level up
+  promote <issue>              Defined leaves with no open question record, a Reviewed date and a Size: line within the gate (~400 lines, any number of files), under a marked parent, every Depends on closed -> Ready For Development, and a Defined parent follows its first child there: the children of <issue> and the milestone issues depending on them, or <issue> itself when it has no children, reading only its own records; while a parent <issue> has an open question record, none of its children moves and it does not follow; every child completed -> parent closed, Done, then one level up
+  questions <issue>            read-only: one line per open question record on the issue, "<comment id> <url>"
   next-ma                      print the next MA-nnn (highest in any issue title, plus one)
   next [<issue>] [--json]      read-only: every open ticket with the command to run next, ranked, from board_next.mjs; no model, about five seconds
   serve [<port>]               the board page on http://127.0.0.1:<port> (default 4178): the ranked tickets, the dependency views, and Fix buttons that run status, promote and add after you confirm
@@ -234,6 +256,10 @@ case "$cmd" in
   promote)
     [ $# -eq 1 ] || usage
     promote "$1"
+    ;;
+  questions)
+    [ $# -eq 1 ] || usage
+    questions_of "$1"
     ;;
   next)
     fmt=text; scope=()

@@ -704,6 +704,117 @@
       "branches": [],
       "prs": [],
       "comments": ["Blocked on a ruling: which screen owns the tally", "Blocked on #104"]
+    },
+    {
+      "number": 146,
+      "status": "Defined",
+      "title": "MA-146 — Open record, six comments after it",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": [
+        "Question: open\nAsks: Which screen owns the tally?\nAsked by: /issue-review, check P2, 2026-09-29\nSha: dc2cb03a\nLeft: Defined",
+        "Cut: one PR, no split",
+        "> Question: open\n> Asks: Which screen owns the tally?\n\nQuoting the record above for the thread.",
+        "Size recounted at dc2cb03a",
+        "Linked the design notes",
+        "Reviewer lens P3 ran clean",
+        "Moved to the next milestone row"
+      ]
+    },
+    {
+      "number": 147,
+      "status": "Blocked",
+      "title": "MA-147 — Two open records, then blocked on an issue",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": [
+        "Question: open\nAsks: Does the chip count transfers?\nLeft: Ready For Development",
+        "Question: open\r\nAsks: Is the hero rounded to whole pounds?\r\nLeft: Ready For Development",
+        "Blocked on #104"
+      ]
+    },
+    {
+      "number": 148,
+      "status": "Defined",
+      "title": "MA-148 — Record answered",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": [
+        "Question: answered 2026-09-29\nAnswer: A\nAsks: Which screen owns the tally?\nLeft: Defined"
+      ]
+    },
+    {
+      "number": 149,
+      "status": "Defined",
+      "title": "MA-149 — Parent with an open record",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [
+        {
+          "number": 150,
+          "state": "open"
+        }
+      ],
+      "branches": [],
+      "prs": [],
+      "comments": ["Question: open\nAsks: Is the cut by screen or by query?\nLeft: Defined"]
+    },
+    {
+      "number": 150,
+      "status": "Defined",
+      "title": "MA-150 — Defined child of 149",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #149 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 149,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": []
+    },
+    {
+      "number": 151,
+      "status": "Defined",
+      "title": "MA-151 — Old Blocked on note, six comments after it",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": [
+        "Blocked on #104",
+        "Unblocked, back to Defined",
+        "Scope note one",
+        "Scope note two",
+        "Scope note three",
+        "Scope note four",
+        "Scope note five"
+      ]
     }
   ],
   "offBoard": [

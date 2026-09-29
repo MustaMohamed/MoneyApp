@@ -5,10 +5,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { earlierComments, NAME, openQuestions, OWNER, REPOSITORY } from './board_comments.mjs';
 import { parseRunnable } from './board_run.mjs';
 
-const OWNER = 'MustaMohamed';
-const NAME = 'MoneyApp';
 const REPO = `${OWNER}/${NAME}`;
 const PROJECT_ID = 'PVT_kwHOAPEDM84BiHOr';
 const ISSUE_URL = `https://github.com/${REPO}/issues/`;
@@ -79,7 +78,7 @@ const ISSUE_FIELDS = `number title state stateReason body milestone { title } la
   linkedBranches(first: 5) { nodes { ref { name target { ... on Commit { committedDate } } } } }
   closedByPullRequestsReferences(first: 5) { nodes { number state merged isDraft reviewDecision updatedAt
     commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } } }
-  comments(last: 5) { nodes { body } }`;
+  comments(last: 100) { pageInfo { hasPreviousPage startCursor } nodes { body } }`;
 
 function normalizeIssue(c) {
   return {
@@ -125,7 +124,14 @@ function fetchSnapshot() {
     const page = data.node.items;
     for (const n of page.nodes) {
       if (!n.content?.number) continue;
-      items.push({ status: n.fieldValueByName?.name ?? null, ...normalizeIssue(n.content) });
+      const item = { status: n.fieldValueByName?.name ?? null, ...normalizeIssue(n.content) };
+      const more = n.content.comments?.pageInfo;
+      if (more?.hasPreviousPage)
+        item.comments = [
+          ...earlierComments(graphql, item.number, more.startCursor),
+          ...item.comments,
+        ];
+      items.push(item);
     }
     cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
   } while (cursor);
@@ -181,14 +187,14 @@ function fetchSnapshot() {
   const missing = new Set();
   for (const it of [...items, ...offBoard]) {
     for (const d of headerDeps(it.header).deps) if (!known.has(d)) missing.add(d);
-    for (const m of blockedOn(it.comments ?? [])) if (!known.has(m)) missing.add(m);
+    for (const m of blockedOn(recentNotes(it.comments))) if (!known.has(m)) missing.add(m);
   }
   const extra = {};
   const nums = [...missing];
   for (let i = 0; i < nums.length; i += 50) {
     const slice = nums.slice(i, i + 50);
     const q = slice.map((n) => `i${n}: issue(number: ${n}) { number state stateReason }`).join(' ');
-    const data = graphql(`query { repository(owner: "${OWNER}", name: "${NAME}") { ${q} } }`);
+    const data = graphql(`query { ${REPOSITORY} { ${q} } }`);
     for (const v of Object.values(data.repository)) {
       if (v)
         extra[v.number] = {
@@ -254,6 +260,11 @@ function blockedOn(comments) {
   for (const c of comments)
     for (const m of c.matchAll(/Blocked on #(\d+)/g)) out.push(Number(m[1]));
   return out;
+}
+
+// The Blocked on readers read only the last five comments.
+function recentNotes(comments) {
+  return (comments ?? []).slice(-5);
 }
 
 function maId(item) {
@@ -343,6 +354,14 @@ function decide(item, ctx) {
     return { bucket: 'yours', action: `checks red on PR #${openPr.number}`, command: `/ship ${n}` };
   }
 
+  const questions = openQuestions(item.comments ?? []);
+  if (questions > 0)
+    return {
+      bucket: 'yours',
+      action: questions === 1 ? '1 open question' : `${questions} open questions`,
+      command: '/queue asks',
+    };
+
   if (isParent) {
     const open = item.children.filter((c) => c.state === 'open');
     if (open.length === 0) {
@@ -395,7 +414,7 @@ function decide(item, ctx) {
     return { bucket: 'drift', action: 'Depends on has no (#N)', command: 'fix the header line' };
 
   if (item.status === 'Blocked') {
-    const notes = item.comments ?? [];
+    const notes = recentNotes(item.comments);
     const lastRuling = notes.findLastIndex((c) => /^Blocked on a ruling: /.test(c));
     const lastIssue = notes.findLastIndex((c) => /Blocked on #\d+/.test(c));
     if (lastRuling > lastIssue)
@@ -620,6 +639,7 @@ function analyze(snapshot, scope) {
       actor: actorOf(d),
       runnable: parseRunnable(d.command) !== null,
       reviewed: headerReviewed(it.header),
+      questions: openQuestions(it.comments ?? []),
       size: it.size ? sizeText(it.size) : null,
       verify: /Verify emulator/.test(it.header ?? ''),
       flags: (/Flags ([^·]+)/.exec(it.header ?? '')?.[1] ?? 'none').trim(),
@@ -787,6 +807,8 @@ const FIX_COLOR = '#D85A30';
 function pillLabel(a) {
   const cmd = a.command ?? '';
   if (a.bucket === 'yours') {
+    if (cmd === '/queue asks')
+      return { text: cmd, kind: 'you', click: `sendPrompt('${esc(cmd)}')` };
     const pr = /PR #(\d+)/.exec(a.action);
     if (pr)
       return {
@@ -985,7 +1007,7 @@ function treeReport(result) {
       else if (parentSet.has(dd.number) && !rootSet.has(dd.number))
         out.push({ n: dd.number, parent: true });
     }
-    for (const m of blockedOn(it?.comments ?? []))
+    for (const m of blockedOn(recentNotes(it?.comments)))
       if (leafSet.has(m) && !ctx.isClosed(m) && !out.some((o) => o.n === m))
         out.push({ n: m, parent: false });
     return out;
