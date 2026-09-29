@@ -9,6 +9,7 @@ import {
   TRANSACTION_FORM_FOOTER_CLEARANCE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
   TRANSACTION_FORM_STATUS_GAP,
+  resolveTransactionFormSkeletonBars,
   resolveTypeTabsGeometry,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 
@@ -32,6 +33,28 @@ describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
   it('sizes the key and value bars at the fact row text line box', () => {
     expect(TRANSACTION_FORM_SKELETON_GEOMETRY.keyBar.height).toBe(lineHeightFor(Type.body));
     expect(TRANSACTION_FORM_SKELETON_GEOMETRY.valueBar.height).toBe(lineHeightFor(Type.body));
+  });
+});
+
+describe('resolveTransactionFormSkeletonBars', () => {
+  const { amount, keyBar, valueBar } = TRANSACTION_FORM_SKELETON_GEOMETRY;
+
+  it('at font scale 1 draws the supporting, amount, key and value bars as today', () => {
+    expect(resolveTransactionFormSkeletonBars(1)).toEqual({
+      supportingBar: 12,
+      amount,
+      keyBar: { width: keyBar.width, height: keyBar.height },
+      valueBar: { width: valueBar.width, height: valueBar.height },
+    });
+  });
+
+  it('at font scale 2 doubles each bar height and keeps both widths', () => {
+    expect(resolveTransactionFormSkeletonBars(2)).toEqual({
+      supportingBar: 24,
+      amount: amount * 2,
+      keyBar: { width: keyBar.width, height: keyBar.height * 2 },
+      valueBar: { width: valueBar.width, height: valueBar.height * 2 },
+    });
   });
 });
 

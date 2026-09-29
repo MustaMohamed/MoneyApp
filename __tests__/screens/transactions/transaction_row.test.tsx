@@ -1,10 +1,11 @@
 import { render } from '@testing-library/react-native';
 import React from 'react';
-import { PixelRatio, View } from 'react-native';
+import { Dimensions, PixelRatio, View } from 'react-native';
 
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { AccountType } from '@/constants/enums';
-import { lineHeightFor } from '@/constants/theme';
+import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { resolveDayCardSwipeCorners } from '@/modules/transactions/screens/transactions/components/day_card_row.helpers';
@@ -14,6 +15,8 @@ import {
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_HEIGHT,
+  TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveTransactionRowHeight,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { ms } from '@/utils/responsive';
 
@@ -130,7 +133,7 @@ describe('TransactionRow ownership actions', () => {
     expect(mockSwipeableRow.mock.calls[0][0].containerStyle).toBe(corners);
   });
 
-  it('keeps the row height and clips a long note to one caption line', async () => {
+  it('sizes the row and its text from the font scale and clips a long note to one caption line', async () => {
     const source: Account = {
       id: 'account',
       name: 'A very long source account name that must truncate',
@@ -164,19 +167,30 @@ describe('TransactionRow ownership actions', () => {
       />,
     );
 
-    expect(screen.getByTestId('transaction-row')).toHaveStyle({ height: TRANSACTION_ROW_HEIGHT });
+    const { fontScale } = Dimensions.get('window');
+    expect(screen.getByTestId('transaction-row')).toHaveStyle({
+      height: resolveTransactionRowHeight(fontScale),
+    });
     expect(screen.getByTestId('transaction-row-content-track')).toHaveStyle({
       flex: 1,
       minWidth: 0,
     });
     const lead = screen.getByText('Split with Omar at the counter');
     expect(lead.props.numberOfLines).toBe(1);
+    expect(lead).toHaveProp('allowFontScaling', false);
     expect(lead).toHaveStyle({
-      fontSize: TRANSACTION_ROW_CAPTION_FONT_SIZE,
-      lineHeight: lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+      ...scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale),
       flexShrink: 1,
     });
-    expect(screen.getByText(/· \d{1,2}:\d{2} [AP]M$/)).toHaveStyle({ flexShrink: 0 });
+    const time = screen.getByText(/· \d{1,2}:\d{2} [AP]M$/);
+    expect(time).toHaveProp('allowFontScaling', false);
+    expect(time).toHaveStyle({
+      ...scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale),
+      flexShrink: 0,
+    });
+    const title = screen.getByText(Strings.uncategorized);
+    expect(title).toHaveProp('allowFontScaling', false);
+    expect(title).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale));
     expect(TRANSACTION_ROW_HEIGHT).toBe(PixelRatio.roundToNearestPixel(ms(60)));
   });
 
@@ -224,14 +238,13 @@ describe('TransactionRow ownership actions', () => {
       />,
     );
 
-    expect(getByText('100.00')).toHaveStyle({
-      fontSize: TRANSACTION_ROW_AMOUNT_FONT_SIZE,
-      lineHeight: lineHeightFor(TRANSACTION_ROW_AMOUNT_FONT_SIZE),
-    });
-    expect(getByText('→ 4,850 EGP')).toHaveStyle({
-      fontSize: TRANSACTION_ROW_CODE_FONT_SIZE,
-      lineHeight: lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE),
-    });
+    const { fontScale } = Dimensions.get('window');
+    const amount = getByText('100.00');
+    expect(amount).toHaveProp('allowFontScaling', false);
+    expect(amount).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale));
+    const code = getByText('→ 4,850 EGP');
+    expect(code).toHaveProp('allowFontScaling', false);
+    expect(code).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale));
   });
 });
 

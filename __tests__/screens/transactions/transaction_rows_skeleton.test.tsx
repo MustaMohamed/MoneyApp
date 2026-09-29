@@ -2,13 +2,14 @@ import { render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { lineHeightFor, Radius, Size } from '@/constants/theme';
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
-  TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveTransactionRowHeight,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { TransactionRowsSkeleton } from '@/modules/transactions/screens/transactions/components/transaction_rows_skeleton';
 import { resolveDayHeaderGeometry } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
@@ -29,6 +30,10 @@ function barHeight(bar: { props: { style?: StyleProp<ViewStyle> } }): ViewStyle[
   return StyleSheet.flatten(bar.props.style).height;
 }
 
+function lineBar(fontSize: number): number {
+  return resolveSkeletonBarHeight(lineHeightFor(fontSize), Dimensions.get('window').fontScale);
+}
+
 describe('TransactionRowsSkeleton', () => {
   it('shares the loaded row tile, row height and line boxes', async () => {
     const { getAllByTestId } = await render(<TransactionRowsSkeleton />);
@@ -39,22 +44,21 @@ describe('TransactionRowsSkeleton', () => {
     });
     const rows = getAllByTestId('transaction-row-skeleton');
     for (const row of rows) {
-      expect(row).toHaveStyle({ height: TRANSACTION_ROW_HEIGHT });
+      expect(row).toHaveStyle({
+        height: resolveTransactionRowHeight(Dimensions.get('window').fontScale),
+      });
     }
     expect(within(rows[0]!).getAllByTestId(BAR).map(barHeight)).toEqual([
-      lineHeightFor(TRANSACTION_ROW_TITLE_FONT_SIZE),
-      lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
-      lineHeightFor(TRANSACTION_ROW_AMOUNT_FONT_SIZE),
-      lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE),
+      lineBar(TRANSACTION_ROW_TITLE_FONT_SIZE),
+      lineBar(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+      lineBar(TRANSACTION_ROW_AMOUNT_FONT_SIZE),
+      lineBar(TRANSACTION_ROW_CODE_FONT_SIZE),
     ]);
     expect(
       within(getAllByTestId('transaction-row-skeleton-value')[0]!)
         .getAllByTestId(BAR)
         .map(barHeight),
-    ).toEqual([
-      lineHeightFor(TRANSACTION_ROW_AMOUNT_FONT_SIZE),
-      lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE),
-    ]);
+    ).toEqual([lineBar(TRANSACTION_ROW_AMOUNT_FONT_SIZE), lineBar(TRANSACTION_ROW_CODE_FONT_SIZE)]);
   });
 
   it('draws no tile when the loaded rows draw none', async () => {
@@ -85,7 +89,7 @@ describe('TransactionRowsSkeleton', () => {
     expect(getAllByTestId('transaction-row-skeleton')).toHaveLength(6);
     for (const slice of slices) {
       expect(within(slice).getByTestId('transaction-row-skeleton')).toHaveStyle({
-        height: TRANSACTION_ROW_HEIGHT,
+        height: resolveTransactionRowHeight(Dimensions.get('window').fontScale),
       });
     }
     for (const first of [slices[0]!, slices[3]!]) {
