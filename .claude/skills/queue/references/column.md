@@ -45,6 +45,7 @@ Run the <issue-review|prep|ship> skill on issue #<n>: `/<issue-review|prep|ship>
 Run: unattended. Task id: <task id>. In flight at start: <f>. Readings at start: 1-minute load <l>, GraphQL remaining <g>.
 Project skills this run may use: issue-review, prep, ship, unslop, emulator-verify, moneyapp-testing, heroui-native, money-rules, and code-review where the ship skill prescribes it. No superpowers:* or anthropic-skills:* skill.
 The lease ~/.ship/MoneyApp/queue/leases/<n> names this task id. The skill rewrites, touches and removes it per .claude/skills/queue/SKILL.md § Lease.
+A question you cannot answer is parked as a record per .claude/skills/issue-review/references/question-record.md, and the run ends.
 A refused call is never turned into a permission request. It goes into your log line's note, and the run goes on or ends.
 /ship: write the merge summary to ~/.ship/MoneyApp/queue/ship-<n>-summary.md. It holds the heading `## Decisions the ticket or plan did not state` over a table with the columns Decision, Who, Cost if wrong: one row per decision, the header row alone when there is none.
 Last, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md in the shape of .claude/skills/queue/references/column.md § Log, the readings in its note.
