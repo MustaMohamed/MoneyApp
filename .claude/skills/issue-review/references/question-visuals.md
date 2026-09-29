@@ -8,7 +8,7 @@ Read the rows top to bottom; the first row that matches decides.
 
 | The question | Visual | What it draws |
 |---|---|---|
-| A gate confirming text the user has just read: `Apply these deltas?`, `Lock this scope?`, `Create these N tickets?` (stop 1 drew the split), the merge | no | nothing |
+| A gate confirming text the user has just read: `Lock this scope?`, `Create these N tickets?` (stop 1 drew the split), the merge | no | nothing |
 | Options that differ in what a screen shows: a layout, a state, a ring, a colour, a size, a tile, a label that truncates | yes | the screen under each option |
 | Options that differ in how the app behaves over time: loading, a tap, a drag, Save, navigation, a preselect | yes | the frames in order under each option, the frame where they part marked |
 | Options that differ in a figure on screen across cases: a money rule, rounding, a sign | yes | the row or card under each option in a normal case and in the edge case (overspent month, negative, zero) |

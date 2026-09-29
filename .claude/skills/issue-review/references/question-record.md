@@ -18,7 +18,7 @@ The first line is exactly `Question: open`. Labelled lines follow, one each, in 
 | `Today:` | What the app does now, with the `path:line` that shows it |
 | `Wanted:` | What the ticket wants instead |
 | `Why:` | What goes wrong if the question is answered badly |
-| `Options:` | A first and recommended, then B and on; each option carries `writes:` the text it adds and `into:` `#<n>` plus `Acceptance` or `Rules`, or `#<n> Cut`, a comment on `#<n>` whose body starts `Cut: `; one `writes:` and `into:` per ticket it binds |
+| `Options:` | A first and recommended, then B and on; each option carries `writes:` the text it adds and `into:` `#<n>` plus `Acceptance` or `Rules`, or `#<n> Cut`, a comment on `#<n>` whose body starts `Cut: `; one `writes:` and `into:` per ticket it binds. Beside its `writes:`, an option that settles a string carries `copy:`, the `Copy` bullet it adds, and one that settles a screen state carries `screen:`, the `Screen checks` row it adds |
 | `Wrong if:` | The fact that would make the recommendation wrong |
 | `Prior art:` | The sibling ticket, rule or code that settled a like question, or `none` |
 | `Reaches:` | The sibling tickets and callers the answer also binds, or `none` |

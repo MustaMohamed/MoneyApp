@@ -18,14 +18,14 @@ Before a record is asked, `git fetch origin` and `git diff --name-only <Sha>..or
 
 ## 3. Ask
 
-One record per message. The `Asks:` line is the question; the options follow as the record lists them, A first, each with its `writes:` text. The visual follows [question-visuals.md](../../issue-review/references/question-visuals.md), the first matching row deciding. A follow-up question from the user is answered from the code and the record before the choice, and is not an answer. A deferred question changes nothing: the record stays open, the ticket stays where it is, and the next record comes.
+One record per message. The `Asks:` line is the question; the options follow as the record lists them, A first, each with its `writes:` text and, when present, its `copy:` and `screen:` lines. The visual follows [question-visuals.md](../../issue-review/references/question-visuals.md), the first matching row deciding. A follow-up question from the user is answered from the code and the record before the choice, and is not an answer. A deferred question changes nothing: the record stays open, the ticket stays where it is, and the next record comes.
 
 ## 4. Answer
 
 In one step, per answer:
 
 1. Close the record per [§ State](../../issue-review/references/question-record.md#state) with `Answer: <option letter>`.
-2. For each `writes:` of the chosen option, append its text as a bullet under the section its `into:` names, `Acceptance` or `Rules`, on the ticket it names, `gh issue edit <m> --body "$BODY"`; an `into:` of `#<m> Cut` posts `gh issue comment <m> --body "Cut: <text>"` instead. A sibling ticket is edited in this step too.
+2. For each `writes:` of the chosen option, append its text as a bullet under the section its `into:` names, `Acceptance` or `Rules`, on the ticket it names, `gh issue edit <m> --body "$BODY"`; an `into:` of `#<m> Cut` posts `gh issue comment <m> --body "Cut: <text>"` instead. The same edit writes the option's `copy:` bullet, its `screen:` row and the Decisions line per [ticket-body.md § Writing an answer](../../tickets/references/ticket-body.md#writing-an-answer). The Decisions line takes the question from `Asks:`, the option's letter and text, the user, and the step from `Asked by:` answered at `/queue asks`. A sibling ticket is edited in this step too.
 
 ## 5. Move
 
