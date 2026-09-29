@@ -1,8 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card, Skeleton } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -30,6 +31,7 @@ const SUMMARY_PROGRESS_HEIGHT = ms(3);
 const SUMMARY_STATS_ROW_HEIGHT = ms(13);
 
 function SummarySkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
   return (
     <>
       <View
@@ -43,10 +45,19 @@ function SummarySkeleton(): React.ReactElement {
         }}
       >
         <View style={{ flex: 1, gap: ms(4) }}>
-          <Skeleton className="w-28 rounded-md" style={{ height: ms(6) }} />
-          <Skeleton className="w-32 rounded-md" style={{ height: ms(14) }} />
+          <Skeleton
+            className="w-28 rounded-md"
+            style={{ height: resolveSkeletonBarHeight(ms(6), fontScale) }}
+          />
+          <Skeleton
+            className="w-32 rounded-md"
+            style={{ height: resolveSkeletonBarHeight(ms(14), fontScale) }}
+          />
         </View>
-        <Skeleton className="w-12 rounded-full" style={{ height: ms(14) }} />
+        <Skeleton
+          className="w-12 rounded-full"
+          style={{ height: resolveSkeletonBarHeight(ms(14), fontScale) }}
+        />
       </View>
       <Skeleton
         testID="commitments-summary-skeleton-progress"
@@ -69,7 +80,10 @@ function SummarySkeleton(): React.ReactElement {
             style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}
           >
             <Skeleton className="rounded-full" style={{ width: ms(11), height: ms(11) }} />
-            <Skeleton className="rounded-md" style={{ width: ms(8), height: ms(9) }} />
+            <Skeleton
+              className="rounded-md"
+              style={{ width: ms(8), height: resolveSkeletonBarHeight(ms(9), fontScale) }}
+            />
           </View>
         ))}
       </View>

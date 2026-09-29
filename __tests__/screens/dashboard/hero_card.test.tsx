@@ -1,7 +1,8 @@
 import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { HeroCard } from '@/modules/dashboard/screens/dashboard/components/hero_card';
@@ -129,9 +130,11 @@ describe('HeroCard skeleton loading', () => {
   it('matches the loaded amount and pill row geometry while loading', async () => {
     const { getAllByTestId, getByTestId } = await render(<HeroCard {...baseProps} isLoading />);
 
-    expect(getByTestId('dashboard-hero-skeleton-amount')).toHaveStyle({ height: ms(35) });
+    expect(getByTestId('dashboard-hero-skeleton-amount')).toHaveStyle({
+      height: resolveSkeletonBarHeight(ms(35), Dimensions.get('window').fontScale),
+    });
     expect(getByTestId('dashboard-hero-skeleton-pills-row')).toHaveStyle({
-      minHeight: ms(20),
+      minHeight: resolveSkeletonBarHeight(ms(20), Dimensions.get('window').fontScale),
     });
     expect(getAllByTestId('dashboard-hero-skeleton-pill')).toHaveLength(3);
   });

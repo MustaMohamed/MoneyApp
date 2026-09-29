@@ -1,7 +1,8 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Strings } from '@/constants/strings';
 import { TransactionsCard } from '@/modules/dashboard/screens/dashboard/components/transactions_card';
 import { ms } from '@/utils/responsive';
@@ -150,17 +151,17 @@ describe('TransactionsCard', () => {
     );
 
     expect(getByTestId('dashboard-transactions-skeleton-values-row')).toHaveStyle({
-      minHeight: ms(14),
+      minHeight: resolveSkeletonBarHeight(ms(14), Dimensions.get('window').fontScale),
     });
     expect(getByTestId('dashboard-transactions-skeleton-progress')).toHaveStyle({
       height: ms(3),
     });
     expect(getByTestId('dashboard-transactions-skeleton-deltas-row')).toHaveStyle({
-      minHeight: ms(13),
+      minHeight: resolveSkeletonBarHeight(ms(13), Dimensions.get('window').fontScale),
     });
     expect(getAllByTestId('dashboard-transactions-skeleton-delta-pill')).toHaveLength(3);
     expect(getByTestId('dashboard-transactions-skeleton-previous-label')).toHaveStyle({
-      height: ms(10),
+      height: resolveSkeletonBarHeight(ms(10), Dimensions.get('window').fontScale),
     });
   });
 });

@@ -1,7 +1,8 @@
 import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency } from '@/constants/enums';
 import { StatCards } from '@/modules/dashboard/screens/dashboard/components/stat_cards';
 import { ms } from '@/utils/responsive';
@@ -132,7 +133,7 @@ describe('StatCards skeleton loading', () => {
       height: ms(5),
     });
     expect(getByTestId('dashboard-month-spend-skeleton-footer-row')).toHaveStyle({
-      minHeight: ms(16),
+      minHeight: resolveSkeletonBarHeight(ms(16), Dimensions.get('window').fontScale),
     });
     expect(getAllByTestId('dashboard-month-spend-skeleton-footer-item')).toHaveLength(3);
   });
