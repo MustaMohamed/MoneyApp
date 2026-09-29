@@ -15,7 +15,7 @@ Routes `/welcome` (N1), `/add_account` (N2), `/more_accounts` (N3), `/ready` (N4
 | N1 footer, large font | no frame, MA-130 | a fresh install; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on `Continue` (`md`, 48 at both); its top at or below the bottom of the status track's text box; one crop of the footer at 2.0 |
 | N2 footer, large font | no frame, MA-130 | N1 `Continue`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on `Save and continue`; its top at or below the bottom of the status track's text box; one crop at 2.0 |
 | N3 empty footer, large font | no frame, MA-130 | a fresh install, then `$MQA open /more_accounts` before N2 saves (§ Reach it); the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on `Add your first account`; its top at or below the bottom of the status track's text box; one crop at 2.0 |
-| N3 add another and footer, large font | no frame, MA-130 | N2 with one account saved; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on `Add another account` (`md` flat secondary with a plus glyph) and `Review setup`; neither is cut at the top or bottom nor drawn over the message above it; one crop at 2.0 |
+| N3 add another and footer, large font | no frame, MA-130 | N2 with one account saved; at 2.0 `Add another account` sits below the fold, so `$MQA scroll down --until 'label="Add another account"'` before its bounds; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on `Add another account` (`md` flat secondary with a plus glyph) and `Review setup`; neither is cut at the top or bottom nor drawn over the message above it; one crop at 2.0 |
 | N4 footer, large font | no frame, MA-130 | N3 `Review setup`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on `Open My Dashboard`; its top at or below the bottom of the status track's text box; one crop at 2.0 |
 
 ## Outbound
@@ -29,5 +29,6 @@ Routes `/welcome` (N1), `/add_account` (N2), `/more_accounts` (N3), `/ready` (N4
 
 ## Gotchas
 
+- After `mqa reset` the dev client's developer-menu intro covers the first launch, and `mqa up` alone stalls on it: at font scale 1.0 run `$MQA up --ready 'label="Continue"'`, tap that `Continue`, `$MQA key 4` to close the menu, `$MQA open /welcome`, then `$MQA park`; only then set a larger scale and `mqa up` again, since at 2.0 `park` cannot see the menu's `Close`.
 - `mqa reset` clears the app's data, the seeded database included; push the seed back with `mqa seed` after the walk, and finish N4 first so the pushed database opens on the tabs.
 - Onboarding's two CTA tracks are 48 (`Size.onboardingCtaTrack`), the `md` button's fixed height, so a button taller than 48 would overflow them; `button.geometry.test.ts` guards the `md` label line box against that track.
