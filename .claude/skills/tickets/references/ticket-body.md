@@ -53,7 +53,7 @@ Title `MA-nnn — <title>`, the number from `bash scripts/board.sh next-ma`.
 
 ## Writing an answer
 
-A step that writes an answer into Acceptance or Rules writes one Decisions line in the same edit. An answer that settles a string also writes its Copy bullet, and one that settles a screen state also writes its Screen checks row. A site `/ship` adds to an open ticket's Acceptance brings its Copy bullet and Screen checks row the same way, with no Decisions line. Each line, bullet or row replaces its section's `none`. Verify then follows the rows, per the header table. This holds on a body that has these sections or gains them in the same edit; a body at Ready For Development or later without them gets none of it.
+A step that writes an answer into Acceptance or Rules writes one Decisions line in the same edit. An answer that settles a string also writes its Copy bullet. One that settles a screen state also writes its Screen checks row, except at `/boundaries`, which leaves Screen checks `none`. A site `/ship` adds to an open ticket's Acceptance brings its Copy bullet and Screen checks row the same way, with no Decisions line. Each line, bullet or row replaces its section's `none`. Verify then follows the rows, per the header table. This holds on a body that has these sections or gains them in the same edit; a body at Ready For Development or later without them gets none of it.
 
 ## Filled example, MA-015
 

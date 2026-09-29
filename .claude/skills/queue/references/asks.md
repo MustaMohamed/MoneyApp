@@ -18,7 +18,7 @@ Before a record is asked, `git fetch origin` and `git diff --name-only <Sha>..or
 
 ## 3. Ask
 
-One record per message. The `Asks:` line is the question; the options follow as the record lists them, A first, each with its `writes:` text. The visual follows [question-visuals.md](../../issue-review/references/question-visuals.md), the first matching row deciding. A follow-up question from the user is answered from the code and the record before the choice, and is not an answer. A deferred question changes nothing: the record stays open, the ticket stays where it is, and the next record comes.
+One record per message. The `Asks:` line is the question; the options follow as the record lists them, A first, each with its `writes:` text and, when present, its `copy:` and `screen:` lines. The visual follows [question-visuals.md](../../issue-review/references/question-visuals.md), the first matching row deciding. A follow-up question from the user is answered from the code and the record before the choice, and is not an answer. A deferred question changes nothing: the record stays open, the ticket stays where it is, and the next record comes.
 
 ## 4. Answer
 
