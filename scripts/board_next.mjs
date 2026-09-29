@@ -7,6 +7,7 @@ import path from 'node:path';
 
 import { earlierComments, NAME, openQuestions, OWNER, REPOSITORY } from './board_comments.mjs';
 import { parseRunnable } from './board_run.mjs';
+import { bodySize } from './board_size.mjs';
 
 const REPO = `${OWNER}/${NAME}`;
 const PROJECT_ID = 'PVT_kwHOAPEDM84BiHOr';
@@ -213,7 +214,38 @@ function fetchSnapshot() {
   } catch {
     shipState = [];
   }
-  return { fetchedAt: new Date().toISOString(), shipState, items, offBoard, extra };
+  return {
+    fetchedAt: new Date().toISOString(),
+    shipState,
+    items,
+    offBoard,
+    extra,
+    leases: readLeases(),
+  };
+}
+
+// The lease a run holds on a ticket, .claude/skills/queue/SKILL.md § Lease.
+function readLeases() {
+  const dir = path.join(os.homedir(), '.ship', 'MoneyApp', 'queue', 'leases');
+  let names = [];
+  try {
+    names = fs.readdirSync(dir).filter((f) => /^\d+$/.test(f));
+  } catch {
+    return [];
+  }
+  return names.map((f) => {
+    const file = path.join(dir, f);
+    const text = fs.readFileSync(file, 'utf8');
+    const field = (key) => new RegExp(`^${key}=(.*)$`, 'm').exec(text)?.[1].trim() ?? '';
+    const worktree = field('worktree');
+    return {
+      number: Number(f),
+      skill: field('skill'),
+      worktree,
+      touchedAt: fs.statSync(file).mtime.toISOString(),
+      worktreeGone: !worktree || !fs.existsSync(worktree),
+    };
+  });
 }
 
 function headerDeps(header) {
@@ -226,19 +258,7 @@ function headerDeps(header) {
 }
 
 const GATE = { lines: 400 };
-
-function bodySize(body) {
-  const line = (body ?? '')
-    .split('\n')
-    .filter((l) => /^\s*-\s*Size: /.test(l))
-    .pop();
-  if (!line) return null;
-  const files = /Size: (\d+) files?/.exec(line);
-  const span = /Size: \d+ files?[^,]*, ([^,]*) lines/.exec(line);
-  const lines = span ? [...span[1].matchAll(/\d+/g)].map((x) => Number(x[0])) : [];
-  if (!files || lines.length === 0) return { unparsed: true };
-  return { files: Number(files[1]), lines: Math.max(...lines) };
-}
+const LEASE_STALE_MS = 2 * 3_600_000;
 
 function overGate(size) {
   return Boolean(size) && !size.unparsed && size.lines > GATE.lines;
@@ -362,6 +382,18 @@ function decide(item, ctx) {
       command: '/queue asks',
     };
 
+  const lease = ctx.leaseOf(n);
+  if (lease === 'stale') {
+    const l = ctx.leases.get(n);
+    return {
+      bucket: 'drift',
+      action: `stale lease, ${l.skill}, last write ${age(l.touchedAt, ctx.fetchedAt)}`,
+      command: `rm ~/.ship/MoneyApp/queue/leases/${n}`,
+    };
+  }
+  if (lease === 'held')
+    return { bucket: 'flight', action: `${ctx.leases.get(n).skill} running, lease held` };
+
   if (isParent) {
     const open = item.children.filter((c) => c.state === 'open');
     if (open.length === 0) {
@@ -464,12 +496,14 @@ function decide(item, ctx) {
     return { bucket: 'pull', action: `Planned, branch ${br.name}`, command: `/ship ${n}` };
   }
 
+  const held = !ctx.shipState.has(ma);
   if (item.status === 'In Progress') {
     if (openPr)
       return {
         bucket: 'drift',
         action: `In Progress with PR #${openPr.number} open`,
         command: `/ship ${n}`,
+        held,
       };
     const br = (item.branches ?? [])[0];
     const parts = ['implementing'];
@@ -478,12 +512,12 @@ function decide(item, ctx) {
     parts.push(
       ctx.shipState.has(ma) ? 'ship state on this machine' : 'no ship state on this machine',
     );
-    return { bucket: 'flight', action: parts.join(', '), command: `/ship ${n}` };
+    return { bucket: 'flight', action: parts.join(', '), command: `/ship ${n}`, held };
   }
 
   if (item.status === 'In Review') {
     if (!openPr)
-      return { bucket: 'drift', action: 'In Review without a PR', command: `/ship ${n}` };
+      return { bucket: 'drift', action: 'In Review without a PR', command: `/ship ${n}`, held };
     const checks =
       openPr.checks === 'SUCCESS'
         ? 'green'
@@ -496,6 +530,7 @@ function decide(item, ctx) {
       bucket: 'flight',
       action: `battery running on PR #${openPr.number}, checks ${checks}`,
       command: `/ship ${n}`,
+      held,
     };
   }
 
@@ -546,10 +581,23 @@ function decide(item, ctx) {
 
 function actorOf(d) {
   if (d.bucket === 'yours') return 'you';
-  if (d.bucket === 'wait' || !d.command) return 'nobody';
+  if (d.bucket === 'wait' || !d.command || d.held) return 'nobody';
   if (parseRunnable(d.command)) return 'page';
   if (/^\/(boundaries|tickets|epic)\b/.test(d.command)) return 'you';
   return d.command.startsWith('/') ? 'session' : 'you';
+}
+
+// The column /queue may run this action from, .claude/skills/queue/SKILL.md § One pass.
+function queueOf(a) {
+  if (a.state !== 'open' || a.isParent || a.actor !== 'session') return null;
+  if (a.deps.some((d) => !d.closed) || a.questions > 0 || a.lease !== null) return null;
+  const cmd = a.command ?? '';
+  if (a.status === 'Defined' && /^\/issue-review /.test(cmd)) return 'Defined';
+  if (a.status === 'Ready For Development' && cmd === `/prep ${a.number}`)
+    return 'Ready For Development';
+  if (['Planned', 'In Progress', 'In Review'].includes(a.status) && /^\/ship /.test(cmd))
+    return 'Planned';
+  return null;
 }
 
 function prOf(item) {
@@ -583,9 +631,17 @@ function buildContext(snapshot) {
   const childState = new Map();
   for (const it of snapshot.items) for (const c of it.children ?? []) childState.set(c.number, c);
   const extra = snapshot.extra ?? {};
+  const leases = new Map((snapshot.leases ?? []).map((l) => [l.number, l]));
   return {
     fetchedAt: snapshot.fetchedAt,
     shipState: new Set(snapshot.shipState ?? []),
+    leases,
+    leaseOf: (n) => {
+      const l = leases.get(n);
+      if (!l) return null;
+      const idle = new Date(snapshot.fetchedAt).getTime() - new Date(l.touchedAt).getTime();
+      return l.worktreeGone || idle > LEASE_STALE_MS ? 'stale' : 'held';
+    },
     byNumber,
     statusOf: (n) => byNumber.get(n)?.status ?? null,
     isClosed: (n) => {
@@ -621,7 +677,7 @@ function analyze(snapshot, scope) {
     if (keep && !keep.has(it.number)) continue;
     const d = decide(it, ctx);
     if (!d) continue;
-    actions.push({
+    const row = {
       number: it.number,
       ma: maId(it),
       title: it.title,
@@ -640,6 +696,9 @@ function analyze(snapshot, scope) {
       runnable: parseRunnable(d.command) !== null,
       reviewed: headerReviewed(it.header),
       questions: openQuestions(it.comments ?? []),
+      lease: ctx.leaseOf(it.number),
+      leaseSkill: ctx.leases.get(it.number)?.skill ?? null,
+      paths: it.size?.paths ?? [],
       size: it.size ? sizeText(it.size) : null,
       verify: /Verify emulator/.test(it.header ?? ''),
       flags: (/Flags ([^·]+)/.exec(it.header ?? '')?.[1] ?? 'none').trim(),
@@ -652,7 +711,9 @@ function analyze(snapshot, scope) {
               open: it.children.filter((c) => c.state === 'open').map((c) => c.number),
             }
           : null,
-    });
+    };
+    row.queue = queueOf(row);
+    actions.push(row);
   }
   actions.sort(
     (a, b) =>
