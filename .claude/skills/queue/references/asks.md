@@ -25,7 +25,7 @@ One record per message. The `Asks:` line is the question; the options follow as 
 In one step, per answer:
 
 1. Close the record per [§ State](../../issue-review/references/question-record.md#state) with `Answer: <option letter>`.
-2. For each `writes:` of the chosen option, append its text as a bullet under the section its `into:` names, `Acceptance` or `Rules`, on the ticket it names, `gh issue edit <m> --body "$BODY"`; an `into:` of `#<m> Cut` posts `gh issue comment <m> --body "Cut: <text>"` instead. On a body that has the sections, the same edit appends the option's `Copy` bullet or `Screen checks` row, the first row setting `Verify emulator`, and one `Decisions` line per [ticket-body.md](../../tickets/references/ticket-body.md): the question from `Asks:`, the option's letter and text, the user, and the step from `Asked by:` answered at `/queue asks`. A sibling ticket is edited in this step too.
+2. For each `writes:` of the chosen option, append its text as a bullet under the section its `into:` names, `Acceptance` or `Rules`, on the ticket it names, `gh issue edit <m> --body "$BODY"`; an `into:` of `#<m> Cut` posts `gh issue comment <m> --body "Cut: <text>"` instead. The same edit writes the option's `copy:` bullet, its `screen:` row and the Decisions line per [ticket-body.md § Writing an answer](../../tickets/references/ticket-body.md#writing-an-answer). The Decisions line takes the question from `Asks:`, the option's letter and text, the user, and the step from `Asked by:` answered at `/queue asks`. A sibling ticket is edited in this step too.
 
 ## 5. Move
 

@@ -45,7 +45,7 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 - **The size gate is hard: ~400 planned lines outside tests, and 8 plan steps; the number of files is not capped.** No ruling lifts it, mine included. Scope added during `/ship` is recounted, and over the gate it is a new ticket, not this PR. Definition and evidence: `.claude/skills/tickets/references/splitting.md` § Size gate.
 - Every move, who makes it and on what, plus the hierarchy and the size gate: [docs/workflow.md](docs/workflow.md). Nothing else moves a row.
 - CI parity before pushing to a PR branch: the chain in *Commands*. CI is the last line of defence, not the first.
-- Emulator verification runs on tickets whose header line says `Verify emulator`: anything that changes what a screen shows. A write is asserted by a repository test. The `emulator-verify` skill has the mechanics, including the per-worktree device lease `mqa up` takes and when a Gradle build is needed.
+- Emulator verification runs on tickets whose header line says `Verify emulator`: anything that changes what a screen shows. A repository test asserts a write. The `emulator-verify` skill has the mechanics, including the per-worktree device lease `mqa up` takes and when a Gradle build is needed.
 
 Gotcha: **device QA does not run in the worktree.** A worktree whose `node_modules` is a symlink passes `tsc`, `jest` and lint, but expo-router resolves zero routes in a device build. Check the PR branch out in the primary repo for device QA. Emulator verification does run in the worktree once it has a real `node_modules` (`/prep`'s APFS clone, or `npm ci`).
 

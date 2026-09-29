@@ -1,6 +1,6 @@
 # Ticket standard
 
-Every task issue has this body. `/issue-review` rejects a body that skips a heading or leaves Acceptance empty. No code, no technical design and no file path outside Context but a `Screen checks` row's features file; design is planning's job at delivery. Copy, Screen checks, Decisions and Context's `Consumes` and `Produces` apply from a ticket's next `/issue-review`: a body at Ready For Development or later without them is neither a delta nor rewritten.
+Every task issue has this body. `/issue-review` rejects a body that skips a heading or leaves Acceptance empty. No code, no technical design and no file path outside Context; design is planning's job at delivery. A `Screen checks` row names a features file, not a path. Copy, Screen checks, Decisions and Context's `Consumes` and `Produces` apply from a ticket's next `/issue-review`. A body at Ready For Development or later may lack them, and no step adds them to it.
 
 ```markdown
 Part of #378 · Depends on MA-014 (#380) · Verify emulator · Flags none · Reviewed none
@@ -24,7 +24,7 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 - One row per screen state the change alters, `<features file> · <state> · <risk>`, or `none`. The file is a name under `.claude/skills/emulator-verify/features/`; the state is a name from its States table, or a name followed by `new`; the row copies nothing else from that file. The risk names each condition the state meets, in these words, else `none`: a new component, a height that is not a whole number of dp, a font scale above 1.0, a swipe or a drag, a clipped or rounded container. A migration ticket has one row, the upgraded database opening on the first screen. `/tickets` and `/boundaries` write `none`; `/issue-review` writes the rows.
 
 ## Decisions
-- One line per answer to a question on this task, `<yyyy-mm-dd>: <question>; <option chosen>; <who chose>; <step>`, or `none`.
+- One line per answer to a question on this task, or a line copied unchanged from the parent's Decisions, `<yyyy-mm-dd> · <question> · <option chosen> · <who chose> · <step>`; or `none`.
 
 ## Links
 - Designs, attachments, the epic; or `none`.
@@ -45,11 +45,15 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 |---|---|
 | Part of | the parent issue number, or `none` for a task recorded on its own |
 | Depends on | `MA-nnn (#N)` list, or `nothing`; real dependencies only |
-| Verify | `emulator` when the task changes what a screen shows, else `none`; on a body with `Screen checks`, `emulator` if and only if that section has a row, binding from the first `/issue-review`. A write is asserted by a repository test |
+| Verify | `emulator` when the task changes what a screen shows, else `none`; on a body with `Screen checks`, `emulator` if and only if that section has a row, binding from the first `/issue-review`. A repository test asserts a write |
 | Flags | any of `data-loss migration`, `money path`, `native change`, `user copy`, `secure store`; else `none`. These are CLAUDE.md's critical triggers, written where the merge gate reads them |
 | Reviewed | `none` when written; `/issue-review` writes the date when the body passes with no open ask, on a split parent as on a leaf. `board.sh promote` moves only a leaf with a date under a parent with a date, so this field is the road to Ready For Development; a review ends only with every question answered, and a run ended on a deferred question leaves the issue at Defined. No date is written while a question record is open on the issue, `bash scripts/board.sh questions <n>`; a date already written stays. Any rewrite of the body by `/boundaries` or `/tickets` resets it to `none` |
 
 Title `MA-nnn — <title>`, the number from `bash scripts/board.sh next-ma`.
+
+## Writing an answer
+
+A step that writes an answer into Acceptance or Rules writes one Decisions line in the same edit. An answer that settles a string also writes its Copy bullet, and one that settles a screen state also writes its Screen checks row. A site `/ship` adds to an open ticket's Acceptance brings its Copy bullet and Screen checks row the same way, with no Decisions line. Each line, bullet or row replaces its section's `none`. Verify then follows the rows, per the header table. This holds on a body that has these sections or gains them in the same edit; a body at Ready For Development or later without them gets none of it.
 
 ## Filled example, MA-015
 
@@ -87,7 +91,7 @@ Accounts get a home of their own. Today they are reachable only by scrolling the
 - accounts_list.md · no accounts at all · a new component
 
 ## Decisions
-- none
+- 2026-09-08 · Which states does the list follow? · A, the approved mockup states exactly: populated, empty · the user · /issue-review
 
 ## Links
 - Mockup (MA-014): pending
@@ -100,6 +104,9 @@ Accounts get a home of their own. Today they are reachable only by scrolling the
 
 ## Context
 - none
+- Consumes: the populated and empty mockup states, MA-014 (#380).
+- Produces: the `/accounts` route and its list rows, which MA-016, MA-017 and MA-018 build on.
+- Size: 13 files outside tests, ~284 lines, at `91d25998`: `src/app/(app)/accounts/index.tsx`, `src/constants/strings.ts`, `src/constants/theme.ts`, `src/modules/accounts/constants/account_row_a11y_label.ts`, `src/modules/accounts/screens/accounts/list/accounts_list.geometry.ts`, `src/modules/accounts/screens/accounts/list/accounts_list.hook.ts`, `src/modules/accounts/screens/accounts/list/components/account_list_row.tsx`, `src/modules/accounts/screens/accounts/list/index.tsx`, `src/modules/dashboard/screens/dashboard/components/total_balance_strip.tsx`, `src/modules/dashboard/screens/dashboard/dashboard.hook.ts`, `src/modules/dashboard/screens/dashboard/index.tsx`, `src/modules/onboarding/screens/onboarding/more_accounts/components/account_row.tsx`, `src/modules/onboarding/screens/onboarding/more_accounts/more_accounts.geometry.ts`
 ```
 
 ## Context on a defect, MA-013
