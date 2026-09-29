@@ -5,11 +5,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { earlierComments, openQuestions } from './board_comments.mjs';
+import { earlierComments, NAME, openQuestions, OWNER, REPOSITORY } from './board_comments.mjs';
 import { parseRunnable } from './board_run.mjs';
 
-const OWNER = 'MustaMohamed';
-const NAME = 'MoneyApp';
 const REPO = `${OWNER}/${NAME}`;
 const PROJECT_ID = 'PVT_kwHOAPEDM84BiHOr';
 const ISSUE_URL = `https://github.com/${REPO}/issues/`;
@@ -196,7 +194,7 @@ function fetchSnapshot() {
   for (let i = 0; i < nums.length; i += 50) {
     const slice = nums.slice(i, i + 50);
     const q = slice.map((n) => `i${n}: issue(number: ${n}) { number state stateReason }`).join(' ');
-    const data = graphql(`query { repository(owner: "${OWNER}", name: "${NAME}") { ${q} } }`);
+    const data = graphql(`query { ${REPOSITORY} { ${q} } }`);
     for (const v of Object.values(data.repository)) {
       if (v)
         extra[v.number] = {
@@ -264,7 +262,7 @@ function blockedOn(comments) {
   return out;
 }
 
-// The Blocked on readers keep the last five comments, the window they read before the fetch widened.
+// The Blocked on readers read only the last five comments.
 function recentNotes(comments) {
   return (comments ?? []).slice(-5);
 }

@@ -39,10 +39,9 @@ const graphql = (query, variables = {}) => {
     pageInfo: { hasPreviousPage: page.hasPreviousPage, startCursor: page.startCursor },
     nodes: page.nodes.map((body) => ({ body })),
   };
-  const alias = /(\\w+)\\s*:\\s*issue\\s*\\(/.exec(query)?.[1] ?? 'issue';
-  return { repository: { [alias]: { comments } } };
+  return { repository: { issue: { comments } } };
 };
-const result = await earlierComments(graphql, 146, 'start-of-snapshot-page');
+const result = earlierComments(graphql, 146, 'start-of-snapshot-page');
 process.stdout.write(JSON.stringify({ result, calls }));
 `;
 

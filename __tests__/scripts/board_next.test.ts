@@ -27,14 +27,20 @@ interface TreeModel {
     n: number;
     blockers: Array<{ n: number; parent: boolean }>;
     pill: { text: string; kind: string; click: string } | null;
+    parent: number | null;
   }>;
+  parents: Array<{ n: number; root: boolean; depth: number; done: number; kids: number }>;
 }
 
-function treeModel(): TreeModel {
+function htmlPage(): string {
   const r = run('--format', 'html');
   expect(r.status).toBe(0);
+  return r.stdout;
+}
+
+function treeModel(html = htmlPage()): TreeModel {
   const json =
-    /<script type="application\/json" id="tg-model">([^]*?)<\/script>/.exec(r.stdout)?.[1] ?? '{}';
+    /<script type="application\/json" id="tg-model">([^]*?)<\/script>/.exec(html)?.[1] ?? '{}';
   return JSON.parse(json) as TreeModel;
 }
 
@@ -206,25 +212,13 @@ describe('board_next text', () => {
 
 describe('board_next html', () => {
   test('ships the tree model and the runtime that lays it out at the container width', () => {
-    const r = run('--format', 'html');
-    expect(r.status).toBe(0);
-    const html = r.stdout;
+    const html = htmlPage();
     expect(html.startsWith('<style>')).toBe(true);
     expect(html).not.toContain('<!--');
     expect(html).toContain('data-v="h"');
     expect(html).toContain('data-v="d"');
     expect(html).toContain('data-theme="dark"');
-    const json =
-      /<script type="application\/json" id="tg-model">([^]*?)<\/script>/.exec(html)?.[1] ?? '{}';
-    const model = JSON.parse(json) as {
-      leaves: Array<{
-        n: number;
-        blockers: Array<{ n: number; parent: boolean }>;
-        pill: { text: string; click: string } | null;
-        parent: number | null;
-      }>;
-      parents: Array<{ n: number; root: boolean; depth: number; done: number; kids: number }>;
-    };
+    const model = treeModel(html);
     const leaf = (n: number) => model.leaves.find((l) => l.n === n);
     expect(model.leaves.map((l) => l.n)).not.toContain(111);
     expect(leaf(119)?.blockers).toEqual([{ n: 108, parent: false }]);

@@ -1,5 +1,7 @@
 // Issue comments past the snapshot's first page, and the open question records among them (.claude/skills/issue-review/references/question-record.md).
-const REPOSITORY = 'repository(owner: "MustaMohamed", name: "MoneyApp")';
+export const OWNER = 'MustaMohamed';
+export const NAME = 'MoneyApp';
+export const REPOSITORY = `repository(owner: "${OWNER}", name: "${NAME}")`;
 
 /** @param {string[]} comments @returns {number} */
 export function openQuestions(comments) {
