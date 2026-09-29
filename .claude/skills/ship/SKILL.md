@@ -12,7 +12,7 @@ Delivery of one leaf task from Planned to Done, on the branch `/prep` created, t
 
 `/ship <n>` (an MA id resolves through `gh issue list --search "MA-XXX" --state all --json number,title --jq '.[] | select(.title | startswith("MA-XXX ")) | .number'`; the search alone returns every issue that mentions the id). The reverse, `gh issue view <n> --json title --jq .title`, gives MA-XXX, which names the artifact directory, the branch and the worktree below.
 
-**Lease check.** The Entry check of [queue § Lease](../queue/SKILL.md) runs on `<n>` as soon as it is known, the typed `<n>` or the row step 3 names, before step 1 resumes or step 2 acts.
+**Lease check.** The Entry check of [queue § Lease](../queue/SKILL.md) runs on `<n>` as soon as it is known, the typed `<n>` or the row step 3 names. When it passes, write the lease at once, before step 1 resumes or step 2 acts: `skill=ship`, `worktree=` the implementation worktree when it exists, else the primary checkout, keeping `task=` when the lease is the run's own.
 
 1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists: read it, announce phase, branch, PR and any open loop, load that phase's file, continue. Never redo a completed phase.
 2. Otherwise `bash scripts/board.sh get <n>`:
@@ -50,7 +50,7 @@ gh issue view <n> --json body --jq .body > ~/.ship/MoneyApp/MA-XXX/issue.md
 cp .work/MA-XXX/plan.md ~/.ship/MoneyApp/MA-XXX/plan.md                     # dispatches read this copy; the branch copy leaves before the merge
 ```
 
-**Lease and working folder**, before any dispatch. Write the lease per [queue § Lease](../queue/SKILL.md), `skill=ship` and `worktree=` the implementation worktree, then EnterWorktree into the implementation worktree as § Worktrees states. Write it again on every resume, before the next dispatch or the merge watch, whichever comes first, and before the next dispatch on every return from Awaiting Human, whether a ruling ([references/triage.md](references/triage.md)) or a PR comment routed through phase 3.
+**Lease and working folder**, before any dispatch. Rewrite the lease's `worktree=` to the implementation worktree, per [queue § Lease](../queue/SKILL.md), then EnterWorktree into the implementation worktree as § Worktrees states. A resume has its lease from the Lease check above. Write it again before the next dispatch on every return from Awaiting Human, whether a ruling ([references/triage.md](references/triage.md)) or a PR comment routed through phase 3.
 
 The plan is `.work/MA-XXX/plan.md` at the branch's first commit, copied to `plan.md` for dispatches; it never reaches main (phase 5 removes it). The header line of `issue.md` drives three things: `Verify emulator` turns on the render pass (phase 1) and the render lens (phase 2); the Flags decide deep mode (below); Depends on is closed or the ticket would not be Planned.
 
