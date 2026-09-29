@@ -13,7 +13,7 @@ A helper or type another module imports lives in `src/modules/<owner>/utils/`, t
 
 Audit M4 (`docs/superpowers/reviews/2026-07-29-full-technical-audit.md:401`) sent the budget type to `entities/` and both budget pieces out through the module barrel; this record keeps deep imports instead, because they are the house form, 1 barrel import in `src/modules` (`account_form.tsx:10`) against 212 deep imports from one module into another, and barrels are audit M2's work, as `docs/adr/2026-08-19-dashboard-net-worth-refusal.md:291-294` records.
 
-The footer is `CtaFooter` in `cta_footer.tsx`, the rename PR #580 gave `OnboardingStatusTrack` when it became `StatusTrack`. Its props did not change. Both screens keep the 48 track because `cta_footer.tsx:23` reads `Size.onboardingCtaTrack`. `ONBOARDING_SHELL_TRACKS.cta` has no reader in `src` after the move, and MA-137 (#625) removes it.
+The footer is `CtaFooter` in `cta_footer.tsx`, the rename PR #580 gave `OnboardingStatusTrack` when it became `StatusTrack`. Its props did not change. Both screens keep the 48 track because `cta_footer.tsx:23` reads `Size.ctaFooterTrack`. `ONBOARDING_SHELL_TRACKS.cta` had no reader in `src` after the move, so MA-137 (#625) removed it and renamed the token for the footer.
 
 ## 2. The module a piece left keeps no re-export
 
