@@ -22,6 +22,6 @@ Parent, on every body that has one:
 - **P4 Header true to the code.** `Verify emulator` if and only if the change alters what a screen shows or what the app writes. Flags match the migrations, money paths, native config and copy the change touches.
 - **P5 Edges real.** Every Depends on names a dependency the code supports, written as `MA-nnn (#N)` with the number from the milestone sheet. A dependency the code shows and the header omits is a delta, including the parent's own Depends on for a chain's first link.
 
-Evidence rule: every delta cites the issue number and the line, file, parent line or standard heading it conflicts with. A mechanical fix carries its replacement text. A judgement the user must make is marked `ask` with the question. No delta without evidence; a clean body gets `approve`, not manufactured notes.
+Evidence rule: every delta cites the issue number and the line, file, parent line or standard heading it conflicts with. A mechanical fix carries its replacement text. A judgement the user must make is marked `ask` and carries the fields of a question record, `.claude/skills/issue-review/references/question-record.md`, from `Asks:` to `Screen:`, every option with the text it writes and the section it lands in; the conductor adds `Files:`, `Sha:` and `Left:`. No delta without evidence; a clean body gets `approve`, not manufactured notes.
 
 Return, per issue, in this order: `#<n> approve` or `#<n> deltas`; the deltas, one line each, `<check>: <what changes or what to ask> (<evidence>)`; the checks that were clean, one line.
