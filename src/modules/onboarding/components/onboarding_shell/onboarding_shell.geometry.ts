@@ -8,8 +8,6 @@ export const ONBOARDING_TOTAL_STEPS = 4;
 export const ONBOARDING_SHELL_TRACKS = {
   header: Size.headerHeight,
   progressRail: Size.progressRail,
-  statusTrack: Size.statusTrack,
-  cta: Size.onboardingCtaTrack,
 } as const;
 
 const STEP_NAMES: Record<OnboardingStepIndex, string> = {

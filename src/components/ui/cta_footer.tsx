@@ -20,7 +20,7 @@ export function CtaFooter({ footnote, message, cta }: CtaFooterProps) {
     >
       <StatusTrack footnote={footnote} message={message} />
       <View style={{ height: Spacing.xxs }} />
-      <View style={{ height: Size.onboardingCtaTrack, justifyContent: 'center' }}>{cta}</View>
+      <View style={{ height: Size.ctaFooterTrack, justifyContent: 'center' }}>{cta}</View>
     </View>
   );
 }
