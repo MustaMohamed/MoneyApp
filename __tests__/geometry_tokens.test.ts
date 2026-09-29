@@ -37,6 +37,12 @@ describe('zero-shift geometry tokens', () => {
     expect(Size.fieldHeight).toBeGreaterThanOrEqual(TouchSize.min);
   });
 
+  it('the CTA footer track is unscaled 48', () => {
+    // 48 is the md button's fixed height, so the track is raw and never ms()-wrapped.
+    expect(Size.ctaFooterTrack).toBe(48);
+    expect(Size.ctaFooterTrack).not.toBe(ms(48));
+  });
+
   it('the N4 pill row holds one padded caption line', () => {
     // Each ms() rounds independently, so this is a fit check, never an equality.
     expect(Spacing.xxs * 2 + lineHeightFor(Type.caption)).toBeLessThanOrEqual(
