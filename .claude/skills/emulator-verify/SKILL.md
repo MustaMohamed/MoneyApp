@@ -191,7 +191,7 @@ worktree, which needs three things the worktree does not have by default.
    device was installed before the newest such change. An APK installed after it already
    carries it, which is the render lens's case. Everything else reaches the device over Metro.
    A run whose task prompt reads `Run: unattended` asks nothing: it builds and installs once
-   under the permission rule in [queue § Permission rule](../queue/SKILL.md) and records
+   under the permission rule in [queue column.md](../queue/references/column.md) and records
    `build: REBUILD` in its log line's note.
    When you do need one:
 

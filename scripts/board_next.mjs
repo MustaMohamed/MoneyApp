@@ -566,7 +566,7 @@ function actorOf(d) {
   return d.command.startsWith('/') ? 'session' : 'you';
 }
 
-// The column /queue may run this action from, .claude/skills/queue/SKILL.md § One pass.
+// The column /queue may run this action from, .claude/skills/queue/references/column.md § One pass.
 function queueOf(a, ctx) {
   if (a.isParent || a.actor !== 'session' || a.deps.some((d) => !d.closed)) return null;
   const cmd = a.command ?? '';

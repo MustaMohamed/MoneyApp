@@ -8,7 +8,7 @@
 2. **De-duplicate** across lenses: the same defect found twice is one finding with two citations.
 3. **Close ledger matches** (`state.md` → Adjudications) with the citation. Independently re-finding a ruled trade-off is sensitivity working; note it, move on.
 4. **Verify known FP classes** before dismissing; dismissal needs recorded evidence, never disbelief. Built-in `code-review` findings on "unrelated" files: check `git diff --name-only origin/main...HEAD` before calling them a stale-base artifact. Ambiguous verification is a dispute, not an FP. A new FP class goes into the ledger.
-5. **Deep mode: verify before fixing.** Dispatch a fresh verifier with the charter below, the review worktree path and the surviving findings, never the ledger, and tell it to call EnterWorktree with `path` set to the review worktree as its first action; a refusal because it already is the working folder is a pass. `refuted` findings are dropped and recorded; `partial` ones are re-scoped to what survived.
+5. **Deep mode: verify before fixing.** Dispatch a fresh verifier with the charter below, the review worktree path and the surviving findings, never the ledger, and the review worktree line of [SKILL.md](../SKILL.md) → Worktrees. `refuted` findings are dropped and recorded; `partial` ones are re-scoped to what survived.
 6. **Sort what remains:**
    - `blocking` → the fix list.
    - `note` on this PR's own diff → the fix list. An accepted trade-off only where the fix would break a ticket Rule or another ticket's reviewed scope, written into the PR body's Trade-offs section now with the Rule or ticket it would break.

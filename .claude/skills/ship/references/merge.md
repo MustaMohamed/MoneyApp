@@ -31,8 +31,8 @@ A fix loop after this point (a PR comment from the human) dispatches with `~/.sh
 Then wait, with a watch on the merge so the word "merged" is never needed. **The human merges, never the conductor.** A PR comment from the human routes through phase 3 (fix, re-check, back here).
 
 ```bash
-# Bash tool, run_in_background: true. Exits when the PR merges or closes; the notification starts the post-merge list.
-until gh pr view <pr-url> --json state --jq .state | grep -qE 'MERGED|CLOSED'; do sleep 60; done; gh pr view <pr-url> --json state,mergedAt
+# Bash tool, run_in_background: true. Exits when the PR merges or closes; the notification starts the post-merge list. The touch keeps the lease live.
+until gh pr view <pr-url> --json state --jq .state | grep -qE 'MERGED|CLOSED'; do touch ~/.ship/MoneyApp/queue/leases/<n>; sleep 60; done; gh pr view <pr-url> --json state,mergedAt
 ```
 
 `CLOSED` without `mergedAt` is a closed PR, not a merge: stop and ask.
@@ -41,7 +41,7 @@ An unattended run presents at Awaiting Human, removes its lease and ends with no
 
 ## After the merge
 
-Two callers run this list: the `/ship` session whose watch fired, and `/queue` on its next pass ([queue § Merged since the last run](../../queue/SKILL.md)). Every step reads before it writes, so a second caller finds each step done and moves on.
+Two callers run this list: the `/ship` session whose watch fired, and `/queue` on its next pass ([queue column.md](../../queue/references/column.md) § Merged since the last run). Every step reads before it writes, so a second caller finds each step done and moves on.
 
 Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the end. In order:
 
@@ -54,7 +54,7 @@ Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the 
 
 3. `gh issue view <n> --json state` reads closed (`Closes #<n>` did it; close explicitly only if the keyword was missing). The `Board on merge` Action (`.github/workflows/board-on-merge.yml`) runs `board.sh status <n> Done` and `promote <parent>` on the server within a minute or two; `bash scripts/board.sh get <n>` reads Done when it has. If it has not (`gh run list --workflow board-on-merge.yml --limit 1` shows a failure), run the two commands here; both are idempotent.
 4. Final `state.md` line, `P5: merged <sha>, cleaned`, written before any deletion.
-5. Teardown: review worktree, implementation worktree, local branch, `git worktree prune`, `git remote prune origin` (SKILL.md → Worktrees; the squash commit shares no history with the branch, so `-D` is expected). Skipped while the ticket holds a live lease, [queue § Lease](../../queue/SKILL.md): a run is working in those worktrees.
+5. Teardown: review worktree, implementation worktree, local branch, `git worktree prune`, `git remote prune origin` (SKILL.md → Worktrees; the squash commit shares no history with the branch, so `-D` is expected). Skipped while another run holds a live lease on the ticket, [queue § Lease](../../queue/SKILL.md).
 6. `npm ci` in the primary checkout if the merge moved `package-lock.json`.
 7. Artifacts last: delete `~/.ship/MoneyApp/MA-XXX/`. Nothing writes after this. The durable record is the PR, whose commits include the plan, the issue, and any decision record.
 
