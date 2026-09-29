@@ -34,6 +34,12 @@ const CASES: Record<string, string> = {
   backticked: body(SIZE_642),
   bareSha: body(SIZE_642.replace('at `dc2cb03a`: ', 'at dc2cb03a: ')),
   noAt: body('- Size: 3 files outside tests, ~80 lines'),
+  annotated: body(
+    '- Size: 3 files outside tests, ~120 lines, at 623574b9 (estimate, /issue-review recounts): `scripts/a.mjs`, `docs/b.md`, `CLAUDE.md`',
+  ),
+  trailing: body(
+    '- Size: 2 files outside tests, ~60 lines, at `dc2cb03a`: `scripts/a.mjs`, `CLAUDE.md`; /issue-review recounts',
+  ),
   none: body('- Tests: none.'),
   unparsed: body('- Size: several files'),
 };
@@ -74,6 +80,18 @@ describe('bodySize', () => {
 
   test('a body with no Size line is null', () => {
     expect(out).toHaveProperty('none', null);
+  });
+
+  test('text between the sha and its colon does not hide the paths', () => {
+    expect(out.annotated).toEqual({
+      files: 3,
+      lines: 120,
+      paths: ['scripts/a.mjs', 'docs/b.md', 'CLAUDE.md'],
+    });
+  });
+
+  test('the path list ends at the first semicolon', () => {
+    expect(out.trailing).toEqual({ files: 2, lines: 60, paths: ['scripts/a.mjs', 'CLAUDE.md'] });
   });
 
   test('a Size line with no count is unparsed', () => {

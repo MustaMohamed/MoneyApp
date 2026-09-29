@@ -6,10 +6,12 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { earlierComments, NAME, openQuestions, OWNER, REPOSITORY } from './board_comments.mjs';
+import { readLeases } from './board_lease.mjs';
 import { parseRunnable } from './board_run.mjs';
 import { bodySize } from './board_size.mjs';
 
 const REPO = `${OWNER}/${NAME}`;
+const SHIP_DIR = path.join(os.homedir(), '.ship', 'MoneyApp');
 const PROJECT_ID = 'PVT_kwHOAPEDM84BiHOr';
 const ISSUE_URL = `https://github.com/${REPO}/issues/`;
 const COLUMNS = [
@@ -208,9 +210,7 @@ function fetchSnapshot() {
 
   let shipState = [];
   try {
-    shipState = fs
-      .readdirSync(path.join(os.homedir(), '.ship', 'MoneyApp'))
-      .filter((d) => /^MA-\d+$/.test(d));
+    shipState = fs.readdirSync(SHIP_DIR).filter((d) => /^MA-\d+$/.test(d));
   } catch {
     shipState = [];
   }
@@ -220,43 +220,8 @@ function fetchSnapshot() {
     items,
     offBoard,
     extra,
-    leases: readLeases(),
+    leases: readLeases(path.join(SHIP_DIR, 'queue', 'leases')),
   };
-}
-
-// The lease a run holds on a ticket, .claude/skills/queue/SKILL.md § Lease.
-function readLeases() {
-  const dir = path.join(os.homedir(), '.ship', 'MoneyApp', 'queue', 'leases');
-  let names = [];
-  try {
-    names = fs.readdirSync(dir).filter((f) => /^\d+$/.test(f));
-  } catch {
-    return [];
-  }
-  return names.flatMap((f) => {
-    const file = path.join(dir, f);
-    let text = '';
-    let mtime = new Date(0);
-    try {
-      text = fs.readFileSync(file, 'utf8');
-      mtime = fs.statSync(file).mtime;
-    } catch (err) {
-      // A run that ends between the listing and the read has removed its lease.
-      if (!fs.existsSync(file)) return [];
-      throw err;
-    }
-    const field = (key) => new RegExp(`^${key}=(.*)$`, 'm').exec(text)?.[1].trim() ?? '';
-    const worktree = field('worktree');
-    return [
-      {
-        number: Number(f),
-        skill: field('skill'),
-        worktree,
-        touchedAt: mtime.toISOString(),
-        worktreeGone: !worktree || !fs.existsSync(worktree),
-      },
-    ];
-  });
 }
 
 function headerDeps(header) {
@@ -507,28 +472,31 @@ function decide(item, ctx) {
     return { bucket: 'pull', action: `Planned, branch ${br.name}`, command: `/ship ${n}` };
   }
 
-  const held = !ctx.shipState.has(ma);
+  const elsewhere = !ctx.shipState.has(ma);
   if (item.status === 'In Progress') {
     if (openPr)
       return {
         bucket: 'drift',
         action: `In Progress with PR #${openPr.number} open`,
         command: `/ship ${n}`,
-        held,
+        elsewhere,
       };
     const br = (item.branches ?? [])[0];
     const parts = ['implementing'];
     if (br) parts.push(`branch ${br.name}`);
     if (br?.committedDate) parts.push(`last commit ${age(br.committedDate, ctx.fetchedAt)}`);
-    parts.push(
-      ctx.shipState.has(ma) ? 'ship state on this machine' : 'no ship state on this machine',
-    );
-    return { bucket: 'flight', action: parts.join(', '), command: `/ship ${n}`, held };
+    parts.push(elsewhere ? 'no ship state on this machine' : 'ship state on this machine');
+    return { bucket: 'flight', action: parts.join(', '), command: `/ship ${n}`, elsewhere };
   }
 
   if (item.status === 'In Review') {
     if (!openPr)
-      return { bucket: 'drift', action: 'In Review without a PR', command: `/ship ${n}`, held };
+      return {
+        bucket: 'drift',
+        action: 'In Review without a PR',
+        command: `/ship ${n}`,
+        elsewhere,
+      };
     const checks =
       openPr.checks === 'SUCCESS'
         ? 'green'
@@ -541,7 +509,7 @@ function decide(item, ctx) {
       bucket: 'flight',
       action: `battery running on PR #${openPr.number}, checks ${checks}`,
       command: `/ship ${n}`,
-      held,
+      elsewhere,
     };
   }
 
@@ -592,18 +560,20 @@ function decide(item, ctx) {
 
 function actorOf(d) {
   if (d.bucket === 'yours') return 'you';
-  if (d.bucket === 'wait' || !d.command || d.held) return 'nobody';
+  if (d.bucket === 'wait' || !d.command || d.elsewhere) return 'nobody';
   if (parseRunnable(d.command)) return 'page';
   if (/^\/(boundaries|tickets|epic)\b/.test(d.command)) return 'you';
   return d.command.startsWith('/') ? 'session' : 'you';
 }
 
 // The column /queue may run this action from, .claude/skills/queue/SKILL.md § One pass.
-function queueOf(a) {
-  if (a.state !== 'open' || a.isParent || a.actor !== 'session') return null;
-  if (a.deps.some((d) => !d.closed) || a.questions > 0 || a.lease !== null) return null;
+function queueOf(a, ctx) {
+  if (a.isParent || a.actor !== 'session' || a.deps.some((d) => !d.closed)) return null;
   const cmd = a.command ?? '';
-  if (a.status === 'Defined' && /^\/issue-review /.test(cmd)) return 'Defined';
+  // issue-review marks no leaf under an unmarked parent, so the run would repeat every pass.
+  const parentUnmarked = headerReviewed(ctx.byNumber.get(a.parent)?.header) === 'none';
+  if (a.status === 'Defined' && /^\/issue-review /.test(cmd))
+    return parentUnmarked ? null : 'Defined';
   if (a.status === 'Ready For Development' && cmd === `/prep ${a.number}`)
     return 'Ready For Development';
   if (['Planned', 'In Progress', 'In Review'].includes(a.status) && /^\/ship /.test(cmd))
@@ -723,7 +693,7 @@ function analyze(snapshot, scope) {
             }
           : null,
     };
-    row.queue = queueOf(row);
+    row.queue = queueOf(row, ctx);
     actions.push(row);
   }
   actions.sort(

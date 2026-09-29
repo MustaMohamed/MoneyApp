@@ -407,4 +407,15 @@ describe('board_next leases and the queue column', () => {
     expect(byNumber(list, 108).paths).toEqual([]);
     expect(byNumber(list, 110).paths).toEqual([]);
   });
+
+  test('a Defined leaf under a parent that reads Reviewed none is not queued, since the review cannot mark it', () => {
+    for (const n of [128, 150]) {
+      const a = byNumber(list, n);
+      expect({ n, command: a.command, queue: a.queue }).toEqual({
+        n,
+        command: `/issue-review ${n}`,
+        queue: null,
+      });
+    }
+  });
 });
