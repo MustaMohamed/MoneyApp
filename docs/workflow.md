@@ -16,16 +16,16 @@ Every move, who makes it, and on what. Nothing else moves a row.
 |---|---|---|---|
 | none | Todo | `/epic`; `/tickets` for a child marked for its own breakdown; `board.sh status <n> Todo` for a task recorded by hand | issue created |
 | Todo | Defined | `/boundaries` at the lock; `/tickets` for each child it creates, `Reviewed none` on the header | body in the standard |
-| Defined | Ready For Development | `board.sh promote`, run by `/issue-review` on a pass and by the post-merge routine; never by hand | `Reviewed <date>` on the header and on the parent's, a `Size:` line in Context within ~400 lines, any number of files, every Depends on closed, no sub-issues, no open question record |
+| Defined | Ready For Development | `board.sh promote`, run by `/issue-review` on a pass and by the post-merge routine; never by hand | `Reviewed <date>` on the header and on the parent's, a `Size:` line in Context within ~400 lines, any number of files, every Depends on closed, no sub-issues, no open question record on it or its parent |
 | Defined | Defined, parked | unattended `/issue-review` | an `ask` parked as a question record; no `Reviewed` date while one is open |
 | Defined | Ready For Development | `board.sh promote`, run by `/queue asks` after it writes `Reviewed <date>` | the last open record answered, under a marked parent, an epic, or no parent; `promote`'s other checks hold |
 | Defined | Defined, for `/tickets` | `/queue asks` | the last open record answered on a ticket counted at or over the size gate: the seam goes into its body, no date |
 | Defined epic, or a Defined leaf counted over the size gate | Defined, as a parent | `/tickets` after the cut | children created at Defined or Todo. A parent is reviewed and marked before its children, is never planned, and closes through its children |
-| Defined parent | Ready For Development | `board.sh promote`, when its first child gets there | the parent mirrors its children; nothing is pulled from it |
+| Defined parent | Ready For Development | `board.sh promote`, when its first child gets there | the parent mirrors its children and has no open question record; nothing is pulled from it |
 | Ready For Development | Blocked | by hand, `board.sh status` | a Depends on names an open issue again; comment `Blocked on #m` |
 | Todo, Defined | Blocked | `/boundaries` | the lock waits on another issue; comment `Blocked on #m` |
 | Blocked | Ready For Development | by hand, `board.sh status` | promote reports it and refuses to move it |
-| Blocked | Ready For Development, or the column the record names in `Left:` | `/queue asks`, `board.sh status` | the last open record on the ticket answered |
+| Blocked | Ready For Development, or the column the record names in `Left:` | `/queue asks`, `board.sh status` | the last open record on the ticket answered, every Depends on closed, and no `Blocked on #m` in its last five comments naming an open issue |
 | any, parked | unchanged | `/queue asks` | a deferred question: the record stays open and nothing moves |
 | Ready For Development | Planned | `/prep` | plan committed on the ticket branch |
 | Ready For Development | Ready For Development, trimmed | `/prep` | the plan counted over the size gate: the ticket keeps the first seam, the remainder is a new sibling at Defined, `Reviewed none`, and each ticket that depended on the remainder gains it in Depends on |

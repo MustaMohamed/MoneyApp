@@ -32,11 +32,18 @@ const ANSWERED = comment(
 );
 const QUOTED = comment(9003, 'Blocked on #104\nQuestion: open, quoted on a later line');
 const SECOND_OPEN = comment(9004, 'Question: open\nAsks: Which rounding does the tally use?');
+const EPIC_OPEN: Comment = {
+  id: 9005,
+  html_url: 'https://github.com/MustaMohamed/MoneyApp/issues/639#issuecomment-9005',
+  body: 'Question: open\nAsks: Which cut does the epic follow?\nLeft: Defined',
+};
 
 const REVIEWED =
   'Part of #639 · Depends on MA-100 (#600) · Verify none · Flags none · Reviewed 2026-09-29';
 const UNREVIEWED =
   'Part of #639 · Depends on MA-100 (#600) · Verify none · Flags none · Reviewed none';
+const REVIEWED_NO_DEPS =
+  'Part of #639 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-29';
 
 const refusal = (c: Comment): string =>
   `#146: open question ${c.html_url}, skipped; /queue asks answers it`;
@@ -45,6 +52,7 @@ interface Leaf {
   status: string;
   header: string;
   comments: Comment[] | undefined;
+  epic?: { status: string; comments: Comment[] };
 }
 
 const stubDirs: string[] = [];
@@ -76,6 +84,7 @@ function stubBoard(leaf: Leaf): string {
   fs.chmodSync(path.join(dir, 'gh'), 0o755);
   const body = leafBody(leaf.header);
   const milestone = { title: 'Unattended delivery' };
+  const epic = leaf.epic ?? { status: 'In Progress', comments: [] };
   const files: Record<string, unknown> = {
     'issues_639.json': {
       number: 639,
@@ -85,6 +94,7 @@ function stubBoard(leaf: Leaf): string {
       milestone,
       labels: [{ name: 'epic' }],
     },
+    'issues_639_comments.json': epic.comments,
     'issues_639_sub_issues.json': [{ number: 146, state: 'open', state_reason: null, body }],
     'issues_146.json': {
       number: 146,
@@ -110,7 +120,7 @@ function stubBoard(leaf: Leaf): string {
               pageInfo: { hasNextPage: false, endCursor: null },
               nodes: [
                 boardItem('PVTI_146', 146, leaf.status),
-                boardItem('PVTI_639', 639, 'In Progress'),
+                boardItem('PVTI_639', 639, epic.status),
                 boardItem('PVTI_600', 600, 'Done'),
               ],
             },
@@ -239,6 +249,26 @@ describe('board.sh promote', () => {
     expect(r.unhandled).toEqual([]);
     expect(r.missing).toEqual(['issues_146_comments.json']);
     expect(r.stderr.split('\n')).toContain('#146: could not read its comments, skipped');
+    expect(r.stdout).toContain('promoted 0, skipped 1');
+    expect(r.statusWrites).toEqual([]);
+  });
+
+  it('promotes no child of, and does not lift, a Defined epic with an open record', () => {
+    const dir = stubBoard({
+      status: 'Defined',
+      header: REVIEWED_NO_DEPS,
+      comments: [],
+      epic: { status: 'Defined', comments: [EPIC_OPEN] },
+    });
+
+    const r = run(dir, 'promote', '639');
+
+    expect(r.unhandled).toEqual([]);
+    expect(r.missing).toEqual([]);
+    expect(r.status).toBe(0);
+    expect(r.stderr.split('\n')).toContain(
+      `#146: parent #639 has an open question ${EPIC_OPEN.html_url}, skipped; /queue asks answers it`,
+    );
     expect(r.stdout).toContain('promoted 0, skipped 1');
     expect(r.statusWrites).toEqual([]);
   });
