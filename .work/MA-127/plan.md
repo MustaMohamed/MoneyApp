@@ -1,5 +1,5 @@
 # MA-127 — Rows, cards and skeletons on the tab screens hold at a 2.0 font scale
-base: f7cff88a · verify: emulator · flags: none · expected diff: ~300 lines
+base: f7cff88a · verify: emulator · flags: none · expected diff: ~350 lines
 
 ## Steps
 
@@ -48,8 +48,22 @@ base: f7cff88a · verify: emulator · flags: none · expected diff: ~300 lines
 - Change: append the twelve rows marked new under Screens, each `no frame, MA-127`, with the force and proof written there.
 - Test: `none` · docs.
 
+### 8. The 50/30/20 lens and the named-budget ring keep their text inside their own boxes at 2.0
+- File: `src/modules/budget/screens/budget/components/fifty_thirty_twenty/not_grouped_row.tsx` (amounts `Text` :30-36); `fifty_thirty_twenty/index.tsx` (breakdown header :31-44); `named_budget_row.tsx` (ring label :32-37); `fifty_thirty_twenty/rule_bucket_row.tsx` (title row :44); `.claude/skills/emulator-verify/features/budget.md` (`lens walk, large font`, :27)
+- Change:
+  - Not-grouped amounts: `allowFontScaling={false}` and `scaledTextStyle(Type.micro, useWindowDimensions().fontScale)`, step 2's ADR §7 pattern. The right-aligned OS-scaled line reserves its `…` at the unscaled paint and draws past its box's left edge into the left column.
+  - Breakdown header: both texts take `flexShrink: 1`, the subtitle `text-right`, and the row `gap-2`. At 2.0 each wraps inside its own share instead of both running past the right edge; at 1.0 both fit on one line with more than the gap between them, as today.
+  - Named-budget ring label: `numberOfLines={1}`, `adjustsFontSizeToFit`, `textAlign: 'center'` and `maxWidth` = the ring's hole less 2 dp each side (`Size.budgetNamedRing - 2 * (Size.budgetRingStroke + Spacing.xxxs)`). The ring keeps its fixed size, as its skeleton ring does, so the label shrinks to the hole instead of wrapping onto the stroke. At 1.0 every label up to `100%` fits the hole, as today. This departs from Rule 2 on purpose. Acceptance 5 holds the skeleton ring at its 1.0 size, so a loaded ring that grew with the scale would shift on load, against the Goal; the label fits the fixed box instead.
+  - Bucket title row: `flex-wrap` joins `flex-row items-center gap-1.5`. When the name, the rule label and the chip overflow, the chip moves to its own line under them instead of squeezing the name to `..`. At 1.0 all three fit on one line, as today. This is the Goal's "no text is cut": the bucket name renders as its ellipsis alone, while a deferred mid-word wrap such as `Di|ni..` keeps part of its name.
+  - `budget.md` `lens walk, large font`: the Force adds "no category given a 50/30/20 group for the month, so `Not grouped` draws" (with an income set, an ungrouped category lands there, `budget_buckets.helpers.ts:174-183`). The proof adds four crops at 2.0 on the Force's seed:
+    - on `50/30/20`, the `Not grouped` amounts inside their row, clear of the left column, each line whole or ending in a whole `…`;
+    - the breakdown title and subtitle clear of each other and of the screen's right edge;
+    - each bucket name whole beside its rule label;
+    - on `Categories`, an expanded named-budget ring with its label on one line inside the stroke.
+- Test: `none` · no suite renders `NotGroupedRow`, `FiftyThirtyTwentyLens` or `NamedBudgetRow` (`budget_screen.test.tsx` mocks the lens and the category row), a new `.tsx` suite is forbidden, and a wrap or fit prop binds no token. `fifty_thirty_twenty_ledger.test.tsx` renders `RuleBucketRow` and stays green; pixels are `budget.md` `lens walk, large font`.
+
 ## Screens
-Every new row below is `no frame, MA-127`; "Font scale" is the README's `Font scale` force. A walk crop's proof is Acceptance 2's: no text in a row, a card or a chip cut at the top or bottom, and no text box from `mqa bounds` crossing another node's box. Only the transaction-row states also require each line whole or ending in a whole `…` (Acceptance 1). A skeleton log is a temporary `onLayout` on the named items that logs `e.nativeEvent.layout.height`, read with `mqa logs --info` at 1.0 and 2.0 and reverted with `git status` clean after, as `transaction_form.md` `loading, large font` does. Its proof: each text bar and shape at 2.0 reads twice its 1.0 height ± 1 dp, each rail, icon or ring its 1.0 height ± 1 dp.
+Every new row below is `no frame, MA-127`; "Font scale" is the README's `Font scale` force. A walk crop's proof is Acceptance 2's: no text in a row, a card or a chip cut at the top or bottom, and no text box from `mqa bounds` crossing another node's box. Only the transaction-row states and step 8's `Not grouped` amounts crop also require each line whole or ending in a whole `…` (Acceptance 1, and step 8). A skeleton log is a temporary `onLayout` on the named items that logs `e.nativeEvent.layout.height`, read with `mqa logs --info` at 1.0 and 2.0 and reverted with `git status` clean after, as `transaction_form.md` `loading, large font` does. Its proof: each text bar and shape at 2.0 reads twice its 1.0 height ± 1 dp, each rail, icon or ring its 1.0 height ± 1 dp.
 
 - `emulator-verify/features/transactions.md`: `row, expense`, `row, long note`, `day cards, skeleton`, and new:
   - `row, large font`: the `row, expense` and `row, long note` seeds plus a commitment-owned row (the `type badge, sm` force); Font scale at 1.0 and 2.0 · the row's clickable node reads 63 ± 1 dp at 1.0 and `resolveTransactionRowHeight(2)` ± 1 at 2.0, the title, caption, amount and code `TextView` boxes inside it; a crop of each row at 2.0: each line whole or ending in a whole `…`, none cut at the top or bottom
@@ -67,7 +81,11 @@ Every new row below is `no frame, MA-127`; "Font scale" is the README's `Font sc
   - `list walk, large font`: Font scale at 2.0, once on an empty database and once on the `row status pill` seed · crops of the summary card and every row, scrolled to the end
   - `skeletons, large font`: source force `await new Promise<never>(() => undefined);` as the first line of the `try` in `loadMonthSnapshot` (`commitment.store.ts:172`), reverted after; Font scale at 1.0 and 2.0 · a skeleton log on the first row's title bar (`commitment_rows_skeleton.tsx:21-23`), its status pill (`:30`) and its icon square (`:19`); a shot at each scale and one loaded at 2.0; the 1.0 shot matches `main`
 - `emulator-verify/features/budget.md`, new:
-  - `lens walk, large font`: Font scale at 2.0, once on an empty database and once on a seed that draws all three lenses: a category budget holding a named budget, an income for the `50/30/20` buckets, and the spending plans of the `plan card status chip`, `plan card 'more' chip` and `plan card allocation chip` rows · crops of the summary card, each category row with its chip, an expanded category's named-budget row, each `50/30/20` bucket row, and on `Plans` each plan card with its status, 'more' and allocation chips, each chip label inside its chip
+  - `lens walk, large font`: Font scale at 2.0, once on an empty database and once on a seed that draws all three lenses: a category budget holding a named budget, an income for the `50/30/20` buckets, and the spending plans of the `plan card status chip`, `plan card 'more' chip` and `plan card allocation chip` rows · crops of the summary card, each category row with its chip, an expanded category's named-budget row, each `50/30/20` bucket row, and on `Plans` each plan card with its status, 'more' and allocation chips, each chip label inside its chip. Step 8 adds four crops on the same seed, with no category given a 50/30/20 group for the month:
+    - the `Not grouped` amounts inside their row and clear of the left column, each line whole or ending in a whole `…`;
+    - the breakdown title and subtitle clear of each other and of the right edge;
+    - each bucket name whole beside its rule label;
+    - an expanded named-budget ring with its label on one line inside the stroke.
   - `skeleton, large font`: source force `await new Promise<never>(() => undefined);` as the first line of the `try` in `load` (`budget.store.ts:195`), reverted after; Font scale at 1.0 and 2.0; each of the three lenses (the lens tabs stay live) · a skeleton log on the categories summary's title bar (`budget_screen_skeleton.tsx:58`), a tool shape (`:102`) and a `ColdContentSkeleton` ring (`:454-457`); a shot per lens per scale; the 1.0 shots match `main`
 
 ## Non-goals
@@ -76,6 +94,7 @@ Every new row below is `no frame, MA-127`; "Font scale" is the README's `Font sc
 - The ellipsis drawn past a truncated line's right edge above 1.0 on OS-scaled texts other than the transaction row (`stat_cards.tsx:271-285, 365, 393, 411`, `budget_card.tsx:188`, `commitment_row.tsx:108`, others like them). Acceptance 2 asks only that no text is cut at the top or bottom or drawn over another node.
 - Skeleton row minimums the ticket does not list keep today's value: `summary_header.tsx:28, 30`, `budget_card.tsx:27`, the budget skeleton's `min-h-*` rows, the sheet skeleton's `min-h-8` and `ms(80)` wrappers.
 - No token swap for the raw px values moved out of classes, no shared skeleton component in `src/components/ui/`, no new `.tsx` test file.
+- Mid-word wraps at 2.0 go to a follow-up ticket: category and named-budget titles (`Housin|g`, `Di|ni..`, `Co|ffee`), the budget summary labels (`Unass|igned`), Home's `SPENT THIS M|ONTH`. None is cut at the top or bottom or drawn over a node.
 
 ## Verification
 - Per commit: `npm run format:check && npm run lint && npm run typecheck && npm test -- --ci`
@@ -95,6 +114,10 @@ Every new row below is `no frame, MA-127`; "Font scale" is the README's `Font sc
   - Screens word the walk proof as Acceptance 2, walk Home's `Accounts` and Budget's `Plans`, and measure the skeletons by log;
   - Non-goals follow step 2.
 - Amended after review round 2: step 2 asserts the title and time text's scaled style, step 5 names `:370` and `:415` among the shapes, and step 7 counts twelve rows.
+- Amended by `/prep --amend` after the 2.0 render pass on `9faa06c9`, which found four sites no step covered:
+  - step 8 is added: the not-grouped amounts, the breakdown header, the named-budget ring label and the bucket names;
+  - the header's figure is now the delivered 329 lines plus step 8's ~20.
+- Step 8's header and bucket-row wraps change nothing on the 411 dp Pixel_2 at 1.0. On a narrower phone, a row that already overflows at 1.0 wraps where today it ellipsises or overflows; so does a ring label past `100%` that is wider than the hole at 1.0.
 
 ## Self-assessment
 Step 5 is the one I am least sure of:
@@ -105,3 +128,5 @@ Step 5 is the one I am least sure of:
 - Its ~90 lines are the least firm figure in the count.
 
 Step 2's switch of five row texts to `allowFontScaling={false}` is the next least sure: it follows MA-121's measured pattern, but it is the first row-level use of it.
+
+In step 8, the ring label's `adjustsFontSizeToFit` is the least sure part: it relies on RN Android fitting an OS-scaled label to a `maxWidth`, as `transactions_card.tsx:94` does, and nothing proves the fit but the crop.
