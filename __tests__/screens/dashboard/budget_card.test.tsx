@@ -1,9 +1,11 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import type { PressableProps, StyleProp, ViewStyle } from 'react-native';
+import { Dimensions, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Strings } from '@/constants/strings';
 import { BudgetCard } from '@/modules/dashboard/screens/dashboard/components/budget_card';
+import { ms } from '@/utils/responsive';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('expo-linear-gradient', () => {
@@ -83,5 +85,24 @@ describe('BudgetCard', () => {
     expect(queryByText('2,000 EGP')).toBeNull();
     expect(queryByText('6,000 EGP')).toBeNull();
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('grows the skeleton meta row with the font scale and keeps the progress rail', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const { getByTestId } = await render(
+      <BudgetCard
+        summary={{ budgeted: 8000, spent: 2000, left: 6000, pct: 0.25, categoryCount: 2 }}
+        yearMonth="2026-07"
+        isLoading
+        onPress={jest.fn()}
+      />,
+    );
+
+    expect(getByTestId('dashboard-budget-skeleton-meta')).toHaveStyle({
+      minHeight: resolveSkeletonBarHeight(ms(13), fontScale),
+    });
+    expect(getByTestId('dashboard-budget-skeleton-progress')).toHaveStyle({ height: ms(3) });
   });
 });

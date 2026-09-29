@@ -1,7 +1,8 @@
-import { render } from '@testing-library/react-native';
+import { render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { SummaryHeader } from '@/modules/commitments/screens/commitments/components/summary_header';
 import { ms } from '@/utils/responsive';
 
@@ -102,5 +103,31 @@ describe('SummaryHeader skeleton loading', () => {
       minHeight: ms(13),
     });
     expect(getAllByTestId('commitments-summary-skeleton-stat')).toHaveLength(5);
+  });
+
+  it('grows the skeleton text bars with the font scale and keeps the stat icons at their size', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const { getAllByTestId } = await render(
+      <SummaryHeader
+        counts={{ paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 }}
+        totalsByCurrency={new Map()}
+        isLoading
+      />,
+    );
+
+    const [label, amount, percent] = getAllByTestId('skeleton-item');
+    expect(label).toHaveStyle({ height: resolveSkeletonBarHeight(ms(6), fontScale) });
+    expect(amount).toHaveStyle({ height: resolveSkeletonBarHeight(ms(14), fontScale) });
+    expect(percent).toHaveStyle({ height: resolveSkeletonBarHeight(ms(14), fontScale) });
+
+    const stats = getAllByTestId('commitments-summary-skeleton-stat');
+    expect(stats).toHaveLength(5);
+    for (const stat of stats) {
+      const [icon, value] = within(stat).getAllByTestId('skeleton-item');
+      expect(icon).toHaveStyle({ width: ms(11), height: ms(11) });
+      expect(value).toHaveStyle({ height: resolveSkeletonBarHeight(ms(9), fontScale) });
+    }
   });
 });
