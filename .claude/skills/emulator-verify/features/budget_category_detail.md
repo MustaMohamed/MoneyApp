@@ -1,6 +1,6 @@
 # Budget category detail
 
-Route `/budget/[id]`, pushed from a category row on the `Budget` tab. Not redesigned; drawn as it is today. This file carries only the state MA-130 needs — add the rest when a ticket reaches them.
+Route `/budget/[id]`, pushed from a category row on the `Budget` tab. Screen `src/modules/budget/screens/budget/category_detail/index.tsx`. Not redesigned; drawn as it is today. This file carries only the state MA-130 needs; add the rest when a ticket reaches them.
 
 ## Reach it
 

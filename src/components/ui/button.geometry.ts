@@ -28,10 +28,18 @@ export function resolveSmallButtonHeight(fontScale: number): number {
   return Math.max(Size.smallButtonTrack, resolveButtonLabelStyle('sm', fontScale)?.lineHeight ?? 0);
 }
 
-/** `md` and `lg` keep HeroUI's CSS height, so they get no `height` key at all. */
+export interface ButtonRootStyle {
+  height?: number;
+  borderRadius?: number;
+}
+
+/** `md` and `lg` keep HeroUI's CSS height, so they get no `height` key; the flat arm's keys win over the `sm` track. */
 export function resolveButtonRootStyle(
   size: ButtonSize,
   fontScale: number,
-): { height: number } | undefined {
-  return size === 'sm' ? { height: resolveSmallButtonHeight(fontScale) } : undefined;
+  flatStyle?: { borderRadius: number; height?: number },
+): ButtonRootStyle | undefined {
+  const track = size === 'sm' ? { height: resolveSmallButtonHeight(fontScale) } : undefined;
+  if (track === undefined && flatStyle === undefined) return undefined;
+  return { ...track, ...flatStyle };
 }

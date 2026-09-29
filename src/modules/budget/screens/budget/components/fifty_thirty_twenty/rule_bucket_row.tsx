@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion, Button, Chip } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
-import { resolveButtonLabelStyle, resolveSmallButtonHeight } from '@/components/ui/button.geometry';
+import { resolveButtonLabelStyle, resolveButtonRootStyle } from '@/components/ui/button.geometry';
 import { Text } from '@/components/ui/text';
 import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup } from '@/constants/enums';
@@ -163,7 +163,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
           size="sm"
           onPress={() => onManage(bucket.group)}
           className="justify-between rounded-none px-3"
-          style={{ height: resolveSmallButtonHeight(fontScale) }}
+          style={resolveButtonRootStyle('sm', fontScale)}
         >
           <Button.Label
             {...resolveOneLineTextProps(resolveButtonLabelStyle('sm', fontScale))}

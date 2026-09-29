@@ -7,7 +7,7 @@ import {
   resolveSmallButtonHeight,
 } from '@/components/ui/button.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 
 const SIZES: ButtonSize[] = ['sm', 'md', 'lg'];
 
@@ -68,5 +68,10 @@ describe('resolveButtonRootStyle', () => {
 
   it.each<ButtonSize>(['md', 'lg'])('leaves the %s root height to HeroUI', (size) => {
     expect(resolveButtonRootStyle(size, 2)).toBeUndefined();
+  });
+
+  it("lets the compact accent arm's height win over the sm track and keeps its radius", () => {
+    const accent = { borderRadius: Radius.cta, height: Size.compactCtaTrack };
+    expect(resolveButtonRootStyle('sm', 1, accent)).toEqual(accent);
   });
 });

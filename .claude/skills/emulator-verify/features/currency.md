@@ -1,6 +1,6 @@
 # Currency
 
-Route `/settings/currency`. Screen under `src/modules/settings/`, reached from Settings. Not redesigned; drawn as it is today. This file carries only the button states MA-130 needs — add the rest when a ticket reaches them.
+Route `/settings/currency`. Screen `src/modules/currency/screens/currency/index.tsx`, reached from Settings. Not redesigned; drawn as it is today. This file carries only the button states MA-130 needs; add the rest when a ticket reaches them.
 
 ## Reach it
 

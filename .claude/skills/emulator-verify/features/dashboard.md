@@ -26,7 +26,7 @@ Route `/dashboard`, the first tab. Screen `src/modules/dashboard/screens/dashboa
 | see-all link and section titles, large font | no frame, MA-130 | a seeded database with accounts of more than one type, then the `Accounts` segment; the `Font scale` force (README) at 1.0 and 2.0 | the `See all` label box inside the total-balance strip and ending in a whole `…` or whole, the `ACCOUNTS` label and count above it whole; each section title whole or ending in a whole `…` with its count badge inside the row; one crop of the strip and one of a header row at 2.0 |
 | load error retry, large font | no frame, MA-130 | the force of `add button clearance, load error`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the `Try again` in `dashboard-load-error`, the alert title beside it inside the alert; one crop of the alert at 2.0 |
 | startup error, large font | no frame, MA-130 | source force: `throw new Error('forced')` as the first line of `start`'s `try` in `src/utils/use_layout_init.hook.ts`, then a cold launch; reverted after; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the startup error screen's button; one crop at 2.0 |
-| route error, large font | no frame, MA-130 | source force: `throw new Error('forced')` as the first line of the dashboard screen's render (`src/modules/dashboard/screens/dashboard/index.tsx`), caught by `RouteErrorFallback`; in a dev build LogBox's `Console Error` overlay covers the fallback, and in MA-130's walk a `tapxy` on the first `Dismiss` match from `mqa bounds` did not clear it, so the button went unmeasured; reverted after; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the fallback's button; one crop at 2.0 |
+| route error, large font | no frame, MA-130 | source force: `throw new Error('forced')` as the first line of the dashboard screen's render (`src/modules/dashboard/screens/dashboard/index.tsx`), caught by `RouteErrorFallback`, then `$MQA up --ready 'id="route-error"'`; reverted after; the `Font scale` force (README) at 1.0 and 2.0 | `unreached`: the dev build's LogBox overlay covers the fallback (Gotchas) |
 
 ## Outbound
 
@@ -42,6 +42,7 @@ Route `/dashboard`, the first tab. Screen `src/modules/dashboard/screens/dashboa
 - The badge is the shared `SectionHeader`, the same component `/accounts` renders — a height read here and there must agree, and a divergence is a caller override, not the component.
 - The title is the same shared `section_header.tsx`; the 16 read here holds on every screen that renders it (`/accounts`, `/accounts/[id]`), so it is measured once.
 - The manual-rate pill draws only while the stored rate is a manual override; clearing it in Settings removes the pill, and there is no seed that forces it without the Settings walk.
+- `route error, large font` (MA-130): the dev build's LogBox `Console Error` overlay covers `RouteErrorFallback`, and a `tapxy` on the first `Dismiss` match from `mqa bounds` (two nodes carry that label) did not clear it at 1.0 or 2.0, so the fallback's button went unmeasured. The fallback is the same `ErrorState` as `startup error, large font`, measured at both scales.
 
 ## Seeding and forcing states
 

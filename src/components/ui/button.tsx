@@ -18,7 +18,7 @@ import { resolveOneLineTextProps } from './text_scale.geometry';
 // CTAs are Sora (.claude/rules/ui.md; mockup `.cta` uses the display face at 600) — HeroUI's own label ships Inter medium.
 const CTA_LABEL_FONT = 'font-sora-semibold';
 
-interface ButtonBaseProps extends Omit<PressableProps, 'children' | 'disabled'> {
+interface ButtonBaseProps extends Omit<PressableProps, 'children' | 'disabled' | 'style'> {
   size?: ButtonSize;
   label: string;
   isLoading?: boolean;
@@ -65,8 +65,7 @@ export function Button({
   const { fontScale } = useWindowDimensions();
   const flatStyle = resolveFlatButtonStyle({ variant, flat, tone, fontScale, size });
   const labelProps = resolveOneLineTextProps(resolveButtonLabelStyle(size, fontScale));
-  // The accent arm's own height wins over the sm track.
-  const rootStyle = { ...resolveButtonRootStyle(size, fontScale), ...flatStyle?.style };
+  const rootStyle = resolveButtonRootStyle(size, fontScale, flatStyle?.style);
 
   if (variant === 'primary' && flat) {
     return (
