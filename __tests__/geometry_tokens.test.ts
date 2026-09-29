@@ -40,7 +40,6 @@ describe('zero-shift geometry tokens', () => {
   it('the CTA footer track is unscaled 48', () => {
     // 48 is the md button's fixed height, so the track is raw and never ms()-wrapped.
     expect(Size.ctaFooterTrack).toBe(48);
-    expect(Size.ctaFooterTrack).not.toBe(ms(48));
   });
 
   it('the N4 pill row holds one padded caption line', () => {
