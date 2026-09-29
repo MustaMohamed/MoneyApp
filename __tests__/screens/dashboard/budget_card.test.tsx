@@ -101,7 +101,7 @@ describe('BudgetCard', () => {
     );
 
     expect(getByTestId('dashboard-budget-skeleton-meta')).toHaveStyle({
-      minHeight: resolveSkeletonBarHeight(ms(13), fontScale),
+      height: resolveSkeletonBarHeight(ms(13), fontScale),
     });
     expect(getByTestId('dashboard-budget-skeleton-progress')).toHaveStyle({ height: ms(3) });
   });
