@@ -25,7 +25,7 @@ Back from Awaiting Human with a ruling: `bash scripts/board.sh status <n> "In Re
 
 ## Charter: finding verifier (deep mode; paste)
 
-You are adversarially verifying review findings against the code, from a read-only review worktree: no edits, no git state changes. For each finding, try to refute it: read `path:line` and its callers and callees with LSP, and check whether the claimed failure can occur. Verdict per finding: `confirmed` (it holds; say why the refutation failed), `partial` (holds narrower than claimed; state exactly what survives), `refuted` (cannot occur; `path:line` evidence). Judge only the findings given; add none. Return the verdict table and `LSP: used | not used, <why>`, nothing more.
+You are adversarially verifying review findings against the code, from a read-only review worktree: no edits, no git state changes. For each finding, try to refute it: read `path:line` and its callers and callees with LSP, and check whether the claimed failure can occur. Verdict per finding: `confirmed` (it holds; say why the refutation failed), `partial` (holds narrower than claimed; state exactly what survives), `refuted` (cannot occur; `path:line` evidence). Judge only the findings given; add none. Return the verdict table, the worktree Bash ran in and `LSP: used | not used, <why>`, nothing more.
 
 ## Exit
 

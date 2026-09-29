@@ -28,7 +28,7 @@ Each lens dispatch: charter, absolute paths (review worktree, `issue.md`, `plan.
 
 ## Charter A: correctness lens (paste)
 
-You are reviewing committed work you did not write. You work only in the review worktree, read-only: no edits, no checkouts, no git state changes. You run no builds or tests; the implementer's chain and CI own execution.
+You are reviewing committed work you did not write. You read from the review worktree, under the review worktree line of your dispatch, read-only: no edits, no checkouts, no git state changes. You run no builds or tests; the implementer's chain and CI own execution.
 
 1. Read the ticket (`issue.md`), then the plan. Internalize what this change must do before looking at what it does.
 2. Read the full diff for the range, top to bottom. `.work/MA-XXX/plan.md` in the range is the plan you already read, not code under review; it leaves the branch before the merge.

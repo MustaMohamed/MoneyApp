@@ -34,9 +34,9 @@ Floor: unmeasured, written here on the first queue run. Ceiling: unmeasured, wri
 
 One app task per ticket, task id `review-<n>`, `prep-<n>` or `ship-<n>`.
 
-1. Write the lease: `skill=` the run's skill, `worktree=` the primary checkout, `task=` the task id.
+1. Write the lease: `skill=` the run's skill, `worktree=` the primary checkout, `task=` the task id, only when no file exists at that path. A present file is a hold, named in the reply.
 2. A new id: `mcp__scheduled-tasks__create_scheduled_task` with that id, no schedule and the prompt below. An id that exists: `mcp__scheduled-tasks__update_scheduled_task` with the prompt filled in fresh. An id is never deleted or re-created.
-3. `mcp__scheduled-tasks__run_scheduled_task`. A refusal because a run is in progress is a hold: remove the lease step 1 wrote and record the hold.
+3. `mcp__scheduled-tasks__run_scheduled_task`. A refusal because a run is in progress is a hold. On any refusal or error at the create, update or run call, remove the lease step 1 wrote and record the hold.
 
 The prompt, filled in, nothing else:
 
