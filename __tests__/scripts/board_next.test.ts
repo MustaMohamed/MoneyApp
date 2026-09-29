@@ -19,6 +19,23 @@ interface Action {
   reviewed?: string | null;
   pr?: { number: number; state: string; url: string } | null;
   progress?: { total: number; closed: number; open: number[] } | null;
+  questions?: number;
+}
+
+interface TreeModel {
+  leaves: Array<{
+    n: number;
+    blockers: Array<{ n: number; parent: boolean }>;
+    pill: { text: string; kind: string; click: string } | null;
+  }>;
+}
+
+function treeModel(): TreeModel {
+  const r = run('--format', 'html');
+  expect(r.status).toBe(0);
+  const json =
+    /<script type="application\/json" id="tg-model">([^]*?)<\/script>/.exec(r.stdout)?.[1] ?? '{}';
+  return JSON.parse(json) as TreeModel;
 }
 
 function run(...args: string[]): { status: number | null; stdout: string; stderr: string } {
@@ -50,6 +67,9 @@ describe('board_next rule table', () => {
       'Blocked on a ruling from /prep',
       'bash scripts/board.sh status 143 "Ready For Development"',
     ],
+    [146, 'yours', '1 open question', '/queue asks'],
+    [147, 'yours', '2 open questions', '/queue asks'],
+    [149, 'yours', '1 open question', '/queue asks'],
     [102, 'yours', 'checks red on PR #502', '/ship 102'],
     [103, 'yours', 'no PR: a dispute or a cap', 'read ~/.ship/MoneyApp/MA-103/state.md'],
     [
@@ -123,6 +143,16 @@ describe('board_next rule table', () => {
     expect([a.bucket, a.action, a.command]).toEqual([bucket, action, command]);
   });
 
+  test('an answered record counts for nothing: the ticket follows its column', () => {
+    const a = byNumber(list, 148);
+    expect([a.bucket, a.action, a.command]).toEqual([
+      'define',
+      'Defined, Reviewed none',
+      '/issue-review 148',
+    ]);
+    expect(a.questions).toBe(0);
+  });
+
   test('closed issues that are Done, and closed children, are not listed', () => {
     expect(list.map((a) => a.number)).not.toContain(111);
   });
@@ -155,6 +185,11 @@ describe('board_next text', () => {
     expect(lines.indexOf('#101 MA-101 · Awaiting Human · merge PR #501 · yours')).toBeLessThan(
       lines.indexOf('#114 MA-114 · Defined · marked, waits on #104'),
     );
+  });
+
+  test('a ticket with an open record reads as yours, with /queue asks', () => {
+    const lines = run('--format', 'text').stdout.split('\n');
+    expect(lines).toContain('#146 MA-146 · Defined · 1 open question · /queue asks');
   });
 
   test('json carries the graph decision', () => {
@@ -205,6 +240,16 @@ describe('board_next html', () => {
     expect(html).toContain('r.clientWidth');
     expect(html).toContain('ResizeObserver');
   });
+
+  test('a card with an open record carries the /queue asks pill', () => {
+    const leaf = treeModel().leaves.find((l) => l.n === 146);
+    expect(leaf?.pill).toMatchObject({ text: '/queue asks', kind: 'you' });
+  });
+
+  test('a Blocked on #m comment older than the last five draws no blocker', () => {
+    const leaf = treeModel().leaves.find((l) => l.n === 151);
+    expect(leaf?.blockers).toEqual([]);
+  });
 });
 
 describe('board_next card fields', () => {
@@ -240,6 +285,16 @@ describe('board_next card fields', () => {
     expect(ranked.map((a) => a.rank)).toEqual(ranked.map((_, i) => i + 1));
     const freeing = ranked.filter((a) => (a.unblocks ?? 0) > 0).length;
     expect(ranked.slice(0, freeing).every((a) => (a.unblocks ?? 0) > 0)).toBe(true);
+  });
+
+  test('an open record is yours to answer from a session, never run from the page', () => {
+    const a = byNumber(list, 146);
+    expect({ actor: a.actor, runnable: a.runnable, questions: a.questions }).toEqual({
+      actor: 'you',
+      runnable: false,
+      questions: 1,
+    });
+    expect(byNumber(list, 147).questions).toBe(2);
   });
 
   test('a card gets its PR, its review date and a parent its progress', () => {
