@@ -2,16 +2,17 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LinkButton } from 'heroui-native';
 import React from 'react';
-import { Text as RNText, View } from 'react-native';
+import { Text as RNText, View, useWindowDimensions } from 'react-native';
 
 import {
   HERO_GRADIENT_COLORS,
   HERO_GRADIENT_END,
   HERO_GRADIENT_START,
 } from '@/components/ui/hero_gradient';
+import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type {
   DashboardNetWorth,
@@ -53,6 +54,7 @@ export function TotalBalanceStrip({
   accountsCount,
   onSeeAllPress,
 }: TotalBalanceStripProps) {
+  const { fontScale } = useWindowDimensions();
   return (
     <View className="border-border mx-4 mt-2 mb-2 overflow-hidden rounded-2xl border">
       <LinearGradient
@@ -107,8 +109,8 @@ export function TotalBalanceStrip({
             style={{ marginTop: Size.inlineLinkOffset, alignSelf: 'flex-end' }}
           >
             <LinkButton.Label
+              {...resolveOneLineTextProps(scaledTextStyle(Type.caption, fontScale))}
               className="text-accent font-inter-semibold"
-              style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
             >
               {Strings.dashSeeAll}
             </LinkButton.Label>

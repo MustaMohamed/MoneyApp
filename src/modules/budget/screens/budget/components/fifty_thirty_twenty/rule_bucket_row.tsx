@@ -1,8 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion, Button, Chip } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import { resolveButtonLabelStyle, resolveButtonRootStyle } from '@/components/ui/button.geometry';
 import { Text } from '@/components/ui/text';
+import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup } from '@/constants/enums';
 import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { RuleBucketVM } from '@/modules/budget/screens/budget/budget_buckets.helpers';
@@ -17,6 +19,7 @@ interface RuleBucketRowProps {
 
 export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowProps) {
   const presentation = bucket.presentation;
+  const { fontScale } = useWindowDimensions();
 
   return (
     <Accordion.Item value={bucket.group}>
@@ -159,9 +162,13 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
           variant="ghost"
           size="sm"
           onPress={() => onManage(bucket.group)}
-          className="min-h-10 justify-between rounded-none px-3"
+          className="justify-between rounded-none px-3"
+          style={resolveButtonRootStyle('sm', fontScale)}
         >
-          <Button.Label className="font-inter-semibold text-foreground">
+          <Button.Label
+            {...resolveOneLineTextProps(resolveButtonLabelStyle('sm', fontScale))}
+            className="font-inter-semibold text-foreground"
+          >
             {presentation.manageLabel}
           </Button.Label>
           <MaterialCommunityIcons name="arrow-right" size={Size.iconXs} color={Colors.dark.text2} />

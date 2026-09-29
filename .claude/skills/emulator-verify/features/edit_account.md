@@ -20,6 +20,7 @@ Route `/accounts/[id]/edit` (MA-078, open at 2026-09-17; until it merges the det
 | save failure | F3 | source force on the update | `Couldn't save your changes. Nothing was changed. Try again.` in the status track; db unchanged; shot |
 | saved, reload failed | no frame, MA-075 ruling | source force on the reload | dismisses to the accounts list, not the detail; db updated |
 | keyboard up on Android | no frame, MA-078 | tap a field | disabled rows keep their disabled look; `Save` reachable |
+| footer, large font | no frame, MA-130 | the edit form; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the footer buttons; one crop of the footer at 2.0 |
 
 ## Outbound
 

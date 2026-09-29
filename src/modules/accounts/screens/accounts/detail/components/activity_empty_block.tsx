@@ -1,9 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinkButton } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
@@ -13,6 +14,7 @@ interface Props {
 
 /** The inline block inside the activity card, not an `EmptyState` (ADR 2026-09-01). */
 export function ActivityEmptyBlock({ onAdd }: Props): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
   return (
     <View className="items-center px-4 py-5">
       <View
@@ -49,8 +51,8 @@ export function ActivityEmptyBlock({ onAdd }: Props): React.ReactElement {
         style={{ marginTop: Spacing.sm }}
       >
         <LinkButton.Label
+          {...resolveOneLineTextProps(scaledTextStyle(Type.caption, fontScale))}
           className="text-accent font-inter-semibold"
-          style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
         >
           {Strings.accountActivityEmptyCta}
         </LinkButton.Label>

@@ -35,6 +35,13 @@ The canvas draws one account type per frame. Every state below is checked on a b
 | activity row, glyph recoloured | no frame, MA-103 | the MA-103 seed (`categories.md` § Seeding and forcing states): open `Walk Bank`, whose activity card holds the Housing, Bills and Subscriptions expenses | one shot of the activity card: the glyphs in `#5C7FC4`, `#5C7FC4` and `#B264A7` on the card fill |
 | activity row, large font | no frame, MA-127 | the `activity row, tile off` seed; the `Font scale` force (README) at 1.0 and 2.0 | the row reads 63 ± 1 dp high at 1.0 and `resolveTransactionRowHeight(2)` ± 1 at 2.0, its text boxes inside it; a crop at 2.0: each line whole or ending in a whole `…`, none cut at the top or bottom |
 | activity loading, large font | no frame, MA-127 | the `activity loading` force; the `Font scale` force (README) at 2.0 | a shot pair, the skeleton and the loaded card: skeleton rows as tall as loaded rows, bars as tall as the lines they stand for |
+| body buttons, large font | no frame, MA-130 | a seeded active account; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on `Adjust balance` and `Archive`, each inside its half of the row; one crop at 2.0 |
+| activity see-all link, large font | no frame, MA-130 | a seeded account with transactions; the `Font scale` force (README) at 1.0 and 2.0 | the `See all` label box inside the activity card's header row, the header title beside it whole or ending in a whole `…` and not overlapped; one crop at 2.0 |
+| activity empty link, large font | no frame, MA-130 | from `no transactions`; the `Font scale` force (README) at 1.0 and 2.0 | the link label box inside the activity card, one line, whole or ending in a whole `…`; one crop at 2.0 |
+| activity load error retry, large font | no frame, MA-130 | the force of `activity load error`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on `Try again` inside the activity card; one crop at 2.0 |
+| adjust balance sheet, large font | no frame, MA-130 | `Adjust balance`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the sheet's footer buttons; one crop of the footer at 2.0 |
+| balance review alert, large font | no frame, MA-130 | from `balance review alert`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the alert's button; one crop of the alert at 2.0 |
+| archive dialog, large font | no frame, MA-130 | `Archive`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the dialog's two buttons; one crop of the dialog at 2.0 |
 
 ## Outbound
 

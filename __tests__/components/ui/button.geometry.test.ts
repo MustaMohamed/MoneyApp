@@ -1,8 +1,13 @@
 import type { ButtonSize } from 'heroui-native';
 
-import { resolveButtonLabelStyle, resolveCompactCtaHeight } from '@/components/ui/button.geometry';
+import {
+  resolveButtonLabelStyle,
+  resolveButtonRootStyle,
+  resolveCompactCtaHeight,
+  resolveSmallButtonHeight,
+} from '@/components/ui/button.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 
 const SIZES: ButtonSize[] = ['sm', 'md', 'lg'];
 
@@ -23,6 +28,12 @@ describe('resolveButtonLabelStyle', () => {
       lineHeight: lineHeightFor(fontSize),
     });
   });
+
+  it('at font scale 2 keeps the md label line box inside the onboarding CTA track', () => {
+    expect(resolveButtonLabelStyle('md', 2)?.lineHeight).toBeLessThanOrEqual(
+      Size.onboardingCtaTrack,
+    );
+  });
 });
 
 describe('resolveCompactCtaHeight', () => {
@@ -34,5 +45,33 @@ describe('resolveCompactCtaHeight', () => {
     const label = resolveButtonLabelStyle('md', 2);
     expect(resolveCompactCtaHeight('md', 2)).toBeGreaterThanOrEqual(label?.lineHeight ?? Infinity);
     expect(resolveCompactCtaHeight('md', 2)).toBeGreaterThanOrEqual(Size.compactCtaTrack);
+  });
+});
+
+describe('resolveSmallButtonHeight', () => {
+  it('is the small button track at font scale 1', () => {
+    expect(resolveSmallButtonHeight(1)).toBe(Size.smallButtonTrack);
+  });
+
+  it('at font scale 2 holds the sm label line box and never drops below the track', () => {
+    const label = resolveButtonLabelStyle('sm', 2);
+    expect(resolveSmallButtonHeight(2)).toBeGreaterThanOrEqual(label?.lineHeight ?? Infinity);
+    expect(resolveSmallButtonHeight(2)).toBeGreaterThanOrEqual(Size.smallButtonTrack);
+  });
+});
+
+describe('resolveButtonRootStyle', () => {
+  it('gives the sm root the small button height at every font scale', () => {
+    expect(resolveButtonRootStyle('sm', 1)).toEqual({ height: Size.smallButtonTrack });
+    expect(resolveButtonRootStyle('sm', 2)).toEqual({ height: resolveSmallButtonHeight(2) });
+  });
+
+  it.each<ButtonSize>(['md', 'lg'])('leaves the %s root height to HeroUI', (size) => {
+    expect(resolveButtonRootStyle(size, 2)).toBeUndefined();
+  });
+
+  it("lets the compact accent arm's height win over the sm track and keeps its radius", () => {
+    const accent = { borderRadius: Radius.cta, height: Size.compactCtaTrack };
+    expect(resolveButtonRootStyle('sm', 1, accent)).toEqual(accent);
   });
 });

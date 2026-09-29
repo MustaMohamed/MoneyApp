@@ -8,8 +8,9 @@ import {
   resolveStateScreenLayout,
 } from '@/components/ui/state_screen.geometry';
 import { Text } from '@/components/ui/text';
+import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 
 // Ruled genuinely different from ErrorState, not merged (#290). Evidence and the
 // rejected merge shape: docs/adr/2026-09-01-empty-error-state-stay-separate.md
@@ -145,7 +146,9 @@ export function resolveEmptyStatePlacement(
 }
 
 export function EmptyState(props: EmptyStateProps) {
-  const bottomReserve = resolveStateScreenBottomReserve(useWindowDimensions().fontScale);
+  const { fontScale } = useWindowDimensions();
+  const bottomReserve = resolveStateScreenBottomReserve(fontScale);
+  const clearLine = resolveOneLineTextProps(scaledTextStyle(Type.body, fontScale));
   const { onAction, clearsFab } = props;
   const config = VARIANT_CONFIG[props.variant];
   const placement = resolveEmptyStatePlacement(props.placement, config.placement);
@@ -198,7 +201,9 @@ export function EmptyState(props: EmptyStateProps) {
           accessibilityRole="button"
           accessibilityLabel={config.clearLabel}
         >
-          <Text style={styles.clearLabel}>{config.clearLabel}</Text>
+          <Text {...clearLine} style={[styles.clearLabel, clearLine.style]}>
+            {config.clearLabel}
+          </Text>
         </Pressable>
       )}
     </View>
@@ -232,8 +237,6 @@ const styles = StyleSheet.create({
   },
   clearLabel: {
     fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    lineHeight: lineHeightFor(Type.body),
     color: Colors.dark.gold,
   },
 });

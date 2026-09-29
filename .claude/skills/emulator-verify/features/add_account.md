@@ -18,6 +18,8 @@ Route `/accounts/add_account`, and `(onboarding)/add_account` for N2. Screen `sr
 | duplicate name, archived | no frame, MA-076 open | an archived account's name | refusal once MA-076 merges |
 | save failure | none | source force | `Couldn't save that account. Tap Save Account to try again.`; db unchanged |
 | saved | none | `$MQA tap 'Save Account'` | `mqa db "select name, opening_balance, current_balance from accounts order by rowid desc limit 1"`: current equals opening |
+| save button, large font | no frame, MA-130 | the add form; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the save button; one crop at 2.0 |
+| colour sheet, large font | no frame, MA-130 | the colour row on the add form; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the sheet's buttons; one crop at 2.0 |
 
 ## Outbound
 

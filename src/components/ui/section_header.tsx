@@ -1,7 +1,8 @@
 import { LinkButton, Typography } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Colors, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 interface SectionHeaderCommonProps {
@@ -17,14 +18,18 @@ export type SectionHeaderProps =
     });
 
 export function SectionHeader({ title, count, action }: SectionHeaderProps) {
+  const captionLine = resolveOneLineTextProps(
+    scaledTextStyle(Type.caption, useWindowDimensions().fontScale),
+  );
   return (
     <View
       className="mt-4 mb-2 flex-row items-center justify-between"
-      style={{ flexDirection: 'row', marginHorizontal: Spacing.md }}
+      style={{ flexDirection: 'row', marginHorizontal: Spacing.md, gap: Spacing.xs }}
     >
       <Typography
+        {...captionLine}
         className="font-inter-semibold text-muted tracking-wide uppercase"
-        style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
+        style={{ ...captionLine.style, flex: 1 }}
       >
         {title}
       </Typography>
@@ -53,11 +58,9 @@ export function SectionHeader({ title, count, action }: SectionHeaderProps) {
           onPress={action.onPress}
           accessibilityRole="button"
           accessibilityLabel={action.label}
+          style={{ flexShrink: 1 }}
         >
-          <LinkButton.Label
-            className="text-accent font-inter-semibold"
-            style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
-          >
+          <LinkButton.Label {...captionLine} className="text-accent font-inter-semibold">
             {action.label}
           </LinkButton.Label>
         </LinkButton>
