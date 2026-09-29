@@ -81,7 +81,9 @@ jest.mock('heroui-native', () => {
       {children}
     </Pressable>
   );
-  Button.Label = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
+  Button.Label = ({ children, ...props }: { children?: ReactNode }) => (
+    <Text {...props}>{children}</Text>
+  );
   const Card = ({ children, ...props }: { children?: ReactNode }) => (
     <View {...props}>{children}</View>
   );
@@ -236,6 +238,7 @@ describe('50/30/20 rule ledger', () => {
       1,
     );
     expect(screen.getByText('6,500 / 6,000')).toBeTruthy();
+    expect(screen.getByText('Manage Needs budgets')).toHaveProp('numberOfLines', 1);
     await fireEvent.press(screen.getByText('Manage Needs budgets'));
     expect(onManageGroup).toHaveBeenCalledWith(BudgetGroup.Need);
   });
