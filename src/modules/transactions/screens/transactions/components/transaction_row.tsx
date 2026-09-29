@@ -1,12 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
 import React, { useCallback, useMemo } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { TypeBadge } from '@/components/ui/type_badge';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
@@ -25,9 +26,9 @@ import {
   TRANSACTION_ROW_DUAL_OFFSET,
   TRANSACTION_ROW_DUAL_RING,
   TRANSACTION_ROW_DUAL_RING_COLOR,
-  TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveTransactionRowHeight,
   type TransactionRowPresentation,
 } from './transaction_row.helpers';
 
@@ -119,6 +120,7 @@ export function TransactionRowBody({
   const { scale, onPressIn, onPressOut } = useRowPressScale();
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isCommitmentOwned = presentation.isCommitmentOwned;
+  const { fontScale } = useWindowDimensions();
 
   return (
     // animation={false} keeps PressableFeedback's own scale off the Reanimated one below.
@@ -131,7 +133,10 @@ export function TransactionRowBody({
     >
       <Animated.View
         testID="transaction-row"
-        style={[animStyle, { height: TRANSACTION_ROW_HEIGHT, justifyContent: 'center' }]}
+        style={[
+          animStyle,
+          { height: resolveTransactionRowHeight(fontScale), justifyContent: 'center' },
+        ]}
         className={showSeparator ? 'border-separator border-b px-4' : 'px-4'}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-3">
@@ -144,11 +149,9 @@ export function TransactionRowBody({
                 color={presentation.glyphColor}
               />
               <Text
+                allowFontScaling={false}
                 className="font-inter-medium text-foreground min-w-0 shrink"
-                style={{
-                  fontSize: TRANSACTION_ROW_TITLE_FONT_SIZE,
-                  lineHeight: lineHeightFor(TRANSACTION_ROW_TITLE_FONT_SIZE),
-                }}
+                style={scaledTextStyle(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale)}
                 numberOfLines={1}
               >
                 {presentation.title}
@@ -168,10 +171,10 @@ export function TransactionRowBody({
             <View style={{ flexDirection: 'row', marginTop: TRANSACTION_ROW_LINE_GAP }}>
               {presentation.captionLead === undefined ? null : (
                 <Text
+                  allowFontScaling={false}
                   className="font-inter text-content-secondary"
                   style={{
-                    fontSize: TRANSACTION_ROW_CAPTION_FONT_SIZE,
-                    lineHeight: lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+                    ...scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale),
                     flexShrink: 1,
                   }}
                   numberOfLines={1}
@@ -180,10 +183,10 @@ export function TransactionRowBody({
                 </Text>
               )}
               <Text
+                allowFontScaling={false}
                 className="font-inter text-content-secondary"
                 style={{
-                  fontSize: TRANSACTION_ROW_CAPTION_FONT_SIZE,
-                  lineHeight: lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+                  ...scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale),
                   flexShrink: 0,
                 }}
                 numberOfLines={1}
@@ -199,20 +202,18 @@ export function TransactionRowBody({
             style={{ flexShrink: 0, alignItems: 'flex-end' }}
           >
             <Text
+              allowFontScaling={false}
               className={`font-sora tabular-nums ${presentation.amountClassName}`}
-              style={{
-                fontSize: TRANSACTION_ROW_AMOUNT_FONT_SIZE,
-                lineHeight: lineHeightFor(TRANSACTION_ROW_AMOUNT_FONT_SIZE),
-              }}
+              style={scaledTextStyle(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale)}
               numberOfLines={1}
             >
               {presentation.primaryAmount}
             </Text>
             <Text
+              allowFontScaling={false}
               className="font-inter text-content-secondary tabular-nums"
               style={{
-                fontSize: TRANSACTION_ROW_CODE_FONT_SIZE,
-                lineHeight: lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE),
+                ...scaledTextStyle(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale),
                 marginTop: TRANSACTION_ROW_LINE_GAP,
               }}
               numberOfLines={1}
