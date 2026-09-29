@@ -32,7 +32,7 @@ Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a
 
 | Verb | Does |
 |---|---|
-| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (stop and ask on REBUILD); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
+| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a typed run stops and asks on REBUILD; a `Run: unattended` run builds, § Running from a task worktree); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
 | `down` | close the agent-device session so the system keyboard comes back; the claim and Metro stay for the next run |
 | `open <route\|url>` | deep link: `/transactions`, `/accounts`, or a full `moneyapp://` URL |
 | `read [scope]` · `ui` | what is on screen: `@ref`, kind, label and testID, with a row's own texts folded into it; with a scope (a testID or a label), every labelled node drawn inside that container, in dp |
@@ -124,7 +124,9 @@ A lease goes stale when its worktree is deleted, or after `MQA_LEASE_TTL` (defau
 without a call; every `mqa` call touches its own. `mqa claims` shows a stale lease as free
 and names its old holder. `mqa release` gives the slot back and stops this worktree's Metro
 on its port, which would otherwise make the next holder's `up` refuse the port. A fourth
-concurrent ticket queues: add a slot by creating another AVD and extending `MQA_SLOTS`.
+concurrent ticket waits: `/queue` holds a fourth `Verify emulator` ticket on `mqa claims` and
+never calls `mqa claim` for a run. To run four at once, add a slot by creating another AVD
+and extending `MQA_SLOTS`.
 
 ## The feature map, read before scoping
 
@@ -183,11 +185,14 @@ worktree, which needs three things the worktree does not have by default.
    `agent-device`.
 2. **An APK — but usually not a new one.** `mqa install` wants
    `android/app/build/outputs/apk/debug/app-debug.apk`, and `android/` is gitignored.
-   **Ask before building:** `mqa up` prints `build: REUSE` or `build: REBUILD`. A rebuild is
+   **Ask before building**, in a typed run: `mqa up` prints `build: REUSE` or `build: REBUILD`. A rebuild is
    mandatory only when the **native surface** moved: `package.json`, `package-lock.json`,
    `app.json`, `eas.json`, `patches/`, or anything under `android/`/`ios/`, and the APK on the
    device was installed before the newest such change. An APK installed after it already
    carries it, which is the render lens's case. Everything else reaches the device over Metro.
+   A run whose task prompt reads `Run: unattended` asks nothing: it builds and installs once
+   under the permission rule in [queue § Permission rule](../queue/SKILL.md) and records
+   `build: REBUILD` in its log line's note.
    When you do need one:
 
    ```bash

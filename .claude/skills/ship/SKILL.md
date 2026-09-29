@@ -12,6 +12,8 @@ Delivery of one leaf task from Planned to Done, on the branch `/prep` created, t
 
 `/ship <n>` (an MA id resolves through `gh issue list --search "MA-XXX" --state all --json number,title --jq '.[] | select(.title | startswith("MA-XXX ")) | .number'`; the search alone returns every issue that mentions the id). The reverse, `gh issue view <n> --json title --jq .title`, gives MA-XXX, which names the artifact directory, the branch and the worktree below.
 
+**Lease first.** `~/.ship/MoneyApp/queue/leases/<n>`, shape in [queue § Lease](../queue/SKILL.md). A held lease means the ticket belongs to the run the lease names; a stale one is reported with its skill and last write. Either stops the run here. No lease: go on.
+
 1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists: read it, announce phase, branch, PR and any open loop, load that phase's file, continue. Never redo a completed phase.
 2. Otherwise `bash scripts/board.sh get <n>`:
    - **Planned** → phase 1.
@@ -109,13 +111,15 @@ pr: <url or ->
 
 Log entries are facts: SHAs, verdicts, counts, decisions, eight lines at most each, one per sub-step inside a phase (written, dispatched, committed, pushed), so a resume knows where the crash fell. The file stays under 15 KB.
 
+**Lease and working folder**, the end of Setup, before any dispatch. Write the lease with `skill=ship` and `worktree=` the implementation worktree, and touch it at every dispatch and every `state.md` write. Then call EnterWorktree with `path` set to `/Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX`; a refusal because it already is the working folder is a pass. The lease is removed when the ticket reaches Awaiting Human or Blocked, when a question is parked as a record, and after the post-merge list. It is written again before the next dispatch on every resume and on every return from Awaiting Human, whether a ruling ([references/triage.md](references/triage.md)) or a PR comment routed through phase 3.
+
 **Resume inside a phase:** unpushed commits in the worktree → push and re-point the review worktree, then continue from the Log's last line; uncommitted edits → the discard in `references/implement.md` → Re-entry, then re-dispatch the last dispatch.
 
 ## Hard rules
 
 1. **Subagents never touch the issue or the PR, never push, never merge.** Only the conductor runs `gh`, `git push` and the built-in `code-review`; merges are the human's.
 2. **Reviewers never write code.** Findings route to the implementer, who fixes and commits. If fixing seems faster than re-dispatching, that is the moment this rule exists for.
-3. **Lenses read only, in the review worktree.** The one exception is the render lens, which runs the app from the implementation worktree because a symlinked `node_modules` resolves zero routes; it edits nothing there. The implementation worktree otherwise belongs to the implementer alone.
+3. **Lenses read only, in the review worktree, which each one enters with EnterWorktree as its first action.** The one exception is the render lens, which runs the app from the implementation worktree because a symlinked `node_modules` resolves zero routes; it edits nothing there. The implementation worktree otherwise belongs to the implementer alone.
 4. **Human gates are explicit.** Approval is a direct answer to the gate question in this session. Urgency is priority, not approval.
 5. **One branch, one PR, targeting main, opened with `Closes #<n>`.** Never stacked.
 6. **Workflow artifacts never reach main.** The plan rides the branch for review and leaves it before the merge; the one workflow output that merges is a decision record under `docs/adr/`, through a plan step.
@@ -158,6 +162,8 @@ git -C /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX-rev
 # LSP needs deps; lenses never build or run, so a symlink from the implementation worktree serves (-sfn: idempotent)
 ln -sfn /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX/node_modules /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX-review/node_modules
 ```
+
+The review worktree sits under `.claude/worktrees/` of this repository, which is what lets a subagent enter it with EnterWorktree. Every dispatch that names it tells the subagent to call EnterWorktree with `path` set to it as its first action; a refusal because it already is the working folder is a pass. A lens that could not use LSP there says so in its return.
 
 Teardown after the merge, in this order: review worktree (`--force`), implementation worktree, local branch, `git worktree prune`. Subagents never create or remove worktrees.
 

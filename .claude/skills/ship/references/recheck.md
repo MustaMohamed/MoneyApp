@@ -5,7 +5,7 @@
 ## Conductor
 
 1. Re-point the review worktree to the pushed fix head: `git checkout --detach <sha>`, never re-create.
-2. Dispatch one fresh subagent, effort `medium`: the charter below, the review worktree path, the fix range `<pre-fix-sha>..<head>`, the path to this cycle's `findings/cycle-<n>.md`, and `## Adjudications` verbatim. Re-checks are the one review dispatch that gets the ledger.
+2. Dispatch one fresh subagent, effort `medium`: the charter below, the review worktree path, the fix range `<pre-fix-sha>..<head>`, the path to this cycle's `findings/cycle-<n>.md`, and `## Adjudications` verbatim. Re-checks are the one review dispatch that gets the ledger. The dispatch tells the re-checker to call EnterWorktree with `path` set to the review worktree as its first action; a refusal because it already is the working folder is a pass.
 3. **Pipeline it.** When triage produced parallel file-disjoint fix dispatches, or the implementer pushes fixes in more than one commit, dispatch a re-checker per pushed fix as it lands instead of waiting for the whole cycle; each gets only its own range and its own findings. Their verdicts merge into one cycle.
 4. Deep mode, fixes that changed logic: also re-invoke the built-in `code-review` at `medium` on the PR; its findings enter the next triage.
 
@@ -18,7 +18,7 @@ You are verifying fixes against the findings that demanded them, from a read-onl
 3. The attached adjudications are settled; do not re-open them, cite the ledger if you meet one again.
 4. New findings are allowed under the same evidence rule and only on the delta or its blast radius.
 
-Return: per-finding verdict (`fixed` | `not-fixed` with evidence), new delta findings, one sentence on the riskiest blast-radius path you traced.
+Return: per-finding verdict (`fixed` | `not-fixed` with evidence), new delta findings, one sentence on the riskiest blast-radius path you traced, `LSP: used | not used, <why>`.
 
 ## Exit
 

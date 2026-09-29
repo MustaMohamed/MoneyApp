@@ -24,7 +24,7 @@
    - **Render lens**, `Verify emulator` only, agent type `render`, charter D plus the plan's Screens section, the implementation worktree path, its Metro port, and the render findings path. It runs from the implementation worktree (Hard rule 3's exception) while the implementer is idle, which it is: dispatches are sequential.
    - **Built-in `code-review`**, conductor-invoked on the PR URL, effort passed explicitly every time: `high` in deep mode, else `medium`. Never `--fix`, never `--comment`.
 
-Each lens dispatch: charter, absolute paths (review worktree, `issue.md`, `plan.md`, diff range `origin/main...<sha>`, three-dot), the return shape.
+Each lens dispatch: charter, absolute paths (review worktree, `issue.md`, `plan.md`, diff range `origin/main...<sha>`, three-dot), the return shape. Charters A to C also get this line: call EnterWorktree with `path` set to the review worktree as your first action; a refusal because it already is the working folder is a pass.
 
 ## Charter A: correctness lens (paste)
 
@@ -38,7 +38,7 @@ You are reviewing committed work you did not write. You work only in the review 
 
 Evidence rule: every finding is `path:line`, quoted code, the failing scenario, the smallest fix, severity `blocking` (wrong behaviour, Acceptance violated, swallowed failure) or `note` (should fix, not merge-blocking). A clean class is one line. A report past a screen goes to the findings path in your dispatch; return the path.
 
-Return: verdict (`approve` | `findings`), findings, one sentence on the riskiest thing you checked that turned out fine.
+Return: verdict (`approve` | `findings`), findings, one sentence on the riskiest thing you checked that turned out fine, `LSP: used | not used, <why>`.
 
 ## Charter B: quality lens (paste)
 
@@ -52,7 +52,7 @@ You are auditing an open PR for quality from a read-only review worktree. Bugs a
 
 Evidence rule as charter A; `blocking` only for what would make a maintainer's next change wrong or slow. Record genuine strengths in one or two lines.
 
-Return: verdict, findings, strengths, danger-surface flags.
+Return: verdict, findings, strengths, danger-surface flags, `LSP: used | not used, <why>`.
 
 ## Charter C: conformance lens (paste; deep mode only)
 
@@ -63,7 +63,7 @@ You are checking an open PR against the codebase's house standard from a read-on
 3. Compile-time guards beat convention: a hand-maintained vocabulary or parallel list the compiler could check is a finding.
 4. Scope discipline: conformance fixes that belong to a remediation wave get recommended for exclusion, not demanded.
 
-Return: verdict, findings with `path:line` and the reference or audit citation, and the audit items this PR closes or declines.
+Return: verdict, findings with `path:line` and the reference or audit citation, the audit items this PR closes or declines, and `LSP: used | not used, <why>`.
 
 ## Charter D: render lens (paste; `Verify emulator` only)
 

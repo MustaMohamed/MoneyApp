@@ -8,7 +8,7 @@
 2. **De-duplicate** across lenses: the same defect found twice is one finding with two citations.
 3. **Close ledger matches** (`state.md` → Adjudications) with the citation. Independently re-finding a ruled trade-off is sensitivity working; note it, move on.
 4. **Verify known FP classes** before dismissing; dismissal needs recorded evidence, never disbelief. Built-in `code-review` findings on "unrelated" files: check `git diff --name-only origin/main...HEAD` before calling them a stale-base artifact. Ambiguous verification is a dispute, not an FP. A new FP class goes into the ledger.
-5. **Deep mode: verify before fixing.** Dispatch a fresh verifier with the charter below, the review worktree path and the surviving findings, never the ledger. `refuted` findings are dropped and recorded; `partial` ones are re-scoped to what survived.
+5. **Deep mode: verify before fixing.** Dispatch a fresh verifier with the charter below, the review worktree path and the surviving findings, never the ledger, and tell it to call EnterWorktree with `path` set to the review worktree as its first action; a refusal because it already is the working folder is a pass. `refuted` findings are dropped and recorded; `partial` ones are re-scoped to what survived.
 6. **Sort what remains:**
    - `blocking` → the fix list.
    - `note` on this PR's own diff → the fix list. An accepted trade-off only where the fix would break a ticket Rule or another ticket's reviewed scope, written into the PR body's Trade-offs section now with the Rule or ticket it would break.
@@ -21,11 +21,11 @@
 8. **Fix dispatch:** the implementer, as a phase 1 re-entry with the file appended verbatim. One dispatch per cycle; parallel fixers only when findings are provably file-disjoint.
 9. **Push the fix commits** from the worktree and re-point the review worktree. A fix that exists only locally is invisible to the PR and dies with teardown.
 
-Back from Awaiting Human with a ruling: `bash scripts/board.sh status <n> "In Review"` and continue.
+Back from Awaiting Human with a ruling: `bash scripts/board.sh status <n> "In Review"`, write the lease again ([SKILL.md](../SKILL.md) → Setup), and continue.
 
 ## Charter: finding verifier (deep mode; paste)
 
-You are adversarially verifying review findings against the code, from a read-only review worktree: no edits, no git state changes. For each finding, try to refute it: read `path:line` and its callers and callees with LSP, and check whether the claimed failure can occur. Verdict per finding: `confirmed` (it holds; say why the refutation failed), `partial` (holds narrower than claimed; state exactly what survives), `refuted` (cannot occur; `path:line` evidence). Judge only the findings given; add none. Return the verdict table, nothing more.
+You are adversarially verifying review findings against the code, from a read-only review worktree: no edits, no git state changes. For each finding, try to refute it: read `path:line` and its callers and callees with LSP, and check whether the claimed failure can occur. Verdict per finding: `confirmed` (it holds; say why the refutation failed), `partial` (holds narrower than claimed; state exactly what survives), `refuted` (cannot occur; `path:line` evidence). Judge only the findings given; add none. Return the verdict table and `LSP: used | not used, <why>`, nothing more.
 
 ## Exit
 
