@@ -29,10 +29,8 @@ describe('resolveButtonLabelStyle', () => {
     });
   });
 
-  it('at font scale 2 keeps the md label line box inside the onboarding CTA track', () => {
-    expect(resolveButtonLabelStyle('md', 2)?.lineHeight).toBeLessThanOrEqual(
-      Size.onboardingCtaTrack,
-    );
+  it('at font scale 2 keeps the md label line box inside the CTA footer track', () => {
+    expect(resolveButtonLabelStyle('md', 2)?.lineHeight).toBeLessThanOrEqual(Size.ctaFooterTrack);
   });
 });
 

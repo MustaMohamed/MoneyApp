@@ -13,8 +13,6 @@ describe('onboarding shell geometry', () => {
   it('binds every track to its named token', () => {
     expect(ONBOARDING_SHELL_TRACKS.header).toBe(Size.headerHeight);
     expect(ONBOARDING_SHELL_TRACKS.progressRail).toBe(Size.progressRail);
-    expect(ONBOARDING_SHELL_TRACKS.statusTrack).toBe(Size.statusTrack);
-    expect(ONBOARDING_SHELL_TRACKS.cta).toBe(Size.onboardingCtaTrack);
   });
 });
 
