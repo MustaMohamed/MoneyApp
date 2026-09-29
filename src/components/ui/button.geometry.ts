@@ -33,7 +33,7 @@ export interface ButtonRootStyle {
   borderRadius?: number;
 }
 
-/** `md` and `lg` keep HeroUI's CSS height, so they get no `height` key; the flat arm's keys win over the `sm` track. */
+/** `md` and `lg` get no track `height`; the flat arm's keys win over the `sm` track. */
 export function resolveButtonRootStyle(
   size: ButtonSize,
   fontScale: number,
