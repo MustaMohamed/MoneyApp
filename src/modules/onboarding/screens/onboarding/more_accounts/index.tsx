@@ -160,7 +160,7 @@ export default function MoreAccountsScreen() {
             {/* The ratified 48 CTA track (spec disagreements 6), not ms(52) — same shape as the footer's. */}
             <View
               style={{
-                height: Size.onboardingCtaTrack,
+                height: Size.ctaFooterTrack,
                 justifyContent: 'center',
                 marginTop: Spacing.md,
               }}
