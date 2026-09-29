@@ -7,8 +7,8 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
-import { TypeBadge } from '@/components/ui/type_badge';
+import { scaledFontSize, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { TypeBadge, resolveTypeBadgeMinWidth } from '@/components/ui/type_badge';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -51,6 +51,24 @@ interface BodyProps {
 }
 
 const DUAL_TILE_TOP = (Size.accountTile - Size.dualTile) / 2;
+// The budget-assigned label's narrowest box above 1.0, in ems of its size: its first glyph and a `…`.
+const OWNERSHIP_LABEL_MIN_EM = 1.7;
+
+// Above 1.0 a slot starts at its minimum and takes only the width the title leaves, so it yields before the title shrinks.
+function YieldingSlot({
+  minWidth,
+  children,
+}: {
+  minWidth?: number;
+  children: React.ReactElement;
+}): React.ReactElement {
+  if (minWidth === undefined) return children;
+  return (
+    <View style={{ flexDirection: 'row', flexGrow: 1, flexShrink: 0, flexBasis: minWidth }}>
+      {children}
+    </View>
+  );
+}
 
 function RowTiles({ tiles }: { tiles: RowTileSet }): React.ReactElement | null {
   if (tiles.length === 0) return null;
@@ -121,7 +139,7 @@ export function TransactionRowBody({
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isCommitmentOwned = presentation.isCommitmentOwned;
   const { fontScale } = useWindowDimensions();
-  // Above 1.0 the badge shares the title's width, so the title never draws only its `…`.
+  // Above 1.0 the badge and the label give up their width before the title does.
   const badgeShrinks = fontScale > 1;
 
   return (
@@ -159,20 +177,32 @@ export function TransactionRowBody({
                 {presentation.title}
               </Text>
               {isCommitmentOwned ? (
-                <TypeBadge type="commitment" fontScale={badgeShrinks ? fontScale : undefined} />
+                <YieldingSlot
+                  minWidth={badgeShrinks ? resolveTypeBadgeMinWidth(fontScale) : undefined}
+                >
+                  <TypeBadge type="commitment" fontScale={badgeShrinks ? fontScale : undefined} />
+                </YieldingSlot>
               ) : null}
               {!isCommitmentOwned && presentation.ownershipLabel ? (
-                <Text
-                  allowFontScaling={false}
-                  className="font-inter-bold text-info"
-                  style={{
-                    ...scaledTextStyle(Type.chip, fontScale),
-                    flexShrink: badgeShrinks ? 1 : 0,
-                  }}
-                  numberOfLines={1}
+                <YieldingSlot
+                  minWidth={
+                    badgeShrinks
+                      ? scaledFontSize(Type.chip, fontScale) * OWNERSHIP_LABEL_MIN_EM
+                      : undefined
+                  }
                 >
-                  {presentation.ownershipLabel}
-                </Text>
+                  <Text
+                    allowFontScaling={false}
+                    className="font-inter-bold text-info"
+                    style={{
+                      ...scaledTextStyle(Type.chip, fontScale),
+                      flexShrink: badgeShrinks ? 1 : 0,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {presentation.ownershipLabel}
+                  </Text>
+                </YieldingSlot>
               ) : null}
             </View>
             {/* The lead clips first; the time never ellipsizes. */}

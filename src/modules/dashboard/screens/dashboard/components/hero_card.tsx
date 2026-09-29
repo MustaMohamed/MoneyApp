@@ -23,6 +23,8 @@ import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 const DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT = ms(35);
 const DASHBOARD_HERO_PILL_SKELETON_HEIGHT = ms(20);
+// The pills' 1.0 widths, Tailwind's `w-21`, `w-28` and `w-20`, which grow with the font scale as their text does.
+const DASHBOARD_HERO_PILL_SKELETON_WIDTHS = [84, 112, 80] as const;
 
 interface HeroCardProps {
   /** One object, not loose props: narrowing needs the discriminant and fields together. */
@@ -61,24 +63,15 @@ function HeroCardSkeleton(): React.ReactElement {
           minHeight: pillHeight,
         }}
       >
-        <Skeleton
-          testID="dashboard-hero-skeleton-pill"
-          animation={DASHBOARD_SKELETON_ANIMATION}
-          className="w-21 rounded-full"
-          style={{ height: pillHeight }}
-        />
-        <Skeleton
-          testID="dashboard-hero-skeleton-pill"
-          animation={DASHBOARD_SKELETON_ANIMATION}
-          className="w-28 rounded-full"
-          style={{ height: pillHeight }}
-        />
-        <Skeleton
-          testID="dashboard-hero-skeleton-pill"
-          animation={DASHBOARD_SKELETON_ANIMATION}
-          className="w-20 rounded-full"
-          style={{ height: pillHeight }}
-        />
+        {DASHBOARD_HERO_PILL_SKELETON_WIDTHS.map((width) => (
+          <Skeleton
+            key={width}
+            testID="dashboard-hero-skeleton-pill"
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="rounded-full"
+            style={{ width: resolveSkeletonBarHeight(width, fontScale), height: pillHeight }}
+          />
+        ))}
       </View>
     </>
   );

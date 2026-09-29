@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { tv } from 'tailwind-variants';
 
 import { Text } from '@/components/ui/text';
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { scaledFontSize, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
@@ -15,7 +15,7 @@ export type TypeBadgeSize = 'sm' | 'md';
 interface Props {
   type: TypeBadgeKind;
   size?: TypeBadgeSize;
-  /** Given, the label draws at this scale and ends in a whole `…` (ADR 2026-09-27 §7), and the badge may shrink. */
+  /** Given, the label draws at this scale (ADR 2026-09-27 §7), and the badge may shrink. */
   fontScale?: number;
 }
 
@@ -51,6 +51,14 @@ const LABEL_STYLE = {
   md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
 } as const;
 
+const ICON_SIZE: Record<TypeBadgeSize, number> = { sm: 10, md: 12 };
+
+// The `wrap` chrome beside the icon: the 1 dp border and the `px-*` on each side, and the `gap-*`.
+const CHROME_WIDTH: Record<TypeBadgeSize, number> = { sm: 2 * (1 + 8) + 4, md: 2 * (1 + 10) + 6 };
+
+// A `…` in ems of the label's size, so the narrowest badge still draws one.
+const ELLIPSIS_EM = 1;
+
 const ICON: Record<TypeBadgeKind, React.ComponentProps<typeof MaterialCommunityIcons>['name']> = {
   commitment: 'clock-outline',
   goal: 'target',
@@ -69,6 +77,15 @@ const LABEL: Record<TypeBadgeKind, string> = {
   bill: Strings.typeBadgeBill,
 };
 
+/** The narrowest a scaled badge gets: its icon and a `…`. */
+export function resolveTypeBadgeMinWidth(fontScale: number, size: TypeBadgeSize = 'sm'): number {
+  return (
+    CHROME_WIDTH[size] +
+    ICON_SIZE[size] +
+    scaledFontSize(LABEL_STYLE[size].fontSize, fontScale) * ELLIPSIS_EM
+  );
+}
+
 export function TypeBadge({ type, size = 'sm', fontScale }: Props): React.ReactElement {
   const shrinks = fontScale !== undefined;
   return (
@@ -78,11 +95,7 @@ export function TypeBadge({ type, size = 'sm', fontScale }: Props): React.ReactE
       className={wrap({ type, size })}
       style={shrinks ? { flexShrink: 1 } : undefined}
     >
-      <MaterialCommunityIcons
-        name={ICON[type]}
-        size={size === 'sm' ? 10 : 12}
-        color={ICON_COLOR[type]}
-      />
+      <MaterialCommunityIcons name={ICON[type]} size={ICON_SIZE[size]} color={ICON_COLOR[type]} />
       <Text
         allowFontScaling={!shrinks}
         className={labelVariants({ type })}
