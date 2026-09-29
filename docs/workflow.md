@@ -16,7 +16,7 @@ Every move, who makes it, and on what. Nothing else moves a row.
 |---|---|---|---|
 | none | Todo | `/epic`; `/tickets` for a child marked for its own breakdown; `board.sh status <n> Todo` for a task recorded by hand | issue created |
 | Todo | Defined | `/boundaries` at the lock; `/tickets` for each child it creates, `Reviewed none` on the header | body in the standard |
-| Defined | Ready For Development | `board.sh promote`, run by `/issue-review` on a pass and by the post-merge routine; never by hand | `Reviewed <date>` on the header and on the parent's, a `Size:` line in Context within ~400 lines, any number of files, every Depends on closed, no sub-issues, no open question record on it or its parent |
+| Defined | Ready For Development | `board.sh promote`, run by `/issue-review` on a pass and by the post-merge routine; never by hand | `Reviewed <date>` on the header and on the parent's, a `Size:` line in Context within ~400 lines, any number of files, every Depends on closed, no sub-issues, no open question record on it; `promote <parent>` moves no child while the parent has an open record, and `promote <leaf>` reads the leaf's own records only |
 | Defined | Defined, parked | unattended `/issue-review` | an `ask` parked as a question record; no `Reviewed` date while one is open |
 | Defined | Ready For Development | `board.sh promote`, run by `/queue asks` after it writes `Reviewed <date>` | the last open record answered, under a marked parent, an epic, or no parent; `promote`'s other checks hold |
 | Defined | Defined, for `/tickets` | `/queue asks` | the last open record answered on a ticket counted at or over the size gate: the seam goes into its body, no date |
