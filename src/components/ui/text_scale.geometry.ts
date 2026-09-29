@@ -38,3 +38,18 @@ export function scaledTextStyleAboveOne(
 ): ScaledTextStyle | undefined {
   return fontScale <= 1 ? undefined : scaledTextStyle(fontSize, fontScale, maxFontScale);
 }
+
+export interface OneLineTextProps {
+  numberOfLines: 1;
+  allowFontScaling: boolean;
+  style: { fontSize?: number; lineHeight?: number; flexShrink: 1 };
+}
+
+/** One line ending in a tail ellipsis: a scaled style stops OS scaling, `undefined` leaves the OS to scale. */
+export function resolveOneLineTextProps(scaled: ScaledTextStyle | undefined): OneLineTextProps {
+  return {
+    numberOfLines: 1,
+    allowFontScaling: scaled === undefined,
+    style: { ...scaled, flexShrink: 1 },
+  };
+}

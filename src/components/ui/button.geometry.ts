@@ -23,3 +23,15 @@ export function resolveButtonLabelStyle(
 export function resolveCompactCtaHeight(size: ButtonSize, fontScale: number): number {
   return Math.max(Size.compactCtaTrack, resolveButtonLabelStyle(size, fontScale)?.lineHeight ?? 0);
 }
+
+export function resolveSmallButtonHeight(fontScale: number): number {
+  return Math.max(Size.smallButtonTrack, resolveButtonLabelStyle('sm', fontScale)?.lineHeight ?? 0);
+}
+
+/** `md` and `lg` keep HeroUI's CSS height, so they get no `height` key at all. */
+export function resolveButtonRootStyle(
+  size: ButtonSize,
+  fontScale: number,
+): { height: number } | undefined {
+  return size === 'sm' ? { height: resolveSmallButtonHeight(fontScale) } : undefined;
+}

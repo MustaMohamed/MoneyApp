@@ -12,7 +12,8 @@ import {
   resolveFlatButtonStyle,
   type FlatButtonTone,
 } from './button.content';
-import { resolveButtonLabelStyle } from './button.geometry';
+import { resolveButtonLabelStyle, resolveButtonRootStyle } from './button.geometry';
+import { resolveOneLineTextProps } from './text_scale.geometry';
 
 // CTAs are Sora (.claude/rules/ui.md; mockup `.cta` uses the display face at 600) — HeroUI's own label ships Inter medium.
 const CTA_LABEL_FONT = 'font-sora-semibold';
@@ -63,12 +64,9 @@ export function Button({
   });
   const { fontScale } = useWindowDimensions();
   const flatStyle = resolveFlatButtonStyle({ variant, flat, tone, fontScale, size });
-  const labelFontStyle = resolveButtonLabelStyle(size, fontScale);
-  const labelProps = {
-    numberOfLines: 1,
-    allowFontScaling: labelFontStyle === undefined,
-    style: { ...labelFontStyle, flexShrink: 1 },
-  };
+  const labelProps = resolveOneLineTextProps(resolveButtonLabelStyle(size, fontScale));
+  // The accent arm's own height wins over the sm track.
+  const rootStyle = { ...resolveButtonRootStyle(size, fontScale), ...flatStyle?.style };
 
   if (variant === 'primary' && flat) {
     return (
@@ -78,7 +76,7 @@ export function Button({
         isDisabled={disabledState}
         className={className}
         {...props}
-        style={flatStyle?.style}
+        style={rootStyle}
       >
         {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
         <HButton.Label {...labelProps} className={CTA_LABEL_FONT}>
@@ -96,6 +94,7 @@ export function Button({
         isDisabled={disabledState}
         className={cn('overflow-hidden bg-transparent', className)}
         {...props}
+        style={rootStyle}
       >
         <LinearGradient
           colors={[GoldTokens[400], GoldTokens[600]]}
@@ -125,7 +124,7 @@ export function Button({
       isDisabled={disabledState}
       className={cn(flatStyle?.rootClass, className)}
       {...props}
-      style={flatStyle?.style}
+      style={rootStyle}
       // A glyph sibling stops RN deriving the label from the text child — restate it.
       accessibilityLabel={icon ? text : undefined}
     >

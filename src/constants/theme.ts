@@ -146,6 +146,8 @@ export const Size = {
   onboardingCtaTrack: 48,
   // Raw 36 for the same reason: it overrides HeroUI's size="sm" track of 40 (button.css:43).
   compactCtaTrack: 36,
+  // Raw 40 for the same reason: HeroUI's size="sm" root height (button.css:43).
+  smallButtonTrack: 40,
   // Raw 28 for the same reason: the compact segment's `h-7` track at scale 1.
   compactSegmentTrack: 28,
   // Raw 32 for the same reason: the month pill's `h-8` track at scale 1.
