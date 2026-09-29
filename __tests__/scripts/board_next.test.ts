@@ -20,6 +20,10 @@ interface Action {
   pr?: { number: number; state: string; url: string } | null;
   progress?: { total: number; closed: number; open: number[] } | null;
   questions?: number;
+  lease?: 'held' | 'stale' | null;
+  leaseSkill?: string | null;
+  paths?: string[];
+  queue?: 'Defined' | 'Ready For Development' | 'Planned' | null;
 }
 
 interface TreeModel {
@@ -304,5 +308,103 @@ describe('board_next card fields', () => {
     expect(out.next.you).toBe(101);
     expect(typeof out.next.session).toBe('number');
     expect(typeof out.next.page).toBe('number');
+  });
+});
+
+describe('board_next leases and the queue column', () => {
+  const list = actions();
+
+  test('a Planned leaf whose lease is held is in flight with no command, and nobody acts on it', () => {
+    const a = byNumber(list, 152);
+    expect({
+      bucket: a.bucket,
+      action: a.action,
+      command: a.command,
+      actor: a.actor,
+      queue: a.queue,
+      lease: a.lease,
+      leaseSkill: a.leaseSkill,
+    }).toEqual({
+      bucket: 'flight',
+      action: 'ship running, lease held',
+      command: undefined,
+      actor: 'nobody',
+      queue: null,
+      lease: 'held',
+      leaseSkill: 'ship',
+    });
+  });
+
+  test.each([
+    [153, 'prep', 'last written 3 hours before the snapshot'],
+    [154, 'issue-review', 'its worktree is gone'],
+  ])('#%i with a stale %s lease (%s) is drift with the rm command, never queued', (n, skill) => {
+    const a = byNumber(list, n);
+    expect(a.action).toMatch(new RegExp(`^stale lease, ${skill}, last write `));
+    expect({
+      bucket: a.bucket,
+      command: a.command,
+      queue: a.queue,
+      lease: a.lease,
+      leaseSkill: a.leaseSkill,
+    }).toEqual({
+      bucket: 'drift',
+      command: `rm ~/.ship/MoneyApp/queue/leases/${n}`,
+      queue: null,
+      lease: 'stale',
+      leaseSkill: skill,
+    });
+  });
+
+  test('a ticket with ship state on this machine and no lease queues from Planned', () => {
+    const a = byNumber(list, 104);
+    expect({ actor: a.actor, queue: a.queue, lease: a.lease, leaseSkill: a.leaseSkill }).toEqual({
+      actor: 'session',
+      queue: 'Planned',
+      lease: null,
+      leaseSkill: null,
+    });
+  });
+
+  test('In Progress or In Review with no ship state on this machine is held: nobody acts, and it is not queued', () => {
+    for (const n of [105, 129]) {
+      const a = byNumber(list, n);
+      expect({ n, actor: a.actor, queue: a.queue }).toEqual({ n, actor: 'nobody', queue: null });
+    }
+  });
+
+  test('a pullable leaf queues from Ready For Development and an unreviewed Defined leaf from Defined', () => {
+    expect(byNumber(list, 108).queue).toBe('Ready For Development');
+    expect(byNumber(list, 110).queue).toBe('Defined');
+  });
+
+  test('a Defined leaf with Reviewed none and an open Depends on is not queued', () => {
+    const a = byNumber(list, 155);
+    expect([a.command, a.actor]).toEqual(['/issue-review 155', 'session']);
+    expect(a.queue).toBeNull();
+  });
+
+  test('a Planned leaf whose command is a replan is not queued', () => {
+    const a = byNumber(list, 107);
+    expect([a.command, a.actor]).toEqual(['/prep 107 --replan', 'session']);
+    expect(a.queue).toBeNull();
+  });
+
+  test('a leaf with an open question record is not queued', () => {
+    const a = byNumber(list, 146);
+    expect(a.questions).toBe(1);
+    expect(a.queue).toBeNull();
+  });
+
+  test('a parent is never queued, even with a session command', () => {
+    const a = byNumber(list, 127);
+    expect([a.bucket, a.command, a.actor]).toEqual(['define', '/issue-review 127', 'session']);
+    expect(a.queue).toBeNull();
+  });
+
+  test('paths are the Size paths the snapshot holds, and empty without them', () => {
+    expect(byNumber(list, 152).paths).toEqual(['scripts/board_next.mjs', 'docs/workflow.md']);
+    expect(byNumber(list, 108).paths).toEqual([]);
+    expect(byNumber(list, 110).paths).toEqual([]);
   });
 });

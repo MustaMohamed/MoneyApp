@@ -815,6 +815,72 @@
         "Scope note four",
         "Scope note five"
       ]
+    },
+    {
+      "number": 152,
+      "status": "Planned",
+      "title": "MA-152 — Planned, a ship run holds the lease",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [],
+      "branches": [
+        {
+          "name": "feat/MA-152-held",
+          "committedDate": "2026-09-08T09:00:00Z"
+        }
+      ],
+      "prs": [],
+      "comments": [],
+      "size": {
+        "files": 2,
+        "lines": 90,
+        "paths": ["scripts/board_next.mjs", "docs/workflow.md"]
+      }
+    },
+    {
+      "number": 153,
+      "status": "Ready For Development",
+      "title": "MA-153 — Pullable, its lease last written three hours ago",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": []
+    },
+    {
+      "number": 154,
+      "status": "Defined",
+      "title": "MA-154 — Needs review, its lease worktree is gone",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": []
+    },
+    {
+      "number": 155,
+      "status": "Defined",
+      "title": "MA-155 — Needs review, waits on an open dep",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on MA-104 (#104) · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [],
+      "branches": [],
+      "prs": [],
+      "comments": []
     }
   ],
   "offBoard": [
@@ -825,6 +891,29 @@
       "milestone": "MA-fixture",
       "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
       "parent": 100
+    }
+  ],
+  "leases": [
+    {
+      "number": 152,
+      "skill": "ship",
+      "worktree": "/Users/fixture/MoneyApp/.claude/worktrees/MA-152",
+      "touchedAt": "2026-09-08T09:30:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 153,
+      "skill": "prep",
+      "worktree": "/Users/fixture/MoneyApp/.claude/worktrees/MA-153",
+      "touchedAt": "2026-09-08T07:00:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 154,
+      "skill": "issue-review",
+      "worktree": "/Users/fixture/MoneyApp/.claude/worktrees/MA-154",
+      "touchedAt": "2026-09-08T09:50:00Z",
+      "worktreeGone": true
     }
   ]
 }
