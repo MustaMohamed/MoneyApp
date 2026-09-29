@@ -10,7 +10,7 @@ import { Text } from '@/components/ui/text';
 import { scaledFontSize, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { TypeBadge, resolveTypeBadgeMinWidth } from '@/components/ui/type_badge';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 
