@@ -57,7 +57,7 @@ export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
 
 export const TRANSACTION_FORM_SKELETON_GEOMETRY = {
   tabBar: ms(36),
-  // The `h-3` class the supporting bar carried, a raw CSS value.
+  // Raw px: ms() would move the bar's 1.0 height.
   supportingBar: 12,
   amount: ms(40),
   stripBar: { width: ACCOUNT_STRIP_CHIP_WIDTH, height: ACCOUNT_STRIP_CHIP_HEIGHT },

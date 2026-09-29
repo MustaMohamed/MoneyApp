@@ -47,6 +47,8 @@ Route `/budget`, a tab. Screen `src/modules/budget/screens/budget/index.tsx`, co
 - The plan card's status chip is byte-identical to the detail summary's on `spending_plan_detail.md`; one read holds on both.
 - A deep link does not dismiss an open bottom sheet: the copy sheet stays mounted over the next screen and its nodes answer the reads. `am force-stop` before the next state.
 - The tab bar's clickable node carries the icon glyph before the label (`B, Budget`), so `$MQA tap 'Budget'` matches only the non-clickable text and is refused; tap the exact content-desc from `mqa ui`, or use the deep link.
+- After `adb shell am force-stop`, `mqa open` alone lands on the dev-client launcher; cold-launch with `mqa seed` before the deep link.
+- At `font_scale` 2.0 the FAB can cover a row's centre, so a tap by label hits the FAB; tap by coordinates from `mqa bounds`.
 
 ## Seeding and forcing states
 

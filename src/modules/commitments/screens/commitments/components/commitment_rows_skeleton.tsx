@@ -5,7 +5,7 @@ import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry'
 import { Strings } from '@/constants/strings';
 
 const ROWS = [0, 1, 2, 3, 4];
-// The `h-4`, `h-3` and `h-5` classes these bars carried, raw CSS values.
+// Raw px: ms() would move the bars' 1.0 heights.
 const TITLE_BAR_HEIGHT = 16;
 const CAPTION_BAR_HEIGHT = 12;
 const AMOUNT_BAR_HEIGHT = 16;

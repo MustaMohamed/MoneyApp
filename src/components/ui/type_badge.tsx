@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { tv } from 'tailwind-variants';
 
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
@@ -14,6 +15,8 @@ export type TypeBadgeSize = 'sm' | 'md';
 interface Props {
   type: TypeBadgeKind;
   size?: TypeBadgeSize;
+  /** Given, the label draws at this scale and ends in a whole `…` (ADR 2026-09-27 §7), and the badge may shrink. */
+  fontScale?: number;
 }
 
 const wrap = tv({
@@ -66,19 +69,30 @@ const LABEL: Record<TypeBadgeKind, string> = {
   bill: Strings.typeBadgeBill,
 };
 
-export function TypeBadge({ type, size = 'sm' }: Props): React.ReactElement {
+export function TypeBadge({ type, size = 'sm', fontScale }: Props): React.ReactElement {
+  const shrinks = fontScale !== undefined;
   return (
     <View
       accessibilityRole="text"
       accessibilityLabel={LABEL[type]}
       className={wrap({ type, size })}
+      style={shrinks ? { flexShrink: 1 } : undefined}
     >
       <MaterialCommunityIcons
         name={ICON[type]}
         size={size === 'sm' ? 10 : 12}
         color={ICON_COLOR[type]}
       />
-      <Text className={labelVariants({ type })} style={LABEL_STYLE[size]}>
+      <Text
+        allowFontScaling={!shrinks}
+        className={labelVariants({ type })}
+        style={
+          shrinks
+            ? { ...scaledTextStyle(LABEL_STYLE[size].fontSize, fontScale), flexShrink: 1 }
+            : LABEL_STYLE[size]
+        }
+        numberOfLines={shrinks ? 1 : undefined}
+      >
         {LABEL[type]}
       </Text>
     </View>

@@ -121,6 +121,8 @@ export function TransactionRowBody({
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isCommitmentOwned = presentation.isCommitmentOwned;
   const { fontScale } = useWindowDimensions();
+  // Above 1.0 the badge shares the title's width, so the title never draws only its `…`.
+  const badgeShrinks = fontScale > 1;
 
   return (
     // animation={false} keeps PressableFeedback's own scale off the Reanimated one below.
@@ -156,11 +158,17 @@ export function TransactionRowBody({
               >
                 {presentation.title}
               </Text>
-              {isCommitmentOwned ? <TypeBadge type="commitment" /> : null}
+              {isCommitmentOwned ? (
+                <TypeBadge type="commitment" fontScale={badgeShrinks ? fontScale : undefined} />
+              ) : null}
               {!isCommitmentOwned && presentation.ownershipLabel ? (
                 <Text
-                  className="font-inter-bold text-info shrink-0"
-                  style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+                  allowFontScaling={false}
+                  className="font-inter-bold text-info"
+                  style={{
+                    ...scaledTextStyle(Type.chip, fontScale),
+                    flexShrink: badgeShrinks ? 1 : 0,
+                  }}
                   numberOfLines={1}
                 >
                   {presentation.ownershipLabel}

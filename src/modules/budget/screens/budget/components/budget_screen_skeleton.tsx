@@ -19,7 +19,6 @@ interface BudgetScreenSkeletonProps {
   expandedBudgetGroup?: BudgetGroup;
 }
 
-/** A bar standing for text, a button, a chip or a pill; `height` is the raw px its `h-*` class carried. */
 function ScaledBar({
   height,
   className,

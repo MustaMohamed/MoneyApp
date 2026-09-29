@@ -22,6 +22,7 @@ import {
   TRANSACTION_ROW_DUAL_RING_COLOR,
   TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_LINE_GAP,
+  TRANSACTION_ROW_TITLE_BADGE_CHROME,
   TRANSACTION_ROW_TITLE_BADGE_HEIGHT,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
@@ -652,8 +653,6 @@ describe('transaction row line geometry', () => {
   });
 
   const PIXEL_2_DENSITY = 2.625;
-  // The badge's `py-[2px]` and 1 dp border stay unscaled; only its label line box grows.
-  const badgeChrome = TRANSACTION_ROW_TITLE_BADGE_HEIGHT - lineHeightFor(Type.compactBadge);
 
   function lineBox(fontSize: number, fontScale: number): number {
     return lineHeightFor(scaledFontSize(fontSize, fontScale));
@@ -663,7 +662,7 @@ describe('transaction row line geometry', () => {
     return (
       Math.max(
         lineBox(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale),
-        lineBox(Type.compactBadge, fontScale) + badgeChrome,
+        lineBox(Type.compactBadge, fontScale) + TRANSACTION_ROW_TITLE_BADGE_CHROME,
       ) +
       TRANSACTION_ROW_LINE_GAP +
       lineBox(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale)

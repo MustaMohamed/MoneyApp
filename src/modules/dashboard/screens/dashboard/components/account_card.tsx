@@ -1,8 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card, PressableFeedback } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { AccountType, type Currency } from '@/constants/enums';
 import { Colors, Size, lineHeightFor, withAlpha } from '@/constants/theme';
@@ -15,6 +16,9 @@ import { buildInfoRows } from '@/modules/dashboard/utils/account_card.helpers';
 import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
 import { resolveAccountName } from '@/utils/account_name';
 import { ms, msFont } from '@/utils/responsive';
+
+// The `caption` variant's raw px, so above 1.0 the value grows from the size it draws at 1.0.
+const ACCOUNT_CARD_ROW_VALUE_FONT_SIZE = 11;
 
 /** The carousel headline balance is negative-capable (overdraft), so it composes U+2212 (#332). */
 function ownedAmountText(value: number, currency: Currency): string {
@@ -47,6 +51,10 @@ export function AccountCard({
   const isCreditCard = account.type === AccountType.CreditCard;
   const icon = ACCOUNT_TYPE_ICONS[account.type];
   const infoRows = buildInfoRows(account, rate, stats, isRateUsable, baseCurrency);
+  const valueText = scaledTextStyleAboveOne(
+    ACCOUNT_CARD_ROW_VALUE_FONT_SIZE,
+    useWindowDimensions().fontScale,
+  );
 
   const showProgress = isCreditCard && (account.credit_limit ?? 0) > 0;
   const limit = account.credit_limit ?? 0;
@@ -161,8 +169,10 @@ export function AccountCard({
                   <Text
                     variant="caption"
                     numberOfLines={1}
+                    allowFontScaling={valueText === undefined}
                     style={[
                       { textAlign: 'right' },
+                      valueText,
                       row.valueColor ? { color: row.valueColor } : undefined,
                     ]}
                   >

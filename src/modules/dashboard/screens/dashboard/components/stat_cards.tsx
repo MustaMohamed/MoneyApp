@@ -41,7 +41,7 @@ const DASHBOARD_NET_WORTH_PROGRESS_HEIGHT = ms(5);
 const DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT = ms(10);
 const DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT = ms(12);
 const DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT = ms(16);
-// The `h-5` class the month-spend value bars carried, a raw CSS value.
+// Raw px: ms() would move the bars' 1.0 height.
 const DASHBOARD_MONTH_SPEND_VALUE_BAR_HEIGHT = 20;
 
 const SHORT_MONTHS = [
@@ -123,6 +123,25 @@ function NetWorthSkeleton(): React.ReactElement {
   );
 }
 
+function MonthSpendValueSkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const valueHeight = resolveSkeletonBarHeight(DASHBOARD_MONTH_SPEND_VALUE_BAR_HEIGHT, fontScale);
+  return (
+    <>
+      <Skeleton
+        animation={DASHBOARD_SKELETON_ANIMATION}
+        className="mb-1 w-28 rounded-md"
+        style={{ height: valueHeight }}
+      />
+      <Skeleton
+        animation={DASHBOARD_SKELETON_ANIMATION}
+        className="w-24 rounded-md"
+        style={{ height: valueHeight }}
+      />
+    </>
+  );
+}
+
 function MonthSpendFooterSkeleton(): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const footerHeight = resolveSkeletonBarHeight(DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT, fontScale);
@@ -175,7 +194,6 @@ export function StatCards({
   netWorthLoading,
   monthSpendLoading,
 }: StatCardsProps) {
-  const { fontScale } = useWindowDimensions();
   // Computed outside the narrowing because the tinted chip renders on the refusal path too.
   const netColor = resolveNetWorthStatColor(netWorth);
   const monthIdx = parseInt(spendYearMonth.split('-')[1], 10) - 1;
@@ -269,20 +287,7 @@ export function StatCards({
         </View>
         {monthSpendLoading ? (
           <>
-            <Skeleton
-              animation={DASHBOARD_SKELETON_ANIMATION}
-              className="mb-1 w-28 rounded-md"
-              style={{
-                height: resolveSkeletonBarHeight(DASHBOARD_MONTH_SPEND_VALUE_BAR_HEIGHT, fontScale),
-              }}
-            />
-            <Skeleton
-              animation={DASHBOARD_SKELETON_ANIMATION}
-              className="w-24 rounded-md"
-              style={{
-                height: resolveSkeletonBarHeight(DASHBOARD_MONTH_SPEND_VALUE_BAR_HEIGHT, fontScale),
-              }}
-            />
+            <MonthSpendValueSkeleton />
             <MonthSpendFooterSkeleton />
           </>
         ) : (
@@ -306,7 +311,7 @@ export function StatCards({
             ))}
             <View
               className="flex-row items-center justify-between"
-              style={{ flexDirection: 'row', gap: ms(8) }}
+              style={{ flexDirection: 'row', flexWrap: 'wrap', gap: ms(8) }}
             >
               <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(5) }}>
                 <View
