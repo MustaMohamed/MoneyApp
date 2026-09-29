@@ -17,6 +17,4 @@ Any other argument: print this list and stop.
 ## Rules
 
 - A question is never decided for the user. The recommendation goes first; the user chooses or defers.
-- A record the code has already answered is closed without reaching the user.
-- A deferred question stays open, and its ticket stays parked.
 - Ready For Development stays one-way: only a ticket at Blocked returns there.

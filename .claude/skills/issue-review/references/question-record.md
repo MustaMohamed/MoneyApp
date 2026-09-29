@@ -18,14 +18,13 @@ The first line is exactly `Question: open`. Labelled lines follow, one each, in 
 | `Today:` | What the app does now, with the `path:line` that shows it |
 | `Wanted:` | What the ticket wants instead |
 | `Why:` | What goes wrong if the question is answered badly |
-| `Options:` | A first and recommended, then B and on; each option carries `writes:` the text it adds and `into:` `#<n>` plus `Acceptance` or `Rules`, one `writes:` and `into:` per ticket it binds |
+| `Options:` | A first and recommended, then B and on; each option carries `writes:` the text it adds and `into:` `#<n>` plus `Acceptance` or `Rules`, or `#<n> Cut`, a comment on `#<n>` whose body starts `Cut: `; one `writes:` and `into:` per ticket it binds |
 | `Wrong if:` | The fact that would make the recommendation wrong |
 | `Prior art:` | The sibling ticket, rule or code that settled a like question, or `none` |
 | `Reaches:` | The sibling tickets and callers the answer also binds, or `none` |
 | `Screen:` | An `emulator-verify` feature name, or `none` |
-| `Files:` | The screenshot and frame crop under `~/.ship/MoneyApp/asks/MA-XXX/<k>/`, or `none` |
-| `Sha:` | The commit the record was written at |
-| `Left:` | The board column the ticket left when it was parked |
+| `Sha:` | `git rev-parse origin/main` after `git fetch origin`, when the record is written |
+| `Left:` | The board Status the issue had when the record was parked |
 
 The record's cited files are every repo path on any of its lines.
 
@@ -37,7 +36,7 @@ The first line is the state. A record is open while it reads `Question: open`. A
 gh api -X PATCH repos/MustaMohamed/MoneyApp/issues/comments/<id> -f body="$BODY"
 ```
 
-The edit sets the first line to `Question: answered <yyyy-mm-dd>` and adds a second line: `Answer: <option letter>` when the user chose, or `Answered by #<pr>` when the code had already answered it. `bash scripts/board.sh questions <n>` prints `<comment id> <html_url>` per open record on issue `<n>`.
+The edit sets the first line to `Question: answered <yyyy-mm-dd>`, inserts a new second line, `Answer: <option letter>` when the user chose or `Answered by #<pr>` when the code had already answered it, and leaves every other line as it was. `bash scripts/board.sh questions <n>` prints `<comment id> <html_url>` per open record on issue `<n>`.
 
 ## Restatement check
 
