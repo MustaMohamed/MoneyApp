@@ -39,6 +39,9 @@ Four sections, in this order: `Reach it` (route, user path, deep link), `States`
 | [budget.md](budget.md) | `/budget`, and its copy sheet | not redesigned |
 | [goals.md](goals.md) | `/goals` | not redesigned |
 | [spending_plan_detail.md](spending_plan_detail.md) | `/budget/plans/[id]` | not redesigned |
+| [budget_category_detail.md](budget_category_detail.md) | `/budget/[id]` | not redesigned |
+| [currency.md](currency.md) | `/settings/currency` | not redesigned |
+| [onboarding.md](onboarding.md) | `/welcome`, `/add_account`, `/more_accounts`, `/ready` | not redesigned |
 
 ## Maintenance
 
@@ -52,3 +55,4 @@ The recipes reference four mechanisms from the `emulator-verify` skill and its m
 - **Seed push**: `mqa up --seed <file.db>` before a run, or `mqa seed <file.db>` mid-run (stops the app, drops the WAL pair, streams the file through `run-as`, checks the size, relaunches). `mqa seed --save <file.db>` keeps a device state you built. A seed built on the host with `better-sqlite3` uses `PRAGMA journal_mode=DELETE`. `mqa db` reads a pulled copy and never writes the device.
 - **Source force**: a state no data can produce (`loadError` on the list) is one line in the screen's own resolver, reverted with `git status` clean before and after.
 - **Font scale**: `adb -s <serial> shell settings put system font_scale <scale>` at each scale the row names, a cold launch after each, and `font_scale` back to 1.0 after the last.
+- **Button proof** (MA-130): `mqa bounds` on each button reads the height its resolver gives at that scale: `md` 48 at both; `sm` and the 50/30/20 manage button `resolveSmallButtonHeight(scale)`, 40 at both on the 411 dp emulator; the compact accent arm `resolveCompactCtaHeight(size, scale)`, 36 at 1.0. Its label `TextView` box sits inside it. A crop at 2.0: each label whole or ending in a whole `…` inside its button or row, no glyph cut at the top or bottom; beside other content, every neighbour's box stays inside the row and is not overlapped.
