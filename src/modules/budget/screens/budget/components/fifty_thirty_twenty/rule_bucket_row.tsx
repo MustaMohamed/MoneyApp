@@ -41,7 +41,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
             </BudgetRing>
           </View>
           <View className="px-1" style={{ flex: 1, minWidth: 0 }}>
-            <View className="flex-row items-center gap-1.5">
+            <View className="flex-row flex-wrap items-center gap-1.5">
               <Text
                 style={{
                   flexShrink: 1,
