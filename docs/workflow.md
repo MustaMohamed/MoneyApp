@@ -8,7 +8,7 @@ Work is defined on GitHub and delivered from GitHub. The issue is the record; `.
 
 **The board is the state.** Project #2, Status field: Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Defined means the ticket is in the standard shape. Ready For Development means pullable: `/issue-review` passed it, `Reviewed <date>` on its header line, a `Size:` line within the gate, and every depends-on closed. It is one-way: `/prep` is the only skill that takes a leaf there, and `/issue-review` and `/tickets` refuse one. A parent's column mirrors its furthest child, Ready For Development with the first child there, In Progress with the first child started, Done with the last child closed; a parent is never pulled, `/prep` and `/ship` take leaves only. Row order within a column is priority. `scripts/board.sh` is the one way to write the board, and its `promote` is the only thing that closes a parent, when every child closed as completed. `status:*` labels are retired; never write one.
 
-`/board [n] [graph|text]` reads it: every open ticket with the skill or command to run next, grouped by who acts, and the dependency graph as an inline widget when the shape needs it. A plain poll needs no session: `bash scripts/board.sh next [n]` prints the same text report from a terminal in about five seconds, `--json` for a script. `scripts/board_next.mjs` carries the rules, one per row of the table below, and writes nothing.
+`/board [n] [graph|text]` reads it: every open ticket with the skill or command to run next, grouped by who acts, and the dependency graph as an inline widget when the shape needs it. A plain poll needs no session: `bash scripts/board.sh next [n]` prints the same text report from a terminal in about five seconds, `--json` for a script. `scripts/board_next.mjs` carries the rules, one per row of the table below, and writes nothing. A ticket with an open question record is mine, with `/queue asks` as its command.
 
 Every move, who makes it, and on what. Nothing else moves a row.
 
@@ -16,15 +16,21 @@ Every move, who makes it, and on what. Nothing else moves a row.
 |---|---|---|---|
 | none | Todo | `/epic`; `/tickets` for a child marked for its own breakdown; `board.sh status <n> Todo` for a task recorded by hand | issue created |
 | Todo | Defined | `/boundaries` at the lock; `/tickets` for each child it creates, `Reviewed none` on the header | body in the standard |
-| Defined | Ready For Development | `board.sh promote`, run by `/issue-review` on a pass and by the post-merge routine; never by hand | `Reviewed <date>` on the header and on the parent's, a `Size:` line in Context within ~400 lines, any number of files, every Depends on closed, no sub-issues |
+| Defined | Ready For Development | `board.sh promote`, run by `/issue-review` on a pass and by the post-merge routine; never by hand | `Reviewed <date>` on the header and on the parent's, a `Size:` line in Context within ~400 lines, any number of files, every Depends on closed, no sub-issues, no open question record |
+| Defined | Defined, parked | unattended `/issue-review` | an `ask` parked as a question record; no `Reviewed` date while one is open |
+| Defined | Ready For Development | `board.sh promote`, run by `/queue asks` after it writes `Reviewed <date>` | the last open record answered, under a marked parent, an epic, or no parent; `promote`'s other checks hold |
+| Defined | Defined, for `/tickets` | `/queue asks` | the last open record answered on a ticket counted at or over the size gate: the seam goes into its body, no date |
 | Defined epic, or a Defined leaf counted over the size gate | Defined, as a parent | `/tickets` after the cut | children created at Defined or Todo. A parent is reviewed and marked before its children, is never planned, and closes through its children |
 | Defined parent | Ready For Development | `board.sh promote`, when its first child gets there | the parent mirrors its children; nothing is pulled from it |
 | Ready For Development | Blocked | by hand, `board.sh status` | a Depends on names an open issue again; comment `Blocked on #m` |
 | Todo, Defined | Blocked | `/boundaries` | the lock waits on another issue; comment `Blocked on #m` |
 | Blocked | Ready For Development | by hand, `board.sh status` | promote reports it and refuses to move it |
+| Blocked | Ready For Development, or the column the record names in `Left:` | `/queue asks`, `board.sh status` | the last open record on the ticket answered |
+| any, parked | unchanged | `/queue asks` | a deferred question: the record stays open and nothing moves |
 | Ready For Development | Planned | `/prep` | plan committed on the ticket branch |
 | Ready For Development | Ready For Development, trimmed | `/prep` | the plan counted over the size gate: the ticket keeps the first seam, the remainder is a new sibling at Defined, `Reviewed none`, and each ticket that depended on the remainder gains it in Depends on |
 | Ready For Development | Blocked | `/prep` | a gap nobody answers in the session; comment `Blocked on a ruling: <gap>` |
+| Ready For Development | Blocked | unattended `/prep` | a gap, or a finding the planner disputes, parked as a question record with `Left: Ready For Development`; no `Blocked on a ruling:` comment |
 | Planned | In Progress | `/ship` phase 1 | implementer dispatched |
 | Defined, parent | In Progress | `board.sh status`, carried up from the child, at every level | the first child reaches In Progress; the parent stays there until its last child closes |
 | In Progress | In Review | `/ship` phase 2 | PR open, lenses running |
