@@ -62,7 +62,7 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
                   size="sm"
                   variant="soft"
                   color={row.statusChipColor}
-                  className="h-5 py-0"
+                  className="min-h-5 py-0"
                   style={{ flexShrink: 0 }}
                   accessibilityRole="text"
                   accessibilityLabel={row.statusLabel}

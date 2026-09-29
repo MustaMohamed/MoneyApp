@@ -51,7 +51,7 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
               size="sm"
               variant="soft"
               color="default"
-              className="h-5 py-0"
+              className="min-h-5 py-0"
               style={{ flexShrink: 0 }}
               accessibilityRole="text"
               accessibilityLabel={budget.shareLabel}

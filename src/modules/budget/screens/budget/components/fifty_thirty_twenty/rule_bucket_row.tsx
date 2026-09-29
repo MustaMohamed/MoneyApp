@@ -69,7 +69,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
                 size="sm"
                 variant="soft"
                 color={presentation.statusChipColor}
-                className="h-5 shrink-0 py-0"
+                className="min-h-5 shrink-0 py-0"
               >
                 <Chip.Label
                   style={{ fontSize: Type.chipMeta, lineHeight: lineHeightFor(Type.chipMeta) }}
