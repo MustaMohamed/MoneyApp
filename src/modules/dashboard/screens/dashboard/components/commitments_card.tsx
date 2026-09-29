@@ -2,8 +2,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card, PressableFeedback, Skeleton } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -36,6 +37,7 @@ const DASHBOARD_COMMITMENTS_PROGRESS_HEIGHT = ms(3);
 const DASHBOARD_COMMITMENTS_STATS_ROW_HEIGHT = ms(14);
 
 function CommitmentsCardSkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
   return (
     <>
       <View
@@ -44,25 +46,25 @@ function CommitmentsCardSkeleton(): React.ReactElement {
           flexDirection: 'row',
           alignItems: 'center',
           gap: ms(8),
-          minHeight: DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT,
+          minHeight: resolveSkeletonBarHeight(DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT, fontScale),
         }}
       >
         <View style={{ flex: 1, gap: ms(4) }}>
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-28 rounded-md"
-            style={{ height: ms(10) }}
+            style={{ height: resolveSkeletonBarHeight(ms(10), fontScale) }}
           />
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-32 rounded-md"
-            style={{ height: ms(14) }}
+            style={{ height: resolveSkeletonBarHeight(ms(14), fontScale) }}
           />
         </View>
         <Skeleton
           animation={DASHBOARD_SKELETON_ANIMATION}
           className="w-14 rounded-full"
-          style={{ height: ms(24) }}
+          style={{ height: resolveSkeletonBarHeight(ms(24), fontScale) }}
         />
       </View>
       <Skeleton
@@ -77,7 +79,7 @@ function CommitmentsCardSkeleton(): React.ReactElement {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          minHeight: DASHBOARD_COMMITMENTS_STATS_ROW_HEIGHT,
+          minHeight: resolveSkeletonBarHeight(DASHBOARD_COMMITMENTS_STATS_ROW_HEIGHT, fontScale),
         }}
       >
         {[0, 1, 2, 3, 4].map((stat) => (
@@ -99,7 +101,7 @@ function CommitmentsCardSkeleton(): React.ReactElement {
             <Skeleton
               animation={DASHBOARD_SKELETON_ANIMATION}
               className="rounded-md"
-              style={{ width: ms(8), height: ms(9) }}
+              style={{ width: ms(8), height: resolveSkeletonBarHeight(ms(9), fontScale) }}
             />
           </View>
         ))}

@@ -1,12 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { BudgetRuleLensVM } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 
 export function NotGroupedRow({ value }: { value: NonNullable<BudgetRuleLensVM['notGrouped']> }) {
   const { presentation } = value;
+  const { fontScale } = useWindowDimensions();
 
   return (
     <View className="border-border bg-surface mx-4 mt-2 flex-row items-center gap-2 rounded-xl border px-3 py-2">
@@ -28,7 +30,8 @@ export function NotGroupedRow({ value }: { value: NonNullable<BudgetRuleLensVM['
         </Text>
       </View>
       <Text
-        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+        allowFontScaling={false}
+        style={scaledTextStyle(Type.micro, fontScale)}
         className="font-inter-medium text-content-secondary max-w-[46%] text-right"
         numberOfLines={2}
       >

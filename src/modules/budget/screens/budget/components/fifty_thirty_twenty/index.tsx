@@ -28,16 +28,16 @@ export function FiftyThirtyTwentyLens({
   return (
     <>
       <MonthlyRuleSummary vm={vm} onEditIncome={onEditIncome} />
-      <View className="mx-4 mt-4 mb-1 flex-row items-end justify-between">
+      <View className="mx-4 mt-4 mb-1 flex-row items-end justify-between gap-2">
         <Text
-          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+          style={{ flexShrink: 1, fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
           className="font-inter-semibold text-content-secondary uppercase"
         >
           {Strings.budget5030BreakdownTitle}
         </Text>
         <Text
-          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-          className="font-inter text-content-secondary"
+          style={{ flexShrink: 1, fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+          className="font-inter text-content-secondary text-right"
         >
           {Strings.budget5030BreakdownSubtitle}
         </Text>

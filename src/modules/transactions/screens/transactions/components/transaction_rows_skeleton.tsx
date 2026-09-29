@@ -1,6 +1,7 @@
 import { SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, lineHeightFor } from '@/constants/theme';
 
@@ -9,9 +10,9 @@ import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
-  TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveTransactionRowHeight,
 } from './transaction_row.helpers';
 import {
   DAY_HEADER_NET_PLACEHOLDER_WIDTH,
@@ -36,11 +37,14 @@ interface RowProps {
 }
 
 function SkeletonRow({ row, showSeparator, showTile }: RowProps): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const lineBar = (fontSize: number): number =>
+    resolveSkeletonBarHeight(lineHeightFor(fontSize), fontScale);
   return (
     <View
       testID="transaction-row-skeleton"
       className={showSeparator ? 'border-separator border-b px-4' : 'px-4'}
-      style={{ height: TRANSACTION_ROW_HEIGHT, justifyContent: 'center' }}
+      style={{ height: resolveTransactionRowHeight(fontScale), justifyContent: 'center' }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-3">
         {showTile ? (
@@ -56,12 +60,12 @@ function SkeletonRow({ row, showSeparator, showTile }: RowProps): React.ReactEle
         <View style={{ flex: 1 }}>
           <SkeletonGroup.Item
             className={row % 2 === 0 ? 'w-32 rounded-md' : 'w-24 rounded-md'}
-            style={{ height: lineHeightFor(TRANSACTION_ROW_TITLE_FONT_SIZE) }}
+            style={{ height: lineBar(TRANSACTION_ROW_TITLE_FONT_SIZE) }}
           />
           <SkeletonGroup.Item
             className="w-20 rounded-md"
             style={{
-              height: lineHeightFor(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+              height: lineBar(TRANSACTION_ROW_CAPTION_FONT_SIZE),
               marginTop: TRANSACTION_ROW_LINE_GAP,
             }}
           />
@@ -69,12 +73,12 @@ function SkeletonRow({ row, showSeparator, showTile }: RowProps): React.ReactEle
         <View testID="transaction-row-skeleton-value" style={{ alignItems: 'flex-end' }}>
           <SkeletonGroup.Item
             className={row % 2 === 0 ? 'w-20 rounded-md' : 'w-16 rounded-md'}
-            style={{ height: lineHeightFor(TRANSACTION_ROW_AMOUNT_FONT_SIZE) }}
+            style={{ height: lineBar(TRANSACTION_ROW_AMOUNT_FONT_SIZE) }}
           />
           <SkeletonGroup.Item
             className="w-10 rounded-md"
             style={{
-              height: lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE),
+              height: lineBar(TRANSACTION_ROW_CODE_FONT_SIZE),
               marginTop: TRANSACTION_ROW_LINE_GAP,
             }}
           />

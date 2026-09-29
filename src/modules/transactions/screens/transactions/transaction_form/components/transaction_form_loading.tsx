@@ -14,6 +14,7 @@ import {
   ACCOUNT_STRIP_PADDING_Y,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
+  resolveTransactionFormSkeletonBars,
   resolveTypeTabsGeometry,
 } from './transaction_form.geometry';
 
@@ -28,7 +29,9 @@ const FACT_ROWS = Array.from(
 const LAST_FACT_ROW = FACT_ROWS.length - 1;
 
 export function TransactionFormLoading(): React.ReactElement {
-  const { skeletonHeight } = resolveTypeTabsGeometry(useWindowDimensions().fontScale);
+  const { fontScale } = useWindowDimensions();
+  const { skeletonHeight } = resolveTypeTabsGeometry(fontScale);
+  const bars = resolveTransactionFormSkeletonBars(fontScale);
   return (
     <View
       testID="transaction-form-loading"
@@ -43,7 +46,7 @@ export function TransactionFormLoading(): React.ReactElement {
           />
         </View>
         <View className="min-h-8 justify-center px-4 py-1.5">
-          <SkeletonGroup.Item className="h-3 w-2/3 rounded-md" />
+          <SkeletonGroup.Item className="w-2/3 rounded-md" style={{ height: bars.supportingBar }} />
         </View>
         <View
           className="border-separator border-b"
@@ -77,7 +80,7 @@ export function TransactionFormLoading(): React.ReactElement {
         >
           <SkeletonGroup.Item
             className="w-40"
-            style={{ height: TRANSACTION_FORM_SKELETON_GEOMETRY.amount, borderRadius: Radius.sm }}
+            style={{ height: bars.amount, borderRadius: Radius.sm }}
           />
         </View>
         <BottomSheetScrollView
@@ -99,14 +102,8 @@ export function TransactionFormLoading(): React.ReactElement {
                   justifyContent: 'space-between',
                 }}
               >
-                <SkeletonGroup.Item
-                  className="rounded-md"
-                  style={TRANSACTION_FORM_SKELETON_GEOMETRY.keyBar}
-                />
-                <SkeletonGroup.Item
-                  className="rounded-md"
-                  style={TRANSACTION_FORM_SKELETON_GEOMETRY.valueBar}
-                />
+                <SkeletonGroup.Item className="rounded-md" style={bars.keyBar} />
+                <SkeletonGroup.Item className="rounded-md" style={bars.valueBar} />
               </View>
             ))}
           </ListCard>

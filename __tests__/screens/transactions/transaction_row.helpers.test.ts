@@ -1,6 +1,9 @@
+import { PixelRatio } from 'react-native';
+
+import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { lineHeightFor } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 import {
   AccentCCTokens,
   AccentTokens,
@@ -12,12 +15,14 @@ import {
 import {
   buildTransactionRowPresentation,
   resolveRowTile,
+  resolveTransactionRowHeight,
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_DUAL_RING_COLOR,
   TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_LINE_GAP,
+  TRANSACTION_ROW_TITLE_BADGE_CHROME,
   TRANSACTION_ROW_TITLE_BADGE_HEIGHT,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
@@ -645,6 +650,73 @@ describe('transaction row line geometry', () => {
       lineHeightFor(TRANSACTION_ROW_CODE_FONT_SIZE);
 
     expect(valueColumn).toBeLessThanOrEqual(innerBox);
+  });
+
+  const PIXEL_2_DENSITY = 2.625;
+
+  function lineBox(fontSize: number, fontScale: number): number {
+    return lineHeightFor(scaledFontSize(fontSize, fontScale));
+  }
+
+  function contentColumnAt(fontScale: number): number {
+    return (
+      Math.max(
+        lineBox(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale),
+        lineBox(Type.compactBadge, fontScale) + TRANSACTION_ROW_TITLE_BADGE_CHROME,
+      ) +
+      TRANSACTION_ROW_LINE_GAP +
+      lineBox(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale)
+    );
+  }
+
+  function valueColumnAt(fontScale: number): number {
+    return (
+      lineBox(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale) +
+      TRANSACTION_ROW_LINE_GAP +
+      lineBox(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale)
+    );
+  }
+
+  function tallerColumnAt(fontScale: number): number {
+    return Math.max(contentColumnAt(fontScale), valueColumnAt(fontScale));
+  }
+
+  it('keeps the 1.0 row height at font scale 1 and below', () => {
+    expect(resolveTransactionRowHeight(1)).toBe(TRANSACTION_ROW_HEIGHT);
+    expect(resolveTransactionRowHeight(0.85)).toBe(TRANSACTION_ROW_HEIGHT);
+  });
+
+  it('fits both columns, their lines scaled to 2.0, inside the row less its separator', () => {
+    const innerBoxAt2 = resolveTransactionRowHeight(2) - 1;
+
+    expect(contentColumnAt(2)).toBeLessThanOrEqual(innerBoxAt2);
+    expect(valueColumnAt(2)).toBeLessThanOrEqual(innerBoxAt2);
+  });
+
+  it('keeps the 1.0 space around the taller column at 2.0, within half a device pixel', () => {
+    const spaceAt1 = TRANSACTION_ROW_HEIGHT - tallerColumnAt(1);
+    const spaceAt2 = resolveTransactionRowHeight(2) - tallerColumnAt(2);
+
+    expect(Math.abs(spaceAt2 - spaceAt1)).toBeLessThanOrEqual(0.5 / PixelRatio.get() + 1e-9);
+  });
+
+  it('lands on whole device pixels at 1.3 and 2.0 on a 2.625 density screen', () => {
+    const heights: number[] = [];
+    // The row constants compute at module load, so the density mock needs a fresh copy.
+    jest.isolateModules(() => {
+      const isolated = jest.requireActual<{ PixelRatio: typeof PixelRatio }>('react-native');
+      jest.spyOn(isolated.PixelRatio, 'get').mockReturnValue(PIXEL_2_DENSITY);
+      const row = jest.requireActual<{
+        resolveTransactionRowHeight: typeof resolveTransactionRowHeight;
+      }>('@/modules/transactions/screens/transactions/components/transaction_row.helpers');
+      heights.push(row.resolveTransactionRowHeight(1.3), row.resolveTransactionRowHeight(2));
+    });
+
+    expect(heights).toHaveLength(2);
+    for (const height of heights) {
+      const pixels = height * PIXEL_2_DENSITY;
+      expect(Math.abs(pixels - Math.round(pixels))).toBeLessThan(1e-6);
+    }
   });
 });
 

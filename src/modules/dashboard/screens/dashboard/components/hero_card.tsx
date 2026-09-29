@@ -1,9 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Skeleton } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { HeroShell } from '@/components/ui/hero_shell';
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
 import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
@@ -22,6 +23,8 @@ import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 const DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT = ms(35);
 const DASHBOARD_HERO_PILL_SKELETON_HEIGHT = ms(20);
+// The pills' 1.0 widths, Tailwind's `w-21`, `w-28` and `w-20`, which grow with the font scale as their text does.
+const DASHBOARD_HERO_PILL_SKELETON_WIDTHS = [84, 112, 80] as const;
 
 interface HeroCardProps {
   /** One object, not loose props: narrowing needs the discriminant and fields together. */
@@ -39,13 +42,17 @@ interface HeroCardProps {
 }
 
 function HeroCardSkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const pillHeight = resolveSkeletonBarHeight(DASHBOARD_HERO_PILL_SKELETON_HEIGHT, fontScale);
   return (
     <>
       <Skeleton
         testID="dashboard-hero-skeleton-amount"
         animation={DASHBOARD_SKELETON_ANIMATION}
         className="mx-5 mt-3 mb-2 w-48 rounded-md"
-        style={{ height: DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT }}
+        style={{
+          height: resolveSkeletonBarHeight(DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT, fontScale),
+        }}
       />
       <View
         testID="dashboard-hero-skeleton-pills-row"
@@ -53,27 +60,18 @@ function HeroCardSkeleton(): React.ReactElement {
         style={{
           flexDirection: 'row',
           gap: ms(6),
-          minHeight: DASHBOARD_HERO_PILL_SKELETON_HEIGHT,
+          minHeight: pillHeight,
         }}
       >
-        <Skeleton
-          testID="dashboard-hero-skeleton-pill"
-          animation={DASHBOARD_SKELETON_ANIMATION}
-          className="w-21 rounded-full"
-          style={{ height: DASHBOARD_HERO_PILL_SKELETON_HEIGHT }}
-        />
-        <Skeleton
-          testID="dashboard-hero-skeleton-pill"
-          animation={DASHBOARD_SKELETON_ANIMATION}
-          className="w-28 rounded-full"
-          style={{ height: DASHBOARD_HERO_PILL_SKELETON_HEIGHT }}
-        />
-        <Skeleton
-          testID="dashboard-hero-skeleton-pill"
-          animation={DASHBOARD_SKELETON_ANIMATION}
-          className="w-20 rounded-full"
-          style={{ height: DASHBOARD_HERO_PILL_SKELETON_HEIGHT }}
-        />
+        {DASHBOARD_HERO_PILL_SKELETON_WIDTHS.map((width) => (
+          <Skeleton
+            key={width}
+            testID="dashboard-hero-skeleton-pill"
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="rounded-full"
+            style={{ width: resolveSkeletonBarHeight(width, fontScale), height: pillHeight }}
+          />
+        ))}
       </View>
     </>
   );

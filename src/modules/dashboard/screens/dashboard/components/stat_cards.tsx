@@ -1,8 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Skeleton } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -40,6 +41,8 @@ const DASHBOARD_NET_WORTH_PROGRESS_HEIGHT = ms(5);
 const DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT = ms(10);
 const DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT = ms(12);
 const DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT = ms(16);
+// Raw px: ms() would move the bars' 1.0 height.
+const DASHBOARD_MONTH_SPEND_VALUE_BAR_HEIGHT = 20;
 
 const SHORT_MONTHS = [
   'Jan',
@@ -73,12 +76,16 @@ interface StatCardsProps {
 }
 
 function NetWorthSkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const valueHeight = resolveSkeletonBarHeight(DASHBOARD_NET_WORTH_VALUE_HEIGHT, fontScale);
+  const labelHeight = resolveSkeletonBarHeight(DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT, fontScale);
+  const detailHeight = resolveSkeletonBarHeight(DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT, fontScale);
   return (
     <>
       <Skeleton
         animation={DASHBOARD_SKELETON_ANIMATION}
         className="w-28 rounded-md"
-        style={{ height: DASHBOARD_NET_WORTH_VALUE_HEIGHT }}
+        style={{ height: valueHeight }}
       />
       <Skeleton
         testID="dashboard-net-worth-skeleton-progress"
@@ -91,24 +98,24 @@ function NetWorthSkeleton(): React.ReactElement {
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-18 rounded-md"
-            style={{ height: DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT }}
+            style={{ height: labelHeight }}
           />
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-16 rounded-md"
-            style={{ height: DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT }}
+            style={{ height: detailHeight }}
           />
         </View>
         <View style={{ flex: 1, gap: ms(4) }}>
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-18 rounded-md"
-            style={{ height: DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT }}
+            style={{ height: labelHeight }}
           />
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-16 rounded-md"
-            style={{ height: DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT }}
+            style={{ height: detailHeight }}
           />
         </View>
       </View>
@@ -116,7 +123,29 @@ function NetWorthSkeleton(): React.ReactElement {
   );
 }
 
+function MonthSpendValueSkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const valueHeight = resolveSkeletonBarHeight(DASHBOARD_MONTH_SPEND_VALUE_BAR_HEIGHT, fontScale);
+  return (
+    <>
+      <Skeleton
+        animation={DASHBOARD_SKELETON_ANIMATION}
+        className="mb-1 w-28 rounded-md"
+        style={{ height: valueHeight }}
+      />
+      <Skeleton
+        animation={DASHBOARD_SKELETON_ANIMATION}
+        className="w-24 rounded-md"
+        style={{ height: valueHeight }}
+      />
+    </>
+  );
+}
+
 function MonthSpendFooterSkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const footerHeight = resolveSkeletonBarHeight(DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT, fontScale);
+  const labelHeight = resolveSkeletonBarHeight(ms(10), fontScale);
   return (
     <View
       testID="dashboard-month-spend-skeleton-footer-row"
@@ -125,7 +154,7 @@ function MonthSpendFooterSkeleton(): React.ReactElement {
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: ms(8),
-        minHeight: DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT,
+        minHeight: footerHeight,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(5) }}>
@@ -133,20 +162,20 @@ function MonthSpendFooterSkeleton(): React.ReactElement {
           testID="dashboard-month-spend-skeleton-footer-item"
           animation={DASHBOARD_SKELETON_ANIMATION}
           className="rounded-full"
-          style={{ width: ms(48), height: DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT }}
+          style={{ width: ms(48), height: footerHeight }}
         />
         <Skeleton
           testID="dashboard-month-spend-skeleton-footer-item"
           animation={DASHBOARD_SKELETON_ANIMATION}
           className="rounded-md"
-          style={{ width: ms(32), height: ms(10) }}
+          style={{ width: ms(32), height: labelHeight }}
         />
       </View>
       <Skeleton
         testID="dashboard-month-spend-skeleton-footer-item"
         animation={DASHBOARD_SKELETON_ANIMATION}
         className="rounded-md"
-        style={{ width: ms(30), height: ms(10) }}
+        style={{ width: ms(30), height: labelHeight }}
       />
     </View>
   );
@@ -258,11 +287,7 @@ export function StatCards({
         </View>
         {monthSpendLoading ? (
           <>
-            <Skeleton
-              animation={DASHBOARD_SKELETON_ANIMATION}
-              className="mb-1 h-5 w-28 rounded-md"
-            />
-            <Skeleton animation={DASHBOARD_SKELETON_ANIMATION} className="h-5 w-24 rounded-md" />
+            <MonthSpendValueSkeleton />
             <MonthSpendFooterSkeleton />
           </>
         ) : (
@@ -286,7 +311,7 @@ export function StatCards({
             ))}
             <View
               className="flex-row items-center justify-between"
-              style={{ flexDirection: 'row', gap: ms(8) }}
+              style={{ flexDirection: 'row', flexWrap: 'wrap', gap: ms(8) }}
             >
               <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(5) }}>
                 <View

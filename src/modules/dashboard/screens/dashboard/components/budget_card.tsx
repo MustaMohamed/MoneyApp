@@ -2,8 +2,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card, PressableFeedback, Skeleton } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -29,6 +30,7 @@ const PROGRESS_HEIGHT = ms(3);
 const META_ROW_HEIGHT = ms(13);
 
 function BudgetCardSkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
   return (
     <>
       <View
@@ -40,12 +42,12 @@ function BudgetCardSkeleton(): React.ReactElement {
             <Skeleton
               animation={DASHBOARD_SKELETON_ANIMATION}
               className="w-16 rounded-md"
-              style={{ height: ms(8) }}
+              style={{ height: resolveSkeletonBarHeight(ms(8), fontScale) }}
             />
             <Skeleton
               animation={DASHBOARD_SKELETON_ANIMATION}
               className="w-20 rounded-md"
-              style={{ height: ms(14) }}
+              style={{ height: resolveSkeletonBarHeight(ms(14), fontScale) }}
             />
           </View>
         ))}
@@ -60,7 +62,7 @@ function BudgetCardSkeleton(): React.ReactElement {
         testID="dashboard-budget-skeleton-meta"
         animation={DASHBOARD_SKELETON_ANIMATION}
         className="w-24 rounded-md"
-        style={{ height: META_ROW_HEIGHT }}
+        style={{ height: resolveSkeletonBarHeight(META_ROW_HEIGHT, fontScale) }}
       />
     </>
   );

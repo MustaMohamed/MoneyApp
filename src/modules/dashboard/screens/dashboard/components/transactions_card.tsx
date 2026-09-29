@@ -1,8 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card, PressableFeedback, Skeleton } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, withAlpha } from '@/constants/theme';
@@ -140,6 +141,15 @@ function DeltaValue({
 }
 
 function TransactionsCardSkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const valueRowHeight = resolveSkeletonBarHeight(
+    DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT,
+    fontScale,
+  );
+  const deltaRowHeight = resolveSkeletonBarHeight(
+    DASHBOARD_TRANSACTIONS_DELTA_ROW_HEIGHT,
+    fontScale,
+  );
   return (
     <>
       <View
@@ -148,7 +158,7 @@ function TransactionsCardSkeleton(): React.ReactElement {
           flexDirection: 'row',
           alignItems: 'center',
           gap: ms(32),
-          minHeight: DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT,
+          minHeight: valueRowHeight,
         }}
       >
         {METRICS.map((metric) => (
@@ -156,7 +166,7 @@ function TransactionsCardSkeleton(): React.ReactElement {
             key={metric.key}
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="rounded-md"
-            style={{ flex: 1, height: DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT }}
+            style={{ flex: 1, height: valueRowHeight }}
           />
         ))}
       </View>
@@ -172,7 +182,7 @@ function TransactionsCardSkeleton(): React.ReactElement {
           flexDirection: 'row',
           alignItems: 'center',
           gap: ms(8),
-          minHeight: DASHBOARD_TRANSACTIONS_DELTA_ROW_HEIGHT,
+          minHeight: deltaRowHeight,
         }}
       >
         {METRICS.map((metric) => (
@@ -200,7 +210,7 @@ function TransactionsCardSkeleton(): React.ReactElement {
             <Skeleton
               animation={DASHBOARD_SKELETON_ANIMATION}
               className="rounded-md"
-              style={{ width: ms(32), height: ms(10) }}
+              style={{ width: ms(32), height: resolveSkeletonBarHeight(ms(10), fontScale) }}
             />
           </View>
         ))}
@@ -209,7 +219,9 @@ function TransactionsCardSkeleton(): React.ReactElement {
         testID="dashboard-transactions-skeleton-previous-label"
         animation={DASHBOARD_SKELETON_ANIMATION}
         className="mx-auto w-18 rounded-md"
-        style={{ height: DASHBOARD_TRANSACTIONS_PREVIOUS_LABEL_HEIGHT }}
+        style={{
+          height: resolveSkeletonBarHeight(DASHBOARD_TRANSACTIONS_PREVIOUS_LABEL_HEIGHT, fontScale),
+        }}
       />
     </>
   );

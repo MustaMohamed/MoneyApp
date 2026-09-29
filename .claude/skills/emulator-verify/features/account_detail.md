@@ -5,7 +5,7 @@ Route `/accounts/[id]`. Screen `src/modules/accounts/screens/accounts/detail/ind
 ## Reach it
 
 - User path: accounts list row tap, or the dashboard account card.
-- Script: `id=$($MQA db "select id from accounts where name='<n>'" | sed -n 's/.*"id": "\(.*\)".*/\1/p')` then `$MQA tap '<n>'` from the list. There is no deep link with an id in the recipes yet; add one here when `moneyapp://accounts/<id>` is confirmed.
+- Script: `id=$($MQA db "select id from accounts where name='<n>'" | sed -n 's/.*"id": "\(.*\)".*/\1/p')` then `$MQA tap '<n>'` from the list. Deep link: `$MQA open /accounts/<id>` opens the detail (`moneyapp://accounts/acc_walk`, MA-127).
 - Header: title is the account name, `Edit` on the right. There is no `More`: `Archive` is a body button beside `Adjust balance` (`detail/index.tsx:199-206`).
 
 ## States
@@ -33,6 +33,8 @@ The canvas draws one account type per frame. Every state below is checked on a b
 | activity row, transfer | no frame, MA-090 | a transfer from the open account | one shot: the other account's single 28 tile, caption `<from> → <to> · <day label>` |
 | activity row, card payment, paid card | no frame, MA-090 | open the card a bank paid | `mqa ui` reads `From <payer> · <day label>`; one shot of the payer's tile |
 | activity row, glyph recoloured | no frame, MA-103 | the MA-103 seed (`categories.md` § Seeding and forcing states): open `Walk Bank`, whose activity card holds the Housing, Bills and Subscriptions expenses | one shot of the activity card: the glyphs in `#5C7FC4`, `#5C7FC4` and `#B264A7` on the card fill |
+| activity row, large font | no frame, MA-127 | the `activity row, tile off` seed; the `Font scale` force (README) at 1.0 and 2.0 | the row reads 63 ± 1 dp high at 1.0 and `resolveTransactionRowHeight(2)` ± 1 at 2.0, its text boxes inside it; a crop at 2.0: each line whole or ending in a whole `…`, none cut at the top or bottom |
+| activity loading, large font | no frame, MA-127 | the `activity loading` force; the `Font scale` force (README) at 2.0 | a shot pair, the skeleton and the loaded card: skeleton rows as tall as loaded rows, bars as tall as the lines they stand for |
 
 ## Outbound
 

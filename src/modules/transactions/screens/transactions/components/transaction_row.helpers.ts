@@ -2,6 +2,7 @@ import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIco
 import type React from 'react';
 import { PixelRatio } from 'react-native';
 
+import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -43,9 +44,40 @@ export const TRANSACTION_ROW_LINE_GAP = ms(2);
 export const TRANSACTION_ROW_DUAL_OFFSET = ms(16);
 export const TRANSACTION_ROW_DUAL_RING = ms(2);
 export const TRANSACTION_ROW_DUAL_RING_COLOR = CoreTokens.surface;
-// Mirrors TypeBadge's `sm` box (type_badge.tsx:28,46-49,81): its label line box plus the unscaled `py-[2px]` and 1 dp border it carries on each side.
-export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT = lineHeightFor(Type.compactBadge) + 2 * (2 + 1);
+// TypeBadge's `sm` chrome: the unscaled `py-[2px]` and 1 dp border it carries on each side.
+export const TRANSACTION_ROW_TITLE_BADGE_CHROME = 2 * (2 + 1);
+// Mirrors TypeBadge's `sm` box: its label line box plus its chrome.
+export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT =
+  lineHeightFor(Type.compactBadge) + TRANSACTION_ROW_TITLE_BADGE_CHROME;
 export const TRANSACTION_ROW_CAPTION_SEPARATOR = ' · ';
+
+function rowLineBox(fontSize: number, fontScale: number): number {
+  return lineHeightFor(scaledFontSize(fontSize, fontScale));
+}
+
+function rowTallerColumn(fontScale: number): number {
+  const titleLine = Math.max(
+    rowLineBox(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale),
+    rowLineBox(Type.compactBadge, fontScale) + TRANSACTION_ROW_TITLE_BADGE_CHROME,
+  );
+  const content =
+    titleLine + TRANSACTION_ROW_LINE_GAP + rowLineBox(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale);
+  const value =
+    rowLineBox(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale) +
+    TRANSACTION_ROW_LINE_GAP +
+    rowLineBox(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale);
+  return Math.max(content, value);
+}
+
+/** The row keeps its 1.0 space around its taller column, in whole device pixels, and never drops below its 1.0 height. */
+export function resolveTransactionRowHeight(fontScale: number): number {
+  return Math.max(
+    TRANSACTION_ROW_HEIGHT,
+    PixelRatio.roundToNearestPixel(
+      TRANSACTION_ROW_HEIGHT + rowTallerColumn(fontScale) - rowTallerColumn(1),
+    ),
+  );
+}
 
 const FALLBACK_ICON: IconName = 'shape-outline';
 

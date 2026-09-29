@@ -1,6 +1,7 @@
 import type { Insets } from 'react-native';
 
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import {
   Radius,
@@ -56,6 +57,8 @@ export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
 
 export const TRANSACTION_FORM_SKELETON_GEOMETRY = {
   tabBar: ms(36),
+  // Raw px: ms() would move the bar's 1.0 height.
+  supportingBar: 12,
   amount: ms(40),
   stripBar: { width: ACCOUNT_STRIP_CHIP_WIDTH, height: ACCOUNT_STRIP_CHIP_HEIGHT },
   stripBarCount: 3,
@@ -64,6 +67,30 @@ export const TRANSACTION_FORM_SKELETON_GEOMETRY = {
   keyBar: { width: ms(60), height: lineHeightFor(Type.body) },
   valueBar: { width: ms(100), height: lineHeightFor(Type.body) },
 } as const;
+
+interface SkeletonBarBox {
+  width: number;
+  height: number;
+}
+
+/** The sheet skeleton's text bars at the OS font scale; widths stay. */
+export function resolveTransactionFormSkeletonBars(fontScale: number): {
+  supportingBar: number;
+  amount: number;
+  keyBar: SkeletonBarBox;
+  valueBar: SkeletonBarBox;
+} {
+  const { supportingBar, amount, keyBar, valueBar } = TRANSACTION_FORM_SKELETON_GEOMETRY;
+  return {
+    supportingBar: resolveSkeletonBarHeight(supportingBar, fontScale),
+    amount: resolveSkeletonBarHeight(amount, fontScale),
+    keyBar: { width: keyBar.width, height: resolveSkeletonBarHeight(keyBar.height, fontScale) },
+    valueBar: {
+      width: valueBar.width,
+      height: resolveSkeletonBarHeight(valueBar.height, fontScale),
+    },
+  };
+}
 
 export function resolveTypeTabsGeometry(fontScale: number): {
   listHeight: number;

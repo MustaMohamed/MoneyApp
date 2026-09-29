@@ -1,11 +1,18 @@
 import { SkeletonGroup } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Strings } from '@/constants/strings';
 
 const ROWS = [0, 1, 2, 3, 4];
+// Raw px: ms() would move the bars' 1.0 heights.
+const TITLE_BAR_HEIGHT = 16;
+const CAPTION_BAR_HEIGHT = 12;
+const AMOUNT_BAR_HEIGHT = 16;
+const STATUS_PILL_HEIGHT = 20;
 
 export function CommitmentRowsSkeleton(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
   return (
     <View testID="commitment-row-skeletons" accessibilityLabel={Strings.loadingCommitmentsA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
@@ -19,15 +26,23 @@ export function CommitmentRowsSkeleton(): React.ReactElement {
             <SkeletonGroup.Item className="h-9 w-9 rounded-md" />
             <View style={{ flex: 1 }} className="gap-1.5">
               <SkeletonGroup.Item
-                className={row % 2 === 0 ? 'h-4 w-36 rounded-md' : 'h-4 w-28 rounded-md'}
+                className={row % 2 === 0 ? 'w-36 rounded-md' : 'w-28 rounded-md'}
+                style={{ height: resolveSkeletonBarHeight(TITLE_BAR_HEIGHT, fontScale) }}
               />
-              <SkeletonGroup.Item className="h-3 w-20 rounded-md" />
+              <SkeletonGroup.Item
+                className="w-20 rounded-md"
+                style={{ height: resolveSkeletonBarHeight(CAPTION_BAR_HEIGHT, fontScale) }}
+              />
             </View>
             <View style={{ alignItems: 'flex-end' }} className="gap-1.5">
               <SkeletonGroup.Item
-                className={row % 2 === 0 ? 'h-4 w-24 rounded-md' : 'h-4 w-20 rounded-md'}
+                className={row % 2 === 0 ? 'w-24 rounded-md' : 'w-20 rounded-md'}
+                style={{ height: resolveSkeletonBarHeight(AMOUNT_BAR_HEIGHT, fontScale) }}
               />
-              <SkeletonGroup.Item className="h-5 w-16 rounded-full" />
+              <SkeletonGroup.Item
+                className="w-16 rounded-full"
+                style={{ height: resolveSkeletonBarHeight(STATUS_PILL_HEIGHT, fontScale) }}
+              />
             </View>
           </View>
         ))}

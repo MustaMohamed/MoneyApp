@@ -1,7 +1,8 @@
 import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CommitmentsCard } from '@/modules/dashboard/screens/dashboard/components/commitments_card';
@@ -136,13 +137,13 @@ describe('CommitmentsCard skeleton loading', () => {
     );
 
     expect(getByTestId('dashboard-commitments-skeleton-summary-row')).toHaveStyle({
-      minHeight: ms(33),
+      minHeight: resolveSkeletonBarHeight(ms(33), Dimensions.get('window').fontScale),
     });
     expect(getByTestId('dashboard-commitments-skeleton-progress')).toHaveStyle({
       height: ms(3),
     });
     expect(getByTestId('dashboard-commitments-skeleton-stats-row')).toHaveStyle({
-      minHeight: ms(14),
+      minHeight: resolveSkeletonBarHeight(ms(14), Dimensions.get('window').fontScale),
     });
     expect(getAllByTestId('dashboard-commitments-skeleton-stat')).toHaveLength(5);
   });

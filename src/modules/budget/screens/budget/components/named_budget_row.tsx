@@ -3,9 +3,13 @@ import { Chip, Menu, PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Size, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
+
+// The ring's hole less 2 dp each side, so a label shrinks to fit rather than wrap onto the stroke.
+const NAMED_RING_LABEL_MAX_WIDTH =
+  Size.budgetNamedRing - 2 * (Size.budgetRingStroke + Spacing.xxxs);
 
 interface NamedBudgetRowProps {
   budget: NamedBudgetVM;
@@ -30,7 +34,14 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
             stroke={Size.budgetRingStroke}
           >
             <Typography
-              style={{ fontSize: Type.chipMeta, lineHeight: lineHeightFor(Type.chipMeta) }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={{
+                fontSize: Type.chipMeta,
+                lineHeight: lineHeightFor(Type.chipMeta),
+                maxWidth: NAMED_RING_LABEL_MAX_WIDTH,
+                textAlign: 'center',
+              }}
               className="font-inter-bold text-foreground"
             >
               {budget.usedLabel}
@@ -51,7 +62,7 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
               size="sm"
               variant="soft"
               color="default"
-              className="h-5 py-0"
+              className="min-h-5 py-0"
               style={{ flexShrink: 0 }}
               accessibilityRole="text"
               accessibilityLabel={budget.shareLabel}
