@@ -52,7 +52,7 @@ interface Leaf {
   status: string;
   header: string;
   comments: Comment[] | undefined;
-  epic?: { status: string; comments: Comment[] };
+  epic?: { status: string; comments: Comment[] | undefined };
 }
 
 const stubDirs: string[] = [];
@@ -94,7 +94,6 @@ function stubBoard(leaf: Leaf): string {
       milestone,
       labels: [{ name: 'epic' }],
     },
-    'issues_639_comments.json': epic.comments,
     'issues_639_sub_issues.json': [{ number: 146, state: 'open', state_reason: null, body }],
     'issues_146.json': {
       number: 146,
@@ -129,6 +128,7 @@ function stubBoard(leaf: Leaf): string {
       },
     ],
   };
+  if (epic.comments) files['issues_639_comments.json'] = epic.comments;
   if (leaf.comments) files['issues_146_comments.json'] = leaf.comments;
   for (const [name, value] of Object.entries(files)) {
     fs.writeFileSync(path.join(dir, name), JSON.stringify(value));
@@ -270,6 +270,40 @@ describe('board.sh promote', () => {
       `#146: parent #639 has an open question ${EPIC_OPEN.html_url}, skipped; /queue asks answers it`,
     );
     expect(r.stdout).toContain('promoted 0, skipped 1');
+    expect(r.statusWrites).toEqual([]);
+  });
+
+  it('does not lift a Defined epic with an open record whose child already sits at Ready For Development', () => {
+    const dir = stubBoard({
+      status: 'Ready For Development',
+      header: REVIEWED_NO_DEPS,
+      comments: [],
+      epic: { status: 'Defined', comments: [EPIC_OPEN] },
+    });
+
+    const r = run(dir, 'promote', '639');
+
+    expect(r.unhandled).toEqual([]);
+    expect(r.missing).toEqual([]);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('promoted 0, skipped 0');
+    expect(r.statusWrites).toEqual([]);
+  });
+
+  it('exits 1 when the parent comments cannot be read, and writes no status', () => {
+    const dir = stubBoard({
+      status: 'Defined',
+      header: REVIEWED,
+      comments: [],
+      epic: { status: 'In Progress', comments: undefined },
+    });
+
+    const r = run(dir, 'promote', '639');
+
+    expect(r.unhandled).toEqual([]);
+    expect(r.status).toBe(1);
+    expect(r.stderr.split('\n')).toContain('board.sh: could not read the comments of #639');
+    expect(r.missing).toEqual(['issues_639_comments.json']);
     expect(r.statusWrites).toEqual([]);
   });
 });
