@@ -233,18 +233,29 @@ function readLeases() {
   } catch {
     return [];
   }
-  return names.map((f) => {
+  return names.flatMap((f) => {
     const file = path.join(dir, f);
-    const text = fs.readFileSync(file, 'utf8');
+    let text = '';
+    let mtime = new Date(0);
+    try {
+      text = fs.readFileSync(file, 'utf8');
+      mtime = fs.statSync(file).mtime;
+    } catch (err) {
+      // A run that ends between the listing and the read has removed its lease.
+      if (!fs.existsSync(file)) return [];
+      throw err;
+    }
     const field = (key) => new RegExp(`^${key}=(.*)$`, 'm').exec(text)?.[1].trim() ?? '';
     const worktree = field('worktree');
-    return {
-      number: Number(f),
-      skill: field('skill'),
-      worktree,
-      touchedAt: fs.statSync(file).mtime.toISOString(),
-      worktreeGone: !worktree || !fs.existsSync(worktree),
-    };
+    return [
+      {
+        number: Number(f),
+        skill: field('skill'),
+        worktree,
+        touchedAt: mtime.toISOString(),
+        worktreeGone: !worktree || !fs.existsSync(worktree),
+      },
+    ];
   });
 }
 
