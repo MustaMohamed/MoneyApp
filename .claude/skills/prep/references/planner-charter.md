@@ -10,15 +10,15 @@ The `unslop` skill binds the plan. A step is one row: file, change, test. Nothin
 
 ## Read
 
-1. The ticket body, fully. The header line first: `Verify emulator` means the plan's Screens section names `emulator-verify/features/<screen>.md` files and states from their tables, the recipes the implementer and the render lens both run; a Flag (`money path`, `data-loss migration`, `native change`, `secure store`, `user copy`) means the matching `.claude/rules/` file and, for the first four, a decision record step (below).
+1. The ticket body, fully. The header line first: `Verify emulator` means the plan's Screens section names `emulator-verify/features/<screen>.md` files and states from their tables, the recipes the implementer and the render lens both run; on a body with `Screen checks` it is built from that section's rows, one entry per row; a Flag (`money path`, `data-loss migration`, `native change`, `secure store`, `user copy`) means the matching `.claude/rules/` file and, for the first four, a decision record step (below).
 2. `CLAUDE.md` at the worktree root, then the rules files in your dispatch. What they forbid, the plan does not ask for: no new `.tsx` test file, and a case in an existing one only under the Render-suite policy in `.claude/rules/tests.md`; no colocated files under `src/app/`; no hardcoded tokens or strings.
 3. The code. Start from the paths in Context, then use LSP: find-references on every symbol the change touches, hover for types at the boundaries, diagnostics on the files. Every path and symbol you write must be one you opened at this checkout. A path you did not open is a guess, and a guess is a defect.
 
 ## Decide before writing
 
 - **Gaps.** If the repository contradicts the ticket, or the ticket is silent on something a step needs (a value, a behaviour on an edge, which of two screens), STOP and return the gaps, numbered, each with the fields of a question record from `Asks:` to `Screen:`, `.claude/skills/issue-review/references/question-record.md`: the answer you would pick and why is option A, and every option carries the text it writes and the section it lands in. A gap list is a successful output. A plan built on a guess is not.
-- **Size.** The gate is `.claude/skills/tickets/references/splitting.md` § Size gate; the ticket's Context ends with a `Size:` line counted at `/tickets` and `/issue-review`, which you recount and never take. Count before you estimate: the steps, and the files your steps name outside tests and generated files as § Size gate lists them, which are the list the lines are summed over and carry no cap of their own. More than 8 steps, or two product outcomes in one ticket: return one gap, "sized past one PR", and do not plan it. The gap names the seam: the first part that fits the gate with room and stands alone, the Acceptance lines it covers, its files and ~lines; then the remainder's Acceptance lines, files and ~lines; then the files the `Size:` line missed. The conductor trims the ticket to the first part and you plan that. Then estimate the changed lines per file you open, and sum; past ~400 is the same gap. The gate is hard: a ruling in the ticket or the dispatch that adds scope does not raise it, and an `--amend` counts the amended plan whole. A header without its `expected diff: ~<n>` fails the gate. The figure excludes tests, and tests are 55 to 60% of every PR on the accounts redesign (MA-039: 558 lines outside tests, 936 in tests), so the implementer writes about 2.5 times your figure; that is why the cap sits at ~400.
-- **Contracts.** Which types, fields, tables, function signatures or events change, and who consumes them today (find-references). Which error paths exist and what the user sees on each. These are rows in the plan, not a section of prose.
+- **Size.** The gate is `.claude/skills/tickets/references/splitting.md` § Size gate; the ticket's Context ends with a `Size:` line counted at `/tickets` and `/issue-review`, which you recount and never take. Count before you estimate: the steps, and the files your steps name outside tests and generated files as § Size gate lists them, which are the list the lines are summed over and carry no cap of their own. More than 8 steps, or two product outcomes in one ticket: return one gap, "sized past one PR", and do not plan it. The gap names every seam that brings the first part under the gate with room, recommended first, each with the first part that stands alone, the Acceptance lines it covers, its files and ~lines; then the remainder's Acceptance lines, files and ~lines; then the files the `Size:` line missed. A Rules line that starts `Seam:` is the seam the user chose: while the body still holds an Acceptance line that seam puts in the remainder, the gap carries that seam alone. The conductor trims the ticket to the first part and you plan that. Then estimate the changed lines per file you open, and sum; past ~400 is the same gap. The gate is hard: a ruling in the ticket or the dispatch that adds scope does not raise it, and an `--amend` counts the amended plan whole. A header without its `expected diff: ~<n>` fails the gate. The figure excludes tests, and tests are 55 to 60% of every PR on the accounts redesign (MA-039: 558 lines outside tests, 936 in tests), so the implementer writes about 2.5 times your figure; that is why the cap sits at ~400.
+- **Contracts.** Which types, fields, tables, function signatures or events change, and who consumes them today (find-references). Which error paths exist and what the user sees on each. These are rows in the plan, not a section of prose. Every interface row states, per field, argument and return value, whether it can be `null` and whether it is optional, and it states the argument order.
 
 ## Write `.work/MA-XXX/plan.md`
 
@@ -29,7 +29,7 @@ base: <sha of origin/main at this checkout> · verify: <emulator | none> · flag
 ## Steps
 ### 1. <what this step makes true>
 - File: `path` (`symbol`, `path:line` where it helps)
-- Change: one or two sentences. Interfaces and invariants precisely; edit-level detail only where exactly one sequence is safe.
+- Change: one or two sentences. Interfaces and invariants precisely, each field, argument and return value with whether it can be `null` and whether it is optional, arguments in order; edit-level detail only where exactly one sequence is safe.
 - Test: `first` | `after` | `none` · `__tests__/<path>` and the case it adds. `first` when the case asserts behaviour through an interface that exists today or whose signature the Change line states in full (a store action, a repository function, a resolver): the test writer writes it before the implementer runs. `after` when the step's interface is the implementer's to shape: the test writer writes it once the code exists, from Acceptance and the exported signatures, never from the bodies. `none` with the reason when the repo forbids a test at that layer. On the accounts redesign 190 of 197 implementer returns deviated from the plan at line level and 4 tickets at interface level; `first` tests survive the former, and the latter is a discrepancy that amends the plan.
 
 ### 2. ...
@@ -37,6 +37,7 @@ base: <sha of origin/main at this checkout> · verify: <emulator | none> · flag
 ## Screens                      # only when verify: emulator
 - `emulator-verify/features/<screen>.md`: <state names from its States table, comma separated>
 - A state the file lacks: name it, the frame or `no frame`, and add a step that appends it to the file
+- On a body with `Screen checks`: one entry per row, in table order; a row marked `new` names the step that adds the state to the file. A body without the section keeps the two lines above
 
 ## Decision record             # only when a Flag asks for it
 - `docs/adr/<yyyy-mm-dd>-<slug>.md`: <the decision in one line>; a step above adds the file.
@@ -44,12 +45,20 @@ base: <sha of origin/main at this checkout> · verify: <emulator | none> · flag
 ## Non-goals
 - From Out of scope, plus anything adjacent a reasonable implementer would build and must not.
 
+## Untested inputs
+- One line per input the ticket implies that no `Test:` line covers, with the step it meets; or `none`.
+
 ## Verification
 - Per commit: `npm run format:check && npm run lint && npm run typecheck && npm test -- --ci`
 - Once, before hand-off: the full CI parity chain from `CLAUDE.md`.
 
 ## Risks
 - What would invalidate this plan, one line each.
+- A risk that is a screen state: `<features file> · <state>: <the risk>`
+- `not probed: <features file> · <state>`, and `REBUILD: <files>`, from probe results
+
+## Amendments                   # only after an --amend
+- `<yyyy-mm-dd> · step <k> · <what changed and why>`, ending `· not probed: <features file> · <state>` when the rewritten step changes what a `Screen checks` row with a risk mark shows
 
 ## Self-assessment
 One paragraph: the step you are least sure about and why.
@@ -61,7 +70,8 @@ Rules for the steps:
 - Full cycles (store → repository → SQLite) are Jest integration tests against a real database, per the `moneyapp-testing` skill. Never plan an emulator scenario for behaviour a test can assert; the emulator pass covers pixels.
 - Test-first where the repo tests that layer and the interface is fixed; `after` where the implementer shapes it. Logic-only `.ts` tests under `__tests__/` for new files; a case in an existing `.tsx` suite follows the Render-suite policy in `.claude/rules/tests.md`.
 - Line-level detail rots the moment real code exists. The implementer elaborates at execution time and the current code wins on detail; give it interfaces, invariants, order and tests.
-- Amending: change only the steps the discrepancy names; leave the rest byte-identical; add one line under Risks saying what was amended and why.
+- Probe results in the dispatch: each fact rewrites the step it names; each `not probed` state and the `REBUILD` verdict become Risks lines; nothing else changes.
+- Amending: rewrite the steps the discrepancy names in place; leave the rest byte-identical; add the `## Amendments` line. No step and no Risks line carries amendment history.
 
 ## Do not
 

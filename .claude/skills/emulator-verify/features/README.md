@@ -8,8 +8,8 @@ On the accounts redesign (#378) the render lens ran a median 99 messages per tic
 
 ## The rule
 
-- **A state not in the file is a state the design did not draw.** Before shooting it, add it here with its frame or `no frame` and the ticket that introduces it.
-- **Prep names files and states, never prose.** The plan's Screens section is `features/<screen>.md`: the state names. The reviewer refuses a state the file does not carry.
+- **A state not in the file is a state the design did not draw.** Before shooting it, add it here with its frame or `no frame` and the ticket that introduces it. The `/prep` probe of a `Screen checks` row marked `new` is the exception: it shoots the state before the plan's step adds it here.
+- **Prep names files and states, never prose.** The plan's Screens section is `features/<screen>.md`: the state names. The reviewer refuses a state the file does not carry unless a plan step adds it.
 - **Implementer and lens run the same recipe.** The render pass proves the states the plan names; the lens re-runs the same recipes on the pushed SHA and judges the shots against the frame. Neither invents scenarios.
 - **Proof is `mqa bounds`, `mqa read` or `mqa db` first, a shot only for what is visual.** `grep -c` over `mqa read` answers "did this text render"; a cropped shot answers proportion and placement. Grep a label's own text (`grep -c '"Reorder '`): it matches both the agent-device output and the uiautomator dump.
 - **Density is 2.625, not 3.** Geometry comes from `mqa bounds`, which prints dp: "bounds ÷ 2.625" in these files is the division it already did. Never measure PNG pixels.

@@ -12,7 +12,7 @@ Read the rows top to bottom; the first row that matches decides.
 | Options that differ in what a screen shows: a layout, a state, a ring, a colour, a size, a tile, a label that truncates | yes | the screen under each option |
 | Options that differ in how the app behaves over time: loading, a tap, a drag, Save, navigation, a preselect | yes | the frames in order under each option, the frame where they part marked |
 | Options that differ in a figure on screen across cases: a money rule, rounding, a sign | yes | the row or card under each option in a normal case and in the edge case (overspent month, negative, zero) |
-| Options that differ in a structure: a ticket split (`Which split?`), a seam (`Trim at this seam?`), dependency order, which ticket owns what, a table's columns, what a delete cascades to | yes | boxes and arrows under each option, with ~lines on each box |
+| Options that differ in a structure: a ticket split (`Which split?`), a seam among two or more (`Which seam?`, one column per seam), dependency order, which ticket owns what, a table's columns, what a delete cascades to | yes | boxes and arrows under each option, with ~lines on each box |
 | Options that differ only in words: a copy string, a name | no | the strings side by side in the message |
 | A fact the user holds | no | nothing |
 | Anything else | no | nothing |
@@ -22,7 +22,7 @@ The user asking for a visual on a no row gets one.
 ## The file
 
 - One HTML file per question message, in the session scratchpad, named `<id>-<topic>.html`: `<id>` is the MA id, or `issue-<n>` for an issue without one, or `session` outside any issue; `<topic>` names the question, so no two questions share a file. A message that asks several questions at once, as `/prep`'s gap list does, gets one file with one numbered section per question on a yes row.
-- One column per option, on the same data, labelled `A (recommended)`, `B`, `C` in the order the message asks them. A gate on one proposal, such as a seam, draws today's shape and the proposal, labelled `Today` and `Proposed`.
+- One column per option, on the same data, labelled `A (recommended)`, `B`, `C` in the order the message asks them. A gate on one proposal draws today's shape and the proposal, labelled `Today` and `Proposed`.
 - Columns sit side by side at desktop width and stack one under another below 700 px (`display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))`); each keeps its label on top.
 - Everything the columns share is drawn identically; each part that differs gets a dashed outline in one highlight colour. Two mockups that differ only in fill colour read as identical at a glance (MA-098).
 - Draw the state where the options diverge most: the edge month, the error after Save, the accounts still loading at mount, the drag in progress. Add the resting state beside it when that is what the user sees most.

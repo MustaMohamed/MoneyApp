@@ -36,7 +36,7 @@ The summary is headed by the PR URL, then ten items in this order, each written 
 4. CI as step 1 read it: green, or a non-green check explained. The commits after the last re-check, the plan removal with its `--stat` and anything else, named; never present an unreviewed head as reviewed. Each lens whose `state.md` line reads `LSP: not used`.
 5. What was built, one line per Acceptance line.
 6. Every other decision, under the heading `## Decisions the ticket or plan did not state`: a table with the columns Decision, Who, Cost if wrong, copy decisions first. It reads the `state.md` → `## Decisions` lines item 2 does not hold, and this run's `## Adjudications` lines that items 2 and 9 do not already hold, less those settled by `ticket text`. [queue column.md](../../queue/references/column.md) reads this heading.
-7. One screenshot per screen the plan's Screens section lists, from `findings/render/`.
+7. One screenshot per `Screen checks` row of `issue.md` on a body that has the section, else per screen the plan's Screens section lists, from `findings/render/`; then each state `state.md` → Log records as not probed.
 8. Tickets opened, by number.
 9. `rejected` findings, each with what settled it, per [SKILL.md](../SKILL.md) → Rulings: the ticket line quoted, the frame file, the convention's `path:line` or the smallest change's `## Decisions` line.
 10. Questions that should have been asked earlier: the `## Parked` lines of `state.md` that carry a miss, each with its check.
