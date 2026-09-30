@@ -386,7 +386,8 @@ function decide(item, ctx) {
     }
     const expected = expectedParentColumn(item, ctx);
     const closedAny = item.children.length > open.length;
-    const parked = open.some((c) => ctx.statusOf(c.number) === 'Blocked');
+    const childCols = open.map((c) => ctx.statusOf(c.number));
+    const parked = childCols.includes('Blocked');
     const stays = (closedAny || parked) && item.status === 'In Progress';
     if (item.status !== 'Blocked' && item.status !== expected && !stays) {
       const quoted = expected.includes(' ') ? `"${expected}"` : expected;
@@ -400,7 +401,6 @@ function decide(item, ctx) {
         command: cmd,
       };
     }
-    const childCols = open.map((c) => ctx.statusOf(c.number));
     if (
       !isEpic &&
       reviewed === 'none' &&

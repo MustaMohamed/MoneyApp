@@ -14,7 +14,7 @@
    ```
 
    The title is the squash subject; write it here, once, in the conventional shape. The body, written to `pr.md` first: `Closes #<n>`, the plan's blob URL at its commit (the post-rebase SHA when Setup rebased), and a line per Flag. Record the PR URL in `state.md`; every later phase targets the PR by URL. Pushing starts CI; nobody waits for it here. Triage reads it, merge confirms it.
-2. **Decide deep mode** (SKILL.md → Deep mode) on the header Flags and `git diff --stat origin/main...HEAD`; record `deep_mode`, the trigger and `review_level` in `state.md`. Check the critical triggers of `CLAUDE.md` against `git diff --name-only origin/main...HEAD`: one the header Flags do not name parks the ticket, SKILL.md → Parking case 1.
+2. **Decide deep mode** (SKILL.md → Deep mode) on the header Flags and `git diff --stat origin/main...HEAD`; record `deep_mode`, the trigger and `review_level` in `state.md`. Check `git diff --name-only origin/main...HEAD` against the Flags row of [ticket-body.md § Header line](../../tickets/references/ticket-body.md#header-line): a Flag the diff needs and the header lacks parks the ticket, SKILL.md → Parking case 1.
 3. **Review worktree:** create or re-point `MA-XXX-review` at the pushed SHA (SKILL.md → Worktrees), symlink `node_modules` from the implementation worktree.
 4. **Benchmark inputs** for the quality and conformance lenses: the house-standard reference module, `none named` unless `state.md` → Decisions says otherwise, and the audits under `docs/superpowers/reviews/` (start with `2026-07-29-full-technical-audit.md`; remediation in `docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md`).
 5. **Dispatch in one message**, every lens concurrently, none with the ledger:
@@ -32,7 +32,7 @@ You are reviewing committed work you did not write. You read from the review wor
 
 1. Read the ticket (`issue.md`), then the plan. Internalize what this change must do before looking at what it does.
 2. Read the full diff for the range, top to bottom. `.work/MA-XXX/plan.md` in the range is the plan you already read, not code under review; it leaves the branch before the merge.
-3. **Ticket compliance:** every Acceptance line holds, trace the code paths; every Rule is honoured. Anything the diff does that the ticket does not ask for is a finding (scope creep). Anything the ticket asks for that the diff does not do is a finding (gap). A changed path that a line under the plan's `## Non-goals` names is a finding.
+3. **Ticket compliance:** every Acceptance line holds, trace the code paths; every Rule is honoured. Anything the diff does that the ticket does not ask for is a finding (scope creep). Anything the ticket asks for that the diff does not do is a finding (gap). A changed hunk inside the file, section or line range that a line under the plan's `## Non-goals` names is a finding.
 4. **Bug hunt:** for each non-trivial hunk, LSP find-references on changed symbols (did the change break a caller the diff does not show?), hover for types at boundaries, diagnostics at this SHA. Hunt swallowed error paths, boundary conditions, stale reads, races, wrong-base computations.
 5. **Tests:** do the new tests pin the specified behaviour, or restate the implementation?
 
@@ -48,11 +48,11 @@ You are auditing an open PR for quality from a read-only review worktree. Bugs a
 2. **Measurements, not impressions:** comment density of new code against the module; new file sizes against the module's median; duplication (grep for the sibling a block was copied from, quantify); dead additions (every new export has a consumer, grep to confirm).
 3. **Benchmark against the house standard, not local drift.** Pattern-level judgments compare against the reference module and the audits named in your dispatch; `none named` means benchmark against sibling modules and say which. Reproducing an audited anti-pattern is a finding even when every sibling does it. A new abstraction duplicating an existing one is a finding with both paths cited.
 4. **Efficiency:** allocation or scans on paths the module treats as hot, N+1, recomputation where an index or memo exists. Severity reflects measured or realistically sized cost.
-5. **Danger surfaces, flag not gate:** SQLite migrations, secure-store and auth, onboarding resume state, route files under `src/app/`, native config, money paths. Say so explicitly; triage checks them against the header Flags.
+5. **Danger surfaces, flag not gate:** SQLite migrations, secure-store and auth, onboarding resume state, route files under `src/app/`, native config, money paths. Name each one the diff touches and the Flag it needs from the Flags row of `.claude/skills/tickets/references/ticket-body.md` § Header line, or `none`; triage checks those against the header Flags.
 
 Evidence rule as charter A; `blocking` only for what would make a maintainer's next change wrong or slow. Record genuine strengths in one or two lines.
 
-Return: verdict, findings, strengths, danger-surface flags, `LSP: used | not used, <why>`.
+Return: verdict, findings, strengths, danger surfaces each with its Flag or `none`, `LSP: used | not used, <why>`.
 
 ## Charter C: conformance lens (paste; deep mode only)
 

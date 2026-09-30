@@ -148,11 +148,11 @@ Decided once, at phase 2 entry, on the PR diff and the ticket header, recorded i
 
 Consequences: built-in `code-review` at the review level below, the conformance lens joins the battery, and triage adversarially verifies findings before the fix dispatch.
 
-**Review level**, decided with deep mode and written to `state.md` as `review_level:`. It is `low` when every path on the `Size:` line of `issue.md` ends in `.md` or `.sh`; `low` holds in deep mode unless the header Flags are not `none`, and then it is `high`. Otherwise it is `high` in deep mode and `medium` out of it.
+**Review level**, decided with deep mode and written to `state.md` as `review_level:`. It is `low` when every path on the `Size:` line of `issue.md` ends in `.md` or `.sh`. In deep mode it stays `low` while the Flags read `none`, and is `high` with any Flag. Otherwise it is `high` in deep mode and `medium` out of it.
 
 ## Fix loop
 
-Phase 2 findings pool into one triage (phase 3): CI and Non-goals read first, de-duplicate, close ledger matches, verify known FP classes, verifier in deep mode, then one consolidated `findings/cycle-<n>.md` and one fix dispatch. The conductor pushes the fix commits; the re-check (phase 4) reads the delta against the findings file. Cap: four phase 3 ↔ 4 cycles, counted on `state.md` → `cycle:`. Cycles 1 and 2 continue the phase 1 implementer; cycles 3 and 4 dispatch a fresh one on the findings still open ([references/implement.md](references/implement.md) → Re-entry). After cycle 4's re-check nothing is dispatched: every open finding is `not fixed`, and phase 5 runs. `prep --amend` does not reset the count. A lens or re-checker killed by a transient API error is re-run and does not count as a cycle. A dispute is ruled per § Rulings and stays in the loop.
+Phase 2 findings pool into one triage (phase 3): CI and Non-goals read first, de-duplicate, close ledger matches, verify known FP classes, verifier in deep mode, then one consolidated `findings/cycle-<n>.md` and one fix dispatch. The conductor pushes the fix commits; the re-check (phase 4) reads the delta against the findings file. Cap: four phase 3 ↔ 4 cycles, counted on `state.md` → `cycle:`. Cycles 1 and 2 continue the phase 1 implementer; cycles 3 and 4 dispatch a fresh one on the findings still open ([references/implement.md](references/implement.md) → Re-entry). After cycle 4's re-check nothing is dispatched: every open finding is `not fixed`, and phase 5 runs. With `cycle:` at 4, a red CI read at phase 5 or a change asked after the summary dispatches nothing either: it is `not fixed` or a ticket ([references/merge.md](references/merge.md), [references/triage.md](references/triage.md) item 8). `prep --amend` does not reset the count. A lens or re-checker killed by a transient API error is re-run and does not count as a cycle. A dispute is ruled per § Rulings and stays in the loop.
 
 ## Rulings
 
@@ -163,13 +163,13 @@ The conductor settles a dispute, and an ambiguous verification, by the first of 
 3. The shipped convention, for glyphs, icons and number formats.
 4. The smallest change.
 
-Each ruling is an `## Adjudications` line in `state.md` that names which of the four settled it. A ruling that reached the smallest change is also a `## Decisions` line, `<date> <decision> · conductor, smallest change · <cost if wrong>`.
+Each ruling is an `## Adjudications` line in `state.md` that names which of the four settled it. A ruling against a finding makes it `rejected`: the ticket line quoted when the ticket text settled it, else the frame file, the convention's `path:line` or the smallest change's `## Decisions` line. A ruling that reached the smallest change is also a `## Decisions` line, `<date> <decision> · conductor, smallest change · <cost if wrong>`.
 
 ## Parking
 
 Three cases stop a run, typed or unattended alike. The conductor parks each and never decides it.
 
-1. **A critical trigger of `CLAUDE.md` the header Flags do not name**, checked at phase 2 entry on `git diff --name-only origin/main...HEAD` ([references/battery.md](references/battery.md) item 2) and at triage on the quality lens's danger-surface flags. The record gets a `Miss:` line naming the `/issue-review` check id or the `/prep` step that should have asked.
+1. **A Flag the diff needs that the header lacks**, from the Flags row of [ticket-body.md § Header line](../tickets/references/ticket-body.md#header-line), checked at phase 2 entry on `git diff --name-only origin/main...HEAD` ([references/battery.md](references/battery.md) item 2) and at triage on the Flags the quality lens names for its danger surfaces. The record gets a `Miss:` line naming the `/issue-review` check id or the `/prep` step that should have asked.
 2. **A ticket line that cannot hold, or that the code contradicts** ([references/triage.md](references/triage.md) item 6). `Miss:` as in case 1.
 3. **Gaps `prep --amend` returns** ([references/implement.md](references/implement.md) → Re-entry), one record per gap and no `Miss:` line.
 

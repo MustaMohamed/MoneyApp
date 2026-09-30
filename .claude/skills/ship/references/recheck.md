@@ -22,4 +22,4 @@ Return: per-finding verdict (`fixed` | `not-fixed` with evidence), new delta fin
 
 ## Exit
 
-All fixed, nothing new → phase 5. Otherwise → phase 3, up to four cycles in total. After cycle 4's re-check nothing is dispatched: each open finding is `not fixed`, and phase 5 runs. Any commit after the last re-check is disclosed at the merge summary. Record verdicts and the cycle count in `state.md`.
+All fixed, nothing new → phase 5. Otherwise → phase 3 below the cap of [SKILL.md](../SKILL.md) → Fix loop, and phase 5 at it, each open finding `not fixed`. Any commit after the last re-check is disclosed at the merge summary. Record verdicts and the cycle count in `state.md`.

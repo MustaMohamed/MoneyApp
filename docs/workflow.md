@@ -37,7 +37,7 @@ Every move, who makes it, and on what. Nothing else moves a row.
 | In Progress | Blocked | `/ship`, typed or by `/queue Planned` | a question `/ship` cannot rule, parked as a question record with `Left: In Progress` |
 | In Review | Blocked | `/ship`, typed or by `/queue Planned` | a question `/ship` cannot rule, parked as a question record with `Left: In Review` |
 | In Review | Awaiting Human | `/ship`, typed or by `/queue Planned` | the merge summary |
-| Awaiting Human | In Review | `/ship`, typed or by `/queue Planned` | a change I ask for in the task, or in a PR comment newer than the merge summary |
+| Awaiting Human | In Review | `/ship`, typed or by `/queue Planned` | a change I ask for in the task, or in a PR comment, review or review comment newer than the merge summary |
 | Awaiting Human | Done | the merge, `Closes #N`; then the post-merge routine runs `board.sh status <n> Done` and `promote <parent>`, from the `/ship` session or from `/queue` on its next pass | PR merged |
 | parent, any | Done | `board.sh promote` | last child closed as completed; closes the parent, then one level up |
 

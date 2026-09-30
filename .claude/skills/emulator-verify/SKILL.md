@@ -193,7 +193,7 @@ worktree, which needs three things the worktree does not have by default.
    A `/ship` run, typed or unattended, asks nothing: it builds and installs once for the
    device its worktree claimed, under [queue column.md](../queue/references/column.md)
    § Permission rule, holds the build while host load is above that file's § Holds ceiling
-   (`ship/references/implement.md` → Re-entry), and writes `build: REBUILD` in `state.md`;
+   ([implement.md](../ship/references/implement.md) charter item 8), and writes `build: REBUILD` in `state.md`;
    an unattended one also records it in its log line's note. A typed session outside `/ship`
    asks before building.
    When you do need one:

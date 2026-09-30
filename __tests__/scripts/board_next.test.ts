@@ -146,6 +146,7 @@ describe('board_next rule table', () => {
     [125, 'wait', 'parent, children at Todo lead', undefined],
     [100, 'wait', 'parent, mirrors its children', undefined],
     [131, 'wait', 'parent, mirrors its children', undefined],
+    [156, 'wait', 'parent, mirrors its children', undefined],
   ];
 
   test.each(rows)('#%i lands in %s: %s', (n, bucket, action, command) => {
@@ -161,15 +162,6 @@ describe('board_next rule table', () => {
       '/issue-review 148',
     ]);
     expect(a.questions).toBe(0);
-  });
-
-  test('a parent at In Progress whose one open child /ship parked at Blocked mirrors its children', () => {
-    const a = byNumber(list, 156);
-    expect([a.bucket, a.action, a.command]).toEqual([
-      'wait',
-      'parent, mirrors its children',
-      undefined,
-    ]);
   });
 
   test('closed issues that are Done, and closed children, are not listed', () => {
