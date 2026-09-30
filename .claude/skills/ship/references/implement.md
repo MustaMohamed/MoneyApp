@@ -46,7 +46,7 @@ Also pass: absolute paths to `issue.md`, `plan.md`, the worktree, the branch nam
   ```
 
 - **Build logged:** on a return that reports `build: REBUILD`, write it and the files `mqa up` listed as a `state.md` Log line; phase 5 prints it.
-- **Amend logged:** after every `prep --amend`, whichever phase called it, each `not probed:` state in the amended plan's `## Amendments` section is a `state.md` Log line, `- <date> not probed after amend: <features file> · <state>`; phase 5 prints it.
+- **Amend logged:** after every `prep --amend`, whichever phase called it, each `not probed:` state on the `## Amendments` lines this amend added is a `state.md` Log line, `- <date> not probed after amend: <features file> · <state>`; phase 5 prints it.
 - **Discrepancy STOP:** the implementer returned that the plan is wrong about the code. First discard the dead attempt's uncommitted edits, `git -C <worktree> checkout -- . && git -C <worktree> clean -fd`, so the amend planner reads a clean tree and the next implementer starts from the last commit. Then run the `prep` skill with `--amend` and the discrepancy verbatim (it commits the amended plan and pushes), refresh `plan.md` with `cp <worktree>/.work/MA-XXX/plan.md ~/.ship/MoneyApp/MA-XXX/plan.md`, and re-dispatch the implementer. Gaps the amend returns park the ticket, [SKILL.md](../SKILL.md) → Parking case 3.
 
 ## Charter (paste)

@@ -202,7 +202,8 @@ default.
    ([implement.md](../ship/references/implement.md) charter item 8). The run writes
    `build: REBUILD` in `state.md`; an unattended one also records it in its log line's note.
    A `/prep` probe builds the same way for the device its worktree claimed, holds the build
-   while the 1-minute load is above 60, and the plan's Risks carries its `REBUILD` line.
+   while host load is above the ceiling of [queue column.md](../queue/references/column.md)
+   § Holds (Host load), and the plan's Risks carries its `REBUILD` line.
    The render lens never builds. Any other session asks before building.
    When you do need one:
 
