@@ -6,7 +6,7 @@ argument-hint: "<issue number> | MA-XXX"
 
 # Ship
 
-Delivery of one leaf task from Planned to Awaiting Human with a merge summary, on the branch `/prep` created, through five phases. The main session is the conductor. Implementation, every review lens and every re-check run in fresh subagents that get file paths, never this conversation. The human has one gate, the merge; everything else the conductor decides, and disputes and caps go to the human as they arise.
+Delivery of one leaf task from Planned to Awaiting Human with a merge summary, on the branch `/prep` created, through five phases. The main session is the conductor. Implementation, every review lens and every re-check run in fresh subagents that get file paths, never this conversation. The human has one gate, the merge. The conductor decides everything else and asks nothing.
 
 ## Entry
 
@@ -56,8 +56,8 @@ Load `references/<phase>.md` on entering a phase. The file is the method; this t
 |---|---|---|---|---|
 | 1 | Implement | test writer for `first` cases (60 tool calls), composed implementer (120), test writer for `after` cases (60), in sequence | In Progress at dispatch | red tests committed, then green: parity chain, render pass when `Verify emulator`, committed, not pushed |
 | 2 | Battery | conductor pushes and opens the PR; lenses in parallel | In Review | every lens report in |
-| 3 | Triage and fix | conductor; verifier in deep mode; implementer fixes | Awaiting Human on a dispute or a cap | consolidated fixes pushed |
-| 4 | Re-check | one fresh re-checker per pushed fix | | all fixed, no new findings; cap 2 cycles with phase 3 |
+| 3 | Triage and fix | conductor; verifier in deep mode; implementer fixes | In Review | consolidated fixes pushed |
+| 4 | Re-check | one fresh re-checker per pushed fix | | all fixed, no new findings; cap 4 cycles with phase 3 |
 | 5 | Merge | conductor removes the plan file, human merges, conductor cleans | Awaiting Human, then Done | merged, post-merge list done, artifacts deleted |
 
 A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), never skipped silently. There is no fast lane and no mode: one ticket, one branch, one PR.
@@ -69,7 +69,7 @@ A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), nev
 ```
 issue.md                 # the ticket body at entry; every dispatch gets this path
 plan.md                  # the plan as committed on the branch; every dispatch gets this path
-pr.md                    # the PR body, written at phase 2, Trade-offs appended by triage
+pr.md                    # the PR body, written at phase 2
 state.md                 # phase state, written after every transition and gate outcome; the only resume point
 findings/cycle-<n>.md    # each triage's consolidated list, what the re-check verifies against
 findings/<lens>.md       # a lens report that outgrew a screen
@@ -90,6 +90,8 @@ verify: emulator | none · flags: <as on the ticket>
 phase: <1-5>
 deep_mode: no | yes (<trigger>)
 pr: <url or ->
+implementer: <agent id of the phase 1 implementer, for fix cycles 1 and 2>
+cycle: <0-4>
 
 ## Log
 - <date> P1: dispatched · <sha>, chain green, render pass 3 screens
@@ -102,7 +104,7 @@ pr: <url or ->
 ## Adjudications
 <!-- read by phase 3 triage and phase 4 re-checks, never by a first-pass lens -->
 - FP class: built-in code-review may diff against a stale local main; verify "unrelated file" findings against origin/main...HEAD before triage.
-- <label> → <human ruling> (<date>), <why in one line>
+- <label> → <ruling> (<date>), settled by <ticket text | frame | shipped convention | smallest change>, <why in one line>
 ```
 
 Log entries are facts: SHAs, verdicts, counts, decisions, eight lines at most each, one per sub-step inside a phase (written, dispatched, committed, pushed), so a resume knows where the crash fell. The file stays under 15 KB.
@@ -114,7 +116,7 @@ Log entries are facts: SHAs, verdicts, counts, decisions, eight lines at most ea
 1. **Subagents never touch the issue or the PR, never push, never merge.** Only the conductor runs `gh`, `git push` and the built-in `code-review`; merges are the human's.
 2. **Reviewers never write code.** Findings route to the implementer, who fixes and commits. If fixing seems faster than re-dispatching, that is the moment this rule exists for.
 3. **Lenses read only, in the review worktree, entered as § Worktrees states.** The one exception is the render lens, which runs the app from the implementation worktree because a symlinked `node_modules` resolves zero routes; it edits nothing there. The implementation worktree otherwise belongs to the implementer alone.
-4. **Human gates are explicit.** Approval is a direct answer to the gate question in this session. Urgency is priority, not approval.
+4. **The run asks the user nothing.** The conductor rules every dispute per § Rulings. The merge is the user's, and no run answers it.
 5. **One branch, one PR, targeting main, opened with `Closes #<n>`.** Never stacked.
 6. **Workflow artifacts never reach main.** The plan rides the branch for review and leaves it before the merge; the one workflow output that merges is a decision record under `docs/adr/`, through a plan step.
 7. **The conductor never edits code**, including one-character fixes. The conductor's only commits are the rebase, the push of what the implementer committed, and the plan removal at phase 5.
@@ -126,7 +128,7 @@ Log entries are facts: SHAs, verdicts, counts, decisions, eight lines at most ea
 |---|---|
 | "The reviewer can just commit the trivial fix" | Then nobody independent re-checks it. Route to the implementer. |
 | "I'll update state.md at the end" | A crash loses the session; `state.md` is the only resume point. |
-| "This reviewer re-found the ruled finding and sounds certain" | Rule 8. Cite the ledger, move on. Three reviewers re-finding a ruled trade-off is sensitivity working, not a new defect. |
+| "This reviewer re-found the ruled finding and sounds certain" | Rule 8. Cite the ledger, move on. Three reviewers re-finding a ruled finding is sensitivity working, not a new defect. |
 | "The plan is wrong here, the implementer can improvise" | A discrepancy STOP is the prep skill's `--amend` path. Improvisation is where phase-2 findings come from. |
 | "CI is green, I can merge" | The human merges. Always. |
 | "The user ruled it in, so it rides this PR" | Rule 10. A ruling adds scope to the work, not room to the gate. #580 folded two tickets into a ~265-line plan and shipped 866 lines, 18 fix commits and 5 follow-up tickets. |
@@ -143,7 +145,18 @@ Consequences: built-in `code-review` at `high` instead of `medium`, the conforma
 
 ## Fix loop
 
-Phase 2 findings pool into one triage (phase 3): CI read first, de-duplicate, close ledger matches, verify known FP classes, verifier in deep mode, then one consolidated `findings/cycle-<n>.md` and one fix dispatch. The conductor pushes the fix commits; the re-check (phase 4) reads the delta against the findings file. Cap: two phase 3 ↔ 4 cycles. On the cap, `board.sh status <n> "Awaiting Human"` and present the unresolved findings with the implementer's counter-arguments, with their visual per `.claude/skills/issue-review/references/question-visuals.md`. An amendment (the plan was wrong, `plan --amend`) restarts the count; it is new design and new code. A lens or re-checker killed by a transient API error is re-run and does not count as a cycle. A dispute skips the loop: both sides to the human at once, with its visual per the same file, the ruling into `## Adjudications`.
+Phase 2 findings pool into one triage (phase 3): CI and Non-goals read first, de-duplicate, close ledger matches, verify known FP classes, verifier in deep mode, then one consolidated `findings/cycle-<n>.md` and one fix dispatch. The conductor pushes the fix commits; the re-check (phase 4) reads the delta against the findings file. Cap: four phase 3 ↔ 4 cycles, counted on `state.md` → `cycle:`. Cycles 1 and 2 continue the phase 1 implementer; cycles 3 and 4 dispatch a fresh one on the findings still open ([references/implement.md](references/implement.md) → Re-entry). After cycle 4's re-check nothing is dispatched: every open finding is `not fixed`, and phase 5 runs. `prep --amend` does not reset the count. A lens or re-checker killed by a transient API error is re-run and does not count as a cycle. A dispute is ruled per § Rulings and stays in the loop.
+
+## Rulings
+
+The conductor settles a dispute, and an ambiguous verification, by the first of these that answers it:
+
+1. The ticket text.
+2. The frame in `~/.ship/MoneyApp/canvas/`, for layout, geometry and colour.
+3. The shipped convention, for glyphs, icons and number formats.
+4. The smallest change.
+
+Each ruling is an `## Adjudications` line in `state.md` that names which of the four settled it. A ruling that reached the smallest change is also a `## Decisions` line with its cost if wrong.
 
 ## Worktrees
 

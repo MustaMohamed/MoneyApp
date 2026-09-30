@@ -13,7 +13,7 @@
    bash scripts/board.sh status <n> "In Review"
    ```
 
-   The title is the squash subject; write it here, once, in the conventional shape. The body, written to `pr.md` first: `Closes #<n>`, the plan's blob URL at its commit (the post-rebase SHA when Setup rebased), a line per Flag, and a "Trade-offs" section the triage fills later. Record the PR URL in `state.md`; every later phase targets the PR by URL. Pushing starts CI; nobody waits for it here. Triage reads it, merge confirms it.
+   The title is the squash subject; write it here, once, in the conventional shape. The body, written to `pr.md` first: `Closes #<n>`, the plan's blob URL at its commit (the post-rebase SHA when Setup rebased), and a line per Flag. Record the PR URL in `state.md`; every later phase targets the PR by URL. Pushing starts CI; nobody waits for it here. Triage reads it, merge confirms it.
 2. **Decide deep mode** (SKILL.md → Deep mode) on the header Flags and `git diff --stat origin/main...HEAD`; record `deep_mode` and the trigger in `state.md`.
 3. **Review worktree:** create or re-point `MA-XXX-review` at the pushed SHA (SKILL.md → Worktrees), symlink `node_modules` from the implementation worktree.
 4. **Benchmark inputs** for the quality and conformance lenses: the house-standard reference module, `none named` unless `state.md` → Decisions says otherwise, and the audits under `docs/superpowers/reviews/` (start with `2026-07-29-full-technical-audit.md`; remediation in `docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md`).
@@ -32,7 +32,7 @@ You are reviewing committed work you did not write. You read from the review wor
 
 1. Read the ticket (`issue.md`), then the plan. Internalize what this change must do before looking at what it does.
 2. Read the full diff for the range, top to bottom. `.work/MA-XXX/plan.md` in the range is the plan you already read, not code under review; it leaves the branch before the merge.
-3. **Ticket compliance:** every Acceptance line holds, trace the code paths; every Rule is honoured. Anything the diff does that the ticket does not ask for is a finding (scope creep). Anything the ticket asks for that the diff does not do is a finding (gap).
+3. **Ticket compliance:** every Acceptance line holds, trace the code paths; every Rule is honoured. Anything the diff does that the ticket does not ask for is a finding (scope creep). Anything the ticket asks for that the diff does not do is a finding (gap). A changed path that a line under the plan's `## Non-goals` names is a finding.
 4. **Bug hunt:** for each non-trivial hunk, LSP find-references on changed symbols (did the change break a caller the diff does not show?), hover for types at boundaries, diagnostics at this SHA. Hunt swallowed error paths, boundary conditions, stale reads, races, wrong-base computations.
 5. **Tests:** do the new tests pin the specified behaviour, or restate the implementation?
 
