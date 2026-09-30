@@ -32,7 +32,7 @@ Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a
 
 | Verb | Does |
 |---|---|
-| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a typed run stops and asks on REBUILD; a `Run: unattended` run builds, § Running from a task worktree); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
+| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a `/ship` run, typed or unattended, builds on REBUILD and asks nothing, § Running from a task worktree; any other typed session asks); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
 | `down` | close the agent-device session so the system keyboard comes back; the claim and Metro stay for the next run |
 | `open <route\|url>` | deep link: `/transactions`, `/accounts`, or a full `moneyapp://` URL |
 | `read [scope]` · `ui` | what is on screen: `@ref`, kind, label and testID, with a row's own texts folded into it; with a scope (a testID or a label), every labelled node drawn inside that container, in dp |
@@ -185,14 +185,17 @@ worktree, which needs three things the worktree does not have by default.
    `agent-device`.
 2. **An APK — but usually not a new one.** `mqa install` wants
    `android/app/build/outputs/apk/debug/app-debug.apk`, and `android/` is gitignored.
-   **Ask before building**, in a typed run: `mqa up` prints `build: REUSE` or `build: REBUILD`. A rebuild is
+   `mqa up` prints `build: REUSE` or `build: REBUILD`. A rebuild is
    mandatory only when the **native surface** moved: `package.json`, `package-lock.json`,
    `app.json`, `eas.json`, `patches/`, or anything under `android/`/`ios/`, and the APK on the
    device was installed before the newest such change. An APK installed after it already
    carries it, which is the render lens's case. Everything else reaches the device over Metro.
-   A run whose task prompt reads `Run: unattended` asks nothing: it builds and installs once
-   under the permission rule in [queue column.md](../queue/references/column.md) and records
-   `build: REBUILD` in its log line's note.
+   A `/ship` run, typed or unattended, asks nothing: it builds and installs once for the
+   device its worktree claimed, under [queue column.md](../queue/references/column.md)
+   § Permission rule, holds the build while host load is above that file's § Holds ceiling
+   (`ship/references/implement.md` → Re-entry), and writes `build: REBUILD` in `state.md`;
+   an unattended one also records it in its log line's note. A typed session outside `/ship`
+   asks before building.
    When you do need one:
 
    ```bash

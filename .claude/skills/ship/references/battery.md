@@ -21,7 +21,7 @@
    - **Correctness lens**, charter A.
    - **Quality lens**, charter B plus the benchmark inputs.
    - **Conformance lens**, deep mode only, charter C plus the benchmark inputs.
-   - **Render lens**, `Verify emulator` only, agent type `render`, charter D plus the plan's Screens section, the implementation worktree path, its Metro port, and the render findings path. It runs from the implementation worktree (Hard rule 3's exception) while the implementer is idle, which it is: dispatches are sequential.
+   - **Render lens**, `Verify emulator` only, agent type `render`, charter D plus the plan's Screens section, the implementation worktree path, its Metro port, and the render findings path. It runs from the implementation worktree (Hard rule 3's exception) while the implementer is idle, which it is: dispatches are sequential. A lens that reports `build: REBUILD` builds nothing: the implementer builds under the hold in [implement.md](implement.md) → Re-entry, then the lens is dispatched again.
    - **Built-in `code-review`**, conductor-invoked on the PR URL, effort passed explicitly every time: `high` in deep mode, else `medium`. Never `--fix`, never `--comment`.
 
 Each lens dispatch: charter, absolute paths (review worktree, `issue.md`, `plan.md`, diff range `origin/main...<sha>`, three-dot), the return shape. Charters A to C also get the review worktree line of [SKILL.md](../SKILL.md) → Worktrees.

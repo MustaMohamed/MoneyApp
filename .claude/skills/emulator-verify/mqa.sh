@@ -436,7 +436,7 @@ build_verdict() {
     echo "REUSE: the native surface changed since $base, and the APK on $S was installed after the newest change; a missing native module on screen means rebuild."
     return 1
   fi
-  echo "REBUILD: native surface changed since $base, and the APK on ${S:-the device} predates it. Ask before building:"
+  echo "REBUILD: native surface changed since $base, and the APK on ${S:-the device} predates it. Build once: mqa build && mqa install"
   sed 's/^/  /' <<<"$changed"
   return 0
 }
@@ -1124,7 +1124,7 @@ env         MQA_UI MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK MQA_SLOTS MQA_LE
 Slots: 1 emulator-5554 :8082 · 2 emulator-5556 :8083 · 3 emulator-5558 :8084, one per worktree.
 
 A run is two lifecycle calls around one walk:
-  mqa up                    # stop and ask if it prints build: REBUILD
+  mqa up                    # on build: REBUILD, build and install once, then up again
   mqa walk <walk.sh>        # written with the Write tool, not a heredoc
   mqa down
 EOF
