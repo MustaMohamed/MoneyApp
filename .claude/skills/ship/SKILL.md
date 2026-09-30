@@ -163,7 +163,7 @@ The conductor settles a dispute, and an ambiguous verification, by the first of 
 3. The shipped convention, for glyphs, icons and number formats.
 4. The smallest change.
 
-Each ruling is an `## Adjudications` line in `state.md` that names which of the four settled it. A ruling that reached the smallest change is also a `## Decisions` line with its cost if wrong.
+Each ruling is an `## Adjudications` line in `state.md` that names which of the four settled it. A ruling that reached the smallest change is also a `## Decisions` line, `<date> <decision> · conductor, smallest change · <cost if wrong>`.
 
 ## Parking
 

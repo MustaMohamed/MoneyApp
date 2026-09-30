@@ -19,21 +19,22 @@ A fix loop after this point (a change the user asks for, § A change after the s
 
 The run ends in this order:
 
-1. `bash scripts/board.sh status <n> "Awaiting Human"`.
-2. The merge summary below, written to `~/.ship/MoneyApp/queue/ship-<n>-summary.md` by every run, typed or unattended.
-3. Item 7's screenshots, sent with `SendUserFile`.
-4. The summary as the run's last message.
+1. CI, re-read now: `gh pr checks <pr-url>`. Red routes back through phase 3, and nothing below runs.
+2. `bash scripts/board.sh status <n> "Awaiting Human"`.
+3. The merge summary below, written to `~/.ship/MoneyApp/queue/ship-<n>-summary.md` by every run, typed or unattended.
+4. Item 7's screenshots, sent with `SendUserFile`.
+5. The summary as the run's last message.
 
 Nothing is posted on the issue or the PR. No run merges, approves a review or turns on auto-merge.
 
 The summary is headed by the PR URL, then ten items in this order, each written `none` when empty except item 6, whose heading and table header row are always written. Every item reads a file, so a session that did not run the battery can write it.
 
 1. Findings `not fixed` after cycle 4, each with its `path:line`.
-2. Decisions that reached "smallest change", from `state.md` → `## Decisions`, each with its cost if wrong.
+2. Decisions that reached "smallest change": the `state.md` → `## Decisions` lines whose who reads `conductor, smallest change`, each with its cost if wrong.
 3. The header Flags, verbatim, and the `REBUILD` line from `state.md` → Log.
-4. CI, re-read now with `gh pr checks <pr-url>`: green, or red explained; red routes back through phase 3 before the summary. The commits after the last re-check, the plan removal with its `--stat` and anything else, named; never present an unreviewed head as reviewed. Each lens whose `state.md` line reads `LSP: not used`.
+4. CI as step 1 read it: green, or a non-green check explained. The commits after the last re-check, the plan removal with its `--stat` and anything else, named; never present an unreviewed head as reviewed. Each lens whose `state.md` line reads `LSP: not used`.
 5. What was built, one line per Acceptance line.
-6. Every other decision, under the heading `## Decisions the ticket or plan did not state`: a table with the columns Decision, Who, Cost if wrong, copy decisions first. It reads `state.md` → `## Decisions` and this run's `## Adjudications` lines that items 2 and 9 do not already hold. [queue column.md](../../queue/references/column.md) reads this heading.
+6. Every other decision, under the heading `## Decisions the ticket or plan did not state`: a table with the columns Decision, Who, Cost if wrong, copy decisions first. It reads the `state.md` → `## Decisions` lines item 2 does not hold, and this run's `## Adjudications` lines that items 2 and 9 do not already hold. [queue column.md](../../queue/references/column.md) reads this heading.
 7. One screenshot per screen the plan's Screens section lists, from `findings/render/`.
 8. Tickets opened, by number.
 9. `rejected` findings, each with the ticket line it contradicts, quoted.

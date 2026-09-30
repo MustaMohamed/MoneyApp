@@ -7,7 +7,7 @@ description: Use when preparing, running, or recording the Device QA pass the us
 
 ## Overview
 
-Device QA is the user's pass when an epic or module closes, critical trigger 8: **only the user can walk it, on a real device (Android first).** It is no gate before a merge; each `Verify emulator` ticket gets its emulator check during `/ship`. This skill makes the pass concrete. It assembles the checklist for the screens the epic's or module's merged PRs changed, hands it to the user, and records the result. A whole class of MoneyApp bugs is invisible to CI and only surfaces here: fonts that silently don't render (audit H15 — the app shipped months in the wrong typeface with green CI), HeroUI `Card`/`Surface` visual deltas, Android Fabric flex collapse, and animation jank.
+Device QA is the user's pass when an epic or module closes, critical trigger 8: **only the user can walk it, on a real device (Android first).** It is no gate before a merge; each `Verify emulator` ticket gets its emulator check during `/ship`. This skill makes the pass concrete. It assembles the checklist for the screens the epic's or module's merged PRs changed, hands it to the user, and records the result. A whole class of MoneyApp bugs is invisible to CI and only surfaces here: fonts that silently don't render (audit H15, the app shipped months in the wrong typeface with green CI), HeroUI `Card`/`Surface` visual deltas, Android Fabric flex collapse, and animation jank.
 
 ## Running a QA pass
 
