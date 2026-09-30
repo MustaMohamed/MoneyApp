@@ -1,33 +1,27 @@
 ---
 name: ship
-description: "Use when the user invokes /ship with an issue number or an MA id to deliver a planned ticket to a merged PR, '/ship' alone to pull the next ticket off the board, or asks to resume a ticket that has ~/.ship/MoneyApp/MA-XXX/state.md. The second half of delivery, after /prep: implement, review battery, triage and fix, re-check, merge. Not for planning (prep) or defining (boundaries, tickets)."
-argument-hint: "[<issue number> | MA-XXX]"
+description: "Use when the user invokes /ship with an issue number or an MA id to take a Planned ticket to Awaiting Human with a merge summary, or asks to resume a ticket that has ~/.ship/MoneyApp/MA-XXX/state.md. The second half of delivery, after /prep: implement, review battery, triage and fix, re-check, merge summary. '/ship' with no number pulls nothing. Not for planning (prep) or defining (boundaries, tickets)."
+argument-hint: "<issue number> | MA-XXX"
 ---
 
 # Ship
 
-Delivery of one leaf task from Planned to Done, on the branch `/prep` created, through five phases. The main session is the conductor. Implementation, every review lens and every re-check run in fresh subagents that get file paths, never this conversation. The human has one gate, the merge; everything else the conductor decides, and disputes and caps go to the human as they arise.
+Delivery of one leaf task from Planned to Awaiting Human with a merge summary, on the branch `/prep` created, through five phases. The main session is the conductor. Implementation, every review lens and every re-check run in fresh subagents that get file paths, never this conversation. The human has one gate, the merge; everything else the conductor decides, and disputes and caps go to the human as they arise.
 
 ## Entry
 
 `/ship <n>` (an MA id resolves through `gh issue list --search "MA-XXX" --state all --json number,title --jq '.[] | select(.title | startswith("MA-XXX ")) | .number'`; the search alone returns every issue that mentions the id). The reverse, `gh issue view <n> --json title --jq .title`, gives MA-XXX, which names the artifact directory, the branch and the worktree below.
 
-**Lease check.** The Entry check of [queue § Lease](../queue/SKILL.md) runs on `<n>` as soon as it is known, the typed `<n>` or the row step 3 names. When it passes, write the lease at once, before step 1 resumes or step 2 acts: `skill=ship`, `worktree=` the implementation worktree when it exists, else the primary checkout, keeping `task=` when the lease is the run's own.
+**Lease check.** The Entry check of [queue § Lease](../queue/SKILL.md) runs on `<n>` as soon as it is known. When it passes, write the lease at once, before step 1 resumes or step 2 acts: `skill=ship`, `worktree=` the implementation worktree when it exists, else the primary checkout, keeping `task=` when the lease is the run's own.
 
 1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists: read it, announce phase, branch, PR and any open loop, load that phase's file, continue. Never redo a completed phase.
 2. Otherwise `bash scripts/board.sh get <n>`:
    - **Planned** → phase 1.
-   - **Ready For Development** with no sub-issues → run the `prep` skill on `<n>` first, in this session, then phase 1 without stopping. Prep's two stops survive (a gap or a trim, a disputed finding); a ticket prep moves to Blocked ends the run with prep's reply. The board is the composition switch.
+   - **Ready For Development** with no sub-issues → the ticket has no plan: reply `Next: /prep <n>` and run nothing.
    - **In Progress / In Review / Awaiting Human** with no `state.md` → another machine or session owns it; report the branch (`gh issue develop --list <n>`) and the PR (`gh pr list --head <branch> --state all`) and stop.
    - **Ready For Development** with sub-issues → a parent, its column mirrors its children; name the children at Ready For Development and stop, nothing is pulled from a parent.
    - Anything else → say what you found and stop.
-3. `/ship` alone: the top Planned row, else the top Ready For Development row without sub-issues; a parent sits in that column as a mirror of its children and is never pulled. `gh project item-list` returns items in the board's position order, which is the row order within a column (checked 2026-09-06: #382 listed before #381, which was created first), so the first match is the top row. Name it in the reply.
-   ```bash
-   gh project item-list 2 --owner MustaMohamed --limit 500 --format json --jq '[.items[] | select(.status == "Planned") | .content.number] | first'
-   for n in $(gh project item-list 2 --owner MustaMohamed --limit 500 --format json --jq '.items[] | select(.status == "Ready For Development") | .content.number'); do
-     [ "$(gh api repos/MustaMohamed/MoneyApp/issues/$n/sub_issues --jq length)" = 0 ] && { echo "$n"; break; }
-   done
-   ```
+3. `/ship` with no number pulls nothing and says so.
 
 **Setup** (conductor, once, then `state.md`):
 
