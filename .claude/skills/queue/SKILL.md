@@ -11,7 +11,7 @@ An unattended run parks each question it cannot answer as a question record, [qu
 ## Subcommands
 
 - `asks`: every open record on the board, one per message, by [references/asks.md](references/asks.md).
-- `Defined [n]`, `Ready For Development [n]`, `Planned [n]`: `/issue-review`, `/prep` or `/ship` on the top eligible tickets of that column, by [references/column.md](references/column.md). `Planned` also resumes a ticket at In Progress or In Review that has a `state.md` on this machine, no lease and no open question record. `n` caps the starts of one pass.
+- `Defined [n]`, `Ready For Development [n]`, `Planned [n]`: `/issue-review`, `/prep` or `/ship` on the top eligible tickets of that column, by [references/column.md](references/column.md). `Planned` also resumes a ticket at In Progress or In Review that has a `state.md` on this machine, no lease and no open question record, and one at Awaiting Human whose PR has a change the user asked for after its merge summary. `n` caps the starts of one pass.
 
 Any other argument: print this list and stop.
 

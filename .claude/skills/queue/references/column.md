@@ -10,8 +10,9 @@
    node scripts/board_next.mjs --format json </dev/null
    ```
    The candidates are the actions whose `queue` equals the column, in the script's order. The script sets `queue` only on an open leaf whose command a session runs, with every Depends on closed, no open question record, no lease, and at Defined a parent that is not `Reviewed none`.
-3. For each candidate in order, read § Holds. A held candidate is skipped and the next is tried. Otherwise § Start it. Stop at `n` starts.
-4. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, or `held, <hold>`; then every action whose `lease` is `stale`, with its action text; while the floor or the ceiling reads `unmeasured`, the readings of each start. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
+3. `/queue Planned` only: for each action at Awaiting Human with `pr.state` `OPEN`, a `state.md` on this machine and no lease, run the read of § Changes asked at Awaiting Human. With one or more, § Start `ship-<n>` on it, counted toward `n` and held by Cap, Emulator slot, GraphQL budget, Host load and Measures only.
+4. For each candidate in order, read § Holds. A held candidate is skipped and the next is tried. Otherwise § Start it. Stop at `n` starts.
+5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, or `held, <hold>`; then every action whose `lease` is `stale`, with its action text; while the floor or the ceiling reads `unmeasured`, the readings of each start. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
 
 ## Holds
 
@@ -52,6 +53,19 @@ Last, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md in the shape of .c
 ```
 
 `<f>` is the number of held leases before this start's own.
+
+## Changes asked at Awaiting Human
+
+The PR's comments, reviews and review comments created after the summary file's last write, bots left out:
+
+```bash
+since=$(date -u -r ~/.ship/MoneyApp/queue/ship-<n>-summary.md +%Y-%m-%dT%H:%M:%SZ)
+gh api repos/MustaMohamed/MoneyApp/issues/<pr>/comments --jq "[.[] | select(.user.type != \"Bot\" and .created_at > \"$since\")] | length"
+gh api repos/MustaMohamed/MoneyApp/pulls/<pr>/reviews --jq "[.[] | select(.user.type != \"Bot\" and .submitted_at > \"$since\")] | length"
+gh api repos/MustaMohamed/MoneyApp/pulls/<pr>/comments --jq "[.[] | select(.user.type != \"Bot\" and .created_at > \"$since\")] | length"
+```
+
+A sum above 0 is a change the user asked for. No summary file reads as none.
 
 ## Merged since the last run
 

@@ -13,20 +13,31 @@ git ls-files --error-unmatch .work/MA-XXX/plan.md >/dev/null 2>&1 \
   && git show --stat HEAD           # one file, one deletion; paste it into the summary. Already removed (a second visit here): skip
 ```
 
-A fix loop after this point (a PR comment from the human) dispatches with `~/.ship/MoneyApp/MA-XXX/plan.md`, which is the same content.
+A fix loop after this point (a change the user asks for, § A change after the summary) dispatches with `~/.ship/MoneyApp/MA-XXX/plan.md`, which is the same content.
 
 ## Present for merge
 
-`bash scripts/board.sh status <n> "Awaiting Human"`, then one compact summary here, not a comment on the issue or the PR:
+The run ends in this order:
 
-- PR URL and the ticket's Goal in one line.
-- **The header Flags, verbatim**, first. They are CLAUDE.md's critical triggers written on the ticket for this moment. Then the danger surfaces the quality lens flagged.
-- Battery line: per-lens verdicts and counts, triage outcome as counts (fixed / ledger / FP / refuted / trade-off / deferred with numbers / amended), re-check verdict, cycles used.
-- **CI, re-read now:** `gh pr checks <pr-url>`. Fix commits landed since triage read it; this is the last read and it must be green or explained. Red routes back through phase 3 before presenting.
-- **Commits after the last re-check:** the plan removal, with its `--stat`, and anything else, named explicitly. Never present an unreviewed head as reviewed.
-- `Verify emulator` tickets: the render pass and render lens evidence paths, and the standing caveat that fonts, shadows, gesture feel and performance are visible only on real hardware. Device QA on real hardware is the human's, critical trigger 8, before any merge of a UI change.
-- Accepted trade-offs and every adjudication that shaped this PR, already in the PR body's Trade-offs section.
-- Open disputes: none, or the both-sides summary awaiting the ruling.
+1. `bash scripts/board.sh status <n> "Awaiting Human"`.
+2. The merge summary below, written to `~/.ship/MoneyApp/queue/ship-<n>-summary.md` by every run, typed or unattended.
+3. Item 7's screenshots, sent with `SendUserFile`.
+4. The summary as the run's last message.
+
+Nothing is posted on the issue or the PR. No run merges, approves a review or turns on auto-merge.
+
+The summary is headed by the PR URL, then ten items in this order, each written `none` when empty except item 6, whose heading and table header row are always written. Every item reads a file, so a session that did not run the battery can write it.
+
+1. Findings `not fixed` after cycle 4, each with its `path:line`.
+2. Decisions that reached "smallest change", from `state.md` → `## Decisions`, each with its cost if wrong.
+3. The header Flags, verbatim, and the `REBUILD` line from `state.md` → Log.
+4. CI, re-read now with `gh pr checks <pr-url>`: green, or red explained; red routes back through phase 3 before the summary. The commits after the last re-check, the plan removal with its `--stat` and anything else, named; never present an unreviewed head as reviewed. Each lens whose `state.md` line reads `LSP: not used`.
+5. What was built, one line per Acceptance line.
+6. Every other decision, under the heading `## Decisions the ticket or plan did not state`: a table with the columns Decision, Who, Cost if wrong, copy decisions first. It reads `state.md` → `## Decisions` and this run's `## Adjudications` lines that items 2 and 9 do not already hold. [queue column.md](../../queue/references/column.md) reads this heading.
+7. One screenshot per screen the plan's Screens section lists, from `findings/render/`.
+8. Tickets opened, by number.
+9. `rejected` findings, each with the ticket line it contradicts, quoted.
+10. Questions that should have been asked earlier: the `## Parked` lines of `state.md` that carry a miss, each with its check.
 
 Then wait, with a watch on the merge so the word "merged" is never needed. **The human merges, never the conductor.** A PR comment from the human routes through phase 3 (fix, re-check, back here).
 
@@ -35,9 +46,15 @@ Then wait, with a watch on the merge so the word "merged" is never needed. **The
 until gh pr view <pr-url> --json state --jq .state | grep -qE 'MERGED|CLOSED'; do touch ~/.ship/MoneyApp/queue/leases/<n>; sleep 60; done; gh pr view <pr-url> --json state,mergedAt
 ```
 
-`CLOSED` without `mergedAt` is a closed PR, not a merge: stop and ask.
+`CLOSED` without `mergedAt` is a closed PR, not a merge: stop and report.
 
 An unattended run presents at Awaiting Human, removes its lease and ends with no watch. `/queue` runs § After the merge on its next pass.
+
+## A change after the summary
+
+A message in the task after the summary, or a PR comment, review or review comment created after the summary file's last write, is a finding of a new triage. [queue column.md](../../queue/references/column.md) § Changes asked at Awaiting Human has the read. A resume at phase 5 runs that read first. Before phase 5 writes the summary file again, it reads for anything newer than the previous file's last write, and a change not yet triaged goes through phase 3 first.
+
+The return, in this order: `bash scripts/board.sh status <n> "In Review"`; the lease written whole before the next dispatch, [SKILL.md](../SKILL.md) → Lease and working folder; then phase 3.
 
 ## After the merge
 
@@ -60,8 +77,8 @@ Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the 
 
 ## Checklist
 
-- [ ] Flags listed verbatim in the summary; CI read after the last push; post-re-check commits disclosed or none
-- [ ] Trade-offs and adjudications in the PR body
+- [ ] Ten items in order, `none` where empty, item 6's heading and table header row written; CI read after the last push
+- [ ] Summary in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, screenshots sent, summary the last message; nothing posted on the issue or the PR
 - [ ] Plan removed from the branch before the summary; `git ls-tree origin/main .work` prints nothing after the merge
 - [ ] Merge verified by URL; issue closed; Done and `promote` run
 - [ ] `state.md` final line before teardown; worktrees, branch, prune; `npm ci` if the lockfile moved

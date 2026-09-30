@@ -21,7 +21,7 @@
 8. **Fix dispatch:** increment `cycle:` in `state.md`, then the implementer, as a phase 1 re-entry per [implement.md](implement.md) → Re-entry. One dispatch per cycle; parallel fixers only when findings are provably file-disjoint.
 9. **Push the fix commits** from the worktree and re-point the review worktree. A fix that exists only locally is invisible to the PR and dies with teardown.
 
-Back from Awaiting Human with a ruling: `bash scripts/board.sh status <n> "In Review"`, write the lease again ([SKILL.md](../SKILL.md) → Setup), and continue.
+Back from Awaiting Human on a change the user asks for: [merge.md](merge.md) → A change after the summary, then this triage.
 
 ## Charter: finding verifier (deep mode; paste)
 

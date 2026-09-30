@@ -81,4 +81,4 @@ Return: verdict, findings, the scenario list you ran with one line each on what 
 
 ## Exit
 
-All reports in (a lens killed by a transient API error is re-run). Record per-lens verdicts and counts in `state.md`, one line, and enter phase 3.
+All reports in (a lens killed by a transient API error is re-run). Record per-lens verdicts and counts in `state.md`, one line, with `LSP: not used` beside each lens that returned it, and enter phase 3.

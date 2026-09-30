@@ -66,4 +66,4 @@ Return, in the unslop shape: branch, commit SHAs, the chain's last 20 lines, ren
 
 ## Exit
 
-Committed and green → the `after` test dispatch when the plan has `after` cases, then phase 2. Discrepancy → `prep --amend`, then re-dispatch; a discrepancy on a test goes to the test writer, not the implementer. Over budget → re-dispatch on the SHA. Record the test SHA, the implementation SHA, outcomes and tool-call counts in `state.md`.
+Committed and green → the `after` test dispatch when the plan has `after` cases, then phase 2. Discrepancy → `prep --amend`, then re-dispatch; a discrepancy on a test goes to the test writer, not the implementer. Over budget → re-dispatch on the SHA. Record the test SHA, the implementation SHA, outcomes and tool-call counts in `state.md`, and one `## Decisions` line per plan deviation the implementer returns, `<date> <decision> · implementer · <cost if wrong>`.

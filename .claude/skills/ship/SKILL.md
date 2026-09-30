@@ -44,7 +44,7 @@ gh issue view <n> --json body --jq .body > ~/.ship/MoneyApp/MA-XXX/issue.md
 cp .work/MA-XXX/plan.md ~/.ship/MoneyApp/MA-XXX/plan.md                     # dispatches read this copy; the branch copy leaves before the merge
 ```
 
-**Lease and working folder**, before any dispatch. Rewrite the lease's `worktree=` to the implementation worktree, per [queue § Lease](../queue/SKILL.md), then EnterWorktree into the implementation worktree as § Worktrees states. A resume has its lease from the Lease check above. Write it again before the next dispatch on every return from Awaiting Human, whether a ruling ([references/triage.md](references/triage.md)) or a PR comment routed through phase 3.
+**Lease and working folder**, before any dispatch. Rewrite the lease's `worktree=` to the implementation worktree, per [queue § Lease](../queue/SKILL.md), then EnterWorktree into the implementation worktree as § Worktrees states. A resume has its lease from the Lease check above. On every return from Awaiting Human to In Review, write the lease whole before the next dispatch: `skill=ship`, `worktree=` the implementation worktree, and `task=` kept when the lease is the run's own, absent otherwise ([references/merge.md](references/merge.md) → A change after the summary).
 
 The plan is `.work/MA-XXX/plan.md` at the branch's first commit, copied to `plan.md` for dispatches; it never reaches main (phase 5 removes it). The header line of `issue.md` drives three things: `Verify emulator` turns on the render pass (phase 1) and the render lens (phase 2); the Flags decide deep mode (below); Depends on is closed or the ticket would not be Planned.
 
@@ -58,13 +58,13 @@ Load `references/<phase>.md` on entering a phase. The file is the method; this t
 | 2 | Battery | conductor pushes and opens the PR; lenses in parallel | In Review | every lens report in |
 | 3 | Triage and fix | conductor; verifier in deep mode; implementer fixes | In Review, or Blocked on a park | consolidated fixes pushed |
 | 4 | Re-check | one fresh re-checker per pushed fix | | all fixed, no new findings; cap 4 cycles with phase 3 |
-| 5 | Merge | conductor removes the plan file, human merges, conductor cleans | Awaiting Human, then Done | merged, post-merge list done, artifacts deleted |
+| 5 | Merge summary | conductor removes the plan file and writes the summary; the human merges | Awaiting Human; In Review on a change the user asks for | summary sent; a typed run then watches the merge and cleans |
 
 A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), never skipped silently. There is no fast lane and no mode: one ticket, one branch, one PR.
 
 ## Artifacts
 
-`~/.ship/MoneyApp/MA-XXX/`, outside every repo and worktree, deleted at the end of phase 5:
+`~/.ship/MoneyApp/MA-XXX/`, outside every repo and worktree, deleted after the merge ([references/merge.md](references/merge.md) → After the merge). The merge summary is `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, beside the run log, and stays:
 
 ```
 issue.md                 # the ticket body at entry; every dispatch gets this path
@@ -99,7 +99,8 @@ cycle: <0-4>
 - <date> P3 c1: findings written · fix dispatched · fix pushed <sha>
 
 ## Decisions
-- <date> <decision and why>
+<!-- one line when the decision is made; phase 5 reads every line -->
+- <date> <decision> · <who> · <cost if wrong>
 
 ## Parked
 - <date> <record URL> · <case 1, 2 or 3 of § Parking> · miss: <check id or /prep step, or none>
