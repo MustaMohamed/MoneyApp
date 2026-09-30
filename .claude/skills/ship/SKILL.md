@@ -14,7 +14,7 @@ Delivery of one leaf task from Planned to Awaiting Human with a merge summary, o
 
 **Lease check.** The Entry check of [queue § Lease](../queue/SKILL.md) runs on `<n>` as soon as it is known. When it passes, write the lease at once, before step 1 resumes or step 2 acts: `skill=ship`, `worktree=` the implementation worktree when it exists, else the primary checkout, keeping `task=` when the lease is the run's own.
 
-1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists: read it, announce phase, branch, PR and any open loop, load that phase's file, continue. Never redo a completed phase.
+1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists. First `bash scripts/board.sh questions <n>`: while it prints a record, the run stops there, dispatches nothing, parks nothing and replies `Next: /queue asks`. With none open and the ticket back from Blocked, write `issue.md` again from the issue, as Setup does, before the next dispatch. Then read `state.md`, announce phase, branch, PR and any open loop, load that phase's file, continue. Never redo a completed phase.
 2. Otherwise `bash scripts/board.sh get <n>`:
    - **Planned** → phase 1.
    - **Ready For Development** with no sub-issues → the ticket has no plan: reply `Next: /prep <n>` and run nothing.
@@ -56,7 +56,7 @@ Load `references/<phase>.md` on entering a phase. The file is the method; this t
 |---|---|---|---|---|
 | 1 | Implement | test writer for `first` cases (60 tool calls), composed implementer (120), test writer for `after` cases (60), in sequence | In Progress at dispatch | red tests committed, then green: parity chain, render pass when `Verify emulator`, committed, not pushed |
 | 2 | Battery | conductor pushes and opens the PR; lenses in parallel | In Review | every lens report in |
-| 3 | Triage and fix | conductor; verifier in deep mode; implementer fixes | In Review | consolidated fixes pushed |
+| 3 | Triage and fix | conductor; verifier in deep mode; implementer fixes | In Review, or Blocked on a park | consolidated fixes pushed |
 | 4 | Re-check | one fresh re-checker per pushed fix | | all fixed, no new findings; cap 4 cycles with phase 3 |
 | 5 | Merge | conductor removes the plan file, human merges, conductor cleans | Awaiting Human, then Done | merged, post-merge list done, artifacts deleted |
 
@@ -101,6 +101,9 @@ cycle: <0-4>
 ## Decisions
 - <date> <decision and why>
 
+## Parked
+- <date> <record URL> · <case 1, 2 or 3 of § Parking> · miss: <check id or /prep step, or none>
+
 ## Adjudications
 <!-- read by phase 3 triage and phase 4 re-checks, never by a first-pass lens -->
 - FP class: built-in code-review may diff against a stale local main; verify "unrelated file" findings against origin/main...HEAD before triage.
@@ -116,7 +119,7 @@ Log entries are facts: SHAs, verdicts, counts, decisions, eight lines at most ea
 1. **Subagents never touch the issue or the PR, never push, never merge.** Only the conductor runs `gh`, `git push` and the built-in `code-review`; merges are the human's.
 2. **Reviewers never write code.** Findings route to the implementer, who fixes and commits. If fixing seems faster than re-dispatching, that is the moment this rule exists for.
 3. **Lenses read only, in the review worktree, entered as § Worktrees states.** The one exception is the render lens, which runs the app from the implementation worktree because a symlinked `node_modules` resolves zero routes; it edits nothing there. The implementation worktree otherwise belongs to the implementer alone.
-4. **The run asks the user nothing.** The conductor rules every dispute per § Rulings. The merge is the user's, and no run answers it.
+4. **The run asks the user nothing.** The conductor rules every dispute per § Rulings and parks what it cannot rule per § Parking. The merge is the user's, and no run answers it.
 5. **One branch, one PR, targeting main, opened with `Closes #<n>`.** Never stacked.
 6. **Workflow artifacts never reach main.** The plan rides the branch for review and leaves it before the merge; the one workflow output that merges is a decision record under `docs/adr/`, through a plan step.
 7. **The conductor never edits code**, including one-character fixes. The conductor's only commits are the rebase, the push of what the implementer committed, and the plan removal at phase 5.
@@ -158,6 +161,25 @@ The conductor settles a dispute, and an ambiguous verification, by the first of 
 
 Each ruling is an `## Adjudications` line in `state.md` that names which of the four settled it. A ruling that reached the smallest change is also a `## Decisions` line with its cost if wrong.
 
+## Parking
+
+Three cases stop a run, typed or unattended alike. The conductor parks each and never decides it.
+
+1. **A critical trigger of `CLAUDE.md` the header Flags do not name**, checked at phase 2 entry on `git diff --name-only origin/main...HEAD` ([references/battery.md](references/battery.md) item 2) and at triage on the quality lens's danger-surface flags. The record gets a `Miss:` line naming the `/issue-review` check id or the `/prep` step that should have asked.
+2. **A ticket line that cannot hold, or that the code contradicts** ([references/triage.md](references/triage.md) item 6). `Miss:` as in case 1.
+3. **Gaps `prep --amend` returns** ([references/implement.md](references/implement.md) → Re-entry), one record per gap and no `Miss:` line.
+
+A park runs in this order:
+
+1. `bash scripts/board.sh get <n>` gives the column the record's `Left:` names.
+2. One record per question per [question-record.md](../issue-review/references/question-record.md), `Asked by:` naming `ship` and the phase, posted with `gh issue comment <n> --body "$RECORD"` after its restatement check.
+3. `bash scripts/board.sh status <n> Blocked`.
+4. One line per record under `state.md` → `## Parked`: the record URL, the case, and the miss or `none`.
+5. Release the lease, [queue § Lease](../queue/SKILL.md).
+6. Reply with the record URLs and `Next: /queue asks`, and end the run.
+
+The worktree, the branch and `state.md` stay. The parked question is not decided, and the run does not wait on it. A miss is repeated in the merge summary's last item after the run resumes.
+
 ## Worktrees
 
 Implementation worktree: `.claude/worktrees/MA-XXX`, created by `/prep`, reused here. Review worktree: `.claude/worktrees/MA-XXX-review`, detached at the pushed SHA, one per battery, re-pointed for re-checks:
@@ -184,6 +206,7 @@ A subagent prompt is, in order: the charter from the phase file verbatim; absolu
 - About to let a reviewer "quickly fix" anything, or to edit a file yourself
 - About to start phase 1 with the board not at Planned
 - About to answer the merge gate because the human is away
+- About to ask the user anything
 - About to hand `## Adjudications` to a first-pass lens
 - About to keep a findings list only in conductor context
 - `state.md` does not match what you are doing

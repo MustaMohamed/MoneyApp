@@ -14,7 +14,7 @@
    ```
 
    The title is the squash subject; write it here, once, in the conventional shape. The body, written to `pr.md` first: `Closes #<n>`, the plan's blob URL at its commit (the post-rebase SHA when Setup rebased), and a line per Flag. Record the PR URL in `state.md`; every later phase targets the PR by URL. Pushing starts CI; nobody waits for it here. Triage reads it, merge confirms it.
-2. **Decide deep mode** (SKILL.md → Deep mode) on the header Flags and `git diff --stat origin/main...HEAD`; record `deep_mode` and the trigger in `state.md`.
+2. **Decide deep mode** (SKILL.md → Deep mode) on the header Flags and `git diff --stat origin/main...HEAD`; record `deep_mode` and the trigger in `state.md`. Check the critical triggers of `CLAUDE.md` against `git diff --name-only origin/main...HEAD`: one the header Flags do not name parks the ticket, SKILL.md → Parking case 1.
 3. **Review worktree:** create or re-point `MA-XXX-review` at the pushed SHA (SKILL.md → Worktrees), symlink `node_modules` from the implementation worktree.
 4. **Benchmark inputs** for the quality and conformance lenses: the house-standard reference module, `none named` unless `state.md` → Decisions says otherwise, and the audits under `docs/superpowers/reviews/` (start with `2026-07-29-full-technical-audit.md`; remediation in `docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md`).
 5. **Dispatch in one message**, every lens concurrently, none with the ledger:
@@ -48,7 +48,7 @@ You are auditing an open PR for quality from a read-only review worktree. Bugs a
 2. **Measurements, not impressions:** comment density of new code against the module; new file sizes against the module's median; duplication (grep for the sibling a block was copied from, quantify); dead additions (every new export has a consumer, grep to confirm).
 3. **Benchmark against the house standard, not local drift.** Pattern-level judgments compare against the reference module and the audits named in your dispatch; `none named` means benchmark against sibling modules and say which. Reproducing an audited anti-pattern is a finding even when every sibling does it. A new abstraction duplicating an existing one is a finding with both paths cited.
 4. **Efficiency:** allocation or scans on paths the module treats as hot, N+1, recomputation where an index or memo exists. Severity reflects measured or realistically sized cost.
-5. **Danger surfaces, flag not gate:** SQLite migrations, secure-store and auth, onboarding resume state, route files under `src/app/`, native config, money paths. Say so explicitly; the merge summary lists them.
+5. **Danger surfaces, flag not gate:** SQLite migrations, secure-store and auth, onboarding resume state, route files under `src/app/`, native config, money paths. Say so explicitly; triage checks them against the header Flags.
 
 Evidence rule as charter A; `blocking` only for what would make a maintainer's next change wrong or slow. Record genuine strengths in one or two lines.
 
