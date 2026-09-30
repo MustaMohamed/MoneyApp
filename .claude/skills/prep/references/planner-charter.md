@@ -10,7 +10,7 @@ The `unslop` skill binds the plan. A step is one row: file, change, test. Nothin
 
 ## Read
 
-1. The ticket body, fully. The header line first: `Verify emulator` means the plan's Screens section names `emulator-verify/features/<screen>.md` files and states from their tables, the recipes the implementer and the render lens both run; a Flag (`money path`, `data-loss migration`, `native change`, `secure store`, `user copy`) means the matching `.claude/rules/` file and, for the first four, a decision record step (below).
+1. The ticket body, fully. The header line first: `Verify emulator` means the plan's Screens section names `emulator-verify/features/<screen>.md` files and states from their tables, the recipes the implementer and the render lens both run; on a body with `Screen checks` it is built from that section's rows, one entry per row; a Flag (`money path`, `data-loss migration`, `native change`, `secure store`, `user copy`) means the matching `.claude/rules/` file and, for the first four, a decision record step (below).
 2. `CLAUDE.md` at the worktree root, then the rules files in your dispatch. What they forbid, the plan does not ask for: no new `.tsx` test file, and a case in an existing one only under the Render-suite policy in `.claude/rules/tests.md`; no colocated files under `src/app/`; no hardcoded tokens or strings.
 3. The code. Start from the paths in Context, then use LSP: find-references on every symbol the change touches, hover for types at the boundaries, diagnostics on the files. Every path and symbol you write must be one you opened at this checkout. A path you did not open is a guess, and a guess is a defect.
 
@@ -37,6 +37,7 @@ base: <sha of origin/main at this checkout> · verify: <emulator | none> · flag
 ## Screens                      # only when verify: emulator
 - `emulator-verify/features/<screen>.md`: <state names from its States table, comma separated>
 - A state the file lacks: name it, the frame or `no frame`, and add a step that appends it to the file
+- On a body with `Screen checks`: one entry per row, in table order; a row marked `new` names the step that adds the state to the file. A body without the section keeps the two lines above
 
 ## Decision record             # only when a Flag asks for it
 - `docs/adr/<yyyy-mm-dd>-<slug>.md`: <the decision in one line>; a step above adds the file.
@@ -50,6 +51,8 @@ base: <sha of origin/main at this checkout> · verify: <emulator | none> · flag
 
 ## Risks
 - What would invalidate this plan, one line each.
+- A risk that is a screen state: `<features file> · <state>: <the risk>`
+- `not probed: <features file> · <state>`, and `REBUILD: <files>`, from probe results
 
 ## Self-assessment
 One paragraph: the step you are least sure about and why.
@@ -61,6 +64,7 @@ Rules for the steps:
 - Full cycles (store → repository → SQLite) are Jest integration tests against a real database, per the `moneyapp-testing` skill. Never plan an emulator scenario for behaviour a test can assert; the emulator pass covers pixels.
 - Test-first where the repo tests that layer and the interface is fixed; `after` where the implementer shapes it. Logic-only `.ts` tests under `__tests__/` for new files; a case in an existing `.tsx` suite follows the Render-suite policy in `.claude/rules/tests.md`.
 - Line-level detail rots the moment real code exists. The implementer elaborates at execution time and the current code wins on detail; give it interfaces, invariants, order and tests.
+- Probe results in the dispatch: each fact rewrites the step it names; each `not probed` state and the `REBUILD` verdict become Risks lines; nothing else changes.
 - Amending: change only the steps the discrepancy names; leave the rest byte-identical; add one line under Risks saying what was amended and why.
 
 ## Do not

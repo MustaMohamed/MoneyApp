@@ -32,7 +32,7 @@ Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a
 
 | Verb | Does |
 |---|---|
-| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a `/ship` implementer, typed or unattended, builds on REBUILD and asks nothing, § Running from a task worktree; the render lens never builds; any other session asks first); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
+| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a `/ship` implementer, typed or unattended, and a `/prep` probe build on REBUILD and ask nothing, § Running from a task worktree; the render lens never builds; any other session asks first); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
 | `down` | close the agent-device session so the system keyboard comes back; the claim and Metro stay for the next run |
 | `open <route\|url>` | deep link: `/transactions`, `/accounts`, or a full `moneyapp://` URL |
 | `read [scope]` · `ui` | what is on screen: `@ref`, kind, label and testID, with a row's own texts folded into it; with a scope (a testID or a label), every labelled node drawn inside that container, in dp |
@@ -126,11 +126,13 @@ and names its old holder. `mqa release` gives the slot back and stops this workt
 on its port, which would otherwise make the next holder's `up` refuse the port. A fourth
 concurrent ticket waits: `/queue` holds a fourth `Verify emulator` ticket on `mqa claims` and
 never calls `mqa claim` for a run. To run four at once, add a slot by creating another AVD
-and extending `MQA_SLOTS`.
+and extending `MQA_SLOTS`. A `/prep` probe's worktree holds its own slot from its first
+`mqa` call and runs `mqa release` before that worktree is removed; with no row free, `/prep`
+waits on `mqa claims` before it dispatches the probe.
 
 ## The feature map, read before scoping
 
-`features/` next to this file holds one file per screen: how to reach it, every state it can be in with the canvas frame, how to force the state, and what proves it. A walk is assembled by copying those recipes for the states the plan names; nothing is explored. A state the file does not carry is a state the design did not draw: add it to the file, with its frame or `no frame` and the ticket, before shooting it. `features/README.md` has the rule and the file shape.
+`features/` next to this file holds one file per screen: how to reach it, every state it can be in with the canvas frame, how to force the state, and what proves it. A walk is assembled by copying those recipes for the states the plan names; nothing is explored. A state the file does not carry is a state the design did not draw: add it to the file, with its frame or `no frame` and the ticket, before shooting it. The `/prep` probe of a `Screen checks` row marked `new` shoots the state before the plan's step adds it. `features/README.md` has the rule and the file shape.
 
 ## Scope the walk before you run it
 
@@ -176,7 +178,10 @@ remove all three.
 `/ship` runs this twice on any ticket whose header line says `Verify emulator`: the
 implementer's render pass as a self-check before committing, the battery's render lens
 independently, and the lens's run is the one that counts. Both happen in the task
-worktree, which needs three things the worktree does not have by default.
+worktree. `/prep` runs a third on a ticket with marked `Screen checks` rows, the
+[probe](../prep/references/probe-charter.md), before the plan is reviewed, in its own
+worktree with a real `node_modules`. Each worktree needs three things it does not have by
+default.
 
 1. **A real `npm install`.** A worktree's symlinked `node_modules` passes `tsc`, `jest` and
    lint but breaks device builds (expo-router resolves zero routes). It also breaks
@@ -196,6 +201,8 @@ worktree, which needs three things the worktree does not have by default.
    and holds the build while host load is above that file's § Holds ceiling
    ([implement.md](../ship/references/implement.md) charter item 8). The run writes
    `build: REBUILD` in `state.md`; an unattended one also records it in its log line's note.
+   A `/prep` probe builds the same way for the device its worktree claimed, holds the build
+   while the 1-minute load is above 60, and the plan's Risks carries its `REBUILD` line.
    The render lens never builds. Any other session asks before building.
    When you do need one:
 
@@ -217,7 +224,8 @@ worktree, which needs three things the worktree does not have by default.
 **Run the CI parity chain first, then build once.** The chain ends in
 `expo prebuild --no-install`, which regenerates `android/` and deletes any APK built there.
 Parity chain → `mqa up` → on `build: REBUILD`, build and install once, then `mqa up` again;
-the render pass and the render lens share that APK.
+the render pass and the render lens share that APK. The probe runs no parity chain: it runs
+`npx expo prebuild --platform android` in its own worktree before the build.
 
 ## Drive the walk from a script, not one call at a time
 
