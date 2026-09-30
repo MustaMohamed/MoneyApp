@@ -81,7 +81,7 @@ describe('board_next rule table', () => {
     [147, 'yours', '2 open questions', '/queue asks'],
     [149, 'yours', '1 open question', '/queue asks'],
     [102, 'yours', 'checks red on PR #502', '/ship 102'],
-    [103, 'yours', 'no PR: a dispute or a cap', 'read ~/.ship/MoneyApp/MA-103/state.md'],
+    [103, 'drift', 'Awaiting Human without a PR', '/ship 103'],
     [
       112,
       'drift',
@@ -163,6 +163,15 @@ describe('board_next rule table', () => {
     expect(a.questions).toBe(0);
   });
 
+  test('a parent at In Progress whose one open child /ship parked at Blocked mirrors its children', () => {
+    const a = byNumber(list, 156);
+    expect([a.bucket, a.action, a.command]).toEqual([
+      'wait',
+      'parent, mirrors its children',
+      undefined,
+    ]);
+  });
+
   test('closed issues that are Done, and closed children, are not listed', () => {
     expect(list.map((a) => a.number)).not.toContain(111);
   });
@@ -242,6 +251,11 @@ describe('board_next html', () => {
   test('a card with an open record carries the /queue asks pill', () => {
     const leaf = treeModel().leaves.find((l) => l.n === 146);
     expect(leaf?.pill).toMatchObject({ text: '/queue asks', kind: 'you' });
+  });
+
+  test('a card Blocked on a ruling carries the column its command sets, not a ship state pill', () => {
+    const leaf = treeModel().leaves.find((l) => l.n === 143);
+    expect(leaf?.pill).toMatchObject({ text: 'set Ready For Development', kind: 'you' });
   });
 
   test('a Blocked on #m comment older than the last five draws no blocker', () => {
