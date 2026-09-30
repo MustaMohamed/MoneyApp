@@ -14,7 +14,7 @@
    ```
 
    The title is the squash subject; write it here, once, in the conventional shape. The body, written to `pr.md` first: `Closes #<n>`, the plan's blob URL at its commit (the post-rebase SHA when Setup rebased), and a line per Flag. Record the PR URL in `state.md`; every later phase targets the PR by URL. Pushing starts CI; nobody waits for it here. Triage reads it, merge confirms it.
-2. **Decide deep mode** (SKILL.md → Deep mode) on the header Flags and `git diff --stat origin/main...HEAD`; record `deep_mode` and the trigger in `state.md`. Check the critical triggers of `CLAUDE.md` against `git diff --name-only origin/main...HEAD`: one the header Flags do not name parks the ticket, SKILL.md → Parking case 1.
+2. **Decide deep mode** (SKILL.md → Deep mode) on the header Flags and `git diff --stat origin/main...HEAD`; record `deep_mode`, the trigger and `review_level` in `state.md`. Check the critical triggers of `CLAUDE.md` against `git diff --name-only origin/main...HEAD`: one the header Flags do not name parks the ticket, SKILL.md → Parking case 1.
 3. **Review worktree:** create or re-point `MA-XXX-review` at the pushed SHA (SKILL.md → Worktrees), symlink `node_modules` from the implementation worktree.
 4. **Benchmark inputs** for the quality and conformance lenses: the house-standard reference module, `none named` unless `state.md` → Decisions says otherwise, and the audits under `docs/superpowers/reviews/` (start with `2026-07-29-full-technical-audit.md`; remediation in `docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md`).
 5. **Dispatch in one message**, every lens concurrently, none with the ledger:
@@ -22,7 +22,7 @@
    - **Quality lens**, charter B plus the benchmark inputs.
    - **Conformance lens**, deep mode only, charter C plus the benchmark inputs.
    - **Render lens**, `Verify emulator` only, agent type `render`, charter D plus the plan's Screens section, the implementation worktree path, its Metro port, and the render findings path. It runs from the implementation worktree (Hard rule 3's exception) while the implementer is idle, which it is: dispatches are sequential. A lens that reports `build: REBUILD` builds nothing: the implementer builds under the hold in [implement.md](implement.md) → Re-entry, then the lens is dispatched again.
-   - **Built-in `code-review`**, conductor-invoked on the PR URL, effort passed explicitly every time: `high` in deep mode, else `medium`. Never `--fix`, never `--comment`.
+   - **Built-in `code-review`**, conductor-invoked on the PR URL, effort passed explicitly every time: `state.md` → `review_level`. Never `--fix`, never `--comment`.
 
 Each lens dispatch: charter, absolute paths (review worktree, `issue.md`, `plan.md`, diff range `origin/main...<sha>`, three-dot), the return shape. Charters A to C also get the review worktree line of [SKILL.md](../SKILL.md) → Worktrees.
 

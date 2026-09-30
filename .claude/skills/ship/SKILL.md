@@ -89,6 +89,7 @@ plan: .work/MA-XXX/plan.md @ <sha>
 verify: emulator | none · flags: <as on the ticket>
 phase: <1-5>
 deep_mode: no | yes (<trigger>)
+review_level: low | medium | high
 pr: <url or ->
 implementer: <agent id of the phase 1 implementer, for fix cycles 1 and 2>
 cycle: <0-4>
@@ -145,7 +146,9 @@ Decided once, at phase 2 entry, on the PR diff and the ticket header, recorded i
 - the diff passes ~400 lines excluding tests, lockfiles and generated files;
 - conductor judgment: a novel pattern or a wide blast radius.
 
-Consequences: built-in `code-review` at `high` instead of `medium`, the conformance lens joins the battery, and triage adversarially verifies findings before the fix dispatch.
+Consequences: built-in `code-review` at the review level below, the conformance lens joins the battery, and triage adversarially verifies findings before the fix dispatch.
+
+**Review level**, decided with deep mode and written to `state.md` as `review_level:`. It is `low` when every path on the `Size:` line of `issue.md` ends in `.md` or `.sh`; `low` holds in deep mode unless the header Flags are not `none`, and then it is `high`. Otherwise it is `high` in deep mode and `medium` out of it.
 
 ## Fix loop
 

@@ -7,7 +7,7 @@
 1. Re-point the review worktree to the pushed fix head: `git checkout --detach <sha>`, never re-create.
 2. Dispatch one fresh subagent, effort `medium`: the charter below, the review worktree path, the fix range `<pre-fix-sha>..<head>`, the path to this cycle's `findings/cycle-<n>.md`, and `## Adjudications` verbatim. Re-checks are the one review dispatch that gets the ledger. The dispatch also carries the review worktree line of [SKILL.md](../SKILL.md) → Worktrees.
 3. **Pipeline it.** When triage produced parallel file-disjoint fix dispatches, or the implementer pushes fixes in more than one commit, dispatch a re-checker per pushed fix as it lands instead of waiting for the whole cycle; each gets only its own range and its own findings. Their verdicts merge into one cycle.
-4. Deep mode, fixes that changed logic: also re-invoke the built-in `code-review` at `medium` on the PR; its findings enter the next triage.
+4. Deep mode, fixes that changed logic: also re-invoke the built-in `code-review` on the PR, at `low` when `state.md` → `review_level` reads `low`, else `medium`; its findings enter the next triage.
 
 ## Charter (paste)
 
