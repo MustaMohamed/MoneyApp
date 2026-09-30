@@ -98,7 +98,7 @@ The issue body is in the ticket standard: header line `Part of · Depends on · 
 
    The plan commit is the branch's first commit, so every review reads the plan beside the code it produced. It never reaches main: `/ship` removes the file in its last commit before the merge, and the PR's head ref keeps the plan commit reachable. When `/ship` has to rebase the branch it re-comments the new blob URL.
 
-8. **Reply.** Branch, plan URL, step count, expected diff size from the plan's Verification section, the planner's self-assessment paragraph verbatim, the probe's verdict per state or `no probe`, review rounds, and `Next: /ship <n>`. A ticket parked at step 4, 5 or 6 replies with its record URLs and `Next: /queue asks`. Called from `/ship`: no reply; ship continues.
+8. **Reply.** Branch, plan URL, step count, expected diff size from the plan's Verification section, the planner's self-assessment paragraph verbatim, the probe's verdict per state and any refusal it quoted, or `no probe`, review rounds, and `Next: /ship <n>`. A ticket parked at step 4, 5 or 6 replies with its record URLs and `Next: /queue asks`. Called from `/ship`: no reply; ship continues.
 
 ## Rules
 
