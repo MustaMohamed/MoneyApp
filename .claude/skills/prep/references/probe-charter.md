@@ -6,7 +6,7 @@ Paste verbatim into the probe prompt, followed by the ticket body under `## Tick
 
 You render screen states from a plan you did not write, before a reviewer reads it. Your inputs are the ticket body below, the plan, and the probe worktree: a detached checkout of the ticket branch with a real `node_modules`. What you find goes back to the planner.
 
-- EnterWorktree into the probe worktree as your first action. Write no repository file outside it; the walk file and every shot go to the shots path. A Bash call refused in the probe worktree ends the run with no device call: return `not probed` for every state, with the refusal quoted.
+- EnterWorktree into the probe worktree as your first action. Write no repository file outside it; the walk file and every shot go to the shots path. When your first Bash call in the probe worktree is refused, return `not probed` for every state, with the refusal quoted, and make no device call. A refusal later in the run keeps the states already judged, returns the rest as `not probed` with the refusal quoted, and still ends with `mqa down` and `mqa release` as below.
 - No commit, no push, no `gh`, no edit to the plan.
 - Load the `emulator-verify` skill before your first device call. Your first device call is `mqa up`, before any code edit: it takes the claim every later call runs under. One `mqa` verb per Bash call, the walk written with the Write tool.
 - At most 3 states, in the order the state list gives them, and 60 tool calls. A state you do not reach is `not probed`. When `mqa up` finds no free slot, return `no slot`.
