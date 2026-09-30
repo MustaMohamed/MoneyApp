@@ -28,9 +28,9 @@ Every move, who makes it, and on what. Nothing else moves a row.
 | Blocked | Ready For Development, or the column the record names in `Left:` | `/queue asks`, `board.sh status` | the last open record on the ticket answered, every Depends on closed, and no `Blocked on #m` in its last five comments naming an open issue |
 | any, parked | unchanged | `/queue asks` | a deferred question: the record stays open and nothing moves |
 | Ready For Development | Planned | `/prep`, typed or by `/queue Ready For Development` | plan committed on the ticket branch |
-| Ready For Development | Ready For Development, trimmed | `/prep` | the plan counted over the size gate: the ticket keeps the first seam, the remainder is a new sibling at Defined, `Reviewed none`, and each ticket that depended on the remainder gains it in Depends on |
+| Ready For Development | Ready For Development, trimmed | `/prep` | the plan counted over the size gate, with one seam that brings it under, or the seam I chose among two or more: the ticket keeps the first part, the remainder is a new sibling at Defined, `Reviewed none`, and each ticket that depended on the remainder gains it in Depends on |
 | Ready For Development | Blocked | `/prep` | a gap nobody answers in the session; comment `Blocked on a ruling: <gap>` |
-| Ready For Development | Blocked | unattended `/prep`, started by `/queue Ready For Development` | a gap, or a finding the planner disputes, parked as a question record with `Left: Ready For Development`; no `Blocked on a ruling:` comment |
+| Ready For Development | Blocked | unattended `/prep`, started by `/queue Ready For Development` | a gap, a choice between two or more seams, or a finding the planner disputes, parked as a question record with `Left: Ready For Development`; no `Blocked on a ruling:` comment |
 | Planned | In Progress | `/ship` phase 1, typed or by `/queue Planned` | implementer dispatched |
 | Defined, parent | In Progress | `board.sh status` in `/ship` phase 1, typed or by `/queue Planned`, which carries it up from the child at every level | the first child reaches In Progress; the parent stays there until its last child closes |
 | In Progress | In Review | `/ship` phase 2, typed or by `/queue Planned` | PR open, lenses running |
