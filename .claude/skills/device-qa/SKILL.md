@@ -1,19 +1,19 @@
 ---
 name: device-qa
-description: Use when preparing, running, or recording the manual Device QA gate — assembling a QA checklist for a feature before merge, walking smoke tests on a real device or simulator, or verifying visual changes CI cannot see (fonts, shadows, borders, layout collapse, animations).
+description: Use when preparing, running, or recording the Device QA pass the user walks when an epic or module closes, assembling the checklist for the screens its merged PRs changed, walking smoke tests on a real device, or verifying visual changes CI and the emulator cannot see (fonts, shadows, borders, layout collapse, animations).
 ---
 
 # MoneyApp Device QA
 
 ## Overview
 
-Device QA is gate 3, the last user-facing gate before a merge: **only the user can walk it, on a real device (Android first).** This skill's job is to make the gate concrete — assemble the right checklist for the change, hand it to the user, and record the verdict. A whole class of MoneyApp bugs is invisible to CI and only surfaces here: fonts that silently don't render (audit H15 — the app shipped months in the wrong typeface with green CI), HeroUI `Card`/`Surface` visual deltas, Android Fabric flex collapse, and animation jank.
+Device QA is the user's pass when an epic or module closes, critical trigger 8: **only the user can walk it, on a real device (Android first).** It is no gate before a merge; each `Verify emulator` ticket gets its emulator check during `/ship`. This skill makes the pass concrete. It assembles the checklist for the screens the epic's or module's merged PRs changed, hands it to the user, and records the result. A whole class of MoneyApp bugs is invisible to CI and only surfaces here: fonts that silently don't render (audit H15 — the app shipped months in the wrong typeface with green CI), HeroUI `Card`/`Surface` visual deltas, Android Fabric flex collapse, and animation jank.
 
 ## Running a QA pass
 
-1. **Scope it:** list the screens the change touches (from the diff), plus the *always-run* checks below.
+1. **Scope it:** list the screens the merged PRs of the epic's or module's closed tickets changed, plus the *always-run* checks below. Build from `main` in the primary checkout.
 2. **Assemble the checklist:** relevant area matrices + always-run checks. Present it to the user as a numbered list they can walk top-to-bottom.
-3. **Record the verdict:** results land as a `## Device QA` comment on the ticket's issue (`gh issue comment <n> --body-file -`), per item: pass / fail (with what was seen) / skipped. A fail routes back to the implementer with the failing item as the repro. (Older passes live in `docs/superpowers/qa/` and `docs/scopes/`; both are frozen history.)
+3. **Record the result:** a `## Device QA` comment on the epic's issue (`gh issue comment <n> --body-file -`), per item: pass / fail (with what was seen) / skipped. A failed item is listed in the comment; nothing routes back to an implementer. (Older passes live in `docs/superpowers/qa/` and `docs/scopes/`; both are frozen history.)
 
 ## Always-run checks (every QA pass, ~2 min)
 
@@ -50,7 +50,7 @@ Device QA is gate 3, the last user-facing gate before a merge: **only the user c
 Device: {model, OS} · Build: {branch/sha}
 | # | Check | Result | Notes |
 |---|---|---|---|
-Verdict: pass / fail → route back with items {n, m}
+Result: pass / fail, failed items {n, m}
 ```
 
 ## Common mistakes
@@ -59,5 +59,5 @@ Verdict: pass / fail → route back with items {n, m}
 |---|---|
 | "CI is green, QA is a formality" | H15 shipped for months with green CI. The visual class only exists here. |
 | Testing only the changed screen | Balance math and money previews leak across screens — always-run checks exist for that. |
-| QA on the simulator only | Simulator is fine for smoke; the gate itself is a real device (fonts, perf, gestures differ). Use the `emulator-verify` skill to clear the mechanical failures *before* handing the user this checklist — it never substitutes for the gate. |
-| Walking it without recording | An unrecorded pass can't route a fail back to execution. Use the template. |
+| QA on the simulator only | The emulator is each `Verify emulator` ticket's check during `/ship`. Device QA is a real device (fonts, perf, gestures differ), and the emulator never substitutes for it. |
+| Walking it without recording | An unrecorded pass leaves no list of failed items on the epic. Use the template. |

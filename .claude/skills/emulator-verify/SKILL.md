@@ -11,10 +11,10 @@ You can drive the app yourself: install it, tap through it, screenshot it, and r
 SQLite it wrote. That closes the loop between "tests pass" and "it works" without waiting
 on the user.
 
-**This is not the Device QA gate.** Gate 3 is the user's, on real hardware, and it is
-critical trigger #8 — the emulator does not discharge it. What you produce here is
-evidence *for* that gate: a change you have watched run, with the failures already found.
-Fonts, shadows, gesture feel, and performance still need the real device (`device-qa`).
+**This is the per-ticket check, not device QA.** Each `Verify emulator` ticket gets this run
+during `/ship`: a change you have watched run, with the failures already found. Device QA is
+the user's, on real hardware, when an epic or module closes (critical trigger 8). Fonts,
+shadows, gesture feel and performance wait for that pass (`device-qa`).
 
 ## The tool
 
@@ -283,8 +283,8 @@ the size. A seed built on the host with `better-sqlite3` uses `PRAGMA journal_mo
 
 Screenshot the states you claim to have checked and Read them — a screen that renders is
 not a screen that renders *correctly*. Report what you saw, including what you could not
-check here (typography, shadows, perf, gestures), and keep the verdict separate from the
-user's gate: this is "verified on emulator", never "QA passed".
+check here (typography, shadows, perf, gestures), and keep the verdict separate from
+device QA: this is "verified on emulator", never "QA passed".
 
 ## Common mistakes
 
@@ -310,5 +310,5 @@ user's gate: this is "verified on emulator", never "QA passed".
 | Tapping by screenshot coordinates | Use a selector. `tapxy` exists for a target with no label. |
 | Typing a value containing `&`, `;`, `'` or `$` | Under the uiautomator engine the text reaches the *device's* shell; `mqa type` quotes it. A raw `adb shell input text` truncates at the metacharacter **and still exits 0**. |
 | Running without a claim because "only my session is using it" | `mqa` cannot see the other sessions, and neither can you. It refuses instead of guessing. |
-| Treating a green emulator run as QA | Gate 3 is the user's, on real hardware. This produces evidence for it, not a verdict. |
+| Treating a green emulator run as device QA | Device QA is the user's, on real hardware, when an epic or module closes. This run is the per-ticket check, not that pass. |
 | Trusting the UI for a money assertion | The screen is the thing under test. Assert against `mqa db`. |
