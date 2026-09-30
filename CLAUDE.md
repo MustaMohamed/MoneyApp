@@ -25,7 +25,7 @@ Critical triggers (wake me; everywhere else proceed):
 5. User-facing copy with voice/branding weight (field labels and error messages stay team-decided)
 6. Scope balloon vs the locked epic
 7. Auth / secure store / data-loss surface
-8. Manual device QA: always, on real hardware, before any merge of a UI change
+8. Device QA by me, on real hardware, when an epic or module closes
 
 Not critical (decide it and move): field-level UX, naming, file structure, test approach, code style, order of work within an epic, hex→token swaps, a11y polish, minor dep bumps.
 
@@ -35,8 +35,8 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 - The issue is the record. `.work/<MA-id>/` (the `/prep` plan, branch-only, removed before merge) and `~/.ship/MoneyApp/MA-XXX/` (`/ship` state) hold transient working files. `~/.ship/MoneyApp/canvas/` is not transient: it holds the design frames render checks measure against. Nor is `~/.ship/MoneyApp/queue/`: it holds the queue's log and leases.
 - Define before code: `/epic`, then `/boundaries <n>`, `/tickets <parent>`, `/issue-review <n>`. `/issue-review` is the only road to Ready For Development.
 - Ready For Development is one-way. `promote` refuses a leaf whose `Size:` line is missing or over the gate, a leaf counted over it stays at Defined for `/tickets`, and `/issue-review` and `/tickets` refuse a Ready leaf: only `/prep` takes one. A plan over the gate is trimmed at a seam with the remainder opened at Defined; an open gap sends the ticket to Blocked, never back.
-- Deliver a leaf: `/prep <n>` takes it to Planned with the plan committed on the ticket branch; `/ship <n>` takes it to merged. `/ship` alone pulls the top Planned row. `/queue <column> [n]` starts `/issue-review`, `/prep` or `/ship` on the top eligible tickets of Defined, Ready For Development or Planned, one app task per ticket under a lease, and never merges. One human gate: the merge.
-- An unattended run, `Run: unattended` in its task prompt, never waits on me; `/queue <column>` starts them. `/issue-review` and `/prep` park each question as a record, an issue comment whose first line is `Question: open` ([question-record.md](.claude/skills/issue-review/references/question-record.md)), and the board shows the ticket as mine with `/queue asks`. `/queue asks` puts every open record to me, one per message, and writes each answer into its ticket. `promote` refuses a ticket with an open record.
+- Deliver a leaf: `/prep <n>` takes it to Planned with the plan committed on the ticket branch; `/ship <n>` takes it to Awaiting Human with a merge summary, and `/ship` with no number pulls nothing. `/queue <column> [n]` starts `/issue-review`, `/prep` or `/ship` on the top eligible tickets of Defined, Ready For Development or Planned, one app task per ticket under a lease, and never merges. One human gate: the merge.
+- An unattended run, `Run: unattended` in its task prompt, never waits on me; `/queue <column>` starts them. `/issue-review` and `/prep` park each question as a record, an issue comment whose first line is `Question: open` ([question-record.md](.claude/skills/issue-review/references/question-record.md)), and the board shows the ticket as mine with `/queue asks`. `/ship` asks nothing in any run: what it cannot rule it parks the same way and moves the ticket to Blocked. `/queue asks` puts every open record to me, one per message, and writes each answer into its ticket. `promote` refuses a ticket with an open record.
 - The board is the state: Project #2, Status field, Todo · Defined · Ready For Development · Planned · In Progress · In Review · Awaiting Human · Blocked · Done. Row order within a column is priority.
 - `scripts/board.sh` is the only writer. Its `promote` is the only move from Defined to Ready For Development and the only thing that closes a parent. Never write a `status:*` label.
 - Two moves are by hand with `board.sh status`: Blocked to Ready For Development (`promote` refuses a Blocked row; `/queue asks` also makes it when it answers a ticket's last open record), and a parent to In Progress when its first child starts, carried up at every level.
@@ -45,9 +45,9 @@ Not critical (decide it and move): field-level UX, naming, file structure, test 
 - **The size gate is hard: ~400 planned lines outside tests, and 8 plan steps; the number of files is not capped.** No ruling lifts it, mine included. Scope added during `/ship` is recounted, and over the gate it is a new ticket, not this PR. Definition and evidence: `.claude/skills/tickets/references/splitting.md` § Size gate.
 - Every move, who makes it and on what, plus the hierarchy and the size gate: [docs/workflow.md](docs/workflow.md). Nothing else moves a row.
 - CI parity before pushing to a PR branch: the chain in *Commands*. CI is the last line of defence, not the first.
-- Emulator verification runs on tickets whose header line says `Verify emulator`: anything that changes what a screen shows. A repository test asserts a write. The `emulator-verify` skill has the mechanics, including the per-worktree device lease `mqa up` takes and when a Gradle build is needed.
+- Emulator verification is the check each `Verify emulator` ticket gets: anything that changes what a screen shows. A repository test asserts a write. The `emulator-verify` skill has the mechanics, including the per-worktree device lease `mqa up` takes and when a Gradle build is needed.
 
-Gotcha: **device QA does not run in the worktree.** A worktree whose `node_modules` is a symlink passes `tsc`, `jest` and lint, but expo-router resolves zero routes in a device build. Check the PR branch out in the primary repo for device QA. Emulator verification does run in the worktree once it has a real `node_modules` (`/prep`'s APFS clone, or `npm ci`).
+Gotcha: **device QA does not run in the worktree.** A worktree whose `node_modules` is a symlink passes `tsc`, `jest` and lint, but expo-router resolves zero routes in a device build. Device QA builds from `main` in the primary checkout. Emulator verification does run in the worktree once it has a real `node_modules` (`/prep`'s APFS clone, or `npm ci`).
 
 ## Team
 

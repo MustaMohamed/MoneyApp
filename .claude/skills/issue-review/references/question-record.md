@@ -1,10 +1,10 @@
 # Question record
 
-A question a skill cannot answer in an unattended run is parked as one issue comment that stands alone: a session that never saw the run answers it from the record and the code. `/issue-review`, `/prep` and `/queue asks` write and read it; `scripts/board.sh questions` and `scripts/board_next.mjs` count it.
+A question a skill cannot answer in an unattended run, and a question `/ship` cannot rule in any run, is parked as one issue comment that stands alone: a session that never saw the run answers it from the record and the code. `/issue-review`, `/prep`, `/ship` and `/queue asks` write and read it; `scripts/board.sh questions` and `scripts/board_next.mjs` count it.
 
 ## Unattended runs
 
-A run is unattended when its task prompt holds the line `Run: unattended`. Any other run is typed, and a typed run asks in the session as it always has.
+A run is unattended when its task prompt holds the line `Run: unattended`. Any other run is typed, and a typed run asks in the session as it always has, except `/ship`, which parks in a typed run too.
 
 ## The record
 
@@ -25,6 +25,7 @@ The first line is exactly `Question: open`. Labelled lines follow, one each, in 
 | `Screen:` | An `emulator-verify` feature name, or `none` |
 | `Sha:` | `git rev-parse origin/main` after `git fetch origin`, when the record is written |
 | `Left:` | The board Status the issue had when the record was parked |
+| `Miss:` | Written by `/ship` only, on a Flag the diff needs that the header lacks, or a ticket line that cannot hold or that the code contradicts: the `/issue-review` check id or the `/prep` step that should have asked |
 
 The record's cited files are every repo path on any of its lines.
 

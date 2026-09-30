@@ -1,6 +1,6 @@
 # Visuals for questions to the user
 
-Every question the main session puts to the user is checked against the table below before it is sent, in any session; CLAUDE.md says so, and every asking step of `/issue-review`, `/boundaries`, `/tickets`, `/prep`, `/ship` and `/queue` cites it. A subagent returns its question as text and draws nothing; the session that asks the user makes the visual. A question on a yes row goes out with its visual in the same message, so the user never has to ask for it. Any other question goes out as text and no file is made. Four sessions show the cost of skipping it: on MA-098, MA-110 and twice on MA-111 the user asked for visuals or answered "No preference" to text-only options, then answered each question in one letter once the file came.
+Every question the main session puts to the user is checked against the table below before it is sent, in any session; CLAUDE.md says so, and every asking step of `/issue-review`, `/boundaries`, `/tickets`, `/prep` and `/queue` cites it. A subagent returns its question as text and draws nothing; the session that asks the user makes the visual. A question on a yes row goes out with its visual in the same message, so the user never has to ask for it. Any other question goes out as text and no file is made. Four sessions show the cost of skipping it: on MA-098, MA-110 and twice on MA-111 the user asked for visuals or answered "No preference" to text-only options, then answered each question in one letter once the file came.
 
 ## When a question needs one
 

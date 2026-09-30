@@ -11,10 +11,10 @@ You can drive the app yourself: install it, tap through it, screenshot it, and r
 SQLite it wrote. That closes the loop between "tests pass" and "it works" without waiting
 on the user.
 
-**This is not the Device QA gate.** Gate 3 is the user's, on real hardware, and it is
-critical trigger #8 — the emulator does not discharge it. What you produce here is
-evidence *for* that gate: a change you have watched run, with the failures already found.
-Fonts, shadows, gesture feel, and performance still need the real device (`device-qa`).
+**This is the per-ticket check, not device QA.** Each `Verify emulator` ticket gets this run
+during `/ship`: a change you have watched run, with the failures already found. Device QA is
+the user's, on real hardware, when an epic or module closes (critical trigger 8). Fonts,
+shadows, gesture feel and performance wait for that pass (`device-qa`).
 
 ## The tool
 
@@ -32,7 +32,7 @@ Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a
 
 | Verb | Does |
 |---|---|
-| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a typed run stops and asks on REBUILD; a `Run: unattended` run builds, § Running from a task worktree); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
+| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a `/ship` implementer, typed or unattended, builds on REBUILD and asks nothing, § Running from a task worktree; the render lens never builds; any other session asks first); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
 | `down` | close the agent-device session so the system keyboard comes back; the claim and Metro stay for the next run |
 | `open <route\|url>` | deep link: `/transactions`, `/accounts`, or a full `moneyapp://` URL |
 | `read [scope]` · `ui` | what is on screen: `@ref`, kind, label and testID, with a row's own texts folded into it; with a scope (a testID or a label), every labelled node drawn inside that container, in dp |
@@ -185,14 +185,18 @@ worktree, which needs three things the worktree does not have by default.
    `agent-device`.
 2. **An APK — but usually not a new one.** `mqa install` wants
    `android/app/build/outputs/apk/debug/app-debug.apk`, and `android/` is gitignored.
-   **Ask before building**, in a typed run: `mqa up` prints `build: REUSE` or `build: REBUILD`. A rebuild is
+   `mqa up` prints `build: REUSE` or `build: REBUILD`. A rebuild is
    mandatory only when the **native surface** moved: `package.json`, `package-lock.json`,
    `app.json`, `eas.json`, `patches/`, or anything under `android/`/`ios/`, and the APK on the
    device was installed before the newest such change. An APK installed after it already
    carries it, which is the render lens's case. Everything else reaches the device over Metro.
-   A run whose task prompt reads `Run: unattended` asks nothing: it builds and installs once
-   under the permission rule in [queue column.md](../queue/references/column.md) and records
-   `build: REBUILD` in its log line's note.
+   In a `/ship` run, typed or unattended, the implementer asks nothing: it builds and
+   installs once for the device its worktree claimed, `mqa build` then `mqa install`, one
+   call each, under [queue column.md](../queue/references/column.md) § Permission rule,
+   and holds the build while host load is above that file's § Holds ceiling
+   ([implement.md](../ship/references/implement.md) charter item 8). The run writes
+   `build: REBUILD` in `state.md`; an unattended one also records it in its log line's note.
+   The render lens never builds. Any other session asks before building.
    When you do need one:
 
    ```bash
@@ -280,8 +284,8 @@ the size. A seed built on the host with `better-sqlite3` uses `PRAGMA journal_mo
 
 Screenshot the states you claim to have checked and Read them — a screen that renders is
 not a screen that renders *correctly*. Report what you saw, including what you could not
-check here (typography, shadows, perf, gestures), and keep the verdict separate from the
-user's gate: this is "verified on emulator", never "QA passed".
+check here (typography, shadows, perf, gestures), and keep the verdict separate from
+device QA: this is "verified on emulator", never "QA passed".
 
 ## Common mistakes
 
@@ -307,5 +311,5 @@ user's gate: this is "verified on emulator", never "QA passed".
 | Tapping by screenshot coordinates | Use a selector. `tapxy` exists for a target with no label. |
 | Typing a value containing `&`, `;`, `'` or `$` | Under the uiautomator engine the text reaches the *device's* shell; `mqa type` quotes it. A raw `adb shell input text` truncates at the metacharacter **and still exits 0**. |
 | Running without a claim because "only my session is using it" | `mqa` cannot see the other sessions, and neither can you. It refuses instead of guessing. |
-| Treating a green emulator run as QA | Gate 3 is the user's, on real hardware. This produces evidence for it, not a verdict. |
+| Treating a green emulator run as device QA | Device QA is the user's, on real hardware, when an epic or module closes. This run is the per-ticket check, not that pass. |
 | Trusting the UI for a money assertion | The screen is the thing under test. Assert against `mqa db`. |

@@ -10,8 +10,9 @@
    node scripts/board_next.mjs --format json </dev/null
    ```
    The candidates are the actions whose `queue` equals the column, in the script's order. The script sets `queue` only on an open leaf whose command a session runs, with every Depends on closed, no open question record, no lease, and at Defined a parent that is not `Reviewed none`.
-3. For each candidate in order, read § Holds. A held candidate is skipped and the next is tried. Otherwise § Start it. Stop at `n` starts.
-4. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, or `held, <hold>`; then every action whose `lease` is `stale`, with its action text; while the floor or the ceiling reads `unmeasured`, the readings of each start. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
+3. `/queue Planned` only: for each action at Awaiting Human with `pr.state` `OPEN`, a `state.md` on this machine and no lease, run the read of § Changes asked at Awaiting Human. With one or more, § Start `ship-<n>` on it, counted toward `n` and held by Cap, Emulator slot, GraphQL budget, Host load and Measures only.
+4. For each candidate in order, read § Holds. A held candidate is skipped and the next is tried. Otherwise § Start it. Stop at `n` starts.
+5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, or `held, <hold>`; then every action whose `lease` is `stale`, with its action text; while the floor or the ceiling reads `unmeasured`, the readings of each start. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
 
 ## Holds
 
@@ -48,10 +49,29 @@ The lease ~/.ship/MoneyApp/queue/leases/<n> names this task id. The skill rewrit
 A question you cannot answer is parked as a record per .claude/skills/issue-review/references/question-record.md, and the run ends.
 A refused call is never turned into a permission request. It goes into your log line's note, and the run goes on or ends.
 /ship: write the merge summary to ~/.ship/MoneyApp/queue/ship-<n>-summary.md. It holds the heading `## Decisions the ticket or plan did not state` over a table with the columns Decision, Who, Cost if wrong: one row per decision, the header row alone when there is none.
-Last, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md in the shape of .claude/skills/queue/references/column.md § Log, the readings in its note.
+Before your last message, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md in the shape of .claude/skills/queue/references/column.md § Log, the readings in its note.
 ```
 
 `<f>` is the number of held leases before this start's own.
+
+## Changes asked at Awaiting Human
+
+The PR's comments, reviews and review comments created after the summary file's last write, bots left out, less those `state.md` logs as triaged ([merge.md](../../ship/references/merge.md) § A change after the summary). `asks` prints their count across every page; paste the function and call it in one Bash call:
+
+```bash
+asks() {
+  local f="$HOME/.ship/MoneyApp/queue/ship-<n>-summary.md" since
+  [ -f "$f" ] || { echo 0; return; }
+  since=$(date -u -r "$f" +%Y-%m-%dT%H:%M:%SZ)
+  { gh api --paginate repos/MustaMohamed/MoneyApp/issues/<pr>/comments --jq ".[] | select(.user.type != \"Bot\" and .created_at > \"$since\") | .html_url"
+    gh api --paginate repos/MustaMohamed/MoneyApp/pulls/<pr>/reviews --jq ".[] | select(.user.type != \"Bot\" and .submitted_at > \"$since\") | .html_url"
+    gh api --paginate repos/MustaMohamed/MoneyApp/pulls/<pr>/comments --jq ".[] | select(.user.type != \"Bot\" and .created_at > \"$since\") | .html_url"
+  } | grep -vxF -f <({ echo -; grep -oE 'https://github\.com/[A-Za-z0-9/_#-]+' "$HOME/.ship/MoneyApp/MA-XXX/state.md" 2>/dev/null; }) | wc -l | tr -d ' '
+}
+asks
+```
+
+Above 0 is a change the user asked for. With no summary file it prints 0 and reads nothing.
 
 ## Merged since the last run
 

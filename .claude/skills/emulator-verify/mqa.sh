@@ -424,7 +424,7 @@ build_verdict() {
   changed="$(native_changes "$base")"
   if [ -z "$changed" ]; then
     if [ -n "$S" ] && ! a shell pm list packages 2>/dev/null | grep -q "$PKG"; then
-      echo "REBUILD: $PKG is not installed on $S. Build once: mqa build && mqa install"; return 0
+      echo "REBUILD: $PKG is not installed on $S. A /ship implementer builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds."; return 0
     fi
     echo "REUSE: no native surface change since $base; this branch reaches the device over Metro."; return 1
   fi
@@ -436,7 +436,7 @@ build_verdict() {
     echo "REUSE: the native surface changed since $base, and the APK on $S was installed after the newest change; a missing native module on screen means rebuild."
     return 1
   fi
-  echo "REBUILD: native surface changed since $base, and the APK on ${S:-the device} predates it. Ask before building:"
+  echo "REBUILD: native surface changed since $base, and the APK on ${S:-the device} predates it. A /ship implementer builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds."
   sed 's/^/  /' <<<"$changed"
   return 0
 }
@@ -1124,7 +1124,7 @@ env         MQA_UI MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK MQA_SLOTS MQA_LE
 Slots: 1 emulator-5554 :8082 · 2 emulator-5556 :8083 · 3 emulator-5558 :8084, one per worktree.
 
 A run is two lifecycle calls around one walk:
-  mqa up                    # stop and ask if it prints build: REBUILD
+  mqa up                    # on build: REBUILD, a /ship implementer builds: mqa build, then mqa install, one call each, then up again; any other session asks first, the render lens never builds
   mqa walk <walk.sh>        # written with the Write tool, not a heredoc
   mqa down
 EOF

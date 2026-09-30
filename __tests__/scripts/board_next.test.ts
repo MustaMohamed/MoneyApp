@@ -81,7 +81,7 @@ describe('board_next rule table', () => {
     [147, 'yours', '2 open questions', '/queue asks'],
     [149, 'yours', '1 open question', '/queue asks'],
     [102, 'yours', 'checks red on PR #502', '/ship 102'],
-    [103, 'yours', 'no PR: a dispute or a cap', 'read ~/.ship/MoneyApp/MA-103/state.md'],
+    [103, 'drift', 'Awaiting Human without a PR', '/ship 103'],
     [
       112,
       'drift',
@@ -146,6 +146,7 @@ describe('board_next rule table', () => {
     [125, 'wait', 'parent, children at Todo lead', undefined],
     [100, 'wait', 'parent, mirrors its children', undefined],
     [131, 'wait', 'parent, mirrors its children', undefined],
+    [156, 'wait', 'parent, mirrors its children', undefined],
   ];
 
   test.each(rows)('#%i lands in %s: %s', (n, bucket, action, command) => {
@@ -242,6 +243,11 @@ describe('board_next html', () => {
   test('a card with an open record carries the /queue asks pill', () => {
     const leaf = treeModel().leaves.find((l) => l.n === 146);
     expect(leaf?.pill).toMatchObject({ text: '/queue asks', kind: 'you' });
+  });
+
+  test('a card Blocked on a ruling carries the column its command sets, not a ship state pill', () => {
+    const leaf = treeModel().leaves.find((l) => l.n === 143);
+    expect(leaf?.pill).toMatchObject({ text: 'set Ready For Development', kind: 'you' });
   });
 
   test('a Blocked on #m comment older than the last five draws no blocker', () => {

@@ -39,7 +39,7 @@ One read of Project #2, one action per open ticket, the dependency graph when th
 
 ## Reading the report
 
-Six buckets, in this order, board row order inside each: `yours` (a merge, a dispute, or an open question record, whose command is `/queue asks`), `drift` (the board disagrees with GitHub, the command corrects it), `in flight` (a run holding a lease, or `/ship` resumable on this machine), `pullable` (`/prep` or `/ship` on a ticket that is ready), `define` (`/issue-review`, `/boundaries` or `/tickets`, a missed `promote`), `waiting` (nothing to do until the named issue closes). A Todo ticket with every dependency closed sorts before one whose dependencies are open.
+Six buckets, in this order, board row order inside each: `yours` (a merge, or an open question record, whose command is `/queue asks`, or a ticket Blocked on a ruling from `/prep`, whose command moves it to Ready For Development), `drift` (the board disagrees with GitHub, the command corrects it), `in flight` (a run holding a lease, or `/ship` resumable on this machine), `pullable` (`/prep` or `/ship` on a ticket that is ready), `define` (`/issue-review`, `/boundaries` or `/tickets`, a missed `promote`), `waiting` (nothing to do until the named issue closes). A Todo ticket with every dependency closed sorts before one whose dependencies are open.
 
 A Todo leaf names both `/boundaries` and `/tickets`: the user picks per ticket. A parent with `Reviewed none` gets `/issue-review` once a child is at Defined; while every child is at Todo the children lead. An issue with no `MA-` title and no `Part of` header is outside the ticket standard and skips the header checks.
 

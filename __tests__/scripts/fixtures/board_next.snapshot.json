@@ -139,7 +139,7 @@
     {
       "number": 103,
       "status": "Awaiting Human",
-      "title": "MA-103 — Dispute",
+      "title": "MA-103 — Awaiting Human without a PR",
       "state": "open",
       "labels": [],
       "milestone": "MA-fixture",
@@ -881,6 +881,46 @@
       "branches": [],
       "prs": [],
       "comments": []
+    },
+    {
+      "number": 156,
+      "status": "In Progress",
+      "title": "MA-156 — Parent whose one child /ship parked",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [
+        {
+          "number": 157,
+          "state": "open"
+        }
+      ],
+      "branches": [],
+      "prs": [],
+      "comments": []
+    },
+    {
+      "number": 157,
+      "status": "Blocked",
+      "title": "MA-157 — Parked by /ship at In Review",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "header": "Part of #156 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": 156,
+      "children": [],
+      "branches": [
+        {
+          "name": "feat/MA-157-parked",
+          "committedDate": "2026-09-08T08:00:00Z"
+        }
+      ],
+      "prs": [],
+      "comments": [
+        "Question: open\nAsks: The Acceptance line and the code disagree on the tally's sign; which holds?\nAsked by: ship, phase 3, 2026-09-08\nSha: dc2cb03a\nLeft: In Review\nMiss: /issue-review check P2"
+      ]
     }
   ],
   "offBoard": [

@@ -336,12 +336,14 @@ function decide(item, ctx) {
       command: `gh issue close ${n} --reason completed${parentCmd}`,
     };
 
+  const elsewhere = !ctx.shipState.has(ma);
   if (item.status === 'Awaiting Human') {
     if (!openPr)
       return {
-        bucket: 'yours',
-        action: 'no PR: a dispute or a cap',
-        command: `read ~/.ship/MoneyApp/${ma}/state.md`,
+        bucket: 'drift',
+        action: 'Awaiting Human without a PR',
+        command: `/ship ${n}`,
+        elsewhere,
       };
     if (openPr.checks === 'SUCCESS')
       return { bucket: 'yours', action: `merge PR #${openPr.number}` };
@@ -384,7 +386,9 @@ function decide(item, ctx) {
     }
     const expected = expectedParentColumn(item, ctx);
     const closedAny = item.children.length > open.length;
-    const stays = closedAny && item.status === 'In Progress';
+    const childCols = open.map((c) => ctx.statusOf(c.number));
+    const parked = childCols.includes('Blocked');
+    const stays = (closedAny || parked) && item.status === 'In Progress';
     if (item.status !== 'Blocked' && item.status !== expected && !stays) {
       const quoted = expected.includes(' ') ? `"${expected}"` : expected;
       const cmd = `bash scripts/board.sh status ${n} ${quoted}`;
@@ -397,7 +401,6 @@ function decide(item, ctx) {
         command: cmd,
       };
     }
-    const childCols = open.map((c) => ctx.statusOf(c.number));
     if (
       !isEpic &&
       reviewed === 'none' &&
@@ -472,7 +475,6 @@ function decide(item, ctx) {
     return { bucket: 'pull', action: `Planned, branch ${br.name}`, command: `/ship ${n}` };
   }
 
-  const elsewhere = !ctx.shipState.has(ma);
   if (item.status === 'In Progress') {
     if (openPr)
       return {
@@ -846,6 +848,11 @@ function friendly(action) {
 
 const FIX_COLOR = '#D85A30';
 
+function setText(cmd) {
+  const m = /board\.sh status \d+ (.+)$/.exec(cmd);
+  return m ? `set ${m[1].replace(/"/g, '')}` : undefined;
+}
+
 function pillLabel(a) {
   const cmd = a.command ?? '';
   if (a.bucket === 'yours') {
@@ -858,12 +865,12 @@ function pillLabel(a) {
         kind: 'you',
         click: `openLink('https://github.com/${REPO}/pull/${pr[1]}')`,
       };
-    return { text: 'read ship state', kind: 'you', click: `sendPrompt('${esc(cmd)}')` };
+    return { text: setText(cmd) ?? 'fix', kind: 'you', click: `sendPrompt('${esc(cmd)}')` };
   }
   if (a.bucket === 'drift') {
     let text = 'fix';
-    let m;
-    if ((m = /board\.sh status \d+ (.+)$/.exec(cmd))) text = `set ${m[1].replace(/"/g, '')}`;
+    const set = setText(cmd);
+    if (set) text = set;
     else if (/board\.sh promote/.test(cmd)) text = 'promote';
     else if (/board\.sh add/.test(cmd)) text = 'add to board';
     else if (/^gh issue close/.test(cmd)) text = 'close issue';
