@@ -44,6 +44,8 @@ gh issue view <n> --json body --jq .body > ~/.ship/MoneyApp/MA-XXX/issue.md
 cp .work/MA-XXX/plan.md ~/.ship/MoneyApp/MA-XXX/plan.md                     # dispatches read this copy; the branch copy leaves before the merge
 ```
 
+Setup also reads the issue's comments, `gh issue view <n> --json comments --jq '.comments[].body'`. Each that starts `Trimmed at /prep, one seam:` becomes a `state.md` → `## Decisions` line, `<date> <the seam and the remainder's number> · /prep, one seam · <cost if wrong>`, which item 6 of the merge summary prints.
+
 **Lease and working folder**, before any dispatch. Rewrite the lease's `worktree=` to the implementation worktree, per [queue § Lease](../queue/SKILL.md), then EnterWorktree into the implementation worktree as § Worktrees states. A resume has its lease from the Lease check above. On every return from Awaiting Human to In Review, write the lease whole before the next dispatch: `skill=ship`, `worktree=` the implementation worktree, and `task=` kept when the lease is the run's own, absent otherwise ([references/merge.md](references/merge.md) → A change after the summary).
 
 The plan is `.work/MA-XXX/plan.md` at the branch's first commit, copied to `plan.md` for dispatches; it never reaches main (phase 5 removes it). The header line of `issue.md` drives three things: `Verify emulator` turns on the render pass (phase 1) and the render lens (phase 2); the Flags decide deep mode (below); Depends on is closed or the ticket would not be Planned.
