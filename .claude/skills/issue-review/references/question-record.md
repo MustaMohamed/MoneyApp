@@ -25,7 +25,7 @@ The first line is exactly `Question: open`. Labelled lines follow, one each, in 
 | `Screen:` | An `emulator-verify` feature name, or `none` |
 | `Sha:` | `git rev-parse origin/main` after `git fetch origin`, when the record is written |
 | `Left:` | The board Status the issue had when the record was parked |
-| `Miss:` | Written by `/ship` only, on a critical trigger the header Flags missed or a ticket line that cannot hold: the `/issue-review` check id or the `/prep` step that should have asked |
+| `Miss:` | Written by `/ship` only, on a Flag the diff needs that the header lacks, or a ticket line that cannot hold or that the code contradicts: the `/issue-review` check id or the `/prep` step that should have asked |
 
 The record's cited files are every repo path on any of its lines.
 

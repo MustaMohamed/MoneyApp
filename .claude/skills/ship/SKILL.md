@@ -58,7 +58,7 @@ Load `references/<phase>.md` on entering a phase. The file is the method; this t
 | 2 | Battery | conductor pushes and opens the PR; lenses in parallel | In Review | every lens report in |
 | 3 | Triage and fix | conductor; verifier in deep mode; implementer fixes | In Review, or Blocked on a park | consolidated fixes pushed |
 | 4 | Re-check | one fresh re-checker per pushed fix | | all fixed, no new findings; cap 4 cycles with phase 3 |
-| 5 | Merge summary | conductor removes the plan file and writes the summary; the human merges | Awaiting Human; In Review on a change the user asks for | summary sent; a typed run then watches the merge and cleans |
+| 5 | Merge summary | conductor removes the plan file and writes the summary; the human merges | Awaiting Human; In Review on a change the user asks for, below the cap of § Fix loop | summary sent; a typed run then watches the merge and cleans |
 
 A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), never skipped silently. There is no fast lane and no mode: one ticket, one branch, one PR.
 

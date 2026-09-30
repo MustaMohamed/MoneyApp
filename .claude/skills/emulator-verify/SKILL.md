@@ -32,7 +32,7 @@ Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a
 
 | Verb | Does |
 |---|---|
-| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a `/ship` run, typed or unattended, builds on REBUILD and asks nothing, § Running from a task worktree; any other typed session asks); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
+| `up [--seed <file.db>] [--ready <sel>]` | claim if needed; `build: REUSE` or `build: REBUILD` (a `/ship` implementer, typed or unattended, builds on REBUILD and asks nothing, § Running from a task worktree; the render lens never builds; any other session asks first); this worktree's Metro on the slot's port; push a seed; a cold launch; wait for the tab bar (when agent-device's wait fails for any reason but a screen that never goes idle: with the app in front, dev overlays are dismissed and plain snapshots polled for `MQA_READY_POLL_MS`, default 15 s; with the app gone, it relaunches at once; a stalled launch is relaunched once); dev overlays cleared and the dev-client Tools button turned off |
 | `down` | close the agent-device session so the system keyboard comes back; the claim and Metro stay for the next run |
 | `open <route\|url>` | deep link: `/transactions`, `/accounts`, or a full `moneyapp://` URL |
 | `read [scope]` · `ui` | what is on screen: `@ref`, kind, label and testID, with a row's own texts folded into it; with a scope (a testID or a label), every labelled node drawn inside that container, in dp |
@@ -190,12 +190,13 @@ worktree, which needs three things the worktree does not have by default.
    `app.json`, `eas.json`, `patches/`, or anything under `android/`/`ios/`, and the APK on the
    device was installed before the newest such change. An APK installed after it already
    carries it, which is the render lens's case. Everything else reaches the device over Metro.
-   A `/ship` run, typed or unattended, asks nothing: it builds and installs once for the
-   device its worktree claimed, under [queue column.md](../queue/references/column.md)
-   § Permission rule, holds the build while host load is above that file's § Holds ceiling
-   ([implement.md](../ship/references/implement.md) charter item 8), and writes `build: REBUILD` in `state.md`;
-   an unattended one also records it in its log line's note. A typed session outside `/ship`
-   asks before building.
+   In a `/ship` run, typed or unattended, the implementer asks nothing: it builds and
+   installs once for the device its worktree claimed, `mqa build` then `mqa install`, one
+   call each, under [queue column.md](../queue/references/column.md) § Permission rule,
+   and holds the build while host load is above that file's § Holds ceiling
+   ([implement.md](../ship/references/implement.md) charter item 8). The run writes
+   `build: REBUILD` in `state.md`; an unattended one also records it in its log line's note.
+   The render lens never builds. Any other session asks before building.
    When you do need one:
 
    ```bash
