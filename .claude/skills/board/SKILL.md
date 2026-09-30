@@ -39,13 +39,13 @@ One read of Project #2, one action per open ticket, the dependency graph when th
 
 ## Reading the report
 
-Six buckets, in this order, board row order inside each: `yours` (a merge, a dispute, or an open question record, whose command is `/queue asks`), `drift` (the board disagrees with GitHub, the command corrects it), `in flight` (`/ship` or `/prep` running or resumable), `pullable` (`/prep` or `/ship` on a ticket that is ready), `define` (`/issue-review`, `/boundaries` or `/tickets`, a missed `promote`), `waiting` (nothing to do until the named issue closes). A Todo ticket with every dependency closed sorts before one whose dependencies are open.
+Six buckets, in this order, board row order inside each: `yours` (a merge, a dispute, or an open question record, whose command is `/queue asks`), `drift` (the board disagrees with GitHub, the command corrects it), `in flight` (a run holding a lease, or `/ship` resumable on this machine), `pullable` (`/prep` or `/ship` on a ticket that is ready), `define` (`/issue-review`, `/boundaries` or `/tickets`, a missed `promote`), `waiting` (nothing to do until the named issue closes). A Todo ticket with every dependency closed sorts before one whose dependencies are open.
 
 A Todo leaf names both `/boundaries` and `/tickets`: the user picks per ticket. A parent with `Reviewed none` gets `/issue-review` once a child is at Defined; while every child is at Todo the children lead. An issue with no `MA-` title and no `Part of` header is outside the ticket standard and skips the header checks.
 
 ## Snapshot shape
 
-`--save` writes what was fetched; `--snapshot` reads it back, so a report can be re-rendered or a rule debugged without another fetch. The fixture at `__tests__/scripts/fixtures/board_next.snapshot.json` has one item per rule and is the reference for the shape. A new rule is a fixture item and a test row first, then the `decide()` branch.
+`--save` writes what was fetched; `--snapshot` reads it back, so a report can be re-rendered or a rule debugged without another fetch. The fixture at `__tests__/scripts/fixtures/board_next.snapshot.json` has one item per rule and is the reference for the shape. Beside `items` it holds `leases`, one per file under `~/.ship/MoneyApp/queue/leases/`, each with `number`, `skill`, `worktree`, `touchedAt` (the file's last write) and `worktreeGone`; a snapshot without it reads as none. A lease idle 2 hours or whose worktree is gone is `drift` with its `rm` command; a held one is `in flight` with no command. Each action carries `lease`, `leaseSkill`, the `Size:` `paths`, and `queue`, the column `/queue` may run it from. A new rule is a fixture item and a test row first, then the `decide()` branch.
 
 ## Red flags
 
