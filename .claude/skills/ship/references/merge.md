@@ -22,11 +22,12 @@ The run ends in this order:
 1. CI, re-read now: `gh pr checks <pr-url>`. Red below the cap of [SKILL.md](../SKILL.md) → Fix loop routes back through phase 3, and nothing below runs. At the cap, the red check is an item 1 finding and the steps below run.
 2. `bash scripts/board.sh status <n> "Awaiting Human"`.
 3. The merge summary below, written to `~/.ship/MoneyApp/queue/ship-<n>-summary.md` by every run, typed or unattended.
-4. Item 7's screenshots, sent with `SendUserFile`.
-5. An unattended run removes its lease, [queue § Lease](../../queue/SKILL.md), and writes its log line, [queue column.md](../../queue/references/column.md) § Log.
-6. The summary as the run's last message.
+4. The PR body completed: `pr.md` keeps its three lines from phase 2 and gains the summary file's content from its item 1 on, the PR URL line left out; then `gh pr edit <pr-url> --body-file ~/.ship/MoneyApp/MA-XXX/pr.md`. The body is the PR's own record, read after `state.md` is gone; the summary file stays, the queue's measure reads it.
+5. Item 7's screenshots, sent with `SendUserFile`.
+6. An unattended run removes its lease, [queue § Lease](../../queue/SKILL.md), and writes its log line, [queue column.md](../../queue/references/column.md) § Log.
+7. The summary as the run's last message.
 
-Nothing is posted on the issue or the PR. No run merges, approves a review or turns on auto-merge.
+Nothing is posted on the issue or the PR beyond the body edit of step 4. No run merges, approves a review or turns on auto-merge.
 
 The summary is headed by the PR URL, then ten items in this order, each written `none` when empty except item 10, whose heading and table header row are always written. Every item reads a file, so a session that did not run the battery can write it.
 
@@ -50,7 +51,7 @@ until gh pr view <pr-url> --json state --jq .state | grep -qE 'MERGED|CLOSED' ||
 
 `MERGED` starts the post-merge list. `CLOSED` without `mergedAt` is a closed PR, not a merge: stop and report. `OPEN` means `asks` printed above 0: § A change after the summary.
 
-An unattended run ends at step 6 with no watch. `/queue` runs § After the merge on its next pass.
+An unattended run ends at step 7 with no watch. `/queue` runs § After the merge on its next pass.
 
 ## A change after the summary
 
@@ -80,7 +81,7 @@ Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the 
 ## Checklist
 
 - [ ] Ten items in order, `none` where empty, item 10's heading and table header row written; CI read after the last push
-- [ ] Summary in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, screenshots sent, summary the last message; nothing posted on the issue or the PR
+- [ ] Summary in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, PR body completed with the summary, screenshots sent, summary the last message; nothing else posted on the issue or the PR
 - [ ] Plan removed from the branch before the summary; `git ls-tree origin/main .work` prints nothing after the merge
 - [ ] Merge verified by URL; issue closed; Done and `promote` run
 - [ ] `state.md` final line before teardown; worktrees, branch, prune; `npm ci` if the lockfile moved

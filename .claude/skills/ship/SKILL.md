@@ -71,7 +71,7 @@ A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), nev
 ```
 issue.md                 # the ticket body at entry; every dispatch gets this path
 plan.md                  # the plan as committed on the branch; every dispatch gets this path
-pr.md                    # the PR body, written at phase 2
+pr.md                    # the PR body, written at phase 2, completed at phase 5
 state.md                 # phase state, written after every transition and gate outcome; the only resume point
 findings/cycle-<n>.md    # each triage's consolidated list, what the re-check verifies against
 findings/<lens>.md       # a lens report that outgrew a screen
