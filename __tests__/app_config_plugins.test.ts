@@ -36,6 +36,16 @@ describe('app.json plugin contract', () => {
     expect(expo.android.adaptiveIcon.backgroundColor).toBe('#0F1923');
   });
 
+  it('compiles React Native from source on Android only, so the patched text view ships', () => {
+    const buildProperties = expo.plugins.find(
+      (p: unknown) => pluginName(p) === 'expo-build-properties',
+    ) as [string, Record<string, unknown>];
+    expect(buildProperties[1]).toEqual({
+      android: { newArchEnabled: true, buildReactNativeFromSource: true },
+      ios: { newArchEnabled: true },
+    });
+  });
+
   it('keeps the splash options that make the Android 12 mask safe', () => {
     const splash = expo.plugins.find((p: unknown) => pluginName(p) === 'expo-splash-screen') as [
       string,
@@ -50,5 +60,15 @@ describe('app.json plugin contract', () => {
     });
     // Android's 192dp icon circle clips a centred square past 2*96/sqrt(2) = 135.76dp.
     expect(splash[1].imageWidth as number).toBeLessThanOrEqual(135);
+  });
+});
+
+describe('patches contract', () => {
+  it('holds a react-native patch for the installed react-native version', () => {
+    const root = path.join(__dirname, '..');
+    const { version } = JSON.parse(
+      fs.readFileSync(path.join(root, 'node_modules', 'react-native', 'package.json'), 'utf8'),
+    ) as { version: string };
+    expect(fs.readdirSync(path.join(root, 'patches'))).toContain(`react-native+${version}.patch`);
   });
 });
