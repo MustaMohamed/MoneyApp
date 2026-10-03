@@ -20,7 +20,7 @@ The first line is exactly `Question: open`. Labelled lines follow, one each, in 
 | `Why:` | What goes wrong if the question is answered badly |
 | `Options:` | A first and recommended, then B and on; each option carries `writes:` the text it adds and `into:` `#<n>` plus `Acceptance` or `Rules`, or `#<n> Cut`, a comment on `#<n>` whose body starts `Cut: `; one `writes:` and `into:` per ticket it binds. Beside its `writes:`, an option that settles a string carries `copy:`, the `Copy` bullet it adds, and one that settles a screen state carries `screen:`, the `Screen checks` row it adds |
 | `Wrong if:` | The fact that would make the recommendation wrong |
-| `Prior art:` | The sibling ticket, rule or code that settled a like question, or `none` |
+| `Prior art:` | The sibling ticket, rule or code that settled a like question, else each source the writer read and found silent: the parent's lines, the canvas frame, the ADRs, the shipped code, the siblings' Decisions |
 | `Reaches:` | The sibling tickets and callers the answer also binds, or `none` |
 | `Screen:` | An `emulator-verify` feature name, or `none` |
 | `Sha:` | `git rev-parse origin/main` after `git fetch origin`, when the record is written |
