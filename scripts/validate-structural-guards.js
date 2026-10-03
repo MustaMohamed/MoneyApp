@@ -58,8 +58,10 @@ function herouiImport(name) {
   };
 }
 
-const FILTER_MODULE =
-  /(?<=\b(?:from|import|require)\s*\(?\s*['"])[^'"]*filter\.(?:helpers|store|hook)(?=['"])/;
+// A module specifier is the string after `from`, `import` or `require(`.
+function specifier(ending) {
+  return new RegExp(`(?<=\\b(?:from|import|require)\\s*\\(?\\s*['"])${ending}(?=['"])`);
+}
 
 const INLINE_FILTER_COPY = [
   "'Clear search'",
@@ -147,7 +149,7 @@ const NAMED_ROWS = [
     ],
     banned: [
       ...['useCallback', 'useEffect', 'useMemo', 'useReducer', 'useState'].map(identifier),
-      FILTER_MODULE,
+      specifier(`[^'"]*filter\\.(?:helpers|store|hook)`),
       identifier('Colors.dark'),
       ...INLINE_FILTER_COPY.map(literal),
     ],
@@ -222,13 +224,10 @@ const NAMED_ROWS = [
   },
   {
     files: [LAYOUT],
-    banned: [/(?<=from\s*['"])heroui-native\/provider(?=['"])/],
-    rule: 'mounts its own toast provider and portal host; import `heroui-native/provider-raw`',
+    banned: [specifier('heroui-native/provider')],
+    rule: 'is the full HeroUI provider; the root layout mounts its own toast provider and portal host',
     required: [
-      holds(
-        /from\s*['"]heroui-native\/provider-raw['"]/,
-        'no import from `heroui-native/provider-raw`',
-      ),
+      holds(specifier('heroui-native/provider-raw'), 'no import from `heroui-native/provider-raw`'),
       holds(
         /<SafeAreaProvider\b[^>]*\binitialMetrics=\{initialWindowMetrics\}/,
         'no `initialMetrics={initialWindowMetrics}` on `<SafeAreaProvider`',
@@ -360,7 +359,7 @@ for (const row of TREE_ROWS) {
   const files = srcFiles.filter(row.matches);
   // A row over zero files would pass with its guard gone.
   if (files.length === 0) errors.push(`${row.name}: matches no file`);
-  for (const rel of files) reportBanned(rel, load(rel), row.banned, row.rule);
+  for (const rel of files) reportBanned(rel, load(rel) ?? [], row.banned, row.rule);
 }
 
 for (const rel of DELETED_PATHS) {
