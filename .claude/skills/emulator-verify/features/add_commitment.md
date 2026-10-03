@@ -13,6 +13,7 @@ Route `/commitments/add`. Screen `src/modules/commitments/screens/commitments/ad
 |---|---|---|---|
 | recurrence and duration pills, no adornment | no frame, MA-087 | the form as it mounts | every `SelectablePill` in the Recurrence and Duration groups is a clickable `button` node whose bounds ÷ 2.625 read 25 high (`lineHeightFor(msFont(11))` = 15, plus `py-1` and the 1 dp `border` pair), its label `TextView` 15, at every label length; one shot of the two groups |
 | save button, large font | no frame, MA-130 | the add form, then edit from a seeded commitment's detail; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the save button on each; one crop at 2.0 on each |
+| amount half-typed | no frame, MA-115 | the add form, save with it empty; `fill` the amount with `0`, `0.`, `0.0`, `0.05`, `0.001` | no line under the amount at the first four, `Amount must be at least 0.01` at the last; one shot at `0.` |
 
 ## Outbound
 

@@ -20,6 +20,7 @@ Route `/accounts/add_account`, and `(onboarding)/add_account` for N2. Screen `sr
 | saved | none | `$MQA tap 'Save Account'` | `mqa db "select name, opening_balance, current_balance from accounts order by rowid desc limit 1"`: current equals opening |
 | save button, large font | no frame, MA-130 | the add form; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the save button; one crop at 2.0 |
 | colour sheet, large font | no frame, MA-130 | the colour row on the add form; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the sheet's buttons; one crop at 2.0 |
+| credit card form, amounts half-typed | no frame, MA-115 | `Credit card`, `Track interest` on, `Save Account` with the form empty; `fill` the limit with `0`, `0.`, `48.`, `0.001`, the minimum with `48.`, the APR with `48.`, `101`, the balance with `48.`, `0.001` | `Credit limit is required for credit cards` and `Enter an amount.` after Save; no line at each half-typed value; `Numbers only.` at each `0.001`; `Enter a rate from 0 to 100.` at `101`; no rail changes height in `mqa bounds`; one shot |
 
 ## Outbound
 

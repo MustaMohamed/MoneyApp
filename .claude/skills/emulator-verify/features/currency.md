@@ -13,6 +13,7 @@ Route `/settings/currency`. Screen `src/modules/currency/screens/currency/index.
 | State | Frame | Force | Proof |
 |---|---|---|---|
 | buttons, large font | no frame, MA-130 | a seeded database; `Refresh Rate`, then `Save Rate` under an expanded `Manual Override`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on `Refresh Rate` and `Save Rate`, both `md`; one crop at 2.0 |
+| manual rate half-typed | no frame, MA-115 | expand the accordion by its trigger, `$MQA tap '~Set your own rate'` (it reads `Manual Override, Set your own rate`, and with an override stored `Manual Override` alone also matches the hero chip); the rate field has no testID, label or placeholder, so `mqa read` lists it as `field "<its text>"` only while it holds text; tap it by its `@ref` while it holds the stored rate and keep the centre that tap prints; `clear`, then `Save Rate`, which is refused and writes nothing; for each of `48.`, `0`, `0.0`, `50abc`, `tapxy` the centre, `clear`, `type` the text, or `fill` by the field's `@ref` once it holds text | `Please enter a valid amount` after Save and at `50abc`, absent at the other three; the hero's rate and its `Last updated` line read at the end as they did at the start; one shot at `48.` |
 
 ## Outbound
 

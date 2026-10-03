@@ -21,6 +21,7 @@ Route `/accounts/[id]/edit` (MA-078, open at 2026-09-17; until it merges the det
 | saved, reload failed | no frame, MA-075 ruling | source force on the reload | dismisses to the accounts list, not the detail; db updated |
 | keyboard up on Android | no frame, MA-078 | tap a field | disabled rows keep their disabled look; `Save` reachable |
 | footer, large font | no frame, MA-130 | the edit form; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the footer buttons; one crop of the footer at 2.0 |
+| credit card, amounts half-typed | no frame, MA-115 | open on a card, clear the limit, `$MQA tap 'Save'`; `fill` the limit with `0`, `0.`, `48.`, `0.001` | `Fix the 1 field marked above.` after Save and at `0.001`, absent at the other three; no layout shift in `mqa bounds`, as `validation error, zero shift` reads it; one shot |
 
 ## Outbound
 
