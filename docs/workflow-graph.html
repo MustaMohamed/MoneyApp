@@ -437,7 +437,7 @@
   draw('g-queue', {
     w: 1720, h: 520,
     lanes: [
-      { x: 30, y: 40, w: 800, h: 450, t: '/queue <column> [n]' },
+      { x: 30, y: 40, w: 800, h: 450, t: '/queue <column> [n] [model]' },
       { x: 860, y: 40, w: 830, h: 450, t: '/queue asks' },
     ],
     nodes: [
@@ -446,7 +446,7 @@
       { id: 'holds', kind: 'decision', x: 300, y: 130, w: 220, h: 130, label: 'holds', sub: ['cap 3 ship / 5 others', 'path overlap · no paths', 'no progress · emulator slot', 'GraphQL · host load · measures'] },
       { id: 'held', kind: 'note', x: 300, y: 300, w: 220, h: 40, label: 'held, next candidate' },
       { id: 'lease', kind: 'script', x: 570, y: 100, w: 220, h: 54, label: 'write the lease', sub: ['~/.ship/MoneyApp/queue/leases/<n>', 'skill, worktree, task id'] },
-      { id: 'task', kind: 'script', x: 570, y: 190, w: 220, h: 54, label: 'scheduled task, run now', sub: ['Run: unattended', 'review-<n> / prep-<n> / ship-<n>'] },
+      { id: 'task', kind: 'script', x: 570, y: 190, w: 220, h: 66, label: 'scheduled task, run now', sub: ['Run: unattended', 'review-<n> / prep-<n> / ship-<n>', 'with a model: one Agent call on it, the run inside'] },
       { id: 'run', kind: 'skill', x: 570, y: 280, w: 220, h: 66, label: '/issue-review · /prep · /ship', sub: ['parks instead of asking', 'releases the lease at exit', 'one log line per run'] },
       { id: 'measure', kind: 'note', x: 60, y: 380, w: 730, h: 54, label: 'after 10 queued tickets, two measures gate every ship start', sub: ['questions parked during /ship above 0, or any row under Questions that should have been asked earlier: no ship start'] },
       { id: 'list', kind: 'script', x: 890, y: 80, w: 200, h: 54, label: 'list open records', sub: ['by root parent, screen, row', 'board.sh questions <n>'] },
@@ -466,7 +466,7 @@
       { from: 'held', to: 'holds', pts: [[300, 320], [280, 320], [280, 230], [300, 230]], kind: 'loop' },
       { from: 'holds', to: 'lease', pts: [[520, 195], [545, 195], [545, 127], [570, 127]], label: 'free', lab: [553, 172], anchor: 'start' },
       { from: 'lease', to: 'task', pts: [[680, 154], [680, 190]] },
-      { from: 'task', to: 'run', pts: [[680, 244], [680, 280]] },
+      { from: 'task', to: 'run', pts: [[680, 256], [680, 280]] },
       { from: 'run', to: 'measure', pts: [[680, 346], [680, 380]], kind: 'loop' },
       { from: 'measure', to: 'holds', pts: [[60, 407], [45, 407], [45, 250], [330, 250]], kind: 'loop' },
       { from: 'list', to: 'reread', pts: [[1090, 107], [1130, 110]] },
