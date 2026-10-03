@@ -3,7 +3,7 @@
 - **Date:** 2026-09-28
 - **Status:** accepted
 - **Ticket:** #611 (MA-129), under #585
-- **Applies to:** `src/modules/dashboard/utils/format_owned_amount.ts`, `src/modules/dashboard/utils/account_card.helpers.ts`, `src/modules/commitments/utils/commitment_status.ts`, `src/modules/commitments/utils/recurrence_label.ts`, `src/modules/budget/utils/budget_summary.ts`, `src/components/ui/keyboard_lift.geometry.ts`, `src/components/ui/keyboard_lift.anim.ts`, `src/components/ui/cta_footer.tsx`
+- **Applies to:** `src/utils/format_amount.ts`, `src/modules/accounts/utils/account_card.helpers.ts`, `src/modules/commitments/utils/commitment_status.ts`, `src/modules/commitments/utils/recurrence_label.ts`, `src/modules/budget/utils/budget_summary.ts`, `src/components/ui/keyboard_lift.geometry.ts`, `src/components/ui/keyboard_lift.anim.ts`, `src/components/ui/cta_footer.tsx`
 
 Accounts and dashboard imported helpers from inside the dashboard, commitments and budget screen folders, and the edit account form imported the onboarding shell's footer and keyboard lift (audit M4). Nothing at a screen file said another module depended on it, so a refactor inside one screen could break a second module with no warning. This record fixes where such a piece lives.
 
@@ -14,6 +14,8 @@ A helper or type another module imports lives in `src/modules/<owner>/utils/`, t
 Audit M4 (`docs/superpowers/reviews/2026-07-29-full-technical-audit.md:401`) sent the budget type to `entities/` and both budget pieces out through the module barrel; this record keeps deep imports instead, because they are the house form, 1 barrel import in `src/modules` (`account_form.tsx:10`) against 212 deep imports from one module into another, and barrels are audit M2's work, as `docs/adr/2026-08-19-dashboard-net-worth-refusal.md:291-294` records.
 
 The footer is `CtaFooter` in `cta_footer.tsx`, the rename PR #580 gave `OnboardingStatusTrack` when it became `StatusTrack`. Its props did not change. Both screens keep the 48 track because `cta_footer.tsx:23` reads `Size.ctaFooterTrack`. `ONBOARDING_SHELL_TRACKS.cta` and `ONBOARDING_SHELL_TRACKS.statusTrack` had no reader in `src` after the move, so MA-137 (#625) removed both and renamed the token for the footer.
+
+**Superseded in part 2026-10-04 (#624).** A piece no single module owns lives in `src/utils/`: the owned and owed amount composers, which dashboard, transactions, budget and accounts all print, moved into `src/utils/format_amount.ts`. The account card row builders moved to their owner's `utils/` under this section, from dashboard to accounts. `docs/adr/2026-10-04-owned-owed-composers-shared-home.md` records both.
 
 ## 2. The module a piece left keeps no re-export
 
