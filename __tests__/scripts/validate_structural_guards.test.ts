@@ -25,17 +25,26 @@ const BUDGET_PICKER = `${TRANSACTIONS}/transaction_form/components/budget_picker
 const COMMITMENTS_INDEX = `${COMMITMENTS}/index.tsx`;
 const DASHBOARD_INDEX = 'src/modules/dashboard/screens/dashboard/index.tsx';
 const GOALS_INDEX = 'src/modules/goals/screens/goals/index.tsx';
-const STATE_FILE = 'src/components/ui/month_filter.state.ts';
-const UNNAMED_TEMPLATE = 'src/modules/accounts/screens/accounts/list/index.tsx';
+const VERSIONED_FILE = 'src/modules/transactions/seeded_surface.ts';
 
-const TAB_HEROUI_IMPORT = "import { Separator, Surface, Typography } from 'heroui-native';";
-const DASHBOARD_HEROUI_IMPORT =
-  "import { Button, Separator, Surface, Tabs, Typography } from 'heroui-native';";
 const STYLESHEET_SEED = 'const seeded = StyleSheet.create({});';
 const SHADOW_SEED = '<Card className="shadow-none" />';
 const ASYNC_SEED = 'const seeded = async () => 1;';
 const HOST = '<PortalHost />';
 const NO_FILE = 'matches no file';
+const OUTSIDE_PROVIDER = 'sits outside';
+
+// A seed finds its target by the pattern the guard matches, so a reworded line in src/ fails no case.
+const HEROUI_IMPORT = /import\s*\{([^}]*)\}\s*from\s*['"]heroui-native['"];/;
+const PROVIDER_OPEN = /<AppToastProvider\b[^>]*>/;
+const CSS_IMPORT_LINE = /^[ \t]*import\s+['"][^'"]*global\.css['"];?\n/m;
+const CSS_SPECIFIER = /(?<=^[ \t]*import\s+['"])[^'"]*global\.css(?=['"])/m;
+
+type Predicate = (rel: string) => boolean;
+
+const isStateFile: Predicate = (rel) => rel.endsWith('.state.ts');
+const isTemplate: Predicate = (rel) =>
+  rel.startsWith('src/modules/') && rel.includes('/screens/') && rel.endsWith('/index.tsx');
 
 let fakeRoot = '';
 const touched = new Set<string>();
@@ -65,6 +74,11 @@ function restore(rel: string): void {
   if (fs.existsSync(real)) fs.copyFileSync(real, fakePath(rel));
 }
 
+function restoreTouched(): void {
+  for (const rel of touched) restore(rel);
+  touched.clear();
+}
+
 function appendLine(rel: string, text: string): number {
   const source = read(rel);
   const base = source.endsWith('\n') ? source : `${source}\n`;
@@ -87,6 +101,30 @@ function replaceOnce(rel: string, search: string, replacement: string): void {
   replaceEvery(rel, search, replacement);
 }
 
+// Edits the first match, and throws on an absent target or an edit that changes nothing.
+function replacePattern(rel: string, pattern: RegExp, replacement: string): void {
+  const source = read(rel);
+  const next = source.replace(pattern, () => replacement);
+  if (next === source) throw new Error(`fixture mutation changed nothing: ${String(pattern)}`);
+  write(rel, next);
+}
+
+function herouiNames(rel: string): string[] {
+  const list = HEROUI_IMPORT.exec(read(rel))?.[1];
+  if (list === undefined) throw new Error(`fixture import statement absent: ${rel}`);
+  return list
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name !== '');
+}
+
+function dropHerouiImport(rel: string, name: string): void {
+  const names = herouiNames(rel);
+  const kept = names.filter((entry) => entry !== name);
+  if (kept.length === names.length) throw new Error(`fixture import target absent: ${name}`);
+  replacePattern(rel, HEROUI_IMPORT, `import { ${kept.join(', ')} } from 'heroui-native';`);
+}
+
 function lineOf(rel: string, needle: string, which: 'first' | 'last' = 'first'): number {
   const source = read(rel);
   const at = which === 'first' ? source.indexOf(needle) : source.lastIndexOf(needle);
@@ -101,7 +139,14 @@ function walk(rel: string): string[] {
   });
 }
 
-function removeEvery(matches: (rel: string) => boolean): void {
+// A tree-row seed lands on the first file the row's own predicate matches in the fakeroot.
+function locate(matches: Predicate): string {
+  const rel = walk('src').sort().find(matches);
+  if (rel === undefined) throw new Error('fixture target matched no file');
+  return rel;
+}
+
+function removeEvery(matches: Predicate): void {
   const targets = walk('src').filter(matches);
   if (targets.length === 0) throw new Error('fixture removal matched no file');
   for (const rel of targets) remove(rel);
@@ -148,126 +193,190 @@ function expectClean(result: SpawnSyncReturns<string>): void {
 }
 
 interface BannedSeed {
-  row: string;
-  rel: string;
+  guard: string;
+  target: string | Predicate;
   text: string;
   token: string;
 }
 
 interface RequiredSeed {
-  row: string;
+  guard: string;
   rel: string;
-  search: string;
-  replacement: string;
-  missing: string;
+  seed: () => void;
+  words: string;
 }
 
-const NAMED_BANNED: BannedSeed[] = [
-  { row: 'N1 StyleSheet', rel: SUMMARY_CARD, text: STYLESHEET_SEED, token: 'StyleSheet' },
-  { row: 'N2 shadow-none', rel: CATEGORY_DETAIL_SKELETON, text: SHADOW_SEED, token: 'shadow-none' },
+const BANNED: BannedSeed[] = [
   {
-    row: 'N3 React hook',
-    rel: 'src/components/ui/search_filter_row.tsx',
+    guard: 'StyleSheet in a budget presentation file',
+    target: SUMMARY_CARD,
+    text: STYLESHEET_SEED,
+    token: 'StyleSheet',
+  },
+  {
+    guard: 'StyleSheet reached through a namespace in a budget presentation file',
+    target: SUMMARY_CARD,
+    text: 'const s = RN.StyleSheet.create({});',
+    token: 'StyleSheet',
+  },
+  {
+    guard: 'shadow-none on a Budget Card',
+    target: CATEGORY_DETAIL_SKELETON,
+    text: SHADOW_SEED,
+    token: 'shadow-none',
+  },
+  {
+    guard: 'a React hook in a filter component',
+    target: 'src/components/ui/search_filter_row.tsx',
     text: 'const seeded = useMemo(() => 1, []);',
     token: 'useMemo',
   },
   {
-    row: 'N3 filter module specifier',
-    rel: `${TRANSACTIONS}/filter/components/account_accordion.tsx`,
+    guard: 'a filter module import in a filter component',
+    target: `${TRANSACTIONS}/filter/components/account_accordion.tsx`,
     text: "import { seeded } from '../filter.helpers';",
     token: 'filter.helpers',
   },
   {
-    row: 'N3 Colors.dark',
-    rel: `${COMMITMENTS}/filter/components/recurrence_accordion.tsx`,
+    guard: 'Colors.dark in a filter component',
+    target: `${COMMITMENTS}/filter/components/recurrence_accordion.tsx`,
     text: 'const seeded = Colors.dark.bg;',
     token: 'Colors.dark',
   },
   {
-    row: 'N3 inline copy',
-    rel: `${COMMITMENTS}/components/search_row.tsx`,
+    guard: 'inline copy in a filter component',
+    target: `${COMMITMENTS}/components/search_row.tsx`,
     text: "const seeded = 'Clear search';",
     token: "'Clear search'",
   },
   {
-    row: 'N3 hook called as a React member',
-    rel: FILTER_ACCORDION,
+    guard: 'a hook called as a React member in a filter component',
+    target: FILTER_ACCORDION,
     text: 'const [seeded] = React.useState(0);',
     token: 'useState',
   },
   {
-    row: 'N4 store import',
-    rel: TRANSACTIONS_INDEX,
+    guard: 'a store hook in the transactions template',
+    target: TRANSACTIONS_INDEX,
     text: 'const seeded = useTransactionStore();',
     token: 'useTransactionStore',
   },
-  { row: 'N5 router call', rel: DETAIL_INDEX, text: 'router.back();', token: 'router.' },
-  { row: 'N6 inline EGP', rel: BUDGET_PICKER, text: '<Text>{amount} EGP</Text>', token: '} EGP' },
-  { row: 'N7 SafeAreaView', rel: SCREEN, text: '<SafeAreaView />', token: 'SafeAreaView' },
   {
-    row: 'N9 CommitmentHeader',
-    rel: COMMITMENTS_INDEX,
+    guard: 'a router call in the transaction detail template',
+    target: DETAIL_INDEX,
+    text: 'router.back();',
+    token: 'router.',
+  },
+  {
+    guard: 'a router call through props in the transaction detail template',
+    target: DETAIL_INDEX,
+    text: 'props.router.push(x)',
+    token: 'router.',
+  },
+  {
+    guard: 'an inline EGP label in the budget picker',
+    target: BUDGET_PICKER,
+    text: '<Text>{amount} EGP</Text>',
+    token: '} EGP',
+  },
+  {
+    guard: 'SafeAreaView in Screen',
+    target: SCREEN,
+    text: '<SafeAreaView />',
+    token: 'SafeAreaView',
+  },
+  {
+    guard: 'SafeAreaView reached through a namespace in Screen',
+    target: SCREEN,
+    text: '<RN.SafeAreaView>',
+    token: 'SafeAreaView',
+  },
+  {
+    guard: 'CommitmentHeader in the commitments screen',
+    target: COMMITMENTS_INDEX,
     text: '<CommitmentHeader />',
     token: 'CommitmentHeader',
   },
-];
-
-function withoutMember(row: string, rel: string, enumName: string, member: string): RequiredSeed {
-  return {
-    row: `${row} ${enumName}.${member}`,
-    rel,
-    search: `${enumName}.${member}`,
-    replacement: `Seeded.${member}`,
-    missing: member,
-  };
-}
-
-function withoutTag(row: string, rel: string, tag: string): RequiredSeed {
-  return { row: `${row} <${tag}`, rel, search: `<${tag}`, replacement: '<Seeded', missing: tag };
-}
-
-function withoutImport(row: string, rel: string, from: string, name: string): RequiredSeed {
-  const kept = from.replace(`${name}, `, '').replace(`, ${name} }`, ' }');
-  if (kept === from) throw new Error(`fixture import target absent: ${name}`);
-  return { row: `${row} import of ${name}`, rel, search: from, replacement: kept, missing: name };
-}
-
-const NAMED_REQUIRED: RequiredSeed[] = [
-  withoutTag('N4', TRANSACTIONS_INDEX, 'FilterRail'),
-  ...['Income', 'Expense', 'Transfer', 'CCPayment'].map((member) =>
-    withoutMember('N4', TRANSACTIONS_INDEX, 'TransactionType', member),
-  ),
+  { guard: 'T1: async in a .state.ts', target: isStateFile, text: ASYNC_SEED, token: 'async' },
   {
-    row: 'N6 Strings.currencyEgp',
-    rel: BUDGET_PICKER,
-    search: 'Strings.currencyEgp',
-    replacement: 'Strings.seeded',
-    missing: 'Strings.currencyEgp',
+    guard: 'T1: setTimeout reached through globalThis in a .state.ts',
+    target: isStateFile,
+    text: 'globalThis.setTimeout(() => set({ open: false }), 300);',
+    token: 'setTimeout',
   },
-  withoutTag('N8', FILTER_RAIL, 'MonthFilter'),
-  withoutTag('N8', FILTER_RAIL, 'SegmentFilter'),
-  withoutTag('N9', COMMITMENTS_INDEX, 'FilterRail'),
-  ...['Overdue', 'Due', 'Upcoming', 'Paid', 'Skipped'].map((member) =>
-    withoutMember('N9', COMMITMENTS_INDEX, 'CommitmentPaymentStatus', member),
-  ),
-  ...['Surface', 'Separator', 'Typography'].map((name) =>
-    withoutImport('N10', GOALS_INDEX, TAB_HEROUI_IMPORT, name),
-  ),
-  withoutTag('N10', GOALS_INDEX, 'Surface'),
-  withoutTag('N10', GOALS_INDEX, 'Separator'),
-  withoutImport('N11', DASHBOARD_INDEX, DASHBOARD_HEROUI_IMPORT, 'Button'),
-  withoutTag('N11', DASHBOARD_INDEX, 'Button'),
-  withoutTag('N12', BUDGET_INDEX, 'BudgetToolRail'),
-];
-
-const TREE_BANNED: BannedSeed[] = [
-  { row: 'T1 async in a .state.ts', rel: STATE_FILE, text: ASYNC_SEED, token: 'async' },
   {
-    row: 'T2 useSharedValue in a screen template',
-    rel: UNNAMED_TEMPLATE,
+    guard: 'T2: useSharedValue in a screen template',
+    target: isTemplate,
     text: 'const seeded = useSharedValue(0);',
     token: 'useSharedValue',
   },
+  {
+    guard: 'T2: useSharedValue reached through a namespace in a screen template',
+    target: isTemplate,
+    text: 'const v = Reanimated.useSharedValue(0);',
+    token: 'useSharedValue',
+  },
+  {
+    guard: 'T2: useState reached through a namespace in a screen template',
+    target: isTemplate,
+    text: 'const [a] = R.useState(0);',
+    token: 'useState',
+  },
+];
+
+function withoutTag(rel: string, tag: string, where: string): RequiredSeed {
+  return {
+    guard: `<${tag} in ${where}`,
+    rel,
+    seed: () => replaceEvery(rel, `<${tag}`, '<Seeded'),
+    words: `no \`<${tag}\` element`,
+  };
+}
+
+function withoutMember(rel: string, enumName: string, member: string): RequiredSeed {
+  return {
+    guard: `${enumName}.${member} in the screen's filter table`,
+    rel,
+    seed: () => replaceEvery(rel, `${enumName}.${member}`, `Seeded.${member}`),
+    words: `no \`${enumName}.${member}\``,
+  };
+}
+
+function withoutImport(rel: string, name: string, where: string): RequiredSeed {
+  return {
+    guard: `a heroui-native import of ${name} in ${where}`,
+    rel,
+    seed: () => dropHerouiImport(rel, name),
+    words: `no named import of \`${name}\``,
+  };
+}
+
+// The import seeds and the tag seeds are spread over the tab screens, so no two edit the same text.
+const REQUIRED: RequiredSeed[] = [
+  withoutTag(TRANSACTIONS_INDEX, 'FilterRail', 'the transactions screen'),
+  ...['Income', 'Expense', 'Transfer', 'CCPayment'].map((member) =>
+    withoutMember(TRANSACTIONS_INDEX, 'TransactionType', member),
+  ),
+  {
+    guard: 'Strings.currencyEgp in the budget picker',
+    rel: BUDGET_PICKER,
+    seed: () => replaceEvery(BUDGET_PICKER, 'Strings.currencyEgp', 'Strings.seeded'),
+    words: 'no `Strings.currencyEgp`',
+  },
+  withoutTag(FILTER_RAIL, 'MonthFilter', 'FilterRail'),
+  withoutTag(FILTER_RAIL, 'SegmentFilter', 'FilterRail'),
+  withoutTag(COMMITMENTS_INDEX, 'FilterRail', 'the commitments screen'),
+  ...['Overdue', 'Due', 'Upcoming', 'Paid', 'Skipped'].map((member) =>
+    withoutMember(COMMITMENTS_INDEX, 'CommitmentPaymentStatus', member),
+  ),
+  withoutImport(GOALS_INDEX, 'Surface', 'the goals tab screen'),
+  withoutImport(BUDGET_INDEX, 'Separator', 'the budget tab screen'),
+  withoutImport(COMMITMENTS_INDEX, 'Typography', 'the commitments tab screen'),
+  withoutTag(TRANSACTIONS_INDEX, 'Surface', 'the transactions tab header'),
+  withoutTag(GOALS_INDEX, 'Separator', 'the goals tab header'),
+  withoutImport(DASHBOARD_INDEX, 'Button', 'the dashboard screen'),
+  withoutTag(DASHBOARD_INDEX, 'Button', 'the dashboard header'),
+  withoutTag(BUDGET_INDEX, 'BudgetToolRail', 'the budget screen'),
 ];
 
 const DELETED_PATHS = [
@@ -282,34 +391,67 @@ beforeAll(() => {
   fs.copyFileSync(path.join(repoRoot, 'global.css'), fakePath('global.css'));
 }, 30000);
 
-afterEach(() => {
-  for (const rel of touched) restore(rel);
-  touched.clear();
-});
+afterEach(restoreTouched);
 
 afterAll(() => {
   fs.rmSync(fakeRoot, { recursive: true, force: true });
 });
 
-describe('validate-structural-guards.js, named-file rows (step 1)', () => {
+describe('validate-structural-guards.js, banned tokens seeded together in one run', () => {
+  const seeded = new Map<string, { rel: string; line: number }>();
+  let result: SpawnSyncReturns<string>;
+
+  function seededAt(guard: string): { rel: string; line: number } {
+    const at = seeded.get(guard);
+    if (at === undefined) throw new Error(`seed not applied: ${guard}`);
+    return at;
+  }
+
+  beforeAll(() => {
+    for (const { guard, target, text } of BANNED) {
+      const rel = typeof target === 'string' ? target : locate(target);
+      seeded.set(guard, { rel, line: appendLine(rel, text) });
+    }
+    write(VERSIONED_FILE, 'export const TransactionFormV2 = 1;\n');
+    result = runGuard();
+    restoreTouched();
+  });
+
+  it.each(BANNED)('$guard: reports the banned token at its line', ({ guard, token }) => {
+    const { rel, line } = seededAt(guard);
+
+    expectReported(result, [lineAt(rel, line, token)]);
+  });
+
+  it('T3: reports TransactionFormV2 in a new file under src/', () => {
+    expectReported(result, [lineAt(VERSIONED_FILE, 1, 'TransactionFormV2')]);
+  });
+
+  it('ends stderr with one line that names the script and counts the violations', () => {
+    const lines = stderrLines(result);
+
+    expect(lines[lines.length - 1]).toBe(`${SCRIPT_REL}: ${lines.length - 1} violation(s)`);
+  });
+});
+
+describe('validate-structural-guards.js, required tokens removed together in one run', () => {
+  let result: SpawnSyncReturns<string>;
+
+  beforeAll(() => {
+    for (const { seed } of REQUIRED) seed();
+    result = runGuard();
+    restoreTouched();
+  });
+
+  it.each(REQUIRED)('$guard: reports the required token as missing', ({ rel, words }) => {
+    expectReported(result, [lineFor(rel, words)]);
+  });
+});
+
+describe('validate-structural-guards.js, named files', () => {
   it('exits 0 with one stdout line on the unseeded tree', () => {
     expectClean(runGuard());
   });
-
-  it.each(NAMED_BANNED)('$row: reports the banned token at its line', ({ rel, text, token }) => {
-    const line = appendLine(rel, text);
-
-    expectReported(runGuard(), [lineAt(rel, line, token)]);
-  });
-
-  it.each(NAMED_REQUIRED)(
-    '$row: reports the required token as missing',
-    ({ rel, search, replacement, missing }) => {
-      replaceEvery(rel, search, replacement);
-
-      expectReported(runGuard(), [lineFor(rel, missing)]);
-    },
-  );
 
   it('lists three violations across two files in one run', () => {
     const sheetLine = appendLine(BUDGET_SKELETON, STYLESHEET_SEED);
@@ -346,30 +488,18 @@ describe('validate-structural-guards.js, named-file rows (step 1)', () => {
   });
 
   it('exits 0 on a heroui-native import wrapped over three lines', () => {
-    replaceOnce(
+    const names = herouiNames(DASHBOARD_INDEX);
+    replacePattern(
       DASHBOARD_INDEX,
-      DASHBOARD_HEROUI_IMPORT,
-      "import {\n  Button, Separator, Surface, Tabs, Typography,\n} from 'heroui-native';",
+      HEROUI_IMPORT,
+      `import {\n  ${names.join(', ')},\n} from 'heroui-native';`,
     );
 
     expectClean(runGuard());
   });
 });
 
-describe('validate-structural-guards.js, tree rows and deleted paths (step 2)', () => {
-  it.each(TREE_BANNED)('$row: reports the banned token at its line', ({ rel, text, token }) => {
-    const line = appendLine(rel, text);
-
-    expectReported(runGuard(), [lineAt(rel, line, token)]);
-  });
-
-  it('T3: reports TransactionFormV2 in a new file under src/', () => {
-    const rel = 'src/modules/transactions/seeded_surface.ts';
-    write(rel, 'export const TransactionFormV2 = 1;\n');
-
-    expectReported(runGuard(), [lineAt(rel, 1, 'TransactionFormV2')]);
-  });
-
+describe('validate-structural-guards.js, tree rows and deleted paths', () => {
   it.each(DELETED_PATHS)('reports $rel when it is back', ({ rel, folder }) => {
     if (folder) {
       touched.add(rel);
@@ -382,7 +512,7 @@ describe('validate-structural-guards.js, tree rows and deleted paths (step 2)', 
   });
 
   it('T1: reports the row as matching no file when every .state.ts is gone', () => {
-    removeEvery((rel) => rel.endsWith('.state.ts'));
+    removeEvery(isStateFile);
 
     const result = runGuard();
 
@@ -391,10 +521,7 @@ describe('validate-structural-guards.js, tree rows and deleted paths (step 2)', 
   });
 
   it('T2: reports the row as matching no file when every screen template is gone', () => {
-    removeEvery(
-      (rel) =>
-        rel.startsWith('src/modules/') && rel.includes('/screens/') && rel.endsWith('/index.tsx'),
-    );
+    removeEvery(isTemplate);
 
     const result = runGuard();
 
@@ -403,31 +530,31 @@ describe('validate-structural-guards.js, tree rows and deleted paths (step 2)', 
   });
 
   it('exits 0 on a store accessor named useState in a screen template', () => {
-    appendLine(UNNAMED_TEMPLATE, 'useFooState.useState.bar();');
+    appendLine(locate(isTemplate), 'useFooState.useState.bar();');
 
     expectClean(runGuard());
   });
 });
 
-describe('validate-structural-guards.js, root layout (step 3)', () => {
+describe('validate-structural-guards.js, root layout', () => {
   it('reports a second AppToastProvider at its line', () => {
     replaceOnce(LAYOUT, HOST, `<AppToastProvider>\n${HOST}\n</AppToastProvider>`);
-    const line = lineOf(LAYOUT, '<AppToastProvider>', 'last');
+    const line = lineOf(LAYOUT, '<AppToastProvider', 'last');
 
-    expectReported(runGuard(), [lineAt(LAYOUT, line, 'AppToastProvider')]);
+    expectReported(runGuard(), [lineAt(LAYOUT, line, 'a second `<AppToastProvider`')]);
   });
 
   it('reports the missing AppToastProvider when both tags are removed', () => {
-    replaceOnce(LAYOUT, '<AppToastProvider>', '<>');
+    replacePattern(LAYOUT, PROVIDER_OPEN, '<>');
     replaceOnce(LAYOUT, '</AppToastProvider>', '</>');
 
-    expectReported(runGuard(), [lineFor(LAYOUT, 'AppToastProvider')]);
+    expectReported(runGuard(), [lineFor(LAYOUT, 'no `<AppToastProvider` element')]);
   });
 
   it('reports the missing PortalHost when it is removed', () => {
     replaceOnce(LAYOUT, HOST, '');
 
-    expectReported(runGuard(), [lineFor(LAYOUT, 'PortalHost')]);
+    expectReported(runGuard(), [lineFor(LAYOUT, 'no `<PortalHost` element')]);
   });
 
   it('reports a PortalHost below the closing AppToastProvider tag at the host line', () => {
@@ -435,14 +562,22 @@ describe('validate-structural-guards.js, root layout (step 3)', () => {
     replaceOnce(LAYOUT, '</AppToastProvider>', `</AppToastProvider>\n${HOST}`);
     const line = lineOf(LAYOUT, HOST);
 
-    expectReported(runGuard(), [lineAt(LAYOUT, line, 'PortalHost')]);
+    expectReported(runGuard(), [lineAt(LAYOUT, line, OUTSIDE_PROVIDER)]);
+  });
+
+  it('reports a PortalHost above the opening AppToastProvider tag at the host line', () => {
+    replaceOnce(LAYOUT, HOST, '');
+    replacePattern(LAYOUT, /<AppToastProvider\b/, `${HOST}\n<AppToastProvider`);
+    const line = lineOf(LAYOUT, HOST);
+
+    expectReported(runGuard(), [lineAt(LAYOUT, line, OUTSIDE_PROVIDER)]);
   });
 
   it('reports a second PortalHost at its line', () => {
     replaceOnce(LAYOUT, HOST, `${HOST}\n${HOST}`);
     const line = lineOf(LAYOUT, HOST, 'last');
 
-    expectReported(runGuard(), [lineAt(LAYOUT, line, 'PortalHost')]);
+    expectReported(runGuard(), [lineAt(LAYOUT, line, 'a second `<PortalHost`')]);
   });
 
   it('reports heroui-native/provider at its import line and the missing provider-raw import', () => {
@@ -462,33 +597,34 @@ describe('validate-structural-guards.js, root layout (step 3)', () => {
   });
 
   it('reports a global.css import that resolves to no file at the import line', () => {
-    replaceOnce(LAYOUT, "'../../global.css'", "'../global.css'");
-    const line = lineOf(LAYOUT, "'../global.css'");
+    replacePattern(LAYOUT, CSS_SPECIFIER, './seeded/global.css');
+    const line = lineOf(LAYOUT, './seeded/global.css');
 
-    expectReported(runGuard(), [lineAt(LAYOUT, line, 'global.css')]);
+    expectReported(runGuard(), [lineAt(LAYOUT, line, 'resolves to no file')]);
   });
 
   it('reports the missing global.css import', () => {
-    replaceOnce(LAYOUT, "import '../../global.css';\n", '');
+    replacePattern(LAYOUT, CSS_IMPORT_LINE, '');
 
-    expectReported(runGuard(), [lineFor(LAYOUT, 'global.css')]);
+    expectReported(runGuard(), [lineFor(LAYOUT, 'no side-effect import of `global.css`')]);
   });
 
   it('lists a named-file row, a tree row and a layout violation in one run', () => {
+    const stateFile = locate(isStateFile);
     const sheetLine = appendLine(SUMMARY_CARD, STYLESHEET_SEED);
-    const asyncLine = appendLine(STATE_FILE, ASYNC_SEED);
+    const asyncLine = appendLine(stateFile, ASYNC_SEED);
     replaceOnce(LAYOUT, HOST, `${HOST}\n${HOST}`);
     const hostLine = lineOf(LAYOUT, HOST, 'last');
 
     expectReported(runGuard(), [
       lineAt(SUMMARY_CARD, sheetLine, 'StyleSheet'),
-      lineAt(STATE_FILE, asyncLine, 'async'),
+      lineAt(stateFile, asyncLine, 'async'),
       lineAt(LAYOUT, hostLine, 'PortalHost'),
     ]);
   });
 });
 
-describe('npm run lint (step 4)', () => {
+describe('npm run lint', () => {
   it('runs the structural guards check', () => {
     const manifest: unknown = JSON.parse(
       fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'),

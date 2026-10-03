@@ -3,7 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const { stripComments } = require('./lib/strip-comments');
 
+/** @typedef {{ found: (source: string) => boolean, missing: string }} Requirement */
+
 const root = path.join(__dirname, '..');
+const SCRIPT = path.relative(root, __filename);
 const errors = [];
 
 const UI = 'src/components/ui';
@@ -17,28 +20,33 @@ const DASHBOARD_INDEX = 'src/modules/dashboard/screens/dashboard/index.tsx';
 const BUDGET_PICKER = `${TRANSACTIONS}/transaction_form/components/budget_picker_sheet.tsx`;
 const LAYOUT = 'src/app/_layout.tsx';
 
-function escapeRegExp(text) {
+function escapeRegExp(/** @type {string} */ text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // No `g` flag on a banned pattern: `exec` would carry `lastIndex` from one line to the next.
-function literal(text) {
+function literal(/** @type {string} */ text) {
   return new RegExp(escapeRegExp(text));
 }
 
-// Whole identifier; a member after `.` only on `React`, so a store's `x.useState` accessor passes.
-function identifier(name) {
-  return new RegExp(`(?<![\\w$.])(?:React\\.)?${escapeRegExp(name)}(?![\\w$])`);
+// The whole identifier, bare or reached through any object: `RN.StyleSheet` is `StyleSheet`.
+function identifier(/** @type {string} */ name) {
+  return new RegExp(`(?<![\\w$])${escapeRegExp(name)}(?![\\w$])`);
 }
 
+// `createMoneyAppSelectors` gives a store a `useState` accessor, so `x.useState.y()` is not the hook.
+const USE_STATE = /(?<![\w$])useState(?![\w$])(?!(?<=\.useState)\s*\.)/;
+
+/** @param {RegExp} pattern @param {string} missing @returns {Requirement} */
 function holds(pattern, missing) {
   return { found: (source) => pattern.test(source), missing };
 }
 
-function tag(name) {
+function tag(/** @type {string} */ name) {
   return holds(new RegExp(`<${name}(?![\\w$])`), `no \`<${name}\` element`);
 }
 
+/** @param {string} enumName @param {string[]} names */
 function members(enumName, names) {
   return names.map((name) =>
     holds(identifier(`${enumName}.${name}`), `no \`${enumName}.${name}\``),
@@ -48,6 +56,7 @@ function members(enumName, names) {
 // Matched against the joined source, so `[^}]*` spans a named-import list oxfmt wrapped.
 const HEROUI_IMPORT = /import\s*\{([^}]*)\}\s*from\s*['"]heroui-native['"]/g;
 
+/** @param {string} name @returns {Requirement} */
 function herouiImport(name) {
   return {
     found: (source) =>
@@ -58,9 +67,9 @@ function herouiImport(name) {
   };
 }
 
-// A module specifier is the string after `from`, `import` or `require(`.
-function specifier(ending) {
-  return new RegExp(`(?<=\\b(?:from|import|require)\\s*\\(?\\s*['"])${ending}(?=['"])`);
+// `wholeSource` is regex source for the whole specifier, the string after `from`, `import` or `require(`.
+function specifier(/** @type {string} */ wholeSource) {
+  return new RegExp(`(?<=\\b(?:from|import|require)\\s*\\(?\\s*['"])${wholeSource}(?=['"])`);
 }
 
 const INLINE_FILTER_COPY = [
@@ -148,7 +157,8 @@ const NAMED_ROWS = [
       `${COMMITMENTS}/filter/components/recurrence_accordion.tsx`,
     ],
     banned: [
-      ...['useCallback', 'useEffect', 'useMemo', 'useReducer', 'useState'].map(identifier),
+      ...['useCallback', 'useEffect', 'useMemo', 'useReducer'].map(identifier),
+      USE_STATE,
       specifier(`[^'"]*filter\\.(?:helpers|store|hook)`),
       identifier('Colors.dark'),
       ...INLINE_FILTER_COPY.map(literal),
@@ -167,7 +177,7 @@ const NAMED_ROWS = [
   },
   {
     files: [`${TRANSACTIONS}/detail/index.tsx`],
-    banned: [/(?<![\w$.])router\./, identifier('useTransactionFormState')],
+    banned: [/(?<![\w$])router\./, identifier('useTransactionFormState')],
     rule: 'in the transaction detail template; its hook owns navigation and the form state',
   },
   {
@@ -240,15 +250,15 @@ const NAMED_ROWS = [
 const TREE_ROWS = [
   {
     name: 'T1, every *.state.ts under src/',
-    matches: (rel) => rel.endsWith('.state.ts'),
+    matches: (/** @type {string} */ rel) => rel.endsWith('.state.ts'),
     banned: ['useEffect', 'setTimeout', 'async', 'Promise'].map(identifier),
     rule: 'in a `.state.ts`; UI state holds no effect, timer or async work',
   },
   {
     name: 'T2, every index.tsx below a screens/ folder under src/modules/',
-    matches: (rel) =>
+    matches: (/** @type {string} */ rel) =>
       rel.startsWith('src/modules/') && rel.includes('/screens/') && rel.endsWith('/index.tsx'),
-    banned: ['useState', 'useSharedValue'].map(identifier),
+    banned: [USE_STATE, identifier('useSharedValue')],
     rule: 'in a screen template; state lives in its `.state.ts` and shared values in its `.anim.ts`',
   },
   {
@@ -268,6 +278,7 @@ const DELETED_PATHS = [
   `${TRANSACTIONS}/transaction_form_v2`,
 ];
 
+/** @param {string} rel @returns {string[]} */
 function walk(rel) {
   return fs.readdirSync(path.join(root, rel), { withFileTypes: true }).flatMap((entry) => {
     const child = `${rel}/${entry.name}`;
@@ -276,10 +287,11 @@ function walk(rel) {
   });
 }
 
+/** @type {Map<string, string[] | undefined>} */
 const sources = new Map();
 
 // Comments are blanked, not dropped, so a reported line is the line on disk; strings are kept.
-function load(rel) {
+function load(/** @type {string} */ rel) {
   if (!sources.has(rel)) {
     const abs = path.join(root, rel);
     const isFile = fs.statSync(abs, { throwIfNoEntry: false })?.isFile() ?? false;
@@ -288,6 +300,7 @@ function load(rel) {
   return sources.get(rel);
 }
 
+/** @param {string} rel @param {string[]} lines @param {RegExp[]} banned @param {string} [rule] */
 function reportBanned(rel, lines, banned, rule) {
   lines.forEach((line, index) => {
     for (const pattern of banned) {
@@ -297,10 +310,11 @@ function reportBanned(rel, lines, banned, rule) {
   });
 }
 
-function reportLayout(lines) {
+function reportLayout(/** @type {string[]} */ lines) {
   const source = lines.join('\n');
-  const at = (offset) => `${LAYOUT}:${source.slice(0, offset).split('\n').length}`;
-  const openingTags = (name) => {
+  const at = (/** @type {number} */ offset) =>
+    `${LAYOUT}:${source.slice(0, offset).split('\n').length}`;
+  const openingTags = (/** @type {string} */ name) => {
     const offsets = [...source.matchAll(new RegExp(`<${name}(?![\\w$])`, 'g'))].map(
       (match) => match.index,
     );
@@ -322,12 +336,12 @@ function reportLayout(lines) {
 
   const cssImports = lines.flatMap((line, index) => {
     const match = CSS_IMPORT.exec(line);
-    return match ? [{ specifier: match[1], line: index + 1 }] : [];
+    return match ? [{ cssPath: match[1], line: index + 1 }] : [];
   });
   if (cssImports.length === 0) errors.push(`${LAYOUT}: no side-effect import of \`global.css\``);
-  for (const { specifier, line } of cssImports) {
-    if (!fs.existsSync(path.resolve(root, path.dirname(LAYOUT), specifier))) {
-      errors.push(`${LAYOUT}:${line}: \`${specifier}\` resolves to no file from src/app/`);
+  for (const { cssPath, line } of cssImports) {
+    if (!fs.existsSync(path.resolve(root, path.dirname(LAYOUT), cssPath))) {
+      errors.push(`${LAYOUT}:${line}: \`${cssPath}\` resolves to no file from src/app/`);
     }
   }
 }
@@ -335,7 +349,7 @@ function reportLayout(lines) {
 const namedFiles = [...new Set(NAMED_ROWS.flatMap((row) => row.files))];
 
 for (const rel of namedFiles.filter((named) => !load(named))) {
-  errors.push(`${rel}: not in the tree; move its rows in ${path.relative(root, __filename)}`);
+  errors.push(`${rel}: not in the tree; move its rows in ${SCRIPT}`);
 }
 
 for (const row of NAMED_ROWS) {
@@ -369,7 +383,7 @@ for (const rel of DELETED_PATHS) {
 }
 
 if (errors.length > 0) {
-  console.error(errors.join('\n'));
+  console.error([...errors, `${SCRIPT}: ${errors.length} violation(s)`].join('\n'));
   process.exit(1);
 }
 
