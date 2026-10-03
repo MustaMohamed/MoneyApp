@@ -3,7 +3,7 @@
 - **Date:** 2026-09-28
 - **Status:** accepted
 - **Ticket:** #611 (MA-129), under #585
-- **Applies to:** `src/utils/format_amount.ts`, `src/modules/accounts/utils/account_card.helpers.ts`, `src/modules/commitments/utils/commitment_status.ts`, `src/modules/commitments/utils/recurrence_label.ts`, `src/modules/budget/utils/budget_summary.ts`, `src/components/ui/keyboard_lift.geometry.ts`, `src/components/ui/keyboard_lift.anim.ts`, `src/components/ui/cta_footer.tsx`
+- **Applies to:** `src/utils/format_amount.ts`, `src/modules/accounts/utils/account_info_rows.ts`, `src/modules/commitments/utils/commitment_status.ts`, `src/modules/commitments/utils/recurrence_label.ts`, `src/modules/budget/utils/budget_summary.ts`, `src/components/ui/keyboard_lift.geometry.ts`, `src/components/ui/keyboard_lift.anim.ts`, `src/components/ui/cta_footer.tsx`
 
 Accounts and dashboard imported helpers from inside the dashboard, commitments and budget screen folders, and the edit account form imported the onboarding shell's footer and keyboard lift (audit M4). Nothing at a screen file said another module depended on it, so a refactor inside one screen could break a second module with no warning. This record fixes where such a piece lives.
 

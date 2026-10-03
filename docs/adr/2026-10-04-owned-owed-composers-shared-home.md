@@ -3,7 +3,7 @@
 - **Date:** 2026-10-04
 - **Status:** accepted
 - **Ticket:** #624 (MA-136), under #585
-- **Applies to:** `src/utils/format_amount.ts`, `src/modules/accounts/utils/account_card.helpers.ts`, `src/modules/accounts/screens/accounts/detail/components/balance_hero.helpers.ts`, `src/modules/transactions/screens/transactions/transactions.helpers.ts`, `src/modules/budget/screens/budget/category_detail/components/live_month_card.helpers.ts`
+- **Applies to:** `src/utils/format_amount.ts`, `src/modules/accounts/utils/account_info_rows.ts`, `src/modules/accounts/screens/accounts/detail/components/balance_hero.helpers.ts`, `src/modules/transactions/screens/transactions/transactions.helpers.ts`, `src/modules/budget/screens/budget/category_detail/components/live_month_card.helpers.ts`
 
 The owned-sign composer sat in dashboard's `utils/`, its owed twins in the net worth sheet helpers, and transactions, budget and the account detail each composed the same owned sign on their own. A change to the sign rule (ADR 2026-08-27 decision 1, the zero-gated sign of #332) had five places to land. The account card row builders sat in dashboard while accounts read them and they read accounts' store type and domain.
 
@@ -19,7 +19,7 @@ The account detail passes its own magnitude as the optional third argument, `for
 
 ## 3. Accounts owns the account card row builders
 
-`buildInfoRows`, `buildMonthRows`, `InfoRow` and `InfoRowKind` moved with `git mv` to `src/modules/accounts/utils/account_card.helpers.ts`, so `git log --follow` keeps their history. Dashboard's account card imports them from accounts, and accounts no longer imports dashboard for them. The one accounts import of dashboard left is `useDashboardStore` in `accounts_list.hook.ts`, a screen store, which ADR 2026-09-28 §4 leaves to a task under #585.
+`buildInfoRows`, `buildMonthRows`, `InfoRow` and `InfoRowKind` moved with `git mv` to `src/modules/accounts/utils/account_info_rows.ts`, so `git log --follow` keeps their history. Dashboard's account card imports them from accounts, and accounts no longer imports dashboard for them. The one accounts import of dashboard left is `useDashboardStore` in `accounts_list.hook.ts`, a screen store, which ADR 2026-09-28 §4 leaves to a task under #585.
 
 ## 4. Strings and assertions are unchanged
 

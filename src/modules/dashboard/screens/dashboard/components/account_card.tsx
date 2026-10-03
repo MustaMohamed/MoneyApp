@@ -12,7 +12,7 @@ import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_pale
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { buildInfoRows } from '@/modules/accounts/utils/account_card.helpers';
+import { buildInfoRows } from '@/modules/accounts/utils/account_info_rows';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatOwnedAmountParts } from '@/utils/format_amount';
 import { ms, msFont } from '@/utils/responsive';
