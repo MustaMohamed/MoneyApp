@@ -397,6 +397,8 @@ cmd_build() {
   abi="$(cmd_abi)"
   [ -d "$ROOT/android" ] || die "no android/ — run: npx expo prebuild --platform android"
   echo "building debug APK for $abi only (all-ABI is ~3x the size and cannot install)"
+  # React Native's from-source build reads the SDK from the environment; local.properties is not enough.
+  [ -n "${ANDROID_HOME:-}${ANDROID_SDK_ROOT:-}" ] || export ANDROID_HOME="$HOME/Library/Android/sdk"
   ( cd "$ROOT/android" && ./gradlew assembleDebug "-PreactNativeArchitectures=$abi" )
   ls -lh "$ROOT/$APK"
 }
