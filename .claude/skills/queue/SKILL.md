@@ -1,7 +1,7 @@
 ---
 name: queue
-description: "Use when parked questions wait on the user, or a board column should be worked without typing each ticket: '/queue asks', 'answer the parked questions', 'what is waiting on me', '/queue Planned', '/queue Defined 2', 'ship the planned tickets', 'review everything at Defined', or a board row whose command is /queue asks. Not for one typed ticket (issue-review, prep, ship) or for reading the board (board)."
-argument-hint: "asks | Defined [n] | \"Ready For Development\" [n] | Planned [n]"
+description: "Use when parked questions wait on the user, or a board column should be worked without typing each ticket: '/queue asks', 'answer the parked questions', 'what is waiting on me', '/queue Planned', '/queue Defined 2', '/queue Defined 3 fable', 'ship the planned tickets', 'review everything at Defined', or a board row whose command is /queue asks. Not for one typed ticket (issue-review, prep, ship) or for reading the board (board)."
+argument-hint: "asks | Defined [n] [model] | \"Ready For Development\" [n] [model] | Planned [n] [model]"
 ---
 
 # Queue
@@ -11,7 +11,7 @@ An unattended run parks each question it cannot answer as a question record, [qu
 ## Subcommands
 
 - `asks`: every open record on the board, one per message, by [references/asks.md](references/asks.md).
-- `Defined [n]`, `Ready For Development [n]`, `Planned [n]`: `/issue-review`, `/prep` or `/ship` on the top eligible tickets of that column, by [references/column.md](references/column.md). `Planned` also resumes a ticket at In Progress or In Review that has a `state.md` on this machine, no lease and no open question record, and one at Awaiting Human whose PR has a change the user asked for after its merge summary. `n` caps the starts of one pass.
+- `Defined [n] [model]`, `Ready For Development [n] [model]`, `Planned [n] [model]`: `/issue-review`, `/prep` or `/ship` on the top eligible tickets of that column, by [references/column.md](references/column.md). `Planned` also resumes a ticket at In Progress or In Review that has a `state.md` on this machine, no lease and no open question record, and one at Awaiting Human whose PR has a change the user asked for after its merge summary. `n`, a whole number, caps the starts of one pass. `model`, one of `fable`, `opus`, `sonnet`, `haiku`, the Agent tool's list, runs each skill inside one agent on that model, column.md § Start; omitted, the run executes on the app's default model for a new session, which no call from the queue can read or set. A number and a word are told apart by shape, so either order after the column.
 
 Any other argument: print this list and stop.
 
