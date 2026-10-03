@@ -24,4 +24,4 @@ One paragraph. What this feature is and why now.
 None at lock.
 ```
 
-Title `Epic: <feature name>`. Labels `epic` and `module:<x>` (none for a cross-module feature). Milestone: the one `/epic` chose. Board: Todo from `/epic`, Defined from `/boundaries`, Ready For Development from `/tickets`, Done from `bash scripts/board.sh promote` when its last child closes as completed.
+Title `Epic: <feature name>`. Labels `epic` and `module:<x>` (none for a cross-module feature). Milestone: the one `/epic` chose. Board: Todo from `/epic`, Defined from `/boundaries`, Ready For Development from `bash scripts/board.sh promote` when its first child gets there, Done from the same `promote` when its last child closes as completed.

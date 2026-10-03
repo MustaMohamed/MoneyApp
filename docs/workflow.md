@@ -1,6 +1,6 @@
 # MoneyApp workflow
 
-The full board rules, moved out of `CLAUDE.md`, which keeps a summary and links here. Each define and delivery skill carries its own rows; the `board` skill cites this file. `scripts/board_next.mjs` encodes the transition table below; `__tests__/scripts/board_next.test.ts` pins it.
+The full board rules, moved out of `CLAUDE.md`, which keeps a summary and links here. Each define and delivery skill carries its own rows; the `board` skill cites this file. `scripts/board_next.mjs` encodes the transition table below; `__tests__/scripts/board_next.test.ts` pins it. [workflow-graph.html](workflow-graph.html) draws the table, the define skills, `/prep`, `/ship` and `/queue` as one page.
 
 Work is defined on GitHub and delivered from GitHub. The issue is the record; `.work/<MA-id>/` and `~/.ship/MoneyApp/MA-XXX/` hold transient working files. `~/.ship/MoneyApp/queue/` is not transient, beside `~/.ship/MoneyApp/canvas/`: it holds the queue's log and leases.
 
