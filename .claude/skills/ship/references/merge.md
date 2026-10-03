@@ -28,18 +28,18 @@ The run ends in this order:
 
 Nothing is posted on the issue or the PR. No run merges, approves a review or turns on auto-merge.
 
-The summary is headed by the PR URL, then ten items in this order, each written `none` when empty except item 6, whose heading and table header row are always written. Every item reads a file, so a session that did not run the battery can write it.
+The summary is headed by the PR URL, then ten items in this order, each written `none` when empty except item 10, whose heading and table header row are always written. Every item reads a file, so a session that did not run the battery can write it.
 
 1. Findings `not fixed` at the cap of [SKILL.md](../SKILL.md) → Fix loop, each with its `path:line`.
 2. Decisions that reached "smallest change": the `state.md` → `## Decisions` lines whose who reads `conductor, smallest change`, each with its cost if wrong.
 3. The header Flags, verbatim, and the `REBUILD` line from `state.md` → Log.
 4. CI as step 1 read it: green, or a non-green check explained. The commits after the last re-check, the plan removal with its `--stat` and anything else, named; never present an unreviewed head as reviewed. Each lens whose `state.md` line reads `LSP: not used`.
 5. What was built, one line per Acceptance line.
-6. Every other decision, under the heading `## Decisions the ticket or plan did not state`: a table with the columns Decision, Who, Cost if wrong, copy decisions first. It reads the `state.md` → `## Decisions` lines item 2 does not hold, and this run's `## Adjudications` lines that items 2 and 9 do not already hold, less those settled by `ticket text`. [queue column.md](../../queue/references/column.md) reads this heading.
+6. Every other decision, under the heading `## Decisions the ticket or plan did not state`: a table with the columns Decision, Who, Cost if wrong, copy decisions first. It reads the `state.md` → `## Decisions` lines item 2 does not hold, and this run's `## Adjudications` lines that items 2 and 9 do not already hold, less those settled by `ticket text`.
 7. One screenshot per `Screen checks` row of `issue.md` on a body that has the section, else per screen the plan's Screens section lists, from `findings/render/`; then each state `state.md` → Log records as not probed.
 8. Tickets opened, by number.
 9. `rejected` findings, each with what settled it, per [SKILL.md](../SKILL.md) → Rulings: the ticket line quoted, the frame file, the convention's `path:line` or the smallest change's `## Decisions` line.
-10. Questions that should have been asked earlier: the `## Parked` lines of `state.md` that carry a miss, each with its check.
+10. Questions that should have been asked earlier, under the heading `## Questions that should have been asked earlier`: a table with the columns Record, Check, one row per `## Parked` line of `state.md` whose `miss:` is not `none`. Record is the line's record URL, Check is its miss. With no such line the heading and the header row are written alone, never `none`. [queue column.md](../../queue/references/column.md) reads this heading.
 
 Then wait, with a watch on the merge so the word "merged" is never needed. **The human merges, never the conductor.** A change asked after the summary: § A change after the summary.
 
@@ -79,7 +79,7 @@ Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the 
 
 ## Checklist
 
-- [ ] Ten items in order, `none` where empty, item 6's heading and table header row written; CI read after the last push
+- [ ] Ten items in order, `none` where empty, item 10's heading and table header row written; CI read after the last push
 - [ ] Summary in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, screenshots sent, summary the last message; nothing posted on the issue or the PR
 - [ ] Plan removed from the branch before the summary; `git ls-tree origin/main .work` prints nothing after the merge
 - [ ] Merge verified by URL; issue closed; Done and `promote` run

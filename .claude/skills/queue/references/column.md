@@ -12,7 +12,7 @@
    The candidates are the actions whose `queue` equals the column, in the script's order. The script sets `queue` only on an open leaf whose command a session runs, with every Depends on closed, no open question record, no lease, and at Defined a parent that is not `Reviewed none`.
 3. `/queue Planned` only: for each action at Awaiting Human with `pr.state` `OPEN`, a `state.md` on this machine and no lease, run the read of § Changes asked at Awaiting Human. With one or more, § Start `ship-<n>` on it, counted toward `n` and held by Cap, Emulator slot, GraphQL budget, Host load and Measures only.
 4. For each candidate in order, read § Holds. A held candidate is skipped and the next is tried. Otherwise § Start it. Stop at `n` starts.
-5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, or `held, <hold>`; then every action whose `lease` is `stale`, with its action text; while the floor or the ceiling reads `unmeasured`, the readings of each start. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
+5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, or `held, <hold>`; then every action whose `lease` is `stale`, with its action text; while the floor or the ceiling reads `unmeasured`, the readings of each start; then each summary file measure 2 names, the ones without its heading, § After 10 queued tickets. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
 
 ## Holds
 
@@ -48,7 +48,7 @@ Project skills this run may use: issue-review, prep, ship, unslop, emulator-veri
 The lease ~/.ship/MoneyApp/queue/leases/<n> names this task id. The skill rewrites, touches and removes it per .claude/skills/queue/SKILL.md § Lease.
 A question you cannot answer is parked as a record per .claude/skills/issue-review/references/question-record.md, and the run ends.
 A refused call is never turned into a permission request. It goes into your log line's note, and the run goes on or ends.
-/ship: write the merge summary to ~/.ship/MoneyApp/queue/ship-<n>-summary.md. It holds the heading `## Decisions the ticket or plan did not state` over a table with the columns Decision, Who, Cost if wrong: one row per decision, the header row alone when there is none.
+/ship: write the merge summary to ~/.ship/MoneyApp/queue/ship-<n>-summary.md. It holds the heading `## Questions that should have been asked earlier` over a table with the columns Record, Check: one row per `## Parked` line of state.md whose `miss:` is not `none`, the header row alone when there is none.
 Before your last message, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md in the shape of .claude/skills/queue/references/column.md § Log, the readings in its note.
 ```
 
@@ -106,6 +106,6 @@ The user adds this to `permissions.allow` in `settings.local.json`, in `.claude/
 Once the log holds 10 distinct tickets, each pass reads two measures before a `ship` start.
 
 1. Questions asked during `/ship`: the sum of `questions parked` on the `ship` lines of the log.
-2. Questions that should have been asked earlier: per ticket, the rows of the table under `## Decisions the ticket or plan did not state` in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`. A `ship` line with no summary file counts 0 rows. A summary file without that heading holds every `ship` start, and the reply names it.
+2. Questions that should have been asked earlier: per ticket, the rows of the table under `## Questions that should have been asked earlier` in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`. A `ship` line with no summary file counts 0, a summary file without that heading counts 0, the header row alone counts 0, and k rows count k. A summary file without that heading holds no `ship` start, and each reply names every such file, whatever its date.
 
 Above 0 for the first, or 1 or more for the second, no `ship` run starts until the children of MA-149 are merged: `gh api repos/MustaMohamed/MoneyApp/issues/644/sub_issues --jq '[.[] | select(.state=="open")] | length'` reads 0. `issue-review` and `prep` starts go on.
