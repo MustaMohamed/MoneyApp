@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoneyApp workflow</title>
+<style>
+  :root {
+    --bg: #F3F5F8; --paper: #FFFFFF; --ink: #1C2433; --ink-2: #4A5668; --line: #D5DBE4;
+    --skill: #1F7A8C; --skill-bg: #E3F1F4; --human: #B8780F; --human-bg: #FBEFD5;
+    --script: #5B6B82; --script-bg: #E9EDF2; --park: #B5484D; --park-bg: #F8E4E5;
+    --state: #2E3A4E; --state-bg: #FFFFFF; --lane: #E8ECF2; --sub: #6B7A90;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141A24; --paper: #1B2230; --ink: #E6EBF2; --ink-2: #AEB8C7; --line: #2E394A;
+      --skill: #4FB3C4; --skill-bg: #15333B; --human: #E0A93A; --human-bg: #3A2E12;
+      --script: #9AAAC0; --script-bg: #27303F; --park: #D9777A; --park-bg: #3B2224;
+      --state: #E6EBF2; --state-bg: #202939; --lane: #1F2735; --sub: #8D9AAE;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141A24; --paper: #1B2230; --ink: #E6EBF2; --ink-2: #AEB8C7; --line: #2E394A;
+    --skill: #4FB3C4; --skill-bg: #15333B; --human: #E0A93A; --human-bg: #3A2E12;
+    --script: #9AAAC0; --script-bg: #27303F; --park: #D9777A; --park-bg: #3B2224;
+    --state: #E6EBF2; --state-bg: #202939; --lane: #1F2735; --sub: #8D9AAE;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.45; }
+  header { padding: 40px 24px 12px; max-width: 1100px; }
+  h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 8px; line-height: 1.1; }
+  header p { margin: 0; color: var(--ink-2); max-width: 70ch; }
+  nav.legend { position: sticky; top: 0; z-index: 2; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); padding: 10px 24px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+  nav.legend span { display: inline-flex; align-items: center; gap: 7px; }
+  nav.legend i { display: inline-block; width: 22px; height: 14px; border-radius: 3px; border: 1.5px solid; }
+  nav.legend i.sk { background: var(--skill-bg); border-color: var(--skill); }
+  nav.legend i.hu { background: var(--human-bg); border-color: var(--human); border-radius: 999px; }
+  nav.legend i.sc { background: var(--script-bg); border-color: var(--script); border-radius: 1px; }
+  nav.legend i.pk { background: var(--park-bg); border-color: var(--park); border-style: dashed; }
+  nav.legend i.st { background: var(--state-bg); border-color: var(--state); border-width: 2px; }
+  nav.legend b { display: inline-block; width: 26px; height: 0; border-top: 2px solid var(--ink-2); }
+  nav.legend b.hu { border-color: var(--human); }
+  nav.legend b.pk { border-color: var(--park); border-top-style: dashed; }
+  nav.legend b.lp { border-top-style: dotted; }
+  nav.legend i.de { width: 14px; height: 14px; transform: rotate(45deg); border-color: var(--ink); background: var(--paper); border-radius: 2px; margin: 0 4px; }
+  nav.legend button { margin-left: auto; font: inherit; font-size: 13px; color: var(--ink-2); background: none; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+  nav.legend button:focus-visible { outline: 2px solid var(--skill); outline-offset: 2px; }
+  section { padding: 28px 24px 8px; }
+  section h2 { font-size: 21px; font-weight: 600; margin: 0 0 4px; }
+  section > p { margin: 0 0 14px; color: var(--ink-2); max-width: 78ch; }
+  .board { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+  svg { display: block; font-family: inherit; }
+  svg text { fill: var(--ink); font-size: 13px; }
+  svg .sub { fill: var(--sub); font-size: 11.5px; }
+  svg .lab { fill: var(--ink-2); font-size: 12px; }
+  svg .lab.hu { fill: var(--human); font-weight: 500; }
+  svg .lab.pk { fill: var(--park); }
+  svg .lane-title { fill: var(--sub); font-size: 12px; font-weight: 500; }
+  svg .edge { fill: none; stroke: var(--ink-2); stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+  svg .edge.hu { stroke: var(--human); stroke-width: 1.8; }
+  svg .edge.pk { stroke: var(--park); stroke-dasharray: 5 4; }
+  svg .edge.loop { stroke-dasharray: 2 4; }
+  svg .edge.dim { opacity: 0.18; }
+  svg .lab.dim { opacity: 0.18; }
+  svg .node.dim { opacity: 0.28; }
+  svg .node { cursor: default; transition: opacity 120ms; }
+  svg .node rect, svg .node polygon { stroke-width: 1.5; }
+  svg .node.skill rect { fill: var(--skill-bg); stroke: var(--skill); }
+  svg .node.human rect { fill: var(--human-bg); stroke: var(--human); }
+  svg .node.script rect { fill: var(--script-bg); stroke: var(--script); }
+  svg .node.park rect { fill: var(--park-bg); stroke: var(--park); stroke-dasharray: 5 4; }
+  svg .node.state rect { fill: var(--state-bg); stroke: var(--state); stroke-width: 2; }
+  svg .node.note rect { fill: var(--paper); stroke: var(--line); }
+  svg .node.decision polygon { fill: var(--paper); stroke: var(--ink); }
+  svg .node.decision text { font-weight: 500; }
+  svg .node .title { font-weight: 600; }
+  svg .node.state .title { font-size: 14px; }
+  svg .lane { fill: var(--lane); }
+  svg .trench { fill: var(--park-bg); stroke: var(--park); stroke-dasharray: 6 5; opacity: .55; }
+  .counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0 24px 8px; }
+  .counts div { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .counts b { display: block; font-size: 26px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; }
+  .counts div.hu b { color: var(--human); }
+  .counts div.pk b { color: var(--park); }
+  .counts small { color: var(--ink-2); }
+  footer { padding: 18px 24px 40px; color: var(--sub); font-size: 12.5px; max-width: 80ch; }
+  @media (prefers-reduced-motion: reduce) { svg .node { transition: none; } }
+  @media (max-width: 700px) { header { padding: 24px 16px 8px; } h1 { font-size: 26px; } section, nav.legend, footer { padding-left: 16px; padding-right: 16px; } .counts { margin: 0 16px 8px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>How a MoneyApp ticket moves</h1>
+  <p>The board is the state. Skills move a ticket one column at a time, scripts write the board, and in an unattended run the human acts at four gates: the lock, the split, parked questions, and the merge; a typed run also asks on gaps, seams and disputed findings. Hover a node to trace what reaches it. Read as of 2026-10-03.</p>
+</header>
+
+<nav class="legend" aria-label="Legend">
+  <span><i class="st"></i>Board column</span>
+  <span><i class="sk"></i>Skill or subagent</span>
+  <span><i class="hu"></i>You</span>
+  <span><i class="sc"></i>Script, action, CI</span>
+  <span><i class="pk"></i>Park, Blocked, question record</span>
+  <span><i class="de"></i>Decision</span>
+  <span><b></b>A move</span>
+  <span><b class="hu"></b>Your move</span>
+  <span><b class="pk"></b>Park</span>
+  <span><b class="lp"></b>Return or loop</span>
+  <button id="theme" type="button">Dark</button>
+</nav>
+
+<div class="counts">
+  <div class="hu"><b>4</b><small>gates in an unattended run: Lock this scope?, Which split? and Create these N?, /queue asks, the merge; a typed run adds Answer these?, Which seam? and a disputed finding</small></div>
+  <div><b>9</b><small>board columns, and 26 rows in the transition table of docs/workflow.md</small></div>
+  <div class="pk"><b>7</b><small>roads into Blocked or a parked record: boundaries, issue-review, prep gap, prep seam, prep dispute, ship park, a Depends on reopened</small></div>
+  <div><b>5 + 4 + 2</b><small>ship phases, fix cycles at the cap, prep review rounds at the cap</small></div>
+</div>
+
+<section>
+  <h2>1. The board as a state machine</h2>
+  <p>Every move, who makes it, and the one-way wall at Ready For Development. Forward moves run over the top; parks and returns run under the row into the Blocked trench.</p>
+  <div class="board"><svg id="g-board"></svg></div>
+</section>
+
+<section>
+  <h2>2. Define: /epic, /boundaries, /tickets, /issue-review</h2>
+  <p>Only /issue-review writes a Reviewed date, and only promote moves a leaf to Ready For Development. A parent is marked before its children and never pulled. An unattended review parks each ask as a question record instead of waiting.</p>
+  <div class="board"><svg id="g-define"></svg></div>
+</section>
+
+<section>
+  <h2>3. /prep: Ready For Development to Planned</h2>
+  <p>A cold planner plans from the ticket alone. Gaps are read against the parent, the frames, the ADRs and the code before anyone is asked. The size gate is counted twice more here and trims, never waives.</p>
+  <div class="board"><svg id="g-prep"></svg></div>
+</section>
+
+<section>
+  <h2>4. /ship: Planned to Awaiting Human</h2>
+  <p>Five phases, one conductor that edits no code, fresh subagents that get paths and never the conversation. The run asks nothing: it rules by ticket text, frame, convention, then smallest change, and parks what it cannot rule.</p>
+  <div class="board"><svg id="g-ship"></svg></div>
+</section>
+
+<section>
+  <h2>5. /queue: unattended starts, and answering what parked</h2>
+  <p>A column pass starts one app task per ticket under a lease and eight holds. The asks pass puts every open record to you, one per message, writes the answer into the ticket and moves it in the same step.</p>
+  <div class="board"><svg id="g-queue"></svg></div>
+</section>
+
+<footer>Sources: CLAUDE.md, docs/workflow.md, scripts/board.sh, scripts/board_next.mjs, .github/workflows/board-on-merge.yml, and the SKILL.md and references of epic, boundaries, tickets, issue-review, prep, ship, queue and board, at main fc6a894d.</footer>
+
+<script>
+(function () {
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (n, a, parent) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (parent) parent.appendChild(e); return e; };
+  const textBlock = (g, x, y, lines, cls, anchor) => {
+    const t = el('text', { x, y, 'text-anchor': anchor || 'middle', class: cls || '' }, g);
+    lines.forEach((ln, i) => { const s = el('tspan', { x, dy: i === 0 ? 0 : 15 }, t); if (i === 0 && lines.length > 1 && cls !== 'lab') s.setAttribute('class', 'title'); s.textContent = ln; });
+    return t;
+  };
+  const defs = (svg) => {
+    const d = el('defs', {}, svg);
+    for (const [id, color] of [['arr', 'var(--ink-2)'], ['arr-hu', 'var(--human)'], ['arr-pk', 'var(--park)']]) {
+      const m = el('marker', { id, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, d);
+      el('path', { d: 'M0,1 L9,5 L0,9 z', fill: color }, m);
+    }
+  };
+  function draw(id, spec) {
+    const svg = document.getElementById(id);
+    svg.setAttribute('viewBox', `0 0 ${spec.w} ${spec.h}`);
+    svg.setAttribute('width', spec.w); svg.setAttribute('height', spec.h);
+    svg.style.minWidth = spec.w + 'px';
+    defs(svg);
+    (spec.lanes || []).forEach(l => {
+      el('rect', { x: l.x, y: l.y, width: l.w, height: l.h, class: l.cls || 'lane', rx: 8 }, svg);
+      if (l.t) textBlock(svg, l.x + 12, l.y + 18, [l.t], 'lane-title', 'start');
+    });
+    const eg = el('g', {}, svg), ng = el('g', {}, svg);
+    const edges = spec.edges.map(e => {
+      const pts = e.pts; const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' ');
+      const kind = e.kind || '';
+      const p = el('path', { d, class: 'edge ' + kind, 'marker-end': `url(#${kind === 'hu' ? 'arr-hu' : kind === 'pk' ? 'arr-pk' : 'arr'})` }, eg);
+      let lab = null;
+      if (e.label) {
+        const lp = e.lab || [(pts[0][0] + pts[pts.length - 1][0]) / 2, (pts[0][1] + pts[pts.length - 1][1]) / 2 - 6];
+        lab = textBlock(eg, lp[0], lp[1], Array.isArray(e.label) ? e.label : [e.label], 'lab ' + (kind === 'hu' ? 'hu' : kind === 'pk' ? 'pk' : ''), e.anchor || 'middle');
+      }
+      return { e, p, lab };
+    });
+    spec.nodes.forEach(n => {
+      const g = el('g', { class: 'node ' + n.kind, 'data-id': n.id, tabindex: 0 }, ng);
+      const lines = [n.label].concat(n.sub || []);
+      if (n.kind === 'decision') {
+        const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
+        el('polygon', { points: `${cx},${n.y} ${n.x + n.w},${cy} ${cx},${n.y + n.h} ${n.x},${cy}` }, g);
+        textBlock(g, cx, cy + 4 - (lines.length - 1) * 7, lines, '');
+      } else {
+        el('rect', { x: n.x, y: n.y, width: n.w, height: n.h, rx: n.kind === 'human' ? n.h / 2 : n.kind === 'script' ? 3 : 7 }, g);
+        textBlock(g, n.x + n.w / 2, n.y + 19 + (n.h - 19 - (lines.length - 1) * 15 - 6) / 2, lines, '');
+        if (n.sub) g.querySelectorAll('tspan').forEach((s, i) => { if (i > 0) s.setAttribute('class', 'sub'); });
+      }
+      const focus = (on) => {
+        const touched = new Set([n.id]);
+        edges.forEach(x => { if (x.e.from === n.id || x.e.to === n.id) { touched.add(x.e.from); touched.add(x.e.to); } });
+        ng.querySelectorAll('.node').forEach(m => m.classList.toggle('dim', on && !touched.has(m.dataset.id)));
+        edges.forEach(x => { const hit = x.e.from === n.id || x.e.to === n.id; x.p.classList.toggle('dim', on && !hit); if (x.lab) x.lab.classList.toggle('dim', on && !hit); });
+      };
+      g.addEventListener('mouseenter', () => focus(true)); g.addEventListener('mouseleave', () => focus(false));
+      g.addEventListener('focus', () => focus(true)); g.addEventListener('blur', () => focus(false));
+    });
+  }
+
+  // 1. The board ---------------------------------------------------------------
+  const cols = ['Todo', 'Defined', 'Ready For Development', 'Planned', 'In Progress', 'In Review', 'Awaiting Human', 'Done'];
+  const X0 = 70, STEP = 205, SW = 168, SY = 330, SH = 54;
+  const sx = i => X0 + i * STEP, scx = i => sx(i) + SW / 2;
+  const boardNodes = cols.map((c, i) => ({ id: 's' + i, kind: 'state', x: sx(i), y: SY, w: SW, h: SH, label: c, sub: i === 2 ? ['one-way: never back'] : i === 1 ? ['parents sit here'] : i === 6 ? ['merge summary waits'] : null }));
+  boardNodes.push(
+    { id: 'epic', kind: 'skill', x: sx(0), y: 70, w: SW, h: 44, label: '/epic', sub: ['goal → epic issue'] },
+    { id: 'blocked', kind: 'park', x: sx(0) + 20, y: 620, w: STEP * 6 - 40, h: 54, label: 'Blocked, or a question record parked on the ticket', sub: ['the board shows it as yours; promote refuses it; /queue asks answers it'] },
+    { id: 'parent', kind: 'script', x: sx(7), y: 70, w: SW, h: 44, label: 'promote closes a parent', sub: ['last child closed as completed'] },
+    { id: 'merge', kind: 'human', x: sx(6) + 100, y: 190, w: SW + 60, h: 38, label: 'You merge the PR' },
+  );
+  const arc = (i, j, dy, label, kind, labDy) => {
+    const a = scx(i), b = scx(j), top = SY + (dy < 0 ? 0 : SH), apex = top + dy;
+    const pts = [[a, top], [a, apex], [b, apex], [b, top]];
+    return { from: 's' + i, to: 's' + j, pts, label, kind, lab: [(a + b) / 2, apex + (labDy ?? (dy < 0 ? -8 : 16))] };
+  };
+  draw('g-board', {
+    w: 1720, h: 720,
+    lanes: [{ x: 30, y: 292, w: 1660, h: 130, t: 'the board, Project #2, Status field' }],
+    nodes: boardNodes,
+    edges: [
+      { from: 'epic', to: 's0', pts: [[scx(0), 114], [scx(0), SY]], label: 'board.sh status Todo', lab: [scx(0) + 8, 215], anchor: 'start' },
+      arc(0, 1, -60, ['/boundaries locks the body', 'gate: Lock this scope?'], 'hu', -22),
+      arc(1, 2, -120, ['/issue-review marks it, then board.sh promote:', 'Reviewed date, parent marked, no open record,', 'deps closed, Size within ~400 lines'], '', -36),
+      arc(2, 3, -60, ['/prep', 'branch + plan committed'], '', -22),
+      arc(3, 4, -120, ['/ship phase 1', 'implementer dispatched'], '', -22),
+      arc(4, 5, -60, ['/ship phase 2', 'PR open, lenses running'], '', -22),
+      arc(5, 6, -120, ['/ship phase 5', 'merge summary'], '', -22),
+      { from: 'merge', to: 's7', pts: [[scx(7), 228], [scx(7), SY]], label: ['Closes #N, then Board on merge:', 'status Done + promote parent'], kind: 'hu', lab: [scx(7) - 12, 262], anchor: 'end' },
+      { from: 's7', to: 'parent', pts: [[sx(7) + SW - 10, SY], [sx(7) + SW - 10, 114]], label: '' },
+      { from: 's1', to: 's1', pts: [[scx(1) + 30, SY + SH], [scx(1) + 30, SY + SH + 48], [scx(1) - 30, SY + SH + 48], [scx(1) - 30, SY + SH]], label: ['/tickets cuts a parent into children at Defined', 'gates: Which split?  Create these N?'], kind: 'hu', lab: [scx(1), SY + SH + 66] },
+      { from: 's2', to: 's1', pts: [[scx(2) - 20, SY + SH], [scx(2) - 20, SY + SH + 110], [scx(1) + 60, SY + SH + 110], [scx(1) + 60, SY + SH]], label: ['/prep over the gate: trimmed at one seam,', 'the remainder is a new sibling at Defined'], kind: 'loop', lab: [scx(1) + 70, SY + SH + 128], anchor: 'start' },
+      { from: 's6', to: 's5', pts: [[scx(6) - 20, SY + SH], [scx(6) - 20, SY + SH + 48], [scx(5) + 20, SY + SH + 48], [scx(5) + 20, SY + SH]], label: ['a change you ask for after the summary:', 'back to triage, below the cap of 4 cycles'], kind: 'hu', lab: [(scx(5) + scx(6)) / 2, SY + SH + 66] },
+      { from: 's1', to: 'blocked', pts: [[scx(1) - 60, SY + SH], [scx(1) - 60, 620]], label: ['/boundaries, from Todo', 'or Defined: the lock', 'waits on #m', 'unattended /issue-review:', 'ask parked, stays Defined'], kind: 'pk', lab: [scx(1) - 68, 505], anchor: 'end' },
+      { from: 's0', to: 'blocked', pts: [[scx(0) - 40, SY + SH], [scx(0) - 40, 620]], label: '', kind: 'pk' },
+      { from: 's2', to: 'blocked', pts: [[scx(2) + 40, SY + SH], [scx(2) + 40, 620]], label: ['/prep: a gap nobody answers;', 'unattended: two or more seams,', 'a disputed finding;', 'by hand: a Depends on reopened'], kind: 'pk', lab: [scx(2) + 48, 545], anchor: 'start' },
+      { from: 'blocked', to: 's5', pts: [[scx(5) + 50, 620], [scx(5) + 50, SY + SH]], label: ['/queue asks on a /ship park: back to the', 'column Left: names, In Progress or In Review,', 'then /queue Planned resumes it'], kind: 'hu', lab: [scx(5) + 58, 555], anchor: 'start' },
+      { from: 's4', to: 'blocked', pts: [[scx(4), SY + SH], [scx(4), 620]], label: ['/ship parks: a Flag the diff needs,', 'a ticket line that cannot hold,', 'gaps from prep --amend'], kind: 'pk', lab: [scx(4) + 8, 550], anchor: 'start' },
+      { from: 's5', to: 'blocked', pts: [[scx(5) - 30, SY + SH], [scx(5) - 30, 620]], label: '', kind: 'pk' },
+      { from: 'blocked', to: 's2', pts: [[scx(2) - 40, 620], [scx(2) - 40, SY + SH]], label: ['/queue asks: last', 'record answered,', 'or by hand'], kind: 'hu', lab: [scx(2) - 48, 560], anchor: 'end' },
+    ],
+  });
+
+  // 2. Define -----------------------------------------------------------------
+  draw('g-define', {
+    w: 1720, h: 640,
+    lanes: [
+      { x: 30, y: 40, w: 1660, h: 110, t: 'you' },
+      { x: 30, y: 170, w: 1660, h: 250, t: 'skills and their subagents' },
+      { x: 30, y: 440, w: 1660, h: 170, t: 'scripts, the board, and what parks' },
+    ],
+    nodes: [
+      { id: 'goal', kind: 'human', x: 60, y: 70, w: 150, h: 38, label: 'a goal in a sentence' },
+      { id: 'epic', kind: 'skill', x: 60, y: 200, w: 150, h: 52, label: '/epic', sub: ['milestone, label, body', 'Goal + Building only'] },
+      { id: 'todo', kind: 'script', x: 60, y: 470, w: 150, h: 40, label: 'status Todo' },
+      { id: 'bnd', kind: 'skill', x: 270, y: 200, w: 190, h: 66, label: '/boundaries', sub: ['4 read-only scouts: code,', 'prior art, history, danger', 'one question at a time'] },
+      { id: 'lock', kind: 'human', x: 285, y: 70, w: 160, h: 38, label: 'Lock this scope?' },
+      { id: 'defined', kind: 'script', x: 290, y: 470, w: 150, h: 40, label: 'status Defined' },
+      { id: 'bblk', kind: 'park', x: 290, y: 540, w: 150, h: 46, label: 'Blocked on #m', sub: ['the lock waits on an issue'] },
+      { id: 'tix', kind: 'skill', x: 520, y: 200, w: 190, h: 66, label: '/tickets', sub: ['one scout maps seams', 'delivery · module · incremental', 'bodies in the ticket standard'] },
+      { id: 'split', kind: 'human', x: 520, y: 52, w: 190, h: 38, label: 'Which split?' },
+      { id: 'create', kind: 'human', x: 520, y: 100, w: 190, h: 38, label: 'Create these N tickets?' },
+      { id: 'kids', kind: 'script', x: 540, y: 470, w: 150, h: 54, label: 'children created', sub: ['link, status Defined', 'Reviewed none'] },
+      { id: 'ir', kind: 'skill', x: 790, y: 190, w: 210, h: 90, label: '/issue-review', sub: ['one sizer per leaf (LSP)', 'group reviewers, ≤4 per surface', 'children lens on a set', 'mechanical deltas applied, no gate'] },
+      { id: 'd-ask', kind: 'decision', x: 1060, y: 190, w: 150, h: 90, label: 'an ask', sub: ['no source', 'settles it?'] },
+      { id: 'd-run', kind: 'decision', x: 1060, y: 310, w: 150, h: 90, label: 'typed or', sub: ['unattended?'] },
+      { id: 'askyou', kind: 'human', x: 1260, y: 70, w: 210, h: 38, label: 'one question, with its visual' },
+      { id: 'rec', kind: 'park', x: 1260, y: 470, w: 210, h: 54, label: 'question record', sub: ['Question: open, on the issue', 'restated by a fresh reader first'] },
+      { id: 'd-size', kind: 'decision', x: 1260, y: 190, w: 160, h: 90, label: 'size', sub: ['≤ ~400 lines?'] },
+      { id: 'mark', kind: 'script', x: 1490, y: 200, w: 180, h: 54, label: 'Reviewed <date>', sub: ['on the header line', 'parent before children'] },
+      { id: 'promote', kind: 'script', x: 1490, y: 470, w: 180, h: 68, label: 'board.sh promote', sub: ['no open record · deps closed', 'Size within the gate · leaf only', '→ Ready For Development'] },
+      { id: 'qa', kind: 'skill', x: 790, y: 470, w: 210, h: 54, label: '/queue asks', sub: ['answers each record, writes', 'the body, marks and promotes'] },
+    ],
+    edges: [
+      { from: 'goal', to: 'epic', pts: [[135, 108], [135, 200]] },
+      { from: 'epic', to: 'todo', pts: [[135, 252], [135, 470]] },
+      { from: 'epic', to: 'bnd', pts: [[210, 226], [270, 226]], label: 'Next' },
+      { from: 'bnd', to: 'lock', pts: [[365, 200], [365, 108]], label: 'the full body', lab: [373, 160], anchor: 'start' },
+      { from: 'lock', to: 'defined', pts: [[300, 108], [300, 190], [300, 470]], label: 'yes', kind: 'hu', lab: [292, 300], anchor: 'end' },
+      { from: 'bnd', to: 'bblk', pts: [[440, 266], [440, 563]], label: 'cannot lock yet', kind: 'pk', lab: [448, 420], anchor: 'start' },
+      { from: 'bnd', to: 'tix', pts: [[460, 233], [520, 233]], label: 'epic', lab: [490, 227] },
+      { from: 'tix', to: 'split', pts: [[600, 200], [600, 90]] },
+      { from: 'split', to: 'create', pts: [[700, 90], [700, 100]], kind: 'hu' },
+      { from: 'create', to: 'kids', pts: [[535, 138], [535, 470]], label: 'yes', kind: 'hu', lab: [543, 380], anchor: 'start' },
+      { from: 'tix', to: 'ir', pts: [[710, 233], [790, 233]], label: 'Next' },
+      { from: 'bnd', to: 'ir', pts: [[365, 266], [365, 330], [760, 330], [760, 250], [790, 250]], label: 'task: Next /issue-review', lab: [560, 324] },
+      { from: 'ir', to: 'd-ask', pts: [[1000, 235], [1060, 235]] },
+      { from: 'd-ask', to: 'd-size', pts: [[1210, 235], [1260, 235]], label: 'no ask', lab: [1235, 227] },
+      { from: 'd-ask', to: 'd-run', pts: [[1135, 280], [1135, 310]], label: 'ask', lab: [1143, 300], anchor: 'start' },
+      { from: 'd-run', to: 'askyou', pts: [[1210, 355], [1230, 355], [1230, 89], [1260, 89]], label: 'typed', kind: 'hu', lab: [1238, 180], anchor: 'start' },
+      { from: 'd-run', to: 'rec', pts: [[1135, 400], [1135, 497], [1260, 497]], label: 'unattended: park, stays Defined', kind: 'pk', lab: [1143, 440], anchor: 'start' },
+      { from: 'askyou', to: 'ir', pts: [[1365, 70], [1365, 30], [895, 30], [895, 190]], label: 'answer → body delta, Decisions line', kind: 'hu', lab: [1130, 24] },
+      { from: 'rec', to: 'qa', pts: [[1260, 510], [1000, 510]], label: 'later', kind: 'pk', lab: [1130, 504] },
+      { from: 'qa', to: 'mark', pts: [[895, 524], [895, 580], [1580, 580], [1580, 254]], label: 'last record answered under a marked parent', kind: 'hu', lab: [1240, 574] },
+      { from: 'd-size', to: 'mark', pts: [[1420, 235], [1490, 235]], label: 'within', lab: [1455, 227] },
+      { from: 'd-size', to: 'tix', pts: [[1340, 280], [1340, 420], [615, 420], [615, 266]], label: 'over, or at it: seam into the body, no date, Next /tickets', kind: 'loop', lab: [980, 414] },
+      { from: 'mark', to: 'promote', pts: [[1600, 254], [1600, 470]] },
+      { from: 'kids', to: 'ir', pts: [[690, 497], [740, 497], [740, 270], [790, 270]], label: '' },
+    ],
+  });
+
+  // 3. /prep -------------------------------------------------------------------
+  draw('g-prep', {
+    w: 1720, h: 650,
+    lanes: [
+      { x: 30, y: 40, w: 1660, h: 90, t: 'you, typed runs only' },
+      { x: 30, y: 150, w: 1660, h: 270, t: 'conductor and fresh subagents' },
+      { x: 30, y: 440, w: 1660, h: 180, t: 'the board, the branch, and what parks' },
+    ],
+    nodes: [
+      { id: 'read', kind: 'skill', x: 60, y: 190, w: 150, h: 52, label: 'read the ticket', sub: ['Ready For Development', 'and no sub-issues'] },
+      { id: 'wt', kind: 'script', x: 60, y: 300, w: 150, h: 66, label: 'branch + worktree', sub: ['gh issue develop', 'real node_modules', 'lease, EnterWorktree'] },
+      { id: 'planner', kind: 'skill', x: 260, y: 190, w: 180, h: 66, label: 'planner', sub: ['cold: ticket, parent, rules,', 'frames, code via LSP', 'writes .work/MA-XXX/plan.md'] },
+      { id: 'd-gap', kind: 'decision', x: 490, y: 180, w: 150, h: 90, label: 'returns', sub: ['gaps?'] },
+      { id: 'src', kind: 'skill', x: 490, y: 300, w: 150, h: 54, label: 'read the sources', sub: ['parent, frame, ADRs,', 'docs, code'] },
+      { id: 'answer', kind: 'human', x: 500, y: 66, w: 130, h: 38, label: 'Answer these?' },
+      { id: 'd-seam', kind: 'decision', x: 690, y: 180, w: 160, h: 90, label: 'sized past', sub: ['one PR?'] },
+      { id: 'trim', kind: 'script', x: 690, y: 300, w: 160, h: 66, label: 'trim at the seam', sub: ['remainder → new sibling', 'at Defined, dependents', 'gain the edge'] },
+      { id: 'seam', kind: 'human', x: 700, y: 66, w: 140, h: 38, label: 'Which seam?' },
+      { id: 'd-probe', kind: 'decision', x: 900, y: 180, w: 160, h: 90, label: 'marked', sub: ['Screen checks?'] },
+      { id: 'probe', kind: 'skill', x: 900, y: 300, w: 160, h: 66, label: 'probe', sub: ['own worktree, emulator', '≤3 states, 60 tool calls', 'matches / one fix / choice'] },
+      { id: 'reviewer', kind: 'skill', x: 1110, y: 180, w: 170, h: 90, label: 'plan reviewer', sub: ['coverage, no extra work,', 'reality via LSP, tests, order,', 'conventions, size, unruled'] },
+      { id: 'd-rev', kind: 'decision', x: 1330, y: 180, w: 150, h: 90, label: 'verdict', sub: ['cap 2 rounds'] },
+      { id: 'dispute', kind: 'human', x: 1340, y: 66, w: 150, h: 38, label: 'disputed finding' },
+      { id: 'count', kind: 'script', x: 1530, y: 190, w: 150, h: 66, label: 'conductor counts', sub: ['≤ 8 steps', 'expected diff ≤ ~400', 'either over → trim'] },
+      { id: 'commit', kind: 'script', x: 1530, y: 490, w: 150, h: 66, label: 'commit + push', sub: ['plan(MA-XXX)', 'Plan: comment on the issue', 'status Planned'] },
+      { id: 'blk', kind: 'park', x: 260, y: 490, w: 380, h: 60, label: 'Blocked', sub: ['typed: comment Blocked on a ruling, worktree removed, branch kept', 'unattended: one question record per gap, Left: Ready For Development'] },
+      { id: 'amend', kind: 'note', x: 1110, y: 490, w: 300, h: 54, label: '--amend, called by /ship', sub: ['no probe, no board write, gaps return to /ship', 'an amendment over the gate is refused'] },
+    ],
+    edges: [
+      { from: 'read', to: 'wt', pts: [[135, 242], [135, 300]] },
+      { from: 'wt', to: 'planner', pts: [[210, 333], [240, 333], [240, 223], [260, 223]] },
+      { from: 'planner', to: 'd-gap', pts: [[440, 223], [490, 225]] },
+      { from: 'd-gap', to: 'src', pts: [[565, 270], [565, 300]], label: 'gaps', lab: [573, 290], anchor: 'start' },
+      { from: 'src', to: 'planner', pts: [[490, 327], [350, 327], [350, 256]], label: 'a source answers it: re-dispatch once', kind: 'loop', lab: [482, 346], anchor: 'end' },
+      { from: 'src', to: 'answer', pts: [[640, 327], [665, 327], [665, 85], [630, 85]], label: 'none does, typed', kind: 'hu', lab: [657, 160], anchor: 'end' },
+      { from: 'answer', to: 'planner', pts: [[500, 85], [350, 85], [350, 190]], label: 'answer → body, re-dispatch once', kind: 'hu', lab: [340, 78] },
+      { from: 'src', to: 'blk', pts: [[500, 354], [500, 490]], label: ['left open, or', 'unattended'], kind: 'pk', lab: [492, 465], anchor: 'end' },
+      { from: 'd-gap', to: 'd-seam', pts: [[640, 225], [690, 225]], label: 'plan', lab: [665, 217] },
+      { from: 'd-seam', to: 'trim', pts: [[770, 270], [770, 300]], label: 'one seam', lab: [778, 290], anchor: 'start' },
+      { from: 'trim', to: 'planner', pts: [[690, 345], [660, 345], [660, 380], [300, 380], [300, 256]], label: 're-dispatch on the trimmed body', kind: 'loop', lab: [470, 374], anchor: 'end' },
+      { from: 'd-seam', to: 'seam', pts: [[770, 180], [770, 104]], label: '2+ seams, typed', kind: 'hu', lab: [778, 145], anchor: 'start' },
+      { from: 'seam', to: 'trim', pts: [[840, 85], [870, 85], [870, 333], [850, 333]], kind: 'hu' },
+      { from: 'd-seam', to: 'blk', pts: [[700, 252], [680, 252], [680, 460], [640, 520]], label: ['2+ seams, unattended,', 'or no seam fits'], kind: 'pk', lab: [713, 446], anchor: 'start' },
+      { from: 'd-seam', to: 'd-probe', pts: [[850, 225], [900, 225]], label: 'within', lab: [875, 217] },
+      { from: 'd-probe', to: 'probe', pts: [[980, 270], [980, 300]], label: 'rows with a risk', lab: [988, 290], anchor: 'start' },
+      { from: 'probe', to: 'planner', pts: [[900, 350], [880, 350], [880, 395], [380, 395], [380, 256]], label: 'facts, not probed, REBUILD → revise', kind: 'loop', lab: [875, 390], anchor: 'end' },
+      { from: 'probe', to: 'src', pts: [[940, 366], [940, 424], [600, 424], [600, 354]], label: 'a choice is a gap', kind: 'loop', lab: [600, 438], anchor: 'start' },
+      { from: 'd-probe', to: 'reviewer', pts: [[1060, 225], [1110, 225]], label: 'none', lab: [1085, 217] },
+      { from: 'reviewer', to: 'd-rev', pts: [[1280, 225], [1330, 225]] },
+      { from: 'd-rev', to: 'planner', pts: [[1405, 270], [1405, 375], [1090, 375], [1090, 170], [420, 170], [420, 190]], label: 'findings or questions → revise, then a fresh reviewer', kind: 'loop', lab: [900, 164] },
+      { from: 'd-rev', to: 'dispute', pts: [[1405, 180], [1405, 104]], label: 'planner disputes, typed', kind: 'hu', lab: [1413, 145], anchor: 'start' },
+      { from: 'dispute', to: 'planner', pts: [[1340, 85], [1300, 85], [1300, 50], [330, 50], [330, 190]], label: 'ruling, one more dispatch', kind: 'hu', lab: [820, 44] },
+      { from: 'd-rev', to: 'blk', pts: [[1360, 262], [1360, 456], [660, 456], [640, 540]], label: 'disputed finding, unattended', kind: 'pk', lab: [1200, 450], anchor: 'start' },
+      { from: 'd-rev', to: 'count', pts: [[1480, 225], [1530, 225]], label: 'approve', lab: [1505, 208] },
+      { from: 'count', to: 'commit', pts: [[1600, 256], [1600, 490]], label: 'both within', lab: [1608, 380], anchor: 'start' },
+      { from: 'count', to: 'trim', pts: [[1530, 240], [1500, 240], [1500, 290], [870, 290], [870, 310], [850, 310]], label: 'over → trim, whatever a ruling said', kind: 'loop', lab: [1200, 284] },
+    ],
+  });
+
+  // 4. /ship -------------------------------------------------------------------
+  draw('g-ship', {
+    w: 1720, h: 720,
+    lanes: [
+      { x: 30, y: 40, w: 1660, h: 80, t: 'you' },
+      { x: 30, y: 140, w: 1660, h: 110, t: 'conductor: owns git, gh, the board; edits no code' },
+      { x: 30, y: 270, w: 1660, h: 230, t: 'fresh subagents: get paths, never the conversation' },
+      { x: 30, y: 520, w: 1660, h: 175, t: 'the board, and what parks' },
+    ],
+    nodes: [
+      { id: 'entry', kind: 'script', x: 60, y: 170, w: 150, h: 66, label: 'Entry + Setup', sub: ['lease, resume state.md', 'rebase if main moved', 'issue.md, plan.md'] },
+      { id: 'tw1', kind: 'skill', x: 250, y: 300, w: 150, h: 66, label: 'test writer', sub: ['Test: first cases', 'committed red', '60 tool calls'] },
+      { id: 'impl', kind: 'skill', x: 430, y: 300, w: 170, h: 80, label: 'implementer', sub: ['plan → commits, green chain', 'render pass on Verify emulator', '120 tool calls, never pushes'] },
+      { id: 'tw2', kind: 'skill', x: 430, y: 410, w: 170, h: 52, label: 'test writer, after', sub: ['against exported signatures'] },
+      { id: 'd-disc', kind: 'decision', x: 250, y: 400, w: 140, h: 80, label: 'plan wrong', sub: ['about the code?'] },
+      { id: 'amend', kind: 'skill', x: 60, y: 300, w: 150, h: 52, label: 'prep --amend', sub: ['amended plan committed'] },
+      { id: 'inprog', kind: 'script', x: 250, y: 560, w: 150, h: 40, label: 'status In Progress' },
+      { id: 'pr', kind: 'script', x: 650, y: 170, w: 170, h: 66, label: 'P2 push, open the PR', sub: ['Closes #N, plan blob URL', 'deep mode? review level'] },
+      { id: 'd-flag', kind: 'decision', x: 650, y: 400, w: 170, h: 80, label: 'a Flag the diff', sub: ['needs, header lacks?'] },
+      { id: 'lenses', kind: 'skill', x: 870, y: 290, w: 200, h: 100, label: 'battery, in parallel', sub: ['correctness · quality', 'conformance (deep mode)', 'render (Verify emulator)', 'built-in code-review on the PR'] },
+      { id: 'inrev', kind: 'script', x: 660, y: 560, w: 150, h: 40, label: 'status In Review' },
+      { id: 'triage', kind: 'script', x: 1120, y: 150, w: 200, h: 96, label: 'P3 triage', sub: ['CI + Non-goals first, dedupe,', 'ledger, FP classes, verifier in', 'deep mode; rulings: ticket, frame,', 'convention, smallest change'] },
+      { id: 'd-sort', kind: 'decision', x: 1120, y: 290, w: 200, h: 100, label: 'each finding', sub: ['fixed · ticket · not fixed', '· rejected'] },
+      { id: 'defer', kind: 'script', x: 1120, y: 420, w: 200, h: 66, label: 'beyond the ticket', sub: ['recount against the gate', 'within → fix; over → class', 'ticket, never this PR'] },
+      { id: 'fix', kind: 'skill', x: 870, y: 420, w: 200, h: 66, label: 'fix dispatch', sub: ['cycles 1 and 2: same implementer', 'cycles 3 and 4: a fresh one', 'conductor pushes'] },
+      { id: 'recheck', kind: 'skill', x: 1370, y: 290, w: 170, h: 80, label: 'P4 re-checker', sub: ['fix range + blast radius', 'LSP find-references', 'gets the ledger'] },
+      { id: 'd-cap', kind: 'decision', x: 1370, y: 150, w: 170, h: 96, label: 'all fixed', sub: ['or cycle 4?'] },
+      { id: 'summary', kind: 'script', x: 1560, y: 150, w: 130, h: 96, label: 'P5', sub: ['remove the plan', '10-item summary', 'PR body completed', 'screenshots sent'] },
+      { id: 'await', kind: 'script', x: 1540, y: 560, w: 150, h: 40, label: 'Awaiting Human' },
+      { id: 'merge', kind: 'human', x: 1540, y: 60, w: 150, h: 38, label: 'You merge' },
+      { id: 'change', kind: 'human', x: 1140, y: 60, w: 200, h: 38, label: 'a change you ask for' },
+      { id: 'park', kind: 'park', x: 870, y: 560, w: 450, h: 60, label: 'park: question record, status Blocked, lease released', sub: ['a Flag the header lacks · a ticket line that cannot hold · gaps from prep --amend', 'Miss: names the /issue-review check or /prep step that should have asked'] },
+      { id: 'post', kind: 'script', x: 1340, y: 620, w: 350, h: 66, label: 'after the merge', sub: ['Board on merge: Done + promote parent', 'size write-back, teardown, npm ci if the lock moved'] },
+    ],
+    edges: [
+      { from: 'entry', to: 'tw1', pts: [[210, 203], [325, 203], [325, 300]], label: 'P1', lab: [333, 260], anchor: 'start' },
+      { from: 'entry', to: 'inprog', pts: [[135, 236], [135, 580], [250, 580]], label: 'at dispatch', lab: [143, 500], anchor: 'start' },
+      { from: 'tw1', to: 'impl', pts: [[400, 333], [430, 333]], label: 'red', lab: [415, 325] },
+      { from: 'impl', to: 'd-disc', pts: [[430, 365], [410, 365], [410, 440], [390, 440]], label: 'STOP', lab: [402, 400], anchor: 'end' },
+      { from: 'd-disc', to: 'amend', pts: [[250, 440], [135, 440], [135, 352]], label: 'discrepancy', kind: 'loop', lab: [190, 434] },
+      { from: 'amend', to: 'impl', pts: [[210, 318], [230, 318], [230, 285], [515, 285], [515, 300]], label: 're-dispatch; gaps → park', kind: 'loop', lab: [370, 279] },
+      { from: 'impl', to: 'tw2', pts: [[515, 380], [515, 410]], label: 'green', lab: [523, 400], anchor: 'start' },
+      { from: 'tw2', to: 'pr', pts: [[600, 436], [625, 436], [625, 203], [650, 203]], label: 'committed, not pushed', lab: [633, 330], anchor: 'start' },
+      { from: 'pr', to: 'd-flag', pts: [[735, 236], [735, 400]] },
+      { from: 'd-flag', to: 'park', pts: [[735, 480], [735, 530], [900, 530], [900, 560]], label: 'yes', kind: 'pk', lab: [743, 510], anchor: 'start' },
+      { from: 'pr', to: 'inrev', pts: [[680, 236], [680, 560]], label: '' },
+      { from: 'd-flag', to: 'lenses', pts: [[820, 440], [845, 440], [845, 340], [870, 340]], label: 'no', lab: [832, 432] },
+      { from: 'pr', to: 'lenses', pts: [[820, 190], [970, 190], [970, 290]], label: 'one SHA, no ledger', lab: [978, 260], anchor: 'start' },
+      { from: 'lenses', to: 'triage', pts: [[1070, 320], [1095, 320], [1095, 198], [1120, 198]], label: 'reports', lab: [1103, 262], anchor: 'start' },
+      { from: 'triage', to: 'd-sort', pts: [[1220, 246], [1220, 290]] },
+      { from: 'd-sort', to: 'fix', pts: [[1120, 340], [1095, 340], [1095, 453], [1070, 453]], label: 'cycle-n.md', lab: [1087, 408], anchor: 'end' },
+      { from: 'd-sort', to: 'defer', pts: [[1220, 390], [1220, 420]] },
+      { from: 'd-sort', to: 'park', pts: [[1178, 370], [1108, 370], [1108, 540], [1150, 560]], label: 'ticket line cannot hold', kind: 'pk', lab: [1116, 535], anchor: 'start' },
+      { from: 'fix', to: 'recheck', pts: [[970, 486], [970, 510], [1455, 510], [1455, 370]], label: 'pushed fix head → re-point the review worktree', lab: [1210, 504] },
+      { from: 'recheck', to: 'd-cap', pts: [[1455, 290], [1455, 246]] },
+      { from: 'd-cap', to: 'triage', pts: [[1370, 198], [1345, 198], [1345, 130], [1220, 130], [1220, 150]], label: 'not fixed, or new, below cap 4', kind: 'loop', lab: [1283, 122] },
+      { from: 'd-cap', to: 'summary', pts: [[1540, 198], [1560, 198]] },
+      { from: 'summary', to: 'await', pts: [[1625, 246], [1625, 560]], label: 'status', lab: [1633, 400], anchor: 'start' },
+      { from: 'summary', to: 'merge', pts: [[1615, 150], [1615, 98]], label: 'typed run: watches', kind: 'hu', lab: [1607, 128], anchor: 'end' },
+      { from: 'merge', to: 'post', pts: [[1690, 79], [1705, 79], [1705, 653], [1690, 653]], kind: 'hu' },
+      { from: 'change', to: 'triage', pts: [[1160, 98], [1160, 150]], label: 'In Review again', kind: 'hu', lab: [1152, 128], anchor: 'end' },
+      { from: 'await', to: 'change', pts: [[1550, 560], [1550, 79], [1340, 79]], label: '', kind: 'hu' },
+    ],
+  });
+
+  // 5. /queue -------------------------------------------------------------------
+  draw('g-queue', {
+    w: 1720, h: 520,
+    lanes: [
+      { x: 30, y: 40, w: 800, h: 450, t: '/queue <column> [n]' },
+      { x: 860, y: 40, w: 830, h: 450, t: '/queue asks' },
+    ],
+    nodes: [
+      { id: 'merged', kind: 'script', x: 60, y: 80, w: 190, h: 54, label: 'merged since last run', sub: ['post-merge list per state.md', 'whose PR reads MERGED'] },
+      { id: 'next', kind: 'script', x: 60, y: 170, w: 190, h: 54, label: 'board_next.mjs --json', sub: ['candidates: queue = column', 'leaf, deps closed, no record'] },
+      { id: 'holds', kind: 'decision', x: 300, y: 130, w: 220, h: 130, label: 'holds', sub: ['cap 3 ship / 5 others', 'path overlap · no paths', 'no progress · emulator slot', 'GraphQL · host load · measures'] },
+      { id: 'held', kind: 'note', x: 300, y: 300, w: 220, h: 40, label: 'held, next candidate' },
+      { id: 'lease', kind: 'script', x: 570, y: 100, w: 220, h: 54, label: 'write the lease', sub: ['~/.ship/MoneyApp/queue/leases/<n>', 'skill, worktree, task id'] },
+      { id: 'task', kind: 'script', x: 570, y: 190, w: 220, h: 54, label: 'scheduled task, run now', sub: ['Run: unattended', 'review-<n> / prep-<n> / ship-<n>'] },
+      { id: 'run', kind: 'skill', x: 570, y: 280, w: 220, h: 66, label: '/issue-review · /prep · /ship', sub: ['parks instead of asking', 'releases the lease at exit', 'one log line per run'] },
+      { id: 'measure', kind: 'note', x: 60, y: 380, w: 730, h: 54, label: 'after 10 queued tickets, two measures gate every ship start', sub: ['questions parked during /ship above 0, or any row under Questions that should have been asked earlier: no ship start'] },
+      { id: 'list', kind: 'script', x: 890, y: 80, w: 200, h: 54, label: 'list open records', sub: ['by root parent, screen, row', 'board.sh questions <n>'] },
+      { id: 'reread', kind: 'decision', x: 1130, y: 70, w: 190, h: 80, label: 'cited files', sub: ['changed since Sha?'] },
+      { id: 'closed', kind: 'script', x: 1360, y: 90, w: 200, h: 40, label: 'Answered by #pr, closed' },
+      { id: 'ask', kind: 'human', x: 1130, y: 190, w: 260, h: 38, label: 'one record per message, A first' },
+      { id: 'defer', kind: 'park', x: 1430, y: 182, w: 230, h: 54, label: 'deferred', sub: ['record stays open', 'nothing moves'] },
+      { id: 'write', kind: 'script', x: 1130, y: 270, w: 260, h: 66, label: 'write the answer', sub: ['Question: answered <date>', 'writes: into Acceptance / Rules / Cut', 'copy, screen, Decisions line'] },
+      { id: 'move', kind: 'decision', x: 1130, y: 370, w: 260, h: 100, label: 'last record on', sub: ['the ticket?'] },
+      { id: 'mv1', kind: 'script', x: 1430, y: 290, w: 230, h: 54, label: 'Blocked → Left: column', sub: ['deps closed, no Blocked on #m', 'Next: /prep'] },
+      { id: 'mv2', kind: 'script', x: 1430, y: 360, w: 230, h: 54, label: 'Defined → Reviewed date', sub: ['then promote', 'unless parent unmarked or over gate'] },
+    ],
+    edges: [
+      { from: 'merged', to: 'next', pts: [[155, 134], [155, 170]] },
+      { from: 'next', to: 'holds', pts: [[250, 197], [300, 195]], label: 'in order', lab: [275, 189] },
+      { from: 'holds', to: 'held', pts: [[410, 260], [410, 300]], label: 'any holds', lab: [418, 288], anchor: 'start' },
+      { from: 'held', to: 'holds', pts: [[300, 320], [280, 320], [280, 230], [300, 230]], kind: 'loop' },
+      { from: 'holds', to: 'lease', pts: [[520, 195], [545, 195], [545, 127], [570, 127]], label: 'free', lab: [553, 172], anchor: 'start' },
+      { from: 'lease', to: 'task', pts: [[680, 154], [680, 190]] },
+      { from: 'task', to: 'run', pts: [[680, 244], [680, 280]] },
+      { from: 'run', to: 'measure', pts: [[680, 346], [680, 380]], kind: 'loop' },
+      { from: 'measure', to: 'holds', pts: [[60, 407], [45, 407], [45, 250], [330, 250]], kind: 'loop' },
+      { from: 'list', to: 'reread', pts: [[1090, 107], [1130, 110]] },
+      { from: 'reread', to: 'closed', pts: [[1320, 110], [1360, 110]], label: 'code answered it', lab: [1340, 78] },
+      { from: 'reread', to: 'ask', pts: [[1225, 150], [1225, 190]], label: 'still open', lab: [1233, 178], anchor: 'start' },
+      { from: 'ask', to: 'defer', pts: [[1390, 209], [1430, 209]], kind: 'hu' },
+      { from: 'ask', to: 'write', pts: [[1260, 228], [1260, 270]], label: 'A, B, …', kind: 'hu', lab: [1268, 256], anchor: 'start' },
+      { from: 'write', to: 'move', pts: [[1260, 336], [1260, 370]] },
+      { from: 'move', to: 'mv1', pts: [[1390, 420], [1410, 420], [1410, 317], [1430, 317]], label: 'at Blocked', lab: [1402, 350], anchor: 'end' },
+      { from: 'move', to: 'mv2', pts: [[1390, 420], [1410, 420], [1410, 387], [1430, 387]], label: '', },
+      { from: 'move', to: 'list', pts: [[1130, 420], [1000, 420], [1000, 134]], label: 'next record', kind: 'loop', lab: [1008, 300], anchor: 'start' },
+    ],
+  });
+
+  const root = document.documentElement, btn = document.getElementById('theme');
+  const sys = window.matchMedia('(prefers-color-scheme: dark)');
+  const setLabel = () => { const dark = root.dataset.theme ? root.dataset.theme === 'dark' : sys.matches; btn.textContent = dark ? 'Light' : 'Dark'; };
+  btn.addEventListener('click', () => { const dark = root.dataset.theme ? root.dataset.theme === 'dark' : sys.matches; root.dataset.theme = dark ? 'light' : 'dark'; setLabel(); });
+  sys.addEventListener('change', setLabel);
+  setLabel();
+})();
+</script>
+</body>
+</html>
