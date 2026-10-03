@@ -97,6 +97,15 @@ export function formatDisplayMagnitude(
   return { text, printsAsZero };
 }
 
+/** The magnitude at the currency's own decimals, never escalated, unlike `formatDisplayMagnitude`. */
+export function formatCurrencyMagnitude(
+  value: number,
+  currency: Currency,
+): { text: string; printsAsZero: boolean } {
+  const text = formatAmount(Math.abs(value), CURRENCY_CONFIG[currency].decimals);
+  return { text, printsAsZero: ZERO_AT_DISPLAY_PRECISION.test(text) };
+}
+
 /** An owned magnitude (ADR 2026-08-27 decision 1) takes `−` only below zero and never `+`, and a `-0` from float noise prints unsigned (#332). */
 export function formatOwnedAmountParts(
   value: number,
