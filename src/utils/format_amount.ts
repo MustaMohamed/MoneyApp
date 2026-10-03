@@ -101,10 +101,10 @@ export function formatDisplayMagnitude(
 export function formatOwnedAmountParts(
   value: number,
   currency: Currency,
+  magnitude: { text: string; printsAsZero: boolean } = formatDisplayMagnitude(value, currency),
 ): { value: string; code: string } {
-  const { text, printsAsZero } = formatDisplayMagnitude(value, currency);
   return {
-    value: signAmountText(text, value < 0 ? MINUS_SIGN : '', printsAsZero),
+    value: signAmountText(magnitude.text, value < 0 ? MINUS_SIGN : '', magnitude.printsAsZero),
     code: CURRENCY_CONFIG[currency].code,
   };
 }
