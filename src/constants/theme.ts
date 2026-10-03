@@ -260,7 +260,7 @@ export function touchFloorSlop(height: number): number {
   return Math.max(0, (TouchSize.min - height) / 2);
 }
 
-export const AccountColors = [
+export const CategoryColors = [
   '#5C7FC4',
   '#A2792C',
   '#478D6E',

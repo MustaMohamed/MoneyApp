@@ -3,7 +3,7 @@ import type React from 'react';
 import { create } from 'zustand';
 
 import { CategoryType } from '@/constants/enums';
-import { AccountColors } from '@/constants/theme';
+import { CategoryColors } from '@/constants/theme';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -31,7 +31,7 @@ type AddEditCategorySheetState = AddEditCategorySheetStateShape & {
 const INITIAL_STATE: AddEditCategorySheetStateShape = {
   type: CategoryType.Expense,
   selectedIcon: null,
-  selectedColor: AccountColors[0],
+  selectedColor: CategoryColors[0],
   iconError: '',
   saveError: '',
   isLoading: false,

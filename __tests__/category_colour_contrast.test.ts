@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 
-import { AccountColors, Colors } from '@/constants/theme';
+import { CategoryColors, Colors } from '@/constants/theme';
 import { MIGRATIONS } from '@/database/migrations';
 import { contrastRatio } from '@/modules/accounts/constants/account_palette';
 import { registerOpenDbsDrain } from '@/test_helpers/sqlite_drain';
@@ -46,7 +46,7 @@ interface CategoryColour {
   color: string;
 }
 
-const swatches: Labelled[] = AccountColors.map((colour, i) => ({
+const swatches: Labelled[] = CategoryColors.map((colour, i) => ({
   label: `swatch ${i + 1}`,
   colour,
 }));
@@ -117,12 +117,12 @@ describe('category colours clear the 3:1 glyph floor on both themes', () => {
     const rows = freshInstallColours();
     const held = new Set(rows.map(({ color }) => color));
 
-    expect(AccountColors.filter((colour) => !held.has(colour))).toEqual([]);
+    expect(CategoryColors.filter((colour) => !held.has(colour))).toEqual([]);
     expect(rows.filter(({ color }) => RETIRED_TONES.has(color))).toEqual([]);
   });
 
   it('only the four seed-only categories hold a tone no swatch offers', () => {
-    const offered = new Set<string>(AccountColors);
+    const offered = new Set<string>(CategoryColors);
 
     expect(freshInstallColours().filter(({ color }) => !offered.has(color))).toEqual([
       { id: 'cat_other_expense', color: '#6B7F99' },
@@ -154,7 +154,7 @@ describe('category colours clear the 3:1 glyph floor on both themes', () => {
           color: string;
         }
       ).color,
-      swatch: AccountColors[i],
+      swatch: CategoryColors[i],
     }));
     expect(positions.filter(({ upgraded, retired }) => upgraded === retired)).toEqual([]);
     expect(positions.filter(({ upgraded, swatch }) => upgraded !== swatch)).toEqual([]);
