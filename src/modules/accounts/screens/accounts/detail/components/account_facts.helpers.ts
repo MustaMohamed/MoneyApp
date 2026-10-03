@@ -1,7 +1,7 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, type Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { buildMonthRows } from '@/modules/dashboard/utils/account_card.helpers';
+import { buildMonthRows } from '@/modules/accounts/utils/account_card.helpers';
 import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatOrdinal } from '@/utils/format_ordinal';
 
