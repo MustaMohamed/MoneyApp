@@ -12,7 +12,7 @@
    The candidates are the actions whose `queue` equals the column, in the script's order. The script sets `queue` only on an open leaf whose command a session runs, with every Depends on closed, no open question record, no lease, and at Defined a parent that is not `Reviewed none`.
 3. `/queue Planned` only: for each action at Awaiting Human with `pr.state` `OPEN`, a `state.md` on this machine and no lease, run the read of § Changes asked at Awaiting Human. With one or more, § Start `ship-<n>` on it, counted toward `n` and held by Cap, Emulator slot, GraphQL budget, Host load and Measures only.
 4. For each candidate in order, read § Holds. A held candidate is skipped and the next is tried. Otherwise § Start it. Stop at `n` starts.
-5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, or `held, <hold>`; then every action whose `lease` is `stale`, with its action text; while the floor or the ceiling reads `unmeasured`, the readings of each start; then each summary file measure 2 names, the ones without its heading, § After 10 queued tickets. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
+5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, or `held, <hold>`; then every action whose `lease` is `stale`, with its action text; while the floor or the ceiling reads `unmeasured`, the readings of each start; then each summary file measure 2 names, the ones without its heading, § After 10 queued tickets, and, while a measure holds, each record and its Check. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
 
 ## Holds
 
@@ -105,7 +105,9 @@ The user adds this to `permissions.allow` in `settings.local.json`, in `.claude/
 
 Once the log holds 10 distinct tickets, each pass reads two measures before a `ship` start.
 
-1. Questions asked during `/ship`: the sum of `questions parked` on the `ship` lines of the log.
-2. Questions that should have been asked earlier: per ticket, the rows of the table under `## Questions that should have been asked earlier` in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`. A `ship` line with no summary file counts 0, a summary file without that heading counts 0, the header row alone counts 0, and k rows count k. A summary file without that heading holds no `ship` start, and each reply names every such file, whatever its date.
+Both measures read the ten most recent `ship` lines of the log, so a clean run of ten lifts a hold.
 
-Above 0 for the first, or 1 or more for the second, no `ship` run starts in that pass, and the reply names each record and its Check, the `/issue-review` check id or `/prep` step that should have asked, so a ticket can fix that step. `issue-review` and `prep` starts go on. The hold lifts when the ten most recent `ship` lines and their summaries read 0 and 0.
+1. Questions asked during `/ship`: the sum of `questions parked` on those lines.
+2. Questions that should have been asked earlier: per ticket on those lines, the rows of the table under `## Questions that should have been asked earlier` in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`. A `ship` line with no summary file counts 0, a summary file without that heading counts 0, the header row alone counts 0, and k rows count k. A summary file without that heading holds no `ship` start, and each reply names every such file, whatever its date.
+
+Above 0 for the first, or 1 or more for the second, no `ship` run starts in that pass, and the reply names each record and its Check, the `/issue-review` check id or `/prep` step that should have asked, so a ticket can fix that step. `issue-review` and `prep` starts go on.

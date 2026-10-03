@@ -19,7 +19,7 @@ The issue's children when it has any, otherwise the issue itself. Among the chil
 ```bash
 gh api repos/MustaMohamed/MoneyApp/issues/<n>/sub_issues --paginate --jq '.[] | select(.state == "open") | .number'
 gh api repos/MustaMohamed/MoneyApp/issues/<n>/parent --jq .number   # exit 1, with the error JSON on stdout, when it has none
-bash scripts/board.sh get <issue>   # per issue under review; gh project item-list needs read:org, this needs only project
+node scripts/board_next.mjs --format json </dev/null | jq -r '.actions[] | "\(.number) \(.status)"'   # one read for every open ticket; gh project item-list needs read:org
 ```
 
 ## Lenses
