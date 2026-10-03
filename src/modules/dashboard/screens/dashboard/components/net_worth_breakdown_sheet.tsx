@@ -13,14 +13,16 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatOwnedAmountParts } from '@/utils/format_amount';
+import {
+  formatLiabilityAmountParts,
+  formatLiabilityRowValue,
+  formatOwnedAmountParts,
+} from '@/utils/format_amount';
 import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
 import type { AccountRow, LiabilityRow, LiquidityBreakdown } from '../dashboard.helpers';
 import {
-  formatLiabilityAmountParts,
-  formatLiabilityRowValue,
   resolveBreakdownRowColors,
   resolveNetWorthForeignCaption,
   shouldShowProportionBar,

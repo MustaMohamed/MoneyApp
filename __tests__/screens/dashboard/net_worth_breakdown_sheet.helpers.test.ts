@@ -1,13 +1,16 @@
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import {
-  formatLiabilityAmountParts,
-  formatLiabilityRowValue,
   resolveBreakdownRowColors,
   resolveNetWorthForeignCaption,
   shouldShowProportionBar,
 } from '@/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.helpers';
-import { formatAmount, formatOwnedAmountParts } from '@/utils/format_amount';
+import {
+  formatAmount,
+  formatLiabilityAmountParts,
+  formatLiabilityRowValue,
+  formatOwnedAmountParts,
+} from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 
 describe('resolveNetWorthForeignCaption — the sheet’s ≈ caption', () => {

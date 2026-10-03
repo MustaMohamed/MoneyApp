@@ -109,6 +109,23 @@ export function formatOwnedAmountParts(
   };
 }
 
+/** `balance` is signed: positive owed, negative in credit. Pass a `roundMoney`-quantised value. */
+export function formatLiabilityRowValue(balance: number, baseCurrency: Currency): string {
+  const { text, printsAsZero } = formatDisplayMagnitude(balance, baseCurrency);
+  return signAmountText(text, balance < 0 ? PLUS_SIGN : MINUS_SIGN, printsAsZero);
+}
+
+/** A liabilities total in `formatLiabilityRowValue`'s owed-frame sign, with the currency code alongside. */
+export function formatLiabilityAmountParts(
+  value: number,
+  baseCurrency: Currency,
+): { value: string; code: string } {
+  return {
+    value: formatLiabilityRowValue(value, baseCurrency),
+    code: CURRENCY_CONFIG[baseCurrency].code,
+  };
+}
+
 // Ceiling for rate-display escalation only; a rate has no rounding floor to escalate to once
 // (docs/adr/2026-08-26-parse-floor-money-only.md §2), so `formatDisplayMagnitude`'s single hop
 // doesn't apply here. 1e-7 needs 7dp to show a leading digit; this gives one digit of headroom.
