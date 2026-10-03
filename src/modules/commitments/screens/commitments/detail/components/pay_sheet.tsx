@@ -19,7 +19,6 @@ import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/tra
 import { resolveAccountName } from '@/utils/account_name';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
-import { maskMoneyFieldText } from '@/utils/money_text';
 import { ms } from '@/utils/responsive';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
@@ -42,6 +41,8 @@ export function PaySheet({ owner, commitment, payment }: Props) {
     selectAccount,
     setVisible,
     toggleRateOverride,
+    setAmountText,
+    setExchangeRate,
     setPaidDate,
   } = usePaySheet(owner, commitment, payment);
 
@@ -61,8 +62,6 @@ export function PaySheet({ owner, commitment, payment }: Props) {
       : undefined);
   const accountError = form.formState.errors.account_id?.message;
   const rateError = form.formState.errors.exchange_rate?.message;
-  // Read during render; reading inside the `onChange` below sees the previous render's value.
-  const isSubmitted = form.formState.isSubmitted;
 
   const paidDate = form.watch('paid_date');
 
@@ -133,11 +132,7 @@ export function PaySheet({ owner, commitment, payment }: Props) {
                   render={({ field }) => (
                     <Input
                       value={field.value}
-                      // Same mask as AmountHero: gate keystrokes, never truncate a prefill.
-                      onChangeText={(text) => {
-                        const masked = maskMoneyFieldText(field.value, text);
-                        if (masked !== undefined) field.onChange(masked);
-                      }}
+                      onChangeText={setAmountText}
                       onFocus={onFocus}
                       onBlur={onBlur}
                       keyboardType="decimal-pad"
@@ -207,8 +202,7 @@ export function PaySheet({ owner, commitment, payment }: Props) {
           {state.requiresRate ? (
             <ExchangeRateRow
               value={state.exchangeRateValue ?? ''}
-              // Pinned false keeps a stale error; pinned true validates before any submit.
-              onChange={(v) => form.setValue('exchange_rate', v, { shouldValidate: isSubmitted })}
+              onChange={setExchangeRate}
               overrideEnabled={state.rateOverride}
               onToggleOverride={toggleRateOverride}
               rateUpdatedAt={state.rateUpdatedAt}

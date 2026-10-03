@@ -15,9 +15,13 @@ import {
 } from '@/modules/transactions/domain/transaction_amounts';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import { formatStoredMoneyText, parseRequiredMoneyText } from '@/utils/money_text';
+import {
+  formatStoredMoneyText,
+  maskMoneyFieldText,
+  parseRequiredMoneyText,
+} from '@/utils/money_text';
 import { parseDecimalText, parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
-import { useZodForm } from '@/utils/use_zod_form.hook';
+import { holdStillTypingDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
@@ -363,6 +367,20 @@ export function usePaySheet(
       form.setValue('exchange_rate', formatStoredMoneyText(rate), { shouldValidate: isSubmitted });
   }
 
+  // Same mask as AmountHero: gate keystrokes, never truncate a prefill.
+  function setAmountText(text: string) {
+    const masked = maskMoneyFieldText(form.getValues('amountText'), text);
+    if (masked === undefined) return;
+    if (holdStillTypingDecimal(form, 'amountText', masked, true)) return;
+    form.setValue('amountText', masked, { shouldDirty: true, shouldValidate: isSubmitted });
+  }
+
+  // Pinned false keeps a stale error; pinned true validates before any submit.
+  function setExchangeRate(text: string) {
+    if (holdStillTypingDecimal(form, 'exchange_rate', text, true)) return;
+    form.setValue('exchange_rate', text, { shouldValidate: isSubmitted });
+  }
+
   return {
     form,
     state: {
@@ -388,6 +406,8 @@ export function usePaySheet(
     selectAccount,
     setVisible: (v: boolean) => setVisible(owner, v),
     toggleRateOverride,
+    setAmountText,
+    setExchangeRate,
     setPaidDate: (iso: string) => form.setValue('paid_date', iso, { shouldValidate: true }),
   };
 }

@@ -6,7 +6,7 @@ import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { formatStoredMoneyText, maskFieldText, parseRequiredMoneyText } from '@/utils/money_text';
 import { incomeFormSchema, type IncomeFormValues } from '@/utils/schemas/budget.schema';
-import { useZodForm } from '@/utils/use_zod_form.hook';
+import { holdStillTypingDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 
 export function useIncomeSheet() {
   const state = useIncomeSheetState(
@@ -25,7 +25,7 @@ export function useIncomeSheet() {
   const setSaving = useIncomeSheetState.getState().setSaving;
   const setErrorMessage = useIncomeSheetState.getState().setErrorMessage;
   const setExpectedIncome = useBudgetStore.getState().setExpectedIncome;
-  const { control, formState, getValues, handleSubmit, reset, setValue, watch } =
+  const { clearErrors, control, formState, getValues, handleSubmit, reset, setValue, watch } =
     useZodForm<IncomeFormValues>(incomeFormSchema, {
       defaultValues: { amountText: useIncomeSheetState.getState().amountText },
     });
@@ -46,9 +46,10 @@ export function useIncomeSheet() {
       const masked = maskFieldText('amount', getValues('amountText'), text);
       if (masked === undefined) return;
       setDraftAmountText(masked);
+      if (holdStillTypingDecimal({ setValue, clearErrors }, 'amountText', masked, true)) return;
       setValue('amountText', masked, { shouldDirty: true, shouldValidate: formState.isSubmitted });
     },
-    [formState.isSubmitted, getValues, setDraftAmountText, setValue],
+    [clearErrors, formState.isSubmitted, getValues, setDraftAmountText, setValue],
   );
 
   const submitValidAmount = handleSubmit(

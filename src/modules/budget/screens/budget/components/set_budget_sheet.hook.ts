@@ -9,9 +9,9 @@ import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { formatStoredMoneyText, parseRequiredMoneyText } from '@/utils/money_text';
+import { formatStoredMoneyText, maskFieldText, parseRequiredMoneyText } from '@/utils/money_text';
 import { budgetFormSchema, type BudgetFormValues } from '@/utils/schemas/budget.schema';
-import { useZodForm } from '@/utils/use_zod_form.hook';
+import { holdStillTypingDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useSetBudgetSheetState } from './set_budget_sheet.state';
 
@@ -83,12 +83,18 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
   const isEdit = mode === 'edit';
 
   const {
+    clearErrors,
     control,
+    formState,
+    getValues,
     handleSubmit,
     reset: resetForm,
+    setValue,
   } = useZodForm<BudgetFormValues>(budgetFormSchema, {
     defaultValues: { nameText: '', limitText: '' },
   });
+  // Read during render: `formState` is a proxy and only refreshes keys read while rendering.
+  const isSubmitted = formState.isSubmitted;
 
   const selectedCategory = useMemo(
     () => budgetableCategories.find((category) => category.id === selectedCategoryId),
@@ -177,6 +183,18 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
     [close, saving],
   );
 
+  const setLimitText = useCallback(
+    (text: string) => {
+      // Mask before `clearError`: a refused keystroke must not wipe the error.
+      const masked = maskFieldText('amount', getValues('limitText'), text);
+      if (masked === undefined) return;
+      clearError();
+      if (holdStillTypingDecimal({ setValue, clearErrors }, 'limitText', masked, true)) return;
+      setValue('limitText', masked, { shouldDirty: true, shouldValidate: isSubmitted });
+    },
+    [clearError, clearErrors, getValues, isSubmitted, setValue],
+  );
+
   return {
     state: {
       sheetVisible,
@@ -191,6 +209,7 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
     },
     control,
     submit,
+    setLimitText,
     selectCategory,
     selectGroup,
     togglePicker,

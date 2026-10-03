@@ -9,6 +9,7 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 import type { CreditFieldValues } from '../../utils/credit_fields.schema';
 import { FieldMessageRail } from './field_message_rail';
@@ -40,6 +41,11 @@ export function CreditCardFields<T extends CreditFieldValues>({
 }: CreditCardFieldsProps<T>) {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- T extends CreditFieldValues, so every field name this file uses exists on the form
   const control = form.control as unknown as Control<CreditFieldValues>;
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- same narrowing as `control`, for the two methods the still-typing hold calls
+  const holdForm = form as unknown as Pick<
+    UseFormReturn<CreditFieldValues>,
+    'setValue' | 'clearErrors'
+  >;
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
   const moneySuffix = currency ? <FieldSuffix text={CURRENCY_CONFIG[currency].code} /> : undefined;
   const aprSuffix = currency ? <FieldSuffix text={Strings.accountAprSuffix} /> : undefined;
@@ -58,7 +64,9 @@ export function CreditCardFields<T extends CreditFieldValues>({
             render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
-                onChangeText={onChange}
+                onChangeText={(text) => {
+                  if (!holdStillTypingDecimal(holdForm, 'credit_limit', text, true)) onChange(text);
+                }}
                 onBlur={onBlur}
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
@@ -82,7 +90,9 @@ export function CreditCardFields<T extends CreditFieldValues>({
             render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
-                onChangeText={onChange}
+                onChangeText={(text) => {
+                  if (!holdStillTypingDecimal(holdForm, 'min_payment', text, false)) onChange(text);
+                }}
                 onBlur={onBlur}
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
@@ -160,7 +170,9 @@ export function CreditCardFields<T extends CreditFieldValues>({
             render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
-                onChangeText={onChange}
+                onChangeText={(text) => {
+                  if (!holdStillTypingDecimal(holdForm, 'apr', text, false)) onChange(text);
+                }}
                 onBlur={onBlur}
                 placeholder={Strings.accountAprPlaceholder}
                 keyboardType="decimal-pad"

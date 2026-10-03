@@ -10,7 +10,8 @@ interface Props extends Omit<
   'value' | 'onChange' | 'onChangeText' | 'keyboardType'
 > {
   value: number | undefined;
-  onChange: (n: number | undefined) => void;
+  /** `typedText` rides only a keystroke; blur sends none, so blur validates. */
+  onChange: (n: number | undefined, typedText?: string) => void;
   hasError?: boolean;
 }
 
@@ -36,11 +37,11 @@ export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, .
         if (v !== '' && !/^\d*\.?\d*$/.test(v)) return;
         setText(v);
         if (v === '' || v === '.') {
-          onChange(undefined);
+          onChange(undefined, v);
           return;
         }
         const n = parseFloat(v);
-        onChange(isNaN(n) ? undefined : n);
+        onChange(isNaN(n) ? undefined : n, v);
       }}
       onBlur={(e) => {
         const n = parseFloat(state.text);
