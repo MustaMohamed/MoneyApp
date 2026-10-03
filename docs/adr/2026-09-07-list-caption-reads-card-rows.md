@@ -5,7 +5,7 @@
 - **Ticket:** MA-024 (#398), under MA-015 (#381)
 - **Applies to:** `src/modules/accounts/screens/accounts/list/accounts_list.helpers.ts`, `src/modules/accounts/screens/accounts/list/accounts_list.hook.ts`, and `buildInfoRows` in `src/modules/accounts/utils/account_card.helpers.ts`
 
-The accounts list row now carries a live figure line under the name, one per account type. The figures are the dashboard card's, read from the card's own rows. The list screen computes, converts, rounds and formats no amount. `buildInfoRows` does all four, and the accounts module owns it since #624.
+The accounts list row now carries a live figure line under the name, one per account type. The figures are the dashboard card's, read from the card's own rows. The caption computes, converts, rounds and formats no amount. `buildInfoRows` does all four, and the accounts module owns it since #624.
 
 ## 1. The caption is a selection, not a second computation
 
