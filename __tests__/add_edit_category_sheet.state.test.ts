@@ -1,5 +1,5 @@
 import { CategoryType } from '@/constants/enums';
-import { AccountColors } from '@/constants/theme';
+import { CategoryColors } from '@/constants/theme';
 import { useAddEditCategorySheetState } from '@/modules/categories/screens/settings/categories/components/add_edit_category_sheet.state';
 
 beforeEach(() => useAddEditCategorySheetState.getState().reset());
@@ -9,7 +9,7 @@ describe('useAddEditCategorySheetState initial state', () => {
     const s = useAddEditCategorySheetState.getState();
     expect(s.type).toBe(CategoryType.Expense);
     expect(s.selectedIcon).toBeNull();
-    expect(s.selectedColor).toBe(AccountColors[0]);
+    expect(s.selectedColor).toBe(CategoryColors[0]);
     expect(s.iconError).toBe('');
     expect(s.saveError).toBe('');
     expect(s.isLoading).toBe(false);
@@ -83,7 +83,7 @@ describe('useAddEditCategorySheetState initialize', () => {
     useAddEditCategorySheetState.getState().initialize({
       type: CategoryType.Expense,
       icon: null,
-      color: AccountColors[0],
+      color: CategoryColors[0],
     });
     expect(useAddEditCategorySheetState.getState().selectedIcon).toBeNull();
   });
@@ -102,7 +102,7 @@ describe('useAddEditCategorySheetState reset', () => {
     const s = useAddEditCategorySheetState.getState();
     expect(s.type).toBe(CategoryType.Expense);
     expect(s.selectedIcon).toBeNull();
-    expect(s.selectedColor).toBe(AccountColors[0]);
+    expect(s.selectedColor).toBe(CategoryColors[0]);
     expect(s.iconError).toBe('');
     expect(s.isLoading).toBe(false);
   });

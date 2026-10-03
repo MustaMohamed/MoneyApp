@@ -12,7 +12,7 @@ import { Sheet, SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/co
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { AccountColors, Colors, Radius, Spacing } from '@/constants/theme';
+import { CategoryColors, Colors, Radius, Spacing } from '@/constants/theme';
 import { CategoryNameTakenError } from '@/modules/categories/repositories/category.errors';
 import {
   useCategoryStore,
@@ -127,7 +127,7 @@ export function AddEditCategorySheet({
         initialize({
           type: activeTab,
           icon: null,
-          color: AccountColors[0],
+          color: CategoryColors[0],
         });
       }
     }
@@ -266,7 +266,7 @@ export function AddEditCategorySheet({
           {Strings.categoriesColorLabel}
         </Typography>
         <View style={styles.colorRow}>
-          {AccountColors.map((c) => (
+          {CategoryColors.map((c) => (
             <PressableFeedback
               key={c}
               onPress={() => setSelectedColor(c)}

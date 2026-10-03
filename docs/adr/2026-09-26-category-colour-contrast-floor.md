@@ -3,7 +3,7 @@
 - **Date:** 2026-09-26
 - **Status:** accepted
 - **Ticket:** #564 (MA-103)
-- **Applies to:** `src/database/migrations/021_recolour_category_palette.ts`, `src/constants/theme.ts` (`AccountColors`), `src/modules/commitments/screens/commitments/detail/components/detail_hero.tsx`, `src/modules/dashboard/screens/dashboard/components/account_card.tsx`
+- **Applies to:** `src/database/migrations/021_recolour_category_palette.ts`, `src/constants/theme.ts` (`CategoryColors`), `src/modules/commitments/screens/commitments/detail/components/detail_hero.tsx`, `src/modules/dashboard/screens/dashboard/components/account_card.tsx`
 
 Category glyphs are drawn in the stored category colour, and the old palette held background tones: `#1B2B4B` reads 1.06:1 on the dark chip. Migration 021 rewrites every stored category colour that is one of the 13 old hexes to its new tone, and the category form's swatch list moves to the same 12 tones.
 
@@ -19,7 +19,7 @@ Stored values stay the truth. No code maps a stored category colour to another a
 
 ## 3. The guard is the value
 
-The `UPDATE` matches the 13 old hexes by exact, uppercase value, never by id or `is_default`: a user who picked a swatch chose a family, and the family survives the move. `#6B7F99` (Other, Other Income) already clears the floor and is not in the list. A colour outside the list is the user's own and is never written. Every writer stores uppercase (the seeds and `AccountColors`), so a lowercase variant is treated as a user colour. The `SET` names `color` alone; `updated_at` does not move on any row.
+The `UPDATE` matches the 13 old hexes by exact, uppercase value, never by id or `is_default`: a user who picked a swatch chose a family, and the family survives the move. `#6B7F99` (Other, Other Income) already clears the floor and is not in the list. A colour outside the list is the user's own and is never written. Every writer stores uppercase (the seeds and `CategoryColors`), so a lowercase variant is treated as a user colour. The `SET` names `color` alone; `updated_at` does not move on any row.
 
 ## 4. The accounts palette is a separate list
 
