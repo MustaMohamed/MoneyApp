@@ -1,14 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Typography } from 'heroui-native';
 import React from 'react';
-import {
-  get,
-  useFormState,
-  type Control,
-  type FieldError,
-  type FieldPath,
-  type FieldValues,
-} from 'react-hook-form';
+import { useFormState, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 
 import { Box } from '@/components/ui/box';
 import { FormErrorText } from '@/components/ui/form_error_text';
@@ -80,9 +73,9 @@ export function FieldMessageRail<T extends FieldValues>({
   helper,
   reserveErrorLines,
 }: FieldMessageRailProps<T>) {
-  const { errors } = useFormState({ control, name });
-  // oxlint-disable-next-line typescript/no-unsafe-assignment -- RHF's `get` returns any; `errors` at a field path holds a FieldError
-  const fieldError: FieldError | undefined = get(errors, name);
+  const formState = useFormState({ control, name });
+  // Keyed on the fresh form state: `clearErrors` empties `errors` in place, and the React Compiler caches a read keyed on `errors`.
+  const fieldError = control.getFieldState(name, formState).error;
 
   return (
     <FieldMessageTrack
