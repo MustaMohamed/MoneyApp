@@ -15,7 +15,7 @@ The owned-sign composer sat in dashboard's `utils/`, its owed twins in the net w
 
 `formatHeroAmount` (transactions hero), `resolveLiveMonthLeftPresentation` (category detail live month card) and `formatAccountBalanceParts` (account detail balance, adjust balance sheet, archive confirmation) take their sign from `formatOwnedAmountParts`.
 
-The account detail passes its own magnitude as the optional third argument, `formatAmount(Math.abs(balance), decimals)` with its `printsAsZero`. `formatDisplayMagnitude` prints an exact zero at 0dp and escalates a sub-unit amount to 2dp, so on its default magnitude the hero would print `0 USD` for `0.00 USD` and `−0.40 EGP` for `0 EGP` at a balance of −0.4. Every two-argument call prints what it printed before.
+The account detail passes `formatCurrencyMagnitude(balance, currency)`, the magnitude at the currency's own decimals, as the optional third argument. `formatDisplayMagnitude` prints an exact zero at 0dp and escalates a sub-unit amount to 2dp, so on its default magnitude the hero would print `0 USD` for `0.00 USD` and `−0.40 EGP` for `0 EGP` at a balance of −0.4. Every two-argument call prints what it printed before.
 
 ## 3. Accounts owns the account card row builders
 
