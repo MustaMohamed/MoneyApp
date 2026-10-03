@@ -117,6 +117,28 @@ describe('createEditAccountFormSchema', () => {
     });
   });
 
+  // MA-115 holds these while they are typed; Save still reads them as it did.
+  describe('MA-115 Save pins: what the half-typed values read at Save', () => {
+    it.each([
+      ['credit_limit', '48.', Strings.errAmountInvalid],
+      ['credit_limit', '0', Strings.errCreditLimitPositive],
+      ['credit_limit', '0.0', Strings.errCreditLimitPositive],
+      ['credit_limit', '', Strings.errCreditLimitRequired],
+      ['min_payment', '48.', Strings.errAmountInvalid],
+      ['min_payment', '0', undefined],
+      ['min_payment', '0.0', undefined],
+      ['min_payment', '', undefined],
+      ['apr', '48.', Strings.errAmountInvalid],
+      ['apr', '0', undefined],
+      ['apr', '0.0', undefined],
+      ['apr', '', Strings.errAprRequired],
+    ] as const)('%s %p at Save reads %p', (field, text, message) => {
+      const overrides: Partial<EditAccountFormData> = { interest_tracking: true, apr: '20' };
+      overrides[field] = text;
+      expect(fieldErrors(formData(overrides))[field]).toBe(message);
+    });
+  });
+
   describe('a card at zero', () => {
     const paidOff = { ...card, current_balance: 0 };
 

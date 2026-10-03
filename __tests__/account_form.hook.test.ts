@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { Currency } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { useAccountFormState } from '@/modules/accounts/components/account_form/account_form.state';
 import {
   useAccountForm,
@@ -8,6 +9,7 @@ import {
 } from '@/modules/accounts/components/account_form/use_account_form.hook';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
@@ -211,6 +213,156 @@ describe('useAccountForm', () => {
     });
 
     expect(mockAddAccount).toHaveBeenCalledWith(expect.objectContaining({ sort_order: 0 }));
+  });
+
+  describe('MA-115 half-typed amounts on a card with tracking on', () => {
+    type FormHook = { result: { current: ReturnType<typeof useAccountForm> } };
+
+    // Each field with the `refusesZero` flag its input passes.
+    const FIELDS = [
+      ['balance', false],
+      ['credit_limit', true],
+      ['min_payment', false],
+      ['apr', false],
+    ] as const;
+
+    type AmountField = (typeof FIELDS)[number][0];
+    const TYPED = { shouldDirty: true, shouldValidate: true } as const;
+
+    const fieldError = (hook: FormHook, name: AmountField) =>
+      hook.result.current.form.getFieldState(name).error?.message;
+
+    // What a field's handler does on a keystroke: hold it, or make the shipped validating call.
+    async function typeField(
+      hook: FormHook,
+      name: AmountField,
+      text: string,
+      refusesZero: boolean,
+    ) {
+      let held: boolean | undefined;
+      await act(async () => {
+        held = holdStillTypingDecimal(hook.result.current.form, name, text, refusesZero);
+        if (!held) hook.result.current.form.setValue(name, text, TYPED);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      return held;
+    }
+
+    // The shipped validating call alone, for values the hold never takes.
+    async function setTyped(hook: FormHook, name: AmountField, text: string) {
+      await act(async () => {
+        hook.result.current.form.setValue(name, text, TYPED);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+
+    async function mountCard(): Promise<FormHook> {
+      const hook = await renderHook(() => useAccountForm(makeOptions()));
+      await act(() => {
+        hook.result.current.form.setValue('selected_type', AccountType.CreditCard);
+        hook.result.current.form.setValue('interest_tracking', true);
+      });
+      return hook;
+    }
+
+    async function mountRefused() {
+      const hook = await mountCard();
+      await act(async () => {
+        await hook.result.current.submit();
+      });
+      expect(mockAddAccount).not.toHaveBeenCalled();
+      expect(fieldError(hook, 'balance')).toBe(Strings.errAmountRequired);
+      expect(fieldError(hook, 'credit_limit')).toBe(Strings.errCreditLimitRequired);
+      expect(fieldError(hook, 'min_payment')).toBeUndefined();
+      expect(fieldError(hook, 'apr')).toBe(Strings.errAprRequired);
+      return hook;
+    }
+
+    it.each(FIELDS)(
+      'after a refused Save "48." is held on %s and leaves it without an error',
+      async (name, refusesZero) => {
+        const hook = await mountRefused();
+
+        const held = await typeField(hook, name, '48.', refusesZero);
+
+        expect(held).toBe(true);
+        expect(hook.result.current.form.getValues(name)).toBe('48.');
+        expect(fieldError(hook, name)).toBeUndefined();
+      },
+    );
+
+    it.each(['0', '0.', '0.0'])(
+      'after a refused Save %p is held on the credit limit, which refuses zero',
+      async (text) => {
+        const hook = await mountRefused();
+
+        const held = await typeField(hook, 'credit_limit', text, true);
+
+        expect(held).toBe(true);
+        expect(hook.result.current.form.getValues('credit_limit')).toBe(text);
+        expect(fieldError(hook, 'credit_limit')).toBeUndefined();
+      },
+    );
+
+    it.each(['balance', 'min_payment', 'apr'] as const)(
+      'after a refused Save "0" is not held on %s, and the shipped call validates it clean',
+      async (name) => {
+        const hook = await mountRefused();
+
+        const held = await typeField(hook, name, '0', false);
+
+        expect(held).toBe(false);
+        expect(hook.result.current.form.getValues(name)).toBe('0');
+        expect(fieldError(hook, name)).toBeUndefined();
+      },
+    );
+
+    it('a cleared credit limit reads required, and a cleared minimum payment reads nothing', async () => {
+      const hook = await mountRefused();
+      expect(await typeField(hook, 'credit_limit', '5', true)).toBe(false);
+      expect(fieldError(hook, 'credit_limit')).toBeUndefined();
+      expect(await typeField(hook, 'min_payment', '5', false)).toBe(false);
+
+      expect(await typeField(hook, 'credit_limit', '', true)).toBe(false);
+      expect(await typeField(hook, 'min_payment', '', false)).toBe(false);
+
+      expect(fieldError(hook, 'credit_limit')).toBe(Strings.errCreditLimitRequired);
+      expect(fieldError(hook, 'min_payment')).toBeUndefined();
+    });
+
+    it.each(FIELDS)(
+      'before any Save a held "48." leaves %s without an error',
+      async (name, refusesZero) => {
+        const hook = await mountCard();
+
+        let held: boolean | undefined;
+        await act(async () => {
+          held = holdStillTypingDecimal(hook.result.current.form, name, '48.', refusesZero);
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+
+        expect(held).toBe(true);
+        expect(hook.result.current.form.getValues(name)).toBe('48.');
+        expect(fieldError(hook, name)).toBeUndefined();
+      },
+    );
+
+    it('a complete value a field refuses shows its fault as typed', async () => {
+      const hook = await mountRefused();
+
+      await setTyped(hook, 'credit_limit', '0.001');
+      expect(fieldError(hook, 'credit_limit')).toBe(Strings.errAmountInvalid);
+
+      await setTyped(hook, 'apr', '101');
+      expect(fieldError(hook, 'apr')).toBe(Strings.errAprRange);
+
+      await setTyped(hook, 'balance', '0.001');
+      expect(fieldError(hook, 'balance')).toBe(Strings.errAmountInvalid);
+
+      await setTyped(hook, 'balance', '100');
+      await setTyped(hook, 'min_payment', '150');
+      expect(fieldError(hook, 'min_payment')).toBe(Strings.errMinPaymentExceedsOwed);
+    });
   });
 
   it('a fresh mount starts clean even if a previous session had already inserted', async () => {

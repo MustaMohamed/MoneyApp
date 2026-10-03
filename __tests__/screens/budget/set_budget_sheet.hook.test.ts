@@ -110,3 +110,110 @@ describe('useSetBudgetSheet', () => {
     expect(useSetBudgetSheetState.getState().errorMessage).toBe(Strings.budgetSaveError);
   });
 });
+
+describe('useSetBudgetSheet — MA-115 a half-typed limit', () => {
+  type SetBudgetHookResult = { current: ReturnType<typeof useSetBudgetSheet> };
+
+  const limitError = (result: SetBudgetHookResult) =>
+    result.current.control.getFieldState('limitText').error?.message;
+
+  // Lets the validation a keystroke started resolve before the next read.
+  async function typeLimit(result: SetBudgetHookResult, text: string) {
+    await act(async () => {
+      result.current.setLimitText(text);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+
+  async function mountEdit(setBudget: jest.Mock = jest.fn().mockResolvedValue(undefined)) {
+    useBudgetStore.setState({ setBudget });
+    useBudgetState.getState().setSelectedMonth('2026-08');
+    useBudgetState.getState().openEdit(existingBudget.id);
+    const { result } = await renderHook(() =>
+      useSetBudgetSheet({ budgetableCategories: categories, editingRow: existingBudget }),
+    );
+    await waitFor(() => expect(useSetBudgetSheetState.getState().sessionKey).toBeDefined());
+    return { result, setBudget };
+  }
+
+  async function mountRefused() {
+    const sheet = await mountEdit();
+    await typeLimit(sheet.result, '');
+    await act(async () => sheet.result.current.submit());
+    expect(sheet.setBudget).not.toHaveBeenCalled();
+    expect(limitError(sheet.result)).toBe(Strings.budgetAmountRequired);
+    return sheet;
+  }
+
+  async function mountRejected() {
+    const sheet = await mountEdit(jest.fn().mockRejectedValue(new Error('write failed')));
+    await act(async () => sheet.result.current.submit());
+    expect(sheet.setBudget).toHaveBeenCalledTimes(1);
+    expect(useSetBudgetSheetState.getState().errorMessage).toBe(Strings.budgetSaveError);
+    return sheet;
+  }
+
+  it.each(['48.', '0', '0.', '0.0'])(
+    'after a refused Save the limit shows no fault at %p',
+    async (text) => {
+      const { result } = await mountRefused();
+
+      await typeLimit(result, text);
+
+      expect(limitError(result)).toBeUndefined();
+    },
+  );
+
+  it.each(['48.', '0', '0.', '0.0'])(
+    'after a rejected write the limit shows no fault at %p',
+    async (text) => {
+      const { result } = await mountRejected();
+
+      await typeLimit(result, text);
+
+      expect(limitError(result)).toBeUndefined();
+    },
+  );
+
+  it('after a refused Save a complete limit under the floor shows its fault as typed', async () => {
+    const { result } = await mountRefused();
+
+    await typeLimit(result, '0.001');
+
+    expect(limitError(result)).toBe(Strings.budgetAmountInvalid);
+  });
+
+  it('a refused keystroke leaves the save error standing', async () => {
+    const { result } = await mountRejected();
+
+    await typeLimit(result, '1500x');
+
+    expect(useSetBudgetSheetState.getState().errorMessage).toBe(Strings.budgetSaveError);
+    expect(limitError(result)).toBeUndefined();
+  });
+
+  it('before any Save "0.001" and a limit typed and then cleared raise nothing', async () => {
+    const { result } = await mountEdit();
+
+    await typeLimit(result, '0.001');
+    expect(limitError(result)).toBeUndefined();
+
+    await typeLimit(result, '');
+    expect(limitError(result)).toBeUndefined();
+  });
+
+  it.each([
+    ['48.', Strings.errAmountInvalid],
+    ['0', Strings.budgetAmountInvalid],
+    ['0.0', Strings.budgetAmountInvalid],
+    ['', Strings.budgetAmountRequired],
+  ])('Save with the limit %p reads %p and writes nothing', async (text, message) => {
+    const { result, setBudget } = await mountEdit();
+    await typeLimit(result, text);
+
+    await act(async () => result.current.submit());
+
+    expect(limitError(result)).toBe(message);
+    expect(setBudget).not.toHaveBeenCalled();
+  });
+});

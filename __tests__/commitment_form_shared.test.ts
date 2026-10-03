@@ -160,6 +160,10 @@ describe('COMMITMENT_SCHEMA', () => {
     expect(result.success).toBe(false);
   });
 
+  it('passes when Fixed has amount 48, what the input stores for the typed text "48."', () => {
+    expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 48 }).success).toBe(true);
+  });
+
   it('passes when Fixed has amount 0.01 (the floor)', () => {
     expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0.01 }).success).toBe(true);
   });

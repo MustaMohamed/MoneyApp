@@ -458,6 +458,39 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     });
   });
 
+  // MA-115 holds these while they are typed; Save still reads them as it did.
+  describe('MA-115 Save pins: what the half-typed values read at Save', () => {
+    const trackedCard = (overrides: Record<string, unknown> = {}) =>
+      baseData({
+        selected_type: AccountType.CreditCard,
+        credit_limit: '50000',
+        interest_tracking: true,
+        apr: '20',
+        ...overrides,
+      });
+
+    it.each([
+      ['balance', '48.', Strings.errAmountInvalid],
+      ['balance', '0', undefined],
+      ['balance', '0.0', undefined],
+      ['balance', '', Strings.errAmountRequired],
+      ['credit_limit', '48.', Strings.errAmountInvalid],
+      ['credit_limit', '0', Strings.errCreditLimitPositive],
+      ['credit_limit', '0.0', Strings.errCreditLimitPositive],
+      ['credit_limit', '', Strings.errCreditLimitRequired],
+      ['min_payment', '48.', Strings.errAmountInvalid],
+      ['min_payment', '0', undefined],
+      ['min_payment', '0.0', undefined],
+      ['min_payment', '', undefined],
+      ['apr', '48.', Strings.errAmountInvalid],
+      ['apr', '0', undefined],
+      ['apr', '0.0', undefined],
+      ['apr', '', Strings.errAprRequired],
+    ] as const)('%s %p at Save reads %p', (field, text, message) => {
+      expect(fieldErrors(trackedCard({ [field]: text }))[field]).toBe(message);
+    });
+  });
+
   describe('off-type gating — every credit rule opens on selected_type === CreditCard', () => {
     it.each(NON_CREDIT_TYPES)(
       '%s with every credit field invalid → accept, zero issues',

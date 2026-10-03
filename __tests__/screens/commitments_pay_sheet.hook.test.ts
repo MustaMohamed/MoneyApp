@@ -431,6 +431,8 @@ describe('usePaySheet', () => {
     ['A1-13', '0', Strings.commitmentsPayErrAmountMin],
     ['A1-14', '-5', Strings.errAmountInvalid],
     ['A1-15', '1e999', Strings.errAmountInvalid],
+    ['A1-17', '48.', Strings.errAmountInvalid],
+    ['A1-18', '0.0', Strings.commitmentsPayErrAmountMin],
   ] as const)('%s: rejects "%s" at the field and writes nothing', async (_id, typed, message) => {
     const { result } = await submitAmount(typed);
 
@@ -473,6 +475,7 @@ describe('usePaySheet', () => {
     ['A2-05', '0', Strings.addTxErrRateInvalid],
     ['A2-06', 'abc', Strings.addTxErrRateInvalid],
     ['A2-08', '1e999', Strings.addTxErrRateInvalid],
+    ['A2-10', '0.0', Strings.addTxErrRateInvalid],
   ] as const)(
     '%s: rejects "%s" at the rate field and writes nothing',
     async (_id, typed, message) => {
@@ -720,6 +723,117 @@ describe('usePaySheet', () => {
   });
 
   // The rate row is not a `Controller`, so `setValue` is the only thing that can revalidate it.
+  describe('MA-115 half-typed amount and rate', () => {
+    type PayHookResult = { current: ReturnType<typeof usePaySheet> };
+
+    // Lets the validation a keystroke started resolve before the next read.
+    async function typeAmount(result: PayHookResult, text: string) {
+      await act(async () => {
+        result.current.setAmountText(text);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+
+    async function typeRate(result: PayHookResult, text: string) {
+      await act(async () => {
+        result.current.setExchangeRate(text);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+
+    const amountError = (result: PayHookResult) =>
+      result.current.form.getFieldState('amountText').error?.message;
+    const rateError = (result: PayHookResult) =>
+      result.current.form.getFieldState('exchange_rate').error?.message;
+
+    it.each(['48.', '0', '0.', '0.0'])(
+      'after a refused Save the amount shows no error at %p',
+      async (text) => {
+        const { result } = await submitAmount('');
+        expect(amountError(result)).toBe(Strings.commitmentsPayErrAmountRequired);
+
+        await typeAmount(result, text);
+
+        expect(result.current.form.getValues('amountText')).toBe(text);
+        expect(amountError(result)).toBeUndefined();
+      },
+    );
+
+    it('after a refused Save a complete amount under the floor shows the floor message', async () => {
+      const { result } = await submitAmount('');
+
+      await typeAmount(result, '0.001');
+
+      expect(amountError(result)).toBe(Strings.commitmentsPayErrAmountMin);
+    });
+
+    it('after a refused Save an amount cleared to empty shows required', async () => {
+      const { result } = await submitAmount('');
+      await typeAmount(result, '5');
+      expect(amountError(result)).toBeUndefined();
+
+      await typeAmount(result, '');
+
+      expect(amountError(result)).toBe(Strings.commitmentsPayErrAmountRequired);
+    });
+
+    it('a refused keystroke changes neither the amount nor its error', async () => {
+      const { result } = await submitAmount('');
+
+      await typeAmount(result, '4a');
+
+      expect(result.current.form.getValues('amountText')).toBe('');
+      expect(amountError(result)).toBe(Strings.commitmentsPayErrAmountRequired);
+    });
+
+    it.each(['48.', '0', '0.', '0.0'])(
+      'after a refused Save the rate shows no error at %p',
+      async (text) => {
+        const result = await submitRate('');
+        expect(rateError(result)).toBe(Strings.addTxErrRateRequired);
+
+        await typeRate(result, text);
+
+        expect(result.current.form.getValues('exchange_rate')).toBe(text);
+        expect(rateError(result)).toBeUndefined();
+      },
+    );
+
+    it('after a refused Save an unreadable rate shows the invalid message', async () => {
+      const result = await submitRate('');
+
+      await typeRate(result, '48x');
+
+      expect(rateError(result)).toBe(Strings.addTxErrRateInvalid);
+    });
+
+    it('before any Save neither field raises anything at "48."', async () => {
+      mockAccounts = [egpAccount];
+      const { result } = await renderHook(() => usePaySheet(OWNER, fixedCommitment, duePayment));
+
+      await typeAmount(result, '48.');
+      await typeRate(result, '48.');
+
+      expect(result.current.form.getValues('amountText')).toBe('48.');
+      expect(result.current.form.getValues('exchange_rate')).toBe('48.');
+      expect(amountError(result)).toBeUndefined();
+      expect(rateError(result)).toBeUndefined();
+    });
+
+    it('before any Save the amount raises nothing at "0.001" or when typed and then cleared', async () => {
+      mockAccounts = [egpAccount];
+      const { result } = await renderHook(() => usePaySheet(OWNER, egpCommitment, duePayment));
+
+      await typeAmount(result, '0.001');
+      expect(result.current.form.getValues('amountText')).toBe('0.001');
+      expect(amountError(result)).toBeUndefined();
+
+      await typeAmount(result, '');
+      expect(result.current.form.getValues('amountText')).toBe('');
+      expect(amountError(result)).toBeUndefined();
+    });
+  });
+
   it('H1: seeding the rate after a failed submit clears the rate error without a second submit', async () => {
     mockAccounts = [
       { id: 'acc-egp', currency: Currency.EGP } as unknown as Account,
