@@ -11,7 +11,8 @@ An unattended run parks each question it cannot answer as a question record, [qu
 ## Subcommands
 
 - `asks`: every open record on the board, one per message, by [references/asks.md](references/asks.md).
-- `Defined [n] [model]`, `Ready For Development [n] [model]`, `Planned [n] [model]`: `/issue-review`, `/prep` or `/ship` on the top eligible tickets of that column, by [references/column.md](references/column.md). `Planned` also resumes a ticket at In Progress or In Review that has a `state.md` on this machine, no lease and no open question record, and one at Awaiting Human whose PR has a change the user asked for after its merge summary. `n`, a whole number, caps the starts of one pass. `model`, one of `fable`, `opus`, `sonnet`, `haiku`, the Agent tool's list, runs each skill inside one agent on that model, column.md § Start; omitted, the run executes on the app's default model for a new session, which no call from the queue can read or set. A number and a word are told apart by shape, so either order after the column.
+- `Defined [n] [model]`, `Ready For Development [n] [model]`, `Planned [n] [model]`: `/issue-review`, `/prep` or `/ship` on the top eligible tickets of that column, by [references/column.md](references/column.md). `Planned` also resumes a ticket at In Progress or In Review that has a `state.md` on this machine, no lease and no open question record, and one at Awaiting Human whose PR has a change the user asked for after its merge summary. `n`, a whole number, caps the starts of one pass.
+- `model`: `fable`, `opus`, `sonnet` or `haiku`, the Agent tool's list. Each run executes inside one agent on that model, column.md § Wrapper. Omitted, the run executes on the app's default model for a new session. A number and a word are told apart by shape, so either order after the column.
 
 Any other argument: print this list and stop.
 

@@ -43,23 +43,25 @@ The run prompt, filled in, nothing else:
 
 ```text
 Run the <issue-review|prep|ship> skill on issue #<n>: `/<issue-review|prep|ship> <n>`. Work on this ticket only.
-Run: unattended. Task id: <task id>. In flight at start: <f>. Readings at start: 1-minute load <l>, GraphQL remaining <g>. Model: <model, or `app default`>.
+Run: unattended. Task id: <task id>. In flight at start: <f>. Readings at start: 1-minute load <l>, GraphQL remaining <g>. Model: <model or app default>.
 Project skills this run may use: issue-review, prep, ship, unslop, emulator-verify, moneyapp-testing, heroui-native, money-rules, and code-review where the ship skill prescribes it. No superpowers:* or anthropic-skills:* skill.
 The lease ~/.ship/MoneyApp/queue/leases/<n> names this task id. The skill rewrites, touches and removes it per .claude/skills/queue/SKILL.md § Lease.
 A question you cannot answer is parked as a record per .claude/skills/issue-review/references/question-record.md, and the run ends.
 A refused call is never turned into a permission request. It goes into your log line's note, and the run goes on or ends.
 /ship: write the merge summary to ~/.ship/MoneyApp/queue/ship-<n>-summary.md. It holds the heading `## Questions that should have been asked earlier` over a table with the columns Record, Check: one row per `## Parked` line of state.md whose `miss:` is not `none`, the header row alone when there is none.
-Before your last message, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md in the shape of .claude/skills/queue/references/column.md § Log, the readings and the model in its note.
+Before your last message, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md in the shape of .claude/skills/queue/references/column.md § Log, the readings and the model you are running as in its note, `wrapped` after it when Model above names one.
 ```
 
 `<f>` is the number of held leases before this start's own.
 
 ## Wrapper
 
-The task prompt when a model was given. The task's session reads the wrapper only; the agent reads the run prompt and does everything a run does today, lease, records, log line and all. The session's own work is one Agent call and the repeat of its last message.
+The task prompt when a model was given. The task's session reads the wrapper only; the agent reads the run prompt and does everything a run does today, lease, records, log line and all. The session's own work is one Agent call and the repeat of its last message. That session's start on the default model is the wrapper's cost, tens of thousands of tokens a run, which `wrapped` in the log note marks, so a cost comparison by model can set those lines apart.
+
+Shown on Defined, 2026-10-03. The first `/queue Ready For Development <model>` and the first `/queue Planned <model>` are watched to their end for two things no run has shown: whether the agent's EnterWorktree lets its own dispatches write into the ticket worktree, and whether a full battery fits the agent's context. A skill that meets a refusal ends with it in its log note and the lease released; an agent that dies ends by the wrapper's failure line.
 
 ```text
-Make one call and nothing before it: the Agent tool, subagent_type `claude`, model `<model>`, run_in_background false, with the text between the two `-----` lines as its prompt, unchanged. Wait for it. Reply with its last message unchanged, and end. Read no file, run no skill, write nothing yourself.
+Make one call and nothing before it, except the unslop load the prompt hook asks for: the Agent tool, subagent_type `claude`, model `<model>`, run_in_background true, with the text between the two `-----` lines as its prompt, unchanged. Wait for its completion notice. Reply with its last message unchanged, and end. Read no file, run no skill, write nothing yourself, except on failure: when the call is refused, or the agent returns an error or no last message, append `<skill> <n> · wrapper failed · <start> to <end> · 0 dispatches · 0 fix cycles · 0 questions parked · <f> in flight at start · <the refusal or error>, <model> wrapped` to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md, with <skill>, <n> and <f> read from the run prompt, run `rm ~/.ship/MoneyApp/queue/leases/<n>`, reply with that line, and end.
 -----
 <run prompt>
 -----
@@ -96,7 +98,7 @@ First in every pass. For each `~/.ship/MoneyApp/MA-XXX/state.md` whose `pr:` URL
 <skill> <n> · <outcome> · <start> to <end> · <k> dispatches · <c> fix cycles · <q> questions parked · <f> in flight at start · <note>
 ```
 
-The outcome is the ticket's column at the end, or `parked` with the record count. The note holds the readings at start, the model, and what the run met outside its skill: a refused call, a build.
+The outcome is the ticket's column at the end, or `parked` with the record count. The note holds the readings at start, the model the run ran as with `wrapped` after it when it ran inside § Wrapper, and what the run met outside its skill: a refused call, a build. `wrapper failed` is the outcome of a wrapped run whose agent never returned a last message; it is no column, so the No progress hold lets the next pass start the ticket again.
 
 ## Permission rule
 
