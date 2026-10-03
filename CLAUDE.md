@@ -10,7 +10,7 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 
 The `unslop` skill is the output contract for every reply, agent return, review, plan, spec and record; the prompt hook restates its short form each turn. `primitive`, `surface` and `harness` are domain terms here, exempt from its jargon rule where they name the real thing. `npm run lint` fails on its banned method-certification phrases, in any case, in any tracked `.md` file outside `docs/scopes/` and `docs/superpowers/`, which are frozen history.
 
-Every question the main session puts to me, in a skill or not, is checked first against [question-visuals.md](.claude/skills/issue-review/references/question-visuals.md), where the first matching row decides. Options that differ on screen, over time, in a figure or in a structure go out with the HTML visual in the same message. A gate confirming what I have just read, options that differ only in words, a fact I hold, and anything else stay text, and no file is made. A subagent returns its question as text and draws nothing; the session that asks me makes the visual.
+Every question the main session puts to me, in a skill or not, is checked first against [question-visuals.md](.claude/skills/issue-review/references/question-visuals.md), where the first matching row decides. Options that differ on screen, in a figure or in a structure go out with the HTML visual in the same message, and options that differ over time with a GIF; each draws today beside the options. A gate confirming what I have just read, options that differ only in words, a fact I hold, and anything else stay text, and no file is made. A subagent returns its question as text and draws nothing; the session that asks me makes the visual.
 
 ## When to stop
 
