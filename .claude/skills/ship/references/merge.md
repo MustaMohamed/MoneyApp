@@ -22,7 +22,7 @@ The run ends in this order:
 1. CI, re-read now: `gh pr checks <pr-url>`. Red below the cap of [SKILL.md](../SKILL.md) → Fix loop routes back through phase 3, and nothing below runs. At the cap, the red check is an item 1 finding and the steps below run.
 2. `bash scripts/board.sh status <n> "Awaiting Human"`.
 3. The merge summary below, written to `~/.ship/MoneyApp/queue/ship-<n>-summary.md` by every run, typed or unattended.
-4. The PR body completed: `pr.md` gains item 6 under its heading as a list, then one line `Review: <each lens, verdict and count> · rejected <n> · not fixed <n> · tickets opened <numbers or none>` from items 1, 8 and 9; then `gh pr edit <pr-url> --body-file ~/.ship/MoneyApp/MA-XXX/pr.md`. The body is the PR's own record, read after the summary file and `state.md` are gone.
+4. The PR body completed: `pr.md` keeps its three lines from phase 2 and gains the summary file's content from its item 1 on, the PR URL line left out; then `gh pr edit <pr-url> --body-file ~/.ship/MoneyApp/MA-XXX/pr.md`. The body is the PR's own record, read after `state.md` is gone; the summary file stays, the queue's measure reads it.
 5. Item 7's screenshots, sent with `SendUserFile`.
 6. An unattended run removes its lease, [queue § Lease](../../queue/SKILL.md), and writes its log line, [queue column.md](../../queue/references/column.md) § Log.
 7. The summary as the run's last message.
@@ -81,7 +81,7 @@ Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the 
 ## Checklist
 
 - [ ] Ten items in order, `none` where empty, item 10's heading and table header row written; CI read after the last push
-- [ ] Summary in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, PR body completed with item 6 and the Review line, screenshots sent, summary the last message; nothing else posted on the issue or the PR
+- [ ] Summary in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, PR body completed with the summary, screenshots sent, summary the last message; nothing else posted on the issue or the PR
 - [ ] Plan removed from the branch before the summary; `git ls-tree origin/main .work` prints nothing after the merge
 - [ ] Merge verified by URL; issue closed; Done and `promote` run
 - [ ] `state.md` final line before teardown; worktrees, branch, prune; `npm ci` if the lockfile moved
