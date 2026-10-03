@@ -13,7 +13,7 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
+import { formatOwnedAmountParts } from '@/utils/format_amount';
 import { nextDueDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 

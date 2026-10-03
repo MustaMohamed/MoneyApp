@@ -97,6 +97,18 @@ export function formatDisplayMagnitude(
   return { text, printsAsZero };
 }
 
+/** An owned magnitude (ADR 2026-08-27 decision 1) takes `−` only below zero and never `+`, and a `-0` from float noise prints unsigned (#332). */
+export function formatOwnedAmountParts(
+  value: number,
+  currency: Currency,
+): { value: string; code: string } {
+  const { text, printsAsZero } = formatDisplayMagnitude(value, currency);
+  return {
+    value: signAmountText(text, value < 0 ? MINUS_SIGN : '', printsAsZero),
+    code: CURRENCY_CONFIG[currency].code,
+  };
+}
+
 // Ceiling for rate-display escalation only; a rate has no rounding floor to escalate to once
 // (docs/adr/2026-08-26-parse-floor-money-only.md §2), so `formatDisplayMagnitude`'s single hop
 // doesn't apply here. 1e-7 needs 7dp to show a leading digit; this gives one digit of headroom.

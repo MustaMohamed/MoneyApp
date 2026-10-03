@@ -2,11 +2,11 @@ import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
   formatDisplayMagnitude,
+  formatOwnedAmountParts,
   signAmountText,
 } from '@/utils/format_amount';
 

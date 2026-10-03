@@ -11,8 +11,7 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
-import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { formatCurrencyAmount, formatOwnedAmountParts } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
