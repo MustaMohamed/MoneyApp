@@ -30,13 +30,13 @@ const VERSIONED_FILE = 'src/modules/transactions/seeded_surface.ts';
 const STYLESHEET_SEED = 'const seeded = StyleSheet.create({});';
 const SHADOW_SEED = '<Card className="shadow-none" />';
 const ASYNC_SEED = 'const seeded = async () => 1;';
-const HOST = '<PortalHost />';
 const NO_FILE = 'matches no file';
 const OUTSIDE_PROVIDER = 'sits outside';
 
 // A seed finds its target by the pattern the guard matches, so a reworded line in src/ fails no case.
 const HEROUI_IMPORT = /import\s*\{([^}]*)\}\s*from\s*['"]heroui-native['"];/;
 const PROVIDER_OPEN = /<AppToastProvider\b[^>]*>/;
+const HOST_TAG = /<PortalHost\b[^>]*\/>/;
 const CSS_IMPORT_LINE = /^[ \t]*import\s+['"][^'"]*global\.css['"];?\n/m;
 const CSS_SPECIFIER = /(?<=^[ \t]*import\s+['"])[^'"]*global\.css(?=['"])/m;
 
@@ -120,9 +120,15 @@ function herouiNames(rel: string): string[] {
 
 function dropHerouiImport(rel: string, name: string): void {
   const names = herouiNames(rel);
-  const kept = names.filter((entry) => entry !== name);
+  const kept = names.filter((entry) => entry.split(/\s+/)[0] !== name);
   if (kept.length === names.length) throw new Error(`fixture import target absent: ${name}`);
   replacePattern(rel, HEROUI_IMPORT, `import { ${kept.join(', ')} } from 'heroui-native';`);
+}
+
+function hostTag(): string {
+  const tag = HOST_TAG.exec(read(LAYOUT))?.[0];
+  if (tag === undefined) throw new Error('fixture host tag absent');
+  return tag;
 }
 
 function lineOf(rel: string, needle: string, which: 'first' | 'last' = 'first'): number {
@@ -538,7 +544,8 @@ describe('validate-structural-guards.js, tree rows and deleted paths', () => {
 
 describe('validate-structural-guards.js, root layout', () => {
   it('reports a second AppToastProvider at its line', () => {
-    replaceOnce(LAYOUT, HOST, `<AppToastProvider>\n${HOST}\n</AppToastProvider>`);
+    const host = hostTag();
+    replaceOnce(LAYOUT, host, `<AppToastProvider>\n${host}\n</AppToastProvider>`);
     const line = lineOf(LAYOUT, '<AppToastProvider', 'last');
 
     expectReported(runGuard(), [lineAt(LAYOUT, line, 'a second `<AppToastProvider`')]);
@@ -552,30 +559,33 @@ describe('validate-structural-guards.js, root layout', () => {
   });
 
   it('reports the missing PortalHost when it is removed', () => {
-    replaceOnce(LAYOUT, HOST, '');
+    replaceOnce(LAYOUT, hostTag(), '');
 
     expectReported(runGuard(), [lineFor(LAYOUT, 'no `<PortalHost` element')]);
   });
 
   it('reports a PortalHost below the closing AppToastProvider tag at the host line', () => {
-    replaceOnce(LAYOUT, HOST, '');
-    replaceOnce(LAYOUT, '</AppToastProvider>', `</AppToastProvider>\n${HOST}`);
-    const line = lineOf(LAYOUT, HOST);
+    const host = hostTag();
+    replaceOnce(LAYOUT, host, '');
+    replaceOnce(LAYOUT, '</AppToastProvider>', `</AppToastProvider>\n${host}`);
+    const line = lineOf(LAYOUT, host);
 
     expectReported(runGuard(), [lineAt(LAYOUT, line, OUTSIDE_PROVIDER)]);
   });
 
   it('reports a PortalHost above the opening AppToastProvider tag at the host line', () => {
-    replaceOnce(LAYOUT, HOST, '');
-    replacePattern(LAYOUT, /<AppToastProvider\b/, `${HOST}\n<AppToastProvider`);
-    const line = lineOf(LAYOUT, HOST);
+    const host = hostTag();
+    replaceOnce(LAYOUT, host, '');
+    replacePattern(LAYOUT, /<AppToastProvider\b/, `${host}\n<AppToastProvider`);
+    const line = lineOf(LAYOUT, host);
 
     expectReported(runGuard(), [lineAt(LAYOUT, line, OUTSIDE_PROVIDER)]);
   });
 
   it('reports a second PortalHost at its line', () => {
-    replaceOnce(LAYOUT, HOST, `${HOST}\n${HOST}`);
-    const line = lineOf(LAYOUT, HOST, 'last');
+    const host = hostTag();
+    replaceOnce(LAYOUT, host, `${host}\n${host}`);
+    const line = lineOf(LAYOUT, host, 'last');
 
     expectReported(runGuard(), [lineAt(LAYOUT, line, 'a second `<PortalHost`')]);
   });
@@ -613,8 +623,9 @@ describe('validate-structural-guards.js, root layout', () => {
     const stateFile = locate(isStateFile);
     const sheetLine = appendLine(SUMMARY_CARD, STYLESHEET_SEED);
     const asyncLine = appendLine(stateFile, ASYNC_SEED);
-    replaceOnce(LAYOUT, HOST, `${HOST}\n${HOST}`);
-    const hostLine = lineOf(LAYOUT, HOST, 'last');
+    const host = hostTag();
+    replaceOnce(LAYOUT, host, `${host}\n${host}`);
+    const hostLine = lineOf(LAYOUT, host, 'last');
 
     expectReported(runGuard(), [
       lineAt(SUMMARY_CARD, sheetLine, 'StyleSheet'),
