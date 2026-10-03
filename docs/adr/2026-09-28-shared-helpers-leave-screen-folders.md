@@ -25,7 +25,7 @@ Every importer names the new path. A re-export in the old file, or a barrel `ind
 
 ## 3. The money helpers moved with bodies unchanged
 
-`formatOwnedAmountParts`, `formatCommitmentAmount` and `buildInfoRows` compose money strings on screen. Their bodies moved byte for byte, and so did those of `budgetBandColor` and `resolveKeyboardLift`. Every comment on them moved unchanged except the seven-line JSDoc on `formatOwnedAmountParts`, which became one line under the comment rule in `CLAUDE.md` § Conventions. `net_worth_breakdown_sheet.helpers.test.ts`, `account_card.helpers.test.ts`, `commitment_status.test.ts`, `recurrence_label.test.ts` and `budget.helpers.test.ts` pass with no assertion changed.
+`formatOwnedAmountParts`, `formatCommitmentAmount` and `buildInfoRows` compose money strings on screen. Their bodies moved byte for byte, and so did those of `budgetBandColor` and `resolveKeyboardLift`. Every comment on them moved unchanged except the seven-line JSDoc on `formatOwnedAmountParts`, which became one line under the comment rule in `CLAUDE.md` § Conventions. `net_worth_breakdown_sheet.helpers.test.ts`, `account_info_rows.test.ts`, `commitment_status.test.ts`, `recurrence_label.test.ts` and `budget.helpers.test.ts` pass with no assertion changed.
 
 ## 4. Screen stores and module `components/` stay open
 

@@ -13,7 +13,7 @@ The accounts list row now carries a live figure line under the name, one per acc
 
 The alternative the ticket sketched, giving each row an `amount: number` and reformatting it in the list with `formatCurrencyParts`, is refused. Two rows would drift under it. The savings change row (`account_info_rows.ts`, `signedStatParts`) and the base-equivalent row (`formatOwnedAmountParts`) both go through `formatDisplayMagnitude`, which escalates a sub-unit EGP figure to 2dp: the card prints `0.40` where a plain `formatCurrencyParts` at EGP's 0dp prints `0`. Both also compose a zero-gated sign, which the list would have had to compose a second time. Reformatting a number is a second derivation path, which is the drift `.claude/rules/review.md` item 3 names.
 
-`amountText` is built from the same `formatCurrencyParts` call as `value`, in `amountParts` and `signedStatParts`, so the two cannot diverge by editing one and not the other. `__tests__/screens/dashboard/account_card.helpers.test.ts` asserts `value === amountText + ' ' + code` over every row of all five types, both currencies and both bases.
+`amountText` is built from the same `formatCurrencyParts` call as `value`, in `amountParts` and `signedStatParts`, so the two cannot diverge by editing one and not the other. `__tests__/account_info_rows.test.ts` asserts `value === amountText + ' ' + code` over every row of all five types, both currencies and both bases.
 
 ## 2. The rate gate is `isRateUsable`, read once in the list hook
 

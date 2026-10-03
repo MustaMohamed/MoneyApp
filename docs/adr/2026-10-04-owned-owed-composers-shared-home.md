@@ -23,4 +23,4 @@ The account detail passes its own magnitude as the optional third argument, `for
 
 ## 4. Strings and assertions are unchanged
 
-Every screen prints the same string for the same amount and currency. `net_worth_breakdown_sheet.helpers.test.ts` and `account_card.helpers.test.ts` changed their import lines only; no assertion was added, edited or removed.
+Every screen prints the same string for the same amount and currency. Tests changed in import lines and file location only. The composer cases moved verbatim from `net_worth_breakdown_sheet.helpers.test.ts` to `format_amount.test.ts`, and the row builders' suite moved to `__tests__/account_info_rows.test.ts`; no assertion was added, edited or removed.
