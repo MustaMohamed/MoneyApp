@@ -275,6 +275,11 @@ const NAMED_ROWS = [
   },
   stateScreen(EMPTY_STATE, 'empty'),
   stateScreen(ERROR_STATE, 'error'),
+  {
+    files: ['src/modules/accounts/utils/account_info_rows.ts'],
+    banned: ['convertCurrency', 'roundMoney', 'Math'].map(identifier),
+    rule: 'in the account info rows; a money derivation lives in `src/modules/accounts/domain/account_figures.ts` (#666)',
+  },
 ];
 
 const TREE_ROWS = [

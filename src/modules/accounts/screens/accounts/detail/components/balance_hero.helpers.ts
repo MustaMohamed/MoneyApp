@@ -3,7 +3,8 @@ import { AccountType, type Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
-import { isOverLimit } from '@/modules/accounts/constants/is_over_limit';
+import { availableCredit } from '@/modules/accounts/domain/account_figures';
+import { isOverLimit } from '@/modules/accounts/domain/is_over_limit';
 import {
   formatAmount,
   formatCurrencyMagnitude,
@@ -36,7 +37,7 @@ export function buildHeroCaption(account: Account): HeroCaption {
         color: SemanticTokens.negative,
       };
     }
-    const available = limit - account.current_balance;
+    const available = availableCredit(account.current_balance, limit);
     return {
       text: Strings.accountHeroAvailable(
         formatAmount(available, decimals),

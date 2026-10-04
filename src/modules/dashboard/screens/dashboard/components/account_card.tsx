@@ -11,6 +11,7 @@ import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/ac
 import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_palette';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
+import { availableCredit } from '@/modules/accounts/domain/account_figures';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { buildInfoRows } from '@/modules/accounts/utils/account_info_rows';
 import { resolveAccountName } from '@/utils/account_name';
@@ -58,7 +59,7 @@ export function AccountCard({
 
   const showProgress = isCreditCard && (account.credit_limit ?? 0) > 0;
   const limit = account.credit_limit ?? 0;
-  const available = Math.max(0, limit - account.current_balance);
+  const available = availableCredit(account.current_balance, limit);
   const progressPct = showProgress ? Math.min(1, account.current_balance / limit) : 0;
   const progressColor = availableCreditColor(available, limit);
 

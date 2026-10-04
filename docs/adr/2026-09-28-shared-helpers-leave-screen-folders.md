@@ -17,6 +17,8 @@ The footer is `CtaFooter` in `cta_footer.tsx`, the rename PR #580 gave `Onboardi
 
 **Superseded in part 2026-10-04 (#624).** A piece no single module owns lives in `src/utils/`: the owned and owed amount composers, which dashboard, transactions, budget and accounts all print, moved into `src/utils/format_amount.ts`. The account card row builders moved to their owner's `utils/` under this section, from dashboard to accounts. `docs/adr/2026-10-04-owned-owed-composers-shared-home.md` records both.
 
+**Extended 2026-10-04 (#666).** The row builders' money derivations left `utils/` for `src/modules/accounts/domain/account_figures.ts` under this section's `domain/` clause, and `is_over_limit.ts` moved from `constants/` to `domain/`. `docs/adr/2026-10-04-account-figures-in-domain.md` records both.
+
 ## 2. The module a piece left keeps no re-export
 
 Every importer names the new path. A re-export in the old file, or a barrel `index.ts` in a `utils/` folder, would let the next caller import from the screen folder again. Whole files moved with `git mv`, so `git log --follow` keeps their history.

@@ -27,6 +27,7 @@ const BUDGET_PICKER = `${TRANSACTIONS}/transaction_form/components/budget_picker
 const COMMITMENTS_INDEX = `${COMMITMENTS}/index.tsx`;
 const DASHBOARD_INDEX = 'src/modules/dashboard/screens/dashboard/index.tsx';
 const GOALS_INDEX = 'src/modules/goals/screens/goals/index.tsx';
+const ACCOUNT_INFO_ROWS = 'src/modules/accounts/utils/account_info_rows.ts';
 const VERSIONED_FILE = 'src/modules/transactions/seeded_surface.ts';
 
 const STYLESHEET_SEED = 'const seeded = StyleSheet.create({});';
@@ -339,6 +340,24 @@ const BANNED: BannedSeed[] = [
     target: isTemplate,
     text: 'const [a] = R.useState(0);',
     token: 'useState',
+  },
+  {
+    guard: 'convertCurrency in the account info rows',
+    target: ACCOUNT_INFO_ROWS,
+    text: 'const seeded = convertCurrency(input);',
+    token: 'convertCurrency',
+  },
+  {
+    guard: 'roundMoney in the account info rows',
+    target: ACCOUNT_INFO_ROWS,
+    text: 'const seeded = roundMoney(1.005);',
+    token: 'roundMoney',
+  },
+  {
+    guard: 'Math in the account info rows',
+    target: ACCOUNT_INFO_ROWS,
+    text: 'const seeded = Math.max(0, 1);',
+    token: 'Math',
   },
 ];
 
