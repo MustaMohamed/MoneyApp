@@ -9,6 +9,9 @@ import type { Account } from '../store/account.store';
 import { isAccountNameTaken } from './account_name_taken';
 import { addCreditFieldIssues, creditFieldsShape } from './credit_fields.schema';
 
+/** Save admits a balance of `0`, so the still-typing hold lets a zero validate. */
+export const BALANCE_REFUSES_ZERO: boolean = false;
+
 export function createAddAccountSchema(accounts: Account[], archivedAccounts: Account[]) {
   return z
     .object({

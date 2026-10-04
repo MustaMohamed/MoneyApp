@@ -1,11 +1,14 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useAddCommitment } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.hook';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
+import { COMMITMENT_AMOUNT_REFUSES_ZERO } from '@/modules/commitments/screens/commitments/commitment_form.shared';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 const mockRouterBack = jest.fn();
 
@@ -86,6 +89,76 @@ describe('useAddCommitment', () => {
     expect(addCommitmentMock).toHaveBeenCalledTimes(1);
     expect(generatePaymentsMock).not.toHaveBeenCalled();
     expect(mockRouterBack).toHaveBeenCalledTimes(1);
+  });
+
+  describe('MA-115 a half-typed amount after a refused Save', () => {
+    const amountError = (result: { current: ReturnType<typeof useAddCommitment> }) =>
+      result.current.form.getFieldState('amount').error?.message;
+
+    async function mountRefused() {
+      const { result } = await renderHook(() => useAddCommitment());
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      expect(addCommitmentMock).not.toHaveBeenCalled();
+      expect(amountError(result)).toBe(Strings.commitmentsErrAmountRequired);
+      return result;
+    }
+
+    // The pairs `DecimalAmountInput` sends: the number it stores and the text typed.
+    it.each([
+      ['0', 0],
+      ['0.', 0],
+      ['0.0', 0],
+      ['48.', 48],
+      ['.', undefined],
+    ] as const)(
+      'holds the typed text %p stored as %p and leaves no amount error',
+      async (text, n) => {
+        const result = await mountRefused();
+
+        let held: boolean | undefined;
+        await act(async () => {
+          held = holdStillTypingDecimal(
+            result.current.form,
+            'amount',
+            n,
+            COMMITMENT_AMOUNT_REFUSES_ZERO,
+            text,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+
+        expect(held).toBe(true);
+        expect(result.current.form.getValues('amount')).toBe(n);
+        expect(amountError(result)).toBeUndefined();
+      },
+    );
+
+    it('does not hold 0.001, and the shipped call validates it to the floor message', async () => {
+      const result = await mountRefused();
+
+      let held: boolean | undefined;
+      await act(async () => {
+        held = holdStillTypingDecimal(
+          result.current.form,
+          'amount',
+          0.001,
+          COMMITMENT_AMOUNT_REFUSES_ZERO,
+          '0.001',
+        );
+        if (!held) {
+          result.current.form.setValue('amount', 0.001, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        }
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(held).toBe(false);
+      expect(amountError(result)).toBe(Strings.commitmentsErrAmountPositive);
+    });
   });
 
   it('allows only one committed add while the first submit is in flight', async () => {

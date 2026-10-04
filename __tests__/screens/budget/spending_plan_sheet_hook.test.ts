@@ -467,6 +467,153 @@ describe('useSpendingPlanSheet', () => {
     expect(result.current.state.allocationErrors.cat_transport).toBeUndefined();
   });
 
+  describe('MA-115 a plan row is exempt only while it is the row last typed', () => {
+    type PlanHook = ReturnType<typeof useSpendingPlanSheet>;
+
+    const transport: Category = { ...category, id: 'cat_transport', name: 'Transport' };
+    const health: Category = { ...category, id: 'cat_health', name: 'Health' };
+    // Hoisted: `budgetableCategories` is in the seeding effect's deps, so a new array re-seeds.
+    const threeCategories = [category, transport, health];
+
+    // Food and Transport selected, Food at '1.', and one Save the allocation pre-flight refuses.
+    async function mountRefused(transportText = '') {
+      const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+      useBudgetStore.setState({ setSpendingPlan });
+      const { result } = await renderHook(() =>
+        useSpendingPlanSheet({ budgetableCategories: threeCategories }),
+      );
+      await waitFor(() =>
+        expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+      );
+      await act(() => result.current.toggleCategory(transport));
+      await act(() => result.current.setAllocateByCategory(true));
+      await act(() => result.current.setAllocationText('cat_food', '1.'));
+      await act(() => result.current.setAllocationText('cat_transport', transportText));
+      await act(async () => result.current.submit());
+      expect(setSpendingPlan).not.toHaveBeenCalled();
+      expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
+      return { result, setSpendingPlan };
+    }
+
+    it('after a refused Save, typing 48.5 leaves the row silent at "48." and at "48.5"', async () => {
+      const { result } = await mountRefused();
+
+      await act(() => result.current.setAllocationText('cat_food', '48.'));
+      expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('48.');
+      expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
+
+      await act(() => result.current.setAllocationText('cat_food', '48.5'));
+      expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
+    });
+
+    it('after a refused Save a complete amount under the floor shows its fault as typed', async () => {
+      const { result } = await mountRefused();
+
+      await act(() => result.current.setAllocationText('cat_food', '0.005'));
+
+      expect(result.current.state.allocationErrors.cat_food).toBe(
+        Strings.budgetPlanAllocationBelowMin,
+      );
+    });
+
+    it('a typed row left at "48." is flagged once a second row is typed', async () => {
+      const { result } = await mountRefused();
+      await act(() => result.current.setAllocationText('cat_food', '48.'));
+      expect(result.current.state.allocationErrors.cat_food).toBeUndefined();
+
+      await act(() => result.current.setAllocationText('cat_transport', '5'));
+
+      expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
+      expect(result.current.state.allocationErrors.cat_transport).toBeUndefined();
+    });
+
+    const otherEdits: Array<[string, (hook: PlanHook) => void]> = [
+      ['clearSubmitError', (hook) => hook.clearSubmitError()],
+      ['toggleCategory on another category', (hook) => hook.toggleCategory(health)],
+      [
+        'setAllocateByCategory off and on',
+        (hook) => {
+          hook.setAllocateByCategory(false);
+          hook.setAllocateByCategory(true);
+        },
+      ],
+      [
+        'selectDate',
+        (hook) =>
+          hook.selectDate(
+            'end',
+            { nativeEvent: { timestamp: 0, utcOffset: 0 } },
+            new Date(2026, 6, 21, 12),
+          ),
+      ],
+    ];
+
+    it.each(otherEdits)(
+      'a typed row left at "48." is flagged once %s runs',
+      async (_name, edit) => {
+        const { result } = await mountRefused();
+        await act(() => result.current.setAllocationText('cat_food', '48.'));
+
+        await act(() => edit(result.current));
+
+        expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('48.');
+        expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
+      },
+    );
+
+    it('a second row left at "5." keeps its fault while the first is typed', async () => {
+      const { result } = await mountRefused('5.');
+      expect(result.current.state.allocationErrors.cat_transport).toBe(Strings.errAmountInvalid);
+
+      await act(() => result.current.setAllocationText('cat_food', '48.'));
+
+      expect(result.current.state.allocationErrors.cat_transport).toBe(Strings.errAmountInvalid);
+    });
+
+    it('the next refused Save flags a typed row left at "48."', async () => {
+      const { result, setSpendingPlan } = await mountRefused();
+      await act(() => result.current.setAllocationText('cat_food', '48.'));
+
+      await act(async () => result.current.submit());
+
+      expect(setSpendingPlan).not.toHaveBeenCalled();
+      expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
+      expect(useSpendingPlanSheetState.getState().submitError).toBe(
+        Strings.budgetPlanAllocationInvalid,
+      );
+    });
+
+    it('a refused keystroke marks nothing: the row keeps the fault Save raised', async () => {
+      const { result } = await mountRefused();
+
+      await act(() => result.current.setAllocationText('cat_food', '1.x'));
+
+      expect(useSpendingPlanSheetStore.getState().allocations.cat_food).toBe('1.');
+      expect(result.current.state.allocationErrors.cat_food).toBe(Strings.errAmountInvalid);
+    });
+
+    it.each(['0', '0.0'])('Save with the row at %p saves it as 0', async (text) => {
+      const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
+      useBudgetStore.setState({ setSpendingPlan });
+      const { result } = await renderHook(() =>
+        useSpendingPlanSheet({ budgetableCategories: categories }),
+      );
+      await waitFor(() =>
+        expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+      );
+      await act(() => result.current.setAllocateByCategory(true));
+      await act(() => result.current.setAllocationText('cat_food', text));
+
+      await act(async () => result.current.submit());
+
+      expect(setSpendingPlan).toHaveBeenCalledTimes(1);
+      const [input] = setSpendingPlan.mock.calls[0] as [
+        { categories: Array<{ categoryId: string; allocatedAmount?: number }> },
+      ];
+      expect(input.categories.find((c) => c.categoryId === 'cat_food')?.allocatedAmount).toBe(0);
+    });
+  });
+
   // The orphan's text must be invalid for this to bite.
   it('does not let an allocation on an unselected category block the save', async () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);

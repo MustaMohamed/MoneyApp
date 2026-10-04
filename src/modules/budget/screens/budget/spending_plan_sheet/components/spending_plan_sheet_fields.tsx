@@ -1,14 +1,21 @@
-import { Controller, type Control } from 'react-hook-form';
+import { Controller, type Control, type UseFormReturn } from 'react-hook-form';
 import type { BlurEvent, FocusEvent, KeyboardTypeOptions } from 'react-native';
 
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { maskFieldText } from '@/utils/money_text';
-import type { SpendingPlanFormValues } from '@/utils/schemas/budget.schema';
+import {
+  PLAN_TOTAL_REFUSES_ZERO,
+  type SpendingPlanFormValues,
+} from '@/utils/schemas/budget.schema';
+import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
+
+type SpendingPlanHoldForm = Pick<UseFormReturn<SpendingPlanFormValues>, 'setValue' | 'clearErrors'>;
 
 interface SpendingPlanFieldProps {
   control: Control<SpendingPlanFormValues>;
+  form: SpendingPlanHoldForm;
   name: 'nameText' | 'totalText';
   label: string;
   testID: string;
@@ -36,7 +43,10 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
             if (masked === undefined) return;
             // Clearing above the guard would let a refused keystroke wipe a live error.
             props.onEdit();
-            onChange(masked);
+            const held =
+              props.variant === 'amount' &&
+              holdStillTypingDecimal(props.form, props.name, masked, PLAN_TOTAL_REFUSES_ZERO);
+            if (!held) onChange(masked);
           }}
           onFocus={props.onFocus}
           onBlur={props.onBlur}
@@ -64,6 +74,7 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
 
 interface SpendingPlanFormFieldsProps {
   control: Control<SpendingPlanFormValues>;
+  form: SpendingPlanHoldForm;
   onEdit: () => void;
   onFocus: (event: FocusEvent) => void;
   onBlur: (event: BlurEvent) => void;
@@ -71,6 +82,7 @@ interface SpendingPlanFormFieldsProps {
 
 export function SpendingPlanFormFields({
   control,
+  form,
   onEdit,
   onFocus,
   onBlur,
@@ -79,6 +91,7 @@ export function SpendingPlanFormFields({
     <>
       <SpendingPlanField
         control={control}
+        form={form}
         name="nameText"
         label={Strings.budgetPlanNameLabel}
         testID="spending-plan-name-input"
@@ -90,6 +103,7 @@ export function SpendingPlanFormFields({
       />
       <SpendingPlanField
         control={control}
+        form={form}
         name="totalText"
         label={Strings.budgetPlanAmountLabel}
         testID="spending-plan-total-input"

@@ -39,6 +39,7 @@ import {
   type TransactionFormFieldErrors,
 } from './transaction_form.helpers';
 import { type TransactionFormPrerequisiteController } from './transaction_form_prerequisites.helpers';
+import { useTransactionFormRate } from './transaction_form_rate.hook';
 
 const ignorePrerequisiteRetry = () => {};
 
@@ -356,13 +357,24 @@ export function useEditTransaction(
     form.setValue('amount', parseDecimalText(amountStr) ?? Number.NaN);
   }
 
-  // After a failed Save, every pick or rate edit re-runs full validation against the schema this render built.
-  useEffect(() => {
+  function revalidateAfterSubmit() {
     if (!form.formState.isSubmitted) return;
     syncAmountValue();
     void form.trigger();
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [schema, categoryId, formBudgetId, date, exchangeRate]);
+  }
+
+  // After a failed Save, every pick re-runs full validation against the schema this render built.
+  useEffect(() => {
+    revalidateAfterSubmit();
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- the picks and the schema decide when it runs; revalidateAfterSubmit is rebuilt each render and reads the form when called
+  }, [schema, categoryId, formBudgetId, date]);
+
+  const setRateText = useTransactionFormRate(
+    form,
+    'exchangeRate',
+    exchangeRate,
+    revalidateAfterSubmit,
+  );
 
   async function onValid(data: EditTransactionFormValues) {
     const formState = useEditTransactionState.getState();
@@ -512,7 +524,7 @@ export function useEditTransaction(
     },
     setExchangeRate: (v: string) => {
       clearError();
-      form.setValue('exchangeRate', v);
+      setRateText(v);
     },
     toggleRateOverride,
     setShowCategoryPicker,

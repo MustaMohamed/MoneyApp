@@ -8,6 +8,7 @@ import {
 import { Strings } from '@/constants/strings';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import {
+  COMMITMENT_AMOUNT_REFUSES_ZERO,
   COMMITMENT_SCHEMA,
   buildAddDefaults,
   buildEditDefaults,
@@ -158,6 +159,15 @@ describe('COMMITMENT_SCHEMA', () => {
   it('fails when Fixed has amount of 0', () => {
     const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0 });
     expect(result.success).toBe(false);
+  });
+
+  it('passes when Fixed has amount 48, what the input stores for the typed text "48."', () => {
+    expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 48 }).success).toBe(true);
+  });
+
+  it('Save refuses amount 0 exactly when COMMITMENT_AMOUNT_REFUSES_ZERO is true', () => {
+    const refused = !COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0 }).success;
+    expect(refused).toBe(COMMITMENT_AMOUNT_REFUSES_ZERO);
   });
 
   it('passes when Fixed has amount 0.01 (the floor)', () => {

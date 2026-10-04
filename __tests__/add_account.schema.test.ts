@@ -3,7 +3,15 @@ import '@/utils/zod_config';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { createAddAccountSchema } from '@/modules/accounts/utils/add_account.schema';
+import {
+  BALANCE_REFUSES_ZERO,
+  createAddAccountSchema,
+} from '@/modules/accounts/utils/add_account.schema';
+import {
+  APR_REFUSES_ZERO,
+  CREDIT_LIMIT_REFUSES_ZERO,
+  MIN_PAYMENT_REFUSES_ZERO,
+} from '@/modules/accounts/utils/credit_fields.schema';
 
 const emptyAccounts: Account[] = [];
 
@@ -456,6 +464,52 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     it('R9 (#27) apr 9999, interest off → accept — the off-gate wins, same as every other credit rule', () => {
       expect(fieldErrors(cc({ interest_tracking: false, apr: '9999' }))).toEqual({});
     });
+  });
+
+  // MA-115 holds these while they are typed; Save still reads them as it did.
+  describe('MA-115 Save pins: what the half-typed values read at Save', () => {
+    const trackedCard = (overrides: Record<string, unknown> = {}) =>
+      baseData({
+        selected_type: AccountType.CreditCard,
+        credit_limit: '50000',
+        interest_tracking: true,
+        apr: '20',
+        ...overrides,
+      });
+
+    it.each([
+      ['balance', '48.', Strings.errAmountInvalid],
+      ['balance', '0', undefined],
+      ['balance', '0.0', undefined],
+      ['balance', '', Strings.errAmountRequired],
+      ['credit_limit', '48.', Strings.errAmountInvalid],
+      ['credit_limit', '0', Strings.errCreditLimitPositive],
+      ['credit_limit', '0.0', Strings.errCreditLimitPositive],
+      ['credit_limit', '', Strings.errCreditLimitRequired],
+      ['min_payment', '48.', Strings.errAmountInvalid],
+      ['min_payment', '0', undefined],
+      ['min_payment', '0.0', undefined],
+      ['min_payment', '', undefined],
+      ['apr', '48.', Strings.errAmountInvalid],
+      ['apr', '0', undefined],
+      ['apr', '0.0', undefined],
+      ['apr', '', Strings.errAprRequired],
+    ] as const)('%s %p at Save reads %p', (field, text, message) => {
+      expect(fieldErrors(trackedCard({ [field]: text }))[field]).toBe(message);
+    });
+
+    it.each([
+      ['balance', BALANCE_REFUSES_ZERO],
+      ['credit_limit', CREDIT_LIMIT_REFUSES_ZERO],
+      ['min_payment', MIN_PAYMENT_REFUSES_ZERO],
+      ['apr', APR_REFUSES_ZERO],
+    ] as const)(
+      'Save refuses "0" on %s exactly when its still-typing flag is true (%p)',
+      (field, refusesZero) => {
+        const errors = fieldErrors(trackedCard({ [field]: '0' }));
+        expect(Object.keys(errors).includes(field)).toBe(refusesZero);
+      },
+    );
   });
 
   describe('off-type gating — every credit rule opens on selected_type === CreditCard', () => {

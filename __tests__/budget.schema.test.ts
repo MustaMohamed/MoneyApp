@@ -1,5 +1,6 @@
 import { Strings } from '@/constants/strings';
 import {
+  PLAN_TOTAL_REFUSES_ZERO,
   budgetFormSchema,
   incomeFormSchema,
   spendingPlanFormSchema,
@@ -97,6 +98,21 @@ describe('text-amount schemas share the parse floor and DECIMAL_PATTERN', () => 
       expect(firstMessage('')).toBe(requiredMessage);
     },
   );
+
+  // MA-115 holds these while they are typed; Save still reads them as it did.
+  it.each(cases)(
+    '$label refuses "48.", "0" and "0.0" at Save with its shipped messages',
+    ({ firstMessage, floorMessage }) => {
+      expect(firstMessage('48.')).toBe(Strings.errAmountInvalid);
+      expect(firstMessage('0')).toBe(floorMessage);
+      expect(firstMessage('0.0')).toBe(floorMessage);
+    },
+  );
+
+  it('Save refuses a plan total of "0" exactly when PLAN_TOTAL_REFUSES_ZERO is true', () => {
+    const refused = !spendingPlanFormSchema.safeParse({ nameText: 'Trip', totalText: '0' }).success;
+    expect(refused).toBe(PLAN_TOTAL_REFUSES_ZERO);
+  });
 
   it('budgetFormSchema rejects zero, a negative amount, and an empty name', () => {
     expect(budgetFormSchema.safeParse({ nameText: 'Monthly Food', limitText: '0' }).success).toBe(

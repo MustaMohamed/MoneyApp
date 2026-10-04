@@ -1,5 +1,6 @@
 import { Currency } from '@/constants/enums';
 import {
+  isStillTypingDecimal,
   parseDecimalText,
   parseNonNegativeDecimal,
   parsePositiveDecimal,
@@ -64,4 +65,28 @@ describe('parseRateText — positive, finite, no money floor', () => {
   ])('parseRateText(%p) -> %p', (value, expected) => {
     expect(parseRateText(value)).toBe(expected);
   });
+});
+
+// MA-115: the one definition of a decimal the user has not finished typing.
+describe('isStillTypingDecimal — a point at either end, or zero so far where zero is refused', () => {
+  it.each(['48.', '.', '.5', '0.', '1,234.'])('%p is still typing at either flag', (text) => {
+    expect(isStillTypingDecimal(text, false)).toBe(true);
+    expect(isStillTypingDecimal(text, true)).toBe(true);
+  });
+
+  it.each(['0', '0.0', '0.00', '00'])(
+    '%p is still typing only in a field that refuses zero',
+    (text) => {
+      expect(isStillTypingDecimal(text, true)).toBe(true);
+      expect(isStillTypingDecimal(text, false)).toBe(false);
+    },
+  );
+
+  it.each(['', '   ', '48', '48.5', '0.05', '0.001', '50abc'])(
+    '%p is not still typing at either flag',
+    (text) => {
+      expect(isStillTypingDecimal(text, false)).toBe(false);
+      expect(isStillTypingDecimal(text, true)).toBe(false);
+    },
+  );
 });

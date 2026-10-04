@@ -30,8 +30,10 @@ import { CategoryPickerSheet } from '@/modules/categories/components/category_pi
 import { resolveAccountName } from '@/utils/account_name';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
+import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 import {
+  COMMITMENT_AMOUNT_REFUSES_ZERO,
   type CommitmentFormValues,
   PRESET_MAP,
   SET_OPTS,
@@ -249,7 +251,18 @@ export function CommitmentFormBody({
               render={({ field: { value, onChange, onBlur } }) => (
                 <DecimalAmountInput
                   value={value}
-                  onChange={onChange}
+                  onChange={(n, typedText) => {
+                    const held =
+                      typedText !== undefined &&
+                      holdStillTypingDecimal(
+                        form,
+                        'amount',
+                        n,
+                        COMMITMENT_AMOUNT_REFUSES_ZERO,
+                        typedText,
+                      );
+                    if (!held) onChange(n);
+                  }}
                   onBlur={onBlur}
                   hasError={!!errors.amount}
                   placeholder={

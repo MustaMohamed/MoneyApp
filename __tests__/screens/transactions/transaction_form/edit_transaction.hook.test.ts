@@ -621,6 +621,163 @@ describe('useEditTransaction', () => {
   });
 });
 
+type EditHookResult = { current: ReturnType<typeof useEditTransaction> };
+
+// Lets the `form.trigger()` an effect started resolve before the next read.
+async function settleValidation() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+}
+
+async function typeRate(result: EditHookResult, text: string) {
+  await act(() => result.current.setExchangeRate(text));
+  await settleValidation();
+}
+
+describe('useEditTransaction — MA-115 a half-typed rate after a failed Save', () => {
+  const usdTx = {
+    ...mockTxExpense,
+    account_id: mockAccountUSD.id,
+    currency: Currency.USD,
+    amount: 10,
+    egp_amount: 500,
+    exchange_rate: 50,
+  };
+
+  async function mountUsdEdit() {
+    useEditTransactionStore.getState().loadFromTx(usdTx);
+    const updateTx = installMockUpdateTransaction();
+    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    return { result, updateTx };
+  }
+
+  async function mountRefusedEmptyRate() {
+    const edit = await mountUsdEdit();
+    await typeRate(edit.result, '');
+    await act(async () => edit.result.current.handleSave());
+    expect(edit.result.current.state.errors.rate).toBe(Strings.addTxErrRateRequired);
+    expect(edit.result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
+    return edit;
+  }
+
+  it('typing 48.5 shows no rate fault and no count at "48." or at "48.5"', async () => {
+    const { result } = await mountRefusedEmptyRate();
+
+    await typeRate(result, '4');
+    await typeRate(result, '48');
+    await typeRate(result, '48.');
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+
+    await typeRate(result, '48.5');
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+  });
+
+  it('typing 0.05 shows no rate fault at "0", "0.", "0.0" or "0.05"', async () => {
+    const { result } = await mountRefusedEmptyRate();
+
+    await typeRate(result, '0');
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+
+    await typeRate(result, '0.');
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+
+    await typeRate(result, '0.0');
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+
+    await typeRate(result, '0.05');
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+  });
+
+  it('a complete rate the form refuses shows its fault as typed, and a cleared rate reads required', async () => {
+    const { result } = await mountRefusedEmptyRate();
+
+    await typeRate(result, '50abc');
+    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateInvalid);
+    expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
+
+    await typeRate(result, '');
+    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateRequired);
+    expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
+  });
+
+  it('a pick in another row flags a half-typed rate left behind', async () => {
+    const { result } = await mountRefusedEmptyRate();
+    await typeRate(result, '48.');
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+
+    await act(() => result.current.selectCategory(mockCategoryShop));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await settleValidation();
+
+    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateInvalid);
+    expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
+  });
+
+  it('a fault Save raised on "48." stays through a pick and clears when the rate text changes', async () => {
+    const { result } = await mountUsdEdit();
+    await typeRate(result, '48.');
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateInvalid);
+
+    await act(() => result.current.selectCategory(mockCategoryShop));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await settleValidation();
+    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateInvalid);
+
+    await typeRate(result, '48.5');
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+  });
+
+  it('a clear and "48." sent back to back leave no rate fault', async () => {
+    const { result } = await mountRefusedEmptyRate();
+    await typeRate(result, '50abc');
+    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateInvalid);
+
+    await act(() => {
+      result.current.setExchangeRate('');
+      result.current.setExchangeRate('48.');
+    });
+    await settleValidation();
+
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+  });
+
+  it('before any Save "48." raises nothing', async () => {
+    const { result } = await mountUsdEdit();
+
+    await typeRate(result, '48.');
+
+    expect(result.current.state.errors.rate).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+  });
+
+  it.each([
+    ['48.', Strings.addTxErrRateInvalid],
+    ['0', Strings.addTxErrRateInvalid],
+    ['0.0', Strings.addTxErrRateInvalid],
+    ['', Strings.addTxErrRateRequired],
+  ])('Save with the rate %p reads %p and writes nothing', async (text, message) => {
+    const { result, updateTx } = await mountUsdEdit();
+    await typeRate(result, text);
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.rate).toBe(message);
+    expect(updateTx).not.toHaveBeenCalled();
+  });
+});
+
 describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
   it('rejects 0.005 typed into the amount field, and never calls updateTransaction', async () => {
     const updateTx = installMockUpdateTransaction();

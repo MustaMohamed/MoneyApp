@@ -6,7 +6,7 @@ import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { formatStoredMoneyText, maskFieldText, parseRequiredMoneyText } from '@/utils/money_text';
 import { incomeFormSchema, type IncomeFormValues } from '@/utils/schemas/budget.schema';
-import { useZodForm } from '@/utils/use_zod_form.hook';
+import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 
 export function useIncomeSheet() {
   const state = useIncomeSheetState(
@@ -25,10 +25,19 @@ export function useIncomeSheet() {
   const setSaving = useIncomeSheetState.getState().setSaving;
   const setErrorMessage = useIncomeSheetState.getState().setErrorMessage;
   const setExpectedIncome = useBudgetStore.getState().setExpectedIncome;
-  const { control, formState, getValues, handleSubmit, reset, setValue, watch } =
-    useZodForm<IncomeFormValues>(incomeFormSchema, {
-      defaultValues: { amountText: useIncomeSheetState.getState().amountText },
-    });
+  const {
+    clearErrors,
+    control,
+    formState,
+    getValues,
+    handleSubmit,
+    reset,
+    setValue,
+    trigger,
+    watch,
+  } = useZodForm<IncomeFormValues>(incomeFormSchema, {
+    defaultValues: { amountText: useIncomeSheetState.getState().amountText },
+  });
   const amountText = watch('amountText');
 
   // Must use the same formatter the prefill writes, or a stored 1e-7 never compares equal.
@@ -46,9 +55,10 @@ export function useIncomeSheet() {
       const masked = maskFieldText('amount', getValues('amountText'), text);
       if (masked === undefined) return;
       setDraftAmountText(masked);
-      setValue('amountText', masked, { shouldDirty: true, shouldValidate: formState.isSubmitted });
+      const form = { setValue, clearErrors, getValues, trigger };
+      setTypedDecimal(form, 'amountText', masked, true, formState.isSubmitted);
     },
-    [formState.isSubmitted, getValues, setDraftAmountText, setValue],
+    [clearErrors, formState.isSubmitted, getValues, setDraftAmountText, setValue, trigger],
   );
 
   const submitValidAmount = handleSubmit(

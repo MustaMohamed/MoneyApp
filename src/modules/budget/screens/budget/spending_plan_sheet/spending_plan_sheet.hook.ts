@@ -69,21 +69,31 @@ export function useSpendingPlanSheet({
         allocateByCategory: state.allocateByCategory,
       })),
     );
-  const { pickerExpanded, datePickerTarget, submitError, saving, allocationSubmitAttempted } =
-    useSpendingPlanSheetState(
-      useShallow((state) => ({
-        pickerExpanded: state.pickerExpanded,
-        datePickerTarget: state.datePickerTarget,
-        submitError: state.submitError,
-        saving: state.saving,
-        allocationSubmitAttempted: state.allocationSubmitAttempted,
-      })),
-    );
+  const {
+    pickerExpanded,
+    datePickerTarget,
+    submitError,
+    saving,
+    allocationSubmitAttempted,
+    lastTypedAllocationId,
+  } = useSpendingPlanSheetState(
+    useShallow((state) => ({
+      pickerExpanded: state.pickerExpanded,
+      datePickerTarget: state.datePickerTarget,
+      submitError: state.submitError,
+      saving: state.saving,
+      allocationSubmitAttempted: state.allocationSubmitAttempted,
+      lastTypedAllocationId: state.lastTypedAllocationId,
+    })),
+  );
+  const setLastTypedAllocation = useSpendingPlanSheetState.getState().setLastTypedAllocation;
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const {
+    clearErrors,
     control,
     handleSubmit,
     reset: resetForm,
+    setValue,
     watch,
   } = useZodForm<SpendingPlanFormValues>(spendingPlanFormSchema, {
     defaultValues: { nameText: '', totalText: '' },
@@ -107,11 +117,13 @@ export function useSpendingPlanSheet({
     totalAmount,
     allocationFields.map((field) => field.amount),
   );
-  // An incomplete decimal stays silent until a Save is blocked.
+  // An incomplete decimal stays silent until a Save is blocked, and after it in the row last typed.
   const allocationErrors: Record<string, string | undefined> = Object.fromEntries(
     allocationFields.map(({ categoryId, validation }) => [
       categoryId,
-      !validation.ok && (!validation.incomplete || allocationSubmitAttempted)
+      !validation.ok &&
+      (!validation.incomplete ||
+        (allocationSubmitAttempted && categoryId !== lastTypedAllocationId))
         ? validation.message
         : undefined,
     ]),
@@ -274,10 +286,16 @@ export function useSpendingPlanSheet({
     closeSheet: () => useBudgetState.getState().closePlan(),
     openCategoryPicker: () => useSpendingPlanSheetState.getState().openPicker(),
     closeCategoryPicker: () => useSpendingPlanSheetState.getState().closePicker(),
-    toggleCategory: (category: Category) =>
-      useSpendingPlanSheetStore.getState().toggleCategoryId(category.id),
-    setAllocateByCategory: (enabled: boolean) =>
-      useSpendingPlanSheetStore.getState().setAllocateByCategory(enabled),
+    setValue,
+    clearErrors,
+    toggleCategory: (category: Category) => {
+      setLastTypedAllocation(undefined);
+      useSpendingPlanSheetStore.getState().toggleCategoryId(category.id);
+    },
+    setAllocateByCategory: (enabled: boolean) => {
+      setLastTypedAllocation(undefined);
+      useSpendingPlanSheetStore.getState().setAllocateByCategory(enabled);
+    },
     setAllocationText: (categoryId: string, text: string) => {
       // The mask refuses or normalises, never truncates, so '0.005' reaches the row validator.
       const previous = useSpendingPlanSheetStore.getState().allocations[categoryId] ?? '';
@@ -285,9 +303,14 @@ export function useSpendingPlanSheet({
       if (masked === undefined) return;
       // Clear after the mask guard, so a refused keystroke cannot wipe a visible error.
       useSpendingPlanSheetState.getState().setSubmitError(undefined);
+      setLastTypedAllocation(categoryId);
       useSpendingPlanSheetStore.getState().setAllocation(categoryId, masked);
     },
-    clearSubmitError: () => useSpendingPlanSheetState.getState().setSubmitError(undefined),
+    // The name and the total call this as `onEdit`: an edit outside the rows ends the exemption.
+    clearSubmitError: () => {
+      useSpendingPlanSheetState.getState().setSubmitError(undefined);
+      setLastTypedAllocation(undefined);
+    },
     openDatePicker: (target: SpendingPlanDatePickerTarget) =>
       useSpendingPlanSheetState.getState().openDatePicker(target),
     // datetimepicker 9 split `onChange` in two; both legs must close or cancel leaves it mounted.
@@ -297,6 +320,7 @@ export function useSpendingPlanSheet({
       date: Date,
     ) => {
       const next = toLocalDateString(date);
+      setLastTypedAllocation(undefined);
       if (target === 'start') useSpendingPlanSheetStore.getState().setStartDate(next);
       if (target === 'end') useSpendingPlanSheetStore.getState().setEndDate(next);
       useSpendingPlanSheetState.getState().closeDatePicker();

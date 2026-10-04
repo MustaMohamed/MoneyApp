@@ -226,8 +226,8 @@ describe('PaySheet exchange-rate error', () => {
       expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateRequired),
     );
 
-    // "48." is present but unreadable, so the required message must give way to the invalid one.
-    await fireEvent.changeText(getByTestId('rate-input'), '48.');
+    // "48x" is present but unreadable, so the required message must give way to the invalid one.
+    await fireEvent.changeText(getByTestId('rate-input'), '48x');
     await waitFor(() =>
       expect(getByTestId('rate-error')).toHaveTextContent(Strings.addTxErrRateInvalid),
     );

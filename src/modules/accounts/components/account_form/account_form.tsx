@@ -8,8 +8,9 @@ import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing } from '@/constants/theme';
 import { CurrencySelector } from '@/modules/currency';
+import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
-import type { AddAccountFormData } from '../../utils/add_account.schema';
+import { BALANCE_REFUSES_ZERO, type AddAccountFormData } from '../../utils/add_account.schema';
 import { AccountColorField } from './account_color_field';
 import {
   CURRENCY_CELL_WIDTH,
@@ -71,7 +72,10 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
             render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
-                onChangeText={onChange}
+                onChangeText={(text) => {
+                  if (!holdStillTypingDecimal(form, 'balance', text, BALANCE_REFUSES_ZERO))
+                    onChange(text);
+                }}
                 onBlur={onBlur}
                 placeholder={Strings.accountBalancePlaceholder}
                 keyboardType="decimal-pad"

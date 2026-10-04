@@ -5,11 +5,13 @@ import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import { COMMITMENT_AMOUNT_REFUSES_ZERO } from '@/modules/commitments/screens/commitments/commitment_form.shared';
 import { useEditCommitment } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.hook';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { TABBED_ORIGIN } from '@/modules/navigation/domain/stacked_route';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 const mockRouterBack = jest.fn();
 const mockRouterDismissAll = jest.fn();
@@ -206,6 +208,79 @@ describe('useEditCommitment', () => {
     expect(mockRouterDismissAll).toHaveBeenCalled();
     expect(mockRouterDismissTo).not.toHaveBeenCalled();
     expect(mockRouterReplace).not.toHaveBeenCalled();
+  });
+
+  describe('MA-115 a half-typed amount after a refused Save', () => {
+    const amountError = (result: { current: ReturnType<typeof useEditCommitment> }) =>
+      result.current.form.getFieldState('amount').error?.message;
+
+    async function mountRefused() {
+      const { result } = await renderHook(() => useEditCommitment());
+      await act(() => {
+        result.current.form.setValue('amount', undefined);
+      });
+      await act(async () => {
+        await result.current.onSubmit();
+      });
+      expect(updateCommitmentMock).not.toHaveBeenCalled();
+      expect(amountError(result)).toBe(Strings.commitmentsErrAmountRequired);
+      return result;
+    }
+
+    // The pairs `DecimalAmountInput` sends: the number it stores and the text typed.
+    it.each([
+      ['0', 0],
+      ['0.', 0],
+      ['0.0', 0],
+      ['48.', 48],
+      ['.', undefined],
+    ] as const)(
+      'holds the typed text %p stored as %p and leaves no amount error',
+      async (text, n) => {
+        const result = await mountRefused();
+
+        let held: boolean | undefined;
+        await act(async () => {
+          held = holdStillTypingDecimal(
+            result.current.form,
+            'amount',
+            n,
+            COMMITMENT_AMOUNT_REFUSES_ZERO,
+            text,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+
+        expect(held).toBe(true);
+        expect(result.current.form.getValues('amount')).toBe(n);
+        expect(amountError(result)).toBeUndefined();
+      },
+    );
+
+    it('does not hold 0.001, and the shipped call validates it to the floor message', async () => {
+      const result = await mountRefused();
+
+      let held: boolean | undefined;
+      await act(async () => {
+        held = holdStillTypingDecimal(
+          result.current.form,
+          'amount',
+          0.001,
+          COMMITMENT_AMOUNT_REFUSES_ZERO,
+          '0.001',
+        );
+        if (!held) {
+          result.current.form.setValue('amount', 0.001, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        }
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(held).toBe(false);
+      expect(amountError(result)).toBe(Strings.commitmentsErrAmountPositive);
+    });
   });
 
   it('keeps the form open and publishes a retryable error when update fails', async () => {

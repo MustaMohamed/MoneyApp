@@ -55,6 +55,7 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
         >
           <SpendingPlanFormFields
             control={state.control}
+            form={{ setValue: actions.setValue, clearErrors: actions.clearErrors }}
             onEdit={actions.clearSubmitError}
             onFocus={actions.onFocus}
             onBlur={actions.onBlur}

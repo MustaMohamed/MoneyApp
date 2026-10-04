@@ -28,3 +28,11 @@ export function parseRateText(value: string): number | undefined {
   const parsed = parseDecimalText(value);
   return parsed !== undefined && parsed > 0 ? parsed : undefined;
 }
+
+/** A decimal not finished yet: a leading or trailing point, or zero so far where zero is refused. */
+export function isStillTypingDecimal(text: string, refusesZero: boolean): boolean {
+  const trimmed = text.trim();
+  if (trimmed === '') return false;
+  if (trimmed.startsWith('.') || trimmed.endsWith('.')) return true;
+  return refusesZero && parseDecimalText(trimmed) === 0;
+}

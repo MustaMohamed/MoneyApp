@@ -11,11 +11,14 @@ interface SpendingPlanSheetStateShape {
   saving: boolean;
   // An allocation row holding an incomplete decimal ('1.') stays silent until a save is refused.
   allocationSubmitAttempted: boolean;
+  // The row the latest edit on the sheet was in: exempt from the incomplete fault while it is.
+  lastTypedAllocationId: string | undefined;
 }
 
 type SpendingPlanSheetState = SpendingPlanSheetStateShape & {
   setSubmitError: (error: string | undefined) => void;
   setAllocationSubmitAttempted: (attempted: boolean) => void;
+  setLastTypedAllocation: (categoryId: string | undefined) => void;
   setSaving: (saving: boolean) => void;
   openPicker: () => void;
   closePicker: () => void;
@@ -30,13 +33,17 @@ const INITIAL_STATE: SpendingPlanSheetStateShape = {
   submitError: undefined,
   saving: false,
   allocationSubmitAttempted: false,
+  lastTypedAllocationId: undefined,
 };
 
 export const useSpendingPlanSheetState = createMoneyAppSelectors(
   create<SpendingPlanSheetState>((set) => ({
     ...INITIAL_STATE,
     setSubmitError: (submitError) => set({ submitError }),
-    setAllocationSubmitAttempted: (allocationSubmitAttempted) => set({ allocationSubmitAttempted }),
+    // A Save attempt checks every row, the one last typed in included.
+    setAllocationSubmitAttempted: (allocationSubmitAttempted) =>
+      set({ allocationSubmitAttempted, lastTypedAllocationId: undefined }),
+    setLastTypedAllocation: (lastTypedAllocationId) => set({ lastTypedAllocationId }),
     setSaving: (saving) => set({ saving }),
     openPicker: () => set({ pickerExpanded: true }),
     closePicker: () => set({ pickerExpanded: false }),

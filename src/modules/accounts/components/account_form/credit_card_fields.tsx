@@ -1,6 +1,6 @@
 import { ControlField, Label, Typography } from 'heroui-native';
 import React from 'react';
-import { Controller, useWatch, type Control, type UseFormReturn } from 'react-hook-form';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 
 import { Box } from '@/components/ui/box';
 import { FormLabelText } from '@/components/ui/form_label_text';
@@ -9,8 +9,14 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
-import type { CreditFieldValues } from '../../utils/credit_fields.schema';
+import {
+  APR_REFUSES_ZERO,
+  CREDIT_LIMIT_REFUSES_ZERO,
+  MIN_PAYMENT_REFUSES_ZERO,
+  type CreditFieldValues,
+} from '../../utils/credit_fields.schema';
 import { FieldMessageRail } from './field_message_rail';
 
 export interface CreditCardFieldsProps<T extends CreditFieldValues> {
@@ -39,7 +45,8 @@ export function CreditCardFields<T extends CreditFieldValues>({
   hideHelpers,
 }: CreditCardFieldsProps<T>) {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- T extends CreditFieldValues, so every field name this file uses exists on the form
-  const control = form.control as unknown as Control<CreditFieldValues>;
+  const creditForm = form as unknown as UseFormReturn<CreditFieldValues>;
+  const { control } = creditForm;
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
   const moneySuffix = currency ? <FieldSuffix text={CURRENCY_CONFIG[currency].code} /> : undefined;
   const aprSuffix = currency ? <FieldSuffix text={Strings.accountAprSuffix} /> : undefined;
@@ -58,7 +65,15 @@ export function CreditCardFields<T extends CreditFieldValues>({
             render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
-                onChangeText={onChange}
+                onChangeText={(text) => {
+                  const held = holdStillTypingDecimal(
+                    creditForm,
+                    'credit_limit',
+                    text,
+                    CREDIT_LIMIT_REFUSES_ZERO,
+                  );
+                  if (!held) onChange(text);
+                }}
                 onBlur={onBlur}
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
@@ -82,7 +97,15 @@ export function CreditCardFields<T extends CreditFieldValues>({
             render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
-                onChangeText={onChange}
+                onChangeText={(text) => {
+                  const held = holdStillTypingDecimal(
+                    creditForm,
+                    'min_payment',
+                    text,
+                    MIN_PAYMENT_REFUSES_ZERO,
+                  );
+                  if (!held) onChange(text);
+                }}
                 onBlur={onBlur}
                 keyboardType="decimal-pad"
                 isInvalid={fieldState.invalid}
@@ -160,7 +183,10 @@ export function CreditCardFields<T extends CreditFieldValues>({
             render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
-                onChangeText={onChange}
+                onChangeText={(text) => {
+                  const held = holdStillTypingDecimal(creditForm, 'apr', text, APR_REFUSES_ZERO);
+                  if (!held) onChange(text);
+                }}
                 onBlur={onBlur}
                 placeholder={Strings.accountAprPlaceholder}
                 keyboardType="decimal-pad"

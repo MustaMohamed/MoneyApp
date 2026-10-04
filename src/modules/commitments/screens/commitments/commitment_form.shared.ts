@@ -14,6 +14,9 @@ import { stripNameEdges } from '@/utils/strip_name_edges';
 
 import type { Commitment } from '../../entities/commitment.entity';
 
+/** Save refuses an amount of `0`, so the still-typing hold holds a zero-so-far text. */
+export const COMMITMENT_AMOUNT_REFUSES_ZERO: boolean = true;
+
 export const COMMITMENT_SCHEMA = z
   .object({
     amountType: z.enum(AmountType),

@@ -18,6 +18,11 @@ export const creditFieldsShape = {
 
 export type CreditFieldValues = z.infer<z.ZodObject<typeof creditFieldsShape>>;
 
+/** `true` where Save refuses `0`; the still-typing hold then holds a zero-so-far text. */
+export const CREDIT_LIMIT_REFUSES_ZERO: boolean = true;
+export const MIN_PAYMENT_REFUSES_ZERO: boolean = false;
+export const APR_REFUSES_ZERO: boolean = false;
+
 /** The one credit-field check behind the add and the edit schema; only the comparand differs. */
 export function addCreditFieldIssues(
   data: CreditFieldValues,

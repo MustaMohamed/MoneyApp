@@ -3,6 +3,11 @@ import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/store/account.store';
 import {
+  APR_REFUSES_ZERO,
+  CREDIT_LIMIT_REFUSES_ZERO,
+  MIN_PAYMENT_REFUSES_ZERO,
+} from '@/modules/accounts/utils/credit_fields.schema';
+import {
   createEditAccountFormSchema,
   type EditAccountFormData,
 } from '@/modules/accounts/utils/edit_account.schema';
@@ -115,6 +120,42 @@ describe('createEditAccountFormSchema', () => {
     it('a non-numeric APR with tracking off passes', () => {
       expect(fieldErrors(formData({ interest_tracking: false, apr: 'abc' }))).toEqual({});
     });
+  });
+
+  // MA-115 holds these while they are typed; Save still reads them as it did.
+  describe('MA-115 Save pins: what the half-typed values read at Save', () => {
+    it.each([
+      ['credit_limit', '48.', Strings.errAmountInvalid],
+      ['credit_limit', '0', Strings.errCreditLimitPositive],
+      ['credit_limit', '0.0', Strings.errCreditLimitPositive],
+      ['credit_limit', '', Strings.errCreditLimitRequired],
+      ['min_payment', '48.', Strings.errAmountInvalid],
+      ['min_payment', '0', undefined],
+      ['min_payment', '0.0', undefined],
+      ['min_payment', '', undefined],
+      ['apr', '48.', Strings.errAmountInvalid],
+      ['apr', '0', undefined],
+      ['apr', '0.0', undefined],
+      ['apr', '', Strings.errAprRequired],
+    ] as const)('%s %p at Save reads %p', (field, text, message) => {
+      const overrides: Partial<EditAccountFormData> = { interest_tracking: true, apr: '20' };
+      overrides[field] = text;
+      expect(fieldErrors(formData(overrides))[field]).toBe(message);
+    });
+
+    it.each([
+      ['credit_limit', CREDIT_LIMIT_REFUSES_ZERO],
+      ['min_payment', MIN_PAYMENT_REFUSES_ZERO],
+      ['apr', APR_REFUSES_ZERO],
+    ] as const)(
+      'Save refuses "0" on %s exactly when its still-typing flag is true (%p)',
+      (field, refusesZero) => {
+        const overrides: Partial<EditAccountFormData> = { interest_tracking: true, apr: '20' };
+        overrides[field] = '0';
+        const errors = fieldErrors(formData(overrides));
+        expect(Object.keys(errors).includes(field)).toBe(refusesZero);
+      },
+    );
   });
 
   describe('a card at zero', () => {

@@ -236,6 +236,102 @@ describe('useIncomeSheet', () => {
     expect(result.current.state.monthLabel).toBe('June 2026');
   });
 
+  describe('MA-115 a half-typed amount', () => {
+    type IncomeHookResult = { current: ReturnType<typeof useIncomeSheet> };
+
+    // Lets the validation a keystroke started resolve before the next read.
+    async function typeAmount(result: IncomeHookResult, text: string) {
+      await act(async () => {
+        result.current.setAmountText(text);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+
+    async function mountSheet() {
+      const setExpectedIncome = jest.fn().mockResolvedValue(undefined);
+      useBudgetStore.setState({ setExpectedIncome });
+      useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
+      const { result } = await renderHook(() => useIncomeSheet());
+      return { result, setExpectedIncome };
+    }
+
+    async function mountRefused() {
+      const sheet = await mountSheet();
+      await act(async () => sheet.result.current.save());
+      expect(sheet.result.current.state.validationMessage).toBe(Strings.incomeSheetAmountRequired);
+      return sheet;
+    }
+
+    it.each(['48.', '0', '0.', '0.0'])(
+      'after a refused Save the amount shows no fault at %p',
+      async (text) => {
+        const { result } = await mountRefused();
+
+        await typeAmount(result, text);
+
+        expect(result.current.state.amountText).toBe(text);
+        expect(result.current.state.validationMessage).toBeUndefined();
+      },
+    );
+
+    it('after a refused Save a complete amount under the floor shows its fault as typed', async () => {
+      const { result } = await mountRefused();
+
+      await typeAmount(result, '0.001');
+
+      expect(result.current.state.validationMessage).toBe(Strings.incomeSheetAmountInvalid);
+    });
+
+    it('after a refused Save a cleared amount reads required', async () => {
+      const { result } = await mountRefused();
+      await typeAmount(result, '5');
+      expect(result.current.state.validationMessage).toBeUndefined();
+
+      await typeAmount(result, '');
+
+      expect(result.current.state.validationMessage).toBe(Strings.incomeSheetAmountRequired);
+    });
+
+    it('before any Save "48." raises nothing', async () => {
+      const { result } = await mountSheet();
+
+      await typeAmount(result, '48.');
+
+      expect(result.current.state.amountText).toBe('48.');
+      expect(result.current.state.validationMessage).toBeUndefined();
+    });
+
+    it.each([
+      ['48.', Strings.errAmountInvalid],
+      ['0', Strings.incomeSheetAmountInvalid],
+      ['0.0', Strings.incomeSheetAmountInvalid],
+      ['', Strings.incomeSheetAmountRequired],
+    ])('Save with the amount %p reads %p and writes nothing', async (text, message) => {
+      const { result, setExpectedIncome } = await mountSheet();
+      await typeAmount(result, text);
+
+      await act(async () => result.current.save());
+
+      expect(result.current.state.validationMessage).toBe(message);
+      expect(setExpectedIncome).not.toHaveBeenCalled();
+    });
+
+    it('a clear and "48." sent back to back leave no fault once the validation settles', async () => {
+      const { result } = await mountRefused();
+      await typeAmount(result, '5');
+      expect(result.current.state.validationMessage).toBeUndefined();
+
+      await act(async () => {
+        result.current.setAmountText('');
+        result.current.setAmountText('48.');
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(result.current.state.amountText).toBe('48.');
+      expect(result.current.state.validationMessage).toBeUndefined();
+    });
+  });
+
   // Schema and submit share the parser, so the desync is only reachable by mocking the throw.
   it('surfaces the save error and does not save on a schema/submit desync', async () => {
     const setExpectedIncome = jest.fn().mockResolvedValue(undefined);

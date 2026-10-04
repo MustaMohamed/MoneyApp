@@ -10,7 +10,7 @@ import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.sto
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseRateText } from '@/utils/parse_decimal';
-import { useZodForm } from '@/utils/use_zod_form.hook';
+import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useCurrencyScreenState } from './currency.state';
 
@@ -73,10 +73,16 @@ export function useCurrencyScreen() {
   // One writer for the warning slot: `fetchRate` has a background caller too, so subscribe here.
   const rateField = useWatch({ control: form.control, name: 'rate' });
   const isRateFieldDirty = form.formState.dirtyFields.rate === true;
+  // Read during render: `formState` is a proxy and only refreshes keys read while rendering.
+  const isSubmitted = form.formState.isSubmitted;
   useEffect(() => {
     const typed = isRateFieldDirty ? parseRateText(rateField) : undefined;
     setRateWarning(isRateImplausible(typed ?? rate) ? Strings.currencyRateImplausibleWarning : '');
   }, [isRateFieldDirty, rate, rateField, setRateWarning]);
+
+  const setRateText = (text: string) => {
+    setTypedDecimal(form, 'rate', text, true, isSubmitted);
+  };
 
   const handleFetchRate = async () => {
     setFetching(true);
@@ -119,6 +125,7 @@ export function useCurrencyScreen() {
       footerNote,
     },
     form,
+    setRateText,
     handleFetchRate,
     handleSaveManualRate,
   };

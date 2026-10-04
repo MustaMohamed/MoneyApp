@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { useCurrencyScreen } from '@/modules/currency/screens/currency/currency.hook';
 import { useCurrencyScreenState } from '@/modules/currency/screens/currency/currency.state';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
@@ -234,6 +235,127 @@ describe('useCurrencyScreen', () => {
     await waitFor(() =>
       expect(setSaveError).toHaveBeenCalledWith('Could not save rate. Try again.'),
     );
+  });
+});
+
+describe('useCurrencyScreen — MA-115 a half-typed manual rate', () => {
+  type CurrencyHookResult = { current: ReturnType<typeof useCurrencyScreen> };
+
+  beforeEach(setup);
+
+  const rateError = (result: CurrencyHookResult) =>
+    result.current.form.getFieldState('rate').error?.message;
+
+  // Lets the validation a keystroke started resolve before the next read.
+  async function typeRate(result: CurrencyHookResult, text: string) {
+    await act(async () => {
+      result.current.setRateText(text);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+
+  async function mountScreen() {
+    const setManualRate = jest.fn().mockResolvedValue(undefined);
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate,
+    }));
+    const { result } = await renderHook(() => useCurrencyScreen());
+    return { result, setManualRate };
+  }
+
+  async function mountRefused() {
+    const screen = await mountScreen();
+    await act(() => screen.result.current.form.setValue('rate', ''));
+    await act(async () => screen.result.current.handleSaveManualRate());
+    expect(screen.setManualRate).not.toHaveBeenCalled();
+    expect(rateError(screen.result)).toBe(Strings.errBalanceInvalid);
+    return screen;
+  }
+
+  // Save Rate never resets the form, so it re-validates after a Save that wrote.
+  async function mountWritten() {
+    const screen = await mountScreen();
+    await act(async () => screen.result.current.handleSaveManualRate());
+    expect(screen.setManualRate).toHaveBeenCalledWith(50);
+    return screen;
+  }
+
+  it.each(['48.', '0', '0.', '0.0'])(
+    'after a refused Save the rate shows no error at %p and the field is dirty',
+    async (text) => {
+      const { result } = await mountRefused();
+
+      await typeRate(result, text);
+
+      expect(result.current.form.getValues('rate')).toBe(text);
+      expect(rateError(result)).toBeUndefined();
+      expect(result.current.form.getFieldState('rate').isDirty).toBe(true);
+    },
+  );
+
+  it.each(['48.', '0', '0.', '0.0'])(
+    'after a written Save the rate shows no error at %p and the field is dirty',
+    async (text) => {
+      const { result } = await mountWritten();
+
+      await typeRate(result, text);
+
+      expect(result.current.form.getValues('rate')).toBe(text);
+      expect(rateError(result)).toBeUndefined();
+      expect(result.current.form.getFieldState('rate').isDirty).toBe(true);
+    },
+  );
+
+  it('after a refused Save an unreadable rate shows its fault as typed', async () => {
+    const { result } = await mountRefused();
+    await typeRate(result, '50');
+    expect(rateError(result)).toBeUndefined();
+
+    await typeRate(result, '50abc');
+
+    expect(rateError(result)).toBe(Strings.errBalanceInvalid);
+  });
+
+  it('before any Save "50abc" and a cleared rate raise nothing', async () => {
+    const { result } = await mountScreen();
+
+    await typeRate(result, '50abc');
+    expect(rateError(result)).toBeUndefined();
+
+    await typeRate(result, '');
+    expect(rateError(result)).toBeUndefined();
+  });
+
+  it.each(['48.', '0', '0.0', ''])(
+    'Save with the rate %p reads the invalid message and never writes',
+    async (text) => {
+      const { result, setManualRate } = await mountScreen();
+      await act(() => result.current.form.setValue('rate', text));
+
+      await act(async () => result.current.handleSaveManualRate());
+
+      expect(rateError(result)).toBe(Strings.errBalanceInvalid);
+      expect(setManualRate).not.toHaveBeenCalled();
+    },
+  );
+
+  it('a clear and "48." sent back to back leave no fault once the validation settles', async () => {
+    const { result } = await mountRefused();
+    await typeRate(result, '50');
+    expect(rateError(result)).toBeUndefined();
+
+    await act(async () => {
+      result.current.setRateText('');
+      result.current.setRateText('48.');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(result.current.form.getValues('rate')).toBe('48.');
+    expect(rateError(result)).toBeUndefined();
   });
 });
 

@@ -16,7 +16,7 @@ import { ms } from '@/utils/responsive';
 import { useCurrencyScreen } from './currency.hook';
 
 export default function CurrencyScreen() {
-  const { state, form, handleFetchRate, handleSaveManualRate } = useCurrencyScreen();
+  const { state, form, setRateText, handleFetchRate, handleSaveManualRate } = useCurrencyScreen();
   const {
     rate,
     isManualOverride,
@@ -104,10 +104,10 @@ export default function CurrencyScreen() {
                 <Controller
                   control={control}
                   name="rate"
-                  render={({ field: { value, onChange, onBlur } }) => (
+                  render={({ field: { value, onBlur } }) => (
                     <Input
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={setRateText}
                       onBlur={onBlur}
                       keyboardType="decimal-pad"
                       isInvalid={!!errors.rate}

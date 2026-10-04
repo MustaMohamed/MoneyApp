@@ -17,7 +17,6 @@ import {
 } from '@/modules/budget/screens/budget/components/set_budget_sheet.hook';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import { toIconName } from '@/utils/icon_name_guard';
-import { maskFieldText } from '@/utils/money_text';
 import { ms } from '@/utils/responsive';
 
 export type SetBudgetSheetProps = SetBudgetSheetOptions;
@@ -33,6 +32,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
     state,
     control,
     submit,
+    setLimitText,
     selectCategory,
     selectGroup,
     togglePicker,
@@ -170,7 +170,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
             <Controller
               control={control}
               name="limitText"
-              render={({ field: { value, onChange }, fieldState }) => (
+              render={({ field: { value }, fieldState }) => (
                 <>
                   <View
                     className={cn(
@@ -180,13 +180,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                   >
                     <Input
                       value={value}
-                      onChangeText={(text) => {
-                        // Mask before `clearError`: a refused keystroke must not wipe the error.
-                        const masked = maskFieldText('amount', value, text);
-                        if (masked === undefined) return;
-                        clearError();
-                        onChange(masked);
-                      }}
+                      onChangeText={setLimitText}
                       onFocus={onFocus}
                       onBlur={onBlur}
                       keyboardType="decimal-pad"
