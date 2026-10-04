@@ -1,5 +1,8 @@
-// One ticket body for the board page: which issue the page may ask for, how its markdown goes to GitHub's renderer, and what the page gets back.
+// One ticket body for the board page: which issue the page may ask for, and how its markdown goes through GitHub's renderer.
 import { NAME, OWNER } from './board_comments.mjs';
+
+const LT = '';
+const ESCAPED_LT = '';
 
 /** @param {unknown} raw @returns {number | null} */
 export function issueNumber(raw) {
@@ -13,49 +16,27 @@ export function issueArgs(n) {
 
 export const MARKDOWN_ARGS = ['api', 'markdown', '--input', '-'];
 
-// GitHub's renderer drops <Month> as an unknown tag, so every < outside code and autolinks goes in as text.
+// GitHub's renderer drops <Month> as an unknown tag, so a < goes in as a private-use character, which passes through prose and code alike.
 /** @param {unknown} markdown @returns {string} */
-export function keepPlaceholders(markdown) {
-  /** @type {string | null} */
-  let fence = null;
+export function maskAngles(markdown) {
   return (typeof markdown === 'string' ? markdown : '')
-    .split('\n')
-    .map((line) => {
-      const mark = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1];
-      if (fence) {
-        const closes = mark && mark[0] === fence[0] && mark.length >= fence.length;
-        if (closes && line.trim() === mark) fence = null;
-        return line;
-      }
-      if (mark) {
-        fence = mark;
-        return line;
-      }
-      return line.replace(/(`+)(?:.*?[^`])?\1(?!`)|<(?!https?:\/\/[^\s>]+>)/g, (m) =>
-        m === '<' ? '&lt;' : m,
-      );
-    })
-    .join('\n');
+    .replace(/[]/g, '')
+    .replace(/\\<|<(?!https?:\/\/[^\s<>]+>)/g, (m) => (m === '<' ? LT : ESCAPED_LT));
+}
+
+// The way back: &lt; everywhere, and inside code the backslash of a \< is text again.
+/** @param {string} html @returns {string} */
+export function unmaskAngles(html) {
+  return html
+    .split(/(<pre[\s>][\s\S]*?<\/pre>|<code[\s>][\s\S]*?<\/code>)/)
+    .map((part, i) => part.replaceAll(ESCAPED_LT, i % 2 ? '\\&lt;' : '&lt;'))
+    .join('')
+    .replaceAll(LT, '&lt;')
+    .replaceAll('%EE%80%80', '%3C')
+    .replaceAll('%EE%80%81', '%5C%3C');
 }
 
 /** @param {unknown} markdown @returns {string} */
 export function markdownInput(markdown) {
-  return JSON.stringify({
-    text: keepPlaceholders(markdown),
-    mode: 'gfm',
-    context: `${OWNER}/${NAME}`,
-  });
-}
-
-/** @param {Record<string, unknown>} api @param {string} html */
-export function issueView(api, html) {
-  return {
-    number: api.number,
-    title: api.title ?? '',
-    state: api.state ?? null,
-    url: api.html_url ?? null,
-    updatedAt: api.updated_at ?? null,
-    isPull: Boolean(api.pull_request),
-    html,
-  };
+  return JSON.stringify({ text: maskAngles(markdown), mode: 'gfm', context: `${OWNER}/${NAME}` });
 }

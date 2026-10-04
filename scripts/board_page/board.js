@@ -29,10 +29,9 @@
   let actorF = 'all';
 
   const title = (a) => (a.title ?? '').replace(/^MA-\d+\s+—\s+/, '');
-  const gh = (href, text, cls = '') =>
-    `<a${cls ? ` class="${cls}"` : ''} href="${esc(href)}" target="_blank" rel="noopener">${text}</a>`;
-  const issueLink = (a, cls) =>
-    `<a class="${cls}" href="${esc(a.url)}" target="_blank" rel="noopener" title="Open issue #${a.number} on GitHub">#${a.number}</a>`;
+  const gh = (href, text, cls = '', tip = '') =>
+    `<a${cls ? ` class="${cls}"` : ''} href="${esc(href)}" target="_blank" rel="noopener"${tip ? ` title="${esc(tip)}"` : ''}>${text}</a>`;
+  const issueLink = (a, cls) => gh(a.url, `#${a.number}`, cls, `Open issue #${a.number} on GitHub`);
   const ids = (a) => `<b class="tc-ma">${esc(a.ma)}</b>${issueLink(a, 'tc-num')}`;
   const readBtn = (a, text) => `<button class="b sm" data-body="${a.number}">${text}</button>`;
   const label = (n) => {
@@ -442,7 +441,7 @@
           el.removeAttribute(at.name);
         else if (url && !SAFE_URL.test(at.value.trim())) el.removeAttribute(at.name);
       }
-      if (el.tagName === 'A') {
+      if (el.tagName === 'A' && !(el.getAttribute('href') ?? '').startsWith('#')) {
         el.target = '_blank';
         el.rel = 'noopener';
       }
@@ -452,10 +451,13 @@
   }
 
   let reading = null;
-  async function read(n) {
+  let opener = '';
+  const ZONES = '#heroes,#v-focus,#v-tree,#v-graph,#rows,#drawer';
+  async function read(n, from) {
     const a = byN.get(n);
     if (!a) return;
     reading = n;
+    if (from) opener = `#${from.closest(ZONES)?.id ?? 'rows'} [data-body="${n}"]`;
     const parent = a.parent ? byN.get(a.parent) : null;
     set(
       'rdIds',
@@ -472,10 +474,16 @@
     if (!$('reader').open) $('reader').showModal();
     body.scrollTop = 0;
     try {
-      const r = await fetch(`/api/issue?n=${n}`);
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
+      const r = await fetch(`/api/issue?n=${n}`).catch(() => null);
+      if (!r)
+        throw new Error(
+          'the board server did not answer, start it again with bash scripts/board.sh serve',
+        );
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || typeof j.html !== 'string')
+        throw new Error(j.error ?? `the board server answered ${r.status}`);
       if (reading !== n) return;
+      if (j.title) $('rdT').textContent = title(j);
       if (!j.html.trim()) {
         body.textContent = 'This ticket has no body yet.';
         return;
@@ -484,7 +492,7 @@
       body.replaceChildren(clean(j.html));
     } catch (e) {
       if (reading === n)
-        body.textContent = `Could not read #${n}: ${e.message}. The issue link above still opens it on GitHub.`;
+        body.textContent = `Could not read #${n}: ${e.message}. The issue link above opens it on GitHub.`;
     }
   }
 
@@ -552,11 +560,21 @@
 
   document.addEventListener('click', (e) => {
     if (e.target.id === 'rdClose' || e.target.id === 'reader') return $('reader').close();
+    const hash = e.target.closest('#rdBody a[href^="#"]');
+    if (hash) {
+      e.preventDefault();
+      const id = decodeURIComponent(hash.getAttribute('href').slice(1));
+      const to = [...$('rdBody').querySelectorAll('[id],[name]')].find((el) =>
+        [el.id, el.getAttribute('name')].some((v) => v === id || v === `user-content-${id}`),
+      );
+      to?.scrollIntoView({ block: 'start' });
+      return;
+    }
     const t = e.target.closest('[data-body],[data-run],[data-copy],[data-actor],[data-focus]');
     if (!t || (e.target.closest('a') && !t.dataset.run)) return;
     if (t.dataset.body) {
+      void read(Number(t.dataset.body), t);
       pick(Number(t.dataset.body));
-      void read(Number(t.dataset.body));
     } else if (t.dataset.run) ask(byN.get(Number(t.dataset.run)));
     else if (t.dataset.copy) void copy(t.dataset.copy);
     else if (t.dataset.actor) {
@@ -569,6 +587,11 @@
     table();
   });
   $('dlgNo').onclick = () => $('dlg').close();
+  // picking the ticket redrew the control that opened the reader, so focus goes back to its replacement
+  $('reader').addEventListener('close', () => {
+    reading = null;
+    if (opener) document.querySelector(opener)?.focus();
+  });
   $('refresh').onclick = () => {
     void load(true);
   };

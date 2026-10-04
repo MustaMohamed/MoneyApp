@@ -6,9 +6,12 @@ const moduleUrl = pathToFileURL(
   path.join(__dirname, '..', '..', 'scripts', 'board_issue.mjs'),
 ).href;
 
+const LT = '\uE000';
+const ESCAPED_LT = '\uE001';
+
 function driver<T>(expression: string): T {
   const code = `
-import { issueArgs, issueNumber, issueView, keepPlaceholders, MARKDOWN_ARGS, markdownInput } from ${JSON.stringify(moduleUrl)};
+import { issueArgs, issueNumber, MARKDOWN_ARGS, markdownInput, maskAngles, unmaskAngles } from ${JSON.stringify(moduleUrl)};
 process.stdout.write(JSON.stringify(${expression}));
 `;
   const r = spawnSync('node', ['--input-type=module', '-e', code], { encoding: 'utf8' });
@@ -60,75 +63,55 @@ describe('the ticket body the board page may ask for', () => {
     expect(driver<string[]>('MARKDOWN_ARGS')).toEqual(['api', 'markdown', '--input', '-']);
     expect(driver<string>('markdownInput("See #12 and <Month>")')).toBe(
       JSON.stringify({
-        text: 'See #12 and &lt;Month>',
+        text: `See #12 and ${LT}Month>`,
         mode: 'gfm',
         context: 'MustaMohamed/MoneyApp',
       }),
     );
   });
+});
+
+describe('a < on its way through the renderer', () => {
+  test.each([
+    ['a placeholder', 'in <Month>, <amount> <code>', `in ${LT}Month>, ${LT}amount> ${LT}code>`],
+    ['a raw tag', 'a <details>b</details>', `a ${LT}details>b${LT}/details>`],
+    ['a comparison', 'when a < b', `when a ${LT} b`],
+    ['a code span, masked like prose', 'the `<name>` field', `the \`${LT}name>\` field`],
+    [
+      'a fence under a bullet, masked like prose',
+      '- a\n\n    ```ts\n    const a: Array<string> = [];\n    ```',
+      `- a\n\n    \`\`\`ts\n    const a: Array${LT}string> = [];\n    \`\`\``,
+    ],
+    ['a backslash before it', 'a \\<Month> b', `a ${ESCAPED_LT}Month> b`],
+    [
+      'an autolink, left alone',
+      'see <https://example.com/a?b=1>',
+      'see <https://example.com/a?b=1>',
+    ],
+    ['a stray mask character in the body, removed', `a ${LT}b${ESCAPED_LT}c`, 'a bc'],
+    ['no body', null, ''],
+  ])('%s', (_, markdown, expected) => {
+    expect(driver<string>(`maskAngles(${JSON.stringify(markdown)})`)).toBe(expected);
+  });
 
   test.each([
+    ['prose', `<p>in ${LT}Month&gt; when a ${LT} b</p>`, '<p>in &lt;Month&gt; when a &lt; b</p>'],
     [
-      'a placeholder goes in as text',
-      'Nothing recorded in <Month>, <amount> <code>',
-      'Nothing recorded in &lt;Month>, &lt;amount> &lt;code>',
-    ],
-    ['a raw tag goes in as text too', 'a <details>b</details>', 'a &lt;details>b&lt;/details>'],
-    ['a comparison is kept', 'when a < b', 'when a &lt; b'],
-    [
-      'a code span is left alone',
-      'the `<name>` field and ``a ` <b>``',
-      'the `<name>` field and ``a ` <b>``',
-    ],
-    ['text after a code span is still escaped', '`x` then <y>', '`x` then &lt;y>'],
-    [
-      'an autolink is left alone',
-      'see <https://example.com/a?b=1>',
-      'see <https://example.com/a?b=1>',
+      'a code span and a highlighted block',
+      `<code class="notranslate">${LT}name&gt;</code><pre class="notranslate"><span>Array${LT}string</span></pre>`,
+      '<code class="notranslate">&lt;name&gt;</code><pre class="notranslate"><span>Array&lt;string</span></pre>',
     ],
     [
-      'a fenced block is left alone',
-      'a <x>\n```ts\nconst a = <T>() => 1;\n```\nb <y>',
-      'a &lt;x>\n```ts\nconst a = <T>() => 1;\n```\nb &lt;y>',
+      'an escaped one loses its backslash in prose and keeps it in code',
+      `<p>a ${ESCAPED_LT}b</p><pre>grep "${ESCAPED_LT}word"</pre><p><code>x${ESCAPED_LT}y</code> ${ESCAPED_LT}z</p>`,
+      '<p>a &lt;b</p><pre>grep "\\&lt;word"</pre><p><code>x\\&lt;y</code> &lt;z</p>',
     ],
     [
-      'a longer fence closes only on its own length',
-      '````\n```\n<in>\n````\n<out>',
-      '````\n```\n<in>\n````\n&lt;out>',
+      'one the linker took into a URL',
+      `<a href="https://example.com/%EE%80%80id%3E">https://example.com/${LT}id&gt;</a>`,
+      '<a href="https://example.com/%3Cid%3E">https://example.com/&lt;id&gt;</a>',
     ],
-    ['a tilde fence is a fence', '~~~\n<in>\n~~~\n<out>', '~~~\n<in>\n~~~\n&lt;out>'],
-    ['no body reads as empty', null, ''],
-  ])('%s', (_, markdown, expected) => {
-    expect(driver<string>(`keepPlaceholders(${JSON.stringify(markdown)})`)).toBe(expected);
-  });
-
-  test('the page gets the rendered body and the fields its header shows, nothing else', () => {
-    const api = {
-      number: 448,
-      title: 'MA-047 — A title',
-      state: 'open',
-      html_url: 'https://github.com/MustaMohamed/MoneyApp/issues/448',
-      updated_at: '2026-10-04T14:28:45Z',
-      body: '## Raw',
-      user: { login: 'someone' },
-    };
-    expect(
-      driver<Record<string, unknown>>(`issueView(${JSON.stringify(api)}, '<h2>Rendered</h2>')`),
-    ).toEqual({
-      number: 448,
-      title: 'MA-047 — A title',
-      state: 'open',
-      url: 'https://github.com/MustaMohamed/MoneyApp/issues/448',
-      updatedAt: '2026-10-04T14:28:45Z',
-      isPull: false,
-      html: '<h2>Rendered</h2>',
-    });
-  });
-
-  test('a pull request number is told apart from an issue', () => {
-    const view = driver<{ html: string; isPull: boolean }>(
-      'issueView({ number: 7, pull_request: { url: "x" } }, "")',
-    );
-    expect([view.html, view.isPull]).toEqual(['', true]);
+  ])('comes back as text: %s', (_, html, expected) => {
+    expect(driver<string>(`unmaskAngles(${JSON.stringify(html)})`)).toBe(expected);
   });
 });

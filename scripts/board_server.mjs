@@ -7,7 +7,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
-import { issueArgs, issueNumber, issueView, MARKDOWN_ARGS, markdownInput } from './board_issue.mjs';
+import {
+  issueArgs,
+  issueNumber,
+  MARKDOWN_ARGS,
+  markdownInput,
+  unmaskAngles,
+} from './board_issue.mjs';
 import { parseRunnable } from './board_run.mjs';
 
 const run = promisify(execFile);
@@ -69,22 +75,19 @@ async function readBoard(scope, fresh) {
   return cache.body;
 }
 
-const bodies = new Map();
-
-async function readIssue(n, fresh) {
-  const hit = bodies.get(n);
-  if (!fresh && hit && Date.now() - hit.at < CACHE_MS) return hit.view;
+// The body of one issue as HTML: the raw markdown, masked, through GitHub's renderer, unmasked. Always read fresh.
+async function readIssue(n) {
   const gh = { cwd: ROOT, timeout: 30_000, maxBuffer: 8 * 1024 * 1024 };
   const api = JSON.parse((await run('gh', issueArgs(n), gh)).stdout);
   let html = '';
   if (String(api.body ?? '').trim()) {
     const render = run('gh', MARKDOWN_ARGS, gh);
-    render.child.stdin.end(markdownInput(api.body));
-    html = (await render).stdout;
+    // gh can exit before it reads its input; the rejection below carries the failure, the stream error must not end the server.
+    render.child.stdin?.on('error', () => {});
+    render.child.stdin?.end(markdownInput(api.body));
+    html = unmaskAngles((await render).stdout);
   }
-  const view = issueView(api, html);
-  bodies.set(n, { at: Date.now(), view });
-  return view;
+  return { number: n, title: String(api.title ?? ''), html };
 }
 
 function send(res, status, type, body) {
@@ -185,7 +188,7 @@ async function handle(req, res) {
       if (opts.snapshot)
         return json(res, 409, { error: 'serving a saved snapshot, ticket bodies are not in it' });
       try {
-        return json(res, 200, await readIssue(n, url.searchParams.has('fresh')));
+        return json(res, 200, await readIssue(n));
       } catch (e) {
         return json(res, 502, {
           error: String(e.stderr || e.message)
