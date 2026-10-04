@@ -32,7 +32,7 @@ The 2026-10-03 decision on the ticket weighed two other routes. Flipping `enable
 
 ## 5. Removal
 
-The patch and the flag leave together once React Native sets the paint's face itself, or once `enablePreparedTextLayout` turns on, which stops `ReactTextView` handling `RCTText` and the patch running. A React Native bump leaves `react-native+0.86.3.patch` behind, and `__tests__/app_config_plugins.test.ts` goes red until the patch is regenerated under the new version with `npx patch-package react-native --include 'ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView\.java'`. Without `--include`, a run after a from-source build diffs `ReactAndroid/build` and `.cxx` into the patch. `patch-package` applies the patch at `postinstall`, so a checkout whose `node_modules` predates it needs `npm ci`.
+The patch, the flag and `mqa build`'s check that `android/settings.gradle` carries React Native's `includeBuild` block leave together once React Native sets the paint's face itself, or once `enablePreparedTextLayout` turns on, which stops `ReactTextView` handling `RCTText` and the patch running. A React Native bump leaves `react-native+0.86.3.patch` behind, and `__tests__/app_config_plugins.test.ts` goes red until the patch is regenerated under the new version with `npx patch-package react-native --include 'ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView\.java'`. Without `--include`, a run after a from-source build diffs `ReactAndroid/build` and `.cxx` into the patch. `patch-package` applies the patch at `postinstall`, so a checkout whose `node_modules` predates it needs `npm ci`.
 
 ## 6. Limits
 

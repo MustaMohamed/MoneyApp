@@ -397,6 +397,9 @@ cmd_build() {
   local abi
   abi="$(cmd_abi)"
   [ -d "$ROOT/android" ] || die "no android/ — run: npx expo prebuild --platform android"
+  # Without this block Gradle takes the prebuilt react-android, so the APK misses patches/.
+  grep -qF 'includeBuild(expoAutolinking.reactNative)' "$ROOT/android/settings.gradle" \
+    || die "android/settings.gradle does not build React Native from source — run: npx expo prebuild --platform android"
   [ -d "$SDK" ] || die "no Android SDK at $SDK; set ANDROID_HOME"
   # A cloned node_modules can predate patches/, and React Native compiles from that source.
   ( cd "$ROOT" && npx patch-package --error-on-fail ) || die "patch-package failed; the APK would miss patches/"
