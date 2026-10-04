@@ -28,7 +28,7 @@ index 1268eab..359bc86 100644
 +    }
 +    android.graphics.Typeface widest = null;
 +    float widestWidth = -1f;
-+    int next;
++    int next = 0;
 +    for (int i = 0; i < length; i = next) {
 +      next =
 +          spanned.nextSpanTransition(
@@ -62,7 +62,7 @@ index 1268eab..359bc86 100644
          Linkify.addLinks((Spannable) spanned, mLinkifyMaskType);
          setMovementMethod(LinkMovementMethod.getInstance());
        }
-+      setTypeface(resolvePaintTypeface(spanned))
++      setTypeface(resolvePaintTypeface(spanned));
        setText(spanned);
  
        int nextTextAlign = update.getTextAlign();
