@@ -13,6 +13,7 @@ import {
   createSheetCloseLifecycle,
   settleSheetCloseLifecycle,
   syncSheetCloseLifecycle,
+  type SheetCloseLifecycle,
 } from './sheet_close_lifecycle';
 
 // Keyboard inputs: wire this onto an `Input`'s `onFocus`/`onBlur` inside a sheet.
@@ -84,6 +85,15 @@ export function resolveSheetContentPadding({
   return { padding: 0 };
 }
 
+/** A sheet never opened, or one whose close has settled, draws nothing and takes no touch; any other passes touches through as HeroUI's portal view does. */
+export function resolveSheetRestProps(lifecycle: SheetCloseLifecycle): {
+  opacity: 0 | 1;
+  pointerEvents: 'none' | 'box-none';
+} {
+  if (!lifecycle.isOpen && !lifecycle.hasOpened) return { opacity: 0, pointerEvents: 'none' };
+  return { opacity: 1, pointerEvents: 'box-none' };
+}
+
 export interface SheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -129,14 +139,20 @@ export function Sheet({
   const insets = useSafeAreaInsets();
   // Measured, not derived: the footer's height is inset- and content-dependent, and gorhom's dynamic sizing does not fully count an absolute footer.
   const [footerHeight, setFooterHeight] = useState(0);
+  const [, setSettledCloseCount] = useState(0);
   const closeLifecycleRef = useRef(createSheetCloseLifecycle(isOpen));
   closeLifecycleRef.current = syncSheetCloseLifecycle(closeLifecycleRef.current, isOpen);
+  // Plain View props, which no animated style writes: a sheet closed at rest stays hidden whatever redraws its content.
+  const restProps = resolveSheetRestProps(closeLifecycleRef.current);
 
   const handleSheetIndexChange = useCallback(
     (index: number) => {
       const settlement = settleSheetCloseLifecycle(closeLifecycleRef.current, index);
       closeLifecycleRef.current = settlement.lifecycle;
-      if (settlement.shouldComplete) onCloseComplete?.();
+      if (!settlement.shouldComplete) return;
+      // The rest props read a ref at render, so a settled close asks for one more render.
+      setSettledCloseCount((count) => count + 1);
+      onCloseComplete?.();
     },
     [onCloseComplete],
   );
@@ -206,48 +222,54 @@ export function Sheet({
     <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>
       <BottomSheet.Portal>
         <BottomSheet.Overlay isCloseOnPress={isDismissable} />
-        <BottomSheet.Content
-          {...contentSizingProps}
-          onChange={handleSheetIndexChange}
-          {...resolveKeyboardProps(liftsAboveKeyboard)}
-          enablePanDownToClose={isDismissable}
-          backgroundClassName="bg-surface"
-          handleIndicatorClassName="bg-border"
-          {...(footer !== undefined ? { footerComponent: renderFooter } : {})}
+        <View
+          collapsable={false}
+          pointerEvents={restProps.pointerEvents}
+          style={[StyleSheet.absoluteFill, { opacity: restProps.opacity }]}
         >
-          {title !== undefined && (
-            // No `asChild`: `CloseButton`'s animated layers crash `Slot.Pressable` and Reanimated.
-            <View
-              testID="sheet-header"
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: Spacing.md,
-                paddingBottom: Spacing.xs,
-              }}
-            >
-              <BottomSheet.Title
-                className="flex-1"
+          <BottomSheet.Content
+            {...contentSizingProps}
+            onChange={handleSheetIndexChange}
+            {...resolveKeyboardProps(liftsAboveKeyboard)}
+            enablePanDownToClose={isDismissable}
+            backgroundClassName="bg-surface"
+            handleIndicatorClassName="bg-border"
+            {...(footer !== undefined ? { footerComponent: renderFooter } : {})}
+          >
+            {title !== undefined && (
+              // No `asChild`: `CloseButton`'s animated layers crash `Slot.Pressable` and Reanimated.
+              <View
+                testID="sheet-header"
                 style={{
-                  fontFamily: FontFamily.soraSemi,
-                  fontSize: Type.subhead,
-                  lineHeight: lineHeightFor(Type.subhead),
-                  color: Colors.dark.text1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: Spacing.md,
+                  paddingBottom: Spacing.xs,
                 }}
               >
-                {title}
-              </BottomSheet.Title>
-              {showCloseButton ? (
-                <BottomSheet.Close
-                  testID="sheet-close-btn"
-                  isDisabled={!isDismissable}
-                  iconProps={{ size: ms(24), color: Colors.dark.text2 }}
-                />
-              ) : null}
-            </View>
-          )}
-          {children}
-        </BottomSheet.Content>
+                <BottomSheet.Title
+                  className="flex-1"
+                  style={{
+                    fontFamily: FontFamily.soraSemi,
+                    fontSize: Type.subhead,
+                    lineHeight: lineHeightFor(Type.subhead),
+                    color: Colors.dark.text1,
+                  }}
+                >
+                  {title}
+                </BottomSheet.Title>
+                {showCloseButton ? (
+                  <BottomSheet.Close
+                    testID="sheet-close-btn"
+                    isDisabled={!isDismissable}
+                    iconProps={{ size: ms(24), color: Colors.dark.text2 }}
+                  />
+                ) : null}
+              </View>
+            )}
+            {children}
+          </BottomSheet.Content>
+        </View>
       </BottomSheet.Portal>
     </BottomSheet>
   );
