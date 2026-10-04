@@ -11,7 +11,7 @@ An unattended run parks each question it cannot answer as a question record, [qu
 ## Subcommands
 
 - `asks`: every open record on the board, one per message, by [references/asks.md](references/asks.md).
-- `Defined [n] [model]`, `Ready For Development [n] [model]`, `Planned [n] [model]`: `/issue-review`, `/prep` or `/ship` on the top eligible tickets of that column, by [references/column.md](references/column.md). `Planned` also resumes a ticket at In Progress or In Review that has a `state.md` on this machine, no lease and no open question record, and one at Awaiting Human whose PR has a change the user asked for after its merge summary. `n`, a whole number, caps the starts of one pass.
+- `Defined [n] [model]`, `Ready For Development [n] [model]`, `Planned [n] [model]`: `/issue-review`, `/prep` or `/ship` on the top eligible tickets of that column, by [references/column.md](references/column.md). `Defined` also starts `/issue-review <parent>` on a parent `/tickets` has just cut, column.md § One pass step 2, so the queue marks the parent before any child. `Planned` also resumes a ticket at In Progress or In Review that has a `state.md` on this machine, no lease and no open question record, and one at Awaiting Human whose PR has a change the user asked for after its merge summary. `n`, a whole number, caps the starts of one pass.
 - `model`: `fable`, `opus`, `sonnet` or `haiku`, the Agent tool's list. Each run executes inside one agent on that model, column.md § Wrapper. Omitted, the run executes on the app's default model for a new session. A number and a word are told apart by shape, so either order after the column.
 
 Any other argument: print this list and stop.
@@ -26,7 +26,7 @@ worktree=<absolute path>
 task=<task id>
 ```
 
-**Owner.** `/queue` writes the lease at each start, before `run_scheduled_task`: `skill=` the run's skill, `worktree=` the primary checkout, `task=` the task id. The started skill rewrites it with its own `worktree=` and keeps `task=`. A typed `/issue-review`, `/prep` or `/ship` writes no `task=` line. A lease whose `task=` equals the task id the run's prompt names is that run's own. `board_next.mjs` ignores `task=`.
+**Owner.** `/queue` writes the lease at each start, before `run_scheduled_task`: `skill=` the run's skill, `worktree=` the primary checkout, `task=` the task id. The started skill rewrites it with its own `worktree=` and keeps `task=`. A queued `/issue-review` on a parent writes each child's lease itself, with the same `task=` line, so every lease of the run is its own. A typed `/issue-review`, `/prep` or `/ship` writes no `task=` line. A lease whose `task=` equals the task id the run's prompt names is that run's own. `board_next.mjs` reads `task=` for one thing, counting a run once in `cap`.
 
 **Entry check**, run by `/ship` Entry, `/prep` step 2 and `/issue-review` step 1, for every issue the skill would lease, before it writes:
 
@@ -34,17 +34,17 @@ task=<task id>
 - any other held lease: stop, naming its skill, its last write and `rm ~/.ship/MoneyApp/queue/leases/<n>` for a user who knows that run is gone;
 - a stale lease: the same stop, reported as stale.
 
-**Touch.** The file's mtime is its last write. The holder touches it at every dispatch and every `state.md` write.
+**Touch.** The file's mtime is its last write. The holder touches it at every dispatch and every `state.md` write. A review of a parent touches every lease it holds, the parent's and each child's.
 
 **Release.** The holder removes it at every exit: its reply, a stop, a trim, a parked record. An unattended `/ship` removes it at Awaiting Human and ends. A typed `/ship` keeps it through the merge watch, which touches it each minute, and removes it after the post-merge list.
 
-**Stale** is a lease whose worktree is gone, or with no write for 2 hours. `board_next.mjs` lists it as `drift` with its `rm` command. The queue reports it and never removes it, and no run takes it.
+**Stale** is a lease whose worktree is gone, or with no write for 2 hours. `board_next.mjs` lists it as `drift` with its `rm` command; on a parent the command also names each child's stale lease of the same skill, so one command clears a review that died. The queue reports it and never removes it, and no run takes it.
 
 ## Rules
 
 - A question is never decided for the user. The recommendation goes first; the user chooses or defers.
 - Ready For Development stays one-way: only a ticket at Blocked returns there.
-- A parent is never pulled. The queue starts leaves only.
+- A parent is never pulled: no `/prep` or `/ship` run starts on one. The one start on a parent is `/issue-review <parent>` from `/queue Defined`, which marks it before its children; no child is started while its parent reads `Reviewed none`.
 - The merge is the user's. No run merges, approves the gate or turns on auto-merge.
 - No shell script or CLI runner starts a run; only the tools in [column.md](references/column.md) § Start do.
 - The queue answers no question. A run that meets one parks it and ends; the queue goes on with the other tickets.
