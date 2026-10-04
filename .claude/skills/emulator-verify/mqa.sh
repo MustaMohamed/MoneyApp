@@ -19,8 +19,9 @@ APK="${MQA_APK:-android/app/build/outputs/apk/debug/app-debug.apk}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../.." && pwd)"
 
-ADB="$(command -v adb || echo "$HOME/Library/Android/sdk/platform-tools/adb")"
-EMU="$HOME/Library/Android/sdk/emulator/emulator"
+SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
+ADB="$(command -v adb || echo "$SDK/platform-tools/adb")"
+EMU="$SDK/emulator/emulator"
 
 die() { echo "mqa: $*" >&2; exit 1; }
 
@@ -396,9 +397,12 @@ cmd_build() {
   local abi
   abi="$(cmd_abi)"
   [ -d "$ROOT/android" ] || die "no android/ — run: npx expo prebuild --platform android"
+  [ -d "$SDK" ] || die "no Android SDK at $SDK; set ANDROID_HOME"
+  # A cloned node_modules can predate patches/, and React Native compiles from that source.
+  ( cd "$ROOT" && npx patch-package --error-on-fail ) || die "patch-package failed; the APK would miss patches/"
   echo "building debug APK for $abi only (all-ABI is ~3x the size and cannot install)"
   # React Native's from-source build reads the SDK from the environment; local.properties is not enough.
-  [ -n "${ANDROID_HOME:-}${ANDROID_SDK_ROOT:-}" ] || export ANDROID_HOME="$HOME/Library/Android/sdk"
+  export ANDROID_HOME="$SDK"
   ( cd "$ROOT/android" && ./gradlew assembleDebug "-PreactNativeArchitectures=$abi" )
   ls -lh "$ROOT/$APK"
 }
