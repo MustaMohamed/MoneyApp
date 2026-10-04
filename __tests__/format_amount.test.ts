@@ -9,9 +9,13 @@ import {
   formatDisplayMagnitude,
   formatExchangeRate,
   formatExchangeRateSentence,
+  formatLiabilityAmountParts,
+  formatLiabilityRowValue,
+  formatOwnedAmountParts,
   formatRateDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
+import { roundMoney } from '@/utils/money';
 
 describe('formatAmount', () => {
   it('formats integer with comma separator', () => {
@@ -285,5 +289,97 @@ describe('signAmountText — the one sign composition point (#332)', () => {
     expect(signAmountText(egp.text, MINUS_SIGN, egp.printsAsZero)).toBe('−1,200');
     const usd = formatDisplayMagnitude(0.001, Currency.USD);
     expect(signAmountText(usd.text, MINUS_SIGN, usd.printsAsZero)).toBe('0.00');
+  });
+});
+
+// `LiabilityRow.balance` is signed: positive is owed, negative is in credit.
+describe('formatLiabilityRowValue — the single composition point for a liability row (#259 C3)', () => {
+  it.each([
+    [500, '−500'],
+    [5000, '−5,000'],
+    [-500, '+500'],
+    [-300, '+300'],
+    [0.4, '−0.40'],
+    [-0.4, '+0.40'],
+    [-0, '0'],
+    [0.001, '0.00'],
+  ] as const)('%s -> %s', (balance, expected) => {
+    expect(formatLiabilityRowValue(balance, Currency.EGP)).toBe(expected);
+  });
+
+  it('composes U+2212, never an ASCII hyphen, on an owed row', () => {
+    const rendered = formatLiabilityRowValue(500, Currency.EGP);
+    expect(rendered.codePointAt(0)).toBe(0x2212);
+    expect(rendered).not.toContain('-');
+  });
+
+  it('agrees with the section header on the half-cent rounding case', () => {
+    // 9.51 USD at 40.01 is 380.4951, rounds to 380.50, displays as 381.
+    expect(formatLiabilityRowValue(roundMoney(9.51 * 40.01), Currency.EGP)).toBe('−381');
+  });
+
+  // EGP's zero decimals would print 1,500.50 as `1,500` and drop the cents; USD keeps them.
+  it.each([
+    [1500.5, '−1,500.50'],
+    [-1500.5, '+1,500.50'],
+    [500, '−500.00'],
+  ] as const)('USD base: %s -> %s', (balance, expected) => {
+    expect(formatLiabilityRowValue(balance, Currency.USD)).toBe(expected);
+  });
+});
+
+// `amount.netWorth`/`amount.assets` and `LiquidityBreakdown.liquid`/`.reserve`/account rows are
+// magnitudes the user owns (ADR decision 1): unsigned at zero/positive, `−` only if genuinely
+// negative — never `+`, unlike the owed-frame liability convention above.
+describe('formatOwnedAmountParts — the composition point for an owned magnitude (#332)', () => {
+  // Characterization, not guard (review.md's gate rule): `formatAmount` itself is untouched by
+  // this PR, so this passes identically at base and head — it documents why the fix below is
+  // needed, it does not prove the fix works.
+  it('characterizes the bug this function fixes: plain formatAmount(-0) prints an ASCII "-0"', () => {
+    expect(formatAmount(-0)).toBe('-0');
+  });
+
+  it.each([
+    [500, '500'],
+    [-500, '−500'],
+    [-0, '0'],
+    [0, '0'],
+    [0.4, '0.40'],
+    [-0.4, '−0.40'],
+    [0.001, '0.00'],
+  ] as const)('%s -> %s', (value, expected) => {
+    expect(formatOwnedAmountParts(value, Currency.EGP)).toEqual({ value: expected, code: 'EGP' });
+  });
+
+  it('composes U+2212, never an ASCII hyphen, for a genuine negative', () => {
+    const { value } = formatOwnedAmountParts(-500, Currency.EGP);
+    expect(value.codePointAt(0)).toBe(0x2212);
+    expect(value).not.toContain('-');
+  });
+
+  it('never prefixes `+` for a positive magnitude, unlike the owed-frame convention', () => {
+    expect(formatOwnedAmountParts(500, Currency.EGP).value).not.toContain('+');
+  });
+
+  it.each([
+    [1500.5, '1,500.50'],
+    [-1500.5, '−1,500.50'],
+    // Unsigned-zero convention: an exact zero is always '0', never the currency's own decimals.
+    [0, '0'],
+  ] as const)('USD base: %s -> %s', (value, expected) => {
+    expect(formatOwnedAmountParts(value, Currency.USD)).toEqual({ value: expected, code: 'USD' });
+  });
+});
+
+describe('formatLiabilityAmountParts — the aggregate liabilities total, same owed-frame sign as a row (#332)', () => {
+  it.each([
+    [500, '−500'],
+    [-500, '+500'],
+    [-0, '0'],
+  ] as const)('%s -> %s', (value, expected) => {
+    expect(formatLiabilityAmountParts(value, Currency.EGP)).toEqual({
+      value: expected,
+      code: 'EGP',
+    });
   });
 });

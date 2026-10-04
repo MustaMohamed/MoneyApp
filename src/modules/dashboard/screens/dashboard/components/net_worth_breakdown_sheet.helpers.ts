@@ -2,13 +2,7 @@ import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
-import {
-  MINUS_SIGN,
-  PLUS_SIGN,
-  formatDisplayMagnitude,
-  signAmountText,
-} from '@/utils/format_amount';
+import { formatOwnedAmountParts } from '@/utils/format_amount';
 
 import type { LiquidityBreakdown } from '../dashboard.helpers';
 
@@ -43,24 +37,6 @@ export function resolveBreakdownRowColors(kind: BreakdownRowKind): {
   value: string | undefined;
 } {
   return { legend: BREAKDOWN_ROW_LEGEND_COLOR[kind], value: undefined };
-}
-
-/** `balance` is signed: positive owed, negative in credit. Pass a `roundMoney`-quantised value. */
-export function formatLiabilityRowValue(balance: number, baseCurrency: Currency): string {
-  const { text, printsAsZero } = formatDisplayMagnitude(balance, baseCurrency);
-  return signAmountText(text, balance < 0 ? PLUS_SIGN : MINUS_SIGN, printsAsZero);
-}
-
-/** `amount.liabilities` shares `LiabilityRow.balance`'s owed-frame sign (positive owed, negative
- * in credit) — the same composition point, with the currency code alongside for the header/footer. */
-export function formatLiabilityAmountParts(
-  value: number,
-  baseCurrency: Currency,
-): { value: string; code: string } {
-  return {
-    value: formatLiabilityRowValue(value, baseCurrency),
-    code: CURRENCY_CONFIG[baseCurrency].code,
-  };
 }
 
 /** An overdrawn account can make a part negative while the total stays positive. */

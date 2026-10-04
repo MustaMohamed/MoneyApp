@@ -43,7 +43,7 @@ Banker's rounding (round-half-even) to 2 dp. Apply to **every persisted monetary
 
 ## Formatting — `src/utils/format_amount.ts`
 
-All twelve exports, as of this commit:
+Every export, as of this commit:
 
 | Export | What it is |
 |---|---|
@@ -52,10 +52,16 @@ All twelve exports, as of this commit:
 | `formatCurrencyParts(value, currency, decimals?)` | `{ value, code }` — the same decimals rule as `formatCurrencyAmount`, for the two-node splits where the code renders in its own `<Text>` |
 | `formatCurrencyTotals(totals: Map<Currency, number>)` | one `formatCurrencyAmount` join per currency present, `'X  ·  Y'`; the em-dash placeholder for an empty map |
 | `formatDisplayMagnitude(value, currency)` | `{ text, printsAsZero }` — absolute magnitude for composed-sign sites, escalating to 2 dp when currency precision would print a real value as `0` |
+| `formatCurrencyMagnitude(value, currency)` | `{ text, printsAsZero }`, the absolute magnitude at `CURRENCY_CONFIG[currency].decimals`, never escalated; the account detail balance passes it to `formatOwnedAmountParts` so a zero USD balance prints `0.00` |
+| `formatOwnedAmountParts(value, currency, magnitude?)` | `{ value, code }` for an owned amount (2026-08-27 money-colour ADR decision 1): `−` only below zero, never `+`, no sign on a text that prints as zero; `magnitude` defaults to `formatDisplayMagnitude(value, currency)` |
+| `formatLiabilityRowValue(balance, baseCurrency)` | an owed amount in the owed frame, `balance` positive when owed: `−` when owed, `+` when in credit, no sign on a text that prints as zero; magnitude from `formatDisplayMagnitude` |
+| `formatLiabilityAmountParts(value, baseCurrency)` | `{ value, code }`, `formatLiabilityRowValue` with the currency code, for a liabilities total |
+| `MONEY_ROUNDING_DECIMALS` | the 2 dp `roundMoney` persists; the precision `formatDisplayMagnitude` escalates to |
+| `formatRateDisplayMagnitude(rate)` | `{ text, printsAsZero }` for a rate: starts at `EXCHANGE_RATE_DECIMALS` and adds one place at a time up to 8 dp until a nonzero digit shows; throws `RangeError` on a non-finite or non-positive rate |
 | `formatExchangeRate(rate)` | `48.60 EGP/USD`; owns rate precision — `.claude/rules/ui.md` names it canonical for rates |
 | `formatExchangeRateSentence(rate)` | `1 USD = 48.60 EGP`; the labelled-row long form beside a rate chip's compact `formatExchangeRate` |
 | `EXCHANGE_RATE_DECIMALS` | the 2 dp that `formatExchangeRate` and `formatExchangeRateSentence` apply |
-| `signAmountText(text, sign, printsAsZero = false)` | the one sign composition point (#332): prefixes the glyph onto formatted text; a text that prints as zero takes no sign |
+| `signAmountText(text, sign, printsAsZero = false)` | the sign composition point (#332): prefixes the glyph onto formatted text; a text that prints as zero takes no sign. Owned and owed amounts go through `formatOwnedAmountParts`, `formatLiabilityRowValue` and `formatLiabilityAmountParts`, which call it; a flow sign (`+` in, `−` out) calls it directly |
 | `MINUS_SIGN` / `PLUS_SIGN` | the canonical glyphs — `−` is U+2212 per the 2026-08-27 money-colour ADR decision 3, never the ASCII hyphen |
 | `AmountSign` (type) | `MINUS_SIGN \| PLUS_SIGN \| ''` — sites with a fixed direction take `Exclude<AmountSign, ''>` |
 

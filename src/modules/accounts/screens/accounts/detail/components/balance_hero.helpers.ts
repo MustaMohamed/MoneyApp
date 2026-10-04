@@ -4,7 +4,11 @@ import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import { isOverLimit } from '@/modules/accounts/constants/is_over_limit';
-import { MINUS_SIGN, formatAmount, signAmountText } from '@/utils/format_amount';
+import {
+  formatAmount,
+  formatCurrencyMagnitude,
+  formatOwnedAmountParts,
+} from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
 
@@ -74,15 +78,10 @@ export function formatAccountBalanceParts(
   balance: number,
   currency: Currency,
 ): AccountBalanceParts {
-  const { decimals, code } = CURRENCY_CONFIG[currency];
-  // Not `formatOwnedAmountParts`: `formatDisplayMagnitude` prints an exact zero at 0dp on every currency.
-  const magnitude = formatAmount(Math.abs(balance), decimals);
-  const printsAsZero = magnitude === formatAmount(0, decimals);
-  return {
-    amount: signAmountText(magnitude, balance < 0 ? MINUS_SIGN : '', printsAsZero),
-    code,
-    printsAsZero,
-  };
+  // Currency decimals, not `formatDisplayMagnitude`, which prints an exact zero at 0dp.
+  const magnitude = formatCurrencyMagnitude(balance, currency);
+  const { value, code } = formatOwnedAmountParts(balance, currency, magnitude);
+  return { amount: value, code, printsAsZero: magnitude.printsAsZero };
 }
 
 /** An unsigned magnitude at the currency's decimals, with the canonical `−` when overdrawn (#411). */

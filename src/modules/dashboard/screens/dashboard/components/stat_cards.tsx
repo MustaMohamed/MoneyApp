@@ -13,11 +13,13 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
-import { formatCurrencyParts } from '@/utils/format_amount';
+import {
+  formatCurrencyParts,
+  formatLiabilityRowValue,
+  formatOwnedAmountParts,
+} from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
-import { formatLiabilityRowValue } from './net_worth_breakdown_sheet.helpers';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 import {
   type MonthSpendLegState,

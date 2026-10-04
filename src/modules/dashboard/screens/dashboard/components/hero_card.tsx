@@ -15,8 +15,7 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
-import { formatExchangeRate } from '@/utils/format_amount';
+import { formatExchangeRate, formatOwnedAmountParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';

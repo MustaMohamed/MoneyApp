@@ -97,6 +97,44 @@ export function formatDisplayMagnitude(
   return { text, printsAsZero };
 }
 
+/** The magnitude at the currency's own decimals, never escalated, unlike `formatDisplayMagnitude`. */
+export function formatCurrencyMagnitude(
+  value: number,
+  currency: Currency,
+): { text: string; printsAsZero: boolean } {
+  const text = formatAmount(Math.abs(value), CURRENCY_CONFIG[currency].decimals);
+  return { text, printsAsZero: ZERO_AT_DISPLAY_PRECISION.test(text) };
+}
+
+/** An owned magnitude (ADR 2026-08-27 decision 1) takes `−` only below zero and never `+`, and a `-0` from float noise prints unsigned (#332). */
+export function formatOwnedAmountParts(
+  value: number,
+  currency: Currency,
+  magnitude: { text: string; printsAsZero: boolean } = formatDisplayMagnitude(value, currency),
+): { value: string; code: string } {
+  return {
+    value: signAmountText(magnitude.text, value < 0 ? MINUS_SIGN : '', magnitude.printsAsZero),
+    code: CURRENCY_CONFIG[currency].code,
+  };
+}
+
+/** `balance` is signed: positive owed, negative in credit. Pass a `roundMoney`-quantised value. */
+export function formatLiabilityRowValue(balance: number, baseCurrency: Currency): string {
+  const { text, printsAsZero } = formatDisplayMagnitude(balance, baseCurrency);
+  return signAmountText(text, balance < 0 ? PLUS_SIGN : MINUS_SIGN, printsAsZero);
+}
+
+/** A liabilities total in `formatLiabilityRowValue`'s owed-frame sign, with the currency code alongside. */
+export function formatLiabilityAmountParts(
+  value: number,
+  baseCurrency: Currency,
+): { value: string; code: string } {
+  return {
+    value: formatLiabilityRowValue(value, baseCurrency),
+    code: CURRENCY_CONFIG[baseCurrency].code,
+  };
+}
+
 // Ceiling for rate-display escalation only; a rate has no rounding floor to escalate to once
 // (docs/adr/2026-08-26-parse-floor-money-only.md §2), so `formatDisplayMagnitude`'s single hop
 // doesn't apply here. 1e-7 needs 7dp to show a leading digit; this gives one digit of headroom.

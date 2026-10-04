@@ -11,6 +11,7 @@ import {
   PLUS_SIGN,
   formatAmount,
   formatDisplayMagnitude,
+  formatOwnedAmountParts,
   signAmountText,
 } from '@/utils/format_amount';
 import type { TransactionDateGroup } from '@/utils/group_transactions_by_date';
@@ -242,8 +243,7 @@ export function resolveTransactionsHeroMode(
 const HERO_CURRENCY = Currency.EGP;
 
 function formatHeroAmount(value: number): string {
-  const { text, printsAsZero } = formatDisplayMagnitude(value, HERO_CURRENCY);
-  return signAmountText(text, value < 0 ? MINUS_SIGN : '', printsAsZero);
+  return formatOwnedAmountParts(value, HERO_CURRENCY).value;
 }
 
 function formatSignedNet(netEgp: number): { text: string; polarity: PolaritySignal } {

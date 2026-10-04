@@ -18,7 +18,7 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
+import { formatOwnedAmountParts } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 // Intentionally 2 of the 3 shared hero stops.

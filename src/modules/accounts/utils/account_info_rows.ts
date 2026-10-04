@@ -12,11 +12,10 @@ import {
   PLUS_SIGN,
   formatCurrencyParts,
   formatDisplayMagnitude,
+  formatOwnedAmountParts,
   signAmountText,
 } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
-
-import { formatOwnedAmountParts } from './format_owned_amount';
 
 // 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;

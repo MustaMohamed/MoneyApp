@@ -1,6 +1,6 @@
 import { Currency } from '@/constants/enums';
 import { Colors } from '@/constants/theme';
-import { MINUS_SIGN, formatDisplayMagnitude, signAmountText } from '@/utils/format_amount';
+import { formatOwnedAmountParts } from '@/utils/format_amount';
 
 /**
  * "Left to spend" is an owned magnitude, same family as `budget_card.tsx`'s left figure: unsigned
@@ -14,9 +14,8 @@ export function resolveLiveMonthLeftPresentation(
   spent: number,
 ): { text: string; color: string } {
   const left = limit - spent;
-  const { text, printsAsZero } = formatDisplayMagnitude(left, Currency.EGP);
   return {
-    text: signAmountText(text, left < 0 ? MINUS_SIGN : '', printsAsZero),
+    text: formatOwnedAmountParts(left, Currency.EGP).value,
     color: left >= 0 ? Colors.dark.positive : Colors.dark.negative,
   };
 }

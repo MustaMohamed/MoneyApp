@@ -12,9 +12,9 @@ import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_pale
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { buildInfoRows } from '@/modules/dashboard/utils/account_card.helpers';
-import { formatOwnedAmountParts } from '@/modules/dashboard/utils/format_owned_amount';
+import { buildInfoRows } from '@/modules/accounts/utils/account_info_rows';
 import { resolveAccountName } from '@/utils/account_name';
+import { formatOwnedAmountParts } from '@/utils/format_amount';
 import { ms, msFont } from '@/utils/responsive';
 
 // The `caption` variant's raw px, so above 1.0 the value grows from the size it draws at 1.0.
