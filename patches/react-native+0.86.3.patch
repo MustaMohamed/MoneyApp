@@ -1,0 +1,68 @@
+diff --git a/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java b/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java
+index 1268eab..359bc86 100644
+--- a/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java
++++ b/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java
+@@ -73,9 +73,13 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
+   private @Nullable Spannable mSpanned;
+   private @Nullable PreparedLayout mPreparedLayout;
+ 
++  private @Nullable android.graphics.Typeface mConstructedTypeface;
++  private final android.text.TextPaint mEllipsisProbe = new android.text.TextPaint();
++
+   public ReactTextView(Context context) {
+     super(context);
+     initView();
++    mConstructedTypeface = getTypeface();
+   }
+ 
+   /**
+@@ -223,6 +227,41 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
+     }
+   }
+ 
++  // Patched for MA-141, ADR 2026-10-03-android-ellipsis-paint-typeface: the paint takes the face its text draws in.
++  private @Nullable android.graphics.Typeface resolvePaintTypeface(Spanned spanned) {
++    int length = spanned.length();
++    if (length == 0) {
++      return mConstructedTypeface;
++    }
++    android.graphics.Typeface widest = null;
++    float widestWidth = -1f;
++    int next;
++    for (int i = 0; i < length; i = next) {
++      next =
++          spanned.nextSpanTransition(
++              i, length, com.facebook.react.views.text.internal.span.CustomStyleSpan.class);
++      com.facebook.react.views.text.internal.span.CustomStyleSpan[] spans =
++          spanned.getSpans(
++              i, next, com.facebook.react.views.text.internal.span.CustomStyleSpan.class);
++      if (spans.length == 0) {
++        return mConstructedTypeface;
++      }
++      mEllipsisProbe.set(getPaint());
++      for (com.facebook.react.views.text.internal.span.CustomStyleSpan span : spans) {
++        if (span.getFontFamily() == null) {
++          return mConstructedTypeface;
++        }
++        span.updateMeasureState(mEllipsisProbe);
++      }
++      float width = mEllipsisProbe.measureText("\u2026");
++      if (width > widestWidth) {
++        widestWidth = width;
++        widest = mEllipsisProbe.getTypeface();
++      }
++    }
++    return widest;
++  }
++
+   public void setText(ReactTextUpdate update) {
+     try (SystraceSection s = new SystraceSection("ReactTextView.setText(ReactTextUpdate)")) {
+       // Android's TextView crashes when it tries to relayout if LayoutParams are
+@@ -239,6 +278,7 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
+         Linkify.addLinks((Spannable) spanned, mLinkifyMaskType);
+         setMovementMethod(LinkMovementMethod.getInstance());
+       }
++      setTypeface(resolvePaintTypeface(spanned));
+       setText(spanned);
+ 
+       int nextTextAlign = update.getTextAlign();

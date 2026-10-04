@@ -36,6 +36,17 @@ describe('app.json plugin contract', () => {
     expect(expo.android.adaptiveIcon.backgroundColor).toBe('#0F1923');
   });
 
+  it('compiles React Native from source on Android only, so the patched text view ships', () => {
+    const buildProperties = expo.plugins.find(
+      (p: unknown) => pluginName(p) === 'expo-build-properties',
+    ) as [string, Record<string, unknown>] | undefined;
+    expect(buildProperties).toBeDefined();
+    expect(buildProperties?.[1]).toEqual({
+      android: { newArchEnabled: true, buildReactNativeFromSource: true },
+      ios: { newArchEnabled: true },
+    });
+  });
+
   it('keeps the splash options that make the Android 12 mask safe', () => {
     const splash = expo.plugins.find((p: unknown) => pluginName(p) === 'expo-splash-screen') as [
       string,
@@ -50,5 +61,31 @@ describe('app.json plugin contract', () => {
     });
     // Android's 192dp icon circle clips a centred square past 2*96/sqrt(2) = 135.76dp.
     expect(splash[1].imageWidth as number).toBeLessThanOrEqual(135);
+  });
+});
+
+describe('patches contract', () => {
+  const root = path.join(__dirname, '..');
+  const patches = fs.readdirSync(path.join(root, 'patches')).filter((f) => f.endsWith('.patch'));
+  const installedVersion = (name: string) =>
+    (
+      JSON.parse(
+        fs.readFileSync(path.join(root, 'node_modules', name, 'package.json'), 'utf8'),
+      ) as { version: string }
+    ).version;
+
+  it('holds a react-native patch for the installed react-native version', () => {
+    expect(patches).toContain(`react-native+${installedVersion('react-native')}.patch`);
+  });
+
+  it('names every patch for the installed version of its package', () => {
+    expect(patches.length).toBeGreaterThan(0);
+    for (const file of patches) {
+      // patch-package names a scoped package `@scope+name+<version>.patch`.
+      const parts = file.slice(0, -'.patch'.length).split('+');
+      const version = parts.pop();
+      const name = parts.join('/');
+      expect(`${name}@${version}`).toBe(`${name}@${installedVersion(name)}`);
+    }
   });
 });
