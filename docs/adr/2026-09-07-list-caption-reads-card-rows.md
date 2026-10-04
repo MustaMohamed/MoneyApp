@@ -3,13 +3,13 @@
 - **Date:** 2026-09-07
 - **Status:** accepted
 - **Ticket:** MA-024 (#398), under MA-015 (#381)
-- **Applies to:** `src/modules/accounts/screens/accounts/list/accounts_list.helpers.ts`, `src/modules/accounts/screens/accounts/list/accounts_list.hook.ts`, and `buildInfoRows` in `src/modules/accounts/utils/account_info_rows.ts`
+- **Applies to:** `src/modules/accounts/screens/accounts/list/accounts_list.helpers.ts`, `src/modules/accounts/screens/accounts/list/accounts_list.hook.ts`, `buildInfoRows` in `src/modules/accounts/utils/account_info_rows.ts`, and `src/modules/accounts/domain/account_figures.ts`
 
-The accounts list row now carries a live figure line under the name, one per account type. The figures are the dashboard card's, read from the card's own rows. The caption computes, converts, rounds and formats no amount. `buildInfoRows` does all four, and the accounts module owns it since #624.
+The accounts list row now carries a live figure line under the name, one per account type. The figures are the dashboard card's, read from the card's own rows. The caption computes, converts, rounds and formats no amount. `buildInfoRows` formats and labels each figure, and since #666 it computes, converts and rounds through `src/modules/accounts/domain/account_figures.ts`. The accounts module owns it since #624.
 
 ## 1. The caption is a selection, not a second computation
 
-`buildInfoRows(account, rate, stats, isRateUsable, baseCurrency)` stays the only place a caption figure is computed or formatted. Every row it returns now carries a `kind` (`limit`, `available`, `monthIn`, `inBase`, …) and an `amountText`, which is `value` without the currency code. `resolveAccountCaption` indexes the rows by `kind`, reads `amountText ?? value`, and joins the text into one of the five templates in `constants/strings.ts`. It calls no formatter for an amount, and the card and the list are therefore byte-equal on the same account.
+`buildInfoRows(account, rate, stats, isRateUsable, baseCurrency)` stays the only place a caption figure is formatted; it computes through `account_figures.ts` since #666. Every row it returns now carries a `kind` (`limit`, `available`, `monthIn`, `inBase`, …) and an `amountText`, which is `value` without the currency code. `resolveAccountCaption` indexes the rows by `kind`, reads `amountText ?? value`, and joins the text into one of the five templates in `constants/strings.ts`. It calls no formatter for an amount, and the card and the list are therefore byte-equal on the same account.
 
 The alternative the ticket sketched, giving each row an `amount: number` and reformatting it in the list with `formatCurrencyParts`, is refused. Two rows would drift under it. The savings change row (`account_info_rows.ts`, `signedStatParts`) and the base-equivalent row (`formatOwnedAmountParts`) both go through `formatDisplayMagnitude`, which escalates a sub-unit EGP figure to 2dp: the card prints `0.40` where a plain `formatCurrencyParts` at EGP's 0dp prints `0`. Both also compose a zero-gated sign, which the list would have had to compose a second time. Reformatting a number is a second derivation path, which is the drift `.claude/rules/review.md` item 3 names.
 

@@ -3,9 +3,15 @@ import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
-import { isOverLimit } from '@/modules/accounts/constants/is_over_limit';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
-import { convertCurrency } from '@/modules/accounts/domain/account_aggregation';
+import {
+  availableCredit,
+  baseEquivalent,
+  dailyAverage,
+  netFlow,
+  savingsMonthStart,
+} from '@/modules/accounts/domain/account_figures';
+import { isOverLimit } from '@/modules/accounts/domain/is_over_limit';
 import type { Account } from '@/modules/accounts/store/account.store';
 import {
   MINUS_SIGN,
@@ -15,7 +21,6 @@ import {
   formatOwnedAmountParts,
   signAmountText,
 } from '@/utils/format_amount';
-import { roundMoney } from '@/utils/money';
 
 // 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;
@@ -110,7 +115,7 @@ export function buildInfoRows(
   if (account.type === AccountType.CreditCard) {
     const limit = account.credit_limit ?? 0;
     const balance = account.current_balance;
-    const available = Math.max(0, limit - balance);
+    const available = availableCredit(balance, limit);
     const availColor = availableCreditColor(available, limit);
     const dueDay = account.statement_due_day;
 
@@ -137,8 +142,7 @@ export function buildInfoRows(
   }
 
   if (account.type === AccountType.PhysicalWallet) {
-    const daysElapsed = Math.max(1, new Date().getDate());
-    const avgDay = s.month_out / daysElapsed;
+    const avgDay = dailyAverage(s.month_out, new Date().getDate());
     return [
       {
         kind: 'monthSpend',
@@ -161,14 +165,14 @@ export function buildInfoRows(
   }
 
   if (account.type === AccountType.PhysicalSavings) {
-    const change = s.month_in - s.month_out;
-    const monthStart = account.current_balance - change;
+    const change = netFlow(s.month_in, s.month_out);
+    const monthStart = savingsMonthStart(account.current_balance, s.month_in, s.month_out);
     const changeColor = change >= 0 ? Colors.dark.positive : Colors.dark.negative;
     return [
       {
         kind: 'monthStart',
         label: Strings.cardMonthStartLabel,
-        ...amountParts(Math.max(0, monthStart), cur),
+        ...amountParts(monthStart, cur),
       },
       {
         kind: 'change',
@@ -180,36 +184,32 @@ export function buildInfoRows(
     ];
   }
 
-  const weekNet = s.week_in - s.week_out;
+  const weekNet = netFlow(s.week_in, s.week_out);
   const weekNetColor = weekNet >= 0 ? Colors.dark.positive : Colors.dark.negative;
 
-  // Fires whichever side of the base the account sits on (#349): `convertCurrency` picks the
-  // direction from `from`/`to`, and the base's own code drives both label and display decimals.
-  // One `roundMoney` at the call site; `convertCurrency` deliberately does not round (W4 ADR §3).
-  const baseEquivalent =
+  // Fires on either side of the base (#349); the base's code drives the label and the decimals.
+  const baseEquivalentParts =
     isRateUsable && account.currency !== baseCurrency
       ? formatOwnedAmountParts(
-          roundMoney(
-            convertCurrency({
-              amount: account.current_balance,
-              from: account.currency,
-              to: baseCurrency,
-              rate,
-            }),
-          ),
+          baseEquivalent({
+            amount: account.current_balance,
+            from: account.currency,
+            to: baseCurrency,
+            rate,
+          }),
           baseCurrency,
         )
       : undefined;
 
   const baseEquivalentRows: InfoRow[] =
-    baseEquivalent === undefined
+    baseEquivalentParts === undefined
       ? []
       : [
           {
             kind: 'inBase',
             label: Strings.cardInBaseLabel(baseCurrency),
-            value: `${baseEquivalent.value} ${baseEquivalent.code}`,
-            amountText: baseEquivalent.value,
+            value: `${baseEquivalentParts.value} ${baseEquivalentParts.code}`,
+            amountText: baseEquivalentParts.value,
             valueColor: Colors.dark.gold,
           },
         ];
