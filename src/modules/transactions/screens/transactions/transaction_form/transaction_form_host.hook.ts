@@ -10,7 +10,6 @@ import { useEditTransactionState } from '@/modules/transactions/screens/transact
 
 import {
   isTransactionFormSessionSaving,
-  resolveTransactionFormEngineRepair,
   useTransactionFormState,
 } from './transaction_form_host.state';
 
@@ -141,18 +140,6 @@ export function useTransactionFormHost() {
     }
   }, [completeClose, router, sessionId, toast]);
 
-  const handleEngineIndex = useCallback(
-    (index: number): boolean => {
-      const repair = resolveTransactionFormEngineRepair(
-        useTransactionFormState.getState().phase,
-        index,
-      );
-      if (repair === 'complete') handleCloseComplete();
-      return repair === 'close';
-    },
-    [handleCloseComplete],
-  );
-
   return {
     state: {
       mode,
@@ -172,6 +159,5 @@ export function useTransactionFormHost() {
     handleSaved,
     handleRequestAccountCreation,
     handleCloseComplete,
-    handleEngineIndex,
   };
 }
