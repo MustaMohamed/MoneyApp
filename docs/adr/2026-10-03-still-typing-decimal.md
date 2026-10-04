@@ -15,31 +15,33 @@ The function is a predicate over text. It changes no parser, pattern or floor, s
 
 ## 2. Only the field's own keystroke is held
 
-`holdStillTypingDecimal(form, name, value, refusesZero, text?)` in `use_zod_form.hook.ts` is the one way a field applies the predicate to a react-hook-form field. When the typed text is still typing it stores the value with `setValue` and no validation, clears that field's fault, and returns `true`. Otherwise it returns `false` and writes nothing, and the caller makes the call it made before this change.
+`holdStillTypingDecimal(form, name, value, refusesZero, text)` in `use_zod_form.hook.ts` is the one way a field applies the predicate to a react-hook-form field. When the typed text is still typing it stores the value with `setValue` and no validation, clears that field's fault, and returns `true`. Otherwise it returns `false` and writes nothing, and the caller makes the call it made before this change. A text field leaves `text` out, and the typed text is `value`. A call on a field that stores anything else, such as the commitment amount's number, does not compile without `text`.
+
+The five fields a hook action writes are the pay sheet amount and rate, the income amount, the set-budget limit and the manual rate. Each goes through `setTypedDecimal(form, name, text, refusesZero, isSubmitted)` in the same file, which calls the hold first. A text the hold refuses it stores with `setValue`, marks dirty and, once the form is submitted, validates with `trigger(name)`. `trigger` writes its result when the resolver settles and does not check that the value is still the one it read (`node_modules/react-hook-form/dist/index.esm.mjs:2447-2462`), so a validation one keystroke started can settle after a later keystroke was held. When its validation settles, `setTypedDecimal` reads the field again and clears the fault if the value is by then a still-typing text. A fault for an older text never stays under a held text.
 
 Every Save runs the schema unchanged, so Save refuses `48.` and, where zero is refused, `0` and `0.0`, with the shipped messages. A re-validation another field causes also runs the schema unchanged. On the transaction sheet a pick in another row flags a half-typed rate left behind, and a fault Save raised on the rate stays until the rate's text changes.
 
-On the add and edit transaction sheets the rate re-validates through an effect, not through the keystroke. The effect is split in two. One runs on every pick and validates in full. The other runs on a rate change and skips only when the form's rate, read when the effect runs, is the text `setExchangeRate` last held. Seeds that write the stored rate never pass through `setExchangeRate`, so they validate.
+On the add and edit transaction sheets the rate re-validates through an effect, not through the keystroke. The effect is split in two. Each hook keeps the one that runs on every pick and validates in full. The other exists once, in `useTransactionFormRate` in `transaction_form_rate.hook.ts`, beside the ref that names the held text and the hold-or-set step both hooks' `setExchangeRate` call. It runs on a rate change and skips only when the form's rate, read when the effect runs, is the text that step last held. Seeds that write the stored rate never pass through `setExchangeRate`, so they validate.
 
 ## 3. The fields, and which refuse zero
 
 | Field | Where the hold is called | Refuses zero |
 |---|---|---|
-| Transaction rate, add and edit sheet | `add_transaction.hook.ts`, `edit_transaction.hook.ts` | yes |
-| Pay sheet amount | `pay_sheet.hook.ts` | yes |
-| Pay sheet rate | `pay_sheet.hook.ts` | yes |
+| Transaction rate, add and edit sheet | `transaction_form_rate.hook.ts`, which both transaction hooks use | yes |
+| Pay sheet amount | `pay_sheet.hook.ts`, through `setTypedDecimal` | yes |
+| Pay sheet rate | `pay_sheet.hook.ts`, through `setTypedDecimal` | yes |
 | Commitment amount, add and edit form | `commitment_form_body.tsx` | yes |
-| Income amount | `income_sheet.hook.ts` | yes |
-| Set-budget limit | `set_budget_sheet.hook.ts` | yes |
+| Income amount | `income_sheet.hook.ts`, through `setTypedDecimal` | yes |
+| Set-budget limit | `set_budget_sheet.hook.ts`, through `setTypedDecimal` | yes |
 | Spending plan total | `spending_plan_sheet_fields.tsx` | yes |
 | Spending plan category amount | `spending_plan_sheet.helpers.ts`, by the predicate alone | no |
 | Opening balance | `account_form.tsx` | no |
 | Credit limit | `credit_card_fields.tsx` | yes |
 | Minimum payment | `credit_card_fields.tsx` | no |
 | APR | `credit_card_fields.tsx` | no |
-| Manual rate, currency settings | `currency.hook.ts` | yes |
+| Manual rate, currency settings | `currency.hook.ts`, through `setTypedDecimal` | yes |
 
-The flag follows what Save does with zero on that field. The transaction sheet's amount is not in the table: it clears only its own fault as the user types and never showed the flash. The transactions filter's Min and Max, the adjust-balance sheet, due day and the count fields are not sites either.
+The flag follows what Save does with zero on that field. The six `.tsx` sites read it from an exported constant beside the schema that decides it: `CREDIT_LIMIT_REFUSES_ZERO`, `MIN_PAYMENT_REFUSES_ZERO` and `APR_REFUSES_ZERO` in `credit_fields.schema.ts`, `BALANCE_REFUSES_ZERO` in `add_account.schema.ts`, `COMMITMENT_AMOUNT_REFUSES_ZERO` in `commitment_form.shared.ts` and `PLAN_TOTAL_REFUSES_ZERO` in `budget.schema.ts`. A schema test pins each constant to what Save does with `0`. The hook sites pass `true` inside the hook, where their suites reach it. The transaction sheet's amount is not in the table: it clears only its own fault as the user types and never showed the flash. The transactions filter's Min and Max, the adjust-balance sheet, due day and the count fields are not sites either.
 
 ## 4. A plan row is exempt only while it is the row last typed in
 
@@ -52,3 +54,5 @@ The spending plan's category amounts are not form fields. They show the incomple
 ## Consequence
 
 A fault a complete value raised hides when a point is typed after it, and returns at the next digit: APR `101` shows its range fault, `101.` shows none, `101.5` shows it again. The definition in decision 1 reads the text, not the number before the point, and Save still refuses all three.
+
+`clearErrors(name)` empties the fault inside the same `errors` object and emits that object (`node_modules/react-hook-form/dist/index.esm.mjs:2953-2961`), where a validation replaces the object. The React Compiler (`app.json:62`) caches a call keyed on that object, so a reader handed `errors` whole keeps showing the fault a hold just cleared. A fault on these fields is read by leaf path, from `Controller`'s `fieldState`, or from `getFieldState(name, formState)`, and never by passing `errors` whole. `src/modules/accounts/screens/accounts/edit_account/edit_account.hook.ts:100` is the one whole-object reader. It follows the field only while the compiler leaves `useEditAccount` uncompiled, which the `finally` at `:90` causes.
