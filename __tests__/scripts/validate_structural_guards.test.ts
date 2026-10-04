@@ -13,6 +13,8 @@ const COMMITMENTS = 'src/modules/commitments/screens/commitments';
 
 const LAYOUT = 'src/app/_layout.tsx';
 const SCREEN = 'src/components/ui/screen.tsx';
+const EMPTY_STATE = 'src/components/ui/empty_state.tsx';
+const ERROR_STATE = 'src/components/ui/error_state.tsx';
 const FILTER_RAIL = 'src/components/ui/filter_rail.tsx';
 const FILTER_ACCORDION = 'src/components/ui/filter_accordion.tsx';
 const SUMMARY_CARD = `${BUDGET}/components/summary_card.tsx`;
@@ -303,6 +305,12 @@ const BANNED: BannedSeed[] = [
     text: '<CommitmentHeader />',
     token: 'CommitmentHeader',
   },
+  {
+    guard: 'a raw ms() call in EmptyState',
+    target: EMPTY_STATE,
+    text: 'const seeded = ms(80);',
+    token: 'ms(',
+  },
   { guard: 'T1: async in a .state.ts', target: isStateFile, text: ASYNC_SEED, token: 'async' },
   {
     guard: 'T1: setTimeout reached through globalThis in a .state.ts',
@@ -357,6 +365,25 @@ function withoutImport(rel: string, name: string, where: string): RequiredSeed {
   };
 }
 
+function withoutGeometryImport(rel: string, search: string, replacement: string): RequiredSeed {
+  return {
+    guard: `the state_screen.geometry import of resolveStateScreenLayout in ${rel}`,
+    rel,
+    seed: () => replaceOnce(rel, search, replacement),
+    words: 'no named import of `resolveStateScreenLayout`',
+  };
+}
+
+function withoutKind(rel: string, kind: string, swapped: string): RequiredSeed {
+  const call = (which: string): string => `resolveStateScreenLayout('${which}')`;
+  return {
+    guard: `the ${call(kind)} call in ${rel}`,
+    rel,
+    seed: () => replaceEvery(rel, call(kind), call(swapped)),
+    words: `no \`${call(kind)}\``,
+  };
+}
+
 // The import seeds and the tag seeds are spread over the tab screens, so no two edit the same text.
 const REQUIRED: RequiredSeed[] = [
   withoutTag(TRANSACTIONS_INDEX, 'FilterRail', 'the transactions screen'),
@@ -383,6 +410,10 @@ const REQUIRED: RequiredSeed[] = [
   withoutImport(DASHBOARD_INDEX, 'Button', 'the dashboard screen'),
   withoutTag(DASHBOARD_INDEX, 'Button', 'the dashboard header'),
   withoutTag(BUDGET_INDEX, 'BudgetToolRail', 'the budget screen'),
+  withoutGeometryImport(EMPTY_STATE, '  resolveStateScreenLayout,\n', ''),
+  withoutKind(EMPTY_STATE, 'empty', 'error'),
+  withoutGeometryImport(ERROR_STATE, 'import { resolveStateScreenLayout }', 'import { seeded }'),
+  withoutKind(ERROR_STATE, 'error', 'empty'),
 ];
 
 const DELETED_PATHS = [
@@ -471,7 +502,7 @@ describe('validate-structural-guards.js, named files', () => {
     ]);
   });
 
-  it.each([SCREEN, LAYOUT])(
+  it.each([SCREEN, LAYOUT, EMPTY_STATE])(
     'reports %s as not in the tree when it is gone, and still lists another file',
     (rel) => {
       remove(rel);
@@ -489,6 +520,22 @@ describe('validate-structural-guards.js, named files', () => {
     { kind: 'a JSX comment', text: '{/* StyleSheet and shadow-none stay out of this file */}' },
   ])('exits 0 on a banned token inside $kind', ({ text }) => {
     appendLine(BUDGET_SKELETON, text);
+
+    expectClean(runGuard());
+  });
+
+  it('names every raw ms() line in a state-screen component', () => {
+    const firstLine = appendLine(ERROR_STATE, 'const a = ms(11);');
+    const secondLine = appendLine(ERROR_STATE, 'const b = ms(22);');
+
+    expectReported(runGuard(), [
+      lineAt(ERROR_STATE, firstLine, 'ms('),
+      lineAt(ERROR_STATE, secondLine, 'ms('),
+    ]);
+  });
+
+  it('exits 0 on `items(` and a member `.ms(` in a state-screen component', () => {
+    appendLine(EMPTY_STATE, 'const seeded = items(1) + theme.ms(2);');
 
     expectClean(runGuard());
   });
