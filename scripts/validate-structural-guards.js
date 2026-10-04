@@ -19,6 +19,8 @@ const COMMITMENTS_INDEX = `${COMMITMENTS}/index.tsx`;
 const DASHBOARD_INDEX = 'src/modules/dashboard/screens/dashboard/index.tsx';
 const BUDGET_PICKER = `${TRANSACTIONS}/transaction_form/components/budget_picker_sheet.tsx`;
 const LAYOUT = 'src/app/_layout.tsx';
+const EMPTY_STATE = `${UI}/empty_state.tsx`;
+const ERROR_STATE = `${UI}/error_state.tsx`;
 
 function escapeRegExp(/** @type {string} */ text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -54,16 +56,42 @@ function members(enumName, names) {
 }
 
 // Matched against the joined source, so `[^}]*` spans a named-import list oxfmt wrapped.
-const HEROUI_IMPORT = /import\s*\{([^}]*)\}\s*from\s*['"]heroui-native['"]/g;
-
-/** @param {string} name @returns {Requirement} */
-function herouiImport(name) {
+/** @param {string} module @param {string} name @returns {Requirement} */
+function namedImport(module, name) {
+  const importFrom = new RegExp(
+    `import\\s*\\{([^}]*)\\}\\s*from\\s*['"]${escapeRegExp(module)}['"]`,
+    'g',
+  );
   return {
     found: (source) =>
-      [...source.matchAll(HEROUI_IMPORT)].some((match) =>
+      [...source.matchAll(importFrom)].some((match) =>
         match[1].split(',').some((entry) => entry.trim().split(/\s+/)[0] === name),
       ),
-    missing: `no named import of \`${name}\` from 'heroui-native'`,
+    missing: `no named import of \`${name}\` from '${module}'`,
+  };
+}
+
+function herouiImport(/** @type {string} */ name) {
+  return namedImport('heroui-native', name);
+}
+
+// The lookbehind keeps `items(` and `theme.ms(` out; the paren keeps a bare `ms` import out.
+const RAW_SCALE = /(?<![\w.])ms\s*\(/;
+
+/** @param {string} rel @param {'empty' | 'error'} kind */
+function stateScreen(rel, kind) {
+  return {
+    files: [rel],
+    banned: [RAW_SCALE],
+    rule: 'is a raw scale call; state-screen geometry belongs in src/components/ui/state_screen.geometry.ts and other sizes in src/constants/theme.ts (#338)',
+    required: [
+      namedImport('@/components/ui/state_screen.geometry', 'resolveStateScreenLayout'),
+      holds(
+        new RegExp(`resolveStateScreenLayout\\(\\s*['"]${kind}['"]\\s*\\)`),
+        `no \`resolveStateScreenLayout('${kind}')\` call`,
+      ),
+    ],
+    needs: 'a state-screen component draws its layout from the shared resolver with its own kind',
   };
 }
 
@@ -245,6 +273,8 @@ const NAMED_ROWS = [
     ],
     needs: 'the root layout mounts the raw HeroUI provider inside a seeded `SafeAreaProvider`',
   },
+  stateScreen(EMPTY_STATE, 'empty'),
+  stateScreen(ERROR_STATE, 'error'),
 ];
 
 const TREE_ROWS = [
