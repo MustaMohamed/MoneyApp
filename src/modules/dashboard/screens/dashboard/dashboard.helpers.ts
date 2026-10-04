@@ -10,6 +10,7 @@ import {
   normalizeNegativeZero,
   resolveAccountAggregationSign,
 } from '@/modules/accounts/domain/account_aggregation';
+import { baseEquivalent } from '@/modules/accounts/domain/account_figures';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
@@ -44,14 +45,13 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
   let netWorth = 0;
 
   for (const a of activeAccounts) {
-    const converted = convertCurrency({
+    // Round each converted value, then round once at the sum; never sum-then-round.
+    const rounded = baseEquivalent({
       amount: a.current_balance,
       from: a.currency,
       to: baseCurrency,
       rate,
     });
-    // Round each converted value, then round once at the sum; never sum-then-round.
-    const rounded = roundMoney(converted);
     const sign = resolveAccountAggregationSign(a.type);
 
     if (sign === 1) {
@@ -132,9 +132,12 @@ export function computeLiquidityBreakdown(
   for (const a of accounts) {
     if (a.is_archived) continue;
     // Rounded per value, as `computeNetWorth` does, so the sheet's rows match its totals.
-    const balance = roundMoney(
-      convertCurrency({ amount: a.current_balance, from: a.currency, to: baseCurrency, rate }),
-    );
+    const balance = baseEquivalent({
+      amount: a.current_balance,
+      from: a.currency,
+      to: baseCurrency,
+      rate,
+    });
     if (LIQUID_TYPES.has(a.type)) {
       liquid += balance;
       liquidAccounts.push({ id: a.id, name: resolveAccountName(a), balance });
@@ -175,9 +178,12 @@ export function computeLiabilitiesBreakdown(
     if (a.is_archived) continue;
     if (a.type !== AccountType.CreditCard) continue;
     // Rounded per value, same contract as `computeLiquidityBreakdown`.
-    const balance = roundMoney(
-      convertCurrency({ amount: a.current_balance, from: a.currency, to: baseCurrency, rate }),
-    );
+    const balance = baseEquivalent({
+      amount: a.current_balance,
+      from: a.currency,
+      to: baseCurrency,
+      rate,
+    });
     rows.push({
       id: a.id,
       name: resolveAccountName(a),

@@ -1,6 +1,5 @@
 import { Currency } from '@/constants/enums';
 import {
-  convertCurrency,
   countForeignAccounts,
   isRateUsable,
   isSupportedCurrency,
@@ -8,6 +7,7 @@ import {
   type RateProvenance,
   resolveAccountAggregationSign,
 } from '@/modules/accounts/domain/account_aggregation';
+import { baseEquivalent } from '@/modules/accounts/domain/account_figures';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { roundMoney } from '@/utils/money';
 
@@ -64,14 +64,12 @@ export function resolveStartingNetPosition(input: StartingNetPositionInput): Sta
     (sum, account) =>
       sum +
       resolveAccountAggregationSign(account.type) *
-        roundMoney(
-          convertCurrency({
-            amount: account.opening_balance,
-            from: account.currency,
-            to: baseCurrency,
-            rate,
-          }),
-        ),
+        baseEquivalent({
+          amount: account.opening_balance,
+          from: account.currency,
+          to: baseCurrency,
+          rate,
+        }),
     0,
   );
 
