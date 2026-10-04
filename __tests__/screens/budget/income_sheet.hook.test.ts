@@ -315,6 +315,21 @@ describe('useIncomeSheet', () => {
       expect(result.current.state.validationMessage).toBe(message);
       expect(setExpectedIncome).not.toHaveBeenCalled();
     });
+
+    it('a clear and "48." sent back to back leave no fault once the validation settles', async () => {
+      const { result } = await mountRefused();
+      await typeAmount(result, '5');
+      expect(result.current.state.validationMessage).toBeUndefined();
+
+      await act(async () => {
+        result.current.setAmountText('');
+        result.current.setAmountText('48.');
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(result.current.state.amountText).toBe('48.');
+      expect(result.current.state.validationMessage).toBeUndefined();
+    });
   });
 
   // Schema and submit share the parser, so the desync is only reachable by mocking the throw.

@@ -216,4 +216,18 @@ describe('useSetBudgetSheet — MA-115 a half-typed limit', () => {
     expect(limitError(result)).toBe(message);
     expect(setBudget).not.toHaveBeenCalled();
   });
+
+  it('a clear and "48." sent back to back leave no fault once the validation settles', async () => {
+    const { result } = await mountRefused();
+    await typeLimit(result, '5');
+    expect(limitError(result)).toBeUndefined();
+
+    await act(async () => {
+      result.current.setLimitText('');
+      result.current.setLimitText('48.');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(limitError(result)).toBeUndefined();
+  });
 });

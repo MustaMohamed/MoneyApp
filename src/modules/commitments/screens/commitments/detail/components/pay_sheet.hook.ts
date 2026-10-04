@@ -21,7 +21,7 @@ import {
   parseRequiredMoneyText,
 } from '@/utils/money_text';
 import { parseDecimalText, parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
-import { holdStillTypingDecimal, useZodForm } from '@/utils/use_zod_form.hook';
+import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
@@ -371,14 +371,12 @@ export function usePaySheet(
   function setAmountText(text: string) {
     const masked = maskMoneyFieldText(form.getValues('amountText'), text);
     if (masked === undefined) return;
-    if (holdStillTypingDecimal(form, 'amountText', masked, true)) return;
-    form.setValue('amountText', masked, { shouldDirty: true, shouldValidate: isSubmitted });
+    setTypedDecimal(form, 'amountText', masked, true, isSubmitted);
   }
 
   // Pinned false keeps a stale error; pinned true validates before any submit.
   function setExchangeRate(text: string) {
-    if (holdStillTypingDecimal(form, 'exchange_rate', text, true)) return;
-    form.setValue('exchange_rate', text, { shouldValidate: isSubmitted });
+    setTypedDecimal(form, 'exchange_rate', text, true, isSubmitted);
   }
 
   return {

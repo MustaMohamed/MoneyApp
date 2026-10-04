@@ -5,6 +5,11 @@ import { Strings } from '@/constants/strings';
 import { useEditAccount } from '@/modules/accounts/screens/accounts/edit_account/edit_account.hook';
 import { useEditAccountState } from '@/modules/accounts/screens/accounts/edit_account/edit_account.state';
 import { useAccountStore, type Account } from '@/modules/accounts/store/account.store';
+import {
+  APR_REFUSES_ZERO,
+  CREDIT_LIMIT_REFUSES_ZERO,
+  MIN_PAYMENT_REFUSES_ZERO,
+} from '@/modules/accounts/utils/credit_fields.schema';
 import type { EditAccountFormData } from '@/modules/accounts/utils/edit_account.schema';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
@@ -386,11 +391,11 @@ describe('useEditAccount', () => {
       mockParams = { id: 'card-1' };
     });
 
-    // Each field with the `refusesZero` flag its input passes.
+    // Each field with the `refusesZero` constant its input reads.
     const FIELDS = [
-      ['credit_limit', true],
-      ['min_payment', false],
-      ['apr', false],
+      ['credit_limit', CREDIT_LIMIT_REFUSES_ZERO],
+      ['min_payment', MIN_PAYMENT_REFUSES_ZERO],
+      ['apr', APR_REFUSES_ZERO],
     ] as const;
 
     type AmountField = (typeof FIELDS)[number][0];
@@ -446,7 +451,7 @@ describe('useEditAccount', () => {
       async (text) => {
         const hook = await mountRefused();
 
-        const held = await typeField(hook, 'credit_limit', text, true);
+        const held = await typeField(hook, 'credit_limit', text, CREDIT_LIMIT_REFUSES_ZERO);
 
         expect(held).toBe(true);
         expect(hook.result.current.form.getValues('credit_limit')).toBe(text);
@@ -455,12 +460,12 @@ describe('useEditAccount', () => {
       },
     );
 
-    it.each(['min_payment', 'apr'] as const)(
+    it.each(FIELDS.filter(([, refusesZero]) => !refusesZero))(
       'after a refused Save "0" is not held on %s, and the shipped call validates it clean',
-      async (name) => {
+      async (name, refusesZero) => {
         const hook = await mountRefused();
 
-        const held = await typeField(hook, name, '0', false);
+        const held = await typeField(hook, name, '0', refusesZero);
 
         expect(held).toBe(false);
         expect(hook.result.current.form.getValues(name)).toBe('0');
@@ -470,11 +475,11 @@ describe('useEditAccount', () => {
 
     it('a cleared credit limit reads required, and a cleared minimum payment reads nothing', async () => {
       const hook = await mountRefused();
-      expect(await typeField(hook, 'credit_limit', '5', true)).toBe(false);
+      expect(await typeField(hook, 'credit_limit', '5', CREDIT_LIMIT_REFUSES_ZERO)).toBe(false);
       expect(fieldError(hook, 'credit_limit')).toBeUndefined();
 
-      expect(await typeField(hook, 'credit_limit', '', true)).toBe(false);
-      expect(await typeField(hook, 'min_payment', '', false)).toBe(false);
+      expect(await typeField(hook, 'credit_limit', '', CREDIT_LIMIT_REFUSES_ZERO)).toBe(false);
+      expect(await typeField(hook, 'min_payment', '', MIN_PAYMENT_REFUSES_ZERO)).toBe(false);
 
       expect(fieldError(hook, 'credit_limit')).toBe(Strings.errCreditLimitRequired);
       expect(fieldError(hook, 'min_payment')).toBeUndefined();
@@ -483,10 +488,10 @@ describe('useEditAccount', () => {
     it('the footer count follows the field: back at a refused value after a held one', async () => {
       const hook = await mountRefused();
 
-      expect(await typeField(hook, 'credit_limit', '0.', true)).toBe(true);
+      expect(await typeField(hook, 'credit_limit', '0.', CREDIT_LIMIT_REFUSES_ZERO)).toBe(true);
       expect(hook.result.current.state.statusMessage).toBeUndefined();
 
-      expect(await typeField(hook, 'credit_limit', '0.001', true)).toBe(false);
+      expect(await typeField(hook, 'credit_limit', '0.001', CREDIT_LIMIT_REFUSES_ZERO)).toBe(false);
       expect(fieldError(hook, 'credit_limit')).toBe(Strings.errAmountInvalid);
       expect(hook.result.current.state.statusMessage).toBe(Strings.fixFieldsMarkedAbove(1));
     });

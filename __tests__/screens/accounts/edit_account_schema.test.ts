@@ -3,6 +3,11 @@ import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/store/account.store';
 import {
+  APR_REFUSES_ZERO,
+  CREDIT_LIMIT_REFUSES_ZERO,
+  MIN_PAYMENT_REFUSES_ZERO,
+} from '@/modules/accounts/utils/credit_fields.schema';
+import {
   createEditAccountFormSchema,
   type EditAccountFormData,
 } from '@/modules/accounts/utils/edit_account.schema';
@@ -137,6 +142,20 @@ describe('createEditAccountFormSchema', () => {
       overrides[field] = text;
       expect(fieldErrors(formData(overrides))[field]).toBe(message);
     });
+
+    it.each([
+      ['credit_limit', CREDIT_LIMIT_REFUSES_ZERO],
+      ['min_payment', MIN_PAYMENT_REFUSES_ZERO],
+      ['apr', APR_REFUSES_ZERO],
+    ] as const)(
+      'Save refuses "0" on %s exactly when its still-typing flag is true (%p)',
+      (field, refusesZero) => {
+        const overrides: Partial<EditAccountFormData> = { interest_tracking: true, apr: '20' };
+        overrides[field] = '0';
+        const errors = fieldErrors(formData(overrides));
+        expect(Object.keys(errors).includes(field)).toBe(refusesZero);
+      },
+    );
   });
 
   describe('a card at zero', () => {

@@ -342,6 +342,21 @@ describe('useCurrencyScreen — MA-115 a half-typed manual rate', () => {
       expect(setManualRate).not.toHaveBeenCalled();
     },
   );
+
+  it('a clear and "48." sent back to back leave no fault once the validation settles', async () => {
+    const { result } = await mountRefused();
+    await typeRate(result, '50');
+    expect(rateError(result)).toBeUndefined();
+
+    await act(async () => {
+      result.current.setRateText('');
+      result.current.setRateText('48.');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(result.current.form.getValues('rate')).toBe('48.');
+    expect(rateError(result)).toBeUndefined();
+  });
 });
 
 describe('useCurrencyScreen — the stored-rate prefill re-parses', () => {

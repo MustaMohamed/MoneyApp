@@ -5,7 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { maskFieldText } from '@/utils/money_text';
-import type { SpendingPlanFormValues } from '@/utils/schemas/budget.schema';
+import {
+  PLAN_TOTAL_REFUSES_ZERO,
+  type SpendingPlanFormValues,
+} from '@/utils/schemas/budget.schema';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 type SpendingPlanHoldForm = Pick<UseFormReturn<SpendingPlanFormValues>, 'setValue' | 'clearErrors'>;
@@ -42,7 +45,7 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
             props.onEdit();
             const held =
               props.variant === 'amount' &&
-              holdStillTypingDecimal(props.form, props.name, masked, true);
+              holdStillTypingDecimal(props.form, props.name, masked, PLAN_TOTAL_REFUSES_ZERO);
             if (!held) onChange(masked);
           }}
           onFocus={props.onFocus}

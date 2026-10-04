@@ -5,6 +5,7 @@ import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import { COMMITMENT_AMOUNT_REFUSES_ZERO } from '@/modules/commitments/screens/commitments/commitment_form.shared';
 import { useEditCommitment } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.hook';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
@@ -240,7 +241,13 @@ describe('useEditCommitment', () => {
 
         let held: boolean | undefined;
         await act(async () => {
-          held = holdStillTypingDecimal(result.current.form, 'amount', n, true, text);
+          held = holdStillTypingDecimal(
+            result.current.form,
+            'amount',
+            n,
+            COMMITMENT_AMOUNT_REFUSES_ZERO,
+            text,
+          );
           await new Promise((resolve) => setTimeout(resolve, 0));
         });
 
@@ -255,7 +262,13 @@ describe('useEditCommitment', () => {
 
       let held: boolean | undefined;
       await act(async () => {
-        held = holdStillTypingDecimal(result.current.form, 'amount', 0.001, true, '0.001');
+        held = holdStillTypingDecimal(
+          result.current.form,
+          'amount',
+          0.001,
+          COMMITMENT_AMOUNT_REFUSES_ZERO,
+          '0.001',
+        );
         if (!held) {
           result.current.form.setValue('amount', 0.001, {
             shouldDirty: true,

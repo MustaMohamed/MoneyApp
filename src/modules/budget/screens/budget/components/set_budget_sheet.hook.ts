@@ -11,7 +11,7 @@ import type { Category } from '@/modules/categories/entities/category.entity';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { formatStoredMoneyText, maskFieldText, parseRequiredMoneyText } from '@/utils/money_text';
 import { budgetFormSchema, type BudgetFormValues } from '@/utils/schemas/budget.schema';
-import { holdStillTypingDecimal, useZodForm } from '@/utils/use_zod_form.hook';
+import { setTypedDecimal, useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useSetBudgetSheetState } from './set_budget_sheet.state';
 
@@ -90,6 +90,7 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
     handleSubmit,
     reset: resetForm,
     setValue,
+    trigger,
   } = useZodForm<BudgetFormValues>(budgetFormSchema, {
     defaultValues: { nameText: '', limitText: '' },
   });
@@ -189,10 +190,10 @@ export function useSetBudgetSheet({ budgetableCategories, editingRow }: SetBudge
       const masked = maskFieldText('amount', getValues('limitText'), text);
       if (masked === undefined) return;
       clearError();
-      if (holdStillTypingDecimal({ setValue, clearErrors }, 'limitText', masked, true)) return;
-      setValue('limitText', masked, { shouldDirty: true, shouldValidate: isSubmitted });
+      const form = { setValue, clearErrors, getValues, trigger };
+      setTypedDecimal(form, 'limitText', masked, true, isSubmitted);
     },
-    [clearError, clearErrors, getValues, isSubmitted, setValue],
+    [clearError, clearErrors, getValues, isSubmitted, setValue, trigger],
   );
 
   return {

@@ -23,7 +23,7 @@ import {
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parseRateText } from '@/utils/parse_decimal';
-import { holdStillTypingDecimal, useZodForm } from '@/utils/use_zod_form.hook';
+import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { isSameBudgetEligibility, resolveBudgetAssignment } from './budget_assignment.helpers';
 import { buildDefaultsFromTx, type EditTransactionFormValues } from './edit_transaction.helpers';
@@ -39,6 +39,7 @@ import {
   type TransactionFormFieldErrors,
 } from './transaction_form.helpers';
 import { type TransactionFormPrerequisiteController } from './transaction_form_prerequisites.helpers';
+import { useTransactionFormRate } from './transaction_form_rate.hook';
 
 const ignorePrerequisiteRetry = () => {};
 
@@ -365,17 +366,15 @@ export function useEditTransaction(
   // After a failed Save, every pick re-runs full validation against the schema this render built.
   useEffect(() => {
     revalidateAfterSubmit();
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- the picks and the schema decide when it runs; revalidateAfterSubmit is rebuilt each render and reads the form when called
   }, [schema, categoryId, formBudgetId, date]);
 
-  // Only `setExchangeRate` writes this ref, so a held text survives a run an earlier edit queued.
-  const heldRateRef = useRef<string | undefined>(undefined);
-  // A rate edit re-validates too, unless the form's rate now is the still-typing text held.
-  useEffect(() => {
-    if (heldRateRef.current === form.getValues('exchangeRate')) return;
-    revalidateAfterSubmit();
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [exchangeRate]);
+  const setRateText = useTransactionFormRate(
+    form,
+    'exchangeRate',
+    exchangeRate,
+    revalidateAfterSubmit,
+  );
 
   async function onValid(data: EditTransactionFormValues) {
     const formState = useEditTransactionState.getState();
@@ -525,10 +524,7 @@ export function useEditTransaction(
     },
     setExchangeRate: (v: string) => {
       clearError();
-      if (v === form.getValues('exchangeRate')) return;
-      const held = holdStillTypingDecimal(form, 'exchangeRate', v, true);
-      heldRateRef.current = held ? v : undefined;
-      if (!held) form.setValue('exchangeRate', v);
+      setRateText(v);
     },
     toggleRateOverride,
     setShowCategoryPicker,

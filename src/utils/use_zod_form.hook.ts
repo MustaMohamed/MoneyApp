@@ -41,11 +41,33 @@ export function holdStillTypingDecimal<T extends FieldValues, N extends Path<T>>
   name: N,
   value: PathValue<T, N>,
   refusesZero: boolean,
-  text?: string,
+  // A field that stores no text must pass the typed text; a text field may leave it out.
+  ...[text]: PathValue<T, N> extends string | undefined ? [text?: string] : [text: string]
 ): boolean {
   const typed: unknown = text ?? value;
   if (typeof typed !== 'string' || !isStillTypingDecimal(typed, refusesZero)) return false;
   form.setValue(name, value, { shouldDirty: true });
   form.clearErrors(name);
   return true;
+}
+
+/** Holds a still-typing text; otherwise stores it and, once submitted, validates that field. */
+export function setTypedDecimal<T extends FieldValues, N extends Path<T>>(
+  form: Pick<UseFormReturn<T>, 'setValue' | 'clearErrors' | 'getValues' | 'trigger'>,
+  name: N,
+  text: PathValue<T, N> & string,
+  refusesZero: boolean,
+  isSubmitted: boolean,
+): void {
+  // `text` twice: the hold's last parameter stays unresolved while `T` is generic.
+  if (holdStillTypingDecimal(form, name, text, refusesZero, text)) return;
+  form.setValue(name, text, { shouldDirty: true });
+  if (!isSubmitted) return;
+  void form.trigger(name).then(() => {
+    // A later held keystroke cleared the fault; this result is for the text before it.
+    const current: unknown = form.getValues(name);
+    if (typeof current === 'string' && isStillTypingDecimal(current, refusesZero)) {
+      form.clearErrors(name);
+    }
+  });
 }

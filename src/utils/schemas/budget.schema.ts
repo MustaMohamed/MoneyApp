@@ -42,6 +42,9 @@ export const spendingPlanFormSchema = z.object({
 
 export type SpendingPlanFormValues = z.infer<typeof spendingPlanFormSchema>;
 
+/** Save refuses a plan total of `0`, so the still-typing hold holds a zero-so-far text. */
+export const PLAN_TOTAL_REFUSES_ZERO: boolean = true;
+
 function isValidIsoCalendarDate(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return false;

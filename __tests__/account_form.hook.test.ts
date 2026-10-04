@@ -8,6 +8,12 @@ import {
   type UseAccountFormOptions,
 } from '@/modules/accounts/components/account_form/use_account_form.hook';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { BALANCE_REFUSES_ZERO } from '@/modules/accounts/utils/add_account.schema';
+import {
+  APR_REFUSES_ZERO,
+  CREDIT_LIMIT_REFUSES_ZERO,
+  MIN_PAYMENT_REFUSES_ZERO,
+} from '@/modules/accounts/utils/credit_fields.schema';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
@@ -218,12 +224,12 @@ describe('useAccountForm', () => {
   describe('MA-115 half-typed amounts on a card with tracking on', () => {
     type FormHook = { result: { current: ReturnType<typeof useAccountForm> } };
 
-    // Each field with the `refusesZero` flag its input passes.
+    // Each field with the `refusesZero` constant its input reads.
     const FIELDS = [
-      ['balance', false],
-      ['credit_limit', true],
-      ['min_payment', false],
-      ['apr', false],
+      ['balance', BALANCE_REFUSES_ZERO],
+      ['credit_limit', CREDIT_LIMIT_REFUSES_ZERO],
+      ['min_payment', MIN_PAYMENT_REFUSES_ZERO],
+      ['apr', APR_REFUSES_ZERO],
     ] as const;
 
     type AmountField = (typeof FIELDS)[number][0];
@@ -296,7 +302,7 @@ describe('useAccountForm', () => {
       async (text) => {
         const hook = await mountRefused();
 
-        const held = await typeField(hook, 'credit_limit', text, true);
+        const held = await typeField(hook, 'credit_limit', text, CREDIT_LIMIT_REFUSES_ZERO);
 
         expect(held).toBe(true);
         expect(hook.result.current.form.getValues('credit_limit')).toBe(text);
@@ -304,12 +310,12 @@ describe('useAccountForm', () => {
       },
     );
 
-    it.each(['balance', 'min_payment', 'apr'] as const)(
+    it.each(FIELDS.filter(([, refusesZero]) => !refusesZero))(
       'after a refused Save "0" is not held on %s, and the shipped call validates it clean',
-      async (name) => {
+      async (name, refusesZero) => {
         const hook = await mountRefused();
 
-        const held = await typeField(hook, name, '0', false);
+        const held = await typeField(hook, name, '0', refusesZero);
 
         expect(held).toBe(false);
         expect(hook.result.current.form.getValues(name)).toBe('0');
@@ -319,12 +325,12 @@ describe('useAccountForm', () => {
 
     it('a cleared credit limit reads required, and a cleared minimum payment reads nothing', async () => {
       const hook = await mountRefused();
-      expect(await typeField(hook, 'credit_limit', '5', true)).toBe(false);
+      expect(await typeField(hook, 'credit_limit', '5', CREDIT_LIMIT_REFUSES_ZERO)).toBe(false);
       expect(fieldError(hook, 'credit_limit')).toBeUndefined();
-      expect(await typeField(hook, 'min_payment', '5', false)).toBe(false);
+      expect(await typeField(hook, 'min_payment', '5', MIN_PAYMENT_REFUSES_ZERO)).toBe(false);
 
-      expect(await typeField(hook, 'credit_limit', '', true)).toBe(false);
-      expect(await typeField(hook, 'min_payment', '', false)).toBe(false);
+      expect(await typeField(hook, 'credit_limit', '', CREDIT_LIMIT_REFUSES_ZERO)).toBe(false);
+      expect(await typeField(hook, 'min_payment', '', MIN_PAYMENT_REFUSES_ZERO)).toBe(false);
 
       expect(fieldError(hook, 'credit_limit')).toBe(Strings.errCreditLimitRequired);
       expect(fieldError(hook, 'min_payment')).toBeUndefined();

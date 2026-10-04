@@ -33,6 +33,7 @@ import { ms } from '@/utils/responsive';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 import {
+  COMMITMENT_AMOUNT_REFUSES_ZERO,
   type CommitmentFormValues,
   PRESET_MAP,
   SET_OPTS,
@@ -253,7 +254,13 @@ export function CommitmentFormBody({
                   onChange={(n, typedText) => {
                     const held =
                       typedText !== undefined &&
-                      holdStillTypingDecimal(form, 'amount', n, true, typedText);
+                      holdStillTypingDecimal(
+                        form,
+                        'amount',
+                        n,
+                        COMMITMENT_AMOUNT_REFUSES_ZERO,
+                        typedText,
+                      );
                     if (!held) onChange(n);
                   }}
                   onBlur={onBlur}

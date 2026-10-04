@@ -3,7 +3,15 @@ import '@/utils/zod_config';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/store/account.store';
-import { createAddAccountSchema } from '@/modules/accounts/utils/add_account.schema';
+import {
+  BALANCE_REFUSES_ZERO,
+  createAddAccountSchema,
+} from '@/modules/accounts/utils/add_account.schema';
+import {
+  APR_REFUSES_ZERO,
+  CREDIT_LIMIT_REFUSES_ZERO,
+  MIN_PAYMENT_REFUSES_ZERO,
+} from '@/modules/accounts/utils/credit_fields.schema';
 
 const emptyAccounts: Account[] = [];
 
@@ -489,6 +497,19 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     ] as const)('%s %p at Save reads %p', (field, text, message) => {
       expect(fieldErrors(trackedCard({ [field]: text }))[field]).toBe(message);
     });
+
+    it.each([
+      ['balance', BALANCE_REFUSES_ZERO],
+      ['credit_limit', CREDIT_LIMIT_REFUSES_ZERO],
+      ['min_payment', MIN_PAYMENT_REFUSES_ZERO],
+      ['apr', APR_REFUSES_ZERO],
+    ] as const)(
+      'Save refuses "0" on %s exactly when its still-typing flag is true (%p)',
+      (field, refusesZero) => {
+        const errors = fieldErrors(trackedCard({ [field]: '0' }));
+        expect(Object.keys(errors).includes(field)).toBe(refusesZero);
+      },
+    );
   });
 
   describe('off-type gating — every credit rule opens on selected_type === CreditCard', () => {

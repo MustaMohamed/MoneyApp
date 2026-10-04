@@ -832,6 +832,36 @@ describe('usePaySheet', () => {
       expect(result.current.form.getValues('amountText')).toBe('');
       expect(amountError(result)).toBeUndefined();
     });
+
+    it('a clear and "48." sent back to back leave no amount fault once the validation settles', async () => {
+      const { result } = await submitAmount('');
+      await typeAmount(result, '5');
+      expect(amountError(result)).toBeUndefined();
+
+      await act(async () => {
+        result.current.setAmountText('');
+        result.current.setAmountText('48.');
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(result.current.form.getValues('amountText')).toBe('48.');
+      expect(amountError(result)).toBeUndefined();
+    });
+
+    it('a clear and "48." sent back to back leave no rate fault once the validation settles', async () => {
+      const result = await submitRate('');
+      await typeRate(result, '50');
+      expect(rateError(result)).toBeUndefined();
+
+      await act(async () => {
+        result.current.setExchangeRate('');
+        result.current.setExchangeRate('48.');
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(result.current.form.getValues('exchange_rate')).toBe('48.');
+      expect(rateError(result)).toBeUndefined();
+    });
   });
 
   it('H1: seeding the rate after a failed submit clears the rate error without a second submit', async () => {
