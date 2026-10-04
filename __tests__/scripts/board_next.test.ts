@@ -128,6 +128,14 @@ describe('board_next rule table', () => {
     [108, 'pull', 'pullable', '/prep 108'],
     [110, 'define', 'Defined, Reviewed none', '/issue-review 110'],
     [127, 'define', 'parent unmarked, a child at Defined', '/issue-review 127'],
+    [158, 'define', 'parent unmarked, a child at Defined', '/issue-review 158'],
+    [161, 'define', 'parent unmarked, a child at Defined', '/issue-review 161'],
+    [166, 'define', 'parent unmarked, a child at Defined', '/issue-review 166'],
+    [168, 'define', 'parent unmarked, a child at Defined', '/issue-review 168'],
+    [170, 'define', 'parent unmarked, a child at Defined', '/issue-review 170'],
+    [172, 'define', 'parent unmarked, a child at Defined', '/issue-review 172'],
+    [171, 'yours', '1 open question', '/queue asks'],
+    [164, 'wait', 'parent, mirrors its children', undefined],
     [141, 'define', 'marked, no Size line', '/issue-review 141'],
     [142, 'define', 'over the size gate, 14 files, ~520 lines', '/tickets 142'],
     [
@@ -402,10 +410,42 @@ describe('board_next leases and the queue column', () => {
     expect(a.queue).toBeNull();
   });
 
-  test('a parent is never queued, even with a session command', () => {
+  test('a freshly cut parent, Reviewed none with every child at Defined, queues its review from Defined', () => {
     const a = byNumber(list, 127);
-    expect([a.bucket, a.command, a.actor]).toEqual(['define', '/issue-review 127', 'session']);
-    expect(a.queue).toBeNull();
+    expect([a.bucket, a.command, a.actor, a.queue]).toEqual([
+      'define',
+      '/issue-review 127',
+      'session',
+      'Defined',
+    ]);
+  });
+
+  test.each([
+    [158, 'a child at Todo'],
+    [161, 'a child past Defined, the parent at Ready For Development with it'],
+    [166, 'a child whose lease is held'],
+    [168, 'an open Depends on'],
+    [170, 'a child with an open record'],
+    [172, 'its own row at Blocked'],
+  ])('parent #%i with %s keeps its /issue-review command and gets no slot', (n) => {
+    const a = byNumber(list, n);
+    expect([a.command, a.actor, a.queue]).toEqual([`/issue-review ${n}`, 'session', null]);
+  });
+
+  test('a parent already marked, or with an open record, gets no slot', () => {
+    const marked = byNumber(list, 164);
+    expect([marked.bucket, marked.command, marked.queue]).toEqual(['wait', undefined, null]);
+    const asked = byNumber(list, 149);
+    expect([asked.command, asked.questions, asked.queue]).toEqual(['/queue asks', 1, null]);
+  });
+
+  test('once the parent is marked, its Defined child takes the slot instead', () => {
+    expect(byNumber(list, 165).queue).toBe('Defined');
+  });
+
+  test('no parent is queued from Ready For Development or Planned', () => {
+    const queued = list.filter((a) => a.progress && a.queue);
+    expect(queued.map((a) => [a.number, a.queue])).toEqual([[127, 'Defined']]);
   });
 
   test('paths are the Size paths the snapshot holds, and empty without them', () => {

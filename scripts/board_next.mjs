@@ -570,8 +570,21 @@ function actorOf(d) {
 
 // The column /queue may run this action from, .claude/skills/queue/references/column.md § One pass.
 function queueOf(a, ctx) {
-  if (a.isParent || a.actor !== 'session' || a.deps.some((d) => !d.closed)) return null;
+  if (a.actor !== 'session' || a.deps.some((d) => !d.closed)) return null;
   const cmd = a.command ?? '';
+  if (a.isParent) {
+    // A fresh cut: the review marks the parent first, and the mark gives its children their slots.
+    const open = (ctx.byNumber.get(a.number)?.children ?? []).filter((c) => c.state === 'open');
+    const settled = open.every(
+      (c) =>
+        ctx.statusOf(c.number) === 'Defined' &&
+        ctx.leaseOf(c.number) === null &&
+        openQuestions(ctx.byNumber.get(c.number)?.comments ?? []) === 0,
+    );
+    return a.status === 'Defined' && cmd === `/issue-review ${a.number}` && settled
+      ? 'Defined'
+      : null;
+  }
   // issue-review marks no leaf under an unmarked parent, so the run would repeat every pass.
   const parentUnmarked = headerReviewed(ctx.byNumber.get(a.parent)?.header) === 'none';
   if (a.status === 'Defined' && /^\/issue-review /.test(cmd))
