@@ -118,7 +118,7 @@ jobs:
     name: Patched React Native compiles (Android)
     runs-on: ubuntu-latest
     needs: install
-    timeout-minutes: 60
+    timeout-minutes: 20
     steps:
       # Depth 2 makes HEAD^1 the base tip: HEAD is the PR merge commit, or the squash commit on main.
       - uses: actions/checkout@v5
