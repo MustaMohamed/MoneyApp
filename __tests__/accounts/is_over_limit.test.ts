@@ -1,4 +1,4 @@
-import { isOverLimit } from '@/modules/accounts/constants/is_over_limit';
+import { isOverLimit } from '@/modules/accounts/domain/is_over_limit';
 
 describe('isOverLimit — the over-limit state shared by detail, dashboard and list', () => {
   it('is false when the balance is under the limit', () => {
