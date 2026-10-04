@@ -2,6 +2,7 @@ import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
+import { useSheetEngineIndex } from '@/components/ui/sheet_engine_index.anim';
 import { StatusTrack } from '@/components/ui/status_track';
 import { Strings } from '@/constants/strings';
 
@@ -9,6 +10,16 @@ import { AddTransactionSession } from './add_transaction_session';
 import { TRANSACTION_FORM_STATUS_GAP } from './components/transaction_form.geometry';
 import { EditTransactionSession } from './edit_transaction_session';
 import { useTransactionFormHost } from './transaction_form_host.hook';
+
+interface SheetEngineWatcherProps {
+  onIndex: (index: number) => boolean;
+}
+
+// Rendered inside the sheet's children, the only place gorhom's context reaches.
+function SheetEngineWatcher({ onIndex }: SheetEngineWatcherProps): null {
+  useSheetEngineIndex(onIndex);
+  return null;
+}
 
 export function TransactionFormHost(): React.ReactElement {
   const {
@@ -20,6 +31,7 @@ export function TransactionFormHost(): React.ReactElement {
     handleSaved,
     handleRequestAccountCreation,
     handleCloseComplete,
+    handleEngineIndex,
   } = useTransactionFormHost();
 
   return (
@@ -30,6 +42,7 @@ export function TransactionFormHost(): React.ReactElement {
       title={state.title}
       size="lg"
       scrollable
+      liftsAboveKeyboard
       isDismissable={state.isDismissable}
       footer={
         state.footer.visible ? (
@@ -52,6 +65,7 @@ export function TransactionFormHost(): React.ReactElement {
         ) : undefined
       }
     >
+      <SheetEngineWatcher onIndex={handleEngineIndex} />
       {state.mode === 'add' ? (
         <AddTransactionSession
           key={state.sessionId}

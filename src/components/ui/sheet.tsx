@@ -18,7 +18,7 @@ import {
 // Keyboard inputs: wire this onto an `Input`'s `onFocus`/`onBlur` inside a sheet.
 export { useBottomSheetAwareHandlers } from 'heroui-native';
 
-/** `paddingBottom` a consumer must add to scrollable content when passing a `footer`. */
+/** `paddingBottom` a consumer adds to scrollable content under a `footer`; a scrollable sheet that lifts above the keyboard ends its content at the footer and takes none. */
 export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(72);
 
 const SHEET_SIZES = ['xxs', 'xs', 'sm', 'md', 'lg', 'xl', 'xxl'] as const;
@@ -61,6 +61,29 @@ export function resolveKeyboardProps(liftsAboveKeyboard: boolean) {
   } as const;
 }
 
+interface SheetContentPaddingInput {
+  fitContent: boolean;
+  scrollable: boolean;
+  hasFooter: boolean;
+  liftsAboveKeyboard: boolean;
+  footerHeight: number;
+}
+
+/** The measured footer is the bottom padding of a fitContent sheet and of a scrollable sheet that lifts; every other sheet keeps HeroUI's own bottom inset. */
+export function resolveSheetContentPadding({
+  fitContent,
+  scrollable,
+  hasFooter,
+  liftsAboveKeyboard,
+  footerHeight,
+}: SheetContentPaddingInput): { padding: 0; paddingBottom?: number } {
+  if (fitContent) return { padding: 0, paddingBottom: hasFooter ? footerHeight : 0 };
+  if (scrollable && hasFooter && liftsAboveKeyboard) {
+    return { padding: 0, paddingBottom: footerHeight };
+  }
+  return { padding: 0 };
+}
+
 export interface SheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -81,7 +104,7 @@ export interface SheetProps {
   showCloseButton?: boolean;
   /** Pass a bare CTA; the shell adds bg, hairline, and padding, so do not pad it again. */
   footer?: React.ReactNode;
-  /** Android only: lift the sheet and its footer clear of the keyboard. Set it on any sheet whose `footer` must stay reachable while typing. Assumes the activity does not resize for the IME; re-check this sheet if `app.json` gains `android.softwareKeyboardLayoutMode`. */
+  /** Android only: lift the sheet and its footer clear of the keyboard. Set it on any sheet whose `footer` must stay reachable while typing; a `scrollable` sheet with it ends its content at the footer and takes no `SHEET_FOOTER_CLEARANCE`. Assumes the activity does not resize for the IME; re-check this sheet if `app.json` gains `android.softwareKeyboardLayoutMode`. */
   liftsAboveKeyboard?: boolean;
   children: React.ReactNode;
 }
@@ -156,18 +179,21 @@ export function Sheet({
   );
 
   // HeroUI bakes `p-5` into contentContainer and Uniwind class-merge is unreliable, so use style.
+  const contentContainerProps = {
+    style: resolveSheetContentPadding({
+      fitContent,
+      scrollable,
+      hasFooter: footer !== undefined,
+      liftsAboveKeyboard,
+      footerHeight,
+    }),
+  };
   const contentSizingProps = fitContent
-    ? {
-        enableDynamicSizing: true as const,
-        // paddingBottom: the measured footer overlay depth, so fitContent content clears it exactly; consumers own only the visible gap above it.
-        contentContainerProps: {
-          style: { padding: 0, paddingBottom: footer !== undefined ? footerHeight : 0 },
-        },
-      }
+    ? { enableDynamicSizing: true as const, contentContainerProps }
     : {
         snapPoints: resolveSnapPoints(size, snapPoints),
         enableDynamicSizing: false as const,
-        contentContainerProps: { style: { padding: 0 } } as const,
+        contentContainerProps,
         ...(scrollable
           ? {
               enableOverDrag: false,

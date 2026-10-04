@@ -107,6 +107,16 @@ export function isTransactionFormSessionSaving(mode: TransactionFormMode | null)
   return false;
 }
 
+/** What a resting sheet position asks of the host: finish a close whose callback never fired, or close a sheet drawn while the phase is not open. */
+export function resolveTransactionFormEngineRepair(
+  phase: TransactionFormPhase,
+  index: number,
+): 'complete' | 'close' | undefined {
+  if (index === -1) return phase === 'closing' ? 'complete' : undefined;
+  if (Number.isInteger(index) && index >= 0 && phase !== 'open') return 'close';
+  return undefined;
+}
+
 function isOwnedRequest(
   state: TransactionFormStateShape,
   sessionId: number,

@@ -159,7 +159,12 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const toRowFace = resolveToRowFace({ locked, account: selectedToAccount ?? undefined });
 
   return (
-    <View style={{ flex: 1 }}>
+    <BottomSheetScrollView
+      testID="transaction-form-scroll"
+      style={{ flex: 1 }}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
       <TypeTabs
         active={type}
         incomeLabel={type === TransactionType.Income ? typeLabel : Strings.addTxTypeIncome}
@@ -207,13 +212,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
       />
       <ValidationSlot testID="amount-error-slot" message={amountError} />
 
-      <BottomSheetScrollView
-        testID="transaction-form-scroll"
-        style={{ flex: 1 }}
-        contentContainerStyle={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+      <View testID="transaction-form-fact-inset" style={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}>
         <ListCard testID="transaction-form-fact-group">
           {isTransferOrCC ? (
             <View className={FACT_CELL_CLASS}>
@@ -381,6 +380,9 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               placeholderTextColor={CoreTokens.text2}
               onFocus={onInputFocus}
               onBlur={onInputBlur}
+              // Android: a single-line edit text keeps the parent's touch lock, so a drag that starts on it never scrolls the form.
+              multiline
+              submitBehavior="blurAndSubmit"
               variant="secondary"
               className="font-sora text-foreground rounded-none border-0 bg-transparent p-0 tabular-nums"
               style={{
@@ -394,7 +396,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             />
           </View>
         </ListCard>
-      </BottomSheetScrollView>
-    </View>
+      </View>
+    </BottomSheetScrollView>
   );
 }
