@@ -363,10 +363,14 @@ function decide(item, ctx) {
   const lease = ctx.leaseOf(n);
   if (lease === 'stale') {
     const l = ctx.leases.get(n);
+    // A dead review of a parent left one lease per child; the parent's command clears them with it.
+    const kids = (item.children ?? [])
+      .map((c) => c.number)
+      .filter((c) => ctx.leaseOf(c) === 'stale' && ctx.leases.get(c).skill === l.skill);
     return {
       bucket: 'drift',
       action: `stale lease, ${l.skill}, last write ${age(l.touchedAt, ctx.fetchedAt)}`,
-      command: `rm ~/.ship/MoneyApp/queue/leases/${n}`,
+      command: `rm ${[n, ...kids].map((k) => `~/.ship/MoneyApp/queue/leases/${k}`).join(' ')}`,
     };
   }
   if (lease === 'held')
@@ -568,23 +572,55 @@ function actorOf(d) {
   return d.command.startsWith('/') ? 'session' : 'you';
 }
 
+function reviewsParent(a) {
+  return a.isParent && a.command === `/issue-review ${a.number}`;
+}
+
+// Why /queue Defined cannot start the review of an unmarked parent, null when it can.
+function parentHold(a, ctx) {
+  if (a.deps.some((d) => !d.closed)) return 'a Depends on is open';
+  if (headerReviewed(ctx.byNumber.get(a.parent)?.header) === 'none')
+    return `its parent #${a.parent} is unmarked`;
+  for (const n of a.progress.open) {
+    const status = ctx.statusOf(n);
+    if (status !== 'Defined') return `child #${n} is at ${status ?? 'no column'}`;
+    if (ctx.leaseOf(n)) return `child #${n} has a ${ctx.leaseOf(n)} lease`;
+    if (openQuestions(ctx.byNumber.get(n)?.comments ?? []) > 0)
+      return `child #${n} has an open record`;
+  }
+  return a.status === 'Defined' ? null : `its row is at ${a.status}`;
+}
+
+// The runs holding a lease, as the Cap hold of column.md § Holds counts them.
+function capOf(actions, ctx) {
+  const runs = { ship: new Set(), other: new Set() };
+  for (const a of actions) {
+    if (a.lease !== 'held') continue;
+    const l = ctx.leases.get(a.number);
+    if (l.skill === 'ship' && a.status === 'Awaiting Human') continue;
+    // A queued run names its task on every lease; a typed review of a parent is found through the parent's lease.
+    const under = l.skill === 'issue-review' && ctx.leases.get(a.parent)?.skill === l.skill;
+    runs[l.skill === 'ship' ? 'ship' : 'other'].add(l.task || `#${under ? a.parent : a.number}`);
+  }
+  return { ship: runs.ship.size, other: runs.other.size };
+}
+
+// A parent's own Size line dates from before the cut, so its paths are its open children's.
+function pathsOf(it, ctx, seen = new Set()) {
+  const open = (it.children ?? []).filter((c) => c.state === 'open');
+  if (open.length === 0 || seen.has(it.number)) return it.size?.paths ?? [];
+  seen.add(it.number);
+  const all = open.flatMap((c) => pathsOf(ctx.byNumber.get(c.number) ?? {}, ctx, seen));
+  return [...new Set(all)];
+}
+
 // The column /queue may run this action from, .claude/skills/queue/references/column.md § One pass.
 function queueOf(a, ctx) {
-  if (a.actor !== 'session' || a.deps.some((d) => !d.closed)) return null;
+  if (a.actor !== 'session') return null;
+  // A fresh cut: the review marks the parent first, and the mark gives its children their slots.
+  if (a.isParent) return reviewsParent(a) && !parentHold(a, ctx) ? 'Defined' : null;
+  if (a.deps.some((d) => !d.closed)) return null;
   const cmd = a.command ?? '';
-  if (a.isParent) {
-    // A fresh cut: the review marks the parent first, and the mark gives its children their slots.
-    const open = (ctx.byNumber.get(a.number)?.children ?? []).filter((c) => c.state === 'open');
-    const settled = open.every(
-      (c) =>
-        ctx.statusOf(c.number) === 'Defined' &&
-        ctx.leaseOf(c.number) === null &&
-        openQuestions(ctx.byNumber.get(c.number)?.comments ?? []) === 0,
-    );
-    return a.status === 'Defined' && cmd === `/issue-review ${a.number}` && settled
-      ? 'Defined'
-      : null;
-  }
   // issue-review marks no leaf under an unmarked parent, so the run would repeat every pass.
   const parentUnmarked = headerReviewed(ctx.byNumber.get(a.parent)?.header) === 'none';
   if (a.status === 'Defined' && /^\/issue-review /.test(cmd))
@@ -694,7 +730,7 @@ function analyze(snapshot, scope) {
       questions: openQuestions(it.comments ?? []),
       lease: ctx.leaseOf(it.number),
       leaseSkill: ctx.leases.get(it.number)?.skill ?? null,
-      paths: it.size?.paths ?? [],
+      paths: pathsOf(it, ctx),
       size: it.size ? sizeText(it.size) : null,
       verify: /Verify emulator/.test(it.header ?? ''),
       flags: (/Flags ([^·]+)/.exec(it.header ?? '')?.[1] ?? 'none').trim(),
@@ -709,6 +745,7 @@ function analyze(snapshot, scope) {
           : null,
     };
     row.queue = queueOf(row, ctx);
+    row.queueHold = reviewsParent(row) ? parentHold(row, ctx) : null;
     actions.push(row);
   }
   actions.sort(
@@ -773,6 +810,7 @@ function analyze(snapshot, scope) {
     scope: scope ?? null,
     openLeaves,
     deepestChain,
+    cap: capOf(actions, ctx),
     graph: openLeaves > 8 || deepestChain >= 2,
     next: { you: firstFor('you'), session: firstFor('session'), page: firstFor('page') },
     actions,

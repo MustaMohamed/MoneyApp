@@ -26,7 +26,7 @@ worktree=<absolute path>
 task=<task id>
 ```
 
-**Owner.** `/queue` writes the lease at each start, before `run_scheduled_task`: `skill=` the run's skill, `worktree=` the primary checkout, `task=` the task id. The started skill rewrites it with its own `worktree=` and keeps `task=`. A queued `/issue-review` on a parent writes each child's lease itself, with the same `task=` line, so every lease of the run is its own. A typed `/issue-review`, `/prep` or `/ship` writes no `task=` line. A lease whose `task=` equals the task id the run's prompt names is that run's own. `board_next.mjs` ignores `task=`.
+**Owner.** `/queue` writes the lease at each start, before `run_scheduled_task`: `skill=` the run's skill, `worktree=` the primary checkout, `task=` the task id. The started skill rewrites it with its own `worktree=` and keeps `task=`. A queued `/issue-review` on a parent writes each child's lease itself, with the same `task=` line, so every lease of the run is its own. A typed `/issue-review`, `/prep` or `/ship` writes no `task=` line. A lease whose `task=` equals the task id the run's prompt names is that run's own. `board_next.mjs` reads `task=` for one thing, counting a run once in `cap`.
 
 **Entry check**, run by `/ship` Entry, `/prep` step 2 and `/issue-review` step 1, for every issue the skill would lease, before it writes:
 
@@ -34,11 +34,11 @@ task=<task id>
 - any other held lease: stop, naming its skill, its last write and `rm ~/.ship/MoneyApp/queue/leases/<n>` for a user who knows that run is gone;
 - a stale lease: the same stop, reported as stale.
 
-**Touch.** The file's mtime is its last write. The holder touches it at every dispatch and every `state.md` write.
+**Touch.** The file's mtime is its last write. The holder touches it at every dispatch and every `state.md` write. A review of a parent touches every lease it holds, the parent's and each child's.
 
 **Release.** The holder removes it at every exit: its reply, a stop, a trim, a parked record. An unattended `/ship` removes it at Awaiting Human and ends. A typed `/ship` keeps it through the merge watch, which touches it each minute, and removes it after the post-merge list.
 
-**Stale** is a lease whose worktree is gone, or with no write for 2 hours. `board_next.mjs` lists it as `drift` with its `rm` command. The queue reports it and never removes it, and no run takes it.
+**Stale** is a lease whose worktree is gone, or with no write for 2 hours. `board_next.mjs` lists it as `drift` with its `rm` command; on a parent the command also names each child's stale lease of the same skill, so one command clears a review that died. The queue reports it and never removes it, and no run takes it.
 
 ## Rules
 

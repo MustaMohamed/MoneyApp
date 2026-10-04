@@ -943,7 +943,12 @@
           "number": 160,
           "state": "open"
         }
-      ]
+      ],
+      "size": {
+        "files": 1,
+        "lines": 10,
+        "paths": ["src/old.ts"]
+      }
     },
     {
       "number": 159,
@@ -957,7 +962,12 @@
       "comments": [],
       "header": "Part of #158 · Depends on nothing · Verify none · Flags none · Reviewed none",
       "parent": 158,
-      "children": []
+      "children": [],
+      "size": {
+        "files": 2,
+        "lines": 40,
+        "paths": ["src/a.ts", "src/b.ts"]
+      }
     },
     {
       "number": 160,
@@ -971,7 +981,12 @@
       "comments": [],
       "header": "Part of #158 · Depends on nothing · Verify none · Flags none · Reviewed none",
       "parent": 158,
-      "children": []
+      "children": [],
+      "size": {
+        "files": 2,
+        "lines": 60,
+        "paths": ["src/b.ts", "src/c.ts"]
+      }
     },
     {
       "number": 161,
@@ -1188,6 +1203,244 @@
       "header": "Part of #172 · Depends on nothing · Verify none · Flags none · Reviewed none",
       "parent": 172,
       "children": []
+    },
+    {
+      "number": 174,
+      "status": "Defined",
+      "title": "MA-174 — Parent unmarked, its child a parent too",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [
+        {
+          "number": 175,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 175,
+      "status": "Defined",
+      "title": "MA-175 — Parent unmarked under unmarked 174",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #174 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 174,
+      "children": [
+        {
+          "number": 176,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 176,
+      "status": "Defined",
+      "title": "MA-176 — Defined child of 175",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #175 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 175,
+      "children": []
+    },
+    {
+      "number": 177,
+      "status": "Defined",
+      "title": "MA-177 — Parent whose review died, leases stale",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [
+        {
+          "number": 178,
+          "state": "open"
+        },
+        {
+          "number": 179,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 178,
+      "status": "Defined",
+      "title": "MA-178 — Defined child of 177",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #177 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 177,
+      "children": []
+    },
+    {
+      "number": 179,
+      "status": "Defined",
+      "title": "MA-179 — Defined child of 177",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #177 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 177,
+      "children": []
+    },
+    {
+      "number": 180,
+      "status": "Defined",
+      "title": "MA-180 — Parent under a queued review",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [
+        {
+          "number": 181,
+          "state": "open"
+        },
+        {
+          "number": 182,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 181,
+      "status": "Defined",
+      "title": "MA-181 — Defined child of 180",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #180 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 180,
+      "children": []
+    },
+    {
+      "number": 182,
+      "status": "Defined",
+      "title": "MA-182 — Defined child of 180",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #180 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 180,
+      "children": []
+    },
+    {
+      "number": 183,
+      "status": "Defined",
+      "title": "MA-183 — Parent whose lease is gone, children still leased",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [
+        {
+          "number": 184,
+          "state": "open"
+        },
+        {
+          "number": 185,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 184,
+      "status": "Defined",
+      "title": "MA-184 — Defined child of 183",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #183 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 183,
+      "children": []
+    },
+    {
+      "number": 185,
+      "status": "Defined",
+      "title": "MA-185 — Defined child of 183",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #183 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 183,
+      "children": []
+    },
+    {
+      "number": 186,
+      "status": "Defined",
+      "title": "MA-186 — Parent under a typed review",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": [
+        {
+          "number": 187,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 187,
+      "status": "Defined",
+      "title": "MA-187 — Defined child of 186",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #186 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": 186,
+      "children": []
     }
   ],
   "offBoard": [
@@ -1224,6 +1477,84 @@
     },
     {
       "number": 167,
+      "skill": "issue-review",
+      "worktree": "/Users/fixture/MoneyApp",
+      "touchedAt": "2026-09-08T09:55:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 101,
+      "skill": "ship",
+      "worktree": "/Users/fixture/MoneyApp",
+      "task": "ship-101",
+      "touchedAt": "2026-09-08T09:59:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 177,
+      "skill": "issue-review",
+      "worktree": "/Users/fixture/MoneyApp",
+      "task": "review-177",
+      "touchedAt": "2026-09-08T07:00:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 178,
+      "skill": "issue-review",
+      "worktree": "/Users/fixture/MoneyApp",
+      "task": "review-177",
+      "touchedAt": "2026-09-08T07:00:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 180,
+      "skill": "issue-review",
+      "worktree": "/Users/fixture/MoneyApp",
+      "task": "review-180",
+      "touchedAt": "2026-09-08T09:55:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 181,
+      "skill": "issue-review",
+      "worktree": "/Users/fixture/MoneyApp",
+      "task": "review-180",
+      "touchedAt": "2026-09-08T09:55:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 182,
+      "skill": "issue-review",
+      "worktree": "/Users/fixture/MoneyApp",
+      "task": "review-180",
+      "touchedAt": "2026-09-08T09:55:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 184,
+      "skill": "issue-review",
+      "worktree": "/Users/fixture/MoneyApp",
+      "task": "review-183",
+      "touchedAt": "2026-09-08T09:55:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 185,
+      "skill": "issue-review",
+      "worktree": "/Users/fixture/MoneyApp",
+      "task": "review-183",
+      "touchedAt": "2026-09-08T09:55:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 186,
+      "skill": "issue-review",
+      "worktree": "/Users/fixture/MoneyApp",
+      "touchedAt": "2026-09-08T09:55:00Z",
+      "worktreeGone": false
+    },
+    {
+      "number": 187,
       "skill": "issue-review",
       "worktree": "/Users/fixture/MoneyApp",
       "touchedAt": "2026-09-08T09:55:00Z",

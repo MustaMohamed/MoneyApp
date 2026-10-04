@@ -442,7 +442,7 @@
     ],
     nodes: [
       { id: 'merged', kind: 'script', x: 60, y: 80, w: 190, h: 54, label: 'merged since last run', sub: ['post-merge list per state.md', 'whose PR reads MERGED'] },
-      { id: 'next', kind: 'script', x: 60, y: 170, w: 190, h: 54, label: 'board_next.mjs --json', sub: ['candidates: queue = column', 'leaf, or parent to mark first'] },
+      { id: 'next', kind: 'script', x: 60, y: 170, w: 190, h: 66, label: 'board_next.mjs --json', sub: ['candidates: queue = column', 'leaf, deps closed, no record', 'or a parent to mark first'] },
       { id: 'holds', kind: 'decision', x: 300, y: 130, w: 220, h: 130, label: 'holds', sub: ['cap 3 ship / 5 others', 'path overlap · no paths', 'no progress · emulator slot', 'GraphQL · host load · measures'] },
       { id: 'held', kind: 'note', x: 300, y: 300, w: 220, h: 40, label: 'held, next candidate' },
       { id: 'lease', kind: 'script', x: 570, y: 100, w: 220, h: 54, label: 'write the lease', sub: ['~/.ship/MoneyApp/queue/leases/<n>', 'skill, worktree, task id'] },

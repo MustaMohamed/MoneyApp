@@ -14,6 +14,7 @@ interface Lease {
   number: number;
   skill: string;
   worktree: string;
+  task: string | null;
   touchedAt: string;
   worktreeGone: boolean;
 }
@@ -54,11 +55,12 @@ describe('readLeases', () => {
     expect(r.status).toBe(0);
   });
 
-  test('a lease whose worktree exists reads its fields and its mtime, and its task line is ignored', () => {
+  test('a lease whose worktree exists reads its fields, its task line and its mtime', () => {
     expect(byNumber[0]).toEqual({
       number: 642,
       skill: 'ship',
       worktree,
+      task: 'ship-642',
       touchedAt: TOUCHED.toISOString(),
       worktreeGone: false,
     });
@@ -69,6 +71,7 @@ describe('readLeases', () => {
       number: 643,
       skill: 'prep',
       worktree: gone,
+      task: null,
       touchedAt: TOUCHED.toISOString(),
       worktreeGone: true,
     });

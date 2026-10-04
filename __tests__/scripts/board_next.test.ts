@@ -24,6 +24,8 @@ interface Action {
   leaseSkill?: string | null;
   paths?: string[];
   queue?: 'Defined' | 'Ready For Development' | 'Planned' | null;
+  queueHold?: string | null;
+  status?: string | null;
 }
 
 interface TreeModel {
@@ -134,6 +136,11 @@ describe('board_next rule table', () => {
     [168, 'define', 'parent unmarked, a child at Defined', '/issue-review 168'],
     [170, 'define', 'parent unmarked, a child at Defined', '/issue-review 170'],
     [172, 'define', 'parent unmarked, a child at Defined', '/issue-review 172'],
+    [174, 'define', 'parent unmarked, a child at Defined', '/issue-review 174'],
+    [175, 'define', 'parent unmarked, a child at Defined', '/issue-review 175'],
+    [183, 'define', 'parent unmarked, a child at Defined', '/issue-review 183'],
+    [180, 'flight', 'issue-review running, lease held', undefined],
+    [186, 'flight', 'issue-review running, lease held', undefined],
     [171, 'yours', '1 open question', '/queue asks'],
     [164, 'wait', 'parent, mirrors its children', undefined],
     [141, 'define', 'marked, no Size line', '/issue-review 141'],
@@ -421,15 +428,59 @@ describe('board_next leases and the queue column', () => {
   });
 
   test.each([
-    [158, 'a child at Todo'],
-    [161, 'a child past Defined, the parent at Ready For Development with it'],
-    [166, 'a child whose lease is held'],
-    [168, 'an open Depends on'],
-    [170, 'a child with an open record'],
-    [172, 'its own row at Blocked'],
-  ])('parent #%i with %s keeps its /issue-review command and gets no slot', (n) => {
-    const a = byNumber(list, n);
-    expect([a.command, a.actor, a.queue]).toEqual([`/issue-review ${n}`, 'session', null]);
+    [158, 'a child at Todo', 'child #160 is at Todo'],
+    [161, 'a child past Defined', 'child #162 is at Ready For Development'],
+    [166, 'a child whose lease is held', 'child #167 has a held lease'],
+    [168, 'an open Depends on', 'a Depends on is open'],
+    [170, 'a child with an open record', 'child #171 has an open record'],
+    [172, 'its own row at Blocked', 'its row is at Blocked'],
+    [175, 'its own parent unmarked', 'its parent #174 is unmarked'],
+    [183, 'children leased by a run whose parent lease is gone', 'child #184 has a held lease'],
+  ])(
+    'parent #%i with %s keeps its /issue-review command, gets no slot and says why',
+    (n, _, why) => {
+      const a = byNumber(list, n);
+      expect([a.command, a.actor, a.queue, a.queueHold]).toEqual([
+        `/issue-review ${n}`,
+        'session',
+        null,
+        why,
+      ]);
+    },
+  );
+
+  test('of two nested unmarked parents the outer one is queued, and its leaf waits for both marks', () => {
+    expect([byNumber(list, 174).queue, byNumber(list, 174).queueHold]).toEqual(['Defined', null]);
+    expect(byNumber(list, 176).queue).toBeNull();
+  });
+
+  test('queueHold is set only on a parent whose command is its review', () => {
+    for (const a of list.filter((x) => x.queueHold))
+      expect([a.number, a.command]).toEqual([a.number, `/issue-review ${a.number}`]);
+    expect(byNumber(list, 128).queueHold).toBeNull();
+    expect(byNumber(list, 164).queueHold).toBeNull();
+  });
+
+  test("a stale lease on a parent names its children's stale leases of the same skill in one rm", () => {
+    const lease = (n: number) => `~/.ship/MoneyApp/queue/leases/${n}`;
+    expect(byNumber(list, 177).command).toBe(`rm ${lease(177)} ${lease(178)}`);
+    expect(byNumber(list, 178).command).toBe(`rm ${lease(178)}`);
+    expect(byNumber(list, 179).lease).toBeNull();
+  });
+
+  test('cap counts a run once: a parent review with its children, queued or typed, and no ship at Awaiting Human', () => {
+    const out = JSON.parse(run('--format', 'json').stdout) as {
+      cap: { ship: number; other: number };
+    };
+    const held = list.filter((a) => a.lease === 'held');
+    expect(held.filter((a) => a.leaseSkill === 'ship').map((a) => a.number)).toEqual([101, 152]);
+    expect(
+      held
+        .filter((a) => a.leaseSkill === 'issue-review')
+        .map((a) => a.number)
+        .sort(),
+    ).toEqual([167, 180, 181, 182, 184, 185, 186, 187]);
+    expect(out.cap).toEqual({ ship: 1, other: 4 });
   });
 
   test('a parent already marked, or with an open record, gets no slot', () => {
@@ -443,15 +494,22 @@ describe('board_next leases and the queue column', () => {
     expect(byNumber(list, 165).queue).toBe('Defined');
   });
 
-  test('no parent is queued from Ready For Development or Planned', () => {
+  test('a parent is queued only from Defined, and only while its own row is there', () => {
     const queued = list.filter((a) => a.progress && a.queue);
-    expect(queued.map((a) => [a.number, a.queue])).toEqual([[127, 'Defined']]);
+    expect(queued.map((a) => a.number)).toEqual(expect.arrayContaining([127, 174]));
+    for (const a of queued)
+      expect([a.number, a.status, a.queue]).toEqual([a.number, 'Defined', 'Defined']);
   });
 
   test('paths are the Size paths the snapshot holds, and empty without them', () => {
     expect(byNumber(list, 152).paths).toEqual(['scripts/board_next.mjs', 'docs/workflow.md']);
     expect(byNumber(list, 108).paths).toEqual([]);
     expect(byNumber(list, 110).paths).toEqual([]);
+  });
+
+  test("a parent's paths are the union of its open children's, its own Size line not read", () => {
+    expect(byNumber(list, 158).paths).toEqual(['src/a.ts', 'src/b.ts', 'src/c.ts']);
+    expect(byNumber(list, 127).paths).toEqual([]);
   });
 
   test('a Defined leaf under a parent that reads Reviewed none is not queued, since the review cannot mark it', () => {

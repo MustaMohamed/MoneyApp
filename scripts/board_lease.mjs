@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-/** @param {string} dir @returns {{ number: number, skill: string, worktree: string, touchedAt: string, worktreeGone: boolean }[]} */
+/** @param {string} dir @returns {{ number: number, skill: string, worktree: string, task: string | null, touchedAt: string, worktreeGone: boolean }[]} */
 export function readLeases(dir) {
   let names = [];
   try {
@@ -29,6 +29,7 @@ export function readLeases(dir) {
         number: Number(f),
         skill: field('skill'),
         worktree,
+        task: field('task') || null,
         touchedAt: mtime.toISOString(),
         worktreeGone: !worktree || !fs.existsSync(worktree),
       },

@@ -9,24 +9,24 @@
    ```bash
    node scripts/board_next.mjs --format json </dev/null
    ```
-   The candidates are the actions whose `queue` equals the column, in the script's order. The script sets `queue` on an open leaf whose command a session runs, with every Depends on closed, no open question record, no lease, and at Defined a parent that is not `Reviewed none`. At Defined it also sets it on a parent to mark: an open parent at Defined that reads `Reviewed none`, whose command is `/issue-review <parent>`, with every Depends on closed, every open child at Defined, and no open question record and no lease, held or stale, on the parent or on any open child. Its children get no slot until that run has marked it, so the parent goes first. No parent is a candidate of Ready For Development or Planned.
+   The candidates are the actions whose `queue` equals the column, in the script's order. The script sets `queue` on an open leaf whose command a session runs, with every Depends on closed, no open question record, no lease, and at Defined a parent that is not `Reviewed none`. At Defined it also sets it on a parent to mark: an open parent at Defined that reads `Reviewed none`, whose command is `/issue-review <parent>`, with every Depends on closed, its own parent not `Reviewed none`, every open child at Defined, and no open question record and no lease, held or stale, on the parent or on any open child. Its children get no slot until that run has marked it, so the parent goes first, and of two nested unmarked parents the outer one. No parent is a candidate of Ready For Development or Planned. A parent whose command is its review and which gets no slot carries the reason as `queueHold`.
 3. `/queue Planned` only: for each action at Awaiting Human with `pr.state` `OPEN`, a `state.md` on this machine and no lease, run the read of § Changes asked at Awaiting Human. With one or more, § Start `ship-<n>` on it, counted toward `n` and held by Cap, Emulator slot, GraphQL budget, Host load and Measures only.
 4. For each candidate in order, read § Holds. A held candidate is skipped and the next is tried. Otherwise § Start it. Stop at `n` starts.
-5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, `on <model>` appended when one was given, or `held, <hold>`; then every action whose `lease` is `stale`, with its action text; while the floor or the ceiling reads `unmeasured`, the readings of each start; then each summary file measure 2 names, the ones without its heading, § After 10 queued tickets, and, while a measure holds, each record and its Check. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
+5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, `on <model>` appended when one was given, or `held, <hold>`; `/queue Defined` only, then every action with a `queueHold`, `#<n> MA-XXX · not queued, <queueHold>`; then every action whose `lease` is `stale`, with its action text and its command; while the floor or the ceiling reads `unmeasured`, the readings of each start; then each summary file measure 2 names, the ones without its heading, § After 10 queued tickets, and, while a measure holds, each record and its Check. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
 
 ## Holds
 
 Read before each start. Each hold counts the board read together with the tickets started earlier in this pass: a start adds one to its skill's count, adds its `paths` to the overlap set, and takes one `free` row when its `verify` is true.
 
-A parent candidate is one run and one start. Its own `size` and `paths` date from before the cut and are not read: its `paths` are the union of the `paths` of the actions its `progress.open` names. Every other hold reads the parent's row as it reads a leaf's.
+A parent candidate is one run and one start. The script has already put the union of its open children's `paths` on its row, since its own `Size:` line dates from before the cut, so Overlap reads the row as it reads a leaf's. Its `verify` is not read: a review of a parent takes no `free` row, and the Emulator slot hold never holds it.
 
 | Hold | Read | Holds the start when |
 |---|---|---|
-| Cap | actions with `lease: 'held'`, counted by `leaseSkill`, a `ship` lease on a ticket at Awaiting Human not counted, nor an `issue-review` lease on a ticket whose `parent` holds one, since a review of a parent leases each child and is one run | 3 `ship` leases are held, or 5 `prep` and `issue-review` leases together |
-| Overlap | the candidate's `paths`, for a parent the union of its open children's, against the `paths` of every action in the `flight` bucket, with `lease: 'held'`, or with `pr.state` `OPEN` | a path is in both |
+| Cap | `cap.ship` and `cap.other` of the board read: the runs holding a lease, a `ship` lease on a ticket at Awaiting Human not counted. The script counts a run once, by the `task=` line its leases share, or for a typed review of a parent by the parent's lease | `cap.ship` is 3, or `cap.other`, `prep` and `issue-review` together, is 5 |
+| Overlap | the candidate's `paths` against the `paths` of every action in the `flight` bucket, with `lease: 'held'`, or with `pr.state` `OPEN` | a path is in both |
 | No paths | the candidate's `size` and `paths` | a `prep` or `ship` candidate has a `size` and empty `paths`; the reply names it |
 | No progress | the log's last line for the same skill and ticket; for a parent candidate, the last such line whose outcome ends `, parent`, § Log | it ended in the column the start would run from, with 0 questions parked; the reply names it. A line from the ticket's runs as a leaf, before `/tickets` cut it, holds no parent start |
-| Emulator slot | `bash .claude/skills/emulator-verify/mqa.sh claims` | `verify` is true and no row reads `free` |
+| Emulator slot | `bash .claude/skills/emulator-verify/mqa.sh claims` | `verify` is true, the candidate is not a parent, and no row reads `free` |
 | GraphQL budget | the `x-ratelimit-remaining` header of `gh api -i graphql -f query='{viewer{login}}'` | it is below the floor |
 | Host load | the first figure of `sysctl -n vm.loadavg`, the 1-minute load | it is above the ceiling |
 | Measures | § After 10 queued tickets | the candidate is a `ship` start and a measure holds |
@@ -51,10 +51,10 @@ The lease ~/.ship/MoneyApp/queue/leases/<n> names this task id. The skill rewrit
 A question you cannot answer is parked as a record per .claude/skills/issue-review/references/question-record.md, and the run ends.
 A refused call is never turned into a permission request. It goes into your log line's note, and the run goes on or ends.
 /ship: write the merge summary to ~/.ship/MoneyApp/queue/ship-<n>-summary.md. It holds the heading `## Questions that should have been asked earlier` over a table with the columns Record, Check: one row per `## Parked` line of state.md whose `miss:` is not `none`, the header row alone when there is none.
-Before your last message, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md in the shape of .claude/skills/queue/references/column.md § Log, the readings and the model you are running as in its note, `wrapped` after it when Model above names one.
+Before your last message, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md in the shape of .claude/skills/queue/references/column.md § Log, `, parent` after its outcome when issue #<n> has open sub-issues, the readings and the model you are running as in its note, `wrapped` after it when Model above names one.
 ```
 
-`<f>` is the number of held leases before this start's own, a parent's review counted once as Cap counts it.
+`<f>` is `cap.ship` plus `cap.other` of the board read, plus the starts made earlier in this pass.
 
 ## Wrapper
 
