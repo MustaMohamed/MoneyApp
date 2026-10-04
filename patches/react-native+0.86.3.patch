@@ -28,7 +28,7 @@ index 1268eab..359bc86 100644
 +    }
 +    android.graphics.Typeface widest = null;
 +    float widestWidth = -1f;
-+    int next = 0;
++    int next;
 +    for (int i = 0; i < length; i = next) {
 +      next =
 +          spanned.nextSpanTransition(
