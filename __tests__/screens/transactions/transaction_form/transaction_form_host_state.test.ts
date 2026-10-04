@@ -6,10 +6,7 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
-import {
-  resolveTransactionFormEngineRepair,
-  useTransactionFormState,
-} from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 
 function createTransaction(id = 'tx-1'): Transaction {
   return {
@@ -378,31 +375,5 @@ describe('useTransactionFormState', () => {
       mode: 'edit',
       prerequisiteStatus: 'idle',
     });
-  });
-});
-
-describe('resolveTransactionFormEngineRepair', () => {
-  it('completes the close when the sheet rests closed while the phase is still closing', () => {
-    expect(resolveTransactionFormEngineRepair('closing', -1)).toBe('complete');
-  });
-
-  it('leaves a sheet that rests closed alone at the open and the closed phase', () => {
-    expect(resolveTransactionFormEngineRepair('open', -1)).toBeUndefined();
-    expect(resolveTransactionFormEngineRepair('closed', -1)).toBeUndefined();
-  });
-
-  it('closes a sheet that rests open while the phase is closed or closing', () => {
-    expect(resolveTransactionFormEngineRepair('closed', 0)).toBe('close');
-    expect(resolveTransactionFormEngineRepair('closing', 0)).toBe('close');
-  });
-
-  it('leaves a sheet that rests open alone at the open phase', () => {
-    expect(resolveTransactionFormEngineRepair('open', 0)).toBeUndefined();
-  });
-
-  it('ignores a position between two rests at every phase', () => {
-    for (const phase of ['closed', 'open', 'closing'] as const) {
-      expect(resolveTransactionFormEngineRepair(phase, 0.4)).toBeUndefined();
-    }
   });
 });

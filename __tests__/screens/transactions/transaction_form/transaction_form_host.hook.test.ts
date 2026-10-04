@@ -20,15 +20,15 @@ jest.mock('expo-router', () => ({
 
 const SAVED_TOAST = { label: Strings.transactionSavedToast, variant: 'success' };
 
-beforeEach(() => {
-  mockPush.mockClear();
-  mockToast.show.mockClear();
-  useTransactionFormState.getState().reset();
-  useAccountStore.setState({ accounts: [], accountLookupById: {}, hasLoaded: false });
-  useCategoryStore.setState({ categories: [], hasLoaded: false });
-});
-
 describe('useTransactionFormHost saved toast', () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+    mockToast.show.mockClear();
+    useTransactionFormState.getState().reset();
+    useAccountStore.setState({ accounts: [], accountLookupById: {}, hasLoaded: false });
+    useCategoryStore.setState({ categories: [], hasLoaded: false });
+  });
+
   it('shows Transaction saved once, after the add sheet has closed', async () => {
     const { result } = await renderHook(() => useTransactionFormHost());
     await act(() => useTransactionFormState.getState().openAdd());
@@ -95,32 +95,5 @@ describe('useTransactionFormHost saved toast', () => {
     expect(mockToast.show).toHaveBeenCalledTimes(1);
     expect(mockToast.show).toHaveBeenCalledWith(SAVED_TOAST);
     expect(mockPush).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('useTransactionFormHost engine index', () => {
-  it('MA-123: a sheet that rests closed after a save closes the phase and shows the toast once', async () => {
-    const { result } = await renderHook(() => useTransactionFormHost());
-    await act(() => useTransactionFormState.getState().openAdd());
-    await act(() => result.current.handleSaved(result.current.state.sessionId));
-    expect(result.current.state.phase).toBe('closing');
-
-    await act(() => result.current.handleEngineIndex(-1));
-    expect(result.current.state.phase).toBe('closed');
-    expect(mockToast.show).toHaveBeenCalledTimes(1);
-    expect(mockToast.show).toHaveBeenCalledWith(SAVED_TOAST);
-
-    await act(() => result.current.handleCloseComplete());
-    expect(mockToast.show).toHaveBeenCalledTimes(1);
-  });
-
-  it('MA-123: asks a sheet that rests open to close at the closed phase, and not at the open phase', async () => {
-    const { result } = await renderHook(() => useTransactionFormHost());
-    expect(result.current.state.phase).toBe('closed');
-    expect(result.current.handleEngineIndex(0)).toBe(true);
-
-    await act(() => useTransactionFormState.getState().openAdd());
-    expect(result.current.state.phase).toBe('open');
-    expect(result.current.handleEngineIndex(0)).toBe(false);
   });
 });

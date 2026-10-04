@@ -77,13 +77,6 @@ jest.mock('@/components/ui/sheet', () => ({
   },
 }));
 
-// Relative, with its extension: the one form Jest mocks whether or not the file exists; the real hook needs gorhom's sheet context.
-jest.mock(
-  '../../../../src/components/ui/sheet_engine_index.anim.ts',
-  () => ({ useSheetEngineIndex: () => undefined }),
-  { virtual: true },
-);
-
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/add_transaction_session',
   () => ({
