@@ -1,4 +1,4 @@
-// Structural guards from the deleted source-text suites (#621); a row fails when its file is gone.
+// Named-file and tree-wide structural guards (#621, #338); a row fails when its file is gone.
 const fs = require('fs');
 const path = require('path');
 const { stripComments } = require('./lib/strip-comments');

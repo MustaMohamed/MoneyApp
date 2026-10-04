@@ -36,7 +36,11 @@ const NO_FILE = 'matches no file';
 const OUTSIDE_PROVIDER = 'sits outside';
 
 // A seed finds its target by the pattern the guard matches, so a reworded line in src/ fails no case.
-const HEROUI_IMPORT = /import\s*\{([^}]*)\}\s*from\s*['"]heroui-native['"];/;
+function importFrom(module: string): RegExp {
+  return new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*['"]${escapeRegExp(module)}['"];`);
+}
+const HEROUI = 'heroui-native';
+const GEOMETRY = '@/components/ui/state_screen.geometry';
 const PROVIDER_OPEN = /<AppToastProvider\b[^>]*>/;
 const HOST_TAG = /<PortalHost\b[^>]*\/>/;
 const CSS_IMPORT_LINE = /^[ \t]*import\s+['"][^'"]*global\.css['"];?\n/m;
@@ -111,8 +115,8 @@ function replacePattern(rel: string, pattern: RegExp, replacement: string): void
   write(rel, next);
 }
 
-function herouiNames(rel: string): string[] {
-  const list = HEROUI_IMPORT.exec(read(rel))?.[1];
+function importedNames(rel: string, module: string): string[] {
+  const list = importFrom(module).exec(read(rel))?.[1];
   if (list === undefined) throw new Error(`fixture import statement absent: ${rel}`);
   return list
     .split(',')
@@ -120,11 +124,11 @@ function herouiNames(rel: string): string[] {
     .filter((name) => name !== '');
 }
 
-function dropHerouiImport(rel: string, name: string): void {
-  const names = herouiNames(rel);
+function dropImport(rel: string, module: string, name: string): void {
+  const names = importedNames(rel, module);
   const kept = names.filter((entry) => entry.split(/\s+/)[0] !== name);
   if (kept.length === names.length) throw new Error(`fixture import target absent: ${name}`);
-  replacePattern(rel, HEROUI_IMPORT, `import { ${kept.join(', ')} } from 'heroui-native';`);
+  replacePattern(rel, importFrom(module), `import { ${kept.join(', ')} } from '${module}';`);
 }
 
 function hostTag(): string {
@@ -356,21 +360,12 @@ function withoutMember(rel: string, enumName: string, member: string): RequiredS
   };
 }
 
-function withoutImport(rel: string, name: string, where: string): RequiredSeed {
+function withoutImport(rel: string, module: string, name: string, where: string): RequiredSeed {
   return {
-    guard: `a heroui-native import of ${name} in ${where}`,
+    guard: `a ${module} import of ${name} in ${where}`,
     rel,
-    seed: () => dropHerouiImport(rel, name),
+    seed: () => dropImport(rel, module, name),
     words: `no named import of \`${name}\``,
-  };
-}
-
-function withoutGeometryImport(rel: string, search: string, replacement: string): RequiredSeed {
-  return {
-    guard: `the state_screen.geometry import of resolveStateScreenLayout in ${rel}`,
-    rel,
-    seed: () => replaceOnce(rel, search, replacement),
-    words: 'no named import of `resolveStateScreenLayout`',
   };
 }
 
@@ -402,17 +397,17 @@ const REQUIRED: RequiredSeed[] = [
   ...['Overdue', 'Due', 'Upcoming', 'Paid', 'Skipped'].map((member) =>
     withoutMember(COMMITMENTS_INDEX, 'CommitmentPaymentStatus', member),
   ),
-  withoutImport(GOALS_INDEX, 'Surface', 'the goals tab screen'),
-  withoutImport(BUDGET_INDEX, 'Separator', 'the budget tab screen'),
-  withoutImport(COMMITMENTS_INDEX, 'Typography', 'the commitments tab screen'),
+  withoutImport(GOALS_INDEX, HEROUI, 'Surface', 'the goals tab screen'),
+  withoutImport(BUDGET_INDEX, HEROUI, 'Separator', 'the budget tab screen'),
+  withoutImport(COMMITMENTS_INDEX, HEROUI, 'Typography', 'the commitments tab screen'),
   withoutTag(TRANSACTIONS_INDEX, 'Surface', 'the transactions tab header'),
   withoutTag(GOALS_INDEX, 'Separator', 'the goals tab header'),
-  withoutImport(DASHBOARD_INDEX, 'Button', 'the dashboard screen'),
+  withoutImport(DASHBOARD_INDEX, HEROUI, 'Button', 'the dashboard screen'),
   withoutTag(DASHBOARD_INDEX, 'Button', 'the dashboard header'),
   withoutTag(BUDGET_INDEX, 'BudgetToolRail', 'the budget screen'),
-  withoutGeometryImport(EMPTY_STATE, '  resolveStateScreenLayout,\n', ''),
+  withoutImport(EMPTY_STATE, GEOMETRY, 'resolveStateScreenLayout', 'EmptyState'),
   withoutKind(EMPTY_STATE, 'empty', 'error'),
-  withoutGeometryImport(ERROR_STATE, 'import { resolveStateScreenLayout }', 'import { seeded }'),
+  withoutImport(ERROR_STATE, GEOMETRY, 'resolveStateScreenLayout', 'ErrorState'),
   withoutKind(ERROR_STATE, 'error', 'empty'),
 ];
 
@@ -541,10 +536,10 @@ describe('validate-structural-guards.js, named files', () => {
   });
 
   it('exits 0 on a heroui-native import wrapped over three lines', () => {
-    const names = herouiNames(DASHBOARD_INDEX);
+    const names = importedNames(DASHBOARD_INDEX, HEROUI);
     replacePattern(
       DASHBOARD_INDEX,
-      HEROUI_IMPORT,
+      importFrom(HEROUI),
       `import {\n  ${names.join(', ')},\n} from 'heroui-native';`,
     );
 
