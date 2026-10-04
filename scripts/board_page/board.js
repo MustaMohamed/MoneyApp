@@ -1,4 +1,4 @@
-// The board page. Reads /api/board (board_next.mjs --format json) and draws it; the only write is POST /api/run with a command the board offered.
+// The board page. Reads /api/board (board_next.mjs --format json) and draws it, reads one ticket body from /api/issue; the only write is POST /api/run with a command the board offered.
 (() => {
   const $ = (id) => document.getElementById(id);
   const esc = (s) =>
@@ -29,7 +29,11 @@
   let actorF = 'all';
 
   const title = (a) => (a.title ?? '').replace(/^MA-\d+\s+—\s+/, '');
-  const ids = (a) => `<b class="tc-ma">${esc(a.ma)}</b><span class="tc-num">#${a.number}</span>`;
+  const gh = (href, text, cls = '', tip = '') =>
+    `<a${cls ? ` class="${cls}"` : ''} href="${esc(href)}" target="_blank" rel="noopener"${tip ? ` title="${esc(tip)}"` : ''}>${text}</a>`;
+  const issueLink = (a, cls) => gh(a.url, `#${a.number}`, cls, `Open issue #${a.number} on GitHub`);
+  const ids = (a) => `<b class="tc-ma">${esc(a.ma)}</b>${issueLink(a, 'tc-num')}`;
+  const readBtn = (a, text) => `<button class="b sm" data-body="${a.number}">${text}</button>`;
   const label = (n) => {
     const a = byN.get(n);
     return a ? `${esc(a.ma)} <span class="inum">#${n}</span>` : `<span class="inum">#${n}</span>`;
@@ -82,7 +86,7 @@
       : '';
     return `<article class="tc dense ${kind} who-${a.actor}" data-focus="${n}" tabindex="0" title="${esc(title(a))}">
       <div class="td-1">${ids(a)}${a.parent ? `<span class="td-in">in ${parent ? esc(parent.ma) : `#${a.parent}`}</span>` : ''}${colPill(a)}</div>
-      <div class="td-2">${esc(title(a))}</div>
+      <div class="td-2"><span class="td-t">${esc(title(a))}</span><button class="td-read" data-body="${n}" title="Read the ticket on this page">Read</button></div>
       <div class="td-3">${prog && a.actor === 'nobody' ? `<span class="td-who">${WHO.nobody}</span><span class="td-text"><b>${prog.closed} of ${prog.total}</b> children closed</span>` : actionLine(a)}<span class="td-badges">${pr}${waits ? `<span class="hold">waits ${waits}</span>` : ''}${a.unblocks ? `<span class="free">frees ${a.unblocks}</span>` : ''}</span></div>
       ${segs}
     </article>`;
@@ -280,7 +284,7 @@
           : a.command
             ? `<button class="b sm" data-copy="${esc(a.command)}">Copy</button>`
             : '';
-      return `<div class="hero-card ${cls}"><div class="lead">${lead}</div><div class="big">${esc(big)}</div><p>${label(a.number)} ${esc(title(a))}. Ranked ${a.rank}: ${why}.</p><div class="rowb">${btn}<button class="b sm" data-focus="${a.number}">Show it</button></div></div>`;
+      return `<div class="hero-card ${cls}"><div class="lead">${lead}</div><div class="big">${esc(big)}</div><p>${label(a.number)} ${esc(title(a))}. Ranked ${a.rank}: ${why}.</p><div class="rowb">${btn}<button class="b sm" data-focus="${a.number}">Show it</button>${readBtn(a, 'Read it')}</div></div>`;
     };
     set(
       'heroes',
@@ -333,11 +337,11 @@
           (
             a,
           ) => `<tr data-focus="${a.number}" class="${a.number === focus ? 'on' : ''}"><td class="rk">${a.rank ?? ''}</td>
-        <td><b>${esc(a.ma)}</b> <span class="inum">#${a.number}</span><small>${esc(title(a).slice(0, 60))}</small></td>
+        <td><b>${esc(a.ma)}</b> ${issueLink(a, 'inum')}<small>${esc(title(a).slice(0, 60))}</small></td>
         <td>${colPill(a)}</td><td><span class="actor ${a.actor}">${WHO[a.actor]}</span></td>
         <td>${a.pr ? `<a href="${a.pr.url}" target="_blank" rel="noopener">#${a.pr.number}</a><small>${a.pr.state.toLowerCase()}, checks ${String(a.pr.checks).toLowerCase()}</small>` : '<span class="dim">none</span>'}</td>
         <td class="num">${a.waitsOn?.length || ''}</td><td class="num">${a.unblocks || ''}</td>
-        <td>${a.command ? `<code>${esc(a.command)}</code><small>${esc(a.action)}</small>` : `<span class="dim">${esc(a.action)}</span>`}</td><td>${rowBtn(a)}</td></tr>`,
+        <td>${a.command ? `<code>${esc(a.command)}</code><small>${esc(a.action)}</small>` : `<span class="dim">${esc(a.action)}</span>`}</td><td class="acts">${rowBtn(a)}${readBtn(a, 'Read')}</td></tr>`,
         )
         .join(''),
     );
@@ -357,7 +361,7 @@
       `<li data-focus="${n}">${label(n)} <span class="dim">${esc(title(byN.get(n) ?? {}).slice(0, 36))}</span></li>`;
     set(
       'drawer',
-      `<div class="dr-h"><b>${esc(a.ma)}</b> <span class="inum">#${a.number}</span>${colPill(a)}</div><p class="dr-t">${esc(title(a))}</p>
+      `<div class="dr-h"><b>${esc(a.ma)}</b> ${issueLink(a, 'inum')}${colPill(a)}</div><p class="dr-t">${esc(title(a))}</p>
       <dl><dt>Rank</dt><dd>${a.rank ? `${a.rank}${a.unblocks ? `, frees ${a.unblocks}` : ''}` : 'not ranked, nothing to run'}</dd>
       <dt>Who acts</dt><dd>${WHO[a.actor]}</dd><dt>Why</dt><dd>${esc(a.action)}</dd>
       <dt>Next</dt><dd>${a.command ? `<code>${esc(a.command)}</code>` : '<span class="dim">nothing</span>'}</dd>
@@ -367,7 +371,7 @@
       ${a.progress ? `<dt>Children</dt><dd>${a.progress.closed} of ${a.progress.total} closed</dd>` : ''}</dl>
       <h3>Waits on ${a.waitsOn?.length || 'nothing'}</h3><ul class="mini">${(a.waitsOn ?? []).map(li).join('')}</ul>
       <h3>Closing it frees ${a.frees?.length ? `${a.frees.length}${a.unblocks > a.frees.length ? `, ${a.unblocks} in all` : ''}` : 'nothing'}</h3><ul class="mini">${(a.frees ?? []).map(li).join('')}</ul>
-      <div class="rowb">${rowBtn(a)}<a class="b sm" href="${a.url}" target="_blank" rel="noopener">Open issue #${a.number}</a></div>`,
+      <div class="rowb">${readBtn(a, 'Read the ticket')}${gh(a.url, `Issue #${a.number} on GitHub`, 'b sm')}${a.pr ? gh(a.pr.url, `PR #${a.pr.number} on GitHub`, 'b sm') : ''}${a.actor === 'you' && a.pr?.state === 'OPEN' ? '' : rowBtn(a)}</div>`,
     );
   }
 
@@ -417,6 +421,79 @@
     }
     table();
     drawer();
+  }
+
+  // ---------- the reader: one ticket body, as GitHub renders it ----------
+  const SAFE_URL = /^(https?:|mailto:|#)/i;
+  // GitHub has sanitised the HTML and the page's CSP runs no inline script; this drops what the page has no use for.
+  function clean(html) {
+    const t = document.createElement('template');
+    t.innerHTML = html;
+    const drop = 'script,style,iframe,object,embed,form,button,select,textarea,link,meta,base';
+    for (const el of t.content.querySelectorAll(drop)) el.remove();
+    for (const img of t.content.querySelectorAll('img,picture,video,audio'))
+      img.replaceWith(`[image${img.getAttribute('alt') ? `: ${img.getAttribute('alt')}` : ''}]`);
+    for (const el of t.content.querySelectorAll('*')) {
+      for (const at of [...el.attributes]) {
+        const name = at.name.toLowerCase();
+        const url = name === 'href' || name === 'src';
+        if (name.startsWith('on') || name === 'style' || name.startsWith('data-'))
+          el.removeAttribute(at.name);
+        else if (url && !SAFE_URL.test(at.value.trim())) el.removeAttribute(at.name);
+      }
+      if (el.tagName === 'A' && !(el.getAttribute('href') ?? '').startsWith('#')) {
+        el.target = '_blank';
+        el.rel = 'noopener';
+      }
+      if (el.tagName === 'INPUT') el.disabled = true;
+    }
+    return t.content;
+  }
+
+  let reading = null;
+  let opener = '';
+  const ZONES = '#heroes,#v-focus,#v-tree,#v-graph,#rows,#drawer';
+  async function read(n, from) {
+    const a = byN.get(n);
+    if (!a) return;
+    reading = n;
+    if (from) opener = `#${from.closest(ZONES)?.id ?? 'rows'} [data-body="${n}"]`;
+    const parent = a.parent ? byN.get(a.parent) : null;
+    set(
+      'rdIds',
+      `<b>${esc(a.ma)}</b> ${issueLink(a, 'inum')}${a.parent ? `<span class="dim">in ${parent ? esc(parent.ma) : `#${a.parent}`}</span>` : ''}${colPill(a)}`,
+    );
+    $('rdT').textContent = title(a);
+    set(
+      'rdLinks',
+      `${gh(a.url, `Issue #${a.number} on GitHub`, 'b sm')}${a.pr ? gh(a.pr.url, `PR #${a.pr.number} on GitHub${a.pr.state === 'MERGED' ? ', merged' : ''}`, 'b sm') : '<span class="dim">no PR yet</span>'}<span class="sp"></span><button class="b sm" id="rdClose">Close</button>`,
+    );
+    const body = $('rdBody');
+    body.className = 'md quiet';
+    body.textContent = `Reading #${n} from GitHub…`;
+    if (!$('reader').open) $('reader').showModal();
+    body.scrollTop = 0;
+    try {
+      const r = await fetch(`/api/issue?n=${n}`).catch(() => null);
+      if (!r)
+        throw new Error(
+          'the board server did not answer, start it again with bash scripts/board.sh serve',
+        );
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || typeof j.html !== 'string')
+        throw new Error(j.error ?? `the board server answered ${r.status}`);
+      if (reading !== n) return;
+      if (j.title) $('rdT').textContent = title(j);
+      if (!j.html.trim()) {
+        body.textContent = 'This ticket has no body yet.';
+        return;
+      }
+      body.className = 'md';
+      body.replaceChildren(clean(j.html));
+    } catch (e) {
+      if (reading === n)
+        body.textContent = `Could not read #${n}: ${e.message}. The issue link above opens it on GitHub.`;
+    }
   }
 
   function logRun(command, ok, output) {
@@ -482,9 +559,23 @@
   }
 
   document.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-run],[data-copy],[data-actor],[data-focus]');
+    if (e.target.id === 'rdClose' || e.target.id === 'reader') return $('reader').close();
+    const hash = e.target.closest('#rdBody a[href^="#"]');
+    if (hash) {
+      e.preventDefault();
+      const id = decodeURIComponent(hash.getAttribute('href').slice(1));
+      const to = [...$('rdBody').querySelectorAll('[id],[name]')].find((el) =>
+        [el.id, el.getAttribute('name')].some((v) => v === id || v === `user-content-${id}`),
+      );
+      to?.scrollIntoView({ block: 'start' });
+      return;
+    }
+    const t = e.target.closest('[data-body],[data-run],[data-copy],[data-actor],[data-focus]');
     if (!t || (e.target.closest('a') && !t.dataset.run)) return;
-    if (t.dataset.run) ask(byN.get(Number(t.dataset.run)));
+    if (t.dataset.body) {
+      void read(Number(t.dataset.body), t);
+      pick(Number(t.dataset.body));
+    } else if (t.dataset.run) ask(byN.get(Number(t.dataset.run)));
     else if (t.dataset.copy) void copy(t.dataset.copy);
     else if (t.dataset.actor) {
       actorF = t.dataset.actor;
@@ -496,6 +587,11 @@
     table();
   });
   $('dlgNo').onclick = () => $('dlg').close();
+  // picking the ticket redrew the control that opened the reader, so focus goes back to its replacement
+  $('reader').addEventListener('close', () => {
+    reading = null;
+    if (opener) document.querySelector(opener)?.focus();
+  });
   $('refresh').onclick = () => {
     void load(true);
   };
