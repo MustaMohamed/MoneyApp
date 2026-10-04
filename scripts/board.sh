@@ -207,7 +207,7 @@ usage: bash scripts/board.sh <command> ...
   questions <issue>            read-only: one line per open question record on the issue, "<comment id> <url>"
   next-ma                      print the next MA-nnn (highest in any issue title, plus one)
   next [<issue>] [--json]      read-only: every open ticket with the command to run next, ranked, from board_next.mjs; no model, about five seconds
-  serve [<port>]               the board page on http://127.0.0.1:<port> (default 4178): the ranked tickets, the dependency views, and Fix buttons that run status, promote and add after you confirm
+  serve [<port>]               the board page on http://127.0.0.1:<port> (default 4178): the ranked tickets, the dependency views, each ticket's body with its issue and PR links, and Fix buttons that run status, promote and add after you confirm
 EOF
   exit 2
 }

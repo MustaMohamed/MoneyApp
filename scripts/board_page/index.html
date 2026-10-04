@@ -20,6 +20,10 @@
         <button class="b sm" id="theme">Light</button>
       </header>
       <p class="banner" id="banner" hidden></p>
+      <p class="cap hint">
+        On any ticket: <b>Read</b> opens its body on this page, <b>#n</b> opens the issue on GitHub,
+        and <b>PR #n</b> opens the pull request.
+      </p>
 
       <div id="heroes"></div>
 
@@ -112,6 +116,14 @@
         <button class="b" id="dlgNo">Cancel</button
         ><button class="b danger" id="dlgYes">Run it</button>
       </div>
+    </dialog>
+    <dialog id="reader" aria-labelledby="rdT">
+      <header class="rd-h">
+        <div class="rd-ids" id="rdIds"></div>
+        <h3 id="rdT"></h3>
+        <div class="rowb" id="rdLinks"></div>
+      </header>
+      <div class="md" id="rdBody"></div>
     </dialog>
     <div class="toast" id="toast" hidden></div>
     <script src="/board.js"></script>

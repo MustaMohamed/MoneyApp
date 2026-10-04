@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Local board page: serves scripts/board_page, reads the board through board_next.mjs, and runs only what board_run.mjs whitelists. Binds to 127.0.0.1.
+// Local board page: serves scripts/board_page, reads the board through board_next.mjs and one ticket body through board_issue.mjs, and runs only what board_run.mjs whitelists. Binds to 127.0.0.1.
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
+import { issueArgs, issueNumber, issueView, MARKDOWN_ARGS, markdownInput } from './board_issue.mjs';
 import { parseRunnable } from './board_run.mjs';
 
 const run = promisify(execFile);
@@ -66,6 +67,24 @@ async function readBoard(scope, fresh) {
     body: JSON.stringify({ ...board, readOnly: Boolean(opts.snapshot) }),
   };
   return cache.body;
+}
+
+const bodies = new Map();
+
+async function readIssue(n, fresh) {
+  const hit = bodies.get(n);
+  if (!fresh && hit && Date.now() - hit.at < CACHE_MS) return hit.view;
+  const gh = { cwd: ROOT, timeout: 30_000, maxBuffer: 8 * 1024 * 1024 };
+  const api = JSON.parse((await run('gh', issueArgs(n), gh)).stdout);
+  let html = '';
+  if (String(api.body ?? '').trim()) {
+    const render = run('gh', MARKDOWN_ARGS, gh);
+    render.child.stdin.end(markdownInput(api.body));
+    html = (await render).stdout;
+  }
+  const view = issueView(api, html);
+  bodies.set(n, { at: Date.now(), view });
+  return view;
 }
 
 function send(res, status, type, body) {
@@ -151,6 +170,22 @@ async function handle(req, res) {
           'application/json; charset=utf-8',
           await readBoard(scope, url.searchParams.has('fresh')),
         );
+      } catch (e) {
+        return json(res, 502, {
+          error: String(e.stderr || e.message)
+            .trim()
+            .split('\n')
+            .pop(),
+        });
+      }
+    }
+    if (req.method === 'GET' && url.pathname === '/api/issue') {
+      const n = issueNumber(url.searchParams.get('n'));
+      if (n === null) return json(res, 400, { error: 'not an issue number' });
+      if (opts.snapshot)
+        return json(res, 409, { error: 'serving a saved snapshot, ticket bodies are not in it' });
+      try {
+        return json(res, 200, await readIssue(n, url.searchParams.has('fresh')));
       } catch (e) {
         return json(res, 502, {
           error: String(e.stderr || e.message)
