@@ -1,12 +1,13 @@
 diff --git a/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java b/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java
-index 1268eab..5ed7917 100644
+index 1268eab..359bc86 100644
 --- a/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java
 +++ b/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextView.java
-@@ -73,9 +73,12 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
+@@ -73,9 +73,13 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
    private @Nullable Spannable mSpanned;
    private @Nullable PreparedLayout mPreparedLayout;
  
 +  private @Nullable android.graphics.Typeface mConstructedTypeface;
++  private final android.text.TextPaint mEllipsisProbe = new android.text.TextPaint();
 +
    public ReactTextView(Context context) {
      super(context);
@@ -15,17 +16,16 @@ index 1268eab..5ed7917 100644
    }
  
    /**
-@@ -223,6 +226,42 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
+@@ -223,6 +227,41 @@ public class ReactTextView extends AppCompatTextView implements ReactCompoundVie
      }
    }
  
-+  // The paint takes the face the text draws in, so the ellipsis reserve is measured in that face.
++  // Patched for MA-141, ADR 2026-10-03-android-ellipsis-paint-typeface: the paint takes the face its text draws in.
 +  private @Nullable android.graphics.Typeface resolvePaintTypeface(Spanned spanned) {
 +    int length = spanned.length();
 +    if (length == 0) {
 +      return mConstructedTypeface;
 +    }
-+    android.text.TextPaint probe = new android.text.TextPaint();
 +    android.graphics.Typeface widest = null;
 +    float widestWidth = -1f;
 +    int next;
@@ -39,17 +39,17 @@ index 1268eab..5ed7917 100644
 +      if (spans.length == 0) {
 +        return mConstructedTypeface;
 +      }
-+      probe.set(getPaint());
++      mEllipsisProbe.set(getPaint());
 +      for (com.facebook.react.views.text.internal.span.CustomStyleSpan span : spans) {
 +        if (span.getFontFamily() == null) {
 +          return mConstructedTypeface;
 +        }
-+        span.updateMeasureState(probe);
++        span.updateMeasureState(mEllipsisProbe);
 +      }
-+      float width = probe.measureText("\u2026");
++      float width = mEllipsisProbe.measureText("\u2026");
 +      if (width > widestWidth) {
 +        widestWidth = width;
-+        widest = probe.getTypeface();
++        widest = mEllipsisProbe.getTypeface();
 +      }
 +    }
 +    return widest;
