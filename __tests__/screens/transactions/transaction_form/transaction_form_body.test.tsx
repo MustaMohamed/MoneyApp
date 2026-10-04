@@ -15,7 +15,6 @@ jest.mock('@gorhom/bottom-sheet', () => {
 });
 jest.mock('@/components/account_type_pill', () => ({ TYPE_OPTIONS: [] }));
 jest.mock('@/components/ui/sheet', () => ({
-  SHEET_FOOTER_CLEARANCE: 777,
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
 }));
 const mockAmountHeroProps: Array<{ invalid?: boolean }> = [];
@@ -49,7 +48,6 @@ jest.mock(
   () => ({ TypeTabs: () => null }),
 );
 
-import { Size, Spacing } from '@/constants/theme';
 import {
   ACCOUNT_STRIP_CHIP_HEIGHT,
   ACCOUNT_STRIP_CHIP_RADIUS,
@@ -110,10 +108,17 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
 };
 
 describe('TransactionFormBody geometry', () => {
-  it('reserves the sheet footer clearance plus the status track and its gap below the last field', () => {
-    expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE.paddingBottom).toBe(
-      777 + Size.statusTrack + Spacing.xs,
-    );
+  it('MA-123: scrolls the strip, the amount, its error slot and the fact group as one', async () => {
+    await render(<TransactionFormBody {...baseProps} />);
+
+    const scroll = within(screen.getByTestId('transaction-form-scroll'));
+    const held = [
+      'account-strip',
+      'amount-hero',
+      'amount-error-slot',
+      'transaction-form-fact-group',
+    ];
+    expect(held.filter((id) => scroll.queryByTestId(id) !== null)).toEqual(held);
   });
 
   it('keeps only the amount slot and draws no ring before any error', async () => {
@@ -418,16 +423,16 @@ describe('TransactionFormLoading', () => {
     ).toHaveLength(3);
   });
 
-  it('scrolls the skeleton with the loaded body content style so its fourth row clears the footer', async () => {
+  it('MA-123: insets the loaded fact group and the skeleton scroll by the one content style', async () => {
     const skeleton = await render(<TransactionFormLoading />);
     const skeletonStyle = screen.getByTestId('transaction-form-skeleton-scroll').props
       .contentContainerStyle;
     await skeleton.unmount();
 
     await render(<TransactionFormBody {...baseProps} />);
-    const bodyStyle = screen.getByTestId('transaction-form-scroll').props.contentContainerStyle;
+    const insetStyle = screen.getByTestId('transaction-form-fact-inset').props.style;
 
-    expect(bodyStyle).toBe(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE);
-    expect(skeletonStyle).toBe(bodyStyle);
+    expect(insetStyle).toBe(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE);
+    expect(skeletonStyle).toBe(insetStyle);
   });
 });
