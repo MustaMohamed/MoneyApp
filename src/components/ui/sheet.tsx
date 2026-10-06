@@ -1,7 +1,7 @@
 // Scrollable content in a Sheet must use `BottomSheetScrollView`; RN `ScrollView` will not scroll.
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { BottomSheet } from 'heroui-native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,12 +9,8 @@ import { Colors, FontFamily, Size, Spacing, Type, lineHeightFor } from '@/consta
 import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 
-import {
-  createSheetCloseLifecycle,
-  settleSheetCloseLifecycle,
-  syncSheetCloseLifecycle,
-  type SheetCloseLifecycle,
-} from './sheet_close_lifecycle';
+import { useSheetCloseLifecycle } from './sheet.hook';
+import type { SheetCloseLifecycle } from './sheet_close_lifecycle';
 
 // Keyboard inputs: wire this onto an `Input`'s `onFocus`/`onBlur` inside a sheet.
 export { useBottomSheetAwareHandlers } from 'heroui-native';
@@ -86,7 +82,7 @@ export function resolveSheetContentPadding({
 }
 
 /** A sheet never opened, or one whose close has settled, draws nothing and takes no touch; any other passes touches through as HeroUI's portal view does. */
-export function resolveSheetRestProps(lifecycle: SheetCloseLifecycle): {
+export function resolveSheetClosedAtRestProps(lifecycle: SheetCloseLifecycle): {
   opacity: 0 | 1;
   pointerEvents: 'none' | 'box-none';
 } {
@@ -139,23 +135,12 @@ export function Sheet({
   const insets = useSafeAreaInsets();
   // Measured, not derived: the footer's height is inset- and content-dependent, and gorhom's dynamic sizing does not fully count an absolute footer.
   const [footerHeight, setFooterHeight] = useState(0);
-  const [, setSettledCloseCount] = useState(0);
-  const closeLifecycleRef = useRef(createSheetCloseLifecycle(isOpen));
-  closeLifecycleRef.current = syncSheetCloseLifecycle(closeLifecycleRef.current, isOpen);
-  // Plain View props, which no animated style writes: a sheet closed at rest stays hidden whatever redraws its content.
-  const restProps = resolveSheetRestProps(closeLifecycleRef.current);
-
-  const handleSheetIndexChange = useCallback(
-    (index: number) => {
-      const settlement = settleSheetCloseLifecycle(closeLifecycleRef.current, index);
-      closeLifecycleRef.current = settlement.lifecycle;
-      if (!settlement.shouldComplete) return;
-      // The rest props read a ref at render, so a settled close asks for one more render.
-      setSettledCloseCount((count) => count + 1);
-      onCloseComplete?.();
-    },
-    [onCloseComplete],
+  const { closeLifecycle, handleSheetIndexChange } = useSheetCloseLifecycle(
+    isOpen,
+    onCloseComplete,
   );
+  // Plain View props, which no animated style writes: a sheet closed at rest stays hidden whatever redraws its content.
+  const closedAtRestProps = resolveSheetClosedAtRestProps(closeLifecycle);
 
   // FAB-hide: this primitive is the sole publisher to `sheet_visibility.store`.
   useEffect(() => {
@@ -224,8 +209,8 @@ export function Sheet({
         <BottomSheet.Overlay isCloseOnPress={isDismissable} />
         <View
           collapsable={false}
-          pointerEvents={restProps.pointerEvents}
-          style={[StyleSheet.absoluteFill, { opacity: restProps.opacity }]}
+          pointerEvents={closedAtRestProps.pointerEvents}
+          style={[StyleSheet.absoluteFill, { opacity: closedAtRestProps.opacity }]}
         >
           <BottomSheet.Content
             {...contentSizingProps}
