@@ -17,6 +17,11 @@ async function mountSheet(isOpen: boolean) {
     drawn: () => resolveSheetClosedAtRestProps(hook.result.current.closeLifecycle),
     setOpen: (open: boolean) => hook.rerender({ open }),
     settleAt: (index: number) => act(() => hook.result.current.handleSheetIndexChange(index)),
+    settleTwiceBeforeARender: (index: number) =>
+      act(() => {
+        hook.result.current.handleSheetIndexChange(index);
+        hook.result.current.handleSheetIndexChange(index);
+      }),
   };
 }
 
@@ -61,6 +66,15 @@ describe('useSheetCloseLifecycle', () => {
     await sheet.settleAt(-1);
     expect(sheet.drawn()).toEqual(HIDDEN);
     expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('completes once when a second -1 arrives before the render the first one asked for', async () => {
+    const sheet = await mountSheet(true);
+    await sheet.setOpen(false);
+    await sheet.settleTwiceBeforeARender(-1);
+
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
+    expect(sheet.drawn()).toEqual(HIDDEN);
   });
 
   it('shows a reopened sheet, keeps it shown on a stale -1, and completes its next close', async () => {
