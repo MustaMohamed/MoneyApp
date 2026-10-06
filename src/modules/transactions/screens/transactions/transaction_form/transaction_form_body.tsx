@@ -38,6 +38,7 @@ import {
   resolveToRowFace,
 } from './transaction_form.helpers';
 import type { TransactionFormMode } from './transaction_form.types';
+import { useTransactionFormNoteReveal } from './transaction_form_note_reveal.hook';
 
 interface BaseProps {
   datePickerOwnerId: string;
@@ -152,6 +153,16 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     currency,
   } = props;
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
+  const { scrollRef, handleScrollLayout, handleNoteFocus, handleNoteBlur } =
+    useTransactionFormNoteReveal();
+  const handleNoteInputFocus: typeof onInputFocus = (event) => {
+    onInputFocus(event);
+    handleNoteFocus();
+  };
+  const handleNoteInputBlur: typeof onInputBlur = (event) => {
+    onInputBlur(event);
+    handleNoteBlur();
+  };
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   const budgetFieldError = resolveBudgetFieldError(budgetError, budgetLookupError);
@@ -159,7 +170,14 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const toRowFace = resolveToRowFace({ locked, account: selectedToAccount ?? undefined });
 
   return (
-    <View style={{ flex: 1 }}>
+    <BottomSheetScrollView
+      ref={scrollRef}
+      testID="transaction-form-scroll"
+      style={{ flex: 1 }}
+      onLayout={handleScrollLayout}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
       <TypeTabs
         active={type}
         incomeLabel={type === TransactionType.Income ? typeLabel : Strings.addTxTypeIncome}
@@ -207,13 +225,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
       />
       <ValidationSlot testID="amount-error-slot" message={amountError} />
 
-      <BottomSheetScrollView
-        testID="transaction-form-scroll"
-        style={{ flex: 1 }}
-        contentContainerStyle={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+      <View testID="transaction-form-fact-inset" style={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}>
         <ListCard testID="transaction-form-fact-group">
           {isTransferOrCC ? (
             <View className={FACT_CELL_CLASS}>
@@ -379,8 +391,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               onChangeText={setNote}
               placeholder={Strings.addTxNotePlaceholder}
               placeholderTextColor={CoreTokens.text2}
-              onFocus={onInputFocus}
-              onBlur={onInputBlur}
+              onFocus={handleNoteInputFocus}
+              onBlur={handleNoteInputBlur}
+              // Android: a single-line edit text keeps the parent's touch lock, so a drag that starts on it never scrolls the form.
+              multiline
+              submitBehavior="blurAndSubmit"
               variant="secondary"
               className="font-sora text-foreground rounded-none border-0 bg-transparent p-0 tabular-nums"
               style={{
@@ -394,7 +409,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             />
           </View>
         </ListCard>
-      </BottomSheetScrollView>
-    </View>
+      </View>
+    </BottomSheetScrollView>
   );
 }

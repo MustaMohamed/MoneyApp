@@ -11,6 +11,7 @@ const mockSheetFrames: Array<{
   instanceId: number;
   isOpen: boolean;
   hasFooter: boolean;
+  liftsAboveKeyboard: boolean | undefined;
   onOpenChange: (open: boolean) => void;
   onCloseComplete: () => void;
 }> = [];
@@ -49,12 +50,14 @@ jest.mock('@/components/ui/sheet', () => ({
   Sheet: ({
     isOpen,
     footer,
+    liftsAboveKeyboard,
     onOpenChange,
     onCloseComplete,
     children,
   }: {
     isOpen: boolean;
     footer?: React.ReactNode;
+    liftsAboveKeyboard?: boolean;
     onOpenChange: (open: boolean) => void;
     onCloseComplete: () => void;
     children: React.ReactNode;
@@ -66,6 +69,7 @@ jest.mock('@/components/ui/sheet', () => ({
       instanceId,
       isOpen,
       hasFooter: footer !== undefined,
+      liftsAboveKeyboard,
       onOpenChange,
       onCloseComplete,
     });
@@ -153,6 +157,22 @@ describe('TransactionFormHost', () => {
     });
     expect(mockAddSession.mock.lastCall?.[0]).toMatchObject({ sessionId: 1 });
     expect(mockEditSession).not.toHaveBeenCalled();
+  });
+
+  it('MA-123: lifts the open add sheet above the keyboard', async () => {
+    await render(<TransactionFormHost />);
+
+    await act(() => useTransactionFormState.getState().openAdd());
+
+    expect(mockSheetFrames.at(-1)).toMatchObject({ isOpen: true, liftsAboveKeyboard: true });
+  });
+
+  it('MA-123: lifts the open edit sheet above the keyboard', async () => {
+    await render(<TransactionFormHost />);
+
+    await act(() => useTransactionFormState.getState().openEdit(createTransaction()));
+
+    expect(mockSheetFrames.at(-1)).toMatchObject({ isOpen: true, liftsAboveKeyboard: true });
   });
 
   it('keeps the session mounted until the shell finishes closing', async () => {

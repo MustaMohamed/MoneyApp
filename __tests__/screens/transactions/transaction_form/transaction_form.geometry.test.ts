@@ -1,14 +1,11 @@
-import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
-import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   ACCOUNT_STRIP_CHIP_HEIGHT,
   ACCOUNT_STRIP_CHIP_WIDTH,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
-  TRANSACTION_FORM_FOOTER_CLEARANCE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
-  TRANSACTION_FORM_STATUS_GAP,
   resolveTransactionFormSkeletonBars,
   resolveTypeTabsGeometry,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
@@ -79,17 +76,10 @@ describe('resolveTypeTabsGeometry', () => {
 });
 
 describe('transaction form content inset', () => {
-  it('clears the bare CTA footer plus the status track at its two-line cap and its gap', () => {
-    expect(TRANSACTION_FORM_FOOTER_CLEARANCE).toBe(
-      SHEET_FOOTER_CLEARANCE + Size.statusTrack + TRANSACTION_FORM_STATUS_GAP,
-    );
-  });
-
-  it('pads the body and the skeleton alike and gaps their rows by Spacing.xs', () => {
+  it('MA-123: pads the fact group and the skeleton by Spacing.md on every side, with no footer clearance', () => {
     expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE).toEqual({
       padding: Spacing.md,
       gap: Spacing.xs,
-      paddingBottom: TRANSACTION_FORM_FOOTER_CLEARANCE,
     });
   });
 });

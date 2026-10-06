@@ -1,6 +1,5 @@
 import type { Insets } from 'react-native';
 
-import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import {
@@ -18,10 +17,6 @@ export const FACT_ROW_MIN_HEIGHT = TouchSize.min;
 
 /** The gap between the status track and Save. */
 export const TRANSACTION_FORM_STATUS_GAP = Spacing.xs;
-
-/** The bare CTA's clearance plus the status track at its two-line cap and its gap above Save. */
-export const TRANSACTION_FORM_FOOTER_CLEARANCE =
-  SHEET_FOOTER_CLEARANCE + Size.statusTrack + TRANSACTION_FORM_STATUS_GAP;
 
 /** D6: the sheet's 16 padding plus the hero's 16 margin, since the hero root spans the sheet width. */
 export const AMOUNT_RING_INSET = Spacing.xxl;
@@ -52,7 +47,6 @@ export const ACCOUNT_STRIP_WRAPPER_PADDING_Y = ACCOUNT_STRIP_PADDING_Y - ACCOUNT
 export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
   padding: Spacing.md,
   gap: Spacing.xs,
-  paddingBottom: TRANSACTION_FORM_FOOTER_CLEARANCE,
 };
 
 export const TRANSACTION_FORM_SKELETON_GEOMETRY = {

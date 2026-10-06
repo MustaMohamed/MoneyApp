@@ -30,6 +30,7 @@ export function TransactionFormHost(): React.ReactElement {
       title={state.title}
       size="lg"
       scrollable
+      liftsAboveKeyboard
       isDismissable={state.isDismissable}
       footer={
         state.footer.visible ? (

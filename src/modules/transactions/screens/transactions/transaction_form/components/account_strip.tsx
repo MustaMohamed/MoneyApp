@@ -1,5 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import {
+  BottomSheetScrollView,
+  type BottomSheetScrollableProps,
+  type ScrollEventsHandlersHookType,
+} from '@gorhom/bottom-sheet';
 import { View } from 'react-native';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
@@ -23,6 +27,12 @@ import {
   ACCOUNT_STRIP_TILE,
   ACCOUNT_STRIP_TILE_NAME_GAP,
 } from './transaction_form.geometry';
+
+type FocusHook = NonNullable<BottomSheetScrollableProps['focusHook']>;
+
+// The form's vertical scroll owns the sheet's scrollable slot: the strip neither registers there nor writes its offset over the form's.
+const skipScrollableRegistration: FocusHook = () => {};
+const noScrollEventsHandlers: ScrollEventsHandlersHookType = () => ({});
 
 interface AccountStripProps {
   chips: AccountStripChip[];
@@ -73,6 +83,8 @@ export function AccountStrip({
         ) : (
           <BottomSheetScrollView
             horizontal
+            focusHook={skipScrollableRegistration}
+            scrollEventsHandlersHook={noScrollEventsHandlers}
             keyboardShouldPersistTaps="handled"
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{

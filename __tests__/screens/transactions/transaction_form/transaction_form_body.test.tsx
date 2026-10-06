@@ -1,21 +1,27 @@
-import { fireEvent, render, screen, within } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import React from 'react';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+const mockScrollToEnd = jest.fn();
 jest.mock('@gorhom/bottom-sheet', () => {
   const ReactLocal = jest.requireActual<typeof import('react')>('react');
   const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    BottomSheetScrollView: ({ children, ...props }: React.PropsWithChildren<object>) =>
-      ReactLocal.createElement(RNView, props, children),
+    BottomSheetScrollView: ({
+      children,
+      ref,
+      ...props
+    }: React.PropsWithChildren<{ ref?: React.Ref<{ scrollToEnd: () => void }> }>) => {
+      ReactLocal.useImperativeHandle(ref, () => ({ scrollToEnd: mockScrollToEnd }));
+      return ReactLocal.createElement(RNView, props, children);
+    },
   };
 });
 jest.mock('@/components/account_type_pill', () => ({ TYPE_OPTIONS: [] }));
 jest.mock('@/components/ui/sheet', () => ({
-  SHEET_FOOTER_CLEARANCE: 777,
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
 }));
 const mockAmountHeroProps: Array<{ invalid?: boolean }> = [];
@@ -49,7 +55,6 @@ jest.mock(
   () => ({ TypeTabs: () => null }),
 );
 
-import { Size, Spacing } from '@/constants/theme';
 import {
   ACCOUNT_STRIP_CHIP_HEIGHT,
   ACCOUNT_STRIP_CHIP_RADIUS,
@@ -110,10 +115,17 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
 };
 
 describe('TransactionFormBody geometry', () => {
-  it('reserves the sheet footer clearance plus the status track and its gap below the last field', () => {
-    expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE.paddingBottom).toBe(
-      777 + Size.statusTrack + Spacing.xs,
-    );
+  it('MA-123: scrolls the strip, the amount, its error slot and the fact group as one', async () => {
+    await render(<TransactionFormBody {...baseProps} />);
+
+    const scroll = within(screen.getByTestId('transaction-form-scroll'));
+    const held = [
+      'account-strip',
+      'amount-hero',
+      'amount-error-slot',
+      'transaction-form-fact-group',
+    ];
+    expect(held.filter((id) => scroll.queryByTestId(id) !== null)).toEqual(held);
   });
 
   it('keeps only the amount slot and draws no ring before any error', async () => {
@@ -341,6 +353,36 @@ describe('TransactionFormBody fact rows', () => {
     expect(setNote).toHaveBeenCalledWith('Lunch with the team');
   });
 
+  it('MA-123: scrolls to the end when the scroll shrinks with the Note focused, and not after it blurs', async () => {
+    const layoutOf = (height: number) => ({
+      nativeEvent: { layout: { x: 0, y: 0, width: 411, height } },
+    });
+    const runFrame = () =>
+      act(() => {
+        jest.advanceTimersByTime(16);
+      });
+    jest.useFakeTimers();
+    mockScrollToEnd.mockClear();
+    try {
+      await render(<TransactionFormBody {...baseProps} />);
+      const scroll = screen.getByTestId('transaction-form-scroll');
+      const input = screen.getByPlaceholderText(Strings.addTxNotePlaceholder);
+
+      await fireEvent(input, 'focus');
+      await fireEvent(scroll, 'layout', layoutOf(377.9));
+      await fireEvent(scroll, 'layout', layoutOf(228.57));
+      await runFrame();
+      expect(mockScrollToEnd).toHaveBeenCalledTimes(1);
+
+      await fireEvent(input, 'blur');
+      await fireEvent(scroll, 'layout', layoutOf(200));
+      await runFrame();
+      expect(mockScrollToEnd).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('holds the expense fact rows in one group card and draws the strip outside it, with no From row', async () => {
     await render(<TransactionFormBody {...baseProps} />);
 
@@ -418,16 +460,16 @@ describe('TransactionFormLoading', () => {
     ).toHaveLength(3);
   });
 
-  it('scrolls the skeleton with the loaded body content style so its fourth row clears the footer', async () => {
+  it('MA-123: insets the loaded fact group and the skeleton scroll by the one content style', async () => {
     const skeleton = await render(<TransactionFormLoading />);
     const skeletonStyle = screen.getByTestId('transaction-form-skeleton-scroll').props
       .contentContainerStyle;
     await skeleton.unmount();
 
     await render(<TransactionFormBody {...baseProps} />);
-    const bodyStyle = screen.getByTestId('transaction-form-scroll').props.contentContainerStyle;
+    const insetStyle = screen.getByTestId('transaction-form-fact-inset').props.style;
 
-    expect(bodyStyle).toBe(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE);
-    expect(skeletonStyle).toBe(bodyStyle);
+    expect(insetStyle).toBe(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE);
+    expect(skeletonStyle).toBe(insetStyle);
   });
 });
