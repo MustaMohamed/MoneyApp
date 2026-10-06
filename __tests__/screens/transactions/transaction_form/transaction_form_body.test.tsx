@@ -1,16 +1,23 @@
-import { fireEvent, render, screen, within } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import React from 'react';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+const mockScrollToEnd = jest.fn();
 jest.mock('@gorhom/bottom-sheet', () => {
   const ReactLocal = jest.requireActual<typeof import('react')>('react');
   const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    BottomSheetScrollView: ({ children, ...props }: React.PropsWithChildren<object>) =>
-      ReactLocal.createElement(RNView, props, children),
+    BottomSheetScrollView: ({
+      children,
+      ref,
+      ...props
+    }: React.PropsWithChildren<{ ref?: React.Ref<{ scrollToEnd: () => void }> }>) => {
+      ReactLocal.useImperativeHandle(ref, () => ({ scrollToEnd: mockScrollToEnd }));
+      return ReactLocal.createElement(RNView, props, children);
+    },
   };
 });
 jest.mock('@/components/account_type_pill', () => ({ TYPE_OPTIONS: [] }));
@@ -344,6 +351,36 @@ describe('TransactionFormBody fact rows', () => {
 
     await fireEvent.changeText(input, 'Lunch with the team');
     expect(setNote).toHaveBeenCalledWith('Lunch with the team');
+  });
+
+  it('MA-123: scrolls to the end when the scroll shrinks with the Note focused, and not after it blurs', async () => {
+    const layoutOf = (height: number) => ({
+      nativeEvent: { layout: { x: 0, y: 0, width: 411, height } },
+    });
+    const runFrame = () =>
+      act(() => {
+        jest.advanceTimersByTime(16);
+      });
+    jest.useFakeTimers();
+    mockScrollToEnd.mockClear();
+    try {
+      await render(<TransactionFormBody {...baseProps} />);
+      const scroll = screen.getByTestId('transaction-form-scroll');
+      const input = screen.getByPlaceholderText(Strings.addTxNotePlaceholder);
+
+      await fireEvent(input, 'focus');
+      await fireEvent(scroll, 'layout', layoutOf(377.9));
+      await fireEvent(scroll, 'layout', layoutOf(228.57));
+      await runFrame();
+      expect(mockScrollToEnd).toHaveBeenCalledTimes(1);
+
+      await fireEvent(input, 'blur');
+      await fireEvent(scroll, 'layout', layoutOf(200));
+      await runFrame();
+      expect(mockScrollToEnd).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('holds the expense fact rows in one group card and draws the strip outside it, with no From row', async () => {
