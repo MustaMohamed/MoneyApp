@@ -120,7 +120,7 @@ The user adds this to `permissions.allow` in `settings.local.json`, in `.claude/
 
 Once the log holds 10 distinct tickets, each pass reads two measures before a `ship` start. One ticket that asks is that ticket's miss; three in the window are the process's.
 
-The window is the ten most recent `ship` lines of the log that ended after the last commit on `origin/main` touching `.claude/skills/issue-review`, `.claude/skills/prep` or `.claude/skills/tickets`: `git log -1 --format=%cI origin/main -- <those three paths>`, against each line's file date and end time. Each measure counts distinct tickets in the window.
+The window is the ten most recent `ship` lines of the log that ended after the last commit on `origin/main` touching `.claude/skills/issue-review`, `.claude/skills/prep` or `.claude/skills/queue`: `git log -1 --format=%cI origin/main -- <those three paths>`, against each line's file date and end time. Each measure counts distinct tickets in the window.
 
 1. Questions asked during `/ship`: the tickets with a line whose `questions parked` is above 0.
 2. Questions that should have been asked earlier: the tickets with one or more rows in the table under `## Questions that should have been asked earlier` in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`. A `ship` line with no summary file counts 0, a summary file without that heading counts 0, and the header row alone counts 0.
