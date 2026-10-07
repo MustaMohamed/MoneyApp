@@ -17,6 +17,8 @@ interface TransactionsStateShape {
   scrollOffset: number;
   scrollQueryKey: string | null;
   userRefreshing: boolean;
+  /** The any-transaction read failed, until the next one begins. */
+  existenceFailed: boolean;
 }
 
 type TransactionsState = TransactionsStateShape & {
@@ -26,6 +28,7 @@ type TransactionsState = TransactionsStateShape & {
   activateScrollQuery: (queryKey: string) => void;
   setScrollOffset: (queryKey: string, offset: number) => void;
   setUserRefreshing: (value: boolean) => void;
+  setExistenceFailed: (value: boolean) => void;
   reset: () => void;
 };
 
@@ -35,6 +38,7 @@ const INITIAL_STATE: TransactionsStateShape = {
   scrollOffset: 0,
   scrollQueryKey: null,
   userRefreshing: false,
+  existenceFailed: false,
 };
 
 export const useTransactionsState = createMoneyAppSelectors(
@@ -60,6 +64,7 @@ export const useTransactionsState = createMoneyAppSelectors(
           : state;
       }),
     setUserRefreshing: (userRefreshing) => set({ userRefreshing }),
+    setExistenceFailed: (existenceFailed) => set({ existenceFailed }),
     reset: () => set(INITIAL_STATE),
   })),
 );

@@ -10,7 +10,7 @@ import {
 import { Text } from '@/components/ui/text';
 import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Type, touchFloorSlop } from '@/constants/theme';
 
 // Ruled genuinely different from ErrorState, not merged (#290). Evidence and the
 // rejected merge shape: docs/adr/2026-09-01-empty-error-state-stay-separate.md
@@ -20,6 +20,7 @@ export type EmptyStateVariant =
   | 'accounts'
   | 'accountsArchivedOnly'
   | 'transactions'
+  | 'transactionsMonth'
   | 'commitments'
   | 'commitmentsMonth'
   | 'filtered'
@@ -37,21 +38,33 @@ interface EmptyStateCommonProps {
 
 export type EmptyStateProps =
   | (EmptyStateCommonProps & { variant: 'accountsArchivedOnly'; archivedCount: number })
-  | (EmptyStateCommonProps & { variant: Exclude<EmptyStateVariant, 'accountsArchivedOnly'> });
+  | (EmptyStateCommonProps & {
+      variant: 'transactionsMonth';
+      monthName: string;
+      showsBackLink: boolean;
+    })
+  | (EmptyStateCommonProps & {
+      variant: Exclude<EmptyStateVariant, 'accountsArchivedOnly' | 'transactionsMonth'>;
+    });
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-interface VariantConfig {
+interface VariantFrame {
   icon: MCIName;
-  headline: string;
-  description: string | ((n: number) => string);
-  ctaLabel: string | null;
-  clearLabel: string | null;
   /** `inline` sits at the top of a scroll; `centered` fills the screen. */
   placement: 'centered' | 'inline';
 }
 
-const VARIANT_CONFIG: Record<EmptyStateVariant, VariantConfig> & {
+interface VariantConfig extends VariantFrame {
+  headline: string;
+  description: string | ((n: number) => string);
+  ctaLabel: string | null;
+  clearLabel: string | null;
+}
+
+type FixedCopyVariant = Exclude<EmptyStateVariant, 'transactionsMonth'>;
+
+const VARIANT_CONFIG: Record<FixedCopyVariant, VariantConfig> & {
   accountsArchivedOnly: { description: (n: number) => string };
 } = {
   accounts: {
@@ -137,6 +150,48 @@ const VARIANT_CONFIG: Record<EmptyStateVariant, VariantConfig> & {
   },
 };
 
+// Frame A16's copy takes the month's name, so only its icon and placement are fixed.
+const TRANSACTIONS_MONTH_FRAME: VariantFrame = {
+  icon: 'calendar-blank-outline',
+  placement: 'centered',
+};
+
+export interface EmptyStateCopy {
+  headline: string;
+  description: string;
+  ctaLabel: string | undefined;
+  clearLabel: string | undefined;
+}
+
+export function resolveEmptyStateCopy(props: EmptyStateProps): EmptyStateCopy {
+  if (props.variant === 'transactionsMonth') {
+    return {
+      headline: Strings.emptyTransactionsMonthHeadline(props.monthName),
+      description: Strings.emptyTransactionsMonthDescription(props.monthName),
+      ctaLabel: undefined,
+      clearLabel: props.showsBackLink ? Strings.emptyTransactionsMonthBackCta : undefined,
+    };
+  }
+  const config = VARIANT_CONFIG[props.variant];
+  // Only `accountsArchivedOnly` carries a count, and only its description reads one.
+  const archivedCount = props.variant === 'accountsArchivedOnly' ? props.archivedCount : 0;
+  return {
+    headline: config.headline,
+    description:
+      typeof config.description === 'function'
+        ? config.description(archivedCount)
+        : config.description,
+    ctaLabel: config.ctaLabel ?? undefined,
+    clearLabel: config.clearLabel ?? undefined,
+  };
+}
+
+/** The slop on each side that lifts the link's padded line box to the touch floor. */
+export function resolveEmptyStateLinkHitSlop(lineHeight: number): { top: number; bottom: number } {
+  const slop = touchFloorSlop(lineHeight + 2 * Spacing.xs);
+  return { top: slop, bottom: slop };
+}
+
 /** An opt-in, never an override: the `'inline'`-only parameter cannot force a variant out of it. */
 export function resolveEmptyStatePlacement(
   override: 'inline' | undefined,
@@ -148,16 +203,15 @@ export function resolveEmptyStatePlacement(
 export function EmptyState(props: EmptyStateProps) {
   const { fontScale } = useWindowDimensions();
   const bottomReserve = resolveStateScreenBottomReserve(fontScale);
-  const clearLine = resolveOneLineTextProps(scaledTextStyle(Type.body, fontScale));
+  const clearText = scaledTextStyle(Type.body, fontScale);
+  const clearLine = resolveOneLineTextProps(clearText);
   const { onAction, clearsFab } = props;
-  const config = VARIANT_CONFIG[props.variant];
-  const placement = resolveEmptyStatePlacement(props.placement, config.placement);
-  // Only `accountsArchivedOnly` carries a count, and only its description reads one.
-  const archivedCount = props.variant === 'accountsArchivedOnly' ? props.archivedCount : 0;
-  const description =
-    typeof config.description === 'function'
-      ? config.description(archivedCount)
-      : config.description;
+  const frame =
+    props.variant === 'transactionsMonth'
+      ? TRANSACTIONS_MONTH_FRAME
+      : VARIANT_CONFIG[props.variant];
+  const copy = resolveEmptyStateCopy(props);
+  const placement = resolveEmptyStatePlacement(props.placement, frame.placement);
 
   const rootStyle =
     placement === 'inline'
@@ -168,41 +222,42 @@ export function EmptyState(props: EmptyStateProps) {
     <View style={rootStyle}>
       <View style={styles.iconCircle}>
         <MaterialCommunityIcons
-          name={config.icon}
+          name={frame.icon}
           size={LAYOUT.iconSize}
           color={Colors.dark.text2}
         />
       </View>
 
       <Text variant="h3" style={styles.headline}>
-        {config.headline}
+        {copy.headline}
       </Text>
 
       <Text variant="hint" style={styles.description}>
-        {description}
+        {copy.description}
       </Text>
 
-      {config.ctaLabel !== null && (
+      {copy.ctaLabel !== undefined && (
         <View style={styles.ctaWrapper}>
           <Button
             variant="primary"
             flat
-            label={config.ctaLabel}
-            accessibilityLabel={config.ctaLabel}
+            label={copy.ctaLabel}
+            accessibilityLabel={copy.ctaLabel}
             onPress={onAction}
           />
         </View>
       )}
 
-      {config.clearLabel !== null && (
+      {copy.clearLabel !== undefined && (
         <Pressable
           onPress={onAction}
+          hitSlop={resolveEmptyStateLinkHitSlop(clearText.lineHeight)}
           style={styles.clearWrapper}
           accessibilityRole="button"
-          accessibilityLabel={config.clearLabel}
+          accessibilityLabel={copy.clearLabel}
         >
           <Text {...clearLine} style={[styles.clearLabel, clearLine.style]}>
-            {config.clearLabel}
+            {copy.clearLabel}
           </Text>
         </Pressable>
       )}
