@@ -1,11 +1,10 @@
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type React from 'react';
 
-import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { formatDisplayMagnitude } from '@/utils/format_amount';
+import { formatDisplayAmount } from '@/utils/format_amount';
 
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
@@ -65,6 +64,5 @@ export function formatCommitmentAmount(
   if (amount === undefined || currency === undefined) {
     return undefined;
   }
-  const { text } = formatDisplayMagnitude(amount, currency);
-  return `${showTilde ? '~' : ''}${text} ${CURRENCY_CONFIG[currency].code}`;
+  return `${showTilde ? '~' : ''}${formatDisplayAmount(amount, currency)}`;
 }

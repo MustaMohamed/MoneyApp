@@ -1,10 +1,9 @@
-import { CURRENCY_CONFIG } from '@/constants/currency';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatDisplayMagnitude } from '@/utils/format_amount';
+import { formatDisplayAmount } from '@/utils/format_amount';
 
 import { isCardCredit } from './transaction_row.helpers';
 
@@ -14,8 +13,7 @@ export function resolveTransactionDeleteBody(
   account: Account | undefined,
   toAccount: Account | undefined,
 ): string {
-  const magnitude = formatDisplayMagnitude(tx.amount, tx.currency).text;
-  const amount = `${magnitude} ${CURRENCY_CONFIG[tx.currency].code}`;
+  const amount = formatDisplayAmount(tx.amount, tx.currency);
   const accountName = resolveAccountName(account);
   if (isCardCredit(tx, account)) return Strings.deleteConfirmBodyCardCredit(amount, accountName);
   switch (tx.type) {

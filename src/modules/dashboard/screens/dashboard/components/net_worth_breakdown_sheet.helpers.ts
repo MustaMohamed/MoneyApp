@@ -2,13 +2,13 @@ import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { formatOwnedAmountParts } from '@/utils/format_amount';
+import { formatOwnedAmount } from '@/utils/format_amount';
 
 import type { LiquidityBreakdown } from '../dashboard.helpers';
 
 /**
  * Keyed on the field being absent, not on the rate: the placeholder rate is 50, not 0. Composed
- * through `formatOwnedAmountParts`, not plain `formatCurrencyAmount` — `netWorthForeign` mirrors
+ * through `formatOwnedAmount`, not plain `formatCurrencyAmount` — `netWorthForeign` mirrors
  * `netWorth`'s sign, so it needs the same U+2212-not-ASCII-hyphen convention (PR #375 r1).
  */
 export function resolveNetWorthForeignCaption(
@@ -19,8 +19,9 @@ export function resolveNetWorthForeignCaption(
   if (netWorthForeign === undefined) {
     return Strings.netWorthBreakdownForeignUnavailable(CURRENCY_CONFIG[foreignCurrency].code);
   }
-  const { value, code } = formatOwnedAmountParts(netWorthForeign, foreignCurrency);
-  return Strings.netWorthBreakdownForeignApprox(`${value} ${code}`);
+  return Strings.netWorthBreakdownForeignApprox(
+    formatOwnedAmount(netWorthForeign, foreignCurrency),
+  );
 }
 
 export type BreakdownRowKind = 'liquid' | 'reserve' | 'liability';

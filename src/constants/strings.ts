@@ -259,10 +259,10 @@ export const Strings = {
   dashboardAccountsLabel: 'Accounts',
   dashboardBreakdownTitle: 'Net Worth',
   dashboardBreakdownNetWorthLabel: 'Net Worth',
-  dashboardBreakdownAssetsHeader: (amount: string, code: string, count: number) =>
-    `${amount} ${code} · ${count} ${count === 1 ? 'acct' : 'accts'}`,
-  dashboardBreakdownLiabilitiesHeader: (amount: string, code: string, count: number) =>
-    `${amount} ${code} · ${count} ${count === 1 ? 'card' : 'cards'}`,
+  dashboardBreakdownAssetsHeader: (amount: string, count: number) =>
+    `${amount} · ${count} ${count === 1 ? 'acct' : 'accts'}`,
+  dashboardBreakdownLiabilitiesHeader: (amount: string, count: number) =>
+    `${amount} · ${count} ${count === 1 ? 'card' : 'cards'}`,
   dashboardBreakdownLiquid: 'Liquid',
   dashboardBreakdownReserve: 'Reserve',
   dashboardBreakdownLiquidCaption: 'Bank, Smart Wallet, Cash',
@@ -382,8 +382,7 @@ export const Strings = {
   // Single spaces around `·`, not `currencyTotalsSeparator`'s double: B1 `.cap` is one line.
   accountCaptionBank: (monthIn: string, monthOut: string) =>
     `Month in ${monthIn} · out ${monthOut}`,
-  accountCaptionSmartWallet: (amount: string, code: string, rate: string) =>
-    `≈ ${amount} ${code} at ${rate}`,
+  accountCaptionSmartWallet: (amount: string, rate: string) => `≈ ${amount} at ${rate}`,
   accountCaptionCash: (month: string, week: string) => `Month spend ${month} · week ${week}`,
   accountCaptionSavings: (start: string, change: string) => `Month start ${start} · ${change}`,
   accountCaptionCard: (limit: string, available: string) =>
@@ -404,10 +403,9 @@ export const Strings = {
   accountsArchivedRestoreError: "Couldn't restore this account. Nothing was changed.",
 
   // §9 Account Detail: balance hero captions
-  accountHeroOpening: (amount: string, currency: string) => `Opening ${amount} ${currency}`,
+  accountHeroOpening: (amount: string) => `Opening ${amount}`,
   accountHeroAdjusted: 'adjusted',
-  accountHeroAvailable: (avail: string, currency: string, limit: string) =>
-    `Available ${avail} ${currency} of ${limit}`,
+  accountHeroAvailable: (avail: string, limit: string) => `Available ${avail} of ${limit}`,
   // Not hero-specific: the detail hero, the dashboard account card and the accounts list row all render it.
   accountOverLimit: 'Over limit',
   // Ordinal suffix by the day's last digit; `formatOrdinal` owns the 11–13 exception.
@@ -1280,6 +1278,7 @@ export const Strings = {
   transactionsHeroSpentLess: (pct: string, month: string) => `Spent ${pct}% less than ${month}`,
   transactionsHeroSpentSame: (month: string) => `Spent the same as ${month}`,
   transactionsHeroUnavailable: '—',
+  transactionsHeroOutUnavailableA11y: (code: string) => `— ${code}`,
 
   // §6 Transactions: Search tally
   transactionsTallyResults: (month: string) => `results in ${month}`,

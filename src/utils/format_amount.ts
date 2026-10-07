@@ -97,6 +97,24 @@ export function formatDisplayMagnitude(
   return { text, printsAsZero };
 }
 
+export interface DisplayAmountParts {
+  text: string;
+  /** `text`, a space and the currency code; a flow sign goes on it through `signAmountText`. */
+  withCode: string;
+  printsAsZero: boolean;
+}
+
+/** `formatDisplayMagnitude` with the code joined on, for a caller that also signs the text or reads `printsAsZero`. */
+export function formatDisplayAmountParts(value: number, currency: Currency): DisplayAmountParts {
+  const { text, printsAsZero } = formatDisplayMagnitude(value, currency);
+  return { text, withCode: `${text} ${CURRENCY_CONFIG[currency].code}`, printsAsZero };
+}
+
+/** An unsigned display magnitude, a space and the currency code: `0.40 EGP`. */
+export function formatDisplayAmount(value: number, currency: Currency): string {
+  return formatDisplayAmountParts(value, currency).withCode;
+}
+
 /** The magnitude at the currency's own decimals, never escalated, unlike `formatDisplayMagnitude`. */
 export function formatCurrencyMagnitude(
   value: number,
@@ -116,6 +134,12 @@ export function formatOwnedAmountParts(
     value: signAmountText(magnitude.text, value < 0 ? MINUS_SIGN : '', magnitude.printsAsZero),
     code: CURRENCY_CONFIG[currency].code,
   };
+}
+
+/** `formatOwnedAmountParts` on the display magnitude, joined; an account balance joins through `formatAccountBalance`. */
+export function formatOwnedAmount(value: number, currency: Currency): string {
+  const parts = formatOwnedAmountParts(value, currency);
+  return `${parts.value} ${parts.code}`;
 }
 
 export interface AccountBalanceParts {
@@ -157,6 +181,12 @@ export function formatLiabilityAmountParts(
     value: formatLiabilityRowValue(value, baseCurrency),
     code: CURRENCY_CONFIG[baseCurrency].code,
   };
+}
+
+/** `formatLiabilityAmountParts` joined as its value, a space and the code: `−4,885 EGP`. */
+export function formatLiabilityAmount(value: number, baseCurrency: Currency): string {
+  const parts = formatLiabilityAmountParts(value, baseCurrency);
+  return `${parts.value} ${parts.code}`;
 }
 
 // Ceiling for rate-display escalation only; a rate has no rounding floor to escalate to once

@@ -14,6 +14,7 @@ import type {
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
 import {
+  formatCurrencyAmount,
   formatCurrencyParts,
   formatLiabilityRowValue,
   formatOwnedAmountParts,
@@ -219,10 +220,12 @@ export function StatCards({
   const monthSpendUsdLeg = resolveMonthSpendLeg(monthSpentUsd);
   const monthSpendEgpParts = {
     ...formatCurrencyParts(monthSpendEgpLeg.magnitude, Currency.EGP),
+    withCode: formatCurrencyAmount(monthSpendEgpLeg.magnitude, Currency.EGP),
     state: monthSpendEgpLeg.state,
   };
   const monthSpendUsdParts = {
     ...formatCurrencyParts(monthSpendUsdLeg.magnitude, Currency.USD),
+    withCode: formatCurrencyAmount(monthSpendUsdLeg.magnitude, Currency.USD),
     state: monthSpendUsdLeg.state,
   };
   const monthSpendRows = resolveMonthSpendRows(
@@ -299,7 +302,7 @@ export function StatCards({
                 key={parts.code}
                 className="font-sora-bold text-foreground text-lg"
                 numberOfLines={1}
-                accessibilityLabel={`${parts.value} ${parts.code} ${MONTH_SPEND_STATE_LABEL[parts.state]}`}
+                accessibilityLabel={`${parts.withCode} ${MONTH_SPEND_STATE_LABEL[parts.state]}`}
               >
                 {parts.value}{' '}
                 <Text className="font-inter-medium text-muted text-xs">{parts.code}</Text>

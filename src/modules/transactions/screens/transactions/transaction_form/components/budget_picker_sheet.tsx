@@ -6,11 +6,12 @@ import { View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 
 interface BudgetPickerSheetProps {
   isOpen: boolean;
@@ -107,7 +108,7 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
                       className="font-inter text-muted"
                       style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
                     >
-                      {`${formatAmount(budget.limit_amount)} ${Strings.currencyEgp}`}
+                      {formatCurrencyAmount(budget.limit_amount, Currency.EGP)}
                     </Text>
                   </View>
                   <Radio testID={`budget-picker-row-${budget.id}-selected`} />

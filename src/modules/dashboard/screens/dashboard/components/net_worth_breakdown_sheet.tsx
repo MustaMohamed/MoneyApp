@@ -14,8 +14,9 @@ import type {
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
 import {
-  formatLiabilityAmountParts,
+  formatLiabilityAmount,
   formatLiabilityRowValue,
+  formatOwnedAmount,
   formatOwnedAmountParts,
 } from '@/utils/format_amount';
 import { nextDueDate } from '@/utils/format_date';
@@ -127,8 +128,8 @@ function NetWorthBreakdownBody({
   const showLiabilities = liabilities.length > 0;
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
   const netWorthParts = formatOwnedAmountParts(amount.netWorth, baseCurrency);
-  const assetsParts = formatOwnedAmountParts(amount.assets, baseCurrency);
-  const liabilitiesParts = formatLiabilityAmountParts(amount.liabilities, baseCurrency);
+  const assetsText = formatOwnedAmount(amount.assets, baseCurrency);
+  const liabilitiesText = formatLiabilityAmount(amount.liabilities, baseCurrency);
   const liquidColors = resolveBreakdownRowColors('liquid');
   const reserveColors = resolveBreakdownRowColors('reserve');
   const liabilityColors = resolveBreakdownRowColors('liability');
@@ -156,11 +157,7 @@ function NetWorthBreakdownBody({
       <View className="px-4">
         <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
           {Strings.dashAssetsLabel} ·{' '}
-          {Strings.dashboardBreakdownAssetsHeader(
-            assetsParts.value,
-            assetsParts.code,
-            assetsAccountCount,
-          )}
+          {Strings.dashboardBreakdownAssetsHeader(assetsText, assetsAccountCount)}
         </Text>
         {showProportionBar && (
           <View
@@ -213,11 +210,7 @@ function NetWorthBreakdownBody({
           <View className="px-4">
             <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
               {Strings.dashLiabilitiesLabel} ·{' '}
-              {Strings.dashboardBreakdownLiabilitiesHeader(
-                liabilitiesParts.value,
-                liabilitiesParts.code,
-                liabilities.length,
-              )}
+              {Strings.dashboardBreakdownLiabilitiesHeader(liabilitiesText, liabilities.length)}
             </Text>
             {liabilities.map((row) => (
               <LegendRow
@@ -241,7 +234,7 @@ function NetWorthBreakdownBody({
             <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
               <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
               <Text className="font-sora-bold" style={{ color: Colors.dark.gold }}>
-                {liabilitiesParts.value}
+                {formatLiabilityRowValue(amount.liabilities, baseCurrency)}
               </Text>
             </View>
           </View>

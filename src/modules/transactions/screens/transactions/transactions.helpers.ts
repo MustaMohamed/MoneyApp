@@ -10,7 +10,10 @@ import {
   MINUS_SIGN,
   PLUS_SIGN,
   formatAmount,
+  formatDisplayAmount,
+  formatDisplayAmountParts,
   formatDisplayMagnitude,
+  formatOwnedAmount,
   formatOwnedAmountParts,
   signAmountText,
 } from '@/utils/format_amount';
@@ -189,6 +192,8 @@ export interface TransactionsHeroModel {
   title: string;
   monthLabel: string;
   out: string;
+  /** Out joined to its code, or the dash beside the code while the figures are unavailable. */
+  outAccessibilityLabel: string;
   /** The currency code the three figures and Out print in. */
   currencyCode: string;
   in: string;
@@ -246,12 +251,19 @@ function formatHeroAmount(value: number): string {
   return formatOwnedAmountParts(value, HERO_CURRENCY).value;
 }
 
-function formatSignedNet(netEgp: number): { text: string; polarity: PolaritySignal } {
-  const { text, printsAsZero } = formatDisplayMagnitude(netEgp, HERO_CURRENCY);
-  if (printsAsZero) return { text, polarity: 'neutral' };
-  return netEgp > 0
-    ? { text: signAmountText(text, PLUS_SIGN), polarity: 'good' }
-    : { text: signAmountText(text, MINUS_SIGN), polarity: 'bad' };
+function formatSignedNet(netEgp: number): {
+  text: string;
+  withCode: string;
+  polarity: PolaritySignal;
+} {
+  const { text, withCode, printsAsZero } = formatDisplayAmountParts(netEgp, HERO_CURRENCY);
+  if (printsAsZero) return { text, withCode, polarity: 'neutral' };
+  const sign = netEgp > 0 ? PLUS_SIGN : MINUS_SIGN;
+  return {
+    text: signAmountText(text, sign),
+    withCode: signAmountText(withCode, sign),
+    polarity: netEgp > 0 ? 'good' : 'bad',
+  };
 }
 
 function heroNet(netEgp: number): Pick<TransactionsHeroModel, 'net' | 'netPolarity'> {
@@ -347,6 +359,7 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
     return {
       ...base,
       out: Strings.transactionsHeroUnavailable,
+      outAccessibilityLabel: Strings.transactionsHeroOutUnavailableA11y(base.currencyCode),
       in: Strings.transactionsHeroUnavailable,
       inPolarity: 'neutral',
       net: Strings.transactionsHeroUnavailable,
@@ -371,6 +384,7 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
   return {
     ...base,
     out: formatHeroAmount(current.expenseEgp),
+    outAccessibilityLabel: formatOwnedAmount(current.expenseEgp, HERO_CURRENCY),
     in: formatHeroAmount(current.incomeEgp),
     inPolarity: 'good',
     ...heroNet(current.netEgp),
@@ -439,14 +453,9 @@ const NO_TALLY_TEXT = {
 
 function withAccessibilityLabel(
   model: Omit<SearchTallyModel, 'accessibilityLabel'>,
+  spokenSum?: string,
 ): SearchTallyModel {
-  const parts = [
-    model.count,
-    model.label,
-    model.filterSummary,
-    model.sum?.text,
-    model.sum?.currencyCode,
-  ];
+  const parts = [model.count, model.label, model.filterSummary, spokenSum];
   return {
     ...model,
     accessibilityLabel: parts.filter((part): part is string => part !== undefined).join(' '),
@@ -480,26 +489,29 @@ export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
   }
 
   const net = formatSignedNet(matchNetEgp);
-  return withAccessibilityLabel({
-    mode: 'figures',
-    count: formatAmount(matchCount),
-    label:
-      matchCount === 1
-        ? Strings.transactionsTallyOneResult(month)
-        : Strings.transactionsTallyResults(month),
-    filterSummary,
-    sum: {
-      text: net.text,
-      polarity: net.polarity,
-      currencyCode: CURRENCY_CONFIG[HERO_CURRENCY].code,
+  return withAccessibilityLabel(
+    {
+      mode: 'figures',
+      count: formatAmount(matchCount),
+      label:
+        matchCount === 1
+          ? Strings.transactionsTallyOneResult(month)
+          : Strings.transactionsTallyResults(month),
+      filterSummary,
+      sum: {
+        text: net.text,
+        polarity: net.polarity,
+        currencyCode: CURRENCY_CONFIG[HERO_CURRENCY].code,
+      },
     },
-  });
+    net.withCode,
+  );
 }
 
 export type DayHeaderFigures =
   | { mode: 'skeleton' }
   | { mode: 'failed'; net: string }
-  | { mode: 'figures'; net: string; currencyCode: string; count: string };
+  | { mode: 'figures'; net: string; count: string };
 
 export interface TransactionDaySection {
   key: string;
@@ -521,7 +533,7 @@ const SPOKEN_SIGN: Record<PolaritySignal, string | undefined> = {
 };
 
 function spokenDayNet(netEgp: number): string {
-  const amount = `${formatDisplayMagnitude(netEgp, HERO_CURRENCY).text} ${CURRENCY_CONFIG[HERO_CURRENCY].code}`;
+  const amount = formatDisplayAmount(netEgp, HERO_CURRENCY);
   const sign = SPOKEN_SIGN[formatSignedNet(netEgp).polarity];
   return sign === undefined ? amount : `${sign} ${amount}`;
 }
@@ -568,8 +580,7 @@ function dayFigures(spoken: DayHeaderSpoken): DayHeaderFigures {
     case 'figures':
       return {
         mode: 'figures',
-        net: formatSignedNet(spoken.netEgp).text,
-        currencyCode: CURRENCY_CONFIG[HERO_CURRENCY].code,
+        net: formatSignedNet(spoken.netEgp).withCode,
         count: formatAmount(spoken.count),
       };
     default: {

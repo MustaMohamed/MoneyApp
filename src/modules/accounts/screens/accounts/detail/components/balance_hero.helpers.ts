@@ -5,7 +5,7 @@ import { SemanticTokens } from '@/constants/theme_tokens';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import { availableCredit } from '@/modules/accounts/domain/account_figures';
 import { isOverLimit } from '@/modules/accounts/domain/is_over_limit';
-import { formatAccountBalanceParts, formatAmount } from '@/utils/format_amount';
+import { formatAccountBalance, formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
 
@@ -21,7 +21,6 @@ export function buildHeroCaption(account: Account): HeroCaption {
   const currency = account.currency;
   const isCC = account.type === AccountType.CreditCard;
   const limit = account.credit_limit ?? 0;
-  // `Strings.accountHero*` interpolate the currency, so `formatCurrencyAmount` would double it.
   const decimals = CURRENCY_CONFIG[currency].decimals;
 
   // An archived card cannot act on its terms, so it takes the opening caption like any other account.
@@ -36,8 +35,7 @@ export function buildHeroCaption(account: Account): HeroCaption {
     const available = availableCredit(account.current_balance, limit);
     return {
       text: Strings.accountHeroAvailable(
-        formatAmount(available, decimals),
-        currency,
+        formatCurrencyAmount(available, currency),
         formatAmount(limit, decimals),
       ),
       adjusted: false,
@@ -46,10 +44,7 @@ export function buildHeroCaption(account: Account): HeroCaption {
   }
 
   return {
-    text: Strings.accountHeroOpening(
-      formatAccountBalanceParts(account.opening_balance, currency).amount,
-      currency,
-    ),
+    text: Strings.accountHeroOpening(formatAccountBalance(account.opening_balance, currency)),
     adjusted: account.current_balance !== account.opening_balance,
   };
 }

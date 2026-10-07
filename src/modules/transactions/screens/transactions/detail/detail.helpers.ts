@@ -1,6 +1,5 @@
 import { ACCOUNT_TYPE_ICONS, type AccountTypeIconName } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
-import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
@@ -19,7 +18,7 @@ import {
   MINUS_SIGN,
   PLUS_SIGN,
   formatCurrencyAmount,
-  formatDisplayMagnitude,
+  formatDisplayAmountParts,
   formatExchangeRateSentence,
   signAmountText,
 } from '@/utils/format_amount';
@@ -121,9 +120,8 @@ export function transferCellAmountText(
   currency: Currency,
   signPrefix: Exclude<AmountSign, ''>,
 ): TransferCellText {
-  const { text, printsAsZero } = formatDisplayMagnitude(amount, currency);
-  const accessible = `${text} ${CURRENCY_CONFIG[currency].code}`;
-  return { display: signAmountText(accessible, signPrefix, printsAsZero), accessible };
+  const { withCode, printsAsZero } = formatDisplayAmountParts(amount, currency);
+  return { display: signAmountText(withCode, signPrefix, printsAsZero), accessible: withCode };
 }
 
 /** Delegates to `transferCellAmountText` so the zero-aware sign rule has one home (#318). */

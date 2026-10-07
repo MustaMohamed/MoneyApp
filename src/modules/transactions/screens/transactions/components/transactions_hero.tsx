@@ -178,7 +178,7 @@ export function TransactionsHero({ model }: { model: TransactionsHeroModel }): R
         {/* A container `gap`, not a `marginLeft` on a nested Text: RN Android drops margins on inline text. */}
         <View
           accessible
-          accessibilityLabel={`${model.out} ${model.currencyCode}`}
+          accessibilityLabel={model.outAccessibilityLabel}
           style={{
             flexDirection: 'row',
             alignItems: 'baseline',

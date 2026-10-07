@@ -11,7 +11,7 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
-import { formatCurrencyAmount, formatOwnedAmountParts } from '@/utils/format_amount';
+import { formatCurrencyAmount, formatOwnedAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
@@ -73,7 +73,7 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
   const bandColor = budgetBandColor(summary.pct);
   // `left` is negative once over budget (budget.helpers.ts computeOverall) — the same
   // owned/negative-capable magnitude as the net-worth surface, same composition (PR #375 r2).
-  const leftParts = formatOwnedAmountParts(summary.left, Currency.EGP);
+  const leftText = formatOwnedAmount(summary.left, Currency.EGP);
 
   return (
     <PressableFeedback
@@ -131,7 +131,7 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
               />
               <Figure
                 label={Strings.budgetSummaryLeft}
-                value={`${leftParts.value} ${leftParts.code}`}
+                value={leftText}
                 valueClassName={summary.left < 0 ? 'text-danger' : 'text-success'}
               />
             </View>
