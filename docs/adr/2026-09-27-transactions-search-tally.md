@@ -25,7 +25,7 @@ The hero title carries one applied account's name through `scopedAccountLabel` i
 
 ## 5. Another query's figures never print
 
-The store holds the last figures it loaded, tagged with their query key. The tally prints them only when that key is the query on screen, a rule `resolveSearchTallyFiguresMode` in `transactions.helpers.ts` decides from the totals status. While another query's load is pending the slot shows the skeleton, and when that load fails it reads `— results in <Month>` with no sum. A refresh of the same query, from a mutation, a focus reload or a pull, keeps its figures while it loads and after it fails. A first load and a first-load failure follow the hero's skeleton and dashes. Only the hero's skeleton disables the search field, so the field stays live while the tally shows its skeleton.
+The store holds the last figures it loaded, tagged with their query key. The tally prints them only when that key is the query on screen, a rule `resolveSearchTallyFiguresMode` in `transactions.helpers.ts` decides from the totals status. While another query's load is pending the slot shows the skeleton, and when that load fails it reads `— results in <Month>` with no sum. A refresh of the same query, from a mutation, a focus reload or a pull, keeps its figures while it loads and after it fails. A first load and a first-load failure follow the hero's skeleton and dashes. The hero's skeleton disables the search field on a month's first load only (MA-107, #572), so the field stays live while the tally shows its skeleton.
 
 ## 6. An amount bound prints the value the filter applies
 
