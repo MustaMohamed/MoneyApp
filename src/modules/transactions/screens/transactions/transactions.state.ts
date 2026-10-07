@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type TransactionTotalsStatus =
@@ -17,6 +18,10 @@ interface TransactionsStateShape {
   scrollOffset: number;
   scrollQueryKey: string | null;
   userRefreshing: boolean;
+  /** The any-transaction read failed, until the next one begins or the list stops waiting on it. */
+  existenceFailed: boolean;
+  /** The last transaction a delete was requested for, kept so the dialog's body outlives its close. */
+  deleteBodyTransaction: Transaction | undefined;
 }
 
 type TransactionsState = TransactionsStateShape & {
@@ -26,6 +31,8 @@ type TransactionsState = TransactionsStateShape & {
   activateScrollQuery: (queryKey: string) => void;
   setScrollOffset: (queryKey: string, offset: number) => void;
   setUserRefreshing: (value: boolean) => void;
+  setExistenceFailed: (value: boolean) => void;
+  setDeleteBodyTransaction: (transaction: Transaction) => void;
   reset: () => void;
 };
 
@@ -35,6 +42,8 @@ const INITIAL_STATE: TransactionsStateShape = {
   scrollOffset: 0,
   scrollQueryKey: null,
   userRefreshing: false,
+  existenceFailed: false,
+  deleteBodyTransaction: undefined,
 };
 
 export const useTransactionsState = createMoneyAppSelectors(
@@ -60,6 +69,8 @@ export const useTransactionsState = createMoneyAppSelectors(
           : state;
       }),
     setUserRefreshing: (userRefreshing) => set({ userRefreshing }),
+    setExistenceFailed: (existenceFailed) => set({ existenceFailed }),
+    setDeleteBodyTransaction: (deleteBodyTransaction) => set({ deleteBodyTransaction }),
     reset: () => set(INITIAL_STATE),
   })),
 );

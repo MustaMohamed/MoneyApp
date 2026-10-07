@@ -31,6 +31,11 @@ interface StateShape {
   totalsYearMonth: string | null;
   totalsQueryKey: string | null;
   totalsRequestId: number;
+  /** Whether any transaction exists at all; `undefined` until a read lands. */
+  hasAnyTransaction: boolean | undefined;
+  /** The `mutationVersion` the held answer was read at. */
+  existenceVersion: number | undefined;
+  existenceRequestId: number;
 }
 
 type TransactionsScreenStore = StateShape & {
@@ -48,6 +53,9 @@ type TransactionsScreenStore = StateShape & {
   ) => boolean;
   failTotals: (queryKey: string, requestId: number) => boolean;
   hasTotalsForMonth: (yearMonth: string) => boolean;
+  beginExistenceRequest: () => number;
+  resolveExistence: (requestId: number, mutationVersion: number, hasAny: boolean) => boolean;
+  failExistence: (requestId: number) => boolean;
   reset: () => void;
 };
 
@@ -61,6 +69,9 @@ function initialState(): StateShape {
     totalsYearMonth: null,
     totalsQueryKey: null,
     totalsRequestId: 0,
+    hasAnyTransaction: undefined,
+    existenceVersion: undefined,
+    existenceRequestId: 0,
   };
 }
 
@@ -111,6 +122,17 @@ export const useTransactionsScreenStore = createMoneyAppSelectors(
       const state = get();
       return state.totalsYearMonth === yearMonth && state.totals !== null;
     },
+    beginExistenceRequest: () => {
+      const requestId = get().existenceRequestId + 1;
+      set({ existenceRequestId: requestId });
+      return requestId;
+    },
+    resolveExistence: (requestId, mutationVersion, hasAny) => {
+      if (get().existenceRequestId !== requestId) return false;
+      set({ hasAnyTransaction: hasAny, existenceVersion: mutationVersion });
+      return true;
+    },
+    failExistence: (requestId) => get().existenceRequestId === requestId,
     reset: () => set(initialState()),
   })),
 );

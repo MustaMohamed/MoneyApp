@@ -534,6 +534,7 @@ export const Strings = {
   addTxDatePickerDone: 'Done',
   transactionSaveError: "Couldn't save this transaction. Nothing was changed. Try again.",
   transactionSavedToast: 'Transaction saved.',
+  transactionDeletedToast: 'Transaction deleted.',
   fixFieldsMarkedAbove: (count: number) =>
     count === 1 ? 'Fix the 1 field marked above.' : `Fix the ${count} fields marked above.`,
   transactionAccountArchived: (name: string) =>
@@ -965,10 +966,21 @@ export const Strings = {
   deleteTransaction: 'Delete',
   deleteConfirmTitle: 'Delete this transaction?',
   deleteConfirmBody: 'The account balance will be restored. This cannot be undone.',
+  deleteConfirmBodyExpense: (amount: string, account: string) =>
+    `${amount} returns to ${account}. This cannot be undone.`,
+  deleteConfirmBodyIncome: (amount: string, account: string) =>
+    `${amount} leaves ${account}. This cannot be undone.`,
+  deleteConfirmBodyTransfer: (amount: string, source: string, destination: string) =>
+    `${amount} moves back to ${source} from ${destination}. This cannot be undone.`,
+  deleteConfirmBodyCardPayment: (amount: string, source: string, card: string) =>
+    `${amount} moves back to ${source} and is owed on ${card} again. This cannot be undone.`,
+  deleteConfirmBodyCardCredit: (amount: string, card: string) =>
+    `${amount} is owed on ${card} again. This cannot be undone.`,
+  deleteConfirmDeleting: 'Deleting…',
   deleteCancel: 'Cancel',
   detailNotFoundHeadline: 'Transaction not found',
   detailNotFoundCta: 'Back to transactions',
-  errDeleteFailed: 'Could not delete transaction. Please try again.',
+  errDeleteFailed: "Couldn't delete this transaction. Nothing was changed.",
   typeBadgeExpense: 'Expense',
   typeBadgeIncome: 'Income',
   typeBadgeTransfer: 'Transfer',
@@ -1187,7 +1199,11 @@ export const Strings = {
       : `Your ${n} archived accounts are below. Unarchive one, or add a new account.`,
   emptyTransactionsHeadline: 'No transactions yet',
   emptyTransactionsDescription: 'Your transactions will appear here once you start adding them.',
-  emptyTransactionsCta: 'Add Transaction',
+  emptyTransactionsCta: 'Add transaction',
+  emptyTransactionsMonthHeadline: (month: string) => `Nothing recorded in ${month}`,
+  emptyTransactionsMonthDescription: (month: string) =>
+    `Add a transaction dated in ${month}, or pick another month.`,
+  emptyTransactionsMonthBackCta: 'Back to this month',
   emptyCommitmentsHeadline: 'No commitments yet',
   emptyCommitmentsDescription: 'Track bills, subscriptions, and recurring payments here.',
   emptyCommitmentsCta: 'Add Commitment',

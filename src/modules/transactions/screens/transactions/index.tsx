@@ -24,7 +24,7 @@ import { TransactionLoadError } from './components/transaction_load_error';
 import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
 import { TransactionsHero } from './components/transactions_hero';
-import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
+import { TxDeleteDialog } from './components/tx_delete_dialog';
 import { FilterSheet } from './filter';
 import { useTransactions } from './transactions.hook';
 import type { TransactionSection } from './transactions.hook';
@@ -81,6 +81,7 @@ export default function TransactionsScreen(): React.ReactElement {
     onListScrollEnd,
     retryFailedLoads,
     openAddTransaction,
+    backToThisMonth,
     requestDelete,
     confirmDelete,
     cancelDelete,
@@ -160,19 +161,28 @@ export default function TransactionsScreen(): React.ReactElement {
         <TransactionRowsSkeleton dayCards={SKELETON_DAY_CARDS} rows={SKELETON_ROWS_PER_DAY} />
       ) : state.showFirstLoadError ? (
         <TransactionLoadError variant="initial" onRetry={() => void retryFailedLoads()} />
-      ) : state.emptyVariant === 'none' ? null : (
+      ) : state.emptyVariant === 'noData' ? (
+        <EmptyState variant="transactions" onAction={openAddTransaction} />
+      ) : state.emptyVariant === 'emptyMonth' ? (
         <EmptyState
-          variant={state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
-          onAction={state.emptyVariant === 'noData' ? openAddTransaction : resetFilters}
+          variant="transactionsMonth"
+          monthName={state.emptyMonthName}
+          showsBackLink={state.showsBackToThisMonth}
+          onAction={backToThisMonth}
         />
-      ),
+      ) : state.emptyVariant === 'noResults' ? (
+        <EmptyState variant="filtered" onAction={resetFilters} />
+      ) : null,
     [
+      backToThisMonth,
       openAddTransaction,
       resetFilters,
       retryFailedLoads,
       showRowsSkeleton,
+      state.emptyMonthName,
       state.emptyVariant,
       state.showFirstLoadError,
+      state.showsBackToThisMonth,
     ],
   );
 
@@ -249,8 +259,9 @@ export default function TransactionsScreen(): React.ReactElement {
         ) : null}
       </View>
 
-      <TxDeleteConfirmSheet
+      <TxDeleteDialog
         isOpen={state.pendingDeleteId !== null}
+        body={state.deleteBody}
         busy={state.deleteBusy}
         errorMessage={state.deleteErrorMessage}
         onCancel={cancelDelete}

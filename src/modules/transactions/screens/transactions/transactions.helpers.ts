@@ -295,7 +295,7 @@ const CHANGE_SENTENCE: Record<DeltaDirection, (pct: string, month: string) => st
   flat: (_pct, month) => Strings.transactionsHeroSpentSame(month),
 };
 
-function fullMonthName(yearMonth: string): string {
+export function fullMonthName(yearMonth: string): string {
   return new Date(`${yearMonth}-01T12:00:00`).toLocaleDateString('en-US', { month: 'long' });
 }
 

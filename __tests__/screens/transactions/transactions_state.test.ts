@@ -95,3 +95,19 @@ describe('useTransactionsState user refresh (MA-089)', () => {
     expect(useTransactionsState.getState().userRefreshing).toBe(false);
   });
 });
+
+describe('useTransactionsState any-transaction read failure (MA-093)', () => {
+  it('starts off, follows setExistenceFailed both ways, and reset clears it', () => {
+    expect(useTransactionsState.getState().existenceFailed).toBe(false);
+
+    useTransactionsState.getState().setExistenceFailed(true);
+    expect(useTransactionsState.getState().existenceFailed).toBe(true);
+
+    useTransactionsState.getState().setExistenceFailed(false);
+    expect(useTransactionsState.getState().existenceFailed).toBe(false);
+
+    useTransactionsState.getState().setExistenceFailed(true);
+    useTransactionsState.getState().reset();
+    expect(useTransactionsState.getState().existenceFailed).toBe(false);
+  });
+});

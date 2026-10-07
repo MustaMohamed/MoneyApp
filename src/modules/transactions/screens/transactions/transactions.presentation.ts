@@ -12,26 +12,56 @@ export interface TransactionsPresentationInput {
   paginationError: boolean;
   accountLookupError: boolean;
   userRefreshing: boolean;
+  filtersActive: boolean;
+  isCurrentMonth: boolean;
+  /** Whether any transaction exists at all, which an empty unfiltered month waits on. */
+  existence: 'unknown' | 'some' | 'none' | 'failed';
 }
 
 export interface TransactionsPresentation {
   showInitialSkeleton: boolean;
-  showEmptyState: boolean;
+  /** The list waits on the any-transaction read: the one gate for firing it and for holding the slot. */
+  awaitsExistence: boolean;
+  emptyVariant: 'none' | 'noResults' | 'noData' | 'emptyMonth';
+  showsBackToThisMonth: boolean;
   showFirstLoadError: boolean;
   showRefreshIndicator: boolean;
   loadErrorVariant: TransactionLoadErrorVariant;
   showPaginationRetry: boolean;
 }
 
+const EMPTY_VARIANT_BY_EXISTENCE: Record<
+  TransactionsPresentationInput['existence'],
+  TransactionsPresentation['emptyVariant']
+> = {
+  unknown: 'none',
+  failed: 'none',
+  none: 'noData',
+  some: 'emptyMonth',
+};
+
 export function buildTransactionsPresentation(
   input: TransactionsPresentationInput,
 ): TransactionsPresentation {
   const isInitial = input.listStatus === 'idle' || input.listStatus === 'initialLoading';
-  const showFirstLoadError = input.listStatus === 'firstLoadError' && input.rowCount === 0;
+  const listFirstLoadError = input.listStatus === 'firstLoadError' && input.rowCount === 0;
+  const loadedEmpty = input.hasLoadedOnce && input.rowCount === 0 && !listFirstLoadError;
+  // Only an unfiltered empty month needs the answer: a filter with no rows is `noResults` either way.
+  const awaitsExistence = loadedEmpty && !input.filtersActive;
+  const showFirstLoadError =
+    listFirstLoadError || (awaitsExistence && input.existence === 'failed');
+  const emptyVariant = !loadedEmpty
+    ? 'none'
+    : input.filtersActive
+      ? 'noResults'
+      : EMPTY_VARIANT_BY_EXISTENCE[input.existence];
 
   return {
-    showInitialSkeleton: isInitial && input.rowCount === 0,
-    showEmptyState: input.hasLoadedOnce && input.rowCount === 0 && !showFirstLoadError,
+    showInitialSkeleton:
+      (isInitial && input.rowCount === 0) || (awaitsExistence && input.existence === 'unknown'),
+    awaitsExistence,
+    emptyVariant,
+    showsBackToThisMonth: emptyVariant === 'emptyMonth' && !input.isCurrentMonth,
     showFirstLoadError,
     showRefreshIndicator: input.userRefreshing && input.listStatus === 'refreshing',
     loadErrorVariant: showFirstLoadError

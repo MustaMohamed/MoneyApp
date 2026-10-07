@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { useToast } from '@/components/ui/toast';
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
   findMissingAccountIds,
@@ -24,6 +26,7 @@ import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
 import { buildAccountChips } from './components/account_chips.helpers';
+import { resolveTransactionDeleteBody } from './components/tx_delete_dialog.helpers';
 import {
   countActiveFilters,
   countFunnelFilters,
@@ -39,6 +42,7 @@ import {
   buildDaySections,
   buildSearchTally,
   buildTransactionsHeroModel,
+  fullMonthName,
   previousPeriod,
   resolvePeriod,
   resolveSearchTallyFiguresMode,
@@ -50,7 +54,6 @@ import { buildTransactionsPresentation } from './transactions.presentation';
 import { useTransactionsState } from './transactions.state';
 import { type TransactionTotalsState, useTransactionsScreenStore } from './transactions.store';
 
-export type EmptyVariant = 'none' | 'noData' | 'noResults';
 export type TransactionSection = TransactionDaySection;
 type ScrollOffsetEvent = { nativeEvent: { contentOffset: { y: number } } };
 type ScrollPosition = { queryKey: string | null; offset: number };
@@ -74,18 +77,29 @@ export function useTransactions() {
   const scrollRestoreFrameRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
   const attemptScrollRestoreRef = useRef<() => void>(() => {});
   const currentScrollPositionRef = useRef<ScrollPosition>({ queryKey: null, offset: 0 });
+  const awaitsExistenceRef = useRef(false);
 
-  const { searchQuery, activeFilter, period, storedAppliedFilters, totals, totalsYearMonth } =
-    useTransactionsScreenStore(
-      useShallow((s) => ({
-        searchQuery: s.searchQuery,
-        activeFilter: s.activeFilter,
-        period: s.period,
-        storedAppliedFilters: s.appliedFilters,
-        totals: s.totals,
-        totalsYearMonth: s.totalsYearMonth,
-      })),
-    );
+  const {
+    searchQuery,
+    activeFilter,
+    period,
+    storedAppliedFilters,
+    totals,
+    totalsYearMonth,
+    hasAnyTransaction,
+    existenceVersion,
+  } = useTransactionsScreenStore(
+    useShallow((s) => ({
+      searchQuery: s.searchQuery,
+      activeFilter: s.activeFilter,
+      period: s.period,
+      storedAppliedFilters: s.appliedFilters,
+      totals: s.totals,
+      totalsYearMonth: s.totalsYearMonth,
+      hasAnyTransaction: s.hasAnyTransaction,
+      existenceVersion: s.existenceVersion,
+    })),
+  );
   const setSearchQuery = useTransactionsScreenStore.getState().setSearchQuery;
   const setActiveFilter = useTransactionsScreenStore.getState().setActiveFilter;
   const setSelectedMonth = useTransactionsScreenStore.getState().setSelectedMonth;
@@ -94,6 +108,9 @@ export function useTransactions() {
   const resolveTotals = useTransactionsScreenStore.getState().resolveTotals;
   const failTotals = useTransactionsScreenStore.getState().failTotals;
   const hasTotalsForMonth = useTransactionsScreenStore.getState().hasTotalsForMonth;
+  const beginExistenceRequest = useTransactionsScreenStore.getState().beginExistenceRequest;
+  const resolveExistence = useTransactionsScreenStore.getState().resolveExistence;
+  const failExistence = useTransactionsScreenStore.getState().failExistence;
   const { transactions, hasMore, paginationError, queryKey, snapshotKey, status, mutationVersion } =
     useTransactionStore(
       useShallow((s) => ({
@@ -111,11 +128,18 @@ export function useTransactions() {
   const refresh = useTransactionStore.getState().refresh;
   const retry = useTransactionStore.getState().retry;
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
+  const { toast } = useToast();
   const runDeleteTransaction = useCallback(
-    (transactionId: string) => deleteTransaction(transactionId),
-    [deleteTransaction],
+    async (tx: Transaction) => {
+      // Resolves once the refresh after the write settles, so the toast follows the rows.
+      await deleteTransaction(tx.id);
+      toast.show({ label: Strings.transactionDeletedToast, variant: 'success' });
+    },
+    [deleteTransaction, toast],
   );
   const deleteAction = useConfirmAction(runDeleteTransaction);
+  const pendingDelete = deleteAction.pendingPayload;
+  const requestDeleteOf = deleteAction.request;
 
   const { accounts, archivedAccounts, accountLookupById, accountLookupError, accountsLoaded } =
     useAccountStore(
@@ -136,12 +160,16 @@ export function useTransactions() {
   const totalsStatus = useTransactionsState.useState.totalsStatus();
   const failedTotalsScope = useTransactionsState.useState.failedTotalsScope();
   const userRefreshing = useTransactionsState.useState.userRefreshing();
+  const existenceFailed = useTransactionsState.useState.existenceFailed();
+  const deleteBodyTransaction = useTransactionsState.useState.deleteBodyTransaction();
+  const setDeleteBodyTransaction = useTransactionsState.getState().setDeleteBodyTransaction;
   const beginTotalsLoad = useTransactionsState.getState().beginTotalsLoad;
   const resolveTotalsLoad = useTransactionsState.getState().resolveTotalsLoad;
   const failTotalsLoad = useTransactionsState.getState().failTotalsLoad;
   const activateScrollQuery = useTransactionsState.getState().activateScrollQuery;
   const setScrollOffset = useTransactionsState.getState().setScrollOffset;
   const setUserRefreshing = useTransactionsState.getState().setUserRefreshing;
+  const setExistenceFailed = useTransactionsState.getState().setExistenceFailed;
 
   const effectiveFilters = useMemo(
     () =>
@@ -261,6 +289,20 @@ export function useTransactions() {
       resolveTotalsLoad,
     ],
   );
+
+  const loadExistence = useCallback(async () => {
+    const version = totalsInputRef.current.mutationVersion;
+    const requestId = beginExistenceRequest();
+    setExistenceFailed(false);
+    try {
+      const rows = await transactionRepository.getAll({ limit: 1 });
+      resolveExistence(requestId, version, rows.length > 0);
+    } catch (err) {
+      console.error('[transactions] any-transaction read failed:', err);
+      // A rejection nothing waits on sets no flag: the way back into the empty month reads again.
+      if (failExistence(requestId) && awaitsExistenceRef.current) setExistenceFailed(true);
+    }
+  }, [beginExistenceRequest, failExistence, resolveExistence, setExistenceFailed]);
 
   const activeQueryKeyRef = useRef(activeQueryKey);
   activeQueryKeyRef.current = activeQueryKey;
@@ -410,12 +452,16 @@ export function useTransactions() {
     accountLookupError && findMissingAccountIds(transactionAccountIds, accountsById).length > 0;
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const today = toLocalDateString(new Date());
+  const currentMonth = today.slice(0, 7);
+  const emptyMonthName = useMemo(() => fullMonthName(period.yearMonth), [period.yearMonth]);
   const dayGroups = useMemo(() => {
     const [year, month, day] = today.split('-').map(Number);
     return groupTransactionsByDate(currentTransactions, new Date(year, month - 1, day));
   }, [currentTransactions, today]);
   const activeFilterCount = useMemo(() => countFunnelFilters(effectiveFilters), [effectiveFilters]);
   const hasAdvancedFilters = countActiveFilters(effectiveFilters) > 0;
+  const filtersActive =
+    transactionQuery.search !== undefined || activeFilter !== 'all' || hasAdvancedFilters;
   const accountChips = useMemo(
     () => buildAccountChips(accounts, effectiveFilters.accountIds),
     [accounts, effectiveFilters.accountIds],
@@ -444,11 +490,12 @@ export function useTransactions() {
       await Promise.all([
         refresh().catch((err) => console.error('[transactions] refresh failed:', err)),
         loadTotals({ preserveData: true }),
+        useTransactionsState.getState().existenceFailed ? loadExistence() : Promise.resolve(),
       ]);
     } finally {
       setUserRefreshing(false);
     }
-  }, [loadTotals, refresh, setUserRefreshing]);
+  }, [loadExistence, loadTotals, refresh, setUserRefreshing]);
 
   const displayTotals = totalsYearMonth === period.yearMonth ? totals : null;
   const displayTotalsStatus =
@@ -533,12 +580,28 @@ export function useTransactions() {
     paginationError: hasCurrentSnapshot && paginationError,
     accountLookupError: showAccountLookupError,
     userRefreshing,
+    filtersActive,
+    isCurrentMonth: period.yearMonth === currentMonth,
+    existence: existenceFailed
+      ? 'failed'
+      : existenceVersion !== mutationVersion
+        ? 'unknown'
+        : hasAnyTransaction
+          ? 'some'
+          : 'none',
   });
-  const emptyVariant: EmptyVariant = !presentation.showEmptyState
-    ? 'none'
-    : debouncedSearch.trim() || activeFilter !== 'all' || hasAdvancedFilters
-      ? 'noResults'
-      : 'noData';
+  const awaitsExistence = presentation.awaitsExistence;
+  useEffect(() => {
+    awaitsExistenceRef.current = awaitsExistence;
+    if (!awaitsExistence) {
+      // A failure nothing waits on would paint the alert for a frame on the way back in.
+      setExistenceFailed(false);
+      return;
+    }
+    // A failed read publishes no version, so this effect never retries its own failure.
+    if (useTransactionsScreenStore.getState().existenceVersion === mutationVersion) return;
+    void loadExistence();
+  }, [awaitsExistence, loadExistence, mutationVersion, setExistenceFailed]);
 
   const onListScroll = useCallback(
     (event: ScrollOffsetEvent) => {
@@ -579,6 +642,7 @@ export function useTransactions() {
         showAccountLookupError
           ? loadAccountLookup(transactionAccountIds).catch(() => {})
           : Promise.resolve(),
+        useTransactionsState.getState().existenceFailed ? loadExistence() : Promise.resolve(),
       ]);
     } finally {
       if (retriesList) setUserRefreshing(false);
@@ -587,6 +651,7 @@ export function useTransactions() {
     displayTotalsStatus,
     listStatus,
     loadAccountLookup,
+    loadExistence,
     retry,
     retryTotals,
     setUserRefreshing,
@@ -617,6 +682,35 @@ export function useTransactions() {
     useTransactionFormState.getState().openAdd();
   }, []);
 
+  const backToThisMonth = useCallback(
+    () => setSelectedMonth(currentMonth),
+    [currentMonth, setSelectedMonth],
+  );
+
+  const requestDelete = useCallback(
+    (id: string) => {
+      const tx = currentTransactions.find((t) => t.id === id);
+      if (!tx) {
+        console.warn('[requestDelete] tx not in loaded window:', id);
+        return;
+      }
+      setDeleteBodyTransaction(tx);
+      requestDeleteOf(tx);
+    },
+    [currentTransactions, requestDeleteOf, setDeleteBodyTransaction],
+  );
+  // Read from the last requested transaction, so neither its row leaving nor the close empties it.
+  const deleteBody =
+    deleteBodyTransaction === undefined
+      ? ''
+      : resolveTransactionDeleteBody(
+          deleteBodyTransaction,
+          accountsById.get(deleteBodyTransaction.account_id),
+          deleteBodyTransaction.to_account_id === null
+            ? undefined
+            : accountsById.get(deleteBodyTransaction.to_account_id),
+        );
+
   return {
     state: {
       sections,
@@ -627,7 +721,9 @@ export function useTransactions() {
       loadErrorVariant: presentation.loadErrorVariant,
       paginationError: presentation.showPaginationRetry,
       refreshing: presentation.showRefreshIndicator,
-      emptyVariant,
+      emptyVariant: presentation.emptyVariant,
+      emptyMonthName,
+      showsBackToThisMonth: presentation.showsBackToThisMonth,
       searchQuery,
       activeFilter,
       period,
@@ -642,7 +738,8 @@ export function useTransactions() {
       tally,
       searchDisabled: heroMode === 'skeleton',
       listRef,
-      pendingDeleteId: deleteAction.pendingPayload,
+      pendingDeleteId: pendingDelete?.id ?? null,
+      deleteBody,
       deleteBusy: deleteAction.busy,
       deleteErrorMessage: deleteAction.error
         ? resolveTransactionDeleteError(deleteAction.error)
@@ -665,7 +762,8 @@ export function useTransactions() {
     goToDetail,
     goToEdit,
     openAddTransaction,
-    requestDelete: deleteAction.request,
+    backToThisMonth,
+    requestDelete,
     confirmDelete: deleteAction.confirm,
     cancelDelete: deleteAction.cancel,
   };

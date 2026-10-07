@@ -311,3 +311,69 @@ describe('useTransactionsScreenStore reset', () => {
     expect(s.totalsQueryKey).toBeNull();
   });
 });
+
+describe('useTransactionsScreenStore any-transaction read (MA-093)', () => {
+  function answer() {
+    const { hasAnyTransaction, existenceVersion } = useTransactionsScreenStore.getState();
+    return { hasAnyTransaction, existenceVersion };
+  }
+
+  it('starts with no answer and the request id at 0', () => {
+    expect(answer()).toEqual({ hasAnyTransaction: undefined, existenceVersion: undefined });
+    expect(useTransactionsScreenStore.getState().existenceRequestId).toBe(0);
+  });
+
+  it('of two requests the later wins, and the earlier answer publishes nothing', () => {
+    const first = useTransactionsScreenStore.getState().beginExistenceRequest();
+    const second = useTransactionsScreenStore.getState().beginExistenceRequest();
+
+    expect(second).not.toBe(first);
+    expect(useTransactionsScreenStore.getState().existenceRequestId).toBe(second);
+    expect(useTransactionsScreenStore.getState().resolveExistence(first, 3, true)).toBe(false);
+    expect(answer()).toEqual({ hasAnyTransaction: undefined, existenceVersion: undefined });
+
+    expect(useTransactionsScreenStore.getState().resolveExistence(second, 4, false)).toBe(true);
+    expect(answer()).toEqual({ hasAnyTransaction: false, existenceVersion: 4 });
+  });
+
+  it('publishes the answer and its version in one update', () => {
+    const requestId = useTransactionsScreenStore.getState().beginExistenceRequest();
+    const listener = jest.fn();
+    const unsubscribe = useTransactionsScreenStore.subscribe(listener);
+
+    useTransactionsScreenStore.getState().resolveExistence(requestId, 7, true);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(answer()).toEqual({ hasAnyTransaction: true, existenceVersion: 7 });
+    unsubscribe();
+  });
+
+  it('reports a failure as owned only for the latest request', () => {
+    const first = useTransactionsScreenStore.getState().beginExistenceRequest();
+    const second = useTransactionsScreenStore.getState().beginExistenceRequest();
+
+    expect(useTransactionsScreenStore.getState().failExistence(first)).toBe(false);
+    expect(useTransactionsScreenStore.getState().failExistence(second)).toBe(true);
+  });
+
+  it('a new request keeps the held answer in place', () => {
+    const requestId = useTransactionsScreenStore.getState().beginExistenceRequest();
+    useTransactionsScreenStore.getState().resolveExistence(requestId, 2, true);
+
+    const next = useTransactionsScreenStore.getState().beginExistenceRequest();
+
+    expect(next).not.toBe(requestId);
+    expect(answer()).toEqual({ hasAnyTransaction: true, existenceVersion: 2 });
+  });
+
+  it('reset returns the answer to undefined and the request id to 0', () => {
+    const requestId = useTransactionsScreenStore.getState().beginExistenceRequest();
+    useTransactionsScreenStore.getState().resolveExistence(requestId, 5, true);
+    expect(answer()).toEqual({ hasAnyTransaction: true, existenceVersion: 5 });
+
+    useTransactionsScreenStore.getState().reset();
+
+    expect(answer()).toEqual({ hasAnyTransaction: undefined, existenceVersion: undefined });
+    expect(useTransactionsScreenStore.getState().existenceRequestId).toBe(0);
+  });
+});

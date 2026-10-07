@@ -52,12 +52,17 @@ jest.mock('@/components/ui/filter_rail', () => ({
     );
   },
 }));
-jest.mock('@/components/ui/empty_state', () => ({
-  EmptyState: ({ variant }: { variant: string }) => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>{variant}</Text>;
-  },
-}));
+jest.mock('@/components/ui/empty_state', () => {
+  const emptyStateProps: { last: { variant: string } | undefined } = { last: undefined };
+  return {
+    emptyStateProps,
+    EmptyState: (props: { variant: string }) => {
+      const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+      emptyStateProps.last = props;
+      return <Text>{props.variant}</Text>;
+    },
+  };
+});
 jest.mock('@/components/ui/swipeable_row', () => ({ closeAllRows: jest.fn() }));
 jest.mock('@/modules/transactions/screens/transactions/components/transactions_hero', () => {
   const heroRenders = { count: 0 };
@@ -115,8 +120,21 @@ jest.mock('@/modules/transactions/screens/transactions/components/day_header', (
   },
 }));
 jest.mock('@/modules/transactions/screens/transactions/components/tx_delete_confirm_sheet', () => ({
-  TxDeleteConfirmSheet: () => null,
+  TxDeleteConfirmSheet: () => {
+    const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+    return <View testID="tx-delete-confirm-sheet" />;
+  },
 }));
+jest.mock('@/modules/transactions/screens/transactions/components/tx_delete_dialog', () => {
+  const txDeleteDialogProps: { last: object | undefined } = { last: undefined };
+  return {
+    txDeleteDialogProps,
+    TxDeleteDialog: (props: object) => {
+      txDeleteDialogProps.last = props;
+      return null;
+    },
+  };
+});
 jest.mock('@/modules/transactions/screens/transactions/filter', () => ({
   FilterSheet: () => null,
 }));
@@ -177,9 +195,34 @@ const baseTransactionsState: TransactionsScreenState = {
   pendingDeleteId: null,
   deleteBusy: false,
   deleteErrorMessage: undefined,
+  deleteBody: '',
+  emptyMonthName: '',
+  showsBackToThisMonth: false,
 };
 
+interface EmptyStateMockProps {
+  variant: string;
+  monthName?: string;
+  showsBackLink?: boolean;
+  onAction?: () => void;
+}
+
+interface TxDeleteDialogMockProps {
+  isOpen: boolean;
+  body: string;
+  busy: boolean;
+  errorMessage?: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
 const mockedUseTransactions = jest.mocked(useTransactions);
+const { emptyStateProps } = jest.requireMock<{
+  emptyStateProps: { last: EmptyStateMockProps | undefined };
+}>('@/components/ui/empty_state');
+const { txDeleteDialogProps } = jest.requireMock<{
+  txDeleteDialogProps: { last: TxDeleteDialogMockProps | undefined };
+}>('@/modules/transactions/screens/transactions/components/tx_delete_dialog');
 const { heroRenders } = jest.requireMock<{ heroRenders: { count: number } }>(
   '@/modules/transactions/screens/transactions/components/transactions_hero',
 );
@@ -241,6 +284,7 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
     confirmDelete: jest.fn(),
     cancelDelete: jest.fn(),
     toggleAccountChip: jest.fn(),
+    backToThisMonth: jest.fn(),
   };
   mockedUseTransactions.mockReturnValue(hook);
   return hook;
@@ -252,6 +296,8 @@ describe('TransactionsScreen', () => {
     heroRenders.count = 0;
     rowSeparators.clear();
     rowSwipeCorners.clear();
+    emptyStateProps.last = undefined;
+    txDeleteDialogProps.last = undefined;
     mockUseTransactions();
   });
 
@@ -537,5 +583,53 @@ describe('TransactionsScreen', () => {
 
     expect(getByText('filtered')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
+  });
+
+  it('MA-093: an empty month mounts the month block, and its link goes back to this month', async () => {
+    const hook = mockUseTransactions({
+      emptyVariant: 'emptyMonth',
+      emptyMonthName: 'July',
+      showsBackToThisMonth: true,
+      listStatus: 'empty',
+      showInitialSkeleton: false,
+    });
+
+    const { getByText } = await render(<TransactionsScreen />);
+
+    expect(getByText('transactionsMonth')).toBeTruthy();
+    expect(emptyStateProps.last).toMatchObject({
+      variant: 'transactionsMonth',
+      monthName: 'July',
+      showsBackLink: true,
+    });
+    emptyStateProps.last?.onAction?.();
+    expect(hook.backToThisMonth).toHaveBeenCalledTimes(1);
+    expect(hook.resetFilters).not.toHaveBeenCalled();
+    expect(hook.openAddTransaction).not.toHaveBeenCalled();
+  });
+
+  it('MA-093: a pending delete opens the dialog with its body, busy flag and failure line, never the confirm sheet', async () => {
+    const body = '100 EGP returns to CIB Current. This cannot be undone.';
+    const failure = 'Old Card is archived. Restore it to change this transaction.';
+    const hook = mockUseTransactions({
+      pendingDeleteId: 'tx-1',
+      deleteBody: body,
+      deleteBusy: true,
+      deleteErrorMessage: failure,
+    });
+
+    const { queryByTestId } = await render(<TransactionsScreen />);
+
+    expect(txDeleteDialogProps.last).toMatchObject({
+      isOpen: true,
+      body,
+      busy: true,
+      errorMessage: failure,
+    });
+    expect(queryByTestId('tx-delete-confirm-sheet')).toBeNull();
+    txDeleteDialogProps.last?.onCancel();
+    expect(hook.cancelDelete).toHaveBeenCalledTimes(1);
+    txDeleteDialogProps.last?.onConfirm();
+    expect(hook.confirmDelete).toHaveBeenCalledTimes(1);
   });
 });

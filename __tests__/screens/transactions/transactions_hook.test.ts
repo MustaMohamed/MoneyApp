@@ -78,13 +78,21 @@ const mockGetMonthAggregate = jest.fn<
   [TransactionAggregateQuery]
 >();
 const mockGetScopedTotals = jest.fn<Promise<PeriodTotals>, [TransactionTotalsScope]>();
+const mockGetAll = jest.fn<Promise<Transaction[]>, [query?: { limit?: number }]>();
+const mockToast = { show: jest.fn() };
 
 jest.mock('@/modules/transactions/repositories/transaction.repository', () => ({
   ...jest.requireActual<object>('@/modules/transactions/repositories/transaction.repository'),
   transactionRepository: {
+    getAll: (query?: { limit?: number }) => mockGetAll(query),
     getMonthAggregate: (query: TransactionAggregateQuery) => mockGetMonthAggregate(query),
     getScopedTotals: (scope: TransactionTotalsScope) => mockGetScopedTotals(scope),
   },
+}));
+
+// The wrapper, not HeroUI, so `show` sees exactly what the hook passed.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
 }));
 
 jest.mock('@/modules/accounts/store/account.store', () => ({
@@ -222,6 +230,9 @@ beforeEach(() => {
   mockGetMonthAggregate.mockResolvedValue(EMPTY_AGGREGATE);
   mockGetScopedTotals.mockReset();
   mockGetScopedTotals.mockResolvedValue(EMPTY_TOTALS);
+  mockGetAll.mockReset();
+  mockGetAll.mockResolvedValue([]);
+  mockToast.show.mockReset();
 });
 
 describe('useTransactions screen orchestration', () => {
@@ -240,6 +251,7 @@ describe('useTransactions screen orchestration', () => {
   });
 
   it('owns the delete confirmation lifecycle', async () => {
+    setupStores({ transactions: [TRANSACTION], status: 'ready' });
     const { result } = await renderHook(() => useTransactions());
 
     await act(() => result.current.requestDelete('tx-1'));
@@ -253,6 +265,8 @@ describe('useTransactions screen orchestration', () => {
 
   it('MA-053: keeps the delete pending and names the archived account when the delete is refused', async () => {
     setupStores({
+      transactions: [TRANSACTION],
+      status: 'ready',
       deleteTransaction: jest
         .fn()
         .mockRejectedValue(
@@ -271,7 +285,11 @@ describe('useTransactions screen orchestration', () => {
   });
 
   it('keeps the generic delete copy for any other failure', async () => {
-    setupStores({ deleteTransaction: jest.fn().mockRejectedValue(new Error('write failed')) });
+    setupStores({
+      transactions: [TRANSACTION],
+      status: 'ready',
+      deleteTransaction: jest.fn().mockRejectedValue(new Error('write failed')),
+    });
     const { result } = await renderHook(() => useTransactions());
 
     await act(() => result.current.requestDelete('tx-1'));
@@ -1585,7 +1603,7 @@ describe('useTransactions account chips', () => {
 
     await act(() => result.current.toggleAccountChip(undefined));
 
-    expect(result.current.state.emptyVariant).toBe('noData');
+    await waitFor(() => expect(result.current.state.emptyVariant).toBe('noData'));
     expect(result.current.state.activeFilterCount).toBe(0);
   });
 
@@ -2038,5 +2056,633 @@ describe('useTransactions day sections', () => {
       { mode: 'failed', net: DASH },
     ]);
     consoleSpy.mockRestore();
+  });
+});
+
+function emptySnapshot(query: Record<string, unknown> = {}): Record<string, unknown> {
+  const key = getTransactionQueryKey({ ...JULY_QUERY, ...query });
+  return { transactions: [], status: 'empty', queryKey: key, snapshotKey: key };
+}
+
+function heldAnswer() {
+  const { hasAnyTransaction, existenceVersion } = useTransactionsScreenStore.getState();
+  return { hasAnyTransaction, existenceVersion };
+}
+
+function readFailed(): boolean {
+  return useTransactionsState.getState().existenceFailed;
+}
+
+function renderRerenderable() {
+  return renderHook((_props: Record<string, never>) => useTransactions(), { initialProps: {} });
+}
+
+async function settle(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
+  });
+}
+
+describe('useTransactions any-transaction read (MA-093)', () => {
+  let consoleSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  it('reads once for an empty unfiltered month and holds the answer at the current mutationVersion', async () => {
+    setupStores({ mutationVersion: 4 });
+    mockGetAll.mockResolvedValue([JUNE_TRANSACTION]);
+
+    await renderHook(() => useTransactions());
+
+    await waitFor(() =>
+      expect(heldAnswer()).toEqual({ hasAnyTransaction: true, existenceVersion: 4 }),
+    );
+    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    expect(mockGetAll).toHaveBeenCalledWith({ limit: 1 });
+    expect(readFailed()).toBe(false);
+  });
+
+  it('reads nothing for a month with rows until the month is empty', async () => {
+    setupStores({ transactions: [TRANSACTION], status: 'ready' });
+    const { result, rerender } = await renderRerenderable();
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+    await settle();
+    expect(mockGetAll).not.toHaveBeenCalled();
+
+    transactionStoreState = { ...transactionStoreState, ...emptySnapshot() };
+    await rerender({});
+
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+  });
+
+  it.each<[string, Record<string, unknown>, () => void]>([
+    [
+      'a chip',
+      { accountIds: ['acc-1'] },
+      () =>
+        useTransactionsScreenStore
+          .getState()
+          .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['acc-1'] }),
+    ],
+    [
+      'a type tab',
+      { type: TransactionType.Expense },
+      () => useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense),
+    ],
+    [
+      'a search',
+      { search: 'coffee' },
+      () => useTransactionsScreenStore.getState().setSearchQuery('coffee'),
+    ],
+  ])(
+    'reads nothing for an empty month under %s until the filter clears',
+    async (_name, query, applyFilter) => {
+      setupStores(emptySnapshot(query));
+      applyFilter();
+      const { result } = await renderHook(() => useTransactions());
+      await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+      await settle();
+      expect(result.current.state.listStatus).toBe('empty');
+      expect(mockGetAll).not.toHaveBeenCalled();
+
+      await act(() => {
+        transactionStoreState = { ...transactionStoreState, ...emptySnapshot() };
+        result.current.resetFilters();
+      });
+
+      await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    },
+  );
+
+  it('reads nothing more for a second empty month at the same mutationVersion', async () => {
+    const { result } = await renderHook(() => useTransactions());
+    await waitFor(() =>
+      expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 }),
+    );
+    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    const juneKey = getTransactionQueryKey(JUNE_QUERY);
+
+    await act(() => {
+      transactionStoreState = {
+        ...transactionStoreState,
+        query: JUNE_QUERY,
+        queryKey: juneKey,
+        snapshotKey: juneKey,
+      };
+      useTransactionsScreenStore.getState().setSelectedMonth('2026-06');
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+    await settle();
+
+    expect(result.current.state.selectedMonth).toBe('2026-06');
+    expect(result.current.state.listStatus).toBe('empty');
+    expect(mockGetAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads again once a write moves mutationVersion', async () => {
+    const { rerender } = await renderRerenderable();
+    await waitFor(() =>
+      expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 }),
+    );
+    mockGetAll.mockResolvedValue([JUNE_TRANSACTION]);
+
+    transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
+    await rerender({});
+
+    await waitFor(() =>
+      expect(heldAnswer()).toEqual({ hasAnyTransaction: true, existenceVersion: 1 }),
+    );
+    expect(mockGetAll).toHaveBeenCalledTimes(2);
+  });
+
+  it('logs a rejected read, sets the failure flag, and does not read again on a re-render', async () => {
+    mockGetAll.mockRejectedValue(new Error('db down'));
+    const { rerender } = await renderRerenderable();
+
+    await waitFor(() => expect(readFailed()).toBe(true));
+    expect(consoleSpy).toHaveBeenCalled();
+    await rerender({});
+    await settle();
+
+    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    expect(readFailed()).toBe(true);
+    expect(heldAnswer()).toEqual({ hasAnyTransaction: undefined, existenceVersion: undefined });
+  });
+
+  it.each<[string, (hook: ReturnType<typeof useTransactions>) => Promise<void>]>([
+    ['Try again', (hook) => hook.retryFailedLoads()],
+    ['a pull to refresh', (hook) => hook.onRefresh()],
+  ])('%s reads again after a failed read and clears the flag', async (_name, run) => {
+    mockGetAll.mockRejectedValueOnce(new Error('db down'));
+    const { result } = await renderHook(() => useTransactions());
+    await waitFor(() => expect(readFailed()).toBe(true));
+    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    mockGetAll.mockResolvedValue([JUNE_TRANSACTION]);
+
+    await act(async () => {
+      await run(result.current);
+    });
+
+    await waitFor(() =>
+      expect(heldAnswer()).toEqual({ hasAnyTransaction: true, existenceVersion: 0 }),
+    );
+    expect(mockGetAll).toHaveBeenCalledTimes(2);
+    expect(readFailed()).toBe(false);
+  });
+
+  it('after a failed read, a type tab switched on and back to all reads again', async () => {
+    mockGetAll.mockRejectedValueOnce(new Error('db down'));
+    const { result } = await renderHook(() => useTransactions());
+    await waitFor(() => expect(readFailed()).toBe(true));
+
+    await act(() => {
+      transactionStoreState = {
+        ...transactionStoreState,
+        ...emptySnapshot({ type: TransactionType.Expense }),
+      };
+      useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
+    });
+    await settle();
+    expect(result.current.state.listStatus).toBe('empty');
+    expect(mockGetAll).toHaveBeenCalledTimes(1);
+
+    await act(() => {
+      transactionStoreState = { ...transactionStoreState, ...emptySnapshot() };
+      useTransactionsScreenStore.getState().setActiveFilter('all');
+    });
+
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(readFailed()).toBe(false));
+    expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 });
+  });
+
+  it('after a failed read, no render on the way back to all reads the first-load error before the retry answers', async () => {
+    mockGetAll.mockRejectedValueOnce(new Error('db down'));
+    const firstLoadErrorFrames: boolean[] = [];
+    const { result } = await renderHook(() => {
+      const hook = useTransactions();
+      firstLoadErrorFrames.push(hook.state.showFirstLoadError);
+      return hook;
+    });
+    await waitFor(() => expect(result.current.state.showFirstLoadError).toBe(true));
+    await act(() => {
+      transactionStoreState = {
+        ...transactionStoreState,
+        ...emptySnapshot({ type: TransactionType.Expense }),
+      };
+      useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
+    });
+    await settle();
+
+    firstLoadErrorFrames.length = 0;
+    await act(() => {
+      transactionStoreState = { ...transactionStoreState, ...emptySnapshot() };
+      useTransactionsScreenStore.getState().setActiveFilter('all');
+    });
+    await waitFor(() =>
+      expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 }),
+    );
+    await settle();
+
+    expect(mockGetAll).toHaveBeenCalledTimes(2);
+    expect(firstLoadErrorFrames.length).toBeGreaterThan(0);
+    expect(firstLoadErrorFrames).not.toContain(true);
+  });
+
+  it('a rejection that lands after a filter went on sets no failure flag', async () => {
+    let rejectRead!: (error: Error) => void;
+    mockGetAll.mockReturnValueOnce(
+      new Promise<Transaction[]>((_resolve, reject) => {
+        rejectRead = reject;
+      }),
+    );
+    await renderHook(() => useTransactions());
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    await act(() => {
+      transactionStoreState = {
+        ...transactionStoreState,
+        ...emptySnapshot({ type: TransactionType.Expense }),
+      };
+      useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
+    });
+    await settle();
+
+    await act(async () => {
+      rejectRead(new Error('db down'));
+    });
+    await settle();
+
+    expect(consoleSpy).toHaveBeenCalled();
+    expect(readFailed()).toBe(false);
+  });
+
+  it.each<[string, boolean]>([
+    ['an answered month', false],
+    ['a failed read', true],
+  ])('focus and its queued task add no read on %s', async (_name, fails) => {
+    if (fails) mockGetAll.mockRejectedValue(new Error('db down'));
+    await renderHook(() => useTransactions());
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(readFailed()).toBe(fails);
+
+    let cleanup: void | (() => void) = undefined;
+    await act(() => {
+      cleanup = mockFocusEffectCallback?.();
+    });
+    await act(async () => {
+      await mockInteractionTasks[mockInteractionTasks.length - 1]?.callback();
+    });
+    await act(() => cleanup?.());
+    await act(() => {
+      mockFocusEffectCallback?.();
+    });
+    await act(async () => {
+      await mockInteractionTasks[mockInteractionTasks.length - 1]?.callback();
+    });
+    await settle();
+
+    expect(mockInteractionTasks).toHaveLength(2);
+    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    expect(readFailed()).toBe(fails);
+  });
+
+  it('drops an answer that lands after a newer request began', async () => {
+    let resolveFirst!: (rows: Transaction[]) => void;
+    mockGetAll.mockReturnValueOnce(
+      new Promise<Transaction[]>((resolve) => {
+        resolveFirst = resolve;
+      }),
+    );
+    const { rerender } = await renderRerenderable();
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+
+    transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
+    await rerender({});
+    await waitFor(() =>
+      expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 1 }),
+    );
+    expect(mockGetAll).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      resolveFirst([JUNE_TRANSACTION]);
+    });
+    await settle();
+
+    expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 1 });
+    expect(mockGetAll).toHaveBeenCalledTimes(2);
+  });
+
+  it('drops a rejection that lands after a newer request began', async () => {
+    let rejectFirst!: (error: Error) => void;
+    mockGetAll.mockReturnValueOnce(
+      new Promise<Transaction[]>((_resolve, reject) => {
+        rejectFirst = reject;
+      }),
+    );
+    const { rerender } = await renderRerenderable();
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+
+    transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
+    await rerender({});
+    await waitFor(() =>
+      expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 1 }),
+    );
+
+    await act(async () => {
+      rejectFirst(new Error('db down'));
+    });
+    await settle();
+
+    expect(readFailed()).toBe(false);
+    expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 1 });
+  });
+});
+
+describe('useTransactions empty blocks (MA-093)', () => {
+  let consoleSpy: jest.SpyInstance;
+
+  // Pins `new Date()` alone: the timers stay real so `waitFor` and the awaited reads still run.
+  function pinNow(localIso: string): void {
+    jest.useFakeTimers({
+      now: new Date(localIso),
+      doNotFake: [
+        'hrtime',
+        'nextTick',
+        'performance',
+        'queueMicrotask',
+        'requestAnimationFrame',
+        'cancelAnimationFrame',
+        'requestIdleCallback',
+        'cancelIdleCallback',
+        'setImmediate',
+        'clearImmediate',
+        'setInterval',
+        'clearInterval',
+        'setTimeout',
+        'clearTimeout',
+      ],
+    });
+  }
+
+  beforeEach(() => {
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    consoleSpy.mockRestore();
+  });
+
+  it('an empty July with a transaction in another month reads the empty-month block, named July, with the link', async () => {
+    pinNow('2026-09-15T12:00:00');
+    mockGetAll.mockResolvedValue([JUNE_TRANSACTION]);
+
+    const { result } = await renderHook(() => useTransactions());
+
+    await waitFor(() => expect(result.current.state.emptyVariant).toBe('emptyMonth'));
+    expect(result.current.state.emptyMonthName).toBe('July');
+    expect(result.current.state.showsBackToThisMonth).toBe(true);
+    expect(result.current.state.showInitialSkeleton).toBe(false);
+  });
+
+  it('drops the link when the empty month is the current one, on its last evening', async () => {
+    pinNow('2026-07-31T23:30:00');
+    mockGetAll.mockResolvedValue([JUNE_TRANSACTION]);
+
+    const { result } = await renderHook(() => useTransactions());
+
+    await waitFor(() => expect(result.current.state.emptyVariant).toBe('emptyMonth'));
+    expect(result.current.state.emptyMonthName).toBe('July');
+    expect(result.current.state.showsBackToThisMonth).toBe(false);
+  });
+
+  it('reads the no-transactions block, without the link, when no transaction exists', async () => {
+    pinNow('2026-09-15T12:00:00');
+    const { result } = await renderHook(() => useTransactions());
+
+    await waitFor(() =>
+      expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 }),
+    );
+    expect(result.current.state.emptyVariant).toBe('noData');
+    expect(result.current.state.showsBackToThisMonth).toBe(false);
+  });
+
+  it('holds the skeleton and no block while the read is pending', async () => {
+    mockGetAll.mockReturnValue(new Promise(() => {}));
+
+    const { result } = await renderHook(() => useTransactions());
+
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    expect(result.current.state.showInitialSkeleton).toBe(true);
+    expect(result.current.state.emptyVariant).toBe('none');
+    expect(result.current.state.showFirstLoadError).toBe(false);
+  });
+
+  it('reads the first-load error, never an empty block, when the read fails', async () => {
+    mockGetAll.mockRejectedValue(new Error('db down'));
+
+    const { result } = await renderHook(() => useTransactions());
+
+    await waitFor(() => expect(result.current.state.showFirstLoadError).toBe(true));
+    expect(result.current.state.emptyVariant).toBe('none');
+    expect(result.current.state.showInitialSkeleton).toBe(false);
+    expect(result.current.state.loadErrorVariant).toBe('none');
+  });
+
+  it.each<[string, string, Transaction[], Transaction[]]>([
+    ['emptyMonth', 'noData', [JUNE_TRANSACTION], []],
+    ['noData', 'emptyMonth', [], [JUNE_TRANSACTION]],
+  ])(
+    'the %s block becomes %s once the read after a write answers',
+    async (before, after, firstRows, nextRows) => {
+      mockGetAll.mockResolvedValue(firstRows);
+      const { result, rerender } = await renderRerenderable();
+      await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(result.current.state.emptyVariant).toBe(before));
+      mockGetAll.mockResolvedValue(nextRows);
+
+      transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
+      await rerender({});
+
+      await waitFor(() => expect(result.current.state.emptyVariant).toBe(after));
+      expect(mockGetAll).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('holds the skeleton, never the last block, while the read after a write is pending', async () => {
+    mockGetAll.mockReturnValue(new Promise(() => {}));
+    mockGetAll.mockResolvedValueOnce([JUNE_TRANSACTION]);
+    const { result, rerender } = await renderRerenderable();
+    await waitFor(() => expect(result.current.state.emptyVariant).toBe('emptyMonth'));
+
+    transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
+    await rerender({});
+
+    expect(result.current.state.emptyVariant).toBe('none');
+    expect(result.current.state.showInitialSkeleton).toBe(true);
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(2));
+  });
+
+  it('with the clock pinned, backToThisMonth returns the month row to the pinned month', async () => {
+    pinNow('2026-09-01T00:30:00');
+    const { result } = await renderHook(() => useTransactions());
+    expect(result.current.state.selectedMonth).toBe('2026-07');
+
+    await act(() => result.current.backToThisMonth());
+
+    expect(useTransactionsScreenStore.getState().period).toEqual({
+      type: 'month',
+      yearMonth: '2026-09',
+    });
+    expect(result.current.state.selectedMonth).toBe('2026-09');
+  });
+});
+
+describe('useTransactions delete dialog (MA-093)', () => {
+  const CIB = makeTestAccount({ id: 'account-1', name: 'CIB Current' });
+  const EXPENSE_BODY = '100 EGP returns to CIB Current. This cannot be undone.';
+  const DELETED_TOAST = { label: 'Transaction deleted.', variant: 'success' };
+
+  function setupSeeded(transactionOverrides: Record<string, unknown> = {}): void {
+    setupStores(
+      { transactions: [TRANSACTION], status: 'ready', ...transactionOverrides },
+      { accounts: [CIB] },
+    );
+  }
+
+  beforeEach(() => {
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+  });
+
+  it('prints the balance effect while a delete is pending and holds it once the row has left the rows', async () => {
+    setupSeeded();
+    const { result, rerender } = await renderRerenderable();
+    expect(result.current.state.deleteBody).toBe('');
+
+    await act(() => result.current.requestDelete('tx-1'));
+    expect(result.current.state.pendingDeleteId).toBe('tx-1');
+    expect(result.current.state.deleteBody).toBe(EXPENSE_BODY);
+
+    transactionStoreState = { ...transactionStoreState, transactions: [], status: 'empty' };
+    await rerender({});
+
+    expect(result.current.state.pendingDeleteId).toBe('tx-1');
+    expect(result.current.state.deleteBody).toBe(EXPENSE_BODY);
+  });
+
+  it('stays busy with no toast while the delete is in flight, then closes and shows the toast once', async () => {
+    let resolveDelete!: () => void;
+    const pendingDelete = jest.fn<Promise<void>, [string]>(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDelete = resolve;
+        }),
+    );
+    setupSeeded({ deleteTransaction: pendingDelete });
+    const { result } = await renderHook(() => useTransactions());
+    await act(() => result.current.requestDelete('tx-1'));
+
+    let confirmed: Promise<void> | undefined;
+    await act(() => {
+      confirmed = result.current.confirmDelete();
+    });
+
+    expect(pendingDelete).toHaveBeenCalledWith('tx-1');
+    expect(result.current.state.deleteBusy).toBe(true);
+    expect(result.current.state.pendingDeleteId).toBe('tx-1');
+    expect(mockToast.show).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveDelete();
+      await confirmed;
+    });
+
+    expect(result.current.state.deleteBusy).toBe(false);
+    expect(result.current.state.pendingDeleteId).toBeNull();
+    expect(result.current.state.deleteBody).toBe(EXPENSE_BODY);
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(DELETED_TOAST);
+  });
+
+  it('keeps the body through the close when the delete is cancelled', async () => {
+    setupSeeded();
+    const { result } = await renderHook(() => useTransactions());
+    await act(() => result.current.requestDelete('tx-1'));
+
+    await act(() => result.current.cancelDelete());
+
+    expect(result.current.state.pendingDeleteId).toBeNull();
+    expect(result.current.state.deleteBody).toBe(EXPENSE_BODY);
+  });
+
+  it.each<[string, Error, () => string]>([
+    [
+      'the archived refusal',
+      new TransactionAccountArchivedError('source', makeTestAccount({ name: 'Old Card' })),
+      () => Strings.transactionAccountArchived('Old Card'),
+    ],
+    ['any other rejection', new Error('write failed'), () => Strings.errDeleteFailed],
+  ])(
+    '%s shows no toast and keeps the dialog open with its body, and a retry that lands shows the toast once',
+    async (_name, error, message) => {
+      const rejectedOnce = jest
+        .fn<Promise<void>, [string]>()
+        .mockRejectedValueOnce(error)
+        .mockResolvedValue(undefined);
+      setupSeeded({ deleteTransaction: rejectedOnce });
+      const { result } = await renderHook(() => useTransactions());
+
+      await act(() => result.current.requestDelete('tx-1'));
+      await act(async () => result.current.confirmDelete());
+
+      expect(result.current.state.pendingDeleteId).toBe('tx-1');
+      expect(result.current.state.deleteBusy).toBe(false);
+      expect(result.current.state.deleteErrorMessage).toBe(message());
+      expect(result.current.state.deleteBody).toBe(EXPENSE_BODY);
+      expect(mockToast.show).not.toHaveBeenCalled();
+
+      await act(async () => result.current.confirmDelete());
+
+      expect(rejectedOnce).toHaveBeenCalledTimes(2);
+      expect(rejectedOnce).toHaveBeenLastCalledWith('tx-1');
+      expect(result.current.state.pendingDeleteId).toBeNull();
+      expect(mockToast.show).toHaveBeenCalledTimes(1);
+      expect(mockToast.show).toHaveBeenCalledWith(DELETED_TOAST);
+    },
+  );
+
+  it('closes with the toast and leaves the refresh alert when the refresh after the delete failed', async () => {
+    setupSeeded({ status: 'refreshErrorWithData' });
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => result.current.requestDelete('tx-1'));
+    await act(async () => result.current.confirmDelete());
+
+    expect(deleteTransaction).toHaveBeenCalledWith('tx-1');
+    expect(result.current.state.pendingDeleteId).toBeNull();
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(DELETED_TOAST);
+    expect(result.current.state.loadErrorVariant).toBe('refresh');
+  });
+
+  it('opens nothing for an id outside the loaded rows', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    setupSeeded();
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => result.current.requestDelete('tx-missing'));
+
+    expect(result.current.state.pendingDeleteId).toBeNull();
+    expect(result.current.state.deleteBody).toBe('');
+    warnSpy.mockRestore();
   });
 });
