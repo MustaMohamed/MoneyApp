@@ -374,7 +374,7 @@ describe('formatOwnedAmountParts — the composition point for an owned magnitud
   });
 });
 
-describe('formatAccountBalance — the hero balance and the sheet row', () => {
+describe('formatAccountBalance — the amount and its code joined, `−` only below zero, at the currency decimals', () => {
   it('leaves a positive EGP balance exactly as the shipped formatter printed it', () => {
     expect(formatAccountBalance(30000, Currency.EGP)).toBe('30,000 EGP');
     expect(formatAccountBalance(30000, Currency.EGP)).toBe(
@@ -418,7 +418,7 @@ describe('formatAccountBalance — the hero balance and the sheet row', () => {
   });
 });
 
-describe('formatAccountBalanceParts — the hero draws the code apart from the magnitude', () => {
+describe('formatAccountBalanceParts — the amount, the code and printsAsZero apart', () => {
   const cases = [
     { balance: 30000, currency: Currency.EGP },
     { balance: 1250.5, currency: Currency.USD },

@@ -125,7 +125,7 @@ export interface AccountBalanceParts {
   printsAsZero: boolean;
 }
 
-/** The hero draws the code at its own size, so the two halves are available apart as well as joined. */
+/** The parts come apart because a caller draws the code in its own text, prints the amount alone, or gates a line on `printsAsZero`. */
 export function formatAccountBalanceParts(
   balance: number,
   currency: Currency,

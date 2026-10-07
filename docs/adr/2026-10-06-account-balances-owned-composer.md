@@ -14,6 +14,8 @@ ADR 2026-10-04 §2 gave the account detail hero the owned composer. Nine other p
 
 Both moved from `src/modules/accounts/screens/accounts/detail/components/balance_hero.helpers.ts` with `AccountBalanceParts`, names and bodies unchanged. That file keeps no re-export. `balance_hero.tsx`, `archive_confirmation.helpers.ts` and `adjust_balance_sheet.tsx` import them from the shared file.
 
+Accounts, onboarding and commitments all read the composer, so no single module owns it, and it lives in the shared file under ADR 2026-10-04 §1, the file audit M1 names as the source of every money string.
+
 ## 2. Every site that prints an account balance calls it
 
 | Site | File | Call |
@@ -48,8 +50,8 @@ A credit card's row prints its balance unsigned when positive, as the detail her
 
 `scripts/validate-money-formatting.js` runs a second scan over the same tracked `src` files, on each file's comment-stripped lines joined, so a ternary wrapped across lines still matches.
 
-- **Pattern.** A conditional whose two branches are a minus glyph and an empty string literal, in either order. The minus glyph is the identifier `MINUS_SIGN` or a quoted U+002D or U+2212; quotes are single, double or backtick.
-- **Report.** One stderr line per match, `<path>:<line>: builds an owned sign by hand`, at the line of the match's `?`, naming `formatOwnedAmountParts` and `formatAccountBalanceParts`; exit 1.
+- **Pattern.** A conditional whose two branches are a minus glyph and an empty string literal, in either order. The minus glyph is the identifier `MINUS_SIGN` or a quoted U+002D or U+2212, the second as the character or as the escape `\u2212`; quotes are single, double or backtick. A branch still matches when parentheses wrap it or it carries an `as <Type>` cast. A quoted `-` against an empty string matches whatever it builds, a separator between two parts of a name as much as a sign, and an `OWNED_SIGN_ALLOWLIST` entry is the way out for a match that signs no money.
+- **Report.** One stderr line per match, `<path>:<line>: builds an owned sign by hand`, at the line of the match's `?`, naming `formatOwnedAmountParts` and `formatAccountBalanceParts`, then `OWNED_SIGN_ALLOWLIST` for a match that signs no money; exit 1.
 - **`OWNED_SIGN_ALLOWLIST`.** `{ path: 'src/utils/format_amount.ts' }` covers every match in the composer's file. `{ path: 'src/modules/transactions/screens/transactions/transactions.helpers.ts', name: 'leftOfIncome' }` covers a match in that file only inside the value of the property keyed `leftOfIncome`, the transactions hero's percent caption. It signs a percent, not money, and is not rewritten.
 - **The property test.** On the stripped text, a match sits in the property when the stretch from the nearest `leftOfIncome:` before the match's `?` up to that `?` holds no `,` or `;` at bracket depth 0 and no `)`, `]` or `}` closing a bracket opened before the key. Depth counts `(`, `[` and `{`.
 - **Stale entries.** An entry whose path is untracked, gone from disk or holds no match the entry covers fails the run, as the `Intl.NumberFormat` allowlist does.
@@ -57,7 +59,12 @@ A credit card's row prints its balance unsigned when positive, as the detail her
 The scan does not see these shapes:
 
 - A sign built without a ternary: an `if` that assigns `MINUS_SIGN`, a named empty-string constant, a concatenation.
-- A flow sign that picks between `PLUS_SIGN` and `MINUS_SIGN`. It is not an owned sign and is not linted.
-- The property test reads text and has no syntax tree. It misreads a string literal in the `leftOfIncome` value that holds a bracket, a `,` or a `;` ahead of the sign, and a ternary whose false branch follows a bare `leftOfIncome`.
+- `undefined` or `null` in place of the empty string.
+- A template literal that embeds the glyph beside other text, `` `−${text}` `` against `text`.
+- A cast to a type with type arguments on the branch ahead of the `:`.
+- A flow sign that picks between `PLUS_SIGN` and `MINUS_SIGN`. It is not an owned sign and is not linted. Nor is the three-way form, `delta > 0 ? PLUS_SIGN : delta < 0 ? MINUS_SIGN : ''`. The scan skips a match whose `?` opens the false branch of a `? PLUS_SIGN :` ternary, and it reads that from the text between that `:` and the match's `?` holding no `?`, `:`, `,`, `;` or bracket. A condition that holds one of those is reported. With the minus branch first, as `transaction_row.helpers.ts` writes it, the pattern has nothing to match.
+- The property test reads text and has no syntax tree. It misreads a string literal in the `leftOfIncome` value that holds a bracket, a `,` or a `;` ahead of the sign, a ternary whose false branch follows a bare `leftOfIncome`, and a type annotation on a variable or parameter named `leftOfIncome`, which it takes for the property.
 
 An oxlint plugin rule on the syntax tree was not written: it would exempt by property key with no bracket counting, and would need `.oxlintrc.json` overrides for tests and for the composer's file.
+
+**A plain formatter on a balance column.** A third scan over the same stripped, joined text fails a call to `formatAmount`, `formatCurrencyAmount` or `formatCurrencyParts` whose first argument ends in `.current_balance` or `.opening_balance`, through optional chaining and across wrapped lines. None of the nine sites in §2 built a sign ternary. Each made this call, and the owned-sign scan cannot see a tenth. The report is one stderr line per match, `<path>:<line>: prints an account balance through a plain formatter`, at the line of the call, naming `formatAccountBalanceParts` and `formatAccountBalance`; exit 1. The scan has no allowlist, since nothing in `src` matches it. It does not see a balance read into a local or destructured before the call, or a first argument that holds a call or goes on past the column, as `account.current_balance ?? 0` does.
