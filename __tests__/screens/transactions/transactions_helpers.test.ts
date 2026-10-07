@@ -18,11 +18,13 @@ import {
   deltaDisplay,
   buildSearchTally,
   resolveSearchTallyFiguresMode,
+  totalsScopeKey,
   type SearchTallyInput,
   type TransactionsHeroInput,
   type TransactionsHeroMode,
 } from '@/modules/transactions/screens/transactions/transactions.helpers';
 import type { TransactionTotalsStatus } from '@/modules/transactions/screens/transactions/transactions.state';
+import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
 import { makeTestTransaction } from '@/test_helpers/transaction';
 import type { TransactionDateGroup } from '@/utils/group_transactions_by_date';
 
@@ -1030,5 +1032,22 @@ describe('composeDayHeaderAccessibilityLabel', () => {
 
     expect(label).toBe(expected);
     expect(label).not.toMatch(/[−+—]/);
+  });
+});
+
+describe('totalsScopeKey', () => {
+  it.each<[string[] | undefined, string[] | undefined, boolean]>([
+    [['a'], ['a', 'a'], true],
+    [['a', 'b'], ['b', 'a', 'b'], true],
+    [undefined, [], true],
+    [['a'], ['b'], false],
+    [['a'], ['a', 'b'], false],
+  ])('counts %j and %j as one scope exactly when the query key does', (first, second, same) => {
+    const sameQueryKey =
+      getTransactionQueryKey({ accountIds: first }) ===
+      getTransactionQueryKey({ accountIds: second });
+
+    expect(sameQueryKey).toBe(same);
+    expect(totalsScopeKey('2026-07', first) === totalsScopeKey('2026-07', second)).toBe(same);
   });
 });

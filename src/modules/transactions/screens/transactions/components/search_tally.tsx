@@ -95,7 +95,8 @@ export const SearchTally = React.memo(function SearchTally({
       className="px-4"
       style={[SLOT_STYLE, { height: geometry.slotHeight }]}
       accessible={model.accessibilityLabel !== undefined}
-      accessibilityLabel={model.accessibilityLabel}
+      // React Native Android writes a content description only for a non-null label, so '' clears the last one.
+      accessibilityLabel={model.accessibilityLabel ?? ''}
     >
       {model.mode === 'skeleton' ? (
         <Skeleton className="w-1/2 rounded-md" style={{ height: geometry.lineHeight }} />

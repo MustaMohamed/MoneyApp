@@ -9,7 +9,7 @@ import type {
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import { EMPTY_FILTERS, type AdvancedFilters } from './filter/filter.store';
-import { currentYearMonth, type TransactionPeriod } from './transactions.helpers';
+import { currentYearMonth, totalsScopeKey, type TransactionPeriod } from './transactions.helpers';
 
 export type TransactionFilter = TransactionType | 'all';
 
@@ -28,7 +28,12 @@ interface StateShape {
   period: TransactionPeriod;
   appliedFilters: AdvancedFilters;
   totals: TransactionTotalsState | null;
+  /** The month of the latest request; `resolveTotals` is its one reader. */
   totalsYearMonth: string | null;
+  /** The month and accounts filter of the latest request; held `totals` always belong to it. */
+  totalsScope: string | undefined;
+  /** The requested month once its totals have landed under any accounts filter; a request for another month clears it. */
+  totalsLoadedYearMonth: string | undefined;
   totalsQueryKey: string | null;
   totalsRequestId: number;
   /** Whether any transaction exists at all; `undefined` until a read lands. */
@@ -45,14 +50,17 @@ type TransactionsScreenStore = StateShape & {
   setAppliedFilters: (f: AdvancedFilters) => void;
   seedAccountFilter: (accountId: string, yearMonth: string) => void;
   clearSearch: () => void;
-  beginTotalsRequest: (queryKey: string, yearMonth: string, preserveData: boolean) => number;
+  beginTotalsRequest: (
+    queryKey: string,
+    yearMonth: string,
+    accountIds: readonly string[] | undefined,
+  ) => { requestId: number; scope: string; keptTotals: boolean };
   resolveTotals: (
     queryKey: string,
     requestId: number,
     totals: Omit<TransactionTotalsState, 'queryKey'>,
   ) => boolean;
   failTotals: (queryKey: string, requestId: number) => boolean;
-  hasTotalsForMonth: (yearMonth: string) => boolean;
   beginExistenceRequest: () => number;
   resolveExistence: (requestId: number, mutationVersion: number, hasAny: boolean) => boolean;
   failExistence: (requestId: number) => boolean;
@@ -67,6 +75,8 @@ function initialState(): StateShape {
     appliedFilters: EMPTY_FILTERS,
     totals: null,
     totalsYearMonth: null,
+    totalsScope: undefined,
+    totalsLoadedYearMonth: undefined,
     totalsQueryKey: null,
     totalsRequestId: 0,
     hasAnyTransaction: undefined,
@@ -91,17 +101,20 @@ export const useTransactionsScreenStore = createMoneyAppSelectors(
         appliedFilters: { ...EMPTY_FILTERS, accountIds: [accountId] },
       }),
     clearSearch: () => set({ searchQuery: '' }),
-    beginTotalsRequest: (queryKey, yearMonth, preserveData) => {
+    beginTotalsRequest: (queryKey, yearMonth, accountIds) => {
       const state = get();
       const requestId = state.totalsRequestId + 1;
-      const keepTotals = preserveData && state.totalsYearMonth === yearMonth;
+      const scope = totalsScopeKey(yearMonth, accountIds);
+      const keptTotals = state.totalsScope === scope && state.totals !== null;
       set({
-        totals: keepTotals ? state.totals : null,
+        totals: keptTotals ? state.totals : null,
         totalsYearMonth: yearMonth,
+        totalsScope: scope,
+        totalsLoadedYearMonth: state.totalsLoadedYearMonth === yearMonth ? yearMonth : undefined,
         totalsQueryKey: queryKey,
         totalsRequestId: requestId,
       });
-      return requestId;
+      return { requestId, scope, keptTotals };
     },
     resolveTotals: (queryKey, requestId, totals) => {
       const state = get();
@@ -111,16 +124,15 @@ export const useTransactionsScreenStore = createMoneyAppSelectors(
       const current = held && shallow(held.current, totals.current) ? held.current : totals.current;
       const previous =
         held && shallow(held.previous, totals.previous) ? held.previous : totals.previous;
-      set({ totals: { ...totals, queryKey, current, previous } });
+      set({
+        totals: { ...totals, queryKey, current, previous },
+        totalsLoadedYearMonth: state.totalsYearMonth ?? undefined,
+      });
       return true;
     },
     failTotals: (queryKey, requestId) => {
       const state = get();
       return state.totalsQueryKey === queryKey && state.totalsRequestId === requestId;
-    },
-    hasTotalsForMonth: (yearMonth) => {
-      const state = get();
-      return state.totalsYearMonth === yearMonth && state.totals !== null;
     },
     beginExistenceRequest: () => {
       const requestId = get().existenceRequestId + 1;

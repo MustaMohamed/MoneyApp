@@ -6,6 +6,7 @@ import type {
   TransactionDayAggregate,
 } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { normalizeIds } from '@/modules/transactions/store/transaction_query.helpers';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
@@ -211,8 +212,8 @@ export interface TransactionsHeroChange {
   accessibilityLabel: string;
 }
 
-export function totalsScopeKey(yearMonth: string, accountIds: readonly string[] = []): string {
-  return `${yearMonth}|${JSON.stringify([...accountIds].sort())}`;
+export function totalsScopeKey(yearMonth: string, accountIds?: readonly string[]): string {
+  return `${yearMonth}|${JSON.stringify(normalizeIds(accountIds) ?? [])}`;
 }
 
 /** `reloadingFailedScope`: the month and account scope on screen are the ones whose first load failed. */
