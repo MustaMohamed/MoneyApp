@@ -9,6 +9,8 @@ const scriptPath = path.join(repoRoot, 'scripts', 'validate-money-formatting.js'
 const fixtureRel = `.ma017-guard-fixtures/${process.pid}`;
 const fixtureParent = path.join(repoRoot, '.ma017-guard-fixtures');
 const fixtureRoot = path.join(repoRoot, fixtureRel);
+const transactionsHelpersRel =
+  'src/modules/transactions/screens/transactions/transactions.helpers.ts';
 
 const stubDirs: string[] = [];
 
@@ -48,10 +50,71 @@ function runGuardOverFixtures(fixtures: Fixture[]): {
     return `${fixtureRel}/${name}`;
   });
   const stubDir = makeStubGit(
-    `#!/bin/sh\necho 'src/utils/format_amount.ts'\n${relPaths.map((p) => `echo '${p}'`).join('\n')}\nexit 0\n`,
+    `#!/bin/sh\necho '${transactionsHelpersRel}'\necho 'src/utils/format_amount.ts'\n${relPaths.map((p) => `echo '${p}'`).join('\n')}\nexit 0\n`,
   );
   const result = runGuard(envWithStub(stubDir));
   return { result, relPaths };
+}
+
+const OWNED_SIGN_REPORT = 'builds an owned sign by hand';
+
+function ownedSignReport(relPath: string, line: number): string {
+  return `${relPath}:${line}: ${OWNED_SIGN_REPORT}`;
+}
+
+// A stand-in composer file with nothing stale in it: one constructor and one covered sign.
+const fakeComposerSource =
+  "export const formatter = new Intl.NumberFormat('en-US');\nexport const sign = (value: number): string => (value < 0 ? MINUS_SIGN : '');\n";
+
+// The script derives `root` from `__dirname`, so the copy scans the fake `src/` beside it.
+function runGuardInFakeRoot(transactionsHelpersSource: string): SpawnSyncReturns<string> {
+  const fakeRoot = path.join(fixtureRoot, 'fakeroot');
+  const fakeLibDir = path.join(fakeRoot, 'scripts', 'lib');
+  const fakeUtilsDir = path.join(fakeRoot, 'src', 'utils');
+  const fakeHelpersPath = path.join(fakeRoot, transactionsHelpersRel);
+  fs.mkdirSync(fakeLibDir, { recursive: true });
+  fs.mkdirSync(fakeUtilsDir, { recursive: true });
+  fs.mkdirSync(path.dirname(fakeHelpersPath), { recursive: true });
+  const copiedScriptPath = path.join(fakeRoot, 'scripts', 'validate-money-formatting.js');
+  fs.copyFileSync(scriptPath, copiedScriptPath);
+  fs.copyFileSync(
+    path.join(repoRoot, 'scripts', 'lib', 'strip-comments.js'),
+    path.join(fakeLibDir, 'strip-comments.js'),
+  );
+  fs.writeFileSync(path.join(fakeUtilsDir, 'format_amount.ts'), fakeComposerSource);
+  fs.writeFileSync(fakeHelpersPath, transactionsHelpersSource);
+  const stubDir = makeStubGit(
+    `#!/bin/sh\necho '${transactionsHelpersRel}'\necho 'src/utils/format_amount.ts'\nexit 0\n`,
+  );
+  return runGuardAt(copiedScriptPath, envWithStub(stubDir));
+}
+
+// Properties start at line 3 of the source this returns.
+function heroSource(properties: string[]): string {
+  return [
+    'export function resolveHero(left: number | undefined, net: number) {',
+    '  return {',
+    ...properties,
+    '  };',
+    '}',
+    '',
+  ].join('\n');
+}
+
+function isOwnedSignReport(entry: string): boolean {
+  return /^[^:]+:\d+: builds an owned sign by hand/.test(entry);
+}
+
+// A stale line has no line number, so its wording is free to reuse the report's phrase.
+function staleLeftOfIncomeLine(stderr: string): string | undefined {
+  return stderr
+    .split('\n')
+    .find(
+      (entry) =>
+        entry.startsWith(`${transactionsHelpersRel}:`) &&
+        entry.includes('leftOfIncome') &&
+        !isOwnedSignReport(entry),
+    );
 }
 
 // oxfmt does not honour `.gitignore`, so a stray fixture dir reds `format:check`; sweep dead pids.
@@ -264,5 +327,139 @@ describe('validate-money-formatting.js — subprocess CLI contract (MA-017 c2)',
     const result = runGuardAt(copiedScriptPath, envWithStub(stubDir));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('no longer constructs');
+  });
+});
+
+describe('validate-money-formatting.js — hand-built owned signs (MA-156)', () => {
+  const handBuilt: Array<Fixture & { shape: string; line: number }> = [
+    {
+      shape: 'a ternary on MINUS_SIGN and an empty string',
+      name: 'owned_sign_constant.ts',
+      content: "export const sign = (value: number): string => (value < 0 ? MINUS_SIGN : '');\n",
+      line: 1,
+    },
+    {
+      shape: 'a quoted hyphen inside a template',
+      name: 'owned_sign_template.ts',
+      content:
+        "export const signed = (v: number, text: string): string => `${v < 0 ? '-' : ''}${text}`;\n",
+      line: 1,
+    },
+    {
+      shape: 'the two branches in reverse order',
+      name: 'owned_sign_reversed.ts',
+      content: "export const sign = (v: number): string => (v >= 0 ? '' : MINUS_SIGN);\n",
+      line: 1,
+    },
+    {
+      shape: 'a ternary wrapped across lines, at the line of its `?`',
+      name: 'owned_sign_wrapped.ts',
+      content:
+        "export const sign = (value: number): string =>\n  value < 0\n    ? MINUS_SIGN\n    : '';\n",
+      line: 3,
+    },
+  ];
+
+  it.each(handBuilt)('fails $shape', ({ name, content, line }) => {
+    const { result } = runGuardOverFixtures([{ name, content }]);
+    const expected = ownedSignReport(`${fixtureRel}/${name}`, line);
+    expect(result.stderr).toContain(expected);
+    const report = result.stderr.split('\n').find((entry) => entry.startsWith(expected));
+    expect(report).toContain('formatOwnedAmountParts');
+    expect(report).toContain('formatAccountBalanceParts');
+    expect(result.status).toBe(1);
+  });
+
+  const control: Fixture = {
+    name: 'owned_sign_control.ts',
+    content: "export const sign = (value: number): string => (value < 0 ? MINUS_SIGN : '');\n",
+  };
+
+  const quiet: Array<Fixture & { shape: string }> = [
+    {
+      shape: 'the composer',
+      name: 'quiet_composer.ts',
+      content:
+        'export const text = (value: number, currency: Currency): string =>\n  formatOwnedAmountParts(value, currency).value;\n',
+    },
+    {
+      shape: 'a flow sign that picks between PLUS_SIGN and MINUS_SIGN',
+      name: 'quiet_flow_sign.ts',
+      content:
+        'export const sign = (positive: boolean): string => (positive ? PLUS_SIGN : MINUS_SIGN);\n',
+    },
+    {
+      shape: 'signAmountText handed MINUS_SIGN outright',
+      name: 'quiet_sign_amount_text.ts',
+      content:
+        'export const signed = (text: string): string => signAmountText(text, MINUS_SIGN);\n',
+    },
+    {
+      shape: 'the pattern inside a comment',
+      name: 'quiet_comment.ts',
+      content: "// value < 0 ? MINUS_SIGN : ''\nexport const nothingHere = 1;\n",
+    },
+    {
+      shape: 'a hyphen that stands for an unset date',
+      name: 'quiet_unset_date.ts',
+      content:
+        "export const label = (date?: string): string => (date ? formatShortDate(date) : '-');\n",
+    },
+  ];
+
+  // The second run adds a file that fires, so a quiet result is not the scan being absent.
+  it.each(quiet)('stays quiet on $shape', ({ name, content }) => {
+    const alone = runGuardOverFixtures([{ name, content }]).result;
+    expect(alone.stderr).toBe('');
+    expect(alone.status).toBe(0);
+
+    const beside = runGuardOverFixtures([{ name, content }, control]).result;
+    expect(beside.stderr).toContain(ownedSignReport(`${fixtureRel}/${control.name}`, 1));
+    expect(beside.stderr).not.toContain(`${fixtureRel}/${name}`);
+    expect(beside.status).toBe(1);
+  });
+
+  describe('the leftOfIncome entry, through a copied script', () => {
+    const coveredSign = [
+      '    leftOfIncome:',
+      '      left === undefined',
+      "        ? 'n/a'",
+      "        : signAmountText(`${Math.abs(left)}%`, left < 0 ? MINUS_SIGN : ''),",
+    ];
+    const uncoveredSign = "    net: `${net < 0 ? MINUS_SIGN : ''}${Math.abs(net)}`,";
+    const signlessLeftOfIncome =
+      "    leftOfIncome: left === undefined ? 'n/a' : `${Math.abs(left)}%`,";
+
+    it('fails a second sign below the property, at that line, and passes the one inside it', () => {
+      const result = runGuardInFakeRoot(heroSource([...coveredSign, uncoveredSign]));
+      expect(result.stderr).toContain(ownedSignReport(transactionsHelpersRel, 7));
+      expect(result.stderr).not.toContain(`${transactionsHelpersRel}:6:`);
+      expect(result.status).toBe(1);
+    });
+
+    it('fails a sign above the property, at that line, and passes the one inside it', () => {
+      const result = runGuardInFakeRoot(heroSource([uncoveredSign, ...coveredSign]));
+      expect(result.stderr).toContain(ownedSignReport(transactionsHelpersRel, 3));
+      expect(result.stderr).not.toContain(`${transactionsHelpersRel}:7:`);
+      expect(result.status).toBe(1);
+    });
+
+    it('fails a file whose only sign is outside the property, at that line and as stale', () => {
+      const result = runGuardInFakeRoot(heroSource([signlessLeftOfIncome, uncoveredSign]));
+      expect(result.stderr).toContain(ownedSignReport(transactionsHelpersRel, 4));
+      const stale = staleLeftOfIncomeLine(result.stderr);
+      expect(stale).toBeDefined();
+      expect(stale).not.toContain('constructs an');
+      expect(result.status).toBe(1);
+    });
+
+    it('fails a file with no sign as stale, and reports no hand-built sign', () => {
+      const result = runGuardInFakeRoot(heroSource([signlessLeftOfIncome]));
+      const stale = staleLeftOfIncomeLine(result.stderr);
+      expect(stale).toBeDefined();
+      expect(stale).not.toContain('constructs an');
+      expect(result.stderr.split('\n').filter(isOwnedSignReport)).toEqual([]);
+      expect(result.status).toBe(1);
+    });
   });
 });

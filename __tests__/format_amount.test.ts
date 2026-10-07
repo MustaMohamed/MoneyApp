@@ -1,7 +1,10 @@
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
+  formatAccountBalance,
+  formatAccountBalanceParts,
   formatAmount,
   formatCurrencyAmount,
   formatCurrencyParts,
@@ -368,6 +371,93 @@ describe('formatOwnedAmountParts — the composition point for an owned magnitud
     [0, '0'],
   ] as const)('USD base: %s -> %s', (value, expected) => {
     expect(formatOwnedAmountParts(value, Currency.USD)).toEqual({ value: expected, code: 'USD' });
+  });
+});
+
+describe('formatAccountBalance — the hero balance and the sheet row', () => {
+  it('leaves a positive EGP balance exactly as the shipped formatter printed it', () => {
+    expect(formatAccountBalance(30000, Currency.EGP)).toBe('30,000 EGP');
+    expect(formatAccountBalance(30000, Currency.EGP)).toBe(
+      formatCurrencyAmount(30000, Currency.EGP),
+    );
+  });
+
+  it('keeps a positive USD balance at two decimals', () => {
+    expect(formatAccountBalance(1250.5, Currency.USD)).toBe('1,250.50 USD');
+    expect(formatAccountBalance(1250.5, Currency.USD)).toBe(
+      formatCurrencyAmount(1250.5, Currency.USD),
+    );
+  });
+
+  it('#411: an overdrawn EGP balance keeps its minus at zero decimals', () => {
+    expect(formatAccountBalance(-1900, Currency.EGP)).toBe(`${MINUS_SIGN}1,900 EGP`);
+  });
+
+  it('#411: an overdrawn USD balance keeps it at two decimals', () => {
+    expect(formatAccountBalance(-42.5, Currency.USD)).toBe(`${MINUS_SIGN}42.50 USD`);
+  });
+
+  it('#411: the minus is U+2212, never the ASCII hyphen `Intl` emits', () => {
+    expect(formatAccountBalance(-1, Currency.EGP).codePointAt(0)).toBe(0x2212);
+    expect(formatAccountBalance(-1, Currency.EGP)).not.toContain('-');
+    expect(formatCurrencyAmount(-1, Currency.EGP).codePointAt(0)).toBe(0x2d);
+  });
+
+  it('prints an exact zero unsigned with each currency decimals', () => {
+    expect(formatAccountBalance(0, Currency.EGP)).toBe('0 EGP');
+    expect(formatAccountBalance(0, Currency.USD)).toBe('0.00 USD');
+  });
+
+  it('carries no sign when a negative magnitude rounds to zero at the currency precision', () => {
+    expect(formatAccountBalance(-0.4, Currency.EGP)).toBe('0 EGP');
+    expect(formatAccountBalance(-0.004, Currency.USD)).toBe('0.00 USD');
+  });
+
+  it('prints an exact negative zero unsigned', () => {
+    expect(formatAccountBalance(-0, Currency.EGP)).toBe('0 EGP');
+  });
+});
+
+describe('formatAccountBalanceParts — the hero draws the code apart from the magnitude', () => {
+  const cases = [
+    { balance: 30000, currency: Currency.EGP },
+    { balance: 1250.5, currency: Currency.USD },
+    { balance: -1900, currency: Currency.EGP },
+    { balance: -42.5, currency: Currency.USD },
+  ];
+
+  it.each(cases)(
+    '$balance $currency recomposes into the shipped string',
+    ({ balance, currency }) => {
+      const { amount, code } = formatAccountBalanceParts(balance, currency);
+      expect(`${amount} ${code}`).toBe(formatAccountBalance(balance, currency));
+    },
+  );
+
+  it.each(cases)(
+    '$balance $currency takes its code from the currency config',
+    ({ balance, currency }) => {
+      expect(formatAccountBalanceParts(balance, currency).code).toBe(
+        CURRENCY_CONFIG[currency].code,
+      );
+    },
+  );
+
+  it('keeps the minus on the magnitude, never on the code', () => {
+    const { amount, code } = formatAccountBalanceParts(-1900, Currency.EGP);
+    expect(amount).toBe(`${MINUS_SIGN}1,900`);
+    expect(code).not.toContain(MINUS_SIGN);
+  });
+
+  // The archive dialog gates its balance line on this, so it is part of the contract.
+  it.each([
+    { balance: 0.01, currency: Currency.EGP, printsAsZero: true },
+    { balance: 0.01, currency: Currency.USD, printsAsZero: false },
+    { balance: 0, currency: Currency.USD, printsAsZero: true },
+    { balance: 0, currency: Currency.EGP, printsAsZero: true },
+    { balance: -1900, currency: Currency.EGP, printsAsZero: false },
+  ])('$balance $currency printsAsZero=$printsAsZero', ({ balance, currency, printsAsZero }) => {
+    expect(formatAccountBalanceParts(balance, currency).printsAsZero).toBe(printsAsZero);
   });
 });
 

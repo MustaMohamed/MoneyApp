@@ -7,6 +7,7 @@ import {
   buildMonthFacts,
 } from '@/modules/accounts/screens/accounts/detail/components/account_facts.helpers';
 import type { Account } from '@/modules/accounts/store/account.store';
+import { MINUS_SIGN } from '@/utils/format_amount';
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
   return {
@@ -59,6 +60,20 @@ describe('buildAccountFacts — non-card types', () => {
       mkAccount({ currency: Currency.USD, opening_balance: 1250.5, current_balance: 1250.5 }),
     );
     expect(facts[1]).toEqual({ label: 'Opening balance', value: '1,250.50 USD' });
+  });
+
+  it('MA-156: an overdrawn opening balance takes the owned minus, never the ASCII hyphen', () => {
+    const facts = buildAccountFacts(mkAccount({ opening_balance: -1900, current_balance: -1900 }));
+    expect(facts[1]).toEqual({ label: 'Opening balance', value: `${MINUS_SIGN}1,900 EGP` });
+    expect(facts[1]?.value).toContain(String.fromCodePoint(0x2212));
+    expect(facts[1]?.value).not.toContain('-');
+  });
+
+  it('MA-156: an overdrawn USD opening balance keeps two decimals under the owned minus', () => {
+    const facts = buildAccountFacts(
+      mkAccount({ currency: Currency.USD, opening_balance: -42.5, current_balance: -42.5 }),
+    );
+    expect(facts[1]).toEqual({ label: 'Opening balance', value: `${MINUS_SIGN}42.50 USD` });
   });
 
   it.each([
