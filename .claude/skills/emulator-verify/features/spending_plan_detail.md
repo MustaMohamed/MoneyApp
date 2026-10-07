@@ -13,6 +13,7 @@ Route `/budget/plans/[id]`. Screen `src/modules/budget/screens/budget/spending_p
 |---|---|---|---|
 | detail status chip | no frame, MA-087 | open each of the four plans seeded for `budget.md` § States (`plan card status chip`): `Upcoming`, `On track`, `Watch`, `Over` | the chip label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(11.5))` = 16 ± 1, and the chip's `min-h-6` (24) holds it, so the chip reads 24 at every status; one shot per status of the summary card |
 | not found and load error, large font | no frame, MA-130 | not found: `mqa open /budget/plans/<an id no plan has>`; load error: `throw new Error('forced')` as the first line of `loadPlan`'s `try` (`src/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.hook.ts`), reverted after; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on each state's button; one crop per state at 2.0 |
+| header title, large font | no frame, MA-159 | a seeded plan with a name long enough to truncate at 2.0, `mqa open /budget/plans/<id>`; on the empty database an id no plan has, titled `Plan details`; the `Font scale` force (README) at 1.0 and 2.0 | the `Header proof` (README) on the plan's name, the edit pencil (`label="Edit plan <name>"`) as the right action on the seeded pass |
 
 ## Outbound
 

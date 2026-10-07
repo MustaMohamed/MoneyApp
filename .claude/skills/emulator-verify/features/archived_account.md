@@ -30,6 +30,7 @@ Route `/accounts/[id]` when `archived_at` is set. Body `detail/components/archiv
 | delete dialog, large font | no frame, MA-130 | the delete action on an archived account with no commitment; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the dialog's two buttons; one crop of the dialog at 2.0 |
 | replacement sheet, large font | no frame, MA-130 | from `delete blocked by commitments`: `Delete account`, then the dialog's `Delete` (it names the commitment that needs another account), then the sheet; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the sheet's footer buttons; one crop of the footer at 2.0 |
 | replacement sheet, overdrawn candidate | no frame, MA-156 | the overdrawn seed (`accounts_list.md` § States, `overdrawn bank row`); the path of `replacement sheet, large font` on `Walk Old Overdrawn`: `mqa open /accounts/<its id>`, `Delete account`, the dialog's `Delete`, then the sheet | `replacement-account-row-<Walk Overdrawn's id>` reads `−1,900 EGP` with U+2212; `grep -c -- '-1,900'` over `mqa read` is 0; no shot, the row is the `AccountRowContent` shot on `commitment_detail.md` § States, `pay sheet, overdrawn account` |
+| header title, large font | no frame, MA-159 | an archived account's detail, `mqa open /accounts/<id>`, on the seeded database; the empty database holds no account, so it has no archived view; the `Font scale` force (README) at 1.0 and 2.0 | the `Header proof` (README) on the account's name, no right action |
 
 ## Outbound
 
