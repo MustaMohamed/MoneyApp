@@ -28,6 +28,7 @@ jest.mock('heroui-native', () => {
   );
   return {
     Separator: () => <View testID="separator" />,
+    Skeleton: () => <View testID="skeleton" />,
     Spinner: () => <Text>spinner</Text>,
     Surface: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
     Typography,
@@ -327,6 +328,16 @@ describe('TransactionsScreen', () => {
     const slot = getByTestId('transactions-search-tally');
     expect(slot).toHaveProp('accessibilityLabel', '');
     expect(slot).toHaveProp('accessible', false);
+  });
+
+  it('MA-107: the tally slot under a skeleton model passes an empty spoken label and holds its bar', async () => {
+    mockUseTransactions({ tally: { ...baseTransactionsState.tally, mode: 'skeleton' } });
+    const { getByTestId } = await render(<TransactionsScreen />);
+
+    const slot = getByTestId('transactions-search-tally');
+    expect(slot).toHaveProp('accessibilityLabel', '');
+    expect(slot).toHaveProp('accessible', false);
+    expect(within(slot).getByTestId('skeleton')).toBeTruthy();
   });
 
   it('does not re-render the hero on a search keystroke, only on a new hero model (M25)', async () => {
