@@ -16,18 +16,18 @@ export function resolveStackHeaderGeometry(fontScale: number): StackHeaderGeomet
   return { title, height: Math.max(Size.headerHeight, title.lineHeight + Size.hairline) };
 }
 
-export interface HeaderActionGeometry {
+export interface HeaderTextActionGeometry {
   label: ScaledTextStyle | undefined;
   minWidth: number;
   height: number;
 }
 
-/** A text action in the header: `label` is `undefined` at or below scale 1, where the OS scales the class size. */
-export function resolveHeaderActionGeometry(fontScale: number): HeaderActionGeometry {
+/** `HeaderTextAction`'s box: `label` is `undefined` at or below scale 1, where the OS scales the class size. */
+export function resolveHeaderTextActionGeometry(fontScale: number): HeaderTextActionGeometry {
   const label = scaledTextStyleAboveOne(Type.micro, fontScale);
   return {
     label,
-    minWidth: Size.headerActionTrack,
-    height: Math.max(Size.headerActionTrack, (label?.lineHeight ?? 0) + 2 * Size.hairline),
+    minWidth: Size.headerTextActionTrack,
+    height: Math.max(Size.headerTextActionTrack, (label?.lineHeight ?? 0) + 2 * Size.hairline),
   };
 }

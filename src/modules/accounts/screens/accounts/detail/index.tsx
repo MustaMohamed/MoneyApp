@@ -1,14 +1,13 @@
-import { PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
+import { HeaderTextAction } from '@/components/ui/header_text_action';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { LoadingCenter } from '@/components/ui/loading_center';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
-import { resolveHeaderActionGeometry } from '@/components/ui/stack_header.geometry';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
@@ -26,8 +25,6 @@ import { BalanceReviewAlert } from './components/balance_review_alert';
 import { shouldShowBalanceReview } from './components/balance_review_alert.helpers';
 import { AccountDeleteConfirmationDialog } from './components/delete_confirmation_dialog';
 import { ReplacementAccountSheet } from './components/replacement_account_sheet';
-
-const hitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
 
 export default function AccountDetailScreen() {
   const {
@@ -69,8 +66,6 @@ export default function AccountDetailScreen() {
     goToAllTransactions,
     addTransactionForAccount,
   } = useAccountDetail();
-  const { fontScale } = useWindowDimensions();
-  const editAction = resolveHeaderActionGeometry(fontScale);
 
   // `viewState` is 'active' exactly when `account` resolves; the guard is what narrows it.
   if (!account) {
@@ -146,24 +141,7 @@ export default function AccountDetailScreen() {
       <StackHeader
         title={resolveAccountName(account)}
         onBack={onBack}
-        right={
-          <PressableFeedback
-            onPress={goToEdit}
-            hitSlop={hitSlop}
-            accessibilityRole="button"
-            accessibilityLabel={Strings.accountDetailEdit}
-            className="bg-surface border-border items-center justify-center rounded-[8px] border px-1"
-            style={{ minWidth: editAction.minWidth, height: editAction.height }}
-          >
-            <Typography
-              className="font-sora-bold text-accent text-[11px]"
-              allowFontScaling={editAction.label === undefined}
-              style={editAction.label}
-            >
-              {Strings.accountDetailEdit}
-            </Typography>
-          </PressableFeedback>
-        }
+        right={<HeaderTextAction label={Strings.accountDetailEdit} onPress={goToEdit} />}
       />
 
       <ScreenScroll

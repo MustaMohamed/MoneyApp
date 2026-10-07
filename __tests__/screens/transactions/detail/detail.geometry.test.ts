@@ -97,8 +97,8 @@ describe('resolveTransferCardHeight', () => {
 });
 
 describe('resolveTransferSkeletonCellHeight', () => {
-  // The literal 80: today's `h-20` cell, which the skeleton keeps at 1.0 and below.
-  it.each([0.85, 1])('is the 80 the skeleton cell draws today at font scale %s', (fontScale) => {
+  // The literal 80: the `h-20` cell, which the skeleton keeps at 1.0 and below.
+  it.each([0.85, 1])('is the literal 80, the `h-20` cell, at font scale %s', (fontScale) => {
     expect(resolveTransferSkeletonCellHeight(fontScale)).toBe(80);
   });
 

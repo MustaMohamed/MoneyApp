@@ -1,6 +1,6 @@
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Type } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
 
@@ -26,21 +26,17 @@ export interface DetailSkeletonGeometry {
   showNote: boolean;
 }
 
-function lineBox(fontSize: number, fontScale: number): number {
-  return lineHeightFor(scaledFontSize(fontSize, fontScale));
-}
-
 function rowLines(fontScale: number, reserveSublabel: boolean): number {
-  const label = lineBox(DETAIL_ROW_LABEL_FONT_SIZE, fontScale);
-  const lines = label + lineBox(DETAIL_ROW_VALUE_FONT_SIZE, fontScale);
+  const label = scaledTextStyle(DETAIL_ROW_LABEL_FONT_SIZE, fontScale).lineHeight;
+  const lines = label + scaledTextStyle(DETAIL_ROW_VALUE_FONT_SIZE, fontScale).lineHeight;
   return reserveSublabel ? lines + label : lines;
 }
 
 function transferLines(fontScale: number): number {
   return (
-    lineBox(DETAIL_TRANSFER_LABEL_FONT_SIZE, fontScale) +
-    lineBox(DETAIL_TRANSFER_NAME_FONT_SIZE, fontScale) +
-    lineBox(DETAIL_TRANSFER_AMOUNT_FONT_SIZE, fontScale)
+    scaledTextStyle(DETAIL_TRANSFER_LABEL_FONT_SIZE, fontScale).lineHeight +
+    scaledTextStyle(DETAIL_TRANSFER_NAME_FONT_SIZE, fontScale).lineHeight +
+    scaledTextStyle(DETAIL_TRANSFER_AMOUNT_FONT_SIZE, fontScale).lineHeight
   );
 }
 
@@ -62,7 +58,7 @@ export function resolveTransferCardHeight(fontScale: number): number {
   );
 }
 
-/** Today's shape at scale 1 and below, the loaded cell's height above it. */
+/** The `h-20` shape at scale 1 and below, the loaded cell's height above it. */
 export function resolveTransferSkeletonCellHeight(fontScale: number): number {
   return fontScale <= 1
     ? DETAIL_TRANSFER_SKELETON_CELL_HEIGHT

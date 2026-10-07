@@ -1,5 +1,5 @@
 import {
-  resolveHeaderActionGeometry,
+  resolveHeaderTextActionGeometry,
   resolveStackHeaderGeometry,
 } from '@/components/ui/stack_header.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
@@ -13,7 +13,7 @@ describe('resolveStackHeaderGeometry', () => {
     });
   });
 
-  it('is the title and header height drawn today at font scale 1', () => {
+  it('is the title token pair and the header token height at font scale 1', () => {
     expect(resolveStackHeaderGeometry(1)).toEqual({
       title: { fontSize: Type.title, lineHeight: lineHeightFor(Type.title) },
       height: Size.headerHeight,
@@ -39,10 +39,10 @@ describe('resolveStackHeaderGeometry', () => {
   });
 });
 
-describe('resolveHeaderActionGeometry', () => {
-  // The literal, not the token: a drifted `headerActionTrack` must fail here, not on a device.
+describe('resolveHeaderTextActionGeometry', () => {
+  // The literal, not the token: a drifted `headerTextActionTrack` must fail here, not on a device.
   it.each([0.85, 1])('is the 36 box with a label the OS scales at font scale %s', (fontScale) => {
-    expect(resolveHeaderActionGeometry(fontScale)).toEqual({
+    expect(resolveHeaderTextActionGeometry(fontScale)).toEqual({
       label: undefined,
       minWidth: 36,
       height: 36,
@@ -51,7 +51,7 @@ describe('resolveHeaderActionGeometry', () => {
 
   it('scales the label at font scale 2 in a box no smaller than at 1.0', () => {
     const label = scaledTextStyle(Type.micro, 2);
-    const geometry = resolveHeaderActionGeometry(2);
+    const geometry = resolveHeaderTextActionGeometry(2);
 
     expect(geometry.label).toEqual(label);
     expect(geometry.height).toBeGreaterThanOrEqual(label.lineHeight);
@@ -60,8 +60,9 @@ describe('resolveHeaderActionGeometry', () => {
   });
 
   it('grows the box past 36 high at font scale 3 and keeps its 36 floor on width', () => {
-    const geometry = resolveHeaderActionGeometry(3);
+    const geometry = resolveHeaderTextActionGeometry(3);
 
+    expect(geometry.height).toBe(scaledTextStyle(Type.micro, 3).lineHeight + 2 * Size.hairline);
     expect(geometry.height).toBeGreaterThan(36);
     expect(geometry.minWidth).toBe(36);
   });
