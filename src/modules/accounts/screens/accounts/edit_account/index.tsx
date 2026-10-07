@@ -17,7 +17,7 @@ import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { formatCurrencyParts } from '@/utils/format_amount';
+import { formatAccountBalanceParts } from '@/utils/format_amount';
 
 import { AccountColorField } from '../../../components/account_form/account_color_field';
 import { FIELD_MESSAGE_TEXT_LINE_HEIGHT } from '../../../components/account_form/account_form.geometry';
@@ -127,7 +127,7 @@ export default function EditAccountScreen() {
           <Box className="pt-1">
             <LockedField
               label={Strings.accountBalanceLabel}
-              value={formatCurrencyParts(account.opening_balance, account.currency).value}
+              value={formatAccountBalanceParts(account.opening_balance, account.currency).amount}
               helper={Strings.editAccountBalanceHelper}
               suffix={
                 <Box style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>

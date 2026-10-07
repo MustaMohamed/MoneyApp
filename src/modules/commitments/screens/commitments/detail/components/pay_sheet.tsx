@@ -17,7 +17,7 @@ import { AccountPickerSheet } from '@/modules/accounts/components/account_picker
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { formatAccountBalance, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
@@ -180,7 +180,7 @@ export function PaySheet({ owner, commitment, payment }: Props) {
                       {resolveAccountName(state.selectedAccount)}
                     </Text>
                     <Text className="font-inter text-muted text-[12px]">
-                      {formatCurrencyAmount(
+                      {formatAccountBalance(
                         state.selectedAccount.current_balance,
                         state.selectedAccount.currency,
                       )}

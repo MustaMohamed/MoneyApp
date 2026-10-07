@@ -118,6 +118,30 @@ export function formatOwnedAmountParts(
   };
 }
 
+export interface AccountBalanceParts {
+  amount: string;
+  code: string;
+  /** True when the magnitude prints as an exact zero at this currency's decimals. */
+  printsAsZero: boolean;
+}
+
+/** The hero draws the code at its own size, so the two halves are available apart as well as joined. */
+export function formatAccountBalanceParts(
+  balance: number,
+  currency: Currency,
+): AccountBalanceParts {
+  // Currency decimals, not `formatDisplayMagnitude`, which prints an exact zero at 0dp.
+  const magnitude = formatCurrencyMagnitude(balance, currency);
+  const { value, code } = formatOwnedAmountParts(balance, currency, magnitude);
+  return { amount: value, code, printsAsZero: magnitude.printsAsZero };
+}
+
+/** An unsigned magnitude at the currency's decimals, with the canonical `−` when overdrawn (#411). */
+export function formatAccountBalance(balance: number, currency: Currency): string {
+  const { amount, code } = formatAccountBalanceParts(balance, currency);
+  return `${amount} ${code}`;
+}
+
 /** `balance` is signed: positive owed, negative in credit. Pass a `roundMoney`-quantised value. */
 export function formatLiabilityRowValue(balance: number, baseCurrency: Currency): string {
   const { text, printsAsZero } = formatDisplayMagnitude(balance, baseCurrency);

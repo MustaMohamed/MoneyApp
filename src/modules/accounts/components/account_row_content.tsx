@@ -4,7 +4,7 @@ import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { Text } from '@/components/ui/text';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { formatAccountBalance } from '@/utils/format_amount';
 
 import type { Account } from '../entities/account.entity';
 
@@ -26,7 +26,7 @@ export function AccountRowContent({ account }: { account: Account }) {
           {resolveAccountName(account)}
         </Text>
         <Text className="font-inter text-muted" style={balanceStyle}>
-          {formatCurrencyAmount(account.current_balance, account.currency)}
+          {formatAccountBalance(account.current_balance, account.currency)}
         </Text>
       </View>
     </>

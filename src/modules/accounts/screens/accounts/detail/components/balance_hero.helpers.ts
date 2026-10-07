@@ -1,15 +1,11 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
-import { AccountType, type Currency } from '@/constants/enums';
+import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
 import { availableCredit } from '@/modules/accounts/domain/account_figures';
 import { isOverLimit } from '@/modules/accounts/domain/is_over_limit';
-import {
-  formatAmount,
-  formatCurrencyMagnitude,
-  formatOwnedAmountParts,
-} from '@/utils/format_amount';
+import { formatAccountBalanceParts, formatAmount } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
 
@@ -50,7 +46,10 @@ export function buildHeroCaption(account: Account): HeroCaption {
   }
 
   return {
-    text: Strings.accountHeroOpening(formatAmount(account.opening_balance, decimals), currency),
+    text: Strings.accountHeroOpening(
+      formatAccountBalanceParts(account.opening_balance, currency).amount,
+      currency,
+    ),
     adjusted: account.current_balance !== account.opening_balance,
   };
 }
@@ -65,28 +64,4 @@ export function buildHeroHeading(account: Account): HeroHeading {
   return account.is_archived === 1
     ? { label: Strings.accountDetailBalanceArchived, hollow: true }
     : { label: Strings.accountDetailBalance, hollow: false };
-}
-
-export interface AccountBalanceParts {
-  amount: string;
-  code: string;
-  /** True when the magnitude prints as an exact zero at this currency's decimals. */
-  printsAsZero: boolean;
-}
-
-/** The hero draws the code at its own size, so the two halves are available apart as well as joined. */
-export function formatAccountBalanceParts(
-  balance: number,
-  currency: Currency,
-): AccountBalanceParts {
-  // Currency decimals, not `formatDisplayMagnitude`, which prints an exact zero at 0dp.
-  const magnitude = formatCurrencyMagnitude(balance, currency);
-  const { value, code } = formatOwnedAmountParts(balance, currency, magnitude);
-  return { amount: value, code, printsAsZero: magnitude.printsAsZero };
-}
-
-/** An unsigned magnitude at the currency's decimals, with the canonical `−` when overdrawn (#411). */
-export function formatAccountBalance(balance: number, currency: Currency): string {
-  const { amount, code } = formatAccountBalanceParts(balance, currency);
-  return `${amount} ${code}`;
 }

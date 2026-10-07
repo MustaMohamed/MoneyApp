@@ -2,7 +2,7 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, type Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { buildMonthRows } from '@/modules/accounts/utils/account_info_rows';
-import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
+import { formatAccountBalance, formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatOrdinal } from '@/utils/format_ordinal';
 
 import type { AccountStats } from '../../../../database/account_stats';
@@ -60,7 +60,7 @@ export function buildAccountFacts(account: Account): AccountFact[] {
     { label: Strings.accountCurrencyLabel, value: CURRENCY_CONFIG[currency].code },
     {
       label: Strings.accountBalanceLabel,
-      value: formatCurrencyAmount(account.opening_balance, currency),
+      value: formatAccountBalance(account.opening_balance, currency),
     },
   ];
 }
