@@ -52,8 +52,10 @@ Every export, as of this commit:
 | `formatCurrencyParts(value, currency, decimals?)` | `{ value, code }` — the same decimals rule as `formatCurrencyAmount`, for the two-node splits where the code renders in its own `<Text>` |
 | `formatCurrencyTotals(totals: Map<Currency, number>)` | one `formatCurrencyAmount` join per currency present, `'X  ·  Y'`; the em-dash placeholder for an empty map |
 | `formatDisplayMagnitude(value, currency)` | `{ text, printsAsZero }` — absolute magnitude for composed-sign sites, escalating to 2 dp when currency precision would print a real value as `0` |
-| `formatCurrencyMagnitude(value, currency)` | `{ text, printsAsZero }`, the absolute magnitude at `CURRENCY_CONFIG[currency].decimals`, never escalated; the account detail balance passes it to `formatOwnedAmountParts` so a zero USD balance prints `0.00` |
+| `formatCurrencyMagnitude(value, currency)` | `{ text, printsAsZero }`, the absolute magnitude at `CURRENCY_CONFIG[currency].decimals`, never escalated; `formatAccountBalanceParts` passes it to `formatOwnedAmountParts` so a zero USD balance prints `0.00` |
 | `formatOwnedAmountParts(value, currency, magnitude?)` | `{ value, code }` for an owned amount (2026-08-27 money-colour ADR decision 1): `−` only below zero, never `+`, no sign on a text that prints as zero; `magnitude` defaults to `formatDisplayMagnitude(value, currency)` |
+| `formatAccountBalanceParts(balance, currency)` | `{ amount, code, printsAsZero }` for an account balance: `formatOwnedAmountParts` on the `formatCurrencyMagnitude` magnitude, so the digits stay at the currency's decimals and the sign is `−` only below zero. Every site that prints an account balance calls it or `formatAccountBalance` (`docs/adr/2026-10-06-account-balances-owned-composer.md`) |
+| `formatAccountBalance(balance, currency)` | `formatAccountBalanceParts` joined as `amount`, a space, `code`: `−1,900 EGP` |
 | `formatLiabilityRowValue(balance, baseCurrency)` | an owed amount in the owed frame, `balance` positive when owed: `−` when owed, `+` when in credit, no sign on a text that prints as zero; magnitude from `formatDisplayMagnitude` |
 | `formatLiabilityAmountParts(value, baseCurrency)` | `{ value, code }`, `formatLiabilityRowValue` with the currency code, for a liabilities total |
 | `MONEY_ROUNDING_DECIMALS` | the 2 dp `roundMoney` persists; the precision `formatDisplayMagnitude` escalates to |
@@ -64,10 +66,11 @@ Every export, as of this commit:
 | `signAmountText(text, sign, printsAsZero = false)` | the sign composition point (#332): prefixes the glyph onto formatted text; a text that prints as zero takes no sign. Owned and owed amounts go through `formatOwnedAmountParts`, `formatLiabilityRowValue` and `formatLiabilityAmountParts`, which call it; a flow sign (`+` in, `−` out) calls it directly |
 | `MINUS_SIGN` / `PLUS_SIGN` | the canonical glyphs — `−` is U+2212 per the 2026-08-27 money-colour ADR decision 3, never the ASCII hyphen |
 | `AmountSign` (type) | `MINUS_SIGN \| PLUS_SIGN \| ''` — sites with a fixed direction take `Exclude<AmountSign, ''>` |
+| `AccountBalanceParts` (type) | `{ amount: string; code: string; printsAsZero: boolean }` — what `formatAccountBalanceParts` returns |
 
 Decimals for an amount come from `CURRENCY_CONFIG` (`src/constants/currency.ts` — EGP 0, USD 2; plain `formatAmount` defaults to 0 dp and truncates cents if you skip `formatCurrencyAmount` — audit M22). A screen may override only by passing a **named constant** to a formatter's own `decimals` parameter — never a bare literal — recorded in an ADR. Shipped precedent: `N4_HERO_AMOUNT_DECIMALS` (`src/modules/onboarding/screens/onboarding/ready/ready.geometry.ts`), approved at `docs/adr/2026-08-18-starting-net-position.md` §6. This must not contradict `.claude/rules/review.md` item 3, which is the authority on decimal counts.
 
-Never construct `Intl.NumberFormat` outside `src/utils/format_amount.ts`, full stop — `npm run lint` rejects the constructor at **any** scope, not just top-level. Use a formatter from this file instead.
+Never construct `Intl.NumberFormat` outside `src/utils/format_amount.ts`, full stop — `npm run lint` rejects the constructor at **any** scope, not just top-level. Use a formatter from this file instead. The same script rejects a hand-built owned sign outside this file, a ternary that picks between a minus glyph (`MINUS_SIGN`, a quoted `-` or `−`) and an empty string; the transactions hero's `leftOfIncome` percent is the one exemption, by name, in the script's `OWNED_SIGN_ALLOWLIST`.
 
 ## Sign conventions
 

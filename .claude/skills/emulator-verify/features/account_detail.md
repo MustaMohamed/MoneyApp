@@ -17,7 +17,7 @@ The canvas draws one account type per frame. Every state below is checked on a b
 | bank with recent activity | C1 | seeded bank with 3+ transactions this month | hero balance, `This month in` / `This month out`, activity rows; shot |
 | credit card, under limit | C2 (`CardsDetail`) | seeded card with limit, min payment, due day, APR | facts render limit, available, min, due, APR two decimals with `%`; shot |
 | credit card, over limit | no frame, ruled MA-029 | seed `current_balance` past `credit_limit` | caption `Over limit` on hero, dashboard and list; `mqa ui` |
-| bank overdrawn | no frame, ruled MA-027 | seed negative balance | sign is U+2212 on the hero; `mqa ui` |
+| bank overdrawn | no frame, ruled MA-027, MA-156 | the overdrawn seed (`accounts_list.md` § States, `overdrawn bank row`): `mqa open /accounts/<Walk Overdrawn's id>` | sign is U+2212 on the hero (`−1,900`), on the caption `Opening −1,900 EGP` and on the `Opening balance` fact `−1,900 EGP`; `grep -c -- '-1,900'` over `mqa read` is 0; `mqa ui` |
 | balance review alert | C2b | seed a card flagged for review | alert card with `Adjust balance`; shot |
 | no transactions | C3 | seeded account with none | activity empty block, `Add a transaction`; shot |
 | activity loading | F2 | source force on the activity resolver | skeleton in the activity card; shot |

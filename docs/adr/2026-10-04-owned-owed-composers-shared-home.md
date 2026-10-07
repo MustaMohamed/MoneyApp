@@ -17,6 +17,8 @@ The owned-sign composer sat in dashboard's `utils/`, its owed twins in the net w
 
 The account detail passes `formatCurrencyMagnitude(balance, currency)`, the magnitude at the currency's own decimals, as the optional third argument. `formatDisplayMagnitude` prints an exact zero at 0dp and escalates a sub-unit amount to 2dp, so on its default magnitude the hero would print `0 USD` for `0.00 USD` and `−0.40 EGP` for `0 EGP` at a balance of −0.4. Every two-argument call prints what it printed before.
 
+**Extended 2026-10-06 (#667).** `formatAccountBalanceParts` and `formatAccountBalance` moved from `balance_hero.helpers.ts` into `src/utils/format_amount.ts`, and nine more sites that print an account balance call them. `npm run lint` fails a hand-built owned sign outside that file. `docs/adr/2026-10-06-account-balances-owned-composer.md` records both.
+
 ## 3. Accounts owns the account card row builders
 
 `buildInfoRows`, `buildMonthRows`, `InfoRow` and `InfoRowKind` moved with `git mv` to `src/modules/accounts/utils/account_info_rows.ts`, so `git log --follow` keeps their history. Dashboard's account card imports them from accounts, and accounts no longer imports dashboard for them. The one accounts import of dashboard left is `useDashboardStore` in `accounts_list.hook.ts`, a screen store, which ADR 2026-09-28 §4 leaves to a task under #585.
