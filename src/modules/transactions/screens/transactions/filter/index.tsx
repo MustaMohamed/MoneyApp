@@ -24,6 +24,7 @@ export function FilterSheet(): React.ReactElement {
       }}
       snapPoints={['45%', '92%']}
       scrollable
+      blursInputOnClose
       title={Strings.filterTitle}
       footer={
         <Box style={{ flexDirection: 'row' }} className="gap-2">

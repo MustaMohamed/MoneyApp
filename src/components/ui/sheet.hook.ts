@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   createSheetCloseLifecycle,
@@ -10,6 +10,7 @@ import {
 interface SheetCloseLifecycleHook {
   closeLifecycle: SheetCloseLifecycle;
   handleSheetIndexChange: (index: number) => void;
+  handleSheetClosed: () => void;
 }
 
 /** Holds the sheet's close lifecycle as state, so the render after a settled close reads it; `onCloseComplete` runs once per settled close. */
@@ -31,13 +32,21 @@ export function useSheetCloseLifecycle(
   const handleSheetIndexChange = useCallback(
     (index: number) => {
       const settlement = settleSheetCloseLifecycle(closeLifecycleRef.current, index);
-      if (!settlement.shouldComplete) return;
+      if (settlement.lifecycle === closeLifecycleRef.current) return;
       closeLifecycleRef.current = settlement.lifecycle;
       setStoredLifecycle(settlement.lifecycle);
-      onCloseComplete?.();
+      if (settlement.shouldComplete) onCloseComplete?.();
     },
     [onCloseComplete],
   );
 
-  return { closeLifecycle, handleSheetIndexChange };
+  const handleSheetClosed = useCallback(() => handleSheetIndexChange(-1), [handleSheetIndexChange]);
+
+  // gorhom reported the closed position while `isOpen` still read true, so nothing reports it again after the drop.
+  const settlesOnDrop = !isOpen && closeLifecycle.restsClosed;
+  useEffect(() => {
+    if (settlesOnDrop) handleSheetIndexChange(-1);
+  }, [settlesOnDrop, handleSheetIndexChange]);
+
+  return { closeLifecycle, handleSheetIndexChange, handleSheetClosed };
 }
