@@ -156,6 +156,8 @@ export const Size = {
   monthYearStepTrack: 32,
   // Raw 36 for the same reason: the transaction form's type tab row, `h-9`, at scale 1.
   typeTabsTrack: 36,
+  // Raw 36 for the same reason: a header text action's box, formerly the account detail Edit's `h-9 w-9`, at scale 1.
+  headerTextActionTrack: 36,
   headerHeight: ms(56),
   // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),

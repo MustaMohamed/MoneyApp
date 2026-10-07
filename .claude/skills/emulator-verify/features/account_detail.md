@@ -6,7 +6,7 @@ Route `/accounts/[id]`. Screen `src/modules/accounts/screens/accounts/detail/ind
 
 - User path: accounts list row tap, or the dashboard account card.
 - Script: `id=$($MQA db "select id from accounts where name='<n>'" | sed -n 's/.*"id": "\(.*\)".*/\1/p')` then `$MQA tap '<n>'` from the list. Deep link: `$MQA open /accounts/<id>` opens the detail (`moneyapp://accounts/acc_walk`, MA-127).
-- Header: title is the account name, `Edit` on the right. There is no `More`: `Archive` is a body button beside `Adjust balance` (`detail/index.tsx:199-206`).
+- Header: title is the account name, `Edit` on the right. There is no `More`: `Archive` is a body button beside `Adjust balance` (`detail/index.tsx:187-194`).
 
 ## States
 
@@ -42,6 +42,7 @@ The canvas draws one account type per frame. Every state below is checked on a b
 | adjust balance sheet, large font | no frame, MA-130 | `Adjust balance`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the sheet's footer buttons; one crop of the footer at 2.0 |
 | balance review alert, large font | no frame, MA-130 | from `balance review alert`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the alert's button; one crop of the alert at 2.0 |
 | archive dialog, large font | no frame, MA-130 | `Archive`; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the dialog's two buttons; one crop of the dialog at 2.0 |
+| header title and Edit action, large font | no frame, MA-159 | a seeded bank account with a name long enough to truncate at 2.0, and one with a short name, each by `mqa open /accounts/<id>`; on the empty database an id no account has, a header with no title; the `Font scale` force (README) at 1.0 and 2.0 | the `Header proof` (README) on the account's name with `Edit` as the right action. `mqa bounds 'label="Edit"'` reads 36 by 36 ± 1 dp at 1.0, as on `main`. At 2.0 it reads `resolveHeaderTextActionGeometry(2).height` high, 36, at least 36 wide, 57 on the 411 dp emulator, and wider than its label's `TextView` box, which sits inside it. A crop of the header at 2.0: `Edit` whole, no glyph cut at the right edge |
 
 ## Outbound
 

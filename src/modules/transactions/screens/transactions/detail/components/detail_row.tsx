@@ -1,13 +1,18 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ListGroup } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { DETAIL_ACCOUNT_ROW_HEIGHT, DETAIL_ROW_HEIGHT } from './detail.geometry';
+import {
+  DETAIL_ROW_LABEL_FONT_SIZE,
+  DETAIL_ROW_VALUE_FONT_SIZE,
+  resolveDetailRowHeight,
+} from './detail.geometry';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -61,10 +66,12 @@ export function DetailRow({
   valueColor,
 }: Props): React.ReactElement {
   const tone = BADGE_STYLES[badgeTone];
+  const { fontScale } = useWindowDimensions();
+  const labelStyle = scaledTextStyle(DETAIL_ROW_LABEL_FONT_SIZE, fontScale);
   return (
     <ListGroup.Item
       className={`flex-row items-center gap-3 px-4 py-3 ${showDivider ? 'border-separator border-b' : ''}`}
-      style={{ height: reserveSublabel ? DETAIL_ACCOUNT_ROW_HEIGHT : DETAIL_ROW_HEIGHT }}
+      style={{ height: resolveDetailRowHeight(fontScale, reserveSublabel) }}
     >
       {icon ? (
         <ListGroup.ItemPrefix>
@@ -80,14 +87,17 @@ export function DetailRow({
       <ListGroup.ItemContent className="min-w-0">
         <ListGroup.ItemDescription
           className="font-inter-semibold text-foreground/55 tracking-wide uppercase"
-          style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+          allowFontScaling={false}
+          style={labelStyle}
+          numberOfLines={1}
         >
           {label}
         </ListGroup.ItemDescription>
         <ListGroup.ItemTitle
           className={`mt-0.5 ${muted ? 'font-inter text-foreground/60 italic' : 'font-inter-medium'}`}
+          allowFontScaling={false}
           style={[
-            { fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) },
+            scaledTextStyle(DETAIL_ROW_VALUE_FONT_SIZE, fontScale),
             valueColor ? { color: valueColor } : undefined,
           ]}
           numberOfLines={1}
@@ -97,7 +107,8 @@ export function DetailRow({
         {sublabel || reserveSublabel ? (
           <ListGroup.ItemDescription
             className="font-inter text-foreground/55 mt-0.5"
-            style={{ fontSize: Type.overline, lineHeight: lineHeightFor(Type.overline) }}
+            allowFontScaling={false}
+            style={labelStyle}
             numberOfLines={1}
           >
             {sublabel ?? ' '}

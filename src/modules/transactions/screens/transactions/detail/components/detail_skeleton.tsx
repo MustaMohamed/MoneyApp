@@ -1,7 +1,8 @@
 import { Card, SkeletonGroup } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { ScreenScroll } from '@/components/ui/screen';
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
@@ -10,25 +11,44 @@ import {
   DETAIL_ACTION_MIN_HEIGHT,
   DETAIL_HERO_MIN_HEIGHT,
   DETAIL_NOTE_MIN_HEIGHT,
-  DETAIL_TRANSFER_MIN_HEIGHT,
+  resolveTransferCardHeight,
+  resolveTransferSkeletonCellHeight,
 } from './detail.geometry';
 
 interface Props {
   transaction?: Transaction | null;
 }
 
+function ScaledBar({
+  height,
+  className,
+}: {
+  height: number;
+  className: string;
+}): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  return (
+    <SkeletonGroup.Item
+      className={className}
+      style={{ height: resolveSkeletonBarHeight(height, fontScale) }}
+    />
+  );
+}
+
 export function TransferFlowSkeletonCard(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const cellHeight = resolveTransferSkeletonCellHeight(fontScale);
   return (
     <Card
       testID="transaction-detail-skeleton-transfer"
       className="border-separator mx-4 mt-4 rounded-2xl border p-3.5"
-      style={{ height: DETAIL_TRANSFER_MIN_HEIGHT, boxShadow: 'none' }}
+      style={{ height: resolveTransferCardHeight(fontScale), boxShadow: 'none' }}
     >
       <SkeletonGroup isLoading isSkeletonOnly>
         <View className="flex-row items-center justify-between">
-          <SkeletonGroup.Item className="h-20 w-[42%] rounded-lg" />
+          <SkeletonGroup.Item className="w-[42%] rounded-lg" style={{ height: cellHeight }} />
           <SkeletonGroup.Item className="h-5 w-5 rounded-md" />
-          <SkeletonGroup.Item className="h-20 w-[42%] rounded-lg" />
+          <SkeletonGroup.Item className="w-[42%] rounded-lg" style={{ height: cellHeight }} />
         </View>
       </SkeletonGroup>
     </Card>
@@ -36,6 +56,7 @@ export function TransferFlowSkeletonCard(): React.ReactElement {
 }
 
 export function TransactionDetailSkeleton({ transaction }: Props): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
   if (!transaction) {
     return (
       <ScreenScroll
@@ -54,7 +75,7 @@ export function TransactionDetailSkeleton({ transaction }: Props): React.ReactEl
     );
   }
 
-  const geometry = buildDetailSkeletonGeometry(transaction);
+  const geometry = buildDetailSkeletonGeometry(transaction, fontScale);
   return (
     <ScreenScroll
       testID="transaction-detail-skeleton"
@@ -63,13 +84,13 @@ export function TransactionDetailSkeleton({ transaction }: Props): React.ReactEl
       <SkeletonGroup isLoading isSkeletonOnly>
         <View
           testID="transaction-detail-skeleton-hero"
-          className="border-border mx-4 mt-4 items-center justify-center rounded-xl border px-4"
+          className="border-border mx-4 mt-4 items-center justify-center rounded-xl border px-4 py-4"
           style={{ minHeight: DETAIL_HERO_MIN_HEIGHT }}
         >
-          <SkeletonGroup.Item className="h-5 w-20 rounded-full" />
-          <SkeletonGroup.Item className="mt-4 h-9 w-48 rounded-lg" />
-          <SkeletonGroup.Item className="mt-3 h-4 w-32 rounded-md" />
-          <SkeletonGroup.Item className="mt-2 h-3 w-28 rounded-md" />
+          <ScaledBar height={20} className="w-20 rounded-full" />
+          <ScaledBar height={36} className="mt-4 w-48 rounded-lg" />
+          <ScaledBar height={16} className="mt-3 w-32 rounded-md" />
+          <ScaledBar height={12} className="mt-2 w-28 rounded-md" />
         </View>
         {geometry.showTransfer ? <TransferFlowSkeletonCard /> : null}
         <Card
@@ -88,8 +109,8 @@ export function TransactionDetailSkeleton({ transaction }: Props): React.ReactEl
             >
               <SkeletonGroup.Item className="h-7 w-7 rounded-md" />
               <View className="ml-3 flex-1 gap-1.5">
-                <SkeletonGroup.Item className="h-3 w-20 rounded-md" />
-                <SkeletonGroup.Item className="h-4 w-36 rounded-md" />
+                <ScaledBar height={12} className="w-20 rounded-md" />
+                <ScaledBar height={16} className="w-36 rounded-md" />
               </View>
             </View>
           ))}
@@ -100,8 +121,8 @@ export function TransactionDetailSkeleton({ transaction }: Props): React.ReactEl
             className="border-separator mx-4 mt-4 rounded-2xl border p-4"
             style={{ minHeight: DETAIL_NOTE_MIN_HEIGHT, boxShadow: 'none' }}
           >
-            <SkeletonGroup.Item className="h-3 w-20 rounded-md" />
-            <SkeletonGroup.Item className="mt-3 h-4 w-full rounded-md" />
+            <ScaledBar height={12} className="w-20 rounded-md" />
+            <ScaledBar height={16} className="mt-3 w-full rounded-md" />
           </Card>
         ) : null}
         <View
@@ -109,8 +130,8 @@ export function TransactionDetailSkeleton({ transaction }: Props): React.ReactEl
           className="flex-row gap-2.5 px-4 pt-4 pb-6"
           style={{ minHeight: DETAIL_ACTION_MIN_HEIGHT }}
         >
-          <SkeletonGroup.Item className="h-13 flex-1 rounded-xl" />
-          <SkeletonGroup.Item className="h-13 flex-1 rounded-xl" />
+          <ScaledBar height={52} className="flex-1 rounded-xl" />
+          <ScaledBar height={52} className="flex-1 rounded-xl" />
         </View>
       </SkeletonGroup>
     </ScreenScroll>

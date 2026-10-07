@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const ReactLocal = jest.requireActual<typeof import('react')>('react');
@@ -6,6 +7,7 @@ jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   return (props: object) => ReactLocal.createElement(View, props);
 });
 
+import { resolveStackHeaderGeometry } from '@/components/ui/stack_header.geometry';
 import { Strings } from '@/constants/strings';
 import { ActionRow } from '@/modules/transactions/screens/transactions/detail/components/action_row';
 import { DetailHeader } from '@/modules/transactions/screens/transactions/detail/components/detail_header';
@@ -32,6 +34,10 @@ describe('transaction detail actions', () => {
     expect(onEdit).toHaveBeenCalledTimes(1);
     await fireEvent.press(screen.getByLabelText(Strings.goBackAccessibility));
     expect(onBack).toHaveBeenCalledTimes(1);
+
+    const title = screen.getByText(Strings.detailHeader);
+    expect(title).toHaveProp('allowFontScaling', false);
+    expect(title).toHaveStyle(resolveStackHeaderGeometry(Dimensions.get('window').fontScale).title);
   });
 
   it('reserves the header action slot without exposing edit for owned transactions', async () => {
