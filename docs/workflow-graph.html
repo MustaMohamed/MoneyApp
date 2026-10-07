@@ -448,7 +448,7 @@
       { id: 'lease', kind: 'script', x: 570, y: 100, w: 220, h: 54, label: 'write the lease', sub: ['~/.ship/MoneyApp/queue/leases/<n>', 'skill, worktree, task id'] },
       { id: 'task', kind: 'script', x: 570, y: 190, w: 220, h: 66, label: 'scheduled task, run now', sub: ['Run: unattended', 'review-<n> / prep-<n> / ship-<n>', 'with a model: one Agent call on it, the run inside'] },
       { id: 'run', kind: 'skill', x: 570, y: 280, w: 220, h: 66, label: '/issue-review · /prep · /ship', sub: ['parks instead of asking', 'releases the lease at exit', 'one log line per run'] },
-      { id: 'measure', kind: 'note', x: 60, y: 380, w: 730, h: 54, label: 'after 10 queued tickets, two measures gate every ship start', sub: ['questions parked during /ship above 0, or any row under Questions that should have been asked earlier: no ship start'] },
+      { id: 'measure', kind: 'note', x: 60, y: 380, w: 730, h: 54, label: 'after 10 queued tickets, two measures gate every ship start', sub: ['3 of the last ten shipped tickets parked a question, or have a row under Questions that should have been asked earlier: no ship start'] },
       { id: 'list', kind: 'script', x: 890, y: 80, w: 200, h: 54, label: 'list open records', sub: ['by root parent, screen, row', 'board.sh questions <n>'] },
       { id: 'reread', kind: 'decision', x: 1130, y: 70, w: 190, h: 80, label: 'cited files', sub: ['changed since Sha?'] },
       { id: 'closed', kind: 'script', x: 1360, y: 90, w: 200, h: 40, label: 'Answered by #pr, closed' },

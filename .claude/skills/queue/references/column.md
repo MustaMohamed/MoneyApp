@@ -120,11 +120,19 @@ The user adds this to `permissions.allow` in `settings.local.json`, in `.claude/
 
 Once the log holds 10 distinct tickets, each pass reads two measures before a `ship` start. One ticket that asks is that ticket's miss; three in the window are the process's.
 
-The window is the ten most recent `ship` lines of the log that ended after the last commit on `origin/main` touching `.claude/skills/issue-review`, `.claude/skills/prep` or `.claude/skills/queue`: `git log -1 --format=%cI origin/main -- <those three paths>`, against each line's file date and end time. Each measure counts distinct tickets in the window.
+Window start: 2026-10-04 19:48, this machine's local time, as the log's times are. Only a PR that fixes a step a hold named moves it, to the day and time the PR is written. No other edit to a skill moves it, and no pass does.
+
+The window is the ten most recent distinct tickets with a `ship` line that ended after the window start, and every `ship` line of theirs after it. A line ended on its file's date, at its end time. A `wrapper failed` line is no ticket's line. Each measure counts tickets.
 
 1. Questions asked during `/ship`: the tickets with a line whose `questions parked` is above 0.
-2. Questions that should have been asked earlier: the tickets with one or more rows in the table under `## Questions that should have been asked earlier` in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`. A `ship` line with no summary file counts 0, a summary file without that heading counts 0, and the header row alone counts 0.
+2. Questions that should have been asked earlier: the tickets with one or more rows in the table under `## Questions that should have been asked earlier` in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`. A ticket with no summary file counts 0, and so does the header row alone. A summary file without that heading counts its ticket, since nothing in it shows the run missed none.
 
-A measure holds at 3 tickets or more: no `ship` run starts in that pass, and the reply names each record and its Check, the `/issue-review` check id or `/prep` step that should have asked. `issue-review` and `prep` starts go on. A held `ship` start writes no `ship` line, so no run of clean lines lifts a hold; the merge of a fix to one of those three skills does, since it empties the window.
+A ticket's records are the comments on its issue that `/ship` parked, open or answered, and a record's Check is its `Miss:` line, `none` without one:
+
+```bash
+gh api --paginate repos/MustaMohamed/MoneyApp/issues/<n>/comments --jq '.[] | select(.body | test("^Question:") and test("\nAsked by: ship")) | .html_url'
+```
+
+A measure holds at 3 tickets or more: no `ship` run starts in that pass, and the reply names each record and its Check, the `/issue-review` check id or `/prep` step that should have asked. `issue-review` and `prep` starts go on. A held `ship` start writes no `ship` line, so no run of clean lines lifts a hold; a PR that fixes the named step and moves the window start does.
 
 Under 3 nothing is held. The reply still names each record in the window with its Check, and each summary file in the window without the heading.
