@@ -120,9 +120,9 @@ The user adds this to `permissions.allow` in `settings.local.json`, in `.claude/
 
 Once the log holds 10 distinct tickets, each pass reads two measures before a `ship` start.
 
-Both measures read the ten most recent `ship` lines of the log, so a clean run of ten lifts a hold.
+Both measures read the ten most recent `ship` lines of the log, and both count open records only: a record whose first line reads `Question: open`, which `bash scripts/board.sh questions <n>` lists. A held `ship` start writes no `ship` line, so no run of clean lines could lift a hold; the answer does, through `/queue asks`.
 
-1. Questions asked during `/ship`: the sum of `questions parked` on those lines.
-2. Questions that should have been asked earlier: per ticket on those lines, the rows of the table under `## Questions that should have been asked earlier` in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`. A `ship` line with no summary file counts 0, a summary file without that heading counts 0, the header row alone counts 0, and k rows count k. A summary file without that heading holds no `ship` start, and each reply names every such file, whatever its date.
+1. Questions asked during `/ship`: per ticket on a line whose `questions parked` is above 0, its open records.
+2. Questions that should have been asked earlier: per ticket on those lines, the rows of the table under `## Questions that should have been asked earlier` in `~/.ship/MoneyApp/queue/ship-<n>-summary.md` whose Record is open. A `ship` line with no summary file counts 0, a summary file without that heading counts 0, and the header row alone counts 0. A summary file without that heading, of a ticket on those lines, holds every `ship` start, and each reply names every such file.
 
-Above 0 for the first, or 1 or more for the second, no `ship` run starts in that pass, and the reply names each record and its Check, the `/issue-review` check id or `/prep` step that should have asked, so a ticket can fix that step. `issue-review` and `prep` starts go on.
+Above 0 for either, no `ship` run starts in that pass, and the reply names each open record and its Check, the `/issue-review` check id or `/prep` step that should have asked. `issue-review` and `prep` starts go on. The reply also names each answered row of measure 2 on those lines with its Check and holds nothing on it, so a ticket can fix that step.
