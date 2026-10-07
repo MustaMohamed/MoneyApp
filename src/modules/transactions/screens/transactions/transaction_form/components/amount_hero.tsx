@@ -44,15 +44,15 @@ export function AmountHero({
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const amountStr = useTransactionAmount(mode);
 
-  // Two equal columns flank the input, so the number is centred whatever the code beside it measures.
+  // Two equal columns flank the input and centre the number; the code's gap is its own margin, since a column's padding would widen that column.
   return (
     <View
       style={{ flexDirection: 'row', alignItems: 'baseline' }}
       className="border-separator border-b py-4"
     >
-      <View style={{ flex: 1, alignItems: 'flex-end' }} className="pr-2">
+      <View style={{ flex: 1, alignItems: 'flex-end' }}>
         <Text
-          className="font-inter text-muted"
+          className="font-inter text-muted mr-2"
           style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
         >
           {currency}
