@@ -138,3 +138,14 @@ describe('StatCards skeleton loading', () => {
     expect(getAllByTestId('dashboard-month-spend-skeleton-footer-item')).toHaveLength(3);
   });
 });
+
+describe('StatCards month-spend spoken figures', () => {
+  it('labels each month-spend figure with its amount joined to its code, then the state word', async () => {
+    const { getByLabelText } = await render(
+      <StatCards {...baseProps} netWorthLoading={false} monthSpendLoading={false} />,
+    );
+
+    expect(getByLabelText('3,000 EGP Spent')).toBeTruthy();
+    expect(getByLabelText('20.00 USD Spent')).toBeTruthy();
+  });
+});

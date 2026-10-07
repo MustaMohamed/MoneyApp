@@ -405,10 +405,10 @@ const REQUIRED: RequiredSeed[] = [
     withoutMember(TRANSACTIONS_INDEX, 'TransactionType', member),
   ),
   {
-    guard: 'Strings.currencyEgp in the budget picker',
+    guard: 'formatCurrencyAmount in the budget picker',
     rel: BUDGET_PICKER,
-    seed: () => replaceEvery(BUDGET_PICKER, 'Strings.currencyEgp', 'Strings.seeded'),
-    words: 'no `Strings.currencyEgp`',
+    seed: () => replaceEvery(BUDGET_PICKER, 'formatCurrencyAmount', 'formatSeeded'),
+    words: 'no `formatCurrencyAmount`',
   },
   withoutTag(FILTER_RAIL, 'MonthFilter', 'FilterRail'),
   withoutTag(FILTER_RAIL, 'SegmentFilter', 'FilterRail'),
