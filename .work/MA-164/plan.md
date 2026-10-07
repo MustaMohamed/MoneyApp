@@ -1,7 +1,7 @@
 # MA-164 — One formatter joins an amount with its currency code
-base: 0d4833e458ffdcd72553d303a71ef58c89ada2f1 · verify: none · flags: money path · expected diff: ~170 lines
+base: 0d4833e458ffdcd72553d303a71ef58c89ada2f1 · verify: none · flags: money path · expected diff: ~245 lines
 
-24 files outside tests. Each file's `~n` is its added lines in that step.
+27 files outside tests. Each file's `~n` is its added lines in that step.
 
 ## Steps
 ### 1. The money formatters return an amount joined to its code for a display, an owned and an owed amount
@@ -35,14 +35,14 @@ base: 0d4833e458ffdcd72553d303a71ef58c89ada2f1 · verify: none · flags: money p
 
 ### 3. The day header's net, the tally's spoken sum and the hero's spoken Out reach the screen joined
 - Files:
-  - `src/modules/transactions/screens/transactions/transactions.helpers.ts` (~24; `formatSignedNet` `:249-255`, `TransactionsHeroModel` `:187-205`, `buildTransactionsHeroModel` `:346-386`, `withAccessibilityLabel` `:440-454`, `buildSearchTally` `:482-496`, `DayHeaderFigures` `:499-502`, `dayFigures` `:568-574`)
+  - `src/modules/transactions/screens/transactions/transactions.helpers.ts` (~44; `formatSignedNet` `:249-255`, `TransactionsHeroModel` `:187-205`, `buildTransactionsHeroModel` `:346-386`, `withAccessibilityLabel` `:440-454`, `buildSearchTally` `:482-496`, `DayHeaderFigures` `:499-502`, `dayFigures` `:568-574`)
   - `src/modules/transactions/screens/transactions/components/day_header.tsx` (~1; `:77`)
   - `src/modules/transactions/screens/transactions/components/transactions_hero.tsx` (~1; `:181`)
   - `src/constants/strings.ts` (~2; beside `transactionsHeroUnavailable`, `:1282`)
 - Change:
   - `formatSignedNet`, private, also returns `withCode`: the signed net, one space and the code, from one `formatDisplayAmountParts` call. Its sign and polarity rule stay.
   - `DayHeaderFigures`, figures variant, becomes `{ mode: 'figures'; net: string; count: string }`. `currencyCode` goes and `net` is that `withCode` (`−984 EGP`, `0 EGP`). The other two variants stay. `day_header.tsx:77` prints `figures.net` in both modes.
-  - `SearchTallyModel` stays. `withAccessibilityLabel(model, spokenSum?: string)` takes the spoken sum as an optional second argument, `undefined` when there is no sum, and the label's parts are `count`, `label`, `filterSummary` and that string.
+  - `SearchTallyModel` stays. `withAccessibilityLabel(model, spokenSum: string | undefined)` takes the spoken sum as a required second argument, never `null`, and the label's parts are `count`, `label`, `filterSummary` and that string. The two calls with no sum, the `failed` branch and the zero-match branch of `buildSearchTally`, pass `undefined`. The third passes the net's `withCode`.
   - `TransactionsHeroModel` gains `outAccessibilityLabel: string`, required, never `null`. With figures it is `formatOwnedAmount(current.expenseEgp, HERO_CURRENCY)`. Without, it is `Strings.transactionsHeroOutUnavailableA11y(code: string): string`, a new template that returns U+2014, one space and `code`, the form of `netWorthBreakdownForeignUnavailable` at `src/constants/strings.ts:273`. `currencyCode` stays for the code's own text node at `transactions_hero.tsx:210`. `:181` reads the new field.
 - Test: `first` · `__tests__/screens/transactions/transactions_helpers.test.ts`
   - New on `buildTransactionsHeroModel`: `outAccessibilityLabel` is `9,400 EGP` for the suite's default input, `−50 EGP` with U+2212 for `expenseEgp: -50`, the card-credit input at `:330`, and `— EGP` in `dashes` mode.
@@ -62,7 +62,7 @@ base: 0d4833e458ffdcd72553d303a71ef58c89ada2f1 · verify: none · flags: money p
   - `src/constants/strings.ts` (~6; `:262-265`, `:385-386`)
 - Change:
   - Three templates lose their `code` parameter and take the amount joined. Their text stays. `dashboardBreakdownAssetsHeader(amount: string, count: number)`, `dashboardBreakdownLiabilitiesHeader(amount: string, count: number)`, `accountCaptionSmartWallet(amount: string, rate: string)`. Arguments in that order, all required, none `null`.
-  - The sheet passes `formatOwnedAmount(amount.assets, baseCurrency)` and `formatLiabilityAmount(amount.liabilities, baseCurrency)`. Its Total debt line at `:244` keeps the owed value with no code.
+  - The sheet passes `formatOwnedAmount(amount.assets, baseCurrency)` and `formatLiabilityAmount(amount.liabilities, baseCurrency)`. Its Total debt line at `:244` reads `formatLiabilityAmountParts(amount.liabilities, baseCurrency).value`, the call base makes at `:131`, so that export keeps a reader in `src/`.
   - The `inBase` row's `value` is `formatOwnedAmount` of the base equivalent, and its `amountText` stays `formatOwnedAmountParts(...).value`. One `baseEquivalent` result feeds both.
   - `composeCaption` passes the `inBase` row's `value` to the template, where it passes `amountText` and the code today.
   - `account_card.tsx` drops `ownedAmountText` for a direct `formatOwnedAmount` call. The other three sites call it in place of their join.
@@ -97,18 +97,50 @@ base: 0d4833e458ffdcd72553d303a71ef58c89ada2f1 · verify: none · flags: money p
   - The two render additions pass at base and fall under the Render-suite policy: Acceptance line 9 names both strings, each is composed in its `.tsx`, neither asserts a style, no file is new.
   - Cases that pass unchanged pin the rest: `__tests__/screens/accounts/balance_hero.helpers.test.ts`, `__tests__/screens/accounts/archive_confirmation.helpers.test.ts`, `__tests__/spending_plans.helpers.test.ts:601`, `__tests__/account_info_rows.test.ts`.
 
-### 6. The skill table and the decision record name the joined forms
+### 6. The skill table and the decision record name the joined forms, and the two records it corrects point at it
 - Files:
   - `.claude/skills/money-rules/SKILL.md` (~6; the export table, `:46-69`)
   - `docs/adr/2026-10-04-owned-owed-composers-shared-home.md` (~3; §1, `:10-12`)
+  - `docs/adr/2026-10-06-account-balances-owned-composer.md` (~2; below `:8`)
+  - `docs/adr/2026-09-07-list-caption-reads-card-rows.md` (~2; §1, below `:16`)
 - Change:
   - The table gains a row for each of the four functions and a type row for `DisplayAmountParts`, in the form of the `AccountBalanceParts` row at `:69`. Its `formatAccountBalanceParts` row at `:57` names the dashboard account card's call as `formatOwnedAmount`.
-  - §1 gains one paragraph headed `**Extended 2026-10-07 (#687).**`, the form `:20` took for #667. It records the four functions, that a flow sign goes on the joined string through `signAmountText` with the same call's `printsAsZero`, that a dash beside a code stays a string template, the five templates that lost a parameter, `DayHeaderFigures` without `currencyCode`, `TransactionsHeroModel.outAccessibilityLabel`, and the two calls ADR 2026-10-06 names that moved: the hero's opening caption in its §2 to `formatAccountBalance` and the dashboard account card in its §5 to `formatOwnedAmount`.
+  - §1 gains one paragraph headed `**Extended 2026-10-07 (#687).**`, the form `:20` took for #667. It records the four functions, that a flow sign goes on the joined string through `signAmountText` with the same call's `printsAsZero`, that a dash beside a code is no join and takes no formatter at its three sites, `netWorthBreakdownForeignUnavailable`, `transactionsHeroOutUnavailableA11y` and the inline template at `src/modules/commitments/screens/commitments/components/commitment_row.tsx:49`, the five templates that lost a parameter, `DayHeaderFigures` without `currencyCode`, `TransactionsHeroModel.outAccessibilityLabel`, and the two calls ADR 2026-10-06 names that moved: the hero's opening caption in its §2 to `formatAccountBalance` and the dashboard account card in its §5 to `formatOwnedAmount`.
   - The same paragraph names what moved under `docs/adr/2026-09-07-list-caption-reads-card-rows.md` §1. `amountParts` and the `inBase` row each make two formatter calls on the same arguments, where its `:16` records one call for `value` and `amountText`. `__tests__/account_info_rows.test.ts:422-443` holds `value` equal to `amountText`, one space and the code on every row. The smart wallet caption reads the `inBase` row's `value`, where its `:12` records `amountText ?? value`.
-- Test: `none` · both files are prose. `npm run lint` scans them for the `unslop` phrases.
+  - ADR 2026-10-06 gains one line below its opening paragraph at `:8`, headed `**Superseded in part 2026-10-07 (#687).**`, the form of `docs/adr/2026-09-28-shared-helpers-leave-screen-folders.md:18`. It names the three places the record no longer holds, the opening caption's row in §2 (`:30`), the dashboard account card in §5 (`:46`) and the formatter list of the plain-formatter scan in §6 (`:71`), which step 7 widens, and it points at `docs/adr/2026-10-04-owned-owed-composers-shared-home.md` §1. No other line of that record changes.
+  - ADR 2026-09-07 gains one line in the same form at the end of its §1, below `:16`. It names the smart wallet caption's read at `:12` and the one-call sentence at `:16`, and points at the same §1. No other line of that record changes.
+- Test: `none` · the four files are prose. `npm run lint` scans them for the `unslop` phrases.
+
+### 7. `npm run lint` fails a hand join of an amount and a code, and a display formatter on a balance column
+- Files:
+  - `scripts/validate-money-formatting.js` (~42; `PLAIN_BALANCE` `:34-35`, the scan loop `:152-174`, the stale loop `:176-187`)
+  - `docs/adr/2026-10-04-owned-owed-composers-shared-home.md` (~10; `:6`, §1 below the paragraph step 6 adds)
+  - `.claude/skills/money-rules/SKILL.md` (~1; the lint paragraph below the export table, `:73`)
+- Change:
+  - `HAND_JOIN` is `/\} \$\{[^}]*(?:code|Code|urrency)[^}]*\}/g`, the closing search's pattern: two template slots one space apart, the second naming `code`, `Code` or `urrency`. It runs through `matchAll` on the text the other two scans read at `:153`, each tracked `src` file's comment-stripped lines joined, so a second slot that oxfmt wraps over lines matches. A match starts at the `}` that closes the first slot, and the report carries that character's line.
+  - `HAND_JOIN_ALLOWLIST` holds three entries, ascending by path, in the `{ path, name? }` form of `OWNED_SIGN_ALLOWLIST` at `:38-44`. `name` narrows an entry through `sitsInProperty(text, match.index, name)`.
+    - `{ path: 'src/constants/strings.ts', name: 'n4CaptionConverted' }` covers a count and a code. It is narrowed to the key because five of the 23 lines the scan reports at base sit in that file.
+    - `{ path: 'src/modules/commitments/screens/commitments/filter/filter.helpers.ts' }` covers the three joins of `formatCommitmentAmountSummary`.
+    - `{ path: 'src/utils/format_amount.ts' }` covers the five joined formatters.
+  - A match no entry covers is one stderr line, and the run exits 1:
+    ```
+    <path>:<line>: joins an amount to a currency code by hand — use `formatCurrencyAmount`, `formatDisplayAmount`, `formatOwnedAmount`, `formatLiabilityAmount` or `formatAccountBalance` from src/utils/format_amount.ts instead; a match that joins no amount takes a HAND_JOIN_ALLOWLIST entry in scripts/validate-money-formatting.js (docs/adr/2026-10-04-owned-owed-composers-shared-home.md)
+    ```
+  - A stale entry fails the run in the two forms of `:176-187`, with `a hand join` for `an owned sign`, `joins none there` for `builds none there` and `HAND_JOIN_ALLOWLIST` for the list's name. The summary line at `:194-198` and its two counts stay.
+  - `PLAIN_BALANCE`'s alternation gains `DisplayAmount`, `DisplayAmountParts` and `DisplayMagnitude`, so `formatDisplayAmount(account.current_balance, account.currency)` fails lint. Its report text stays. The widened pattern matches no call in `src` at head.
+  - The record's `Applies to` line at `:6` gains the script. §1 gains, below step 6's paragraph, the scan in the form of ADR 2026-10-06 §6: the pattern and the text it reads, the report, the three entries with the reason for each, stale entries, the three names `PLAIN_BALANCE` gained, and the shapes `HAND_JOIN` does not read. Those are a join through `.join(' ')`, a `+` concatenation, a JSX text node, a code ahead of the amount, a literal code such as `EGP`, and a second slot that names its code without `code`, `Code` or `urrency`.
+  - The skill's lint paragraph names the three added formatters in its balance-column sentence and gains the hand-join rule, its allowlist and ADR 2026-10-04 §1.
+- Test: `first` · `__tests__/scripts/validate_money_formatting.test.ts`. The interface is the script's stderr and exit code, stated above.
+  - A `describe` in the form of `:535-604`. `it.each` fails four shapes, each at the line its first slot closes: a magnitude beside `CURRENCY_CONFIG[currency].code`; the two parts of `formatOwnedAmountParts` joined by the caller; `formatAmount(...)` beside `Strings.currencyEgp` with the second slot wrapped over three lines; a string template that takes `amount` and `currency` apart and joins them. Each case holds the `<path>:<line>:` prefix, the five formatter names, `HAND_JOIN_ALLOWLIST`, the record's path, neither other report, and exit 1.
+  - `expectQuietBeside` passes four shapes beside a control that fails: a `formatDisplayAmount` call; a dash beside a code, `` `— ${code}` ``; two slots that name no code, `` `${count} ${label}` ``; the join inside a comment.
+  - Through a copied script, the form of `:480-532`: a `src/constants/strings.ts` whose `n4CaptionConverted` holds the count join and whose next key joins an amount to a code fails at the second key's line alone. One with no join under `n4CaptionConverted` prints the stale line that names the key.
+  - In the form of `:235-245`: a listing without `src/constants/strings.ts` prints that entry's not-tracked line.
+  - `plainBalance` at `:536-565` gains one row per added name: `formatDisplayAmount` on `current_balance`, `formatDisplayAmountParts` on `opening_balance`, `formatDisplayMagnitude` on `opening_balance`.
+  - The stub listing of `runGuardOverFixtures` at `:52-54` also echoes `src/constants/strings.ts` and the filter helpers path, as it echoes the two paths the other allowlists name. Without them every quiet case and `:260-290` print two stale lines against a `stderr` held to `''`.
+  - `:248-258`, the run with no stub, passes unchanged and holds the four exempt lines quiet at head.
 
 ## Decision record
-- `docs/adr/2026-10-04-owned-owed-composers-shared-home.md`: an amount meets its currency code in `src/utils/format_amount.ts` alone, through four joined forms beside `formatCurrencyAmount` and `formatAccountBalance`. Step 6 extends §1, and its paragraph names what moved under ADR 2026-09-07 §1. The ticket's `Size:` line names this file and no new record.
+- `docs/adr/2026-10-04-owned-owed-composers-shared-home.md`: an amount meets its currency code in `src/utils/format_amount.ts` alone, through four joined forms beside `formatCurrencyAmount` and `formatAccountBalance`, and `npm run lint` fails a hand join outside that file. Step 6 extends §1, and its paragraph names what moved under ADR 2026-09-07 §1. Step 7 adds the scan to §1. The ticket's `Size:` line names this file and no new record.
 
 ## Non-goals
 - The strings and their voice, MA-097 (#553). The delete dialog's sentences, MA-093 (#549).
@@ -116,8 +148,10 @@ base: 0d4833e458ffdcd72553d303a71ef58c89ada2f1 · verify: none · flags: money p
 - A dash beside a code, `src/modules/commitments/screens/commitments/components/commitment_row.tsx:49` and `src/constants/strings.ts:273`. The templates with a literal `EGP`, among them `addTxBudgetOptionAccessibility` at `src/constants/strings.ts:1354`, which the picker's spoken label keeps.
 - The renders that draw the code in its own text node. `SearchTallyModel.sum`, `TransactionsHeroModel.currencyCode` and `InfoRow.amountText` keep their fields.
 - `budgetPlansCardBalanceA11y` (`src/constants/strings.ts:645`) and the income sheet's field label (`src/modules/budget/screens/budget/components/income_sheet.tsx:15`), which join in other shapes.
-- No existing export of `src/utils/format_amount.ts` changes. No lint rule for a hand join is added to `scripts/validate-money-formatting.js`.
-- ADR 2026-10-06 and ADR 2026-09-07 are not edited.
+- No existing export of `src/utils/format_amount.ts` changes.
+- ADR 2026-10-06 and ADR 2026-09-07 take one dated line each and no other edit.
+- `PLAIN_BALANCE` does not name `formatOwnedAmount` or `formatOwnedAmountParts`. `src/modules/dashboard/screens/dashboard/components/account_card.tsx` passes `account.current_balance` to `formatOwnedAmount`, and ADR 2026-10-06 §5 keeps that card on the owned composer.
+- No scan for a join through `.join(' ')`, `+` or a JSX text node, and no oxlint plugin rule.
 
 ## Untested inputs
 - `account_card.tsx:133`, the carousel balance: no suite renders `AccountCard` and a new `.tsx` file is forbidden. Step 4.
@@ -128,12 +162,23 @@ base: 0d4833e458ffdcd72553d303a71ef58c89ada2f1 · verify: none · flags: money p
 - Per commit: `npm run format:check && npm run lint && npm run typecheck && npm test -- --ci`
 - Once, before hand-off: the full CI parity chain from `CLAUDE.md`.
 - Once, after step 5: `git grep -nE '\} \$\{[^}]*(code|Code|urrency)[^}]*\}' -- src ':!src/utils/format_amount.ts'` prints four lines, the four under Non-goals. It prints 27 at base.
+- Once, after step 7: `node scripts/validate-money-formatting.js` exits 0. `HAND_JOIN` with the three entries reports 23 lines over `git archive 0d4833e4 src` and none over head, where its 9 matches are all covered.
 
 ## Risks
 - Step 3 adds a `Strings` key under a ticket whose Copy is `none`. The string it returns is the one the hero speaks today, `— EGP`.
 - `tsc` covers `__tests__/**` (`tsconfig.json`), so the type changes of step 3 and the template parameters of steps 4 and 5 fail `npm run typecheck` until the fixtures and calls named in the same step change with them.
 - A merge to `main` that edits `transactions.helpers.ts`, `transaction_row.helpers.ts` or `strings.ts` before this branch rebases moves the cited lines. The symbols are the reference.
 - The closing search reads one line at a time. A hand join that oxfmt wraps over two lines does not print, so the diff is read for one as well.
+- `HAND_JOIN` reads template literals alone. A join through `.join(' ')`, `+` or a JSX text node passes lint, as the search tally's label did at base.
+- The `filter.helpers.ts` entry covers its whole file, so a second hand join there passes. The ticket names no issue for the filter summary, and the entry carries none.
+- `sitsInProperty` reads text. A `,` or `;` in the words of `n4CaptionConverted`'s template, ahead of the join, takes the entry's cover away and that line fails lint.
+- Step 7 edits the stub listing in a suite Acceptance line 8 does not name. No existing case there changes what it expects.
+
+## Amendments
+- 2026-10-07 · step 3 · `withAccessibilityLabel` takes `spokenSum: string | undefined` as a required argument and the two no-sum calls pass `undefined`; optional, a `figures` call compiled without its sum (V7 in `~/.ship/MoneyApp/MA-164/findings/verify-c1.md`)
+- 2026-10-07 · step 4 · the Total debt line reads `formatLiabilityAmountParts(...).value` as at base; on `formatLiabilityRowValue` the parts export had no reader in `src/` (V4)
+- 2026-10-07 · step 6 · ADR 2026-10-06 and ADR 2026-09-07 take one dated line each that points at ADR 2026-10-04 §1, and that paragraph's dash sentence names the commitment row's template; four statements in the two records were false at head and neither pointed at the correction (V2)
+- 2026-10-07 · step 7 · new step, `HAND_JOIN` with its allowlist and three more names in `PLAIN_BALANCE`; no scan failed a new hand join, and `formatDisplayAmount` on a balance column passed lint (V9, V8). The Non-goal against a lint rule goes, and the header counts 27 files and ~245 lines
 
 ## Self-assessment
-Step 4 is the one I am least sure about. `budget_card.tsx:134` and `hero_card.tsx:233` join their strings inside the `.tsx`, so only a render case can pin U+2212 at those two sites. `.claude/rules/tests.md` admits a new case in a `.tsx` suite only when an Acceptance line names render-only wiring, and its one example is a render-to-handler binding. I read Acceptance lines 4 and 5 as naming these two strings, the reading step 5 takes of line 9 for its two. If the review battery reads the policy as bindings only, the two cases come out and both sites become `## Untested inputs` lines. A `formatCurrencyAmount` call at either site then prints U+002D below zero and no suite fails.
+Step 7 is the one I am least sure about. `HAND_JOIN` is the closing search's pattern run on joined text, and with the three entries it reports 0 lines over head and 23 over base, but it reads template literals alone. The join that the closing search missed, the search tally's label, went through a named array and a later `.join(' ')`. No text pattern ties that array to its join without also firing on every dependency list that names a currency, so the shape stays unread and the record lists it. Both `.join(' ')` calls in `src` at head join text. If triage wants that shape read, it is a second scan with its own allowlist and its own lines against the gate. The second doubt is step 3's ~44: oxfmt breaks each no-sum call over ten lines once it takes a second argument, and that reflow is ~20 of the lines.
