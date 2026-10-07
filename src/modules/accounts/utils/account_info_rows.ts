@@ -26,7 +26,7 @@ import {
 // 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;
 
-/** Both formatters take the same three arguments, so `amountText` cannot drift from `value` (MA-024). */
+/** Both calls take the same three arguments; `__tests__/account_info_rows.test.ts` holds `value` to `amountText`, a space and the code on every row (MA-024). */
 function amountParts(
   value: number,
   currency: Currency,

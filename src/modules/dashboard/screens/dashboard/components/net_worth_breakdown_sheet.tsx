@@ -15,6 +15,7 @@ import type {
 } from '@/modules/accounts/domain/account_aggregation';
 import {
   formatLiabilityAmount,
+  formatLiabilityAmountParts,
   formatLiabilityRowValue,
   formatOwnedAmount,
   formatOwnedAmountParts,
@@ -234,7 +235,7 @@ function NetWorthBreakdownBody({
             <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
               <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
               <Text className="font-sora-bold" style={{ color: Colors.dark.gold }}>
-                {formatLiabilityRowValue(amount.liabilities, baseCurrency)}
+                {formatLiabilityAmountParts(amount.liabilities, baseCurrency).value}
               </Text>
             </View>
           </View>

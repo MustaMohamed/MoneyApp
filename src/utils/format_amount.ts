@@ -55,9 +55,14 @@ export function formatCurrencyParts(
   return { value: formatAmount(value, decimals ?? config.decimals), code: config.code };
 }
 
+/** The one place a text meets its code, so every joined formatter prints the same separator. */
+function joinWithCode(text: string, code: string): string {
+  return `${text} ${code}`;
+}
+
 export function formatCurrencyAmount(value: number, currency: Currency, decimals?: number): string {
   const parts = formatCurrencyParts(value, currency, decimals);
-  return `${parts.value} ${parts.code}`;
+  return joinWithCode(parts.value, parts.code);
 }
 
 export function formatCurrencyTotals(totals: Map<Currency, number>): string {
@@ -107,7 +112,7 @@ export interface DisplayAmountParts {
 /** `formatDisplayMagnitude` with the code joined on, for a caller that also signs the text or reads `printsAsZero`. */
 export function formatDisplayAmountParts(value: number, currency: Currency): DisplayAmountParts {
   const { text, printsAsZero } = formatDisplayMagnitude(value, currency);
-  return { text, withCode: `${text} ${CURRENCY_CONFIG[currency].code}`, printsAsZero };
+  return { text, withCode: joinWithCode(text, CURRENCY_CONFIG[currency].code), printsAsZero };
 }
 
 /** An unsigned display magnitude, a space and the currency code: `0.40 EGP`. */
@@ -136,10 +141,10 @@ export function formatOwnedAmountParts(
   };
 }
 
-/** `formatOwnedAmountParts` on the display magnitude, joined; an account balance joins through `formatAccountBalance`. */
+/** `formatOwnedAmountParts` on the display magnitude, joined as its value, a space and the code: `−40.00 USD`. */
 export function formatOwnedAmount(value: number, currency: Currency): string {
   const parts = formatOwnedAmountParts(value, currency);
-  return `${parts.value} ${parts.code}`;
+  return joinWithCode(parts.value, parts.code);
 }
 
 export interface AccountBalanceParts {
@@ -163,7 +168,7 @@ export function formatAccountBalanceParts(
 /** An unsigned magnitude at the currency's decimals, with the canonical `−` when overdrawn (#411). */
 export function formatAccountBalance(balance: number, currency: Currency): string {
   const { amount, code } = formatAccountBalanceParts(balance, currency);
-  return `${amount} ${code}`;
+  return joinWithCode(amount, code);
 }
 
 /** `balance` is signed: positive owed, negative in credit. Pass a `roundMoney`-quantised value. */
@@ -186,7 +191,7 @@ export function formatLiabilityAmountParts(
 /** `formatLiabilityAmountParts` joined as its value, a space and the code: `−4,885 EGP`. */
 export function formatLiabilityAmount(value: number, baseCurrency: Currency): string {
   const parts = formatLiabilityAmountParts(value, baseCurrency);
-  return `${parts.value} ${parts.code}`;
+  return joinWithCode(parts.value, parts.code);
 }
 
 // Ceiling for rate-display escalation only; a rate has no rounding floor to escalate to once

@@ -453,7 +453,7 @@ const NO_TALLY_TEXT = {
 
 function withAccessibilityLabel(
   model: Omit<SearchTallyModel, 'accessibilityLabel'>,
-  spokenSum?: string,
+  spokenSum: string | undefined,
 ): SearchTallyModel {
   const parts = [model.count, model.label, model.filterSummary, spokenSum];
   return {
@@ -470,22 +470,28 @@ export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
   const { matchCount, matchNetEgp, filterSummary } = input;
 
   if (input.figuresMode === 'dashes' || matchCount === undefined || matchNetEgp === undefined) {
-    return withAccessibilityLabel({
-      mode: 'failed',
-      count: Strings.transactionsHeroUnavailable,
-      label: Strings.transactionsTallyResults(month),
-      filterSummary,
-      sum: undefined,
-    });
+    return withAccessibilityLabel(
+      {
+        mode: 'failed',
+        count: Strings.transactionsHeroUnavailable,
+        label: Strings.transactionsTallyResults(month),
+        filterSummary,
+        sum: undefined,
+      },
+      undefined,
+    );
   }
   if (matchCount === 0) {
-    return withAccessibilityLabel({
-      mode: 'figures',
-      count: undefined,
-      label: Strings.transactionsTallyNoResults(month),
-      filterSummary,
-      sum: undefined,
-    });
+    return withAccessibilityLabel(
+      {
+        mode: 'figures',
+        count: undefined,
+        label: Strings.transactionsTallyNoResults(month),
+        filterSummary,
+        sum: undefined,
+      },
+      undefined,
+    );
   }
 
   const net = formatSignedNet(matchNetEgp);

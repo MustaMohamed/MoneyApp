@@ -15,6 +15,8 @@ The alternative the ticket sketched, giving each row an `amount: number` and ref
 
 `amountText` is built from the same `formatCurrencyParts` call as `value`, in `amountParts` and `signedStatParts`, so the two cannot diverge by editing one and not the other. `__tests__/account_info_rows.test.ts` asserts `value === amountText + ' ' + code` over every row of all five types, both currencies and both bases.
 
+**Superseded in part 2026-10-07 (#687).** Two statements in this section no longer hold: the smart wallet caption reads the `inBase` row's `value`, where the first paragraph has `amountText ?? value`, and `amountParts` and the `inBase` row each make two formatter calls on the same arguments, where the paragraph above has one call for `value` and `amountText`. `docs/adr/2026-10-04-owned-owed-composers-shared-home.md` §1 records both.
+
 ## 2. The rate gate is `isRateUsable`, read once in the list hook
 
 `accounts_list.hook.ts` reads `rate`, `isManualOverride` and `rate_updated_at` from `useCurrencyStore` and calls `isRateUsable` once, exactly as `dashboard.hook.ts:157` does. The store's placeholder rate is 50, so a bare `rate > 0` would accept a rate the user never set; nothing in the list re-derives provenance from the number.

@@ -6,11 +6,7 @@ import { formatOwnedAmount } from '@/utils/format_amount';
 
 import type { LiquidityBreakdown } from '../dashboard.helpers';
 
-/**
- * Keyed on the field being absent, not on the rate: the placeholder rate is 50, not 0. Composed
- * through `formatOwnedAmount`, not plain `formatCurrencyAmount` — `netWorthForeign` mirrors
- * `netWorth`'s sign, so it needs the same U+2212-not-ASCII-hyphen convention (PR #375 r1).
- */
+/** Keyed on the field being absent, not on the rate, whose placeholder is 50; through the owned composer so the caption carries `netWorth`'s U+2212. */
 export function resolveNetWorthForeignCaption(
   netWorthForeign: number | undefined,
   baseCurrency: Currency,

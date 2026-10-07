@@ -212,7 +212,7 @@ const NAMED_ROWS = [
     files: [BUDGET_PICKER],
     banned: [literal('} EGP')],
     rule: 'is an inline currency label; render `formatCurrencyAmount`',
-    required: [holds(identifier('formatCurrencyAmount'), 'no `formatCurrencyAmount`')],
+    required: [holds(/\bformatCurrencyAmount\(/, 'no `formatCurrencyAmount` call')],
     needs: 'the budget picker labels its amounts through the money formatter',
   },
   {

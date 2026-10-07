@@ -7,6 +7,8 @@
 
 ADR 2026-10-04 §2 gave the account detail hero the owned composer. Nine other places printed an account's balance through `formatCurrencyAmount` or `formatCurrencyParts`, so an overdrawn balance read `-1,900` (U+002D) there and `−1,900` (U+2212) on the hero. Nothing stopped a new site from building an owned sign by hand either.
 
+**Superseded in part 2026-10-07 (#687).** Three statements below no longer hold: the detail hero's opening caption in the §2 table calls `formatAccountBalance`, the dashboard account card in §5 calls `formatOwnedAmount`, and the balance-column scan in §6 also fails `formatDisplayAmount`, `formatDisplayAmountParts` and `formatDisplayMagnitude`. `docs/adr/2026-10-04-owned-owed-composers-shared-home.md` §1 records all three.
+
 ## 1. The account balance composer lives in `src/utils/format_amount.ts`
 
 - `formatAccountBalanceParts(balance: number, currency: Currency): AccountBalanceParts` returns `{ amount: string; code: string; printsAsZero: boolean }`. Its magnitude is `formatCurrencyMagnitude(balance, currency)`, passed to `formatOwnedAmountParts` as the third argument (ADR 2026-10-04 §2).
