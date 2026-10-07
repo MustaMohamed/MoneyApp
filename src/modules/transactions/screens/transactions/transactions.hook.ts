@@ -85,7 +85,8 @@ export function useTransactions() {
     period,
     storedAppliedFilters,
     totals,
-    totalsYearMonth,
+    totalsScope,
+    totalsLoadedYearMonth,
     hasAnyTransaction,
     existenceVersion,
   } = useTransactionsScreenStore(
@@ -95,7 +96,8 @@ export function useTransactions() {
       period: s.period,
       storedAppliedFilters: s.appliedFilters,
       totals: s.totals,
-      totalsYearMonth: s.totalsYearMonth,
+      totalsScope: s.totalsScope,
+      totalsLoadedYearMonth: s.totalsLoadedYearMonth,
       hasAnyTransaction: s.hasAnyTransaction,
       existenceVersion: s.existenceVersion,
     })),
@@ -497,9 +499,10 @@ export function useTransactions() {
     }
   }, [loadExistence, loadTotals, refresh, setUserRefreshing]);
 
-  const displayTotals = totalsYearMonth === period.yearMonth ? totals : null;
-  const displayTotalsStatus =
-    totalsYearMonth === period.yearMonth ? totalsStatus : 'initialLoading';
+  const scopeKeyOnScreen = totalsScopeKey(period.yearMonth, transactionQuery.accountIds);
+  const holdsScopeOnScreen = totalsScope === scopeKeyOnScreen;
+  const displayTotals = holdsScopeOnScreen ? totals : null;
+  const displayTotalsStatus = holdsScopeOnScreen ? totalsStatus : 'initialLoading';
   const scopedAccountLabel =
     effectiveFilters.accountIds.length === 1
       ? accountLabelsById.get(effectiveFilters.accountIds[0])?.name
@@ -507,7 +510,7 @@ export function useTransactions() {
   const heroMode = resolveTransactionsHeroMode(
     displayTotalsStatus,
     displayTotals !== null,
-    failedTotalsScope === totalsScopeKey(period.yearMonth, transactionQuery.accountIds),
+    failedTotalsScope === scopeKeyOnScreen,
   );
   const heroCurrent = displayTotals?.current ?? null;
   const heroPrevious = displayTotals?.previous ?? null;
@@ -736,7 +739,7 @@ export function useTransactions() {
       totalsStatus: displayTotalsStatus,
       hero,
       tally,
-      searchDisabled: heroMode === 'skeleton',
+      searchDisabled: heroMode === 'skeleton' && totalsLoadedYearMonth !== period.yearMonth,
       listRef,
       pendingDeleteId: pendingDelete?.id ?? null,
       deleteBody,
