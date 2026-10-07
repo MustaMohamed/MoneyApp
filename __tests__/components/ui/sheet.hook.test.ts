@@ -6,10 +6,11 @@ import { useSheetCloseLifecycle } from '@/components/ui/sheet.hook';
 const HIDDEN = { opacity: 0, pointerEvents: 'none' };
 const SHOWN = { opacity: 1, pointerEvents: 'box-none' };
 
-async function mountSheet(isOpen: boolean) {
+async function mountSheet(isOpen: boolean, { withHandler = true }: { withHandler?: boolean } = {}) {
   const onCloseComplete = jest.fn();
   const hook = await renderHook(
-    ({ open }: { open: boolean }) => useSheetCloseLifecycle(open, onCloseComplete),
+    ({ open }: { open: boolean }) =>
+      useSheetCloseLifecycle(open, withHandler ? onCloseComplete : undefined),
     { initialProps: { open: isOpen } },
   );
   return {
@@ -21,6 +22,12 @@ async function mountSheet(isOpen: boolean) {
       act(() => {
         hook.result.current.handleSheetIndexChange(index);
         hook.result.current.handleSheetIndexChange(index);
+      }),
+    reportClosed: () => act(() => hook.result.current.handleSheetClosed()),
+    settleThenReportClosedBeforeARender: (index: number) =>
+      act(() => {
+        hook.result.current.handleSheetIndexChange(index);
+        hook.result.current.handleSheetClosed();
       }),
   };
 }
@@ -92,5 +99,85 @@ describe('useSheetCloseLifecycle', () => {
     await sheet.settleAt(-1);
     expect(sheet.drawn()).toEqual(HIDDEN);
     expect(sheet.onCloseComplete).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe.each([
+  { sheet: 'a sheet with a close-complete handler', withHandler: true },
+  { sheet: 'a sheet with no close-complete handler', withHandler: false },
+])('useSheetCloseLifecycle, the orders a close settles in, on $sheet', ({ withHandler }) => {
+  const completions = (count: number) => (withHandler ? count : 0);
+
+  it('completes once after isOpen drops when the closed position was reported first, a render in between', async () => {
+    const sheet = await mountSheet(false, { withHandler });
+    await sheet.setOpen(true);
+    await sheet.settleAt(0);
+    await sheet.settleAt(-1);
+    await sheet.setOpen(true);
+    expect(sheet.drawn()).toEqual(SHOWN);
+    expect(sheet.onCloseComplete).not.toHaveBeenCalled();
+
+    await sheet.setOpen(false);
+    expect(sheet.drawn()).toEqual(HIDDEN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+
+    await sheet.settleAt(-1);
+    expect(sheet.drawn()).toEqual(HIDDEN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+  });
+
+  it('completes once when the close is reported with no index change', async () => {
+    const sheet = await mountSheet(false, { withHandler });
+    await sheet.setOpen(true);
+    await sheet.setOpen(false);
+    expect(sheet.drawn()).toEqual(SHOWN);
+
+    await sheet.reportClosed();
+    expect(sheet.drawn()).toEqual(HIDDEN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+
+    await sheet.reportClosed();
+    expect(sheet.drawn()).toEqual(HIDDEN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+  });
+
+  it('completes once for a -1 after the drop and the closed report that follows it', async () => {
+    const sheet = await mountSheet(true, { withHandler });
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+    await sheet.settleAt(-1);
+    expect(sheet.drawn()).toEqual(HIDDEN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+
+    await sheet.reportClosed();
+    expect(sheet.drawn()).toEqual(HIDDEN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+  });
+
+  it('completes once when the -1 and the closed report arrive before a render', async () => {
+    const sheet = await mountSheet(true, { withHandler });
+    await sheet.settleAt(0);
+    await sheet.setOpen(false);
+    await sheet.settleThenReportClosedBeforeARender(-1);
+
+    expect(sheet.drawn()).toEqual(HIDDEN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+  });
+
+  it('keeps a reopened sheet shown on a stale closed report, completes nothing, then completes its next close', async () => {
+    const sheet = await mountSheet(true, { withHandler });
+    await sheet.setOpen(false);
+    await sheet.settleAt(-1);
+    await sheet.setOpen(true);
+    expect(sheet.drawn()).toEqual(SHOWN);
+
+    await sheet.reportClosed();
+    expect(sheet.drawn()).toEqual(SHOWN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+
+    await sheet.setOpen(false);
+    await sheet.reportClosed();
+    expect(sheet.drawn()).toEqual(HIDDEN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(2));
   });
 });
