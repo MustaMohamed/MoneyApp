@@ -1,4 +1,4 @@
-import { CategoryType } from '@/constants/enums';
+import { CategoryType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { normalizeNegativeZero } from '@/modules/accounts/domain/account_aggregation';
@@ -31,7 +31,7 @@ import type {
 } from '@/modules/budget/screens/budget/spending_plans.types';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';
 import { sumAllocations } from '@/utils/money';
 
@@ -411,7 +411,7 @@ function buildSpendingPlanDetail({
       ? {
           flexibleRow: {
             label: Strings.budgetPlansDetailFlexible,
-            amountLabel: `${formatAmount(buffer)} ${Strings.currencyEgp}`,
+            amountLabel: formatCurrencyAmount(buffer, Currency.EGP),
             supportingLabel: Strings.budgetPlansDetailUnassigned,
           },
         }

@@ -15,17 +15,11 @@ import { availableCredit } from '@/modules/accounts/domain/account_figures';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { buildInfoRows } from '@/modules/accounts/utils/account_info_rows';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatOwnedAmountParts } from '@/utils/format_amount';
+import { formatOwnedAmount } from '@/utils/format_amount';
 import { ms, msFont } from '@/utils/responsive';
 
 // The `caption` variant's raw px, so above 1.0 the value grows from the size it draws at 1.0.
 const ACCOUNT_CARD_ROW_VALUE_FONT_SIZE = 11;
-
-/** The carousel headline balance is negative-capable (overdraft), so it composes U+2212 (#332). */
-function ownedAmountText(value: number, currency: Currency): string {
-  const parts = formatOwnedAmountParts(value, currency);
-  return `${parts.value} ${parts.code}`;
-}
 
 interface AccountCardProps {
   account: Account;
@@ -130,7 +124,7 @@ export function AccountCard({
                 className={resolveAccountBalanceColorClass(account.type)}
                 style={{ flex: 1, fontSize: msFont(17), lineHeight: lineHeightFor(msFont(17)) }}
               >
-                {ownedAmountText(account.current_balance, account.currency)}
+                {formatOwnedAmount(account.current_balance, account.currency)}
               </Text>
             </View>
           </View>

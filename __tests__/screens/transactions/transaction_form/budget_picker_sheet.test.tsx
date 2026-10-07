@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 import React from 'react';
 
 const mockSheet = jest.fn(
@@ -85,6 +85,9 @@ describe('BudgetPickerSheet', () => {
     expect(screen.getByTestId('budget-picker-row-budget-12')).toHaveProp('accessibilityState', {
       checked: true,
     });
+    expect(
+      within(screen.getByTestId('budget-picker-row-budget-12')).getByText('512 EGP'),
+    ).toBeTruthy();
 
     await fireEvent.press(screen.getByTestId('budget-picker-row-budget-29'));
     expect(onSelect).toHaveBeenCalledWith(budgets[29]);

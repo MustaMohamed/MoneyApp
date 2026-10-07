@@ -421,6 +421,33 @@ describe('buildTransactionsHeroModel', () => {
     });
   });
 
+  describe('the spoken Out', () => {
+    it('speaks Out as its amount, one space and the code', () => {
+      const model = hero();
+
+      expect(model.outAccessibilityLabel).toBe('9,400 EGP');
+      expect(model.outAccessibilityLabel).toBe(`${model.out} ${model.currencyCode}`);
+    });
+
+    it('speaks an Out a card credit took below zero behind U+2212, never U+002D', () => {
+      const model = hero({ current: { incomeEgp: 1_000, expenseEgp: -50, netEgp: 1_050 } });
+
+      expect(model.outAccessibilityLabel).toBe('−50 EGP');
+      expect(model.outAccessibilityLabel).toBe(`${model.out} ${model.currencyCode}`);
+      expect(model.outAccessibilityLabel).not.toContain('-');
+    });
+
+    it.each<TransactionsHeroMode>(['dashes', 'skeleton'])(
+      'speaks a dash, one space and the code while the figures are unavailable: %s',
+      (mode) => {
+        const model = hero({ mode, current: null, previous: null });
+
+        expect(model.out).toBe(DASH);
+        expect(model.outAccessibilityLabel).toBe(`${DASH} EGP`);
+      },
+    );
+  });
+
   describe('Net and its flow colour (frame A1, money-colour ADR decision 5)', () => {
     it('signs a positive Net with + and reads good', () => {
       expect(
@@ -724,6 +751,14 @@ describe('buildSearchTally', () => {
     });
   });
 
+  it('speaks a positive net with its sign, one space and the code', () => {
+    expect(tally({ matchNetEgp: 300 }).accessibilityLabel).toBe('2 results in September +300 EGP');
+  });
+
+  it('speaks a zero net unsigned, one space and the code', () => {
+    expect(tally({ matchNetEgp: 0 }).accessibilityLabel).toBe('2 results in September 0 EGP');
+  });
+
   it('prints the EGP net at 0 dp', () => {
     expect(tally({ matchNetEgp: -2_100.49 }).sum).toMatchObject({
       text: '−2,100',
@@ -840,8 +875,7 @@ describe('buildDaySections', () => {
     expect(section.data).toBe(YESTERDAY.data);
     expect(section.figures).toEqual({
       mode: 'figures',
-      net: '−984',
-      currencyCode: 'EGP',
+      net: '−984 EGP',
       count: '3',
     });
   });
@@ -864,8 +898,7 @@ describe('buildDaySections', () => {
     expect(section.data).toHaveLength(2);
     expect(section.figures).toEqual({
       mode: 'figures',
-      net: '−2,700',
-      currencyCode: 'EGP',
+      net: '−2,700 EGP',
       count: '6',
     });
   });
@@ -892,18 +925,17 @@ describe('buildDaySections', () => {
 
     expect(section.figures).toEqual({
       mode: 'figures',
-      net: '0',
-      currencyCode: 'EGP',
+      net: '0 EGP',
       count: '1',
     });
   });
 
   it('signs a positive day net with + and groups its thousands', () => {
-    expect(figuresFor({ netEgp: 14_300, count: 2 })).toMatchObject({ net: '+14,300' });
+    expect(figuresFor({ netEgp: 14_300, count: 2 })).toMatchObject({ net: '+14,300 EGP' });
   });
 
   it('prints the EGP day net at 0 dp with U+2212', () => {
-    expect(figuresFor({ netEgp: -1_234.56, count: 2 })).toMatchObject({ net: '−1,235' });
+    expect(figuresFor({ netEgp: -1_234.56, count: 2 })).toMatchObject({ net: '−1,235 EGP' });
   });
 
   it('reads the skeleton on every day while the figures load', () => {
@@ -935,7 +967,7 @@ describe('buildDaySections', () => {
   ])('a day the held aggregate lacks never reads 0 EGP: at %s it reads %s', (status, mode) => {
     const [yesterday, older] = build({ groups: [YESTERDAY, OLDER], totalsStatus: status });
 
-    expect(yesterday.figures).toMatchObject({ mode: 'figures', net: '−984', count: '3' });
+    expect(yesterday.figures).toMatchObject({ mode: 'figures', net: '−984 EGP', count: '3' });
     expect(older.figures).toEqual(
       mode === 'skeleton' ? { mode: 'skeleton' } : { mode: 'failed', net: '—' },
     );

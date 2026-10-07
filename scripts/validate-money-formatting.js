@@ -32,7 +32,7 @@ const AFTER_PLUS_BRANCH = /\?\s*PLUS_SIGN\s*:[^?:,;()[\]{}]*$/;
 
 // A plain formatter whose first argument ends in a balance column; the match starts at the call.
 const PLAIN_BALANCE =
-  /\bformat(?:Amount|CurrencyAmount|CurrencyParts)\s*\([^,()]*\.(?:current|opening)_balance\s*[,)]/g;
+  /\bformat(?:Amount|CurrencyAmount|CurrencyParts|DisplayAmount|DisplayAmountParts|DisplayMagnitude)\s*\([^,()]*\.(?:current|opening)_balance\s*[,)]/g;
 
 // Ascending by path; `name` narrows an entry to the value of the property with that key.
 const OWNED_SIGN_ALLOWLIST = [
@@ -40,6 +40,18 @@ const OWNED_SIGN_ALLOWLIST = [
     path: 'src/modules/transactions/screens/transactions/transactions.helpers.ts',
     name: 'leftOfIncome',
   },
+  { path: 'src/utils/format_amount.ts' },
+];
+
+const JOIN_ADR = 'docs/adr/2026-10-04-owned-owed-composers-shared-home.md';
+
+// Two template slots one space apart, the second naming a code; the match starts at the first slot's `}`.
+const HAND_JOIN = /\} \$\{[^}]*(?:code|Code|urrency)[^}]*\}/g;
+
+// Ascending by path; `name` narrows an entry as it does in `OWNED_SIGN_ALLOWLIST`.
+const HAND_JOIN_ALLOWLIST = [
+  { path: 'src/constants/strings.ts', name: 'n4CaptionConverted' },
+  { path: 'src/modules/commitments/screens/commitments/filter/filter.helpers.ts' },
   { path: 'src/utils/format_amount.ts' },
 ];
 
@@ -149,19 +161,22 @@ for (const entry of ALLOWLIST) {
 
 const coveringEntries = new Set();
 
+// Marks the covering entry as used, so the stale check below does not report it.
+function coverFor(allowlist, file, text, index) {
+  const cover = allowlist.find(
+    (entry) =>
+      entry.path === file && (entry.name === undefined || sitsInProperty(text, index, entry.name)),
+  );
+  if (cover !== undefined) coveringEntries.add(cover);
+  return cover;
+}
+
 for (const file of files) {
   const text = strippedLines(file)?.join('\n');
   if (text === undefined) continue;
-  const entries = OWNED_SIGN_ALLOWLIST.filter((entry) => entry.path === file);
   for (const match of text.matchAll(OWNED_SIGN)) {
     if (AFTER_PLUS_BRANCH.test(text.slice(0, match.index))) continue;
-    const cover = entries.find(
-      (entry) => entry.name === undefined || sitsInProperty(text, match.index, entry.name),
-    );
-    if (cover !== undefined) {
-      coveringEntries.add(cover);
-      continue;
-    }
+    if (coverFor(OWNED_SIGN_ALLOWLIST, file, text, match.index) !== undefined) continue;
     errors.push(
       `${file}:${lineAt(text, match.index)}: builds an owned sign by hand — use \`formatOwnedAmountParts\` or \`formatAccountBalanceParts\` from src/utils/format_amount.ts instead; a match that signs no money takes an OWNED_SIGN_ALLOWLIST entry in scripts/validate-money-formatting.js (${BALANCE_ADR})`,
     );
@@ -171,20 +186,31 @@ for (const file of files) {
       `${file}:${lineAt(text, match.index)}: prints an account balance through a plain formatter — use \`formatAccountBalanceParts\` or \`formatAccountBalance\` from src/utils/format_amount.ts instead (${BALANCE_ADR})`,
     );
   }
-}
-
-for (const entry of OWNED_SIGN_ALLOWLIST) {
-  const scope = entry.name === undefined ? '' : ` in the \`${entry.name}\` property`;
-  if (isGone(entry)) {
+  for (const match of text.matchAll(HAND_JOIN)) {
+    if (coverFor(HAND_JOIN_ALLOWLIST, file, text, match.index) !== undefined) continue;
     errors.push(
-      `${entry.path}: allowlisted for an owned sign${scope} but is not a tracked src/ .ts/.tsx file — delete or update its OWNED_SIGN_ALLOWLIST entry in scripts/validate-money-formatting.js`,
-    );
-  } else if (!coveringEntries.has(entry)) {
-    errors.push(
-      `${entry.path}: allowlisted for an owned sign${scope} but builds none there — delete or update its OWNED_SIGN_ALLOWLIST entry in scripts/validate-money-formatting.js`,
+      `${file}:${lineAt(text, match.index)}: joins an amount to a currency code by hand — use \`formatCurrencyAmount\`, \`formatDisplayAmount\`, \`formatOwnedAmount\`, \`formatLiabilityAmount\` or \`formatAccountBalance\` from src/utils/format_amount.ts instead; a match that joins no amount takes a HAND_JOIN_ALLOWLIST entry in scripts/validate-money-formatting.js (${JOIN_ADR})`,
     );
   }
 }
+
+function reportStaleEntries(allowlist, listName, what, does) {
+  for (const entry of allowlist) {
+    const scope = entry.name === undefined ? '' : ` in the \`${entry.name}\` property`;
+    if (isGone(entry)) {
+      errors.push(
+        `${entry.path}: allowlisted for ${what}${scope} but is not a tracked src/ .ts/.tsx file — delete or update its ${listName} entry in scripts/validate-money-formatting.js`,
+      );
+    } else if (!coveringEntries.has(entry)) {
+      errors.push(
+        `${entry.path}: allowlisted for ${what}${scope} but ${does} none there — delete or update its ${listName} entry in scripts/validate-money-formatting.js`,
+      );
+    }
+  }
+}
+
+reportStaleEntries(OWNED_SIGN_ALLOWLIST, 'OWNED_SIGN_ALLOWLIST', 'an owned sign', 'builds');
+reportStaleEntries(HAND_JOIN_ALLOWLIST, 'HAND_JOIN_ALLOWLIST', 'a hand join', 'joins');
 
 if (errors.length > 0) {
   console.error(errors.join('\n'));

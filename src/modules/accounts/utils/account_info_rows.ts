@@ -1,4 +1,3 @@
-import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
@@ -16,8 +15,10 @@ import type { Account } from '@/modules/accounts/store/account.store';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
+  formatCurrencyAmount,
   formatCurrencyParts,
-  formatDisplayMagnitude,
+  formatDisplayAmountParts,
+  formatOwnedAmount,
   formatOwnedAmountParts,
   signAmountText,
 } from '@/utils/format_amount';
@@ -25,14 +26,16 @@ import {
 // 1dp, finer than EGP's 0dp default, so a small daily average does not round to "0".
 const ACCOUNT_CARD_AVG_DAY_DECIMALS = 1;
 
-/** One `formatCurrencyParts` call per row, so `amountText` cannot drift from `value` (MA-024). */
+/** Both calls take the same three arguments; `__tests__/account_info_rows.test.ts` holds `value` to `amountText`, a space and the code on every row (MA-024). */
 function amountParts(
   value: number,
   currency: Currency,
   decimals?: number,
 ): Required<Pick<InfoRow, 'value' | 'amountText'>> {
-  const parts = formatCurrencyParts(value, currency, decimals);
-  return { value: `${parts.value} ${parts.code}`, amountText: parts.value };
+  return {
+    value: formatCurrencyAmount(value, currency, decimals),
+    amountText: formatCurrencyParts(value, currency, decimals).value,
+  };
 }
 
 /** Zero-gated sign composition (#332): a net that prints as zero carries no sign either way. */
@@ -40,10 +43,10 @@ function signedStatParts(
   value: number,
   currency: Currency,
 ): Required<Pick<InfoRow, 'value' | 'amountText'>> {
-  const { text, printsAsZero } = formatDisplayMagnitude(value, currency);
+  const { text, withCode, printsAsZero } = formatDisplayAmountParts(value, currency);
   const sign = value >= 0 ? PLUS_SIGN : MINUS_SIGN;
   return {
-    value: signAmountText(`${text} ${CURRENCY_CONFIG[currency].code}`, sign, printsAsZero),
+    value: signAmountText(withCode, sign, printsAsZero),
     amountText: signAmountText(text, sign, printsAsZero),
   };
 }
@@ -188,28 +191,25 @@ export function buildInfoRows(
   const weekNetColor = weekNet >= 0 ? Colors.dark.positive : Colors.dark.negative;
 
   // Fires on either side of the base (#349); the base's code drives the label and the decimals.
-  const baseEquivalentParts =
+  const baseEquivalentValue =
     isRateUsable && account.currency !== baseCurrency
-      ? formatOwnedAmountParts(
-          baseEquivalent({
-            amount: account.current_balance,
-            from: account.currency,
-            to: baseCurrency,
-            rate,
-          }),
-          baseCurrency,
-        )
+      ? baseEquivalent({
+          amount: account.current_balance,
+          from: account.currency,
+          to: baseCurrency,
+          rate,
+        })
       : undefined;
 
   const baseEquivalentRows: InfoRow[] =
-    baseEquivalentParts === undefined
+    baseEquivalentValue === undefined
       ? []
       : [
           {
             kind: 'inBase',
             label: Strings.cardInBaseLabel(baseCurrency),
-            value: `${baseEquivalentParts.value} ${baseEquivalentParts.code}`,
-            amountText: baseEquivalentParts.value,
+            value: formatOwnedAmount(baseEquivalentValue, baseCurrency),
+            amountText: formatOwnedAmountParts(baseEquivalentValue, baseCurrency).value,
             valueColor: Colors.dark.gold,
           },
         ];

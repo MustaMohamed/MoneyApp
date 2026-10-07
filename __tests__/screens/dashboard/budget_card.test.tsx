@@ -71,6 +71,20 @@ describe('BudgetCard', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
+  it('prints a Left below zero behind U+2212, joined to its code', async () => {
+    const { getByText, queryByText } = await render(
+      <BudgetCard
+        summary={{ budgeted: 8000, spent: 10000, left: -2000, pct: 1.25, categoryCount: 2 }}
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+
+    expect(getByText('−2,000 EGP')).toBeTruthy();
+    expect(queryByText('-2,000 EGP')).toBeNull();
+  });
+
   it('shows skeleton slots instead of summary numbers while loading', async () => {
     const { queryByText, getAllByTestId } = await render(
       <BudgetCard

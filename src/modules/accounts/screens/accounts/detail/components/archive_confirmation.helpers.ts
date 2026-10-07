@@ -1,6 +1,6 @@
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { formatAccountBalanceParts } from '@/utils/format_amount';
+import { formatAccountBalance, formatAccountBalanceParts } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
 
@@ -9,10 +9,10 @@ export function resolveArchiveCcLine(
   account: Pick<Account, 'type' | 'current_balance' | 'currency'>,
 ): string | undefined {
   if (account.type !== AccountType.CreditCard) return undefined;
-  const { amount, code, printsAsZero } = formatAccountBalanceParts(
-    account.current_balance,
-    account.currency,
+  if (formatAccountBalanceParts(account.current_balance, account.currency).printsAsZero) {
+    return undefined;
+  }
+  return Strings.accountDetailArchiveCCWarning(
+    formatAccountBalance(account.current_balance, account.currency),
   );
-  if (printsAsZero) return undefined;
-  return Strings.accountDetailArchiveCCWarning(`${amount} ${code}`);
 }

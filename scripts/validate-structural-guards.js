@@ -211,9 +211,9 @@ const NAMED_ROWS = [
   {
     files: [BUDGET_PICKER],
     banned: [literal('} EGP')],
-    rule: 'is an inline currency label; render `Strings.currencyEgp`',
-    required: [holds(identifier('Strings.currencyEgp'), 'no `Strings.currencyEgp`')],
-    needs: 'the budget picker labels its amounts from strings',
+    rule: 'is an inline currency label; render `formatCurrencyAmount`',
+    required: [holds(/\bformatCurrencyAmount\(/, 'no `formatCurrencyAmount` call')],
+    needs: 'the budget picker labels its amounts through the money formatter',
   },
   {
     files: [`${UI}/screen.tsx`],

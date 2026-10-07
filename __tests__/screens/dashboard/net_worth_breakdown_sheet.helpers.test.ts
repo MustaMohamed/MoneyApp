@@ -37,23 +37,17 @@ describe('resolveNetWorthForeignCaption — the sheet’s ≈ caption', () => {
   });
 });
 
-describe('the breakdown copy takes the currency code as a parameter', () => {
-  it('renders the assets header in the base currency', () => {
-    expect(Strings.dashboardBreakdownAssetsHeader('350.00', Currency.USD, 2)).toBe(
-      '350.00 USD · 2 accts',
-    );
-    expect(Strings.dashboardBreakdownAssetsHeader('10,000', Currency.EGP, 1)).toBe(
-      '10,000 EGP · 1 acct',
-    );
+describe('the breakdown copy', () => {
+  it('renders the assets header from an amount already joined to its code', () => {
+    expect(Strings.dashboardBreakdownAssetsHeader('350.00 USD', 2)).toBe('350.00 USD · 2 accts');
+    expect(Strings.dashboardBreakdownAssetsHeader('10,000 EGP', 1)).toBe('10,000 EGP · 1 acct');
   });
 
-  it('renders the liabilities header in the base currency', () => {
-    expect(Strings.dashboardBreakdownLiabilitiesHeader('100.00', Currency.USD, 1)).toBe(
+  it('renders the liabilities header from an amount already joined to its code', () => {
+    expect(Strings.dashboardBreakdownLiabilitiesHeader('100.00 USD', 1)).toBe(
       '100.00 USD · 1 card',
     );
-    expect(Strings.dashboardBreakdownLiabilitiesHeader('4,885', Currency.EGP, 2)).toBe(
-      '4,885 EGP · 2 cards',
-    );
+    expect(Strings.dashboardBreakdownLiabilitiesHeader('4,885 EGP', 2)).toBe('4,885 EGP · 2 cards');
   });
 
   it('renders the ≈ placeholder in the foreign currency', () => {

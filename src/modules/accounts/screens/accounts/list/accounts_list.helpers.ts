@@ -1,5 +1,4 @@
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
-import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, type Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
@@ -66,14 +65,10 @@ function composeCaption({
       return join(Strings.accountCaptionSavings, 'monthStart', 'change');
     case AccountType.SmartWallet: {
       // `formatRateDisplayMagnitude` throws on a non-positive rate; only a usable rate emits `inBase`.
-      const inBase = text('inBase');
+      const inBase = byKind.get('inBase')?.value;
       return inBase === undefined
         ? join(Strings.accountCaptionBank, 'monthIn', 'monthOut')
-        : Strings.accountCaptionSmartWallet(
-            inBase,
-            CURRENCY_CONFIG[baseCurrency].code,
-            formatRateDisplayMagnitude(rate).text,
-          );
+        : Strings.accountCaptionSmartWallet(inBase, formatRateDisplayMagnitude(rate).text);
     }
     case AccountType.Bank:
       return join(Strings.accountCaptionBank, 'monthIn', 'monthOut');

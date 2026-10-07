@@ -11,6 +11,16 @@ const fixtureParent = path.join(repoRoot, '.ma017-guard-fixtures');
 const fixtureRoot = path.join(repoRoot, fixtureRel);
 const transactionsHelpersRel =
   'src/modules/transactions/screens/transactions/transactions.helpers.ts';
+const stringsRel = 'src/constants/strings.ts';
+const commitmentFilterHelpersRel =
+  'src/modules/commitments/screens/commitments/filter/filter.helpers.ts';
+// Every path an allowlist in the script names, in `git ls-files` order.
+const allowlistedRels = [
+  stringsRel,
+  commitmentFilterHelpersRel,
+  transactionsHelpersRel,
+  'src/utils/format_amount.ts',
+];
 
 const stubDirs: string[] = [];
 
@@ -50,7 +60,7 @@ function runGuardOverFixtures(fixtures: Fixture[]): {
     return `${fixtureRel}/${name}`;
   });
   const stubDir = makeStubGit(
-    `#!/bin/sh\necho '${transactionsHelpersRel}'\necho 'src/utils/format_amount.ts'\n${relPaths.map((p) => `echo '${p}'`).join('\n')}\nexit 0\n`,
+    `#!/bin/sh\n${[...allowlistedRels, ...relPaths].map((p) => `echo '${p}'`).join('\n')}\nexit 0\n`,
   );
   const result = runGuard(envWithStub(stubDir));
   return { result, relPaths };
@@ -68,6 +78,29 @@ function plainBalanceReport(relPath: string, line: number): string {
   return `${relPath}:${line}: ${PLAIN_BALANCE_REPORT}`;
 }
 
+const HAND_JOIN_REPORT = 'joins an amount to a currency code by hand';
+const HAND_JOIN_ADR = 'docs/adr/2026-10-04-owned-owed-composers-shared-home.md';
+const JOINED_FORMATTERS = [
+  'formatCurrencyAmount',
+  'formatDisplayAmount',
+  'formatOwnedAmount',
+  'formatLiabilityAmount',
+  'formatAccountBalance',
+];
+
+function handJoinReport(relPath: string, line: number): string {
+  return `${relPath}:${line}: ${HAND_JOIN_REPORT}`;
+}
+
+function isHandJoinReport(entry: string): boolean {
+  return new RegExp(`^[^:]+:\\d+: ${HAND_JOIN_REPORT}`).test(entry);
+}
+
+// The opening of the strings entry's stale line; `state` is the half that differs by cause.
+function staleStringsEntry(state: string): string {
+  return `${stringsRel}: allowlisted for a hand join in the \`n4CaptionConverted\` property but ${state}`;
+}
+
 // A stand-in composer file with nothing stale in it: one constructor and one covered sign.
 const fakeComposerSource =
   "export const formatter = new Intl.NumberFormat('en-US');\nexport const sign = (value: number): string => (value < 0 ? MINUS_SIGN : '');\n";
@@ -76,6 +109,7 @@ const fakeComposerSource =
 function runGuardInFakeRoot(
   composerSource: string,
   transactionsHelpersSource?: string,
+  stringsSource?: string,
 ): SpawnSyncReturns<string> {
   const fakeRoot = path.join(fixtureRoot, 'fakeroot');
   const fakeLibDir = path.join(fakeRoot, 'scripts', 'lib');
@@ -90,6 +124,9 @@ function runGuardInFakeRoot(
   const sources = [{ rel: 'src/utils/format_amount.ts', content: composerSource }];
   if (transactionsHelpersSource !== undefined) {
     sources.unshift({ rel: transactionsHelpersRel, content: transactionsHelpersSource });
+  }
+  if (stringsSource !== undefined) {
+    sources.unshift({ rel: stringsRel, content: stringsSource });
   }
   for (const { rel, content } of sources) {
     const abs = path.join(fakeRoot, rel);
@@ -112,6 +149,11 @@ function heroSource(properties: string[]): string {
     '}',
     '',
   ].join('\n');
+}
+
+// Properties start at line 2 of the source this returns.
+function stringsSource(properties: string[]): string {
+  return ['export const Strings = {', ...properties, '};', ''].join('\n');
 }
 
 function isOwnedSignReport(entry: string): boolean {
@@ -562,6 +604,27 @@ describe('validate-money-formatting.js — a plain formatter on a balance column
         'export const line = (account?: Account): string =>\n  formatCurrencyAmount(account?.current_balance, Currency.EGP);\n',
       line: 2,
     },
+    {
+      shape: 'formatDisplayAmount on current_balance',
+      name: 'plain_balance_display_amount.ts',
+      content:
+        'export const line = (account: Account): string =>\n  formatDisplayAmount(account.current_balance, account.currency);\n',
+      line: 2,
+    },
+    {
+      shape: 'formatDisplayAmountParts on opening_balance',
+      name: 'plain_balance_display_parts.ts',
+      content:
+        'export const parts = (account: Account) =>\n  formatDisplayAmountParts(account.opening_balance, account.currency);\n',
+      line: 2,
+    },
+    {
+      shape: 'formatDisplayMagnitude on opening_balance',
+      name: 'plain_balance_display_magnitude.ts',
+      content:
+        'export const magnitude = (account: Account) =>\n  formatDisplayMagnitude(account.opening_balance, account.currency);\n',
+      line: 2,
+    },
   ];
 
   it.each(plainBalance)('fails $shape', ({ name, content, line }) => {
@@ -600,5 +663,142 @@ describe('validate-money-formatting.js — a plain formatter on a balance column
       control,
       plainBalanceReport(`${fixtureRel}/${control.name}`, 2),
     );
+  });
+});
+
+describe('validate-money-formatting.js — an amount joined to its code by hand (MA-164)', () => {
+  const handJoined: Array<Fixture & { shape: string; line: number }> = [
+    {
+      shape: 'a magnitude beside CURRENCY_CONFIG[currency].code',
+      name: 'hand_join_config_code.ts',
+      content:
+        'export const line = (value: number, currency: Currency): string =>\n  `${formatDisplayMagnitude(value, currency).text} ${CURRENCY_CONFIG[currency].code}`;\n',
+      line: 2,
+    },
+    {
+      shape: 'the two parts of formatOwnedAmountParts joined by the caller',
+      name: 'hand_join_owned_parts.ts',
+      content:
+        'export const line = (value: number, currency: Currency): string => {\n  const parts = formatOwnedAmountParts(value, currency);\n  return `${parts.value} ${parts.code}`;\n};\n',
+      line: 3,
+    },
+    {
+      shape:
+        'formatAmount beside Strings.currencyEgp with the second slot wrapped over three lines, at the line the first slot closes',
+      name: 'hand_join_wrapped.ts',
+      content:
+        'export const label = (limit: number): string =>\n  `${formatAmount(limit)} ${\n    Strings.currencyEgp\n  }`;\n',
+      line: 2,
+    },
+    {
+      shape: 'a string template that takes amount and currency apart and joins them',
+      name: 'hand_join_template.ts',
+      content:
+        'export const opening = (amount: string, currency: string): string =>\n  `Opening ${amount} ${currency}`;\n',
+      line: 2,
+    },
+  ];
+
+  it.each(handJoined)('fails $shape', ({ name, content, line }) => {
+    const { result } = runGuardOverFixtures([{ name, content }]);
+    const expected = handJoinReport(`${fixtureRel}/${name}`, line);
+    expect(result.stderr).toContain(expected);
+    const report = result.stderr.split('\n').find((entry) => entry.startsWith(expected));
+    for (const formatter of JOINED_FORMATTERS) {
+      expect(report).toContain(`\`${formatter}\``);
+    }
+    expect(report).toContain('HAND_JOIN_ALLOWLIST');
+    expect(report).toContain(HAND_JOIN_ADR);
+    expect(result.stderr.split('\n').filter(isHandJoinReport)).toHaveLength(1);
+    expect(result.stderr).not.toContain(OWNED_SIGN_REPORT);
+    expect(result.stderr).not.toContain(PLAIN_BALANCE_REPORT);
+    expect(result.status).toBe(1);
+  });
+
+  const control: Fixture = { name: 'hand_join_control.ts', content: handJoined[0].content };
+
+  const quiet: Array<Fixture & { shape: string }> = [
+    {
+      shape: 'a formatDisplayAmount call',
+      name: 'quiet_display_amount.ts',
+      content:
+        'export const line = (value: number, currency: Currency): string =>\n  formatDisplayAmount(value, currency);\n',
+    },
+    {
+      shape: 'a dash beside a code',
+      name: 'quiet_dash_code.ts',
+      content: 'export const unavailable = (code: string): string => `— ${code}`;\n',
+    },
+    {
+      shape: 'two slots that name no code',
+      name: 'quiet_count_label.ts',
+      content:
+        'export const tally = (count: number, label: string): string => `${count} ${label}`;\n',
+    },
+    {
+      shape: 'the join inside a comment',
+      name: 'quiet_join_comment.ts',
+      content: '// `${amount} ${currency}`\nexport const nothingHere = 1;\n',
+    },
+  ];
+
+  it.each(quiet)('stays quiet on $shape', ({ name, content }) => {
+    expectQuietBeside(
+      { name, content },
+      control,
+      handJoinReport(`${fixtureRel}/${control.name}`, 2),
+    );
+  });
+
+  // In the form of the stale ALLOWLIST case above: the stub lists one clean file and no other.
+  it('flags the strings entry as not tracked when the listing omits the file, and reports no hand join', () => {
+    const cleanRel = `${fixtureRel}/clean.ts`;
+    fs.writeFileSync(path.join(fixtureRoot, 'clean.ts'), 'export const nothingHere = 1;\n');
+    const stubDir = makeStubGit(`#!/bin/sh\necho '${cleanRel}'\nexit 0\n`);
+    const result = runGuard(envWithStub(stubDir));
+    const expected = staleStringsEntry('is not a tracked src/ .ts/.tsx file');
+    expect(result.stderr).toContain(expected);
+    const stale = result.stderr.split('\n').find((entry) => entry.startsWith(expected));
+    expect(stale).toContain('HAND_JOIN_ALLOWLIST');
+    expect(result.stderr).not.toContain(HAND_JOIN_REPORT);
+    expect(result.status).toBe(1);
+  });
+
+  describe('the n4CaptionConverted entry, through a copied script', () => {
+    const countJoin = [
+      '  n4CaptionConverted: (n: number, code: string) =>',
+      "    `Includes ${n} ${code} account${n === 1 ? '' : 's'}, converted using your saved rate.`,",
+    ];
+    const amountJoin =
+      '  seededBalance: (amount: string, code: string) => `Balance ${amount} ${code}`,';
+    const joinlessCaption =
+      '  n4CaptionConverted: (n: number) => `Includes ${n} converted accounts.`,';
+
+    it('fails an amount joined under the next key, at that line alone, and passes the count join', () => {
+      const result = runGuardInFakeRoot(
+        fakeComposerSource,
+        undefined,
+        stringsSource([...countJoin, amountJoin]),
+      );
+      expect(result.stderr).toContain(handJoinReport(stringsRel, 4));
+      expect(result.stderr).not.toContain(`${stringsRel}:3:`);
+      expect(result.stderr.split('\n').filter(isHandJoinReport)).toHaveLength(1);
+      expect(result.stderr).not.toContain(staleStringsEntry('joins none there'));
+      expect(result.status).toBe(1);
+    });
+
+    it('fails a file with no join under the key as stale, naming the key, and reports no hand join', () => {
+      const result = runGuardInFakeRoot(
+        fakeComposerSource,
+        undefined,
+        stringsSource([joinlessCaption]),
+      );
+      const expected = staleStringsEntry('joins none there');
+      expect(result.stderr).toContain(expected);
+      const stale = result.stderr.split('\n').find((entry) => entry.startsWith(expected));
+      expect(stale).toContain('HAND_JOIN_ALLOWLIST');
+      expect(result.stderr.split('\n').filter(isHandJoinReport)).toEqual([]);
+      expect(result.status).toBe(1);
+    });
   });
 });

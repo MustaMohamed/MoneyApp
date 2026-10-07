@@ -74,7 +74,7 @@ export const DayHeader = React.memo(function DayHeader({ section }: Props): Reac
             numberOfLines={1}
             allowFontScaling={false}
           >
-            {figures.mode === 'figures' ? `${figures.net} ${figures.currencyCode}` : figures.net}
+            {figures.net}
           </Text>
         )}
         {figures.mode === 'figures' ? (

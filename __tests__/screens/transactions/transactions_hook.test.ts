@@ -2000,8 +2000,7 @@ describe('useTransactions day sections', () => {
     expect(result.current.state.sections[0].data).toEqual([TRANSACTION]);
     expect(result.current.state.sections[0].figures).toEqual({
       mode: 'figures',
-      net: '−450',
-      currencyCode: 'EGP',
+      net: '−450 EGP',
       count: '3',
     });
   });

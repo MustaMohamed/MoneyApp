@@ -171,6 +171,7 @@ const baseTransactionsState: TransactionsScreenState = {
     monthLabel: 'August',
     currencyCode: 'EGP',
     out: '—',
+    outAccessibilityLabel: '— EGP',
     in: '—',
     inPolarity: 'neutral',
     net: '—',
@@ -239,7 +240,7 @@ function makeDaySection(key: string, ids: string[]): DaySection {
   return {
     key,
     label: key,
-    figures: { mode: 'figures', net: '+100', currencyCode: 'EGP', count: String(ids.length) },
+    figures: { mode: 'figures', net: '+100 EGP', count: String(ids.length) },
     accessibilityLabel: key,
     data: ids.map((id) => makeTestTransaction({ id, transaction_date: key })),
   };
@@ -452,7 +453,7 @@ describe('TransactionsScreen', () => {
         {
           key: '2026-08-01',
           label: 'Today',
-          figures: { mode: 'figures', net: '+100', currencyCode: 'EGP', count: '1' },
+          figures: { mode: 'figures', net: '+100 EGP', count: '1' },
           accessibilityLabel: 'Today, plus 100 EGP, 1 transaction',
           data: [
             {
@@ -536,7 +537,7 @@ describe('TransactionsScreen', () => {
         {
           key: '2026-08-01',
           label: 'Today',
-          figures: { mode: 'figures', net: '+100', currencyCode: 'EGP', count: '1' },
+          figures: { mode: 'figures', net: '+100 EGP', count: '1' },
           accessibilityLabel: 'Today, plus 100 EGP, 1 transaction',
           data: [
             {

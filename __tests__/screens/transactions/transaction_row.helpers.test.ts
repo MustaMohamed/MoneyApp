@@ -311,6 +311,61 @@ describe('buildTransactionRowPresentation, amounts and captions', () => {
   });
 });
 
+describe('buildTransactionRowPresentation, the spoken amount', () => {
+  it('speaks an income as its plus-signed amount, one space and the code', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({
+        type: TransactionType.Income,
+        amount: 22_300,
+        egp_amount: 22_300,
+        account_id: cib.id,
+        category_id: salary.id,
+        transaction_time: '09:15:00',
+      }),
+      account: cib,
+      category: salary,
+    });
+
+    expect(row.primaryAmount).toBe('+22,300');
+    expect(row.accessibilityLabel.split(', ')).toContain(`${row.primaryAmount} EGP`);
+    expect(row.accessibilityLabel).toBe('Salary, CIB Current, 9:15 AM, +22,300 EGP');
+  });
+
+  it('speaks a transfer as its unsigned amount, one space and the code', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({
+        type: TransactionType.Transfer,
+        amount: 5_000,
+        egp_amount: 5_000,
+        exchange_rate: 49,
+        to_amount: 102.04,
+        account_id: cib.id,
+        to_account_id: payoneer.id,
+        category_id: null,
+        transaction_time: '10:30:00',
+      }),
+      account: cib,
+      toAccount: payoneer,
+    });
+
+    expect(row.primaryAmount).toBe('5,000');
+    expect(row.accessibilityLabel.split(', ')).toContain(`${row.primaryAmount} EGP`);
+  });
+
+  it('speaks a 0.4 EGP expense at two decimals behind U+2212, one space and the code', () => {
+    const row = buildTransactionRowPresentation({
+      tx: makeTestTransaction({ amount: 0.4, egp_amount: 0.4, account_id: cib.id }),
+      account: cib,
+      category: groceries,
+    });
+
+    expect(row.primaryAmount).toBe('−0.40');
+    expect(row.accessibilityLabel.split(', ')).toContain(`${row.primaryAmount} EGP`);
+    expect(row.accessibilityLabel).toBe('Groceries, CIB Current, 12:00 PM, −0.40 EGP');
+    expect(row.accessibilityLabel).not.toContain('-');
+  });
+});
+
 describe('buildTransactionRowPresentation, the spoken account', () => {
   it('speaks the account name on an expense, whose tile has no label', () => {
     expect(

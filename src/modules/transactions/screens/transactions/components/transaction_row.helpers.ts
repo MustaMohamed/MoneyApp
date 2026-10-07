@@ -23,7 +23,7 @@ import {
   MINUS_SIGN,
   PLUS_SIGN,
   formatCurrencyAmount,
-  formatDisplayMagnitude,
+  formatDisplayAmountParts,
   formatRateDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
@@ -173,15 +173,22 @@ function leadFor(tx: Transaction, account?: Account, toAccount?: Account): strin
   return tx.note?.trim() || undefined;
 }
 
-function primaryAmountFor(tx: Transaction, cardCredit: boolean): string {
+function primaryAmountFor(
+  tx: Transaction,
+  cardCredit: boolean,
+): { text: string; withCode: string } {
   const sign =
     tx.type === TransactionType.Expense
       ? MINUS_SIGN
       : tx.type === TransactionType.Income
         ? PLUS_SIGN
         : '';
-  const { text, printsAsZero } = formatDisplayMagnitude(tx.amount, tx.currency);
-  return signAmountText(text, cardCredit ? PLUS_SIGN : sign, printsAsZero);
+  const { text, withCode, printsAsZero } = formatDisplayAmountParts(tx.amount, tx.currency);
+  const applied = cardCredit ? PLUS_SIGN : sign;
+  return {
+    text: signAmountText(text, applied, printsAsZero),
+    withCode: signAmountText(withCode, applied, printsAsZero),
+  };
 }
 
 function secondaryLineFor(tx: Transaction, toAccount?: Account): string {
@@ -251,7 +258,7 @@ export function buildTransactionRowPresentation(
     caption,
     captionLead,
     captionTime,
-    primaryAmount,
+    primaryAmount: primaryAmount.text,
     secondaryLine,
     ownershipLabel,
     isCommitmentOwned: tx.commitment_payment_id !== null,
@@ -264,7 +271,7 @@ export function buildTransactionRowPresentation(
       title,
       accountNames,
       caption,
-      `${primaryAmount} ${code}`,
+      primaryAmount.withCode,
       secondaryLine === code ? undefined : secondaryLine,
       ownershipLabel,
     ]

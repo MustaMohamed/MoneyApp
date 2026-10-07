@@ -15,7 +15,11 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
-import { formatExchangeRate, formatOwnedAmountParts } from '@/utils/format_amount';
+import {
+  formatExchangeRate,
+  formatOwnedAmount,
+  formatOwnedAmountParts,
+} from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
@@ -112,9 +116,9 @@ export function HeroCard({
   const foreignCurrency = foreignCurrencyFor(baseCurrency);
   // `netWorth.assetsForeign` mirrors `assets`' sign, so it needs the same composition as the
   // hero amount itself, not plain `formatCurrencyAmount`'s Intl ASCII hyphen (PR #375 r1).
-  const assetsForeignParts =
+  const assetsForeignText =
     netWorth.kind === 'amount' && netWorth.assetsForeign !== undefined
-      ? formatOwnedAmountParts(netWorth.assetsForeign, foreignCurrency)
+      ? formatOwnedAmount(netWorth.assetsForeign, foreignCurrency)
       : undefined;
 
   return (
@@ -229,11 +233,10 @@ export function HeroCard({
               />
               {/* Assets, not net worth: the sheet's ≈ caption differs on purpose. */}
               <Text className="text-foreground text-xs">
-                {assetsForeignParts !== undefined
-                  ? `${assetsForeignParts.value} ${assetsForeignParts.code}`
-                  : Strings.netWorthBreakdownForeignUnavailable(
-                      CURRENCY_CONFIG[foreignCurrency].code,
-                    )}
+                {assetsForeignText ??
+                  Strings.netWorthBreakdownForeignUnavailable(
+                    CURRENCY_CONFIG[foreignCurrency].code,
+                  )}
               </Text>
             </View>
             {isRateUsable ? (

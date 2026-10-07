@@ -177,6 +177,19 @@ describe('HeroCard on the rate-needed refusal', () => {
     expect(getByText('176.00 USD')).toBeTruthy();
   });
 
+  it('prints a foreign assets total below zero behind U+2212, joined to its code', async () => {
+    const { getByText, queryByText } = await render(
+      <HeroCard
+        {...baseProps}
+        netWorth={{ ...baseProps.netWorth, assetsForeign: -176 }}
+        isLoading={false}
+      />,
+    );
+
+    expect(getByText('−176.00 USD')).toBeTruthy();
+    expect(queryByText('-176.00 USD')).toBeNull();
+  });
+
   it('hands the shell no press handler, so the breakdown sheet cannot open', async () => {
     const { queryByTestId } = await render(<HeroCard {...rateNeededProps} isLoading={false} />);
 

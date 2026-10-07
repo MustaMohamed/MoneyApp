@@ -9,11 +9,15 @@ import {
   formatCurrencyAmount,
   formatCurrencyParts,
   formatCurrencyTotals,
+  formatDisplayAmount,
+  formatDisplayAmountParts,
   formatDisplayMagnitude,
   formatExchangeRate,
   formatExchangeRateSentence,
+  formatLiabilityAmount,
   formatLiabilityAmountParts,
   formatLiabilityRowValue,
+  formatOwnedAmount,
   formatOwnedAmountParts,
   formatRateDisplayMagnitude,
   signAmountText,
@@ -471,5 +475,117 @@ describe('formatLiabilityAmountParts — the aggregate liabilities total, same o
       value: expected,
       code: 'EGP',
     });
+  });
+});
+
+describe('formatDisplayAmountParts — the unsigned magnitude, its joined form and printsAsZero from one call (#687)', () => {
+  it('returns the magnitude alone, the magnitude joined to its code, and printsAsZero', () => {
+    expect(formatDisplayAmountParts(1240, Currency.EGP)).toEqual({
+      text: '1,240',
+      withCode: '1,240 EGP',
+      printsAsZero: false,
+    });
+  });
+
+  it('joins the escalated text of an amount that still prints as zero, and flags it', () => {
+    expect(formatDisplayAmountParts(0.004, Currency.EGP)).toEqual({
+      text: '0.00',
+      withCode: '0.00 EGP',
+      printsAsZero: true,
+    });
+  });
+
+  it.each([
+    [1240, Currency.EGP],
+    [0.4, Currency.EGP],
+    [0.004, Currency.EGP],
+    [0, Currency.EGP],
+    [-984, Currency.EGP],
+    [12.5, Currency.USD],
+    [0, Currency.USD],
+  ] as const)(
+    '%s %s keeps the text and printsAsZero of formatDisplayMagnitude',
+    (value, currency) => {
+      const magnitude = formatDisplayMagnitude(value, currency);
+
+      expect(formatDisplayAmountParts(value, currency)).toEqual({
+        text: magnitude.text,
+        withCode: `${magnitude.text} ${CURRENCY_CONFIG[currency].code}`,
+        printsAsZero: magnitude.printsAsZero,
+      });
+    },
+  );
+});
+
+describe('formatDisplayAmount — an unsigned display amount joined to its code (#687)', () => {
+  it.each([
+    [1240, Currency.EGP, '1,240 EGP'],
+    [12.5, Currency.USD, '12.50 USD'],
+    [0.4, Currency.EGP, '0.40 EGP'],
+    [0, Currency.USD, '0 USD'],
+    [0, Currency.EGP, '0 EGP'],
+    [-984, Currency.EGP, '984 EGP'],
+  ] as const)('%s %s -> %s', (value, currency, expected) => {
+    expect(formatDisplayAmount(value, currency)).toBe(expected);
+  });
+
+  it('is the withCode of formatDisplayAmountParts', () => {
+    expect(formatDisplayAmount(0.4, Currency.EGP)).toBe(
+      formatDisplayAmountParts(0.4, Currency.EGP).withCode,
+    );
+  });
+});
+
+describe('formatOwnedAmount — an owned amount joined to its code, `−` only below zero (#687)', () => {
+  const cases = [
+    [12213, Currency.EGP, '12,213 EGP'],
+    [-40, Currency.USD, `${MINUS_SIGN}40.00 USD`],
+    [-0.4, Currency.EGP, `${MINUS_SIGN}0.40 EGP`],
+    [-0.004, Currency.EGP, '0.00 EGP'],
+    [0, Currency.USD, '0 USD'],
+  ] as const;
+
+  it.each(cases)('%s %s -> %s', (value, currency, expected) => {
+    expect(formatOwnedAmount(value, currency)).toBe(expected);
+  });
+
+  it.each(cases)('%s %s is formatOwnedAmountParts joined by one space', (value, currency) => {
+    const { value: amount, code } = formatOwnedAmountParts(value, currency);
+
+    expect(formatOwnedAmount(value, currency)).toBe(`${amount} ${code}`);
+  });
+
+  it('composes U+2212, never U+002D, on an owned amount below zero', () => {
+    const text = formatOwnedAmount(-40, Currency.USD);
+
+    expect(text.codePointAt(0)).toBe(0x2212);
+    expect(text).not.toContain('-');
+  });
+});
+
+describe('formatLiabilityAmount — an owed amount joined to its code, in the owed-frame sign (#687)', () => {
+  const cases = [
+    [4885, Currency.EGP, `${MINUS_SIGN}4,885 EGP`],
+    [100, Currency.USD, `${MINUS_SIGN}100.00 USD`],
+    [-100, Currency.USD, `${PLUS_SIGN}100.00 USD`],
+    [0.4, Currency.EGP, `${MINUS_SIGN}0.40 EGP`],
+    [0, Currency.EGP, '0 EGP'],
+  ] as const;
+
+  it.each(cases)('%s %s -> %s', (value, currency, expected) => {
+    expect(formatLiabilityAmount(value, currency)).toBe(expected);
+  });
+
+  it.each(cases)('%s %s is formatLiabilityAmountParts joined by one space', (value, currency) => {
+    const { value: amount, code } = formatLiabilityAmountParts(value, currency);
+
+    expect(formatLiabilityAmount(value, currency)).toBe(`${amount} ${code}`);
+  });
+
+  it('composes U+2212, never U+002D, on an amount owed', () => {
+    const text = formatLiabilityAmount(4885, Currency.EGP);
+
+    expect(text.codePointAt(0)).toBe(0x2212);
+    expect(text).not.toContain('-');
   });
 });
