@@ -1144,7 +1144,7 @@ describe('useTransactions query ownership', () => {
     await act(() => {
       const totalsStore = useTransactionsScreenStore.getState();
       const julyKey = getTransactionQueryKey(JULY_QUERY);
-      const requestId = totalsStore.beginTotalsRequest(julyKey, '2026-07', undefined, true);
+      const { requestId } = totalsStore.beginTotalsRequest(julyKey, '2026-07', undefined);
       useTransactionsState.getState().beginTotalsLoad(true);
       totalsStore.resolveTotals(julyKey, requestId, {
         current: EMPTY_TOTALS,
@@ -2365,6 +2365,7 @@ describe('useTransactions account scope change (MA-107)', () => {
     async (_, change, loadedQuery) => {
       const { result } = await renderLanded();
       const held = result.current.state.hero;
+      const landedTotals = useTransactionsScreenStore.getState().totals;
       holdNextAggregate();
 
       await act(() => {
@@ -2376,9 +2377,8 @@ describe('useTransactions account scope change (MA-107)', () => {
 
       expect(result.current.state.hero).toBe(held);
       expect(result.current.state.searchDisabled).toBe(false);
-      expect(useTransactionsScreenStore.getState().hasTotalsForScope('2026-07', undefined)).toBe(
-        true,
-      );
+      expect(landedTotals).not.toBeNull();
+      expect(useTransactionsScreenStore.getState().totals).toBe(landedTotals);
     },
   );
 
@@ -2418,6 +2418,7 @@ describe('useTransactions account scope change (MA-107)', () => {
     '%s keeps the figures on screen and the store its scope while they refresh',
     async (_, trigger) => {
       const landed = await renderLanded();
+      const landedTotals = useTransactionsScreenStore.getState().totals;
       holdNextAggregate();
 
       await trigger(landed);
@@ -2427,9 +2428,8 @@ describe('useTransactions account scope change (MA-107)', () => {
       });
 
       expect(landed.result.current.state.hero).toMatchObject({ mode: 'figures', out: '9,400' });
-      expect(useTransactionsScreenStore.getState().hasTotalsForScope('2026-07', undefined)).toBe(
-        true,
-      );
+      expect(landedTotals).not.toBeNull();
+      expect(useTransactionsScreenStore.getState().totals).toBe(landedTotals);
     },
   );
 

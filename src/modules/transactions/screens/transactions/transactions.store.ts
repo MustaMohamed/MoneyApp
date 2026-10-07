@@ -28,10 +28,11 @@ interface StateShape {
   period: TransactionPeriod;
   appliedFilters: AdvancedFilters;
   totals: TransactionTotalsState | null;
+  /** The month of the latest request; `resolveTotals` is its one reader. */
   totalsYearMonth: string | null;
   /** The month and accounts filter of the latest request; held `totals` always belong to it. */
   totalsScope: string | undefined;
-  /** The month whose totals have landed at least once, under any accounts filter. */
+  /** The requested month once its totals have landed under any accounts filter; a request for another month clears it. */
   totalsLoadedYearMonth: string | undefined;
   totalsQueryKey: string | null;
   totalsRequestId: number;
@@ -53,15 +54,13 @@ type TransactionsScreenStore = StateShape & {
     queryKey: string,
     yearMonth: string,
     accountIds: readonly string[] | undefined,
-    preserveData: boolean,
-  ) => number;
+  ) => { requestId: number; scope: string; keptTotals: boolean };
   resolveTotals: (
     queryKey: string,
     requestId: number,
     totals: Omit<TransactionTotalsState, 'queryKey'>,
   ) => boolean;
   failTotals: (queryKey: string, requestId: number) => boolean;
-  hasTotalsForScope: (yearMonth: string, accountIds: readonly string[] | undefined) => boolean;
   beginExistenceRequest: () => number;
   resolveExistence: (requestId: number, mutationVersion: number, hasAny: boolean) => boolean;
   failExistence: (requestId: number) => boolean;
@@ -102,20 +101,20 @@ export const useTransactionsScreenStore = createMoneyAppSelectors(
         appliedFilters: { ...EMPTY_FILTERS, accountIds: [accountId] },
       }),
     clearSearch: () => set({ searchQuery: '' }),
-    beginTotalsRequest: (queryKey, yearMonth, accountIds, preserveData) => {
+    beginTotalsRequest: (queryKey, yearMonth, accountIds) => {
       const state = get();
       const requestId = state.totalsRequestId + 1;
       const scope = totalsScopeKey(yearMonth, accountIds);
-      const keepTotals = preserveData && state.totalsScope === scope;
+      const keptTotals = state.totalsScope === scope && state.totals !== null;
       set({
-        totals: keepTotals ? state.totals : null,
+        totals: keptTotals ? state.totals : null,
         totalsYearMonth: yearMonth,
         totalsScope: scope,
         totalsLoadedYearMonth: state.totalsLoadedYearMonth === yearMonth ? yearMonth : undefined,
         totalsQueryKey: queryKey,
         totalsRequestId: requestId,
       });
-      return requestId;
+      return { requestId, scope, keptTotals };
     },
     resolveTotals: (queryKey, requestId, totals) => {
       const state = get();
@@ -134,10 +133,6 @@ export const useTransactionsScreenStore = createMoneyAppSelectors(
     failTotals: (queryKey, requestId) => {
       const state = get();
       return state.totalsQueryKey === queryKey && state.totalsRequestId === requestId;
-    },
-    hasTotalsForScope: (yearMonth, accountIds) => {
-      const state = get();
-      return state.totalsScope === totalsScopeKey(yearMonth, accountIds) && state.totals !== null;
     },
     beginExistenceRequest: () => {
       const requestId = get().existenceRequestId + 1;
