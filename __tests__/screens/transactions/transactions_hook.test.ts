@@ -2433,6 +2433,16 @@ describe('useTransactions account scope change (MA-107)', () => {
     },
   );
 
+  it('keeps the figures and starts no load when the applied ids repeat the one account', async () => {
+    const { result } = await renderLanded(['acc-1']);
+    mockGetMonthAggregate.mockClear();
+
+    await applyAccounts(['acc-1', 'acc-1']);
+
+    expect(result.current.state.hero).toMatchObject({ mode: 'figures', out: '9,400' });
+    expect(mockGetMonthAggregate).not.toHaveBeenCalled();
+  });
+
   it('disables the search under the skeleton of a month with no totals, and on the way back while that month loads', async () => {
     const { result } = await renderLanded();
     expect(useTransactionsScreenStore.getState().totalsLoadedYearMonth).toBe('2026-07');

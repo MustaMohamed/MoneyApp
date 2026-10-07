@@ -164,6 +164,7 @@ describe('useTransactionsScreenStore totals ownership', () => {
     it.each<[string, string[] | undefined, string[] | undefined]>([
       ['the same ids in another order', ['acc-1', 'acc-2'], ['acc-2', 'acc-1']],
       ['no ids and an empty list, both all accounts', undefined, []],
+      ['one id and that id repeated', ['acc-1'], ['acc-1', 'acc-1']],
     ])('keeps same-month totals across a key change with %s', (_, from, to) => {
       landJuly(from);
 

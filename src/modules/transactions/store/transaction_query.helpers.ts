@@ -1,6 +1,6 @@
 import type { TransactionListFilters } from './transaction.store';
 
-function normalizeIds(ids: string[] | undefined): string[] | null {
+export function normalizeIds(ids: readonly string[] | undefined): string[] | null {
   if (!ids?.length) return null;
   return [...new Set(ids)].sort();
 }
