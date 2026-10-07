@@ -20,7 +20,8 @@ export interface TransactionsPresentationInput {
 
 export interface TransactionsPresentation {
   showInitialSkeleton: boolean;
-  showEmptyState: boolean;
+  /** The list waits on the any-transaction read: the one gate for firing it and for holding the slot. */
+  awaitsExistence: boolean;
   emptyVariant: 'none' | 'noResults' | 'noData' | 'emptyMonth';
   showsBackToThisMonth: boolean;
   showFirstLoadError: boolean;
@@ -58,7 +59,7 @@ export function buildTransactionsPresentation(
   return {
     showInitialSkeleton:
       (isInitial && input.rowCount === 0) || (awaitsExistence && input.existence === 'unknown'),
-    showEmptyState: emptyVariant !== 'none',
+    awaitsExistence,
     emptyVariant,
     showsBackToThisMonth: emptyVariant === 'emptyMonth' && !input.isCurrentMonth,
     showFirstLoadError,

@@ -77,6 +77,7 @@ export function useTransactions() {
   const scrollRestoreFrameRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
   const attemptScrollRestoreRef = useRef<() => void>(() => {});
   const currentScrollPositionRef = useRef<ScrollPosition>({ queryKey: null, offset: 0 });
+  const awaitsExistenceRef = useRef(false);
 
   const {
     searchQuery,
@@ -160,6 +161,8 @@ export function useTransactions() {
   const failedTotalsScope = useTransactionsState.useState.failedTotalsScope();
   const userRefreshing = useTransactionsState.useState.userRefreshing();
   const existenceFailed = useTransactionsState.useState.existenceFailed();
+  const deleteBodyTransaction = useTransactionsState.useState.deleteBodyTransaction();
+  const setDeleteBodyTransaction = useTransactionsState.getState().setDeleteBodyTransaction;
   const beginTotalsLoad = useTransactionsState.getState().beginTotalsLoad;
   const resolveTotalsLoad = useTransactionsState.getState().resolveTotalsLoad;
   const failTotalsLoad = useTransactionsState.getState().failTotalsLoad;
@@ -296,7 +299,8 @@ export function useTransactions() {
       resolveExistence(requestId, version, rows.length > 0);
     } catch (err) {
       console.error('[transactions] any-transaction read failed:', err);
-      if (failExistence(requestId)) setExistenceFailed(true);
+      // A rejection nothing waits on sets no flag: the way back into the empty month reads again.
+      if (failExistence(requestId) && awaitsExistenceRef.current) setExistenceFailed(true);
     }
   }, [beginExistenceRequest, failExistence, resolveExistence, setExistenceFailed]);
 
@@ -458,13 +462,6 @@ export function useTransactions() {
   const hasAdvancedFilters = countActiveFilters(effectiveFilters) > 0;
   const filtersActive =
     transactionQuery.search !== undefined || activeFilter !== 'all' || hasAdvancedFilters;
-  const awaitsExistence = hasCurrentSnapshot && currentTransactions.length === 0 && !filtersActive;
-  useEffect(() => {
-    if (!awaitsExistence) return;
-    // A failed read publishes no version, so this effect never retries its own failure.
-    if (useTransactionsScreenStore.getState().existenceVersion === mutationVersion) return;
-    void loadExistence();
-  }, [awaitsExistence, loadExistence, mutationVersion]);
   const accountChips = useMemo(
     () => buildAccountChips(accounts, effectiveFilters.accountIds),
     [accounts, effectiveFilters.accountIds],
@@ -593,6 +590,18 @@ export function useTransactions() {
           ? 'some'
           : 'none',
   });
+  const awaitsExistence = presentation.awaitsExistence;
+  useEffect(() => {
+    awaitsExistenceRef.current = awaitsExistence;
+    if (!awaitsExistence) {
+      // A failure nothing waits on would paint the alert for a frame on the way back in.
+      setExistenceFailed(false);
+      return;
+    }
+    // A failed read publishes no version, so this effect never retries its own failure.
+    if (useTransactionsScreenStore.getState().existenceVersion === mutationVersion) return;
+    void loadExistence();
+  }, [awaitsExistence, loadExistence, mutationVersion, setExistenceFailed]);
 
   const onListScroll = useCallback(
     (event: ScrollOffsetEvent) => {
@@ -685,20 +694,21 @@ export function useTransactions() {
         console.warn('[requestDelete] tx not in loaded window:', id);
         return;
       }
+      setDeleteBodyTransaction(tx);
       requestDeleteOf(tx);
     },
-    [currentTransactions, requestDeleteOf],
+    [currentTransactions, requestDeleteOf, setDeleteBodyTransaction],
   );
-  // Held on the transaction, so the refresh that removes its row cannot empty an open dialog.
+  // Read from the last requested transaction, so neither its row leaving nor the close empties it.
   const deleteBody =
-    pendingDelete === null
+    deleteBodyTransaction === undefined
       ? ''
       : resolveTransactionDeleteBody(
-          pendingDelete,
-          accountsById.get(pendingDelete.account_id),
-          pendingDelete.to_account_id === null
+          deleteBodyTransaction,
+          accountsById.get(deleteBodyTransaction.account_id),
+          deleteBodyTransaction.to_account_id === null
             ? undefined
-            : accountsById.get(pendingDelete.to_account_id),
+            : accountsById.get(deleteBodyTransaction.to_account_id),
         );
 
   return {

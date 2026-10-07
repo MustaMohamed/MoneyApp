@@ -58,8 +58,8 @@ interface VariantFrame {
 interface VariantConfig extends VariantFrame {
   headline: string;
   description: string | ((n: number) => string);
-  ctaLabel: string | null;
-  clearLabel: string | null;
+  ctaLabel?: string;
+  clearLabel?: string;
 }
 
 type FixedCopyVariant = Exclude<EmptyStateVariant, 'transactionsMonth'>;
@@ -72,7 +72,6 @@ const VARIANT_CONFIG: Record<FixedCopyVariant, VariantConfig> & {
     headline: Strings.emptyAccountsHeadline,
     description: Strings.emptyAccountsDescription,
     ctaLabel: Strings.emptyAccountsCta,
-    clearLabel: null,
     placement: 'centered',
   },
   accountsArchivedOnly: {
@@ -80,7 +79,6 @@ const VARIANT_CONFIG: Record<FixedCopyVariant, VariantConfig> & {
     headline: Strings.emptyAccountsArchivedOnlyHeadline,
     description: Strings.emptyAccountsArchivedOnlyDescription,
     ctaLabel: Strings.emptyAccountsCta,
-    clearLabel: null,
     placement: 'inline',
   },
   transactions: {
@@ -88,7 +86,6 @@ const VARIANT_CONFIG: Record<FixedCopyVariant, VariantConfig> & {
     headline: Strings.emptyTransactionsHeadline,
     description: Strings.emptyTransactionsDescription,
     ctaLabel: Strings.emptyTransactionsCta,
-    clearLabel: null,
     placement: 'centered',
   },
   commitments: {
@@ -96,22 +93,18 @@ const VARIANT_CONFIG: Record<FixedCopyVariant, VariantConfig> & {
     headline: Strings.emptyCommitmentsHeadline,
     description: Strings.emptyCommitmentsDescription,
     ctaLabel: Strings.emptyCommitmentsCta,
-    clearLabel: null,
     placement: 'centered',
   },
   commitmentsMonth: {
     icon: 'calendar-blank-outline',
     headline: Strings.emptyCommitmentsMonthHeadline,
     description: Strings.emptyCommitmentsMonthDescription,
-    ctaLabel: null,
-    clearLabel: null,
     placement: 'centered',
   },
   filtered: {
     icon: 'filter-remove',
     headline: Strings.emptyFilteredHeadline,
     description: Strings.emptyFilteredDescription,
-    ctaLabel: null,
     clearLabel: Strings.emptyFilteredClearCta,
     placement: 'centered',
   },
@@ -119,16 +112,12 @@ const VARIANT_CONFIG: Record<FixedCopyVariant, VariantConfig> & {
     icon: 'tag-outline',
     headline: Strings.emptyStateCategoriesHeadline,
     description: Strings.emptyStateCategoriesDescription,
-    ctaLabel: null,
-    clearLabel: null,
     placement: 'centered',
   },
   goals: {
     icon: 'target',
     headline: Strings.emptyGoalsTitle,
     description: Strings.emptyGoalsSub,
-    ctaLabel: null,
-    clearLabel: null,
     placement: 'centered',
   },
   budget: {
@@ -136,16 +125,13 @@ const VARIANT_CONFIG: Record<FixedCopyVariant, VariantConfig> & {
     headline: Strings.emptyBudgetTitle,
     description: Strings.emptyBudgetSub,
     ctaLabel: Strings.emptyBudgetCta,
-    clearLabel: null,
     placement: 'centered',
   },
-  // `ctaLabel` stays null: N3's action is `Strings.n3EmptyCta` in the `OnboardingShell` footer.
+  // No `ctaLabel`: N3's action is `Strings.n3EmptyCta` in the `OnboardingShell` footer.
   onboardingAccounts: {
     icon: 'database-alert-outline', // mockup.html:2095
     headline: Strings.n3EmptyTitle,
     description: Strings.n3EmptyBody,
-    ctaLabel: null,
-    clearLabel: null,
     placement: 'centered',
   },
 };
@@ -181,8 +167,8 @@ export function resolveEmptyStateCopy(props: EmptyStateProps): EmptyStateCopy {
       typeof config.description === 'function'
         ? config.description(archivedCount)
         : config.description,
-    ctaLabel: config.ctaLabel ?? undefined,
-    clearLabel: config.clearLabel ?? undefined,
+    ctaLabel: config.ctaLabel,
+    clearLabel: config.clearLabel,
   };
 }
 

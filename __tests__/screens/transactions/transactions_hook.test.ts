@@ -2264,6 +2264,66 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 });
   });
 
+  it('after a failed read, no render on the way back to all reads the first-load error before the retry answers', async () => {
+    mockGetAll.mockRejectedValueOnce(new Error('db down'));
+    const firstLoadErrorFrames: boolean[] = [];
+    const { result } = await renderHook(() => {
+      const hook = useTransactions();
+      firstLoadErrorFrames.push(hook.state.showFirstLoadError);
+      return hook;
+    });
+    await waitFor(() => expect(result.current.state.showFirstLoadError).toBe(true));
+    await act(() => {
+      transactionStoreState = {
+        ...transactionStoreState,
+        ...emptySnapshot({ type: TransactionType.Expense }),
+      };
+      useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
+    });
+    await settle();
+
+    firstLoadErrorFrames.length = 0;
+    await act(() => {
+      transactionStoreState = { ...transactionStoreState, ...emptySnapshot() };
+      useTransactionsScreenStore.getState().setActiveFilter('all');
+    });
+    await waitFor(() =>
+      expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 }),
+    );
+    await settle();
+
+    expect(mockGetAll).toHaveBeenCalledTimes(2);
+    expect(firstLoadErrorFrames.length).toBeGreaterThan(0);
+    expect(firstLoadErrorFrames).not.toContain(true);
+  });
+
+  it('a rejection that lands after a filter went on sets no failure flag', async () => {
+    let rejectRead!: (error: Error) => void;
+    mockGetAll.mockReturnValueOnce(
+      new Promise<Transaction[]>((_resolve, reject) => {
+        rejectRead = reject;
+      }),
+    );
+    await renderHook(() => useTransactions());
+    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    await act(() => {
+      transactionStoreState = {
+        ...transactionStoreState,
+        ...emptySnapshot({ type: TransactionType.Expense }),
+      };
+      useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
+    });
+    await settle();
+
+    await act(async () => {
+      rejectRead(new Error('db down'));
+    });
+    await settle();
+
+    expect(consoleSpy).toHaveBeenCalled();
+    expect(readFailed()).toBe(false);
+  });
+
   it.each<[string, boolean]>([
     ['an answered month', false],
     ['a failed read', true],
@@ -2548,9 +2608,20 @@ describe('useTransactions delete dialog (MA-093)', () => {
 
     expect(result.current.state.deleteBusy).toBe(false);
     expect(result.current.state.pendingDeleteId).toBeNull();
-    expect(result.current.state.deleteBody).toBe('');
+    expect(result.current.state.deleteBody).toBe(EXPENSE_BODY);
     expect(mockToast.show).toHaveBeenCalledTimes(1);
     expect(mockToast.show).toHaveBeenCalledWith(DELETED_TOAST);
+  });
+
+  it('keeps the body through the close when the delete is cancelled', async () => {
+    setupSeeded();
+    const { result } = await renderHook(() => useTransactions());
+    await act(() => result.current.requestDelete('tx-1'));
+
+    await act(() => result.current.cancelDelete());
+
+    expect(result.current.state.pendingDeleteId).toBeNull();
+    expect(result.current.state.deleteBody).toBe(EXPENSE_BODY);
   });
 
   it.each<[string, Error, () => string]>([

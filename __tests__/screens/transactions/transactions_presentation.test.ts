@@ -45,17 +45,17 @@ describe('buildTransactionsPresentation', () => {
     [
       'initial load',
       { listStatus: 'initialLoading', rowCount: 0, hasLoadedOnce: false },
-      { showInitialSkeleton: true, showEmptyState: false },
+      { showInitialSkeleton: true, emptyVariant: 'none' },
     ],
     [
       'loaded empty',
       { listStatus: 'empty', rowCount: 0 },
-      { showInitialSkeleton: false, showEmptyState: true },
+      { showInitialSkeleton: false, emptyVariant: 'emptyMonth' },
     ],
     [
       'empty refresh',
       { listStatus: 'refreshing', rowCount: 0, userRefreshing: true },
-      { showEmptyState: true, showRefreshIndicator: true },
+      { emptyVariant: 'emptyMonth', showRefreshIndicator: true },
     ],
     [
       'refresh the user did not start',
@@ -70,7 +70,7 @@ describe('buildTransactionsPresentation', () => {
     [
       'first-load failure',
       { listStatus: 'firstLoadError', rowCount: 0, hasLoadedOnce: false },
-      { showFirstLoadError: true, showEmptyState: false, loadErrorVariant: 'none' },
+      { showFirstLoadError: true, emptyVariant: 'none', loadErrorVariant: 'none' },
     ],
     [
       'list refresh failure',
@@ -143,7 +143,7 @@ describe('buildTransactionsPresentation list slot (MA-093)', () => {
         buildTransactionsPresentation(emptyInput({ filtersActive: true, existence })),
       ).toMatchObject({
         emptyVariant: 'noResults',
-        showEmptyState: true,
+        awaitsExistence: false,
         showInitialSkeleton: false,
         showFirstLoadError: false,
         showsBackToThisMonth: false,
@@ -158,8 +158,8 @@ describe('buildTransactionsPresentation list slot (MA-093)', () => {
       false,
       {
         showInitialSkeleton: true,
+        awaitsExistence: true,
         emptyVariant: 'none',
-        showEmptyState: false,
         showFirstLoadError: false,
         showsBackToThisMonth: false,
       },
@@ -170,9 +170,9 @@ describe('buildTransactionsPresentation list slot (MA-093)', () => {
       false,
       {
         showFirstLoadError: true,
+        awaitsExistence: true,
         loadErrorVariant: 'none',
         emptyVariant: 'none',
-        showEmptyState: false,
         showInitialSkeleton: false,
         showsBackToThisMonth: false,
       },
@@ -183,7 +183,7 @@ describe('buildTransactionsPresentation list slot (MA-093)', () => {
       false,
       {
         emptyVariant: 'noData',
-        showEmptyState: true,
+        awaitsExistence: true,
         showInitialSkeleton: false,
         showFirstLoadError: false,
         showsBackToThisMonth: false,
@@ -195,7 +195,7 @@ describe('buildTransactionsPresentation list slot (MA-093)', () => {
       false,
       {
         emptyVariant: 'emptyMonth',
-        showEmptyState: true,
+        awaitsExistence: true,
         showInitialSkeleton: false,
         showFirstLoadError: false,
         showsBackToThisMonth: true,
@@ -207,7 +207,7 @@ describe('buildTransactionsPresentation list slot (MA-093)', () => {
       true,
       {
         emptyVariant: 'emptyMonth',
-        showEmptyState: true,
+        awaitsExistence: true,
         showInitialSkeleton: false,
         showFirstLoadError: false,
         showsBackToThisMonth: false,
@@ -226,7 +226,7 @@ describe('buildTransactionsPresentation list slot (MA-093)', () => {
 
       expect(withRows).toMatchObject({
         emptyVariant: 'none',
-        showEmptyState: false,
+        awaitsExistence: false,
         showInitialSkeleton: false,
         showFirstLoadError: false,
         showsBackToThisMonth: false,
@@ -267,12 +267,24 @@ describe('buildTransactionsPresentation list slot (MA-093)', () => {
         ),
       ).toMatchObject({
         showFirstLoadError: true,
+        awaitsExistence: false,
         emptyVariant: 'none',
-        showEmptyState: false,
         showInitialSkeleton: false,
       });
     },
   );
+
+  it("the list's own first-load failure over a loaded snapshot does not wait on the read", () => {
+    expect(
+      buildTransactionsPresentation(
+        emptyInput({ listStatus: 'firstLoadError', existence: 'unknown' }),
+      ),
+    ).toMatchObject({
+      awaitsExistence: false,
+      showFirstLoadError: true,
+      showInitialSkeleton: false,
+    });
+  });
 
   it.each(EXISTENCES)(
     'a snapshot not yet loaded reads the skeleton and no block whatever the read says (%s)',
@@ -284,13 +296,12 @@ describe('buildTransactionsPresentation list slot (MA-093)', () => {
       ).toMatchObject({
         showInitialSkeleton: true,
         emptyVariant: 'none',
-        showEmptyState: false,
         showFirstLoadError: false,
       });
     },
   );
 
-  it('showEmptyState is true exactly when a block is chosen, and the link shows on emptyMonth alone', () => {
+  it('the link shows on emptyMonth alone', () => {
     const listStatuses: TransactionListStatus[] = [
       'initialLoading',
       'empty',
@@ -316,7 +327,6 @@ describe('buildTransactionsPresentation list slot (MA-093)', () => {
                 }),
               );
 
-              expect(presentation.showEmptyState).toBe(presentation.emptyVariant !== 'none');
               expect(presentation.showsBackToThisMonth).toBe(
                 presentation.emptyVariant === 'emptyMonth',
               );
