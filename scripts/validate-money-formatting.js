@@ -13,6 +13,23 @@ const CONSTRUCTOR = /(?<![\w.])Intl\.NumberFormat\s*\(/;
 // ASCII ascending by path, matching `git ls-files` order.
 const ALLOWLIST = [{ path: 'src/utils/format_amount.ts' }];
 
+const MINUS_GLYPH = '(?:\\bMINUS_SIGN\\b|\'[-\u2212]\'|"[-\u2212]"|`[-\u2212]`)';
+const EMPTY_STRING = '(?:\'\'|""|``)';
+// A ternary whose branches are a minus glyph and an empty string; the match starts at its `?`.
+const OWNED_SIGN = new RegExp(
+  `(?<!\\?)\\?\\s*(?:${MINUS_GLYPH}\\s*:\\s*${EMPTY_STRING}|${EMPTY_STRING}\\s*:\\s*${MINUS_GLYPH})`,
+  'g',
+);
+
+// Ascending by path; `name` narrows an entry to the value of the property with that key.
+const OWNED_SIGN_ALLOWLIST = [
+  {
+    path: 'src/modules/transactions/screens/transactions/transactions.helpers.ts',
+    name: 'leftOfIncome',
+  },
+  { path: 'src/utils/format_amount.ts' },
+];
+
 const listing = spawnSync(
   'git',
   ['-c', 'core.quotePath=false', 'ls-files', 'src/*.ts', 'src/*.tsx'],
@@ -41,20 +58,40 @@ if (files.length === 0) {
 }
 
 const fileSet = new Set(files);
-const constructorLineCache = new Map();
+const strippedLinesCache = new Map();
+
+function strippedLines(relPath) {
+  if (strippedLinesCache.has(relPath)) return strippedLinesCache.get(relPath);
+  const abs = path.join(root, relPath);
+  const result = fs.existsSync(abs)
+    ? stripComments(fs.readFileSync(abs, 'utf8').split('\n'))
+    : undefined;
+  strippedLinesCache.set(relPath, result);
+  return result;
+}
 
 function firstConstructorLine(relPath) {
-  if (constructorLineCache.has(relPath)) return constructorLineCache.get(relPath);
-  const abs = path.join(root, relPath);
-  if (!fs.existsSync(abs)) {
-    constructorLineCache.set(relPath, undefined);
-    return undefined;
+  const index = strippedLines(relPath)?.findIndex((line) => CONSTRUCTOR.test(line)) ?? -1;
+  return index === -1 ? undefined : index + 1;
+}
+
+// Text only, no syntax tree: a bracket, `,` or `;` inside a string literal counts as code.
+function sitsInProperty(text, questionIndex, name) {
+  const key = new RegExp(`(?<![\\w$.])${name}\\s*:`, 'g');
+  const lastKey = [...text.slice(0, questionIndex).matchAll(key)].at(-1);
+  if (lastKey === undefined) return false;
+  let depth = 0;
+  for (const ch of text.slice(lastKey.index + lastKey[0].length, questionIndex)) {
+    if ('([{'.includes(ch)) {
+      depth++;
+    } else if (')]}'.includes(ch)) {
+      if (depth === 0) return false;
+      depth--;
+    } else if (depth === 0 && (ch === ',' || ch === ';')) {
+      return false;
+    }
   }
-  const lines = fs.readFileSync(abs, 'utf8').split('\n');
-  const index = stripComments(lines).findIndex((line) => CONSTRUCTOR.test(line));
-  const result = index === -1 ? undefined : index + 1;
-  constructorLineCache.set(relPath, result);
-  return result;
+  return true;
 }
 
 const allowlistPaths = new Set(ALLOWLIST.map((entry) => entry.path));
@@ -87,6 +124,41 @@ for (const entry of ALLOWLIST) {
         `${entry.path}: allowlisted for #${entry.issue} but no longer constructs an \`Intl.NumberFormat\` — delete its allowlist entry in scripts/validate-money-formatting.js`,
       );
     }
+  }
+}
+
+const coveringEntries = new Set();
+
+for (const file of files) {
+  const text = strippedLines(file)?.join('\n');
+  if (text === undefined) continue;
+  const entries = OWNED_SIGN_ALLOWLIST.filter((entry) => entry.path === file);
+  for (const match of text.matchAll(OWNED_SIGN)) {
+    const cover = entries.find(
+      (entry) => entry.name === undefined || sitsInProperty(text, match.index, entry.name),
+    );
+    if (cover !== undefined) {
+      coveringEntries.add(cover);
+      continue;
+    }
+    const line = text.slice(0, match.index).split('\n').length;
+    errors.push(
+      `${file}:${line}: builds an owned sign by hand — use \`formatOwnedAmountParts\` or \`formatAccountBalanceParts\` from src/utils/format_amount.ts instead (docs/adr/2026-10-06-account-balances-owned-composer.md)`,
+    );
+  }
+}
+
+for (const entry of OWNED_SIGN_ALLOWLIST) {
+  const scope = entry.name === undefined ? '' : ` in the \`${entry.name}\` property`;
+  const isGone = !fileSet.has(entry.path) || !fs.existsSync(path.join(root, entry.path));
+  if (isGone) {
+    errors.push(
+      `${entry.path}: allowlisted for an owned sign${scope} but is not a tracked src/ .ts/.tsx file — delete or update its OWNED_SIGN_ALLOWLIST entry in scripts/validate-money-formatting.js`,
+    );
+  } else if (!coveringEntries.has(entry)) {
+    errors.push(
+      `${entry.path}: allowlisted for an owned sign${scope} but builds none there — delete or update its OWNED_SIGN_ALLOWLIST entry in scripts/validate-money-formatting.js`,
+    );
   }
 }
 
