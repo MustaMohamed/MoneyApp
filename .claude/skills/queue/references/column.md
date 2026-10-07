@@ -12,7 +12,7 @@
    The candidates are the actions whose `queue` equals the column, in the script's order. The script sets `queue` on an open leaf whose command a session runs, with every Depends on closed, no open question record, no lease, and at Defined a parent that is not `Reviewed none`. At Defined it also sets it on a parent to mark: an open parent at Defined that reads `Reviewed none`, whose command is `/issue-review <parent>`, with every Depends on closed, its own parent not `Reviewed none`, every open child at Defined, and no open question record and no lease, held or stale, on the parent or on any open child. Its children get no slot until that run has marked it, so the parent goes first, and of two nested unmarked parents the outer one. No parent is a candidate of Ready For Development or Planned. A parent whose command is its review and which gets no slot carries the reason as `queueHold`.
 3. `/queue Planned` only: for each action at Awaiting Human with `pr.state` `OPEN`, a `state.md` on this machine and no lease, run the read of § Changes asked at Awaiting Human. With one or more, § Start `ship-<n>` on it, counted toward `n` and held by Cap, Emulator slot, GraphQL budget, Host load and Measures only.
 4. For each candidate in order, read § Holds. A held candidate is skipped and the next is tried. Otherwise § Start it. Stop at `n` starts.
-5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, `on <model>` appended when one was given, or `held, <hold>`; `/queue Defined` only, then every action with a `queueHold`, `#<n> MA-XXX · not queued, <queueHold>`; then every action whose `lease` is `stale`, with its action text and its command; while the floor or the ceiling reads `unmeasured`, the readings of each start; then each record in the window with its Check and each summary file in the window without the heading, § After 10 queued tickets. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
+5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, `on <model>` appended when one was given, or `held, <hold>`; `/queue Defined` only, then every action with a `queueHold`, `#<n> MA-XXX · not queued, <queueHold>`; then every action whose `lease` is `stale`, with its action text and its command; while the floor or the ceiling reads `unmeasured`, the readings of each start; then each record in the window with its Check, § After 10 queued tickets. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
 
 ## Holds
 
@@ -120,19 +120,30 @@ The user adds this to `permissions.allow` in `settings.local.json`, in `.claude/
 
 Once the log holds 10 distinct tickets, each pass reads two measures before a `ship` start. One ticket that asks is that ticket's miss; three in the window are the process's.
 
-Window start: 2026-10-04 19:48, this machine's local time, as the log's times are. Only a PR that fixes a step a hold named moves it, to the day and time the PR is written. No other edit to a skill moves it, and no pass does.
+Window start: none, the whole log.
 
-The window is the ten most recent distinct tickets with a `ship` line that ended after the window start, and every `ship` line of theirs after it. A line ended on its file's date, at its end time. A `wrapper failed` line is no ticket's line. Each measure counts tickets.
-
-1. Questions asked during `/ship`: the tickets with a line whose `questions parked` is above 0.
-2. Questions that should have been asked earlier: the tickets with one or more rows in the table under `## Questions that should have been asked earlier` in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`. A ticket with no summary file counts 0, and so does the header row alone. A summary file without that heading counts its ticket, since nothing in it shows the run missed none.
-
-A ticket's records are the comments on its issue that `/ship` parked, open or answered, and a record's Check is its `Miss:` line, `none` without one:
+When that line names a PR, the window starts at its merge, read once a pass, and an unmerged PR starts nothing:
 
 ```bash
-gh api --paginate repos/MustaMohamed/MoneyApp/issues/<n>/comments --jq '.[] | select(.body | test("^Question:") and test("\nAsked by: ship")) | .html_url'
+gh pr view <pr> --json mergedAt --jq .mergedAt
 ```
 
-A measure holds at 3 tickets or more: no `ship` run starts in that pass, and the reply names each record and its Check, the `/issue-review` check id or `/prep` step that should have asked. `issue-review` and `prep` starts go on. A held `ship` start writes no `ship` line, so no run of clean lines lifts a hold; a PR that fixes the named step and moves the window start does.
+The window is the ten most recent distinct tickets with a `ship` line that ended after the window start, and those lines. A line ended on its file's date, at its end time, in this machine's local time; the merge time is UTC and is converted before the two are compared. A `wrapper failed` line is no ticket's line. Each measure counts tickets.
 
-Under 3 nothing is held. The reply still names each record in the window with its Check, and each summary file in the window without the heading.
+1. Questions asked during `/ship`: the tickets with a line whose `questions parked` is above 0.
+2. Questions that should have been asked earlier: of those tickets, the ones with a record whose `Miss:` line is not `none`.
+
+A ticket's records are the comments on its issue that `/ship` parked after the window start, open or answered, and a record's Check is its `Miss:` line, `none` without one. Only a ticket measure 1 counts is read, so a pass where no ticket asked makes no call:
+
+```bash
+gh api --paginate repos/MustaMohamed/MoneyApp/issues/<n>/comments --jq '.[] | select((.body | test("^Question:") and test("\nAsked by: ship")) and .created_at > "<mergedAt, or 0 with no window start>") | .html_url'
+```
+
+A measure holds at 3 tickets or more: no `ship` run starts in that pass, and the reply names each record and its Check, the `/issue-review` check id or `/prep` step that should have asked. `issue-review` and `prep` starts go on. A held `ship` start writes no `ship` line, so no run of clean lines lifts a hold. A PR that sets `Window start:` to its own number does, when it merges, and there are two:
+
+- the fix of a step the hold named;
+- on the user's word that the records are those tickets' own misses, a PR that changes that line alone.
+
+No pass moves the line, and no other edit does.
+
+Under 3 nothing is held. The reply still names each record in the window with its Check.

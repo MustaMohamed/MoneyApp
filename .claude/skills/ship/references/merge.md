@@ -40,7 +40,7 @@ The summary is headed by the PR URL, then ten items in this order, each written 
 7. One screenshot per `Screen checks` row of `issue.md` on a body that has the section, else per screen the plan's Screens section lists, from `findings/render/`; then each state `state.md` → Log records as not probed.
 8. Tickets opened, by number.
 9. `rejected` findings, each with what settled it, per [SKILL.md](../SKILL.md) → Rulings: the ticket line quoted, the frame file, the convention's `path:line` or the smallest change's `## Decisions` line.
-10. Questions that should have been asked earlier, under the heading `## Questions that should have been asked earlier`: a table with the columns Record, Check, one row per `## Parked` line of `state.md` whose `miss:` is not `none`. Record is the line's record URL, Check is its miss. With no such line the heading and the header row are written alone, never `none`. [queue column.md](../../queue/references/column.md) reads this heading.
+10. Questions that should have been asked earlier, under the heading `## Questions that should have been asked earlier`: a table with the columns Record, Check, one row per `## Parked` line of `state.md` whose `miss:` is not `none`. Record is the line's record URL, Check is its miss. With no such line the heading and the header row are written alone, never `none`.
 
 Then wait, with a watch on the merge so the word "merged" is never needed. **The human merges, never the conductor.** A change asked after the summary: § A change after the summary.
 
