@@ -421,13 +421,17 @@ describe('buildTransactionsHeroModel', () => {
 
   describe('the spoken Out', () => {
     it('speaks Out as its amount, one space and the code', () => {
-      expect(hero().outAccessibilityLabel).toBe('9,400 EGP');
+      const model = hero();
+
+      expect(model.outAccessibilityLabel).toBe('9,400 EGP');
+      expect(model.outAccessibilityLabel).toBe(`${model.out} ${model.currencyCode}`);
     });
 
     it('speaks an Out a card credit took below zero behind U+2212, never U+002D', () => {
       const model = hero({ current: { incomeEgp: 1_000, expenseEgp: -50, netEgp: 1_050 } });
 
       expect(model.outAccessibilityLabel).toBe('−50 EGP');
+      expect(model.outAccessibilityLabel).toBe(`${model.out} ${model.currencyCode}`);
       expect(model.outAccessibilityLabel).not.toContain('-');
     });
 

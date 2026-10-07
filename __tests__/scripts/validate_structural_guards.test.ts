@@ -404,11 +404,12 @@ const REQUIRED: RequiredSeed[] = [
   ...['Income', 'Expense', 'Transfer', 'CCPayment'].map((member) =>
     withoutMember(TRANSACTIONS_INDEX, 'TransactionType', member),
   ),
+  // The import stays, so only a row that requires the call reports this seed.
   {
-    guard: 'formatCurrencyAmount in the budget picker',
+    guard: 'a formatCurrencyAmount call in the budget picker, with its import kept',
     rel: BUDGET_PICKER,
-    seed: () => replaceEvery(BUDGET_PICKER, 'formatCurrencyAmount', 'formatSeeded'),
-    words: 'no `formatCurrencyAmount`',
+    seed: () => replaceEvery(BUDGET_PICKER, 'formatCurrencyAmount(', 'formatSeeded('),
+    words: 'no `formatCurrencyAmount` call',
   },
   withoutTag(FILTER_RAIL, 'MonthFilter', 'FilterRail'),
   withoutTag(FILTER_RAIL, 'SegmentFilter', 'FilterRail'),
