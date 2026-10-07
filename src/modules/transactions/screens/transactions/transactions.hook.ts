@@ -107,7 +107,7 @@ export function useTransactions() {
   const beginTotalsRequest = useTransactionsScreenStore.getState().beginTotalsRequest;
   const resolveTotals = useTransactionsScreenStore.getState().resolveTotals;
   const failTotals = useTransactionsScreenStore.getState().failTotals;
-  const hasTotalsForMonth = useTransactionsScreenStore.getState().hasTotalsForMonth;
+  const hasTotalsForScope = useTransactionsScreenStore.getState().hasTotalsForScope;
   const beginExistenceRequest = useTransactionsScreenStore.getState().beginExistenceRequest;
   const resolveExistence = useTransactionsScreenStore.getState().resolveExistence;
   const failExistence = useTransactionsScreenStore.getState().failExistence;
@@ -228,8 +228,8 @@ export function useTransactions() {
         mutationVersion: version,
       } = totalsInputRef.current;
       if (!shouldApply()) return;
-      const hasPreservedData = preserveData && hasTotalsForMonth(yearMonth);
-      const requestId = beginTotalsRequest(queryKey, yearMonth, preserveData);
+      const hasPreservedData = preserveData && hasTotalsForScope(yearMonth, query.accountIds);
+      const requestId = beginTotalsRequest(queryKey, yearMonth, query.accountIds, preserveData);
       beginTotalsLoad(hasPreservedData);
       const scopeKey = totalsScopeKey(yearMonth, query.accountIds);
       const held = heldPreviousRef.current;
@@ -275,7 +275,7 @@ export function useTransactions() {
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);
         if (shouldApply() && failTotals(queryKey, requestId)) {
-          failTotalsLoad(hasTotalsForMonth(yearMonth), scopeKey);
+          failTotalsLoad(hasTotalsForScope(yearMonth, query.accountIds), scopeKey);
         }
       }
     },
@@ -284,7 +284,7 @@ export function useTransactions() {
       beginTotalsLoad,
       failTotals,
       failTotalsLoad,
-      hasTotalsForMonth,
+      hasTotalsForScope,
       resolveTotals,
       resolveTotalsLoad,
     ],
