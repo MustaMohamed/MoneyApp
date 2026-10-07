@@ -55,10 +55,10 @@ describe('useTransactionsScreenStore totals ownership', () => {
 
   it('accepts only the latest request for a month', () => {
     const store = useTransactionsScreenStore.getState();
-    const first = store.beginTotalsRequest(JULY_KEY, '2026-07', false);
+    const first = store.beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
     const second = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest(JULY_KEY, '2026-07', false);
+      .beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
 
     expect(useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, first, older)).toBe(false);
     expect(useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, second, newer)).toBe(true);
@@ -68,8 +68,10 @@ describe('useTransactionsScreenStore totals ownership', () => {
   it('rejects completion owned by another month', () => {
     const july = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest(JULY_KEY, '2026-07', false);
-    useTransactionsScreenStore.getState().beginTotalsRequest(AUGUST_KEY, '2026-08', false);
+      .beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
+    useTransactionsScreenStore
+      .getState()
+      .beginTotalsRequest(AUGUST_KEY, '2026-08', undefined, false);
 
     expect(useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, july, older)).toBe(false);
     expect(useTransactionsScreenStore.getState()).toMatchObject({
@@ -80,10 +82,10 @@ describe('useTransactionsScreenStore totals ownership', () => {
   });
 
   it('rejects completion owned by another query key', () => {
-    useTransactionsScreenStore.getState().beginTotalsRequest(JULY_KEY, '2026-07', false);
+    useTransactionsScreenStore.getState().beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
     const search = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', true);
+      .beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', undefined, true);
 
     expect(useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, search, older)).toBe(
       false,
@@ -105,40 +107,156 @@ describe('useTransactionsScreenStore totals ownership', () => {
   it('preserves only same-month totals when requested, across a key change', () => {
     const first = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest(JULY_KEY, '2026-07', false);
+      .beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
     useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, first, older);
 
-    useTransactionsScreenStore.getState().beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', true);
+    useTransactionsScreenStore
+      .getState()
+      .beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', undefined, true);
     expect(useTransactionsScreenStore.getState().totals).toEqual({ ...older, queryKey: JULY_KEY });
     expect(useTransactionsScreenStore.getState().totalsQueryKey).toBe(JULY_SEARCH_KEY);
-    expect(useTransactionsScreenStore.getState().hasTotalsForMonth('2026-07')).toBe(true);
+    expect(useTransactionsScreenStore.getState().hasTotalsForScope('2026-07', undefined)).toBe(
+      true,
+    );
 
-    useTransactionsScreenStore.getState().beginTotalsRequest(AUGUST_KEY, '2026-08', true);
+    useTransactionsScreenStore
+      .getState()
+      .beginTotalsRequest(AUGUST_KEY, '2026-08', undefined, true);
     expect(useTransactionsScreenStore.getState().totals).toBeNull();
-    expect(useTransactionsScreenStore.getState().hasTotalsForMonth('2026-07')).toBe(false);
+    expect(useTransactionsScreenStore.getState().hasTotalsForScope('2026-07', undefined)).toBe(
+      false,
+    );
   });
 
   it('stamps the resolved data with the key it was computed for, which a same-month begin keeps', () => {
     const first = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest(JULY_KEY, '2026-07', false);
+      .beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
     useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, first, older);
     expect(useTransactionsScreenStore.getState().totals?.queryKey).toBe(JULY_KEY);
 
-    useTransactionsScreenStore.getState().beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', true);
+    useTransactionsScreenStore
+      .getState()
+      .beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', undefined, true);
     expect(useTransactionsScreenStore.getState()).toMatchObject({
       totalsQueryKey: JULY_SEARCH_KEY,
       totals: { queryKey: JULY_KEY },
     });
   });
 
+  describe('account scope (MA-107)', () => {
+    const JULY_SCOPED_KEY = 'july:scoped';
+    const store = () => useTransactionsScreenStore.getState();
+
+    function landJuly(accountIds: string[] | undefined): void {
+      const requestId = store().beginTotalsRequest(JULY_KEY, '2026-07', accountIds, false);
+      store().resolveTotals(JULY_KEY, requestId, older);
+    }
+
+    it.each<[string, string[] | undefined, string[] | undefined]>([
+      ['all accounts to one', undefined, ['acc-1']],
+      ['one account to another', ['acc-1'], ['acc-2']],
+      ['one account to two', ['acc-1'], ['acc-1', 'acc-2']],
+      ['two accounts back to all', ['acc-1', 'acc-2'], []],
+    ])('drops same-month totals from %s, even when asked to preserve', (_, from, to) => {
+      landJuly(from);
+
+      store().beginTotalsRequest(JULY_SCOPED_KEY, '2026-07', to, true);
+
+      expect(store().totals).toBeNull();
+      expect(store().totalsQueryKey).toBe(JULY_SCOPED_KEY);
+    });
+
+    it.each<[string, string[] | undefined, string[] | undefined]>([
+      ['the same ids in another order', ['acc-1', 'acc-2'], ['acc-2', 'acc-1']],
+      ['no ids and an empty list, both all accounts', undefined, []],
+    ])('keeps same-month totals across a key change with %s', (_, from, to) => {
+      landJuly(from);
+
+      store().beginTotalsRequest(JULY_SCOPED_KEY, '2026-07', to, true);
+
+      expect(store().totals).toEqual({ ...older, queryKey: JULY_KEY });
+      expect(store().hasTotalsForScope('2026-07', from)).toBe(true);
+      expect(store().hasTotalsForScope('2026-07', to)).toBe(true);
+    });
+
+    it('reports totals for the held scope only, never for another filter or another month', () => {
+      const requestId = store().beginTotalsRequest(JULY_KEY, '2026-07', ['acc-1'], false);
+      expect(store().hasTotalsForScope('2026-07', ['acc-1'])).toBe(false);
+
+      store().resolveTotals(JULY_KEY, requestId, older);
+
+      expect(store().hasTotalsForScope('2026-07', ['acc-1'])).toBe(true);
+      expect(store().hasTotalsForScope('2026-07', ['acc-2'])).toBe(false);
+      expect(store().hasTotalsForScope('2026-07', undefined)).toBe(false);
+      expect(store().hasTotalsForScope('2026-08', ['acc-1'])).toBe(false);
+    });
+
+    it('names no loaded month before a resolve, after a refused resolve, or after a first load that only failed', () => {
+      expect(store()).toHaveProperty('totalsLoadedYearMonth', undefined);
+
+      const stale = store().beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
+      const failed = store().beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
+      expect(store().resolveTotals(JULY_KEY, stale, older)).toBe(false);
+      expect(store().failTotals(JULY_KEY, failed)).toBe(true);
+
+      expect(store()).toHaveProperty('totalsLoadedYearMonth', undefined);
+    });
+
+    it('names the request month once its totals resolve, and a same-month request under another filter keeps it', () => {
+      landJuly(undefined);
+      expect(store().totalsLoadedYearMonth).toBe('2026-07');
+
+      store().beginTotalsRequest(JULY_SCOPED_KEY, '2026-07', ['acc-1'], true);
+
+      expect(store()).toMatchObject({ totals: null, totalsLoadedYearMonth: '2026-07' });
+    });
+
+    it('clears the loaded month on a request for another month, and the way back does not restore it', () => {
+      landJuly(undefined);
+      expect(store().totalsLoadedYearMonth).toBe('2026-07');
+
+      store().beginTotalsRequest(AUGUST_KEY, '2026-08', undefined, true);
+      expect(store().totalsLoadedYearMonth).toBeUndefined();
+
+      store().beginTotalsRequest(JULY_KEY, '2026-07', undefined, true);
+      expect(store().totalsLoadedYearMonth).toBeUndefined();
+    });
+
+    it('publishes the totals and the loaded month in one update', () => {
+      const requestId = store().beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
+      const listener = jest.fn();
+      const unsubscribe = useTransactionsScreenStore.subscribe(listener);
+
+      store().resolveTotals(JULY_KEY, requestId, older);
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(store()).toMatchObject({
+        totals: { queryKey: JULY_KEY },
+        totalsLoadedYearMonth: '2026-07',
+      });
+      unsubscribe();
+    });
+
+    it('reset drops the held scope and the loaded month', () => {
+      landJuly(['acc-1']);
+      expect(store().hasTotalsForScope('2026-07', ['acc-1'])).toBe(true);
+      expect(store().totalsLoadedYearMonth).toBe('2026-07');
+
+      store().reset();
+
+      expect(store().hasTotalsForScope('2026-07', ['acc-1'])).toBe(false);
+      expect(store().totalsLoadedYearMonth).toBeUndefined();
+    });
+  });
+
   it('reports whether a failed request still owns the current key', () => {
     const first = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest(JULY_KEY, '2026-07', false);
+      .beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
     const second = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', false);
+      .beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', undefined, false);
 
     expect(useTransactionsScreenStore.getState().failTotals(JULY_KEY, first)).toBe(false);
     expect(useTransactionsScreenStore.getState().failTotals(JULY_KEY, second)).toBe(false);
@@ -151,7 +269,7 @@ describe('useTransactionsScreenStore totals ownership', () => {
     const scopedPrevious = { incomeEgp: 0, expenseEgp: 16900, netEgp: -16900 };
     const first = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest(JULY_KEY, '2026-07', false);
+      .beginTotalsRequest(JULY_KEY, '2026-07', undefined, false);
     useTransactionsScreenStore.getState().resolveTotals(JULY_KEY, first, {
       current: { ...scopedCurrent },
       previous: { ...scopedPrevious },
@@ -164,7 +282,7 @@ describe('useTransactionsScreenStore totals ownership', () => {
 
     const search = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', true);
+      .beginTotalsRequest(JULY_SEARCH_KEY, '2026-07', undefined, true);
     const days = [{ date: '2026-07-03', netEgp: -2100, count: 2 }];
     expect(
       useTransactionsScreenStore.getState().resolveTotals(JULY_SEARCH_KEY, search, {
@@ -183,7 +301,7 @@ describe('useTransactionsScreenStore totals ownership', () => {
 
     const typed = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest(`${JULY_SEARCH_KEY}:expense`, '2026-07', true);
+      .beginTotalsRequest(`${JULY_SEARCH_KEY}:expense`, '2026-07', undefined, true);
     const changedCurrent = { incomeEgp: 22300, expenseEgp: 10000, netEgp: 12300 };
     useTransactionsScreenStore.getState().resolveTotals(`${JULY_SEARCH_KEY}:expense`, typed, {
       current: changedCurrent,
@@ -274,7 +392,7 @@ describe('useTransactionsScreenStore seedAccountFilter', () => {
   it('leaves the totals slot to its own owner', () => {
     const requestId = useTransactionsScreenStore
       .getState()
-      .beginTotalsRequest('august', '2026-08', false);
+      .beginTotalsRequest('august', '2026-08', undefined, false);
     useTransactionsScreenStore.getState().resolveTotals('august', requestId, {
       current: { incomeEgp: 100, expenseEgp: 80, netEgp: 20 },
       previous: null,
@@ -300,7 +418,7 @@ describe('useTransactionsScreenStore reset', () => {
     useTransactionsScreenStore
       .getState()
       .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['a'] });
-    useTransactionsScreenStore.getState().beginTotalsRequest('august', '2026-08', false);
+    useTransactionsScreenStore.getState().beginTotalsRequest('august', '2026-08', undefined, false);
     useTransactionsScreenStore.getState().reset();
     const s = useTransactionsScreenStore.getState();
     expect(s.searchQuery).toBe('');

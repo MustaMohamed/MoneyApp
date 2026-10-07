@@ -321,6 +321,14 @@ describe('TransactionsScreen', () => {
     expect(getByTestId('transactions-list')).toHaveProp('ListHeaderComponent');
   });
 
+  it('MA-107: the tally slot passes an empty spoken label when its model carries none', async () => {
+    const { getByTestId } = await render(<TransactionsScreen />);
+
+    const slot = getByTestId('transactions-search-tally');
+    expect(slot).toHaveProp('accessibilityLabel', '');
+    expect(slot).toHaveProp('accessible', false);
+  });
+
   it('does not re-render the hero on a search keystroke, only on a new hero model (M25)', async () => {
     const hero = baseTransactionsState.hero;
     mockUseTransactions({ hero });

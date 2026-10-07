@@ -1144,7 +1144,7 @@ describe('useTransactions query ownership', () => {
     await act(() => {
       const totalsStore = useTransactionsScreenStore.getState();
       const julyKey = getTransactionQueryKey(JULY_QUERY);
-      const requestId = totalsStore.beginTotalsRequest(julyKey, '2026-07', true);
+      const requestId = totalsStore.beginTotalsRequest(julyKey, '2026-07', undefined, true);
       useTransactionsState.getState().beginTotalsLoad(true);
       totalsStore.resolveTotals(julyKey, requestId, {
         current: EMPTY_TOTALS,
@@ -2056,6 +2056,409 @@ describe('useTransactions day sections', () => {
       { mode: 'failed', net: DASH },
     ]);
     consoleSpy.mockRestore();
+  });
+});
+
+describe('useTransactions account scope change (MA-107)', () => {
+  const WALLET = makeTestAccount({ id: 'acc-1', name: 'Wallet' });
+  const BANK = makeTestAccount({ id: 'acc-2', name: 'Bank' });
+  const DAY = TRANSACTION.transaction_date;
+  const DASH = Strings.transactionsHeroUnavailable;
+  const WALLET_KEY = getTransactionQueryKey({ ...JULY_QUERY, accountIds: ['acc-1'] });
+  const JULY = { incomeEgp: 22300, expenseEgp: 9400, netEgp: 12900 };
+  const JUNE = { incomeEgp: 20000, expenseEgp: 16900, netEgp: 3100 };
+  const WALLET_JULY = { incomeEgp: 10000, expenseEgp: 2100, netEgp: 7900 };
+  type HeroModel = ReturnType<typeof useTransactions>['state']['hero'];
+  type Landed = Awaited<ReturnType<typeof renderLanded>>;
+  let consoleSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  function setAccountLists(accounts: unknown[], archivedAccounts: unknown[]): void {
+    attachMockSelectorStore(useAccountStore, () => ({
+      accounts,
+      archivedAccounts,
+      accountLookupById: {},
+      accountLookupError: false,
+      loadAccountLookup,
+      hasLoaded: true,
+    }));
+  }
+
+  async function renderLanded(appliedIds: string[] = [], rowsOnScreen = false) {
+    setupStores(rowsOnScreen ? { transactions: [TRANSACTION], status: 'ready' } : {}, {
+      accounts: [WALLET, BANK],
+      hasLoaded: true,
+    });
+    useTransactionsScreenStore
+      .getState()
+      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: appliedIds });
+    mockGetMonthAggregate.mockImplementation(async () => ({
+      days: [{ date: DAY, netEgp: -450, count: 3 }],
+      matchCount: 3,
+      matchNetEgp: -450,
+      scoped: { ...JULY },
+    }));
+    mockGetScopedTotals.mockImplementation(async () => ({ ...JUNE }));
+    const heroes: HeroModel[] = [];
+    const rendered = await renderHook(
+      (_props: Record<string, never>) => {
+        const value = useTransactions();
+        heroes.push(value.state.hero);
+        return value;
+      },
+      { initialProps: {} },
+    );
+    await waitFor(() =>
+      expect(rendered.result.current.state).toMatchObject({
+        totalsStatus: 'ready',
+        hero: { mode: 'figures', out: '9,400' },
+      }),
+    );
+    return { ...rendered, heroes };
+  }
+
+  function holdNextAggregate(): void {
+    mockGetMonthAggregate.mockClear();
+    mockGetMonthAggregate.mockReturnValue(new Promise(() => {}));
+  }
+
+  async function waitForAggregateUnder(accountIds: string[] | undefined): Promise<void> {
+    await waitFor(() => {
+      expect(mockGetMonthAggregate).toHaveBeenCalled();
+      const { calls } = mockGetMonthAggregate.mock;
+      expect(calls[calls.length - 1]?.[0].accountIds).toEqual(accountIds);
+    });
+  }
+
+  async function applyAccounts(accountIds: string[]): Promise<void> {
+    await act(() => {
+      useTransactionsScreenStore.getState().setAppliedFilters({ ...EMPTY_FILTERS, accountIds });
+    });
+  }
+
+  async function failChipTap(whilePending: (landed: Landed) => void = () => {}): Promise<Landed> {
+    const landed = await renderLanded([], true);
+    let rejectLoad!: (error: Error) => void;
+    mockGetMonthAggregate.mockClear();
+    mockGetMonthAggregate.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectLoad = reject;
+      }),
+    );
+    await act(() => {
+      transactionStoreState.queryKey = WALLET_KEY;
+      transactionStoreState.snapshotKey = WALLET_KEY;
+      landed.result.current.toggleAccountChip('acc-1');
+    });
+    await waitForAggregateUnder(['acc-1']);
+    whilePending(landed);
+
+    await act(async () => {
+      rejectLoad(new Error('db down'));
+    });
+    await waitFor(() => expect(landed.result.current.state.totalsStatus).toBe('firstLoadError'));
+    return landed;
+  }
+
+  it.each<[string, string[], (landed: Landed) => Promise<void>, string[] | undefined]>([
+    ['one account applied from the sheet', [], () => applyAccounts(['acc-1']), ['acc-1']],
+    [
+      'two accounts applied from the sheet',
+      [],
+      () => applyAccounts(['acc-1', 'acc-2']),
+      ['acc-1', 'acc-2'],
+    ],
+    ['the sheet applied back to all accounts', ['acc-1'], () => applyAccounts([]), undefined],
+    [
+      'a chip tap',
+      [],
+      async ({ result }) => {
+        await act(() => result.current.toggleAccountChip('acc-1'));
+      },
+      ['acc-1'],
+    ],
+    [
+      'See all from an account detail',
+      [],
+      async () => {
+        await act(() => {
+          useTransactionsScreenStore.getState().seedAccountFilter('acc-1', '2026-07');
+        });
+      },
+      ['acc-1'],
+    ],
+    [
+      'Clear Filters',
+      ['acc-1'],
+      async ({ result }) => {
+        await act(() => result.current.resetFilters());
+      },
+      undefined,
+    ],
+    [
+      'the applied account archived',
+      ['acc-1'],
+      async ({ rerender }) => {
+        setAccountLists([BANK], [makeTestAccount({ id: 'acc-1', name: 'Wallet', is_archived: 1 })]);
+        await rerender({});
+      },
+      undefined,
+    ],
+    [
+      'the applied account deleted',
+      ['acc-1'],
+      async ({ rerender }) => {
+        setAccountLists([BANK], []);
+        await rerender({});
+      },
+      undefined,
+    ],
+  ])(
+    '%s: the hero is a skeleton with the search live while the new scope loads',
+    async (_, startIds, change, loadedIds) => {
+      const landed = await renderLanded(startIds);
+      holdNextAggregate();
+
+      await change(landed);
+      await waitForAggregateUnder(loadedIds);
+
+      expect(landed.result.current.state).toMatchObject({
+        hero: { mode: 'skeleton' },
+        totals: null,
+        searchDisabled: false,
+      });
+    },
+  );
+
+  it('prints figures in no render after a chip tap while the new scope loads', async () => {
+    const { result, heroes } = await renderLanded();
+    holdNextAggregate();
+    let rendersBeforeTap = 0;
+
+    await act(() => {
+      rendersBeforeTap = heroes.length;
+      result.current.toggleAccountChip('acc-1');
+    });
+    await waitForAggregateUnder(['acc-1']);
+
+    const afterTap = heroes.slice(rendersBeforeTap);
+    expect(afterTap.length).toBeGreaterThan(0);
+    expect(afterTap.filter((hero) => hero.mode === 'figures')).toEqual([]);
+  });
+
+  it('reads the loading tally and day headers while a chip tap loads, then dashes with the figures alert once it rejects', async () => {
+    const { result } = await failChipTap((pending) => {
+      expect(pending.result.current.state.tally).toMatchObject({
+        mode: 'skeleton',
+        count: undefined,
+        sum: undefined,
+      });
+      expect(pending.result.current.state.sections.map((section) => section.figures)).toEqual([
+        { mode: 'skeleton' },
+      ]);
+    });
+
+    expect(result.current.state).toMatchObject({
+      totals: null,
+      hero: { mode: 'dashes', out: DASH },
+      loadErrorVariant: 'totals',
+      tally: { mode: 'failed', count: DASH, sum: undefined },
+      searchDisabled: false,
+    });
+    expect(result.current.state.sections.map((section) => section.figures)).toEqual([
+      { mode: 'failed', net: DASH },
+    ]);
+  });
+
+  it('keeps the dashes and the search live while a retry of the failed scope is in flight', async () => {
+    const { result } = await failChipTap();
+    holdNextAggregate();
+
+    await act(() => {
+      void result.current.retryTotals();
+    });
+    await waitFor(() => {
+      expect(mockGetMonthAggregate).toHaveBeenCalledTimes(1);
+      expect(result.current.state.totalsStatus).toBe('initialLoading');
+    });
+
+    expect(result.current.state).toMatchObject({
+      hero: { mode: 'dashes', out: DASH },
+      searchDisabled: false,
+    });
+  });
+
+  it('shows the skeleton with the search live when the scope changes again after that failure', async () => {
+    const { result } = await failChipTap();
+    holdNextAggregate();
+
+    await act(() => result.current.toggleAccountChip('acc-2'));
+    await waitForAggregateUnder(['acc-2']);
+
+    expect(result.current.state).toMatchObject({
+      hero: { mode: 'skeleton' },
+      totals: null,
+      searchDisabled: false,
+    });
+  });
+
+  it("shows the skeleton, then the new scope's own figures once they land", async () => {
+    const { result } = await renderLanded();
+    let resolveLoad!: (aggregate: TransactionMonthAggregate) => void;
+    mockGetMonthAggregate.mockClear();
+    mockGetMonthAggregate.mockReturnValue(
+      new Promise((resolve) => {
+        resolveLoad = resolve;
+      }),
+    );
+
+    await act(() => result.current.toggleAccountChip('acc-1'));
+    await waitForAggregateUnder(['acc-1']);
+    expect(result.current.state.hero.mode).toBe('skeleton');
+
+    await act(async () => {
+      resolveLoad({ ...EMPTY_AGGREGATE, scoped: { ...WALLET_JULY } });
+    });
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
+
+    expect(result.current.state.hero).toMatchObject({ mode: 'figures', out: '2,100' });
+    expect(result.current.state.totals?.current).toEqual(WALLET_JULY);
+    expect(result.current.state.searchDisabled).toBe(false);
+  });
+
+  it.each<[string, () => void, Record<string, unknown>]>([
+    [
+      'a type tab',
+      () => useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense),
+      { type: TransactionType.Expense },
+    ],
+    [
+      'a search keystroke',
+      () => useTransactionsScreenStore.getState().setSearchQuery('c'),
+      { search: 'c' },
+    ],
+    [
+      'a category filter',
+      () =>
+        useTransactionsScreenStore
+          .getState()
+          .setAppliedFilters({ ...EMPTY_FILTERS, categoryIds: ['cat-1'] }),
+      { categoryIds: ['cat-1'] },
+    ],
+    [
+      'an amount floor',
+      () =>
+        useTransactionsScreenStore
+          .getState()
+          .setAppliedFilters({ ...EMPTY_FILTERS, amountCurrency: Currency.EGP, amountMin: 100 }),
+      { amountMin: 100 },
+    ],
+  ])(
+    '%s keeps the held hero and the store its scope while that load is in flight',
+    async (_, change, loadedQuery) => {
+      const { result } = await renderLanded();
+      const held = result.current.state.hero;
+      holdNextAggregate();
+
+      await act(() => {
+        change();
+      });
+      await waitFor(() =>
+        expect(mockGetMonthAggregate).toHaveBeenCalledWith(expect.objectContaining(loadedQuery)),
+      );
+
+      expect(result.current.state.hero).toBe(held);
+      expect(result.current.state.searchDisabled).toBe(false);
+      expect(useTransactionsScreenStore.getState().hasTotalsForScope('2026-07', undefined)).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each<[string, (landed: Landed) => Promise<void>]>([
+    [
+      'a write',
+      async ({ rerender }) => {
+        transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
+        await rerender({});
+      },
+    ],
+    [
+      'pull-to-refresh',
+      async ({ result }) => {
+        await act(() => {
+          void result.current.onRefresh();
+        });
+      },
+    ],
+    [
+      'regaining focus',
+      async () => {
+        let firstCleanup: void | (() => void) = undefined;
+        await act(() => {
+          firstCleanup = mockFocusEffectCallback?.();
+        });
+        await act(() => firstCleanup?.());
+        await act(() => {
+          mockFocusEffectCallback?.();
+        });
+        await act(async () => {
+          await mockInteractionTasks[mockInteractionTasks.length - 1]?.callback();
+        });
+      },
+    ],
+  ])(
+    '%s keeps the figures on screen and the store its scope while they refresh',
+    async (_, trigger) => {
+      const landed = await renderLanded();
+      holdNextAggregate();
+
+      await trigger(landed);
+      await waitFor(() => {
+        expect(mockGetMonthAggregate).toHaveBeenCalledTimes(1);
+        expect(landed.result.current.state.totalsStatus).toBe('refreshing');
+      });
+
+      expect(landed.result.current.state.hero).toMatchObject({ mode: 'figures', out: '9,400' });
+      expect(useTransactionsScreenStore.getState().hasTotalsForScope('2026-07', undefined)).toBe(
+        true,
+      );
+    },
+  );
+
+  it('disables the search under the skeleton of a month with no totals, and on the way back while that month loads', async () => {
+    const { result } = await renderLanded();
+    expect(useTransactionsScreenStore.getState().totalsLoadedYearMonth).toBe('2026-07');
+    holdNextAggregate();
+
+    await act(() => {
+      result.current.setSelectedMonth('2026-06');
+    });
+    await waitFor(() =>
+      expect(mockGetMonthAggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ dateFrom: '2026-06-01' }),
+      ),
+    );
+    expect(result.current.state).toMatchObject({
+      hero: { mode: 'skeleton' },
+      searchDisabled: true,
+    });
+
+    await act(() => {
+      result.current.setSelectedMonth('2026-07');
+    });
+    await waitFor(() => expect(mockGetMonthAggregate).toHaveBeenCalledTimes(2));
+    expect(result.current.state).toMatchObject({
+      hero: { mode: 'skeleton' },
+      searchDisabled: true,
+    });
   });
 });
 
