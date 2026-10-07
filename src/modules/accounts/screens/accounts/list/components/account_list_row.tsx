@@ -8,7 +8,7 @@ import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { Strings } from '@/constants/strings';
 import { Colors, Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatCurrencyParts } from '@/utils/format_amount';
+import { formatAccountBalanceParts } from '@/utils/format_amount';
 
 import { resolveAccountBalanceColorClass } from '../../../../constants/account_balance_color';
 import { resolveAccountRowA11yLabel } from '../../../../constants/account_row_a11y_label';
@@ -53,8 +53,8 @@ interface AccountListRowProps {
 
 /** Prefix, content and suffix: the row's own and the lifted copy's. */
 export function AccountListRowBody({ account, caption }: { account: Account; caption: string }) {
-  // Two nodes, not `formatCurrencyAmount`: B1 stacks the value over the code.
-  const { value, code } = formatCurrencyParts(account.current_balance, account.currency);
+  // Two nodes, not `formatAccountBalance`: B1 stacks the value over the code.
+  const { amount, code } = formatAccountBalanceParts(account.current_balance, account.currency);
   const tile = resolveAccountTileColors(account.color);
 
   return (
@@ -109,7 +109,7 @@ export function AccountListRowBody({ account, caption }: { account: Account; cap
             textAlign: 'right',
           }}
         >
-          {value}
+          {amount}
         </Typography>
         <Typography
           className="text-content-secondary font-inter"

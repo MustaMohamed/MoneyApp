@@ -1,4 +1,3 @@
-import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
@@ -6,11 +5,9 @@ import { availableCreditColor } from '@/modules/accounts/constants/available_cre
 import {
   buildHeroCaption,
   buildHeroHeading,
-  formatAccountBalance,
-  formatAccountBalanceParts,
 } from '@/modules/accounts/screens/accounts/detail/components/balance_hero.helpers';
 import type { Account } from '@/store/account.store';
-import { MINUS_SIGN, formatCurrencyAmount } from '@/utils/format_amount';
+import { MINUS_SIGN } from '@/utils/format_amount';
 
 function mkAccount(overrides: Partial<Account> = {}): Account {
   return {
@@ -58,6 +55,30 @@ describe('buildHeroCaption — non-CC types', () => {
   it('#277: takes decimals from CURRENCY_CONFIG for a non-whole EGP opening balance', () => {
     const cap = buildHeroCaption(mkAccount({ opening_balance: 1250.75, current_balance: 1250.75 }));
     expect(cap.text).toBe('Opening 1,251 EGP');
+  });
+});
+
+describe('buildHeroCaption — an opening balance below zero (MA-156)', () => {
+  // A minus put on by hand would print −0 for -0.4, so the zero case sits beside the overdrawn one.
+  it('takes the owned sign: a minus below zero, none on a figure that prints as zero', () => {
+    const overdrawn = buildHeroCaption(
+      mkAccount({ opening_balance: -1900, current_balance: -1900 }),
+    ).text;
+    expect(overdrawn).toBe(`Opening ${MINUS_SIGN}1,900 EGP`);
+    expect(overdrawn).toContain(String.fromCodePoint(0x2212));
+    expect(overdrawn).not.toContain('-');
+    expect(buildHeroCaption(mkAccount({ opening_balance: -0.4, current_balance: -0.4 })).text).toBe(
+      'Opening 0 EGP',
+    );
+  });
+
+  it('keeps two decimals under the owned minus on an overdrawn USD opening balance', () => {
+    const overdrawn = buildHeroCaption(
+      mkAccount({ currency: Currency.USD, opening_balance: -42.5, current_balance: -42.5 }),
+    ).text;
+    expect(overdrawn).toBe(`Opening ${MINUS_SIGN}42.50 USD`);
+    expect(overdrawn).toContain(String.fromCodePoint(0x2212));
+    expect(overdrawn).not.toContain('-');
   });
 });
 
@@ -141,89 +162,6 @@ describe('buildHeroCaption — credit cards', () => {
       }),
     );
     expect(cap.text).toBe('Available 500.00 USD of 500.00');
-  });
-});
-
-describe('formatAccountBalance — the hero balance and the sheet row', () => {
-  it('leaves a positive EGP balance exactly as the shipped formatter printed it', () => {
-    expect(formatAccountBalance(30000, Currency.EGP)).toBe('30,000 EGP');
-    expect(formatAccountBalance(30000, Currency.EGP)).toBe(
-      formatCurrencyAmount(30000, Currency.EGP),
-    );
-  });
-
-  it('keeps a positive USD balance at two decimals', () => {
-    expect(formatAccountBalance(1250.5, Currency.USD)).toBe('1,250.50 USD');
-    expect(formatAccountBalance(1250.5, Currency.USD)).toBe(
-      formatCurrencyAmount(1250.5, Currency.USD),
-    );
-  });
-
-  it('#411: an overdrawn EGP balance keeps its minus at zero decimals', () => {
-    expect(formatAccountBalance(-1900, Currency.EGP)).toBe(`${MINUS_SIGN}1,900 EGP`);
-  });
-
-  it('#411: an overdrawn USD balance keeps it at two decimals', () => {
-    expect(formatAccountBalance(-42.5, Currency.USD)).toBe(`${MINUS_SIGN}42.50 USD`);
-  });
-
-  it('#411: the minus is U+2212, never the ASCII hyphen `Intl` emits', () => {
-    expect(formatAccountBalance(-1, Currency.EGP).codePointAt(0)).toBe(0x2212);
-    expect(formatAccountBalance(-1, Currency.EGP)).not.toContain('-');
-    expect(formatCurrencyAmount(-1, Currency.EGP).codePointAt(0)).toBe(0x2d);
-  });
-
-  it('prints an exact zero unsigned with each currency decimals', () => {
-    expect(formatAccountBalance(0, Currency.EGP)).toBe('0 EGP');
-    expect(formatAccountBalance(0, Currency.USD)).toBe('0.00 USD');
-  });
-
-  it('carries no sign when a negative magnitude rounds to zero at the currency precision', () => {
-    expect(formatAccountBalance(-0.4, Currency.EGP)).toBe('0 EGP');
-    expect(formatAccountBalance(-0.004, Currency.USD)).toBe('0.00 USD');
-  });
-});
-
-describe('formatAccountBalanceParts — the hero draws the code apart from the magnitude', () => {
-  const cases = [
-    { balance: 30000, currency: Currency.EGP },
-    { balance: 1250.5, currency: Currency.USD },
-    { balance: -1900, currency: Currency.EGP },
-    { balance: -42.5, currency: Currency.USD },
-  ];
-
-  it.each(cases)(
-    '$balance $currency recomposes into the shipped string',
-    ({ balance, currency }) => {
-      const { amount, code } = formatAccountBalanceParts(balance, currency);
-      expect(`${amount} ${code}`).toBe(formatAccountBalance(balance, currency));
-    },
-  );
-
-  it.each(cases)(
-    '$balance $currency takes its code from the currency config',
-    ({ balance, currency }) => {
-      expect(formatAccountBalanceParts(balance, currency).code).toBe(
-        CURRENCY_CONFIG[currency].code,
-      );
-    },
-  );
-
-  it('keeps the minus on the magnitude, never on the code', () => {
-    const { amount, code } = formatAccountBalanceParts(-1900, Currency.EGP);
-    expect(amount).toBe(`${MINUS_SIGN}1,900`);
-    expect(code).not.toContain(MINUS_SIGN);
-  });
-
-  // The archive dialog gates its balance line on this, so it is part of the contract.
-  it.each([
-    { balance: 0.01, currency: Currency.EGP, printsAsZero: true },
-    { balance: 0.01, currency: Currency.USD, printsAsZero: false },
-    { balance: 0, currency: Currency.USD, printsAsZero: true },
-    { balance: 0, currency: Currency.EGP, printsAsZero: true },
-    { balance: -1900, currency: Currency.EGP, printsAsZero: false },
-  ])('$balance $currency printsAsZero=$printsAsZero', ({ balance, currency, printsAsZero }) => {
-    expect(formatAccountBalanceParts(balance, currency).printsAsZero).toBe(printsAsZero);
   });
 });
 

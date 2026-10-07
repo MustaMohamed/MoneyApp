@@ -6,7 +6,7 @@ import {
   resolveArchivedSummary,
 } from '@/modules/accounts/screens/accounts/list/components/archived_card.helpers';
 import { makeTestAccount } from '@/test_helpers/transaction';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { MINUS_SIGN } from '@/utils/format_amount';
 
 describe('resolveArchivedRowCaption', () => {
   it('prints a Bank at 0 EGP with no decimals', () => {
@@ -29,14 +29,25 @@ describe('resolveArchivedRowCaption', () => {
     ).toBe('Smart Wallet · 1,350.00 USD');
   });
 
-  it("keeps the formatter's sign on a negative credit card balance", () => {
+  it('MA-156: prints the owned minus on a negative credit card balance', () => {
     const caption = resolveArchivedRowCaption({
       type: AccountType.CreditCard,
       current_balance: -2500,
       currency: Currency.EGP,
     });
-    expect(caption).toBe(`Credit Card · ${formatCurrencyAmount(-2500, Currency.EGP)}`);
-    expect(caption).toContain('2,500');
+    expect(caption).toBe(`Credit Card · ${MINUS_SIGN}2,500 EGP`);
+    expect(caption).toContain(String.fromCodePoint(0x2212));
+    expect(caption).not.toContain('-');
+  });
+
+  it('MA-156: prints an overdrawn USD bank at two decimals under the owned minus', () => {
+    expect(
+      resolveArchivedRowCaption({
+        type: AccountType.Bank,
+        current_balance: -42.5,
+        currency: Currency.USD,
+      }),
+    ).toBe(`Bank · ${MINUS_SIGN}42.50 USD`);
   });
 });
 

@@ -1,8 +1,8 @@
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { formatAccountBalanceParts } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
-import { formatAccountBalanceParts } from './balance_hero.helpers';
 
 /** G2's warning line: a credit card only, and only while its balance prints as something. */
 export function resolveArchiveCcLine(

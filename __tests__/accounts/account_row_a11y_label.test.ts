@@ -2,6 +2,7 @@ import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { resolveAccountRowA11yLabel } from '@/modules/accounts/constants/account_row_a11y_label';
 import { makeTestAccount } from '@/test_helpers/transaction';
+import { MINUS_SIGN } from '@/utils/format_amount';
 
 // `makeTestAccount` defaults to EGP, `color: null` and both balances 0.
 const egpAccount = makeTestAccount({
@@ -34,5 +35,22 @@ describe('resolveAccountRowA11yLabel — the one label the N3 row and the accoun
   it('announces a blank-named account as "Unnamed account"', () => {
     const blank = makeTestAccount({ name: '', type: AccountType.Bank, current_balance: 4500 });
     expect(resolveAccountRowA11yLabel(blank)).toBe(`${Strings.unnamedAccount}, Bank, 4,500 EGP`);
+  });
+
+  it('MA-156: announces an overdrawn balance with the owned minus, never the ASCII hyphen', () => {
+    const overdrawn = makeTestAccount({
+      name: 'CIB Current',
+      type: AccountType.Bank,
+      current_balance: -1900,
+    });
+    const label = resolveAccountRowA11yLabel(overdrawn);
+    expect(label).toBe(`CIB Current, Bank, ${MINUS_SIGN}1,900 EGP`);
+    expect(label).toContain(String.fromCodePoint(0x2212));
+    expect(label).not.toContain('-');
+  });
+
+  it('MA-156: keeps USD cents under the owned minus on an overdrawn balance', () => {
+    const overdrawn = makeTestAccount({ currency: Currency.USD, current_balance: -42.5 });
+    expect(resolveAccountRowA11yLabel(overdrawn)).toContain(`${MINUS_SIGN}42.50 USD`);
   });
 });

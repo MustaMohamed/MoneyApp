@@ -1,7 +1,7 @@
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Strings } from '@/constants/strings';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatCurrencyAmount } from '@/utils/format_amount';
+import { formatAccountBalance } from '@/utils/format_amount';
 
 import type { Account } from '../../../../entities/account.entity';
 import { matchesAccountsListType } from '../accounts_list.presentation';
@@ -18,7 +18,7 @@ export function resolveArchivedRowCaption(
 ): string {
   return Strings.accountsArchivedRowCaption(
     ACCOUNT_TYPE_LABELS[account.type],
-    formatCurrencyAmount(account.current_balance, account.currency),
+    formatAccountBalance(account.current_balance, account.currency),
   );
 }
 

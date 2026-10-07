@@ -8,7 +8,7 @@ import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { resolveAccountRowA11yLabel } from '@/modules/accounts/constants/account_row_a11y_label';
 import type { Account } from '@/modules/accounts/store/account.store';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatCurrencyParts } from '@/utils/format_amount';
+import { formatAccountBalanceParts } from '@/utils/format_amount';
 
 import {
   N3_ROW_STYLE,
@@ -19,8 +19,8 @@ import {
 
 /** `accessible` announces the row once; no `accessibilityRole`, it is not pressable here. */
 export function AccountRow({ account }: { account: Account }) {
-  // Two nodes, not `formatCurrencyAmount`: the design stacks the value over the code.
-  const { value, code } = formatCurrencyParts(account.current_balance, account.currency);
+  // Two nodes, not `formatAccountBalance`: the design stacks the value over the code.
+  const { amount, code } = formatAccountBalanceParts(account.current_balance, account.currency);
 
   return (
     <ListGroup.Item
@@ -82,7 +82,7 @@ export function AccountRow({ account }: { account: Account }) {
             textAlign: 'right',
           }}
         >
-          {value}
+          {amount}
         </Typography>
         <Typography
           className="text-content-secondary font-inter"

@@ -13,15 +13,11 @@ import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import { ARCHIVED_HERO_OPACITY } from '@/modules/accounts/constants/account_tile_color';
 import { resolveAccountName } from '@/utils/account_name';
+import { formatAccountBalance, formatAccountBalanceParts } from '@/utils/format_amount';
 
 import type { Account } from '../../../../store/account.store';
 import { HERO_CURRENCY_GAP, HERO_CURRENCY_OPACITY } from './balance_hero.geometry';
-import {
-  buildHeroCaption,
-  buildHeroHeading,
-  formatAccountBalance,
-  formatAccountBalanceParts,
-} from './balance_hero.helpers';
+import { buildHeroCaption, buildHeroHeading } from './balance_hero.helpers';
 
 interface BalanceHeroProps {
   account: Account;

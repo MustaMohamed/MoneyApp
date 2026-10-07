@@ -11,6 +11,7 @@ import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
+import { formatAccountBalance } from '@/utils/format_amount';
 
 import {
   FIELD_MESSAGE_RAIL_STYLE,
@@ -18,7 +19,6 @@ import {
 } from '../../../../components/account_form/account_form.geometry';
 import { parseAdjustInput } from './adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
-import { formatAccountBalance } from './balance_hero.helpers';
 
 interface AdjustBalanceSheetBodyProps {
   currentBalance: number;
