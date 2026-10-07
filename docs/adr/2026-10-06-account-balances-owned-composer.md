@@ -46,7 +46,7 @@ A credit card's row prints its balance unsigned when positive, as the detail her
 - The dashboard account card and the net worth sheet rows already call `formatOwnedAmountParts` on its default magnitude, which escalates a sub-unit amount to 2dp. That stays.
 - The credit limit and minimum payment facts, the hero's available caption and the pay sheet's converted total are not balances.
 
-## 6. `npm run lint` fails a hand-built owned sign
+## 6. `npm run lint` fails a hand-built owned sign and a plain formatter on a balance column
 
 `scripts/validate-money-formatting.js` runs a second scan over the same tracked `src` files, on each file's comment-stripped lines joined, so a ternary wrapped across lines still matches.
 
@@ -60,6 +60,7 @@ The scan does not see these shapes:
 
 - A sign built without a ternary: an `if` that assigns `MINUS_SIGN`, a named empty-string constant, a concatenation.
 - `undefined` or `null` in place of the empty string.
+- A quoted glyph spelled as any escape other than `\u2212`: `\u{2212}` for U+2212, `\x2d` for U+002D.
 - A template literal that embeds the glyph beside other text, `` `−${text}` `` against `text`.
 - A cast to a type with type arguments on the branch ahead of the `:`.
 - A flow sign that picks between `PLUS_SIGN` and `MINUS_SIGN`. It is not an owned sign and is not linted. Nor is the three-way form, `delta > 0 ? PLUS_SIGN : delta < 0 ? MINUS_SIGN : ''`. The scan skips a match whose `?` opens the false branch of a `? PLUS_SIGN :` ternary, and it reads that from the text between that `:` and the match's `?` holding no `?`, `:`, `,`, `;` or bracket. A condition that holds one of those is reported. With the minus branch first, as `transaction_row.helpers.ts` writes it, the pattern has nothing to match.
@@ -67,4 +68,4 @@ The scan does not see these shapes:
 
 An oxlint plugin rule on the syntax tree was not written: it would exempt by property key with no bracket counting, and would need `.oxlintrc.json` overrides for tests and for the composer's file.
 
-**A plain formatter on a balance column.** A third scan over the same stripped, joined text fails a call to `formatAmount`, `formatCurrencyAmount` or `formatCurrencyParts` whose first argument ends in `.current_balance` or `.opening_balance`, through optional chaining and across wrapped lines. None of the nine sites in §2 built a sign ternary. Each made this call, and the owned-sign scan cannot see a tenth. The report is one stderr line per match, `<path>:<line>: prints an account balance through a plain formatter`, at the line of the call, naming `formatAccountBalanceParts` and `formatAccountBalance`; exit 1. The scan has no allowlist, since nothing in `src` matches it. It does not see a balance read into a local or destructured before the call, or a first argument that holds a call or goes on past the column, as `account.current_balance ?? 0` does.
+**A plain formatter on a balance column.** A third scan over the same stripped, joined text fails a call to `formatAmount`, `formatCurrencyAmount` or `formatCurrencyParts` whose first argument ends in `.current_balance` or `.opening_balance`, through optional chaining and across wrapped lines. None of the nine sites in §2 built a sign ternary. Each made this call, and the owned-sign scan cannot see a tenth. The report is one stderr line per match, `<path>:<line>: prints an account balance through a plain formatter`, at the line of the call, naming `formatAccountBalanceParts` and `formatAccountBalance`; exit 1. The scan has no allowlist, since nothing in `src` matches it. It does not see a balance read into a local or destructured before the call, or a prop or parameter that carries the balance under another name, as in `formatCurrencyAmount(currentBalance, currency)`. Nor does it see a first argument that holds a call or goes on past the column, as `account.current_balance ?? 0` does.
