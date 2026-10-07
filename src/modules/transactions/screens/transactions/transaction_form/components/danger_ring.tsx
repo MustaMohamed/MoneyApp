@@ -4,13 +4,11 @@ import { Size } from '@/constants/theme';
 
 interface DangerRingProps {
   testID: string;
-  /** Horizontal only; a negative value draws the ring outside its row. */
-  inset?: number;
   radius?: number;
 }
 
-/** No HeroUI primitive fits: nothing rings a `ListGroup.Item` or the hero row; absolute, so it takes no layout space. */
-export function DangerRing({ testID, inset = 0, radius = 0 }: DangerRingProps): React.ReactElement {
+/** No HeroUI primitive fits: nothing rings a `ListGroup.Item` or the account strip; absolute, so it takes no layout space. */
+export function DangerRing({ testID, radius = 0 }: DangerRingProps): React.ReactElement {
   return (
     <View
       testID={testID}
@@ -20,8 +18,8 @@ export function DangerRing({ testID, inset = 0, radius = 0 }: DangerRingProps): 
         position: 'absolute',
         top: 0,
         bottom: 0,
-        left: inset,
-        right: inset,
+        left: 0,
+        right: 0,
         borderWidth: Size.hairline,
         borderRadius: radius,
       }}

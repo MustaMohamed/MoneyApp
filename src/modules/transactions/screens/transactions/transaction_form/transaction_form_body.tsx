@@ -11,7 +11,7 @@ import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -198,10 +198,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         style={{ paddingVertical: ACCOUNT_STRIP_WRAPPER_PADDING_Y }}
       >
         {props.locked ? (
-          <AccountStrip chips={props.lockedChips} caption={stripCaption} />
+          <AccountStrip chips={props.lockedChips} type={type} caption={stripCaption} />
         ) : (
           <AccountStrip
             chips={props.stripChips}
+            type={type}
             onSelect={props.onSelectStripChip}
             caption={stripCaption}
             error={accountError}
@@ -403,6 +404,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 minWidth: 0,
                 minHeight: FACT_ROW_MIN_HEIGHT,
                 textAlign: 'right',
+                // HeroUI's Android focus border outranks `border-0`; the caret is the Note's only focus mark.
+                borderColor: Colors.shared.transparent,
                 fontSize: Type.body,
                 lineHeight: lineHeightFor(Type.body),
               }}

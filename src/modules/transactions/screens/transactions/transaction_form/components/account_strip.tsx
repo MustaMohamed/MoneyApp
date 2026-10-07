@@ -9,10 +9,12 @@ import { View } from 'react-native';
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { SelectablePill } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
+import type { TransactionType } from '@/constants/enums';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import type { AccountStripChip } from '../transaction_form.helpers';
+import { useAccountStripReveal } from './account_strip.hook';
 import { DangerRing } from './danger_ring';
 import {
   ACCOUNT_STRIP_CHIP_HEIGHT,
@@ -36,6 +38,8 @@ const noScrollEventsHandlers: ScrollEventsHandlersHookType = () => ({});
 
 interface AccountStripProps {
   chips: AccountStripChip[];
+  /** The form's transaction type; a switch between two types asks the strip to show its selected chip again. */
+  type: TransactionType;
   onSelect?: (id: string) => void;
   caption?: string;
   error?: string;
@@ -45,11 +49,17 @@ interface AccountStripProps {
 
 export function AccountStrip({
   chips,
+  type,
   onSelect,
   caption,
   error,
   emptyText,
 }: AccountStripProps): React.ReactElement {
+  const { scrollRef, handleLayout, handleScroll, handleChipPress } = useAccountStripReveal(
+    chips.findIndex((chip) => chip.selected),
+    type,
+  );
+
   return (
     <View testID="account-strip" style={{ marginHorizontal: ACCOUNT_STRIP_INSET_X }}>
       {caption !== undefined ? (
@@ -82,6 +92,9 @@ export function AccountStrip({
           </Text>
         ) : (
           <BottomSheetScrollView
+            ref={scrollRef}
+            onLayout={handleLayout}
+            onScroll={handleScroll}
             horizontal
             focusHook={skipScrollableRegistration}
             scrollEventsHandlersHook={noScrollEventsHandlers}
@@ -92,13 +105,16 @@ export function AccountStrip({
               paddingVertical: ACCOUNT_STRIP_CHIP_SLOP_Y,
             }}
           >
-            {chips.map((chip) => (
+            {chips.map((chip, index) => (
               <SelectablePill
                 key={chip.id}
                 testID={`account-strip-chip-${chip.id}`}
                 label={chip.name}
                 selected={chip.selected}
-                onPress={() => onSelect?.(chip.id)}
+                onPress={() => {
+                  handleChipPress(index);
+                  onSelect?.(chip.id);
+                }}
                 disabled={chip.locked || chip.dimmed}
                 hitSlop={ACCOUNT_STRIP_HIT_SLOP}
                 accessibilityHint={error}

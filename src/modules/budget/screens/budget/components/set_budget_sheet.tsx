@@ -147,6 +147,8 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                         fontSize: Type.body,
                         lineHeight: lineHeightFor(Type.body),
                         color: Colors.dark.text1,
+                        // HeroUI's Android focus border outranks `border-0` and would draw inside the box's own.
+                        borderColor: Colors.shared.transparent,
                         height: ms(28),
                         padding: 0,
                         includeFontPadding: false,
@@ -193,6 +195,8 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                         fontSize: Type.bodyStrong,
                         lineHeight: lineHeightFor(Type.bodyStrong),
                         color: Colors.dark.text1,
+                        // HeroUI's Android focus border outranks `border-0` and would draw inside the box's own.
+                        borderColor: Colors.shared.transparent,
                         height: ms(28),
                         padding: 0,
                         includeFontPadding: false,
