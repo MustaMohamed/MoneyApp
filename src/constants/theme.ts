@@ -158,10 +158,15 @@ export const Size = {
   typeTabsTrack: 36,
   // Raw 36 for the same reason: a header text action's box, formerly the account detail Edit's `h-9 w-9`, at scale 1.
   headerTextActionTrack: 36,
-  // Raw 40 for the same reason: the spending plan sheet's name and total fields, `h-10`, at scale 1.
+  // Raw 40 for the same reason: the spending plan sheet's name and total fields, formerly `h-10`, at scale 1.
   spendingPlanFieldTrack: 40,
-  // Raw 36 for the same reason: the spending plan sheet's per-category field, `h-9`, at scale 1.
+  // Raw 36 for the same reason: the spending plan sheet's per-category field, formerly `h-9`, at scale 1.
   spendingPlanAllocationTrack: 36,
+  // The 6px gap and the 20px error line box under the per-category field; unscaled, never `ms()`.
+  spendingPlanAllocationErrorRoom: 26,
+  // The shared input's `py-2` on each edge (`src/components/ui/input.tsx`); unscaled, never `ms()`.
+  inputPaddingY: 8,
+  setBudgetFieldTrack: ms(28),
   headerHeight: ms(56),
   // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),

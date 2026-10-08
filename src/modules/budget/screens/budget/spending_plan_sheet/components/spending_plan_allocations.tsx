@@ -79,7 +79,7 @@ export function SpendingPlanAllocations(props: SpendingPlanAllocationsProps) {
                     errorNumberOfLines={1}
                     allowFontScaling={field.text === undefined}
                     style={{ height: field.height, ...field.text }}
-                    className="border-border bg-background font-sora-bold text-foreground h-9 min-h-0 px-2 text-[12px]"
+                    className="border-border bg-background font-sora-bold text-foreground min-h-0 px-2 text-[12px]"
                     // An element at every value: a falsy suffix swaps the input element and drops focus.
                     suffix={
                       showsSuffix ? (

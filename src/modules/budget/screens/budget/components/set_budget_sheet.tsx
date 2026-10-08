@@ -146,7 +146,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                       placeholder={Strings.budgetNamePlaceholder}
                       placeholderColorClassName="text-muted"
                       allowFontScaling={false}
-                      className="h-7 min-h-0 flex-1 border-0 bg-transparent p-0"
+                      className="min-h-0 flex-1 border-0 bg-transparent p-0"
                       style={{
                         flex: 1,
                         fontFamily: FontFamily.interSemi,
@@ -193,7 +193,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                       placeholder={Strings.zeroAmountPlaceholder}
                       placeholderColorClassName="text-muted"
                       allowFontScaling={false}
-                      className="h-7 min-h-0 flex-1 border-0 bg-transparent p-0"
+                      className="min-h-0 flex-1 border-0 bg-transparent p-0"
                       style={{
                         flex: 1,
                         fontFamily: FontFamily.soraBold,

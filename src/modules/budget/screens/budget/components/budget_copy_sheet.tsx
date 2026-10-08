@@ -25,6 +25,11 @@ import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
 import {
+  BUDGET_COPY_PREVIEW_ROW_BORDER_WIDTH,
+  BUDGET_COPY_PREVIEW_ROW_META_FONT_SIZE,
+  BUDGET_COPY_PREVIEW_ROW_META_MARGIN_TOP,
+  BUDGET_COPY_PREVIEW_ROW_PADDING_Y,
+  BUDGET_COPY_PREVIEW_ROW_TITLE_FONT_SIZE,
   resolveBudgetCopyPreviewRowGeometry,
   resolveBudgetCopySourceRowLayout,
 } from './budget_copy_sheet.helpers';
@@ -320,10 +325,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     borderRadius: Radius.md,
     backgroundColor: Colors.dark.surfaceEl,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: BUDGET_COPY_PREVIEW_ROW_BORDER_WIDTH,
     borderColor: Colors.dark.border,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingVertical: BUDGET_COPY_PREVIEW_ROW_PADDING_Y,
   },
   iconBox: {
     width: ms(30),
@@ -337,16 +342,16 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     fontFamily: FontFamily.interSemi,
-    fontSize: Type.body,
-    lineHeight: lineHeightFor(Type.body),
+    fontSize: BUDGET_COPY_PREVIEW_ROW_TITLE_FONT_SIZE,
+    lineHeight: lineHeightFor(BUDGET_COPY_PREVIEW_ROW_TITLE_FONT_SIZE),
     color: Colors.dark.text1,
   },
   rowMeta: {
     fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    lineHeight: lineHeightFor(Type.micro),
+    fontSize: BUDGET_COPY_PREVIEW_ROW_META_FONT_SIZE,
+    lineHeight: lineHeightFor(BUDGET_COPY_PREVIEW_ROW_META_FONT_SIZE),
     color: Colors.dark.text2,
-    marginTop: Spacing.xxxs,
+    marginTop: BUDGET_COPY_PREVIEW_ROW_META_MARGIN_TOP,
   },
   rowAmount: {
     fontFamily: FontFamily.soraBold,

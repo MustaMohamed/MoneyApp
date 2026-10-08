@@ -63,8 +63,8 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
           style={{ height: geometry.height, ...geometry.text }}
           className={
             props.variant === 'amount'
-              ? 'border-border bg-background font-sora-bold text-foreground h-10 min-h-0 px-3 text-[15px]'
-              : 'border-border bg-background font-inter-semibold text-foreground h-10 min-h-0 px-3 text-[14px]'
+              ? 'border-border bg-background font-sora-bold text-foreground min-h-0 px-3 text-[15px]'
+              : 'border-border bg-background font-inter-semibold text-foreground min-h-0 px-3 text-[14px]'
           }
           suffix={
             props.suffix ? (

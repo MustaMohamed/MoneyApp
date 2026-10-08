@@ -10,12 +10,6 @@ import {
 /** 2dp overrides EGP's 0dp on the live running total, where `45.40` would render as `45`. */
 export const SPENDING_PLAN_ALLOCATION_DECIMALS = 2;
 
-/** The shared input's `py-2` on each edge (`src/components/ui/input.tsx`); unscaled, never `ms()`. */
-const INPUT_PADDING_Y = 8;
-
-/** The 6px gap and the 20px error line box under the per-category field; unscaled, never `ms()`. */
-const ALLOCATION_ERROR_ROOM = 26;
-
 export type SpendingPlanFieldKind = 'name' | 'amount' | 'allocation';
 
 export interface SpendingPlanFieldGeometry {
@@ -41,13 +35,16 @@ export function resolveSpendingPlanFieldGeometry(
     text,
     height: Math.max(
       track,
-      (text?.lineHeight ?? 0) + 2 * INPUT_PADDING_Y + 2 * Size.fieldBorderWidth,
+      (text?.lineHeight ?? 0) + 2 * Size.inputPaddingY + 2 * Size.fieldBorderWidth,
     ),
   };
 }
 
 export function resolveAllocationSlotMinHeight(fontScale: number): number {
-  return resolveSpendingPlanFieldGeometry('allocation', fontScale).height + ALLOCATION_ERROR_ROOM;
+  return (
+    resolveSpendingPlanFieldGeometry('allocation', fontScale).height +
+    Size.spendingPlanAllocationErrorRoom
+  );
 }
 
 /** Above scale 1 a typed amount takes the suffix's room; the mask leaves `''` as the only empty field. */

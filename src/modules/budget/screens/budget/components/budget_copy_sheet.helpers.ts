@@ -2,15 +2,24 @@ import { StyleSheet } from 'react-native';
 
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
+// The preview row's terms: the height sum below and the sheet's `row`, `rowTitle` and `rowMeta` styles read them.
+export const BUDGET_COPY_PREVIEW_ROW_PADDING_Y = Spacing.xs;
+export const BUDGET_COPY_PREVIEW_ROW_TITLE_FONT_SIZE = Type.body;
+export const BUDGET_COPY_PREVIEW_ROW_META_FONT_SIZE = Type.micro;
+export const BUDGET_COPY_PREVIEW_ROW_META_MARGIN_TOP = Spacing.xxxs;
+export const BUDGET_COPY_PREVIEW_ROW_BORDER_WIDTH = StyleSheet.hairlineWidth;
+
 /** A loaded row whose name and category line each fit one line: padding, both OS-scaled lines, the line margin, the border. */
 export function resolveBudgetCopyPreviewRowGeometry(fontScale: number): { minHeight: number } {
   return {
     minHeight: Math.max(
       Size.budgetCopyPreviewRowHeight,
-      2 * Spacing.xs +
-        fontScale * (lineHeightFor(Type.body) + lineHeightFor(Type.micro)) +
-        Spacing.xxxs +
-        2 * StyleSheet.hairlineWidth,
+      2 * BUDGET_COPY_PREVIEW_ROW_PADDING_Y +
+        fontScale *
+          (lineHeightFor(BUDGET_COPY_PREVIEW_ROW_TITLE_FONT_SIZE) +
+            lineHeightFor(BUDGET_COPY_PREVIEW_ROW_META_FONT_SIZE)) +
+        BUDGET_COPY_PREVIEW_ROW_META_MARGIN_TOP +
+        2 * BUDGET_COPY_PREVIEW_ROW_BORDER_WIDTH,
     ),
   };
 }
