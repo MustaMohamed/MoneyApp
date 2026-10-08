@@ -1,9 +1,11 @@
 import { Controller, type Control, type UseFormReturn } from 'react-hook-form';
 import type { BlurEvent, FocusEvent, KeyboardTypeOptions } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { resolveSpendingPlanFieldGeometry } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.helpers';
 import { maskFieldText } from '@/utils/money_text';
 import {
   PLAN_TOTAL_REFUSES_ZERO,
@@ -29,6 +31,7 @@ interface SpendingPlanFieldProps {
 }
 
 function SpendingPlanField(props: SpendingPlanFieldProps) {
+  const geometry = resolveSpendingPlanFieldGeometry(props.variant, useWindowDimensions().fontScale);
   return (
     <Controller
       control={props.control}
@@ -56,6 +59,8 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
           accessibilityLabel={props.label}
           isInvalid={fieldState.invalid}
           errorMessage={fieldState.error?.message}
+          allowFontScaling={geometry.text === undefined}
+          style={{ height: geometry.height, ...geometry.text }}
           className={
             props.variant === 'amount'
               ? 'border-border bg-background font-sora-bold text-foreground h-10 min-h-0 px-3 text-[15px]'

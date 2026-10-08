@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Alert, Checkbox, PressableFeedback, SkeletonGroup } from 'heroui-native';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { MonthFilter } from '@/components/ui/month_filter';
@@ -24,7 +24,10 @@ import { formatAmount } from '@/utils/format_amount';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
-import { BUDGET_COPY_PREVIEW_ROW_GEOMETRY } from './budget_copy_sheet.helpers';
+import {
+  resolveBudgetCopyPreviewRowGeometry,
+  resolveBudgetCopySourceRowLayout,
+} from './budget_copy_sheet.helpers';
 
 interface BudgetCopySheetProps {
   isOpen: boolean;
@@ -69,6 +72,9 @@ export function BudgetCopySheet({
 }: BudgetCopySheetProps) {
   const selectedCount = selectedBudgetIds.length;
   const canApply = rows.length > 0 && selectedCount > 0 && !previewLoading && !previewError;
+  const { fontScale } = useWindowDimensions();
+  const previewRow = resolveBudgetCopyPreviewRowGeometry(fontScale);
+  const sourceRow = resolveBudgetCopySourceRowLayout(fontScale);
 
   return (
     <Sheet
@@ -110,11 +116,11 @@ export function BudgetCopySheet({
         <View style={styles.sourceBlock}>
           <Text style={styles.sourceLabel}>{Strings.budgetCopySourceLabel}</Text>
           <View
-            style={[styles.sourceRow, copyBusy && styles.disabledControl]}
+            style={[styles.sourceRow, sourceRow.row, copyBusy && styles.disabledControl]}
             pointerEvents={copyBusy ? 'none' : 'auto'}
             accessibilityState={{ disabled: copyBusy }}
           >
-            <View style={styles.sourceFilter}>
+            <View style={sourceRow.filter}>
               <MonthFilter
                 selectedMonth={sourceMonth}
                 onSelectedMonthChange={(month) => {
@@ -123,8 +129,10 @@ export function BudgetCopySheet({
                 showStepButtons={false}
               />
             </View>
-            <Text style={styles.routeArrow}>→</Text>
-            <Text style={styles.targetMonth}>{targetMonthLabel}</Text>
+            <View style={styles.sourceTarget}>
+              <Text style={styles.routeArrow}>→</Text>
+              <Text style={styles.targetMonth}>{targetMonthLabel}</Text>
+            </View>
           </View>
         </View>
 
@@ -158,7 +166,7 @@ export function BudgetCopySheet({
           <SkeletonGroup isLoading isSkeletonOnly>
             <View style={styles.list}>
               {[0, 1, 2].map((row) => (
-                <SkeletonGroup.Item key={row} style={styles.skeletonRow} />
+                <SkeletonGroup.Item key={row} style={[styles.skeletonRow, previewRow]} />
               ))}
             </View>
           </SkeletonGroup>
@@ -197,7 +205,7 @@ export function BudgetCopySheet({
                     accessibilityLabel={Strings.budgetCopyToggleA11y(row.name)}
                     isDisabled={copyBusy}
                     onPress={() => onToggleBudget(row.id)}
-                    style={styles.row}
+                    style={[styles.row, previewRow]}
                   >
                     <View pointerEvents="none">
                       <Checkbox
@@ -254,12 +262,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   sourceRow: {
+    gap: Spacing.xs,
+  },
+  sourceTarget: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-  },
-  sourceFilter: {
-    flex: 1,
+    flexShrink: 1,
   },
   routeArrow: {
     fontFamily: FontFamily.interSemi,
@@ -303,11 +312,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   skeletonRow: {
-    ...BUDGET_COPY_PREVIEW_ROW_GEOMETRY,
     borderRadius: Radius.md,
   },
   row: {
-    ...BUDGET_COPY_PREVIEW_ROW_GEOMETRY,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
@@ -339,7 +346,7 @@ const styles = StyleSheet.create({
     fontSize: Type.micro,
     lineHeight: lineHeightFor(Type.micro),
     color: Colors.dark.text2,
-    marginTop: ms(2),
+    marginTop: Spacing.xxxs,
   },
   rowAmount: {
     fontFamily: FontFamily.soraBold,

@@ -3,7 +3,7 @@ import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { cn, Input, PressableFeedback, RadioGroup } from 'heroui-native';
 import React from 'react';
 import { Controller } from 'react-hook-form';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Text } from '@/components/ui/text';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Type, lineHeightFor, withAlpha } from '@/constants/theme';
+import { resolveSetBudgetFieldGeometry } from '@/modules/budget/screens/budget/components/set_budget_sheet.geometry';
 import {
   useSetBudgetSheet,
   type SetBudgetSheetOptions,
@@ -43,6 +44,9 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
     onBlur,
     onOpenChange,
   } = useSetBudgetSheet(props);
+  const { fontScale } = useWindowDimensions();
+  const nameField = resolveSetBudgetFieldGeometry(Type.body, fontScale);
+  const limitField = resolveSetBudgetFieldGeometry(Type.bodyStrong, fontScale);
 
   return (
     <>
@@ -141,15 +145,15 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                       onBlur={onBlur}
                       placeholder={Strings.budgetNamePlaceholder}
                       placeholderColorClassName="text-muted"
+                      allowFontScaling={false}
                       className="h-7 min-h-0 flex-1 border-0 bg-transparent p-0"
                       style={{
                         flex: 1,
                         fontFamily: FontFamily.interSemi,
-                        fontSize: Type.body,
-                        lineHeight: lineHeightFor(Type.body),
+                        ...nameField.text,
                         color: Colors.dark.text1,
                         borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
-                        height: ms(28),
+                        height: nameField.height,
                         padding: 0,
                         includeFontPadding: false,
                         textAlignVertical: 'center',
@@ -188,15 +192,15 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                       keyboardType="decimal-pad"
                       placeholder={Strings.zeroAmountPlaceholder}
                       placeholderColorClassName="text-muted"
+                      allowFontScaling={false}
                       className="h-7 min-h-0 flex-1 border-0 bg-transparent p-0"
                       style={{
                         flex: 1,
                         fontFamily: FontFamily.soraBold,
-                        fontSize: Type.bodyStrong,
-                        lineHeight: lineHeightFor(Type.bodyStrong),
+                        ...limitField.text,
                         color: Colors.dark.text1,
                         borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
-                        height: ms(28),
+                        height: limitField.height,
                         padding: 0,
                         includeFontPadding: false,
                         textAlignVertical: 'center',

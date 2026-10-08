@@ -158,6 +158,10 @@ export const Size = {
   typeTabsTrack: 36,
   // Raw 36 for the same reason: a header text action's box, formerly the account detail Edit's `h-9 w-9`, at scale 1.
   headerTextActionTrack: 36,
+  // Raw 40 for the same reason: the spending plan sheet's name and total fields, `h-10`, at scale 1.
+  spendingPlanFieldTrack: 40,
+  // Raw 36 for the same reason: the spending plan sheet's per-category field, `h-9`, at scale 1.
+  spendingPlanAllocationTrack: 36,
   headerHeight: ms(56),
   // Estimate excluding the safe-area inset; ignores landscape collapse and scaled tab labels.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
@@ -248,6 +252,8 @@ export const Size = {
   progressRail: ms(55), // onboarding progress rail, bar plus step label
   // Unscaled, to match HeroUI Input's own `min-height: 48`.
   fieldHeight: 48,
+  // Raw 1.5, never ms(): the border HeroUI Input draws on each edge on Android, `border-0` included.
+  fieldBorderWidth: 1.5,
   // Padding inside `FieldMessageRail`, not one of the fixed tracks above.
   fieldRailTextInset: ms(3),
 } as const;
