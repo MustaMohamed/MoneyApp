@@ -15,7 +15,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 12, left: 0 }),
 }));
 
-jest.mock('@/store/sheet_visibility.store', () => ({
+jest.mock('@/components/ui/sheet_visibility.state', () => ({
   useAnySheetOpen: () => mockAnySheetOpen,
 }));
 

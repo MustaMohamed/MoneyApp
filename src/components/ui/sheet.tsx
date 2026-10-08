@@ -2,11 +2,11 @@
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { BottomSheet } from 'heroui-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Keyboard, StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSheetVisibilityStore } from '@/components/ui/sheet_visibility.state';
 import { Colors, FontFamily, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 
 import { useSheetCloseLifecycle } from './sheet.hook';
@@ -56,6 +56,29 @@ export function resolveKeyboardProps(liftsAboveKeyboard: boolean) {
     keyboardBlurBehavior: 'restore',
     android_keyboardInputMode: liftsAboveKeyboard ? 'adjustPan' : 'adjustResize',
   } as const;
+}
+
+// `currentlyFocusedInput()` is typed non-null and returns `null` while no field holds focus.
+type FocusedInput = ReturnType<typeof TextInput.State.currentlyFocusedInput> | null;
+
+interface BlurInputOnCloseInput {
+  liftsAboveKeyboard: boolean;
+  blursInputOnClose: boolean;
+  /** The input that held focus when the sheet opened. */
+  focusedAtOpen: FocusedInput;
+  /** The input that holds focus as the sheet closes. */
+  focusedNow: FocusedInput;
+}
+
+/** A closing sheet that passes either flag blurs the input that took focus while it was open, and leaves one that held focus before it opened. */
+export function shouldBlurInputOnClose({
+  liftsAboveKeyboard,
+  blursInputOnClose,
+  focusedAtOpen,
+  focusedNow,
+}: BlurInputOnCloseInput): boolean {
+  if (!liftsAboveKeyboard && !blursInputOnClose) return false;
+  return focusedNow !== null && focusedNow !== focusedAtOpen;
 }
 
 interface SheetContentPaddingInput {
@@ -112,6 +135,8 @@ export interface SheetProps {
   footer?: React.ReactNode;
   /** Android only: lift the sheet and its footer clear of the keyboard. Set it on any sheet whose `footer` must stay reachable while typing; a `scrollable` sheet with it ends its content at the footer and takes no `SHEET_FOOTER_CLEARANCE`. Assumes the activity does not resize for the IME; re-check this sheet if `app.json` gains `android.softwareKeyboardLayoutMode`. */
   liftsAboveKeyboard?: boolean;
+  /** Blurs an input that took focus inside the sheet as it closes. Set it on a sheet that holds a text input and opens over a screen with a text field of its own, such as a list's search field; it brings no `adjustPan` mode, which `liftsAboveKeyboard` does. Defaults to false. */
+  blursInputOnClose?: boolean;
   children: React.ReactNode;
 }
 
@@ -128,6 +153,7 @@ export function Sheet({
   showCloseButton = true,
   footer,
   liftsAboveKeyboard = false,
+  blursInputOnClose = false,
   children,
 }: SheetProps) {
   const increment = useSheetVisibilityStore((s) => s.increment);
@@ -135,25 +161,37 @@ export function Sheet({
   const insets = useSafeAreaInsets();
   // Measured, not derived: the footer's height is inset- and content-dependent, and gorhom's dynamic sizing does not fully count an absolute footer.
   const [footerHeight, setFooterHeight] = useState(0);
-  const { closeLifecycle, handleSheetIndexChange } = useSheetCloseLifecycle(
-    isOpen,
-    onCloseComplete,
-  );
+  const { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetCloseRequest } =
+    useSheetCloseLifecycle(isOpen, onCloseComplete);
   // Plain View props, which no animated style writes: a sheet closed at rest stays hidden whatever redraws its content.
   const closedAtRestProps = resolveSheetClosedAtRestProps(closeLifecycle);
+  const handleOpenChange = (open: boolean) => {
+    if (!open) handleSheetCloseRequest();
+    onOpenChange(open);
+  };
 
-  // FAB-hide: this primitive is the sole publisher to `sheet_visibility.store`.
+  // FAB-hide: this primitive is the sole publisher to `sheet_visibility.state`.
   useEffect(() => {
     if (isOpen) {
       increment();
+      const focusedAtOpen: FocusedInput = TextInput.State.currentlyFocusedInput();
       return () => {
+        // `adjustPan` leaves the IME up after a programmatic close; the blur runs first, so a field that waits on the count reads it.
+        if (
+          shouldBlurInputOnClose({
+            liftsAboveKeyboard,
+            blursInputOnClose,
+            focusedAtOpen,
+            focusedNow: TextInput.State.currentlyFocusedInput(),
+          })
+        ) {
+          Keyboard.dismiss();
+        }
         decrement();
-        // `adjustPan` leaves the IME up after a programmatic close; every close path drops `isOpen`.
-        if (liftsAboveKeyboard) Keyboard.dismiss();
       };
     }
     return undefined;
-  }, [isOpen, increment, decrement, liftsAboveKeyboard]);
+  }, [isOpen, increment, decrement, liftsAboveKeyboard, blursInputOnClose]);
 
   const renderFooter = useCallback(
     (props: BottomSheetFooterProps) =>
@@ -204,7 +242,7 @@ export function Sheet({
       };
 
   return (
-    <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>
+    <BottomSheet isOpen={isOpen} onOpenChange={handleOpenChange}>
       <BottomSheet.Portal>
         <BottomSheet.Overlay isCloseOnPress={isDismissable} />
         <View
@@ -215,6 +253,7 @@ export function Sheet({
           <BottomSheet.Content
             {...contentSizingProps}
             onChange={handleSheetIndexChange}
+            onClose={handleSheetClosed}
             {...resolveKeyboardProps(liftsAboveKeyboard)}
             enablePanDownToClose={isDismissable}
             backgroundClassName="bg-surface"

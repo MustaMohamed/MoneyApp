@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import { SelectablePill } from '@/components/ui/chip';
+import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { Size, Spacing, touchFloorSlop } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
@@ -60,11 +61,13 @@ export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
     const frame = id === undefined ? undefined : chipFramesRef.current.get(id);
     const viewportWidth = viewportWidthRef.current;
     if (frame === undefined || viewportWidth === 0) return;
-    const x = scrollXRef.current;
-    const start = frame.x - Spacing.md;
-    const end = frame.x + frame.width + Spacing.md - viewportWidth;
-    const target = start < x ? start : end > x ? end : x;
-    if (target !== x) scrollRef.current?.scrollTo({ x: Math.max(0, target), animated: true });
+    const x = getVisibleScrollOffset({
+      currentOffset: scrollXRef.current,
+      viewportWidth,
+      itemX: frame.x - Spacing.md,
+      itemWidth: frame.width + 2 * Spacing.md,
+    });
+    if (x !== undefined) scrollRef.current?.scrollTo({ x, animated: true });
   }, []);
 
   useEffect(() => {

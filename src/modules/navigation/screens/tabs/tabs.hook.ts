@@ -4,13 +4,13 @@ import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { shouldHideGlobalFab } from '@/components/ui/fab_visibility';
+import { useAnySheetOpen } from '@/components/ui/sheet_visibility.state';
 import { holdToastClearance } from '@/components/ui/toast_clearance.state';
 import {
   resolveTabLabelStyle,
   resolveTabsGeometry,
 } from '@/modules/navigation/screens/tabs/tabs.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
-import { useAnySheetOpen } from '@/store/sheet_visibility.store';
 
 export function useTabsLayout() {
   const router = useRouter();

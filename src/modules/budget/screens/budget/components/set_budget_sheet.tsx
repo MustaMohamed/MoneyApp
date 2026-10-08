@@ -6,6 +6,7 @@ import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { BudgetGroup } from '@/constants/enums';
@@ -147,6 +148,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                         fontSize: Type.body,
                         lineHeight: lineHeightFor(Type.body),
                         color: Colors.dark.text1,
+                        borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
                         height: ms(28),
                         padding: 0,
                         includeFontPadding: false,
@@ -193,6 +195,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                         fontSize: Type.bodyStrong,
                         lineHeight: lineHeightFor(Type.bodyStrong),
                         color: Colors.dark.text1,
+                        borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
                         height: ms(28),
                         padding: 0,
                         includeFontPadding: false,

@@ -8,6 +8,7 @@ import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { resolveSearchFilterRowGeometry } from './search_filter_row.geometry';
+import { useSearchFieldSheetFocus } from './search_filter_row.hook';
 import { Text } from './text';
 
 interface SearchFilterRowProps {
@@ -34,6 +35,7 @@ export function SearchFilterRow({
   isDisabled,
 }: SearchFilterRowProps): React.ReactElement {
   const geometry = resolveSearchFilterRowGeometry(useWindowDimensions().fontScale);
+  const { inputRef, handleFocus, handleBlur } = useSearchFieldSheetFocus();
   const hasFilters = activeFilterCount > 0;
   const filterLabel = hasFilters
     ? Strings.filterAccessibilityWithActiveCount(filterAccessibilityLabel, activeFilterCount)
@@ -45,6 +47,9 @@ export function SearchFilterRow({
         <SearchField.Group style={geometry.input}>
           <SearchField.SearchIcon iconProps={{ size: Size.iconXs, color: CoreTokens.text2 }} />
           <SearchField.Input
+            ref={inputRef}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             placeholder={placeholder}
             returnKeyType="search"
             autoCorrect={false}

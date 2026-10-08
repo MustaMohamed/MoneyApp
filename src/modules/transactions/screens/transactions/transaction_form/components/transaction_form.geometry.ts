@@ -1,5 +1,6 @@
 import type { Insets } from 'react-native';
 
+import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import {
@@ -18,8 +19,16 @@ export const FACT_ROW_MIN_HEIGHT = TouchSize.min;
 /** The gap between the status track and Save. */
 export const TRANSACTION_FORM_STATUS_GAP = Spacing.xs;
 
-/** D6: the sheet's 16 padding plus the hero's 16 margin, since the hero root spans the sheet width. */
-export const AMOUNT_RING_INSET = Spacing.xxl;
+/** The amount's error line is as thick as the stroke of the ring the fact rows and the strip keep. */
+export const AMOUNT_ERROR_LINE_HEIGHT = Size.hairline;
+
+/** The line lies along the input's bottom edge and outside its layout, so nothing moves between valid and invalid. */
+export const AMOUNT_ERROR_LINE_STYLE = {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  bottom: 0,
+} as const;
 
 /** The sheet frames' 118 by 40 row, ruled 2026-09-27 (MA-122) over the canvas base rule's 64-wide column. */
 export const ACCOUNT_STRIP_CHIP_WIDTH = ms(118);
@@ -43,6 +52,29 @@ export const ACCOUNT_STRIP_INSET_X = Spacing.md;
 /** The strip row's padding above and below its chips; the scroll holds the slop, since Android drops a touch outside the ScrollView. */
 export const ACCOUNT_STRIP_PADDING_Y = Math.max(Spacing.xxs, ACCOUNT_STRIP_CHIP_SLOP_Y);
 export const ACCOUNT_STRIP_WRAPPER_PADDING_Y = ACCOUNT_STRIP_PADDING_Y - ACCOUNT_STRIP_CHIP_SLOP_Y;
+
+interface AccountStripRevealInput {
+  /** The chip's position in the strip, from 0. */
+  index: number;
+  /** The strip scroll's laid-out width; 0 before its first layout. */
+  viewportWidth: number;
+  scrollX: number;
+}
+
+/** The scroll offset that shows a chip whole: `scrollX` itself when the chip already lies whole in view. The content has no side padding, so no margin. */
+export function resolveAccountStripRevealX({
+  index,
+  viewportWidth,
+  scrollX,
+}: AccountStripRevealInput): number {
+  const revealX = getVisibleScrollOffset({
+    currentOffset: scrollX,
+    viewportWidth,
+    itemX: index * (ACCOUNT_STRIP_CHIP_WIDTH + ACCOUNT_STRIP_GAP),
+    itemWidth: ACCOUNT_STRIP_CHIP_WIDTH,
+  });
+  return revealX ?? scrollX;
+}
 
 export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
   padding: Spacing.md,

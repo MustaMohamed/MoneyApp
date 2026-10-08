@@ -1,5 +1,6 @@
+import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { TABS_SCROLL_CONTENT_INSET } from '@/components/ui/tabs.geometry';
-import { getSegmentScrollBox, getVisibleScrollOffset } from '@/components/ui/tabs.hook';
+import { getSegmentScrollBox } from '@/components/ui/tabs.hook';
 
 describe('getVisibleScrollOffset', () => {
   it('does not scroll when the selected item is already fully visible', () => {
@@ -55,5 +56,46 @@ describe('getVisibleScrollOffset', () => {
         contentWidth: 660,
       }),
     ).toBe(360);
+  });
+
+  it('returns the end of an item cut on the right less the viewport, with no upper clamp, when no content width is given', () => {
+    expect(
+      getVisibleScrollOffset({
+        currentOffset: 0,
+        viewportWidth: 300,
+        itemX: 590,
+        itemWidth: 96,
+      }),
+    ).toBe(386);
+  });
+
+  it('returns the start of an item cut on the left, floored at 0, when no content width is given', () => {
+    expect(
+      getVisibleScrollOffset({
+        currentOffset: 240,
+        viewportWidth: 300,
+        itemX: 110,
+        itemWidth: 96,
+      }),
+    ).toBe(110);
+    expect(
+      getVisibleScrollOffset({
+        currentOffset: 40,
+        viewportWidth: 300,
+        itemX: -16,
+        itemWidth: 96,
+      }),
+    ).toBe(0);
+  });
+
+  it('returns undefined for an item whole in view when no content width is given', () => {
+    expect(
+      getVisibleScrollOffset({
+        currentOffset: 100,
+        viewportWidth: 300,
+        itemX: 140,
+        itemWidth: 96,
+      }),
+    ).toBeUndefined();
   });
 });
