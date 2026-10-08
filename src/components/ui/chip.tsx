@@ -1,8 +1,19 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip, cn } from 'heroui-native';
 import React from 'react';
-import { type PressableProps, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import {
+  type PressableProps,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+  useWindowDimensions,
+} from 'react-native';
 
+import {
+  type ScaledTextStyle,
+  resolveOneLineTextProps,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
@@ -105,6 +116,23 @@ const SUCCESS_CHIP_GAP = ms(6);
 /** mockup.html:639, `.badge-ok svg { width: 14px }`. */
 const SUCCESS_CHIP_GLYPH = ms(14);
 
+// `.chip__root--size-md`'s own `padding-block`, unscaled CSS.
+export const CHIP_MD_PADDING_BLOCK = 4;
+
+export interface ChipLabelGeometry {
+  height: number;
+  label: ScaledTextStyle;
+}
+
+/** `Size.compactChipHeight` is the floor; above it the chip is its scaled label line inside the md padding. */
+export function resolveSuccessChipGeometry(fontScale: number): ChipLabelGeometry {
+  const label = scaledTextStyle(Type.caption, fontScale);
+  return {
+    height: Math.max(Size.compactChipHeight, label.lineHeight + 2 * CHIP_MD_PADDING_BLOCK),
+    label,
+  };
+}
+
 export interface SuccessChipProps {
   label: string;
   accessibilityLabel?: string;
@@ -112,13 +140,15 @@ export interface SuccessChipProps {
 
 /** `Chip` merges `style` after its size-variant classes, so geometry goes there, not in a class. */
 export function SuccessChip({ label, accessibilityLabel }: SuccessChipProps): React.ReactElement {
+  const geometry = resolveSuccessChipGeometry(useWindowDimensions().fontScale);
+
   return (
     <Chip
       variant="soft"
       color="success"
       accessibilityLabel={accessibilityLabel ?? label}
       style={{
-        height: Size.compactChipHeight,
+        height: geometry.height,
         borderRadius: Radius.pill,
         paddingHorizontal: Spacing.sm,
         gap: SUCCESS_CHIP_GAP,
@@ -129,10 +159,7 @@ export function SuccessChip({ label, accessibilityLabel }: SuccessChipProps): Re
         size={SUCCESS_CHIP_GLYPH}
         color={Colors.dark.positive}
       />
-      <Chip.Label
-        className="font-inter-semibold"
-        style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
-      >
+      <Chip.Label {...resolveOneLineTextProps(geometry.label)} className="font-inter-semibold">
         {label}
       </Chip.Label>
     </Chip>
@@ -163,6 +190,12 @@ export const HERO_PILL_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
   lineHeight: lineHeightFor(Type.caption),
 });
 
+/** `HERO_PILL_HEIGHT` at scale 1: the pill's 4pt padding pair around its scaled caption line. */
+export function resolveHeroPillGeometry(fontScale: number): ChipLabelGeometry {
+  const label = scaledTextStyle(Type.caption, fontScale);
+  return { height: 2 * Spacing.xxs + label.lineHeight, label };
+}
+
 export interface HeroPillProps {
   label: string;
   glyph: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -170,10 +203,20 @@ export interface HeroPillProps {
 
 /** N4's hero-card pill, mockup.html:696-702, `.hero-pill`. */
 export function HeroPill({ label, glyph }: HeroPillProps): React.ReactElement {
+  const geometry = resolveHeroPillGeometry(useWindowDimensions().fontScale);
+
   return (
-    <Chip variant="secondary" color="default" animation="disable-all" style={HERO_PILL_STYLE}>
+    <Chip
+      variant="secondary"
+      color="default"
+      animation="disable-all"
+      style={{ ...HERO_PILL_STYLE, height: geometry.height }}
+    >
       <MaterialCommunityIcons name={glyph} size={HERO_PILL_GLYPH} color={CoreTokens.text1} />
-      <Chip.Label className="text-foreground font-inter" style={HERO_PILL_TEXT_STYLE}>
+      <Chip.Label
+        {...resolveOneLineTextProps(geometry.label)}
+        className="text-foreground font-inter"
+      >
         {label}
       </Chip.Label>
     </Chip>

@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Typography } from 'heroui-native';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, useWindowDimensions } from 'react-native';
 
 import { HeroPill } from '@/components/ui/chip';
 import { CURRENCY_CONFIG } from '@/constants/currency';
@@ -13,17 +13,15 @@ import type { ReadySummaryState } from '@/modules/onboarding/domain/ready_summar
 
 import {
   N4_HERO_CAPTION_MAX_LINES,
-  N4_HERO_CAPTION_SLOT_STYLE,
   N4_HERO_CAPTION_TEXT_STYLE,
   N4_HERO_CHIP_GLYPH,
   N4_HERO_CHIP_SIZE,
   N4_HERO_CONTENT_STYLE,
-  N4_HERO_CURRENCY_TEXT_STYLE,
   N4_HERO_HEAD_STYLE,
   N4_HERO_LABEL_TEXT_STYLE,
-  N4_HERO_PILL_ROW_STYLE,
   N4_HERO_REFUSAL_TEXT_STYLE,
-  N4_HERO_VALUE_SLOT_STYLE,
+  type ReadyHeroGeometry,
+  resolveReadyHeroGeometry,
 } from '../ready.geometry';
 import {
   resolveCaption,
@@ -41,6 +39,8 @@ export interface ReadyHeroCardProps {
 export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
   const { outcome, frame, accountCount, foreignCount, foreignCurrency, baseCurrency, pills } =
     summary;
+  const { fontScale } = useWindowDimensions();
+  const geometry = resolveReadyHeroGeometry(fontScale);
 
   return (
     <View style={N4_HERO_CONTENT_STYLE}>
@@ -68,7 +68,7 @@ export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
 
       {outcome.kind === 'rate-needed' ? (
         <View
-          style={N4_HERO_VALUE_SLOT_STYLE}
+          style={geometry.refusalSlot}
           accessible
           accessibilityLabel={Strings.n4RateNeededValue}
         >
@@ -80,20 +80,26 @@ export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
           />
           <Typography
             className="text-warning font-sora-semibold"
-            style={N4_HERO_REFUSAL_TEXT_STYLE}
+            style={{ ...N4_HERO_REFUSAL_TEXT_STYLE, flexShrink: 1 }}
           >
             {Strings.n4RateNeededValue}
           </Typography>
         </View>
       ) : (
-        <HeroValue value={outcome.value} baseCurrency={baseCurrency} />
+        <HeroValue
+          value={outcome.value}
+          baseCurrency={baseCurrency}
+          fontScale={fontScale}
+          geometry={geometry}
+        />
       )}
 
-      <View style={N4_HERO_CAPTION_SLOT_STYLE}>
+      <View style={geometry.captionSlot}>
         {/* The slot is fixed-height with `overflow: hidden`, so an uncapped line is sliced. */}
         <Typography
           className="text-foreground font-inter"
-          style={N4_HERO_CAPTION_TEXT_STYLE}
+          allowFontScaling={geometry.captionText === undefined}
+          style={geometry.captionText ?? N4_HERO_CAPTION_TEXT_STYLE}
           numberOfLines={N4_HERO_CAPTION_MAX_LINES}
         >
           {resolveCaption(
@@ -106,7 +112,7 @@ export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
         </Typography>
       </View>
 
-      <View style={N4_HERO_PILL_ROW_STYLE}>
+      <View style={geometry.pillRow}>
         {pills.map((pill) => {
           const { label, glyph } = resolvePill(pill);
           return <HeroPill key={pill.kind} label={label} glyph={glyph} />;
@@ -117,23 +123,36 @@ export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
 }
 
 /** `numberOfLines={1}` is load-bearing: the slot is fixed-height, so a wrapped amount is sliced. */
-function HeroValue({ value, baseCurrency }: { value: number; baseCurrency: Currency }) {
+function HeroValue({
+  value,
+  baseCurrency,
+  fontScale,
+  geometry,
+}: {
+  value: number;
+  baseCurrency: Currency;
+  fontScale: number;
+  geometry: ReadyHeroGeometry;
+}) {
   const { value: amountString, code } = resolveHeroAmountParts(value, baseCurrency);
 
   return (
     <View
-      style={N4_HERO_VALUE_SLOT_STYLE}
+      style={geometry.valueSlot}
       accessible
       accessibilityLabel={resolveHeroValueA11yLabel(value, baseCurrency)}
     >
+      {/* No `minimumFontScale`: the fit shrinks until one line holds the digits and the code, and draws no ellipsis. */}
       <Text
         className="text-accent font-sora-bold"
-        style={resolveHeroValueTextStyle(amountString)}
+        allowFontScaling={false}
+        adjustsFontSizeToFit
+        style={{ ...resolveHeroValueTextStyle(amountString, fontScale), flexShrink: 1 }}
         numberOfLines={1}
       >
         {amountString}
         {/* One class carries family and weight, so the nested node names its own face. */}
-        <Text className="font-sora-semibold" style={N4_HERO_CURRENCY_TEXT_STYLE}>
+        <Text className="font-sora-semibold" allowFontScaling={false} style={geometry.currencyText}>
           {` ${code}`}
         </Text>
       </Text>

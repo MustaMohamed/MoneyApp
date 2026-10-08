@@ -1,14 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { LogoMark } from '@/components/ui/logo_mark';
+import { resolveStackHeaderGeometry } from '@/components/ui/stack_header.geometry';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
-
-import { ONBOARDING_SHELL_TRACKS } from './onboarding_shell.geometry';
 
 export interface OnboardingHeaderProps {
   /** Omit for the N1 brand header. */
@@ -17,9 +16,11 @@ export interface OnboardingHeaderProps {
 }
 
 export function OnboardingHeader({ title, onBack }: OnboardingHeaderProps) {
+  const geometry = resolveStackHeaderGeometry(useWindowDimensions().fontScale);
+
   return (
     <View
-      style={{ flexDirection: 'row', alignItems: 'center', height: ONBOARDING_SHELL_TRACKS.header }}
+      style={{ flexDirection: 'row', alignItems: 'center', height: geometry.height }}
       className="border-separator justify-between border-b px-2"
     >
       {title !== undefined ? (
@@ -44,7 +45,8 @@ export function OnboardingHeader({ title, onBack }: OnboardingHeaderProps) {
           )}
           <Typography
             className="font-sora-semibold text-foreground flex-1 text-center"
-            style={{ fontSize: Type.title, lineHeight: lineHeightFor(Type.title) }}
+            allowFontScaling={false}
+            style={geometry.title}
             numberOfLines={1}
           >
             {title}

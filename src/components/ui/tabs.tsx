@@ -72,6 +72,8 @@ export interface SegmentedTabsProps<T extends string = string> {
   isDisabled?: boolean;
   /** Opt-in touch area past each trigger's top and bottom edge; a scrollable row grows its scroll box to hold it, and the grown box follows the track's outline under form corners only. */
   triggerHitSlop?: TabsTriggerHitSlop;
+  /** The font scale past which the labels stop growing; unset, they follow the system scale. */
+  maxFontScale?: number;
 }
 
 export function SegmentedTabs<T extends string>({
@@ -90,12 +92,13 @@ export function SegmentedTabs<T extends string>({
   corners = 'pill',
   isDisabled,
   triggerHitSlop,
+  maxFontScale,
 }: SegmentedTabsProps<T>): React.ReactElement {
   const isSolidGold = variant === 'solid-gold';
   const isScrollable = layout === 'scrollable';
   const isCompact = density === 'compact';
   const radii = resolveSolidGoldRadii({ isCompact, corners });
-  const geometry = resolveSegmentedTabsGeometry(useWindowDimensions().fontScale);
+  const geometry = resolveSegmentedTabsGeometry(useWindowDimensions().fontScale, maxFontScale);
   const labelStyle = isCompact ? geometry.compact.label : geometry.defaultLabel;
   const sizeStyle =
     segmentWidth != null || isCompact

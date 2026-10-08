@@ -11,6 +11,8 @@ export interface CurrencySelectorProps {
   isDisabled?: boolean;
   /** Fixed width per segment; when omitted the control stays full-width. */
   segmentWidth?: number;
+  /** The font scale past which the codes stop growing, passed to `SegmentedTabs` unchanged. */
+  maxFontScale?: number;
 }
 
 export function CurrencySelector({
@@ -18,6 +20,7 @@ export function CurrencySelector({
   onChange,
   isDisabled,
   segmentWidth,
+  maxFontScale,
 }: CurrencySelectorProps) {
   return (
     <SegmentedTabs<Currency>
@@ -27,6 +30,7 @@ export function CurrencySelector({
       variant="solid-gold"
       isDisabled={isDisabled}
       segmentWidth={segmentWidth}
+      maxFontScale={maxFontScale}
       accessibilityLabel={Strings.accountCurrencyA11y}
     />
   );

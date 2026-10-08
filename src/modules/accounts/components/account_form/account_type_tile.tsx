@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RadioGroup, Typography, cn } from 'heroui-native';
 import React from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { HeroGlow } from '@/components/ui/hero_glow';
@@ -11,13 +11,17 @@ import {
   HERO_GRADIENT_END,
   HERO_GRADIENT_START,
 } from '@/components/ui/hero_gradient';
-import { Colors, Radius, Size, Spacing, Type, lineHeightFor, withAlpha } from '@/constants/theme';
+import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
+import { Colors, Radius, Size, Spacing, withAlpha } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
 import type { TypeOption } from '../account_type_pill';
 import { useAccountTypeTileAnim } from './account_form.anim';
-import { ACCOUNT_TYPE_TILE_HEIGHT } from './account_form.geometry';
+import {
+  ACCOUNT_TYPE_TILE_BORDER_WIDTH,
+  resolveAccountTypeTileGeometry,
+} from './account_form.geometry';
 
 export interface AccountTypeTileProps {
   option: TypeOption;
@@ -28,8 +32,7 @@ export interface AccountTypeTileProps {
 /** HeroUI's `.radio-group__item` is row/space-between and `style` beats `className` in RN. */
 const TILE_BOX_STYLE: ViewStyle = {
   flex: 1,
-  height: ACCOUNT_TYPE_TILE_HEIGHT,
-  borderWidth: 1,
+  borderWidth: ACCOUNT_TYPE_TILE_BORDER_WIDTH,
   borderRadius: Radius.md,
   overflow: 'hidden',
   flexDirection: 'column',
@@ -57,13 +60,19 @@ const GLOW_OFFSET = ms(22);
 /** The gradient and glow must be direct siblings, not children of the scaling `Animated.View`. */
 export function AccountTypeTile({ option, isSelected }: AccountTypeTileProps) {
   const { tileAnim, triggerTileTap } = useAccountTypeTileAnim();
+  const geometry = resolveAccountTypeTileGeometry(useWindowDimensions().fontScale);
+  const captionLine = resolveOneLineTextProps(geometry.caption);
 
   return (
     <RadioGroup.Item
       value={option.type}
       onPress={triggerTileTap}
       accessibilityLabel={option.label}
-      style={[TILE_BOX_STYLE, isSelected ? TILE_SELECTED_COLORS : TILE_UNSELECTED_COLORS]}
+      style={[
+        TILE_BOX_STYLE,
+        { height: geometry.height },
+        isSelected ? TILE_SELECTED_COLORS : TILE_UNSELECTED_COLORS,
+      ]}
     >
       {({ isSelected }) => (
         <>
@@ -102,9 +111,8 @@ export function AccountTypeTile({ option, isSelected }: AccountTypeTileProps) {
             </View>
             {/* Full-strength both branches; selection shows in the gradient, not dimming. */}
             <Typography
+              {...captionLine}
               className={cn('text-foreground', isSelected ? 'font-inter-semibold' : 'font-inter')}
-              style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
-              numberOfLines={1}
             >
               {option.label}
             </Typography>

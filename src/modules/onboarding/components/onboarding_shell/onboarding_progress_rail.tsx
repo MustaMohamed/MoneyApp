@@ -1,12 +1,12 @@
 import { cn, Typography } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Radius, Size, Spacing, Type } from '@/constants/theme';
 
 import {
-  ONBOARDING_SHELL_TRACKS,
   resolveProgressRail,
+  resolveProgressRailGeometry,
   type OnboardingStepIndex,
 } from './onboarding_shell.geometry';
 
@@ -17,11 +17,12 @@ export interface OnboardingProgressRailProps {
 /** Segments are hidden from assistive tech; the label row below carries the meaning. */
 export function OnboardingProgressRail({ step }: OnboardingProgressRailProps) {
   const model = resolveProgressRail(step);
+  const { height, label } = resolveProgressRailGeometry(useWindowDimensions().fontScale);
 
   return (
     <View
       style={{
-        height: ONBOARDING_SHELL_TRACKS.progressRail,
+        height,
         paddingVertical: Spacing.sm,
         paddingHorizontal: Spacing.md,
       }}
@@ -45,22 +46,31 @@ export function OnboardingProgressRail({ step }: OnboardingProgressRailProps) {
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
+          gap: label === undefined ? 0 : Spacing.xs,
         }}
         accessible
         accessibilityLabel={model.accessibilityLabel}
       >
         <Typography
           className="text-foreground font-inter-semibold"
-          // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- Size.compactBodyLineHeight (theme.ts:176) is a fixed 20px token shared by both rail labels, distinct from lineHeightFor(Type.caption)'s 16px.
-          style={{ fontSize: Type.caption, lineHeight: Size.compactBodyLineHeight }}
+          allowFontScaling={label === undefined}
+          style={[
+            // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- Size.compactBodyLineHeight (theme.ts:176) is a fixed 20px token shared by both rail labels, distinct from lineHeightFor(Type.caption)'s 16px.
+            { fontSize: Type.caption, lineHeight: Size.compactBodyLineHeight },
+            label ? { ...label, flexShrink: 0 } : undefined,
+          ]}
           numberOfLines={1}
         >
           {model.stepLabel}
         </Typography>
         <Typography
           className="text-content-secondary"
-          // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- same Size.compactBodyLineHeight token as the label above; the pair must match.
-          style={{ fontSize: Type.caption, lineHeight: Size.compactBodyLineHeight }}
+          allowFontScaling={label === undefined}
+          style={[
+            // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- same Size.compactBodyLineHeight token as the label above; the pair must match.
+            { fontSize: Type.caption, lineHeight: Size.compactBodyLineHeight },
+            label ? { ...label, flexShrink: 1 } : undefined,
+          ]}
           numberOfLines={1}
         >
           {model.stepName}

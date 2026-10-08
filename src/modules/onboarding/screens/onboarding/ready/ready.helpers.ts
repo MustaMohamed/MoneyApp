@@ -13,16 +13,19 @@ import {
 
 import {
   N4_HERO_AMOUNT_DECIMALS,
-  N4_HERO_VALUE_STEP_TEXT_STYLE,
-  N4_HERO_VALUE_TEXT_STYLE,
   N4_STEP_DOWN_MAX_CHARS,
+  resolveReadyHeroGeometry,
 } from './ready.geometry';
 
 /** Hero value size by formatted length, suffix excluded; mockup.html:686 `.hero-v .n.step`. */
-export function resolveHeroValueTextStyle(formattedAmount: string): Readonly<TextStyle> {
+export function resolveHeroValueTextStyle(
+  formattedAmount: string,
+  fontScale: number,
+): Readonly<TextStyle> {
+  const geometry = resolveReadyHeroGeometry(fontScale);
   return formattedAmount.length > N4_STEP_DOWN_MAX_CHARS
-    ? N4_HERO_VALUE_STEP_TEXT_STYLE
-    : N4_HERO_VALUE_TEXT_STYLE;
+    ? geometry.valueStepText
+    : geometry.valueText;
 }
 
 /** The two hero nodes, mockup.html:2334; decimals are explicit, EGP's default is 0. */

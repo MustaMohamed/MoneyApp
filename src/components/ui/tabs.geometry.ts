@@ -8,6 +8,8 @@ import { Size, Spacing, Type } from '@/constants/theme';
 
 // `.tabs__list--variant-primary`'s own padding, unscaled CSS.
 export const TABS_LIST_PADDING = 3;
+// `.tabs__trigger`'s own `padding-block`, unscaled CSS.
+export const TABS_TRIGGER_PADDING_BLOCK = 6;
 // `.tabs__scroll-view-content-container--variant-primary`'s own `padding-inline`, unscaled CSS.
 export const TABS_SCROLL_CONTENT_INSET = 1;
 
@@ -54,10 +56,16 @@ export function resolveGrownScrollRadii(
 export interface SegmentedTabsGeometry {
   compact: { label: ScaledTextStyle; triggerHeight: number; listHeight: number };
   defaultLabel: ScaledTextStyle | undefined;
+  /** The default row's height, `undefined` wherever `defaultLabel` is: there HeroUI sizes the row. */
+  defaultListHeight: number | undefined;
 }
 
-export function resolveSegmentedTabsGeometry(fontScale: number): SegmentedTabsGeometry {
-  const compactLabel = scaledTextStyle(Type.micro, fontScale);
+export function resolveSegmentedTabsGeometry(
+  fontScale: number,
+  maxFontScale = Infinity,
+): SegmentedTabsGeometry {
+  const compactLabel = scaledTextStyle(Type.micro, fontScale, maxFontScale);
+  const defaultLabel = scaledTextStyleAboveOne(HEROUI_TEXT_TYPE.base, fontScale, maxFontScale);
   const triggerHeight = Math.max(
     Size.compactSegmentTrack,
     compactLabel.lineHeight + 2 * Spacing.xxxs,
@@ -68,6 +76,10 @@ export function resolveSegmentedTabsGeometry(fontScale: number): SegmentedTabsGe
       triggerHeight,
       listHeight: triggerHeight + 2 * TABS_LIST_PADDING,
     },
-    defaultLabel: scaledTextStyleAboveOne(HEROUI_TEXT_TYPE.base, fontScale),
+    defaultLabel,
+    defaultListHeight:
+      defaultLabel === undefined
+        ? undefined
+        : defaultLabel.lineHeight + 2 * TABS_TRIGGER_PADDING_BLOCK + 2 * TABS_LIST_PADDING,
   };
 }
