@@ -8,13 +8,17 @@ const SHOWN = { opacity: 1, pointerEvents: 'box-none' };
 
 async function mountSheet(isOpen: boolean, { withHandler = true }: { withHandler?: boolean } = {}) {
   const onCloseComplete = jest.fn();
+  let renders = 0;
   const hook = await renderHook(
-    ({ open }: { open: boolean }) =>
-      useSheetCloseLifecycle(open, withHandler ? onCloseComplete : undefined),
+    ({ open }: { open: boolean }) => {
+      renders += 1;
+      return useSheetCloseLifecycle(open, withHandler ? onCloseComplete : undefined);
+    },
     { initialProps: { open: isOpen } },
   );
   return {
     onCloseComplete,
+    renderCount: () => renders,
     drawn: () => resolveSheetClosedAtRestProps(hook.result.current.closeLifecycle),
     setOpen: (open: boolean) => hook.rerender({ open }),
     settleAt: (index: number) => act(() => hook.result.current.handleSheetIndexChange(index)),
@@ -99,6 +103,30 @@ describe('useSheetCloseLifecycle', () => {
     await sheet.settleAt(-1);
     expect(sheet.drawn()).toEqual(HIDDEN);
     expect(sheet.onCloseComplete).toHaveBeenCalledTimes(2);
+  });
+
+  it('renders nothing more for an index of 0 on an open sheet, and renders for the -1 that follows', async () => {
+    const sheet = await mountSheet(true);
+    const rendersAtOpen = sheet.renderCount();
+
+    await sheet.settleAt(0);
+    expect(sheet.renderCount()).toBe(rendersAtOpen);
+
+    await sheet.settleAt(-1);
+    expect(sheet.renderCount()).toBeGreaterThan(rendersAtOpen);
+  });
+
+  it('holds a reported open across a render that leaves isOpen alone, and completes once after the drop', async () => {
+    const sheet = await mountSheet(true);
+    await sheet.settleAt(0);
+    await sheet.setOpen(true);
+    await sheet.settleAt(-1);
+    expect(sheet.drawn()).toEqual(SHOWN);
+    expect(sheet.onCloseComplete).not.toHaveBeenCalled();
+
+    await sheet.setOpen(false);
+    expect(sheet.drawn()).toEqual(HIDDEN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -25,16 +25,20 @@ export function useSheetCloseLifecycle(
       : syncSheetCloseLifecycle(storedLifecycle, isOpen);
   // `isOpen` is a prop: its change is stored during render, so the lifecycle never lags it by a commit.
   if (closeLifecycle !== storedLifecycle) setStoredLifecycle(closeLifecycle);
-  // The index handler reads the latest render's lifecycle, and a second -1 before the next render finds the close settled.
+  // The handlers read the ref, which alone holds a reported open, so a render writes it only with a change of `isOpen`.
   const closeLifecycleRef = useRef(closeLifecycle);
-  closeLifecycleRef.current = closeLifecycle;
+  if (closeLifecycle !== storedLifecycle) closeLifecycleRef.current = closeLifecycle;
 
   const handleSheetIndexChange = useCallback(
     (index: number) => {
       const settlement = settleSheetCloseLifecycle(closeLifecycleRef.current, index);
       if (settlement.lifecycle === closeLifecycleRef.current) return;
+      // No render reads `openReported`, so a report that changes it alone schedules none.
+      const wasAtRest = closeLifecycleRef.current.restsClosed;
       closeLifecycleRef.current = settlement.lifecycle;
-      setStoredLifecycle(settlement.lifecycle);
+      if (settlement.shouldComplete || settlement.lifecycle.restsClosed !== wasAtRest) {
+        setStoredLifecycle(settlement.lifecycle);
+      }
       if (settlement.shouldComplete) onCloseComplete?.();
     },
     [onCloseComplete],
