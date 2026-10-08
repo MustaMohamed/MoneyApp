@@ -28,6 +28,29 @@ export function resolveTabsScrollSlopInset(
   };
 }
 
+export interface TabsGrownScrollRadii {
+  borderTopLeftRadius: number;
+  borderTopRightRadius: number;
+  borderBottomLeftRadius: number;
+  borderBottomRightRadius: number;
+}
+
+/** The grown scroll box's corners, each arc centred where the track outline's own is; none where HeroUI's pill radius stands. */
+export function resolveGrownScrollRadii(
+  track: number | undefined,
+  inset: TabsTriggerHitSlop,
+): TabsGrownScrollRadii | undefined {
+  if (track === undefined) return undefined;
+  const top = track + inset.top - TABS_LIST_PADDING;
+  const bottom = track + inset.bottom - TABS_LIST_PADDING;
+  return {
+    borderTopLeftRadius: top,
+    borderTopRightRadius: top,
+    borderBottomLeftRadius: bottom,
+    borderBottomRightRadius: bottom,
+  };
+}
+
 export interface SegmentedTabsGeometry {
   compact: { label: ScaledTextStyle; triggerHeight: number; listHeight: number };
   defaultLabel: ScaledTextStyle | undefined;

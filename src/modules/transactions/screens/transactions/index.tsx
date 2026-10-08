@@ -26,14 +26,18 @@ import { TransactionLoadError } from './components/transaction_load_error';
 import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
 import { TransactionsHero } from './components/transactions_hero';
-import { TRANSACTIONS_RAIL } from './components/transactions_rail.geometry';
+import {
+  TRANSACTIONS_RAIL,
+  TRANSACTIONS_RAIL_STYLE,
+  TRANSACTIONS_RAIL_TABS_STYLE,
+} from './components/transactions_rail.geometry';
 import { TxDeleteDialog } from './components/tx_delete_dialog';
 import { FilterSheet } from './filter';
 import { useTransactions } from './transactions.hook';
 import type { TransactionSection } from './transactions.hook';
 import type { TransactionFilter } from './transactions.store';
 
-const TRANSACTION_FILTERS: SegmentFilterOption<TransactionFilter>[] = [
+const TRANSACTION_FILTERS: ReadonlyArray<SegmentFilterOption<TransactionFilter>> = [
   {
     value: 'all',
     label: Strings.filterAll,
@@ -60,13 +64,6 @@ const TRANSACTION_FILTERS: SegmentFilterOption<TransactionFilter>[] = [
     icon: TRANSACTION_TYPE_ICONS[TransactionType.CCPayment],
   },
 ];
-
-const RAIL_STYLE = {
-  paddingTop: TRANSACTIONS_RAIL.space,
-  paddingBottom: TRANSACTIONS_RAIL.space,
-} as const;
-// A margin, never a `gap` on the rail: Yoga would count a gap twice around `MonthFilter`'s in-flow sheet root.
-const RAIL_TABS_STYLE = { marginTop: TRANSACTIONS_RAIL.space } as const;
 
 const LIST_BOTTOM_CLEARANCE = ms(160);
 const SKELETON_DAY_CARDS = 2;
@@ -223,13 +220,13 @@ export default function TransactionsScreen(): React.ReactElement {
       </Surface>
       <Separator />
 
-      <View testID="transactions-rail" className="px-4" style={RAIL_STYLE}>
+      <View testID="transactions-rail" className="px-4" style={TRANSACTIONS_RAIL_STYLE}>
         <MonthFilter
           selectedMonth={state.selectedMonth}
           onSelectedMonthChange={setSelectedMonth}
           rowHitSlop={TRANSACTIONS_RAIL.monthRowHitSlop}
         />
-        <View style={RAIL_TABS_STYLE}>
+        <View style={TRANSACTIONS_RAIL_TABS_STYLE}>
           <SegmentFilter
             selectedFilter={state.activeFilter}
             onSelectedFilterChange={setActiveFilter}

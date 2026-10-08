@@ -239,12 +239,14 @@ interface RailHitSlop {
 
 interface MonthFilterMockProps {
   rowHitSlop?: RailHitSlop;
+  onSelectedMonthChange?: (month: string) => void;
 }
 
 interface SegmentFilterMockProps {
   filters: ReadonlyArray<{ value: string; icon?: object }>;
   corners?: string;
   triggerHitSlop?: RailHitSlop;
+  onSelectedFilterChange?: (filter: string) => void;
 }
 
 const TYPE_FILTERS = [
@@ -369,7 +371,8 @@ describe('TransactionsScreen', () => {
     expect(getByTestId('transactions-list')).toHaveProp('ListHeaderComponent');
   });
 
-  it('MA-109: the rail hands the month row and the iconed type tabs its space and hit slops, in form corners', async () => {
+  it('MA-109: the rail hands the month row and the iconed type tabs its space, hit slops and the hook handlers during the first load, in form corners', async () => {
+    const hook = mockUseTransactions();
     const { getByTestId } = await render(<TransactionsScreen />);
 
     const filters = segmentFilterProps.last?.filters ?? [];
@@ -385,6 +388,11 @@ describe('TransactionsScreen', () => {
       paddingTop: TRANSACTIONS_RAIL.space,
       paddingBottom: TRANSACTIONS_RAIL.space,
     });
+    expect(getByTestId('transactions-segment-filter').parent).toHaveStyle({
+      marginTop: TRANSACTIONS_RAIL.space,
+    });
+    expect(monthFilterProps.last?.onSelectedMonthChange).toBe(hook.setSelectedMonth);
+    expect(segmentFilterProps.last?.onSelectedFilterChange).toBe(hook.setActiveFilter);
   });
 
   it('MA-107: the tally slot passes an empty spoken label when its model carries none', async () => {

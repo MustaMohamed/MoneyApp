@@ -6,10 +6,13 @@ import { Size, Spacing, Type } from '@/constants/theme';
 /** A step button's slop on every side, raw dp. */
 export const MONTH_STEP_HIT_SLOP = 8;
 
-/** A row slop sets a step button's top and bottom; left and right keep the shipped slop. */
-export function resolveMonthStepHitSlop(
-  rowHitSlop: { top: number; bottom: number } | undefined,
-): number | Insets {
+/** Dp past the top and bottom edges of the pill and both step buttons that still reach them. */
+export interface MonthRowHitSlop {
+  top: number;
+  bottom: number;
+}
+
+export function resolveMonthStepHitSlop(rowHitSlop: MonthRowHitSlop | undefined): number | Insets {
   if (rowHitSlop === undefined) return MONTH_STEP_HIT_SLOP;
   return {
     top: rowHitSlop.top,

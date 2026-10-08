@@ -154,6 +154,7 @@ describe('SegmentFilter', () => {
         onSelectedFilterChange={jest.fn()}
         filters={filters}
         accessibilityLabel="Commitment status filter"
+        corners="form"
         triggerHitSlop={TRIGGER_HIT_SLOP}
       />,
     );

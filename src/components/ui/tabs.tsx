@@ -8,6 +8,7 @@ import { Colors, Radius, Size } from '@/constants/theme';
 import {
   TABS_LIST_PADDING,
   type TabsTriggerHitSlop,
+  resolveGrownScrollRadii,
   resolveSegmentedTabsGeometry,
   resolveTabsScrollSlopInset,
 } from './tabs.geometry';
@@ -30,29 +31,6 @@ export function resolveSolidGoldRadii({
   return isCompact && corners === 'pill'
     ? { track: undefined, selected: Radius.lg }
     : { track: SOLID_GOLD_TRACK_RADIUS, selected: SOLID_GOLD_SELECTED_RADIUS };
-}
-
-/** The grown scroll box's corners, each arc centred where the track outline's own is; none where HeroUI's pill radius stands. */
-function resolveGrownScrollRadii(
-  track: number | undefined,
-  inset: TabsTriggerHitSlop,
-):
-  | {
-      borderTopLeftRadius: number;
-      borderTopRightRadius: number;
-      borderBottomLeftRadius: number;
-      borderBottomRightRadius: number;
-    }
-  | undefined {
-  if (track === undefined) return undefined;
-  const top = track + inset.top - TABS_LIST_PADDING;
-  const bottom = track + inset.bottom - TABS_LIST_PADDING;
-  return {
-    borderTopLeftRadius: top,
-    borderTopRightRadius: top,
-    borderBottomLeftRadius: bottom,
-    borderBottomRightRadius: bottom,
-  };
 }
 
 export interface TabSegmentIcon {
@@ -92,7 +70,7 @@ export interface SegmentedTabsProps<T extends string = string> {
   corners?: SegmentedTabsCorners;
   /** Every trigger is non-interactive; the selected indicator still shows. */
   isDisabled?: boolean;
-  /** Opt-in touch area past each trigger's top and bottom edge; a scrollable row grows its scroll box to hold it. */
+  /** Opt-in touch area past each trigger's top and bottom edge; a scrollable row grows its scroll box to hold it, and the grown box follows the track's outline under form corners only. */
   triggerHitSlop?: TabsTriggerHitSlop;
 }
 
@@ -159,7 +137,7 @@ export function SegmentedTabs<T extends string>({
         style={triggerStyle}
         accessibilityLabel={seg.accessibilityLabel ?? seg.label}
         isDisabled={isDisabled}
-        {...(triggerHitSlop ? { hitSlop: triggerHitSlop } : undefined)}
+        hitSlop={triggerHitSlop}
       >
         {seg.icon ? (
           <MaterialCommunityIcons
@@ -207,15 +185,16 @@ export function SegmentedTabs<T extends string>({
   );
 
   // Edge keys, never the vertical shorthands: each has to land on the key HeroUI's 3 dp `-block` rule compiled to.
-  const slopScrollProps = slopInset
+  const scrollStyle = slopInset
     ? {
-        style: {
-          marginTop: -slopInset.top,
-          marginBottom: -slopInset.bottom,
-          ...resolveGrownScrollRadii(trackStyle?.borderRadius, slopInset),
-        },
-        contentContainerStyle: { paddingTop: slopInset.top, paddingBottom: slopInset.bottom },
+        ...trackStyle,
+        marginTop: -slopInset.top,
+        marginBottom: -slopInset.bottom,
+        ...resolveGrownScrollRadii(trackStyle?.borderRadius, slopInset),
       }
+    : trackStyle;
+  const scrollContentStyle = slopInset
+    ? { paddingTop: slopInset.top, paddingBottom: slopInset.bottom }
     : undefined;
 
   return (
@@ -239,8 +218,8 @@ export function SegmentedTabs<T extends string>({
             onLayout={scrollBehavior.onLayout}
             scrollEventThrottle={scrollBehavior.scrollEventThrottle}
             // The scroll view repeats the list's 3xl radius in its own CSS — keep it in step with the overridden track.
-            style={trackStyle}
-            {...slopScrollProps}
+            style={scrollStyle}
+            contentContainerStyle={scrollContentStyle}
           >
             {indicator}
             {triggers}

@@ -1,10 +1,11 @@
 import {
   TABS_LIST_PADDING,
+  resolveGrownScrollRadii,
   resolveSegmentedTabsGeometry,
   resolveTabsScrollSlopInset,
 } from '@/components/ui/tabs.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Type, lineHeightFor } from '@/constants/theme';
 
 describe('resolveSegmentedTabsGeometry', () => {
   it('at font scale 1 draws the compact trigger at 28 with the Type.micro label', () => {
@@ -53,5 +54,20 @@ describe('resolveTabsScrollSlopInset', () => {
       top: TABS_LIST_PADDING,
       bottom: TABS_LIST_PADDING,
     });
+  });
+});
+
+describe('resolveGrownScrollRadii', () => {
+  it('MA-109: a form track rounds each corner by its side of the inset past the list padding', () => {
+    expect(resolveGrownScrollRadii(Radius.md, { top: 7, bottom: 10 })).toEqual({
+      borderTopLeftRadius: Radius.md + 7 - TABS_LIST_PADDING,
+      borderTopRightRadius: Radius.md + 7 - TABS_LIST_PADDING,
+      borderBottomLeftRadius: Radius.md + 10 - TABS_LIST_PADDING,
+      borderBottomRightRadius: Radius.md + 10 - TABS_LIST_PADDING,
+    });
+  });
+
+  it('MA-109: a track left at the pill radius takes no corner radius', () => {
+    expect(resolveGrownScrollRadii(undefined, { top: 7, bottom: 10 })).toBeUndefined();
   });
 });

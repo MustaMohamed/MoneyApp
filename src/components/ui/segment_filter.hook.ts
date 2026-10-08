@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import type { SegmentedTabsCorners, TabSegment, TabSegmentIcon } from './tabs';
+import type { TabSegment, TabSegmentIcon } from './tabs';
 import type { TabsTriggerHitSlop } from './tabs.geometry';
 
 export interface SegmentFilterOption<T extends string = string> {
@@ -10,15 +10,23 @@ export interface SegmentFilterOption<T extends string = string> {
   icon?: TabSegmentIcon;
 }
 
-export interface SegmentFilterProps<T extends string = string> {
+interface SegmentFilterBaseProps<T extends string = string> {
   selectedFilter: T;
   onSelectedFilterChange: (filter: T) => void;
   filters: ReadonlyArray<SegmentFilterOption<T>>;
   accessibilityLabel: string;
-  corners?: SegmentedTabsCorners;
-  /** Opt-in touch area past each tab's top and bottom edge. */
-  triggerHitSlop?: TabsTriggerHitSlop;
 }
+
+/** The slop's grown scroll box follows the track's outline under form corners only, so the union stops a pill row naming it. */
+export type SegmentFilterProps<T extends string = string> = SegmentFilterBaseProps<T> &
+  (
+    | {
+        corners: 'form';
+        /** Opt-in touch area past each tab's top and bottom edge. */
+        triggerHitSlop?: TabsTriggerHitSlop;
+      }
+    | { corners?: 'pill'; triggerHitSlop?: never }
+  );
 
 export function useSegmentFilter<T extends string>({ filters }: SegmentFilterProps<T>) {
   const segments = useMemo<TabSegment<T>[]>(

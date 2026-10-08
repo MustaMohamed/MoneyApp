@@ -10,6 +10,7 @@ import {
   Radius,
   Size,
   Spacing,
+  TOUCH_SLOP_PIXEL_MARGIN,
   TouchSize,
   Type,
   lineHeightFor,
@@ -42,8 +43,9 @@ export const ACCOUNT_STRIP_TILE = Size.dualTile;
 export const ACCOUNT_STRIP_CHIP_PADDING_X = ms(10);
 export const ACCOUNT_STRIP_TILE_NAME_GAP = Spacing.xs;
 export const ACCOUNT_STRIP_DIMMED_OPACITY = 0.6;
-/** Lifts the 40-high chip past the touch floor, plus 1 so Android's dp-to-px truncation of the slop still clears 44. */
-export const ACCOUNT_STRIP_CHIP_SLOP_Y = touchFloorSlop(ACCOUNT_STRIP_CHIP_HEIGHT) + Spacing.xxxxs;
+/** Lifts the 40-high chip past the touch floor. */
+export const ACCOUNT_STRIP_CHIP_SLOP_Y =
+  touchFloorSlop(ACCOUNT_STRIP_CHIP_HEIGHT) + TOUCH_SLOP_PIXEL_MARGIN;
 /** Horizontally the slop stops at half the gap, so a neighbour keeps its side. */
 export const ACCOUNT_STRIP_HIT_SLOP: Readonly<Insets> = Object.freeze({
   top: ACCOUNT_STRIP_CHIP_SLOP_Y,
@@ -121,7 +123,7 @@ export function resolveTransactionFormSkeletonBars(fontScale: number): {
   };
 }
 
-/** `triggerHitSlop` lifts a tab past the touch floor, plus 1 a side for Android's dp-to-px truncation of the slop. */
+/** `triggerHitSlop` lifts a tab past the touch floor. */
 export function resolveTypeTabsGeometry(fontScale: number): {
   listHeight: number;
   skeletonHeight: number;
@@ -129,7 +131,7 @@ export function resolveTypeTabsGeometry(fontScale: number): {
 } {
   const { compact } = resolveSegmentedTabsGeometry(fontScale);
   const listHeight = Math.max(Size.typeTabsTrack, compact.listHeight);
-  const slop = touchFloorSlop(compact.triggerHeight) + Spacing.xxxxs;
+  const slop = touchFloorSlop(compact.triggerHeight) + TOUCH_SLOP_PIXEL_MARGIN;
   return {
     listHeight,
     skeletonHeight: fontScale <= 1 ? TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar : listHeight,

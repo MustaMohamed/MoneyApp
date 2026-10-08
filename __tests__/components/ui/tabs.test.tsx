@@ -368,6 +368,7 @@ describe('SegmentedTabs', () => {
     const fixedListStyle: unknown = getByTestId('tabs-list').props.style;
     const fixedSelectedStyle: unknown = getByTestId('tabs-trigger-all').props.style;
     const fixedIdleStyle: unknown = getByTestId('tabs-trigger-overdue').props.style;
+    const fixedIndicatorStyle: unknown = getByTestId('tabs-indicator').props.style;
 
     await rerender(
       <SegmentedTabs
@@ -384,6 +385,7 @@ describe('SegmentedTabs', () => {
 
     expect(getByTestId('tabs-list')).toHaveStyle(listStyle);
     expect(getByTestId('tabs-list').props.style).toEqual(fixedListStyle);
+    expect(getByTestId('tabs-indicator').props.style).toEqual(fixedIndicatorStyle);
     expect(getByTestId('tabs-trigger-all').props.style).toEqual(fixedSelectedStyle);
     expect(getByTestId('tabs-trigger-overdue').props.style).toEqual(fixedIdleStyle);
     expect(getByTestId('tabs-trigger-all').props.hitSlop).toBe(TRIGGER_HIT_SLOP);

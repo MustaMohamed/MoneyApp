@@ -262,6 +262,9 @@ export function touchFloorSlop(height: number): number {
   return Math.max(0, (TouchSize.min - height) / 2);
 }
 
+/** Added to a slop sized to the touch floor: Android truncates a slop's dp to whole pixels, so one sized to exactly the floor misses by one. */
+export const TOUCH_SLOP_PIXEL_MARGIN = Spacing.xxxxs;
+
 export const CategoryColors = [
   '#5C7FC4',
   '#A2792C',
