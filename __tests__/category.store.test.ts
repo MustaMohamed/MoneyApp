@@ -477,4 +477,31 @@ describe('categoryStore.reset', () => {
     expect(consoleSpy).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
+
+  it('contains a reload failure when reset lands before the write handles it', async () => {
+    const write = deferred<void>();
+    const reload = deferred<Category[]>();
+    const getAll = jest.fn().mockReturnValue(reload.promise);
+    const repo = makeRepo({ update: jest.fn().mockReturnValue(write.promise), getAll });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const save = useStore
+      .getState()
+      .updateCategory('cat-1', { name: 'Y', icon: 'heart', color: '#aaa' });
+    write.resolve();
+    await write.promise;
+    expect(getAll).toHaveBeenCalledTimes(1);
+    reload.promise.catch(() => useStore.getState().reset());
+    reload.reject(new Error('reload fail'));
+
+    await expect(save).resolves.toBeUndefined();
+    expect(useStore.getState()).toMatchObject({
+      categories: [],
+      hasLoaded: false,
+      loadError: false,
+    });
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    consoleSpy.mockRestore();
+  });
 });
