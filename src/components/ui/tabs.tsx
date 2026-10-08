@@ -5,7 +5,13 @@ import { useWindowDimensions } from 'react-native';
 
 import { Colors, Radius, Size } from '@/constants/theme';
 
-import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from './tabs.geometry';
+import {
+  TABS_LIST_PADDING,
+  type TabsTriggerHitSlop,
+  resolveGrownScrollRadii,
+  resolveSegmentedTabsGeometry,
+  resolveTabsScrollSlopInset,
+} from './tabs.geometry';
 import { type SegmentedTabsScrollAlign, useSegmentedTabsScroll } from './tabs.hook';
 
 // The form vocabulary is small radii — inputs and tiles sit at Radius.md — so the solid-gold track overrides HeroUI's pill `--radius-3xl` (user ruling 2026-09-01); the fill is concentric inside the list padding.
@@ -64,6 +70,8 @@ export interface SegmentedTabsProps<T extends string = string> {
   corners?: SegmentedTabsCorners;
   /** Every trigger is non-interactive; the selected indicator still shows. */
   isDisabled?: boolean;
+  /** Opt-in touch area past each trigger's top and bottom edge; a scrollable row grows its scroll box to hold it, and the grown box follows the track's outline under form corners only. */
+  triggerHitSlop?: TabsTriggerHitSlop;
 }
 
 export function SegmentedTabs<T extends string>({
@@ -81,6 +89,7 @@ export function SegmentedTabs<T extends string>({
   density = 'default',
   corners = 'pill',
   isDisabled,
+  triggerHitSlop,
 }: SegmentedTabsProps<T>): React.ReactElement {
   const isSolidGold = variant === 'solid-gold';
   const isScrollable = layout === 'scrollable';
@@ -128,6 +137,7 @@ export function SegmentedTabs<T extends string>({
         style={triggerStyle}
         accessibilityLabel={seg.accessibilityLabel ?? seg.label}
         isDisabled={isDisabled}
+        hitSlop={triggerHitSlop}
       >
         {seg.icon ? (
           <MaterialCommunityIcons
@@ -159,19 +169,33 @@ export function SegmentedTabs<T extends string>({
   const trackStyle =
     isSolidGold && radii.track !== undefined ? { borderRadius: radii.track } : undefined;
 
+  const slopInset = isScrollable ? resolveTabsScrollSlopInset(triggerHitSlop) : undefined;
+  const indicatorFillStyle = isSolidGold
+    ? {
+        backgroundColor: Colors.shared.cairoGold,
+        borderRadius: radii.selected,
+      }
+    : undefined;
+
   const indicator = (
     <Tabs.Indicator
       // `Tabs.Indicator` does not animate `backgroundColor`, so a style override is safe.
-      style={
-        isSolidGold
-          ? {
-              backgroundColor: Colors.shared.cairoGold,
-              borderRadius: radii.selected,
-            }
-          : undefined
-      }
+      style={slopInset ? { ...indicatorFillStyle, top: slopInset.top } : indicatorFillStyle}
     />
   );
+
+  // Edge keys, never the vertical shorthands: each has to land on the key HeroUI's 3 dp `-block` rule compiled to.
+  const scrollStyle = slopInset
+    ? {
+        ...trackStyle,
+        marginTop: -slopInset.top,
+        marginBottom: -slopInset.bottom,
+        ...resolveGrownScrollRadii(trackStyle?.borderRadius, slopInset),
+      }
+    : trackStyle;
+  const scrollContentStyle = slopInset
+    ? { paddingTop: slopInset.top, paddingBottom: slopInset.bottom }
+    : undefined;
 
   return (
     <Tabs
@@ -194,7 +218,8 @@ export function SegmentedTabs<T extends string>({
             onLayout={scrollBehavior.onLayout}
             scrollEventThrottle={scrollBehavior.scrollEventThrottle}
             // The scroll view repeats the list's 3xl radius in its own CSS — keep it in step with the overridden track.
-            style={trackStyle}
+            style={scrollStyle}
+            contentContainerStyle={scrollContentStyle}
           >
             {indicator}
             {triggers}

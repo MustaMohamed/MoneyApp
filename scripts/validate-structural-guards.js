@@ -198,10 +198,12 @@ const NAMED_ROWS = [
     banned: ['useConfirmAction', 'useTransactionFormState', 'useTransactionStore'].map(identifier),
     rule: 'in the transactions template; its hook owns confirm, form and store access',
     required: [
-      tag('FilterRail'),
+      tag('MonthFilter'),
+      tag('SegmentFilter'),
       ...members('TransactionType', ['Income', 'Expense', 'Transfer', 'CCPayment']),
     ],
-    needs: 'the transactions screen filters through `FilterRail` over every `TransactionType`',
+    needs:
+      'the transactions screen filters through `MonthFilter` and `SegmentFilter` over every `TransactionType`',
   },
   {
     files: [`${TRANSACTIONS}/detail/index.tsx`],

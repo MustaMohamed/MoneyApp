@@ -13,6 +13,7 @@ jest.mock('@/components/ui/tabs', () => ({
     segmentWidth,
     scrollAlign,
     density,
+    triggerHitSlop,
   }: {
     segments: ReadonlyArray<{
       value: string;
@@ -25,11 +26,16 @@ jest.mock('@/components/ui/tabs', () => ({
     segmentWidth?: number;
     scrollAlign?: string;
     density?: string;
+    triggerHitSlop?: { top: number; bottom: number };
   }) => {
     const { Pressable, Text, View } =
       jest.requireActual<typeof import('react-native')>('react-native');
     return (
-      <View accessibilityLabel={accessibilityLabel} testID="segment-filter-tabs">
+      <View
+        accessibilityLabel={accessibilityLabel}
+        testID="segment-filter-tabs"
+        hitSlop={triggerHitSlop}
+      >
         <Text testID={segmentWidth ? 'segment-filter-width-set' : 'segment-filter-width-missing'}>
           {String(segmentWidth)}
         </Text>
@@ -63,6 +69,8 @@ const filters = [
   },
   { value: 'paid', label: 'Paid' },
 ] as const;
+
+const TRIGGER_HIT_SLOP = { top: 7, bottom: 10 };
 
 describe('SegmentFilter', () => {
   it('renders every dynamic filter option', async () => {
@@ -126,5 +134,31 @@ describe('SegmentFilter', () => {
 
     await fireEvent.press(getByLabelText('Due soon commitments'));
     expect(onSelectedFilterChange).toHaveBeenCalledWith('due');
+  });
+
+  it('MA-109: hands the shared tabs a trigger hit slop only when its caller sets one', async () => {
+    const { getByTestId, rerender } = await render(
+      <SegmentFilter
+        selectedFilter="all"
+        onSelectedFilterChange={jest.fn()}
+        filters={filters}
+        accessibilityLabel="Commitment status filter"
+      />,
+    );
+
+    expect(getByTestId('segment-filter-tabs').props.hitSlop).toBeUndefined();
+
+    await rerender(
+      <SegmentFilter
+        selectedFilter="all"
+        onSelectedFilterChange={jest.fn()}
+        filters={filters}
+        accessibilityLabel="Commitment status filter"
+        corners="form"
+        triggerHitSlop={TRIGGER_HIT_SLOP}
+      />,
+    );
+
+    expect(getByTestId('segment-filter-tabs').props.hitSlop).toBe(TRIGGER_HIT_SLOP);
   });
 });

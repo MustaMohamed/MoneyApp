@@ -10,12 +10,15 @@ import {
   yearFromYearMonth,
 } from '@/utils/year_month';
 
+import type { MonthRowHitSlop } from './month_filter.geometry';
 import { useMonthFilterState } from './month_filter.state';
 
 export interface MonthFilterProps {
   selectedMonth: string;
   onSelectedMonthChange: (month: string) => void;
   showStepButtons?: boolean;
+  /** Opt-in touch area past the top and bottom edges of the pill and both step buttons. */
+  rowHitSlop?: MonthRowHitSlop;
 }
 
 interface PickerMonth {

@@ -400,7 +400,8 @@ function withoutKind(rel: string, kind: string, swapped: string): RequiredSeed {
 
 // The import seeds and the tag seeds are spread over the tab screens, so no two edit the same text.
 const REQUIRED: RequiredSeed[] = [
-  withoutTag(TRANSACTIONS_INDEX, 'FilterRail', 'the transactions screen'),
+  withoutTag(TRANSACTIONS_INDEX, 'MonthFilter', 'the transactions screen'),
+  withoutTag(TRANSACTIONS_INDEX, 'SegmentFilter', 'the transactions screen'),
   ...['Income', 'Expense', 'Transfer', 'CCPayment'].map((member) =>
     withoutMember(TRANSACTIONS_INDEX, 'TransactionType', member),
   ),

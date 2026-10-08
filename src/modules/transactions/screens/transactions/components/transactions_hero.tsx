@@ -22,7 +22,8 @@ import {
 
 const HERO_ROW_GAP = Spacing.sm;
 export const HERO_SHELL_MARGIN_BOTTOM = Spacing.xs;
-const HERO_SHELL_STYLE = { marginTop: Spacing.xs, marginBottom: HERO_SHELL_MARGIN_BOTTOM } as const;
+// The rail owns the space above the hero; 0 and not dropped, since `HeroShell`'s frame defaults to a top margin.
+const HERO_SHELL_STYLE = { marginTop: 0, marginBottom: HERO_SHELL_MARGIN_BOTTOM } as const;
 
 // Without `withUniwind` the icon's `styleDefaults` win and its `className` colour is a no-op.
 const ChangeIcon = withUniwind(MaterialCommunityIcons);

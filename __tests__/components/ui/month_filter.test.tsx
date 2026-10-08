@@ -3,8 +3,14 @@ import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
 import { MonthFilter } from '@/components/ui/month_filter';
-import { resolveMonthPillGeometry } from '@/components/ui/month_filter.geometry';
+import {
+  MONTH_STEP_HIT_SLOP,
+  resolveMonthPillGeometry,
+  resolveMonthStepHitSlop,
+} from '@/components/ui/month_filter.geometry';
 import { Strings } from '@/constants/strings';
+
+const ROW_HIT_SLOP = { top: 9, bottom: 5 };
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@/components/ui/sheet', () => ({
@@ -87,5 +93,35 @@ describe('MonthFilter', () => {
 
     await fireEvent.press(getByLabelText('Feb 2027'));
     expect(onSelectedMonthChange).toHaveBeenCalledWith('2027-02');
+  });
+
+  it('MA-109: a row slop reaches the pill and both step buttons only when its caller sets one, and never the year arrows', async () => {
+    const { getByLabelText, getByTestId, rerender } = await render(
+      <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={jest.fn()} />,
+    );
+
+    expect(getByTestId('month-filter-open').props.hitSlop).toBeUndefined();
+    expect(getByTestId('month-filter-previous').props.hitSlop).toBe(MONTH_STEP_HIT_SLOP);
+    expect(getByTestId('month-filter-next').props.hitSlop).toBe(MONTH_STEP_HIT_SLOP);
+
+    await rerender(
+      <MonthFilter
+        selectedMonth="2026-08"
+        onSelectedMonthChange={jest.fn()}
+        rowHitSlop={ROW_HIT_SLOP}
+      />,
+    );
+
+    const stepHitSlop = resolveMonthStepHitSlop(ROW_HIT_SLOP);
+    expect(getByTestId('month-filter-open').props.hitSlop).toEqual(ROW_HIT_SLOP);
+    expect(getByTestId('month-filter-previous').props.hitSlop).toEqual(stepHitSlop);
+    expect(getByTestId('month-filter-next').props.hitSlop).toEqual(stepHitSlop);
+
+    await fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('August 2026')));
+
+    expect(getByLabelText(Strings.monthPickerPreviousYearA11y).props.hitSlop).toBe(
+      MONTH_STEP_HIT_SLOP,
+    );
+    expect(getByLabelText(Strings.monthPickerNextYearA11y).props.hitSlop).toBe(MONTH_STEP_HIT_SLOP);
   });
 });

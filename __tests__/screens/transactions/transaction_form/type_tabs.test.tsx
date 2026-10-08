@@ -52,9 +52,11 @@ describe('TypeTabs', () => {
     expect(props.variant).toBe('solid-gold');
     expect(props.density).toBe('compact');
     expect(props.listClassName).toContain('w-full');
-    expect(props.listStyle).toEqual({
-      height: resolveTypeTabsGeometry(Dimensions.get('window').fontScale).listHeight,
-    });
+    const geometry = resolveTypeTabsGeometry(Dimensions.get('window').fontScale);
+    expect(props.listStyle).toEqual({ height: geometry.listHeight });
+    // Without this, an undefined slop would compare equal below.
+    expect(geometry.triggerHitSlop).toBeDefined();
+    expect(props.triggerHitSlop).toEqual(geometry.triggerHitSlop);
 
     props.onValueChange(TransactionType.Transfer);
     expect(onSelect).toHaveBeenCalledWith(TransactionType.Transfer);
