@@ -6,7 +6,7 @@ import { useAddTransactionStore } from '@/modules/transactions/screens/transacti
 
 jest.mock('heroui-native', () => {
   const ReactLocal = jest.requireActual<typeof import('react')>('react');
-  const { TextInput: RNTextInput } =
+  const { TextInput: RNTextInput, View: RNView } =
     jest.requireActual<typeof import('react-native')>('react-native');
   return {
     cn: (...classes: Array<string | undefined>) => classes.filter(Boolean).join(' '),
@@ -14,6 +14,8 @@ jest.mock('heroui-native', () => {
       React.ComponentRef<typeof RNTextInput>,
       React.ComponentProps<typeof RNTextInput>
     >((props, ref) => ReactLocal.createElement(RNTextInput, { ...props, ref })),
+    Separator: (props: React.ComponentProps<typeof RNView> & { thickness?: number }) =>
+      ReactLocal.createElement(RNView, props),
   };
 });
 
@@ -22,6 +24,7 @@ jest.mock('@/components/ui/sheet', () => ({
 }));
 
 import { AmountHero } from '@/modules/transactions/screens/transactions/transaction_form/components/amount_hero';
+import { AMOUNT_ERROR_LINE_HEIGHT } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 
 describe('AmountHero', () => {
   beforeEach(() => useAddTransactionStore.getState().reset());
@@ -114,7 +117,7 @@ describe('AmountHero', () => {
     expect(onChange).toHaveBeenCalledWith('1.');
   });
 
-  it('MA-105: rings the amount entry only while it is invalid, over the row and outside its layout', async () => {
+  it('MA-133: marks an invalid amount with a line outside its layout, only while invalid, and never with a ring', async () => {
     const { queryByTestId, getByTestId, rerender } = await render(
       <AmountHero
         onChange={jest.fn()}
@@ -124,6 +127,7 @@ describe('AmountHero', () => {
       />,
     );
 
+    expect(queryByTestId('amount-hero-error-line')).toBeNull();
     expect(queryByTestId('amount-hero-ring')).toBeNull();
 
     await rerender(
@@ -136,6 +140,21 @@ describe('AmountHero', () => {
       />,
     );
 
-    expect(getByTestId('amount-hero-ring')).toBeTruthy();
+    const line = getByTestId('amount-hero-error-line');
+    expect(line).toHaveProp('thickness', AMOUNT_ERROR_LINE_HEIGHT);
+    expect(line).toHaveStyle({ position: 'absolute' });
+    expect(queryByTestId('amount-hero-ring')).toBeNull();
+
+    await rerender(
+      <AmountHero
+        onChange={jest.fn()}
+        type={TransactionType.Expense}
+        currency={Currency.EGP}
+        mode="add"
+        invalid={false}
+      />,
+    );
+
+    expect(queryByTestId('amount-hero-error-line')).toBeNull();
   });
 });
