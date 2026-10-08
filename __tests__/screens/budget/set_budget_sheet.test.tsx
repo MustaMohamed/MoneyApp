@@ -1,5 +1,6 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { Dimensions } from 'react-native';
 import type { PressableProps } from 'react-native';
 
 import { BudgetGroup } from '@/constants/enums';
@@ -7,6 +8,7 @@ import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
+import { resolveSetBudgetFieldGeometry } from '@/modules/budget/screens/budget/components/set_budget_sheet.geometry';
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { makeTestBudgetEditTarget, makeTestBudgetableCategory } from '@/test_helpers/budget';
@@ -173,22 +175,28 @@ describe('SetBudgetSheet', () => {
     expect(getByText('Housing')).toHaveStyle({ fontSize: Type.caption });
   });
 
-  it('keeps the amount input compact inside the sheet', async () => {
+  it('sizes the amount input and its text from the field geometry at the window font scale', async () => {
+    const { text, height } = resolveSetBudgetFieldGeometry(
+      Type.bodyStrong,
+      Dimensions.get('window').fontScale,
+    );
     const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
 
-    expect(getByTestId('budget-limit-input')).toHaveStyle({
-      fontSize: Type.bodyStrong,
-      height: ms(28),
-    });
+    const input = getByTestId('budget-limit-input');
+    expect(input).toHaveStyle({ ...text, height });
+    expect(input).toHaveProp('allowFontScaling', false);
   });
 
-  it('keeps the budget name input compact inside the sheet', async () => {
+  it('sizes the budget name input and its text from the field geometry at the window font scale', async () => {
+    const { text, height } = resolveSetBudgetFieldGeometry(
+      Type.body,
+      Dimensions.get('window').fontScale,
+    );
     const { getByTestId } = await render(<SetBudgetSheet budgetableCategories={categories} />);
 
-    expect(getByTestId('budget-name-input')).toHaveStyle({
-      fontSize: Type.body,
-      height: ms(28),
-    });
+    const input = getByTestId('budget-name-input');
+    expect(input).toHaveStyle({ ...text, height });
+    expect(input).toHaveProp('allowFontScaling', false);
   });
 
   it('requires category selection when a contextual group has no matching category', async () => {

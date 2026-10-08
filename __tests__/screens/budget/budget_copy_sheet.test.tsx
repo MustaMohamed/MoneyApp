@@ -1,10 +1,12 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import type { PressableProps } from 'react-native';
+import { Dimensions } from 'react-native';
+import type { PressableProps, StyleProp, ViewStyle } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import type { BudgetCopyRowVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { BudgetCopySheet } from '@/modules/budget/screens/budget/components/budget_copy_sheet';
+import { resolveBudgetCopyPreviewRowGeometry } from '@/modules/budget/screens/budget/components/budget_copy_sheet.helpers';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@/components/ui/button', () => ({
@@ -79,7 +81,9 @@ jest.mock('heroui-native', () => {
   Alert.Content = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
   Alert.Title = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
   const SkeletonGroup = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
-  SkeletonGroup.Item = () => <View testID="copy-preview-skeleton" />;
+  SkeletonGroup.Item = ({ style }: { style?: StyleProp<ViewStyle> }) => (
+    <View testID="copy-preview-skeleton" style={style} />
+  );
   return {
     Alert,
     Checkbox,
@@ -254,5 +258,42 @@ describe('BudgetCopySheet', () => {
 
     expect(getByText('Nothing to copy')).toBeTruthy();
     expect(queryByText('Select all')).toBeNull();
+  });
+
+  it('gives the skeleton rows and a loaded row one minimum height at the window font scale', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const { minHeight } = resolveBudgetCopyPreviewRowGeometry(fontScale);
+    const sheet = (previewLoading: boolean) => (
+      <BudgetCopySheet
+        isOpen
+        sourceMonth="2026-06"
+        targetMonthLabel="July 2026"
+        rows={rows}
+        selectedBudgetIds={[]}
+        previewLoading={previewLoading}
+        previewError={false}
+        copyBusy={false}
+        copyError={false}
+        onSourceMonthChange={jest.fn()}
+        onOpenChange={jest.fn()}
+        onToggleBudget={jest.fn()}
+        onSelectAll={jest.fn()}
+        onClearSelection={jest.fn()}
+        onRetryPreview={jest.fn()}
+        onApply={jest.fn()}
+      />
+    );
+
+    const loading = await render(sheet(true));
+    const skeletonRows = loading.getAllByTestId('copy-preview-skeleton');
+    expect(skeletonRows).toHaveLength(3);
+    for (const skeletonRow of skeletonRows) {
+      expect(skeletonRow).toHaveStyle({ minHeight });
+    }
+    await loading.unmount();
+
+    const loaded = await render(sheet(false));
+    expect(loaded.getByLabelText('Toggle Fuel')).toHaveStyle({ minHeight });
   });
 });
