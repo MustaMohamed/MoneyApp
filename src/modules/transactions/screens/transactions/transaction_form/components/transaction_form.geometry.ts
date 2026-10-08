@@ -1,5 +1,6 @@
 import type { Insets } from 'react-native';
 
+import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import {
@@ -66,12 +67,13 @@ export function resolveAccountStripRevealX({
   viewportWidth,
   scrollX,
 }: AccountStripRevealInput): number {
-  if (viewportWidth === 0) return scrollX;
-  const left = index * (ACCOUNT_STRIP_CHIP_WIDTH + ACCOUNT_STRIP_GAP);
-  const right = left + ACCOUNT_STRIP_CHIP_WIDTH;
-  if (left < scrollX) return left;
-  if (right > scrollX + viewportWidth) return right - viewportWidth;
-  return scrollX;
+  const revealX = getVisibleScrollOffset({
+    currentOffset: scrollX,
+    viewportWidth,
+    itemX: index * (ACCOUNT_STRIP_CHIP_WIDTH + ACCOUNT_STRIP_GAP),
+    itemWidth: ACCOUNT_STRIP_CHIP_WIDTH,
+  });
+  return revealX ?? scrollX;
 }
 
 export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {

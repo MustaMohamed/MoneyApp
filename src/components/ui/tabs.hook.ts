@@ -6,6 +6,7 @@ import type {
   ScrollView,
 } from 'react-native';
 
+import { getVisibleScrollOffset, type VisibleScrollOffsetParams } from './scroll_reveal.geometry';
 import type { TabSegment } from './tabs';
 import { TABS_SCROLL_CONTENT_INSET } from './tabs.geometry';
 
@@ -13,41 +14,11 @@ export type SegmentedTabsScrollAlign = 'start' | 'center' | 'end' | 'none' | 'vi
 
 type HeroUIScrollAlign = Exclude<SegmentedTabsScrollAlign, 'visible'>;
 
-interface VisibleScrollOffsetParams {
-  currentOffset: number;
-  viewportWidth: number;
-  itemX: number;
-  itemWidth: number;
-  contentWidth: number;
-}
-
-export function getVisibleScrollOffset({
-  currentOffset,
-  viewportWidth,
-  itemX,
-  itemWidth,
-  contentWidth,
-}: VisibleScrollOffsetParams): number | undefined {
-  if (viewportWidth <= 0 || itemWidth <= 0 || contentWidth <= viewportWidth) return undefined;
-
-  const itemStart = itemX;
-  const itemEnd = itemX + itemWidth;
-  const visibleStart = currentOffset;
-  const visibleEnd = currentOffset + viewportWidth;
-
-  if (itemStart >= visibleStart && itemEnd <= visibleEnd) return undefined;
-
-  const unclampedOffset = itemStart < visibleStart ? itemStart : itemEnd - viewportWidth;
-  const maxOffset = Math.max(0, contentWidth - viewportWidth);
-
-  return Math.min(Math.max(0, unclampedOffset), maxOffset);
-}
-
 export function getSegmentScrollBox(
   selectedIndex: number,
   segmentWidth: number,
   segmentCount: number,
-): Pick<VisibleScrollOffsetParams, 'itemX' | 'itemWidth' | 'contentWidth'> {
+): Required<Pick<VisibleScrollOffsetParams, 'itemX' | 'itemWidth' | 'contentWidth'>> {
   return {
     itemX: TABS_SCROLL_CONTENT_INSET + selectedIndex * segmentWidth,
     itemWidth: segmentWidth,
