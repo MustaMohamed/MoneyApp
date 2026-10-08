@@ -3,6 +3,9 @@ import type { ReactNode } from 'react';
 import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { Currency } from '@/constants/enums';
+import { Type } from '@/constants/theme';
 import { SummaryHeader } from '@/modules/commitments/screens/commitments/components/summary_header';
 import { ms } from '@/utils/responsive';
 
@@ -129,5 +132,29 @@ describe('SummaryHeader skeleton loading', () => {
       expect(icon).toHaveStyle({ width: ms(11), height: ms(11) });
       expect(value).toHaveStyle({ height: resolveSkeletonBarHeight(ms(9), fontScale) });
     }
+  });
+});
+
+describe('SummaryHeader total committed line', () => {
+  it('fits a total in both currencies to one line at the window font scale', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const { getByText } = await render(
+      <SummaryHeader
+        counts={{ paid: 1, overdue: 0, due: 1, upcoming: 0, skipped: 0, total: 2 }}
+        totalsByCurrency={
+          new Map([
+            [Currency.EGP, 1500],
+            [Currency.USD, 75],
+          ])
+        }
+      />,
+    );
+
+    const totals = getByText(/1,500[\s\S]*75|75[\s\S]*1,500/);
+    expect(totals).toHaveProp('allowFontScaling', false);
+    expect(totals).toHaveProp('adjustsFontSizeToFit', true);
+    expect(totals).toHaveStyle(scaledTextStyle(Type.subhead, fontScale));
   });
 });

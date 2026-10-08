@@ -1,8 +1,9 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 import type { PressableProps, StyleProp, ViewStyle } from 'react-native';
 
+import { resolveRowStacking } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import type { BudgetCopyRowVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { BudgetCopySheet } from '@/modules/budget/screens/budget/components/budget_copy_sheet';
@@ -78,7 +79,9 @@ jest.mock('heroui-native', () => {
   Checkbox.Indicator = () => <View testID="checkbox-indicator" />;
   const Alert = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
   Alert.Indicator = () => null;
-  Alert.Content = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
+  Alert.Content = ({ children }: { children?: ReactNode }) => (
+    <View testID="alert-content">{children}</View>
+  );
   Alert.Title = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
   const SkeletonGroup = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
   SkeletonGroup.Item = ({ style }: { style?: StyleProp<ViewStyle> }) => (
@@ -295,5 +298,43 @@ describe('BudgetCopySheet', () => {
 
     const loaded = await render(sheet(false));
     expect(loaded.getByLabelText('Toggle Fuel')).toHaveStyle({ minHeight });
+  });
+
+  it('puts the preview error retry inside the alert content with its message and disables it while a copy runs', async () => {
+    expect(resolveRowStacking(Dimensions.get('window').fontScale)).toBe('stacked');
+    const onRetryPreview = jest.fn();
+    const sheet = (copyBusy: boolean) => (
+      <BudgetCopySheet
+        isOpen
+        sourceMonth="2026-06"
+        targetMonthLabel="July 2026"
+        rows={[]}
+        selectedBudgetIds={[]}
+        previewLoading={false}
+        previewError
+        copyBusy={copyBusy}
+        copyError={false}
+        onSourceMonthChange={jest.fn()}
+        onOpenChange={jest.fn()}
+        onToggleBudget={jest.fn()}
+        onSelectAll={jest.fn()}
+        onClearSelection={jest.fn()}
+        onRetryPreview={onRetryPreview}
+        onApply={jest.fn()}
+      />
+    );
+
+    const idle = await render(sheet(false));
+    const content = within(idle.getByTestId('alert-content'));
+    expect(content.getByText(Strings.budgetCopyPreviewError)).toBeTruthy();
+    await fireEvent.press(content.getByText(Strings.budgetCopyRetry));
+    expect(onRetryPreview).toHaveBeenCalledTimes(1);
+    await idle.unmount();
+
+    const busy = await render(sheet(true));
+    const retry = within(busy.getByTestId('alert-content')).getByText(Strings.budgetCopyRetry);
+    expect(retry).toBeDisabled();
+    await fireEvent.press(retry);
+    expect(onRetryPreview).toHaveBeenCalledTimes(1);
   });
 });

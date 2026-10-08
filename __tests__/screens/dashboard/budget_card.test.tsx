@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 import { Dimensions, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { resolveFitAmountTextProps } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
+import { Type } from '@/constants/theme';
 import { BudgetCard } from '@/modules/dashboard/screens/dashboard/components/budget_card';
 import { ms } from '@/utils/responsive';
 
@@ -118,5 +120,26 @@ describe('BudgetCard', () => {
       height: resolveSkeletonBarHeight(ms(13), fontScale),
     });
     expect(getByTestId('dashboard-budget-skeleton-progress')).toHaveStyle({ height: ms(3) });
+  });
+
+  it('fits the budgeted figure to its line at the window font scale', async () => {
+    const { fontScale } = Dimensions.get('window');
+    const fit = resolveFitAmountTextProps(Type.body, fontScale);
+    expect(fit.adjustsFontSizeToFit).toBe(true);
+
+    const { getByText } = await render(
+      <BudgetCard
+        summary={{ budgeted: 8000, spent: 2000, left: 6000, pct: 0.25, categoryCount: 2 }}
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+
+    const budgeted = getByText('8,000 EGP');
+    expect(budgeted).toHaveProp('numberOfLines', fit.numberOfLines);
+    expect(budgeted).toHaveProp('allowFontScaling', fit.allowFontScaling);
+    expect(budgeted).toHaveProp('adjustsFontSizeToFit', fit.adjustsFontSizeToFit);
+    expect(budgeted).toHaveStyle(fit.style);
   });
 });

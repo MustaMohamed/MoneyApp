@@ -9,6 +9,7 @@ import {
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { TransactionRowsSkeleton } from '@/modules/transactions/screens/transactions/components/transaction_rows_skeleton';
@@ -48,9 +49,14 @@ describe('TransactionRowsSkeleton', () => {
         height: resolveTransactionRowHeight(Dimensions.get('window').fontScale),
       });
     }
+    const captionBars = Array.from(
+      { length: resolveTransactionRowCaptionLines(Dimensions.get('window').fontScale) },
+      () => lineBar(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+    );
+    expect(captionBars).toHaveLength(2);
     expect(within(rows[0]!).getAllByTestId(BAR).map(barHeight)).toEqual([
       lineBar(TRANSACTION_ROW_TITLE_FONT_SIZE),
-      lineBar(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+      ...captionBars,
       lineBar(TRANSACTION_ROW_AMOUNT_FONT_SIZE),
       lineBar(TRANSACTION_ROW_CODE_FONT_SIZE),
     ]);

@@ -107,6 +107,18 @@ describe('useDragCancelledPress', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
+  it('a screen reader press after a drag that ended on press-out alone fires', async () => {
+    const { onPress, result } = await renderPress();
+
+    result.current.onPressIn(touchAt(100));
+    result.current.onPressMove(touchAt(112));
+    result.current.onPressOut(touchAt(112));
+    await Promise.resolve();
+    result.current.onPress();
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
   it('a move that changes only the vertical position never cancels', async () => {
     const { onPress, feedback, result } = await renderPress();
 
