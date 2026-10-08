@@ -1,9 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip, PressableFeedback } from 'heroui-native';
 import { Fragment, type ComponentProps } from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import {
+  resolveRowStacking,
+  scaledTextStyle,
+  type RowStacking,
+} from '@/components/ui/text_scale.geometry';
 import { Colors, LetterSpacing, Size, Type, lineHeightFor } from '@/constants/theme';
 
 interface BudgetSummaryHeaderProps {
@@ -201,21 +206,62 @@ export function BudgetSummarySpentRow({
 }
 
 export function BudgetSummaryMetricsRow({ items }: { items: BudgetSummaryMetricItem[] }) {
+  const { fontScale } = useWindowDimensions();
+  const layout = resolveRowStacking(fontScale);
+  const stacked = layout === 'stacked';
   return (
-    <View className="border-border mt-1.5 flex-row items-stretch border-t pt-1">
+    <View
+      testID="budget-summary-metrics"
+      className={
+        stacked
+          ? 'border-border mt-1.5 border-t pt-1'
+          : 'border-border mt-1.5 flex-row items-stretch border-t pt-1'
+      }
+      style={stacked ? { flexDirection: 'column' } : undefined}
+    >
       {items.map((item, index) => (
         <Fragment key={item.key}>
-          {index > 0 ? <View className="bg-border w-px" /> : null}
-          <BudgetSummaryMetric item={item} />
+          {index > 0 ? <View className={stacked ? 'bg-border h-px' : 'bg-border w-px'} /> : null}
+          <BudgetSummaryMetric item={item} layout={layout} />
         </Fragment>
       ))}
     </View>
   );
 }
 
-function BudgetSummaryMetric({ item }: { item: BudgetSummaryMetricItem }) {
-  const metricClassName = 'flex-1 items-center justify-center px-1';
-  const content = (
+function BudgetSummaryMetric({
+  item,
+  layout,
+}: {
+  item: BudgetSummaryMetricItem;
+  layout: RowStacking;
+}) {
+  const { fontScale } = useWindowDimensions();
+  const stacked = layout === 'stacked';
+  const metricClassName = stacked
+    ? 'flex-row items-center gap-2 px-1 py-1'
+    : 'flex-1 items-center justify-center px-1';
+  const content = stacked ? (
+    <>
+      <Text
+        style={{ flex: 1, fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail) }}
+        className="font-inter text-content-secondary"
+      >
+        {item.label}
+      </Text>
+      <Text
+        allowFontScaling={false}
+        style={{ flexShrink: 0, ...scaledTextStyle(Type.bodyStrong, fontScale) }}
+        className={
+          item.tone === 'warning'
+            ? 'font-sora-semibold text-warning text-right'
+            : 'font-sora-semibold text-foreground text-right'
+        }
+      >
+        {item.value}
+      </Text>
+    </>
+  ) : (
     <>
       <Text
         style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail) }}

@@ -19,6 +19,7 @@ import {
 } from '@/modules/commitments/utils/commitment_status';
 import { formatShortDate } from '@/utils/format_date';
 import { toIconName } from '@/utils/icon_name_guard';
+import { useDragCancelledPress } from '@/utils/use_drag_cancelled_press.hook';
 
 import type { Commitment } from '../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
@@ -79,6 +80,7 @@ function CommitmentRowComponent({
     ],
     [handleDelete, handleEdit, handleSkip],
   );
+  const press = useDragCancelledPress(handlePress);
 
   return (
     <SwipeableRow
@@ -88,7 +90,7 @@ function CommitmentRowComponent({
       accessibilityLabel={`${commitment?.name ?? ''}, ${amountText}, ${statusLabel}`}
     >
       <PressableFeedback
-        onPress={handlePress}
+        {...press}
         accessibilityRole="button"
         accessibilityLabel={`${commitment?.name ?? ''}, ${amountText}, ${statusLabel}`}
         style={{ flexDirection: 'row', alignItems: 'center' }}

@@ -3,10 +3,14 @@ import { Card, PressableFeedback } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
+import {
+  resolveOneLineTextProps,
+  scaledTextStyle,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { AccountType, type Currency } from '@/constants/enums';
-import { Colors, Size, lineHeightFor, withAlpha } from '@/constants/theme';
+import { Colors, Size, Type, lineHeightFor, withAlpha } from '@/constants/theme';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_palette';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
@@ -20,6 +24,7 @@ import { ms, msFont } from '@/utils/responsive';
 
 // The `caption` variant's raw px, so above 1.0 the value grows from the size it draws at 1.0.
 const ACCOUNT_CARD_ROW_VALUE_FONT_SIZE = 11;
+const ACCOUNT_CARD_NAME_FONT_SIZE = Type.emptyTitle;
 
 interface AccountCardProps {
   account: Account;
@@ -46,10 +51,9 @@ export function AccountCard({
   const isCreditCard = account.type === AccountType.CreditCard;
   const icon = ACCOUNT_TYPE_ICONS[account.type];
   const infoRows = buildInfoRows(account, rate, stats, isRateUsable, baseCurrency);
-  const valueText = scaledTextStyleAboveOne(
-    ACCOUNT_CARD_ROW_VALUE_FONT_SIZE,
-    useWindowDimensions().fontScale,
-  );
+  const { fontScale } = useWindowDimensions();
+  const valueText = scaledTextStyleAboveOne(ACCOUNT_CARD_ROW_VALUE_FONT_SIZE, fontScale);
+  const nameText = resolveOneLineTextProps(scaledTextStyle(ACCOUNT_CARD_NAME_FONT_SIZE, fontScale));
 
   const showProgress = isCreditCard && (account.credit_limit ?? 0) > 0;
   const limit = account.credit_limit ?? 0;
@@ -83,8 +87,8 @@ export function AccountCard({
               <Text
                 variant="title"
                 className="font-sora-bold text-foreground"
-                numberOfLines={1}
-                style={{ flex: 1, fontSize: msFont(17), lineHeight: lineHeightFor(msFont(17)) }}
+                {...nameText}
+                style={{ ...nameText.style, flex: 1 }}
               >
                 {resolveAccountName(account)}
               </Text>

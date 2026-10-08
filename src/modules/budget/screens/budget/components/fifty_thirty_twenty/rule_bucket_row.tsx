@@ -4,10 +4,15 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveButtonLabelStyle, resolveButtonRootStyle } from '@/components/ui/button.geometry';
 import { Text } from '@/components/ui/text';
-import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
+import {
+  resolveLoneWordLines,
+  resolveOneLineTextProps,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { BudgetGroup } from '@/constants/enums';
 import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { RuleBucketVM } from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import { resolveRuleValueColumnWidth } from '@/modules/budget/screens/budget/budget_text.geometry';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { RuleContributorRow } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_contributor_row';
 
@@ -90,12 +95,16 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
               {presentation.detailsLabel}
             </Text>
           </View>
-          <View style={{ width: Size.budgetRuleValueColumn }} className="items-end">
+          <View
+            testID="rule-bucket-value-column"
+            style={{ width: resolveRuleValueColumnWidth(fontScale) }}
+            className="items-end"
+          >
             <Text
+              allowFontScaling={false}
               style={{
                 color: presentation.varianceColor,
-                fontSize: Type.bodyStrong,
-                lineHeight: lineHeightFor(Type.bodyStrong),
+                ...scaledTextStyle(Type.bodyStrong, fontScale),
               }}
               className="font-sora-bold"
               numberOfLines={1}
@@ -103,9 +112,10 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
               {presentation.varianceLabel}
             </Text>
             <Text
-              style={{ fontSize: Type.chip, lineHeight: lineHeightFor(Type.chip) }}
+              allowFontScaling={false}
+              style={scaledTextStyle(Type.chip, fontScale)}
               className="font-inter text-content-secondary text-right"
-              numberOfLines={2}
+              numberOfLines={resolveLoneWordLines(presentation.varianceMetaLabel, 2)}
             >
               {presentation.varianceMetaLabel}
             </Text>

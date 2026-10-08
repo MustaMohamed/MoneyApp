@@ -7,12 +7,17 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
-import { scaledFontSize, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import {
+  resolveFitAmountTextProps,
+  scaledFontSize,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { TypeBadge, resolveTypeBadgeMinWidth } from '@/components/ui/type_badge';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Type } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { useDragCancelledPress } from '@/utils/use_drag_cancelled_press.hook';
 
 import type { Transaction } from '../../../entities/transaction.entity';
 import { useRowPressScale } from './transaction_row.anim';
@@ -28,7 +33,9 @@ import {
   TRANSACTION_ROW_DUAL_RING_COLOR,
   TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
+  resolveTransactionRowValueTrackMaxWidth,
   type TransactionRowPresentation,
 } from './transaction_row.helpers';
 
@@ -136,18 +143,19 @@ export function TransactionRowBody({
   showSeparator = true,
 }: BodyProps): React.ReactElement {
   const { scale, onPressIn, onPressOut } = useRowPressScale();
+  const press = useDragCancelledPress(onPress, { onPressIn, onPressOut });
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isCommitmentOwned = presentation.isCommitmentOwned;
   const { fontScale } = useWindowDimensions();
   // Above 1.0 the badge and the label give up their width before the title does.
   const badgeShrinks = fontScale > 1;
+  const captionStacked = resolveTransactionRowCaptionLines(fontScale) === 2;
+  const secondaryText = resolveFitAmountTextProps(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale);
 
   return (
     // animation={false} keeps PressableFeedback's own scale off the Reanimated one below.
     <PressableFeedback
-      onPress={onPress}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
+      {...press}
       animation={false}
       accessibilityLabel={presentation.accessibilityLabel}
     >
@@ -205,8 +213,14 @@ export function TransactionRowBody({
                 </YieldingSlot>
               ) : null}
             </View>
-            {/* The lead clips first; the time never ellipsizes. */}
-            <View style={{ flexDirection: 'row', marginTop: TRANSACTION_ROW_LINE_GAP }}>
+            {/* The lead clips first; the time never ellipsizes, and above 1.0 takes its own line. */}
+            <View
+              style={{
+                flexDirection: captionStacked ? 'column' : 'row',
+                gap: captionStacked ? TRANSACTION_ROW_LINE_GAP : undefined,
+                marginTop: TRANSACTION_ROW_LINE_GAP,
+              }}
+            >
               {presentation.captionLead === undefined ? null : (
                 <Text
                   allowFontScaling={false}
@@ -229,7 +243,7 @@ export function TransactionRowBody({
                 }}
                 numberOfLines={1}
               >
-                {presentation.captionLead === undefined
+                {captionStacked || presentation.captionLead === undefined
                   ? presentation.captionTime
                   : `${TRANSACTION_ROW_CAPTION_SEPARATOR}${presentation.captionTime}`}
               </Text>
@@ -237,7 +251,11 @@ export function TransactionRowBody({
           </View>
           <View
             testID="transaction-row-value-track"
-            style={{ flexShrink: 0, alignItems: 'flex-end' }}
+            style={{
+              flexShrink: 0,
+              alignItems: 'flex-end',
+              maxWidth: resolveTransactionRowValueTrackMaxWidth(fontScale),
+            }}
           >
             <Text
               allowFontScaling={false}
@@ -248,13 +266,9 @@ export function TransactionRowBody({
               {presentation.primaryAmount}
             </Text>
             <Text
-              allowFontScaling={false}
+              {...secondaryText}
               className="font-inter text-content-secondary tabular-nums"
-              style={{
-                ...scaledTextStyle(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale),
-                marginTop: TRANSACTION_ROW_LINE_GAP,
-              }}
-              numberOfLines={1}
+              style={{ ...secondaryText.style, marginTop: TRANSACTION_ROW_LINE_GAP }}
             >
               {presentation.secondaryLine}
             </Text>

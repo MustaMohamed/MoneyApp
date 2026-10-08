@@ -5,6 +5,7 @@ import React from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { MonthFilter } from '@/components/ui/month_filter';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
@@ -143,20 +144,13 @@ export function BudgetCopySheet({
 
         <View style={styles.statusTrack}>
           {previewError ? (
-            <Alert status="danger" className="w-full">
-              <Alert.Indicator />
-              <Alert.Content>
-                <Alert.Title>{Strings.budgetCopyPreviewError}</Alert.Title>
-              </Alert.Content>
-              <Button
-                variant="secondary"
-                size="sm"
-                label={Strings.budgetCopyRetry}
-                accessibilityLabel={Strings.budgetCopyRetry}
-                isDisabled={copyBusy}
-                onPress={onRetryPreview}
-              />
-            </Alert>
+            <LoadErrorAlert
+              mode="bare"
+              title={Strings.budgetCopyPreviewError}
+              retryLabel={Strings.budgetCopyRetry}
+              retryDisabled={copyBusy}
+              onRetry={onRetryPreview}
+            />
           ) : copyError ? (
             <Alert status="danger" className="w-full">
               <Alert.Indicator />

@@ -1,8 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion, Chip, PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import { resolveLoneWordLines, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget_categories.types';
@@ -22,6 +23,7 @@ export interface CategoryBudgetRowProps {
 
 function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
   const { row } = props;
+  const { fontScale } = useWindowDimensions();
   return (
     <Accordion
       selectionMode="single"
@@ -52,8 +54,9 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
             <View style={{ flex: 1 }}>
               <View className="flex-row items-start gap-1.5">
                 <Typography
-                  numberOfLines={2}
-                  style={{ fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+                  numberOfLines={resolveLoneWordLines(row.name, 2)}
+                  allowFontScaling={false}
+                  style={scaledTextStyle(Type.body, fontScale)}
                   className="font-sora-semibold text-foreground flex-1"
                 >
                   {row.name}

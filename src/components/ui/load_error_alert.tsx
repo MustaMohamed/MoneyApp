@@ -3,6 +3,8 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { resolveStateScreenBottomReserve } from '@/components/ui/state_screen.geometry';
+import { resolveRowStacking } from '@/components/ui/text_scale.geometry';
+import { Spacing } from '@/constants/theme';
 
 type LoadErrorAlertFloatingOffset = 'tabBar' | 'edge';
 type LoadErrorAlertFillPadding = 'default' | 'wide';
@@ -15,6 +17,7 @@ interface LoadErrorAlertCommonProps {
   /** The redesigned screens' flat secondary on the retry; every other render site stays bordered. */
   flatRetry?: boolean;
   retrySize?: ButtonSize;
+  retryDisabled?: boolean;
   testID?: string;
 }
 
@@ -33,6 +36,10 @@ export type LoadErrorAlertProps =
       mode: 'floating';
       floatingOffset?: LoadErrorAlertFloatingOffset;
       minHeight?: number;
+    })
+  | (LoadErrorAlertCommonProps & {
+      /** The alert alone, inside a box its caller owns; `testID` is not applied. */
+      mode: 'bare';
     });
 
 // Tailwind resolves at build time, so every class a map can return must be a complete literal.
@@ -49,8 +56,18 @@ const FLOATING_CLASS_NAME: Record<LoadErrorAlertFloatingOffset, string> = {
 const INLINE_CLASS_NAME = 'px-4 py-3';
 
 export function LoadErrorAlert(props: LoadErrorAlertProps) {
-  const bottomReserve = resolveStateScreenBottomReserve(useWindowDimensions().fontScale);
-  const { title, onRetry, retryLabel, flatRetry, retrySize = 'sm', testID } = props;
+  const { fontScale } = useWindowDimensions();
+  const bottomReserve = resolveStateScreenBottomReserve(fontScale);
+  const stacked = resolveRowStacking(fontScale) === 'stacked';
+  const {
+    title,
+    onRetry,
+    retryLabel,
+    flatRetry,
+    retrySize = 'sm',
+    retryDisabled = false,
+    testID,
+  } = props;
 
   // Two literals, not `flat={flatRetry}`: `ButtonProps` discriminates on `flat: true`.
   const retryButton = flatRetry ? (
@@ -60,6 +77,7 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
       size={retrySize}
       label={retryLabel}
       accessibilityLabel={retryLabel}
+      isDisabled={retryDisabled}
       onPress={onRetry}
     />
   ) : (
@@ -68,6 +86,7 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
       size={retrySize}
       label={retryLabel}
       accessibilityLabel={retryLabel}
+      isDisabled={retryDisabled}
       onPress={onRetry}
     />
   );
@@ -77,10 +96,15 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
       <Alert.Indicator />
       <Alert.Content>
         <Alert.Title>{title}</Alert.Title>
+        {stacked ? (
+          <View style={{ alignSelf: 'flex-start', marginTop: Spacing.xs }}>{retryButton}</View>
+        ) : null}
       </Alert.Content>
-      {retryButton}
+      {stacked ? null : retryButton}
     </Alert>
   );
+
+  if (props.mode === 'bare') return alert;
 
   if (props.mode === 'inline') {
     return (

@@ -1,7 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip, Menu, PressableFeedback, Typography } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import {
+  resolveLoneWordLines,
+  resolveRowStacking,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
@@ -18,6 +23,8 @@ interface NamedBudgetRowProps {
 }
 
 export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps) {
+  const { fontScale } = useWindowDimensions();
+  const stacked = resolveRowStacking(fontScale) === 'stacked';
   return (
     <View className="border-separator bg-background/30 min-h-13 flex-row items-center gap-2 border-b px-4 py-1.5">
       <View
@@ -50,11 +57,16 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
         </View>
 
         <View style={{ flex: 1 }}>
-          <View className="flex-row items-start gap-1.5">
+          <View className={stacked ? undefined : 'flex-row items-start gap-1.5'}>
             <Typography
-              numberOfLines={2}
-              style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
-              className="font-sora-semibold text-foreground flex-1"
+              numberOfLines={resolveLoneWordLines(budget.name, 2)}
+              allowFontScaling={false}
+              style={scaledTextStyle(Type.caption, fontScale)}
+              className={
+                stacked
+                  ? 'font-sora-semibold text-foreground'
+                  : 'font-sora-semibold text-foreground flex-1'
+              }
             >
               {budget.name}
             </Typography>
@@ -63,7 +75,9 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
               variant="soft"
               color="default"
               className="min-h-5 py-0"
-              style={{ flexShrink: 0 }}
+              style={
+                stacked ? { alignSelf: 'flex-start', marginTop: Spacing.xxxs } : { flexShrink: 0 }
+              }
               accessibilityRole="text"
               accessibilityLabel={budget.shareLabel}
             >
