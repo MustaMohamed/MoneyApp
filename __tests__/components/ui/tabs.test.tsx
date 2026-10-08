@@ -1,9 +1,18 @@
 import { render, within } from '@testing-library/react-native';
 import type { ComponentProps, ReactNode } from 'react';
-import { Dimensions } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 
-import { SOLID_GOLD_SELECTED_RADIUS, SegmentedTabs } from '@/components/ui/tabs';
-import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
+import {
+  SOLID_GOLD_SELECTED_RADIUS,
+  SOLID_GOLD_TRACK_RADIUS,
+  SegmentedTabs,
+} from '@/components/ui/tabs';
+import {
+  TABS_LIST_PADDING,
+  resolveSegmentedTabsGeometry,
+  resolveTabsScrollSlopInset,
+  type TabsTriggerHitSlop,
+} from '@/components/ui/tabs.geometry';
 import { Colors, Radius } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
@@ -86,6 +95,17 @@ const segments = [
   { value: 'all', label: 'All' },
   { value: 'overdue', label: 'Overdue' },
 ] as const;
+
+const TRIGGER_HIT_SLOP = { top: 7, bottom: 10 };
+const UNDER_PADDING_HIT_SLOP = { top: 1, bottom: 2 };
+
+function scrollSlopInset(triggerHitSlop: TabsTriggerHitSlop): TabsTriggerHitSlop {
+  const inset = resolveTabsScrollSlopInset(triggerHitSlop);
+  if (inset === undefined) {
+    throw new Error('resolveTabsScrollSlopInset returned no inset for a set slop');
+  }
+  return inset;
+}
 
 describe('SegmentedTabs', () => {
   it('keeps the active indicator inside the scroll view for scrollable layout', async () => {
@@ -261,5 +281,112 @@ describe('SegmentedTabs', () => {
       backgroundColor: Colors.shared.cairoGold,
       borderRadius: Radius.lg,
     });
+  });
+
+  it('MA-109: a trigger hit slop grows a scrollable row by its resolved inset, and a row without one or a fixed row keeps its styles', async () => {
+    const { getByTestId, rerender } = await render(
+      <SegmentedTabs
+        segments={[...segments]}
+        value="all"
+        onValueChange={jest.fn()}
+        layout="scrollable"
+      />,
+    );
+
+    const bareScrollView = getByTestId('tabs-scroll-view');
+    expect(bareScrollView.props.contentContainerStyle).toBeUndefined();
+    const bareScrollStyle: unknown = StyleSheet.flatten(bareScrollView.props.style) ?? {};
+    expect(bareScrollStyle).not.toHaveProperty('marginTop');
+    expect(bareScrollStyle).not.toHaveProperty('marginBottom');
+    expect(getByTestId('tabs-trigger-all').props.hitSlop).toBeUndefined();
+    expect(getByTestId('tabs-trigger-overdue').props.hitSlop).toBeUndefined();
+
+    const expectGrownScrollBox = async (triggerHitSlop: TabsTriggerHitSlop) => {
+      await rerender(
+        <SegmentedTabs
+          segments={[...segments]}
+          value="all"
+          onValueChange={jest.fn()}
+          layout="scrollable"
+          triggerHitSlop={triggerHitSlop}
+        />,
+      );
+
+      const inset = scrollSlopInset(triggerHitSlop);
+      const scrollView = getByTestId('tabs-scroll-view');
+      expect(scrollView).toHaveStyle({ marginTop: -inset.top, marginBottom: -inset.bottom });
+      expect(StyleSheet.flatten(scrollView.props.contentContainerStyle)).toMatchObject({
+        paddingTop: inset.top,
+        paddingBottom: inset.bottom,
+      });
+      expect(getByTestId('tabs-indicator')).toHaveStyle({ top: inset.top });
+      expect(getByTestId('tabs-trigger-all').props.hitSlop).toBe(triggerHitSlop);
+      expect(getByTestId('tabs-trigger-overdue').props.hitSlop).toBe(triggerHitSlop);
+    };
+
+    await expectGrownScrollBox(TRIGGER_HIT_SLOP);
+    await expectGrownScrollBox(UNDER_PADDING_HIT_SLOP);
+
+    await rerender(
+      <SegmentedTabs
+        segments={[...segments]}
+        value="all"
+        onValueChange={jest.fn()}
+        layout="scrollable"
+        variant="solid-gold"
+        triggerHitSlop={TRIGGER_HIT_SLOP}
+      />,
+    );
+
+    const inset = scrollSlopInset(TRIGGER_HIT_SLOP);
+    const innerTrackRadius = SOLID_GOLD_TRACK_RADIUS - TABS_LIST_PADDING;
+    expect(getByTestId('tabs-scroll-view')).toHaveStyle({
+      marginTop: -inset.top,
+      marginBottom: -inset.bottom,
+      borderTopLeftRadius: innerTrackRadius + inset.top,
+      borderTopRightRadius: innerTrackRadius + inset.top,
+      borderBottomLeftRadius: innerTrackRadius + inset.bottom,
+      borderBottomRightRadius: innerTrackRadius + inset.bottom,
+    });
+    expect(getByTestId('tabs-indicator')).toHaveStyle({ top: inset.top });
+
+    const listStyle = {
+      height: resolveSegmentedTabsGeometry(Dimensions.get('window').fontScale).compact.listHeight,
+    };
+    await rerender(
+      <SegmentedTabs
+        segments={[...segments]}
+        value="all"
+        onValueChange={jest.fn()}
+        layout="fixed"
+        variant="solid-gold"
+        density="compact"
+        listStyle={listStyle}
+      />,
+    );
+
+    const fixedListStyle: unknown = getByTestId('tabs-list').props.style;
+    const fixedSelectedStyle: unknown = getByTestId('tabs-trigger-all').props.style;
+    const fixedIdleStyle: unknown = getByTestId('tabs-trigger-overdue').props.style;
+
+    await rerender(
+      <SegmentedTabs
+        segments={[...segments]}
+        value="all"
+        onValueChange={jest.fn()}
+        layout="fixed"
+        variant="solid-gold"
+        density="compact"
+        listStyle={listStyle}
+        triggerHitSlop={TRIGGER_HIT_SLOP}
+      />,
+    );
+
+    expect(getByTestId('tabs-list')).toHaveStyle(listStyle);
+    expect(getByTestId('tabs-list').props.style).toEqual(fixedListStyle);
+    expect(getByTestId('tabs-trigger-all').props.style).toEqual(fixedSelectedStyle);
+    expect(getByTestId('tabs-trigger-overdue').props.style).toEqual(fixedIdleStyle);
+    expect(getByTestId('tabs-trigger-all').props.hitSlop).toBe(TRIGGER_HIT_SLOP);
+    expect(getByTestId('tabs-trigger-overdue').props.hitSlop).toBe(TRIGGER_HIT_SLOP);
   });
 });
