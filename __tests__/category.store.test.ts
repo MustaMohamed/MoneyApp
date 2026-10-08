@@ -481,10 +481,8 @@ describe('categoryStore.reset', () => {
   it('contains a reload failure when reset lands before the write handles it', async () => {
     const write = deferred<void>();
     const reload = deferred<Category[]>();
-    const repo = makeRepo({
-      update: jest.fn().mockReturnValue(write.promise),
-      getAll: jest.fn().mockReturnValue(reload.promise),
-    });
+    const getAll = jest.fn().mockReturnValue(reload.promise);
+    const repo = makeRepo({ update: jest.fn().mockReturnValue(write.promise), getAll });
     const useStore = createCategoryStore(repo);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -493,7 +491,7 @@ describe('categoryStore.reset', () => {
       .updateCategory('cat-1', { name: 'Y', icon: 'heart', color: '#aaa' });
     write.resolve();
     await write.promise;
-    expect(repo.getAll).toHaveBeenCalledTimes(1);
+    expect(getAll).toHaveBeenCalledTimes(1);
     reload.promise.catch(() => useStore.getState().reset());
     reload.reject(new Error('reload fail'));
 
