@@ -212,6 +212,29 @@ describe('useAccountStripReveal', () => {
     );
   });
 
+  it('computes the first reveal from offset 0 when a scroll event lands after the scroll view has unmounted', async () => {
+    const offsetShowingTheChipWhole = leftEdgeOf(PAST_THE_EDGE - 1);
+    const strip = await mountLaidOut(IN_VIEW);
+    await strip.recordScroll(offsetShowingTheChipWhole);
+    await strip.setProps({ selectedIndex: PAST_THE_EDGE, type: TransactionType.Expense });
+    await runFrame();
+    expect(strip.scrollTo).not.toHaveBeenCalled();
+
+    strip.unmountScroll();
+    await strip.setProps({ selectedIndex: -1, type: TransactionType.Transfer });
+    await strip.recordScroll(offsetShowingTheChipWhole);
+    await runFrame();
+    strip.mountScroll();
+    await strip.setProps({ selectedIndex: PAST_THE_EDGE, type: TransactionType.Expense });
+    expect(strip.scrollTo).not.toHaveBeenCalled();
+
+    await runFrame();
+    expect(strip.scrollTo).toHaveBeenCalledTimes(1);
+    expect(strip.scrollTo).toHaveBeenLastCalledWith(
+      animatedTo(offsetShowingFromTheRight(PAST_THE_EDGE)),
+    );
+  });
+
   it('never scrolls while no chip is selected', async () => {
     const strip = await mountLaidOut(-1);
     await strip.setProps({ selectedIndex: -1, type: TransactionType.Transfer });

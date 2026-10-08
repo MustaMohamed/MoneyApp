@@ -62,6 +62,8 @@ export function useAccountStripReveal(
   );
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    // gorhom sends each event as a JS task of its own, so one can land after the unmount has reset the offset.
+    if (scrollRef.current === null) return;
     scrollXRef.current = event.nativeEvent.contentOffset.x;
   }, []);
 
