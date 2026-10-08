@@ -28,8 +28,7 @@ async function mountSheet(isOpen: boolean, { withHandler = true }: { withHandler
         hook.result.current.handleSheetIndexChange(index);
       }),
     reportClosed: () => act(() => hook.result.current.handleSheetClosed()),
-    startAnimationFrom: (fromIndex: number) =>
-      act(() => hook.result.current.handleSheetAnimate(fromIndex)),
+    requestClose: () => act(() => hook.result.current.handleSheetCloseRequest()),
     settleThenReportClosedBeforeARender: (index: number) =>
       act(() => {
         hook.result.current.handleSheetIndexChange(index);
@@ -211,13 +210,13 @@ describe.each([
     expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(2));
   });
 
-  it('completes once for a sheet reopened mid-close whose only report before its -1 is an animation start from 0', async () => {
+  it('completes once for a sheet reopened mid-close whose only report before its -1 is a close request', async () => {
     const sheet = await mountSheet(true, { withHandler });
     await sheet.setOpen(false);
     await sheet.setOpen(true);
     const rendersAtReopen = sheet.renderCount();
 
-    await sheet.startAnimationFrom(0);
+    await sheet.requestClose();
     expect(sheet.renderCount()).toBe(rendersAtReopen);
 
     await sheet.settleAt(-1);
@@ -228,18 +227,34 @@ describe.each([
     await sheet.setOpen(false);
     expect(sheet.drawn()).toEqual(HIDDEN);
     expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+
+    await sheet.settleAt(-1);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
   });
 
-  it('keeps a reopened sheet shown on a -1 that follows an animation start from -1, and completes nothing on the drop', async () => {
+  it('completes once when the -1 reaches an open sheet ahead of its close request', async () => {
     const sheet = await mountSheet(true, { withHandler });
-    await sheet.setOpen(false);
-    await sheet.setOpen(true);
-    await sheet.startAnimationFrom(-1);
+    await sheet.settleAt(0);
     await sheet.settleAt(-1);
+    await sheet.requestClose();
     expect(sheet.drawn()).toEqual(SHOWN);
     expect(sheet.onCloseComplete).not.toHaveBeenCalled();
 
     await sheet.setOpen(false);
+    expect(sheet.drawn()).toEqual(HIDDEN);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+
+    await sheet.settleAt(-1);
+    expect(sheet.onCloseComplete).toHaveBeenCalledTimes(completions(1));
+  });
+
+  it('renders nothing more for a close request on an open sheet whose open was reported, and keeps it shown', async () => {
+    const sheet = await mountSheet(true, { withHandler });
+    await sheet.settleAt(0);
+    const rendersAtOpen = sheet.renderCount();
+
+    await sheet.requestClose();
+    expect(sheet.renderCount()).toBe(rendersAtOpen);
     expect(sheet.drawn()).toEqual(SHOWN);
     expect(sheet.onCloseComplete).not.toHaveBeenCalled();
   });

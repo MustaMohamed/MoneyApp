@@ -11,7 +11,7 @@ interface SheetCloseLifecycleHook {
   closeLifecycle: SheetCloseLifecycle;
   handleSheetIndexChange: (index: number) => void;
   handleSheetClosed: () => void;
-  handleSheetAnimate: (fromIndex: number) => void;
+  handleSheetCloseRequest: () => void;
 }
 
 // The fields a render reads: a report that changes none of them, `openReported` alone, stays in the ref and schedules no render.
@@ -49,13 +49,11 @@ export function useSheetCloseLifecycle(
 
   const handleSheetClosed = useCallback(() => handleSheetIndexChange(-1), [handleSheetIndexChange]);
 
-  // gorhom starts an animation from the index it holds, so a start from 0 or more reports this open as that index does.
-  const handleSheetAnimate = useCallback(
-    (fromIndex: number) => {
-      if (fromIndex >= 0) handleSheetIndexChange(fromIndex);
-    },
-    [handleSheetIndexChange],
-  );
+  // HeroUI's close request reaches JS ahead of an animated close's -1, so on an open no index has reported it reports that open as an index of 0 does.
+  const handleSheetCloseRequest = useCallback(() => {
+    const lifecycle = closeLifecycleRef.current;
+    if (lifecycle.isOpen && !lifecycle.openReported) handleSheetIndexChange(0);
+  }, [handleSheetIndexChange]);
 
   // gorhom reported the closed position while `isOpen` still read true, so nothing reports it again after the drop.
   const settlesOnDrop = !isOpen && closeLifecycle.restsClosed;
@@ -63,5 +61,5 @@ export function useSheetCloseLifecycle(
     if (settlesOnDrop) handleSheetIndexChange(-1);
   }, [settlesOnDrop, handleSheetIndexChange]);
 
-  return { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetAnimate };
+  return { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetCloseRequest };
 }
