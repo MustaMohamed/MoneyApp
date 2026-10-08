@@ -38,7 +38,7 @@ interface Props {
 }
 
 export function TypeTabs({ active, incomeLabel, onSelect, isDisabled }: Props): React.ReactElement {
-  const { listHeight } = resolveTypeTabsGeometry(useWindowDimensions().fontScale);
+  const { listHeight, triggerHitSlop } = resolveTypeTabsGeometry(useWindowDimensions().fontScale);
   const segments = TYPE_SEGMENTS.map((segment) =>
     segment.value === TransactionType.Income ? { ...segment, label: incomeLabel } : segment,
   );
@@ -54,6 +54,7 @@ export function TypeTabs({ active, incomeLabel, onSelect, isDisabled }: Props): 
         corners="form"
         listClassName="w-full"
         listStyle={{ height: listHeight }}
+        triggerHitSlop={triggerHitSlop}
         accessibilityLabel={Strings.addTxTypeSelectorA11y}
         isDisabled={isDisabled}
       />

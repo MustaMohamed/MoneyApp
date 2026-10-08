@@ -4,13 +4,15 @@ import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
 import { EmptyState } from '@/components/ui/empty_state';
-import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
+import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen } from '@/components/ui/screen';
+import { SegmentFilter, type SegmentFilterOption } from '@/components/ui/segment_filter';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
-import { AccentCCTokens, GoldTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
+import { GoldTokens } from '@/constants/theme_tokens';
+import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
 
@@ -24,13 +26,14 @@ import { TransactionLoadError } from './components/transaction_load_error';
 import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
 import { TransactionsHero } from './components/transactions_hero';
+import { TRANSACTIONS_RAIL } from './components/transactions_rail.geometry';
 import { TxDeleteDialog } from './components/tx_delete_dialog';
 import { FilterSheet } from './filter';
 import { useTransactions } from './transactions.hook';
 import type { TransactionSection } from './transactions.hook';
 import type { TransactionFilter } from './transactions.store';
 
-const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
+const TRANSACTION_FILTERS: SegmentFilterOption<TransactionFilter>[] = [
   {
     value: 'all',
     label: Strings.filterAll,
@@ -39,24 +42,31 @@ const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
   {
     value: TransactionType.Income,
     label: Strings.addTxTypeIncome,
-    icon: { name: 'arrow-down-circle-outline', color: SemanticTokens.positive },
+    icon: TRANSACTION_TYPE_ICONS[TransactionType.Income],
   },
   {
     value: TransactionType.Expense,
     label: Strings.addTxTypeExpense,
-    icon: { name: 'arrow-up-circle-outline', color: SemanticTokens.negative },
+    icon: TRANSACTION_TYPE_ICONS[TransactionType.Expense],
   },
   {
     value: TransactionType.Transfer,
     label: Strings.addTxTypeTransfer,
-    icon: { name: 'swap-horizontal', color: InfoTokens[500] },
+    icon: TRANSACTION_TYPE_ICONS[TransactionType.Transfer],
   },
   {
     value: TransactionType.CCPayment,
     label: Strings.filterCcPayment,
-    icon: { name: 'credit-card-refund', color: AccentCCTokens[500] },
+    icon: TRANSACTION_TYPE_ICONS[TransactionType.CCPayment],
   },
 ];
+
+const RAIL_STYLE = {
+  paddingTop: TRANSACTIONS_RAIL.space,
+  paddingBottom: TRANSACTIONS_RAIL.space,
+} as const;
+// A margin, never a `gap` on the rail: Yoga would count a gap twice around `MonthFilter`'s in-flow sheet root.
+const RAIL_TABS_STYLE = { marginTop: TRANSACTIONS_RAIL.space } as const;
 
 const LIST_BOTTOM_CLEARANCE = ms(160);
 const SKELETON_DAY_CARDS = 2;
@@ -213,14 +223,23 @@ export default function TransactionsScreen(): React.ReactElement {
       </Surface>
       <Separator />
 
-      <FilterRail
-        selectedMonth={state.selectedMonth}
-        onSelectedMonthChange={setSelectedMonth}
-        selectedFilter={state.activeFilter}
-        onSelectedFilterChange={setActiveFilter}
-        filters={TRANSACTION_FILTERS}
-        filterAccessibilityLabel={Strings.transactionTypeFilterAccessibility}
-      />
+      <View testID="transactions-rail" className="px-4" style={RAIL_STYLE}>
+        <MonthFilter
+          selectedMonth={state.selectedMonth}
+          onSelectedMonthChange={setSelectedMonth}
+          rowHitSlop={TRANSACTIONS_RAIL.monthRowHitSlop}
+        />
+        <View style={RAIL_TABS_STYLE}>
+          <SegmentFilter
+            selectedFilter={state.activeFilter}
+            onSelectedFilterChange={setActiveFilter}
+            filters={TRANSACTION_FILTERS}
+            accessibilityLabel={Strings.transactionTypeFilterAccessibility}
+            corners="form"
+            triggerHitSlop={TRANSACTIONS_RAIL.tabsHitSlop}
+          />
+        </View>
+      </View>
 
       <View style={{ flex: 1 }}>
         <SectionList

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import type { SegmentedTabsCorners, TabSegment, TabSegmentIcon } from './tabs';
+import type { TabsTriggerHitSlop } from './tabs.geometry';
 
 export interface SegmentFilterOption<T extends string = string> {
   value: T;
@@ -15,6 +16,8 @@ export interface SegmentFilterProps<T extends string = string> {
   filters: ReadonlyArray<SegmentFilterOption<T>>;
   accessibilityLabel: string;
   corners?: SegmentedTabsCorners;
+  /** Opt-in touch area past each tab's top and bottom edge. */
+  triggerHitSlop?: TabsTriggerHitSlop;
 }
 
 export function useSegmentFilter<T extends string>({ filters }: SegmentFilterProps<T>) {

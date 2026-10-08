@@ -2,7 +2,10 @@ import type { Insets } from 'react-native';
 
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
-import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
+import {
+  type TabsTriggerHitSlop,
+  resolveSegmentedTabsGeometry,
+} from '@/components/ui/tabs.geometry';
 import {
   Radius,
   Size,
@@ -118,16 +121,18 @@ export function resolveTransactionFormSkeletonBars(fontScale: number): {
   };
 }
 
+/** `triggerHitSlop` lifts a tab past the touch floor, plus 1 a side for Android's dp-to-px truncation of the slop. */
 export function resolveTypeTabsGeometry(fontScale: number): {
   listHeight: number;
   skeletonHeight: number;
+  triggerHitSlop: TabsTriggerHitSlop;
 } {
-  const listHeight = Math.max(
-    Size.typeTabsTrack,
-    resolveSegmentedTabsGeometry(fontScale).compact.listHeight,
-  );
+  const { compact } = resolveSegmentedTabsGeometry(fontScale);
+  const listHeight = Math.max(Size.typeTabsTrack, compact.listHeight);
+  const slop = touchFloorSlop(compact.triggerHeight) + Spacing.xxxxs;
   return {
     listHeight,
     skeletonHeight: fontScale <= 1 ? TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar : listHeight,
+    triggerHitSlop: { top: slop, bottom: slop },
   };
 }

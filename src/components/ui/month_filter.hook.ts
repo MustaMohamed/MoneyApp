@@ -16,6 +16,8 @@ export interface MonthFilterProps {
   selectedMonth: string;
   onSelectedMonthChange: (month: string) => void;
   showStepButtons?: boolean;
+  /** Opt-in touch area past the top and bottom edges of the pill and both step buttons. */
+  rowHitSlop?: { top: number; bottom: number };
 }
 
 interface PickerMonth {

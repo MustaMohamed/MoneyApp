@@ -1,11 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
-import { View, useWindowDimensions } from 'react-native';
+import { type Insets, View, useWindowDimensions } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing } from '@/constants/theme';
 
-import { resolveMonthPillGeometry } from './month_filter.geometry';
+import {
+  MONTH_STEP_HIT_SLOP,
+  resolveMonthPillGeometry,
+  resolveMonthStepHitSlop,
+} from './month_filter.geometry';
 import { type MonthFilterProps, useMonthFilter } from './month_filter.hook';
 import { Sheet } from './sheet';
 import { Text } from './text';
@@ -16,14 +20,22 @@ interface IconButtonProps {
   onPress: () => void;
   testID?: string;
   size: number;
+  hitSlop?: number | Insets;
 }
 
-function IconButton({ icon, accessibilityLabel, onPress, testID, size }: IconButtonProps) {
+function IconButton({
+  icon,
+  accessibilityLabel,
+  onPress,
+  testID,
+  size,
+  hitSlop = MONTH_STEP_HIT_SLOP,
+}: IconButtonProps) {
   return (
     <PressableFeedback
       testID={testID}
       onPress={onPress}
-      hitSlop={8}
+      hitSlop={hitSlop}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       className="bg-default/60 items-center justify-center rounded-full"
@@ -38,6 +50,7 @@ export function MonthFilter(props: MonthFilterProps) {
   const monthFilter = useMonthFilter(props);
   const showStepButtons = props.showStepButtons ?? true;
   const pill = resolveMonthPillGeometry(useWindowDimensions().fontScale);
+  const stepHitSlop = resolveMonthStepHitSlop(props.rowHitSlop);
 
   return (
     <>
@@ -49,11 +62,13 @@ export function MonthFilter(props: MonthFilterProps) {
             accessibilityLabel={Strings.monthFilterPreviousA11y}
             onPress={monthFilter.onPreviousMonth}
             size={pill.height}
+            hitSlop={stepHitSlop}
           />
         )}
         <PressableFeedback
           testID="month-filter-open"
           onPress={monthFilter.onOpenPicker}
+          hitSlop={props.rowHitSlop}
           accessibilityRole="button"
           accessibilityLabel={monthFilter.state.openPickerAccessibilityLabel}
           className="bg-accent flex-1 items-center justify-center rounded-full px-2.5"
@@ -82,6 +97,7 @@ export function MonthFilter(props: MonthFilterProps) {
             accessibilityLabel={Strings.monthFilterNextA11y}
             onPress={monthFilter.onNextMonth}
             size={pill.height}
+            hitSlop={stepHitSlop}
           />
         )}
       </View>
