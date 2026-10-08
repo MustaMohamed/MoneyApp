@@ -5,8 +5,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Keyboard, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSheetVisibilityStore } from '@/components/ui/sheet_visibility.state';
 import { Colors, FontFamily, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 
 import { useSheetCloseLifecycle } from './sheet.hook';
@@ -168,7 +168,7 @@ export function Sheet({
   // Plain View props, which no animated style writes: a sheet closed at rest stays hidden whatever redraws its content.
   const closedAtRestProps = resolveSheetClosedAtRestProps(closeLifecycle);
 
-  // FAB-hide: this primitive is the sole publisher to `sheet_visibility.store`.
+  // FAB-hide: this primitive is the sole publisher to `sheet_visibility.state`.
   useEffect(() => {
     if (isOpen) {
       increment();

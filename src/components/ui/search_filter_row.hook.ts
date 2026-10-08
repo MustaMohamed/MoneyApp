@@ -1,7 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from 'react';
 import type { TextInput } from 'react-native';
 
-import { useAnySheetOpen } from '@/store/sheet_visibility.store';
+import { useAnySheetOpen } from '@/components/ui/sheet_visibility.state';
 
 interface SearchFieldSheetFocus {
   inputRef: RefObject<TextInput | null>;

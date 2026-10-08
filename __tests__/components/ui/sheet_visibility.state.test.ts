@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react-native';
 import { act } from '@testing-library/react-native';
 
-import { useAnySheetOpen, useSheetVisibilityStore } from '@/store/sheet_visibility.store';
+import { useAnySheetOpen, useSheetVisibilityStore } from '@/components/ui/sheet_visibility.state';
 
 beforeEach(() => {
   useSheetVisibilityStore.getState().reset();
