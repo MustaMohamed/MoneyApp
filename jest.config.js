@@ -23,6 +23,7 @@ module.exports = {
   // Hook files are excluded: their async and multi-condition branches cannot reach the 100% gate.
   collectCoverageFrom: [
     'src/store/**/*.ts',
+    'src/components/ui/sheet_visibility.state.ts',
     'src/modules/categories/store/category.store.ts',
     'src/modules/categories/screens/settings/categories/categories.helpers.ts',
     'src/modules/currency/screens/currency/currency.state.ts',
