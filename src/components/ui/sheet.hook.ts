@@ -14,6 +14,9 @@ interface SheetCloseLifecycleHook {
   handleSheetAnimate: (fromIndex: number) => void;
 }
 
+// The fields a render reads: a report that changes none of them, `openReported` alone, stays in the ref and schedules no render.
+const RENDERED_FIELDS = ['isOpen', 'hasOpened', 'completed', 'restsClosed'] as const;
+
 /** Holds the sheet's close lifecycle as state, so the render after a settled close reads it; `onCloseComplete` runs once per settled close. */
 export function useSheetCloseLifecycle(
   isOpen: boolean,
@@ -34,11 +37,11 @@ export function useSheetCloseLifecycle(
     (index: number) => {
       const settlement = settleSheetCloseLifecycle(closeLifecycleRef.current, index);
       if (settlement.lifecycle === closeLifecycleRef.current) return;
-      // No render reads `openReported`, so a report that changes it alone schedules none.
-      const wasAtRest = closeLifecycleRef.current.restsClosed;
+      const previous = closeLifecycleRef.current;
       closeLifecycleRef.current = settlement.lifecycle;
-      if (!settlement.shouldComplete && settlement.lifecycle.restsClosed === wasAtRest) return;
-      setStoredLifecycle(settlement.lifecycle);
+      if (RENDERED_FIELDS.some((field) => settlement.lifecycle[field] !== previous[field])) {
+        setStoredLifecycle(settlement.lifecycle);
+      }
       if (settlement.shouldComplete) onCloseComplete?.();
     },
     [onCloseComplete],
