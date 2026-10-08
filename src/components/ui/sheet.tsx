@@ -161,10 +161,8 @@ export function Sheet({
   const insets = useSafeAreaInsets();
   // Measured, not derived: the footer's height is inset- and content-dependent, and gorhom's dynamic sizing does not fully count an absolute footer.
   const [footerHeight, setFooterHeight] = useState(0);
-  const { closeLifecycle, handleSheetIndexChange, handleSheetClosed } = useSheetCloseLifecycle(
-    isOpen,
-    onCloseComplete,
-  );
+  const { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetAnimate } =
+    useSheetCloseLifecycle(isOpen, onCloseComplete);
   // Plain View props, which no animated style writes: a sheet closed at rest stays hidden whatever redraws its content.
   const closedAtRestProps = resolveSheetClosedAtRestProps(closeLifecycle);
 
@@ -252,6 +250,7 @@ export function Sheet({
             {...contentSizingProps}
             onChange={handleSheetIndexChange}
             onClose={handleSheetClosed}
+            onAnimate={handleSheetAnimate}
             {...resolveKeyboardProps(liftsAboveKeyboard)}
             enablePanDownToClose={isDismissable}
             backgroundClassName="bg-surface"

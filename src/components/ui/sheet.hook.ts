@@ -11,6 +11,7 @@ interface SheetCloseLifecycleHook {
   closeLifecycle: SheetCloseLifecycle;
   handleSheetIndexChange: (index: number) => void;
   handleSheetClosed: () => void;
+  handleSheetAnimate: (fromIndex: number) => void;
 }
 
 /** Holds the sheet's close lifecycle as state, so the render after a settled close reads it; `onCloseComplete` runs once per settled close. */
@@ -36,9 +37,8 @@ export function useSheetCloseLifecycle(
       // No render reads `openReported`, so a report that changes it alone schedules none.
       const wasAtRest = closeLifecycleRef.current.restsClosed;
       closeLifecycleRef.current = settlement.lifecycle;
-      if (settlement.shouldComplete || settlement.lifecycle.restsClosed !== wasAtRest) {
-        setStoredLifecycle(settlement.lifecycle);
-      }
+      if (!settlement.shouldComplete && settlement.lifecycle.restsClosed === wasAtRest) return;
+      setStoredLifecycle(settlement.lifecycle);
       if (settlement.shouldComplete) onCloseComplete?.();
     },
     [onCloseComplete],
@@ -46,11 +46,19 @@ export function useSheetCloseLifecycle(
 
   const handleSheetClosed = useCallback(() => handleSheetIndexChange(-1), [handleSheetIndexChange]);
 
+  // gorhom starts an animation from the index it holds, so a start from 0 or more reports this open as that index does.
+  const handleSheetAnimate = useCallback(
+    (fromIndex: number) => {
+      if (fromIndex >= 0) handleSheetIndexChange(fromIndex);
+    },
+    [handleSheetIndexChange],
+  );
+
   // gorhom reported the closed position while `isOpen` still read true, so nothing reports it again after the drop.
   const settlesOnDrop = !isOpen && closeLifecycle.restsClosed;
   useEffect(() => {
     if (settlesOnDrop) handleSheetIndexChange(-1);
   }, [settlesOnDrop, handleSheetIndexChange]);
 
-  return { closeLifecycle, handleSheetIndexChange, handleSheetClosed };
+  return { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetAnimate };
 }

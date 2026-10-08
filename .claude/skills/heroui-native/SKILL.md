@@ -57,7 +57,7 @@ import { BottomSheet, Button } from 'heroui-native';
 </BottomSheet>
 ```
 
-- Close handling: a consumer handles a close through `onOpenChange` and `Sheet`'s `onCloseComplete`, and wires no `Content.onClose` of its own. gorhom runs `Content.onClose` after every close that ends at the closed position, and `components/ui/sheet.tsx` reads it as its second close signal beside the index report.
+- Close handling: a consumer handles a close through `onOpenChange` and `Sheet`'s `onCloseComplete`, and wires no `Content.onClose` of its own. gorhom runs `Content.onClose` after every close that ends at the closed position, and `components/ui/sheet.tsx` reads it as its second close signal beside the index report. Its third is the animation start, `Content.onAnimate`, which gorhom sends as an animation to another index begins: a start from an open index marks the -1 that follows as this open's own.
 - Scrollables: `BottomSheetScrollView` / `BottomSheetFlatList` from `@gorhom/bottom-sheet` (NOT `react-native`), with `enableOverDrag={false}`, `enableDynamicSizing={false}`, fixed height via `contentContainerClassName="h-full"`.
 - Keyboard: `useBottomSheetAwareHandlers()` on `onFocus`/`onBlur` + `keyboardBehavior="extend"` on `Content`. **Call the hook from a component rendered inside the sheet's `children`** — above `<Sheet>`, or in a `.hook.ts` consumed by the component that renders `<Sheet>`, it is outside the gorhom context and the handlers are silent no-ops.
 - Keyboard + footer: pass `liftsAboveKeyboard` to `components/ui/sheet.tsx` instead. `extend` only reaches the largest snap point and cannot lift an absolute footer — `BottomSheetFooterContainer.tsx:29` subtracts a keyboard height that `android_keyboardInputMode="adjustResize"` pins to zero (`BottomSheet.tsx:851-854`). The prop swaps that mode to `adjustPan`. Android only. A `scrollable` sheet that takes the prop drops its `SHEET_FOOTER_CLEARANCE`, since the shell pads it by the measured footer.
@@ -76,6 +76,6 @@ Since 1.0.7 those defaults are defined in `node_modules/heroui-native/src/styles
 | Fetching heroui.com docs for an API | That's 2.x. Read `node_modules/heroui-native/src/components/<name>/<name>.md`. |
 | Building a component `src/components/ui/` already has | Run `npm run ui:inventory` first — this is the most common wasted change here. |
 | `shadow-none` on a Card | Custom shadow token wins. Use `style={{ boxShadow: 'none' }}`. |
-| Handling sheet close via `Content.onClose` | gorhom runs it after every close that ends at the closed position, and `components/ui/sheet.tsx` reads it as its second close signal. A consumer wires none of its own and uses `onOpenChange` and `onCloseComplete`. |
+| Handling sheet close via `Content.onClose` | gorhom runs it after every close that ends at the closed position, and `components/ui/sheet.tsx` reads it as its second close signal, beside the index report and the animation start (`Content.onAnimate`). A consumer wires none of its own and uses `onOpenChange` and `onCloseComplete`. |
 | `border-0` on a bare `Input` to drop its border | HeroUI's `android:focus:border-accent` still draws the focus border on Android. Pass `borderColor: INPUT_NO_FOCUS_BORDER_COLOR` from `@/components/ui/input` in `style`. |
 | Importing scrollables from `react-native` inside a sheet | Gesture conflict. Use the `@gorhom/bottom-sheet` variants. |
