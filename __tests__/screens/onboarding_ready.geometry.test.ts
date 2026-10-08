@@ -1,6 +1,17 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 
-import { HERO_PILL_HEIGHT, HERO_PILL_STYLE, HERO_PILL_TEXT_STYLE } from '@/components/ui/chip';
+import {
+  HERO_PILL_HEIGHT,
+  HERO_PILL_STYLE,
+  HERO_PILL_TEXT_STYLE,
+  resolveHeroPillGeometry,
+} from '@/components/ui/chip';
+import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
+import {
+  FITTED_LINE_SLACK,
+  scaledFontSize,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
@@ -19,11 +30,13 @@ import {
   N4_HERO_LABEL_TEXT_STYLE,
   N4_HERO_PILL_ROW_STYLE,
   N4_HERO_REFUSAL_TEXT_STYLE,
+  N4_HERO_VALUE_MAX_FONT_SCALE,
   N4_HERO_VALUE_SLOT_STYLE,
   N4_HERO_VALUE_STEP_TEXT_STYLE,
   N4_HERO_VALUE_TEXT_STYLE,
   N4_SUMMARY_ROW_STYLE,
   N4_SUMMARY_ROW_TEXT_STYLE,
+  resolveReadyHeroGeometry,
 } from '@/modules/onboarding/screens/onboarding/ready/ready.geometry';
 import {
   resolveCaption,
@@ -178,14 +191,112 @@ describe('N4 slot fit checks — the content each fixed track has to hold', () =
   });
 });
 
+const valueLineHeightAt = (fontScale: number): number =>
+  lineHeightFor(scaledFontSize(Type.amountEntry, fontScale, N4_HERO_VALUE_MAX_FONT_SCALE));
+
+const valueSlotHeightAt = (fontScale: number): number =>
+  Math.max(Size.summaryValueSlot, valueLineHeightAt(fontScale) + FITTED_LINE_SLACK);
+
+describe('resolveReadyHeroGeometry — the card follows the system font scale', () => {
+  it.each([1, 0.85])(
+    'MA-162: at font scale %s the refusal, caption and pill slots are the frozen constants themselves',
+    (fontScale) => {
+      const g = resolveReadyHeroGeometry(fontScale);
+
+      expect(g.refusalSlot).toBe(N4_HERO_VALUE_SLOT_STYLE);
+      expect(g.captionSlot).toBe(N4_HERO_CAPTION_SLOT_STYLE);
+      expect(g.pillRow).toBe(N4_HERO_PILL_ROW_STYLE);
+      expect(g.captionText).toBeUndefined();
+    },
+  );
+
+  it('MA-162: at font scale 0.85 the value slot is the frozen slot', () => {
+    expect(resolveReadyHeroGeometry(0.85).valueSlot).toEqual(N4_HERO_VALUE_SLOT_STYLE);
+  });
+
+  it('MA-162: at font scale 1 the value, its step and its code take the frozen text styles', () => {
+    const g = resolveReadyHeroGeometry(1);
+
+    expect(g.valueText).toEqual(N4_HERO_VALUE_TEXT_STYLE);
+    expect(g.valueStepText).toEqual(N4_HERO_VALUE_STEP_TEXT_STYLE);
+    expect(g.currencyText).toEqual(N4_HERO_CURRENCY_TEXT_STYLE);
+  });
+
+  it.each([1, 2])(
+    'MA-162: at font scale %s the value slot clips at the value line box plus one device pixel',
+    (fontScale) => {
+      const g = resolveReadyHeroGeometry(fontScale);
+      const lineHeight = valueLineHeightAt(fontScale);
+
+      expect(g.valueText.lineHeight).toBe(lineHeight);
+      expect(g.valueSlot).toEqual({
+        ...N4_HERO_VALUE_SLOT_STYLE,
+        height: Math.max(Size.summaryValueSlot, lineHeight + FITTED_LINE_SLACK),
+      });
+      expect(g.valueSlot.overflow).toBe('hidden');
+      expect(g.valueSlot.height).toBeGreaterThan(lineHeight);
+    },
+  );
+
+  it('MA-162: at font scale 2 the value stops growing at the 1.3 stop', () => {
+    const g = resolveReadyHeroGeometry(2);
+    const fontSize = Type.amountEntry * N4_HERO_VALUE_MAX_FONT_SCALE;
+
+    expect(N4_HERO_VALUE_MAX_FONT_SCALE).toBe(DISPLAY_HEADLINE_MAX_FONT_SCALE);
+    expect(g.valueText).toEqual(resolveReadyHeroGeometry(1.3).valueText);
+    expect(g.valueText.fontSize).toBe(fontSize);
+    expect(g.valueText.lineHeight).toBe(lineHeightFor(fontSize));
+  });
+
+  it('MA-162: at font scale 2 the caption slot holds its two scaled lines', () => {
+    const g = resolveReadyHeroGeometry(2);
+    const caption = scaledTextStyle(Type.caption, 2);
+
+    expect(g.captionText).toEqual(caption);
+    expect(g.captionSlot.height).toBe(
+      Math.max(Size.summaryCaptionSlot, N4_HERO_CAPTION_MAX_LINES * caption.lineHeight),
+    );
+  });
+
+  it('MA-162: at font scale 2 the pill row is a floor that wraps, never a track that clips', () => {
+    const g = resolveReadyHeroGeometry(2);
+
+    expect(g.pillRow.height).toBeUndefined();
+    expect(g.pillRow.overflow).toBeUndefined();
+    expect(g.pillRow.flexWrap).toBe('wrap');
+    expect(g.pillRow.minHeight).toBe(
+      Math.max(Size.summaryPillTrack, resolveHeroPillGeometry(2).height),
+    );
+  });
+
+  it('MA-162: at font scale 2 the refusal slot is a floor at the value slot height', () => {
+    const g = resolveReadyHeroGeometry(2);
+
+    expect(g.refusalSlot.height).toBeUndefined();
+    expect(g.refusalSlot.minHeight).toBe(g.valueSlot.height);
+    expect(g.refusalSlot.minHeight).toBe(valueSlotHeightAt(2));
+  });
+});
+
 describe('resolveHeroValueTextStyle — the step-down rung', () => {
   // The character count excludes the currency suffix, which renders as a separate node.
   it('keeps the full 40px size at 13 characters', () => {
-    expect(resolveHeroValueTextStyle('-1,234,567.89').fontSize).toBe(Type.amountEntry);
+    expect(resolveHeroValueTextStyle('-1,234,567.89', 1).fontSize).toBe(Type.amountEntry);
   });
 
   it('steps down to 28px at 14 characters', () => {
-    expect(resolveHeroValueTextStyle('-12,345,678.90').fontSize).toBe(Type.hero);
+    expect(resolveHeroValueTextStyle('-12,345,678.90', 1).fontSize).toBe(Type.hero);
+  });
+
+  it('MA-162: at font scale 2 a value on the 40 step takes the capped value style', () => {
+    expect(resolveHeroValueTextStyle('8,450.00', 2)).toEqual(resolveReadyHeroGeometry(2).valueText);
+  });
+
+  it('MA-162: at font scale 2 a value past the step-down count takes the capped step style', () => {
+    const style = resolveHeroValueTextStyle('100,000,000.00', 2);
+
+    expect(style).toEqual(resolveReadyHeroGeometry(2).valueStepText);
+    expect(style.fontSize).toBe(Type.hero * N4_HERO_VALUE_MAX_FONT_SCALE);
   });
 });
 

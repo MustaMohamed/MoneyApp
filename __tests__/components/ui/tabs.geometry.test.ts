@@ -1,10 +1,11 @@
 import {
   TABS_LIST_PADDING,
+  TABS_TRIGGER_PADDING_BLOCK,
   resolveGrownScrollRadii,
   resolveSegmentedTabsGeometry,
   resolveTabsScrollSlopInset,
 } from '@/components/ui/tabs.geometry';
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
+import { scaledFontSize, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Radius, Type, lineHeightFor } from '@/constants/theme';
 
 describe('resolveSegmentedTabsGeometry', () => {
@@ -37,6 +38,33 @@ describe('resolveSegmentedTabsGeometry', () => {
     const g = resolveSegmentedTabsGeometry(2);
     expect(g.defaultLabel?.fontSize).toBe(scaledFontSize(Type.subhead, 2));
     expect(g.defaultLabel?.lineHeight).toBe(lineHeightFor(g.defaultLabel?.fontSize ?? NaN));
+  });
+
+  it('MA-162: the default list has a height only where the default label does, its line plus the trigger and list padding', () => {
+    const labelLineHeight = scaledTextStyle(Type.subhead, 2).lineHeight;
+    const g = resolveSegmentedTabsGeometry(2);
+
+    expect(resolveSegmentedTabsGeometry(1).defaultListHeight).toBeUndefined();
+    expect(g.defaultLabel?.lineHeight).toBe(labelLineHeight);
+    expect(g.defaultListHeight).toBe(
+      labelLineHeight + 2 * TABS_TRIGGER_PADDING_BLOCK + 2 * TABS_LIST_PADDING,
+    );
+  });
+
+  it('MA-162: a max font scale caps the default label', () => {
+    expect(resolveSegmentedTabsGeometry(2, 1.3).defaultLabel).toEqual(
+      scaledTextStyle(Type.subhead, 2, 1.3),
+    );
+  });
+
+  it('MA-162: a max font scale caps the compact label', () => {
+    expect(resolveSegmentedTabsGeometry(2, 1.3).compact.label).toEqual(
+      scaledTextStyle(Type.micro, 2, 1.3),
+    );
+  });
+
+  it('MA-162: past its max font scale the whole geometry is the geometry at that scale', () => {
+    expect(resolveSegmentedTabsGeometry(2, 1.3)).toEqual(resolveSegmentedTabsGeometry(1.3, 1.3));
   });
 });
 

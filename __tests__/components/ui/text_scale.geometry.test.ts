@@ -1,9 +1,18 @@
+import { PixelRatio } from 'react-native';
+
 import {
+  FITTED_LINE_SLACK,
   resolveOneLineTextProps,
   scaledFontSize,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { Type } from '@/constants/theme';
+
+describe('FITTED_LINE_SLACK', () => {
+  it('MA-162: is one device pixel, in dp', () => {
+    expect(FITTED_LINE_SLACK * PixelRatio.get()).toBe(1);
+  });
+});
 
 describe('scaledFontSize', () => {
   it('follows the font scale up to its cap', () => {
