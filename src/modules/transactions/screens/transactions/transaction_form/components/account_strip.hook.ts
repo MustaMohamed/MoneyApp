@@ -4,6 +4,7 @@ import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 
 
 import type { TransactionType } from '@/constants/enums';
 
+import { usePendingFrame } from '../pending_frame.hook';
 import { resolveAccountStripRevealX } from './transaction_form.geometry';
 
 interface AccountStripReveal {
@@ -22,13 +23,11 @@ export function useAccountStripReveal(
   const selectedIndexRef = useRef(selectedIndex);
   const viewportWidthRef = useRef(0);
   const scrollXRef = useRef(0);
-  const revealFrameRef = useRef<ReturnType<typeof requestAnimationFrame> | undefined>(undefined);
+  const requestFrame = usePendingFrame();
 
   const requestReveal = useCallback(() => {
-    if (revealFrameRef.current !== undefined) return;
     // A view command runs before the mount items queued with it, so the scroll waits for the frame after the chips mount.
-    revealFrameRef.current = requestAnimationFrame(() => {
-      revealFrameRef.current = undefined;
+    requestFrame(() => {
       const index = selectedIndexRef.current;
       if (index < 0) return;
       const scrollX = scrollXRef.current;
@@ -39,14 +38,12 @@ export function useAccountStripReveal(
       });
       if (x !== scrollX) scrollRef.current?.scrollTo({ x, animated: true });
     });
-  }, []);
+  }, [requestFrame]);
 
-  useEffect(
-    () => () => {
-      if (revealFrameRef.current !== undefined) cancelAnimationFrame(revealFrameRef.current);
-    },
-    [],
-  );
+  // A type with no chip unmounts the scroll view, and the next one mounts at offset 0 and sends no scroll event.
+  useEffect(() => {
+    if (scrollRef.current === null) scrollXRef.current = 0;
+  });
 
   // Expense and Income hand the strip the same chips and index, so `type` is the only sign of that switch.
   useEffect(() => {

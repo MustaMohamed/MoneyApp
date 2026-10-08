@@ -25,9 +25,8 @@ describe('account strip geometry', () => {
   });
 
   it('cuts the third chip inside a 390 screen less the strip margins', () => {
-    const visible = ms(390) - 2 * Spacing.md;
-    expect(2 * ACCOUNT_STRIP_CHIP_WIDTH + 2 * ACCOUNT_STRIP_GAP).toBeLessThan(visible);
-    expect(3 * ACCOUNT_STRIP_CHIP_WIDTH + 2 * ACCOUNT_STRIP_GAP).toBeGreaterThan(visible);
+    expect(2 * ACCOUNT_STRIP_CHIP_WIDTH + 2 * ACCOUNT_STRIP_GAP).toBeLessThan(STRIP_VIEWPORT);
+    expect(3 * ACCOUNT_STRIP_CHIP_WIDTH + 2 * ACCOUNT_STRIP_GAP).toBeGreaterThan(STRIP_VIEWPORT);
   });
 
   it('reaches a 44 hit target through the vertical slop', () => {

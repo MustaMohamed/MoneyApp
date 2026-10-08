@@ -21,6 +21,14 @@ export const TRANSACTION_FORM_STATUS_GAP = Spacing.xs;
 /** The amount's error line is as thick as the stroke of the ring the fact rows and the strip keep. */
 export const AMOUNT_ERROR_LINE_HEIGHT = Size.hairline;
 
+/** The line lies along the input's bottom edge and outside its layout, so nothing moves between valid and invalid. */
+export const AMOUNT_ERROR_LINE_STYLE = {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  bottom: 0,
+} as const;
+
 /** The sheet frames' 118 by 40 row, ruled 2026-09-27 (MA-122) over the canvas base rule's 64-wide column. */
 export const ACCOUNT_STRIP_CHIP_WIDTH = ms(118);
 export const ACCOUNT_STRIP_CHIP_HEIGHT = ms(40);

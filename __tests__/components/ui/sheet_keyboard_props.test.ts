@@ -1,10 +1,10 @@
 import { resolveKeyboardProps, shouldBlurInputOnClose } from '@/components/ui/sheet';
 
-type FocusedInput = Parameters<typeof shouldBlurInputOnClose>[0];
+type FocusedInput = Parameters<typeof shouldBlurInputOnClose>[0]['focusedNow'];
 
-// `TextInput.State.currentlyFocusedInput()` returns `null` at run time when no field holds focus.
-const NO_INPUT = null as unknown as FocusedInput;
+const NO_INPUT: FocusedInput = null;
 const fakeInput = () => ({}) as unknown as FocusedInput;
+const BOTH_FLAGS = { liftsAboveKeyboard: true, blursInputOnClose: true };
 
 describe('resolveKeyboardProps', () => {
   it('defaults to adjustResize, the window mode the app manifest declares', () => {
@@ -30,19 +30,66 @@ describe('shouldBlurInputOnClose', () => {
   const inputSince = fakeInput();
 
   it('blurs nothing when no input holds focus as the sheet closes', () => {
-    expect(shouldBlurInputOnClose(NO_INPUT, NO_INPUT)).toBe(false);
-    expect(shouldBlurInputOnClose(inputAtOpen, NO_INPUT)).toBe(false);
+    expect(
+      shouldBlurInputOnClose({ ...BOTH_FLAGS, focusedAtOpen: NO_INPUT, focusedNow: NO_INPUT }),
+    ).toBe(false);
+    expect(
+      shouldBlurInputOnClose({ ...BOTH_FLAGS, focusedAtOpen: inputAtOpen, focusedNow: NO_INPUT }),
+    ).toBe(false);
   });
 
   it('leaves the input that held focus when the sheet opened and still holds it', () => {
-    expect(shouldBlurInputOnClose(inputAtOpen, inputAtOpen)).toBe(false);
+    expect(
+      shouldBlurInputOnClose({
+        ...BOTH_FLAGS,
+        focusedAtOpen: inputAtOpen,
+        focusedNow: inputAtOpen,
+      }),
+    ).toBe(false);
   });
 
   it('blurs another input that took focus since the sheet opened', () => {
-    expect(shouldBlurInputOnClose(inputAtOpen, inputSince)).toBe(true);
+    expect(
+      shouldBlurInputOnClose({ ...BOTH_FLAGS, focusedAtOpen: inputAtOpen, focusedNow: inputSince }),
+    ).toBe(true);
   });
 
   it('blurs an input that took focus since a sheet that opened with none focused', () => {
-    expect(shouldBlurInputOnClose(NO_INPUT, inputSince)).toBe(true);
+    expect(
+      shouldBlurInputOnClose({ ...BOTH_FLAGS, focusedAtOpen: NO_INPUT, focusedNow: inputSince }),
+    ).toBe(true);
+  });
+
+  it('blurs nothing on a sheet that passes neither flag, with an input focused since it opened', () => {
+    expect(
+      shouldBlurInputOnClose({
+        liftsAboveKeyboard: false,
+        blursInputOnClose: false,
+        focusedAtOpen: inputAtOpen,
+        focusedNow: inputSince,
+      }),
+    ).toBe(false);
+  });
+
+  it('blurs an input focused since the open on `liftsAboveKeyboard` alone', () => {
+    expect(
+      shouldBlurInputOnClose({
+        liftsAboveKeyboard: true,
+        blursInputOnClose: false,
+        focusedAtOpen: inputAtOpen,
+        focusedNow: inputSince,
+      }),
+    ).toBe(true);
+  });
+
+  it('blurs an input focused since the open on `blursInputOnClose` alone', () => {
+    expect(
+      shouldBlurInputOnClose({
+        liftsAboveKeyboard: false,
+        blursInputOnClose: true,
+        focusedAtOpen: inputAtOpen,
+        focusedNow: inputSince,
+      }),
+    ).toBe(true);
   });
 });

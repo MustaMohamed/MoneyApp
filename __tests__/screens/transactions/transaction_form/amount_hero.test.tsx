@@ -24,7 +24,10 @@ jest.mock('@/components/ui/sheet', () => ({
 }));
 
 import { AmountHero } from '@/modules/transactions/screens/transactions/transaction_form/components/amount_hero';
-import { AMOUNT_ERROR_LINE_HEIGHT } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
+import {
+  AMOUNT_ERROR_LINE_HEIGHT,
+  AMOUNT_ERROR_LINE_STYLE,
+} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 
 describe('AmountHero', () => {
   beforeEach(() => useAddTransactionStore.getState().reset());
@@ -142,7 +145,7 @@ describe('AmountHero', () => {
 
     const line = getByTestId('amount-hero-error-line');
     expect(line).toHaveProp('thickness', AMOUNT_ERROR_LINE_HEIGHT);
-    expect(line).toHaveStyle({ position: 'absolute' });
+    expect(line).toHaveStyle(AMOUNT_ERROR_LINE_STYLE);
     expect(queryByTestId('amount-hero-ring')).toBeNull();
 
     await rerender(

@@ -53,6 +53,14 @@ async function mountStrip(selectedIndex: number, type = TransactionType.Expense)
     recordScroll: (x: number) => act(() => hook.result.current.handleScroll(scrollOf(x))),
     press: (index: number) => act(() => hook.result.current.handleChipPress(index)),
     setProps: (props: StripProps) => hook.rerender(props),
+    unmountScroll: () => {
+      hook.result.current.scrollRef.current = null;
+    },
+    mountScroll: () => {
+      hook.result.current.scrollRef.current = {
+        scrollTo,
+      } as unknown as BottomSheetScrollViewMethods;
+    },
   };
 }
 
@@ -181,6 +189,27 @@ describe('useAccountStripReveal', () => {
     await runFrame();
     expect(strip.scrollTo).toHaveBeenCalledTimes(2);
     expect(strip.scrollTo).toHaveBeenLastCalledWith(animatedTo(leftEdgeOf(CUT)));
+  });
+
+  it('computes the first reveal from offset 0 once a type with no chip has unmounted the scroll view', async () => {
+    const strip = await mountLaidOut(IN_VIEW);
+    await strip.recordScroll(leftEdgeOf(PAST_THE_EDGE - 1));
+    await strip.setProps({ selectedIndex: PAST_THE_EDGE, type: TransactionType.Expense });
+    await runFrame();
+    expect(strip.scrollTo).not.toHaveBeenCalled();
+
+    strip.unmountScroll();
+    await strip.setProps({ selectedIndex: -1, type: TransactionType.Transfer });
+    await runFrame();
+    strip.mountScroll();
+    await strip.setProps({ selectedIndex: PAST_THE_EDGE, type: TransactionType.Expense });
+    expect(strip.scrollTo).not.toHaveBeenCalled();
+
+    await runFrame();
+    expect(strip.scrollTo).toHaveBeenCalledTimes(1);
+    expect(strip.scrollTo).toHaveBeenLastCalledWith(
+      animatedTo(offsetShowingFromTheRight(PAST_THE_EDGE)),
+    );
   });
 
   it('never scrolls while no chip is selected', async () => {

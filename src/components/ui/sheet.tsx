@@ -61,11 +61,23 @@ export function resolveKeyboardProps(liftsAboveKeyboard: boolean) {
 // `currentlyFocusedInput()` is typed non-null and returns `null` while no field holds focus.
 type FocusedInput = ReturnType<typeof TextInput.State.currentlyFocusedInput> | null;
 
-/** A closing sheet blurs the input that took focus while it was open, and leaves one that held focus before it opened. */
-export function shouldBlurInputOnClose(
-  focusedAtOpen: FocusedInput,
-  focusedNow: FocusedInput,
-): boolean {
+interface BlurInputOnCloseInput {
+  liftsAboveKeyboard: boolean;
+  blursInputOnClose: boolean;
+  /** The input that held focus when the sheet opened. */
+  focusedAtOpen: FocusedInput;
+  /** The input that holds focus as the sheet closes. */
+  focusedNow: FocusedInput;
+}
+
+/** A closing sheet that passes either flag blurs the input that took focus while it was open, and leaves one that held focus before it opened. */
+export function shouldBlurInputOnClose({
+  liftsAboveKeyboard,
+  blursInputOnClose,
+  focusedAtOpen,
+  focusedNow,
+}: BlurInputOnCloseInput): boolean {
+  if (!liftsAboveKeyboard && !blursInputOnClose) return false;
   return focusedNow !== null && focusedNow !== focusedAtOpen;
 }
 
@@ -123,7 +135,7 @@ export interface SheetProps {
   footer?: React.ReactNode;
   /** Android only: lift the sheet and its footer clear of the keyboard. Set it on any sheet whose `footer` must stay reachable while typing; a `scrollable` sheet with it ends its content at the footer and takes no `SHEET_FOOTER_CLEARANCE`. Assumes the activity does not resize for the IME; re-check this sheet if `app.json` gains `android.softwareKeyboardLayoutMode`. */
   liftsAboveKeyboard?: boolean;
-  /** Blurs an input that took focus inside the sheet as it closes, without the `adjustPan` mode `liftsAboveKeyboard` brings. Defaults to false. */
+  /** Blurs an input that took focus inside the sheet as it closes. Set it on a sheet that holds a text input and opens over a screen with a text field of its own, such as a list's search field; it brings no `adjustPan` mode, which `liftsAboveKeyboard` does. Defaults to false. */
   blursInputOnClose?: boolean;
   children: React.ReactNode;
 }
@@ -164,8 +176,12 @@ export function Sheet({
       return () => {
         // `adjustPan` leaves the IME up after a programmatic close; the blur runs first, so a field that waits on the count reads it.
         if (
-          (liftsAboveKeyboard || blursInputOnClose) &&
-          shouldBlurInputOnClose(focusedAtOpen, TextInput.State.currentlyFocusedInput())
+          shouldBlurInputOnClose({
+            liftsAboveKeyboard,
+            blursInputOnClose,
+            focusedAtOpen,
+            focusedNow: TextInput.State.currentlyFocusedInput(),
+          })
         ) {
           Keyboard.dismiss();
         }

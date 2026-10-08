@@ -6,12 +6,13 @@ import { View } from 'react-native';
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { FormErrorText } from '@/components/ui/form_error_text';
+import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { ListCard } from '@/components/ui/list_card';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -404,8 +405,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 minWidth: 0,
                 minHeight: FACT_ROW_MIN_HEIGHT,
                 textAlign: 'right',
-                // HeroUI's Android focus border outranks `border-0`; the caret is the Note's only focus mark.
-                borderColor: Colors.shared.transparent,
+                borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
                 fontSize: Type.body,
                 lineHeight: lineHeightFor(Type.body),
               }}

@@ -11,6 +11,11 @@ import {
 import React from 'react';
 import type { ReactNode } from 'react';
 
+import { Colors } from '@/constants/theme';
+
+/** `borderColor` for an `Input` with `border-0`, whose focus mark is the caret or its own box: HeroUI's Android focus border outranks the class and would draw as well. */
+export const INPUT_NO_FOCUS_BORDER_COLOR = Colors.shared.transparent;
+
 export interface InputProps extends HInputProps {
   className?: string;
   label?: string;

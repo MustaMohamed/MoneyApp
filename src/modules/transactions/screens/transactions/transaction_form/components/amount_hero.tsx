@@ -2,17 +2,18 @@ import { Input, Separator } from 'heroui-native';
 import { View } from 'react-native';
 import { tv } from 'tailwind-variants';
 
+import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Type, lineHeightFor } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { maskMoneyFieldText } from '@/utils/money_text';
 
 import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
-import { AMOUNT_ERROR_LINE_HEIGHT } from './transaction_form.geometry';
+import { AMOUNT_ERROR_LINE_HEIGHT, AMOUNT_ERROR_LINE_STYLE } from './transaction_form.geometry';
 
 const amountClass = tv({
   base: 'font-sora min-h-0 rounded-none border-0 bg-transparent px-0 py-0',
@@ -76,8 +77,7 @@ export function AmountHero({
             minWidth: 80,
             textAlign: 'center',
             padding: 0,
-            // HeroUI's Android focus border outranks `border-0`; the caret is the amount's only focus mark.
-            borderColor: Colors.shared.transparent,
+            borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
             fontSize: Type.amountEntry,
             lineHeight: lineHeightFor(Type.amountEntry),
           }}
@@ -89,7 +89,7 @@ export function AmountHero({
             testID="amount-hero-error-line"
             className="bg-danger"
             thickness={AMOUNT_ERROR_LINE_HEIGHT}
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
+            style={AMOUNT_ERROR_LINE_STYLE}
           />
         ) : null}
       </View>
