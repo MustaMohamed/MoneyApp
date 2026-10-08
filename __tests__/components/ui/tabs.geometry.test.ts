@@ -1,4 +1,8 @@
-import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
+import {
+  TABS_LIST_PADDING,
+  resolveSegmentedTabsGeometry,
+  resolveTabsScrollSlopInset,
+} from '@/components/ui/tabs.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Type, lineHeightFor } from '@/constants/theme';
 
@@ -32,5 +36,22 @@ describe('resolveSegmentedTabsGeometry', () => {
     const g = resolveSegmentedTabsGeometry(2);
     expect(g.defaultLabel?.fontSize).toBe(scaledFontSize(Type.subhead, 2));
     expect(g.defaultLabel?.lineHeight).toBe(lineHeightFor(g.defaultLabel?.fontSize ?? NaN));
+  });
+});
+
+describe('resolveTabsScrollSlopInset', () => {
+  it('MA-109: without a trigger hit slop the scroll box takes no inset', () => {
+    expect(resolveTabsScrollSlopInset(undefined)).toBeUndefined();
+  });
+
+  it('MA-109: a slop past the list padding is the inset on its side', () => {
+    expect(resolveTabsScrollSlopInset({ top: 7, bottom: 10 })).toEqual({ top: 7, bottom: 10 });
+  });
+
+  it('MA-109: a slop under the list padding insets by the list padding on both sides', () => {
+    expect(resolveTabsScrollSlopInset({ top: 1, bottom: 2 })).toEqual({
+      top: TABS_LIST_PADDING,
+      bottom: TABS_LIST_PADDING,
+    });
   });
 });

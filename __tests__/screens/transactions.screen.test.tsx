@@ -4,8 +4,10 @@ import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { Radius } from '@/constants/theme';
+import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
 import TransactionsScreen from '@/modules/transactions/screens/transactions';
 import { DAY_CARD_INNER_RADIUS } from '@/modules/transactions/screens/transactions/components/day_card_row.helpers';
+import { TRANSACTIONS_RAIL } from '@/modules/transactions/screens/transactions/components/transactions_rail.geometry';
 import { useTransactions } from '@/modules/transactions/screens/transactions/transactions.hook';
 import { makeTestTransaction } from '@/test_helpers/transaction';
 
@@ -43,16 +45,28 @@ jest.mock('@/components/ui/screen', () => ({
     return <View>{children}</View>;
   },
 }));
-jest.mock('@/components/ui/filter_rail', () => ({
-  FilterRail: ({ selectedMonth }: { selectedMonth: string }) => {
-    const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
-    return (
-      <View testID="transactions-filter-rail">
-        <Text>{selectedMonth}</Text>
-      </View>
-    );
-  },
-}));
+jest.mock('@/components/ui/month_filter', () => {
+  const monthFilterProps: { last: object | undefined } = { last: undefined };
+  return {
+    monthFilterProps,
+    MonthFilter: (props: object) => {
+      const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+      monthFilterProps.last = props;
+      return <View testID="transactions-month-filter" />;
+    },
+  };
+});
+jest.mock('@/components/ui/segment_filter', () => {
+  const segmentFilterProps: { last: object | undefined } = { last: undefined };
+  return {
+    segmentFilterProps,
+    SegmentFilter: (props: object) => {
+      const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+      segmentFilterProps.last = props;
+      return <View testID="transactions-segment-filter" />;
+    },
+  };
+});
 jest.mock('@/components/ui/empty_state', () => {
   const emptyStateProps: { last: { variant: string } | undefined } = { last: undefined };
   return {
@@ -218,7 +232,35 @@ interface TxDeleteDialogMockProps {
   onConfirm: () => void;
 }
 
+interface RailHitSlop {
+  top: number;
+  bottom: number;
+}
+
+interface MonthFilterMockProps {
+  rowHitSlop?: RailHitSlop;
+}
+
+interface SegmentFilterMockProps {
+  filters: ReadonlyArray<{ value: string; icon?: object }>;
+  corners?: string;
+  triggerHitSlop?: RailHitSlop;
+}
+
+const TYPE_FILTERS = [
+  TransactionType.Income,
+  TransactionType.Expense,
+  TransactionType.Transfer,
+  TransactionType.CCPayment,
+];
+
 const mockedUseTransactions = jest.mocked(useTransactions);
+const { monthFilterProps } = jest.requireMock<{
+  monthFilterProps: { last: MonthFilterMockProps | undefined };
+}>('@/components/ui/month_filter');
+const { segmentFilterProps } = jest.requireMock<{
+  segmentFilterProps: { last: SegmentFilterMockProps | undefined };
+}>('@/components/ui/segment_filter');
 const { emptyStateProps } = jest.requireMock<{
   emptyStateProps: { last: EmptyStateMockProps | undefined };
 }>('@/components/ui/empty_state');
@@ -300,6 +342,8 @@ describe('TransactionsScreen', () => {
     rowSwipeCorners.clear();
     emptyStateProps.last = undefined;
     txDeleteDialogProps.last = undefined;
+    monthFilterProps.last = undefined;
+    segmentFilterProps.last = undefined;
     mockUseTransactions();
   });
 
@@ -315,12 +359,32 @@ describe('TransactionsScreen', () => {
   it('keeps scope controls fixed while summary and search scroll with the ledger', async () => {
     const { getByTestId } = await render(<TransactionsScreen />);
 
-    expect(getByTestId('transactions-filter-rail')).toBeTruthy();
-    expect(getByTestId('transactions-list-header')).toBeTruthy();
-    expect(
-      within(getByTestId('transactions-list-header')).getByTestId('transactions-hero-mock'),
-    ).toBeTruthy();
+    const rail = getByTestId('transactions-rail');
+    const header = getByTestId('transactions-list-header');
+    expect(within(rail).getByTestId('transactions-month-filter')).toBeTruthy();
+    expect(within(rail).getByTestId('transactions-segment-filter')).toBeTruthy();
+    expect(within(header).queryByTestId('transactions-month-filter')).toBeNull();
+    expect(within(header).queryByTestId('transactions-segment-filter')).toBeNull();
+    expect(within(header).getByTestId('transactions-hero-mock')).toBeTruthy();
     expect(getByTestId('transactions-list')).toHaveProp('ListHeaderComponent');
+  });
+
+  it('MA-109: the rail hands the month row and the iconed type tabs its space and hit slops, in form corners', async () => {
+    const { getByTestId } = await render(<TransactionsScreen />);
+
+    const filters = segmentFilterProps.last?.filters ?? [];
+    expect(filters.map(({ value }) => value)).toEqual(['all', ...TYPE_FILTERS]);
+    const iconByValue = new Map(filters.map(({ value, icon }) => [value, icon]));
+    for (const type of TYPE_FILTERS) {
+      expect(iconByValue.get(type)).toBe(TRANSACTION_TYPE_ICONS[type]);
+    }
+    expect(segmentFilterProps.last?.corners).toBe('form');
+    expect(monthFilterProps.last?.rowHitSlop).toEqual(TRANSACTIONS_RAIL.monthRowHitSlop);
+    expect(segmentFilterProps.last?.triggerHitSlop).toEqual(TRANSACTIONS_RAIL.tabsHitSlop);
+    expect(getByTestId('transactions-rail')).toHaveStyle({
+      paddingTop: TRANSACTIONS_RAIL.space,
+      paddingBottom: TRANSACTIONS_RAIL.space,
+    });
   });
 
   it('MA-107: the tally slot passes an empty spoken label when its model carries none', async () => {

@@ -73,6 +73,18 @@ describe('resolveTypeTabsGeometry', () => {
     const g = resolveTypeTabsGeometry(1.5);
     expect(g.skeletonHeight).toBe(g.listHeight);
   });
+
+  it.each([1, 2])(
+    'MA-109: at font scale %d the trigger slop lifts a tab to the touch floor with a margin on each side, the same above and below',
+    (fontScale) => {
+      const { triggerHitSlop } = resolveTypeTabsGeometry(fontScale);
+      const { compact } = resolveSegmentedTabsGeometry(fontScale);
+      expect(
+        compact.triggerHeight + triggerHitSlop.top + triggerHitSlop.bottom,
+      ).toBeGreaterThanOrEqual(TouchSize.min + 2 * Spacing.xxxxs);
+      expect(triggerHitSlop.top).toBe(triggerHitSlop.bottom);
+    },
+  );
 });
 
 describe('transaction form content inset', () => {
