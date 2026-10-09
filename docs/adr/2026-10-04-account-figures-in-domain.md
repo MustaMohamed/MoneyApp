@@ -7,6 +7,8 @@
 
 The account card row builders in the accounts module's `utils/` derived money inline: the available credit, the daily average, the savings month start and change, the week net, and the base equivalent's conversion and rounding. ADR 2026-09-28 §1 sends money math to `domain/`, where `.claude/rules/money.md` loads, and `utils/` is outside that rule's paths. The dashboard card and the account detail hero each derived the available credit a second time.
 
+**Extended 2026-10-04 (#673).** `account_figures.ts` gained a sixth and a seventh function, `creditUtilisation` and `hasFlow`, and `netFlow` returns its difference through `snapToZero`, so §1's `inflow - outflow` holds only half a cent or more off zero. `isOverLimit` kept its signature and compares in integer cents through `exceedsToCent`, so the body §2 calls unchanged has changed. The dashboard card reads the balance through `creditUtilisation` and no longer calls `availableCredit`, which leaves the last paragraph of §1 true of the detail hero only. `docs/adr/2026-10-04-half-cent-zero-and-cent-ties.md` records all three.
+
 ## 1. The five derivations live in `account_figures.ts`
 
 `src/modules/accounts/domain/account_figures.ts` exports five pure functions. The first four take required `number` arguments, `baseEquivalent` takes one object covered in §3, no argument is `null`, and every return is a `number`. The file imports no store, which ADR 2026-08-31 §1 forbids in a `domain/` file, and nothing under `database/`.
