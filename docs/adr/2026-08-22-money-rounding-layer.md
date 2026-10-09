@@ -270,6 +270,17 @@ Three mechanical checks, none of which require re-deriving the call graph:
 3. **Two properties.** The resolver idempotence tests exist and pass, and
    `transaction.repository.ts:148` compares `amount`.
 
+**Extended 2026-10-04 (#673).** Check 1's pattern gains `exceedsToCent\(|ratioHeldAtTie\(`, both
+being calls that round through `toCents`, so it reads
+`roundMoney\(|toCents\(|sumAllocations\(|exceedsToCent\(|ratioHeldAtTie\(`. The permitted
+`exceedsToCent(` / `ratioHeldAtTie(` call sites in `src/` are `src/utils/money.ts`,
+`src/modules/accounts/domain/is_over_limit.ts`,
+`src/modules/budget/screens/budget/budget.helpers.ts`,
+`src/modules/budget/screens/budget/spending_plans.helpers.ts` and
+`src/modules/dashboard/screens/dashboard/dashboard.helpers.ts`, the form Addendum A point 1 gives
+`toCents(` and `sumAllocations(`; a sixth is a finding.
+`docs/adr/2026-10-04-half-cent-zero-and-cent-ties.md` records both functions.
+
 The allowlist governs **added** calls only. `roundMoney` is legitimately used at 33 call
 expressions on `main`, most of them in the display and aggregation layer (`dashboard.helpers.ts`
 ×10, `transaction_policy.ts` ×7); those are untouched, and two files carrying them —
