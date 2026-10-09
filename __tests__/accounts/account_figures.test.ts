@@ -3,7 +3,9 @@ import { AccountAggregationError } from '@/modules/accounts/domain/account_aggre
 import {
   availableCredit,
   baseEquivalent,
+  creditUtilisation,
   dailyAverage,
+  hasFlow,
   netFlow,
   savingsMonthStart,
 } from '@/modules/accounts/domain/account_figures';
@@ -47,6 +49,39 @@ describe('netFlow', () => {
 
   it('is negative when outflow exceeds inflow', () => {
     expect(netFlow(12.05, 90.5)).toBe(-78.45);
+  });
+
+  it('is 0 for a net under half a cent on either side of zero, and keeps a net of 0.3', () => {
+    expect(netFlow(0.6, 0.3)).toBe(0.3);
+    expect(netFlow(0.1 + 0.2, 0.3)).toBe(0);
+    expect(netFlow(0.3, 0.1 + 0.2)).toBe(0);
+  });
+});
+
+describe('creditUtilisation', () => {
+  it.each([
+    ['at the limit', 1000, 1000, 1],
+    ['over the limit', 1500, 1000, 1],
+    ['at a zero balance', 0, 1000, 0],
+    ['with no limit', 500, 0, 0],
+    ['at 80% of the limit', 800, 1000, 0.8],
+  ] as const)('%s, %p of %p, is %p', (_case, balance, limit, expected) => {
+    expect(creditUtilisation(balance, limit)).toBe(expected);
+  });
+
+  it('is positive zero for a balance a float leftover below zero', () => {
+    expect(Object.is(creditUtilisation(-7.105427357601002e-15, 1000), 0)).toBe(true);
+  });
+});
+
+describe('hasFlow', () => {
+  it.each([
+    [0, false],
+    [0.004, false],
+    [0.005, true],
+    [0.3, true],
+  ] as const)('%p is %p', (amount, expected) => {
+    expect(hasFlow(amount)).toBe(expected);
   });
 });
 

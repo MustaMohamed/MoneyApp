@@ -1,4 +1,5 @@
 import { CategoryType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
 import {
@@ -885,5 +886,69 @@ describe('spending plan helpers', () => {
       expect.objectContaining({ type: 'category', id: 'cat_hotel' }),
       { type: 'more', id: 'more', count: 1 },
     ]);
+  });
+});
+
+// 0.1 + 0.2 is 0.30000000000000004: a spend one float step past 0.3, a tie to the cent.
+describe('a spend that ties its plan or its allocation to the cent is not over (MA-158)', () => {
+  const build = (allocated: number, spend: number, totalAmount = 0.3) => {
+    const rows = buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          totalAmount,
+          categoryRows: [
+            { plan_id: 'plan_trip', category_id: 'cat_food', allocated_amount: allocated },
+          ],
+        }),
+      ],
+      categories,
+      spendByPlanId: { plan_trip: { cat_food: spend } },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    });
+    return { row: rows[0], summary: computeSpendingPlansSummary(rows, '2026-07') };
+  };
+
+  it('reads the plan, its allocation, its detail row and the summary as not over at the tie, and over 0.01 past it', () => {
+    const over = build(0.3, 0.31);
+    expect(over.row.isOver).toBe(true);
+    expect(over.row.status).toBe('over');
+    expect(over.row.card).toMatchObject({
+      balanceColor: Colors.dark.negative,
+      progressStatus: 'over',
+    });
+    expect(over.row.allocationRows[0].isOver).toBe(true);
+    expect(over.row.allocationRows[0].pct).toBeGreaterThan(1);
+    expect(over.row.detail.categoryRows[0]).toMatchObject({
+      balanceColor: Colors.dark.negative,
+      progressColor: Colors.dark.negative,
+    });
+    expect(over.summary).toMatchObject({ balanceStatus: 'over', barStatus: 'over', overCount: 1 });
+
+    const tie = build(0.3, 0.1 + 0.2);
+    expect(tie.row.isOver).toBe(false);
+    expect(tie.row.status).not.toBe('over');
+    expect(tie.row.card).toMatchObject({
+      balanceColor: Colors.dark.positive,
+      progressStatus: 'under',
+    });
+    expect(tie.row.allocationRows[0]).toMatchObject({ isOver: false, pct: 1 });
+    expect(tie.row.detail.categoryRows[0]).toMatchObject({
+      balanceColor: Colors.dark.text2,
+      progressColor: Colors.dark.budgetNear,
+    });
+    expect(tie.summary).toMatchObject({ balanceStatus: 'left', barStatus: 'under', overCount: 0 });
+  });
+
+  it('reads a zero allocation with a spend under half a cent as 0%, and with a spend of 0.01 as over', () => {
+    const over = build(0, 0.01, 1000).row;
+    expect(over.card.allocationChips[0].percentageLabel).toBe(Strings.budgetPlansStatusOver);
+    expect(over.detail.categoryRows[0]).toMatchObject({
+      percentageLabel: Strings.budgetPlansStatusOver,
+    });
+
+    const leftover = build(0, 5.5e-17, 1000).row;
+    expect(leftover.card.allocationChips[0].percentageLabel).toBe('0%');
+    expect(leftover.detail.categoryRows[0]).toMatchObject({ percentageLabel: '0%' });
   });
 });

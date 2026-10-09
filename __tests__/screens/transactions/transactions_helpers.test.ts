@@ -159,6 +159,15 @@ describe('buildTotalsPresentation', () => {
     );
     expect(formatSignedAmount(-50, 'expense')).toBe('+50');
   });
+
+  it('reads an expense net under half a cent below zero as an expense of 0, and 0.01 below it as a net credit', () => {
+    expect(
+      buildTotalsPresentation({ incomeEgp: 100, expenseEgp: -0.01, netEgp: 100.01 }).state,
+    ).toBe('netCredit');
+    expect(
+      buildTotalsPresentation({ incomeEgp: 100, expenseEgp: 0.3 - (0.1 + 0.2), netEgp: 100 }),
+    ).toEqual(buildTotalsPresentation({ incomeEgp: 100, expenseEgp: 0, netEgp: 100 }));
+  });
 });
 
 describe('polarityColor', () => {

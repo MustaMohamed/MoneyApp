@@ -191,6 +191,19 @@ describe('resolveAccountCaption — credit card', () => {
   it('carries the over-limit state through in place of the available amount', () => {
     expect(caption(card(45000))).toBe('Limit 40,000 · available Over limit');
   });
+
+  it('reads the available amount for a balance one float step past its limit, and Over limit 0.01 past it', () => {
+    const atLimit = (balance: number): Account =>
+      account(AccountType.CreditCard, Currency.EGP, {
+        current_balance: balance,
+        opening_balance: balance,
+        credit_limit: 1000,
+        statement_due_day: 12,
+      });
+
+    expect(caption(atLimit(1000.01))).toBe('Limit 1,000 · available Over limit');
+    expect(caption(atLimit(1000.0000000000001))).toBe('Limit 1,000 · available 0');
+  });
 });
 
 describe('resolveAccountCaption — only the smart wallet equivalent carries a currency code', () => {

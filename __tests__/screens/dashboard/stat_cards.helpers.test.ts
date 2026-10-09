@@ -94,6 +94,10 @@ describe('resolveMonthSpendLeg — label/magnitude, both legs (#332)', () => {
       expect(formatCurrencyParts(leg.magnitude, currency).value).toBe(formatted);
     },
   );
+
+  it('a net under half a cent below zero reads as spent at 0, never refunded', () => {
+    expect(resolveMonthSpendLeg(-1e-13)).toEqual({ state: 'spent', magnitude: 0 });
+  });
 });
 
 // Two native ledger totals, base-native first; values pass through untouched — no conversion.

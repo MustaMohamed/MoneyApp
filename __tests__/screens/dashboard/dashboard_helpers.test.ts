@@ -1339,6 +1339,35 @@ describe('buildDashboardBudgetSummary', () => {
       categoryCount: 0,
     });
   });
+
+  // 0.1 + 0.2 is 0.30000000000000004: a spend one float step past a limit of 0.3.
+  it('reads a left figure under half a cent as zero and holds the ratio at 1 on a tie to the cent', () => {
+    const over = buildDashboardBudgetSummary([{ category_id: 'food', limit_amount: 0.3 }], {
+      food: 0.31,
+    });
+    expect(over.left).toBeLessThan(0);
+    expect(over.pct).toBeGreaterThan(1);
+    expect(
+      buildDashboardBudgetSummary([{ category_id: 'food', limit_amount: 0.6 }], { food: 0.3 }).left,
+    ).toBe(0.3);
+
+    const tie = buildDashboardBudgetSummary([{ category_id: 'food', limit_amount: 0.3 }], {
+      food: 0.1 + 0.2,
+    });
+    expect(Object.is(tie.left, 0)).toBe(true);
+    expect(tie.pct).toBe(1);
+  });
+
+  it('reads positive zero on the other side of zero, where two limits sum one float step past the spend', () => {
+    const summary = buildDashboardBudgetSummary(
+      [
+        { category_id: 'food', limit_amount: 0.1 },
+        { category_id: 'transport', limit_amount: 0.2 },
+      ],
+      { food: 0.3 },
+    );
+    expect(Object.is(summary.left, 0)).toBe(true);
+  });
 });
 
 describe('computeDashboardAccountCounts', () => {

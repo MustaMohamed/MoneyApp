@@ -1,5 +1,14 @@
+import { Currency } from '@/constants/enums';
+import { formatDisplayMagnitude } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
-import { sumAllocations, toCents, type AllocationTotals } from '@/utils/money';
+import {
+  exceedsToCent,
+  ratioHeldAtTie,
+  snapToZero,
+  sumAllocations,
+  toCents,
+  type AllocationTotals,
+} from '@/utils/money';
 
 describe('roundMoney', () => {
   describe('non-half cases (standard rounding)', () => {
@@ -90,6 +99,60 @@ describe('toCents', () => {
 
   it('is idempotent on an already-rounded value', () => {
     expect(toCents(0.34)).toBe(34);
+  });
+});
+
+// 0.1 + 0.2 is 0.30000000000000004: one float step past 0.3, the leftover a sum of cents leaves.
+describe('snapToZero', () => {
+  const UNDER_HALF_A_CENT = [0.3 - (0.1 + 0.2), 0.1 + 0.2 - 0.3, 0.004, -0.004, -0];
+  const KEPT = [0.005, -0.005, 0.3, -0.3];
+
+  it.each(UNDER_HALF_A_CENT)('returns positive zero for %p', (value) => {
+    expect(Object.is(snapToZero(value), 0)).toBe(true);
+  });
+
+  it.each(KEPT)('returns %p unchanged', (value) => {
+    expect(snapToZero(value)).toBe(value);
+  });
+
+  it.each([...UNDER_HALF_A_CENT, ...KEPT])(
+    'is zero for %p exactly when the formatter prints it as zero',
+    (value) => {
+      expect(snapToZero(value) === 0).toBe(
+        formatDisplayMagnitude(value, Currency.USD).printsAsZero,
+      );
+    },
+  );
+});
+
+describe('exceedsToCent', () => {
+  it.each([
+    [0.1 + 0.2, 0.3, false],
+    [0.31, 0.3, true],
+    [0.3, 0.3, false],
+    [5.5e-17, 0, false],
+    [0.01, 0, true],
+  ] as const)('%p over a limit of %p is %p', (amount, limit, expected) => {
+    expect(exceedsToCent(amount, limit)).toBe(expected);
+  });
+});
+
+describe('ratioHeldAtTie', () => {
+  it('holds a part that ties its whole to the cent at exactly 1', () => {
+    expect(ratioHeldAtTie(0.1 + 0.2, 0.3)).toBe(1);
+  });
+
+  it('stays above 1 for a part over its whole to the cent', () => {
+    expect(ratioHeldAtTie(0.31, 0.3)).toBeGreaterThan(1);
+  });
+
+  it('never rounds a quotient at or below 1 to cents', () => {
+    expect(ratioHeldAtTie(0.7 + 0.1, 1)).toBe(0.7999999999999999);
+    expect(ratioHeldAtTie(500, 10000)).toBe(0.05);
+  });
+
+  it('is 0 when the whole is 0', () => {
+    expect(ratioHeldAtTie(5, 0)).toBe(0);
   });
 });
 
