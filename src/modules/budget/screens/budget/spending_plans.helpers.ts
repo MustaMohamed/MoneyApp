@@ -94,10 +94,11 @@ function activePlanPaceLabel(paceDelta: number): string {
     : Strings.budgetPlansPaceUnder(points);
 }
 
-/** An allocation of 0 has no quotient: its ratio is 1 once the spend is over to the cent, else 0. */
-function allocationRatio(spent: number, allocated: number): number {
-  if (allocated > 0) return ratioHeldAtTie(spent, allocated);
-  return exceedsToCent(spent, allocated) ? 1 : 0;
+/** Over is decided once, to the cent; an allocation of 0 has ratio 1 when over, else 0. */
+function allocationRatio(spent: number, allocated: number): { isOver: boolean; pct: number } {
+  const isOver = exceedsToCent(spent, allocated);
+  if (allocated > 0) return { isOver, pct: ratioHeldAtTie(spent, allocated) };
+  return { isOver, pct: isOver ? 1 : 0 };
 }
 
 function buildSpendingPlanAllocationCardChip(
@@ -531,8 +532,7 @@ export function buildSpendingPlanRows({
           const category = categoryById.get(row.category_id);
           const allocatedAmount = row.allocated_amount;
           const categorySpent = spend[row.category_id] ?? 0;
-          const isOver = exceedsToCent(categorySpent, allocatedAmount);
-          const pct = allocationRatio(categorySpent, allocatedAmount);
+          const { isOver, pct } = allocationRatio(categorySpent, allocatedAmount);
           return {
             categoryId: row.category_id,
             categoryName: category?.name ?? row.category_id,
@@ -564,8 +564,7 @@ export function buildSpendingPlanRows({
           return { ...shared, isOver: false, isWarning: false };
         }
 
-        const isOver = exceedsToCent(categorySpent, row.allocated_amount);
-        const pct = allocationRatio(categorySpent, row.allocated_amount);
+        const { isOver, pct } = allocationRatio(categorySpent, row.allocated_amount);
         return {
           ...shared,
           allocatedAmount: row.allocated_amount,
