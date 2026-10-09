@@ -279,7 +279,10 @@ const NAMED_ROWS = [
   stateScreen(ERROR_STATE, 'error'),
   {
     files: ['src/modules/accounts/utils/account_info_rows.ts'],
-    banned: ['convertCurrency', 'roundMoney', 'Math'].map(identifier),
+    banned: [
+      ...['convertCurrency', 'roundMoney', 'Math'].map(identifier),
+      specifier('@/utils/money'),
+    ],
     rule: 'in the account info rows; a money derivation lives in `src/modules/accounts/domain/account_figures.ts` (#666)',
   },
 ];

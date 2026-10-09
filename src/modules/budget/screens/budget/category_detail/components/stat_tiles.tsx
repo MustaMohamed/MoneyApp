@@ -17,7 +17,7 @@ import { ms } from '@/utils/responsive';
 
 export function StatTiles({ history }: { history: CategoryHistoryVM }) {
   const net = history.netBanked;
-  // Zero-gated (#332): `netBanked` is an unrounded running sum, and `-0` noise must read `0`.
+  // `computeCategoryHistory` snaps `netBanked` under half a cent to 0; the sign is composed (#332).
   const netMag = formatDisplayMagnitude(net, Currency.EGP);
   const netLabel = signAmountText(
     netMag.text,

@@ -115,14 +115,14 @@ describe('snapToZero', () => {
     expect(snapToZero(value)).toBe(value);
   });
 
-  it.each([...UNDER_HALF_A_CENT, ...KEPT])(
-    'is zero for %p exactly when the formatter prints it as zero',
-    (value) => {
-      expect(snapToZero(value) === 0).toBe(
-        formatDisplayMagnitude(value, Currency.USD).printsAsZero,
-      );
-    },
-  );
+  describe.each([Currency.EGP, Currency.USD])('against the %s formatter', (currency) => {
+    it.each([...UNDER_HALF_A_CENT, ...KEPT])(
+      'is zero for %p exactly when the formatter prints it as zero',
+      (value) => {
+        expect(snapToZero(value) === 0).toBe(formatDisplayMagnitude(value, currency).printsAsZero);
+      },
+    );
+  });
 });
 
 describe('exceedsToCent', () => {

@@ -41,6 +41,7 @@ export interface MonthResultVM {
 }
 
 export interface CategoryHistoryVM {
+  /** `delta` and `spent` are snapped by `computeCategoryHistory`; `liveMonth` is the raw row. */
   results: MonthResultVM[];
   netBanked: number;
   avgPerMonth: number;

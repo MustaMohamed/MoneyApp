@@ -14,12 +14,7 @@ export interface MonthSpendLeg {
   magnitude: number;
 }
 
-/**
- * A credit-card refund month can net negative — there is no purchase-to-refund link in the
- * schema, so period-net is the only implementable model (#332). `net` is a state, not a signed
- * display value: zero to the half cent or above is `spent`, below it `refunded` at its magnitude.
- * Only the magnitude is meant to reach a formatter — a negative number never reaches display.
- */
+/** `net` is a state (#332): refunded from half a cent below zero, spent otherwise. */
 export function resolveMonthSpendLeg(net: number): MonthSpendLeg {
   const snapped = snapToZero(net);
   return snapped < 0

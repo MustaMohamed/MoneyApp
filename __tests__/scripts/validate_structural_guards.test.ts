@@ -359,6 +359,12 @@ const BANNED: BannedSeed[] = [
     text: 'const seeded = Math.max(0, 1);',
     token: 'Math',
   },
+  {
+    guard: 'a shared money helper import in the account info rows',
+    target: ACCOUNT_INFO_ROWS,
+    text: "import { seeded } from '@/utils/money';",
+    token: '@/utils/money',
+  },
 ];
 
 function withoutTag(rel: string, tag: string, where: string): RequiredSeed {
