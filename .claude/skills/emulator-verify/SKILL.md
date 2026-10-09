@@ -311,6 +311,7 @@ device QA: this is "verified on emulator", never "QA passed".
 | `logcat --pid`, `pidof`, `dumpsys input_method` by hand | `mqa logs` is already scoped to the app's process; `mqa state` prints pid, top activity and keyboard. |
 | Reading or waiting on a loading skeleton | It never goes idle, so every read costs 30 s and fails. `shot` it. |
 | `scroll` inside a sheet from a full-screen drag | Pass `--in 'id="<the sheet's scroll view>"'` so the drag starts inside the list. |
+| `scroll --until` straight after a font-scale launch | It swipes once past a target already on screen. The `Font scale` force in `features/README.md` § Seeding and forcing states has the wait that prevents it. |
 | Going wide "to be safe" | Measured on MA-007: the 9-scenario walk cost 2× the 4-scenario one **and missed the defect the short one found**. |
 | A walk driven one tool call per tap | Every call is a model turn. Put the scenario in a script and run `mqa walk`. |
 | Waiting on a nearby label, then reading the value | The value can lag the label (MA-102 totals strip). `mqa wait` on the value itself. |
