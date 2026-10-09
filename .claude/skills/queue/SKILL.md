@@ -11,9 +11,9 @@ An unattended run parks each question it cannot answer as a question record, [qu
 ## Subcommands
 
 - `asks`: every open record on the board, one per message, by [references/asks.md](references/asks.md).
-- `Defined [n]`, `Ready For Development [n]`, `Planned [n]`: `/issue-review`, `/prep` or `/ship` on the top eligible tickets of that column, by [references/column.md](references/column.md). `Defined` also starts `/issue-review <parent>` on a parent `/tickets` has just cut, column.md § One pass step 2, so the queue marks the parent before any child. `Planned` also resumes a ticket at In Progress or In Review that has a `state.md` on this machine, no lease and no open question record, and one at Awaiting Human whose PR has a change the user asked for after its merge summary. `n` caps the starts of one pass. Each run is its task's own session, on the app's default model for a new session; the queue takes no model.
+- `Defined [n]`, `Ready For Development [n]`, `Planned [n]`: `/issue-review`, `/prep` or `/ship` on the top eligible tickets of that column, by [references/column.md](references/column.md). `Defined` also starts `/issue-review <parent>` on a parent `/tickets` has just cut, column.md § One pass step 2, so the queue marks the parent before any child. `Planned` also resumes a ticket at In Progress or In Review that has a `state.md` on this machine, no lease and no open question record, and one at Awaiting Human whose PR has a change the user asked for after its merge summary. `n` caps the starts of one pass.
 
-Any other argument: print this list and stop.
+Any other argument: print this list and stop. That covers a model word after the column, `/queue Planned opus`: nothing starts, and the reply adds that the queue takes no model, column.md § Start step 2.
 
 ## Lease
 

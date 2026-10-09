@@ -12,7 +12,7 @@
    The candidates are the actions whose `queue` equals the column, in the script's order. The script sets `queue` on an open leaf whose command a session runs, with every Depends on closed, no open question record, no lease, and at Defined a parent that is not `Reviewed none`. At Defined it also sets it on a parent to mark: an open parent at Defined that reads `Reviewed none`, whose command is `/issue-review <parent>`, with every Depends on closed, its own parent not `Reviewed none`, every open child at Defined, and no open question record and no lease, held or stale, on the parent or on any open child. Its children get no slot until that run has marked it, so the parent goes first, and of two nested unmarked parents the outer one. No parent is a candidate of Ready For Development or Planned. A parent whose command is its review and which gets no slot carries the reason as `queueHold`.
 3. `/queue Planned` only: for each action at Awaiting Human with `pr.state` `OPEN`, a `state.md` on this machine and no lease, run the read of § Changes asked at Awaiting Human. With one or more, § Start `ship-<n>` on it, counted toward `n` and held by Cap, Emulator slot, GraphQL budget, Host load and Measures only.
 4. For each candidate in order, read § Holds. A held candidate is skipped and the next is tried. Otherwise § Start it. Stop at `n` starts.
-5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, or `held, <hold>`; `/queue Defined` only, then every action with a `queueHold`, `#<n> MA-XXX · not queued, <queueHold>`; then every action whose `lease` is `stale`, with its action text and its command; while the floor or the ceiling reads `unmeasured`, the readings of each start; then each record in the window with its Check, § After 10 queued tickets. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
+5. Reply: one line per candidate, `#<n> MA-XXX · started <task id>`, or `held, <hold>`; with one start or more, `model: app default, last logged <model>`, the model in the note of the log's newest line that has no `wrapped`, `none` when no such line names one; `/queue Defined` only, then every action with a `queueHold`, `#<n> MA-XXX · not queued, <queueHold>`; then every action whose `lease` is `stale`, with its action text and its command; while the floor or the ceiling reads `unmeasured`, the readings of each start; then each record in the window with its Check, § After 10 queued tickets. Last line `Next: /queue <column>` while a candidate is held, else `Next: nothing to start in <column>`.
 
 ## Holds
 
@@ -56,6 +56,8 @@ Before your last message, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.m
 
 `<f>` is `cap.ship` plus `cap.other` of the board read, plus the starts made earlier in this pass.
 
+A run that dies, on an API outage or with the app closed, writes no log line and keeps its lease. It counts in Cap until 2 hours pass with no write, then reads stale, and SKILL.md § Lease, Stale, has the `rm`.
+
 ## Changes asked at Awaiting Human
 
 The PR's comments, reviews and review comments created after the summary file's last write, bots left out, less those `state.md` logs as triaged ([merge.md](../../ship/references/merge.md) § A change after the summary). `asks` prints their count across every page; paste the function and call it in one Bash call:
@@ -87,7 +89,7 @@ First in every pass. For each `~/.ship/MoneyApp/MA-XXX/state.md` whose `pr:` URL
 <skill> <n> · <outcome> · <start> to <end> · <k> dispatches · <c> fix cycles · <q> questions parked · <f> in flight at start · <note>
 ```
 
-The outcome is the ticket's column at the end, or `parked` with the record count. A run on a ticket with open sub-issues writes `, parent` after either, `Defined, parent` or `parked 2, parent`, which is how the No progress hold tells that run from an earlier one on the same number as a leaf. The note holds the readings at start, the model the run ran as, and what the run met outside its skill: a refused call, a build. Lines from 2026-10-03 to 2026-10-09 also carry `wrapped` after the model, and one has the outcome `wrapper failed`: those runs executed inside an Agent call on a named model, which the queue no longer makes.
+The outcome is the ticket's column at the end, or `parked` with the record count. A run on a ticket with open sub-issues writes `, parent` after either, `Defined, parent` or `parked 2, parent`, which is how the No progress hold tells that run from an earlier one on the same number as a leaf. The note holds the readings at start, the model the run ran as, and what the run met outside its skill: a refused call, a build. A note with `wrapped` after the model is a run made inside an Agent call on a named model, which the queue did from #659 until #705, and which a routine last filled in between them still does when it is started by hand. `wrapper failed` is the outcome of such a run whose agent returned no last message; it is no column, so the No progress hold lets the next pass start the ticket again.
 
 ## Permission rule
 
@@ -115,7 +117,7 @@ When that line names a PR, the window starts at its merge, read once a pass, and
 gh pr view <pr> --json mergedAt --jq .mergedAt
 ```
 
-The window is the ten most recent distinct tickets with a `ship` line that ended after the window start, and those lines. A line ended on its file's date, at its end time, in this machine's local time; the merge time is UTC and is converted before the two are compared. Each measure counts tickets.
+The window is the ten most recent distinct tickets with a `ship` line that ended after the window start, and those lines. A line ended on its file's date, at its end time, in this machine's local time; the merge time is UTC and is converted before the two are compared. A `wrapper failed` line is no ticket's line. Each measure counts tickets.
 
 1. Questions asked during `/ship`: the tickets with a line whose `questions parked` is above 0.
 2. Questions that should have been asked earlier: of those tickets, the ones with a record whose `Miss:` line is not `none`.
