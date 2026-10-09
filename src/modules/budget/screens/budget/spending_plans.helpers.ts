@@ -33,7 +33,7 @@ import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';
-import { exceedsToCent, ratioHeldAtTie, sumAllocations } from '@/utils/money';
+import { exceedsToCent, ratioHeldAtTie, snapToZero, sumAllocations } from '@/utils/money';
 
 import { BUDGET_WARNING_THRESHOLD, remainingLabel, type BudgetStatus } from './budget.helpers';
 
@@ -92,6 +92,12 @@ function activePlanPaceLabel(paceDelta: number): string {
   return paceDelta > 0
     ? Strings.budgetPlansPaceAhead(points)
     : Strings.budgetPlansPaceUnder(points);
+}
+
+/** An allocation of 0 has no quotient: its ratio is 1 once the spend is over to the cent, else 0. */
+function allocationRatio(spent: number, allocated: number): number {
+  if (allocated > 0) return ratioHeldAtTie(spent, allocated);
+  return exceedsToCent(spent, allocated) ? 1 : 0;
 }
 
 function buildSpendingPlanAllocationCardChip(
@@ -526,8 +532,7 @@ export function buildSpendingPlanRows({
           const allocatedAmount = row.allocated_amount;
           const categorySpent = spend[row.category_id] ?? 0;
           const isOver = exceedsToCent(categorySpent, allocatedAmount);
-          const pct =
-            allocatedAmount > 0 ? ratioHeldAtTie(categorySpent, allocatedAmount) : isOver ? 1 : 0;
+          const pct = allocationRatio(categorySpent, allocatedAmount);
           return {
             categoryId: row.category_id,
             categoryName: category?.name ?? row.category_id,
@@ -560,12 +565,7 @@ export function buildSpendingPlanRows({
         }
 
         const isOver = exceedsToCent(categorySpent, row.allocated_amount);
-        const pct =
-          row.allocated_amount > 0
-            ? ratioHeldAtTie(categorySpent, row.allocated_amount)
-            : isOver
-              ? 1
-              : 0;
+        const pct = allocationRatio(categorySpent, row.allocated_amount);
         return {
           ...shared,
           allocatedAmount: row.allocated_amount,
@@ -603,7 +603,7 @@ export function buildSpendingPlanRows({
         hasCategoryPressure: allocatedDetailRows.some((row) => row.isOver || row.isWarning),
       });
       const cardChips = buildSpendingPlanCardChips({ allocationRows, categoryChips });
-      const buffer = plan.total_amount - allocatedTotal;
+      const buffer = snapToZero(plan.total_amount - allocatedTotal);
       const card = buildSpendingPlanCard({
         name: plan.name,
         startDate: plan.start_date,

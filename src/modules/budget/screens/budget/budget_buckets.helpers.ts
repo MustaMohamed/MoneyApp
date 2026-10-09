@@ -7,6 +7,7 @@ import { resolveLimitForMonth } from '@/modules/budget/screens/budget/budget.hel
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import { formatAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
+import { snapToZero } from '@/utils/money';
 
 export type BudgetRuleLifecycle = 'completed' | 'current' | 'planned';
 
@@ -595,7 +596,7 @@ export function buildBudgetRuleLens({
       continue;
     }
 
-    const spent = normalizeAmount(spendByMonth[category.id]?.[selectedMonth] ?? 0);
+    const spent = snapToZero(normalizeAmount(spendByMonth[category.id]?.[selectedMonth] ?? 0));
     groupTotals.spent += spent;
     if (planned > 0 || spent > 0) {
       groupTotals.contributors.push({

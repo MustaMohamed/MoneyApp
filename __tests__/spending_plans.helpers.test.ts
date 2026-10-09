@@ -952,3 +952,44 @@ describe('a spend that ties its plan or its allocation to the cent is not over (
     expect(leftover.detail.categoryRows[0]).toMatchObject({ percentageLabel: '0%' });
   });
 });
+
+// 0.8 - (0.7 + 0.1) is 1.1102230246251565e-16 and 0.3 - (0.1 + 0.2) is -5.551115123125783e-17.
+describe('a plan buffer under half a cent draws no flexible row (MA-158)', () => {
+  const build = (totalAmount: number, first: number, second: number) =>
+    buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          totalAmount,
+          categoryRows: [
+            { plan_id: 'plan_trip', category_id: 'cat_food', allocated_amount: first },
+            { plan_id: 'plan_trip', category_id: 'cat_travel', allocated_amount: second },
+          ],
+        }),
+      ],
+      categories,
+      spendByPlanId: { plan_trip: {} },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    })[0];
+
+  it.each([
+    { side: 'above', totalAmount: 0.8, first: 0.7, second: 0.1 },
+    { side: 'below', totalAmount: 0.3, first: 0.1, second: 0.2 },
+  ])(
+    'reads a buffer one float step $side zero as zero, with no flexible row',
+    ({ totalAmount, first, second }) => {
+      const row = build(totalAmount, first, second);
+
+      expect(row.detail.flexibleRow).toBeUndefined();
+      expect(Object.is(row.buffer, 0)).toBe(true);
+    },
+  );
+
+  it('keeps the flexible row for a buffer of 0.01', () => {
+    expect(build(0.8, 0.7, 0.09).detail.flexibleRow).toEqual({
+      label: Strings.budgetPlansDetailFlexible,
+      amountLabel: '0 EGP',
+      supportingLabel: Strings.budgetPlansDetailUnassigned,
+    });
+  });
+});
