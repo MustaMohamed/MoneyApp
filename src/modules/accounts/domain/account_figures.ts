@@ -8,7 +8,7 @@ export function availableCredit(balance: number, limit: number): number {
 }
 
 /** The used share of a card's limit in [0, 1]; 0 with no limit, and positive 0 for a balance below zero. */
-export function creditUtilisation(balance: number, limit: number): number {
+export function creditUtilization(balance: number, limit: number): number {
   if (limit <= 0 || balance <= 0) return 0;
   return Math.min(1, balance / limit);
 }

@@ -1,7 +1,7 @@
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
+import { creditBandColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import {
   availableCredit,
@@ -120,7 +120,7 @@ export function buildInfoRows(
     const limit = account.credit_limit ?? 0;
     const balance = account.current_balance;
     const available = availableCredit(balance, limit);
-    const availColor = availableCreditColor(balance, limit);
+    const availColor = creditBandColor(balance, limit);
     const dueDay = account.statement_due_day;
 
     return [

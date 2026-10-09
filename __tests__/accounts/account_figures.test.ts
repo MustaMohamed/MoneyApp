@@ -3,7 +3,7 @@ import { AccountAggregationError } from '@/modules/accounts/domain/account_aggre
 import {
   availableCredit,
   baseEquivalent,
-  creditUtilisation,
+  creditUtilization,
   dailyAverage,
   hasFlow,
   netFlow,
@@ -58,7 +58,7 @@ describe('netFlow', () => {
   });
 });
 
-describe('creditUtilisation', () => {
+describe('creditUtilization', () => {
   it.each([
     ['at the limit', 1000, 1000, 1],
     ['over the limit', 1500, 1000, 1],
@@ -66,11 +66,11 @@ describe('creditUtilisation', () => {
     ['with no limit', 500, 0, 0],
     ['at 80% of the limit', 800, 1000, 0.8],
   ] as const)('%s, %p of %p, is %p', (_case, balance, limit, expected) => {
-    expect(creditUtilisation(balance, limit)).toBe(expected);
+    expect(creditUtilization(balance, limit)).toBe(expected);
   });
 
   it('is positive zero for a balance a float leftover below zero', () => {
-    expect(Object.is(creditUtilisation(-7.105427357601002e-15, 1000), 0)).toBe(true);
+    expect(Object.is(creditUtilization(-7.105427357601002e-15, 1000), 0)).toBe(true);
   });
 });
 
