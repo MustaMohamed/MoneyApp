@@ -1,11 +1,7 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 
-import {
-  HERO_PILL_HEIGHT,
-  HERO_PILL_STYLE,
-  HERO_PILL_TEXT_STYLE,
-  resolveHeroPillGeometry,
-} from '@/components/ui/chip';
+import { HERO_PILL_HEIGHT, HERO_PILL_STYLE } from '@/components/ui/chip';
+import { resolveHeroPillGeometry } from '@/components/ui/chip.geometry';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import {
   FITTED_LINE_SLACK,
@@ -32,8 +28,8 @@ import {
   N4_HERO_REFUSAL_TEXT_STYLE,
   N4_HERO_VALUE_MAX_FONT_SCALE,
   N4_HERO_VALUE_SLOT_STYLE,
-  N4_HERO_VALUE_STEP_TEXT_STYLE,
-  N4_HERO_VALUE_TEXT_STYLE,
+  N4_HERO_VALUE_STEP_TRACKING_EM,
+  N4_HERO_VALUE_TRACKING_EM,
   N4_SUMMARY_ROW_STYLE,
   N4_SUMMARY_ROW_TEXT_STYLE,
   resolveReadyHeroGeometry,
@@ -53,13 +49,10 @@ import { formatCurrencyAmount } from '@/utils/format_amount';
 const TEXT_STYLES: readonly (readonly [string, Readonly<TextStyle>, number])[] = [
   ['N4_BODY_TEXT_STYLE', N4_BODY_TEXT_STYLE, Type.body],
   ['N4_HERO_LABEL_TEXT_STYLE', N4_HERO_LABEL_TEXT_STYLE, Type.caption],
-  ['N4_HERO_VALUE_TEXT_STYLE', N4_HERO_VALUE_TEXT_STYLE, Type.amountEntry],
-  ['N4_HERO_VALUE_STEP_TEXT_STYLE', N4_HERO_VALUE_STEP_TEXT_STYLE, Type.hero],
   ['N4_HERO_CURRENCY_TEXT_STYLE', N4_HERO_CURRENCY_TEXT_STYLE, Type.subhead],
   ['N4_HERO_REFUSAL_TEXT_STYLE', N4_HERO_REFUSAL_TEXT_STYLE, Type.headline],
   ['N4_HERO_CAPTION_TEXT_STYLE', N4_HERO_CAPTION_TEXT_STYLE, Type.caption],
   ['N4_SUMMARY_ROW_TEXT_STYLE', N4_SUMMARY_ROW_TEXT_STYLE, Type.body],
-  ['HERO_PILL_TEXT_STYLE', HERO_PILL_TEXT_STYLE, Type.caption],
 ];
 
 const FROZEN_STYLES: readonly (readonly [string, Readonly<ViewStyle> | Readonly<TextStyle>])[] = [
@@ -101,8 +94,8 @@ describe('N4 shared style constants are frozen', () => {
   });
 });
 
-describe('N4 zero-shift slots — fixed tracks, consumed unconditionally', () => {
-  // Fixed heights, so the composed card height cannot depend on which frame is drawn.
+describe('N4 slots: fixed tracks at or below font scale 1, floors or grown above it', () => {
+  // At or below font scale 1 the slots are fixed heights, so the card is one height in every frame; above it resolveReadyHeroGeometry grows them or makes them floors.
   it('the value slot is a fixed token height that clips', () => {
     expect(N4_HERO_VALUE_SLOT_STYLE.height).toBe(Size.summaryValueSlot);
     expect(N4_HERO_VALUE_SLOT_STYLE.minHeight).toBeUndefined();
@@ -199,11 +192,11 @@ const valueSlotHeightAt = (fontScale: number): number =>
 
 describe('resolveReadyHeroGeometry — the card follows the system font scale', () => {
   it.each([1, 0.85])(
-    'MA-162: at font scale %s the refusal, caption and pill slots are the frozen constants themselves',
+    'MA-162: at font scale %s the refusal slot is the value slot itself, and the caption and pill slots are the frozen constants',
     (fontScale) => {
       const g = resolveReadyHeroGeometry(fontScale);
 
-      expect(g.refusalSlot).toBe(N4_HERO_VALUE_SLOT_STYLE);
+      expect(g.refusalSlot).toBe(g.valueSlot);
       expect(g.captionSlot).toBe(N4_HERO_CAPTION_SLOT_STYLE);
       expect(g.pillRow).toBe(N4_HERO_PILL_ROW_STYLE);
       expect(g.captionText).toBeUndefined();
@@ -214,11 +207,19 @@ describe('resolveReadyHeroGeometry — the card follows the system font scale', 
     expect(resolveReadyHeroGeometry(0.85).valueSlot).toEqual(N4_HERO_VALUE_SLOT_STYLE);
   });
 
-  it('MA-162: at font scale 1 the value, its step and its code take the frozen text styles', () => {
+  it('MA-162: at font scale 1 the value and its step take their Type token and tracking, the code its frozen style', () => {
     const g = resolveReadyHeroGeometry(1);
 
-    expect(g.valueText).toEqual(N4_HERO_VALUE_TEXT_STYLE);
-    expect(g.valueStepText).toEqual(N4_HERO_VALUE_STEP_TEXT_STYLE);
+    expect(g.valueText).toEqual({
+      fontSize: Type.amountEntry,
+      lineHeight: lineHeightFor(Type.amountEntry),
+      letterSpacing: Type.amountEntry * N4_HERO_VALUE_TRACKING_EM,
+    });
+    expect(g.valueStepText).toEqual({
+      fontSize: Type.hero,
+      lineHeight: lineHeightFor(Type.hero),
+      letterSpacing: Type.hero * N4_HERO_VALUE_STEP_TRACKING_EM,
+    });
     expect(g.currencyText).toEqual(N4_HERO_CURRENCY_TEXT_STYLE);
   });
 
@@ -238,12 +239,13 @@ describe('resolveReadyHeroGeometry — the card follows the system font scale', 
     },
   );
 
-  it('MA-162: at font scale 2 the value stops growing at the 1.3 stop', () => {
+  it('MA-162: at font scale 2 the value and its code stop growing at the 1.3 stop', () => {
     const g = resolveReadyHeroGeometry(2);
     const fontSize = Type.amountEntry * N4_HERO_VALUE_MAX_FONT_SCALE;
 
     expect(N4_HERO_VALUE_MAX_FONT_SCALE).toBe(DISPLAY_HEADLINE_MAX_FONT_SCALE);
     expect(g.valueText).toEqual(resolveReadyHeroGeometry(1.3).valueText);
+    expect(g.currencyText).toEqual(resolveReadyHeroGeometry(1.3).currencyText);
     expect(g.valueText.fontSize).toBe(fontSize);
     expect(g.valueText.lineHeight).toBe(lineHeightFor(fontSize));
   });
@@ -281,21 +283,28 @@ describe('resolveReadyHeroGeometry — the card follows the system font scale', 
 describe('resolveHeroValueTextStyle — the step-down rung', () => {
   // The character count excludes the currency suffix, which renders as a separate node.
   it('keeps the full 40px size at 13 characters', () => {
-    expect(resolveHeroValueTextStyle('-1,234,567.89', 1).fontSize).toBe(Type.amountEntry);
+    const style = resolveHeroValueTextStyle('-1,234,567.89', resolveReadyHeroGeometry(1));
+
+    expect(style.fontSize).toBe(Type.amountEntry);
   });
 
   it('steps down to 28px at 14 characters', () => {
-    expect(resolveHeroValueTextStyle('-12,345,678.90', 1).fontSize).toBe(Type.hero);
+    const style = resolveHeroValueTextStyle('-12,345,678.90', resolveReadyHeroGeometry(1));
+
+    expect(style.fontSize).toBe(Type.hero);
   });
 
   it('MA-162: at font scale 2 a value on the 40 step takes the capped value style', () => {
-    expect(resolveHeroValueTextStyle('8,450.00', 2)).toEqual(resolveReadyHeroGeometry(2).valueText);
+    const g = resolveReadyHeroGeometry(2);
+
+    expect(resolveHeroValueTextStyle('8,450.00', g)).toEqual(g.valueText);
   });
 
   it('MA-162: at font scale 2 a value past the step-down count takes the capped step style', () => {
-    const style = resolveHeroValueTextStyle('100,000,000.00', 2);
+    const g = resolveReadyHeroGeometry(2);
+    const style = resolveHeroValueTextStyle('100,000,000.00', g);
 
-    expect(style).toEqual(resolveReadyHeroGeometry(2).valueStepText);
+    expect(style).toEqual(g.valueStepText);
     expect(style.fontSize).toBe(Type.hero * N4_HERO_VALUE_MAX_FONT_SCALE);
   });
 });

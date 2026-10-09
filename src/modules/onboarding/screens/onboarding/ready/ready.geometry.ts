@@ -1,6 +1,6 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 
-import { resolveHeroPillGeometry } from '@/components/ui/chip';
+import { resolveHeroPillGeometry } from '@/components/ui/chip.geometry';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import {
   FITTED_LINE_SLACK,
@@ -25,10 +25,10 @@ export const N4_HERO_CHIP_GLYPH = ms(14);
 const N4_HERO_LABEL_TRACKING_EM = 0.04;
 
 /** mockup.html:683, `.hero-v .n { letter-spacing: -1px }` at 40px. */
-const N4_HERO_VALUE_TRACKING_EM = -0.025;
+export const N4_HERO_VALUE_TRACKING_EM = -0.025;
 
 /** mockup.html:686, `.hero-v .n.step { letter-spacing: -0.6px }` at 28px. */
-const N4_HERO_VALUE_STEP_TRACKING_EM = -0.021;
+export const N4_HERO_VALUE_STEP_TRACKING_EM = -0.021;
 
 /** mockup.html:410, `.b-headline { line-height: 1.05 }`. */
 export const N4_HEADLINE_LINE_HEIGHT_RATIO = 1.05;
@@ -64,7 +64,7 @@ const N4_HERO_VALUE_SLOT_FLOW: Readonly<ViewStyle> = Object.freeze({
 });
 
 // The value `Text` must set `numberOfLines={1}`; `overflow: 'hidden'` slices a wrapped amount.
-/** mockup.html:677-680, `.hero-v`; fixed height, not `minHeight`, so the card cannot shift. */
+/** mockup.html:677-680, `.hero-v`, the floor of the value slot: at or below font scale 1 both frames share one fixed height, above it the value slot's height grows and the refusal slot is a `minHeight` floor. */
 export const N4_HERO_VALUE_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze({
   ...N4_HERO_VALUE_SLOT_FLOW,
   height: Size.summaryValueSlot,
@@ -127,20 +127,6 @@ export const N4_HERO_LABEL_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
   letterSpacing: Type.caption * N4_HERO_LABEL_TRACKING_EM,
 });
 
-/** mockup.html:681-685, `.hero-v .n`. */
-export const N4_HERO_VALUE_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
-  fontSize: Type.amountEntry,
-  lineHeight: lineHeightFor(Type.amountEntry),
-  letterSpacing: Type.amountEntry * N4_HERO_VALUE_TRACKING_EM,
-});
-
-/** mockup.html:686, `.hero-v .n.step`, the step-down rung. */
-export const N4_HERO_VALUE_STEP_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
-  fontSize: Type.hero,
-  lineHeight: lineHeightFor(Type.hero),
-  letterSpacing: Type.hero * N4_HERO_VALUE_STEP_TRACKING_EM,
-});
-
 /** mockup.html:687, `.hero-v .n .cur`, the currency suffix node. */
 export const N4_HERO_CURRENCY_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
   fontSize: Type.subhead,
@@ -199,13 +185,15 @@ function resolveHeroValueText(
   return { ...scaled, letterSpacing: scaled.fontSize * trackingEm };
 }
 
-/** The value slot keeps the fit's slack at every scale; above scale 1 the caption slot grows and the pill row and the refusal slot become floors. */
+/** The value slot keeps the fit's slack at every scale; at or below scale 1 the refusal slot is the value slot itself, above it the caption slot grows and the pill row and the refusal slot become floors. */
 export function resolveReadyHeroGeometry(fontScale: number): ReadyHeroGeometry {
+  // mockup.html:681-685, `.hero-v .n`.
   const valueText = resolveHeroValueText(Type.amountEntry, N4_HERO_VALUE_TRACKING_EM, fontScale);
   const captionText = scaledTextStyleAboveOne(Type.caption, fontScale);
   const valueSlotHeight = Math.max(Size.summaryValueSlot, valueText.lineHeight + FITTED_LINE_SLACK);
   const scaled = {
     valueText,
+    // mockup.html:686, `.hero-v .n.step`, the step-down rung.
     valueStepText: resolveHeroValueText(Type.hero, N4_HERO_VALUE_STEP_TRACKING_EM, fontScale),
     currencyText: {
       ...N4_HERO_CURRENCY_TEXT_STYLE,
@@ -219,7 +207,7 @@ export function resolveReadyHeroGeometry(fontScale: number): ReadyHeroGeometry {
       captionText,
       captionSlot: N4_HERO_CAPTION_SLOT_STYLE,
       pillRow: N4_HERO_PILL_ROW_STYLE,
-      refusalSlot: N4_HERO_VALUE_SLOT_STYLE,
+      refusalSlot: scaled.valueSlot,
     };
   }
   return {

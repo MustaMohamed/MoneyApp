@@ -55,7 +55,7 @@ export function OnboardingProgressRail({ step }: OnboardingProgressRailProps) {
           className="text-foreground font-inter-semibold"
           allowFontScaling={label === undefined}
           style={[
-            // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- Size.compactBodyLineHeight (theme.ts:176) is a fixed 20px token shared by both rail labels, distinct from lineHeightFor(Type.caption)'s 16px.
+            // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- at or below font scale 1 both rail labels take Size.compactBodyLineHeight (theme.ts:176), a fixed 20px token, not lineHeightFor(Type.caption)'s 16px; above it the scaled pair in the next entry replaces this one.
             { fontSize: Type.caption, lineHeight: Size.compactBodyLineHeight },
             label ? { ...label, flexShrink: 0 } : undefined,
           ]}
@@ -67,7 +67,7 @@ export function OnboardingProgressRail({ step }: OnboardingProgressRailProps) {
           className="text-content-secondary"
           allowFontScaling={label === undefined}
           style={[
-            // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- same Size.compactBodyLineHeight token as the label above; the pair must match.
+            // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- the step label's Size.compactBodyLineHeight pair, at or below font scale 1; above it the scaled pair in the next entry replaces it.
             { fontSize: Type.caption, lineHeight: Size.compactBodyLineHeight },
             label ? { ...label, flexShrink: 1 } : undefined,
           ]}

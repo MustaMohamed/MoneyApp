@@ -14,15 +14,14 @@ import {
 import {
   N4_HERO_AMOUNT_DECIMALS,
   N4_STEP_DOWN_MAX_CHARS,
-  resolveReadyHeroGeometry,
+  type ReadyHeroGeometry,
 } from './ready.geometry';
 
 /** Hero value size by formatted length, suffix excluded; mockup.html:686 `.hero-v .n.step`. */
 export function resolveHeroValueTextStyle(
   formattedAmount: string,
-  fontScale: number,
+  geometry: Pick<ReadyHeroGeometry, 'valueText' | 'valueStepText'>,
 ): Readonly<TextStyle> {
-  const geometry = resolveReadyHeroGeometry(fontScale);
   return formattedAmount.length > N4_STEP_DOWN_MAX_CHARS
     ? geometry.valueStepText
     : geometry.valueText;

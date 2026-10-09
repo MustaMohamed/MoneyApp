@@ -1,9 +1,9 @@
+import { HERO_PILL_HEIGHT } from '@/components/ui/chip';
 import {
   CHIP_MD_PADDING_BLOCK,
-  HERO_PILL_HEIGHT,
   resolveHeroPillGeometry,
   resolveSuccessChipGeometry,
-} from '@/components/ui/chip';
+} from '@/components/ui/chip.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 

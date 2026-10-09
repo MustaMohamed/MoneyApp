@@ -5,6 +5,7 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { LogoMark } from '@/components/ui/logo_mark';
 import { resolveStackHeaderGeometry } from '@/components/ui/stack_header.geometry';
+import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
@@ -45,9 +46,7 @@ export function OnboardingHeader({ title, onBack }: OnboardingHeaderProps) {
           )}
           <Typography
             className="font-sora-semibold text-foreground flex-1 text-center"
-            allowFontScaling={false}
-            style={geometry.title}
-            numberOfLines={1}
+            {...resolveOneLineTextProps(geometry.title)}
           >
             {title}
           </Typography>

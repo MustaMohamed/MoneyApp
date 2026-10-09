@@ -2,7 +2,7 @@ import { Label, Typography } from 'heroui-native';
 import React from 'react';
 import { useWindowDimensions } from 'react-native';
 
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { resolveFormLabelReserve } from '@/components/ui/form_label_text.geometry';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 export interface FormLabelTextProps {
@@ -15,11 +15,7 @@ export interface FormLabelTextProps {
 
 /** `style` overrides only the properties it sets, so pair every `fontSize` with a `lineHeight`. */
 export function FormLabelText({ label, tag, reserveLines }: FormLabelTextProps) {
-  const { fontScale } = useWindowDimensions();
-  const reserved =
-    reserveLines === undefined
-      ? undefined
-      : { lines: reserveLines, text: scaledTextStyle(Type.detail, fontScale) };
+  const reserved = resolveFormLabelReserve(reserveLines, useWindowDimensions().fontScale);
   return (
     // accessible={false}: a do-nothing Pressable row must not announce as tappable — the field carries its own accessibilityLabel.
     <Label
@@ -28,9 +24,7 @@ export function FormLabelText({ label, tag, reserveLines }: FormLabelTextProps) 
         flexDirection: 'row',
         justifyContent: 'space-between',
         gap: Spacing.xs,
-        ...(reserved
-          ? { minHeight: reserved.lines * reserved.text.lineHeight, alignItems: 'flex-end' }
-          : undefined),
+        ...(reserved ? { minHeight: reserved.minHeight, alignItems: 'flex-end' } : undefined),
       }}
     >
       <Label.Text

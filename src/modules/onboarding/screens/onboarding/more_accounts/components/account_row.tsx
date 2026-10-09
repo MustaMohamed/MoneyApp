@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ListGroup, Typography } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
@@ -44,9 +44,7 @@ export function AccountRow({ account }: { account: Account }) {
       <ListGroup.ItemContent style={{ flex: 1, minWidth: 0 }}>
         <ListGroup.ItemTitle
           className="text-foreground font-inter-medium"
-          allowFontScaling={false}
-          style={scaledTextStyle(Type.bodyStrong, fontScale)}
-          numberOfLines={1}
+          {...resolveOneLineTextProps(scaledTextStyle(Type.bodyStrong, fontScale))}
           ellipsizeMode="tail"
         >
           {resolveAccountName(account)}

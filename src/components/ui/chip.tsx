@@ -9,12 +9,9 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import {
-  type ScaledTextStyle,
-  resolveOneLineTextProps,
-  scaledTextStyle,
-} from '@/components/ui/text_scale.geometry';
-import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { resolveHeroPillGeometry, resolveSuccessChipGeometry } from '@/components/ui/chip.geometry';
+import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
+import { Colors, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
@@ -116,23 +113,6 @@ const SUCCESS_CHIP_GAP = ms(6);
 /** mockup.html:639, `.badge-ok svg { width: 14px }`. */
 const SUCCESS_CHIP_GLYPH = ms(14);
 
-// `.chip__root--size-md`'s own `padding-block`, unscaled CSS.
-export const CHIP_MD_PADDING_BLOCK = 4;
-
-export interface ChipLabelGeometry {
-  height: number;
-  label: ScaledTextStyle;
-}
-
-/** `Size.compactChipHeight` is the floor; above it the chip is its scaled label line inside the md padding. */
-export function resolveSuccessChipGeometry(fontScale: number): ChipLabelGeometry {
-  const label = scaledTextStyle(Type.caption, fontScale);
-  return {
-    height: Math.max(Size.compactChipHeight, label.lineHeight + 2 * CHIP_MD_PADDING_BLOCK),
-    label,
-  };
-}
-
 export interface SuccessChipProps {
   label: string;
   accessibilityLabel?: string;
@@ -183,18 +163,6 @@ export const HERO_PILL_STYLE: Readonly<ViewStyle> = Object.freeze({
   backgroundColor: Colors.dark.overlayWhite7,
   height: HERO_PILL_HEIGHT,
 });
-
-/** mockup.html:699, `.hero-pill` at `var(--type-caption)`. */
-export const HERO_PILL_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
-  fontSize: Type.caption,
-  lineHeight: lineHeightFor(Type.caption),
-});
-
-/** `HERO_PILL_HEIGHT` at scale 1: the pill's 4pt padding pair around its scaled caption line. */
-export function resolveHeroPillGeometry(fontScale: number): ChipLabelGeometry {
-  const label = scaledTextStyle(Type.caption, fontScale);
-  return { height: 2 * Spacing.xxs + label.lineHeight, label };
-}
 
 export interface HeroPillProps {
   label: string;

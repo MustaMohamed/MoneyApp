@@ -86,12 +86,7 @@ export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
           </Typography>
         </View>
       ) : (
-        <HeroValue
-          value={outcome.value}
-          baseCurrency={baseCurrency}
-          fontScale={fontScale}
-          geometry={geometry}
-        />
+        <HeroValue value={outcome.value} baseCurrency={baseCurrency} geometry={geometry} />
       )}
 
       <View style={geometry.captionSlot}>
@@ -126,12 +121,10 @@ export function ReadyHeroCard({ summary }: ReadyHeroCardProps) {
 function HeroValue({
   value,
   baseCurrency,
-  fontScale,
   geometry,
 }: {
   value: number;
   baseCurrency: Currency;
-  fontScale: number;
   geometry: ReadyHeroGeometry;
 }) {
   const { value: amountString, code } = resolveHeroAmountParts(value, baseCurrency);
@@ -147,7 +140,7 @@ function HeroValue({
         className="text-accent font-sora-bold"
         allowFontScaling={false}
         adjustsFontSizeToFit
-        style={{ ...resolveHeroValueTextStyle(amountString, fontScale), flexShrink: 1 }}
+        style={{ ...resolveHeroValueTextStyle(amountString, geometry), flexShrink: 1 }}
         numberOfLines={1}
       >
         {amountString}
