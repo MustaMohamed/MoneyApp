@@ -1,7 +1,11 @@
 import { render, within } from '@testing-library/react-native';
 import { Dimensions } from 'react-native';
 
-import { resolveRowStacking, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import {
+  resolveFitAmountTextProps,
+  resolveRowStacking,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
@@ -81,6 +85,8 @@ describe('MonthlyRuleSummary', () => {
     const metrics = screen.getByTestId('budget-summary-metrics');
     const { incomeMetricValue, plannedMetricValue, notGroupedMetricValue } =
       lens.summary.presentation;
+    const fit = resolveFitAmountTextProps(Type.bodyStrong, fontScale);
+    expect(fit.adjustsFontSizeToFit).toBe(true);
     for (const [label, value] of [
       [Strings.budget5030IncomeMetric, incomeMetricValue],
       [Strings.budget5030PlannedMetric, plannedMetricValue],
@@ -88,7 +94,9 @@ describe('MonthlyRuleSummary', () => {
     ] as const) {
       expect(within(metrics).getByText(label)).toBeTruthy();
       const valueNode = within(metrics).getByText(value);
-      expect(valueNode).toHaveProp('allowFontScaling', false);
+      expect(valueNode).toHaveProp('numberOfLines', fit.numberOfLines);
+      expect(valueNode).toHaveProp('allowFontScaling', fit.allowFontScaling);
+      expect(valueNode).toHaveProp('adjustsFontSizeToFit', fit.adjustsFontSizeToFit);
       expect(valueNode).toHaveStyle(scaledTextStyle(Type.bodyStrong, fontScale));
     }
   });

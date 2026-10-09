@@ -2,7 +2,7 @@ import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Type } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
@@ -263,8 +263,11 @@ describe('50/30/20 rule ledger', () => {
     const column = screen.getByTestId('rule-bucket-value-column');
     expect(column).toHaveStyle({ width: resolveRuleValueColumnWidth(fontScale) });
     const variance = within(column).getByText(bucket.presentation.varianceLabel);
-    expect(variance).toHaveProp('numberOfLines', 1);
-    expect(variance).toHaveProp('allowFontScaling', false);
+    const fit = resolveFitAmountTextProps(Type.bodyStrong, fontScale);
+    expect(fit.adjustsFontSizeToFit).toBe(true);
+    expect(variance).toHaveProp('numberOfLines', fit.numberOfLines);
+    expect(variance).toHaveProp('allowFontScaling', fit.allowFontScaling);
+    expect(variance).toHaveProp('adjustsFontSizeToFit', fit.adjustsFontSizeToFit);
     expect(variance).toHaveStyle(scaledTextStyle(Type.bodyStrong, fontScale));
   });
 
