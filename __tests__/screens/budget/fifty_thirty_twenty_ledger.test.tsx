@@ -1,10 +1,14 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { Dimensions } from 'react-native';
 
+import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup, CategoryType } from '@/constants/enums';
+import { Type } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import { resolveRuleValueColumnWidth } from '@/modules/budget/screens/budget/budget_text.geometry';
 import { BudgetScreenSkeleton } from '@/modules/budget/screens/budget/components/budget_screen_skeleton';
 import { RuleLedger } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_ledger';
 
@@ -241,6 +245,30 @@ describe('50/30/20 rule ledger', () => {
     expect(screen.getByText('Manage Needs budgets')).toHaveProp('numberOfLines', 1);
     await fireEvent.press(screen.getByText('Manage Needs budgets'));
     expect(onManageGroup).toHaveBeenCalledWith(BudgetGroup.Need);
+  });
+
+  it('sizes the value column from the font scale and scales the variance amount app-side', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const bucket = statusBucket({ income: 10_000, group: BudgetGroup.Need, planned: 6_000 });
+    const screen = await render(
+      <RuleLedger
+        buckets={[bucket]}
+        expandedGroup={undefined}
+        onExpandedGroupChange={jest.fn()}
+        onManageGroup={jest.fn()}
+      />,
+    );
+
+    const column = screen.getByTestId('rule-bucket-value-column');
+    expect(column).toHaveStyle({ width: resolveRuleValueColumnWidth(fontScale) });
+    const variance = within(column).getByText(bucket.presentation.varianceLabel);
+    const fit = resolveFitAmountTextProps(Type.bodyStrong, fontScale);
+    expect(fit.adjustsFontSizeToFit).toBe(true);
+    expect(variance).toHaveProp('numberOfLines', fit.numberOfLines);
+    expect(variance).toHaveProp('allowFontScaling', fit.allowFontScaling);
+    expect(variance).toHaveProp('adjustsFontSizeToFit', fit.adjustsFontSizeToFit);
+    expect(variance).toHaveStyle(scaledTextStyle(Type.bodyStrong, fontScale));
   });
 
   it('preserves the expanded contributor skeleton during refresh', async () => {

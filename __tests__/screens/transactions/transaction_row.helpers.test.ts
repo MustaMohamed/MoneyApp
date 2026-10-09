@@ -15,7 +15,9 @@ import {
 import {
   buildTransactionRowPresentation,
   resolveRowTile,
+  resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
+  resolveTransactionRowValueTrackMaxWidth,
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
@@ -25,6 +27,7 @@ import {
   TRANSACTION_ROW_TITLE_BADGE_CHROME,
   TRANSACTION_ROW_TITLE_BADGE_HEIGHT,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  TRANSACTION_ROW_VALUE_TRACK_MAX_SHARE,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { makeTestAccount, makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
 
@@ -713,14 +716,19 @@ describe('transaction row line geometry', () => {
     return lineHeightFor(scaledFontSize(fontSize, fontScale));
   }
 
-  function contentColumnAt(fontScale: number): number {
+  // Above 1.0 the time takes its own line under the note.
+  function captionLinesAt(fontScale: number): number {
+    return fontScale > 1 ? 2 : 1;
+  }
+
+  function contentColumnAt(fontScale: number, captionLines = captionLinesAt(fontScale)): number {
     return (
       Math.max(
         lineBox(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale),
         lineBox(Type.compactBadge, fontScale) + TRANSACTION_ROW_TITLE_BADGE_CHROME,
       ) +
-      TRANSACTION_ROW_LINE_GAP +
-      lineBox(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale)
+      captionLines *
+        (TRANSACTION_ROW_LINE_GAP + lineBox(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale))
     );
   }
 
@@ -732,8 +740,8 @@ describe('transaction row line geometry', () => {
     );
   }
 
-  function tallerColumnAt(fontScale: number): number {
-    return Math.max(contentColumnAt(fontScale), valueColumnAt(fontScale));
+  function tallerColumnAt(fontScale: number, captionLines = captionLinesAt(fontScale)): number {
+    return Math.max(contentColumnAt(fontScale, captionLines), valueColumnAt(fontScale));
   }
 
   it('keeps the 1.0 row height at font scale 1 and below', () => {
@@ -755,6 +763,24 @@ describe('transaction row line geometry', () => {
     expect(Math.abs(spaceAt2 - spaceAt1)).toBeLessThanOrEqual(0.5 / PixelRatio.get() + 1e-9);
   });
 
+  it('counts one caption line at font scale 1 and below, and two above', () => {
+    expect(resolveTransactionRowCaptionLines(0.85)).toBe(1);
+    expect(resolveTransactionRowCaptionLines(1)).toBe(1);
+    expect(resolveTransactionRowCaptionLines(1.01)).toBe(2);
+    expect(resolveTransactionRowCaptionLines(2)).toBe(2);
+  });
+
+  it('is taller at 2.0 by the time line and its gap than a row of one caption line, on a whole device pixel', () => {
+    const timeLine = TRANSACTION_ROW_LINE_GAP + lineBox(TRANSACTION_ROW_CAPTION_FONT_SIZE, 2);
+    const oneCaptionLineRow = TRANSACTION_ROW_HEIGHT + tallerColumnAt(2, 1) - tallerColumnAt(1, 1);
+    const height = resolveTransactionRowHeight(2);
+
+    expect(height).toBeGreaterThanOrEqual(
+      oneCaptionLineRow + timeLine - 0.5 / PixelRatio.get() - 1e-9,
+    );
+    expect(height).toBe(PixelRatio.roundToNearestPixel(height));
+  });
+
   it('lands on whole device pixels at 1.3 and 2.0 on a 2.625 density screen', () => {
     const heights: number[] = [];
     // The row constants compute at module load, so the density mock needs a fresh copy.
@@ -772,6 +798,19 @@ describe('transaction row line geometry', () => {
       const pixels = height * PIXEL_2_DENSITY;
       expect(Math.abs(pixels - Math.round(pixels))).toBeLessThan(1e-6);
     }
+  });
+});
+
+describe('transaction row value track', () => {
+  it('hugs its content at font scale 1 and below', () => {
+    expect(resolveTransactionRowValueTrackMaxWidth(0.85)).toBeUndefined();
+    expect(resolveTransactionRowValueTrackMaxWidth(1)).toBeUndefined();
+  });
+
+  it('takes at most half the row above font scale 1', () => {
+    expect(TRANSACTION_ROW_VALUE_TRACK_MAX_SHARE).toBe(50);
+    expect(resolveTransactionRowValueTrackMaxWidth(1.01)).toBe('50%');
+    expect(resolveTransactionRowValueTrackMaxWidth(2)).toBe('50%');
   });
 });
 

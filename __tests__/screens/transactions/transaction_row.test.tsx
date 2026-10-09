@@ -1,8 +1,8 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
 import { Dimensions, PixelRatio, View } from 'react-native';
 
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -16,7 +16,9 @@ import {
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
+  resolveTransactionRowValueTrackMaxWidth,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { ms } from '@/utils/responsive';
 
@@ -133,7 +135,7 @@ describe('TransactionRow ownership actions', () => {
     expect(mockSwipeableRow.mock.calls[0][0].containerStyle).toBe(corners);
   });
 
-  it('sizes the row and its text from the font scale and clips a long note to one caption line', async () => {
+  it('sizes the row and its text from the font scale, clips a long note to one line and draws the time alone on the line under it', async () => {
     const source: Account = {
       id: 'account',
       name: 'A very long source account name that must truncate',
@@ -182,12 +184,11 @@ describe('TransactionRow ownership actions', () => {
       ...scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale),
       flexShrink: 1,
     });
-    const time = screen.getByText(/· \d{1,2}:\d{2} [AP]M$/);
+    expect(resolveTransactionRowCaptionLines(fontScale)).toBe(2);
+    const time = screen.getByText(/^\d{1,2}:\d{2} [AP]M$/);
+    expect(time.props.numberOfLines).toBe(1);
     expect(time).toHaveProp('allowFontScaling', false);
-    expect(time).toHaveStyle({
-      ...scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale),
-      flexShrink: 0,
-    });
+    expect(time).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale));
     const title = screen.getByText(Strings.uncategorized);
     expect(title).toHaveProp('allowFontScaling', false);
     expect(title).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_TITLE_FONT_SIZE, fontScale));
@@ -227,7 +228,7 @@ describe('TransactionRow ownership actions', () => {
     transfer.to_account_id = destination.id;
     transfer.category_id = null;
 
-    const { getByText } = await render(
+    const { getByTestId, getByText } = await render(
       <TransactionRow
         tx={transfer}
         account={source}
@@ -239,12 +240,44 @@ describe('TransactionRow ownership actions', () => {
     );
 
     const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
     const amount = getByText('100.00');
-    expect(amount).toHaveProp('allowFontScaling', false);
-    expect(amount).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale));
+    const amountFit = resolveFitAmountTextProps(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale);
+    expect(amount).toHaveProp('numberOfLines', amountFit.numberOfLines);
+    expect(amount).toHaveProp('allowFontScaling', amountFit.allowFontScaling);
+    expect(amount).toHaveProp('adjustsFontSizeToFit', amountFit.adjustsFontSizeToFit);
+    expect(amount).toHaveStyle(amountFit.style);
+    const fit = resolveFitAmountTextProps(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale);
     const code = getByText('→ 4,850 EGP');
-    expect(code).toHaveProp('allowFontScaling', false);
-    expect(code).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale));
+    expect(code).toHaveProp('numberOfLines', fit.numberOfLines);
+    expect(code).toHaveProp('allowFontScaling', fit.allowFontScaling);
+    expect(code).toHaveProp('adjustsFontSizeToFit', fit.adjustsFontSizeToFit);
+    expect(code).toHaveStyle(fit.style);
+    expect(getByTestId('transaction-row-value-track')).toHaveStyle({
+      maxWidth: resolveTransactionRowValueTrackMaxWidth(fontScale),
+    });
+  });
+
+  it('leaves the detail closed after a horizontal drag across a commitment-owned row and opens it on a tap', async () => {
+    const onPress = jest.fn();
+    const screen = await render(
+      <TransactionRow
+        tx={transaction('payment-1')}
+        onPress={onPress}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+    const row = screen.getByTestId('transaction-row-content-track');
+
+    await fireEvent(row, 'pressIn', { nativeEvent: { pageX: 0 } });
+    await fireEvent(row, 'pressMove', { nativeEvent: { pageX: 12 } });
+    await fireEvent.press(row);
+    expect(onPress).not.toHaveBeenCalled();
+
+    await fireEvent(row, 'pressIn', { nativeEvent: { pageX: 0 } });
+    await fireEvent.press(row);
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 });
 

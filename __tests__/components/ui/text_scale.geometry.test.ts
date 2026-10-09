@@ -2,7 +2,10 @@ import { PixelRatio } from 'react-native';
 
 import {
   FITTED_LINE_SLACK,
+  resolveFitAmountTextProps,
+  resolveLoneWordLines,
   resolveOneLineTextProps,
+  resolveRowStacking,
   scaledFontSize,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
@@ -37,6 +40,58 @@ describe('resolveOneLineTextProps', () => {
       numberOfLines: 1,
       allowFontScaling: false,
       style: { ...scaled, flexShrink: 1 },
+    });
+  });
+});
+
+describe('resolveRowStacking', () => {
+  it('keeps a row at font scale 1 and below', () => {
+    expect(resolveRowStacking(0.85)).toBe('row');
+    expect(resolveRowStacking(1)).toBe('row');
+  });
+
+  it('stacks above font scale 1', () => {
+    expect(resolveRowStacking(1.01)).toBe('stacked');
+    expect(resolveRowStacking(2)).toBe('stacked');
+  });
+});
+
+describe('resolveLoneWordLines', () => {
+  it('gives a lone word one line above a font scale of 1', () => {
+    expect(resolveLoneWordLines('Housing', 2, 2)).toBe(1);
+    expect(resolveLoneWordLines('Housing', 2, 1.15)).toBe(1);
+  });
+
+  it('reads a word with space around it as a lone word', () => {
+    expect(resolveLoneWordLines(' Subscriptions ', 2, 2)).toBe(1);
+  });
+
+  it('keeps the line cap of the caller for a text of several words', () => {
+    expect(resolveLoneWordLines('Health & Fitness', 2, 2)).toBe(2);
+    expect(resolveLoneWordLines('Health & Fitness', 3, 2)).toBe(3);
+  });
+
+  it('keeps the line cap of the caller for a lone word at a font scale of 1', () => {
+    expect(resolveLoneWordLines('Housing', 2, 1)).toBe(2);
+  });
+});
+
+describe('resolveFitAmountTextProps', () => {
+  it('at font scale 1 holds one line at its own size that does not shrink', () => {
+    expect(resolveFitAmountTextProps(Type.title, 1)).toEqual({
+      numberOfLines: 1,
+      allowFontScaling: false,
+      adjustsFontSizeToFit: false,
+      style: scaledTextStyle(Type.title, 1),
+    });
+  });
+
+  it('at font scale 2 holds one line at twice the size that shrinks to fit', () => {
+    expect(resolveFitAmountTextProps(Type.title, 2)).toEqual({
+      numberOfLines: 1,
+      allowFontScaling: false,
+      adjustsFontSizeToFit: true,
+      style: scaledTextStyle(Type.title, 2),
     });
   });
 });

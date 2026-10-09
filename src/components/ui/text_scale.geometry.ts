@@ -58,3 +58,32 @@ export function resolveOneLineTextProps(scaled: ScaledTextStyle | undefined): On
 
 /** One device pixel in dp, added to a fixed-height box around a line under `adjustsFontSizeToFit`: RN ceils the line box to a whole px and a layout past its bound fails the fit. */
 export const FITTED_LINE_SLACK = 1 / PixelRatio.get();
+
+export type RowStacking = 'row' | 'stacked';
+
+/** `'stacked'` above font scale 1, `'row'` at or below it. */
+export function resolveRowStacking(fontScale: number): RowStacking {
+  return fontScale > 1 ? 'stacked' : 'row';
+}
+
+/** Above font scale 1 a lone word takes one line and a tail ellipsis: Android breaks a word wider than its line at a glyph. */
+export function resolveLoneWordLines(text: string, lines: number, fontScale: number): number {
+  return fontScale <= 1 || /\s/.test(text.trim()) ? lines : 1;
+}
+
+export interface FitAmountTextProps {
+  numberOfLines: 1;
+  allowFontScaling: false;
+  adjustsFontSizeToFit: boolean;
+  style: ScaledTextStyle;
+}
+
+/** An amount on one line that shrinks to fit above font scale 1, with no floor: a `minimumFontScale` ends an amount that needs more shrink in `…`. */
+export function resolveFitAmountTextProps(fontSize: number, fontScale: number): FitAmountTextProps {
+  return {
+    numberOfLines: 1,
+    allowFontScaling: false,
+    adjustsFontSizeToFit: fontScale > 1,
+    style: scaledTextStyle(fontSize, fontScale),
+  };
+}

@@ -6,9 +6,10 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
+import { resolveFitAmountTextProps } from '@/components/ui/text_scale.geometry';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, Type } from '@/constants/theme';
 import { formatCurrencyTotals } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
@@ -117,6 +118,7 @@ export function CommitmentsCard({
   isLoading,
   onPress,
 }: Props) {
+  const { fontScale } = useWindowDimensions();
   const monthLabel = formatMonthYear(yearMonth);
   const progress = counts.total === 0 ? 0 : counts.paid / counts.total;
   const progressPct = Math.round(progress * 100);
@@ -173,7 +175,10 @@ export function CommitmentsCard({
                 <Text variant="hint" className="text-muted text-xs uppercase">
                   {Strings.commitmentsTotalCommitted}
                 </Text>
-                <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
+                <Text
+                  {...resolveFitAmountTextProps(Type.title, fontScale)}
+                  className="font-sora-bold text-foreground"
+                >
                   {totalsLine}
                 </Text>
               </View>

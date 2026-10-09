@@ -5,9 +5,14 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
+import {
+  resolveFitAmountTextProps,
+  resolveRowStacking,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Size, withAlpha } from '@/constants/theme';
+import { Colors, Size, Type, withAlpha } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type {
   DashboardNetWorth,
@@ -199,6 +204,9 @@ export function StatCards({
 }: StatCardsProps) {
   // Computed outside the narrowing because the tinted chip renders on the refusal path too.
   const netColor = resolveNetWorthStatColor(netWorth);
+  const { fontScale } = useWindowDimensions();
+  const stacked = resolveRowStacking(fontScale) === 'stacked';
+  const captionText = scaledTextStyle(Type.caption, fontScale);
   const monthIdx = parseInt(spendYearMonth.split('-')[1], 10) - 1;
   const monthLabel = SHORT_MONTHS[monthIdx] ?? '';
   const prevMonthLabel = SHORT_MONTHS[(monthIdx + 11) % 12] ?? '';
@@ -234,6 +242,18 @@ export function StatCards({
     monthSpendUsdParts,
   );
 
+  // Above 1.0 the month leaves the header row for its own line, so each word of the title fits.
+  const monthLabelText = (
+    <Text
+      variant="hint"
+      allowFontScaling={false}
+      style={stacked ? { ...captionText, alignSelf: 'flex-end' } : captionText}
+      className="text-muted"
+    >
+      {monthLabel}
+    </Text>
+  );
+
   return (
     <View className="mx-4 mt-2 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
       <View
@@ -248,7 +268,12 @@ export function StatCards({
           >
             <MaterialCommunityIcons name="scale-balance" size={ms(13)} color={netColor} />
           </View>
-          <Text variant="hint" className="text-muted flex-1 text-xs uppercase">
+          <Text
+            variant="hint"
+            allowFontScaling={false}
+            style={captionText}
+            className="text-muted flex-1 uppercase"
+          >
             {Strings.dashNetWorthTitle}
           </Text>
         </View>
@@ -283,13 +308,17 @@ export function StatCards({
           >
             <MaterialCommunityIcons name="cash-minus" size={ms(13)} color={Colors.dark.negative} />
           </View>
-          <Text variant="hint" className="text-muted flex-1 text-xs uppercase">
+          <Text
+            variant="hint"
+            allowFontScaling={false}
+            style={captionText}
+            className="text-muted flex-1 uppercase"
+          >
             {Strings.dashMonthSpentTitle}
           </Text>
-          <Text variant="hint" className="text-muted text-xs">
-            {monthLabel}
-          </Text>
+          {stacked ? null : monthLabelText}
         </View>
+        {stacked ? monthLabelText : null}
         {monthSpendLoading ? (
           <>
             <MonthSpendValueSkeleton />
@@ -300,14 +329,16 @@ export function StatCards({
             {monthSpendRows.map((parts) => (
               <Text
                 key={parts.code}
-                className="font-sora-bold text-foreground text-lg"
-                numberOfLines={1}
+                {...resolveFitAmountTextProps(Type.title, fontScale)}
+                className="font-sora-bold text-foreground"
                 accessibilityLabel={`${parts.withCode} ${MONTH_SPEND_STATE_LABEL[parts.state]}`}
               >
                 {parts.value}{' '}
-                <Text className="font-inter-medium text-muted text-xs">{parts.code}</Text>
+                <Text className="font-inter-medium text-muted" style={captionText}>
+                  {parts.code}
+                </Text>
                 {parts.state === 'refunded' && (
-                  <Text className="font-inter-medium text-muted text-xs">
+                  <Text className="font-inter-medium text-muted" style={captionText}>
                     {' '}
                     {MONTH_SPEND_STATE_LABEL[parts.state]}
                   </Text>
@@ -389,12 +420,26 @@ function NetWorthCardBody({
   const partsTotal = amount.assets + amount.liabilities;
   const assetsPct = showProportionBar ? amount.assets / partsTotal : 0;
   const netWorthParts = formatOwnedAmountParts(amount.netWorth, baseCurrency);
+  const { fontScale } = useWindowDimensions();
+  const stacked = resolveRowStacking(fontScale) === 'stacked';
+  const captionText = scaledTextStyle(Type.caption, fontScale);
+  const valueText = resolveFitAmountTextProps(Type.title, fontScale);
+  const detailValueText = resolveFitAmountTextProps(Type.caption, fontScale);
+  // Above 1.0 a label is wider than a half column, so each detail takes a full-width row.
+  const detailColumnStyle = stacked ? { gap: ms(4) } : { flex: 1, gap: ms(4) };
+  const detailLabelText = stacked ? { ...captionText, flexShrink: 1 } : captionText;
 
   return (
     <>
-      <Text className="font-sora-bold text-lg" style={{ color: netColor }} numberOfLines={1}>
+      <Text
+        {...valueText}
+        className="font-sora-bold"
+        style={{ ...valueText.style, color: netColor }}
+      >
         {netWorthParts.value}{' '}
-        <Text className="font-inter-medium text-muted text-xs">{netWorthParts.code}</Text>
+        <Text className="font-inter-medium text-muted" style={captionText}>
+          {netWorthParts.code}
+        </Text>
       </Text>
       {showProportionBar && (
         <View
@@ -405,8 +450,8 @@ function NetWorthCardBody({
           <View style={{ flex: 1 - assetsPct, backgroundColor: Colors.dark.negative }} />
         </View>
       )}
-      <View className="mt-1 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
-        <View className="flex-1" style={{ flex: 1, gap: ms(4) }}>
+      <View className="mt-1" style={{ flexDirection: stacked ? 'column' : 'row', gap: ms(8) }}>
+        <View style={detailColumnStyle}>
           <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
             <View
               style={{
@@ -416,15 +461,20 @@ function NetWorthCardBody({
                 backgroundColor: Colors.dark.positive,
               }}
             />
-            <Text variant="hint" className="text-muted text-xs">
+            <Text
+              variant="hint"
+              allowFontScaling={false}
+              style={detailLabelText}
+              className="text-muted"
+            >
               {Strings.dashAssetsLabel} ({assetsCount})
             </Text>
           </View>
-          <Text className="font-sora-semibold text-foreground text-xs" numberOfLines={1}>
+          <Text {...detailValueText} className="font-sora-semibold text-foreground">
             {formatOwnedAmountParts(amount.assets, baseCurrency).value}
           </Text>
         </View>
-        <View className="flex-1" style={{ flex: 1, gap: ms(4) }}>
+        <View style={detailColumnStyle}>
           <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
             <View
               style={{
@@ -434,11 +484,16 @@ function NetWorthCardBody({
                 backgroundColor: Colors.dark.negative,
               }}
             />
-            <Text variant="hint" className="text-muted text-xs">
+            <Text
+              variant="hint"
+              allowFontScaling={false}
+              style={detailLabelText}
+              className="text-muted"
+            >
               {Strings.dashLiabilitiesLabel} ({liabilitiesCount})
             </Text>
           </View>
-          <Text className="font-sora-semibold text-foreground text-xs" numberOfLines={1}>
+          <Text {...detailValueText} className="font-sora-semibold text-foreground">
             {formatLiabilityRowValue(amount.liabilities, baseCurrency)}
           </Text>
         </View>

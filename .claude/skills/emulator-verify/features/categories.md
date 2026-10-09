@@ -21,7 +21,7 @@ Route `/settings/categories`. Screen `src/modules/categories/screens/settings/ca
 | add and edit sheet, large font | no frame, MA-130 | the add button, then a category row; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the sheet's footer buttons on each; one crop per sheet at 2.0 |
 | delete dialog, large font | no frame, MA-130 | delete on a custom category with no transaction (the seeded database's custom categories all have one, so add a category first, or seed a custom row with no transaction); its `Delete category` is the last match when that row sits last (Gotchas); the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the dialog's two buttons; one crop at 2.0 |
 | reassign sheet, large font | no frame, MA-130 | delete on a category with transactions; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the sheet's footer buttons; one crop at 2.0 |
-| load error retry, large font | no frame, MA-130 | source force: `throw new Error('forced')` as the first line of the `try` in `loadOwned` (`src/modules/categories/store/category.store.ts`) on a cold launch, so the screen mounts on `initialError`; reverted after; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the retry button; one crop at 2.0 |
+| load error retry, large font | no frame, MA-130 | source force: `throw new Error('forced')` as the first line of the `try` in `loadOwned` (`src/modules/categories/store/category.store.ts`) on a cold launch, so the screen mounts on `initialError`; reverted after; the `Font scale` force (README) at 1.0 and 2.0 | the `Alert proof` (README) and the `Button proof` (README) on the retry button; one crop at 2.0 |
 
 ## Outbound
 

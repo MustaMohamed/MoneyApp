@@ -6,9 +6,14 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
+import {
+  resolveFitAmountTextProps,
+  resolveLoneWordLines,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, Type } from '@/constants/theme';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import { formatCurrencyAmount, formatOwnedAmount } from '@/utils/format_amount';
@@ -68,6 +73,7 @@ function BudgetCardSkeleton(): React.ReactElement {
 }
 
 export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
+  const { fontScale } = useWindowDimensions();
   const monthLabel = formatMonthYear(yearMonth);
   const progressPct = Math.round(summary.pct * 100);
   const bandColor = budgetBandColor(summary.pct);
@@ -122,14 +128,17 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
                 conversion (#347). */}
             <View style={{ flexDirection: 'row', gap: ms(8), minHeight: VALUE_ROW_HEIGHT }}>
               <Figure
+                fontScale={fontScale}
                 label={Strings.budgetSummaryBudgeted}
                 value={formatCurrencyAmount(summary.budgeted, Currency.EGP)}
               />
               <Figure
+                fontScale={fontScale}
                 label={Strings.budgetSummarySpent}
                 value={formatCurrencyAmount(summary.spent, Currency.EGP)}
               />
               <Figure
+                fontScale={fontScale}
                 label={Strings.budgetSummaryLeft}
                 value={leftText}
                 valueClassName={summary.left < 0 ? 'text-danger' : 'text-success'}
@@ -178,15 +187,27 @@ function Figure({
   label,
   value,
   valueClassName = 'text-foreground',
+  fontScale,
 }: {
   label: string;
   value: string;
   valueClassName?: string;
+  fontScale: number;
 }) {
   return (
     <View style={{ flex: 1 }}>
-      <Text className="font-inter-semibold text-muted text-[10px] uppercase">{label}</Text>
-      <Text className={`font-sora-bold text-[14px] ${valueClassName}`} numberOfLines={1}>
+      <Text
+        allowFontScaling={false}
+        numberOfLines={resolveLoneWordLines(label, 2, fontScale)}
+        style={scaledTextStyle(Type.pillLabel, fontScale)}
+        className="font-inter-semibold text-muted uppercase"
+      >
+        {label}
+      </Text>
+      <Text
+        {...resolveFitAmountTextProps(Type.body, fontScale)}
+        className={`font-sora-bold ${valueClassName}`}
+      >
         {value}
       </Text>
     </View>

@@ -3,7 +3,10 @@ import type { ReactNode } from 'react';
 import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { Type } from '@/constants/theme';
 import { StatCards } from '@/modules/dashboard/screens/dashboard/components/stat_cards';
 import { ms } from '@/utils/responsive';
 
@@ -147,5 +150,24 @@ describe('StatCards month-spend spoken figures', () => {
 
     expect(getByLabelText('3,000 EGP Spent')).toBeTruthy();
     expect(getByLabelText('20.00 USD Spent')).toBeTruthy();
+  });
+});
+
+describe('StatCards text at the window font scale', () => {
+  it('fits the net worth value to its line and scales the assets label app-side', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const { getByText } = await render(
+      <StatCards {...baseProps} netWorthLoading={false} monthSpendLoading />,
+    );
+
+    const netWorth = getByText(/1,000/);
+    expect(netWorth).toHaveProp('allowFontScaling', false);
+    expect(netWorth).toHaveProp('adjustsFontSizeToFit', true);
+    expect(netWorth).toHaveStyle(scaledTextStyle(Type.title, fontScale));
+    const assetsLabel = getByText(`${Strings.dashAssetsLabel} (${baseProps.assetsCount})`);
+    expect(assetsLabel).toHaveProp('allowFontScaling', false);
+    expect(assetsLabel).toHaveStyle(scaledTextStyle(Type.caption, fontScale));
   });
 });

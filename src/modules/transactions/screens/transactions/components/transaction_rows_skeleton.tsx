@@ -12,6 +12,7 @@ import {
   TRANSACTION_ROW_CODE_FONT_SIZE,
   TRANSACTION_ROW_LINE_GAP,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
+  resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
 } from './transaction_row.helpers';
 import {
@@ -69,6 +70,15 @@ function SkeletonRow({ row, showSeparator, showTile }: RowProps): React.ReactEle
               marginTop: TRANSACTION_ROW_LINE_GAP,
             }}
           />
+          {resolveTransactionRowCaptionLines(fontScale) === 2 ? (
+            <SkeletonGroup.Item
+              className="w-14 rounded-md"
+              style={{
+                height: lineBar(TRANSACTION_ROW_CAPTION_FONT_SIZE),
+                marginTop: TRANSACTION_ROW_LINE_GAP,
+              }}
+            />
+          ) : null}
         </View>
         <View testID="transaction-row-skeleton-value" style={{ alignItems: 'flex-end' }}>
           <SkeletonGroup.Item

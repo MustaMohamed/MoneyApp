@@ -2,7 +2,7 @@ import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIco
 import type React from 'react';
 import { PixelRatio } from 'react-native';
 
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
+import { resolveRowStacking, scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -50,6 +50,22 @@ export const TRANSACTION_ROW_TITLE_BADGE_CHROME = 2 * (2 + 1);
 export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT =
   lineHeightFor(Type.compactBadge) + TRANSACTION_ROW_TITLE_BADGE_CHROME;
 export const TRANSACTION_ROW_CAPTION_SEPARATOR = ' · ';
+// Percent of the row's inner width.
+export const TRANSACTION_ROW_VALUE_TRACK_MAX_SHARE = 50;
+
+/** Above font scale 1 the time takes its own line under the note. */
+export function resolveTransactionRowCaptionLines(fontScale: number): 1 | 2 {
+  return resolveRowStacking(fontScale) === 'stacked' ? 2 : 1;
+}
+
+/** `undefined` at or below scale 1, where the track hugs its content; above, a wide rate line cannot take the note's room. */
+export function resolveTransactionRowValueTrackMaxWidth(
+  fontScale: number,
+): `${number}%` | undefined {
+  return resolveRowStacking(fontScale) === 'stacked'
+    ? `${TRANSACTION_ROW_VALUE_TRACK_MAX_SHARE}%`
+    : undefined;
+}
 
 function rowLineBox(fontSize: number, fontScale: number): number {
   return lineHeightFor(scaledFontSize(fontSize, fontScale));
@@ -61,7 +77,9 @@ function rowTallerColumn(fontScale: number): number {
     rowLineBox(Type.compactBadge, fontScale) + TRANSACTION_ROW_TITLE_BADGE_CHROME,
   );
   const content =
-    titleLine + TRANSACTION_ROW_LINE_GAP + rowLineBox(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale);
+    titleLine +
+    resolveTransactionRowCaptionLines(fontScale) *
+      (TRANSACTION_ROW_LINE_GAP + rowLineBox(TRANSACTION_ROW_CAPTION_FONT_SIZE, fontScale));
   const value =
     rowLineBox(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale) +
     TRANSACTION_ROW_LINE_GAP +

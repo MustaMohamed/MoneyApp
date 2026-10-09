@@ -5,6 +5,7 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
+import { resolveFitAmountTextProps } from '@/components/ui/text_scale.geometry';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Type, lineHeightFor } from '@/constants/theme';
@@ -95,6 +96,7 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
   const progress = counts.total > 0 ? counts.paid / counts.total : 0;
   const progressPct = Math.round(progress * 100);
   const totalsLine = formatCurrencyTotals(totalsByCurrency);
+  const { fontScale } = useWindowDimensions();
 
   return (
     <Card className="bg-surface border-border mx-4 mb-2 gap-1 rounded-2xl border px-3 py-2">
@@ -110,7 +112,10 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
               <Text className="font-inter text-muted text-[10px] tracking-wide uppercase">
                 {Strings.commitmentsTotalCommitted}
               </Text>
-              <Text className="font-sora-bold text-foreground text-[16px]" numberOfLines={1}>
+              <Text
+                {...resolveFitAmountTextProps(Type.subhead, fontScale)}
+                className="font-sora-bold text-foreground"
+              >
                 {totalsLine}
               </Text>
             </View>
