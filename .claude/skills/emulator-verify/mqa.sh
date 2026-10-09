@@ -936,7 +936,7 @@ swipe_once() {
 
 # --until stops on the first on-screen match, or when a swipe no longer changes the screen: the end of the list.
 cmd_scroll() {
-  local dir="${1:?usage: mqa scroll <up|down> [--in <sel>] [--until <sel>]}" target="" f i sig last="" still=0
+  local dir="${1:?usage: mqa scroll <up|down> [--in <sel>] [--until <sel>]}" target="" f i n w s sig last="" still=0
   shift
   need_device
   while [ $# -gt 0 ]; do
@@ -948,8 +948,16 @@ cmd_scroll() {
   done
   if [ -z "$target" ]; then swipe_once "$dir"; uses_ad || dump; return; fi
   for ((i = 0; i <= 25; i++)); do
-    f="$(snap_file)"
-    if [ "$(query where "$f" "$target")" = on ]; then echo "reached $target after $i swipes"; return; fi
+    f="$(snap_file)"; w="$(query where "$f" "$target")"
+    # A first read can land while the screen loads and miss a target that is there: an absent target holds the first swipe until two reads match.
+    if [ "$i" = 0 ] && [ "$w" = absent ]; then
+      sig="$(query sig "$f")"
+      for ((n = 0; n < 8; n++)); do
+        sleep 0.5; s="$sig"; f="$(snap_file)"; w="$(query where "$f" "$target")"; sig="$(query sig "$f")"
+        if [ "$w" != absent ] || [ "$s" = "$sig" ]; then break; fi
+      done
+    fi
+    if [ "$w" = on ]; then echo "reached $target after $i swipes"; return; fi
     sig="$(query sig "$f")"
     # One still swipe can be a paginated list fetching its next page; two in a row is its end.
     if [ "$sig" = "$last" ]; then
@@ -1112,7 +1120,8 @@ screen      read [scope]            what is on screen with refs and testIDs; a s
             tap <sel> | fill <sel> <text>   each waits up to 10 s for its target; tap scrolls an off-screen target in
             wait <sel> [ms]         wait for the value you are about to assert (default 10000)
             scroll <up|down> [--in <sel>] [--until <sel>]   a raw drag, inside <sel> when given (a sheet's form);
-                                    --until stops on sight, or where the list stops moving
+                                    --until stops on sight, or where the list stops moving; with no such node
+                                    in its first read it holds the first swipe until two reads match
             type <text> | clear | key <code> | back | tapxy <x> <y> | park | ime-down | ui | find <label>
 evidence    shot [name] [--crop <sel>] [--out <dir>]   cropped to the largest match of <sel>
             db "<sql>" | schema [table]        query the device's SQLite · its tables and columns

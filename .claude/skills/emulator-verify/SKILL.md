@@ -39,7 +39,7 @@ Metro, so `claim`, `claims`, `needs-build`, `metro` and `help` are not part of a
 | `bounds <sel>...` | every match: x, y, width and height in dp, testID, enabled or disabled, selected |
 | `tap <sel>` · `fill <sel> <text>` · `type` · `clear` · `key <code>` · `back` | act; `tap` and `fill` first wait up to 10 s for their target, and `fill` focuses, clears and types in one call. `tap` scrolls a target its list has moved out of view back in, and presses a match whose candidates all carry one label (a Pressable and the View inside it) |
 | `wait <sel> [ms]` | block until a selector is on screen (default 10000 ms); when agent-device's own wait fails for any reason but a screen that never goes idle (a lost capture session on a loaded device), mqa polls plain snapshots for the same budget again |
-| `scroll <up\|down> [--in <sel>] [--until <sel>]` | a raw drag under both engines (agent-device's own scroll does not move this app's lists), inside `<sel>` when given; `--until` stops when the selector is on screen, or when two swipes in a row no longer move the list (one still swipe can be a page loading) |
+| `scroll <up\|down> [--in <sel>] [--until <sel>]` | a raw drag under both engines (agent-device's own scroll does not move this app's lists), inside `<sel>` when given; `--until` stops when the selector is on screen, or when two swipes in a row no longer move the list (one still swipe can be a page loading); when its first read holds no such node, on screen or off, it holds the first swipe until two reads in a row match, for 8 more reads at most (§ Sync on the value you assert) |
 | `shot [name] [--crop <sel>] [--out <dir>]` | screencap (~0.2 s); `--crop` cuts it to the largest node matching the selector, in pixels, no padding |
 | `db "<sql>"` · `schema [table]` | query the on-device SQLite · its tables and columns; read the columns before writing SQL |
 | `seed <file.db>` · `seed --save <file.db>` | replace the app's database and relaunch · save the device's database, WAL folded in, as a seed |
@@ -158,6 +158,18 @@ The agent-device engine reads a screen in under half a second, fast enough to ca
 before it settles. On MA-102 the totals strip still read the unfiltered month just after
 the filter badge showed `Filter, 1 active`, in 2 of 4 runs. `mqa wait '−2,100'`, then read.
 A wait on a nearby label is how a fast read reports a stale screen.
+
+`scroll --until` reads before it swipes, so the rule covers it. A first read that lands
+while a screen loads misses a target the loaded screen shows, and the swipe that follows
+exits 0 as `reached <sel> after 1 swipes`: on 2026-10-09 `mqa open /transactions` then
+`scroll down --until 'label="Filter"'` did so in 2 of 2 runs. The verb holds its first
+swipe while its reads still change, and with the hold the same two runs took 0 swipes. A
+screen that sits unchanged while its data loads still reads as settled. So after a load (a
+cold launch, `mqa open`, a tap that navigates), `mqa wait` on a node the screen draws from
+its data and shows unscrolled, never on the node `up --ready` already waited for, then
+scroll. A swipe the recipe did not need can leave a node at the scroll viewport's edge,
+where `mqa bounds` reads its box shorter (MA-162, `N4 ready card, rate needed, large font`
+in `features/onboarding.md`).
 
 ## Uiautomator engine: three ordering rules
 
@@ -311,6 +323,7 @@ device QA: this is "verified on emulator", never "QA passed".
 | `logcat --pid`, `pidof`, `dumpsys input_method` by hand | `mqa logs` is already scoped to the app's process; `mqa state` prints pid, top activity and keyboard. |
 | Reading or waiting on a loading skeleton | It never goes idle, so every read costs 30 s and fails. `shot` it. |
 | `scroll` inside a sheet from a full-screen drag | Pass `--in 'id="<the sheet's scroll view>"'` so the drag starts inside the list. |
+| `scroll --until` as the first call after a launch, `mqa open` or a tap that navigates | `reached <sel> after 1 swipes`, exit 0, on a target the loaded screen shows with no scroll. `mqa wait` first (§ Sync on the value you assert). |
 | Going wide "to be safe" | Measured on MA-007: the 9-scenario walk cost 2× the 4-scenario one **and missed the defect the short one found**. |
 | A walk driven one tool call per tap | Every call is a model turn. Put the scenario in a script and run `mqa walk`. |
 | Waiting on a nearby label, then reading the value | The value can lag the label (MA-102 totals strip). `mqa wait` on the value itself. |
