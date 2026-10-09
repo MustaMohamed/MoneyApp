@@ -242,8 +242,11 @@ describe('TransactionRow ownership actions', () => {
     const { fontScale } = Dimensions.get('window');
     expect(fontScale).toBeGreaterThan(1);
     const amount = getByText('100.00');
-    expect(amount).toHaveProp('allowFontScaling', false);
-    expect(amount).toHaveStyle(scaledTextStyle(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale));
+    const amountFit = resolveFitAmountTextProps(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale);
+    expect(amount).toHaveProp('numberOfLines', amountFit.numberOfLines);
+    expect(amount).toHaveProp('allowFontScaling', amountFit.allowFontScaling);
+    expect(amount).toHaveProp('adjustsFontSizeToFit', amountFit.adjustsFontSizeToFit);
+    expect(amount).toHaveStyle(amountFit.style);
     const fit = resolveFitAmountTextProps(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale);
     const code = getByText('→ 4,850 EGP');
     expect(code).toHaveProp('numberOfLines', fit.numberOfLines);

@@ -115,7 +115,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
               allowFontScaling={false}
               style={scaledTextStyle(Type.chip, fontScale)}
               className="font-inter text-content-secondary text-right"
-              numberOfLines={resolveLoneWordLines(presentation.varianceMetaLabel, 2)}
+              numberOfLines={resolveLoneWordLines(presentation.varianceMetaLabel, 2, fontScale)}
             >
               {presentation.varianceMetaLabel}
             </Text>

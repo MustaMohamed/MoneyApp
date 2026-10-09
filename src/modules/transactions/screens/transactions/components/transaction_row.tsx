@@ -150,6 +150,7 @@ export function TransactionRowBody({
   // Above 1.0 the badge and the label give up their width before the title does.
   const badgeShrinks = fontScale > 1;
   const captionStacked = resolveTransactionRowCaptionLines(fontScale) === 2;
+  const primaryText = resolveFitAmountTextProps(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale);
   const secondaryText = resolveFitAmountTextProps(TRANSACTION_ROW_CODE_FONT_SIZE, fontScale);
 
   return (
@@ -258,10 +259,8 @@ export function TransactionRowBody({
             }}
           >
             <Text
-              allowFontScaling={false}
+              {...primaryText}
               className={`font-sora tabular-nums ${presentation.amountClassName}`}
-              style={scaledTextStyle(TRANSACTION_ROW_AMOUNT_FONT_SIZE, fontScale)}
-              numberOfLines={1}
             >
               {presentation.primaryAmount}
             </Text>

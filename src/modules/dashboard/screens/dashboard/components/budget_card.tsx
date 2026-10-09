@@ -198,7 +198,7 @@ function Figure({
     <View style={{ flex: 1 }}>
       <Text
         allowFontScaling={false}
-        numberOfLines={resolveLoneWordLines(label, 2)}
+        numberOfLines={resolveLoneWordLines(label, 2, fontScale)}
         style={scaledTextStyle(Type.pillLabel, fontScale)}
         className="font-inter-semibold text-muted uppercase"
       >

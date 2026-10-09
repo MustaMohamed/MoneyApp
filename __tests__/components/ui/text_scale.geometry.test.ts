@@ -57,17 +57,22 @@ describe('resolveRowStacking', () => {
 });
 
 describe('resolveLoneWordLines', () => {
-  it('gives a lone word one line', () => {
-    expect(resolveLoneWordLines('Housing', 2)).toBe(1);
+  it('gives a lone word one line above a font scale of 1', () => {
+    expect(resolveLoneWordLines('Housing', 2, 2)).toBe(1);
+    expect(resolveLoneWordLines('Housing', 2, 1.15)).toBe(1);
   });
 
   it('reads a word with space around it as a lone word', () => {
-    expect(resolveLoneWordLines(' Subscriptions ', 2)).toBe(1);
+    expect(resolveLoneWordLines(' Subscriptions ', 2, 2)).toBe(1);
   });
 
   it('keeps the line cap of the caller for a text of several words', () => {
-    expect(resolveLoneWordLines('Health & Fitness', 2)).toBe(2);
-    expect(resolveLoneWordLines('Health & Fitness', 3)).toBe(3);
+    expect(resolveLoneWordLines('Health & Fitness', 2, 2)).toBe(2);
+    expect(resolveLoneWordLines('Health & Fitness', 3, 2)).toBe(3);
+  });
+
+  it('keeps the line cap of the caller for a lone word at a font scale of 1', () => {
+    expect(resolveLoneWordLines('Housing', 2, 1)).toBe(2);
   });
 });
 

@@ -38,8 +38,9 @@ export type LoadErrorAlertProps =
       minHeight?: number;
     })
   | (LoadErrorAlertCommonProps & {
-      /** The alert alone, inside a box its caller owns; `testID` is not applied. */
+      /** The alert alone, inside a box its caller owns, so it takes no `testID`. */
       mode: 'bare';
+      testID?: never;
     });
 
 // Tailwind resolves at build time, so every class a map can return must be a complete literal.

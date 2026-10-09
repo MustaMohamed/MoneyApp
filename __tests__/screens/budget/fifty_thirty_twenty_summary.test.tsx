@@ -79,7 +79,6 @@ describe('MonthlyRuleSummary', () => {
     const screen = await render(<MonthlyRuleSummary vm={lens} onEditIncome={jest.fn()} />);
 
     const metrics = screen.getByTestId('budget-summary-metrics');
-    expect(metrics).toHaveStyle({ flexDirection: 'column' });
     const { incomeMetricValue, plannedMetricValue, notGroupedMetricValue } =
       lens.summary.presentation;
     for (const [label, value] of [

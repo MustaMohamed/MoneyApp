@@ -9,6 +9,8 @@ import type { BudgetRuleLensVM } from '@/modules/budget/screens/budget/budget_bu
 export function NotGroupedRow({ value }: { value: NonNullable<BudgetRuleLensVM['notGrouped']> }) {
   const { presentation } = value;
   const { fontScale } = useWindowDimensions();
+  // Above font scale 1 the amounts wrap between words with no cap, so neither ends in `…` after a group.
+  const amountLines = fontScale > 1 ? undefined : 2;
 
   return (
     <View className="border-border bg-surface mx-4 mt-2 flex-row items-center gap-2 rounded-xl border px-3 py-2">
@@ -33,7 +35,7 @@ export function NotGroupedRow({ value }: { value: NonNullable<BudgetRuleLensVM['
         allowFontScaling={false}
         style={scaledTextStyle(Type.micro, fontScale)}
         className="font-inter-medium text-content-secondary max-w-[46%] text-right"
-        numberOfLines={2}
+        numberOfLines={amountLines}
       >
         {presentation.amountsLabel}
       </Text>

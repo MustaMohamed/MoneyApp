@@ -14,6 +14,7 @@ import {
   openRow,
   subscribeToRegistry,
 } from '@/utils/swipeable_row_registry';
+import { DRAG_CANCEL_DISTANCE } from '@/utils/use_drag_cancelled_press.hook';
 
 type MaterialIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -160,6 +161,8 @@ export function SwipeableRow({
         enabled={!disabled}
         renderRightActions={renderRightActions}
         rightThreshold={ACTION_TILE_WIDTH * 0.4}
+        dragOffsetFromLeftEdge={DRAG_CANCEL_DISTANCE}
+        dragOffsetFromRightEdge={DRAG_CANCEL_DISTANCE}
         onSwipeableOpen={handleSwipeOpen}
         onSwipeableClose={handleSwipeClose}
         overshootRight={false}

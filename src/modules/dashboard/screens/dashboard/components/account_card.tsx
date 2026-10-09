@@ -4,13 +4,14 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import {
+  resolveFitAmountTextProps,
   resolveOneLineTextProps,
   scaledTextStyle,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { AccountType, type Currency } from '@/constants/enums';
-import { Colors, Size, Type, lineHeightFor, withAlpha } from '@/constants/theme';
+import { Colors, Size, Type, withAlpha } from '@/constants/theme';
 import { resolveAccountBalanceColorClass } from '@/modules/accounts/constants/account_balance_color';
 import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_palette';
 import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
@@ -20,7 +21,7 @@ import type { Account } from '@/modules/accounts/store/account.store';
 import { buildInfoRows } from '@/modules/accounts/utils/account_info_rows';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatOwnedAmount } from '@/utils/format_amount';
-import { ms, msFont } from '@/utils/responsive';
+import { ms } from '@/utils/responsive';
 
 // The `caption` variant's raw px, so above 1.0 the value grows from the size it draws at 1.0.
 const ACCOUNT_CARD_ROW_VALUE_FONT_SIZE = 11;
@@ -54,6 +55,7 @@ export function AccountCard({
   const { fontScale } = useWindowDimensions();
   const valueText = scaledTextStyleAboveOne(ACCOUNT_CARD_ROW_VALUE_FONT_SIZE, fontScale);
   const nameText = resolveOneLineTextProps(scaledTextStyle(ACCOUNT_CARD_NAME_FONT_SIZE, fontScale));
+  const balanceText = resolveFitAmountTextProps(Type.emptyTitle, fontScale);
 
   const showProgress = isCreditCard && (account.credit_limit ?? 0) > 0;
   const limit = account.credit_limit ?? 0;
@@ -124,9 +126,9 @@ export function AccountCard({
               </View>
               <Text
                 variant="numMd"
-                numberOfLines={1}
                 className={resolveAccountBalanceColorClass(account.type)}
-                style={{ flex: 1, fontSize: msFont(17), lineHeight: lineHeightFor(msFont(17)) }}
+                {...balanceText}
+                style={{ ...balanceText.style, flex: 1 }}
               >
                 {formatOwnedAmount(account.current_balance, account.currency)}
               </Text>
@@ -169,9 +171,10 @@ export function AccountCard({
                     variant="caption"
                     numberOfLines={1}
                     allowFontScaling={valueText === undefined}
+                    adjustsFontSizeToFit={valueText !== undefined}
                     style={[
                       { textAlign: 'right' },
-                      valueText,
+                      valueText ? { ...valueText, flexShrink: 1 } : undefined,
                       row.valueColor ? { color: row.valueColor } : undefined,
                     ]}
                   >

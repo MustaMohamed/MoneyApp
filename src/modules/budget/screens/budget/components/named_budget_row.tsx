@@ -59,7 +59,7 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
         <View style={{ flex: 1 }}>
           <View className={stacked ? undefined : 'flex-row items-start gap-1.5'}>
             <Typography
-              numberOfLines={resolveLoneWordLines(budget.name, 2)}
+              numberOfLines={resolveLoneWordLines(budget.name, 2, fontScale)}
               allowFontScaling={false}
               style={scaledTextStyle(Type.caption, fontScale)}
               className={

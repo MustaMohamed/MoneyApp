@@ -151,6 +151,47 @@ describe('useDragCancelledPress', () => {
     expect(feedback.onPressOut).toHaveBeenCalledTimes(2);
   });
 
+  it('a press-in on the move that brings a cancelled touch back into the row keeps the cancel', async () => {
+    const { onPress, feedback, result } = await renderPress();
+
+    result.current.onPressIn(touchAt(100, 200));
+    result.current.onPressMove(touchAt(115, 200));
+    result.current.onPressMove(touchAt(115, 260));
+    result.current.onPressOut(touchAt(115, 260));
+    await Promise.resolve();
+    const reentry = touchAt(115, 200);
+    result.current.onPressMove(reentry);
+    result.current.onPressIn(reentry);
+    result.current.onPressOut(touchAt(115, 200));
+    result.current.onPress();
+
+    expect(onPress).not.toHaveBeenCalled();
+    expect(feedback.onPressIn).toHaveBeenCalledTimes(1);
+    expect(feedback.onPressOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('a press-in of a new touch after that re-entry clears the cancel', async () => {
+    const { onPress, feedback, result } = await renderPress();
+
+    result.current.onPressIn(touchAt(100, 200));
+    result.current.onPressMove(touchAt(115, 200));
+    result.current.onPressOut(touchAt(115, 260));
+    await Promise.resolve();
+    const reentry = touchAt(115, 200);
+    result.current.onPressMove(reentry);
+    result.current.onPressIn(reentry);
+    result.current.onPressOut(touchAt(115, 200));
+    result.current.onPress();
+    await Promise.resolve();
+
+    result.current.onPressIn(touchAt(100, 200));
+    result.current.onPressOut(touchAt(100, 200));
+    result.current.onPress();
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(feedback.onPressIn).toHaveBeenCalledTimes(2);
+  });
+
   it('with no feedback handlers a drag still cancels and a tap still fires', async () => {
     const onPress = jest.fn();
     const { result } = await renderHook(() => useDragCancelledPress(onPress));

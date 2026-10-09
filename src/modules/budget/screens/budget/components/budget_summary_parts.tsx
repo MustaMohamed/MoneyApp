@@ -4,12 +4,16 @@ import { Fragment, type ComponentProps } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import {
-  resolveRowStacking,
-  scaledTextStyle,
-  type RowStacking,
-} from '@/components/ui/text_scale.geometry';
-import { Colors, LetterSpacing, Size, Type, lineHeightFor } from '@/constants/theme';
+import { resolveFitAmountTextProps, resolveRowStacking } from '@/components/ui/text_scale.geometry';
+import { Colors, LetterSpacing, Size, TouchSize, Type, lineHeightFor } from '@/constants/theme';
+
+// Half the stacked metric row at most, so a label word keeps its line beside a long value.
+const STACKED_METRIC_VALUE_MAX_WIDTH = '50%';
+const STACKED_METRIC_ROW_STYLE = { flexDirection: 'row', alignItems: 'center' } as const;
+const STACKED_METRIC_PRESSABLE_STYLE = {
+  ...STACKED_METRIC_ROW_STYLE,
+  minHeight: TouchSize.min,
+} as const;
 
 interface BudgetSummaryHeaderProps {
   eyebrowLabel: string;
@@ -56,6 +60,9 @@ export function BudgetSummaryHeader({
   trailingActionAccessibilityLabel,
   onTrailingAction,
 }: BudgetSummaryHeaderProps) {
+  const { fontScale } = useWindowDimensions();
+  // Above font scale 1 the eyebrow and the trailing label wrap between words, where one line cut inside a word.
+  const labelLines = fontScale > 1 ? 2 : 1;
   return (
     <>
       <View className="flex-row items-center justify-between gap-2">
@@ -66,7 +73,7 @@ export function BudgetSummaryHeader({
             letterSpacing: LetterSpacing.eyebrow,
           }}
           className="font-inter-semibold text-content-secondary shrink uppercase"
-          numberOfLines={1}
+          numberOfLines={labelLines}
         >
           {eyebrowLabel}
         </Text>
@@ -160,7 +167,7 @@ export function BudgetSummaryHeader({
           <Text
             style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
             className="font-inter-semibold text-content-secondary shrink"
-            numberOfLines={1}
+            numberOfLines={labelLines}
           >
             {trailingLabel}
           </Text>
@@ -207,8 +214,7 @@ export function BudgetSummarySpentRow({
 
 export function BudgetSummaryMetricsRow({ items }: { items: BudgetSummaryMetricItem[] }) {
   const { fontScale } = useWindowDimensions();
-  const layout = resolveRowStacking(fontScale);
-  const stacked = layout === 'stacked';
+  const stacked = resolveRowStacking(fontScale) === 'stacked';
   return (
     <View
       testID="budget-summary-metrics"
@@ -217,30 +223,22 @@ export function BudgetSummaryMetricsRow({ items }: { items: BudgetSummaryMetricI
           ? 'border-border mt-1.5 border-t pt-1'
           : 'border-border mt-1.5 flex-row items-stretch border-t pt-1'
       }
-      style={stacked ? { flexDirection: 'column' } : undefined}
     >
       {items.map((item, index) => (
         <Fragment key={item.key}>
           {index > 0 ? <View className={stacked ? 'bg-border h-px' : 'bg-border w-px'} /> : null}
-          <BudgetSummaryMetric item={item} layout={layout} />
+          <BudgetSummaryMetric item={item} />
         </Fragment>
       ))}
     </View>
   );
 }
 
-function BudgetSummaryMetric({
-  item,
-  layout,
-}: {
-  item: BudgetSummaryMetricItem;
-  layout: RowStacking;
-}) {
+function BudgetSummaryMetric({ item }: { item: BudgetSummaryMetricItem }) {
   const { fontScale } = useWindowDimensions();
-  const stacked = layout === 'stacked';
-  const metricClassName = stacked
-    ? 'flex-row items-center gap-2 px-1 py-1'
-    : 'flex-1 items-center justify-center px-1';
+  const stacked = resolveRowStacking(fontScale) === 'stacked';
+  const metricClassName = stacked ? 'gap-2 px-1 py-1' : 'flex-1 items-center justify-center px-1';
+  const valueText = resolveFitAmountTextProps(Type.bodyStrong, fontScale);
   const content = stacked ? (
     <>
       <Text
@@ -250,8 +248,8 @@ function BudgetSummaryMetric({
         {item.label}
       </Text>
       <Text
-        allowFontScaling={false}
-        style={{ flexShrink: 0, ...scaledTextStyle(Type.bodyStrong, fontScale) }}
+        {...valueText}
+        style={{ ...valueText.style, flexShrink: 0, maxWidth: STACKED_METRIC_VALUE_MAX_WIDTH }}
         className={
           item.tone === 'warning'
             ? 'font-sora-semibold text-warning text-right'
@@ -288,11 +286,14 @@ function BudgetSummaryMetric({
       accessibilityLabel={item.accessibilityLabel}
       onPress={item.onPress}
       className={metricClassName}
+      style={stacked ? STACKED_METRIC_PRESSABLE_STYLE : undefined}
     >
       {content}
     </PressableFeedback>
   ) : (
-    <View className={metricClassName}>{content}</View>
+    <View className={metricClassName} style={stacked ? STACKED_METRIC_ROW_STYLE : undefined}>
+      {content}
+    </View>
   );
 }
 
