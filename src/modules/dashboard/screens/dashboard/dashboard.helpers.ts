@@ -19,7 +19,7 @@ import type {
   DashboardTransactionFactRow,
 } from '@/modules/dashboard/database/dashboard_snapshot';
 import { resolveAccountName } from '@/utils/account_name';
-import { roundMoney } from '@/utils/money';
+import { ratioHeldAtTie, roundMoney, snapToZero } from '@/utils/money';
 
 /** Sums into `baseCurrency`, the reporting currency, not the EGP storage currency. */
 export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
@@ -273,8 +273,8 @@ export function buildDashboardBudgetSummary(
   return {
     budgeted,
     spent,
-    left: budgeted - spent,
-    pct: budgeted > 0 ? spent / budgeted : 0,
+    left: snapToZero(budgeted - spent),
+    pct: budgeted > 0 ? ratioHeldAtTie(spent, budgeted) : 0,
     categoryCount: categories.size,
   };
 }

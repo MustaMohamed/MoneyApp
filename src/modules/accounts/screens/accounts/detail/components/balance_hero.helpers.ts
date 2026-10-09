@@ -39,7 +39,7 @@ export function buildHeroCaption(account: Account): HeroCaption {
         formatAmount(limit, decimals),
       ),
       adjusted: false,
-      color: availableCreditColor(available, limit),
+      color: availableCreditColor(account.current_balance, limit),
     };
   }
 

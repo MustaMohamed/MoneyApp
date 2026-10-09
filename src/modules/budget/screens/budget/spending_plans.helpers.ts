@@ -33,7 +33,7 @@ import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';
-import { sumAllocations } from '@/utils/money';
+import { exceedsToCent, ratioHeldAtTie, sumAllocations } from '@/utils/money';
 
 import { BUDGET_WARNING_THRESHOLD, remainingLabel, type BudgetStatus } from './budget.helpers';
 
@@ -101,7 +101,7 @@ function buildSpendingPlanAllocationCardChip(
   const allocatedLabel = formatAmount(allocation.allocatedAmount);
   const percentage = Math.round(allocation.pct * 100);
   const percentageLabel =
-    allocation.allocatedAmount === 0 && allocation.spent > 0
+    allocation.allocatedAmount === 0 && allocation.isOver
       ? PLAN_STATUS_PRESENTATION.over.label
       : `${percentage}%`;
   return {
@@ -274,7 +274,7 @@ function buildDetailCategoryRow(
   const allocatedLabel = formatAmount(row.allocatedAmount);
   const percentage = Math.round(row.pct * 100);
   const percentageLabel =
-    row.allocatedAmount === 0 && row.spent > 0
+    row.allocatedAmount === 0 && row.isOver
       ? PLAN_STATUS_PRESENTATION.over.label
       : `${percentage}%`;
   const balance = remainingLabel(row.left);
@@ -525,9 +525,9 @@ export function buildSpendingPlanRows({
           const category = categoryById.get(row.category_id);
           const allocatedAmount = row.allocated_amount;
           const categorySpent = spend[row.category_id] ?? 0;
+          const isOver = exceedsToCent(categorySpent, allocatedAmount);
           const pct =
-            allocatedAmount > 0 ? categorySpent / allocatedAmount : categorySpent > 0 ? 1 : 0;
-          const isOver = categorySpent > allocatedAmount;
+            allocatedAmount > 0 ? ratioHeldAtTie(categorySpent, allocatedAmount) : isOver ? 1 : 0;
           return {
             categoryId: row.category_id,
             categoryName: category?.name ?? row.category_id,
@@ -559,13 +559,13 @@ export function buildSpendingPlanRows({
           return { ...shared, isOver: false, isWarning: false };
         }
 
+        const isOver = exceedsToCent(categorySpent, row.allocated_amount);
         const pct =
           row.allocated_amount > 0
-            ? categorySpent / row.allocated_amount
-            : categorySpent > 0
+            ? ratioHeldAtTie(categorySpent, row.allocated_amount)
+            : isOver
               ? 1
               : 0;
-        const isOver = categorySpent > row.allocated_amount;
         return {
           ...shared,
           allocatedAmount: row.allocated_amount,
@@ -593,7 +593,7 @@ export function buildSpendingPlanRows({
         return row.pct > highest.pct ? row : highest;
       }, undefined);
       const pct = plan.total_amount > 0 ? spent / plan.total_amount : 0;
-      const isOver = spent > plan.total_amount;
+      const isOver = exceedsToCent(spent, plan.total_amount);
       const timing = computePlanTiming(plan.start_date, plan.end_date, today);
       const paceDelta = pct - timing.elapsedPct;
       const status = derivePlanStatus({

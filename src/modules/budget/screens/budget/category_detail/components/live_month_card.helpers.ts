@@ -1,6 +1,7 @@
 import { Currency } from '@/constants/enums';
 import { Colors } from '@/constants/theme';
 import { formatOwnedAmountParts } from '@/utils/format_amount';
+import { snapToZero } from '@/utils/money';
 
 /**
  * "Left to spend" is an owned magnitude, same family as `budget_card.tsx`'s left figure: unsigned
@@ -13,7 +14,7 @@ export function resolveLiveMonthLeftPresentation(
   limit: number,
   spent: number,
 ): { text: string; color: string } {
-  const left = limit - spent;
+  const left = snapToZero(limit - spent);
   return {
     text: formatOwnedAmountParts(left, Currency.EGP).value,
     color: left >= 0 ? Colors.dark.positive : Colors.dark.negative,
