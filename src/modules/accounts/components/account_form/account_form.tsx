@@ -1,12 +1,13 @@
 import React from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { useWindowDimensions } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { FormLabelText } from '@/components/ui/form_label_text';
 import { Input } from '@/components/ui/input';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { CurrencySelector } from '@/modules/currency';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
@@ -15,7 +16,10 @@ import { AccountColorField } from './account_color_field';
 import {
   CURRENCY_CELL_WIDTH,
   CURRENCY_SEGMENT_WIDTH,
+  CURRENCY_TABS_MAX_FONT_SCALE,
   resolveBalanceField,
+  resolveBalanceRowLabelLines,
+  resolveCurrencyTabsBoxHeight,
 } from './account_form.geometry';
 import { AccountTypeSelector } from './account_type_selector';
 import { BalanceCurrencySuffix } from './balance_currency_suffix';
@@ -35,6 +39,8 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
   const selectedType = useWatch({ control, name: 'selected_type' });
   const isCreditCard = selectedType === AccountType.CreditCard;
   const balanceField = resolveBalanceField(selectedType);
+  const { fontScale } = useWindowDimensions();
+  const balanceRowLabelLines = resolveBalanceRowLabelLines(fontScale);
 
   return (
     <>
@@ -65,7 +71,7 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
       <Box className="pt-1" style={{ flexDirection: 'row', gap: Spacing.xs }}>
         <Box style={{ flex: 1 }}>
           {/* Pass `label` only; spreading `balanceField` would also pass `helper` unchecked. */}
-          <FormLabelText label={balanceField.label} numberOfLines={1} />
+          <FormLabelText label={balanceField.label} reserveLines={balanceRowLabelLines} />
           <Controller
             control={control}
             name="balance"
@@ -88,9 +94,11 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
           <FieldMessageRail control={control} name="balance" helper={balanceField.helper} />
         </Box>
         <Box style={{ width: CURRENCY_CELL_WIDTH }}>
-          <FormLabelText label={Strings.accountCurrencyLabel} />
+          <FormLabelText label={Strings.accountCurrencyLabel} reserveLines={balanceRowLabelLines} />
           {/* Height sits here, not on the column; the column would crush the label and rail. */}
-          <Box style={{ height: Size.fieldHeight, justifyContent: 'center' }}>
+          <Box
+            style={{ height: resolveCurrencyTabsBoxHeight(fontScale), justifyContent: 'center' }}
+          >
             <Controller
               control={control}
               name="currency"
@@ -99,6 +107,7 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
                   value={value}
                   onChange={onChange}
                   segmentWidth={CURRENCY_SEGMENT_WIDTH}
+                  maxFontScale={CURRENCY_TABS_MAX_FONT_SCALE}
                 />
               )}
             />

@@ -1,14 +1,31 @@
+import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
+import { Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 export type OnboardingStepIndex = 1 | 2 | 3 | 4;
 export const ONBOARDING_TOTAL_STEPS = 4;
 
 export const ONBOARDING_SHELL_TRACKS = {
-  header: Size.headerHeight,
   progressRail: Size.progressRail,
 } as const;
+
+export interface ProgressRailGeometry {
+  height: number;
+  label: ScaledTextStyle | undefined;
+}
+
+/** The rail token is the floor; `label` is `undefined` at or below scale 1, where the OS scales the labels' own pair. */
+export function resolveProgressRailGeometry(fontScale: number): ProgressRailGeometry {
+  const label = scaledTextStyleAboveOne(Type.caption, fontScale);
+  return {
+    height: Math.max(
+      ONBOARDING_SHELL_TRACKS.progressRail,
+      2 * Spacing.sm + Size.progressThin + (label?.lineHeight ?? 0),
+    ),
+    label,
+  };
+}
 
 const STEP_NAMES: Record<OnboardingStepIndex, string> = {
   1: Strings.n1StepName,

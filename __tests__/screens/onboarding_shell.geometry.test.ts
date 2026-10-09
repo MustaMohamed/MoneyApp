@@ -1,18 +1,41 @@
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
+import { Size, Spacing, Type } from '@/constants/theme';
 import {
   ONBOARDING_SHELL_TRACKS,
   ONBOARDING_TOTAL_STEPS,
   resolveAmbientWashGeometry,
   resolveProgressRail,
+  resolveProgressRailGeometry,
   type OnboardingStepIndex,
 } from '@/modules/onboarding/components/onboarding_shell/onboarding_shell.geometry';
 import { ms } from '@/utils/responsive';
 
 describe('onboarding shell geometry', () => {
   it('binds every track to its named token', () => {
-    expect(ONBOARDING_SHELL_TRACKS.header).toBe(Size.headerHeight);
     expect(ONBOARDING_SHELL_TRACKS.progressRail).toBe(Size.progressRail);
+  });
+});
+
+describe('resolveProgressRailGeometry', () => {
+  it.each([1, 0.85])(
+    'MA-162: at font scale %s the rail keeps its track and leaves its labels to the OS',
+    (fontScale) => {
+      expect(resolveProgressRailGeometry(fontScale)).toEqual({
+        height: ONBOARDING_SHELL_TRACKS.progressRail,
+        label: undefined,
+      });
+    },
+  );
+
+  it('MA-162: at font scale 2 the rail holds its bar, its padding and one scaled label line', () => {
+    const g = resolveProgressRailGeometry(2);
+    const label = scaledTextStyle(Type.caption, 2);
+    const content = 2 * Spacing.sm + Size.progressThin + label.lineHeight;
+
+    expect(g.label).toEqual(label);
+    expect(g.height).toBe(Math.max(Size.progressRail, content));
+    expect(g.height).toBeGreaterThanOrEqual(content);
   });
 });
 

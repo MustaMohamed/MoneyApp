@@ -1,5 +1,13 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 
+import { resolveHeroPillGeometry } from '@/components/ui/chip.geometry';
+import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
+import {
+  FITTED_LINE_SLACK,
+  type ScaledTextStyle,
+  scaledTextStyle,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import { Colors, Size, Spacing, Type, lineHeightFor, withAlpha } from '@/constants/theme';
 import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 import { ms } from '@/utils/responsive';
@@ -17,10 +25,10 @@ export const N4_HERO_CHIP_GLYPH = ms(14);
 const N4_HERO_LABEL_TRACKING_EM = 0.04;
 
 /** mockup.html:683, `.hero-v .n { letter-spacing: -1px }` at 40px. */
-const N4_HERO_VALUE_TRACKING_EM = -0.025;
+export const N4_HERO_VALUE_TRACKING_EM = -0.025;
 
 /** mockup.html:686, `.hero-v .n.step { letter-spacing: -0.6px }` at 28px. */
-const N4_HERO_VALUE_STEP_TRACKING_EM = -0.021;
+export const N4_HERO_VALUE_STEP_TRACKING_EM = -0.021;
 
 /** mockup.html:410, `.b-headline { line-height: 1.05 }`. */
 export const N4_HEADLINE_LINE_HEIGHT_RATIO = 1.05;
@@ -48,14 +56,18 @@ export const N4_HERO_HEAD_STYLE: Readonly<ViewStyle> = Object.freeze({
   gap: N4_HERO_GAP,
 });
 
-// The value `Text` must set `numberOfLines={1}`; `overflow: 'hidden'` slices a wrapped amount.
-/** mockup.html:677-680, `.hero-v`; fixed height, not `minHeight`, so the card cannot shift. */
-export const N4_HERO_VALUE_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze({
-  height: Size.summaryValueSlot,
+const N4_HERO_VALUE_SLOT_FLOW: Readonly<ViewStyle> = Object.freeze({
   flexDirection: 'row',
   alignItems: 'center',
   gap: N4_HERO_GAP,
   marginTop: Spacing.sm,
+});
+
+// The value `Text` must set `numberOfLines={1}`; `overflow: 'hidden'` slices a wrapped amount.
+/** mockup.html:677-680, `.hero-v`, the floor of the value slot: at or below font scale 1 both frames share one fixed height, above it the value slot's height grows and the refusal slot is a `minHeight` floor. */
+export const N4_HERO_VALUE_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze({
+  ...N4_HERO_VALUE_SLOT_FLOW,
+  height: Size.summaryValueSlot,
   overflow: 'hidden',
 });
 
@@ -69,14 +81,18 @@ export const N4_HERO_CAPTION_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze({
   overflow: 'hidden',
 });
 
-/** mockup.html:695, `.hero-pills`; height caps wrap, so a third pill clips above ~1.3 scale. */
-export const N4_HERO_PILL_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({
-  height: Size.summaryPillTrack,
+const N4_HERO_PILL_ROW_FLOW: Readonly<ViewStyle> = Object.freeze({
   flexDirection: 'row',
   flexWrap: 'wrap',
   alignItems: 'center',
   gap: N4_HERO_GAP,
   marginTop: Spacing.sm,
+});
+
+/** mockup.html:695, `.hero-pills`, the one-line track at or below scale 1; above it `resolveReadyHeroGeometry` drops the height so wrapped pills show. */
+export const N4_HERO_PILL_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({
+  ...N4_HERO_PILL_ROW_FLOW,
+  height: Size.summaryPillTrack,
   overflow: 'hidden',
 });
 
@@ -111,20 +127,6 @@ export const N4_HERO_LABEL_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
   letterSpacing: Type.caption * N4_HERO_LABEL_TRACKING_EM,
 });
 
-/** mockup.html:681-685, `.hero-v .n`. */
-export const N4_HERO_VALUE_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
-  fontSize: Type.amountEntry,
-  lineHeight: lineHeightFor(Type.amountEntry),
-  letterSpacing: Type.amountEntry * N4_HERO_VALUE_TRACKING_EM,
-});
-
-/** mockup.html:686, `.hero-v .n.step`, the step-down rung. */
-export const N4_HERO_VALUE_STEP_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
-  fontSize: Type.hero,
-  lineHeight: lineHeightFor(Type.hero),
-  letterSpacing: Type.hero * N4_HERO_VALUE_STEP_TRACKING_EM,
-});
-
 /** mockup.html:687, `.hero-v .n .cur`, the currency suffix node. */
 export const N4_HERO_CURRENCY_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
   fontSize: Type.subhead,
@@ -154,3 +156,71 @@ export const N4_SUMMARY_ROW_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
 
 /** The hero renders EGP at two decimals, against `CURRENCY_CONFIG`'s 0 for that currency. */
 export const N4_HERO_AMOUNT_DECIMALS = 2;
+
+/** A money figure at entry size stops growing at the display headline's stop. */
+export const N4_HERO_VALUE_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
+
+export interface HeroValueTextStyle extends ScaledTextStyle {
+  letterSpacing: number;
+}
+
+export interface ReadyHeroGeometry {
+  valueText: HeroValueTextStyle;
+  valueStepText: HeroValueTextStyle;
+  currencyText: Readonly<TextStyle>;
+  /** `undefined` at or below scale 1, where the OS scales the caption's own pair. */
+  captionText: ScaledTextStyle | undefined;
+  valueSlot: Readonly<ViewStyle>;
+  captionSlot: Readonly<ViewStyle>;
+  pillRow: Readonly<ViewStyle>;
+  refusalSlot: Readonly<ViewStyle>;
+}
+
+function resolveHeroValueText(
+  fontSize: number,
+  trackingEm: number,
+  fontScale: number,
+): HeroValueTextStyle {
+  const scaled = scaledTextStyle(fontSize, fontScale, N4_HERO_VALUE_MAX_FONT_SCALE);
+  return { ...scaled, letterSpacing: scaled.fontSize * trackingEm };
+}
+
+/** The value slot keeps the fit's slack at every scale; at or below scale 1 the refusal slot is the value slot itself, above it the caption slot grows and the pill row and the refusal slot become floors. */
+export function resolveReadyHeroGeometry(fontScale: number): ReadyHeroGeometry {
+  // mockup.html:681-685, `.hero-v .n`.
+  const valueText = resolveHeroValueText(Type.amountEntry, N4_HERO_VALUE_TRACKING_EM, fontScale);
+  const captionText = scaledTextStyleAboveOne(Type.caption, fontScale);
+  const valueSlotHeight = Math.max(Size.summaryValueSlot, valueText.lineHeight + FITTED_LINE_SLACK);
+  const scaled = {
+    valueText,
+    // mockup.html:686, `.hero-v .n.step`, the step-down rung.
+    valueStepText: resolveHeroValueText(Type.hero, N4_HERO_VALUE_STEP_TRACKING_EM, fontScale),
+    currencyText: {
+      ...N4_HERO_CURRENCY_TEXT_STYLE,
+      ...scaledTextStyle(Type.subhead, fontScale, N4_HERO_VALUE_MAX_FONT_SCALE),
+    },
+    valueSlot: { ...N4_HERO_VALUE_SLOT_STYLE, height: valueSlotHeight },
+  };
+  if (captionText === undefined) {
+    return {
+      ...scaled,
+      captionText,
+      captionSlot: N4_HERO_CAPTION_SLOT_STYLE,
+      pillRow: N4_HERO_PILL_ROW_STYLE,
+      refusalSlot: scaled.valueSlot,
+    };
+  }
+  return {
+    ...scaled,
+    captionText,
+    captionSlot: {
+      ...N4_HERO_CAPTION_SLOT_STYLE,
+      height: Math.max(Size.summaryCaptionSlot, N4_HERO_CAPTION_MAX_LINES * captionText.lineHeight),
+    },
+    pillRow: {
+      ...N4_HERO_PILL_ROW_FLOW,
+      minHeight: Math.max(Size.summaryPillTrack, resolveHeroPillGeometry(fontScale).height),
+    },
+    refusalSlot: { ...N4_HERO_VALUE_SLOT_FLOW, minHeight: valueSlotHeight },
+  };
+}

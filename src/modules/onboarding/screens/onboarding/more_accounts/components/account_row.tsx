@@ -1,7 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ListGroup, Typography } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
+import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
@@ -21,6 +22,7 @@ import {
 export function AccountRow({ account }: { account: Account }) {
   // Two nodes, not `formatAccountBalance`: the design stacks the value over the code.
   const { amount, code } = formatAccountBalanceParts(account.current_balance, account.currency);
+  const { fontScale } = useWindowDimensions();
 
   return (
     <ListGroup.Item
@@ -42,8 +44,7 @@ export function AccountRow({ account }: { account: Account }) {
       <ListGroup.ItemContent style={{ flex: 1, minWidth: 0 }}>
         <ListGroup.ItemTitle
           className="text-foreground font-inter-medium"
-          style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
-          numberOfLines={1}
+          {...resolveOneLineTextProps(scaledTextStyle(Type.bodyStrong, fontScale))}
           ellipsizeMode="tail"
         >
           {resolveAccountName(account)}

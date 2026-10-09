@@ -1,3 +1,5 @@
+import { PixelRatio } from 'react-native';
+
 import { Type, lineHeightFor } from '@/constants/theme';
 
 export interface ScaledTextStyle {
@@ -53,3 +55,6 @@ export function resolveOneLineTextProps(scaled: ScaledTextStyle | undefined): On
     style: { ...scaled, flexShrink: 1 },
   };
 }
+
+/** One device pixel in dp, added to a fixed-height box around a line under `adjustsFontSizeToFit`: RN ceils the line box to a whole px and a layout past its bound fails the fit. */
+export const FITTED_LINE_SLACK = 1 / PixelRatio.get();

@@ -1,16 +1,23 @@
+import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
+import { resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
+import { FITTED_LINE_SLACK, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, TouchSize } from '@/constants/theme';
+import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   ACCOUNT_TYPE_TILE_HEIGHT,
   chunkTypeOptions,
   CREDIT_SLOT_MIN_HEIGHT,
   CURRENCY_CELL_WIDTH,
   CURRENCY_SEGMENT_WIDTH,
+  CURRENCY_TABS_MAX_FONT_SCALE,
   FIELD_MESSAGE_RAIL_STYLE,
   FIELD_MESSAGE_TEXT_LINE_HEIGHT,
   fieldMessageRailStyle,
+  resolveAccountTypeTileGeometry,
   resolveBalanceField,
+  resolveBalanceRowLabelLines,
+  resolveCurrencyTabsBoxHeight,
 } from '@/modules/accounts/components/account_form/account_form.geometry';
 import { TYPE_OPTIONS } from '@/modules/accounts/components/account_type_pill';
 
@@ -110,5 +117,60 @@ describe('geometry relationships', () => {
 
   it('CREDIT_SLOT_MIN_HEIGHT is taller than a single field row', () => {
     expect(CREDIT_SLOT_MIN_HEIGHT).toBeGreaterThan(Size.fieldHeight);
+  });
+});
+
+describe('resolveAccountTypeTileGeometry', () => {
+  it('MA-162: at font scale 1 the tile is ACCOUNT_TYPE_TILE_HEIGHT with the Type.caption pair', () => {
+    expect(resolveAccountTypeTileGeometry(1)).toEqual({
+      height: ACCOUNT_TYPE_TILE_HEIGHT,
+      caption: { fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) },
+    });
+  });
+
+  it('MA-162: at font scale 0.85 the tile keeps ACCOUNT_TYPE_TILE_HEIGHT as its floor', () => {
+    expect(resolveAccountTypeTileGeometry(0.85).height).toBe(ACCOUNT_TYPE_TILE_HEIGHT);
+  });
+
+  it('MA-162: at font scale 2 the tile grows to hold its icon, its gap and its caption line', () => {
+    const g = resolveAccountTypeTileGeometry(2);
+    const caption = scaledTextStyle(Type.caption, 2);
+
+    expect(g.caption).toEqual(caption);
+    expect(g.height).toBeGreaterThan(ACCOUNT_TYPE_TILE_HEIGHT);
+    expect(g.height).toBeGreaterThanOrEqual(
+      Size.compactChipHeight + Spacing.xs + caption.lineHeight + 2 * Spacing.xs,
+    );
+  });
+});
+
+describe('resolveCurrencyTabsBoxHeight', () => {
+  it('MA-162: the currency tabs stop growing at the display headline stop', () => {
+    expect(CURRENCY_TABS_MAX_FONT_SCALE).toBe(DISPLAY_HEADLINE_MAX_FONT_SCALE);
+  });
+
+  it('MA-162: at font scale 1 the box is Size.fieldHeight', () => {
+    expect(resolveCurrencyTabsBoxHeight(1)).toBe(Size.fieldHeight);
+  });
+
+  it('MA-162: at font scale 2 the box is the tab row of the 1.3 stop plus one device pixel', () => {
+    const listHeight =
+      resolveSegmentedTabsGeometry(2, CURRENCY_TABS_MAX_FONT_SCALE).defaultListHeight ?? NaN;
+    const height = resolveCurrencyTabsBoxHeight(2);
+
+    expect(height).toBe(resolveCurrencyTabsBoxHeight(1.3));
+    expect(height).toBe(Math.max(Size.fieldHeight, listHeight + FITTED_LINE_SLACK));
+    expect(height).toBeGreaterThan(listHeight);
+  });
+});
+
+describe('resolveBalanceRowLabelLines', () => {
+  it.each([
+    [0.85, 1],
+    [1, 1],
+    [1.01, 2],
+    [2, 2],
+  ])('MA-162: at font scale %s the balance row labels keep %i', (fontScale, lines) => {
+    expect(resolveBalanceRowLabelLines(fontScale)).toBe(lines);
   });
 });
