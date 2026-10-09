@@ -44,7 +44,7 @@ Each figure below passes through `snapToZero` in the pure function that returns 
 | a plan's `buffer` | `buildSpendingPlanRows` | the plan detail's Flexible row and metric, the plan card's allocation footer, and the row's `buffer` field |
 | a 50/30/20 contributor's `spent` | `buildBudgetRuleLens` | the bucket's `contributors` list, drawn by `rule_bucket_row.tsx` |
 
-`buildBudgetCategoriesSummary` takes its balance colour from the word `remainingLabel` returns. `computeCategoryHistory` sums `netBanked` from the snapped deltas and snaps the sum. `resolveMonthSpendLeg` and `buildTotalsPresentation` snap the net they are given before they decide, so a month whose spend nets to under half a cent below zero is `spent` at `0`, never `refunded` and never `netCredit`.
+`buildBudgetCategoriesSummary` takes its balance colour from the word `remainingLabel` returns. `computeCategoryHistory` sums `netBanked` from the snapped deltas and snaps the sum. `resolveMonthSpendLeg` and `buildTotalsPresentation` snap the net they are given before they decide, so a month whose spend nets to under half a cent below zero is `spent` at `0`, never `refunded` and never `netCredit`. `lastMonthOutCaption`, the transactions hero's last-month caption, snaps the previous month's expense before comparing it to zero, so a previous month with no income and an expense under half a cent off zero, on either side, prints `Strings.transactionsHeroUnavailable` for its amount as it does at exactly `0`, and an expense of `0.01` keeps its amount.
 
 ## 4. Over is decided in integer cents
 

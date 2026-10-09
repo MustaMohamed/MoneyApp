@@ -274,7 +274,7 @@ function heroNet(netEgp: number): Pick<TransactionsHeroModel, 'net' | 'netPolari
 function lastMonthOutCaption(yearMonth: string, previous: PeriodTotals | null): string {
   const lastMonth = shiftYearMonth(yearMonth, -1);
   const amount =
-    previous === null || (previous.incomeEgp === 0 && previous.expenseEgp === 0)
+    previous === null || (previous.incomeEgp === 0 && snapToZero(previous.expenseEgp) === 0)
       ? Strings.transactionsHeroUnavailable
       : formatHeroAmount(previous.expenseEgp);
   return Strings.transactionsHeroLastMonthOut(

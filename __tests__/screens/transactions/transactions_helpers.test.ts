@@ -414,6 +414,26 @@ describe('buildTransactionsHeroModel', () => {
     );
   });
 
+  it.each<[string, number]>([
+    ['below', 0.3 - (0.1 + 0.2)],
+    ['above', 0.1 + 0.2 - 0.3],
+  ])(
+    "reads last month's Out under half a cent %s zero with no income as it does at 0",
+    (_side, expenseEgp) => {
+      const atZero = hero({ previous: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } }).caption;
+
+      expect(hero({ previous: { incomeEgp: 0, expenseEgp, netEgp: -expenseEgp } }).caption).toBe(
+        atZero,
+      );
+    },
+  );
+
+  it("keeps last month's Out of 0.01 when last month has no income", () => {
+    expect(hero({ previous: { incomeEgp: 0, expenseEgp: 0.01, netEgp: -0.01 } }).caption).toBe(
+      '6 days left · Aug 0.01',
+    );
+  });
+
   it('prints dashes and keeps the caption when no figures loaded for the month', () => {
     expect(hero({ mode: 'dashes', current: null, previous: null })).toMatchObject({
       mode: 'dashes',
