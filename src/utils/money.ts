@@ -39,6 +39,23 @@ export function toCents(n: number): number {
   return Math.round(roundMoney(n) * 100);
 }
 
+/** Half a cent is where a figure stops printing as zero; `roundMoney(n) === 0` would also zero 0.005. */
+export function snapToZero(n: number): number {
+  return Math.abs(n) < 0.005 ? 0 : n;
+}
+
+/** Over is decided in integer cents, as `sumAllocations` decides it on the write path. */
+export function exceedsToCent(amount: number, limit: number): boolean {
+  return toCents(amount) > toCents(limit);
+}
+
+/** The raw quotient, except a part that ties its whole to the cent reads exactly 1, never above. */
+export function ratioHeldAtTie(part: number, whole: number): number {
+  if (whole === 0) return 0;
+  const ratio = part / whole;
+  return ratio > 1 && !exceedsToCent(part, whole) ? 1 : ratio;
+}
+
 /** Sums integer cents so the result is order-independent; `undefined` total means none entered. */
 export function sumAllocations(
   amounts: readonly (number | null | undefined)[],

@@ -1,6 +1,7 @@
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Colors } from '@/constants/theme';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import type { Account } from '@/modules/accounts/store/account.store';
 import {
@@ -348,6 +349,72 @@ describe("buildInfoRows — credit card limit/available take the card's own curr
     expect(rows[1]?.value).toBe('300 EGP');
     expect(rows[1]?.valueColor).toBe('#E8B130');
   });
+
+  it('a balance one float step past its limit reads the available amount, and 0.01 past it reads over', () => {
+    const available = (balance: number): string | undefined =>
+      buildInfoRows(
+        creditCard(Currency.EGP, balance, 1000),
+        PLACEHOLDER_RATE,
+        STATS,
+        false,
+        Currency.EGP,
+      )[1]?.value;
+
+    expect(available(1000.01)).toBe(Strings.accountOverLimit);
+    expect(available(1000.0000000000001)).not.toBe(Strings.accountOverLimit);
+    expect(available(1000.0000000000001)).toBe('0 EGP');
+  });
+});
+
+describe('buildInfoRows — a flow under half a cent takes the colour of a true zero (MA-158)', () => {
+  const colours = (
+    type: AccountType,
+    currency: Currency,
+    amount: number,
+  ): Record<string, string | undefined> => {
+    const stats: AccountStats = {
+      month_in: amount,
+      month_out: amount,
+      week_in: amount,
+      week_out: amount,
+    };
+    const account = makeTestAccount({
+      type,
+      currency,
+      current_balance: 1000,
+      opening_balance: 1000,
+    });
+    const rows = buildInfoRows(account, PLACEHOLDER_RATE, stats, false, Currency.EGP);
+    return Object.fromEntries(rows.map((row) => [row.kind, row.valueColor]));
+  };
+
+  it.each([Currency.EGP, Currency.USD])(
+    'month in and month out on a %s bank account: 0.004 is neutral, 0.3 keeps its colour',
+    (currency) => {
+      expect(colours(AccountType.Bank, currency, 0.3)).toMatchObject({
+        monthIn: Colors.dark.positive,
+        monthOut: Colors.dark.negative,
+      });
+      expect(colours(AccountType.Bank, currency, 0.004)).toMatchObject({
+        monthIn: Colors.dark.text1,
+        monthOut: Colors.dark.text1,
+      });
+    },
+  );
+
+  it.each([Currency.EGP, Currency.USD])(
+    'month spend and week spend on a %s cash wallet: 0.004 is neutral, 0.3 keeps its colour',
+    (currency) => {
+      expect(colours(AccountType.PhysicalWallet, currency, 0.3)).toMatchObject({
+        monthSpend: Colors.dark.negative,
+        weekSpend: Colors.dark.negative,
+      });
+      expect(colours(AccountType.PhysicalWallet, currency, 0.004)).toMatchObject({
+        monthSpend: Colors.dark.text1,
+        weekSpend: Colors.dark.text1,
+      });
+    },
+  );
 });
 
 // MA-024: the accounts list joins these rows into one caption, so every row has to say which

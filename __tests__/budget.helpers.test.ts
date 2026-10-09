@@ -1,4 +1,5 @@
 import { CategoryType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import {
@@ -501,5 +502,149 @@ describe('remainingLabel', () => {
   });
   it('large negative → absolute magnitude', () => {
     expect(remainingLabel(-10000)).toEqual({ magnitude: 10000, label: 'over' });
+  });
+  it('under half a cent on either side of zero → { magnitude: 0, label: "left" }, and 0.3 over stays over', () => {
+    expect(remainingLabel(-0.3)).toEqual({ magnitude: 0.3, label: 'over' });
+    expect(remainingLabel(0.1 + 0.2 - 0.3)).toEqual({ magnitude: 0, label: 'left' });
+    expect(remainingLabel(0.3 - (0.1 + 0.2))).toEqual({ magnitude: 0, label: 'left' });
+  });
+});
+
+// 0.1 + 0.2 is 0.30000000000000004: a spend one float step past a limit of 0.3, a tie to the cent.
+describe('figures under half a cent and spends that tie their limit to the cent (MA-158)', () => {
+  it('computeStatus reads warning at the tie and over 0.01 past it', () => {
+    expect(computeStatus(0.31, 0.3)).toBe('over');
+    expect(computeStatus(0.1 + 0.2, 0.3)).toBe('warning');
+  });
+
+  it('computeBudgetHealth reads watch at the tie and over 0.01 past it', () => {
+    expect(computeBudgetHealth(0.31, 0.3)).toBe('over');
+    expect(computeBudgetHealth(0.1 + 0.2, 0.3)).toBe('watch');
+  });
+
+  const ledger = (spend: number) => {
+    const { rows, unbudgetedSpend } = buildCategoryBudgetRows({
+      categories: [category('food', 'Food & Dining')],
+      budgets: [row('food', 0.3, '2026-07', 'Monthly meals', 'meals')],
+      spendByMonth: { food: { '2026-07': spend } },
+      spendByBudgetId: { meals: spend },
+      yearMonth: '2026-07',
+    });
+    const summary = buildBudgetCategoriesSummary({
+      rows,
+      expectedIncome: null,
+      unbudgetedSpend,
+      selectedMonth: '2026-07',
+      today: '2026-07-14',
+    });
+    return { row: rows[0], budget: rows[0]?.budgets[0], summary };
+  };
+
+  it('the category row, its named budget and the summary read left at the tie and over 0.01 past it', () => {
+    const leftMeta = Strings.budgetCategoriesBalanceMeta('left');
+    const overMeta = Strings.budgetCategoriesBalanceMeta('over');
+
+    const over = ledger(0.31);
+    expect(over.row).toMatchObject({
+      status: 'over',
+      statusChipColor: 'danger',
+      balanceMetaLabel: overMeta,
+    });
+    expect(over.budget).toMatchObject({
+      balanceMetaLabel: overMeta,
+      ringColor: Colors.dark.budgetOver,
+    });
+    expect(over.summary).toMatchObject({
+      balanceMetaLabel: overMeta,
+      balanceColor: Colors.dark.negative,
+      barColor: Colors.dark.budgetOver,
+      overCount: 1,
+    });
+
+    const tie = ledger(0.1 + 0.2);
+    expect(tie.row).toMatchObject({
+      status: 'watch',
+      statusChipColor: 'default',
+      balanceMetaLabel: leftMeta,
+    });
+    expect(tie.budget).toMatchObject({
+      balanceMetaLabel: leftMeta,
+      ringColor: Colors.dark.budgetNear,
+    });
+    expect(tie.summary).toMatchObject({
+      balanceMetaLabel: leftMeta,
+      balanceColor: Colors.dark.positive,
+      barColor: Colors.dark.budgetNear,
+      overCount: 0,
+    });
+  });
+
+  it('no unassigned spend shows for a leftover under half a cent, and 0.01 unassigned is kept', () => {
+    const unassigned = (categorySpend: number): number | undefined =>
+      buildCategoryBudgetRows({
+        categories: [category('food', 'Food & Dining')],
+        budgets: [row('food', 1, '2026-07', 'Monthly meals', 'meals')],
+        spendByMonth: { food: { '2026-07': categorySpend } },
+        spendByBudgetId: { meals: 0.3 },
+        yearMonth: '2026-07',
+      }).rows[0]?.unassignedSpend;
+
+    expect(unassigned(0.31)).toBeCloseTo(0.01);
+    expect(unassigned(0.1 + 0.2)).toBe(0);
+  });
+
+  it('the summary returns an unbudgeted spend under half a cent as 0, and 0.3 as 0.3', () => {
+    const unbudgeted = (unbudgetedSpend: number): number =>
+      buildBudgetCategoriesSummary({
+        rows: [],
+        expectedIncome: null,
+        unbudgetedSpend,
+        selectedMonth: '2026-07',
+        today: '2026-07-14',
+      }).unbudgetedSpend;
+
+    expect(unbudgeted(0.3)).toBe(0.3);
+    expect(unbudgeted(0.1 + 0.2 - 0.3)).toBe(0);
+  });
+
+  const historyMonth = (limit: number, spent: number, delta: number): MonthResultVM => ({
+    yearMonth: '2026-02',
+    limit,
+    spent,
+    delta,
+    status: 'warning',
+    isProvisional: false,
+    lifecycle: 'completed',
+  });
+
+  it('computeCategoryHistory counts a month that ties its limit as under with a zero delta, and 0.01 past it as over', () => {
+    const over = computeCategoryHistory([historyMonth(0.3, 0.31, 0.3 - 0.31)]);
+    expect(over.monthsUnder).toBe(0);
+    expect(over.results[0]?.delta).toBe(0.3 - 0.31);
+
+    const tie = computeCategoryHistory([historyMonth(0.3, 0.1 + 0.2, 0.3 - (0.1 + 0.2))]);
+    expect(tie.results[0]?.delta).toBe(0);
+    expect(tie.monthsUnder).toBe(1);
+    expect(tie.netBanked).toBe(0);
+  });
+
+  it('computeCategoryHistory reads positive zero where two named budgets sum one float step past the spend', () => {
+    const history = computeCategoryHistory([historyMonth(0.1 + 0.2, 0.3, 0.1 + 0.2 - 0.3)]);
+    expect(Object.is(history.results[0]?.delta, 0)).toBe(true);
+    expect(Object.is(history.netBanked, 0)).toBe(true);
+    expect(history.monthsUnder).toBe(1);
+  });
+
+  it('computeCategoryHistory banks 0 when deltas of 0.3, -0.1 and -0.2 leave a float leftover', () => {
+    const history = computeCategoryHistory([
+      historyMonth(1, 0.7, 0.3),
+      historyMonth(1, 1.1, -0.1),
+      historyMonth(1, 1.2, -0.2),
+    ]);
+    expect(history.netBanked).toBe(0);
+  });
+
+  it('computeCategoryHistory returns a spend under half a cent as 0', () => {
+    expect(computeCategoryHistory([historyMonth(0.3, 5.5e-17, 0.3)]).results[0]?.spent).toBe(0);
   });
 });

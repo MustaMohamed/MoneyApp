@@ -200,6 +200,13 @@ writing") implied a direction that never existed either. Suppressing the sign at
 from the table above's, not a retreat from it. `normalizeNegativeZero` and `formatAmount`'s
 own guard are unmodified and continue to own the population the table above describes.
 
+**Extended 2026-10-04 (#673).** The half cent that drops the sign also decides the colour, the icon
+and the word. A net, a balance or a flow under half a cent off zero passes through `snapToZero`
+(`src/utils/money.ts`) before its screen compares it to zero, so it takes what a true zero takes.
+An amount half a cent or more off zero keeps its own colour, icon and word where a whole-pound
+figure prints it as `0`, as §2 holds. `docs/adr/2026-10-04-half-cent-zero-and-cent-ties.md` lists
+the figures.
+
 ## 3. Four decimals constants, allowed to diverge
 
 - **`EXCHANGE_RATE_DECIMALS`** (`src/utils/format_amount.ts`) owns rate precision for

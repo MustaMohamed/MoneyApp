@@ -21,7 +21,7 @@ export function MonthLedger({ results }: { results: MonthResultVM[] }) {
     <View>
       {ordered.map((r) => {
         const positive = r.delta >= 0;
-        // Zero-gated (#332): `netBanked`-style running sums carry float noise, and `-0` must read `0`.
+        // `computeCategoryHistory` snaps `r.delta` under half a cent to 0, which prints unsigned (#332).
         const deltaMag = formatDisplayMagnitude(r.delta, Currency.EGP);
         return (
           <View key={r.yearMonth} style={styles.row}>

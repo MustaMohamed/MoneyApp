@@ -16,6 +16,12 @@ describe('resolveLiveMonthLeftPresentation — the left-to-spend composition poi
     expect(color).toBe(expectedColor);
   });
 
+  it('a left figure under half a cent on either side of zero reads 0 in the positive colour', () => {
+    const zero = { text: '0', color: Colors.dark.positive };
+    expect(resolveLiveMonthLeftPresentation(0.1 + 0.2, 0.3)).toEqual(zero);
+    expect(resolveLiveMonthLeftPresentation(0.3, 0.1 + 0.2)).toEqual(zero);
+  });
+
   it('composes U+2212, never an ASCII hyphen, when over budget', () => {
     const { text } = resolveLiveMonthLeftPresentation(1000, 1200);
     expect(text.codePointAt(0)).toBe(0x2212);

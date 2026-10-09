@@ -1,12 +1,13 @@
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
+import { creditBandColor } from '@/modules/accounts/constants/available_credit_color';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
 import {
   availableCredit,
   baseEquivalent,
   dailyAverage,
+  hasFlow,
   netFlow,
   savingsMonthStart,
 } from '@/modules/accounts/domain/account_figures';
@@ -92,13 +93,13 @@ export function buildMonthRows(stats: AccountStats, currency: Currency): [InfoRo
       kind: 'monthIn',
       label: Strings.cardMonthInLabel,
       ...amountParts(stats.month_in, currency),
-      valueColor: stats.month_in > 0 ? Colors.dark.positive : Colors.dark.text1,
+      valueColor: hasFlow(stats.month_in) ? Colors.dark.positive : Colors.dark.text1,
     },
     {
       kind: 'monthOut',
       label: Strings.cardMonthOutLabel,
       ...amountParts(stats.month_out, currency),
-      valueColor: stats.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
+      valueColor: hasFlow(stats.month_out) ? Colors.dark.negative : Colors.dark.text1,
     },
   ];
 }
@@ -119,7 +120,7 @@ export function buildInfoRows(
     const limit = account.credit_limit ?? 0;
     const balance = account.current_balance;
     const available = availableCredit(balance, limit);
-    const availColor = availableCreditColor(available, limit);
+    const availColor = creditBandColor(balance, limit);
     const dueDay = account.statement_due_day;
 
     return [
@@ -151,7 +152,7 @@ export function buildInfoRows(
         kind: 'monthSpend',
         label: Strings.cardMonthSpendLabel,
         ...amountParts(s.month_out, cur),
-        valueColor: s.month_out > 0 ? Colors.dark.negative : Colors.dark.text1,
+        valueColor: hasFlow(s.month_out) ? Colors.dark.negative : Colors.dark.text1,
       },
       {
         kind: 'avgDay',
@@ -162,7 +163,7 @@ export function buildInfoRows(
         kind: 'weekSpend',
         label: Strings.cardWeekSpendLabel,
         ...amountParts(s.week_out, cur),
-        valueColor: s.week_out > 0 ? Colors.dark.negative : Colors.dark.text1,
+        valueColor: hasFlow(s.week_out) ? Colors.dark.negative : Colors.dark.text1,
       },
     ];
   }

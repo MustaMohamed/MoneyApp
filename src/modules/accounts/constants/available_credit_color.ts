@@ -1,9 +1,11 @@
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
+import { creditUtilization } from '@/modules/accounts/domain/account_figures';
 
-export function availableCreditColor(available: number, limit: number): string {
+/** Takes the card's balance and bands the used share; one minus it is 0.19999999999999996 at 20% available. */
+export function creditBandColor(balance: number, limit: number): string {
   if (limit <= 0) return CoreTokens.text2;
-  const pct = available / limit;
-  if (pct > 0.5) return SemanticTokens.positive;
-  if (pct >= 0.2) return SemanticTokens.warning;
+  const used = creditUtilization(balance, limit);
+  if (used < 0.5) return SemanticTokens.positive;
+  if (used <= 0.8) return SemanticTokens.warning;
   return SemanticTokens.negative;
 }

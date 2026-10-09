@@ -15,6 +15,7 @@ import {
 } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
+import { exceedsToCent, ratioHeldAtTie, snapToZero } from '@/utils/money';
 
 export const BUDGET_WARNING_THRESHOLD = 0.8;
 
@@ -40,6 +41,7 @@ export interface MonthResultVM {
 }
 
 export interface CategoryHistoryVM {
+  /** `delta` and `spent` are snapped by `computeCategoryHistory`; a `MonthResultVM` from any other source is raw. */
   results: MonthResultVM[];
   netBanked: number;
   avgPerMonth: number;
@@ -102,19 +104,20 @@ export function resolveLimitForMonth(
 }
 
 export function remainingLabel(remaining: number): { magnitude: number; label: 'left' | 'over' } {
-  if (remaining >= 0) return { magnitude: remaining, label: 'left' };
-  return { magnitude: Math.abs(remaining), label: 'over' };
+  const snapped = snapToZero(remaining);
+  if (snapped >= 0) return { magnitude: snapped, label: 'left' };
+  return { magnitude: Math.abs(snapped), label: 'over' };
 }
 
 export function computeStatus(spent: number, limit: number): BudgetStatus {
   if (limit <= 0) return 'under';
-  if (spent > limit) return 'over';
+  if (exceedsToCent(spent, limit)) return 'over';
   if (spent / limit >= BUDGET_WARNING_THRESHOLD) return 'warning';
   return 'under';
 }
 
 export function computeBudgetHealth(spent: number, planned: number): BudgetHealth {
-  if (spent > planned) return 'over';
+  if (exceedsToCent(spent, planned)) return 'over';
   if (planned > 0 && spent / planned >= BUDGET_WARNING_THRESHOLD) return 'watch';
   return 'on-track';
 }
@@ -172,7 +175,8 @@ export function buildCategoryBudgetRows({
     const namedBudgets: NamedBudgetVM[] = categoryBudgets.map((budget) => {
       const budgetSpent = spendByBudgetId[budget.id] ?? 0;
       const budgetLeft = budget.limit_amount - budgetSpent;
-      const budgetUsedPct = budget.limit_amount > 0 ? budgetSpent / budget.limit_amount : undefined;
+      const budgetUsedPct =
+        budget.limit_amount > 0 ? ratioHeldAtTie(budgetSpent, budget.limit_amount) : undefined;
       const categorySharePct = planned > 0 ? budget.limit_amount / planned : undefined;
       const budgetBalance = remainingLabel(budgetLeft);
       const spentLabel = formatAmount(budgetSpent);
@@ -206,7 +210,7 @@ export function buildCategoryBudgetRows({
     });
 
     const assignedSpend = namedBudgets.reduce((total, budget) => total + budget.spent, 0);
-    const unassignedSpend = Math.max(spent - assignedSpend, 0);
+    const unassignedSpend = snapToZero(Math.max(spent - assignedSpend, 0));
     const spentLabel = formatAmount(spent);
     const plannedLabel = formatAmount(planned);
     const balanceLabel = formatAmount(balance.magnitude);
@@ -277,7 +281,8 @@ export function buildBudgetCategoriesSummary({
   const spent = rows.reduce((total, row) => total + row.spent, 0);
   const left = planned - spent;
   const balance = remainingLabel(left);
-  const usedPct = planned > 0 ? spent / planned : undefined;
+  const usedPct = planned > 0 ? ratioHeldAtTie(spent, planned) : undefined;
+  const unbudgeted = snapToZero(unbudgetedSpend);
   const unassignedIncome =
     expectedIncome === null ? undefined : Math.max(expectedIncome - planned, 0);
   const onTrackCount = rows.filter((row) => row.status === 'on-track').length;
@@ -295,12 +300,12 @@ export function buildBudgetCategoriesSummary({
     left,
     usedPct,
     unassignedIncome,
-    unbudgetedSpend,
+    unbudgetedSpend: unbudgeted,
     eyebrowLabel: Strings.budgetCategoriesSummaryEyebrow(rows.length, monthLabel),
     categoryCountLabel: Strings.budgetCategoryCountLabel(rows.length),
     balanceAmountLabel: formatAmount(balance.magnitude),
     balanceMetaLabel: Strings.budgetCategoriesBalanceMeta(balance.label),
-    balanceColor: left < 0 ? Colors.dark.negative : Colors.dark.positive,
+    balanceColor: balance.label === 'over' ? Colors.dark.negative : Colors.dark.positive,
     barColor: budgetBandColor(usedPct ?? 0),
     spentPlannedLabel: Strings.budgetCategoriesSummarySpentOf(
       formatAmount(spent),
@@ -313,7 +318,7 @@ export function buildBudgetCategoriesSummary({
       unassignedIncome === undefined
         ? Strings.budgetCategoriesSetIncome
         : formatAmount(unassignedIncome),
-    unbudgetedSpendLabel: formatAmount(unbudgetedSpend),
+    unbudgetedSpendLabel: formatAmount(unbudgeted),
     lifecycleLabel: summaryLifecycle(selectedMonth, today),
     onTrackCount,
     watchCount,
@@ -463,19 +468,25 @@ export function buildBudgetCopyRows({
 }
 
 export function computeCategoryHistory(results: MonthResultVM[]): CategoryHistoryVM {
-  const historicalResults = results.filter((result) => result.lifecycle !== 'planned');
+  const historicalResults = results
+    .filter((result) => result.lifecycle !== 'planned')
+    .map((result) => ({
+      ...result,
+      delta: snapToZero(result.delta),
+      spent: snapToZero(result.spent),
+    }));
   let netBanked = 0;
   let totalSpent = 0;
   let monthsUnder = 0;
   for (const r of historicalResults) {
     netBanked += r.delta;
     totalSpent += r.spent;
-    if (r.spent <= r.limit) monthsUnder += 1;
+    if (!exceedsToCent(r.spent, r.limit)) monthsUnder += 1;
   }
   const monthsTotal = historicalResults.length;
   return {
     results: historicalResults,
-    netBanked,
+    netBanked: snapToZero(netBanked),
     avgPerMonth: monthsTotal > 0 ? totalSpent / monthsTotal : 0,
     hitRate: monthsTotal > 0 ? monthsUnder / monthsTotal : 0,
     monthsUnder,

@@ -159,6 +159,15 @@ describe('buildTotalsPresentation', () => {
     );
     expect(formatSignedAmount(-50, 'expense')).toBe('+50');
   });
+
+  it('reads an expense net under half a cent below zero as an expense of 0, and 0.01 below it as a net credit', () => {
+    expect(
+      buildTotalsPresentation({ incomeEgp: 100, expenseEgp: -0.01, netEgp: 100.01 }).state,
+    ).toBe('netCredit');
+    expect(
+      buildTotalsPresentation({ incomeEgp: 100, expenseEgp: 0.3 - (0.1 + 0.2), netEgp: 100 }),
+    ).toEqual(buildTotalsPresentation({ incomeEgp: 100, expenseEgp: 0, netEgp: 100 }));
+  });
 });
 
 describe('polarityColor', () => {
@@ -402,6 +411,26 @@ describe('buildTransactionsHeroModel', () => {
     expect(hero({ previous: null }).caption).toBe('6 days left · Aug —');
     expect(hero({ previous: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } }).caption).toBe(
       '6 days left · Aug —',
+    );
+  });
+
+  it.each<[string, number]>([
+    ['below', 0.3 - (0.1 + 0.2)],
+    ['above', 0.1 + 0.2 - 0.3],
+  ])(
+    "reads last month's Out under half a cent %s zero with no income as it does at 0",
+    (_side, expenseEgp) => {
+      const atZero = hero({ previous: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 } }).caption;
+
+      expect(hero({ previous: { incomeEgp: 0, expenseEgp, netEgp: -expenseEgp } }).caption).toBe(
+        atZero,
+      );
+    },
+  );
+
+  it("keeps last month's Out of 0.01 when last month has no income", () => {
+    expect(hero({ previous: { incomeEgp: 0, expenseEgp: 0.01, netEgp: -0.01 } }).caption).toBe(
+      '6 days left · Aug 0.01',
     );
   });
 

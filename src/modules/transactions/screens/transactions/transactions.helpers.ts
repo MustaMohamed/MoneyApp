@@ -19,7 +19,7 @@ import {
   signAmountText,
 } from '@/utils/format_amount';
 import type { TransactionDateGroup } from '@/utils/group_transactions_by_date';
-import { toCents } from '@/utils/money';
+import { snapToZero, toCents } from '@/utils/money';
 import {
   MONTHS_SHORT,
   currentYearMonth,
@@ -101,13 +101,12 @@ export function formatSignedAmount(value: number, metric: TotalsMetric): string 
 }
 
 export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentation {
+  const expenseEgp = snapToZero(current.expenseEgp);
   const rawExpenseSharePct =
-    current.incomeEgp > 0
-      ? centsPct(toCents(current.expenseEgp), toCents(current.incomeEgp))
-      : null;
+    current.incomeEgp > 0 ? centsPct(toCents(expenseEgp), toCents(current.incomeEgp)) : null;
   const railPct = Math.max(0, Math.min(100, rawExpenseSharePct ?? 0));
 
-  if (current.expenseEgp < 0) {
+  if (expenseEgp < 0) {
     return {
       state: 'netCredit',
       rawExpenseSharePct,
@@ -275,7 +274,7 @@ function heroNet(netEgp: number): Pick<TransactionsHeroModel, 'net' | 'netPolari
 function lastMonthOutCaption(yearMonth: string, previous: PeriodTotals | null): string {
   const lastMonth = shiftYearMonth(yearMonth, -1);
   const amount =
-    previous === null || (previous.incomeEgp === 0 && previous.expenseEgp === 0)
+    previous === null || (previous.incomeEgp === 0 && snapToZero(previous.expenseEgp) === 0)
       ? Strings.transactionsHeroUnavailable
       : formatHeroAmount(previous.expenseEgp);
   return Strings.transactionsHeroLastMonthOut(

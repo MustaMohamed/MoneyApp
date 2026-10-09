@@ -1,7 +1,7 @@
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
-import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
+import { creditBandColor } from '@/modules/accounts/constants/available_credit_color';
 import {
   buildHeroCaption,
   buildHeroHeading,
@@ -88,7 +88,7 @@ describe('buildHeroCaption — credit cards', () => {
       mkAccount({ type: AccountType.CreditCard, credit_limit: 50000, current_balance: 4080 }),
     );
     expect(cap.text).toBe('Available 45,920 EGP of 50,000');
-    expect(cap.color).toBe(availableCreditColor(45920, 50000));
+    expect(cap.color).toBe(creditBandColor(4080, 50000));
   });
 
   it('E-5: CC paid off shows full available, positive', () => {
@@ -149,7 +149,18 @@ describe('buildHeroCaption — credit cards', () => {
       mkAccount({ type: AccountType.CreditCard, credit_limit: 1000, current_balance: 1000 }),
     );
     expect(cap.text).toBe('Available 0 EGP of 1,000');
-    expect(cap.color).toBe(availableCreditColor(0, 1000));
+    expect(cap.color).toBe(creditBandColor(1000, 1000));
+  });
+
+  it('a balance one float step past the limit reads Available 0, and 0.01 past it reads Over limit', () => {
+    const card = (balance: number): Account =>
+      mkAccount({ type: AccountType.CreditCard, credit_limit: 1000, current_balance: balance });
+
+    expect(buildHeroCaption(card(1000.01)).text).toBe(Strings.accountOverLimit);
+
+    const tie = buildHeroCaption(card(1000.0000000000001));
+    expect(tie.text).toBe('Available 0 EGP of 1,000');
+    expect(tie.color).toBe(SemanticTokens.negative);
   });
 
   it('#277: USD direction — both amounts on the caption take CURRENCY_CONFIG decimals', () => {

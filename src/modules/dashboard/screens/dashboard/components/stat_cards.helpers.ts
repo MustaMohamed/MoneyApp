@@ -5,6 +5,7 @@ import type {
   DashboardNetWorth,
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
+import { snapToZero } from '@/utils/money';
 
 export type MonthSpendLegState = 'spent' | 'refunded';
 
@@ -13,14 +14,12 @@ export interface MonthSpendLeg {
   magnitude: number;
 }
 
-/**
- * A credit-card refund month can net negative — there is no purchase-to-refund link in the
- * schema, so period-net is the only implementable model (#332). `net` is a state, not a signed
- * display value: `net >= 0` (zero included) is `spent`, `net < 0` is `refunded` at its magnitude.
- * Only the magnitude is meant to reach a formatter — a negative number never reaches display.
- */
+/** `net` is a state (#332): refunded from half a cent below zero, spent otherwise. */
 export function resolveMonthSpendLeg(net: number): MonthSpendLeg {
-  return net < 0 ? { state: 'refunded', magnitude: -net } : { state: 'spent', magnitude: net };
+  const snapped = snapToZero(net);
+  return snapped < 0
+    ? { state: 'refunded', magnitude: -snapped }
+    : { state: 'spent', magnitude: snapped };
 }
 
 /**

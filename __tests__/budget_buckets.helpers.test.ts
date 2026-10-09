@@ -586,3 +586,24 @@ describe('buildBudgetRuleLens', () => {
     expect(JSON.stringify(input)).toBe(before);
   });
 });
+
+// Card expenses of 0.10 and 0.20 against a card refund of 0.30 can leave 2.7755575615628914e-17.
+describe('an unbudgeted category whose month spend is under half a cent (MA-158)', () => {
+  const needs = (spend: number) =>
+    bucket(
+      build({
+        categories: [makeCategory('health', BudgetGroup.Need, 'Health')],
+        budgetGroupByCategoryId: { health: BudgetGroup.Need },
+        spendByMonth: { health: { [MONTH]: spend } },
+      }),
+      BudgetGroup.Need,
+    );
+
+  it('lists no contributor for a spend of 2.7755575615628914e-17', () => {
+    expect(needs(2.7755575615628914e-17).contributors).toEqual([]);
+  });
+
+  it('lists the category as unbudgeted for a spend of 0.01', () => {
+    expect(needs(0.01).contributors).toMatchObject([{ categoryId: 'health', isUnbudgeted: true }]);
+  });
+});

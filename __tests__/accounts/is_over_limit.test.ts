@@ -16,4 +16,8 @@ describe('isOverLimit — the over-limit state shared by detail, dashboard and l
   it('is false on a null limit, whatever the balance', () => {
     expect(isOverLimit(45000, null)).toBe(false);
   });
+  it('is false when the balance ties the limit to the cent, and true 0.01 past it', () => {
+    expect(isOverLimit(0.31, 0.3)).toBe(true);
+    expect(isOverLimit(0.1 + 0.2, 0.3)).toBe(false);
+  });
 });

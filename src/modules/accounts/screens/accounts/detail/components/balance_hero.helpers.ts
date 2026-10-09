@@ -2,7 +2,7 @@ import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
-import { availableCreditColor } from '@/modules/accounts/constants/available_credit_color';
+import { creditBandColor } from '@/modules/accounts/constants/available_credit_color';
 import { availableCredit } from '@/modules/accounts/domain/account_figures';
 import { isOverLimit } from '@/modules/accounts/domain/is_over_limit';
 import { formatAccountBalance, formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
@@ -39,7 +39,7 @@ export function buildHeroCaption(account: Account): HeroCaption {
         formatAmount(limit, decimals),
       ),
       adjusted: false,
-      color: availableCreditColor(available, limit),
+      color: creditBandColor(account.current_balance, limit),
     };
   }
 

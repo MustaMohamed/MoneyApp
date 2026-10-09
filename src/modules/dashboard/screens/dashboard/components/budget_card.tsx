@@ -77,8 +77,7 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
   const monthLabel = formatMonthYear(yearMonth);
   const progressPct = Math.round(summary.pct * 100);
   const bandColor = budgetBandColor(summary.pct);
-  // `left` is negative once over budget (budget.helpers.ts computeOverall) — the same
-  // owned/negative-capable magnitude as the net-worth surface, same composition (PR #375 r2).
+  // `buildDashboardBudgetSummary` snaps `left`; below zero once over budget, an owned amount (#375).
   const leftText = formatOwnedAmount(summary.left, Currency.EGP);
 
   return (
