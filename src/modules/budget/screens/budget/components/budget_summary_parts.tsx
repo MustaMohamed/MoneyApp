@@ -62,7 +62,7 @@ export function BudgetSummaryHeader({
 }: BudgetSummaryHeaderProps) {
   const { fontScale } = useWindowDimensions();
   // Above font scale 1 the eyebrow and the trailing label wrap between words, where one line cut inside a word.
-  const labelLines = fontScale > 1 ? 2 : 1;
+  const labelLines = resolveRowStacking(fontScale) === 'stacked' ? 2 : 1;
   return (
     <>
       <View className="flex-row items-center justify-between gap-2">

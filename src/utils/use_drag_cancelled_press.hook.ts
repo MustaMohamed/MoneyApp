@@ -29,17 +29,22 @@ export function useDragCancelledPress(
   const lookEnded = useRef(false);
   const pressCancelled = useRef(false);
   const lastMove = useRef<GestureResponderEvent['nativeEvent'] | undefined>(undefined);
+  const reentryAt = useRef<number | undefined>(undefined);
   const feedbackPressIn = feedback?.onPressIn;
   const feedbackPressOut = feedback?.onPressOut;
 
   const handlePressIn = useCallback(
     (event: GestureResponderEvent) => {
-      // Pressability re-enters a row with the event of the move it just reported, so this press-in is the cancelled touch's own.
-      if (lookEnded.current && event.nativeEvent === lastMove.current) {
-        pressCancelled.current = true;
-        return;
+      // Pressability re-enters a row with the event of the move it just reported, so this press-in is the same touch's own.
+      if (event.nativeEvent === lastMove.current) {
+        reentryAt.current = event.nativeEvent.timestamp;
+        if (lookEnded.current) {
+          pressCancelled.current = true;
+          return;
+        }
+      } else {
+        startX.current = event.nativeEvent.pageX;
       }
-      startX.current = event.nativeEvent.pageX;
       lookEnded.current = false;
       pressCancelled.current = false;
       feedbackPressIn?.();
@@ -59,13 +64,18 @@ export function useDragCancelledPress(
     [feedbackPressOut],
   );
 
-  const handlePressOut = useCallback(() => {
-    if (!lookEnded.current) feedbackPressOut?.();
-    // A terminated touch sends press-out and no press, so the cancel ends with this task and a later screen-reader press fires.
-    queueMicrotask(() => {
-      pressCancelled.current = false;
-    });
-  }, [feedbackPressOut]);
+  const handlePressOut = useCallback(
+    (event: GestureResponderEvent) => {
+      if (!lookEnded.current) feedbackPressOut?.();
+      // Pressability delays a leave's press-out by up to 130 ms, and one older than the re-entry after it is not the touch's end.
+      if (event.nativeEvent.timestamp < (reentryAt.current ?? -Infinity)) return;
+      // A terminated touch sends press-out and no press, so the cancel ends with this task and a later screen-reader press fires.
+      queueMicrotask(() => {
+        pressCancelled.current = false;
+      });
+    },
+    [feedbackPressOut],
+  );
 
   const handlePress = useCallback(() => {
     const cancelled = pressCancelled.current;

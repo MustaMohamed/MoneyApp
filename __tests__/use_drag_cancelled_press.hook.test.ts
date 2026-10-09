@@ -7,8 +7,8 @@ import {
   useDragCancelledPress,
 } from '@/utils/use_drag_cancelled_press.hook';
 
-const touchAt = (pageX: number, pageY = 200) =>
-  ({ nativeEvent: { pageX, pageY } }) as GestureResponderEvent;
+const touchAt = (pageX: number, pageY = 200, timestamp?: number) =>
+  ({ nativeEvent: { pageX, pageY, timestamp } }) as GestureResponderEvent;
 
 async function renderPress() {
   const onPress = jest.fn();
@@ -190,6 +190,77 @@ describe('useDragCancelledPress', () => {
 
     expect(onPress).toHaveBeenCalledTimes(1);
     expect(feedback.onPressIn).toHaveBeenCalledTimes(2);
+  });
+
+  it('a press-out the leave delayed past a kept re-entry leaves the cancel set', async () => {
+    const { onPress, feedback, result } = await renderPress();
+
+    result.current.onPressIn(touchAt(100, 200, 0));
+    result.current.onPressMove(touchAt(115, 200, 20));
+    const leave = touchAt(115, 260, 40);
+    result.current.onPressMove(leave);
+    const reentry = touchAt(115, 200, 60);
+    result.current.onPressMove(reentry);
+    result.current.onPressIn(reentry);
+    result.current.onPressOut(leave);
+    await Promise.resolve();
+    result.current.onPressOut(touchAt(115, 200, 200));
+    result.current.onPress();
+
+    expect(onPress).not.toHaveBeenCalled();
+    expect(feedback.onPressOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('a screen reader press after a drag that left, kept moving and lifted outside fires', async () => {
+    const { onPress, result } = await renderPress();
+
+    result.current.onPressIn(touchAt(100, 200, 0));
+    result.current.onPressMove(touchAt(115, 200, 20));
+    const leave = touchAt(115, 260, 40);
+    result.current.onPressMove(leave);
+    result.current.onPressMove(touchAt(115, 300, 60));
+    result.current.onPressOut(leave);
+    await Promise.resolve();
+    result.current.onPress();
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('a re-entry press-in before the drag reached 10 dp keeps the touch-down as the start', async () => {
+    const { onPress, result } = await renderPress();
+
+    result.current.onPressIn(touchAt(100, 200));
+    result.current.onPressMove(touchAt(108, 200));
+    result.current.onPressMove(touchAt(108, 260));
+    result.current.onPressOut(touchAt(108, 260));
+    await Promise.resolve();
+    const reentry = touchAt(108, 200);
+    result.current.onPressMove(reentry);
+    result.current.onPressIn(reentry);
+    result.current.onPressMove(touchAt(116, 200));
+    result.current.onPressOut(touchAt(116, 200));
+    result.current.onPress();
+
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it('a press-out the leave delayed past a re-entry under 10 dp leaves a later cancel set', async () => {
+    const { onPress, result } = await renderPress();
+
+    result.current.onPressIn(touchAt(100, 200, 0));
+    result.current.onPressMove(touchAt(108, 200, 20));
+    const leave = touchAt(108, 260, 40);
+    result.current.onPressMove(leave);
+    const reentry = touchAt(108, 200, 60);
+    result.current.onPressMove(reentry);
+    result.current.onPressIn(reentry);
+    result.current.onPressMove(touchAt(116, 200, 80));
+    result.current.onPressOut(leave);
+    await Promise.resolve();
+    result.current.onPressOut(touchAt(116, 200, 200));
+    result.current.onPress();
+
+    expect(onPress).not.toHaveBeenCalled();
   });
 
   it('with no feedback handlers a drag still cancels and a tap still fires', async () => {

@@ -5,6 +5,7 @@ import { View, useWindowDimensions } from 'react-native';
 import { resolveButtonLabelStyle, resolveButtonRootStyle } from '@/components/ui/button.geometry';
 import { Text } from '@/components/ui/text';
 import {
+  resolveFitAmountTextProps,
   resolveLoneWordLines,
   resolveOneLineTextProps,
   scaledTextStyle,
@@ -25,6 +26,7 @@ interface RuleBucketRowProps {
 export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowProps) {
   const presentation = bucket.presentation;
   const { fontScale } = useWindowDimensions();
+  const varianceText = resolveFitAmountTextProps(Type.bodyStrong, fontScale);
 
   return (
     <Accordion.Item value={bucket.group}>
@@ -101,13 +103,9 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
             className="items-end"
           >
             <Text
-              allowFontScaling={false}
-              style={{
-                color: presentation.varianceColor,
-                ...scaledTextStyle(Type.bodyStrong, fontScale),
-              }}
+              {...varianceText}
+              style={{ ...varianceText.style, color: presentation.varianceColor }}
               className="font-sora-bold"
-              numberOfLines={1}
             >
               {presentation.varianceLabel}
             </Text>
