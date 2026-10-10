@@ -419,25 +419,30 @@ describe('spending plan helpers', () => {
     expect(row.status).toBe(status);
   });
 
-  it('marks an active plan watch at exactly ten percentage points ahead of pace', () => {
-    const row = buildSpendingPlanRows({
-      plans: [
-        planFixture({
-          startDate: '2026-07-13',
-          endDate: '2026-07-14',
-          totalAmount: 1000,
-          categoryRows: [{ plan_id: 'plan_trip', category_id: 'cat_food', allocated_amount: null }],
-        }),
-      ],
-      categories,
-      spendByPlanId: { plan_trip: { cat_food: 600 } },
-      selectedMonth: '2026-07',
-      today: '2026-07-13',
-    })[0];
+  it('marks an active plan watch at exactly ten percentage points ahead of pace, and on track one cent below', () => {
+    const build = (spent: number) =>
+      buildSpendingPlanRows({
+        plans: [
+          planFixture({
+            startDate: '2026-07-13',
+            endDate: '2026-07-14',
+            totalAmount: 1000,
+            categoryRows: [
+              { plan_id: 'plan_trip', category_id: 'cat_food', allocated_amount: null },
+            ],
+          }),
+        ],
+        categories,
+        spendByPlanId: { plan_trip: { cat_food: spent } },
+        selectedMonth: '2026-07',
+        today: '2026-07-13',
+      })[0];
+    const row = build(600);
 
     expect(row.timing.elapsedPct).toBe(0.5);
     expect(row.pct).toBe(0.6);
     expect(row.status).toBe('watch');
+    expect(build(599.99).status).toBe('onTrack');
   });
 
   it('marks an active plan watch when an allocated category is exactly 80% used', () => {
@@ -990,6 +995,162 @@ describe('a plan buffer under half a cent draws no flexible row (MA-158)', () =>
       label: Strings.budgetPlansDetailFlexible,
       amountLabel: '0 EGP',
       supportingLabel: Strings.budgetPlansDetailUnassigned,
+    });
+  });
+});
+
+// (145 / 1000) * 100 is 14.499999999999998 and 0.105 - 0.1 is 0.0049999999999999906: halves a float rounds down.
+describe('plan percents round a half up, the pace line rounds the exact gap, and the 80% warning sits on its boundary (MA-112)', () => {
+  const build = ({
+    startDate = '2026-07-08',
+    endDate = '2026-07-18',
+    today = '2026-07-13',
+    totalAmount = 1000,
+    allocated = null,
+    spent,
+  }: {
+    startDate?: string;
+    endDate?: string;
+    today?: string;
+    totalAmount?: number;
+    allocated?: number | null;
+    spent: number;
+  }) => {
+    const rows = buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          startDate,
+          endDate,
+          totalAmount,
+          categoryRows: [
+            { plan_id: 'plan_trip', category_id: 'cat_food', allocated_amount: allocated },
+          ],
+        }),
+      ],
+      categories,
+      spendByPlanId: { plan_trip: { cat_food: spent } },
+      selectedMonth: '2026-07',
+      today,
+    });
+    return { row: rows[0], summary: computeSpendingPlansSummary(rows, '2026-07') };
+  };
+
+  const onDayThreeOfThirty = (spent: number) => {
+    const { row } = build({
+      startDate: '2026-07-01',
+      endDate: '2026-07-30',
+      today: '2026-07-03',
+      spent,
+    });
+    const insight = row.detail.insights.find((item) => item.key === 'pace');
+    return { paceLabel: row.card.paceLabel, insightLabel: insight?.label, color: insight?.color };
+  };
+
+  it('a plan of 1,000 on day 3 of 30 reads 1 pts under pace at 95 spent and 1 pts ahead of pace at 105', () => {
+    const under = Strings.budgetPlansPaceUnder(1);
+    const ahead = Strings.budgetPlansPaceAhead(1);
+
+    expect(onDayThreeOfThirty(95)).toMatchObject({ paceLabel: under, insightLabel: under });
+    expect(onDayThreeOfThirty(105)).toEqual({
+      paceLabel: ahead,
+      insightLabel: ahead,
+      color: Colors.dark.warning,
+    });
+  });
+
+  it('a pace gap whose size rounds to 0 reads On pace in the even-pace colour: 104 spent on day 3 of 30', () => {
+    expect(onDayThreeOfThirty(104)).toEqual({
+      paceLabel: Strings.budgetPlansPaceEven,
+      insightLabel: Strings.budgetPlansPaceEven,
+      color: Colors.dark.positive,
+    });
+  });
+
+  it('a plan of 1,000 with 145 spent reads 15% used on the card and 15% in Budget used', () => {
+    const { row } = build({ spent: 145 });
+
+    expect({ card: row.card.percentageLabel, budgetUsed: row.detail.metrics[0] }).toEqual({
+      card: Strings.budgetPlansSummaryUsed(15),
+      budgetUsed: { label: Strings.budgetPlansDetailBudgetUsed, value: '15%' },
+    });
+  });
+
+  it('the Plans summary reads 15 used and 15 itemized for one plan of 1,000 with 145 spent and 145 allocated', () => {
+    const { summary } = build({ allocated: 145, spent: 145 });
+
+    expect(summary).toMatchObject({ usedPercentage: 15, itemizedPercentage: 15 });
+  });
+
+  // 23 days of 40 is 57.49999999999999 in floating point.
+  it('the elapsed marker sits at the whole percent the detail prints as Time elapsed: day 23 of 40 is 58', () => {
+    const { row } = build({
+      startDate: '2026-07-01',
+      endDate: '2026-08-09',
+      today: '2026-07-23',
+      spent: 0,
+    });
+
+    expect({
+      marker: row.card.elapsedMarkerPercentage,
+      timeElapsed: row.detail.metrics[1],
+    }).toEqual({
+      marker: 58,
+      timeElapsed: { label: Strings.budgetPlansDetailTimeElapsed, value: '58%' },
+    });
+  });
+
+  it('an allocation of 200 with 29 spent reads 15% on the chip, on the detail row and in both accessibility labels, and a zero allocation with 50 spent keeps 100% used · over', () => {
+    const zero = build({ totalAmount: 2000, allocated: 0, spent: 50 }).row;
+    expect(zero.detail.categoryRows[0]).toMatchObject({
+      supportingLabel: Strings.budgetPlansDetailCategoryStatus(100, Strings.budgetPlansStatusOver),
+    });
+
+    const { row } = build({ allocated: 200, spent: 29 });
+    const chip = row.card.allocationChips[0];
+    const detailRow = row.detail.categoryRows[0];
+    if (detailRow.kind !== 'allocated') throw new Error('Expected an allocated detail row');
+
+    expect({
+      chip: chip.percentageLabel,
+      chipA11y: chip.accessibilityLabel,
+      detail: detailRow.percentageLabel,
+      detailA11y: detailRow.accessibilityLabel,
+    }).toEqual({
+      chip: '15%',
+      chipA11y: Strings.budgetPlansAllocationChipA11y('Food', '29', '200', 15),
+      detail: '15%',
+      detailA11y: Strings.budgetPlansDetailCategoryA11y(
+        'Food',
+        '29',
+        '200',
+        15,
+        Strings.budgetPlansDetailBalance('171', Strings.budgetPlansLeftStatus),
+        Strings.budgetPlansStatusOnTrack,
+      ),
+    });
+  });
+
+  // 844.9 + 0.05 + 0.05 is 844.9999999999999, which a float quotient prints as 84.
+  it('an allocation of 1,000 with a float sum of 845 spent reads 85% on its row and in the pressure insight', () => {
+    const { row } = build({ totalAmount: 5000, allocated: 1000, spent: 844.9 + 0.05 + 0.05 });
+
+    expect({
+      detail: row.detail.categoryRows[0],
+      insight: row.detail.insights.find((item) => item.key === 'category')?.label,
+    }).toMatchObject({
+      detail: { percentageLabel: '85%' },
+      insight: Strings.budgetPlansDetailCategoryPressure('Food', 85),
+    });
+  });
+
+  // 2399.2 / 2999 is 0.7999999999999999: one float step under the 80% warning.
+  it('an allocation of 2,999 warns at 2,399.20 spent and not at 2,399.19', () => {
+    const isWarning = (spent: number) =>
+      build({ totalAmount: 5000, allocated: 2999, spent }).row.detailCategoryRows[0]?.isWarning;
+
+    expect({ onBoundary: isWarning(2399.2), oneCentUnder: isWarning(2399.19) }).toEqual({
+      onBoundary: true,
+      oneCentUnder: false,
     });
   });
 });

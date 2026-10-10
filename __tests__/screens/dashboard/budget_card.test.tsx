@@ -73,6 +73,20 @@ describe('BudgetCard', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
+  // 0.145 * 100 is 14.499999999999998: the card rounds from the two amounts, not from `pct`.
+  it('prints the used percent with a half rounded up: 145 spent of 1,000 reads 15% used', async () => {
+    const { getByText } = await render(
+      <BudgetCard
+        summary={{ budgeted: 1000, spent: 145, left: 855, pct: 0.145, categoryCount: 1 }}
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+
+    expect(getByText(`15% ${Strings.budgetUsedSuffix}`)).toBeTruthy();
+  });
+
   it('prints a Left below zero behind U+2212, joined to its code', async () => {
     const { getByText, queryByText } = await render(
       <BudgetCard

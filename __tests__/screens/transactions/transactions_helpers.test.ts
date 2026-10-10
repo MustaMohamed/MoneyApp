@@ -109,9 +109,13 @@ describe('computeDeltaPct', () => {
     expect(computeDeltaPct(102.4, 100)).toBe(2);
   });
 
-  it('rounds a half up in integer cents, multiplied before dividing: 14.5 to 15, −14.5 to −14', () => {
+  it('rounds the size of a half up in integer cents and keeps the sign: 14.5 to 15, −14.5 to −15', () => {
     expect(computeDeltaPct(1_145, 1_000)).toBe(15);
-    expect(computeDeltaPct(855, 1_000)).toBe(-14);
+    expect(computeDeltaPct(855, 1_000)).toBe(-15);
+  });
+
+  it('returns positive zero, never -0, for a drop whose size rounds to 0', () => {
+    expect(Object.is(computeDeltaPct(996, 1_000), 0)).toBe(true);
   });
 
   it('reads a float-noise previous as 0 cents and returns null', () => {
@@ -700,10 +704,32 @@ describe('share and Left of income in integer cents, multiplied before dividing'
     expect(hero).toMatchObject({ railPct: 15, shareCaption: '15% of income spent' });
   });
 
-  it('reads In 1,000 Out 1,035 as −3% left and a 104 share', () => {
+  it('reads In 1,000 Out 1,035 as −4% left and a 104 share', () => {
     const { totals, hero } = figures(1_000, 1_035);
     expect(totals.rawExpenseSharePct).toBe(104);
-    expect(hero).toMatchObject({ leftOfIncome: '−3%', shareCaption: '104% of income spent' });
+    expect(hero).toMatchObject({ leftOfIncome: '−4%', shareCaption: '104% of income spent' });
+  });
+
+  describe('an income of 0 cents', () => {
+    const current = { incomeEgp: 0.004, expenseEgp: 500, netEgp: -500 };
+
+    it('is no income, with no share', () => {
+      expect(buildTotalsPresentation(current)).toMatchObject({
+        state: 'noIncome',
+        rawExpenseSharePct: null,
+      });
+    });
+
+    it('reads a dash for Left of income', () => {
+      const hero = buildTransactionsHeroModel({
+        mode: 'figures',
+        current,
+        previous: null,
+        yearMonth: '2026-09',
+        today: '2026-09-24',
+      });
+      expect(hero).toMatchObject({ leftOfIncome: '—' });
+    });
   });
 });
 
