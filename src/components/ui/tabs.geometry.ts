@@ -10,8 +10,6 @@ import { Size, Spacing, Type } from '@/constants/theme';
 export const TABS_LIST_PADDING = 3;
 // `.tabs__trigger`'s own `padding-block`, unscaled CSS.
 export const TABS_TRIGGER_PADDING_BLOCK = 6;
-// `.tabs__scroll-view-content-container--variant-primary`'s own `padding-inline`, unscaled CSS.
-export const TABS_SCROLL_CONTENT_INSET = 1;
 
 /** Dp past a trigger's top and bottom edges that still select it. */
 export interface TabsTriggerHitSlop {

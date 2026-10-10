@@ -196,9 +196,12 @@ export function SegmentedTabs<T extends string>({
         ...resolveGrownScrollRadii(trackStyle?.borderRadius, slopInset),
       }
     : trackStyle;
-  const scrollContentStyle = slopInset
-    ? { paddingTop: slopInset.top, paddingBottom: slopInset.bottom }
-    : undefined;
+  // Edge keys, not `paddingHorizontal`: the zeroes have to land on the keys HeroUI's 1 px `padding-inline` compiled to.
+  const scrollContentStyle = {
+    paddingLeft: 0,
+    paddingRight: 0,
+    ...(slopInset ? { paddingTop: slopInset.top, paddingBottom: slopInset.bottom } : undefined),
+  };
 
   return (
     <Tabs
