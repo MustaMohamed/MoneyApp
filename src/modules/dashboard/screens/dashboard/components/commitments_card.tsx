@@ -12,6 +12,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, Type } from '@/constants/theme';
 import { formatCurrencyTotals } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
+import { wholePercentOf } from '@/utils/money';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
@@ -120,8 +121,7 @@ export function CommitmentsCard({
 }: Props) {
   const { fontScale } = useWindowDimensions();
   const monthLabel = formatMonthYear(yearMonth);
-  const progress = counts.total === 0 ? 0 : counts.paid / counts.total;
-  const progressPct = Math.round(progress * 100);
+  const progressPct = wholePercentOf(counts.paid, counts.total);
   const totalsLine = formatCurrencyTotals(totalsByCurrency);
 
   return (

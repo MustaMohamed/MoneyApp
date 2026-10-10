@@ -1,4 +1,5 @@
 import { Colors } from '@/constants/theme';
+import { compareToPercent, exceedsToCent } from '@/utils/money';
 
 export interface OverallVM {
   budgeted: number;
@@ -11,11 +12,12 @@ export interface BudgetDashboardSummaryVM extends OverallVM {
   categoryCount: number;
 }
 
-/** Boundary: exactly 100% is `budgetNear`; only strictly above 1 is `budgetOver`. */
-export function budgetBandColor(pct: number): string {
-  if (pct > 1) return Colors.dark.budgetOver;
-  if (pct >= 0.9) return Colors.dark.budgetNear;
-  if (pct >= 0.8) return Colors.dark.budgetWatch;
-  if (pct >= 0.5) return Colors.dark.budgetSteady;
+/** Steps compare in integer cents: 50, 80 and 90% open their step, exactly 100% is `budgetNear`, over to the cent is `budgetOver`. */
+export function budgetBandColor(spent: number, limit: number): string {
+  if (limit <= 0) return Colors.dark.budgetUnder;
+  if (exceedsToCent(spent, limit)) return Colors.dark.budgetOver;
+  if (compareToPercent(spent, limit, 90) >= 0) return Colors.dark.budgetNear;
+  if (compareToPercent(spent, limit, 80) >= 0) return Colors.dark.budgetWatch;
+  if (compareToPercent(spent, limit, 50) >= 0) return Colors.dark.budgetSteady;
   return Colors.dark.budgetUnder;
 }

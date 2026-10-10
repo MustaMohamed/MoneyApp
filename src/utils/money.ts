@@ -56,6 +56,54 @@ export function ratioHeldAtTie(part: number, whole: number): number {
   return ratio > 1 && !exceedsToCent(part, whole) ? 1 : ratio;
 }
 
+/** Two exact integers (cents, counts, days): the size rounds half up, the sign is kept, and a zero denominator or size reads positive 0. */
+export function wholePercentOf(numerator: number, denominator: number): number {
+  if (denominator === 0) return 0;
+  const divisor = Math.abs(denominator);
+  const size = Math.floor((2 * Math.abs(numerator) * 100 + divisor) / (2 * divisor));
+  return size === 0 ? 0 : Math.sign(numerator) * Math.sign(denominator) * size;
+}
+
+/** The whole percent of two money amounts, each rounded to cents before the one division. */
+export function wholePercent(part: number, whole: number): number {
+  return wholePercentOf(toCents(part), toCents(whole));
+}
+
+/** Whole points between a money share and a share of whole counts, rounded once from one integer fraction. */
+export function wholePercentGap(
+  part: number,
+  whole: number,
+  elapsed: number,
+  span: number,
+): number {
+  const partCents = toCents(part);
+  const wholeCents = toCents(whole);
+  if (wholeCents === 0) return wholePercentOf(-elapsed, span);
+  return wholePercentOf(partCents * span - elapsed * wholeCents, wholeCents * span);
+}
+
+/** The sign of a money share against a whole percent, in integer cents; a whole of 0 cents or less reads below. */
+export function compareToPercent(part: number, whole: number, percent: number): number {
+  const wholeCents = toCents(whole);
+  if (wholeCents <= 0) return -1;
+  return Math.sign(toCents(part) * 100 - wholeCents * percent);
+}
+
+/** The sign of the gap `wholePercentGap` rounds against whole points, in integers; nothing to divide by reads below. */
+export function compareGapToPoints(
+  part: number,
+  whole: number,
+  elapsed: number,
+  span: number,
+  points: number,
+): number {
+  const wholeCents = toCents(whole);
+  if (wholeCents <= 0 || span <= 0) return -1;
+  return Math.sign(
+    (toCents(part) * span - elapsed * wholeCents) * 100 - wholeCents * span * points,
+  );
+}
+
 /** Sums integer cents so the result is order-independent; `undefined` total means none entered. */
 export function sumAllocations(
   amounts: readonly (number | null | undefined)[],

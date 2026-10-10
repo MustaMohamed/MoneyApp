@@ -7,7 +7,7 @@ import { Colors, Size } from '@/constants/theme';
 export interface BudgetRingProps {
   /** Spend percentage 0..n. Values > 1 fill the full ring (capped). */
   pct: number;
-  /** Fill colour for the progress arc. Use `budgetBandColor(pct)`. */
+  /** Fill colour for the progress arc. Use `budgetBandColor(spent, limit)`. */
   color: string;
   /** Outer diameter in logical pixels. */
   size?: number;

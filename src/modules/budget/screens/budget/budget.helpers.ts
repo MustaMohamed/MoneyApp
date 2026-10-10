@@ -15,9 +15,15 @@ import {
 } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
-import { exceedsToCent, ratioHeldAtTie, snapToZero } from '@/utils/money';
+import {
+  compareToPercent,
+  exceedsToCent,
+  ratioHeldAtTie,
+  snapToZero,
+  wholePercent,
+} from '@/utils/money';
 
-export const BUDGET_WARNING_THRESHOLD = 0.8;
+export const BUDGET_WARNING_PERCENT = 80;
 
 export type BudgetStatus = 'under' | 'warning' | 'over';
 
@@ -112,13 +118,13 @@ export function remainingLabel(remaining: number): { magnitude: number; label: '
 export function computeStatus(spent: number, limit: number): BudgetStatus {
   if (limit <= 0) return 'under';
   if (exceedsToCent(spent, limit)) return 'over';
-  if (spent / limit >= BUDGET_WARNING_THRESHOLD) return 'warning';
+  if (compareToPercent(spent, limit, BUDGET_WARNING_PERCENT) >= 0) return 'warning';
   return 'under';
 }
 
 export function computeBudgetHealth(spent: number, planned: number): BudgetHealth {
   if (exceedsToCent(spent, planned)) return 'over';
-  if (planned > 0 && spent / planned >= BUDGET_WARNING_THRESHOLD) return 'watch';
+  if (planned > 0 && compareToPercent(spent, planned, BUDGET_WARNING_PERCENT) >= 0) return 'watch';
   return 'on-track';
 }
 
@@ -132,10 +138,6 @@ function healthColor(health: BudgetHealth): string {
   if (health === 'over') return Colors.dark.negative;
   if (health === 'watch') return Colors.dark.budgetWatch;
   return Colors.dark.positive;
-}
-
-function percentage(value: number | undefined): number {
-  return Math.round((value ?? 0) * 100);
 }
 
 export interface CategoryLedgerInput {
@@ -169,6 +171,7 @@ export function buildCategoryBudgetRows({
     const spent = categorySpend;
     const left = planned - spent;
     const usedPct = planned > 0 ? spent / planned : 0;
+    const usedPercentage = wholePercent(spent, planned);
     const status = computeBudgetHealth(spent, planned);
     const balance = remainingLabel(left);
 
@@ -178,6 +181,7 @@ export function buildCategoryBudgetRows({
       const budgetUsedPct =
         budget.limit_amount > 0 ? ratioHeldAtTie(budgetSpent, budget.limit_amount) : undefined;
       const categorySharePct = planned > 0 ? budget.limit_amount / planned : undefined;
+      const budgetUsedPercentage = wholePercent(budgetSpent, budget.limit_amount);
       const budgetBalance = remainingLabel(budgetLeft);
       const spentLabel = formatAmount(budgetSpent);
       const plannedLabel = formatAmount(budget.limit_amount);
@@ -191,17 +195,17 @@ export function buildCategoryBudgetRows({
         left: budgetLeft,
         usedPct: budgetUsedPct,
         categorySharePct,
-        usedLabel: `${percentage(budgetUsedPct)}%`,
-        shareLabel: Strings.budgetCategoriesShare(percentage(categorySharePct)),
+        usedLabel: `${budgetUsedPercentage}%`,
+        shareLabel: Strings.budgetCategoriesShare(wholePercent(budget.limit_amount, planned)),
         spentPlannedLabel: Strings.budgetCategoriesSpentPlanned(spentLabel, plannedLabel),
         balanceAmountLabel: balanceLabel,
         balanceMetaLabel: Strings.budgetCategoriesBalanceMeta(budgetBalance.label),
-        ringColor: budgetBandColor(budgetUsedPct ?? 0),
+        ringColor: budgetBandColor(budgetSpent, budget.limit_amount),
         accessibilityLabel: Strings.budgetCategoriesBudgetA11y(
           budget.name,
           spentLabel,
           plannedLabel,
-          percentage(budgetUsedPct),
+          budgetUsedPercentage,
           balanceLabel,
           budgetBalance.label,
         ),
@@ -230,7 +234,7 @@ export function buildCategoryBudgetRows({
       spentPlannedUsedLabel: Strings.budgetCategoriesSpentPlannedUsed(
         spentLabel,
         plannedLabel,
-        percentage(usedPct),
+        usedPercentage,
       ),
       balanceAmountLabel: balanceLabel,
       balanceMetaLabel: Strings.budgetCategoriesBalanceMeta(balance.label),
@@ -242,7 +246,7 @@ export function buildCategoryBudgetRows({
         category.name,
         spentLabel,
         plannedLabel,
-        percentage(usedPct),
+        usedPercentage,
         balanceLabel,
         balance.label,
         healthLabel(status),
@@ -306,13 +310,15 @@ export function buildBudgetCategoriesSummary({
     balanceAmountLabel: formatAmount(balance.magnitude),
     balanceMetaLabel: Strings.budgetCategoriesBalanceMeta(balance.label),
     balanceColor: balance.label === 'over' ? Colors.dark.negative : Colors.dark.positive,
-    barColor: budgetBandColor(usedPct ?? 0),
+    barColor: budgetBandColor(spent, planned),
     spentPlannedLabel: Strings.budgetCategoriesSummarySpentOf(
       formatAmount(spent),
       formatAmount(planned),
     ),
     usedLabel:
-      usedPct === undefined ? undefined : Strings.budgetCategoriesSummaryUsed(percentage(usedPct)),
+      usedPct === undefined
+        ? undefined
+        : Strings.budgetCategoriesSummaryUsed(wholePercent(spent, planned)),
     plannedLabel: formatAmount(planned),
     unassignedIncomeLabel:
       unassignedIncome === undefined

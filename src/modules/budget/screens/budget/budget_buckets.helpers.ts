@@ -7,7 +7,7 @@ import { resolveLimitForMonth } from '@/modules/budget/screens/budget/budget.hel
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import { formatAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
-import { snapToZero } from '@/utils/money';
+import { snapToZero, wholePercent } from '@/utils/money';
 
 export type BudgetRuleLifecycle = 'completed' | 'current' | 'planned';
 
@@ -305,6 +305,7 @@ function lifecycleLabel(lifecycle: BudgetRuleLifecycle, daysLeft: number | undef
 function buildContributorPresentation(
   contributor: Omit<BudgetRuleContributorVM, 'presentation'>,
   group: BudgetGroup,
+  bucketPlanned: number,
 ): BudgetRuleContributorPresentationVM {
   const groupLabel = GROUP_PRESENTATION[group].label;
   const progressRatio =
@@ -317,12 +318,14 @@ function buildContributorPresentation(
           : 0;
   const progressPresentation = {
     progressRatio,
-    ringColor: budgetBandColor(progressRatio),
+    ringColor: contributor.isUnbudgeted
+      ? Colors.dark.budgetNear
+      : budgetBandColor(contributor.spent ?? 0, contributor.planned),
   };
   const planShareLabel =
     contributor.planShareRatio === undefined
       ? undefined
-      : Strings.budget5030PlanShare(Math.round(contributor.planShareRatio * 100), groupLabel);
+      : Strings.budget5030PlanShare(wholePercent(contributor.planned, bucketPlanned), groupLabel);
 
   if (group === BudgetGroup.Savings) {
     return {
@@ -460,7 +463,6 @@ function buildSummaryPresentation({
   totalPlanned,
   notGroupedPlanned,
   leftToPlan,
-  plannedRatio,
   lifecycle,
   daysLeft,
   buckets,
@@ -471,7 +473,6 @@ function buildSummaryPresentation({
   totalPlanned: number;
   notGroupedPlanned: number;
   leftToPlan: number | undefined;
-  plannedRatio: number | undefined;
   lifecycle: BudgetRuleLifecycle;
   daysLeft: number | undefined;
   buckets: RuleBucketVM[];
@@ -479,7 +480,7 @@ function buildSummaryPresentation({
   const monthLabel = formatMonthYear(selectedMonth).split(' ')[0] ?? formatMonthYear(selectedMonth);
   const safeLeftToPlan = leftToPlan ?? 0;
   const isOver = safeLeftToPlan < 0;
-  const percentage = Math.round((plannedRatio ?? 0) * 100);
+  const percentage = wholePercent(totalPlanned, income ?? 0);
   const balanceLabel = formatAmount(Math.abs(safeLeftToPlan));
   const balanceMetaLabel = isOver ? Strings.budget5030OverIncome : Strings.budget5030LeftToPlan;
   const emptyLabel = Strings.budget5030SetPlanningIncome;
@@ -633,7 +634,7 @@ export function buildBudgetRuleLens({
       .sort(compareContributors);
     const contributors = contributorData.map((contributor) => ({
       ...contributor,
-      presentation: buildContributorPresentation(contributor, group),
+      presentation: buildContributorPresentation(contributor, group, planned),
     }));
     const bucket = {
       group,

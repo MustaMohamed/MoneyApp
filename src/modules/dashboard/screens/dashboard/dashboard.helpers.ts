@@ -19,7 +19,7 @@ import type {
   DashboardTransactionFactRow,
 } from '@/modules/dashboard/database/dashboard_snapshot';
 import { resolveAccountName } from '@/utils/account_name';
-import { ratioHeldAtTie, roundMoney, snapToZero } from '@/utils/money';
+import { exceedsToCent, ratioHeldAtTie, roundMoney, snapToZero, wholePercent } from '@/utils/money';
 
 /** Sums into `baseCurrency`, the reporting currency, not the EGP storage currency. */
 export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
@@ -299,8 +299,8 @@ export function computeDashboardSpendDeltaPct(
   currentEgp: number,
   previousEgp: number,
 ): number | null {
-  if (previousEgp <= 0) return null;
-  return Math.round(((currentEgp - previousEgp) / previousEgp) * 100);
+  if (!exceedsToCent(previousEgp, 0)) return null;
+  return wholePercent(currentEgp - previousEgp, previousEgp);
 }
 
 export function computeDashboardCommitmentSummary(payments: CommitmentPayment[]): {
