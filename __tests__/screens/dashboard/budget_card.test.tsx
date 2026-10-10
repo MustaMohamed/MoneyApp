@@ -151,7 +151,7 @@ describe('BudgetCard', () => {
 
     const { getByText } = await render(
       <BudgetCard
-        summary={{ budgeted: 8000, spent: 2000, left: 6000, pct: 0.25, categoryCount: 2 }}
+        summary={{ budgeted: 8000, spent: 2000, left: 6000, categoryCount: 2 }}
         yearMonth="2026-07"
         isLoading={false}
         onPress={jest.fn()}
