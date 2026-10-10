@@ -1,7 +1,10 @@
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Strings } from '@/constants/strings';
 
-import { resolveDetailLoadErrorTitle } from './detail_load_error.helpers';
+import {
+  resolveDetailLoadErrorTinted,
+  resolveDetailLoadErrorTitle,
+} from './detail_load_error.helpers';
 
 interface DetailLoadErrorProps {
   floating?: boolean;
@@ -18,6 +21,7 @@ export function DetailLoadError({
       title={resolveDetailLoadErrorTitle(floating)}
       retryLabel={Strings.detailLoadRetry}
       onRetry={onRetry}
+      tinted={resolveDetailLoadErrorTinted(floating)}
       testID="detail-load-error"
     />
   );
