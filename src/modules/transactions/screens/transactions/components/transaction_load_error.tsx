@@ -1,7 +1,9 @@
+import { ErrorState } from '@/components/ui/error_state';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Strings } from '@/constants/strings';
 
 import {
+  resolveTransactionLoadErrorAlertProps,
   resolveTransactionLoadErrorTitle,
   type TransactionLoadErrorTitleVariant,
 } from './transaction_load_error.helpers';
@@ -16,26 +18,19 @@ export function TransactionLoadError({
   onRetry,
 }: TransactionLoadErrorProps): React.ReactElement {
   const title = resolveTransactionLoadErrorTitle(variant);
+  const alertProps = resolveTransactionLoadErrorAlertProps(variant);
 
-  if (variant === 'initial') {
+  if (alertProps === undefined) {
     return (
-      <LoadErrorAlert
-        mode="fill"
+      <ErrorState
+        edges={[]}
+        flat
+        iconName="alert-circle-outline"
         title={title}
-        retryLabel={Strings.transactionsLoadRetry}
-        onRetry={onRetry}
-        testID="transaction-load-error"
-      />
-    );
-  }
-
-  if (variant === 'pagination') {
-    return (
-      <LoadErrorAlert
-        mode="inline"
-        title={title}
-        retryLabel={Strings.transactionsLoadRetry}
-        onRetry={onRetry}
+        description={Strings.transactionsLoadErrorDescription}
+        actionLabel={Strings.transactionsLoadRetry}
+        actionAccessibilityLabel={Strings.transactionsLoadRetry}
+        onAction={onRetry}
         testID="transaction-load-error"
       />
     );
@@ -43,8 +38,7 @@ export function TransactionLoadError({
 
   return (
     <LoadErrorAlert
-      mode="floating"
-      floatingOffset="tabBar"
+      {...alertProps}
       title={title}
       retryLabel={Strings.transactionsLoadRetry}
       onRetry={onRetry}
