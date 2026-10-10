@@ -101,6 +101,8 @@ export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
       ref={scrollRef}
       horizontal
       showsHorizontalScrollIndicator={false}
+      // With Android's overscroll on, a row flung back to its start rests past it and the next tap only moves it back.
+      overScrollMode="never"
       testID="transactions-account-chips"
       onLayout={handleViewportLayout}
       onScroll={handleScroll}

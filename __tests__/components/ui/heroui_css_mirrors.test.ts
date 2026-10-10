@@ -2,11 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { CHIP_MD_PADDING_BLOCK } from '@/components/ui/chip.geometry';
-import {
-  TABS_LIST_PADDING,
-  TABS_SCROLL_CONTENT_INSET,
-  TABS_TRIGGER_PADDING_BLOCK,
-} from '@/components/ui/tabs.geometry';
+import { TABS_LIST_PADDING, TABS_TRIGGER_PADDING_BLOCK } from '@/components/ui/tabs.geometry';
 import { CURRENCY_TABS_LIST_CHROME } from '@/modules/accounts/components/account_form/account_form.geometry';
 
 // One rem in px, the unit Tailwind declares `--spacing` in.
@@ -64,7 +60,7 @@ function px(file: 'chip.css' | 'tabs.css', selector: string, property: string): 
   return toPx(declaration(vendorCss(...HEROUI_STYLES, file), selector, property));
 }
 
-describe('HeroUI CSS mirrors: each unscaled constant equals the vendor declaration it copies', () => {
+describe('HeroUI CSS mirrors: each unscaled constant equals the vendor declaration it copies, and each override names the property the vendor declares', () => {
   it("MA-162: CHIP_MD_PADDING_BLOCK is .chip__root--size-md's padding-block", () => {
     expect(CHIP_MD_PADDING_BLOCK).toBe(px('chip.css', '.chip__root--size-md', 'padding-block'));
   });
@@ -77,10 +73,11 @@ describe('HeroUI CSS mirrors: each unscaled constant equals the vendor declarati
     expect(TABS_LIST_PADDING).toBe(px('tabs.css', '.tabs__list--variant-primary', 'padding'));
   });
 
-  it("MA-162: TABS_SCROLL_CONTENT_INSET is the primary scroll content's padding-inline", () => {
-    expect(TABS_SCROLL_CONTENT_INSET).toBe(
+  // `SegmentedTabs` zeroes `paddingLeft` and `paddingRight` on a scrollable row, the two keys this property compiles to.
+  it("MA-165: the primary scroll content's side inset is still declared as padding-inline", () => {
+    expect(() =>
       px('tabs.css', '.tabs__scroll-view-content-container--variant-primary', 'padding-inline'),
-    );
+    ).not.toThrow();
   });
 
   it("MA-162: CURRENCY_TABS_LIST_CHROME is .tabs__list's gap plus twice the list padding", () => {

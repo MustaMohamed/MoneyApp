@@ -8,7 +8,6 @@ import type {
 
 import { getVisibleScrollOffset, type VisibleScrollOffsetParams } from './scroll_reveal.geometry';
 import type { TabSegment } from './tabs';
-import { TABS_SCROLL_CONTENT_INSET } from './tabs.geometry';
 
 export type SegmentedTabsScrollAlign = 'start' | 'center' | 'end' | 'none' | 'visible';
 
@@ -20,9 +19,9 @@ export function getSegmentScrollBox(
   segmentCount: number,
 ): Required<Pick<VisibleScrollOffsetParams, 'itemX' | 'itemWidth' | 'contentWidth'>> {
   return {
-    itemX: TABS_SCROLL_CONTENT_INSET + selectedIndex * segmentWidth,
+    itemX: selectedIndex * segmentWidth,
     itemWidth: segmentWidth,
-    contentWidth: segmentCount * segmentWidth + 2 * TABS_SCROLL_CONTENT_INSET,
+    contentWidth: segmentCount * segmentWidth,
   };
 }
 

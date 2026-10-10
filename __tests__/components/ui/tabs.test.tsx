@@ -294,7 +294,12 @@ describe('SegmentedTabs', () => {
     );
 
     const bareScrollView = getByTestId('tabs-scroll-view');
-    expect(bareScrollView.props.contentContainerStyle).toBeUndefined();
+    const bareScrollContentStyle: unknown =
+      StyleSheet.flatten(bareScrollView.props.contentContainerStyle) ?? {};
+    expect(bareScrollContentStyle).not.toHaveProperty('paddingTop');
+    expect(bareScrollContentStyle).not.toHaveProperty('paddingBottom');
+    expect(bareScrollContentStyle).toHaveProperty('paddingLeft', 0);
+    expect(bareScrollContentStyle).toHaveProperty('paddingRight', 0);
     const bareScrollStyle: unknown = StyleSheet.flatten(bareScrollView.props.style) ?? {};
     expect(bareScrollStyle).not.toHaveProperty('marginTop');
     expect(bareScrollStyle).not.toHaveProperty('marginBottom');

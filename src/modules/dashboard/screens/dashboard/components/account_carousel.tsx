@@ -128,6 +128,8 @@ export function AccountCarousel({
         windowSize={3}
         removeClippedSubviews={Platform.OS === 'android'}
         showsHorizontalScrollIndicator={false}
+        // With Android's overscroll on, a row flung back to its start rests past it and the next tap only moves it back.
+        overScrollMode="never"
         contentContainerStyle={{
           paddingHorizontal: Spacing.md,
           paddingVertical: Spacing.xxs,
@@ -141,6 +143,7 @@ export function AccountCarousel({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      overScrollMode="never"
       contentContainerStyle={{
         paddingHorizontal: Spacing.md,
         paddingVertical: Spacing.xxs,
