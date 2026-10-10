@@ -10,6 +10,7 @@ import {
   getTransactionsByAccount,
   insertTransactionRow,
 } from '@/database/transactions';
+import { getAnyTransactionExists } from '@/modules/transactions/database/transactions';
 import { getExpoSQLiteTestDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
 import { makeTestTransaction } from '@/test_helpers/transaction';
 
@@ -103,6 +104,18 @@ describe('transaction row primitives', () => {
         }
       ).current_balance,
     ).toBe(1000);
+  });
+});
+
+describe('the any-transaction read', () => {
+  it('resolves false on the emptied table', async () => {
+    await expect(getAnyTransactionExists(mockDb)).resolves.toBe(false);
+  });
+
+  it('resolves true after one inserted row', async () => {
+    await insertTransactionRow(mockDb, makeTx());
+
+    await expect(getAnyTransactionExists(mockDb)).resolves.toBe(true);
   });
 });
 

@@ -1,5 +1,8 @@
 import { Strings } from '@/constants/strings';
-import { resolveDetailLoadErrorTitle } from '@/modules/transactions/screens/transactions/detail/components/detail_load_error.helpers';
+import {
+  resolveDetailLoadErrorTinted,
+  resolveDetailLoadErrorTitle,
+} from '@/modules/transactions/screens/transactions/detail/components/detail_load_error.helpers';
 
 const ROWS = [
   [false, Strings.detailLoadErrorTitle],
@@ -13,5 +16,15 @@ describe('resolveDetailLoadErrorTitle', () => {
 
   it('the two titles are distinct', () => {
     expect(new Set(ROWS.map(([, title]) => title)).size).toBe(ROWS.length);
+  });
+});
+
+describe('resolveDetailLoadErrorTinted', () => {
+  it('tints the floating refresh alert', () => {
+    expect(resolveDetailLoadErrorTinted(true)).toBe(true);
+  });
+
+  it('leaves the first-load alert untinted', () => {
+    expect(resolveDetailLoadErrorTinted(false)).toBe(false);
   });
 });
