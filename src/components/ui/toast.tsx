@@ -50,8 +50,9 @@ const SUCCESS_ICON = (
 
 function withSuccessIcon(options: string | ToastShowOptions): string | ToastShowOptions {
   if (typeof options === 'string' || options.component !== undefined) return options;
-  if (options.variant !== 'success' || options.icon !== undefined) return options;
-  return { ...options, icon: SUCCESS_ICON };
+  if (options.variant !== 'success') return options;
+  // HeroUI's `success` variant prints the label green; `default` reads the foreground colour.
+  return { ...options, variant: 'default', icon: options.icon ?? SUCCESS_ICON };
 }
 
 // HeroUI takes `icon` per call only, so every success toast gets it here and no screen reaches past this.
