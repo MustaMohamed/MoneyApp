@@ -247,9 +247,9 @@ Accepted asymmetry: `AccountRepository` now rounds in `adjustBalance` and trusts
 > exactly once, upstream of every derivation, validation and balance effect that reads it — inside
 > `resolveTransactionAmounts` / `resolveCommitmentPaymentAmounts` for the two columns with derived
 > siblings, where the write binds the resolver's *return* value and never the input object handed
-> to it, and as the first statement of the owning repository method for the four columns without —
-> so the only files that may call `roundMoney` are the ones `PERMITTED` in
-> `scripts/validate-money-rounding.js` lists for it.**
+> to it, and as the first statement of the owning repository method for the four columns without.
+> Which files may call `roundMoney` is for `PERMITTED` in `scripts/validate-money-rounding.js` to
+> state, display and aggregation files among them.**
 
 Three mechanical checks, none of which require re-deriving the call graph:
 
@@ -257,16 +257,23 @@ Three mechanical checks, none of which require re-deriving the call graph:
    which `npm run lint` runs. It reads one list, `PERMITTED` in that script, which gives each of
    ten helpers the files of `src` that may call it: `roundMoney`, `toCents`, `sumAllocations` and
    the seven the two extensions below add. An entry is one helper with one file. This record names
-   no permitted file, so the check and the record cannot differ. The script reads every tracked `.ts` and `.tsx` file under `src` with its comments
-   stripped. A call is the helper's name with no word character or `$` before it, then optional
-   whitespace, then `(`. The paren keeps an import specifier out and keeps `wholePercent(` apart
-   from `wholePercentOf(`. The file that declares the ten helpers is listed under each, because a
-   declaration reads as a call. The script exits 1 on a call in a file its helper's entry lacks,
-   improvement or not, on an entry whose file is gone or holds no call of that helper, and on a
-   file listing that fails or is empty. It does not read `__tests__`, and it does not see a helper
-   imported under another name, a helper passed as a value with no paren, or a call whose paren
-   sits on the next line. Until this date check 1 was a grep a reviewer ran over the calls a diff
-   added.
+   no permitted file, so the check and the record cannot differ. The script reads every tracked
+   `.ts` and `.tsx` file under `src` with its comments stripped, and it reads two patterns. A
+   mention is the helper's bare identifier, with no word character or `$` on either side. A call
+   is the helper's name with no word character or `$` before it, then optional whitespace, then
+   `(`. Both keep `wholePercent` apart from `wholePercentOf`. In a file its helper's entry lacks, a
+   mention is a finding, so an import specifier, a helper imported under another name, a helper
+   passed as a value and a call all fail, improvement or not. In a file its helper's entry holds,
+   the call pattern alone decides that the file calls its helper. The file that declares the ten
+   helpers is listed under each, because a declaration reads as a call. The script also binds the
+   helpers to that file: each `export function` in it is a key of `PERMITTED` or a name in
+   `EXEMPT`, a second list in the script for an export that rounds no money, and each name in
+   `EXEMPT` is an `export function` of it. Both halves are skipped when the file is gone, which
+   its ten entries already report. The script exits 1 on any of these, on an entry whose file is
+   gone, holds no call of that helper or is listed twice under it, and on a file listing that
+   fails or is empty. It does not read `__tests__`, and in a listed file it does not see a call
+   whose paren sits on the next line. Until this date check 1 was a grep a reviewer ran over the
+   calls a diff added.
 2. **Six bindings.** At each of §3's six write lines, the bound identifier is either a resolver
    return field or a local rounded at the method's first statement. Six `file:line` reads.
 3. **Two properties.** The resolver idempotence tests exist and pass, and
@@ -293,7 +300,7 @@ From 2026-10-10 the list governs whole files. Until then check 1 read **added** 
 never the calls already in the tree. `roundMoney`'s entry is therefore the eleven files of `src`
 that called it on that day: the file that declares it, the write-path files this record rounds in,
 the grandfathered form helper of §5, and the display and aggregation files that already called it.
-A call from a twelfth file fails `npm run lint`.
+A call from a file outside that entry fails `npm run lint`.
 
 ## 7. Accepted residuals
 
@@ -355,15 +362,14 @@ invariant are unchanged.
    mentions — this addendum names `roundMoney` in prose several times and adds no call site
    anywhere. But from this merge on, a `toCents(` or `sumAllocations(` added in a repository, hook
    or schema **is** itself a rounding call site, so §6 check 1's pattern is widened to cover both:
-   §7 names that grep as the sole mitigation for a write path added without reading this ADR, and
+   §7 names check 1 as the sole mitigation for a write path added without reading this ADR, and
    unwidened it would already be blind to the two this addendum adds, at `budget.schema.ts:94` and
    `spending_plans.helpers.ts:441`. **The permitted `toCents(` / `sumAllocations(` call sites in
    `src/` are those two helpers' entries in `PERMITTED` in `scripts/validate-money-rounding.js`; a
    call from a file outside its entry is a finding, improvement or not.** A test that exercises a
    permitted call site pins it rather than adding one, so the widened check's remaining output at
-   this merge — `__tests__/utils/money.test.ts`
-   and `__tests__/budget.schema.test.ts` — is expected and accounted for.
-   `budget.schema.ts`'s `superRefine` and
+   this merge — `__tests__/utils/money.test.ts` and `__tests__/budget.schema.test.ts` — is
+   expected and accounted for. `budget.schema.ts`'s `superRefine` and
    `spending_plans.helpers.ts`'s `computeAllocationHelper` both delegate to `sumAllocations`, so
    the live preview and the save gate cannot disagree. `#303`'s literal proposal
    (`Math.round(x * 100)`, without `roundMoney`) was rejected: it diverges from the persisted
