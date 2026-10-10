@@ -29,7 +29,6 @@ export function makeTestBudgetEditTarget(
     spent: 0,
     left: 1500,
     usedPct: 0,
-    categorySharePct: 1,
     usedLabel: '0%',
     shareLabel: '100% of category',
     spentPlannedLabel: '0 / 1,500 spent',

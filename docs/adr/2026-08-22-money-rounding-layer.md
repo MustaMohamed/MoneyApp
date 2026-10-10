@@ -233,10 +233,9 @@ first statement of that repository method. Before it, that path reached SQLite w
 anywhere on it. **This does not reclassify the column**; it classifies one of its two write paths,
 and a wholesale reclassification would contradict the sentence quoted above.
 
-§6's allowlist below reads "the only files in which **an MA-018 diff** may add a `roundMoney` call"
-— scoped to that ticket by its own words, so it does not forbid this one. Mechanical check 1 will
-still flag `account.repository.ts` in an MA-019 diff; this paragraph is the record that it is
-intended.
+When MA-019 added this call, §6 limited only the `roundMoney` calls an MA-018 diff added, so it did
+not forbid this one. The call's file is now a `roundMoney` entry of the list §6 check 1 reads, and
+this paragraph is the record that it is intended.
 
 Accepted asymmetry: `AccountRepository` now rounds in `adjustBalance` and trusts its caller in
 `add`, whose only reachable input already rounds at `account_form.helpers.ts:28`. Closing that is
@@ -248,23 +247,33 @@ Accepted asymmetry: `AccountRepository` now rounds in `adjustBalance` and trusts
 > exactly once, upstream of every derivation, validation and balance effect that reads it — inside
 > `resolveTransactionAmounts` / `resolveCommitmentPaymentAmounts` for the two columns with derived
 > siblings, where the write binds the resolver's *return* value and never the input object handed
-> to it, and as the first statement of the owning repository method for the four columns without —
-> so the only files in which an MA-018 diff may **add** a `roundMoney` call are `src/utils/money.ts`,
-> `src/modules/transactions/domain/transaction_amounts.ts`,
-> `src/modules/commitments/repositories/commitment.repository.ts` and
-> `src/modules/budget/repositories/budget.repository.ts`.**
+> to it, and as the first statement of the owning repository method for the four columns without.
+> Which files may call `roundMoney` is for `PERMITTED` in `scripts/validate-money-rounding.js` to
+> state, display and aggregation files among them.**
 
 Three mechanical checks, none of which require re-deriving the call graph:
 
-1. **Allowlist.** `git diff main...HEAD -U0 -- src __tests__ | grep -nE 'roundMoney\(|toCents\(|sumAllocations\('` —
-   every added call site is in one of the four files above. A `roundMoney` in a hook, a schema, a
-   component, a `*.state.ts`, a `*.helpers.ts` or anything under `src/modules/*/database/` is a
-   finding, improvement or not. The two transitive rounders are in the pattern so that the grep can
-   see the call sites at all; where they are permitted to appear is Addendum A point 1's ruling, not
-   this list's. The `-- src __tests__` scope is what keeps this document out of its own check —
-   the ADR names all three identifiers with their parens, so an unscoped run reports its own
-   prose — and the paren then separates a call site from an import specifier. Neither filters a
-   commented-out call.
+1. **Allowlist.** **Amended 2026-10-10 (#707, MA-172).** `node scripts/validate-money-rounding.js`,
+   which `npm run lint` runs. It reads one list, `PERMITTED` in that script, which gives each of
+   ten helpers the files of `src` that may call it: `roundMoney`, `toCents`, `sumAllocations` and
+   the seven the two extensions below add. An entry is one helper with one file. This record names
+   no permitted file, so the check and the record cannot differ. The script reads every tracked
+   `.ts` and `.tsx` file under `src` with its comments stripped, and it reads two patterns. A
+   mention is the helper's bare identifier, with no word character or `$` on either side. A call
+   is the helper's name with no word character or `$` before it, then optional whitespace, then
+   `(`. Both keep `wholePercent` apart from `wholePercentOf`. In a file its helper's entry lacks, a
+   mention is a finding, so an import specifier, a helper imported under another name, a helper
+   passed as a value and a call all fail, improvement or not. In a file its helper's entry holds,
+   the call pattern alone decides that the file calls its helper. The file that declares the ten
+   helpers is listed under each, because a declaration reads as a call. The script also binds the
+   helpers to that file: each `export function` in it is a key of `PERMITTED` or a name in
+   `EXEMPT`, a second list in the script for an export that rounds no money, and each name in
+   `EXEMPT` is an `export function` of it. Both halves are skipped when the file is gone, which
+   its ten entries already report. The script exits 1 on any of these, on an entry whose file is
+   gone, holds no call of that helper or is listed twice under it, and on a file listing that
+   fails or is empty. It does not read `__tests__`, and in a listed file it does not see a call
+   whose paren sits on the next line. Until this date check 1 was a grep a reviewer ran over the
+   calls a diff added.
 2. **Six bindings.** At each of §3's six write lines, the bound identifier is either a resolver
    return field or a local rounded at the method's first statement. Six `file:line` reads.
 3. **Two properties.** The resolver idempotence tests exist and pass, and
@@ -272,13 +281,9 @@ Three mechanical checks, none of which require re-deriving the call graph:
 
 **Extended 2026-10-04 (#673).** Check 1's pattern gains `exceedsToCent\(|ratioHeldAtTie\(`, both
 being calls that round through `toCents`, so it reads
-`roundMoney\(|toCents\(|sumAllocations\(|exceedsToCent\(|ratioHeldAtTie\(`. The permitted
-`exceedsToCent(` / `ratioHeldAtTie(` call sites in `src/` are `src/utils/money.ts`,
-`src/modules/accounts/domain/is_over_limit.ts`,
-`src/modules/budget/screens/budget/budget.helpers.ts`,
-`src/modules/budget/screens/budget/spending_plans.helpers.ts` and
-`src/modules/dashboard/screens/dashboard/dashboard.helpers.ts`, the form Addendum A point 1 gives
-`toCents(` and `sumAllocations(`; a sixth is a finding.
+`roundMoney\(|toCents\(|sumAllocations\(|exceedsToCent\(|ratioHeldAtTie\(`. The files that may
+call `exceedsToCent(` and `ratioHeldAtTie(` are those two helpers' entries in `PERMITTED`, and a
+call from any other file is a finding.
 `docs/adr/2026-10-04-half-cent-zero-and-cent-ties.md` records both functions.
 
 **Extended 2026-10-06 (#578).** Check 1's pattern gains
@@ -287,35 +292,15 @@ reads
 `roundMoney\(|toCents\(|sumAllocations\(|exceedsToCent\(|ratioHeldAtTie\(|wholePercent\(|wholePercentOf\(|wholePercentGap\(|compareToPercent\(|compareGapToPoints\(`.
 Four of the five round through `toCents`. `wholePercentOf(` takes integers and rounds no money,
 and an amount passed to it rounds wrong, `wholePercentOf(0.29, 2)` being 14 where
-`wholePercent(0.29, 2)` is 15, so its call sites are listed too.
-`src/modules/budget/utils/budget_summary.ts` joins the permitted `exceedsToCent(` files, and
-`src/modules/transactions/screens/transactions/transactions.helpers.ts` is a permitted `toCents(`
-file beside the three Addendum A point 1 names. The permitted call sites of the five in `src/`,
-each also in `src/utils/money.ts`, a file more being a finding: `wholePercent(` in
-`src/modules/dashboard/screens/dashboard/dashboard.helpers.ts`,
-`src/modules/dashboard/screens/dashboard/components/budget_card.tsx`,
-`src/modules/budget/screens/budget/budget.helpers.ts`,
-`src/modules/budget/screens/budget/spending_plans_summary.helpers.ts`,
-`src/modules/budget/screens/budget/budget_buckets.helpers.ts` and
-`src/modules/budget/screens/budget/spending_plans.helpers.ts`; `wholePercentOf(` in
-`src/modules/transactions/screens/transactions/transactions.helpers.ts`,
-`src/modules/dashboard/screens/dashboard/components/commitments_card.tsx`,
-`src/modules/commitments/screens/commitments/components/summary_header.tsx` and
-`src/modules/budget/screens/budget/spending_plans.helpers.ts`; `wholePercentGap(` in
-`src/modules/budget/screens/budget/spending_plans.helpers.ts`; `compareToPercent(` in
-`src/modules/budget/utils/budget_summary.ts`,
-`src/modules/budget/screens/budget/budget.helpers.ts`,
-`src/modules/budget/screens/budget/spending_plans.helpers.ts` and
-`src/modules/accounts/constants/available_credit_color.ts`; `compareGapToPoints(` in
-`src/modules/budget/screens/budget/spending_plan_timing.helpers.ts`.
+`wholePercent(0.29, 2)` is 15, so its call sites are listed too. The files that may call each of
+the five are that helper's entry in `PERMITTED`, a file more being a finding.
 `docs/adr/2026-10-06-whole-percent-from-two-amounts.md` records the five functions.
 
-The allowlist governs **added** calls only. `roundMoney` is legitimately used at 33 call
-expressions on `main`, most of them in the display and aggregation layer (`dashboard.helpers.ts`
-×10, `transaction_policy.ts` ×7); those are untouched, and two files carrying them —
-`account_card.tsx:167` and `format_amount.ts:122`, the latter *removed* by c2 — are in this ticket's
-diff for unrelated reasons. `account_form.helpers.ts:28/:35` is the one grandfathered write-path
-call site outside the allowlist (§5) and is not in this ticket's diff at all.
+From 2026-10-10 the list governs whole files. Until then check 1 read **added** calls only, and
+never the calls already in the tree. `roundMoney`'s entry is therefore the eleven files of `src`
+that called it on that day: the file that declares it, the write-path files this record rounds in,
+the grandfathered form helper of §5, and the display and aggregation files that already called it.
+A call from a file outside that entry fails `npm run lint`.
 
 ## 7. Accepted residuals
 
@@ -327,8 +312,8 @@ call site outside the allowlist (§5) and is not in this ticket's diff at all.
   boundary is 2dp — not: every row written after MA-018 is 2dp.** Stated here so nobody claims the
   stronger version.
 - **A future write path added without reading this ADR is unprotected.** That is schema
-  enforcement's one real advantage and §4 declines to pay for it. The mitigation is §6 check 1 — a
-  grep an implementation reviewer runs on every diff — not a database constraint.
+  enforcement's one real advantage and §4 declines to pay for it. The mitigation is §6 check 1, a
+  check `npm run lint` runs over every tracked file of `src`, not a database constraint.
 - **Existing rows are not rewritten** (spec row 26 / @layla Q6). The residual is aggregation
   exactness, already an accepted class under `.claude/rules/review.md` item 3.
 - **Three rounding locations ship in this repo** after MA-018: two sanctioned (§1) and one
@@ -377,15 +362,14 @@ invariant are unchanged.
    mentions — this addendum names `roundMoney` in prose several times and adds no call site
    anywhere. But from this merge on, a `toCents(` or `sumAllocations(` added in a repository, hook
    or schema **is** itself a rounding call site, so §6 check 1's pattern is widened to cover both:
-   §7 names that grep as the sole mitigation for a write path added without reading this ADR, and
+   §7 names check 1 as the sole mitigation for a write path added without reading this ADR, and
    unwidened it would already be blind to the two this addendum adds, at `budget.schema.ts:94` and
    `spending_plans.helpers.ts:441`. **The permitted `toCents(` / `sumAllocations(` call sites in
-   `src/` are exactly `src/utils/money.ts`, `src/utils/schemas/budget.schema.ts` and
-   `src/modules/budget/screens/budget/spending_plans.helpers.ts`; a fourth is a finding,
-   improvement or not.** A test that exercises one of the three pins it rather than adding a call
-   site, so the widened check's remaining output at this merge — `__tests__/utils/money.test.ts`
-   and `__tests__/budget.schema.test.ts` — is expected and accounted for.
-   `budget.schema.ts`'s `superRefine` and
+   `src/` are those two helpers' entries in `PERMITTED` in `scripts/validate-money-rounding.js`; a
+   call from a file outside its entry is a finding, improvement or not.** A test that exercises a
+   permitted call site pins it rather than adding one, so the widened check's remaining output at
+   this merge — `__tests__/utils/money.test.ts` and `__tests__/budget.schema.test.ts` — is
+   expected and accounted for. `budget.schema.ts`'s `superRefine` and
    `spending_plans.helpers.ts`'s `computeAllocationHelper` both delegate to `sumAllocations`, so
    the live preview and the save gate cannot disagree. `#303`'s literal proposal
    (`Math.round(x * 100)`, without `roundMoney`) was rejected: it diverges from the persisted

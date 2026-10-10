@@ -7,7 +7,6 @@ export interface NamedBudgetVM {
   spent: number;
   left: number;
   usedPct: number | undefined;
-  categorySharePct: number | undefined;
   usedLabel: string;
   shareLabel: string;
   spentPlannedLabel: string;

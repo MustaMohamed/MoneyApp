@@ -43,7 +43,6 @@ export interface BudgetRuleContributorVM {
   color: string;
   planned: number;
   spent: number | undefined;
-  planShareRatio: number | undefined;
   isUnbudgeted: boolean;
   presentation: BudgetRuleContributorPresentationVM;
 }
@@ -70,13 +69,10 @@ export interface RuleBucketPresentationVM {
 
 export interface RuleBucketVM {
   group: BudgetGroup;
-  ruleRatio: number;
   target: number | undefined;
   planned: number;
   actual: number | undefined;
   variance: number | undefined;
-  /** Truthful planned / target ratio. */
-  planRatio: number | undefined;
   /** Visual planned / target ratio, clamped to 0–1. */
   progressRatio: number | undefined;
   status: RuleBucketStatus;
@@ -120,8 +116,6 @@ export interface BudgetRuleSummaryVM {
   notGroupedPlanned: number;
   totalPlanned: number;
   leftToPlan: number | undefined;
-  /** Truthful total planned / income ratio. */
-  plannedRatio: number | undefined;
   /** Visual total planned / income ratio, clamped to 0–1. */
   progressRatio: number | undefined;
   lifecycle: BudgetRuleLifecycle;
@@ -161,10 +155,9 @@ interface GroupTotals {
   contributors: Array<Omit<BudgetRuleContributorVM, 'presentation'>>;
 }
 
-const GROUP_RATIOS: Record<BudgetGroup, number> = {
+const GROUP_RATIOS: Record<BudgetGroup.Need | BudgetGroup.Want, number> = {
   [BudgetGroup.Need]: 0.5,
   [BudgetGroup.Want]: 0.3,
-  [BudgetGroup.Savings]: 0.2,
 };
 
 const GROUP_ORDER: BudgetGroup[] = [BudgetGroup.Need, BudgetGroup.Want, BudgetGroup.Savings];
@@ -323,9 +316,9 @@ function buildContributorPresentation(
       : budgetBandColor(contributor.spent ?? 0, contributor.planned),
   };
   const planShareLabel =
-    contributor.planShareRatio === undefined
-      ? undefined
-      : Strings.budget5030PlanShare(wholePercent(contributor.planned, bucketPlanned), groupLabel);
+    contributor.planned > 0 && bucketPlanned > 0
+      ? Strings.budget5030PlanShare(wholePercent(contributor.planned, bucketPlanned), groupLabel)
+      : undefined;
 
   if (group === BudgetGroup.Savings) {
     return {
@@ -590,7 +583,6 @@ export function buildBudgetRuleLens({
           color: category.color,
           planned,
           spent: undefined,
-          planShareRatio: undefined,
           isUnbudgeted: false,
         });
       }
@@ -607,7 +599,6 @@ export function buildBudgetRuleLens({
         color: category.color,
         planned,
         spent,
-        planShareRatio: undefined,
         isUnbudgeted: planned === 0 && spent > 0,
       });
     }
@@ -620,30 +611,22 @@ export function buildBudgetRuleLens({
     const target = targets?.[group];
     const planRatio = target === undefined || target === 0 ? undefined : planned / target;
     const contributorData = groupTotals.contributors
-      .map((contributor) => {
-        const contributorPlanned = normalizeRuleAmount(contributor.planned);
-        return {
-          ...contributor,
-          planned: contributorPlanned,
-          spent:
-            contributor.spent === undefined ? undefined : normalizeRuleAmount(contributor.spent),
-          planShareRatio:
-            contributorPlanned > 0 && planned > 0 ? contributorPlanned / planned : undefined,
-        };
-      })
+      .map((contributor) => ({
+        ...contributor,
+        planned: normalizeRuleAmount(contributor.planned),
+        spent: contributor.spent === undefined ? undefined : normalizeRuleAmount(contributor.spent),
+      }))
       .sort(compareContributors);
     const contributors = contributorData.map((contributor) => ({
       ...contributor,
       presentation: buildContributorPresentation(contributor, group, planned),
     }));
-    const bucket = {
+    const bucket: Omit<RuleBucketVM, 'presentation'> = {
       group,
-      ruleRatio: GROUP_RATIOS[group],
       target,
       planned,
       actual: group === BudgetGroup.Savings ? undefined : actual,
       variance: target === undefined ? undefined : target - planned,
-      planRatio,
       progressRatio: planRatio === undefined ? undefined : clampRatio(planRatio),
       status: bucketStatus(group, planned, target),
       contributors,
@@ -666,7 +649,6 @@ export function buildBudgetRuleLens({
     notGroupedPlanned,
     totalPlanned,
     leftToPlan,
-    plannedRatio,
     progressRatio: plannedRatio === undefined ? undefined : clampRatio(plannedRatio),
     ...lifecycle,
   };

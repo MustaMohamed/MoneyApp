@@ -152,7 +152,6 @@ describe('useBudget spending plans', () => {
       usedPercentage: 15,
       progressPercentage: 15,
       itemizedAmount: 3000,
-      itemizedPct: 0.375,
       itemizedPercentage: 38,
       balanceAmount: 6800,
       balanceStatus: 'left',
@@ -193,6 +192,12 @@ describe('useBudget spending plans', () => {
       ],
     });
     expect(result.current.state.hasSpendingPlans).toBe(true);
+  });
+
+  it('carries no overall property on state', async () => {
+    const { result } = await renderHook(() => useBudget());
+
+    expect(result.current.state).not.toHaveProperty('overall');
   });
 
   it('routes plan cards to the full-screen plan details screen', async () => {

@@ -18,7 +18,6 @@ export function computeSpendingPlansSummary(
   const left = planned - spent;
   const pct = planned > 0 ? spent / planned : 0;
   const itemizedAmount = rows.reduce((total, row) => total + row.allocatedTotal, 0);
-  const itemizedPct = planned > 0 ? itemizedAmount / planned : 0;
   const usedPercentage = wholePercent(spent, planned);
   const balance = remainingLabel(left);
   const isOver = balance.label === 'over';
@@ -41,7 +40,6 @@ export function computeSpendingPlansSummary(
     usedPercentage,
     progressPercentage: Math.min(Math.max(usedPercentage, 0), 100),
     itemizedAmount,
-    itemizedPct,
     itemizedPercentage: wholePercent(itemizedAmount, planned),
     balanceAmount: balance.magnitude,
     balanceStatus: balance.label,

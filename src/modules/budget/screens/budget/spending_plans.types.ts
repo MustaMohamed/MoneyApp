@@ -15,7 +15,6 @@ export interface SpendingPlanTimingVM {
   lifecycle: SpendingPlanLifecycle;
   totalDays: number;
   elapsedDays: number;
-  elapsedPct: number;
   daysValue: number;
 }
 
@@ -176,7 +175,6 @@ export interface SpendingPlanRowVM {
   buffer: number;
   timing: SpendingPlanTimingVM;
   status: SpendingPlanStatus;
-  paceDelta: number;
   detailCategoryRows: SpendingPlanDetailCategoryVM[];
   highestPressureCategory?: SpendingPlanDetailCategoryVM;
   card: SpendingPlanCardVM;
@@ -194,7 +192,6 @@ export interface SpendingPlansSummaryVM {
   usedPercentage: number;
   progressPercentage: number;
   itemizedAmount: number;
-  itemizedPct: number;
   itemizedPercentage: number;
   balanceAmount: number;
   balanceStatus: 'left' | 'over';

@@ -4,11 +4,10 @@ import { compareToPercent, exceedsToCent } from '@/utils/money';
 /** One threshold for the warning word and the watch colour step, so a figure never shows one without the other. */
 export const BUDGET_WARNING_PERCENT = 80;
 
-export interface OverallVM {
+interface OverallVM {
   budgeted: number;
   spent: number;
   left: number;
-  pct: number;
 }
 
 export interface BudgetDashboardSummaryVM extends OverallVM {

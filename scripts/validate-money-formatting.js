@@ -1,7 +1,7 @@
 // Add `{ path, issue: <N> }` to temporarily allowlist a violation; the fixing PR must delete it.
-const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { listSrcFiles } = require('./lib/list-src-files');
 const { stripComments } = require('./lib/strip-comments');
 
 const root = path.join(__dirname, '..');
@@ -55,32 +55,7 @@ const HAND_JOIN_ALLOWLIST = [
   { path: 'src/utils/format_amount.ts' },
 ];
 
-const listing = spawnSync(
-  'git',
-  ['-c', 'core.quotePath=false', 'ls-files', 'src/*.ts', 'src/*.tsx'],
-  {
-    cwd: root,
-    encoding: 'utf8',
-  },
-);
-
-// `spawnSync` returns `stdout: undefined` on failure, so this must precede the split below.
-if (listing.error || listing.status !== 0) {
-  errors.push(
-    `git ls-files failed to run — run from a git checkout of MoneyApp (${listing.error?.message ?? `exit code ${String(listing.status)}`})`,
-  );
-  console.error(errors.join('\n'));
-  process.exit(1);
-}
-
-const files = listing.stdout.split('\n').filter(Boolean);
-
-// A broken pathspec would otherwise pass silently with zero files scanned.
-if (files.length === 0) {
-  errors.push('git ls-files returned no files — run from a git checkout of MoneyApp');
-  console.error(errors.join('\n'));
-  process.exit(1);
-}
+const files = listSrcFiles(root);
 
 const fileSet = new Set(files);
 const strippedLinesCache = new Map();

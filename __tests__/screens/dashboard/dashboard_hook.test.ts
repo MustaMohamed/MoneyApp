@@ -145,7 +145,6 @@ function populatedSnapshot(): DashboardSnapshot {
       budgeted: 1000,
       spent: 500,
       left: 500,
-      pct: 0.5,
       categoryCount: 2,
     },
     commitmentPayments: [
@@ -388,7 +387,7 @@ describe('useDashboard', () => {
       loading: false,
     });
     expect(result.current.state.budget).toEqual({
-      summary: { budgeted: 1000, spent: 500, left: 500, pct: 0.5, categoryCount: 2 },
+      summary: { budgeted: 1000, spent: 500, left: 500, categoryCount: 2 },
       yearMonth: '2026-07',
       loading: false,
     });
