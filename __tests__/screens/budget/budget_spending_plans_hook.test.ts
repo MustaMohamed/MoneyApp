@@ -194,10 +194,10 @@ describe('useBudget spending plans', () => {
     expect(result.current.state.hasSpendingPlans).toBe(true);
   });
 
-  it('carries the Categories totals on overall as three amounts and no ratio', async () => {
+  it('carries no overall property on state', async () => {
     const { result } = await renderHook(() => useBudget());
 
-    expect(result.current.state.overall).toEqual({ budgeted: 0, spent: 0, left: 0 });
+    expect(result.current.state).not.toHaveProperty('overall');
   });
 
   it('routes plan cards to the full-screen plan details screen', async () => {

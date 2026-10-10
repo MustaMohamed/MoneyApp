@@ -204,15 +204,6 @@ export function useBudget() {
     [activeExpectedIncome, categoryLedger.unbudgetedSpend, rows, selectedMonth, today],
   );
 
-  const overall = useMemo(
-    () => ({
-      budgeted: categoriesSummary.planned,
-      spent: categoriesSummary.spent,
-      left: categoriesSummary.left,
-    }),
-    [categoriesSummary],
-  );
-
   const spendingPlanRows = useMemo(
     () =>
       buildSpendingPlanRows({
@@ -479,7 +470,6 @@ export function useBudget() {
       rows,
       categoriesSummary,
       editingRow,
-      overall,
       spendingPlanRows,
       editingPlan,
       spendingPlansSummary,

@@ -159,7 +159,7 @@ export function buildCategoryBudgetRows({
     const status = computeBudgetHealth(spent, planned);
     const balance = remainingLabel(left);
 
-    const namedBudgets: NamedBudgetVM[] = categoryBudgets.map((budget) => {
+    const namedBudgets: NamedBudgetVM[] = categoryBudgets.map((budget): NamedBudgetVM => {
       const budgetSpent = spendByBudgetId[budget.id] ?? 0;
       const budgetLeft = budget.limit_amount - budgetSpent;
       const budgetUsedPct =

@@ -155,10 +155,9 @@ interface GroupTotals {
   contributors: Array<Omit<BudgetRuleContributorVM, 'presentation'>>;
 }
 
-const GROUP_RATIOS: Record<BudgetGroup, number> = {
+const GROUP_RATIOS: Record<BudgetGroup.Need | BudgetGroup.Want, number> = {
   [BudgetGroup.Need]: 0.5,
   [BudgetGroup.Want]: 0.3,
-  [BudgetGroup.Savings]: 0.2,
 };
 
 const GROUP_ORDER: BudgetGroup[] = [BudgetGroup.Need, BudgetGroup.Want, BudgetGroup.Savings];
@@ -622,7 +621,7 @@ export function buildBudgetRuleLens({
       ...contributor,
       presentation: buildContributorPresentation(contributor, group, planned),
     }));
-    const bucket = {
+    const bucket: Omit<RuleBucketVM, 'presentation'> = {
       group,
       target,
       planned,

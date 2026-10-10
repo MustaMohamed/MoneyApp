@@ -527,7 +527,7 @@ export function buildSpendingPlanRows({
   const categoryById = new Map(categories.map((category) => [category.id, category]));
   return plans
     .filter((plan) => planIntersectsMonth(plan, selectedMonth))
-    .map((plan) => {
+    .map((plan): SpendingPlanRowVM => {
       const spend = spendByPlanId[plan.id] ?? {};
       const categoryChips = plan.categories
         .map((row) => categoryById.get(row.category_id))

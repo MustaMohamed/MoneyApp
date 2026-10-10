@@ -414,7 +414,6 @@ const baseState: BudgetScreenState = {
     overCount: 0,
     statusItems: [],
   },
-  overall: { budgeted: 0, spent: 0, left: 0 },
   spendingPlanRows: [],
   editingRow: undefined,
   editingPlan: undefined,
