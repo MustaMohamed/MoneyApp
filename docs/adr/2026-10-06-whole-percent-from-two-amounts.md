@@ -17,7 +17,7 @@ Every argument is a required `number`, none takes `null`, and each returns a `nu
 - `compareToPercent(part: number, whole: number, percent: number): number` takes a whole `percent`. It is `Math.sign(toCents(part) × 100 − toCents(whole) × percent)`, and `-1` when `toCents(whole) <= 0`.
 - `compareGapToPoints(part: number, whole: number, elapsed: number, span: number, points: number): number` is `Math.sign((p × span − elapsed × w) × 100 − w × span × points)`, and `-1` when `w <= 0` or `span <= 0`.
 
-The largest product is cents times days times 100. It stays exact below 2^53, which holds for a plan under about 2 billion EGP over a year.
+The largest product is cents times days times 200, the doubled numerator inside `wholePercentOf` when `wholePercentGap` calls it. It stays exact below 2^53, which holds for a plan under about 1.2 billion EGP over 365 days. `compareGapToPoints` multiplies by 100 and holds to about 2.4 billion.
 
 ## 2. The rule
 
