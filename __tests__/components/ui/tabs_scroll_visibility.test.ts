@@ -1,6 +1,25 @@
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
-import { TABS_SCROLL_CONTENT_INSET } from '@/components/ui/tabs.geometry';
 import { getSegmentScrollBox } from '@/components/ui/tabs.hook';
+
+describe('getSegmentScrollBox', () => {
+  it('MA-165: the first tab starts where the scroll content starts, and the content is as wide as its tabs', () => {
+    expect(getSegmentScrollBox(0, 96, 7)).toEqual({
+      itemX: 0,
+      itemWidth: 96,
+      contentWidth: 7 * 96,
+    });
+  });
+
+  it('MA-165: revealing the first tab from the end of the row scrolls the row to its start', () => {
+    expect(
+      getVisibleScrollOffset({
+        currentOffset: 7 * 96 - 300,
+        viewportWidth: 300,
+        ...getSegmentScrollBox(0, 96, 7),
+      }),
+    ).toBe(0);
+  });
+});
 
 describe('getVisibleScrollOffset', () => {
   it('does not scroll when the selected item is already fully visible', () => {
@@ -43,7 +62,7 @@ describe('getVisibleScrollOffset', () => {
         viewportWidth: 300,
         ...getSegmentScrollBox(6, 96, 7),
       }),
-    ).toBe(TABS_SCROLL_CONTENT_INSET + 7 * 96 - 300);
+    ).toBe(7 * 96 - 300);
   });
 
   it('clamps the scroll offset to the end of the content', () => {
