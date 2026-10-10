@@ -23,4 +23,8 @@ describe('resolveSkeletonBarHeight', () => {
   it('triples the bar at font scale 3', () => {
     expect(resolveSkeletonBarHeight(textBar, 3)).toBe(textBar * 3);
   });
+
+  it('stops the bar at the cap its caller passes', () => {
+    expect(resolveSkeletonBarHeight(textBar, 2, 1.3)).toBe(textBar * 1.3);
+  });
 });

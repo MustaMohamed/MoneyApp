@@ -1,6 +1,7 @@
 import { Currency } from '@/constants/enums';
 import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
 import {
+  resolveMonthSpendFooterLayout,
   resolveMonthSpendLeg,
   resolveMonthSpendRows,
   resolveNetWorthStatColor,
@@ -158,5 +159,21 @@ describe('shouldShowNetWorthProportionBar — the compound gate (#345)', () => {
     [{ assets: 0, liabilities: 0.01 }, true],
   ] as const)('%j -> %s', (parts, expected) => {
     expect(shouldShowNetWorthProportionBar(parts)).toBe(expected);
+  });
+});
+
+describe('resolveMonthSpendFooterLayout', () => {
+  it.each([0.85, 1])('keeps the footer on one centred row at font scale %s', (fontScale) => {
+    expect(resolveMonthSpendFooterLayout(fontScale)).toEqual({
+      flexDirection: 'row',
+      alignItems: 'center',
+    });
+  });
+
+  it.each([1.01, 2])('stacks the footer from its start edge at font scale %s', (fontScale) => {
+    expect(resolveMonthSpendFooterLayout(fontScale)).toEqual({
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+    });
   });
 });

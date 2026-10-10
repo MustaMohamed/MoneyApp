@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Dimensions, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
-import { resolveFitAmountTextProps } from '@/components/ui/text_scale.geometry';
+import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
 import { BudgetCard } from '@/modules/dashboard/screens/dashboard/components/budget_card';
@@ -134,6 +134,32 @@ describe('BudgetCard', () => {
       height: resolveSkeletonBarHeight(ms(13), fontScale),
     });
     expect(getByTestId('dashboard-budget-skeleton-progress')).toHaveStyle({ height: ms(3) });
+    expect(getByTestId('dashboard-budget-skeleton-values-row')).toHaveStyle({
+      minHeight: resolveSkeletonBarHeight(ms(32), fontScale),
+    });
+  });
+
+  it('scales the category count and the used percent app-side', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const { getByText } = await render(
+      <BudgetCard
+        summary={{ budgeted: 8000, spent: 2000, left: 6000, pct: 0.25, categoryCount: 2 }}
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+    const metaTexts = [
+      getByText(Strings.budgetCategoryCountLabel(2)),
+      getByText(`25% ${Strings.budgetUsedSuffix}`),
+    ];
+
+    for (const text of metaTexts) {
+      expect(text).toHaveProp('allowFontScaling', false);
+      expect(text).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
+    }
   });
 
   it('fits the budgeted figure to its line at the window font scale', async () => {

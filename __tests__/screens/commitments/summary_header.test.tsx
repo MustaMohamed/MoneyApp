@@ -5,6 +5,7 @@ import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
 import { SummaryHeader } from '@/modules/commitments/screens/commitments/components/summary_header';
 import { ms } from '@/utils/responsive';
@@ -88,6 +89,9 @@ describe('SummaryHeader skeleton loading', () => {
   });
 
   it('matches the loaded summary row geometry while loading', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
     const { getAllByTestId, getByTestId } = await render(
       <SummaryHeader
         counts={{ paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 }}
@@ -97,13 +101,13 @@ describe('SummaryHeader skeleton loading', () => {
     );
 
     expect(getByTestId('commitments-summary-skeleton-summary-row')).toHaveStyle({
-      minHeight: ms(27),
+      minHeight: resolveSkeletonBarHeight(ms(27), fontScale),
     });
     expect(getByTestId('commitments-summary-skeleton-progress')).toHaveStyle({
       height: ms(3),
     });
     expect(getByTestId('commitments-summary-skeleton-stats-row')).toHaveStyle({
-      minHeight: ms(13),
+      minHeight: resolveSkeletonBarHeight(ms(13), fontScale),
     });
     expect(getAllByTestId('commitments-summary-skeleton-stat')).toHaveLength(5);
   });
@@ -170,5 +174,30 @@ describe('SummaryHeader total committed line', () => {
     expect(totals).toHaveProp('allowFontScaling', false);
     expect(totals).toHaveProp('adjustsFontSizeToFit', true);
     expect(totals).toHaveStyle(scaledTextStyle(Type.subhead, fontScale));
+  });
+});
+
+describe('SummaryHeader text at the window font scale', () => {
+  it('holds the label to one line and scales the label, percent and paid counter app-side', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const { getByText } = await render(
+      <SummaryHeader
+        counts={{ paid: 23, overdue: 0, due: 17, upcoming: 0, skipped: 0, total: 40 }}
+        totalsByCurrency={new Map([[Currency.EGP, 1500]])}
+      />,
+    );
+    const label = getByText(Strings.commitmentsTotalCommitted);
+    const percent = getByText('58%');
+    const paid = getByText('23');
+
+    expect(label).toHaveProp('numberOfLines', 1);
+    expect(label).toHaveProp('allowFontScaling', false);
+    expect(label).toHaveStyle(scaledTextStyle(Type.pillLabel, fontScale));
+    expect(percent).toHaveProp('allowFontScaling', false);
+    expect(percent).toHaveStyle(scaledTextStyle(Type.meta, fontScale));
+    expect(paid).toHaveProp('allowFontScaling', false);
+    expect(paid).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
   });
 });

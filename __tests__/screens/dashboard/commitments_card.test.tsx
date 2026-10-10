@@ -3,8 +3,10 @@ import type { ReactNode } from 'react';
 import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Type } from '@/constants/theme';
 import { CommitmentsCard } from '@/modules/dashboard/screens/dashboard/components/commitments_card';
 import { ms } from '@/utils/responsive';
 
@@ -163,5 +165,33 @@ describe('CommitmentsCard paid share', () => {
     );
 
     expect(getByText('58%')).toBeTruthy();
+  });
+});
+
+describe('CommitmentsCard text at the window font scale', () => {
+  it('holds the label to one line and scales the label, percent and paid counter app-side', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const { getByText } = await render(
+      <CommitmentsCard
+        counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
+        totalsByCurrency={new Map([[Currency.EGP, 5000]])}
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+    const label = getByText(Strings.commitmentsTotalCommitted);
+    const percent = getByText('10%');
+    const paid = getByText('1');
+
+    expect(label).toHaveProp('numberOfLines', 1);
+    expect(label).toHaveProp('allowFontScaling', false);
+    expect(label).toHaveStyle(scaledTextStyle(Type.caption, fontScale));
+    expect(percent).toHaveProp('allowFontScaling', false);
+    expect(percent).toHaveStyle(scaledTextStyle(Type.subhead, fontScale));
+    expect(paid).toHaveProp('allowFontScaling', false);
+    expect(paid).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
   });
 });
