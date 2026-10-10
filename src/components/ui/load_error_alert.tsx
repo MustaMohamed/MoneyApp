@@ -73,6 +73,13 @@ const ALERT_CLASS_NAME: Record<LoadErrorAlertTone, string> = {
   tintOverSurface: 'w-full',
 };
 
+// The frames' `.alrt` centres the row; stacked, the icon stays beside the first line.
+const ALERT_ROW_CLASS_NAME: Record<LoadErrorAlertTone, string> = {
+  plain: 'w-full',
+  tint: 'w-full items-center bg-transparent',
+  tintOverSurface: 'w-full items-center',
+};
+
 const TINT_CORNERS = { borderRadius: Radius.md } as const;
 
 // `shadow-none` cannot override HeroUI's shadow token, and a shadow would read through the tint.
@@ -193,7 +200,7 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
   const alert = (
     <Alert
       status="danger"
-      className={ALERT_CLASS_NAME[tone]}
+      className={(stacked ? ALERT_CLASS_NAME : ALERT_ROW_CLASS_NAME)[tone]}
       style={ALERT_STYLE[tone]}
       background={tintBackground}
     >
