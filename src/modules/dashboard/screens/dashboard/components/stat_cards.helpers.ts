@@ -1,3 +1,4 @@
+import { resolveRowStacking } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Colors } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
@@ -33,6 +34,18 @@ export function resolveMonthSpendRows<T extends { value: string; code: string }>
   usdParts: T,
 ): ReadonlyArray<T> {
   return baseCurrency === Currency.USD ? [usdParts, egpParts] : [egpParts, usdParts];
+}
+
+export interface MonthSpendFooterLayout {
+  flexDirection: 'row' | 'column';
+  alignItems: 'center' | 'flex-start';
+}
+
+/** Above font scale 1 the count takes its own line under the delta, on the skeleton as on the loaded card. */
+export function resolveMonthSpendFooterLayout(fontScale: number): MonthSpendFooterLayout {
+  return resolveRowStacking(fontScale) === 'stacked'
+    ? { flexDirection: 'column', alignItems: 'flex-start' }
+    : { flexDirection: 'row', alignItems: 'center' };
 }
 
 /**

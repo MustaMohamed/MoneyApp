@@ -3,9 +3,11 @@ import { Skeleton } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
+import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { CURRENCY_CONFIG, foreignCurrencyFor } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -44,9 +46,13 @@ interface HeroCardProps {
   onPress?: () => void;
 }
 
-function HeroCardSkeleton(): React.ReactElement {
+function HeroCardSkeleton({ isRateUsable }: { isRateUsable: boolean }): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const pillHeight = resolveSkeletonBarHeight(DASHBOARD_HERO_PILL_SKELETON_HEIGHT, fontScale);
+  const [foreignWidth, , accountsWidth] = DASHBOARD_HERO_PILL_SKELETON_WIDTHS;
+  const pillWidths = isRateUsable
+    ? DASHBOARD_HERO_PILL_SKELETON_WIDTHS
+    : [foreignWidth, accountsWidth];
   return (
     <>
       <Skeleton
@@ -54,7 +60,11 @@ function HeroCardSkeleton(): React.ReactElement {
         animation={DASHBOARD_SKELETON_ANIMATION}
         className="mx-5 mt-3 mb-2 w-48 rounded-md"
         style={{
-          height: resolveSkeletonBarHeight(DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT, fontScale),
+          height: resolveSkeletonBarHeight(
+            DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT,
+            fontScale,
+            DISPLAY_HEADLINE_MAX_FONT_SCALE,
+          ),
         }}
       />
       <View
@@ -66,7 +76,7 @@ function HeroCardSkeleton(): React.ReactElement {
           minHeight: pillHeight,
         }}
       >
-        {DASHBOARD_HERO_PILL_SKELETON_WIDTHS.map((width) => (
+        {pillWidths.map((width) => (
           <Skeleton
             key={width}
             testID="dashboard-hero-skeleton-pill"
@@ -88,13 +98,23 @@ function HeroCardAssetsAmount({
   baseCurrency: Currency;
 }): React.ReactElement {
   const assetsParts = formatOwnedAmountParts(amount.assets, baseCurrency);
+  const { fontScale } = useWindowDimensions();
   return (
     <Text
+      allowFontScaling={false}
       className="font-sora-bold mt-3 mb-2 px-3"
-      style={{ color: Colors.dark.gold, fontSize: ms(32), lineHeight: lineHeightFor(ms(32)) }}
+      style={{
+        ...scaledTextStyle(Type.dashboardHero, fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE),
+        color: Colors.dark.gold,
+      }}
     >
       {assetsParts.value}{' '}
-      <Text style={{ fontSize: ms(16), lineHeight: lineHeightFor(ms(16)), opacity: 0.8 }}>
+      <Text
+        style={{
+          ...scaledTextStyle(Type.subhead, fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE),
+          opacity: 0.8,
+        }}
+      >
         {assetsParts.code}
       </Text>
     </Text>
@@ -112,6 +132,9 @@ export function HeroCard({
   isLoading,
   onPress,
 }: HeroCardProps) {
+  const { fontScale } = useWindowDimensions();
+  const pillText = scaledTextStyle(Type.caption, fontScale);
+  const pillMinHeight = resolveSkeletonBarHeight(DASHBOARD_HERO_PILL_SKELETON_HEIGHT, fontScale);
   const totalAccounts = assetsCount + liabilitiesCount;
   const foreignCurrency = foreignCurrencyFor(baseCurrency);
   // `netWorth.assetsForeign` mirrors `assets`' sign, so it needs the same composition as the
@@ -129,9 +152,12 @@ export function HeroCard({
     >
       <View
         className="flex-row items-center justify-between px-3 pt-3"
-        style={{ flexDirection: 'row' }}
+        style={{ flexDirection: 'row', gap: ms(8) }}
       >
-        <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(6) }}>
+        <View
+          className="flex-row items-center"
+          style={{ flexDirection: 'row', gap: ms(6), flexShrink: 1 }}
+        >
           <View
             className="items-center justify-center rounded-full"
             style={{
@@ -142,7 +168,11 @@ export function HeroCard({
           >
             <MaterialCommunityIcons name="wallet" size={ms(14)} color={Colors.shared.cairoGold} />
           </View>
-          <Text variant="caption" className="text-foreground tracking-wide">
+          <Text
+            variant="caption"
+            className="text-foreground tracking-wide"
+            style={{ flexShrink: 1 }}
+          >
             {Strings.dashAvailableToSpend}
           </Text>
         </View>
@@ -182,7 +212,7 @@ export function HeroCard({
       </View>
 
       {isLoading ? (
-        <HeroCardSkeleton />
+        <HeroCardSkeleton isRateUsable={isRateUsable} />
       ) : (
         <>
           {netWorth.kind === 'rate-needed' ? (
@@ -219,10 +249,12 @@ export function HeroCard({
             style={{ flexDirection: 'row', gap: ms(6) }}
           >
             <View
+              testID="dashboard-hero-foreign-pill"
               className="flex-row items-center rounded-full px-2 py-1"
               style={{
                 flexDirection: 'row',
                 gap: ms(4),
+                minHeight: pillMinHeight,
                 backgroundColor: Colors.dark.overlayWhite7,
               }}
             >
@@ -232,7 +264,7 @@ export function HeroCard({
                 color={Colors.dark.text1}
               />
               {/* Assets, not net worth: the sheet's ≈ caption differs on purpose. */}
-              <Text className="text-foreground text-xs">
+              <Text allowFontScaling={false} className="text-foreground" style={pillText}>
                 {assetsForeignText ??
                   Strings.netWorthBreakdownForeignUnavailable(
                     CURRENCY_CONFIG[foreignCurrency].code,
@@ -246,6 +278,7 @@ export function HeroCard({
                 style={{
                   flexDirection: 'row',
                   gap: ms(4),
+                  minHeight: pillMinHeight,
                   backgroundColor: Colors.dark.overlayWhite7,
                 }}
               >
@@ -254,19 +287,23 @@ export function HeroCard({
                   size={ms(11)}
                   color={Colors.dark.text1}
                 />
-                <Text className="text-foreground text-xs">{formatExchangeRate(rate)}</Text>
+                <Text allowFontScaling={false} className="text-foreground" style={pillText}>
+                  {formatExchangeRate(rate)}
+                </Text>
               </View>
             ) : null}
             <View
+              testID="dashboard-hero-accounts-pill"
               className="flex-row items-center rounded-full px-2 py-1"
               style={{
                 flexDirection: 'row',
                 gap: ms(4),
+                minHeight: pillMinHeight,
                 backgroundColor: Colors.dark.overlayWhite7,
               }}
             >
               <MaterialCommunityIcons name="bank-outline" size={ms(11)} color={Colors.dark.text1} />
-              <Text className="text-foreground text-xs">
+              <Text allowFontScaling={false} className="text-foreground" style={pillText}>
                 {totalAccounts} {Strings.o6AccountsUnit}
               </Text>
             </View>

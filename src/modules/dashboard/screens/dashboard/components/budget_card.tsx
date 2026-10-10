@@ -21,6 +21,7 @@ import { formatMonthYear } from '@/utils/format_date';
 import { wholePercent } from '@/utils/money';
 import { ms } from '@/utils/responsive';
 
+import { DASHBOARD_CARD_PADDING } from './dashboard_card.geometry';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 interface Props {
@@ -40,7 +41,11 @@ function BudgetCardSkeleton(): React.ReactElement {
     <>
       <View
         testID="dashboard-budget-skeleton-values-row"
-        style={{ flexDirection: 'row', gap: ms(8), minHeight: VALUE_ROW_HEIGHT }}
+        style={{
+          flexDirection: 'row',
+          gap: ms(8),
+          minHeight: resolveSkeletonBarHeight(VALUE_ROW_HEIGHT, fontScale),
+        }}
       >
         {[0, 1, 2].map((item) => (
           <View key={item} style={{ flex: 1, gap: ms(4) }}>
@@ -75,6 +80,7 @@ function BudgetCardSkeleton(): React.ReactElement {
 
 export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
   const { fontScale } = useWindowDimensions();
+  const metaText = scaledTextStyle(Type.micro, fontScale);
   const monthLabel = formatMonthYear(yearMonth);
   const progressPct = wholePercent(summary.spent, summary.budgeted);
   const bandColor = budgetBandColor(summary.spent, summary.budgeted);
@@ -89,8 +95,9 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
     >
       <Card
         testID="dashboard-budget-card"
-        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-3 py-2"
+        className="border-border mx-4 mt-4 rounded-2xl border p-0"
         style={{
+          ...DASHBOARD_CARD_PADDING,
           gap: ms(8),
           boxShadow: 'none',
         }}
@@ -169,10 +176,18 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
                 justifyContent: 'space-between',
               }}
             >
-              <Text className="font-inter-semibold text-muted text-[11px]">
+              <Text
+                allowFontScaling={false}
+                className="font-inter-semibold text-muted"
+                style={metaText}
+              >
                 {Strings.budgetCategoryCountLabel(summary.categoryCount)}
               </Text>
-              <Text className="font-sora-bold text-[11px]" style={{ color: bandColor }}>
+              <Text
+                allowFontScaling={false}
+                className="font-sora-bold"
+                style={{ ...metaText, color: bandColor }}
+              >
                 {`${progressPct}% ${Strings.budgetUsedSuffix}`}
               </Text>
             </View>

@@ -1,25 +1,9 @@
 import { Card, SkeletonGroup } from 'heroui-native';
-import { View, useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
 
 import { BackButton } from '@/components/ui/back_button';
-import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { ScaledBar } from '@/components/ui/skeleton_bar';
 import { Spacing } from '@/constants/theme';
-
-function ScaledBar({
-  height,
-  className,
-}: {
-  height: number;
-  className: string;
-}): React.ReactElement {
-  const { fontScale } = useWindowDimensions();
-  return (
-    <SkeletonGroup.Item
-      className={className}
-      style={{ height: resolveSkeletonBarHeight(height, fontScale) }}
-    />
-  );
-}
 
 export function CategoryDetailSkeleton({ onBack }: { onBack: () => void }): React.ReactElement {
   return (

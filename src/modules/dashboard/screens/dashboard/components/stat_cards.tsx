@@ -29,6 +29,7 @@ import { ms } from '@/utils/responsive';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 import {
   type MonthSpendLegState,
+  resolveMonthSpendFooterLayout,
   resolveMonthSpendLeg,
   resolveMonthSpendRows,
   resolveNetWorthStatColor,
@@ -88,6 +89,8 @@ function NetWorthSkeleton(): React.ReactElement {
   const valueHeight = resolveSkeletonBarHeight(DASHBOARD_NET_WORTH_VALUE_HEIGHT, fontScale);
   const labelHeight = resolveSkeletonBarHeight(DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT, fontScale);
   const detailHeight = resolveSkeletonBarHeight(DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT, fontScale);
+  const stacked = resolveRowStacking(fontScale) === 'stacked';
+  const detailColumnStyle = stacked ? { gap: ms(4) } : { flex: 1, gap: ms(4) };
   return (
     <>
       <Skeleton
@@ -101,8 +104,8 @@ function NetWorthSkeleton(): React.ReactElement {
         className="w-full rounded"
         style={{ height: DASHBOARD_NET_WORTH_PROGRESS_HEIGHT }}
       />
-      <View className="mt-1" style={{ flexDirection: 'row', gap: ms(8) }}>
-        <View style={{ flex: 1, gap: ms(4) }}>
+      <View className="mt-1" style={{ flexDirection: stacked ? 'column' : 'row', gap: ms(8) }}>
+        <View style={detailColumnStyle}>
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-18 rounded-md"
@@ -114,7 +117,7 @@ function NetWorthSkeleton(): React.ReactElement {
             style={{ height: detailHeight }}
           />
         </View>
-        <View style={{ flex: 1, gap: ms(4) }}>
+        <View style={detailColumnStyle}>
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-18 rounded-md"
@@ -158,8 +161,7 @@ function MonthSpendFooterSkeleton(): React.ReactElement {
     <View
       testID="dashboard-month-spend-skeleton-footer-row"
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
+        ...resolveMonthSpendFooterLayout(fontScale),
         justifyContent: 'space-between',
         gap: ms(8),
         minHeight: footerHeight,
@@ -346,8 +348,9 @@ export function StatCards({
               </Text>
             ))}
             <View
-              className="flex-row items-center justify-between"
-              style={{ flexDirection: 'row', flexWrap: 'wrap', gap: ms(8) }}
+              testID="dashboard-month-spend-footer-row"
+              className="justify-between"
+              style={{ ...resolveMonthSpendFooterLayout(fontScale), flexWrap: 'wrap', gap: ms(8) }}
             >
               <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(5) }}>
                 <View
@@ -361,15 +364,29 @@ export function StatCards({
                   }}
                 >
                   <MaterialCommunityIcons name={deltaIcon} size={ms(11)} color={deltaColor} />
-                  <Text className="font-sora-semibold text-xs" style={{ color: deltaColor }}>
+                  <Text
+                    allowFontScaling={false}
+                    className="font-sora-semibold"
+                    style={{ ...captionText, color: deltaColor }}
+                  >
                     {monthSpendDeltaPct == null ? '—' : `${Math.abs(monthSpendDeltaPct)}%`}
                   </Text>
                 </View>
-                <Text variant="hint" className="text-muted text-xs">
+                <Text
+                  variant="hint"
+                  allowFontScaling={false}
+                  style={captionText}
+                  className="text-muted"
+                >
                   vs {prevMonthLabel}
                 </Text>
               </View>
-              <Text variant="hint" className="text-muted text-xs">
+              <Text
+                variant="hint"
+                allowFontScaling={false}
+                style={captionText}
+                className="text-muted"
+              >
                 {monthSpendCount} {Strings.dashMonthSpentTxsUnit}
               </Text>
             </View>
@@ -382,6 +399,7 @@ export function StatCards({
 
 /** On `rate-needed` nothing numeric renders: no dash, no partial total, no substituted rate. */
 function NetWorthRefusal(): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
   return (
     <View
       className="flex-row items-start"
@@ -394,7 +412,11 @@ function NetWorthRefusal(): React.ReactElement {
         size={Size.iconSm}
         color={SemanticTokens.warning}
       />
-      <Text className="text-warning font-sora-semibold flex-1 text-xs">
+      <Text
+        allowFontScaling={false}
+        className="text-warning font-sora-semibold flex-1"
+        style={scaledTextStyle(Type.caption, fontScale)}
+      >
         {Strings.dashboardRateNeededValue}
       </Text>
     </View>

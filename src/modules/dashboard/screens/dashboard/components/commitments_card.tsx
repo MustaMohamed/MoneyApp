@@ -6,7 +6,11 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
-import { resolveFitAmountTextProps } from '@/components/ui/text_scale.geometry';
+import {
+  resolveFitAmountTextProps,
+  resolveOneLineTextProps,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Type } from '@/constants/theme';
@@ -15,6 +19,7 @@ import { formatMonthYear } from '@/utils/format_date';
 import { wholePercentOf } from '@/utils/money';
 import { ms } from '@/utils/responsive';
 
+import { DASHBOARD_CARD_PADDING } from './dashboard_card.geometry';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 interface Props {
@@ -132,8 +137,9 @@ export function CommitmentsCard({
     >
       <Card
         testID="dashboard-commitments-card"
-        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-3 py-2"
+        className="border-border mx-4 mt-4 rounded-2xl border p-0"
         style={{
+          ...DASHBOARD_CARD_PADDING,
           gap: ms(8),
           boxShadow: 'none',
         }}
@@ -172,7 +178,11 @@ export function CommitmentsCard({
               style={{ flexDirection: 'row', gap: ms(8) }}
             >
               <View className="flex-1" style={{ flex: 1 }}>
-                <Text variant="hint" className="text-muted text-xs uppercase">
+                <Text
+                  variant="hint"
+                  {...resolveOneLineTextProps(scaledTextStyle(Type.caption, fontScale))}
+                  className="text-muted uppercase"
+                >
                   {Strings.commitmentsTotalCommitted}
                 </Text>
                 <Text
@@ -191,8 +201,12 @@ export function CommitmentsCard({
                 }}
               >
                 <Text
-                  className="font-sora-bold text-base"
-                  style={{ color: Colors.shared.cairoGold }}
+                  allowFontScaling={false}
+                  className="font-sora-bold"
+                  style={{
+                    ...scaledTextStyle(Type.subhead, fontScale),
+                    color: Colors.shared.cairoGold,
+                  }}
                 >
                   {progressPct}%
                 </Text>
@@ -229,10 +243,16 @@ export function CommitmentsCard({
 }
 
 function Stat({ icon, color, value }: { icon: IconName; color: string; value: number }) {
+  const { fontScale } = useWindowDimensions();
   return (
     <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
       <MaterialCommunityIcons name={icon} size={ms(13)} color={color} />
-      <Text variant="caption" style={{ color }} className="font-inter-semibold">
+      <Text
+        variant="caption"
+        allowFontScaling={false}
+        style={{ ...scaledTextStyle(Type.micro, fontScale), color }}
+        className="font-inter-semibold"
+      >
         {value}
       </Text>
     </View>

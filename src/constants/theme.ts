@@ -101,6 +101,7 @@ export const Type = {
   headline: msFont(22),
   hero: msFont(28),
   summary: msFont(31),
+  dashboardHero: msFont(32),
   detailHero: msFont(30),
   amountEntry: msFont(40),
   /** N1 headline, mockup § B, `.b-headline`, 42px. */

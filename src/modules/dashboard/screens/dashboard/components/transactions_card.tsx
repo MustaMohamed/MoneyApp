@@ -5,8 +5,9 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Colors, withAlpha } from '@/constants/theme';
+import { Colors, Type, withAlpha } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 import {
@@ -21,6 +22,7 @@ import {
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
+import { DASHBOARD_CARD_PADDING } from './dashboard_card.geometry';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 interface Props {
@@ -86,10 +88,12 @@ function MetricValue({
   align: Align;
   className: string;
 }): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
   return (
     <Text
-      className={`font-sora-bold text-[14px] ${className}`}
-      style={{ flex: 1, textAlign: align }}
+      allowFontScaling={false}
+      className={`font-sora-bold ${className}`}
+      style={{ ...scaledTextStyle(Type.body, fontScale), flex: 1, textAlign: align }}
       numberOfLines={1}
       adjustsFontSizeToFit
       minimumFontScale={0.75}
@@ -109,6 +113,8 @@ function DeltaValue({
   deltaPct: number | null;
   align: Align;
 }): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const deltaText = scaledTextStyle(Type.micro, fontScale);
   const delta = deltaDisplay(metric, deltaPct);
   const justifyContent =
     align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center';
@@ -121,7 +127,13 @@ function DeltaValue({
           alignItems: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center',
         }}
       >
-        <Text className="font-sora-bold text-foreground/40 text-[11px]">—</Text>
+        <Text
+          allowFontScaling={false}
+          className="font-sora-bold text-foreground/40"
+          style={deltaText}
+        >
+          —
+        </Text>
       </View>
     );
   }
@@ -133,7 +145,11 @@ function DeltaValue({
         size={ms(12)}
         color={polarityColor(delta.polarity)}
       />
-      <Text className={`font-sora-bold ml-0.5 text-[11px] ${polarityClass(delta.polarity)}`}>
+      <Text
+        allowFontScaling={false}
+        className={`font-sora-bold ml-0.5 ${polarityClass(delta.polarity)}`}
+        style={deltaText}
+      >
         {delta.label}
       </Text>
     </View>
@@ -235,6 +251,7 @@ export function TransactionsCard({
   isLoading,
   onPress,
 }: Props): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
   const monthLabel = formatMonthYear(yearMonth);
   const expensePct = expenseSharePct(current);
   const deltas = previous
@@ -253,8 +270,9 @@ export function TransactionsCard({
     >
       <Card
         testID="dashboard-transactions-card"
-        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-3 py-2"
+        className="border-border mx-4 mt-4 rounded-2xl border p-0"
         style={{
+          ...DASHBOARD_CARD_PADDING,
           gap: ms(8),
           boxShadow: 'none',
         }}
@@ -330,7 +348,11 @@ export function TransactionsCard({
                   ))}
                 </View>
                 {previousLabel ? (
-                  <Text className="font-inter-bold text-foreground/45 text-center text-[9px] tracking-wide uppercase">
+                  <Text
+                    allowFontScaling={false}
+                    className="font-inter-bold text-foreground/45 text-center tracking-wide uppercase"
+                    style={scaledTextStyle(Type.chip, fontScale)}
+                  >
                     {Strings.totalsVsPrev(previousLabel)}
                   </Text>
                 ) : null}
