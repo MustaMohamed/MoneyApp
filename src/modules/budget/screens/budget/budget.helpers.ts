@@ -8,11 +8,7 @@ import type {
   CategoryBudgetRowVM,
   NamedBudgetVM,
 } from '@/modules/budget/screens/budget/budget_categories.types';
-import {
-  budgetBandColor,
-  type BudgetDashboardSummaryVM,
-  type OverallVM,
-} from '@/modules/budget/utils/budget_summary';
+import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import {
@@ -26,15 +22,6 @@ import {
 export const BUDGET_WARNING_PERCENT = 80;
 
 export type BudgetStatus = 'under' | 'warning' | 'over';
-
-export interface CategoryBudgetVM {
-  categoryId: string;
-  limit: number;
-  spent: number;
-  available: number;
-  pct: number;
-  status: BudgetStatus;
-}
 
 export interface MonthResultVM {
   yearMonth: string;
@@ -361,58 +348,6 @@ export function buildBudgetCategoriesSummary({
             },
           ]
         : [],
-  };
-}
-
-export function computeCategoryRow(
-  categoryId: string,
-  limit: number,
-  spent: number,
-): CategoryBudgetVM {
-  return {
-    categoryId,
-    limit,
-    spent,
-    available: limit - spent,
-    pct: limit > 0 ? spent / limit : 0,
-    status: computeStatus(spent, limit),
-  };
-}
-
-export function computeOverall(rows: CategoryBudgetVM[]): OverallVM {
-  let budgeted = 0;
-  let spent = 0;
-  for (const r of rows) {
-    budgeted += r.limit;
-    spent += r.spent;
-  }
-  return { budgeted, spent, left: budgeted - spent, pct: budgeted > 0 ? spent / budgeted : 0 };
-}
-
-export function computeBudgetSummaryForMonth(
-  rows: Budget[],
-  spendByMonth: Record<string, Record<string, number>>,
-  yearMonth: string,
-): BudgetDashboardSummaryVM {
-  let budgeted = 0;
-  let spent = 0;
-  let categoryCount = 0;
-  const categoryIds = Array.from(new Set(rows.map((row) => row.category_id)));
-
-  for (const categoryId of categoryIds) {
-    const limit = resolveLimitForMonth(rows, categoryId, yearMonth);
-    if (limit === null) continue;
-    budgeted += limit;
-    spent += spendByMonth[categoryId]?.[yearMonth] ?? 0;
-    categoryCount++;
-  }
-
-  return {
-    budgeted,
-    spent,
-    left: budgeted - spent,
-    pct: budgeted > 0 ? spent / budgeted : 0,
-    categoryCount,
   };
 }
 

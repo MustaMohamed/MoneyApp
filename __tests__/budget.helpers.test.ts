@@ -7,11 +7,8 @@ import {
   buildBudgetCategoriesSummary,
   buildBudgetCopyRows,
   buildCategoryBudgetRows,
-  computeBudgetSummaryForMonth,
   computeBudgetHealth,
   computeCategoryHistory,
-  computeCategoryRow,
-  computeOverall,
   computeStatus,
   previousYearMonth,
   remainingLabel,
@@ -73,41 +70,6 @@ describe('resolveLimitForMonth', () => {
   });
   it('returns null for an unknown category', () => {
     expect(resolveLimitForMonth(rows, 'z', '2026-05')).toBeNull();
-  });
-});
-
-describe('computeBudgetSummaryForMonth', () => {
-  it('does not carry previous-month budgets into an empty selected month', () => {
-    const summary = computeBudgetSummaryForMonth(
-      [row('food', 5000, '2026-07'), row('housing', 700, '2026-07')],
-      {},
-      '2026-08',
-    );
-
-    expect(summary).toEqual({ budgeted: 0, spent: 0, left: 0, pct: 0, categoryCount: 0 });
-  });
-
-  it('sums named budgets per category while counting category spend once', () => {
-    const summary = computeBudgetSummaryForMonth(
-      [
-        row('food', 5000, '2026-08', 'Monthly Food'),
-        row('food', 1500, '2026-08', 'Alexandria Trip Food'),
-        row('housing', 700, '2026-08', 'Rent'),
-      ],
-      {
-        food: { '2026-08': 2200 },
-        housing: { '2026-08': 700 },
-      },
-      '2026-08',
-    );
-
-    expect(summary).toEqual({
-      budgeted: 7200,
-      spent: 2900,
-      left: 4300,
-      pct: 2900 / 7200,
-      categoryCount: 2,
-    });
   });
 });
 
@@ -235,40 +197,6 @@ describe('budget categories ledger view models', () => {
         overCount: 0,
       }),
     );
-  });
-});
-
-describe('computeCategoryRow', () => {
-  it('computes available, pct, status', () => {
-    const r = computeCategoryRow('a', 3000, 2400);
-    expect(r).toEqual({
-      categoryId: 'a',
-      limit: 3000,
-      spent: 2400,
-      available: 600,
-      pct: 0.8,
-      status: 'warning',
-    });
-  });
-  it('available goes negative when over', () => {
-    expect(computeCategoryRow('a', 1500, 1650).available).toBe(-150);
-  });
-});
-
-describe('computeOverall', () => {
-  it('sums budgeted categories only', () => {
-    const o = computeOverall([
-      computeCategoryRow('a', 3000, 2400),
-      computeCategoryRow('b', 1500, 1650),
-      computeCategoryRow('c', 800, 420),
-    ]);
-    expect(o.budgeted).toBe(5300);
-    expect(o.spent).toBe(4470);
-    expect(o.left).toBe(830);
-    expect(o.pct).toBeCloseTo(4470 / 5300);
-  });
-  it('zero-safe with no rows', () => {
-    expect(computeOverall([])).toEqual({ budgeted: 0, spent: 0, left: 0, pct: 0 });
   });
 });
 
