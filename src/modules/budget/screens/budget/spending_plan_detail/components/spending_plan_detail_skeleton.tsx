@@ -1,29 +1,10 @@
 import { Card, SkeletonGroup } from 'heroui-native';
 import React from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
 
-import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { ScaledBar } from '@/components/ui/skeleton_bar';
 
 const CATEGORY_ROWS = [0, 1, 2];
-
-function ScaledBar({
-  height,
-  className,
-  testID,
-}: {
-  height: number;
-  className: string;
-  testID?: string;
-}): React.ReactElement {
-  const { fontScale } = useWindowDimensions();
-  return (
-    <SkeletonGroup.Item
-      testID={testID}
-      className={className}
-      style={{ height: resolveSkeletonBarHeight(height, fontScale) }}
-    />
-  );
-}
 
 export function SpendingPlanDetailSkeleton(): React.ReactElement {
   return (

@@ -1,13 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
 import React, { useCallback, useMemo } from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor, withAlpha } from '@/constants/theme';
+import { Type, withAlpha } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 import {
@@ -49,6 +50,8 @@ function CommitmentRowComponent({
   const amountText =
     formatCommitmentAmount(payment, commitment) ?? `${showTilde ? '~' : ''}— ${payment.currency}`;
   const iconBg = category?.color ? withAlpha(category.color, '2E') : CoreTokens.surfaceEl;
+  const { fontScale } = useWindowDimensions();
+  const primaryText = scaledTextStyle(Type.bodyStrong, fontScale);
 
   const handlePress = useCallback(() => onPress(payment.id), [onPress, payment.id]);
   const handleSkip = useCallback(() => onSkip(payment.id), [onSkip, payment.id]);
@@ -107,15 +110,31 @@ function CommitmentRowComponent({
           />
         </View>
         <Box style={{ flex: 1 }}>
-          <Text className="font-inter-medium text-foreground text-[15px]" numberOfLines={1}>
+          <Text
+            allowFontScaling={false}
+            className="font-inter-medium text-foreground"
+            style={primaryText}
+            numberOfLines={1}
+          >
             {commitment?.name ?? '—'}
           </Text>
-          <Text className="font-inter text-muted mt-0.5 text-[11px]" numberOfLines={1}>
+          <Text
+            allowFontScaling={false}
+            className="font-inter text-muted mt-0.5"
+            style={scaledTextStyle(Type.micro, fontScale)}
+            numberOfLines={1}
+          >
             {formatShortDate(payment.due_date)}
           </Text>
         </Box>
         <View style={{ alignItems: 'flex-end' }} className="gap-1">
-          <Text className="font-sora-bold text-foreground text-[15px]">{amountText}</Text>
+          <Text
+            allowFontScaling={false}
+            className="font-sora-bold text-foreground"
+            style={primaryText}
+          >
+            {amountText}
+          </Text>
           <View
             style={{
               backgroundColor: withAlpha(statusColor, '22'),
@@ -130,12 +149,9 @@ function CommitmentRowComponent({
               color={statusColor}
             />
             <Text
+              allowFontScaling={false}
               className="font-inter"
-              style={{
-                color: statusColor,
-                fontSize: Type.pillLabel,
-                lineHeight: lineHeightFor(Type.pillLabel),
-              }}
+              style={{ ...scaledTextStyle(Type.pillLabel, fontScale), color: statusColor }}
             >
               {statusLabel}
             </Text>

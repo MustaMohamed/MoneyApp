@@ -1,12 +1,15 @@
 import { Currency } from '@/constants/enums';
 import type { DashboardNetWorth } from '@/modules/accounts/domain/account_aggregation';
 import {
+  resolveMonthSpendFooterLayout,
   resolveMonthSpendLeg,
   resolveMonthSpendRows,
+  resolveNetWorthDetailLayout,
   resolveNetWorthStatColor,
   shouldShowNetWorthProportionBar,
 } from '@/modules/dashboard/screens/dashboard/components/stat_cards.helpers';
 import { formatCurrencyParts } from '@/utils/format_amount';
+import { ms } from '@/utils/responsive';
 
 // Layla's label/magnitude table (#332): resolveMonthSpendLeg's state/magnitude, then only the
 // magnitude reaches formatCurrencyParts — a negative net never reaches the formatter.
@@ -158,5 +161,37 @@ describe('shouldShowNetWorthProportionBar — the compound gate (#345)', () => {
     [{ assets: 0, liabilities: 0.01 }, true],
   ] as const)('%j -> %s', (parts, expected) => {
     expect(shouldShowNetWorthProportionBar(parts)).toBe(expected);
+  });
+});
+
+describe('resolveMonthSpendFooterLayout', () => {
+  it.each([0.85, 1])('keeps the footer on one centred row at font scale %s', (fontScale) => {
+    expect(resolveMonthSpendFooterLayout(fontScale)).toEqual({
+      flexDirection: 'row',
+      alignItems: 'center',
+    });
+  });
+
+  it.each([1.01, 2])('stacks the footer from its start edge at font scale %s', (fontScale) => {
+    expect(resolveMonthSpendFooterLayout(fontScale)).toEqual({
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+    });
+  });
+});
+
+describe('resolveNetWorthDetailLayout', () => {
+  it.each([0.85, 1])('keeps the two details side by side at font scale %s', (fontScale) => {
+    expect(resolveNetWorthDetailLayout(fontScale)).toEqual({
+      row: { flexDirection: 'row', gap: ms(8) },
+      column: { flex: 1, gap: ms(4) },
+    });
+  });
+
+  it.each([1.01, 2])('gives each detail a full-width row at font scale %s', (fontScale) => {
+    expect(resolveNetWorthDetailLayout(fontScale)).toEqual({
+      row: { flexDirection: 'column', gap: ms(8) },
+      column: { gap: ms(4) },
+    });
   });
 });

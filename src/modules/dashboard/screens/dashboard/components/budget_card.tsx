@@ -40,7 +40,11 @@ function BudgetCardSkeleton(): React.ReactElement {
     <>
       <View
         testID="dashboard-budget-skeleton-values-row"
-        style={{ flexDirection: 'row', gap: ms(8), minHeight: VALUE_ROW_HEIGHT }}
+        style={{
+          flexDirection: 'row',
+          gap: ms(8),
+          minHeight: resolveSkeletonBarHeight(VALUE_ROW_HEIGHT, fontScale),
+        }}
       >
         {[0, 1, 2].map((item) => (
           <View key={item} style={{ flex: 1, gap: ms(4) }}>
@@ -75,6 +79,7 @@ function BudgetCardSkeleton(): React.ReactElement {
 
 export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
   const { fontScale } = useWindowDimensions();
+  const metaText = scaledTextStyle(Type.micro, fontScale);
   const monthLabel = formatMonthYear(yearMonth);
   const progressPct = wholePercent(summary.spent, summary.budgeted);
   const bandColor = budgetBandColor(summary.spent, summary.budgeted);
@@ -89,95 +94,102 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
     >
       <Card
         testID="dashboard-budget-card"
-        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-3 py-2"
-        style={{
-          gap: ms(8),
-          boxShadow: 'none',
-        }}
+        className="border-border mx-4 mt-4 rounded-2xl border p-0"
+        style={{ boxShadow: 'none' }}
       >
-        <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
-          <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
-            <View
-              className="items-center justify-center rounded-full"
-              style={{
-                width: ms(22),
-                height: ms(22),
-                backgroundColor: Colors.dark.goldTint,
-              }}
-            >
-              <MaterialCommunityIcons
-                name="chart-pie"
-                size={ms(13)}
-                color={Colors.shared.cairoGold}
-              />
+        <Card.Body className="px-3 py-2" style={{ gap: ms(8) }}>
+          <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
+            <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
+              <View
+                className="items-center justify-center rounded-full"
+                style={{
+                  width: ms(22),
+                  height: ms(22),
+                  backgroundColor: Colors.dark.goldTint,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="chart-pie"
+                  size={ms(13)}
+                  color={Colors.shared.cairoGold}
+                />
+              </View>
+              <Text variant="caption" className="font-inter-semibold text-foreground">
+                {Strings.budgetTitle}
+              </Text>
             </View>
-            <Text variant="caption" className="font-inter-semibold text-foreground">
-              {Strings.budgetTitle}
+            <Text variant="caption" className="text-muted">
+              {monthLabel}
             </Text>
           </View>
-          <Text variant="caption" className="text-muted">
-            {monthLabel}
-          </Text>
-        </View>
 
-        {isLoading ? (
-          <BudgetCardSkeleton />
-        ) : (
-          <>
-            {/* Budgets are EGP-only end to end (no currency column); the code is disclosure, not
+          {isLoading ? (
+            <BudgetCardSkeleton />
+          ) : (
+            <>
+              {/* Budgets are EGP-only end to end (no currency column); the code is disclosure, not
                 conversion (#347). */}
-            <View style={{ flexDirection: 'row', gap: ms(8), minHeight: VALUE_ROW_HEIGHT }}>
-              <Figure
-                fontScale={fontScale}
-                label={Strings.budgetSummaryBudgeted}
-                value={formatCurrencyAmount(summary.budgeted, Currency.EGP)}
-              />
-              <Figure
-                fontScale={fontScale}
-                label={Strings.budgetSummarySpent}
-                value={formatCurrencyAmount(summary.spent, Currency.EGP)}
-              />
-              <Figure
-                fontScale={fontScale}
-                label={Strings.budgetSummaryLeft}
-                value={leftText}
-                valueClassName={summary.left < 0 ? 'text-danger' : 'text-success'}
-              />
-            </View>
+              <View style={{ flexDirection: 'row', gap: ms(8), minHeight: VALUE_ROW_HEIGHT }}>
+                <Figure
+                  fontScale={fontScale}
+                  label={Strings.budgetSummaryBudgeted}
+                  value={formatCurrencyAmount(summary.budgeted, Currency.EGP)}
+                />
+                <Figure
+                  fontScale={fontScale}
+                  label={Strings.budgetSummarySpent}
+                  value={formatCurrencyAmount(summary.spent, Currency.EGP)}
+                />
+                <Figure
+                  fontScale={fontScale}
+                  label={Strings.budgetSummaryLeft}
+                  value={leftText}
+                  valueClassName={summary.left < 0 ? 'text-danger' : 'text-success'}
+                />
+              </View>
 
-            <View
-              className="overflow-hidden rounded"
-              style={{ height: PROGRESS_HEIGHT, backgroundColor: Colors.dark.surfaceEl }}
-            >
-              <LinearGradient
-                colors={[bandColor, bandColor]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+              <View
+                className="overflow-hidden rounded"
+                style={{ height: PROGRESS_HEIGHT, backgroundColor: Colors.dark.surfaceEl }}
+              >
+                <LinearGradient
+                  colors={[bandColor, bandColor]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    height: PROGRESS_HEIGHT,
+                    width: `${Math.min(100, progressPct)}%`,
+                    borderRadius: ms(2),
+                  }}
+                />
+              </View>
+
+              <View
                 style={{
-                  height: PROGRESS_HEIGHT,
-                  width: `${Math.min(100, progressPct)}%`,
-                  borderRadius: ms(2),
+                  minHeight: META_ROW_HEIGHT,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
                 }}
-              />
-            </View>
-
-            <View
-              style={{
-                minHeight: META_ROW_HEIGHT,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Text className="font-inter-semibold text-muted text-[11px]">
-                {Strings.budgetCategoryCountLabel(summary.categoryCount)}
-              </Text>
-              <Text className="font-sora-bold text-[11px]" style={{ color: bandColor }}>
-                {`${progressPct}% ${Strings.budgetUsedSuffix}`}
-              </Text>
-            </View>
-          </>
-        )}
+              >
+                <Text
+                  allowFontScaling={false}
+                  className="font-inter-semibold text-muted"
+                  style={metaText}
+                >
+                  {Strings.budgetCategoryCountLabel(summary.categoryCount)}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  className="font-sora-bold"
+                  style={{ ...metaText, color: bandColor }}
+                >
+                  {`${progressPct}% ${Strings.budgetUsedSuffix}`}
+                </Text>
+              </View>
+            </>
+          )}
+        </Card.Body>
       </Card>
     </PressableFeedback>
   );

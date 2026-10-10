@@ -2,7 +2,7 @@ import { Card, SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
 import { ScreenScroll } from '@/components/ui/screen';
-import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { ScaledBar } from '@/components/ui/skeleton_bar';
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
@@ -17,22 +17,6 @@ import {
 
 interface Props {
   transaction?: Transaction | null;
-}
-
-function ScaledBar({
-  height,
-  className,
-}: {
-  height: number;
-  className: string;
-}): React.ReactElement {
-  const { fontScale } = useWindowDimensions();
-  return (
-    <SkeletonGroup.Item
-      className={className}
-      style={{ height: resolveSkeletonBarHeight(height, fontScale) }}
-    />
-  );
 }
 
 export function TransferFlowSkeletonCard(): React.ReactElement {

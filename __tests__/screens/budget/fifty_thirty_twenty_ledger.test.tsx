@@ -2,15 +2,19 @@ import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup, CategoryType } from '@/constants/enums';
-import { Type } from '@/constants/theme';
+import { Size, Type } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import { resolveRuleValueColumnWidth } from '@/modules/budget/screens/budget/budget_text.geometry';
+import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category_detail/components/category_detail_skeleton';
 import { BudgetScreenSkeleton } from '@/modules/budget/screens/budget/components/budget_screen_skeleton';
 import { RuleLedger } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_ledger';
+import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
+import { barHeight } from '@/test_helpers/skeleton';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -100,12 +104,17 @@ jest.mock('heroui-native', () => {
   Chip.Label = ({ children, ...props }: { children?: ReactNode }) => (
     <Text {...props}>{children}</Text>
   );
+  const PressableFeedback = ({ children, ...props }: { children?: ReactNode }) => (
+    <Pressable {...props}>{children}</Pressable>
+  );
   const SkeletonGroup = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
-  SkeletonGroup.Item = (props: Record<string, unknown>) => <View {...props} />;
+  SkeletonGroup.Item = (props: { testID?: string }) => (
+    <View {...props} testID={props.testID ?? 'skeleton-bar'} />
+  );
 
   const cn = (...values: Array<string | false | null | undefined>) =>
     values.filter(Boolean).join(' ');
-  return { Accordion, Button, Card, Chip, SkeletonGroup, cn };
+  return { Accordion, Button, Card, Chip, PressableFeedback, SkeletonGroup, cn };
 });
 
 const MONTH = '2026-07';
@@ -283,5 +292,74 @@ describe('50/30/20 rule ledger', () => {
 
     expect(screen.getByTestId('rule-bucket-expanded-skeleton')).toBeTruthy();
     expect(screen.getAllByTestId('rule-contributor-skeleton')).toHaveLength(1);
+  });
+});
+
+describe('budget skeletons at the window font scale', () => {
+  it('grows the expanded bucket text bars of the budget screen skeleton and keeps its ring', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const bar = (height: number): number => resolveSkeletonBarHeight(height, fontScale);
+
+    const screen = await render(
+      <BudgetScreenSkeleton
+        variant="fiftythirty"
+        preserveLayout
+        ruleLens={ruleLens()}
+        expandedBudgetGroup={BudgetGroup.Need}
+      />,
+    );
+
+    const heights = within(screen.getByTestId('rule-bucket-expanded-skeleton'))
+      .getAllByTestId('skeleton-bar')
+      .map(barHeight);
+    expect(heights).toEqual([
+      bar(36),
+      bar(32),
+      Size.budgetNamedRing,
+      bar(12),
+      bar(10),
+      bar(12),
+      bar(10),
+      bar(40),
+    ]);
+  });
+
+  it('grows the spending plan insight bar with the font scale', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const screen = await render(<SpendingPlanDetailSkeleton />);
+
+    expect(screen.getByTestId('plan-detail-insight-skeleton')).toHaveStyle({
+      height: resolveSkeletonBarHeight(32, fontScale),
+    });
+  });
+
+  it('grows each category detail text bar with the font scale, in render order', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const bar = (height: number): number => resolveSkeletonBarHeight(height, fontScale);
+    const row = [bar(14), bar(11), bar(15)];
+
+    const screen = await render(<CategoryDetailSkeleton onBack={jest.fn()} />);
+
+    const scaled = screen
+      .getAllByTestId('skeleton-bar')
+      .map(barHeight)
+      .filter((height) => height !== undefined);
+    expect(scaled).toEqual([
+      bar(18),
+      bar(14),
+      bar(14),
+      bar(28),
+      bar(18),
+      bar(12),
+      bar(12),
+      bar(11),
+      ...row,
+      ...row,
+      ...row,
+    ]);
   });
 });

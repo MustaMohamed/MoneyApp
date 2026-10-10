@@ -5,10 +5,14 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
-import { resolveFitAmountTextProps } from '@/components/ui/text_scale.geometry';
+import {
+  resolveFitAmountTextProps,
+  resolveOneLineTextProps,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Type, lineHeightFor } from '@/constants/theme';
+import { Colors, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { formatCurrencyTotals } from '@/utils/format_amount';
 import { wholePercentOf } from '@/utils/money';
@@ -43,7 +47,7 @@ function SummarySkeleton(): React.ReactElement {
           alignItems: 'center',
           justifyContent: 'flex-start',
           gap: ms(8),
-          minHeight: SUMMARY_ROW_HEIGHT,
+          minHeight: resolveSkeletonBarHeight(SUMMARY_ROW_HEIGHT, fontScale),
         }}
       >
         <View style={{ flex: 1, gap: ms(4) }}>
@@ -72,7 +76,7 @@ function SummarySkeleton(): React.ReactElement {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          minHeight: SUMMARY_STATS_ROW_HEIGHT,
+          minHeight: resolveSkeletonBarHeight(SUMMARY_STATS_ROW_HEIGHT, fontScale),
         }}
       >
         {[0, 1, 2, 3, 4].map((stat) => (
@@ -109,7 +113,10 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
             className="gap-2"
           >
             <View style={{ flex: 1 }}>
-              <Text className="font-inter text-muted text-[10px] tracking-wide uppercase">
+              <Text
+                {...resolveOneLineTextProps(scaledTextStyle(Type.pillLabel, fontScale))}
+                className="font-inter text-muted tracking-wide uppercase"
+              >
                 {Strings.commitmentsTotalCommitted}
               </Text>
               <Text
@@ -124,12 +131,9 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
               className="rounded-full px-2 py-0.5"
             >
               <Text
+                allowFontScaling={false}
                 className="font-sora-bold"
-                style={{
-                  color: GoldTokens[500],
-                  fontSize: Type.meta,
-                  lineHeight: lineHeightFor(Type.meta),
-                }}
+                style={{ ...scaledTextStyle(Type.meta, fontScale), color: GoldTokens[500] }}
               >
                 {progressPct}%
               </Text>
@@ -161,10 +165,15 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
 }
 
 function Stat({ icon, color, value }: { icon: IconName; color: string; value: number }) {
+  const { fontScale } = useWindowDimensions();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
       <MaterialCommunityIcons name={icon} size={13} color={color} />
-      <Text className="font-sora-semibold text-[11px]" style={{ color }}>
+      <Text
+        allowFontScaling={false}
+        className="font-sora-semibold"
+        style={{ ...scaledTextStyle(Type.micro, fontScale), color }}
+      >
         {value}
       </Text>
     </View>

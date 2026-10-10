@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
+import { Type } from '@/constants/theme';
 import { TransactionsCard } from '@/modules/dashboard/screens/dashboard/components/transactions_card';
 import { ms } from '@/utils/responsive';
 
@@ -13,8 +15,14 @@ jest.mock('heroui-native', () => {
   const { Pressable, View } = jest.requireActual<typeof import('react-native')>('react-native');
 
   return {
-    Card: ({ children, ...props }: { children?: ReactNode; className?: string }) =>
-      React.createElement(View, props, children),
+    Card: Object.assign(
+      ({ children, ...props }: { children?: ReactNode; className?: string }) =>
+        React.createElement(View, props, children),
+      {
+        Body: ({ children, ...props }: { children?: ReactNode; className?: string }) =>
+          React.createElement(View, props, children),
+      },
+    ),
     PressableFeedback: ({
       children,
       onPress,
@@ -89,6 +97,49 @@ describe('TransactionsCard', () => {
 
     await fireEvent.press(getByLabelText(Strings.transactions));
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('scales the figures, the deltas and the previous-month label app-side', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const { getByText } = await render(
+      <TransactionsCard
+        current={{ incomeEgp: 1000.4, expenseEgp: 300.9, netEgp: 699.5 }}
+        previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
+        previousLabel="June 2026"
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+    const income = getByText('+1,000');
+    // 1,000.4 against 22,800 is a 95.6% fall, the only delta of the three that prints 96%.
+    const incomeDelta = getByText('96%');
+    const previousLabel = getByText(Strings.totalsVsPrev('June 2026'));
+
+    expect(income).toHaveProp('allowFontScaling', false);
+    expect(income).toHaveStyle(scaledTextStyle(Type.body, fontScale));
+    expect(incomeDelta).toHaveProp('allowFontScaling', false);
+    expect(incomeDelta).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
+    expect(previousLabel).toHaveProp('allowFontScaling', false);
+    expect(previousLabel).toHaveStyle(scaledTextStyle(Type.chip, fontScale));
+
+    // No income the month before leaves that delta with no percent, so it alone draws the dash.
+    const withoutIncomeDelta = await render(
+      <TransactionsCard
+        current={{ incomeEgp: 1000.4, expenseEgp: 300.9, netEgp: 699.5 }}
+        previous={{ incomeEgp: 0, expenseEgp: 11300, netEgp: 11500 }}
+        previousLabel="June 2026"
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+    const dash = withoutIncomeDelta.getByText('—');
+
+    expect(dash).toHaveProp('allowFontScaling', false);
+    expect(dash).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
   });
 
   it('shows skeleton slots instead of totals while loading', async () => {

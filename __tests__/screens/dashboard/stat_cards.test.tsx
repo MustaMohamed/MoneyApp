@@ -8,6 +8,7 @@ import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
 import { StatCards } from '@/modules/dashboard/screens/dashboard/components/stat_cards';
+import { resolveMonthSpendFooterLayout } from '@/modules/dashboard/screens/dashboard/components/stat_cards.helpers';
 import { ms } from '@/utils/responsive';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
@@ -169,5 +170,57 @@ describe('StatCards text at the window font scale', () => {
     const assetsLabel = getByText(`${Strings.dashAssetsLabel} (${baseProps.assetsCount})`);
     expect(assetsLabel).toHaveProp('allowFontScaling', false);
     expect(assetsLabel).toHaveStyle(scaledTextStyle(Type.caption, fontScale));
+  });
+
+  it('lays the month-spend footer out by the font scale rule, skeleton and loaded', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const layout = resolveMonthSpendFooterLayout(fontScale);
+
+    const loading = await render(<StatCards {...baseProps} netWorthLoading monthSpendLoading />);
+    const loaded = await render(
+      <StatCards {...baseProps} netWorthLoading={false} monthSpendLoading={false} />,
+    );
+
+    expect(loading.getByTestId('dashboard-month-spend-skeleton-footer-row')).toHaveStyle(layout);
+    expect(loaded.getByTestId('dashboard-month-spend-footer-row')).toHaveStyle(layout);
+  });
+
+  it('scales the month-spend delta, previous month and count app-side', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const { getByText } = await render(
+      <StatCards {...baseProps} netWorthLoading={false} monthSpendLoading={false} />,
+    );
+    // `spendYearMonth` is July, so the month before it prints `Jun`.
+    const footerTexts = [
+      getByText(`${baseProps.monthSpendDeltaPct}%`),
+      getByText('vs Jun'),
+      getByText(`${baseProps.monthSpendCount} ${Strings.dashMonthSpentTxsUnit}`),
+    ];
+
+    for (const text of footerTexts) {
+      expect(text).toHaveProp('allowFontScaling', false);
+      expect(text).toHaveStyle(scaledTextStyle(Type.caption, fontScale));
+    }
+  });
+
+  it('scales the net worth refusal text app-side', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+
+    const { getByText } = await render(
+      <StatCards
+        {...baseProps}
+        netWorth={{ kind: 'rate-needed', foreignCount: 1 }}
+        netWorthLoading={false}
+        monthSpendLoading
+      />,
+    );
+    const refusal = getByText(Strings.dashboardRateNeededValue);
+
+    expect(refusal).toHaveProp('allowFontScaling', false);
+    expect(refusal).toHaveStyle(scaledTextStyle(Type.caption, fontScale));
   });
 });

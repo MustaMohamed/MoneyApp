@@ -1,7 +1,7 @@
 import { Card, SkeletonGroup } from 'heroui-native';
-import { View, useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
 
-import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { ScaledBar } from '@/components/ui/skeleton_bar';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type } from '@/constants/theme';
@@ -17,22 +17,6 @@ interface BudgetScreenSkeletonProps {
   planRowCount?: number;
   ruleLens?: BudgetRuleLensVM;
   expandedBudgetGroup?: BudgetGroup;
-}
-
-function ScaledBar({
-  height,
-  className,
-}: {
-  height: number;
-  className: string;
-}): React.ReactElement {
-  const { fontScale } = useWindowDimensions();
-  return (
-    <SkeletonGroup.Item
-      className={className}
-      style={{ height: resolveSkeletonBarHeight(height, fontScale) }}
-    />
-  );
 }
 
 export function BudgetScreenSkeleton({
