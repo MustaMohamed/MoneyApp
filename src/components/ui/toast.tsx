@@ -9,7 +9,10 @@ import {
 import { useMemo, type ReactNode } from 'react';
 import { View } from 'react-native';
 
-import { useToastClearanceState } from '@/components/ui/toast_clearance.state';
+import {
+  resolveToastBottomClearance,
+  useToastClearanceState,
+} from '@/components/ui/toast_clearance.state';
 import { Colors, Size } from '@/constants/theme';
 
 /** One toast at a time, at the bottom — the app's only toast configuration. */
@@ -24,7 +27,9 @@ export function resolveToastInsets(bottomClearance: number | undefined): ToastIn
 }
 
 export function AppToastProvider({ children }: { children: ReactNode }) {
-  const bottomClearance = useToastClearanceState((state) => state.bottomClearance);
+  const bottomClearance = useToastClearanceState((state) =>
+    resolveToastBottomClearance(state.bottomClearance, state.alertClearance),
+  );
   return (
     <ToastProvider {...TOAST_PROVIDER_PROPS} insets={resolveToastInsets(bottomClearance)}>
       {children}

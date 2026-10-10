@@ -1,14 +1,18 @@
+import { useFocusEffect } from 'expo-router';
 import { Alert, type ButtonSize } from 'heroui-native';
+import { useCallback, useRef, type ReactNode } from 'react';
 import { View, useWindowDimensions, type ViewStyle } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import {
+  resolveFloatingAlertToastClearance,
   resolveLoadErrorAlertTone,
   resolveLoadErrorRetryHitSlop,
   type LoadErrorAlertTone,
 } from '@/components/ui/load_error_alert.geometry';
 import { resolveStateScreenBottomReserve } from '@/components/ui/state_screen.geometry';
 import { resolveRowStacking } from '@/components/ui/text_scale.geometry';
+import { holdAlertToastClearance } from '@/components/ui/toast_clearance.state';
 import { Colors, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 type LoadErrorAlertFloatingOffset = 'tabBar' | 'edge';
@@ -82,6 +86,62 @@ const TINT_BACKGROUND_CLASS_NAME = 'border border-danger/30 bg-danger/12';
 const TINT_ICON_PROPS = { color: Colors.dark.negative } as const;
 const TINT_TITLE_CLASS_NAME = 'font-inter-semibold text-foreground';
 const TINT_TITLE_STYLE = { fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) } as const;
+
+interface FloatingAlertFrameProps {
+  floatingOffset: LoadErrorAlertFloatingOffset;
+  minHeight: number | undefined;
+  testID: string | undefined;
+  children: ReactNode;
+}
+
+// Only the floating arm mounts this, so no other mode calls a navigation hook.
+function FloatingAlertFrame({
+  floatingOffset,
+  minHeight,
+  testID,
+  children,
+}: FloatingAlertFrameProps) {
+  const { height: windowHeight } = useWindowDimensions();
+  const frameRef = useRef<View>(null);
+  const holdRef = useRef<{ focused: boolean; release: (() => void) | undefined }>({
+    focused: false,
+    release: undefined,
+  });
+
+  const holdClearance = useCallback(() => {
+    frameRef.current?.measureInWindow((_left, top) => {
+      const hold = holdRef.current;
+      if (!hold.focused) return;
+      // A new hold takes the owner slot, so the release it replaces is already dead.
+      hold.release = holdAlertToastClearance(resolveFloatingAlertToastClearance(windowHeight, top));
+    });
+  }, [windowHeight]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const hold = holdRef.current;
+      hold.focused = true;
+      holdClearance();
+      return () => {
+        hold.focused = false;
+        hold.release?.();
+        hold.release = undefined;
+      };
+    }, [holdClearance]),
+  );
+
+  return (
+    <View
+      ref={frameRef}
+      testID={testID}
+      onLayout={holdClearance}
+      style={{ minHeight }}
+      className={FLOATING_CLASS_NAME[floatingOffset]}
+    >
+      {children}
+    </View>
+  );
+}
 
 export function LoadErrorAlert(props: LoadErrorAlertProps) {
   const { fontScale } = useWindowDimensions();
@@ -164,15 +224,14 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
   }
 
   if (props.mode === 'floating') {
-    const floatingOffset = props.floatingOffset ?? 'edge';
     return (
-      <View
+      <FloatingAlertFrame
+        floatingOffset={props.floatingOffset ?? 'edge'}
+        minHeight={props.minHeight}
         testID={testID}
-        style={{ minHeight: props.minHeight }}
-        className={FLOATING_CLASS_NAME[floatingOffset]}
       >
         {alert}
-      </View>
+      </FloatingAlertFrame>
     );
   }
 
