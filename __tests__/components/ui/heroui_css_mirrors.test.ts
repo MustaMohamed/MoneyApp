@@ -60,7 +60,7 @@ function px(file: 'chip.css' | 'tabs.css', selector: string, property: string): 
   return toPx(declaration(vendorCss(...HEROUI_STYLES, file), selector, property));
 }
 
-describe('HeroUI CSS mirrors: each unscaled constant equals the vendor declaration it copies', () => {
+describe('HeroUI CSS mirrors: each unscaled constant equals the vendor declaration it copies, and each override names the property the vendor declares', () => {
   it("MA-162: CHIP_MD_PADDING_BLOCK is .chip__root--size-md's padding-block", () => {
     expect(CHIP_MD_PADDING_BLOCK).toBe(px('chip.css', '.chip__root--size-md', 'padding-block'));
   });
