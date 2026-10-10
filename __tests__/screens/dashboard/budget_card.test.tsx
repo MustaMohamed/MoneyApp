@@ -54,7 +54,7 @@ describe('BudgetCard', () => {
     const onPress = jest.fn();
     const { getByText, getByLabelText, queryAllByTestId } = await render(
       <BudgetCard
-        summary={{ budgeted: 8000, spent: 2000, left: 6000, pct: 0.25, categoryCount: 2 }}
+        summary={{ budgeted: 8000, spent: 2000, left: 6000, categoryCount: 2 }}
         yearMonth="2026-07"
         isLoading={false}
         onPress={onPress}
@@ -73,11 +73,11 @@ describe('BudgetCard', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  // 0.145 * 100 is 14.499999999999998: the card rounds from the two amounts, not from `pct`.
+  // 0.145 * 100 is 14.499999999999998: the card rounds from the two amounts, not from their quotient.
   it('prints the used percent with a half rounded up: 145 spent of 1,000 reads 15% used', async () => {
     const { getByText } = await render(
       <BudgetCard
-        summary={{ budgeted: 1000, spent: 145, left: 855, pct: 0.145, categoryCount: 1 }}
+        summary={{ budgeted: 1000, spent: 145, left: 855, categoryCount: 1 }}
         yearMonth="2026-07"
         isLoading={false}
         onPress={jest.fn()}
@@ -90,7 +90,7 @@ describe('BudgetCard', () => {
   it('prints a Left below zero behind U+2212, joined to its code', async () => {
     const { getByText, queryByText } = await render(
       <BudgetCard
-        summary={{ budgeted: 8000, spent: 10000, left: -2000, pct: 1.25, categoryCount: 2 }}
+        summary={{ budgeted: 8000, spent: 10000, left: -2000, categoryCount: 2 }}
         yearMonth="2026-07"
         isLoading={false}
         onPress={jest.fn()}
@@ -104,7 +104,7 @@ describe('BudgetCard', () => {
   it('shows skeleton slots instead of summary numbers while loading', async () => {
     const { queryByText, getAllByTestId } = await render(
       <BudgetCard
-        summary={{ budgeted: 8000, spent: 2000, left: 6000, pct: 0.25, categoryCount: 2 }}
+        summary={{ budgeted: 8000, spent: 2000, left: 6000, categoryCount: 2 }}
         yearMonth="2026-07"
         isLoading
         onPress={jest.fn()}
@@ -123,7 +123,7 @@ describe('BudgetCard', () => {
 
     const { getByTestId } = await render(
       <BudgetCard
-        summary={{ budgeted: 8000, spent: 2000, left: 6000, pct: 0.25, categoryCount: 2 }}
+        summary={{ budgeted: 8000, spent: 2000, left: 6000, categoryCount: 2 }}
         yearMonth="2026-07"
         isLoading
         onPress={jest.fn()}
@@ -143,7 +143,7 @@ describe('BudgetCard', () => {
 
     const { getByText } = await render(
       <BudgetCard
-        summary={{ budgeted: 8000, spent: 2000, left: 6000, pct: 0.25, categoryCount: 2 }}
+        summary={{ budgeted: 8000, spent: 2000, left: 6000, categoryCount: 2 }}
         yearMonth="2026-07"
         isLoading={false}
         onPress={jest.fn()}

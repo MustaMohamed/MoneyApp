@@ -2,6 +2,7 @@ import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
+import { derivePlanStatus } from '@/modules/budget/screens/budget/spending_plan_timing.helpers';
 import {
   buildSpendingPlanCardChips,
   buildSpendingPlanRows,
@@ -11,6 +12,21 @@ import {
 } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
 import type { Category } from '@/modules/categories/entities/category.entity';
+
+type PlanRow = ReturnType<typeof buildSpendingPlanRows>[number];
+
+// The pace reading alone: an active plan that is not over and has no category pressure.
+function paceStatus(row: PlanRow) {
+  return derivePlanStatus({
+    lifecycle: 'active',
+    isOver: false,
+    spent: row.spent,
+    totalAmount: row.totalAmount,
+    elapsedDays: row.timing.elapsedDays,
+    totalDays: row.timing.totalDays,
+    hasCategoryPressure: false,
+  });
+}
 
 const categories: Category[] = [
   {
@@ -312,7 +328,6 @@ describe('spending plan helpers', () => {
       usedPercentage: 15,
       progressPercentage: 15,
       itemizedAmount: 3000,
-      itemizedPct: 0.375,
       itemizedPercentage: 38,
       balanceAmount: 6800,
       balanceStatus: 'left',
@@ -359,7 +374,6 @@ describe('spending plan helpers', () => {
       lifecycle: 'active',
       totalDays: 11,
       elapsedDays: 6,
-      elapsedPct: 6 / 11,
       daysValue: 5,
     });
   });
@@ -439,7 +453,7 @@ describe('spending plan helpers', () => {
       })[0];
     const row = build(600);
 
-    expect(row.timing.elapsedPct).toBe(0.5);
+    expect(row.timing).toMatchObject({ elapsedDays: 1, totalDays: 2 });
     expect(row.pct).toBe(0.6);
     expect(row.status).toBe('watch');
     expect(build(599.99).status).toBe('onTrack');
@@ -461,7 +475,8 @@ describe('spending plan helpers', () => {
       today: '2026-07-13',
     })[0];
 
-    expect(row.paceDelta).toBeLessThan(0.1);
+    expect(paceStatus(row)).toBe('onTrack');
+    expect(row).not.toHaveProperty('paceDelta');
     expect(row.detailCategoryRows[0]).toEqual(
       expect.objectContaining({ pct: 0.8, isWarning: true, isOver: false }),
     );
@@ -488,7 +503,8 @@ describe('spending plan helpers', () => {
     })[0];
 
     expect(row.isOver).toBe(false);
-    expect(row.paceDelta).toBeLessThan(0.1);
+    expect(paceStatus(row)).toBe('onTrack');
+    expect(row).not.toHaveProperty('paceDelta');
     expect(row.detailCategoryRows[0]).toEqual(
       expect.objectContaining({ allocatedAmount: 0, spent: 50, pct: 1, isOver: true }),
     );
@@ -736,7 +752,6 @@ describe('spending plan helpers', () => {
       usedPercentage: 43,
       progressPercentage: 43,
       itemizedAmount: 1000,
-      itemizedPct: 0.25,
       itemizedPercentage: 25,
       balanceAmount: 2300,
       balanceStatus: 'left',

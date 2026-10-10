@@ -67,6 +67,16 @@ function bucket(result: ReturnType<typeof buildBudgetRuleLens>, group: BudgetGro
   return match;
 }
 
+function contributor(
+  result: ReturnType<typeof buildBudgetRuleLens>,
+  group: BudgetGroup,
+  categoryId: string,
+) {
+  const match = bucket(result, group).contributors.find((item) => item.categoryId === categoryId);
+  if (!match) throw new Error(`Missing ${categoryId} contributor`);
+  return match;
+}
+
 describe('buildBudgetRuleLens', () => {
   it('classifies rule status using the same whole-EGP precision shown to the user', () => {
     const result = build({
@@ -136,7 +146,6 @@ describe('buildBudgetRuleLens', () => {
       notGroupedPlanned: 1_000,
       totalPlanned: 12_000,
       leftToPlan: 8_000,
-      plannedRatio: 0.6,
       progressRatio: 0.6,
       lifecycle: 'current',
       daysLeft: 16,
@@ -147,12 +156,10 @@ describe('buildBudgetRuleLens', () => {
       BudgetGroup.Savings,
     ]);
     expect(bucket(result, BudgetGroup.Need)).toMatchObject({
-      ruleRatio: 0.5,
       target: 10_000,
       planned: 8_000,
       actual: 2_500,
       variance: 2_000,
-      planRatio: 0.8,
       progressRatio: 0.8,
       status: 'within-cap',
     });
@@ -166,7 +173,6 @@ describe('buildBudgetRuleLens', () => {
       },
     });
     expect(bucket(result, BudgetGroup.Want)).toMatchObject({
-      ruleRatio: 0.3,
       target: 6_000,
       planned: 2_000,
       actual: 700,
@@ -174,7 +180,6 @@ describe('buildBudgetRuleLens', () => {
       status: 'within-cap',
     });
     expect(bucket(result, BudgetGroup.Savings)).toMatchObject({
-      ruleRatio: 0.2,
       target: 4_000,
       planned: 1_000,
       variance: 3_000,
@@ -297,12 +302,12 @@ describe('buildBudgetRuleLens', () => {
     expect(needs.contributors.find((item) => item.categoryId === 'health')).toMatchObject({
       planned: 0,
       spent: 250,
-      planShareRatio: undefined,
       isUnbudgeted: true,
       presentation: {
         progressRatio: 1,
         ringColor: Colors.dark.budgetNear,
         resultMetaLabel: 'unbudgeted',
+        planShareLabel: undefined,
       },
     });
   });
@@ -326,7 +331,6 @@ describe('buildBudgetRuleLens', () => {
       notGroupedPlanned: 500,
       totalPlanned: 2_500,
       leftToPlan: undefined,
-      plannedRatio: undefined,
       progressRatio: undefined,
     });
     expect(result.buckets).toHaveLength(3);
@@ -334,7 +338,6 @@ describe('buildBudgetRuleLens', () => {
       expect(row).toMatchObject({
         target: undefined,
         variance: undefined,
-        planRatio: undefined,
         progressRatio: undefined,
         status: 'income-needed',
       });
@@ -357,7 +360,6 @@ describe('buildBudgetRuleLens', () => {
     expect(result.summary).toMatchObject({
       totalPlanned: 0,
       leftToPlan: 20_000,
-      plannedRatio: 0,
       progressRatio: 0,
     });
     expect(result.buckets.map((item) => item.status)).toEqual(['no-plan', 'no-plan', 'no-plan']);
@@ -366,7 +368,7 @@ describe('buildBudgetRuleLens', () => {
     expect(result.notGrouped).toBeUndefined();
   });
 
-  it('retains true ratios while clamping visual progress for over-plan states', () => {
+  it('clamps visual progress at 1 and keeps the variance and status for over-plan states', () => {
     const result = build({
       categories: [
         makeCategory('housing', BudgetGroup.Need, 'Housing'),
@@ -387,17 +389,14 @@ describe('buildBudgetRuleLens', () => {
     expect(result.summary).toMatchObject({
       totalPlanned: 26_000,
       leftToPlan: -6_000,
-      plannedRatio: 1.3,
       progressRatio: 1,
     });
     expect(bucket(result, BudgetGroup.Need)).toMatchObject({
-      planRatio: 1.5,
       progressRatio: 1,
       variance: -5_000,
       status: 'over-cap',
     });
     expect(bucket(result, BudgetGroup.Savings)).toMatchObject({
-      planRatio: 1,
       progressRatio: 1,
       variance: 0,
       status: 'target-met',
@@ -490,18 +489,22 @@ describe('buildBudgetRuleLens', () => {
       notGroupedPlanned: 0,
       totalPlanned: 1_000,
       leftToPlan: 19_000,
-      plannedRatio: 0.05,
       progressRatio: 0.05,
     });
     expect(needs).toMatchObject({
       planned: 1_000,
       actual: 0,
       variance: 9_000,
-      planRatio: 0.1,
       progressRatio: 0.1,
     });
-    expect(needs.contributors).toEqual([
-      expect.objectContaining({ planned: 1_000, spent: 0, planShareRatio: 1 }),
+    expect(needs.contributors).toMatchObject([
+      {
+        planned: 1_000,
+        spent: 0,
+        presentation: {
+          planShareLabel: Strings.budget5030PlanShare(100, Strings.budget5030NeedLabel),
+        },
+      },
     ]);
     expect(result.notGrouped).toBeUndefined();
   });
@@ -643,5 +646,62 @@ describe('the 50/30/20 lens prints whole percents with a half rounded up (MA-112
     expect(housing?.presentation.planShareLabel).toBe(
       Strings.budget5030PlanShare(15, Strings.budget5030NeedLabel),
     );
+  });
+});
+
+describe('the 50/30/20 lens carries no ratio a bar or ring does not draw (MA-172)', () => {
+  const REMOVED = ['ruleRatio', 'planRatio', 'plannedRatio', 'planShareRatio'];
+  const removedKeysOn = (vm: object) => REMOVED.filter((key) => key in vm);
+
+  it('prints a Savings contributor its share of the Savings plan, from its two amounts', () => {
+    const result = build({
+      categories: [
+        makeCategory('investing', BudgetGroup.Savings, 'Investing'),
+        makeCategory('cash', BudgetGroup.Savings, 'Cash'),
+      ],
+      budgets: [makeBudget('investing', 3_000), makeBudget('cash', 1_000)],
+      budgetGroupByCategoryId: { investing: BudgetGroup.Savings, cash: BudgetGroup.Savings },
+    });
+    const investing = contributor(result, BudgetGroup.Savings, 'investing');
+
+    expect(investing.presentation.planShareLabel).toBe(
+      Strings.budget5030PlanShare(75, Strings.budget5030SavingsLabel),
+    );
+    expect(removedKeysOn(investing)).toEqual([]);
+  });
+
+  it('prints no share label for a contributor whose plan rounds to 0 pounds, from its two amounts', () => {
+    const result = build({
+      categories: [
+        makeCategory('housing', BudgetGroup.Need, 'Housing'),
+        makeCategory('groceries', BudgetGroup.Need, 'Groceries'),
+      ],
+      budgets: [makeBudget('housing', 0.4), makeBudget('groceries', 200)],
+      budgetGroupByCategoryId: { housing: BudgetGroup.Need, groceries: BudgetGroup.Need },
+    });
+    const housing = contributor(result, BudgetGroup.Need, 'housing');
+
+    expect(bucket(result, BudgetGroup.Need).planned).toBe(200);
+    expect(housing.planned).toBe(0);
+    expect(housing.presentation.planShareLabel).toBeUndefined();
+    expect(removedKeysOn(housing)).toEqual([]);
+  });
+
+  it('writes none of the four removed ratios on a bucket, the summary or a contributor', () => {
+    const result = build({
+      categories: [makeCategory('housing', BudgetGroup.Need, 'Housing')],
+      budgets: [makeBudget('housing', 5_000)],
+      budgetGroupByCategoryId: { housing: BudgetGroup.Need },
+      spendByMonth: { housing: { [MONTH]: 1_600 } },
+    });
+    const needs = bucket(result, BudgetGroup.Need);
+
+    expect(needs.progressRatio).toBe(0.5);
+    expect(result.summary.progressRatio).toBe(0.25);
+    expect({
+      bucket: removedKeysOn(needs),
+      summary: removedKeysOn(result.summary),
+      contributor: removedKeysOn(contributor(result, BudgetGroup.Need, 'housing')),
+    }).toEqual({ bucket: [], summary: [], contributor: [] });
   });
 });

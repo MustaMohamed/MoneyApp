@@ -183,7 +183,6 @@ describe('DashboardRepository', () => {
         budgeted: 500,
         spent: 200,
         left: 300,
-        pct: 0.4,
         categoryCount: 1,
       },
     });
@@ -236,7 +235,6 @@ describe('DashboardRepository', () => {
         budgeted: 0,
         spent: 0,
         left: 0,
-        pct: 0,
         categoryCount: 0,
       },
       commitmentPayments: [],

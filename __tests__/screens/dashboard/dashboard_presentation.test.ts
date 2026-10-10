@@ -44,7 +44,6 @@ function snapshot(accountCount: number): DashboardSnapshot {
       budgeted: 0,
       spent: 0,
       left: 0,
-      pct: 0,
       categoryCount: 0,
     },
     commitmentPayments: [],

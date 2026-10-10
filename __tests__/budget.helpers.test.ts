@@ -111,15 +111,18 @@ describe('budget categories ledger view models', () => {
         planned: 2000,
         spent: 1400,
         left: 600,
-        categorySharePct: 0.8,
+        shareLabel: Strings.budgetCategoriesShare(80),
       }),
       expect.objectContaining({
         planned: 500,
         spent: 300,
         left: 200,
-        categorySharePct: 0.2,
+        shareLabel: Strings.budgetCategoriesShare(20),
       }),
     ]);
+    for (const budget of result.rows[0].budgets) {
+      expect(budget).not.toHaveProperty('categorySharePct');
+    }
     expect(result.rows[0].accessibilityLabel).toContain('76% used');
     expect(result.rows[0].budgets[0]?.accessibilityLabel).toContain('70% used');
   });
@@ -369,7 +372,6 @@ describe('computeCategoryHistory', () => {
     expect(h.avgPerMonth).toBe((2400 + 3200 + 2750 + 2400) / 4);
     expect(h.monthsUnder).toBe(3);
     expect(h.monthsTotal).toBe(4);
-    expect(h.hitRate).toBeCloseTo(3 / 4);
   });
   it('zero-safe with no months', () => {
     const h = computeCategoryHistory([]);
@@ -377,7 +379,6 @@ describe('computeCategoryHistory', () => {
       results: [],
       netBanked: 0,
       avgPerMonth: 0,
-      hitRate: 0,
       monthsUnder: 0,
       monthsTotal: 0,
     });

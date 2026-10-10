@@ -1,9 +1,11 @@
 import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Colors } from '@/constants/theme';
 import {
   AccountAggregationError,
   type DashboardNetWorth,
 } from '@/modules/accounts/domain/account_aggregation';
+import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { shouldShowProportionBar } from '@/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.helpers';
 import {
@@ -1325,7 +1327,6 @@ describe('buildDashboardBudgetSummary', () => {
       budgeted: 10000,
       spent: 500,
       left: 9500,
-      pct: 0.05,
       categoryCount: 2,
     });
   });
@@ -1335,18 +1336,17 @@ describe('buildDashboardBudgetSummary', () => {
       budgeted: 0,
       spent: 0,
       left: 0,
-      pct: 0,
       categoryCount: 0,
     });
   });
 
   // 0.1 + 0.2 is 0.30000000000000004: a spend one float step past a limit of 0.3.
-  it('reads a left figure under half a cent as zero and holds the ratio at 1 on a tie to the cent', () => {
+  it('reads a left figure under half a cent as zero and takes the near colour, not the over colour, on a tie to the cent', () => {
     const over = buildDashboardBudgetSummary([{ category_id: 'food', limit_amount: 0.3 }], {
       food: 0.31,
     });
     expect(over.left).toBeLessThan(0);
-    expect(over.pct).toBeGreaterThan(1);
+    expect(budgetBandColor(over.spent, over.budgeted)).toBe(Colors.dark.budgetOver);
     expect(
       buildDashboardBudgetSummary([{ category_id: 'food', limit_amount: 0.6 }], { food: 0.3 }).left,
     ).toBe(0.3);
@@ -1355,7 +1355,7 @@ describe('buildDashboardBudgetSummary', () => {
       food: 0.1 + 0.2,
     });
     expect(Object.is(tie.left, 0)).toBe(true);
-    expect(tie.pct).toBe(1);
+    expect(budgetBandColor(tie.spent, tie.budgeted)).toBe(Colors.dark.budgetNear);
   });
 
   it('reads positive zero on the other side of zero, where two limits sum one float step past the spend', () => {
