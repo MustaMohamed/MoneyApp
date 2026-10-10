@@ -620,7 +620,6 @@ export function buildSpendingPlanRows({
       const pct = plan.total_amount > 0 ? spent / plan.total_amount : 0;
       const isOver = exceedsToCent(spent, plan.total_amount);
       const timing = computePlanTiming(plan.start_date, plan.end_date, today);
-      const paceDelta = pct - timing.elapsedPct;
       const usedPercentage = wholePercent(spent, plan.total_amount);
       const elapsedPercentage = Math.min(
         Math.max(wholePercentOf(timing.elapsedDays, timing.totalDays), 0),
@@ -693,7 +692,6 @@ export function buildSpendingPlanRows({
         buffer,
         timing,
         status,
-        paceDelta,
         detailCategoryRows,
         highestPressureCategory,
         card,

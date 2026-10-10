@@ -41,7 +41,6 @@ const EMPTY_BUDGET_SUMMARY: BudgetDashboardSummaryVM = {
   budgeted: 0,
   spent: 0,
   left: 0,
-  pct: 0,
   categoryCount: 0,
 };
 

@@ -27,7 +27,6 @@ export function computePlanTiming(
       lifecycle: 'upcoming',
       totalDays,
       elapsedDays: 0,
-      elapsedPct: 0,
       daysValue: start - current,
     };
   }
@@ -36,7 +35,6 @@ export function computePlanTiming(
     lifecycle: current > end ? 'completed' : 'active',
     totalDays,
     elapsedDays,
-    elapsedPct: elapsedDays / totalDays,
     daysValue: current > end ? current - end : end - current,
   };
 }

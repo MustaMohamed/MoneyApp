@@ -209,7 +209,6 @@ export function useBudget() {
       budgeted: categoriesSummary.planned,
       spent: categoriesSummary.spent,
       left: categoriesSummary.left,
-      pct: categoriesSummary.usedPct ?? 0,
     }),
     [categoriesSummary],
   );

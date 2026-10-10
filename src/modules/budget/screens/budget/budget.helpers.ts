@@ -36,7 +36,6 @@ export interface CategoryHistoryVM {
   results: MonthResultVM[];
   netBanked: number;
   avgPerMonth: number;
-  hitRate: number;
   monthsUnder: number;
   monthsTotal: number;
 }
@@ -165,7 +164,6 @@ export function buildCategoryBudgetRows({
       const budgetLeft = budget.limit_amount - budgetSpent;
       const budgetUsedPct =
         budget.limit_amount > 0 ? ratioHeldAtTie(budgetSpent, budget.limit_amount) : undefined;
-      const categorySharePct = planned > 0 ? budget.limit_amount / planned : undefined;
       const budgetUsedPercentage = wholePercent(budgetSpent, budget.limit_amount);
       const budgetBalance = remainingLabel(budgetLeft);
       const spentLabel = formatAmount(budgetSpent);
@@ -179,7 +177,6 @@ export function buildCategoryBudgetRows({
         spent: budgetSpent,
         left: budgetLeft,
         usedPct: budgetUsedPct,
-        categorySharePct,
         usedLabel: `${budgetUsedPercentage}%`,
         shareLabel: Strings.budgetCategoriesShare(wholePercent(budget.limit_amount, planned)),
         spentPlannedLabel: Strings.budgetCategoriesSpentPlanned(spentLabel, plannedLabel),
@@ -427,7 +424,6 @@ export function computeCategoryHistory(results: MonthResultVM[]): CategoryHistor
     results: historicalResults,
     netBanked: snapToZero(netBanked),
     avgPerMonth: monthsTotal > 0 ? totalSpent / monthsTotal : 0,
-    hitRate: monthsTotal > 0 ? monthsUnder / monthsTotal : 0,
     monthsUnder,
     monthsTotal,
   };
