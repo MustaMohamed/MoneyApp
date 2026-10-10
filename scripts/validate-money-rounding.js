@@ -1,7 +1,7 @@
 // Check 1 of docs/adr/2026-08-22-money-rounding-layer.md §6; one entry is one helper with one path.
-const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { listSrcFiles } = require('./lib/list-src-files');
 const { stripComments } = require('./lib/strip-comments');
 
 const root = path.join(__dirname, '..');
@@ -9,6 +9,7 @@ const errors = [];
 
 const SELF = 'scripts/validate-money-rounding.js';
 const RECORD = 'docs/adr/2026-08-22-money-rounding-layer.md';
+const MONEY = 'src/utils/money.ts';
 
 // ASCII ascending by path under each helper, matching `git ls-files` order.
 const PERMITTED = {
@@ -80,37 +81,18 @@ const PERMITTED = {
   ],
 };
 
-// No `g` flag (`test` carries `lastIndex`); the paren keeps an import specifier and a longer name out.
-const CALLS = Object.keys(PERMITTED).map((helper) => ({
+// Exports of `src/utils/money.ts` that round no money and so carry no list.
+const EXEMPT = ['snapToZero'];
+
+// No `g` flag (`test` carries `lastIndex`); both keep `wholePercent` apart from `wholePercentOf`.
+const HELPERS = Object.keys(PERMITTED).map((helper) => ({
   helper,
-  pattern: new RegExp(`(?<![\\w$])${helper}\\s*\\(`),
+  mention: new RegExp(`(?<![\\w$])${helper}(?![\\w$])`),
+  call: new RegExp(`(?<![\\w$])${helper}\\s*\\(`),
 }));
+const EXPORTED_FUNCTION = /(?<![\w$])export\s+function\s+([\w$]+)/;
 
-const listing = spawnSync(
-  'git',
-  ['-c', 'core.quotePath=false', 'ls-files', 'src/*.ts', 'src/*.tsx'],
-  {
-    cwd: root,
-    encoding: 'utf8',
-  },
-);
-
-// `spawnSync` returns `stdout: undefined` on failure, so this must precede the split below.
-if (listing.error || listing.status !== 0) {
-  console.error(
-    `git ls-files failed to run; run from a git checkout of MoneyApp (${listing.error?.message ?? `exit code ${String(listing.status)}`})`,
-  );
-  process.exit(1);
-}
-
-const files = listing.stdout.split('\n').filter(Boolean);
-
-// A broken pathspec would otherwise report every entry as stale, or pass with zero files scanned.
-if (files.length === 0) {
-  console.error('git ls-files returned no files; run from a git checkout of MoneyApp');
-  process.exit(1);
-}
-
+const files = listSrcFiles(root);
 const fileSet = new Set(files);
 const calledPairs = new Set();
 
@@ -118,19 +100,24 @@ function pairKey(helper, file) {
   return `${helper} ${file}`;
 }
 
+function isOnDisk(file) {
+  return fs.existsSync(path.join(root, file));
+}
+
+function strippedLines(file) {
+  return stripComments(fs.readFileSync(path.join(root, file), 'utf8').split('\n'));
+}
+
 for (const file of files) {
-  const abs = path.join(root, file);
   // A tracked file deleted from the working tree is still in `ls-files`.
-  if (!fs.existsSync(abs)) continue;
-  const lines = stripComments(fs.readFileSync(abs, 'utf8').split('\n'));
-  lines.forEach((line, index) => {
-    for (const { helper, pattern } of CALLS) {
-      if (!pattern.test(line)) continue;
+  if (!isOnDisk(file)) continue;
+  strippedLines(file).forEach((line, index) => {
+    for (const { helper, mention, call } of HELPERS) {
       if (PERMITTED[helper].includes(file)) {
-        calledPairs.add(pairKey(helper, file));
-      } else {
+        if (call.test(line)) calledPairs.add(pairKey(helper, file));
+      } else if (mention.test(line)) {
         errors.push(
-          `${file}:${index + 1}: calls \`${helper}(\` and is not listed under \`${helper}\` in PERMITTED in ${SELF}; read the figure from a file that is listed, or add this path when ${RECORD} §6 permits the call`,
+          `${file}:${index + 1}: names \`${helper}\` and is not listed for \`${helper}(\` in PERMITTED in ${SELF}; read the figure from a file that is listed, or add this path under \`${helper}\` in PERMITTED in the change that adds the call`,
         );
       }
     }
@@ -138,8 +125,16 @@ for (const file of files) {
 }
 
 for (const [helper, paths] of Object.entries(PERMITTED)) {
+  const seen = new Set();
   for (const entry of paths) {
-    if (!fileSet.has(entry) || !fs.existsSync(path.join(root, entry))) {
+    if (seen.has(entry)) {
+      errors.push(
+        `${entry}: listed twice for \`${helper}(\`; delete one of its entries under \`${helper}\` in PERMITTED in ${SELF}`,
+      );
+      continue;
+    }
+    seen.add(entry);
+    if (!fileSet.has(entry) || !isOnDisk(entry)) {
       errors.push(
         `${entry}: listed for \`${helper}(\` but is not a tracked src/ .ts/.tsx file; delete or update its entry under \`${helper}\` in PERMITTED in ${SELF}`,
       );
@@ -148,6 +143,25 @@ for (const [helper, paths] of Object.entries(PERMITTED)) {
         `${entry}: listed for \`${helper}(\` but calls it nowhere; delete its entry under \`${helper}\` in PERMITTED in ${SELF}`,
       );
     }
+  }
+}
+
+if (fileSet.has(MONEY) && isOnDisk(MONEY)) {
+  const exported = new Set();
+  strippedLines(MONEY).forEach((line, index) => {
+    const name = EXPORTED_FUNCTION.exec(line)?.[1];
+    if (name === undefined || exported.has(name)) return;
+    exported.add(name);
+    if (Object.hasOwn(PERMITTED, name) || EXEMPT.includes(name)) return;
+    errors.push(
+      `${MONEY}:${index + 1}: exports \`${name}\`, which has no list; give it a key in PERMITTED in ${SELF} with the files that call it, or name it in EXEMPT when it rounds no money (${RECORD} §6 check 1)`,
+    );
+  });
+  for (const name of EXEMPT) {
+    if (exported.has(name)) continue;
+    errors.push(
+      `${MONEY}: no longer exports \`${name}\` as a function; delete it from EXEMPT in ${SELF}`,
+    );
   }
 }
 

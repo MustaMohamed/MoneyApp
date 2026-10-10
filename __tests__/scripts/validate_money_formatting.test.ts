@@ -116,11 +116,10 @@ function runGuardInFakeRoot(
   fs.mkdirSync(fakeLibDir, { recursive: true });
   const copiedScriptPath = path.join(fakeRoot, 'scripts', 'validate-money-formatting.js');
   fs.copyFileSync(scriptPath, copiedScriptPath);
-  // `require('./lib/strip-comments')` resolves beside the copy; without it this MODULE_NOT_FOUNDs.
-  fs.copyFileSync(
-    path.join(repoRoot, 'scripts', 'lib', 'strip-comments.js'),
-    path.join(fakeLibDir, 'strip-comments.js'),
-  );
+  // The script's two `./lib` requires resolve beside the copy; without them this MODULE_NOT_FOUNDs.
+  for (const lib of ['strip-comments.js', 'list-src-files.js']) {
+    fs.copyFileSync(path.join(repoRoot, 'scripts', 'lib', lib), path.join(fakeLibDir, lib));
+  }
   const sources = [{ rel: 'src/utils/format_amount.ts', content: composerSource }];
   if (transactionsHelpersSource !== undefined) {
     sources.unshift({ rel: transactionsHelpersRel, content: transactionsHelpersSource });
