@@ -20,7 +20,7 @@ Route `/accounts`. Screen `src/modules/accounts/screens/accounts/list/index.tsx`
 | filtered to one type | B7 | `$MQA tap '<type>'` on the rail | rows of other types absent; the archived card follows the filter (MA-048): only archived rows of the selected type, no card when none |
 | filtered to zero | no frame, ruled MA-022 | filter to a type with no active account | the shipped filtered empty state; no `+` change |
 | load error | F1 | source force in the list resolver | `Couldn't load your accounts` and `Try again`; shot |
-| after unarchive | G3 | B5 then `$MQA tap 'Unarchive'` | toast `<name> restored.`; row lands last among active rows; `mqa db "select is_archived from accounts where name='<n>'"` is 0 |
+| after unarchive | G3 | B5 then `$MQA tap 'Unarchive'` | toast `<name> restored.`, its label in the foreground colour and only the check in the success colour (MA-161; one crop against G3); row lands last among active rows; `mqa db "select is_archived from accounts where name='<n>'"` is 0 |
 | unarchive name clash | no frame, MA-046 | an active account with the archived name | toast `An active account already has this name. Rename it first.`; db unchanged |
 | row lifted mid-drag | B6 | device QA only | gesture feel is not emulator evidence |
 | blank-named row | no frame, MA-059 | seed push `name = ''` | row reads `Unnamed account` |

@@ -24,7 +24,7 @@ Route `/accounts/[id]` when `archived_at` is set. Body `detail/components/archiv
 | last archived, no active account | no frame, ruled MA-021 | only account, archived | delete proceeds and the toast says so; list shows B3 |
 | delete busy | F4 | source force delay on the write | `Deleting…`, buttons disabled; shot |
 | delete failure | F5 | source force on the write | failure copy, dialog stays, db unchanged; shot |
-| after delete | E3 | complete a delete | list without the row, toast; shot |
+| after delete | E3 | complete a delete | list without the row; the toast, its label in the foreground colour and only the check in the success colour (MA-161; one crop against E3); shot |
 | deleted account row | E4 | open Transactions after a delete with history | rows read `Deleted Account`; transfers keep one direction |
 | body buttons, large font | no frame, MA-130 | an archived account's detail, `mqa open /accounts/<id>`; at 2.0 `Delete account` sits below the fold, so `mqa scroll down --until 'label="Delete account"'` first; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the body buttons; one crop at 2.0 |
 | delete dialog, large font | no frame, MA-130 | the delete action on an archived account with no commitment; the `Font scale` force (README) at 1.0 and 2.0 | the `Button proof` (README) on the dialog's two buttons; one crop of the dialog at 2.0 |
