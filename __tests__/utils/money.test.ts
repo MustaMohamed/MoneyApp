@@ -233,6 +233,13 @@ describe('wholePercentOf', () => {
   ])('%p of %p is %p', (numerator, denominator, expected) => {
     expect(wholePercentOf(numerator, denominator)).toBe(expected);
   });
+
+  it('is 0, never NaN or Infinity, when an operand is not finite', () => {
+    expect(Object.is(wholePercentOf(NaN, 30), 0)).toBe(true);
+    expect(Object.is(wholePercentOf(5, NaN), 0)).toBe(true);
+    expect(Object.is(wholePercentOf(Infinity, 30), 0)).toBe(true);
+    expect(Object.is(wholePercentOf(5, Infinity), 0)).toBe(true);
+  });
 });
 
 describe('wholePercentGap', () => {

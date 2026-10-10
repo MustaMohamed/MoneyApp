@@ -26,7 +26,7 @@ The largest product is cents times days times 200, the doubled numerator inside 
 - The size rounds half up: 14.5 prints 15.
 - The sign is kept: −14.5 prints −15.
 - A size of 0 is unsigned. `wholePercentOf` returns positive `0`, never `-0`, so −0.4 prints `0%` in the neutral colour with the neutral icon where the site has them.
-- Nothing to divide by is `0`. A denominator of `0` returns `0`, never `NaN` or `Infinity`, and a site that prints something else for it keeps its own guard in front of the helper (§3).
+- Nothing to divide by is `0`. A denominator of `0` returns `0`, and so does an operand that is not finite, `NaN` or `Infinity` as either one, so `wholePercentOf`, `wholePercent` and `wholePercentGap` never return `NaN` or `Infinity`. A site that prints something else for a denominator of `0` keeps its own guard in front of the helper (§3).
 - A percent is made once, from its two amounts. No site rounds a quotient that floating point already divided, and one figure printed in two places prints the same whole percent in both.
 - No percent gains a decimal, a cap or a floor. `100% used` can print with money left and `0% used` with money spent, and the shares of one whole need not sum to 100.
 

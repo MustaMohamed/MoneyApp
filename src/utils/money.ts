@@ -56,9 +56,9 @@ export function ratioHeldAtTie(part: number, whole: number): number {
   return ratio > 1 && !exceedsToCent(part, whole) ? 1 : ratio;
 }
 
-/** Two exact integers (cents, counts, days): the size rounds half up, the sign is kept, and a zero denominator or size reads positive 0. */
+/** Two exact integers (cents, counts, days): the size rounds half up, the sign is kept, and a zero denominator, a zero size or an operand that is not finite reads positive 0. */
 export function wholePercentOf(numerator: number, denominator: number): number {
-  if (denominator === 0) return 0;
+  if (denominator === 0 || !Number.isFinite(numerator) || !Number.isFinite(denominator)) return 0;
   const divisor = Math.abs(denominator);
   const size = Math.floor((2 * Math.abs(numerator) * 100 + divisor) / (2 * divisor));
   return size === 0 ? 0 : Math.sign(numerator) * Math.sign(denominator) * size;
