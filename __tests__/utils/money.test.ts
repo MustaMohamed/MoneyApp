@@ -2,11 +2,16 @@ import { Currency } from '@/constants/enums';
 import { formatDisplayMagnitude } from '@/utils/format_amount';
 import { roundMoney } from '@/utils/money';
 import {
+  compareGapToPoints,
+  compareToPercent,
   exceedsToCent,
   ratioHeldAtTie,
   snapToZero,
   sumAllocations,
   toCents,
+  wholePercent,
+  wholePercentGap,
+  wholePercentOf,
   type AllocationTotals,
 } from '@/utils/money';
 
@@ -201,5 +206,85 @@ describe('sumAllocations', () => {
     for (const amounts of permutations) {
       expect(sumAllocations(amounts, 1)).toEqual(expected);
     }
+  });
+});
+
+// (145 / 1000) * 100 is 14.499999999999998: a half that a float quotient rounds down.
+describe('wholePercent', () => {
+  it.each([
+    [145, 1_000, 15],
+    [-145, 1_000, -15],
+    [5, 0, 0],
+    [0.1 + 0.2, 0.3, 100],
+  ])('%p of %p is %p', (part, whole, expected) => {
+    expect(wholePercent(part, whole)).toBe(expected);
+  });
+
+  it('returns positive zero, never -0, for a size under a half below zero', () => {
+    expect(Object.is(wholePercent(-4, 1_000), 0)).toBe(true);
+  });
+});
+
+describe('wholePercentOf', () => {
+  it.each([
+    [23, 40, 58],
+    [29, 200, 15],
+    [5, 0, 0],
+  ])('%p of %p is %p', (numerator, denominator, expected) => {
+    expect(wholePercentOf(numerator, denominator)).toBe(expected);
+  });
+
+  it('is 0, never NaN or Infinity, when an operand is not finite', () => {
+    expect(Object.is(wholePercentOf(NaN, 30), 0)).toBe(true);
+    expect(Object.is(wholePercentOf(5, NaN), 0)).toBe(true);
+    expect(Object.is(wholePercentOf(Infinity, 30), 0)).toBe(true);
+    expect(Object.is(wholePercentOf(5, Infinity), 0)).toBe(true);
+  });
+});
+
+describe('wholePercentGap', () => {
+  it.each([
+    [105, 1],
+    [95, -1],
+  ])('%p spent of 1,000 on day 3 of 30 is %p points from pace', (part, expected) => {
+    expect(wholePercentGap({ part, whole: 1_000, elapsed: 3, span: 30 })).toBe(expected);
+  });
+
+  it('returns positive zero, never -0, for a gap whose size rounds to 0', () => {
+    expect(Object.is(wholePercentGap({ part: 104, whole: 1_000, elapsed: 3, span: 30 }), 0)).toBe(
+      true,
+    );
+  });
+
+  it('reads a whole of 0 cents as a share of 0, the elapsed share under pace', () => {
+    expect(wholePercentGap({ part: 50, whole: 0, elapsed: 3, span: 30 })).toBe(-10);
+  });
+});
+
+// 2399.2 / 2999 is 0.7999999999999999 and 1110.6 / 1234 is 0.8999999999999999.
+describe('compareToPercent', () => {
+  it.each([
+    [2399.2, 2999, 80, 0],
+    [1110.6, 1234, 90, 0],
+    [79.96 + 0.02 + 0.02, 100, 80, 0],
+    [2399.19, 2999, 80, -1],
+    [2399.21, 2999, 80, 1],
+    [5, 0, 80, -1],
+  ])('%p of %p against %p percent is %p', (part, whole, percent, expected) => {
+    expect(compareToPercent(part, whole, percent)).toBe(expected);
+  });
+});
+
+describe('compareGapToPoints', () => {
+  it.each([
+    [200, 0],
+    [199.99, -1],
+    [200.01, 1],
+  ])('%p spent of 1,000 on day 3 of 30 against 10 points is %p', (part, expected) => {
+    expect(compareGapToPoints({ part, whole: 1_000, elapsed: 3, span: 30 }, 10)).toBe(expected);
+  });
+
+  it('is -1 when the whole is 0 cents', () => {
+    expect(compareGapToPoints({ part: 50, whole: 0, elapsed: 3, span: 30 }, 10)).toBe(-1);
   });
 });

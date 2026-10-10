@@ -18,6 +18,7 @@ import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_sum
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import { formatCurrencyAmount, formatOwnedAmount } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
+import { wholePercent } from '@/utils/money';
 import { ms } from '@/utils/responsive';
 
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
@@ -75,8 +76,8 @@ function BudgetCardSkeleton(): React.ReactElement {
 export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
   const { fontScale } = useWindowDimensions();
   const monthLabel = formatMonthYear(yearMonth);
-  const progressPct = Math.round(summary.pct * 100);
-  const bandColor = budgetBandColor(summary.pct);
+  const progressPct = wholePercent(summary.spent, summary.budgeted);
+  const bandColor = budgetBandColor(summary.spent, summary.budgeted);
   // `buildDashboardBudgetSummary` snaps `left`; below zero once over budget, an owned amount (#375).
   const leftText = formatOwnedAmount(summary.left, Currency.EGP);
 

@@ -11,6 +11,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { formatCurrencyTotals } from '@/utils/format_amount';
+import { wholePercentOf } from '@/utils/money';
 import { ms } from '@/utils/responsive';
 
 interface SummaryHeaderProps {
@@ -93,8 +94,7 @@ function SummarySkeleton(): React.ReactElement {
 }
 
 export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: SummaryHeaderProps) {
-  const progress = counts.total > 0 ? counts.paid / counts.total : 0;
-  const progressPct = Math.round(progress * 100);
+  const progressPct = wholePercentOf(counts.paid, counts.total);
   const totalsLine = formatCurrencyTotals(totalsByCurrency);
   const { fontScale } = useWindowDimensions();
 

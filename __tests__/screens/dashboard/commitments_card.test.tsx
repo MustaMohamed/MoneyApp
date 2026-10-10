@@ -148,3 +148,20 @@ describe('CommitmentsCard skeleton loading', () => {
     expect(getAllByTestId('dashboard-commitments-skeleton-stat')).toHaveLength(5);
   });
 });
+
+// (23 / 40) * 100 is 57.49999999999999: a half that a float quotient rounds down.
+describe('CommitmentsCard paid share', () => {
+  it('prints the paid percent with a half rounded up: 23 paid of 40 reads 58%', async () => {
+    const { getByText } = await render(
+      <CommitmentsCard
+        counts={{ paid: 23, overdue: 0, due: 17, upcoming: 0, skipped: 0, total: 40 }}
+        totalsByCurrency={new Map([[Currency.EGP, 5000]])}
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+
+    expect(getByText('58%')).toBeTruthy();
+  });
+});

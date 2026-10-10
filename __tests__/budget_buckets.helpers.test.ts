@@ -1,4 +1,5 @@
 import { BudgetGroup, CategoryType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
@@ -605,5 +606,42 @@ describe('an unbudgeted category whose month spend is under half a cent (MA-158)
 
   it('lists the category as unbudgeted for a spend of 0.01', () => {
     expect(needs(0.01).contributors).toMatchObject([{ categoryId: 'health', isUnbudgeted: true }]);
+  });
+});
+
+// (145 / 1000) * 100 and (29 / 200) * 100 are 14.499999999999998: halves a float quotient rounds down.
+describe('the 50/30/20 lens prints whole percents with a half rounded up (MA-112)', () => {
+  const planned = (income: number) =>
+    build({
+      income,
+      categories: [makeCategory('housing', BudgetGroup.Need, 'Housing')],
+      budgets: [makeBudget('housing', 145)],
+      budgetGroupByCategoryId: { housing: BudgetGroup.Need },
+    }).summary.presentation.progressLabel;
+
+  it('reads 15% planned for 145 planned of an income of 1,000', () => {
+    expect(planned(1_000)).toBe(Strings.budget5030PlannedPercentage(15));
+  });
+
+  it('reads 0% planned, never Infinity, for an income that rounds to 0 with 145 planned', () => {
+    expect(planned(0.4)).toBe(Strings.budget5030PlannedPercentage(0));
+  });
+
+  it('reads 15% of Needs plan for a contributor planned 29 in a bucket planned 200', () => {
+    const result = build({
+      categories: [
+        makeCategory('housing', BudgetGroup.Need, 'Housing'),
+        makeCategory('groceries', BudgetGroup.Need, 'Groceries'),
+      ],
+      budgets: [makeBudget('housing', 29), makeBudget('groceries', 171)],
+      budgetGroupByCategoryId: { housing: BudgetGroup.Need, groceries: BudgetGroup.Need },
+    });
+    const housing = bucket(result, BudgetGroup.Need).contributors.find(
+      (item) => item.categoryId === 'housing',
+    );
+
+    expect(housing?.presentation.planShareLabel).toBe(
+      Strings.budget5030PlanShare(15, Strings.budget5030NeedLabel),
+    );
   });
 });

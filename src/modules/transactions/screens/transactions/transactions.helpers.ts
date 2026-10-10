@@ -19,7 +19,7 @@ import {
   signAmountText,
 } from '@/utils/format_amount';
 import type { TransactionDateGroup } from '@/utils/group_transactions_by_date';
-import { snapToZero, toCents } from '@/utils/money';
+import { snapToZero, toCents, wholePercentOf } from '@/utils/money';
 import {
   MONTHS_SHORT,
   currentYearMonth,
@@ -75,15 +75,10 @@ export function previousPeriod(selection: TransactionPeriod): TransactionPeriod 
   return { type: 'month', yearMonth: shiftYearMonth(selection.yearMonth, -1) };
 }
 
-// Integer cents, multiplied before dividing, so a percentage on a half rounds up (ruling 2026-09-26).
-function centsPct(numeratorCents: number, denominatorCents: number): number {
-  return Math.round((numeratorCents * 100) / denominatorCents);
-}
-
 export function computeDeltaPct(current: number, previous: number): number | null {
   const previousCents = toCents(previous);
   if (previousCents === 0) return null;
-  return centsPct(toCents(current) - previousCents, Math.abs(previousCents));
+  return wholePercentOf(toCents(current) - previousCents, Math.abs(previousCents));
 }
 
 export function polarityColor(metric: TotalsMetric, deltaPct: number): PolaritySignal {
@@ -102,8 +97,9 @@ export function formatSignedAmount(value: number, metric: TotalsMetric): string 
 
 export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentation {
   const expenseEgp = snapToZero(current.expenseEgp);
+  const incomeCents = toCents(current.incomeEgp);
   const rawExpenseSharePct =
-    current.incomeEgp > 0 ? centsPct(toCents(expenseEgp), toCents(current.incomeEgp)) : null;
+    incomeCents > 0 ? wholePercentOf(toCents(expenseEgp), incomeCents) : null;
   const railPct = Math.max(0, Math.min(100, rawExpenseSharePct ?? 0));
 
   if (expenseEgp < 0) {
@@ -119,7 +115,7 @@ export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentati
     };
   }
 
-  if (current.incomeEgp <= 0) {
+  if (incomeCents <= 0) {
     return {
       state: 'noIncome',
       rawExpenseSharePct: null,
@@ -377,8 +373,8 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
   const share = buildTotalsPresentation(current);
   const incomeCents = toCents(current.incomeEgp);
   const left =
-    current.incomeEgp > 0
-      ? centsPct(incomeCents - toCents(current.expenseEgp), incomeCents)
+    incomeCents > 0
+      ? wholePercentOf(incomeCents - toCents(current.expenseEgp), incomeCents)
       : undefined;
 
   return {

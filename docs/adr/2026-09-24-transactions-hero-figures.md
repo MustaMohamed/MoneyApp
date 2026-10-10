@@ -23,6 +23,8 @@ All three percentages work in integer cents (`toCents`, `src/utils/money.ts`) an
 
 The hero reads its share from `buildTotalsPresentation`: that one rounded integer drives the rail's width (clamped to 0..100), its danger colour (share > 100), its accessibility label and the `<n>% of income spent` caption. No money value rounds in this layer: the sums stay at the 2 dp the rows persist, and display truncation belongs to the formatter.
 
+**Amended 2026-10-06 (#578, MA-112).** The three percentages round through `wholePercentOf` (`src/utils/money.ts`), which rounds the size half up and keeps the sign, where `Math.round` sent a half below zero toward zero. In 1,000 Out 1,035 prints `−4%` left, where the paragraph above calls `−3%` right, and a 14.5% drop against last month prints 15. Left of income and the share gate on `toCents(In) > 0`, so an In of 0 cents is a dash and no share. §3's line on a percentage that rounds to −0 stands, since `wholePercentOf` returns positive `0`. `docs/adr/2026-10-06-whole-percent-from-two-amounts.md` records the helper.
+
 ## 3. EGP, through the money formatters
 
 The aggregate sums `egp_amount`, so every hero figure is EGP. Each one goes through `formatDisplayMagnitude(value, Currency.EGP)` at `CURRENCY_CONFIG`'s 0 dp, and a negative figure takes `MINUS_SIGN` (U+2212) through `signAmountText`. A negative Left of income takes the same glyph; a percentage that rounds to −0 prints `0%`.

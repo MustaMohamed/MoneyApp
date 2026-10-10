@@ -1,11 +1,12 @@
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
-import { creditUtilization } from '@/modules/accounts/domain/account_figures';
+import { isOverLimit } from '@/modules/accounts/domain/is_over_limit';
+import { compareToPercent } from '@/utils/money';
 
-/** Takes the card's balance and bands the used share; one minus it is 0.19999999999999996 at 20% available. */
+/** Bands the card's balance against its limit in integer cents; exactly 50% and exactly 80% used both stay warning. */
 export function creditBandColor(balance: number, limit: number): string {
   if (limit <= 0) return CoreTokens.text2;
-  const used = creditUtilization(balance, limit);
-  if (used < 0.5) return SemanticTokens.positive;
-  if (used <= 0.8) return SemanticTokens.warning;
+  if (isOverLimit(balance, limit)) return SemanticTokens.negative;
+  if (compareToPercent(balance, limit, 50) < 0) return SemanticTokens.positive;
+  if (compareToPercent(balance, limit, 80) <= 0) return SemanticTokens.warning;
   return SemanticTokens.negative;
 }

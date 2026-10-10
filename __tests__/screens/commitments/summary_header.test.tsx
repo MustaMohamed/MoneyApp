@@ -135,6 +135,20 @@ describe('SummaryHeader skeleton loading', () => {
   });
 });
 
+// (23 / 40) * 100 is 57.49999999999999: a half that a float quotient rounds down.
+describe('SummaryHeader paid share', () => {
+  it('prints the paid percent with a half rounded up: 23 paid of 40 reads 58%', async () => {
+    const { getByText } = await render(
+      <SummaryHeader
+        counts={{ paid: 23, overdue: 0, due: 17, upcoming: 0, skipped: 0, total: 40 }}
+        totalsByCurrency={new Map([[Currency.EGP, 1500]])}
+      />,
+    );
+
+    expect(getByText('58%')).toBeTruthy();
+  });
+});
+
 describe('SummaryHeader total committed line', () => {
   it('fits a total in both currencies to one line at the window font scale', async () => {
     const { fontScale } = Dimensions.get('window');

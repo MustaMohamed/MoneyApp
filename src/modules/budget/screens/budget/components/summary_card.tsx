@@ -47,7 +47,6 @@ export function SummaryCard({ summary, onSetIncome }: SummaryCardProps) {
               accessible
               accessibilityRole="progressbar"
               accessibilityLabel={summary.usedLabel}
-              accessibilityValue={{ text: summary.usedLabel }}
               className="mt-1"
             >
               <BudgetBar

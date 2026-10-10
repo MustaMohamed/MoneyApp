@@ -15,6 +15,8 @@ Accounts, budget, dashboard and transactions all read them, so no single module 
 - `exceedsToCent(amount: number, limit: number): boolean` is `toCents(amount) > toCents(limit)`, the comparison `sumAllocations` makes on the write path.
 - `ratioHeldAtTie(part: number, whole: number): number` returns `0` when `whole` is `0`. Otherwise it returns `part / whole`, except that a quotient above `1` comes back as exactly `1` when `exceedsToCent(part, whole)` is false. It never rounds a quotient at or below `1`, so `budgetBandColor` reads `> 1` only for a part over its whole to the cent and reads every lower band on the quotient it read before.
 
+**Amended 2026-10-06 (#578, MA-112).** `budgetBandColor(spent: number, limit: number)` takes the two amounts and compares them in integer cents, so it reads no quotient. `ratioHeldAtTie` still makes the ratios §4 lists. A ring or a bar reads the named budget's, the Categories summary's and the two plan allocations', and no file in `src` reads the dashboard summary's `pct`. `docs/adr/2026-10-06-whole-percent-from-two-amounts.md` §4 records the steps and its §5 the ratios.
+
 ## 2. The utilisation ratio is `creditUtilization` in the accounts domain folder
 
 `src/modules/accounts/domain/account_figures.ts` gains its sixth and seventh functions.
@@ -25,6 +27,8 @@ Accounts, budget, dashboard and transactions all read them, so no single module 
 `netFlow(inflow, outflow)` returns `snapToZero(inflow - outflow)`, so the savings change row, the week net row and `savingsMonthStart` read a net under half a cent as `0`.
 
 `creditBandColor(balance: number, limit: number): string`, in `available_credit_color.ts`, replaces the resolver named for the available amount it took, and takes the card's balance. With `limit <= 0` it keeps `CoreTokens.text2`. Otherwise it reads `used = creditUtilization(balance, limit)`, and `used < 0.5` is positive, `used <= 0.8` is warning and anything above is negative. It compares `used` itself, because `1 - 800 / 1000` is `0.19999999999999996` and would turn exactly 20% available negative. Exactly 20% and exactly 50% available stay warning on a limit of 1,000. Its three callers, `account_info_rows.ts`, `balance_hero.helpers.ts` and `account_card.tsx`, pass `current_balance`.
+
+**Amended 2026-10-06 (#578, MA-112).** `creditBandColor` keeps its signature and its `limit <= 0` line and compares the balance in integer cents: negative when `isOverLimit(balance, limit)`, positive when `compareToPercent(balance, limit, 50) < 0`, warning when `compareToPercent(balance, limit, 80) <= 0`, else negative. Exactly 50% and exactly 80% used stay warning on any limit, 820.08 of 1,025.10 included, and a balance stored as `800.0000000000001` on 1,000 stays warning. It calls `creditUtilization` no more; the dashboard card's bar still reads it.
 
 `isOverLimit(balance: number, limit: number | null): boolean` keeps its signature and its `null` and `<= 0` guards, and its last term is `exceedsToCent(balance, limit)`. A card at `1000.0000000000001` of `1000` reads `Available 0 EGP`, never `Over limit`.
 
@@ -49,6 +53,8 @@ Each figure below passes through `snapToZero` in the pure function that returns 
 ## 4. Over is decided in integer cents
 
 `computeStatus`, `computeBudgetHealth`, the three `isOver` values in `buildSpendingPlanRows` and the `monthsUnder` count in `computeCategoryHistory` decide on `exceedsToCent`. Their warning thresholds did not change. The named budget's ring, the Categories summary bar, the two plan allocation ratios and the dashboard budget card's `pct` take `ratioHeldAtTie`, so a tie reaches `budgetBandColor` as exactly `1`, the `budgetNear` band. Both allocation sites take `{ isOver, pct }` from one call to the file-local `allocationRatio(spent, allocated)`, which decides over once. An allocation of `0` has a ratio of `1` when its spend is over to the cent and `0` otherwise, and the two percentage labels read the row's `isOver` where they read `spent > 0`. The category row's `usedPct` and the plan's own `pct` stay raw quotients.
+
+**Amended 2026-10-06 (#578, MA-112).** The warning thresholds compare in cents too: `computeStatus`, `computeBudgetHealth` and the plan category's `isWarning` read `compareToPercent(spent, limit, BUDGET_WARNING_PERCENT) >= 0`, and the plan's pace watch reads `compareGapToPoints`. The rings and bars above pass their two amounts to `budgetBandColor`, where a tie to the cent is `budgetNear` because `exceedsToCent` is false. The two percentage labels read the file-local `allocationPercentage(spent, allocated)`, which takes an allocation of `0` from `allocationRatio`, 100 when over and 0 otherwise. `BUDGET_WARNING_PERCENT` is declared in `src/modules/budget/utils/budget_summary.ts`, where the 80% step of `budgetBandColor` reads it too.
 
 ## 5. The 50/30/20 bucket cap and summary balance need no gate
 

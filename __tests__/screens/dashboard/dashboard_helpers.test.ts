@@ -1390,6 +1390,25 @@ describe('computeDashboardSpendDeltaPct', () => {
   it.each([0, -100])('returns null when the previous spend is %s', (previousEgp) => {
     expect(computeDashboardSpendDeltaPct(100, previousEgp)).toBeNull();
   });
+
+  // ((1145 - 1000) / 1000) * 100 is 14.499999999999998: a half that a float quotient rounds down.
+  it.each([
+    [1_145, 15],
+    [855, -15],
+  ])(
+    'rounds the size of a half up and keeps the sign: %p on 1,000 is %p',
+    (currentEgp, expected) => {
+      expect(computeDashboardSpendDeltaPct(currentEgp, 1_000)).toBe(expected);
+    },
+  );
+
+  it('returns positive zero, never -0, for a drop whose size rounds to 0', () => {
+    expect(Object.is(computeDashboardSpendDeltaPct(996, 1_000), 0)).toBe(true);
+  });
+
+  it('returns null when the previous spend is 0 cents', () => {
+    expect(computeDashboardSpendDeltaPct(100, 0.004)).toBeNull();
+  });
 });
 
 describe('computeDashboardCommitmentSummary', () => {

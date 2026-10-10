@@ -3,15 +3,11 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import {
-  BUDGET_WARNING_THRESHOLD,
   buildBudgetCategoriesSummary,
   buildBudgetCopyRows,
   buildCategoryBudgetRows,
-  computeBudgetSummaryForMonth,
   computeBudgetHealth,
   computeCategoryHistory,
-  computeCategoryRow,
-  computeOverall,
   computeStatus,
   previousYearMonth,
   remainingLabel,
@@ -19,7 +15,7 @@ import {
   resolveLimitForMonth,
   type MonthResultVM,
 } from '@/modules/budget/screens/budget/budget.helpers';
-import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { BUDGET_WARNING_PERCENT, budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 
 const NOW = '2026-05-01T00:00:00.000Z';
@@ -76,45 +72,10 @@ describe('resolveLimitForMonth', () => {
   });
 });
 
-describe('computeBudgetSummaryForMonth', () => {
-  it('does not carry previous-month budgets into an empty selected month', () => {
-    const summary = computeBudgetSummaryForMonth(
-      [row('food', 5000, '2026-07'), row('housing', 700, '2026-07')],
-      {},
-      '2026-08',
-    );
-
-    expect(summary).toEqual({ budgeted: 0, spent: 0, left: 0, pct: 0, categoryCount: 0 });
-  });
-
-  it('sums named budgets per category while counting category spend once', () => {
-    const summary = computeBudgetSummaryForMonth(
-      [
-        row('food', 5000, '2026-08', 'Monthly Food'),
-        row('food', 1500, '2026-08', 'Alexandria Trip Food'),
-        row('housing', 700, '2026-08', 'Rent'),
-      ],
-      {
-        food: { '2026-08': 2200 },
-        housing: { '2026-08': 700 },
-      },
-      '2026-08',
-    );
-
-    expect(summary).toEqual({
-      budgeted: 7200,
-      spent: 2900,
-      left: 4300,
-      pct: 2900 / 7200,
-      categoryCount: 2,
-    });
-  });
-});
-
 describe('computeStatus', () => {
   it('over when spent > limit', () => expect(computeStatus(1650, 1500)).toBe('over'));
   it('warning at exactly the threshold', () =>
-    expect(computeStatus(BUDGET_WARNING_THRESHOLD * 1000, 1000)).toBe('warning'));
+    expect(computeStatus(BUDGET_WARNING_PERCENT * 10, 1000)).toBe('warning'));
   it('warning when spent == limit (not over)', () =>
     expect(computeStatus(1000, 1000)).toBe('warning'));
   it('under below the threshold', () => expect(computeStatus(500, 1000)).toBe('under'));
@@ -235,40 +196,6 @@ describe('budget categories ledger view models', () => {
         overCount: 0,
       }),
     );
-  });
-});
-
-describe('computeCategoryRow', () => {
-  it('computes available, pct, status', () => {
-    const r = computeCategoryRow('a', 3000, 2400);
-    expect(r).toEqual({
-      categoryId: 'a',
-      limit: 3000,
-      spent: 2400,
-      available: 600,
-      pct: 0.8,
-      status: 'warning',
-    });
-  });
-  it('available goes negative when over', () => {
-    expect(computeCategoryRow('a', 1500, 1650).available).toBe(-150);
-  });
-});
-
-describe('computeOverall', () => {
-  it('sums budgeted categories only', () => {
-    const o = computeOverall([
-      computeCategoryRow('a', 3000, 2400),
-      computeCategoryRow('b', 1500, 1650),
-      computeCategoryRow('c', 800, 420),
-    ]);
-    expect(o.budgeted).toBe(5300);
-    expect(o.spent).toBe(4470);
-    expect(o.left).toBe(830);
-    expect(o.pct).toBeCloseTo(4470 / 5300);
-  });
-  it('zero-safe with no rows', () => {
-    expect(computeOverall([])).toEqual({ budgeted: 0, spent: 0, left: 0, pct: 0 });
   });
 });
 
@@ -458,35 +385,184 @@ describe('computeCategoryHistory', () => {
 });
 
 describe('budgetBandColor', () => {
-  it('pct=0 → budgetUnder (< 50%)', () => {
-    expect(budgetBandColor(0)).toBe(Colors.dark.budgetUnder);
+  it('0 and 49 of 100 → budgetUnder, 50 → budgetSteady (exactly 50%)', () => {
+    expect(budgetBandColor(0, 100)).toBe(Colors.dark.budgetUnder);
+    expect(budgetBandColor(49, 100)).toBe(Colors.dark.budgetUnder);
+    expect(budgetBandColor(50, 100)).toBe(Colors.dark.budgetSteady);
   });
-  it('pct=0.49 → budgetUnder (just under 50%)', () => {
-    expect(budgetBandColor(0.49)).toBe(Colors.dark.budgetUnder);
+  it('79 of 100 → budgetSteady, 80 → budgetWatch (exactly 80%)', () => {
+    expect(budgetBandColor(79, 100)).toBe(Colors.dark.budgetSteady);
+    expect(budgetBandColor(80, 100)).toBe(Colors.dark.budgetWatch);
   });
-  it('pct=0.5 → budgetSteady (exactly 50%)', () => {
-    expect(budgetBandColor(0.5)).toBe(Colors.dark.budgetSteady);
+  it('89 of 100 → budgetWatch, 90 → budgetNear (exactly 90%)', () => {
+    expect(budgetBandColor(89, 100)).toBe(Colors.dark.budgetWatch);
+    expect(budgetBandColor(90, 100)).toBe(Colors.dark.budgetNear);
   });
-  it('pct=0.79 → budgetSteady (just under 80%)', () => {
-    expect(budgetBandColor(0.79)).toBe(Colors.dark.budgetSteady);
+  it('100 of 100 → budgetNear (exactly 100% — boundary: near, NOT over), 101 and 500 → budgetOver', () => {
+    expect(budgetBandColor(100, 100)).toBe(Colors.dark.budgetNear);
+    expect(budgetBandColor(101, 100)).toBe(Colors.dark.budgetOver);
+    expect(budgetBandColor(500, 100)).toBe(Colors.dark.budgetOver);
   });
-  it('pct=0.8 → budgetWatch (exactly 80%)', () => {
-    expect(budgetBandColor(0.8)).toBe(Colors.dark.budgetWatch);
+});
+
+// 2399.2 / 2999 is 0.7999999999999999 and 1110.6 / 1234 is 0.8999999999999999: one float step under the boundary.
+describe('colour steps and the 80% warning change exactly on their boundary (MA-112)', () => {
+  it.each([
+    ['80%', 2399.2, 2399.19, 2999, Colors.dark.budgetWatch, Colors.dark.budgetSteady],
+    ['90%', 1110.6, 1110.59, 1234, Colors.dark.budgetNear, Colors.dark.budgetWatch],
+    ['50%', 500, 499.99, 1000, Colors.dark.budgetSteady, Colors.dark.budgetUnder],
+  ] as const)(
+    'budgetBandColor opens the %s step at %p and not at %p of %p',
+    (_step, onBoundary, oneCentUnder, limit, opened, below) => {
+      expect({
+        onBoundary: budgetBandColor(onBoundary, limit),
+        oneCentUnder: budgetBandColor(oneCentUnder, limit),
+      }).toEqual({ onBoundary: opened, oneCentUnder: below });
+    },
+  );
+
+  it('budgetBandColor reads a spend that ties its limit to the cent as near, and one cent past it as over', () => {
+    expect({
+      tie: budgetBandColor(1000, 1000),
+      floatTie: budgetBandColor(0.1 + 0.2, 0.3),
+      oneCentOver: budgetBandColor(1000.01, 1000),
+    }).toEqual({
+      tie: Colors.dark.budgetNear,
+      floatTie: Colors.dark.budgetNear,
+      oneCentOver: Colors.dark.budgetOver,
+    });
   });
-  it('pct=0.89 → budgetWatch (just under 90%)', () => {
-    expect(budgetBandColor(0.89)).toBe(Colors.dark.budgetWatch);
+
+  it('budgetBandColor keeps budgetUnder with nothing to divide by', () => {
+    expect(budgetBandColor(5, 0)).toBe(Colors.dark.budgetUnder);
   });
-  it('pct=0.9 → budgetNear (exactly 90%)', () => {
-    expect(budgetBandColor(0.9)).toBe(Colors.dark.budgetNear);
+
+  it('computeStatus reads warning at 2,399.20 of 2,999 and under one cent below', () => {
+    expect({
+      onBoundary: computeStatus(2399.2, 2999),
+      oneCentUnder: computeStatus(2399.19, 2999),
+    }).toEqual({ onBoundary: 'warning', oneCentUnder: 'under' });
   });
-  it('pct=1.0 → budgetNear (exactly 100% — boundary: near, NOT over)', () => {
-    expect(budgetBandColor(1.0)).toBe(Colors.dark.budgetNear);
+
+  // 79.96 + 0.02 + 0.02 is 79.99999999999999, a sum that prints 80 and is 80 to the cent.
+  it('computeBudgetHealth reads watch at 2,399.20 of 2,999 and at a float sum of 80 on 100, and on-track one cent below', () => {
+    expect({
+      onBoundary: computeBudgetHealth(2399.2, 2999),
+      floatSum: computeBudgetHealth(79.96 + 0.02 + 0.02, 100),
+      oneCentUnder: computeBudgetHealth(2399.19, 2999),
+    }).toEqual({ onBoundary: 'watch', floatSum: 'watch', oneCentUnder: 'on-track' });
   });
-  it('pct=1.01 → budgetOver (strictly over 100%)', () => {
-    expect(budgetBandColor(1.01)).toBe(Colors.dark.budgetOver);
+
+  const summaryOf = (limit: number, spend: number) => {
+    const { rows, unbudgetedSpend } = buildCategoryBudgetRows({
+      categories: [category('food', 'Food & Dining')],
+      budgets: [row('food', limit, '2026-07', 'Monthly meals', 'meals')],
+      spendByMonth: { food: { '2026-07': spend } },
+      spendByBudgetId: { meals: spend },
+      yearMonth: '2026-07',
+    });
+    const { usedLabel, barColor } = buildBudgetCategoriesSummary({
+      rows,
+      expectedIncome: null,
+      unbudgetedSpend,
+      selectedMonth: '2026-07',
+      today: '2026-07-14',
+    });
+    return { usedLabel, barColor };
+  };
+
+  it('the summary bar prints 80% used in the 80% colour from exactly 80%, and in the 50 to 79% colour from 79.5%', () => {
+    const usedLabel = Strings.budgetCategoriesSummaryUsed(80);
+
+    expect({
+      at795Of1000: summaryOf(1000, 795),
+      at800Of1000: summaryOf(1000, 800),
+      onFloatBoundary: summaryOf(2999, 2399.2),
+    }).toEqual({
+      at795Of1000: { usedLabel, barColor: Colors.dark.budgetSteady },
+      at800Of1000: { usedLabel, barColor: Colors.dark.budgetWatch },
+      onFloatBoundary: { usedLabel, barColor: Colors.dark.budgetWatch },
+    });
   });
-  it('pct=5.0 → budgetOver (large overspend)', () => {
-    expect(budgetBandColor(5.0)).toBe(Colors.dark.budgetOver);
+});
+
+// (145 / 1000) * 100 is 14.499999999999998: a half that a float quotient rounds down.
+describe('the Categories lens prints whole percents with a half rounded up (MA-112)', () => {
+  const ledger = (budgets: Budget[], spendByBudgetId: Record<string, number>, spend: number) => {
+    const { rows, unbudgetedSpend } = buildCategoryBudgetRows({
+      categories: [category('food', 'Food & Dining')],
+      budgets,
+      spendByMonth: { food: { '2026-07': spend } },
+      spendByBudgetId,
+      yearMonth: '2026-07',
+    });
+    const summary = buildBudgetCategoriesSummary({
+      rows,
+      expectedIncome: null,
+      unbudgetedSpend,
+      selectedMonth: '2026-07',
+      today: '2026-07-14',
+    });
+    return { row: rows[0], summary };
+  };
+
+  it('a budget of 1,000 with 145 spent reads 15% on the named budget, on its category row and in both accessibility labels', () => {
+    const { row: categoryRow } = ledger(
+      [row('food', 1000, '2026-07', 'Monthly meals', 'meals')],
+      { meals: 145 },
+      145,
+    );
+
+    expect(categoryRow).toMatchObject({
+      spentPlannedUsedLabel: Strings.budgetCategoriesSpentPlannedUsed('145', '1,000', 15),
+      accessibilityLabel: Strings.budgetCategoriesCategoryA11y(
+        'Food & Dining',
+        '145',
+        '1,000',
+        15,
+        '855',
+        'left',
+        Strings.budgetCategoriesStatusOnTrack,
+      ),
+      budgets: [
+        {
+          usedLabel: '15%',
+          accessibilityLabel: Strings.budgetCategoriesBudgetA11y(
+            'Monthly meals',
+            '145',
+            '1,000',
+            15,
+            '855',
+            'left',
+          ),
+        },
+      ],
+    });
+  });
+
+  it('a budget of 1,000 with 145 spent reads 15% used in the summary', () => {
+    const { summary } = ledger(
+      [row('food', 1000, '2026-07', 'Monthly meals', 'meals')],
+      { meals: 145 },
+      145,
+    );
+
+    expect(summary.usedLabel).toBe(Strings.budgetCategoriesSummaryUsed(15));
+  });
+
+  it('budgets of 145 and 855 in one category give the first 15% of category', () => {
+    const { row: categoryRow } = ledger(
+      [
+        row('food', 145, '2026-07', 'Dining out', 'dining'),
+        row('food', 855, '2026-07', 'Monthly meals', 'meals'),
+      ],
+      {},
+      0,
+    );
+
+    expect(categoryRow.budgets.find((budget) => budget.id === 'dining')?.shareLabel).toBe(
+      Strings.budgetCategoriesShare(15),
+    );
   });
 });
 

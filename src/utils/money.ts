@@ -56,6 +56,53 @@ export function ratioHeldAtTie(part: number, whole: number): number {
   return ratio > 1 && !exceedsToCent(part, whole) ? 1 : ratio;
 }
 
+/** Two exact integers (cents, counts, days): the size rounds half up, the sign is kept, and a zero denominator, a zero size or an operand that is not finite reads positive 0. */
+export function wholePercentOf(numerator: number, denominator: number): number {
+  if (denominator === 0 || !Number.isFinite(numerator) || !Number.isFinite(denominator)) return 0;
+  const divisor = Math.abs(denominator);
+  const size = Math.floor((2 * Math.abs(numerator) * 100 + divisor) / (2 * divisor));
+  return size === 0 ? 0 : Math.sign(numerator) * Math.sign(denominator) * size;
+}
+
+/** The whole percent of two money amounts, each rounded to cents before the one division. */
+export function wholePercent(part: number, whole: number): number {
+  return wholePercentOf(toCents(part), toCents(whole));
+}
+
+/** A money share, `part / whole`, beside a share of whole counts, `elapsed / span`. */
+interface ShareGap {
+  part: number;
+  whole: number;
+  elapsed: number;
+  span: number;
+}
+
+/** The gap's numerator over `wholeCents * span`, in integers: the money share less the count share. */
+function gapNumerator(gap: ShareGap, wholeCents: number): number {
+  return toCents(gap.part) * gap.span - gap.elapsed * wholeCents;
+}
+
+/** Whole points between a money share and a share of whole counts, rounded once from one integer fraction. */
+export function wholePercentGap(gap: ShareGap): number {
+  const wholeCents = toCents(gap.whole);
+  if (wholeCents === 0) return wholePercentOf(-gap.elapsed, gap.span);
+  return wholePercentOf(gapNumerator(gap, wholeCents), wholeCents * gap.span);
+}
+
+/** The sign of a money share against a whole percent, in integer cents; a whole of 0 cents or less reads below. */
+export function compareToPercent(part: number, whole: number, percent: number): number {
+  const wholeCents = toCents(whole);
+  if (wholeCents <= 0) return -1;
+  return Math.sign(toCents(part) * 100 - wholeCents * percent);
+}
+
+/** The sign of the gap `wholePercentGap` rounds against whole points, in integers; nothing to divide by reads below. */
+export function compareGapToPoints(gap: ShareGap, points: number): number {
+  const wholeCents = toCents(gap.whole);
+  if (wholeCents <= 0 || gap.span <= 0) return -1;
+  return Math.sign(gapNumerator(gap, wholeCents) * 100 - wholeCents * gap.span * points);
+}
+
 /** Sums integer cents so the result is order-independent; `undefined` total means none entered. */
 export function sumAllocations(
   amounts: readonly (number | null | undefined)[],
