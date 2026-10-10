@@ -3,7 +3,6 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import {
-  BUDGET_WARNING_PERCENT,
   buildBudgetCategoriesSummary,
   buildBudgetCopyRows,
   buildCategoryBudgetRows,
@@ -16,7 +15,7 @@ import {
   resolveLimitForMonth,
   type MonthResultVM,
 } from '@/modules/budget/screens/budget/budget.helpers';
-import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { BUDGET_WARNING_PERCENT, budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 
 const NOW = '2026-05-01T00:00:00.000Z';

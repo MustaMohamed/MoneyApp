@@ -8,7 +8,7 @@ import type {
   CategoryBudgetRowVM,
   NamedBudgetVM,
 } from '@/modules/budget/screens/budget/budget_categories.types';
-import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { BUDGET_WARNING_PERCENT, budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
 import {
@@ -18,8 +18,6 @@ import {
   snapToZero,
   wholePercent,
 } from '@/utils/money';
-
-export const BUDGET_WARNING_PERCENT = 80;
 
 export type BudgetStatus = 'under' | 'warning' | 'over';
 

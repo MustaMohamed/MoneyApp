@@ -9,13 +9,15 @@ Each site divided in floating point and rounded the quotient, so a value on a ha
 
 ## 1. Five helpers in `src/utils/money.ts`
 
-Every argument is a required `number`, none takes `null`, and each returns a `number`.
+Every argument is a required `number`, or for a gap one object of four required `number` fields. None takes `null`, and each returns a `number`.
 
-- `wholePercentOf(numerator: number, denominator: number): number` takes two exact integers: cents, counts or days. Its size is `Math.floor((2 × |numerator| × 100 + |denominator|) / (2 × |denominator|))`, and its sign is the sign of the numerator times the sign of the denominator. It rounds no money.
+- `wholePercentOf(numerator: number, denominator: number): number` takes two exact integers: cents, counts or days. Its size is `Math.floor((2 × |numerator| × 100 + |denominator|) / (2 × |denominator|))`, and its sign is the sign of the numerator times the sign of the denominator. It rounds no money, so an amount passed to it rounds wrong: `wholePercentOf(0.29, 2)` is 14 where `wholePercent(0.29, 2)` is 15. Check 1 of the 2026-08-22 rounding-layer record lists its permitted call sites.
 - `wholePercent(part: number, whole: number): number` is `wholePercentOf(toCents(part), toCents(whole))`.
-- `wholePercentGap(part: number, whole: number, elapsed: number, span: number): number` is the whole points between `part / whole`, in money, and `elapsed / span`, in whole counts. With `p = toCents(part)` and `w = toCents(whole)` it is `wholePercentOf(p × span − elapsed × w, w × span)`, and `wholePercentOf(−elapsed, span)` when `w` is `0`.
+- `wholePercentGap(gap: { part: number; whole: number; elapsed: number; span: number }): number` is the whole points between `part / whole`, in money, and `elapsed / span`, in whole counts. With `p = toCents(part)` and `w = toCents(whole)` it is `wholePercentOf(p × span − elapsed × w, w × span)`, and `wholePercentOf(−elapsed, span)` when `w` is `0`.
 - `compareToPercent(part: number, whole: number, percent: number): number` takes a whole `percent`. It is `Math.sign(toCents(part) × 100 − toCents(whole) × percent)`, and `-1` when `toCents(whole) <= 0`.
-- `compareGapToPoints(part: number, whole: number, elapsed: number, span: number, points: number): number` is `Math.sign((p × span − elapsed × w) × 100 − w × span × points)`, and `-1` when `w <= 0` or `span <= 0`.
+- `compareGapToPoints(gap: { part: number; whole: number; elapsed: number; span: number }, points: number): number` is `Math.sign((p × span − elapsed × w) × 100 − w × span × points)`, and `-1` when `w <= 0` or `span <= 0`.
+
+Both gap helpers take the gap as one object, so a caller names `elapsed` and `span`, and the file-local `gapNumerator` makes `p × span − elapsed × w` for both.
 
 The largest product is cents times days times 200, the doubled numerator inside `wholePercentOf` when `wholePercentGap` calls it. It stays exact below 2^53, which holds for a plan under about 1.2 billion EGP over 365 days. `compareGapToPoints` multiplies by 100 and holds to about 2.4 billion.
 
@@ -54,9 +56,11 @@ The largest product is cents times days times 200, the doubled numerator inside 
 | budget colour steps at 50, 80 and 90% | `budgetBandColor(spent: number, limit: number)` | `compareToPercent(spent, limit, p) >= 0` | takes the step the boundary opens |
 | over a budget | `budgetBandColor` | `exceedsToCent(spent, limit)` | exactly 100% is `budgetNear` (ADR 2026-10-04 §4) |
 | 80% warning on a budget, on the month's budget health and on a plan category | `computeStatus`, `computeBudgetHealth`, `isWarning` in `buildSpendingPlanRows` | `compareToPercent(spent, limit, BUDGET_WARNING_PERCENT) >= 0` | warns |
-| 10-point pace watch | `derivePlanStatus` | `compareGapToPoints(spent, totalAmount, elapsedDays, totalDays, PACE_WARNING_POINTS) >= 0` | `watch` |
+| 10-point pace watch, compared only for an active plan with no category pressure | `derivePlanStatus` | `compareGapToPoints({ part: spent, whole: totalAmount, elapsed: elapsedDays, span: totalDays }, PACE_WARNING_POINTS) >= 0` | `watch` |
 | credit card colour at 50% used | `creditBandColor(balance: number, limit: number)` | positive when `compareToPercent(balance, limit, 50) < 0` | warning |
 | credit card colour at 80% used | `creditBandColor` | warning when `compareToPercent(balance, limit, 80) <= 0` | warning |
+
+`BUDGET_WARNING_PERCENT`, 80, is declared once, in `src/modules/budget/utils/budget_summary.ts`. The 80% step of `budgetBandColor` and the three warnings read it, so the word and the colour of one figure change on the same amount.
 
 `budgetBandColor` returns `budgetUnder` for a limit of 0 or less. An unbudgeted 50/30/20 contributor has no limit, and `buildContributorPresentation` gives its ring `budgetNear` directly, the colour it had. `creditBandColor` keeps `CoreTokens.text2` for a limit of 0 or less, then returns negative when `isOverLimit(balance, limit)`, so a limit of 0 cents under a balance of a cent or more stays negative.
 
@@ -64,6 +68,6 @@ A label and its colour come from the same two amounts, and the label rounds wher
 
 ## 5. What keeps a float ratio
 
-Bars, rings and view-model fields keep it. `pct`, `usedPct`, `categorySharePct`, `paceDelta`, `elapsedPct`, `planShareRatio`, `plannedRatio`, `progressRatio` and `creditUtilization` keep their values, and no view model gains a field. `budget_bar.tsx`, the arc of `budget_ring.tsx` and the bar of `account_card.tsx` read them as before, and `ratioHeldAtTie` feeds bars and rings only. The bars of the dashboard budget card, the dashboard commitments card and the commitments summary read the printed whole percent and move with it.
+Every ratio field keeps its value, and no view model gains or loses a field. A bar or a ring reads `usedPct`, the plan `pct` fields, `progressRatio` and `creditUtilization`. Five fields have no reader on a screen: `BudgetDashboardSummaryVM.pct`, which `buildDashboardBudgetSummary` still makes with `ratioHeldAtTie`; `paceDelta`, `itemizedPct` and `categorySharePct`, which no file in `src` reads; and `elapsedPct`, which `buildSpendingPlanRows` reads once to make `paceDelta`. `planShareRatio` only tells `buildContributorPresentation` whether a share prints, and `plannedRatio` only feeds the summary's `progressRatio`. The bars of the dashboard budget card, the dashboard commitments card and the commitments summary read the printed whole percent and move with it.
 
 The worked numbers are in `__tests__/utils/money.test.ts`. The sites' cases are in `__tests__/budget.helpers.test.ts`, `__tests__/spending_plans.helpers.test.ts`, `__tests__/budget_buckets.helpers.test.ts`, `__tests__/accounts/available_credit_color.test.ts`, `__tests__/screens/dashboard/dashboard_helpers.test.ts`, `__tests__/screens/transactions/transactions_helpers.test.ts`, `__tests__/screens/dashboard/budget_card.test.tsx`, `__tests__/screens/dashboard/commitments_card.test.tsx` and `__tests__/screens/commitments/summary_header.test.tsx`.

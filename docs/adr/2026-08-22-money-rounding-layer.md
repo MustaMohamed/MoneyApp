@@ -282,19 +282,25 @@ being calls that round through `toCents`, so it reads
 `docs/adr/2026-10-04-half-cent-zero-and-cent-ties.md` records both functions.
 
 **Extended 2026-10-06 (#578).** Check 1's pattern gains
-`wholePercent\(|wholePercentGap\(|compareToPercent\(|compareGapToPoints\(`, the four calls that
-round through `toCents`, so it reads
-`roundMoney\(|toCents\(|sumAllocations\(|exceedsToCent\(|ratioHeldAtTie\(|wholePercent\(|wholePercentGap\(|compareToPercent\(|compareGapToPoints\(`.
-`wholePercentOf(` takes integers, rounds no money and stays out of it.
+`wholePercent\(|wholePercentOf\(|wholePercentGap\(|compareToPercent\(|compareGapToPoints\(`, so it
+reads
+`roundMoney\(|toCents\(|sumAllocations\(|exceedsToCent\(|ratioHeldAtTie\(|wholePercent\(|wholePercentOf\(|wholePercentGap\(|compareToPercent\(|compareGapToPoints\(`.
+Four of the five round through `toCents`. `wholePercentOf(` takes integers and rounds no money,
+and an amount passed to it rounds wrong, `wholePercentOf(0.29, 2)` being 14 where
+`wholePercent(0.29, 2)` is 15, so its call sites are listed too.
 `src/modules/budget/utils/budget_summary.ts` joins the permitted `exceedsToCent(` files, and
 `src/modules/transactions/screens/transactions/transactions.helpers.ts` is a permitted `toCents(`
-file beside the three Addendum A point 1 names. The permitted call sites of the four in `src/`,
+file beside the three Addendum A point 1 names. The permitted call sites of the five in `src/`,
 each also in `src/utils/money.ts`, a file more being a finding: `wholePercent(` in
 `src/modules/dashboard/screens/dashboard/dashboard.helpers.ts`,
 `src/modules/dashboard/screens/dashboard/components/budget_card.tsx`,
 `src/modules/budget/screens/budget/budget.helpers.ts`,
 `src/modules/budget/screens/budget/spending_plans_summary.helpers.ts`,
 `src/modules/budget/screens/budget/budget_buckets.helpers.ts` and
+`src/modules/budget/screens/budget/spending_plans.helpers.ts`; `wholePercentOf(` in
+`src/modules/transactions/screens/transactions/transactions.helpers.ts`,
+`src/modules/dashboard/screens/dashboard/components/commitments_card.tsx`,
+`src/modules/commitments/screens/commitments/components/summary_header.tsx` and
 `src/modules/budget/screens/budget/spending_plans.helpers.ts`; `wholePercentGap(` in
 `src/modules/budget/screens/budget/spending_plans.helpers.ts`; `compareToPercent(` in
 `src/modules/budget/utils/budget_summary.ts`,

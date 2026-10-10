@@ -52,14 +52,13 @@ export function derivePlanStatus(input: {
 }): SpendingPlanStatus {
   if (input.lifecycle === 'upcoming') return 'upcoming';
   if (input.isOver) return 'over';
-  const isAheadOfPace =
-    compareGapToPoints(
-      input.spent,
-      input.totalAmount,
-      input.elapsedDays,
-      input.totalDays,
-      PACE_WARNING_POINTS,
-    ) >= 0;
-  if (input.lifecycle === 'active' && (isAheadOfPace || input.hasCategoryPressure)) return 'watch';
-  return 'onTrack';
+  if (input.lifecycle !== 'active') return 'onTrack';
+  if (input.hasCategoryPressure) return 'watch';
+  const pace = {
+    part: input.spent,
+    whole: input.totalAmount,
+    elapsed: input.elapsedDays,
+    span: input.totalDays,
+  };
+  return compareGapToPoints(pace, PACE_WARNING_POINTS) >= 0 ? 'watch' : 'onTrack';
 }

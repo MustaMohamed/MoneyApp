@@ -240,15 +240,17 @@ describe('wholePercentGap', () => {
     [105, 1],
     [95, -1],
   ])('%p spent of 1,000 on day 3 of 30 is %p points from pace', (part, expected) => {
-    expect(wholePercentGap(part, 1_000, 3, 30)).toBe(expected);
+    expect(wholePercentGap({ part, whole: 1_000, elapsed: 3, span: 30 })).toBe(expected);
   });
 
   it('returns positive zero, never -0, for a gap whose size rounds to 0', () => {
-    expect(Object.is(wholePercentGap(104, 1_000, 3, 30), 0)).toBe(true);
+    expect(Object.is(wholePercentGap({ part: 104, whole: 1_000, elapsed: 3, span: 30 }), 0)).toBe(
+      true,
+    );
   });
 
   it('reads a whole of 0 cents as a share of 0, the elapsed share under pace', () => {
-    expect(wholePercentGap(50, 0, 3, 30)).toBe(-10);
+    expect(wholePercentGap({ part: 50, whole: 0, elapsed: 3, span: 30 })).toBe(-10);
   });
 });
 
@@ -272,10 +274,10 @@ describe('compareGapToPoints', () => {
     [199.99, -1],
     [200.01, 1],
   ])('%p spent of 1,000 on day 3 of 30 against 10 points is %p', (part, expected) => {
-    expect(compareGapToPoints(part, 1_000, 3, 30, 10)).toBe(expected);
+    expect(compareGapToPoints({ part, whole: 1_000, elapsed: 3, span: 30 }, 10)).toBe(expected);
   });
 
   it('is -1 when the whole is 0 cents', () => {
-    expect(compareGapToPoints(50, 0, 3, 30, 10)).toBe(-1);
+    expect(compareGapToPoints({ part: 50, whole: 0, elapsed: 3, span: 30 }, 10)).toBe(-1);
   });
 });

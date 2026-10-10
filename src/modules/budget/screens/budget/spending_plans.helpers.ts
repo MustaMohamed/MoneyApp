@@ -29,7 +29,7 @@ import type {
   SpendingPlanStatusTone,
   SpendingPlanTimingVM,
 } from '@/modules/budget/screens/budget/spending_plans.types';
-import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { BUDGET_WARNING_PERCENT, budgetBandColor } from '@/modules/budget/utils/budget_summary';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';
@@ -44,7 +44,7 @@ import {
   wholePercentOf,
 } from '@/utils/money';
 
-import { BUDGET_WARNING_PERCENT, remainingLabel, type BudgetStatus } from './budget.helpers';
+import { remainingLabel, type BudgetStatus } from './budget.helpers';
 
 export type {
   AllocationHelperVM,
@@ -109,10 +109,10 @@ function allocationRatio(spent: number, allocated: number): { isOver: boolean; p
   return { isOver, pct: isOver ? 1 : 0 };
 }
 
-/** The whole percent beside `allocationRatio`: an allocation of 0 prints 100 when over, else 0. */
-function allocationPercentage(spent: number, allocated: number, isOver: boolean): number {
+/** The whole percent beside `allocationRatio`, which alone decides what an allocation of 0 reads. */
+function allocationPercentage(spent: number, allocated: number): number {
   if (allocated > 0) return wholePercent(spent, allocated);
-  return isOver ? 100 : 0;
+  return allocationRatio(spent, allocated).pct * 100;
 }
 
 function buildSpendingPlanAllocationCardChip(
@@ -120,11 +120,7 @@ function buildSpendingPlanAllocationCardChip(
 ): SpendingPlanCardAllocationChipVM {
   const spentLabel = formatAmount(allocation.spent);
   const allocatedLabel = formatAmount(allocation.allocatedAmount);
-  const percentage = allocationPercentage(
-    allocation.spent,
-    allocation.allocatedAmount,
-    allocation.isOver,
-  );
+  const percentage = allocationPercentage(allocation.spent, allocation.allocatedAmount);
   const percentageLabel =
     allocation.allocatedAmount === 0 && allocation.isOver
       ? PLAN_STATUS_PRESENTATION.over.label
@@ -300,7 +296,7 @@ function buildDetailCategoryRow(
   }
 
   const allocatedLabel = formatAmount(row.allocatedAmount);
-  const percentage = allocationPercentage(row.spent, row.allocatedAmount, row.isOver);
+  const percentage = allocationPercentage(row.spent, row.allocatedAmount);
   const percentageLabel =
     row.allocatedAmount === 0 && row.isOver
       ? PLAN_STATUS_PRESENTATION.over.label
@@ -408,7 +404,6 @@ function buildSpendingPlanDetail({
             allocationPercentage(
               highestPressureCategory.spent,
               highestPressureCategory.allocatedAmount,
-              highestPressureCategory.isOver,
             ),
           ),
     });
@@ -631,12 +626,12 @@ export function buildSpendingPlanRows({
         Math.max(wholePercentOf(timing.elapsedDays, timing.totalDays), 0),
         100,
       );
-      const pacePoints = wholePercentGap(
-        spent,
-        plan.total_amount,
-        timing.elapsedDays,
-        timing.totalDays,
-      );
+      const pacePoints = wholePercentGap({
+        part: spent,
+        whole: plan.total_amount,
+        elapsed: timing.elapsedDays,
+        span: timing.totalDays,
+      });
       const status = derivePlanStatus({
         lifecycle: timing.lifecycle,
         isOver,
