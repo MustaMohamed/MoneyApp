@@ -1,11 +1,11 @@
 import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { Dimensions, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { Dimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup, CategoryType } from '@/constants/enums';
-import { Type } from '@/constants/theme';
+import { Size, Type } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
@@ -14,6 +14,7 @@ import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category
 import { BudgetScreenSkeleton } from '@/modules/budget/screens/budget/components/budget_screen_skeleton';
 import { RuleLedger } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_ledger';
 import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
+import { barHeight } from '@/test_helpers/skeleton';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -294,12 +295,36 @@ describe('50/30/20 rule ledger', () => {
   });
 });
 
-// The array makes `flatten` return an object for a bar with no `style`, so its height reads `undefined`.
-function barHeight(bar: { props: { style?: StyleProp<ViewStyle> } }): ViewStyle['height'] {
-  return StyleSheet.flatten([bar.props.style]).height;
-}
+describe('budget skeletons at the window font scale', () => {
+  it('grows the expanded bucket text bars of the budget screen skeleton and keeps its ring', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const bar = (height: number): number => resolveSkeletonBarHeight(height, fontScale);
 
-describe('budget detail skeletons at the window font scale', () => {
+    const screen = await render(
+      <BudgetScreenSkeleton
+        variant="fiftythirty"
+        preserveLayout
+        ruleLens={ruleLens()}
+        expandedBudgetGroup={BudgetGroup.Need}
+      />,
+    );
+
+    const heights = within(screen.getByTestId('rule-bucket-expanded-skeleton'))
+      .getAllByTestId('skeleton-bar')
+      .map(barHeight);
+    expect(heights).toEqual([
+      bar(36),
+      bar(32),
+      Size.budgetNamedRing,
+      bar(12),
+      bar(10),
+      bar(12),
+      bar(10),
+      bar(40),
+    ]);
+  });
+
   it('grows the spending plan insight bar with the font scale', async () => {
     const { fontScale } = Dimensions.get('window');
     expect(fontScale).toBeGreaterThan(1);

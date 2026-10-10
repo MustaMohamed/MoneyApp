@@ -4,10 +4,12 @@ import {
   resolveMonthSpendFooterLayout,
   resolveMonthSpendLeg,
   resolveMonthSpendRows,
+  resolveNetWorthDetailLayout,
   resolveNetWorthStatColor,
   shouldShowNetWorthProportionBar,
 } from '@/modules/dashboard/screens/dashboard/components/stat_cards.helpers';
 import { formatCurrencyParts } from '@/utils/format_amount';
+import { ms } from '@/utils/responsive';
 
 // Layla's label/magnitude table (#332): resolveMonthSpendLeg's state/magnitude, then only the
 // magnitude reaches formatCurrencyParts — a negative net never reaches the formatter.
@@ -174,6 +176,22 @@ describe('resolveMonthSpendFooterLayout', () => {
     expect(resolveMonthSpendFooterLayout(fontScale)).toEqual({
       flexDirection: 'column',
       alignItems: 'flex-start',
+    });
+  });
+});
+
+describe('resolveNetWorthDetailLayout', () => {
+  it.each([0.85, 1])('keeps the two details side by side at font scale %s', (fontScale) => {
+    expect(resolveNetWorthDetailLayout(fontScale)).toEqual({
+      row: { flexDirection: 'row', gap: ms(8) },
+      column: { flex: 1, gap: ms(4) },
+    });
+  });
+
+  it.each([1.01, 2])('gives each detail a full-width row at font scale %s', (fontScale) => {
+    expect(resolveNetWorthDetailLayout(fontScale)).toEqual({
+      row: { flexDirection: 'column', gap: ms(8) },
+      column: { gap: ms(4) },
     });
   });
 });

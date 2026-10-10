@@ -1,6 +1,6 @@
 import { render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { Dimensions, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { Dimensions, type ViewStyle } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
@@ -12,6 +12,7 @@ import {
   resolveTransferSkeletonCellHeight,
 } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import { TransactionDetailSkeleton } from '@/modules/transactions/screens/transactions/detail/components/detail_skeleton';
+import { barHeight } from '@/test_helpers/skeleton';
 
 const BAR = 'skeleton-bar';
 
@@ -29,11 +30,6 @@ jest.mock('heroui-native', () => {
     SkeletonGroup: Object.assign(Group, { Item }),
   };
 });
-
-// The array makes `flatten` return an object for a bar with no `style`, so its height reads `undefined`.
-function barHeight(bar: { props: { style?: StyleProp<ViewStyle> } }): ViewStyle['height'] {
-  return StyleSheet.flatten([bar.props.style]).height;
-}
 
 describe('TransactionDetailSkeleton', () => {
   it('uses a neutral loading surface when transaction geometry is unknown', async () => {

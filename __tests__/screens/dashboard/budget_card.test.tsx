@@ -18,8 +18,14 @@ jest.mock('heroui-native', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { Pressable, View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Card: ({ children, ...props }: { children?: ReactNode }) =>
-      React.createElement(View, props, children),
+    Card: Object.assign(
+      ({ children, ...props }: { children?: ReactNode }) =>
+        React.createElement(View, props, children),
+      {
+        Body: ({ children, ...props }: { children?: ReactNode }) =>
+          React.createElement(View, props, children),
+      },
+    ),
     PressableFeedback: ({
       children,
       onPress,

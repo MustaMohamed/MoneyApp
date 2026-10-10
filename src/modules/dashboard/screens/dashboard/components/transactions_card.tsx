@@ -22,7 +22,6 @@ import {
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
-import { DASHBOARD_CARD_PADDING } from './dashboard_card.geometry';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 interface Props {
@@ -271,95 +270,93 @@ export function TransactionsCard({
       <Card
         testID="dashboard-transactions-card"
         className="border-border mx-4 mt-4 rounded-2xl border p-0"
-        style={{
-          ...DASHBOARD_CARD_PADDING,
-          gap: ms(8),
-          boxShadow: 'none',
-        }}
+        style={{ boxShadow: 'none' }}
       >
-        <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
-          <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
-            <View
-              className="items-center justify-center rounded-full"
-              style={{
-                width: ms(22),
-                height: ms(22),
-                backgroundColor: withAlpha(SemanticTokens.info, '22'),
-              }}
-            >
-              <MaterialCommunityIcons
-                name="swap-horizontal"
-                size={ms(13)}
-                color={SemanticTokens.info}
-              />
+        <Card.Body className="px-3 py-2" style={{ gap: ms(8) }}>
+          <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
+            <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
+              <View
+                className="items-center justify-center rounded-full"
+                style={{
+                  width: ms(22),
+                  height: ms(22),
+                  backgroundColor: withAlpha(SemanticTokens.info, '22'),
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="swap-horizontal"
+                  size={ms(13)}
+                  color={SemanticTokens.info}
+                />
+              </View>
+              <Text variant="caption" className="font-inter-semibold text-foreground">
+                {Strings.transactions}
+              </Text>
             </View>
-            <Text variant="caption" className="font-inter-semibold text-foreground">
-              {Strings.transactions}
+            <Text variant="caption" className="text-muted">
+              {monthLabel}
             </Text>
           </View>
-          <Text variant="caption" className="text-muted">
-            {monthLabel}
-          </Text>
-        </View>
 
-        {isLoading ? (
-          <TransactionsCardSkeleton />
-        ) : (
-          <>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-              {METRICS.map((metric) => (
-                <MetricValue
-                  key={metric.key}
-                  value={formatSignedAmount(currentValue(current, metric.key), metric.key)}
-                  label={metric.label}
-                  align={metric.align}
-                  className={metric.valueClass}
-                />
-              ))}
-            </View>
+          {isLoading ? (
+            <TransactionsCardSkeleton />
+          ) : (
+            <>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+                {METRICS.map((metric) => (
+                  <MetricValue
+                    key={metric.key}
+                    value={formatSignedAmount(currentValue(current, metric.key), metric.key)}
+                    label={metric.label}
+                    align={metric.align}
+                    className={metric.valueClass}
+                  />
+                ))}
+              </View>
 
-            <View
-              className="overflow-hidden rounded"
-              style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
-              accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
-            >
               <View
-                className="bg-danger h-full rounded-[2px]"
-                style={{ width: `${expensePct}%` }}
-              />
-            </View>
-
-            {deltas ? (
-              <>
+                className="overflow-hidden rounded"
+                style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
+                accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
+              >
                 <View
-                  style={{ flexDirection: 'row', alignItems: 'center' }}
-                  className="gap-2"
-                  accessibilityLabel={
-                    previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined
-                  }
-                >
-                  {METRICS.map((metric) => (
-                    <DeltaValue
-                      key={metric.key}
-                      metric={metric.key}
-                      deltaPct={deltas[metric.key]}
-                      align={metric.align}
-                    />
-                  ))}
-                </View>
-                {previousLabel ? (
-                  <Text
-                    allowFontScaling={false}
-                    className="font-inter-bold text-foreground/45 text-center tracking-wide uppercase"
-                    style={scaledTextStyle(Type.chip, fontScale)}
+                  className="bg-danger h-full rounded-[2px]"
+                  style={{ width: `${expensePct}%` }}
+                />
+              </View>
+
+              {deltas ? (
+                <>
+                  <View
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
+                    className="gap-2"
+                    accessibilityLabel={
+                      previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined
+                    }
                   >
-                    {Strings.totalsVsPrev(previousLabel)}
-                  </Text>
-                ) : null}
-              </>
-            ) : null}
-          </>
-        )}
+                    {METRICS.map((metric) => (
+                      <DeltaValue
+                        key={metric.key}
+                        metric={metric.key}
+                        deltaPct={deltas[metric.key]}
+                        align={metric.align}
+                      />
+                    ))}
+                  </View>
+                  {previousLabel ? (
+                    <Text
+                      allowFontScaling={false}
+                      className="font-inter-bold text-foreground/45 text-center tracking-wide uppercase"
+                      style={scaledTextStyle(Type.chip, fontScale)}
+                    >
+                      {Strings.totalsVsPrev(previousLabel)}
+                    </Text>
+                  ) : null}
+                </>
+              ) : null}
+            </>
+          )}
+        </Card.Body>
       </Card>
     </PressableFeedback>
   );

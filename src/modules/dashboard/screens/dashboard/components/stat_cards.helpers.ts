@@ -7,6 +7,7 @@ import type {
   DashboardNetWorthAmount,
 } from '@/modules/accounts/domain/account_aggregation';
 import { snapToZero } from '@/utils/money';
+import { ms } from '@/utils/responsive';
 
 export type MonthSpendLegState = 'spent' | 'refunded';
 
@@ -46,6 +47,20 @@ export function resolveMonthSpendFooterLayout(fontScale: number): MonthSpendFoot
   return resolveRowStacking(fontScale) === 'stacked'
     ? { flexDirection: 'column', alignItems: 'flex-start' }
     : { flexDirection: 'row', alignItems: 'center' };
+}
+
+export interface NetWorthDetailLayout {
+  row: { flexDirection: 'row' | 'column'; gap: number };
+  column: { flex?: 1; gap: number };
+}
+
+/** Above font scale 1 a label is wider than a half column, so each detail takes a full-width row, on the skeleton as on the loaded card. */
+export function resolveNetWorthDetailLayout(fontScale: number): NetWorthDetailLayout {
+  const stacked = resolveRowStacking(fontScale) === 'stacked';
+  return {
+    row: { flexDirection: stacked ? 'column' : 'row', gap: ms(8) },
+    column: stacked ? { gap: ms(4) } : { flex: 1, gap: ms(4) },
+  };
 }
 
 /**

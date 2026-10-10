@@ -32,6 +32,7 @@ import {
   resolveMonthSpendFooterLayout,
   resolveMonthSpendLeg,
   resolveMonthSpendRows,
+  resolveNetWorthDetailLayout,
   resolveNetWorthStatColor,
   shouldShowNetWorthProportionBar,
 } from './stat_cards.helpers';
@@ -89,8 +90,7 @@ function NetWorthSkeleton(): React.ReactElement {
   const valueHeight = resolveSkeletonBarHeight(DASHBOARD_NET_WORTH_VALUE_HEIGHT, fontScale);
   const labelHeight = resolveSkeletonBarHeight(DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT, fontScale);
   const detailHeight = resolveSkeletonBarHeight(DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT, fontScale);
-  const stacked = resolveRowStacking(fontScale) === 'stacked';
-  const detailColumnStyle = stacked ? { gap: ms(4) } : { flex: 1, gap: ms(4) };
+  const detailLayout = resolveNetWorthDetailLayout(fontScale);
   return (
     <>
       <Skeleton
@@ -104,8 +104,8 @@ function NetWorthSkeleton(): React.ReactElement {
         className="w-full rounded"
         style={{ height: DASHBOARD_NET_WORTH_PROGRESS_HEIGHT }}
       />
-      <View className="mt-1" style={{ flexDirection: stacked ? 'column' : 'row', gap: ms(8) }}>
-        <View style={detailColumnStyle}>
+      <View className="mt-1" style={detailLayout.row}>
+        <View style={detailLayout.column}>
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-18 rounded-md"
@@ -117,7 +117,7 @@ function NetWorthSkeleton(): React.ReactElement {
             style={{ height: detailHeight }}
           />
         </View>
-        <View style={detailColumnStyle}>
+        <View style={detailLayout.column}>
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-18 rounded-md"
@@ -447,8 +447,7 @@ function NetWorthCardBody({
   const captionText = scaledTextStyle(Type.caption, fontScale);
   const valueText = resolveFitAmountTextProps(Type.title, fontScale);
   const detailValueText = resolveFitAmountTextProps(Type.caption, fontScale);
-  // Above 1.0 a label is wider than a half column, so each detail takes a full-width row.
-  const detailColumnStyle = stacked ? { gap: ms(4) } : { flex: 1, gap: ms(4) };
+  const detailLayout = resolveNetWorthDetailLayout(fontScale);
   const detailLabelText = stacked ? { ...captionText, flexShrink: 1 } : captionText;
 
   return (
@@ -472,8 +471,8 @@ function NetWorthCardBody({
           <View style={{ flex: 1 - assetsPct, backgroundColor: Colors.dark.negative }} />
         </View>
       )}
-      <View className="mt-1" style={{ flexDirection: stacked ? 'column' : 'row', gap: ms(8) }}>
-        <View style={detailColumnStyle}>
+      <View className="mt-1" style={detailLayout.row}>
+        <View style={detailLayout.column}>
           <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
             <View
               style={{
@@ -496,7 +495,7 @@ function NetWorthCardBody({
             {formatOwnedAmountParts(amount.assets, baseCurrency).value}
           </Text>
         </View>
-        <View style={detailColumnStyle}>
+        <View style={detailLayout.column}>
           <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
             <View
               style={{

@@ -15,8 +15,14 @@ jest.mock('heroui-native', () => {
   const { Pressable, View } = jest.requireActual<typeof import('react-native')>('react-native');
 
   return {
-    Card: ({ children, ...props }: { children?: ReactNode; className?: string }) =>
-      React.createElement(View, props, children),
+    Card: Object.assign(
+      ({ children, ...props }: { children?: ReactNode; className?: string }) =>
+        React.createElement(View, props, children),
+      {
+        Body: ({ children, ...props }: { children?: ReactNode; className?: string }) =>
+          React.createElement(View, props, children),
+      },
+    ),
     PressableFeedback: ({
       children,
       onPress,
@@ -118,6 +124,22 @@ describe('TransactionsCard', () => {
     expect(incomeDelta).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
     expect(previousLabel).toHaveProp('allowFontScaling', false);
     expect(previousLabel).toHaveStyle(scaledTextStyle(Type.chip, fontScale));
+
+    // No income the month before leaves that delta with no percent, so it alone draws the dash.
+    const withoutIncomeDelta = await render(
+      <TransactionsCard
+        current={{ incomeEgp: 1000.4, expenseEgp: 300.9, netEgp: 699.5 }}
+        previous={{ incomeEgp: 0, expenseEgp: 11300, netEgp: 11500 }}
+        previousLabel="June 2026"
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+    const dash = withoutIncomeDelta.getByText('—');
+
+    expect(dash).toHaveProp('allowFontScaling', false);
+    expect(dash).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
   });
 
   it('shows skeleton slots instead of totals while loading', async () => {

@@ -2,12 +2,12 @@ import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
 
-import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
+import { DASHBOARD_HERO_MAX_FONT_SCALE } from '@/modules/dashboard/screens/dashboard/components/dashboard_card.geometry';
 import { HeroCard } from '@/modules/dashboard/screens/dashboard/components/hero_card';
 import { ms } from '@/utils/responsive';
 
@@ -132,11 +132,11 @@ describe('HeroCard skeleton loading', () => {
 
   it('matches the loaded amount and pill row geometry while loading', async () => {
     const { fontScale } = Dimensions.get('window');
-    expect(fontScale).toBeGreaterThan(DISPLAY_HEADLINE_MAX_FONT_SCALE);
+    expect(fontScale).toBeGreaterThan(DASHBOARD_HERO_MAX_FONT_SCALE);
     const { getAllByTestId, getByTestId } = await render(<HeroCard {...baseProps} isLoading />);
 
     expect(getByTestId('dashboard-hero-skeleton-amount')).toHaveStyle({
-      height: resolveSkeletonBarHeight(ms(35), fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE),
+      height: resolveSkeletonBarHeight(ms(35), fontScale, DASHBOARD_HERO_MAX_FONT_SCALE),
     });
     expect(getByTestId('dashboard-hero-skeleton-pills-row')).toHaveStyle({
       minHeight: resolveSkeletonBarHeight(ms(20), fontScale),
@@ -156,24 +156,34 @@ describe('HeroCard skeleton loading', () => {
 describe('HeroCard loaded text at the window font scale', () => {
   it('stops the amount at the display headline cap and scales the pills app-side to their bars', async () => {
     const { fontScale } = Dimensions.get('window');
-    expect(fontScale).toBeGreaterThan(DISPLAY_HEADLINE_MAX_FONT_SCALE);
+    expect(fontScale).toBeGreaterThan(DASHBOARD_HERO_MAX_FONT_SCALE);
 
     const { getByTestId, getByText } = await render(<HeroCard {...baseProps} isLoading={false} />);
     const amount = getByText(/8,650/);
-    const foreign = getByText('176.00 USD');
+    const pillTexts = [
+      getByText('176.00 USD'),
+      getByText('49.06 EGP/USD'),
+      getByText(`1 ${Strings.o6AccountsUnit}`),
+    ];
 
     expect(amount).toHaveProp('allowFontScaling', false);
     expect(amount).toHaveStyle(
-      scaledTextStyle(Type.dashboardHero, fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE),
+      scaledTextStyle(Type.dashboardHero, fontScale, DASHBOARD_HERO_MAX_FONT_SCALE),
     );
-    expect(foreign).toHaveProp('allowFontScaling', false);
-    expect(foreign).toHaveStyle(scaledTextStyle(Type.caption, fontScale));
+    expect(getByText('EGP')).toHaveStyle(
+      scaledTextStyle(Type.subhead, fontScale, DASHBOARD_HERO_MAX_FONT_SCALE),
+    );
+    for (const pillText of pillTexts) {
+      expect(pillText).toHaveProp('allowFontScaling', false);
+      expect(pillText).toHaveStyle(scaledTextStyle(Type.caption, fontScale));
+    }
     for (const testID of [
       'dashboard-hero-foreign-pill',
       'dashboard-hero-rate-pill',
       'dashboard-hero-accounts-pill',
     ]) {
       expect(getByTestId(testID)).toHaveStyle({
+        alignItems: 'center',
         minHeight: resolveSkeletonBarHeight(ms(20), fontScale),
       });
     }

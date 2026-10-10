@@ -6,11 +6,7 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
-import {
-  resolveFitAmountTextProps,
-  resolveOneLineTextProps,
-  scaledTextStyle,
-} from '@/components/ui/text_scale.geometry';
+import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Type } from '@/constants/theme';
@@ -19,7 +15,6 @@ import { formatMonthYear } from '@/utils/format_date';
 import { wholePercentOf } from '@/utils/money';
 import { ms } from '@/utils/responsive';
 
-import { DASHBOARD_CARD_PADDING } from './dashboard_card.geometry';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 interface Props {
@@ -138,105 +133,103 @@ export function CommitmentsCard({
       <Card
         testID="dashboard-commitments-card"
         className="border-border mx-4 mt-4 rounded-2xl border p-0"
-        style={{
-          ...DASHBOARD_CARD_PADDING,
-          gap: ms(8),
-          boxShadow: 'none',
-        }}
+        style={{ boxShadow: 'none' }}
       >
-        <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
-          <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
-            <View
-              className="items-center justify-center rounded-full"
-              style={{
-                width: ms(22),
-                height: ms(22),
-                backgroundColor: Colors.dark.goldTint,
-              }}
-            >
-              <MaterialCommunityIcons
-                name="calendar-check"
-                size={ms(13)}
-                color={Colors.shared.cairoGold}
-              />
-            </View>
-            <Text variant="caption" className="font-inter-semibold text-foreground">
-              {Strings.dashboardCommitmentsTitle}
-            </Text>
-          </View>
-          <Text variant="caption" className="text-muted">
-            {monthLabel}
-          </Text>
-        </View>
-
-        {isLoading ? (
-          <CommitmentsCardSkeleton />
-        ) : (
-          <>
-            <View
-              className="flex-row items-center justify-between"
-              style={{ flexDirection: 'row', gap: ms(8) }}
-            >
-              <View className="flex-1" style={{ flex: 1 }}>
-                <Text
-                  variant="hint"
-                  {...resolveOneLineTextProps(scaledTextStyle(Type.caption, fontScale))}
-                  className="text-muted uppercase"
-                >
-                  {Strings.commitmentsTotalCommitted}
-                </Text>
-                <Text
-                  {...resolveFitAmountTextProps(Type.title, fontScale)}
-                  className="font-sora-bold text-foreground"
-                >
-                  {totalsLine}
-                </Text>
-              </View>
+        <Card.Body className="px-3 py-2" style={{ gap: ms(8) }}>
+          <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
+            <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
               <View
-                className="rounded-full"
+                className="items-center justify-center rounded-full"
                 style={{
-                  paddingHorizontal: ms(12),
-                  paddingVertical: ms(3),
+                  width: ms(22),
+                  height: ms(22),
                   backgroundColor: Colors.dark.goldTint,
                 }}
               >
-                <Text
-                  allowFontScaling={false}
-                  className="font-sora-bold"
+                <MaterialCommunityIcons
+                  name="calendar-check"
+                  size={ms(13)}
+                  color={Colors.shared.cairoGold}
+                />
+              </View>
+              <Text variant="caption" className="font-inter-semibold text-foreground">
+                {Strings.dashboardCommitmentsTitle}
+              </Text>
+            </View>
+            <Text variant="caption" className="text-muted">
+              {monthLabel}
+            </Text>
+          </View>
+
+          {isLoading ? (
+            <CommitmentsCardSkeleton />
+          ) : (
+            <>
+              <View
+                className="flex-row items-center justify-between"
+                style={{ flexDirection: 'row', gap: ms(8) }}
+              >
+                <View className="flex-1" style={{ flex: 1 }}>
+                  <Text
+                    variant="hint"
+                    {...resolveFitAmountTextProps(Type.caption, fontScale)}
+                    className="text-muted uppercase"
+                  >
+                    {Strings.commitmentsTotalCommitted}
+                  </Text>
+                  <Text
+                    {...resolveFitAmountTextProps(Type.title, fontScale)}
+                    className="font-sora-bold text-foreground"
+                  >
+                    {totalsLine}
+                  </Text>
+                </View>
+                <View
+                  className="rounded-full"
                   style={{
-                    ...scaledTextStyle(Type.subhead, fontScale),
-                    color: Colors.shared.cairoGold,
+                    paddingHorizontal: ms(12),
+                    paddingVertical: ms(3),
+                    backgroundColor: Colors.dark.goldTint,
                   }}
                 >
-                  {progressPct}%
-                </Text>
+                  <Text
+                    allowFontScaling={false}
+                    className="font-sora-bold"
+                    style={{
+                      ...scaledTextStyle(Type.subhead, fontScale),
+                      color: Colors.shared.cairoGold,
+                    }}
+                  >
+                    {progressPct}%
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            <View
-              className="overflow-hidden rounded"
-              style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
-            >
-              <LinearGradient
-                colors={[Colors.shared.cairoGold, Colors.dark.gold]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{ height: ms(3), width: `${progressPct}%`, borderRadius: ms(2) }}
-              />
-            </View>
+              <View
+                className="overflow-hidden rounded"
+                style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
+              >
+                <LinearGradient
+                  colors={[Colors.shared.cairoGold, Colors.dark.gold]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ height: ms(3), width: `${progressPct}%`, borderRadius: ms(2) }}
+                />
+              </View>
 
-            <View
-              className="flex-row items-center justify-between"
-              style={{ flexDirection: 'row' }}
-            >
-              <Stat icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
-              <Stat icon="alert-circle" color={Colors.dark.negative} value={counts.overdue} />
-              <Stat icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
-              <Stat icon="calendar-clock" color={Colors.dark.text2} value={counts.upcoming} />
-              <Stat icon="minus-circle" color={Colors.dark.text3} value={counts.skipped} />
-            </View>
-          </>
-        )}
+              <View
+                className="flex-row items-center justify-between"
+                style={{ flexDirection: 'row' }}
+              >
+                <Stat icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
+                <Stat icon="alert-circle" color={Colors.dark.negative} value={counts.overdue} />
+                <Stat icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
+                <Stat icon="calendar-clock" color={Colors.dark.text2} value={counts.upcoming} />
+                <Stat icon="minus-circle" color={Colors.dark.text3} value={counts.skipped} />
+              </View>
+            </>
+          )}
+        </Card.Body>
       </Card>
     </PressableFeedback>
   );

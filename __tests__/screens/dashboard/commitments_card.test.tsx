@@ -49,8 +49,14 @@ jest.mock('heroui-native', () => {
       isLoading ? null : children,
     );
   return {
-    Card: ({ children, ...props }: { children?: ReactNode }) =>
-      React.createElement(View, props, children),
+    Card: Object.assign(
+      ({ children, ...props }: { children?: ReactNode }) =>
+        React.createElement(View, props, children),
+      {
+        Body: ({ children, ...props }: { children?: ReactNode }) =>
+          React.createElement(View, props, children),
+      },
+    ),
     PressableFeedback: ({
       children,
       onPress,
@@ -188,6 +194,7 @@ describe('CommitmentsCard text at the window font scale', () => {
 
     expect(label).toHaveProp('numberOfLines', 1);
     expect(label).toHaveProp('allowFontScaling', false);
+    expect(label).toHaveProp('adjustsFontSizeToFit', true);
     expect(label).toHaveStyle(scaledTextStyle(Type.caption, fontScale));
     expect(percent).toHaveProp('allowFontScaling', false);
     expect(percent).toHaveStyle(scaledTextStyle(Type.subhead, fontScale));

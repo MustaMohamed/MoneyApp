@@ -3,7 +3,6 @@ import { Skeleton } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
@@ -24,6 +23,7 @@ import {
 } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
+import { DASHBOARD_HERO_MAX_FONT_SCALE } from './dashboard_card.geometry';
 import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 const DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT = ms(35);
@@ -63,7 +63,7 @@ function HeroCardSkeleton({ isRateUsable }: { isRateUsable: boolean }): React.Re
           height: resolveSkeletonBarHeight(
             DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT,
             fontScale,
-            DISPLAY_HEADLINE_MAX_FONT_SCALE,
+            DASHBOARD_HERO_MAX_FONT_SCALE,
           ),
         }}
       />
@@ -104,14 +104,14 @@ function HeroCardAssetsAmount({
       allowFontScaling={false}
       className="font-sora-bold mt-3 mb-2 px-3"
       style={{
-        ...scaledTextStyle(Type.dashboardHero, fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE),
+        ...scaledTextStyle(Type.dashboardHero, fontScale, DASHBOARD_HERO_MAX_FONT_SCALE),
         color: Colors.dark.gold,
       }}
     >
       {assetsParts.value}{' '}
       <Text
         style={{
-          ...scaledTextStyle(Type.subhead, fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE),
+          ...scaledTextStyle(Type.subhead, fontScale, DASHBOARD_HERO_MAX_FONT_SCALE),
           opacity: 0.8,
         }}
       >
@@ -254,6 +254,7 @@ export function HeroCard({
               style={{
                 flexDirection: 'row',
                 gap: ms(4),
+                alignItems: 'center',
                 minHeight: pillMinHeight,
                 backgroundColor: Colors.dark.overlayWhite7,
               }}
@@ -278,6 +279,7 @@ export function HeroCard({
                 style={{
                   flexDirection: 'row',
                   gap: ms(4),
+                  alignItems: 'center',
                   minHeight: pillMinHeight,
                   backgroundColor: Colors.dark.overlayWhite7,
                 }}
@@ -298,6 +300,7 @@ export function HeroCard({
               style={{
                 flexDirection: 'row',
                 gap: ms(4),
+                alignItems: 'center',
                 minHeight: pillMinHeight,
                 backgroundColor: Colors.dark.overlayWhite7,
               }}

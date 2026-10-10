@@ -1,7 +1,4 @@
-// Raw dp, the stat cards' `px-3 py-2`: beside the `p-0` a HeroUI `Card` needs, that class draws no padding.
-export const DASHBOARD_CARD_PADDING = {
-  paddingLeft: 12,
-  paddingRight: 12,
-  paddingTop: 8,
-  paddingBottom: 8,
-} as const;
+import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
+
+/** The hero amount and its skeleton bar stop growing past this OS font scale, as the display headline does. */
+export const DASHBOARD_HERO_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;

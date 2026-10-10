@@ -1,6 +1,6 @@
 import { render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { Dimensions, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { Dimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { lineHeightFor, Radius, Size } from '@/constants/theme';
@@ -14,6 +14,7 @@ import {
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { TransactionRowsSkeleton } from '@/modules/transactions/screens/transactions/components/transaction_rows_skeleton';
 import { resolveDayHeaderGeometry } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
+import { barHeight } from '@/test_helpers/skeleton';
 
 const BAR = 'skeleton-bar';
 
@@ -26,10 +27,6 @@ jest.mock('heroui-native', () => {
     React.createElement(View, { ...props, testID: props.testID ?? 'skeleton-bar' });
   return { SkeletonGroup: Object.assign(Group, { Item }) };
 });
-
-function barHeight(bar: { props: { style?: StyleProp<ViewStyle> } }): ViewStyle['height'] {
-  return StyleSheet.flatten(bar.props.style).height;
-}
 
 function lineBar(fontSize: number): number {
   return resolveSkeletonBarHeight(lineHeightFor(fontSize), Dimensions.get('window').fontScale);
