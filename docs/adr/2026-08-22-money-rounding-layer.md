@@ -281,6 +281,29 @@ being calls that round through `toCents`, so it reads
 `toCents(` and `sumAllocations(`; a sixth is a finding.
 `docs/adr/2026-10-04-half-cent-zero-and-cent-ties.md` records both functions.
 
+**Extended 2026-10-06 (#578).** Check 1's pattern gains
+`wholePercent\(|wholePercentGap\(|compareToPercent\(|compareGapToPoints\(`, the four calls that
+round through `toCents`, so it reads
+`roundMoney\(|toCents\(|sumAllocations\(|exceedsToCent\(|ratioHeldAtTie\(|wholePercent\(|wholePercentGap\(|compareToPercent\(|compareGapToPoints\(`.
+`wholePercentOf(` takes integers, rounds no money and stays out of it.
+`src/modules/budget/utils/budget_summary.ts` joins the permitted `exceedsToCent(` files, and
+`src/modules/transactions/screens/transactions/transactions.helpers.ts` is a permitted `toCents(`
+file beside the three Addendum A point 1 names. The permitted call sites of the four in `src/`,
+each also in `src/utils/money.ts`, a file more being a finding: `wholePercent(` in
+`src/modules/dashboard/screens/dashboard/dashboard.helpers.ts`,
+`src/modules/dashboard/screens/dashboard/components/budget_card.tsx`,
+`src/modules/budget/screens/budget/budget.helpers.ts`,
+`src/modules/budget/screens/budget/spending_plans_summary.helpers.ts`,
+`src/modules/budget/screens/budget/budget_buckets.helpers.ts` and
+`src/modules/budget/screens/budget/spending_plans.helpers.ts`; `wholePercentGap(` in
+`src/modules/budget/screens/budget/spending_plans.helpers.ts`; `compareToPercent(` in
+`src/modules/budget/utils/budget_summary.ts`,
+`src/modules/budget/screens/budget/budget.helpers.ts`,
+`src/modules/budget/screens/budget/spending_plans.helpers.ts` and
+`src/modules/accounts/constants/available_credit_color.ts`; `compareGapToPoints(` in
+`src/modules/budget/screens/budget/spending_plan_timing.helpers.ts`.
+`docs/adr/2026-10-06-whole-percent-from-two-amounts.md` records the five functions.
+
 The allowlist governs **added** calls only. `roundMoney` is legitimately used at 33 call
 expressions on `main`, most of them in the display and aggregation layer (`dashboard.helpers.ts`
 ×10, `transaction_policy.ts` ×7); those are untouched, and two files carrying them —
