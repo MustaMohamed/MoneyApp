@@ -1,10 +1,15 @@
 import { Alert, type ButtonSize } from 'heroui-native';
-import { View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions, type ViewStyle } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import {
+  resolveLoadErrorAlertTone,
+  resolveLoadErrorRetryHitSlop,
+  type LoadErrorAlertTone,
+} from '@/components/ui/load_error_alert.geometry';
 import { resolveStateScreenBottomReserve } from '@/components/ui/state_screen.geometry';
 import { resolveRowStacking } from '@/components/ui/text_scale.geometry';
-import { Spacing } from '@/constants/theme';
+import { Colors, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 type LoadErrorAlertFloatingOffset = 'tabBar' | 'edge';
 type LoadErrorAlertFillPadding = 'default' | 'wide';
@@ -18,6 +23,8 @@ interface LoadErrorAlertCommonProps {
   flatRetry?: boolean;
   retrySize?: ButtonSize;
   retryDisabled?: boolean;
+  /** The transactions screens' danger-tinted box; absent draws the plain alert. */
+  tinted?: boolean;
   testID?: string;
 }
 
@@ -56,6 +63,26 @@ const FLOATING_CLASS_NAME: Record<LoadErrorAlertFloatingOffset, string> = {
 
 const INLINE_CLASS_NAME = 'px-4 py-3';
 
+const ALERT_CLASS_NAME: Record<LoadErrorAlertTone, string> = {
+  plain: 'w-full',
+  tint: 'w-full bg-transparent',
+  tintOverSurface: 'w-full',
+};
+
+const TINT_CORNERS = { borderRadius: Radius.md } as const;
+
+// `shadow-none` cannot override HeroUI's shadow token, and a shadow would read through the tint.
+const ALERT_STYLE: Record<LoadErrorAlertTone, ViewStyle | undefined> = {
+  plain: undefined,
+  tint: { ...TINT_CORNERS, boxShadow: 'none' },
+  tintOverSurface: TINT_CORNERS,
+};
+
+const TINT_BACKGROUND_CLASS_NAME = 'border border-danger/30 bg-danger/12';
+const TINT_ICON_PROPS = { color: Colors.dark.negative } as const;
+const TINT_TITLE_CLASS_NAME = 'font-inter-semibold text-foreground';
+const TINT_TITLE_STYLE = { fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) } as const;
+
 export function LoadErrorAlert(props: LoadErrorAlertProps) {
   const { fontScale } = useWindowDimensions();
   const bottomReserve = resolveStateScreenBottomReserve(fontScale);
@@ -67,8 +94,11 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
     flatRetry,
     retrySize = 'sm',
     retryDisabled = false,
+    tinted = false,
     testID,
   } = props;
+  const tone = resolveLoadErrorAlertTone(props.mode ?? 'fill', tinted);
+  const retryHitSlop = resolveLoadErrorRetryHitSlop(retrySize, fontScale, tinted);
 
   // Two literals, not `flat={flatRetry}`: `ButtonProps` discriminates on `flat: true`.
   const retryButton = flatRetry ? (
@@ -79,6 +109,7 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
       label={retryLabel}
       accessibilityLabel={retryLabel}
       isDisabled={retryDisabled}
+      hitSlop={retryHitSlop}
       onPress={onRetry}
     />
   ) : (
@@ -88,15 +119,32 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
       label={retryLabel}
       accessibilityLabel={retryLabel}
       isDisabled={retryDisabled}
+      hitSlop={retryHitSlop}
       onPress={onRetry}
     />
   );
 
+  // On the background layer the border adds nothing to the box, so the tint moves no row.
+  const tintBackground =
+    tone === 'plain' ? undefined : (
+      <Alert.Background className={TINT_BACKGROUND_CLASS_NAME} style={TINT_CORNERS} />
+    );
+
   const alert = (
-    <Alert status="danger" className="w-full">
-      <Alert.Indicator />
+    <Alert
+      status="danger"
+      className={ALERT_CLASS_NAME[tone]}
+      style={ALERT_STYLE[tone]}
+      background={tintBackground}
+    >
+      <Alert.Indicator iconProps={tone === 'plain' ? undefined : TINT_ICON_PROPS} />
       <Alert.Content>
-        <Alert.Title>{title}</Alert.Title>
+        <Alert.Title
+          className={tone === 'plain' ? undefined : TINT_TITLE_CLASS_NAME}
+          style={tone === 'plain' ? undefined : TINT_TITLE_STYLE}
+        >
+          {title}
+        </Alert.Title>
         {stacked ? (
           <View style={{ alignSelf: 'flex-start', marginTop: Spacing.xs }}>{retryButton}</View>
         ) : null}
