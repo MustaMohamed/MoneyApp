@@ -223,6 +223,8 @@ export function SegmentedTabs<T extends string>({
             onScroll={scrollBehavior.onScroll}
             onLayout={scrollBehavior.onLayout}
             scrollEventThrottle={scrollBehavior.scrollEventThrottle}
+            // With Android's overscroll on, a row flung back to its start rests past it and the next tap only moves it back.
+            overScrollMode="never"
             // The scroll view repeats the list's 3xl radius in its own CSS — keep it in step with the overridden track.
             style={scrollStyle}
             contentContainerStyle={scrollContentStyle}
