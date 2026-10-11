@@ -9,7 +9,8 @@ interface ToastClearanceStateShape {
 type ToastClearanceState = ToastClearanceStateShape & {
   publish: (px: number) => void;
   clear: () => void;
-  holdAlert: (px: number, owner: number) => void;
+  /** Returns the owner it set, the token `releaseAlert` checks. */
+  holdAlert: (px: number) => number;
   releaseAlert: (owner: number) => void;
   reset: () => void;
 };
@@ -20,11 +21,19 @@ const INITIAL_STATE: ToastClearanceStateShape = {
   alertOwner: undefined,
 };
 
+// Outside the state, so `reset` never hands a live release's owner to a later hold.
+let lastAlertOwner = 0;
+
 export const useToastClearanceState = create<ToastClearanceState>((set) => ({
   ...INITIAL_STATE,
   publish: (px) => set({ bottomClearance: px }),
   clear: () => set({ bottomClearance: undefined }),
-  holdAlert: (px, owner) => set({ alertClearance: px, alertOwner: owner }),
+  holdAlert: (px) => {
+    lastAlertOwner += 1;
+    const owner = lastAlertOwner;
+    set({ alertClearance: px, alertOwner: owner });
+    return owner;
+  },
   // Two tab screens can each float an alert, and focus on the next can fire before blur on the last.
   releaseAlert: (owner) =>
     set((state) =>
@@ -39,21 +48,8 @@ export function holdToastClearance(px: number): () => void {
   return clear;
 }
 
-let lastAlertOwner = 0;
-
 export function holdAlertToastClearance(px: number): () => void {
-  lastAlertOwner += 1;
-  const owner = lastAlertOwner;
   const { holdAlert, releaseAlert } = useToastClearanceState.getState();
-  holdAlert(px, owner);
+  const owner = holdAlert(px);
   return () => releaseAlert(owner);
-}
-
-export function resolveToastBottomClearance(
-  bottomClearance: number | undefined,
-  alertClearance: number | undefined,
-): number | undefined {
-  if (bottomClearance === undefined) return alertClearance;
-  if (alertClearance === undefined) return bottomClearance;
-  return Math.max(bottomClearance, alertClearance);
 }

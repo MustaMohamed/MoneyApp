@@ -1,18 +1,16 @@
-import { useFocusEffect } from 'expo-router';
 import { Alert, type ButtonSize } from 'heroui-native';
-import { useCallback, useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { View, useWindowDimensions, type ViewStyle } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import {
-  resolveFloatingAlertToastClearance,
   resolveLoadErrorAlertTone,
   resolveLoadErrorRetryHitSlop,
   type LoadErrorAlertTone,
 } from '@/components/ui/load_error_alert.geometry';
+import { useFloatingAlertToastHold } from '@/components/ui/load_error_alert.hook';
 import { resolveStateScreenBottomReserve } from '@/components/ui/state_screen.geometry';
 import { resolveRowStacking } from '@/components/ui/text_scale.geometry';
-import { holdAlertToastClearance } from '@/components/ui/toast_clearance.state';
 import { Colors, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 type LoadErrorAlertFloatingOffset = 'tabBar' | 'edge';
@@ -27,7 +25,7 @@ interface LoadErrorAlertCommonProps {
   flatRetry?: boolean;
   retrySize?: ButtonSize;
   retryDisabled?: boolean;
-  /** The transactions screens' danger-tinted box; absent draws the plain alert. */
+  /** The canvas's danger-tinted box; absent draws the plain alert. */
   tinted?: boolean;
   testID?: string;
 }
@@ -44,6 +42,7 @@ export type LoadErrorAlertProps =
       mode: 'inline';
     })
   | (LoadErrorAlertCommonProps & {
+      /** Mounts inside a navigator screen only: it holds the toast clear of itself while that screen has focus. */
       mode: 'floating';
       floatingOffset?: LoadErrorAlertFloatingOffset;
       minHeight?: number;
@@ -67,7 +66,7 @@ const FLOATING_CLASS_NAME: Record<LoadErrorAlertFloatingOffset, string> = {
 
 const INLINE_CLASS_NAME = 'px-4 py-3';
 
-const ALERT_CLASS_NAME: Record<LoadErrorAlertTone, string> = {
+const ALERT_STACKED_CLASS_NAME: Record<LoadErrorAlertTone, string> = {
   plain: 'w-full',
   tint: 'w-full bg-transparent',
   tintOverSurface: 'w-full',
@@ -81,12 +80,13 @@ const ALERT_ROW_CLASS_NAME: Record<LoadErrorAlertTone, string> = {
 };
 
 const TINT_CORNERS = { borderRadius: Radius.md } as const;
+// `shadow-none` cannot override HeroUI's shadow token, and the frames' `.alrt` draws no shadow.
+const TINT_BOX_STYLE: ViewStyle = { ...TINT_CORNERS, boxShadow: 'none' };
 
-// `shadow-none` cannot override HeroUI's shadow token, and a shadow would read through the tint.
 const ALERT_STYLE: Record<LoadErrorAlertTone, ViewStyle | undefined> = {
   plain: undefined,
-  tint: { ...TINT_CORNERS, boxShadow: 'none' },
-  tintOverSurface: TINT_CORNERS,
+  tint: TINT_BOX_STYLE,
+  tintOverSurface: TINT_BOX_STYLE,
 };
 
 const TINT_BACKGROUND_CLASS_NAME = 'border border-danger/30 bg-danger/12';
@@ -110,34 +110,7 @@ function FloatingAlertFrame({
   testID,
   children,
 }: FloatingAlertFrameProps) {
-  const { height: windowHeight } = useWindowDimensions();
-  const frameRef = useRef<View>(null);
-  const holdRef = useRef<{ focused: boolean; release: (() => void) | undefined }>({
-    focused: false,
-    release: undefined,
-  });
-
-  const holdClearance = useCallback(() => {
-    frameRef.current?.measureInWindow((_left, top) => {
-      const hold = holdRef.current;
-      if (!hold.focused) return;
-      // A new hold takes the owner slot, so the release it replaces is already dead.
-      hold.release = holdAlertToastClearance(resolveFloatingAlertToastClearance(windowHeight, top));
-    });
-  }, [windowHeight]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const hold = holdRef.current;
-      hold.focused = true;
-      holdClearance();
-      return () => {
-        hold.focused = false;
-        hold.release?.();
-        hold.release = undefined;
-      };
-    }, [holdClearance]),
-  );
+  const { frameRef, holdClearance } = useFloatingAlertToastHold();
 
   return (
     <View
@@ -202,7 +175,7 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
   const alert = (
     <Alert
       status="danger"
-      className={(stacked ? ALERT_CLASS_NAME : ALERT_ROW_CLASS_NAME)[tone]}
+      className={(stacked ? ALERT_STACKED_CLASS_NAME : ALERT_ROW_CLASS_NAME)[tone]}
       style={ALERT_STYLE[tone]}
       background={tintBackground}
     >

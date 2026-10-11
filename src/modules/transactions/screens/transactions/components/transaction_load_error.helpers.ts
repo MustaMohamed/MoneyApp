@@ -1,3 +1,4 @@
+import type { LoadErrorAlertProps } from '@/components/ui/load_error_alert';
 import { Strings } from '@/constants/strings';
 
 // Not `TransactionLoadErrorVariant` in `../transactions.presentation.ts`, which picks the banner.
@@ -22,27 +23,36 @@ export function resolveTransactionLoadErrorTitle(
   return TRANSACTION_LOAD_ERROR_TITLES[variant];
 }
 
-export type TransactionLoadErrorAlertProps =
-  | { mode: 'inline'; tinted: true; flatRetry: true }
-  | { mode: 'floating'; floatingOffset: 'tabBar'; tinted: true; flatRetry: true };
-
-const INLINE_ALERT_PROPS: TransactionLoadErrorAlertProps = {
+// `satisfies`, since the JSX spread these reach the alert through runs no excess-key check.
+const INLINE_ALERT_PROPS = {
   mode: 'inline',
   tinted: true,
   flatRetry: true,
-};
+} satisfies Partial<Extract<LoadErrorAlertProps, { mode: 'inline' }>>;
 
-const FLOATING_ALERT_PROPS: TransactionLoadErrorAlertProps = {
+const FLOATING_ALERT_PROPS = {
   mode: 'floating',
   floatingOffset: 'tabBar',
   tinted: true,
   flatRetry: true,
-};
+} satisfies Partial<Extract<LoadErrorAlertProps, { mode: 'floating' }>>;
+
+type TransactionLoadErrorAlertProps = typeof INLINE_ALERT_PROPS | typeof FLOATING_ALERT_PROPS;
 
 /** `undefined` for the first load, which draws the error-state block and no alert. */
+const TRANSACTION_LOAD_ERROR_ALERT_PROPS: Record<
+  TransactionLoadErrorTitleVariant,
+  TransactionLoadErrorAlertProps | undefined
+> = {
+  initial: undefined,
+  refresh: FLOATING_ALERT_PROPS,
+  totals: FLOATING_ALERT_PROPS,
+  accounts: FLOATING_ALERT_PROPS,
+  pagination: INLINE_ALERT_PROPS,
+};
+
 export function resolveTransactionLoadErrorAlertProps(
   variant: TransactionLoadErrorTitleVariant,
 ): TransactionLoadErrorAlertProps | undefined {
-  if (variant === 'initial') return undefined;
-  return variant === 'pagination' ? INLINE_ALERT_PROPS : FLOATING_ALERT_PROPS;
+  return TRANSACTION_LOAD_ERROR_ALERT_PROPS[variant];
 }

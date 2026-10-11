@@ -1,7 +1,7 @@
+import { resolveToastBottomClearance } from '@/components/ui/toast';
 import {
   holdAlertToastClearance,
   holdToastClearance,
-  resolveToastBottomClearance,
   useToastClearanceState,
 } from '@/components/ui/toast_clearance.state';
 

@@ -1,6 +1,6 @@
 import { Strings } from '@/constants/strings';
 import {
-  resolveDetailLoadErrorTinted,
+  resolveDetailLoadErrorAlertProps,
   resolveDetailLoadErrorTitle,
 } from '@/modules/transactions/screens/transactions/detail/components/detail_load_error.helpers';
 
@@ -19,12 +19,15 @@ describe('resolveDetailLoadErrorTitle', () => {
   });
 });
 
-describe('resolveDetailLoadErrorTinted', () => {
-  it('tints the floating refresh alert', () => {
-    expect(resolveDetailLoadErrorTinted(true)).toBe(true);
+describe('resolveDetailLoadErrorAlertProps', () => {
+  it('floats the refresh alert, tinted', () => {
+    expect(resolveDetailLoadErrorAlertProps(true)).toStrictEqual({
+      mode: 'floating',
+      tinted: true,
+    });
   });
 
-  it('leaves the first-load alert untinted', () => {
-    expect(resolveDetailLoadErrorTinted(false)).toBe(false);
+  it('fills the first-load alert, untinted', () => {
+    expect(resolveDetailLoadErrorAlertProps(false)).toStrictEqual({ mode: 'fill', tinted: false });
   });
 });

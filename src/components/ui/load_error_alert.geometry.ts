@@ -3,7 +3,7 @@ import type { ButtonSize } from 'heroui-native';
 import { resolveSmallButtonHeight } from '@/components/ui/button.geometry';
 import { Spacing, TOUCH_SLOP_PIXEL_MARGIN, touchFloorSlop } from '@/constants/theme';
 
-export type LoadErrorAlertMode = 'fill' | 'inline' | 'floating' | 'bare';
+type LoadErrorAlertMode = 'fill' | 'inline' | 'floating' | 'bare';
 
 export type LoadErrorAlertTone = 'plain' | 'tint' | 'tintOverSurface';
 
@@ -16,17 +16,12 @@ export function resolveLoadErrorAlertTone(
   return mode === 'floating' ? 'tintOverSurface' : 'tint';
 }
 
-export interface LoadErrorRetryHitSlop {
-  top: number;
-  bottom: number;
-}
-
 /** Only the `sm` retry is drawn under the touch floor; `md` already stands above it. */
 export function resolveLoadErrorRetryHitSlop(
   retrySize: ButtonSize,
   fontScale: number,
   tinted: boolean,
-): LoadErrorRetryHitSlop | undefined {
+): { top: number; bottom: number } | undefined {
   if (!tinted || retrySize !== 'sm') return undefined;
   const slop = touchFloorSlop(resolveSmallButtonHeight(fontScale)) + TOUCH_SLOP_PIXEL_MARGIN;
   return { top: slop, bottom: slop };
