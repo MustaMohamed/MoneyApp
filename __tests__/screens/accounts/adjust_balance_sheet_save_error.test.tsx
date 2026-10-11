@@ -1,23 +1,32 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { Dimensions } from 'react-native';
 
+import { resolveSheetSizeAboveOne } from '@/components/ui/sheet';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AdjustBalanceSheet } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet';
 import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
 
+const mockSheetSize = jest.fn();
 jest.mock('@/components/ui/sheet', () => ({
+  resolveSheetSizeAboveOne:
+    jest.requireActual<typeof import('@/components/ui/sheet')>('@/components/ui/sheet')
+      .resolveSheetSizeAboveOne,
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
   Sheet: ({
     isOpen,
+    size,
     children,
     footer,
   }: {
     isOpen: boolean;
+    size?: string;
     children?: ReactNode;
     footer?: ReactNode;
   }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+    mockSheetSize(size);
     return isOpen ? (
       <View testID="adjust-sheet">
         {children}
@@ -140,5 +149,15 @@ describe('AdjustBalanceSheet save failure', () => {
       expect(getByTestId('balance-error')).toHaveTextContent(Strings.adjustBalanceSaveError),
     );
     expect(onSave).toHaveBeenCalledWith(31000);
+  });
+});
+
+describe('AdjustBalanceSheet size', () => {
+  it('MA-163: opens at the size the font scale resolves from sm, a step up above scale 1', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    await renderSheet(jest.fn());
+
+    expect(mockSheetSize).toHaveBeenLastCalledWith(resolveSheetSizeAboveOne('sm', fontScale));
   });
 });

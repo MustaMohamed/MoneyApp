@@ -403,16 +403,16 @@ describe('TransactionFormBody fact rows', () => {
     expect(group.getByTestId('to-account-row')).toBeTruthy();
   });
 
-  it('gives the budget lookup failure two lines and a loaded budget one', async () => {
+  it('MA-163: puts no line cap on the budget lookup failure, so it is whole, and holds a loaded budget to one line', async () => {
     const lookupError = 'Could not load matching budgets. Try again.';
     const { rerender } = await render(
       <TransactionFormBody {...baseProps} showBudgetField budgetLookupError={lookupError} />,
     );
 
-    expect(within(screen.getByTestId('budget-row')).getByText(lookupError)).toHaveProp(
-      'numberOfLines',
-      2,
-    );
+    const failure = within(screen.getByTestId('budget-row')).getByText(lookupError);
+    // RN reads 0 and an absent prop alike as no cap.
+    const lineCap: unknown = failure.props.numberOfLines;
+    expect(lineCap ?? 0).toBe(0);
 
     await rerender(<TransactionFormBody {...baseProps} showBudgetField />);
 

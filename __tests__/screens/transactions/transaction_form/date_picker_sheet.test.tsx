@@ -1,10 +1,11 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
-import { Platform, View } from 'react-native';
+import { Dimensions, Platform, View } from 'react-native';
 
 const mockDateTimePicker = jest.fn((props: object) => (
   <View testID="mock-date-time-picker" {...props} />
 ));
+const mockSheetSize = jest.fn();
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const ReactLocal = jest.requireActual<typeof import('react')>('react');
@@ -18,19 +19,25 @@ jest.mock('@react-native-community/datetimepicker', () => ({
 }));
 
 jest.mock('@/components/ui/sheet', () => ({
+  resolveSheetSizeAboveOne:
+    jest.requireActual<typeof import('@/components/ui/sheet')>('@/components/ui/sheet')
+      .resolveSheetSizeAboveOne,
   Sheet: ({
     isOpen,
+    size,
     onCloseComplete,
     footer,
     children,
   }: {
     isOpen: boolean;
+    size?: string;
     onCloseComplete?: () => void;
     footer?: React.ReactNode;
     children: React.ReactNode;
   }) => {
     const ReactLocal = jest.requireActual<typeof import('react')>('react');
     const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
+    mockSheetSize(size);
     return ReactLocal.createElement(
       RNView,
       {
@@ -57,6 +64,7 @@ jest.mock('@/components/ui/button', () => ({
   },
 }));
 
+import { resolveSheetSizeAboveOne } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { useDatePickerSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/date_picker_sheet.state';
 import { DateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/date_row';
@@ -72,12 +80,27 @@ describe('transaction date picker', () => {
 
   beforeEach(() => {
     mockDateTimePicker.mockClear();
+    mockSheetSize.mockClear();
     useTransactionFormState.getState().reset();
     useDatePickerSheetState.getState().reset();
   });
 
   afterAll(() => {
     Object.defineProperty(Platform, 'OS', { configurable: true, value: originalPlatform });
+  });
+
+  it('MA-163: opens the iOS sheet at the size the font scale resolves from sm, a step up above scale 1', async () => {
+    setPlatform('ios');
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const screen = await render(
+      <DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />,
+    );
+
+    await fireEvent.press(screen.getByTestId('date-row'));
+
+    expect(screen.getByTestId('date-picker-sheet')).toBeTruthy();
+    expect(mockSheetSize).toHaveBeenLastCalledWith(resolveSheetSizeAboveOne('sm', fontScale));
   });
 
   it('keeps iOS changes in a draft until Done is pressed', async () => {
