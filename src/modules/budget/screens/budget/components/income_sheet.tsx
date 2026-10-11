@@ -26,7 +26,7 @@ export function IncomeSheet() {
         if (!open) close();
       }}
       title={Strings.incomeSheetTitle}
-      size={resolveSheetSizeAboveOne('sm', fontScale, 'lg')}
+      size={resolveSheetSizeAboveOne('sm', fontScale, 'xl')}
       isDismissable={!state.saving}
       footer={
         <Button
