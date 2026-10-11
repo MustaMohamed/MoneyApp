@@ -91,6 +91,8 @@ const ALERT_STYLE: Record<LoadErrorAlertTone, ViewStyle | undefined> = {
 
 const TINT_BACKGROUND_CLASS_NAME = 'border border-danger/30 bg-danger/12';
 const TINT_ICON_PROPS = { color: Colors.dark.negative } as const;
+// HeroUI pads the icon 3.5 down to meet a top-aligned first line; a centred row takes none.
+const CENTRED_INDICATOR_CLASS_NAME = 'pt-0';
 const TINT_TITLE_CLASS_NAME = 'font-inter-semibold text-foreground';
 const TINT_TITLE_STYLE = { fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) } as const;
 
@@ -204,7 +206,10 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
       style={ALERT_STYLE[tone]}
       background={tintBackground}
     >
-      <Alert.Indicator iconProps={tone === 'plain' ? undefined : TINT_ICON_PROPS} />
+      <Alert.Indicator
+        className={tone === 'plain' || stacked ? undefined : CENTRED_INDICATOR_CLASS_NAME}
+        iconProps={tone === 'plain' ? undefined : TINT_ICON_PROPS}
+      />
       <Alert.Content>
         <Alert.Title
           className={tone === 'plain' ? undefined : TINT_TITLE_CLASS_NAME}
