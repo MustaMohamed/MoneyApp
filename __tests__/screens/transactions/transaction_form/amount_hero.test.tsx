@@ -1,7 +1,10 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
+import { Dimensions } from 'react-native';
 
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
+import { Type } from '@/constants/theme';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 
 jest.mock('heroui-native', () => {
@@ -25,6 +28,7 @@ jest.mock('@/components/ui/sheet', () => ({
 
 import { AmountHero } from '@/modules/transactions/screens/transactions/transaction_form/components/amount_hero';
 import {
+  AMOUNT_ENTRY_MAX_FONT_SCALE,
   AMOUNT_ERROR_LINE_HEIGHT,
   AMOUNT_ERROR_LINE_STYLE,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
@@ -159,5 +163,38 @@ describe('AmountHero', () => {
     );
 
     expect(queryByTestId('amount-hero-error-line')).toBeNull();
+  });
+
+  it('MA-163: draws the amount at the app-scaled entry size, held at the entry stop, with OS scaling off', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(AMOUNT_ENTRY_MAX_FONT_SCALE);
+    const { getByTestId } = await render(
+      <AmountHero
+        onChange={jest.fn()}
+        type={TransactionType.Expense}
+        currency={Currency.EGP}
+        mode="add"
+      />,
+    );
+
+    const input = getByTestId('amount-hero-value');
+    expect(input).toHaveProp('allowFontScaling', false);
+    expect(input).toHaveStyle(
+      scaledTextStyle(Type.amountEntry, fontScale, AMOUNT_ENTRY_MAX_FONT_SCALE),
+    );
+  });
+
+  it('MA-163: shows the currency code once to accessibility, with its mirror on the right hidden', async () => {
+    const { getAllByText } = await render(
+      <AmountHero
+        onChange={jest.fn()}
+        type={TransactionType.Expense}
+        currency={Currency.EGP}
+        mode="add"
+      />,
+    );
+
+    expect(getAllByText(Currency.EGP, { includeHiddenElements: false })).toHaveLength(1);
+    expect(getAllByText(Currency.EGP, { includeHiddenElements: true })).toHaveLength(2);
   });
 });

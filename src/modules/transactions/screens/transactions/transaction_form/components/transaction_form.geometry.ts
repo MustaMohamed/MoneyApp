@@ -1,11 +1,14 @@
 import type { Insets } from 'react-native';
 
+import { SELECTABLE_PILL_LABEL_FONT_SIZE } from '@/components/ui/chip.geometry';
+import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import {
   type TabsTriggerHitSlop,
   resolveSegmentedTabsGeometry,
 } from '@/components/ui/tabs.geometry';
+import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import {
   Radius,
   Size,
@@ -58,6 +61,34 @@ export const ACCOUNT_STRIP_INSET_X = Spacing.md;
 export const ACCOUNT_STRIP_PADDING_Y = Math.max(Spacing.xxs, ACCOUNT_STRIP_CHIP_SLOP_Y);
 export const ACCOUNT_STRIP_WRAPPER_PADDING_Y = ACCOUNT_STRIP_PADDING_Y - ACCOUNT_STRIP_CHIP_SLOP_Y;
 
+/** Auto basis and no shrink: a flank of the amount row is never narrower than the code it holds, and the two grow by equal shares. */
+export const AMOUNT_FLANK_STYLE = { flexGrow: 1, flexShrink: 0, flexBasis: 'auto' } as const;
+export const AMOUNT_CODE_STYLE = {
+  fontSize: Type.bodyStrong,
+  lineHeight: lineHeightFor(Type.bodyStrong),
+};
+
+/** A money figure at entry size stops growing at the top of the gated text scale range. */
+export const AMOUNT_ENTRY_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
+
+/** The chip's 1.0 height is its floor; `label` is `undefined` at or below scale 1, where the OS scales the name. */
+export function resolveAccountStripChipGeometry(fontScale: number): {
+  height: number;
+  label: ScaledTextStyle | undefined;
+} {
+  const label = scaledTextStyleAboveOne(SELECTABLE_PILL_LABEL_FONT_SIZE, fontScale);
+  return { height: Math.max(ACCOUNT_STRIP_CHIP_HEIGHT, label?.lineHeight ?? 0), label };
+}
+
+/** Above scale 1 the app scales the Note's text: Android draws the hint without the line box, and an OS-scaled line box is shorter than the hint's own lines; the row's floor grows with the line box. */
+export function resolveNoteInputGeometry(fontScale: number): {
+  minHeight: number;
+  text: ScaledTextStyle | undefined;
+} {
+  const text = scaledTextStyleAboveOne(Type.body, fontScale);
+  return { minHeight: Math.max(FACT_ROW_MIN_HEIGHT, text?.lineHeight ?? 0), text };
+}
+
 interface AccountStripRevealInput {
   /** The chip's position in the strip, from 0. */
   index: number;
@@ -104,17 +135,19 @@ interface SkeletonBarBox {
   height: number;
 }
 
-/** The sheet skeleton's text bars at the OS font scale; widths stay. */
+/** The sheet skeleton's bars at the OS font scale: the amount bar stops with the amount, the strip bar is the chip's height; widths stay. */
 export function resolveTransactionFormSkeletonBars(fontScale: number): {
   supportingBar: number;
   amount: number;
+  stripBar: SkeletonBarBox;
   keyBar: SkeletonBarBox;
   valueBar: SkeletonBarBox;
 } {
-  const { supportingBar, amount, keyBar, valueBar } = TRANSACTION_FORM_SKELETON_GEOMETRY;
+  const { supportingBar, amount, stripBar, keyBar, valueBar } = TRANSACTION_FORM_SKELETON_GEOMETRY;
   return {
     supportingBar: resolveSkeletonBarHeight(supportingBar, fontScale),
-    amount: resolveSkeletonBarHeight(amount, fontScale),
+    amount: resolveSkeletonBarHeight(amount, fontScale, AMOUNT_ENTRY_MAX_FONT_SCALE),
+    stripBar: { width: stripBar.width, height: resolveAccountStripChipGeometry(fontScale).height },
     keyBar: { width: keyBar.width, height: resolveSkeletonBarHeight(keyBar.height, fontScale) },
     valueBar: {
       width: valueBar.width,

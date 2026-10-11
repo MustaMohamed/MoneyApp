@@ -1,15 +1,16 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion, Chip, Separator, Typography } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { ListCard } from '@/components/ui/list_card';
+import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Type, lineHeightFor } from '@/constants/theme';
 
 import {
   ACCOUNTS_LIST_ARCHIVED_CARD_STYLE,
-  ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE,
+  resolveArchivedCardHeaderGeometry,
 } from '../accounts_list.geometry';
 import type { AccountsListUnarchiveError } from '../accounts_list.state';
 import { ArchivedAccountRow } from './archived_account_row';
@@ -38,7 +39,11 @@ export function ArchivedCard({
   onPressRow,
   onUnarchive,
 }: ArchivedCardProps) {
+  const { fontScale } = useWindowDimensions();
   if (rows.length === 0) return null;
+
+  const header = resolveArchivedCardHeaderGeometry(fontScale);
+  const summaryLine = resolveOneLineTextProps(header.summary);
 
   return (
     <ListCard style={ACCOUNTS_LIST_ARCHIVED_CARD_STYLE}>
@@ -55,11 +60,16 @@ export function ArchivedCard({
             style={{ padding: 0, gap: 0 }}
             accessibilityState={{ expanded: isExpanded }}
           >
-            <View style={ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE}>
+            <View style={header.style}>
               <MaterialCommunityIcons name="archive" size={Size.iconXs} color={Colors.dark.text2} />
               <Typography
                 className="font-inter-semibold text-foreground"
-                style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+                allowFontScaling={header.title === undefined}
+                style={{
+                  fontSize: Type.meta,
+                  lineHeight: lineHeightFor(Type.meta),
+                  ...header.title,
+                }}
               >
                 {Strings.accountsArchivedTitle}
               </Typography>
@@ -83,13 +93,14 @@ export function ArchivedCard({
               {/* Blank, not absent, while expanded, so the header keeps its height. */}
               <Typography
                 className="font-inter text-foreground/60"
+                {...summaryLine}
                 style={{
                   flex: 1,
                   textAlign: 'right',
                   fontSize: Type.micro,
                   lineHeight: lineHeightFor(Type.micro),
+                  ...summaryLine.style,
                 }}
-                numberOfLines={1}
               >
                 {isExpanded ? '' : summary}
               </Typography>

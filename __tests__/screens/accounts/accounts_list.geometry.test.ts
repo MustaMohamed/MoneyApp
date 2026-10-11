@@ -1,3 +1,4 @@
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import {
   Colors,
   Radius,
@@ -23,6 +24,7 @@ import {
   ACCOUNTS_LIST_REORDER_NOTE_STYLE,
   ACCOUNTS_LIST_ROW_CAPTION_STYLE,
   ACCOUNTS_LIST_ROW_STYLE,
+  resolveArchivedCardHeaderGeometry,
 } from '@/modules/accounts/screens/accounts/list/accounts_list.geometry';
 import { ms, msFont } from '@/utils/responsive';
 
@@ -131,6 +133,39 @@ describe('accounts list archived header geometry (B4)', () => {
 
   it('is frozen', () => {
     expect(Object.isFrozen(ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE)).toBe(true);
+  });
+});
+
+describe('resolveArchivedCardHeaderGeometry (MA-163)', () => {
+  it('at font scale 1 is the frozen header style, with a title and a summary the OS scales', () => {
+    const geometry = resolveArchivedCardHeaderGeometry(1);
+
+    expect(geometry.style).toEqual(ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE);
+    expect(geometry.title).toBeUndefined();
+    expect(geometry.summary).toBeUndefined();
+  });
+
+  it('at font scale 2 scales the title and the summary inside the 52 header, the floor', () => {
+    const title = scaledTextStyle(Type.meta, 2);
+    expect(title.lineHeight + 2 * Spacing.xs).toBeLessThanOrEqual(Size.archivedCardHeaderHeight);
+
+    expect(resolveArchivedCardHeaderGeometry(2)).toEqual({
+      style: ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE,
+      title,
+      summary: scaledTextStyle(Type.micro, 2),
+    });
+  });
+
+  it('at font scale 3 grows the header to the title line box plus its padding, the other keys as the constant', () => {
+    const geometry = resolveArchivedCardHeaderGeometry(3);
+
+    expect(geometry.style).toEqual({
+      ...ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE,
+      height: lineHeightFor(3 * Type.meta) + 2 * Spacing.xs,
+    });
+    expect(geometry.style.height).toBeGreaterThan(Size.archivedCardHeaderHeight);
+    expect(geometry.title).toEqual(scaledTextStyle(Type.meta, 3));
+    expect(geometry.summary).toEqual(scaledTextStyle(Type.micro, 3));
   });
 });
 

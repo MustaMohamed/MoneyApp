@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Input, Spinner } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { AccountColorTile } from '@/components/ui/account_color_tile';
@@ -10,6 +10,10 @@ import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { ListCard } from '@/components/ui/list_card';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import {
+  resolveOneLineTextProps,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
@@ -29,7 +33,7 @@ import { FormPickerRow } from './components/form_picker_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import {
   ACCOUNT_STRIP_WRAPPER_PADDING_Y,
-  FACT_ROW_MIN_HEIGHT,
+  resolveNoteInputGeometry,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form.geometry';
 import { TypeTabs } from './components/type_tabs';
@@ -169,6 +173,9 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const budgetFieldError = resolveBudgetFieldError(budgetError, budgetLookupError);
   const stripCaption = isTransferOrCC ? Strings.addTxFromLabel : undefined;
   const toRowFace = resolveToRowFace({ locked, account: selectedToAccount ?? undefined });
+  const { fontScale } = useWindowDimensions();
+  const supportingLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
+  const noteGeometry = resolveNoteInputGeometry(fontScale);
 
   return (
     <BottomSheetScrollView
@@ -188,8 +195,12 @@ export function TransactionFormBody(props: Props): React.ReactElement {
       <View className="min-h-8 justify-center px-4 py-1.5">
         <Text
           className="font-inter text-muted"
-          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-          numberOfLines={1}
+          {...supportingLine}
+          style={{
+            fontSize: Type.micro,
+            lineHeight: lineHeightFor(Type.micro),
+            ...supportingLine.style,
+          }}
         >
           {typeSupportingText}
         </Text>
@@ -326,13 +337,9 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                     ? Strings.addTxBudgetLoading
                     : (budgetLookupError ?? selectedBudget?.name ?? Strings.addTxPickBudgetTitle)
                 }
-                valueNumberOfLines={budgetLookupError ? 2 : undefined}
+                valueNumberOfLines={budgetLookupError ? 0 : undefined}
                 valueClassName={budgetLookupError ? 'font-inter-medium text-danger' : undefined}
-                valueStyle={
-                  budgetLookupError
-                    ? { fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }
-                    : undefined
-                }
+                valueFontSize={budgetLookupError ? Type.caption : undefined}
                 prefix={
                   <MaterialCommunityIcons
                     name="wallet-outline"
@@ -380,7 +387,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           <View
             testID="note-row"
             className="gap-3 px-4"
-            style={{ minHeight: FACT_ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center' }}
+            style={{
+              minHeight: noteGeometry.minHeight,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
           >
             <Text
               className="font-inter text-content-secondary"
@@ -397,17 +408,19 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               onBlur={handleNoteInputBlur}
               // Android: a single-line edit text keeps the parent's touch lock, so a drag that starts on it never scrolls the form.
               multiline
+              allowFontScaling={noteGeometry.text === undefined}
               submitBehavior="blurAndSubmit"
               variant="secondary"
               className="font-sora text-foreground rounded-none border-0 bg-transparent p-0 tabular-nums"
               style={{
                 flex: 1,
                 minWidth: 0,
-                minHeight: FACT_ROW_MIN_HEIGHT,
+                minHeight: noteGeometry.minHeight,
                 textAlign: 'right',
                 borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
                 fontSize: Type.body,
                 lineHeight: lineHeightFor(Type.body),
+                ...noteGeometry.text,
               }}
             />
           </View>

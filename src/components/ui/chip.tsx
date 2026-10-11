@@ -9,7 +9,11 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import { resolveHeroPillGeometry, resolveSuccessChipGeometry } from '@/components/ui/chip.geometry';
+import {
+  SELECTABLE_PILL_LABEL_FONT_SIZE,
+  resolveHeroPillGeometry,
+  resolveSuccessChipGeometry,
+} from '@/components/ui/chip.geometry';
 import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
 import { Colors, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
@@ -32,6 +36,8 @@ export interface SelectablePillProps {
   style?: StyleProp<ViewStyle>;
   labelStyle?: StyleProp<TextStyle>;
   labelNumberOfLines?: number;
+  /** Forwarded to the label as `allowFontScaling`; absent, RN's default holds. */
+  labelAllowFontScaling?: boolean;
   hitSlop?: PressableProps['hitSlop'];
   onLayout?: PressableProps['onLayout'];
 }
@@ -61,6 +67,7 @@ export function SelectablePill({
   style,
   labelStyle,
   labelNumberOfLines,
+  labelAllowFontScaling,
   hitSlop,
   onLayout,
 }: SelectablePillProps): React.ReactElement {
@@ -92,10 +99,17 @@ export function SelectablePill({
       {startIcon}
       <Chip.Label
         numberOfLines={labelNumberOfLines}
+        allowFontScaling={labelAllowFontScaling}
         className={
           selected ? SELECTABLE_PILL_LABEL_CLASS.selected : SELECTABLE_PILL_LABEL_CLASS.unselected
         }
-        style={[{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }, labelStyle]}
+        style={[
+          {
+            fontSize: SELECTABLE_PILL_LABEL_FONT_SIZE,
+            lineHeight: lineHeightFor(SELECTABLE_PILL_LABEL_FONT_SIZE),
+          },
+          labelStyle,
+        ]}
       >
         {label}
       </Chip.Label>

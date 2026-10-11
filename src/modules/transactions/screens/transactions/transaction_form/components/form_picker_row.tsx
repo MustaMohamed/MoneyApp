@@ -1,7 +1,11 @@
 import { ListGroup, cn } from 'heroui-native';
 import type { ReactNode } from 'react';
-import { View, type TextStyle } from 'react-native';
+import { View, type TextStyle, useWindowDimensions } from 'react-native';
 
+import {
+  resolveOneLineTextProps,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 
@@ -18,7 +22,9 @@ interface FormPickerRowProps {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   valueClassName?: string;
-  valueStyle?: TextStyle;
+  valueStyle?: Omit<TextStyle, 'fontSize' | 'lineHeight'>;
+  /** The value's size at scale 1; a one-line value is scaled from it above scale 1. */
+  valueFontSize?: number;
   valueNumberOfLines?: number;
   divider?: boolean;
 }
@@ -36,9 +42,17 @@ export function FormPickerRow({
   accessibilityHint,
   valueClassName,
   valueStyle,
+  valueFontSize = Type.body,
   valueNumberOfLines = 1,
   divider = true,
 }: FormPickerRowProps): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  // A one-line value is scaled by the app above scale 1, so its ellipsis stays inside its box; any other count keeps OS scaling.
+  const oneLine =
+    valueNumberOfLines === 1
+      ? resolveOneLineTextProps(scaledTextStyleAboveOne(valueFontSize, fontScale))
+      : undefined;
+
   return (
     <ListGroup.Item
       testID={testID}
@@ -75,14 +89,16 @@ export function FormPickerRow({
         {prefix}
         <ListGroup.ItemTitle
           numberOfLines={valueNumberOfLines}
+          allowFontScaling={oneLine?.allowFontScaling}
           className={cn('font-sora text-foreground tabular-nums', valueClassName)}
           style={[
             {
               flexShrink: 1,
               textAlign: 'right',
-              fontSize: Type.body,
-              lineHeight: lineHeightFor(Type.body),
+              fontSize: valueFontSize,
+              lineHeight: lineHeightFor(valueFontSize),
             },
+            oneLine?.style,
             valueStyle,
           ]}
         >

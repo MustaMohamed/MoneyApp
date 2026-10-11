@@ -66,7 +66,7 @@ export function TransactionFormLoading(): React.ReactElement {
                 key={bar}
                 testID="transaction-form-skeleton-strip-bar"
                 style={{
-                  ...TRANSACTION_FORM_SKELETON_GEOMETRY.stripBar,
+                  ...bars.stripBar,
                   flexShrink: 0,
                   borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
                 }}

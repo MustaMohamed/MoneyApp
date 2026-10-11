@@ -1,5 +1,6 @@
 import { Typography } from 'heroui-native';
 import React, { useEffect } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Box } from '@/components/ui/box';
@@ -7,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
-import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import {
+  Sheet,
+  resolveSheetSizeAboveOne,
+  useBottomSheetAwareHandlers,
+} from '@/components/ui/sheet';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
@@ -114,6 +119,7 @@ export function AdjustBalanceSheet({
   const setInput = useAdjustBalanceSheetState.getState().setInput;
   const setError = useAdjustBalanceSheetState.getState().setError;
   const initialize = useAdjustBalanceSheetState.getState().initialize;
+  const { fontScale } = useWindowDimensions();
 
   useEffect(() => {
     if (isOpen) {
@@ -165,7 +171,7 @@ export function AdjustBalanceSheet({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title={Strings.adjustBalanceTitle}
-      size="sm"
+      size={resolveSheetSizeAboveOne('sm', fontScale)}
       footer={footer}
       liftsAboveKeyboard
     >

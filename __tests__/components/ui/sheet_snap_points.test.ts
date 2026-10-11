@@ -1,6 +1,43 @@
-import { resolveSnapPoints } from '@/components/ui/sheet';
+import { resolveSheetSizeAboveOne, resolveSnapPoints } from '@/components/ui/sheet';
+
+describe('resolveSheetSizeAboveOne', () => {
+  it.each([1, 0.85])('keeps sm at font scale %s', (fontScale) => {
+    expect(resolveSheetSizeAboveOne('sm', fontScale)).toBe('sm');
+  });
+
+  it.each([1.01, 2])('steps sm to md at font scale %s', (fontScale) => {
+    expect(resolveSheetSizeAboveOne('sm', fontScale)).toBe('md');
+  });
+
+  it('steps md to lg at font scale 2', () => {
+    expect(resolveSheetSizeAboveOne('md', 2)).toBe('lg');
+  });
+
+  it('keeps xxl, the last size, at font scale 2', () => {
+    expect(resolveSheetSizeAboveOne('xxl', 2)).toBe('xxl');
+  });
+
+  it('takes the named size above font scale 1 and the base size at 1', () => {
+    expect(resolveSheetSizeAboveOne('sm', 2, 'lg')).toBe('lg');
+    expect(resolveSheetSizeAboveOne('sm', 1, 'lg')).toBe('sm');
+  });
+});
 
 describe('resolveSnapPoints', () => {
+  it('MA-163: the seven sizes ascend along the steps resolveSheetSizeAboveOne takes', () => {
+    const percent = (size: Parameters<typeof resolveSheetSizeAboveOne>[0]) =>
+      Number.parseFloat(String(resolveSnapPoints(size, undefined)[0]));
+    const steps = [percent('xxs')];
+    let size: Parameters<typeof resolveSheetSizeAboveOne>[0] = 'xxs';
+    while (resolveSheetSizeAboveOne(size, 2) !== size) {
+      size = resolveSheetSizeAboveOne(size, 2);
+      steps.push(percent(size));
+    }
+
+    expect(size).toBe('xxl');
+    expect(steps).toStrictEqual([25, 35, 45, 60, 75, 85, 95]);
+  });
+
   it('xxs preset resolves to 25%', () => {
     expect(resolveSnapPoints('xxs', undefined)).toEqual(['25%']);
   });

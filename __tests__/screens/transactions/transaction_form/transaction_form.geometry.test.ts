@@ -1,11 +1,16 @@
+import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   ACCOUNT_STRIP_CHIP_HEIGHT,
   ACCOUNT_STRIP_CHIP_WIDTH,
+  AMOUNT_ENTRY_MAX_FONT_SCALE,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
+  resolveAccountStripChipGeometry,
+  resolveNoteInputGeometry,
   resolveTransactionFormSkeletonBars,
   resolveTypeTabsGeometry,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
@@ -33,26 +38,76 @@ describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
   });
 });
 
+describe('resolveAccountStripChipGeometry', () => {
+  it('at font scale 1 is the 40 chip with a label the OS scales', () => {
+    const geometry = resolveAccountStripChipGeometry(1);
+    expect(geometry.height).toBe(ACCOUNT_STRIP_CHIP_HEIGHT);
+    expect(geometry.label).toBeUndefined();
+  });
+
+  it('at font scale 2 scales the label inside the chip, whose line box is under its height', () => {
+    const label = scaledTextStyle(Type.micro, 2);
+    expect(label.lineHeight).toBeLessThan(ACCOUNT_STRIP_CHIP_HEIGHT);
+    expect(resolveAccountStripChipGeometry(2)).toEqual({
+      height: ACCOUNT_STRIP_CHIP_HEIGHT,
+      label,
+    });
+  });
+
+  it('at font scale 3 grows the chip to the label line box, past its 1.0 height', () => {
+    const geometry = resolveAccountStripChipGeometry(3);
+    expect(geometry.label).toEqual(scaledTextStyle(Type.micro, 3));
+    expect(geometry.height).toBe(lineHeightFor(3 * Type.micro));
+    expect(geometry.height).toBeGreaterThan(ACCOUNT_STRIP_CHIP_HEIGHT);
+  });
+});
+
 describe('resolveTransactionFormSkeletonBars', () => {
   const { amount, keyBar, valueBar } = TRANSACTION_FORM_SKELETON_GEOMETRY;
 
-  it('at font scale 1 draws the supporting, amount, key and value bars as today', () => {
+  it('at font scale 1 draws the supporting, amount, key, value and strip bars as today', () => {
     expect(resolveTransactionFormSkeletonBars(1)).toEqual({
       supportingBar: 12,
       amount,
       keyBar: { width: keyBar.width, height: keyBar.height },
       valueBar: { width: valueBar.width, height: valueBar.height },
+      stripBar: { width: ACCOUNT_STRIP_CHIP_WIDTH, height: ACCOUNT_STRIP_CHIP_HEIGHT },
     });
   });
 
-  it('at font scale 2 doubles each bar height and keeps both widths', () => {
+  it('stops the amount at the display headline stop, 1.3', () => {
+    expect(AMOUNT_ENTRY_MAX_FONT_SCALE).toBe(DISPLAY_HEADLINE_MAX_FONT_SCALE);
+    expect(AMOUNT_ENTRY_MAX_FONT_SCALE).toBe(1.3);
+  });
+
+  it('at font scale 2 doubles the supporting, key and value bars, keeps both widths, and stops the amount bar at the entry stop', () => {
     expect(resolveTransactionFormSkeletonBars(2)).toEqual({
       supportingBar: 24,
-      amount: amount * 2,
+      amount: amount * AMOUNT_ENTRY_MAX_FONT_SCALE,
       keyBar: { width: keyBar.width, height: keyBar.height * 2 },
       valueBar: { width: valueBar.width, height: valueBar.height * 2 },
+      stripBar: {
+        width: ACCOUNT_STRIP_CHIP_WIDTH,
+        height: resolveAccountStripChipGeometry(2).height,
+      },
     });
   });
+
+  it('draws the amount bar at font scale 2 as tall as at 1.3, and taller than at 1', () => {
+    const atTwo = resolveTransactionFormSkeletonBars(2).amount;
+    expect(atTwo).toBe(resolveTransactionFormSkeletonBars(1.3).amount);
+    expect(atTwo).toBeGreaterThan(resolveTransactionFormSkeletonBars(1).amount);
+  });
+
+  it.each([1, 2, 3])(
+    'at font scale %d draws each strip bar as tall as the loaded chip',
+    (fontScale) => {
+      expect(resolveTransactionFormSkeletonBars(fontScale).stripBar).toEqual({
+        width: ACCOUNT_STRIP_CHIP_WIDTH,
+        height: resolveAccountStripChipGeometry(fontScale).height,
+      });
+    },
+  );
 });
 
 describe('resolveTypeTabsGeometry', () => {
@@ -92,6 +147,24 @@ describe('transaction form content inset', () => {
     expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE).toEqual({
       padding: Spacing.md,
       gap: Spacing.xs,
+    });
+  });
+});
+
+describe('resolveNoteInputGeometry', () => {
+  it('MA-163: leaves the Note to the OS at scale 1, scales its text in the app above it, and grows the row floor once the line box passes it', () => {
+    expect(resolveNoteInputGeometry(1)).toStrictEqual({
+      minHeight: FACT_ROW_MIN_HEIGHT,
+      text: undefined,
+    });
+    expect(resolveNoteInputGeometry(2)).toStrictEqual({
+      minHeight: FACT_ROW_MIN_HEIGHT,
+      text: scaledTextStyle(Type.body, 2),
+    });
+    expect(lineHeightFor(4 * Type.body)).toBeGreaterThan(FACT_ROW_MIN_HEIGHT);
+    expect(resolveNoteInputGeometry(4)).toStrictEqual({
+      minHeight: lineHeightFor(4 * Type.body),
+      text: scaledTextStyle(Type.body, 4),
     });
   });
 });

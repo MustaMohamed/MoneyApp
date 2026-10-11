@@ -87,44 +87,94 @@ describe('useTransactionFormNoteReveal', () => {
     expect(reveal.scrollToEnd).not.toHaveBeenCalled();
   });
 
-  it('asks nothing for a first layout alone', async () => {
+  it('MA-163: scrolls to the end once, unanimated, on the frame after the Note takes focus with no layout', async () => {
     const reveal = await mountReveal();
     await reveal.focusNote();
-    await reveal.layout(REST_HEIGHT);
+    expect(reveal.scrollToEnd).not.toHaveBeenCalled();
 
     await runFrame();
-    expect(reveal.scrollToEnd).not.toHaveBeenCalled();
-  });
-
-  it('asks nothing for an equal height', async () => {
-    const reveal = await mountReveal();
-    await reveal.focusNote();
-    await reveal.layout(REST_HEIGHT);
-    await reveal.layout(REST_HEIGHT);
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+    expect(reveal.scrollToEnd).toHaveBeenCalledWith({ animated: false });
 
     await runFrame();
-    expect(reveal.scrollToEnd).not.toHaveBeenCalled();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
   });
 
-  it('asks nothing for a greater height', async () => {
+  it('MA-163: scrolls to the end when the Note takes focus with the keyboard already up, where no shrink follows', async () => {
     const reveal = await mountReveal();
+    await reveal.layout(REST_HEIGHT);
+    await reveal.layout(LIFTED_HEIGHT);
+    await runFrame();
+    expect(reveal.scrollToEnd).not.toHaveBeenCalled();
+
     await reveal.focusNote();
     await reveal.layout(LIFTED_HEIGHT);
-    await reveal.layout(REST_HEIGHT);
-
     await runFrame();
-    expect(reveal.scrollToEnd).not.toHaveBeenCalled();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+    expect(reveal.scrollToEnd).toHaveBeenCalledWith({ animated: false });
   });
 
-  it('asks nothing for a shrink after the Note blurs', async () => {
+  it('MA-163: scrolls once on the focus frame and once on the shrink frame when the keyboard rises after the focus', async () => {
     const reveal = await mountReveal();
     await reveal.focusNote();
+    await runFrame();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+
+    await reveal.layout(REST_HEIGHT);
+    await reveal.layout(LIFTED_HEIGHT);
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+
+    await runFrame();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(2);
+    expect(reveal.scrollToEnd).toHaveBeenLastCalledWith({ animated: false });
+  });
+
+  it('asks once, for the focus, and nothing for a first layout alone', async () => {
+    const reveal = await mountReveal();
+    await reveal.focusNote();
+    await runFrame();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+
+    await reveal.layout(REST_HEIGHT);
+    await runFrame();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks once, for the focus, and nothing for an equal height', async () => {
+    const reveal = await mountReveal();
+    await reveal.focusNote();
+    await runFrame();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+
+    await reveal.layout(REST_HEIGHT);
+    await reveal.layout(REST_HEIGHT);
+    await runFrame();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks once, for the focus, and nothing for a greater height', async () => {
+    const reveal = await mountReveal();
+    await reveal.focusNote();
+    await runFrame();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+
+    await reveal.layout(LIFTED_HEIGHT);
+    await reveal.layout(REST_HEIGHT);
+    await runFrame();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks once, for the focus, and nothing for a shrink after the Note blurs', async () => {
+    const reveal = await mountReveal();
+    await reveal.focusNote();
+    await runFrame();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
+
     await reveal.layout(REST_HEIGHT);
     await reveal.blurNote();
     await reveal.layout(LIFTED_HEIGHT);
-
     await runFrame();
-    expect(reveal.scrollToEnd).not.toHaveBeenCalled();
+    expect(reveal.scrollToEnd).toHaveBeenCalledTimes(1);
   });
 
   it('does not throw on a shrink while the scroll is not mounted', async () => {

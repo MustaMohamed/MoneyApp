@@ -4,11 +4,15 @@ import {
   type BottomSheetScrollableProps,
   type ScrollEventsHandlersHookType,
 } from '@gorhom/bottom-sheet';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { SelectablePill } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
+import {
+  resolveOneLineTextProps,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import type { TransactionType } from '@/constants/enums';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
@@ -17,7 +21,6 @@ import type { AccountStripChip } from '../transaction_form.helpers';
 import { useAccountStripReveal } from './account_strip.hook';
 import { DangerRing } from './danger_ring';
 import {
-  ACCOUNT_STRIP_CHIP_HEIGHT,
   ACCOUNT_STRIP_CHIP_PADDING_X,
   ACCOUNT_STRIP_CHIP_RADIUS,
   ACCOUNT_STRIP_CHIP_SLOP_Y,
@@ -28,6 +31,7 @@ import {
   ACCOUNT_STRIP_INSET_X,
   ACCOUNT_STRIP_TILE,
   ACCOUNT_STRIP_TILE_NAME_GAP,
+  resolveAccountStripChipGeometry,
 } from './transaction_form.geometry';
 
 type FocusHook = NonNullable<BottomSheetScrollableProps['focusHook']>;
@@ -59,6 +63,10 @@ export function AccountStrip({
     chips.findIndex((chip) => chip.selected),
     type,
   );
+  const { fontScale } = useWindowDimensions();
+  const chipGeometry = resolveAccountStripChipGeometry(fontScale);
+  const chipLabel = resolveOneLineTextProps(chipGeometry.label);
+  const emptyLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.caption, fontScale));
 
   return (
     <View testID="account-strip" style={{ marginHorizontal: ACCOUNT_STRIP_INSET_X }}>
@@ -81,12 +89,13 @@ export function AccountStrip({
             testID="account-strip-empty"
             accessibilityHint={error}
             className="font-inter text-muted"
+            {...emptyLine}
             style={{
               padding: Spacing.xs,
               fontSize: Type.caption,
               lineHeight: lineHeightFor(Type.caption),
+              ...emptyLine.style,
             }}
-            numberOfLines={1}
           >
             {emptyText}
           </Text>
@@ -138,14 +147,15 @@ export function AccountStrip({
                     />
                   ) : undefined
                 }
-                labelNumberOfLines={1}
-                labelStyle={{ flexShrink: 1, textAlign: 'left' }}
+                labelNumberOfLines={chipLabel.numberOfLines}
+                labelAllowFontScaling={chipLabel.allowFontScaling}
+                labelStyle={{ ...chipLabel.style, textAlign: 'left' }}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'flex-start',
                   width: ACCOUNT_STRIP_CHIP_WIDTH,
-                  height: ACCOUNT_STRIP_CHIP_HEIGHT,
+                  height: chipGeometry.height,
                   gap: ACCOUNT_STRIP_TILE_NAME_GAP,
                   borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
                   paddingVertical: 0,

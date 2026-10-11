@@ -1,10 +1,10 @@
 import DateTimePicker, {
   type DateTimePickerChangeEvent,
 } from '@react-native-community/datetimepicker';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
-import { Sheet } from '@/components/ui/sheet';
+import { Sheet, resolveSheetSizeAboveOne } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
 
@@ -19,6 +19,7 @@ interface DatePickerSheetProps {
 }
 
 export function DatePickerSheet(props: DatePickerSheetProps): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
   const footer = (
     <View style={{ flexDirection: 'row', gap: Spacing.xs }}>
       <Button
@@ -46,7 +47,7 @@ export function DatePickerSheet(props: DatePickerSheetProps): React.ReactElement
       }}
       onCloseComplete={props.onCloseComplete}
       title={Strings.addTxDatePickerTitle}
-      size="sm"
+      size={resolveSheetSizeAboveOne('sm', fontScale)}
       footer={footer}
     >
       <View className="px-4 pb-3">

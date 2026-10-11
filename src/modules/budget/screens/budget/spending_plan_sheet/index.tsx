@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { SHEET_FOOTER_CLEARANCE, Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Spacing } from '@/constants/theme';
 import { SpendingPlanAllocations } from '@/modules/budget/screens/budget/spending_plan_sheet/components/spending_plan_allocations';
 import { SpendingPlanCategorySelector } from '@/modules/budget/screens/budget/spending_plan_sheet/components/spending_plan_category_selector';
 import { SpendingPlanDateRange } from '@/modules/budget/screens/budget/spending_plan_sheet/components/spending_plan_date_range';
@@ -48,10 +47,7 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
         <BottomSheetScrollView
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-4 pt-2"
-          // `SHEET_FOOTER_CLEARANCE` fits a bare CTA; `Spacing.xxl` covers two 11px error lines.
-          contentContainerStyle={{
-            paddingBottom: SHEET_FOOTER_CLEARANCE + (state.submitError ? Spacing.xxl : 0),
-          }}
+          contentContainerStyle={{ paddingBottom: SHEET_FOOTER_CLEARANCE }}
         >
           <SpendingPlanFormFields
             control={state.control}

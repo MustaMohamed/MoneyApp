@@ -1,9 +1,18 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ListGroup, PressableFeedback, Separator, Typography } from 'heroui-native';
-import { type AccessibilityActionEvent, View, type ViewStyle } from 'react-native';
+import {
+  type AccessibilityActionEvent,
+  View,
+  type ViewStyle,
+  useWindowDimensions,
+} from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 
+import {
+  resolveOneLineTextProps,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import { ACCOUNT_TYPE_ICONS } from '@/constants/account_type_icons';
 import { Strings } from '@/constants/strings';
 import { Colors, Radius, Size, Type, lineHeightFor } from '@/constants/theme';
@@ -56,6 +65,9 @@ export function AccountListRowBody({ account, caption }: { account: Account; cap
   // Two nodes, not `formatAccountBalance`: B1 stacks the value over the code.
   const { amount, code } = formatAccountBalanceParts(account.current_balance, account.currency);
   const tile = resolveAccountTileColors(account.color);
+  const { fontScale } = useWindowDimensions();
+  const nameLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.bodyStrong, fontScale));
+  const captionLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
 
   return (
     <>
@@ -81,9 +93,12 @@ export function AccountListRowBody({ account, caption }: { account: Account; cap
       <ListGroup.ItemContent style={{ flex: 1, minWidth: 0 }}>
         <ListGroup.ItemTitle
           className="text-foreground font-inter-medium"
-          style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
-          numberOfLines={1}
-          ellipsizeMode="tail"
+          {...nameLine}
+          style={{
+            fontSize: Type.bodyStrong,
+            lineHeight: lineHeightFor(Type.bodyStrong),
+            ...nameLine.style,
+          }}
         >
           {resolveAccountName(account)}
         </ListGroup.ItemTitle>
@@ -91,9 +106,8 @@ export function AccountListRowBody({ account, caption }: { account: Account; cap
         {/* Not ItemDescription: its muted colour is 2.36:1. */}
         <Typography
           className="text-content-secondary font-inter tabular-nums"
-          style={ACCOUNTS_LIST_ROW_CAPTION_STYLE}
-          numberOfLines={1}
-          ellipsizeMode="tail"
+          {...captionLine}
+          style={[ACCOUNTS_LIST_ROW_CAPTION_STYLE, captionLine.style]}
         >
           {caption}
         </Typography>

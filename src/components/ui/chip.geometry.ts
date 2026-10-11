@@ -1,6 +1,9 @@
 import { type ScaledTextStyle, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type } from '@/constants/theme';
 
+/** The `SelectablePill` label's size at scale 1. */
+export const SELECTABLE_PILL_LABEL_FONT_SIZE = Type.micro;
+
 // `.chip__root--size-md`'s own `padding-block`, unscaled CSS.
 export const CHIP_MD_PADDING_BLOCK = 4;
 

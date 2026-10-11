@@ -9,7 +9,7 @@ import { Size } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 describe('status track geometry', () => {
-  it('holds exactly two status lines at every scale', () => {
+  it('makes one status line half of Size.statusTrack, rounded down', () => {
     expect(STATUS_TRACK_LINE_HEIGHT * 2).toBeLessThanOrEqual(Size.statusTrack);
     expect(STATUS_TRACK_LINE_HEIGHT * 2).toBeGreaterThan(Size.statusTrack - 2);
   });

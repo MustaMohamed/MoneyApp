@@ -11,12 +11,18 @@ interface TransactionFormNoteReveal {
   handleNoteBlur: () => void;
 }
 
-/** With the Note focused, a shrink of the form's scroll ends with the scroll at its end, where the Note sits. */
+/** A focus on the Note, and a shrink of the form's scroll while the Note holds focus, each end with the scroll at its end, where the Note sits. */
 export function useTransactionFormNoteReveal(): TransactionFormNoteReveal {
   const scrollRef = useRef<BottomSheetScrollViewMethods | null>(null);
   const noteFocusedRef = useRef(false);
   const lastHeightRef = useRef<number | undefined>(undefined);
   const requestFrame = usePendingFrame();
+
+  const scrollToEndNextFrame = useCallback(() => {
+    requestFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: false });
+    });
+  }, [requestFrame]);
 
   const handleScrollLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -26,16 +32,16 @@ export function useTransactionFormNoteReveal(): TransactionFormNoteReveal {
       if (previousHeight === undefined || height >= previousHeight) return;
       if (!noteFocusedRef.current) return;
       // A view command runs before the mount items queued with it, so the scroll waits for the frame after the shrink mounts.
-      requestFrame(() => {
-        scrollRef.current?.scrollToEnd({ animated: false });
-      });
+      scrollToEndNextFrame();
     },
-    [requestFrame],
+    [scrollToEndNextFrame],
   );
 
   const handleNoteFocus = useCallback(() => {
     noteFocusedRef.current = true;
-  }, []);
+    // With the keyboard already up the scroll's frame does not shrink, so the focus asks for the end itself.
+    scrollToEndNextFrame();
+  }, [scrollToEndNextFrame]);
 
   const handleNoteBlur = useCallback(() => {
     noteFocusedRef.current = false;

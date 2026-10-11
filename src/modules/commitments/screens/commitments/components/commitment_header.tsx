@@ -1,9 +1,12 @@
 import { cn } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { BackButton } from '@/components/ui/back_button';
 import { Text } from '@/components/ui/text';
+import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
+
+import { resolveCommitmentHeaderGeometry } from './commitment_header.geometry';
 
 interface CommitmentHeaderProps {
   title: string;
@@ -16,18 +19,27 @@ interface CommitmentHeaderProps {
 }
 
 export function CommitmentHeader({ title, onBack, right, large = true }: CommitmentHeaderProps) {
+  const { fontScale } = useWindowDimensions();
+  const geometry = resolveCommitmentHeaderGeometry(fontScale, !onBack || large);
+  const titleLine = resolveOneLineTextProps(geometry.title);
+
   if (!onBack) {
     return (
-      <View className="border-separator h-14 justify-center border-b px-4">
-        <Text className="font-sora-semibold text-foreground text-[20px]">{title}</Text>
+      <View
+        className="border-separator justify-center border-b px-4"
+        style={{ height: geometry.height }}
+      >
+        <Text className="font-sora-semibold text-foreground text-[20px]" {...titleLine}>
+          {title}
+        </Text>
       </View>
     );
   }
 
   return (
     <View
-      style={{ flexDirection: 'row', alignItems: 'center' }}
-      className="border-separator h-14 justify-between border-b px-2"
+      style={{ flexDirection: 'row', alignItems: 'center', height: geometry.height }}
+      className="border-separator justify-between border-b px-2"
     >
       <BackButton onPress={onBack} />
       <Text
@@ -35,7 +47,7 @@ export function CommitmentHeader({ title, onBack, right, large = true }: Commitm
           'font-sora-semibold text-foreground flex-1 text-center',
           large ? 'text-[20px]' : 'text-[17px]',
         )}
-        numberOfLines={large ? 1 : undefined}
+        {...titleLine}
       >
         {title}
       </Text>
