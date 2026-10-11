@@ -99,7 +99,7 @@ describe('useWordSafeLines', () => {
     expect(hook.result.current.numberOfLines).toBe(2);
   });
 
-  it('MA-171: a new width of the text box starts again from the cap of the caller, and the same width leaves the lowered cap', async () => {
+  it('MA-171: a wider text box starts again from the cap of the caller, and the same width leaves the lowered cap', async () => {
     const { hook, layOut, resize } = await mountWordSafeLines({
       text: LONG_WORD_NAME,
       lines: 2,
@@ -143,5 +143,37 @@ describe('useWordSafeLines', () => {
     });
 
     expect(hook.result.current.numberOfLines).toBe(1);
+  });
+
+  it('MA-171: a new text lowered by the layout of the pass that widens its box leaves the lowered cap', async () => {
+    const { hook, resize } = await mountWordSafeLines({
+      text: 'Food & Dining',
+      lines: 2,
+      fontScale: 2,
+    });
+    await resize(173);
+    await hook.rerender({ text: LONG_WORD_NAME, lines: 2, fontScale: 2 });
+
+    await act(() => {
+      hook.result.current.onTextLayout?.(textLayoutEvent(SPLIT_LAYOUT));
+      hook.result.current.onLayout?.(layoutEvent(260));
+    });
+
+    expect(hook.result.current.numberOfLines).toBe(1);
+  });
+
+  it('MA-171: a cap lowered in a pass that reports no box starts again from the cap of the caller when a later pass widens the box', async () => {
+    const { hook, layOut, resize } = await mountWordSafeLines({
+      text: LONG_WORD_NAME,
+      lines: 2,
+      fontScale: 2,
+    });
+    await resize(173);
+    await layOut(SPLIT_LAYOUT);
+    expect(hook.result.current.numberOfLines).toBe(1);
+
+    await resize(260);
+
+    expect(hook.result.current.numberOfLines).toBe(2);
   });
 });
