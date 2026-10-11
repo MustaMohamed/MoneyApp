@@ -1,18 +1,19 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion } from 'heroui-native';
 import React, { type ReactNode } from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { ms } from '@/utils/responsive';
 
 import { SelectablePill } from './chip';
+import { resolveFilterAmountSlotStyle } from './filter_accordion.geometry';
 import { Input } from './input';
 import { SegmentedTabs } from './tabs';
 import { Text } from './text';
+import { resolveOneLineTextProps, scaledTextStyleAboveOne } from './text_scale.geometry';
 
 interface FilterAccordionShellProps {
   title: string;
@@ -49,9 +50,6 @@ interface AmountRangeFilterContentProps {
   rangeError?: string;
 }
 
-export const FILTER_AMOUNT_FIELD_SLOT_HEIGHT = ms(76);
-export const FILTER_AMOUNT_ERROR_SLOT_HEIGHT = ms(16);
-
 export function FilterAccordionShell({
   title,
   count,
@@ -60,6 +58,9 @@ export function FilterAccordionShell({
   onToggle,
   children,
 }: FilterAccordionShellProps): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const summaryLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
+
   return (
     <View className="border-separator bg-surface mb-2 rounded-xl border p-3.5">
       <Accordion
@@ -69,8 +70,8 @@ export function FilterAccordionShell({
       >
         <Accordion.Item value="section">
           <Accordion.Trigger className="gap-0 px-0 py-0" style={{ padding: 0, gap: 0 }}>
-            <View className="flex-row items-center justify-between" style={{ flex: 1 }}>
-              <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center justify-between gap-2" style={{ flex: 1 }}>
+              <View className="flex-row items-center gap-2" style={{ flexShrink: 0 }}>
                 <Text className="font-inter-semibold text-[13px]">{title}</Text>
                 {count > 0 ? (
                   <View className="bg-accent/15 min-w-[18px] items-center rounded-full px-1.5">
@@ -86,8 +87,11 @@ export function FilterAccordionShell({
                   </View>
                 ) : null}
               </View>
-              <View className="flex-row items-center gap-1.5">
-                <Text className="font-inter text-foreground/60 text-[11px]" numberOfLines={1}>
+              <View
+                className="flex-row items-center gap-1.5"
+                style={{ flex: 1, minWidth: 0, justifyContent: 'flex-end' }}
+              >
+                <Text className="font-inter text-foreground/60 text-[11px]" {...summaryLine}>
                   {expanded ? '' : summary}
                 </Text>
                 <Accordion.Indicator isAnimatedStyleActive={false}>
@@ -142,6 +146,9 @@ export function AmountRangeFilterContent({
   maxError,
   rangeError,
 }: AmountRangeFilterContentProps): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const slot = resolveFilterAmountSlotStyle(fontScale);
+
   return (
     <View className="mt-3">
       <SegmentedTabs<Currency>
@@ -160,10 +167,7 @@ export function AmountRangeFilterContent({
           <Text className="font-inter-semibold text-foreground/55 mb-1 text-[10px] uppercase">
             {Strings.filterAmountMinLabel}
           </Text>
-          <View
-            testID="amount-field-error-slot"
-            style={{ height: FILTER_AMOUNT_FIELD_SLOT_HEIGHT }}
-          >
+          <View testID="amount-field-error-slot" style={slot.field}>
             <Input
               value={minValue}
               onChangeText={onChangeMinText}
@@ -178,10 +182,7 @@ export function AmountRangeFilterContent({
           <Text className="font-inter-semibold text-foreground/55 mb-1 text-[10px] uppercase">
             {Strings.filterAmountMaxLabel}
           </Text>
-          <View
-            testID="amount-field-error-slot"
-            style={{ height: FILTER_AMOUNT_FIELD_SLOT_HEIGHT }}
-          >
+          <View testID="amount-field-error-slot" style={slot.field}>
             <Input
               value={maxValue}
               onChangeText={onChangeMaxText}
@@ -193,17 +194,9 @@ export function AmountRangeFilterContent({
           </View>
         </View>
       </View>
-      <View
-        testID="amount-range-error-slot"
-        className="mt-1.5 justify-center"
-        style={{ height: FILTER_AMOUNT_ERROR_SLOT_HEIGHT }}
-      >
+      <View testID="amount-range-error-slot" className="mt-1.5 justify-center" style={slot.range}>
         {rangeError ? (
-          <Text
-            accessibilityRole="alert"
-            className="font-inter-medium text-danger text-[11px]"
-            numberOfLines={1}
-          >
+          <Text accessibilityRole="alert" className="font-inter-medium text-danger text-[11px]">
             {rangeError}
           </Text>
         ) : null}

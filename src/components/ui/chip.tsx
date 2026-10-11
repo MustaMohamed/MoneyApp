@@ -32,6 +32,8 @@ export interface SelectablePillProps {
   style?: StyleProp<ViewStyle>;
   labelStyle?: StyleProp<TextStyle>;
   labelNumberOfLines?: number;
+  /** Forwarded to the label as `allowFontScaling`; absent, RN's default holds. */
+  labelAllowFontScaling?: boolean;
   hitSlop?: PressableProps['hitSlop'];
   onLayout?: PressableProps['onLayout'];
 }
@@ -61,6 +63,7 @@ export function SelectablePill({
   style,
   labelStyle,
   labelNumberOfLines,
+  labelAllowFontScaling,
   hitSlop,
   onLayout,
 }: SelectablePillProps): React.ReactElement {
@@ -92,6 +95,7 @@ export function SelectablePill({
       {startIcon}
       <Chip.Label
         numberOfLines={labelNumberOfLines}
+        allowFontScaling={labelAllowFontScaling}
         className={
           selected ? SELECTABLE_PILL_LABEL_CLASS.selected : SELECTABLE_PILL_LABEL_CLASS.unselected
         }

@@ -11,7 +11,7 @@ interface TransactionFormNoteReveal {
   handleNoteBlur: () => void;
 }
 
-/** With the Note focused, a shrink of the form's scroll ends with the scroll at its end, where the Note sits. */
+/** A focus on the Note, and a shrink of the form's scroll while the Note holds focus, each end with the scroll at its end, where the Note sits. */
 export function useTransactionFormNoteReveal(): TransactionFormNoteReveal {
   const scrollRef = useRef<BottomSheetScrollViewMethods | null>(null);
   const noteFocusedRef = useRef(false);
@@ -35,7 +35,11 @@ export function useTransactionFormNoteReveal(): TransactionFormNoteReveal {
 
   const handleNoteFocus = useCallback(() => {
     noteFocusedRef.current = true;
-  }, []);
+    // With the keyboard already up the scroll's frame does not shrink, so the focus asks for the end itself.
+    requestFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: false });
+    });
+  }, [requestFrame]);
 
   const handleNoteBlur = useCallback(() => {
     noteFocusedRef.current = false;

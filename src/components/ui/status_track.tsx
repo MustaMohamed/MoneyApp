@@ -20,7 +20,7 @@ export interface StatusTrackProps {
   testID?: string;
 }
 
-/** Idle hugs one line; an error may wrap to two, growing the footer upward — the CTA below never moves. */
+/** Idle hugs one line; a message or footnote wraps to every line it needs, growing the footer upward — the CTA below never moves. */
 export function StatusTrack({ footnote, message, testID }: StatusTrackProps) {
   const model = resolveStatusTrack(footnote, message);
 
@@ -62,8 +62,7 @@ export function StatusTrack({ footnote, message, testID }: StatusTrackProps) {
         ) : null}
       </View>
       <Typography
-        numberOfLines={2}
-        // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- STATUS_TRACK_LINE_HEIGHT is Math.floor(Size.statusTrack / 2) (src/components/ui/status_track.geometry.ts:5), sized so exactly two lines fit the fixed track at any device scale; lineHeightFor's 1.3 ratio would not guarantee that.
+        // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- STATUS_TRACK_LINE_HEIGHT is Math.floor(Size.statusTrack / 2) (src/components/ui/status_track.geometry.ts:5), the track's one-line box at any device scale; lineHeightFor's 1.3 ratio would not equal it.
         style={{ fontSize: Type.caption, lineHeight: STATUS_TRACK_LINE_HEIGHT, flex: 1 }}
         className={cn(model.tone === 'error' ? 'text-danger' : 'text-content-secondary')}
       >

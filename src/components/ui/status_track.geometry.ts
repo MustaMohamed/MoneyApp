@@ -1,7 +1,7 @@
 import { Size } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
-/** Derived from the track so two lines fit: at scale 1.15, ms(34) = 39 but 2 * ms(17) = 40. */
+/** Half the track, floored, one line's box: at scale 1.15, ms(34) = 39 but 2 * ms(17) = 40. */
 export const STATUS_TRACK_LINE_HEIGHT = Math.floor(Size.statusTrack / 2);
 
 /** Glyph column from mockup.html:330-332 at 14; both states share it so the text edge holds. */

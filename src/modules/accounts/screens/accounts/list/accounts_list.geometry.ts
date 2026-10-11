@@ -1,5 +1,6 @@
 import type { Insets, TextStyle, ViewStyle } from 'react-native';
 
+import { type ScaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import {
   Colors,
   Radius,
@@ -50,6 +51,23 @@ export const ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE: Readonly<ViewStyle> = Object.f
   flexDirection: 'row',
   alignItems: 'center',
 });
+
+/** The header at the OS font scale: the frozen style's height is the floor under the title's line box; `title` and `summary` are `undefined` at or below scale 1, where the OS scales them. */
+export function resolveArchivedCardHeaderGeometry(fontScale: number): {
+  style: ViewStyle;
+  title: ScaledTextStyle | undefined;
+  summary: ScaledTextStyle | undefined;
+} {
+  const title = scaledTextStyleAboveOne(Type.meta, fontScale);
+  return {
+    style: {
+      ...ACCOUNTS_LIST_ARCHIVED_HEADER_STYLE,
+      height: Math.max(Size.archivedCardHeaderHeight, (title?.lineHeight ?? 0) + 2 * Spacing.xs),
+    },
+    title,
+    summary: scaledTextStyleAboveOne(Type.micro, fontScale),
+  };
+}
 
 /** B5 `.ar-row`: 8 vertical against the canvas 10, since the 56 minimum decides the height. */
 export const ACCOUNTS_LIST_ARCHIVED_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({

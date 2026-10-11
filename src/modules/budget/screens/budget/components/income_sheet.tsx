@@ -1,16 +1,21 @@
 import { Typography } from 'heroui-native';
 import { Controller } from 'react-hook-form';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import {
+  Sheet,
+  resolveSheetSizeAboveOne,
+  useBottomSheetAwareHandlers,
+} from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { useIncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet.hook';
 
 export function IncomeSheet() {
   const { state, control, close, setAmountText, save } = useIncomeSheet();
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+  const { fontScale } = useWindowDimensions();
   const amountLabel = Strings.incomeSheetAmountLabel(state.monthLabel);
   const amountAccessibilityLabel = `${amountLabel}, ${Strings.currencyEgp}`;
 
@@ -21,7 +26,7 @@ export function IncomeSheet() {
         if (!open) close();
       }}
       title={Strings.incomeSheetTitle}
-      size="sm"
+      size={resolveSheetSizeAboveOne('sm', fontScale, 'lg')}
       isDismissable={!state.saving}
       footer={
         <Button

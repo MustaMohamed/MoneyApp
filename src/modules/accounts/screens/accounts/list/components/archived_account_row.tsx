@@ -1,8 +1,12 @@
 import { ListGroup, Typography } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { Button } from '@/components/ui/button';
+import {
+  resolveOneLineTextProps,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { resolveAccountName } from '@/utils/account_name';
@@ -34,6 +38,10 @@ export function ArchivedAccountRow({
   onPress,
   onUnarchive,
 }: ArchivedAccountRowProps) {
+  const { fontScale } = useWindowDimensions();
+  const nameLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.bodyStrong, fontScale));
+  const captionLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
+
   return (
     <View>
       <ListGroup.Item
@@ -62,17 +70,19 @@ export function ArchivedAccountRow({
         <ListGroup.ItemContent style={{ flex: 1, minWidth: 0 }}>
           <ListGroup.ItemTitle
             className="text-foreground/80 font-inter-medium"
-            style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
-            numberOfLines={1}
-            ellipsizeMode="tail"
+            {...nameLine}
+            style={{
+              fontSize: Type.bodyStrong,
+              lineHeight: lineHeightFor(Type.bodyStrong),
+              ...nameLine.style,
+            }}
           >
             {resolveAccountName(account)}
           </ListGroup.ItemTitle>
           <Typography
             className="text-content-secondary font-inter tabular-nums"
-            style={ACCOUNTS_LIST_ROW_CAPTION_STYLE}
-            numberOfLines={1}
-            ellipsizeMode="tail"
+            {...captionLine}
+            style={[ACCOUNTS_LIST_ROW_CAPTION_STYLE, captionLine.style]}
           >
             {caption}
           </Typography>
@@ -98,7 +108,6 @@ export function ArchivedAccountRow({
           accessibilityRole="alert"
           className="text-danger font-inter"
           style={[ACCOUNTS_LIST_ROW_CAPTION_STYLE, { paddingLeft: Spacing.md }]}
-          numberOfLines={1}
         >
           {errorMessage}
         </Typography>

@@ -1,7 +1,11 @@
 import { ListGroup, cn } from 'heroui-native';
 import type { ReactNode } from 'react';
-import { View, type TextStyle } from 'react-native';
+import { View, type TextStyle, useWindowDimensions } from 'react-native';
 
+import {
+  resolveOneLineTextProps,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 
@@ -39,6 +43,13 @@ export function FormPickerRow({
   valueNumberOfLines = 1,
   divider = true,
 }: FormPickerRowProps): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  // A one-line value is scaled by the app above scale 1, so its ellipsis stays inside its box; any other count keeps OS scaling.
+  const oneLine =
+    valueNumberOfLines === 1
+      ? resolveOneLineTextProps(scaledTextStyleAboveOne(Type.body, fontScale))
+      : undefined;
+
   return (
     <ListGroup.Item
       testID={testID}
@@ -75,6 +86,7 @@ export function FormPickerRow({
         {prefix}
         <ListGroup.ItemTitle
           numberOfLines={valueNumberOfLines}
+          allowFontScaling={oneLine?.allowFontScaling}
           className={cn('font-sora text-foreground tabular-nums', valueClassName)}
           style={[
             {
@@ -83,6 +95,7 @@ export function FormPickerRow({
               fontSize: Type.body,
               lineHeight: lineHeightFor(Type.body),
             },
+            oneLine?.style,
             valueStyle,
           ]}
         >

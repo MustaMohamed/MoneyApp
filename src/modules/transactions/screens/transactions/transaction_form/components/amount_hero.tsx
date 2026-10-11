@@ -1,10 +1,11 @@
 import { Input, Separator } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { tv } from 'tailwind-variants';
 
 import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
@@ -13,7 +14,11 @@ import { maskMoneyFieldText } from '@/utils/money_text';
 
 import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
-import { AMOUNT_ERROR_LINE_HEIGHT, AMOUNT_ERROR_LINE_STYLE } from './transaction_form.geometry';
+import {
+  AMOUNT_ENTRY_MAX_FONT_SCALE,
+  AMOUNT_ERROR_LINE_HEIGHT,
+  AMOUNT_ERROR_LINE_STYLE,
+} from './transaction_form.geometry';
 
 const amountClass = tv({
   base: 'font-sora min-h-0 rounded-none border-0 bg-transparent px-0 py-0',
@@ -26,6 +31,10 @@ const amountClass = tv({
     },
   },
 });
+
+// Auto basis and no shrink: a flank is never narrower than the code it holds, and the two grow by equal shares.
+const FLANK_STYLE = { flexGrow: 1, flexShrink: 0, flexBasis: 'auto' } as const;
+const CODE_STYLE = { fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) };
 
 interface Props {
   onChange: (value: string) => void;
@@ -44,22 +53,20 @@ export function AmountHero({
 }: Props): React.ReactElement {
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const amountStr = useTransactionAmount(mode);
+  const { fontScale } = useWindowDimensions();
 
-  // Two equal columns flank the input and centre the number; the code's gap is its own margin, since a column's padding would widen that column.
+  // Two equal columns flank the input and centre the number: the right one holds the code unseen, and an amount wider than the room between them shrinks the input, which scrolls it.
   return (
     <View
       style={{ flexDirection: 'row', alignItems: 'baseline' }}
       className="border-separator border-b py-4"
     >
-      <View style={{ flex: 1, alignItems: 'flex-end' }}>
-        <Text
-          className="font-inter text-muted mr-2"
-          style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
-        >
+      <View style={{ ...FLANK_STYLE, alignItems: 'flex-end' }}>
+        <Text className="font-inter text-muted mr-2" style={CODE_STYLE}>
           {currency}
         </Text>
       </View>
-      <View>
+      <View style={{ flexShrink: 1, minWidth: 0 }}>
         <Input
           testID="amount-hero-value"
           value={amountStr}
@@ -73,13 +80,13 @@ export function AmountHero({
           keyboardType="decimal-pad"
           accessibilityLabel={Strings.addTxAmountInputAccessibility}
           className={amountClass({ type })}
+          allowFontScaling={false}
           style={{
             minWidth: 80,
             textAlign: 'center',
             padding: 0,
             borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
-            fontSize: Type.amountEntry,
-            lineHeight: lineHeightFor(Type.amountEntry),
+            ...scaledTextStyle(Type.amountEntry, fontScale, AMOUNT_ENTRY_MAX_FONT_SCALE),
           }}
           placeholder={Strings.addTxAmountPlaceholder}
           placeholderTextColor={CoreTokens.text2}
@@ -93,7 +100,16 @@ export function AmountHero({
           />
         ) : null}
       </View>
-      <View style={{ flex: 1 }} />
+      <View style={FLANK_STYLE}>
+        <Text
+          className="font-inter text-muted mr-2"
+          style={{ ...CODE_STYLE, opacity: 0 }}
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+        >
+          {currency}
+        </Text>
+      </View>
     </View>
   );
 }

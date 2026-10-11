@@ -169,7 +169,6 @@ export function ExchangeRateRow({
       >
         <FormErrorText
           message={error}
-          numberOfLines={1}
           disableAnimation
           style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
         />

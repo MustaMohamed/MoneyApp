@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Input, Spinner } from 'heroui-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { AccountColorTile } from '@/components/ui/account_color_tile';
@@ -10,6 +10,10 @@ import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { ListCard } from '@/components/ui/list_card';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import {
+  resolveOneLineTextProps,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
@@ -169,6 +173,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const budgetFieldError = resolveBudgetFieldError(budgetError, budgetLookupError);
   const stripCaption = isTransferOrCC ? Strings.addTxFromLabel : undefined;
   const toRowFace = resolveToRowFace({ locked, account: selectedToAccount ?? undefined });
+  const { fontScale } = useWindowDimensions();
+  const supportingLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
 
   return (
     <BottomSheetScrollView
@@ -188,8 +194,12 @@ export function TransactionFormBody(props: Props): React.ReactElement {
       <View className="min-h-8 justify-center px-4 py-1.5">
         <Text
           className="font-inter text-muted"
-          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
-          numberOfLines={1}
+          {...supportingLine}
+          style={{
+            fontSize: Type.micro,
+            lineHeight: lineHeightFor(Type.micro),
+            ...supportingLine.style,
+          }}
         >
           {typeSupportingText}
         </Text>
