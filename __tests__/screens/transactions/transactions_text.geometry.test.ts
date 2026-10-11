@@ -3,6 +3,7 @@ import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
   TRANSACTIONS_HERO_MAX_FONT_SCALE,
   resolveDayHeaderGeometry,
+  resolveDayHeaderNetMaxWidth,
   resolveSearchTallyGeometry,
   resolveTransactionsHeroGeometry,
 } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
@@ -78,6 +79,23 @@ describe('resolveDayHeaderGeometry', () => {
         pillHeight,
         height: Spacing.md + pillHeight + Spacing.xs,
       });
+    },
+  );
+});
+
+describe('resolveDayHeaderNetMaxWidth', () => {
+  const HEADER_WIDTH = 411;
+
+  it('MA-171: leaves the net uncapped at font scale 1', () => {
+    expect(resolveDayHeaderNetMaxWidth(1, HEADER_WIDTH)).toBeUndefined();
+  });
+
+  it.each([1.3, 2])(
+    'MA-171: caps the net at half the inner width of the header at font scale %s',
+    (scale) => {
+      expect(resolveDayHeaderNetMaxWidth(scale, HEADER_WIDTH)).toBe(
+        (HEADER_WIDTH - 2 * Spacing.md) / 2,
+      );
     },
   );
 });

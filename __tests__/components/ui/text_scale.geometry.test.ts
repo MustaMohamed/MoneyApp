@@ -6,6 +6,7 @@ import {
   resolveLoneWordLines,
   resolveOneLineTextProps,
   resolveRowStacking,
+  resolveWordSafeLines,
   scaledFontSize,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
@@ -73,6 +74,42 @@ describe('resolveLoneWordLines', () => {
 
   it('keeps the line cap of the caller for a lone word at a font scale of 1', () => {
     expect(resolveLoneWordLines('Housing', 2, 1)).toBe(2);
+  });
+
+  it('MA-171: with no cap gives a lone word one line and leaves a text of several words uncapped', () => {
+    expect(resolveLoneWordLines('Housing', undefined, 2)).toBe(1);
+    expect(resolveLoneWordLines('Health & Fitness', undefined, 2)).toBeUndefined();
+  });
+});
+
+describe('resolveWordSafeLines', () => {
+  it('MA-171: gives the line where a word runs on to the next line', () => {
+    expect(resolveWordSafeLines(['Entertainm', 'ent subscri'], 2)).toBe(1);
+    expect(resolveWordSafeLines(['Food & ', 'Entertainm', 'ent'], 3)).toBe(2);
+  });
+
+  it('MA-171: gives the cap when the word runs on from the line of the cap', () => {
+    expect(resolveWordSafeLines(['Food & ', 'Entertainm', 'ent'], 2)).toBe(2);
+  });
+
+  it('MA-171: keeps the cap of the caller when a line ends in a space', () => {
+    expect(resolveWordSafeLines(['Food & ', 'Dining'], 2)).toBe(2);
+  });
+
+  it('MA-171: keeps the cap of the caller when a line ends in a hyphen', () => {
+    expect(resolveWordSafeLines(['Self-', 'care budget'], 2)).toBe(2);
+  });
+
+  it('MA-171: keeps the cap of the caller when no line is laid out', () => {
+    expect(resolveWordSafeLines([], 2)).toBe(2);
+  });
+
+  it('MA-171: with no cap gives the first line of a word that runs over three lines', () => {
+    expect(resolveWordSafeLines(['Entertainme', 'nt subscript', 'ions'], undefined)).toBe(1);
+  });
+
+  it('MA-171: with no cap stays uncapped when every break falls between words', () => {
+    expect(resolveWordSafeLines(['Food & ', 'Dining'], undefined)).toBeUndefined();
   });
 });
 
