@@ -1,4 +1,4 @@
-import { resolveSheetContentPadding } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE, resolveSheetContentPadding } from '@/components/ui/sheet';
 
 const FOOTER_HEIGHT = 106;
 
@@ -50,13 +50,25 @@ describe('resolveSheetContentPadding', () => {
     }
   });
 
-  it('leaves paddingBottom out on every sheet that is not lifting, scrollable and footed', () => {
+  it('MA-163: pads a scrollable sheet with a footer that does not lift by what the footer stands over the static clearance, and by 0 at or under it', () => {
+    const footed = { ...BASE, scrollable: true, hasFooter: true, liftsAboveKeyboard: false };
+    expect(FOOTER_HEIGHT).toBeLessThan(SHEET_FOOTER_CLEARANCE);
+
+    expect(resolveSheetContentPadding(footed)).toStrictEqual({ padding: 0, paddingBottom: 0 });
+    expect(
+      resolveSheetContentPadding({ ...footed, footerHeight: SHEET_FOOTER_CLEARANCE }),
+    ).toStrictEqual({ padding: 0, paddingBottom: 0 });
+    expect(
+      resolveSheetContentPadding({ ...footed, footerHeight: SHEET_FOOTER_CLEARANCE + 33 }),
+    ).toStrictEqual({ padding: 0, paddingBottom: 33 });
+  });
+
+  it('leaves paddingBottom out on every sheet that is neither fitContent nor scrollable with a footer', () => {
     const others = [
       { scrollable: false, hasFooter: false, liftsAboveKeyboard: false },
       { scrollable: true, hasFooter: false, liftsAboveKeyboard: false },
       { scrollable: false, hasFooter: true, liftsAboveKeyboard: false },
       { scrollable: false, hasFooter: false, liftsAboveKeyboard: true },
-      { scrollable: true, hasFooter: true, liftsAboveKeyboard: false },
       { scrollable: true, hasFooter: false, liftsAboveKeyboard: true },
       { scrollable: false, hasFooter: true, liftsAboveKeyboard: true },
     ];

@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import React from 'react';
+import { Dimensions } from 'react-native';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -56,12 +57,12 @@ jest.mock(
 );
 
 import {
-  ACCOUNT_STRIP_CHIP_HEIGHT,
   ACCOUNT_STRIP_CHIP_RADIUS,
   ACCOUNT_STRIP_CHIP_WIDTH,
   ACCOUNT_STRIP_GAP,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
+  resolveAccountStripChipGeometry,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import {
@@ -422,7 +423,10 @@ describe('TransactionFormBody fact rows', () => {
 });
 
 describe('TransactionFormLoading', () => {
-  it('draws the strip row of three chip-sized bars and four fact rows at the loaded fact-row height', async () => {
+  it('draws the strip row of three bars as tall as the loaded chip at the suite font scale, and four fact rows at the loaded fact-row height', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const chipHeight = resolveAccountStripChipGeometry(fontScale).height;
     await render(<TransactionFormLoading />);
 
     expect(screen.queryByTestId('transaction-form-skeleton-account-row')).toBeNull();
@@ -434,7 +438,7 @@ describe('TransactionFormLoading', () => {
     for (const bar of bars) {
       expect(bar).toHaveStyle({
         width: ACCOUNT_STRIP_CHIP_WIDTH,
-        height: ACCOUNT_STRIP_CHIP_HEIGHT,
+        height: chipHeight,
         borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
       });
     }

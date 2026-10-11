@@ -1,12 +1,13 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { Dimensions } from 'react-native';
 
 import {
   AmountRangeFilterContent,
-  FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
   FilterAccordionShell,
   FilterOptionPillList,
 } from '@/components/ui/filter_accordion';
+import { resolveFilterAmountSlotStyle } from '@/components/ui/filter_accordion.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
@@ -210,12 +211,13 @@ describe('AmountRangeFilterContent', () => {
       onChangeMaxText: jest.fn(),
       accessibilityLabel: 'Amount currency',
     };
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const rangeSlot = resolveFilterAmountSlotStyle(fontScale).range;
     const screen = await render(<AmountRangeFilterContent {...baseProps} />);
 
     expect(screen.getAllByTestId('amount-field-error-slot')).toHaveLength(2);
-    expect(screen.getByTestId('amount-range-error-slot')).toHaveStyle({
-      height: FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
-    });
+    expect(screen.getByTestId('amount-range-error-slot')).toHaveStyle(rangeSlot);
 
     await screen.rerender(
       <AmountRangeFilterContent
@@ -226,9 +228,7 @@ describe('AmountRangeFilterContent', () => {
     );
 
     expect(screen.getAllByTestId('amount-field-error-slot')).toHaveLength(2);
-    expect(screen.getByTestId('amount-range-error-slot')).toHaveStyle({
-      height: FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
-    });
+    expect(screen.getByTestId('amount-range-error-slot')).toHaveStyle(rangeSlot);
     expect(screen.getByText('Minimum cannot exceed maximum')).toBeTruthy();
   });
 });
