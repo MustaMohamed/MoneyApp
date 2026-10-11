@@ -145,6 +145,21 @@ describe('useWordSafeLines', () => {
     expect(hook.result.current.numberOfLines).toBe(1);
   });
 
+  it('MA-171: a narrower box reported in a later pass than the layout that lowered the cap leaves the lowered cap', async () => {
+    const { hook, layOut, resize } = await mountWordSafeLines({
+      text: LONG_WORD_NAME,
+      lines: 2,
+      fontScale: 2,
+    });
+    await resize(260);
+    await layOut(SPLIT_LAYOUT);
+    expect(hook.result.current.numberOfLines).toBe(1);
+
+    await resize(173);
+
+    expect(hook.result.current.numberOfLines).toBe(1);
+  });
+
   it('MA-171: a new text lowered by the layout of the pass that widens its box leaves the lowered cap', async () => {
     const { hook, resize } = await mountWordSafeLines({
       text: 'Food & Dining',
