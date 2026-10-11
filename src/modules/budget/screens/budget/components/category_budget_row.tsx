@@ -1,18 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion, Chip, PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
 
-import {
-  resolveLoneWordLines,
-  resolveRowStacking,
-  scaledTextStyle,
-} from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { NamedBudgetRow } from '@/modules/budget/screens/budget/components/named_budget_row';
+import { TitleWithChip } from '@/modules/budget/screens/budget/components/title_with_chip';
 import { UnassignedSpendingRow } from '@/modules/budget/screens/budget/components/unassigned_spending_row';
 import { toIconName } from '@/utils/icon_name_guard';
 
@@ -27,8 +23,6 @@ export interface CategoryBudgetRowProps {
 
 function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
   const { row } = props;
-  const { fontScale } = useWindowDimensions();
-  const stacked = resolveRowStacking(fontScale) === 'stacked';
   return (
     <Accordion
       selectionMode="single"
@@ -57,29 +51,12 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
               </BudgetRing>
             </View>
             <View style={{ flex: 1 }}>
-              <View className={stacked ? undefined : 'flex-row items-start gap-1.5'}>
-                <Typography
-                  numberOfLines={resolveLoneWordLines(row.name, 2, fontScale)}
-                  allowFontScaling={false}
-                  style={scaledTextStyle(Type.body, fontScale)}
-                  className={
-                    stacked
-                      ? 'font-sora-semibold text-foreground'
-                      : 'font-sora-semibold text-foreground flex-1'
-                  }
-                >
-                  {row.name}
-                </Typography>
+              <TitleWithChip name={row.name} titleFontSize={Type.body}>
                 <Chip
                   size="sm"
                   variant="soft"
                   color={row.statusChipColor}
                   className="min-h-5 py-0"
-                  style={
-                    stacked
-                      ? { alignSelf: 'flex-start', marginTop: Spacing.xxxs }
-                      : { flexShrink: 0 }
-                  }
                   accessibilityRole="text"
                   accessibilityLabel={row.statusLabel}
                 >
@@ -95,7 +72,7 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
                     {row.statusLabel}
                   </Chip.Label>
                 </Chip>
-              </View>
+              </TitleWithChip>
               <Typography
                 style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
                 className="font-inter text-muted mt-0.5"

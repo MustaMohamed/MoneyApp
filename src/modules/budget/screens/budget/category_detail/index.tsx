@@ -19,6 +19,7 @@ import {
 } from '@/constants/theme';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category_detail/components/category_detail_skeleton';
+import { CategoryDetailTitle } from '@/modules/budget/screens/budget/category_detail/components/category_detail_title';
 import { LiveMonthCard } from '@/modules/budget/screens/budget/category_detail/components/live_month_card';
 import { MonthLedger } from '@/modules/budget/screens/budget/category_detail/components/month_ledger';
 import { MonthlyResultChart } from '@/modules/budget/screens/budget/category_detail/components/monthly_result_chart';
@@ -66,7 +67,7 @@ export default function CategoryBudgetDetailScreen() {
             color={state.color}
           />
         </View>
-        <Text style={styles.title}>{state.name}</Text>
+        <CategoryDetailTitle name={state.name} />
         {state.liveMonth && state.canEditLiveBudget && (
           <PressableFeedback
             onPress={editBudget}
@@ -117,13 +118,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  title: {
-    flex: 1,
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.title,
-    lineHeight: lineHeightFor(Type.title),
-    color: Colors.dark.text1,
   },
   editBtn: { padding: ms(4) },
   content: { paddingHorizontal: Spacing.md, paddingBottom: ms(96) },

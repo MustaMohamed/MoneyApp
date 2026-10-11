@@ -67,8 +67,35 @@ export function resolveRowStacking(fontScale: number): RowStacking {
 }
 
 /** Above font scale 1 a lone word takes one line and a tail ellipsis: Android breaks a word wider than its line at a glyph. */
-export function resolveLoneWordLines(text: string, lines: number, fontScale: number): number {
+export function resolveLoneWordLines(
+  text: string,
+  lines: number | undefined,
+  fontScale: number,
+): number | undefined {
   return fontScale <= 1 || /\s/.test(text.trim()) ? lines : 1;
+}
+
+// An apostrophe is part of its word: Android breaks a line beside one only inside a word.
+const ENDS_IN_WORD = /[\p{L}\p{N}'’]$/u;
+const STARTS_IN_WORD = /^[\p{L}\p{N}'’]/u;
+
+/** The first laid-out line, up to the cap, whose word runs on to the next line, else the cap: a line cut there ends in `…` and splits no word. */
+export function resolveWordSafeLines(
+  laidOutLines: readonly string[],
+  lines: number | undefined,
+): number | undefined {
+  const lastBreak = Math.min(lines ?? Infinity, laidOutLines.length - 1);
+  for (let line = 1; line <= lastBreak; line += 1) {
+    if (ENDS_IN_WORD.test(laidOutLines[line - 1]) && STARTS_IN_WORD.test(laidOutLines[line])) {
+      return line;
+    }
+  }
+  return lines;
+}
+
+/** `undefined` above font scale 1, where an OS-scaled capped line ends in a cut `…` and the text wraps whole instead; the caller's `lines` at or below. */
+export function resolveUncappedLinesAboveOne(lines: number, fontScale: number): number | undefined {
+  return fontScale > 1 ? undefined : lines;
 }
 
 export interface FitAmountTextProps {

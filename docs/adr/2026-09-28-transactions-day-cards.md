@@ -2,8 +2,8 @@
 
 - **Date:** 2026-09-28
 - **Status:** accepted
-- **Ticket:** MA-092, MA-132
-- **Applies to:** `groupTransactionsByDate` in `src/utils/group_transactions_by_date.ts`; `buildDaySections` and `composeDayHeaderAccessibilityLabel` in `src/modules/transactions/screens/transactions/transactions.helpers.ts`; `useTransactions` in `transactions.hook.ts`; `DayHeader` in `components/day_header.tsx`; `resolveDayHeaderGeometry` in `components/transactions_text.geometry.ts`; `resolveDayCardSliceStyle` and `resolveDayCardSwipeCorners` in `components/day_card_row.helpers.ts`; `DayCardRow` in `components/day_card_row.tsx`; `containerStyle` on `SwipeableRow` in `src/components/ui/swipeable_row.tsx`
+- **Ticket:** MA-092, MA-132, MA-171
+- **Applies to:** `groupTransactionsByDate` in `src/utils/group_transactions_by_date.ts`; `buildDaySections` and `composeDayHeaderAccessibilityLabel` in `src/modules/transactions/screens/transactions/transactions.helpers.ts`; `useTransactions` in `transactions.hook.ts`; `DayHeader` in `components/day_header.tsx`; `resolveDayHeaderGeometry` and `resolveDayHeaderNetMaxWidth` in `components/transactions_text.geometry.ts`; `resolveDayCardSliceStyle` and `resolveDayCardSwipeCorners` in `components/day_card_row.helpers.ts`; `DayCardRow` in `components/day_card_row.tsx`; `containerStyle` on `SwipeableRow` in `src/components/ui/swipeable_row.tsx`
 
 Each day in the transactions list opens under a header that reads the day, the day's net in EGP and a count pill. The header replaces `DateHeader` in this list; the commitments list keeps `DateHeader` unchanged.
 
@@ -33,7 +33,7 @@ The header root is `accessible` with one composed label, so a screen reader read
 
 ## 7. The header scales its own text, uncapped
 
-Every text takes `allowFontScaling={false}` and a size from `resolveDayHeaderGeometry(fontScale)`: `Type.caption` times the OS font scale with no cap, its `lineHeightFor` line box, a pill of that line box plus `Spacing.xxxs` above and below, and a fixed height of `Spacing.md` + the pill + `Spacing.xs` in all three modes. The fixed height keeps the pinned header from jumping when the figures land. The label takes the remaining width and ends in an ellipsis; the net and the pill never shrink.
+Every text takes `allowFontScaling={false}` and a size from `resolveDayHeaderGeometry(fontScale)`: `Type.caption` times the OS font scale with no cap, its `lineHeightFor` line box, a pill of that line box plus `Spacing.xxxs` above and below, and a fixed height of `Spacing.md` + the pill + `Spacing.xs` in all three modes. The fixed height keeps the pinned header from jumping when the figures land. The label takes the remaining width and ends in an ellipsis; the pill never shrinks, and above font scale 1 the net's box stops at half the header's inner width, `resolveDayHeaderNetMaxWidth(fontScale, width)`, and a wider net shrinks to fit on its line.
 
 Android reserves a truncated line's `…` in the TextView paint's Roboto (0.669 em) and draws it in the span's face (Inter SemiBold 0.956 em), so the label's outer `Text` sizes that paint at `INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE` (1.45) times the size a nested `Text` draws at; any truncating text in a custom face needs a paint `…` at least as wide as its face's.
 

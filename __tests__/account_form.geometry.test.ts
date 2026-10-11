@@ -18,6 +18,7 @@ import {
   resolveBalanceField,
   resolveBalanceRowLabelLines,
   resolveCurrencyTabsBoxHeight,
+  resolveTaggedRowLabelLines,
 } from '@/modules/accounts/components/account_form/account_form.geometry';
 import { TYPE_OPTIONS } from '@/modules/accounts/components/account_type_pill';
 
@@ -172,5 +173,15 @@ describe('resolveBalanceRowLabelLines', () => {
     [2, 2],
   ])('MA-162: at font scale %s the balance row labels keep %i', (fontScale, lines) => {
     expect(resolveBalanceRowLabelLines(fontScale)).toBe(lines);
+  });
+});
+
+describe('resolveTaggedRowLabelLines', () => {
+  it('MA-171: reserves no line at font scale 1', () => {
+    expect(resolveTaggedRowLabelLines(1)).toBeUndefined();
+  });
+
+  it.each([1.3, 2])('MA-171: reserves two lines at font scale %s', (fontScale) => {
+    expect(resolveTaggedRowLabelLines(fontScale)).toBe(2);
   });
 });

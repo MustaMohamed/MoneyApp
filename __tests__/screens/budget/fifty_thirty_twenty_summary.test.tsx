@@ -100,4 +100,24 @@ describe('MonthlyRuleSummary', () => {
       expect(valueNode).toHaveStyle(scaledTextStyle(Type.bodyStrong, fontScale));
     }
   });
+
+  it('scales the eyebrow app-side and gives the spent line no line cap above a font scale of 1', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const lens = vm(20_000, [budget()]);
+    const screen = await render(<MonthlyRuleSummary vm={lens} onEditIncome={jest.fn()} />);
+
+    const { eyebrowLabel, contextSpentLabel, contextConnectorLabel, contextPlannedLabel } =
+      lens.summary.presentation;
+    const eyebrow = screen.getByText(eyebrowLabel);
+    expect(eyebrow).toHaveProp('allowFontScaling', false);
+    expect(eyebrow).toHaveStyle(scaledTextStyle(Type.meta, fontScale));
+
+    expect(contextConnectorLabel).not.toBe('');
+    expect(contextPlannedLabel).not.toBe('');
+    const spentLine = screen.getByText(
+      `${contextSpentLabel} ${contextConnectorLabel} ${contextPlannedLabel}`,
+    );
+    expect(spentLine.props.numberOfLines).toBeUndefined();
+  });
 });

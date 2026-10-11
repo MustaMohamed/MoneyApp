@@ -1,11 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card, Chip } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { resolveRowStacking, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
+import { BudgetSummaryMetricsRow } from '@/modules/budget/screens/budget/components/budget_summary_parts';
 import type { SpendingPlanDetailVM } from '@/modules/budget/screens/budget/spending_plans.types';
 
 interface SpendingPlanDetailSummaryProps {
@@ -13,6 +15,9 @@ interface SpendingPlanDetailSummaryProps {
 }
 
 export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryProps) {
+  const { fontScale } = useWindowDimensions();
+  const stacked = resolveRowStacking(fontScale) === 'stacked';
+  const insightText = scaledTextStyleAboveOne(Type.meta, fontScale);
   return (
     <Card
       className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0"
@@ -57,8 +62,10 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
         </View>
 
         <View className="mt-1 flex-row items-center justify-between gap-3">
-          <Text className="font-inter-medium text-foreground text-[14px]">{detail.spentLabel}</Text>
-          <Text className="font-inter-semibold text-content-secondary text-[13px]">
+          <Text className="font-inter-medium text-foreground shrink text-[14px]">
+            {detail.spentLabel}
+          </Text>
+          <Text className="font-inter-semibold text-content-secondary shrink-0 text-[13px]">
             {detail.percentageLabel}
           </Text>
         </View>
@@ -92,28 +99,44 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
           ) : null}
         </View>
 
-        <View className="border-border mt-1.5 flex-row items-stretch border-t pt-1">
-          {detail.metrics.map((metric, index) => (
-            <React.Fragment key={metric.label}>
-              {index > 0 ? <View className="bg-border w-px" /> : null}
-              <View className="flex-1 items-center px-0.5">
-                <Text className="font-inter text-content-secondary text-center text-[11.5px]">
-                  {metric.label}
-                </Text>
-                <Text className="font-sora-semibold text-foreground mt-px text-center text-[15px]">
-                  {metric.value}
-                </Text>
-              </View>
-            </React.Fragment>
-          ))}
-        </View>
+        {stacked ? (
+          <BudgetSummaryMetricsRow
+            items={detail.metrics.map(({ label, value }) => ({ key: label, label, value }))}
+          />
+        ) : (
+          <View className="border-border mt-1.5 flex-row items-stretch border-t pt-1">
+            {detail.metrics.map((metric, index) => (
+              <React.Fragment key={metric.label}>
+                {index > 0 ? <View className="bg-border w-px" /> : null}
+                <View className="flex-1 items-center px-0.5">
+                  <Text className="font-inter text-content-secondary text-center text-[11.5px]">
+                    {metric.label}
+                  </Text>
+                  <Text className="font-sora-semibold text-foreground mt-px text-center text-[15px]">
+                    {metric.value}
+                  </Text>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        )}
 
         {detail.insights.length > 0 ? (
-          <View className="border-border mt-1.5 flex-row gap-1 border-t pt-1">
+          <View
+            className={
+              stacked
+                ? 'border-border mt-1.5 gap-1 border-t pt-1'
+                : 'border-border mt-1.5 flex-row gap-1 border-t pt-1'
+            }
+          >
             {detail.insights.map((insight) => (
               <View
                 key={insight.key}
-                className="bg-default min-h-8 flex-1 flex-row items-center gap-1 rounded-lg px-2 py-0.5"
+                className={
+                  stacked
+                    ? 'bg-default min-h-8 flex-row items-center gap-1 rounded-lg px-2 py-0.5'
+                    : 'bg-default min-h-8 flex-1 flex-row items-center gap-1 rounded-lg px-2 py-0.5'
+                }
               >
                 <MaterialCommunityIcons
                   accessible={false}
@@ -123,6 +146,8 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
                 />
                 <Text
                   className="font-inter-medium text-content-secondary flex-1 text-[13px]"
+                  allowFontScaling={insightText === undefined}
+                  style={insightText}
                   numberOfLines={2}
                 >
                   {insight.label}

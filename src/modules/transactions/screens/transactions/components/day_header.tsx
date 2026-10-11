@@ -11,6 +11,7 @@ import {
   DAY_HEADER_ROOT_STYLE,
   INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE,
   resolveDayHeaderGeometry,
+  resolveDayHeaderNetMaxWidth,
 } from './transactions_text.geometry';
 
 const LABEL_STYLE = { flex: 1, minWidth: 0 } as const;
@@ -34,9 +35,9 @@ interface Props {
 }
 
 export const DayHeader = React.memo(function DayHeader({ section }: Props): React.ReactElement {
-  const { fontSize, lineHeight, pillHeight, height } = resolveDayHeaderGeometry(
-    useWindowDimensions().fontScale,
-  );
+  const { fontScale, width } = useWindowDimensions();
+  const { fontSize, lineHeight, pillHeight, height } = resolveDayHeaderGeometry(fontScale);
+  const netMaxWidth = resolveDayHeaderNetMaxWidth(fontScale, width);
   const textStyle = { fontSize, lineHeight: lineHeightFor(fontSize) };
   const reserveFontSize = fontSize * INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE;
   const { figures } = section;
@@ -70,8 +71,9 @@ export const DayHeader = React.memo(function DayHeader({ section }: Props): Reac
         ) : (
           <Text
             className="font-sora text-content-secondary tabular-nums"
-            style={textStyle}
+            style={[textStyle, { maxWidth: netMaxWidth }]}
             numberOfLines={1}
+            adjustsFontSizeToFit={netMaxWidth !== undefined}
             allowFontScaling={false}
           >
             {figures.net}

@@ -280,6 +280,23 @@ describe('50/30/20 rule ledger', () => {
     expect(variance).toHaveStyle(scaledTextStyle(Type.bodyStrong, fontScale));
   });
 
+  it('gives the bucket details line no line cap above a font scale of 1', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const bucket = statusBucket({ income: 10_000, group: BudgetGroup.Need, planned: 6_000 });
+    const screen = await render(
+      <RuleLedger
+        buckets={[bucket]}
+        expandedGroup={undefined}
+        onExpandedGroupChange={jest.fn()}
+        onManageGroup={jest.fn()}
+      />,
+    );
+
+    const details = screen.getByText(bucket.presentation.detailsLabel);
+    expect(details.props.numberOfLines).toBeUndefined();
+  });
+
   it('preserves the expanded contributor skeleton during refresh', async () => {
     const screen = await render(
       <BudgetScreenSkeleton

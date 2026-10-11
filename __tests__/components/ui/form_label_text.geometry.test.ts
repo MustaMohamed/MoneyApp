@@ -22,3 +22,26 @@ describe.each(FONT_SCALES)('resolveFormLabelReserve at font scale %s', (fontScal
     },
   );
 });
+
+describe('resolveFormLabelReserve with a tag line', () => {
+  it.each(RESERVED_LINES)(
+    'MA-171: %s reserved keeps one more line above font scale 1 and no more at it',
+    (lines) => {
+      const atOne = scaledTextStyle(Type.detail, 1);
+      const atTwo = scaledTextStyle(Type.detail, 2);
+
+      expect(resolveFormLabelReserve(lines, 1, true)).toEqual({
+        text: atOne,
+        minHeight: lines * atOne.lineHeight,
+      });
+      expect(resolveFormLabelReserve(lines, 2, true)).toEqual({
+        text: atTwo,
+        minHeight: (lines + 1) * atTwo.lineHeight,
+      });
+    },
+  );
+
+  it('MA-171: with no line reserved there is no reserve at font scale 2', () => {
+    expect(resolveFormLabelReserve(undefined, 2, true)).toBeUndefined();
+  });
+});

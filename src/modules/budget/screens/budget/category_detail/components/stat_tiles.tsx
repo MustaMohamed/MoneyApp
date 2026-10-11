@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { resolveFitAmountTextProps } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
@@ -41,9 +42,17 @@ export function StatTiles({ history }: { history: CategoryHistoryVM }) {
 }
 
 function Tile({ value, label, valueColor }: { value: string; label: string; valueColor?: string }) {
+  const { fontScale } = useWindowDimensions();
+  const valueText = resolveFitAmountTextProps(Type.subhead, fontScale);
   return (
     <View style={styles.tile}>
-      <Text style={[styles.value, valueColor ? { color: valueColor } : undefined]}>{value}</Text>
+      <Text
+        {...valueText}
+        numberOfLines={fontScale > 1 ? valueText.numberOfLines : undefined}
+        style={[styles.value, valueText.style, valueColor ? { color: valueColor } : undefined]}
+      >
+        {value}
+      </Text>
       <Text style={styles.label}>{label}</Text>
     </View>
   );
@@ -58,14 +67,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.dark.border,
     paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xxs,
     alignItems: 'center',
   },
-  value: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
-    lineHeight: lineHeightFor(Type.subhead),
-    color: Colors.dark.text1,
-  },
+  value: { fontFamily: FontFamily.soraBold, color: Colors.dark.text1 },
   label: {
     fontFamily: FontFamily.interRegular,
     fontSize: ms(9),

@@ -8,6 +8,7 @@ import {
   resolveFitAmountTextProps,
   resolveLoneWordLines,
   resolveOneLineTextProps,
+  resolveUncappedLinesAboveOne,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup } from '@/constants/enums';
@@ -27,6 +28,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
   const presentation = bucket.presentation;
   const { fontScale } = useWindowDimensions();
   const varianceText = resolveFitAmountTextProps(Type.bodyStrong, fontScale);
+  const detailsLines = resolveUncappedLinesAboveOne(1, fontScale);
 
   return (
     <Accordion.Item value={bucket.group}>
@@ -92,7 +94,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
             <Text
               style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
               className="font-inter text-content-secondary mt-0.5"
-              numberOfLines={1}
+              numberOfLines={detailsLines}
             >
               {presentation.detailsLabel}
             </Text>

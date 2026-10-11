@@ -86,10 +86,10 @@ export default function SpendingPlanDetailScreen() {
               <SpendingPlanDetailSummary detail={plan.detail} />
 
               <View className="mt-3 flex-row items-center justify-between gap-3 px-4">
-                <Text className="font-inter-semibold text-content-secondary text-[13px] uppercase">
+                <Text className="font-inter-semibold text-content-secondary shrink text-[13px] uppercase">
                   {Strings.budgetPlansDetailCategories}
                 </Text>
-                <Text className="font-inter-medium text-content-secondary text-[13px]">
+                <Text className="font-inter-medium text-content-secondary shrink-0 text-[13px]">
                   {plan.detail.totalSpentLabel}
                 </Text>
               </View>
