@@ -80,6 +80,15 @@ export function resolveAccountStripChipGeometry(fontScale: number): {
   return { height: Math.max(ACCOUNT_STRIP_CHIP_HEIGHT, label?.lineHeight ?? 0), label };
 }
 
+/** Above scale 1 the app scales the Note's text: Android draws the hint without the line box, and an OS-scaled line box is shorter than the hint's own lines; the row's floor grows with the line box. */
+export function resolveNoteInputGeometry(fontScale: number): {
+  minHeight: number;
+  text: ScaledTextStyle | undefined;
+} {
+  const text = scaledTextStyleAboveOne(Type.body, fontScale);
+  return { minHeight: Math.max(FACT_ROW_MIN_HEIGHT, text?.lineHeight ?? 0), text };
+}
+
 interface AccountStripRevealInput {
   /** The chip's position in the strip, from 0. */
   index: number;

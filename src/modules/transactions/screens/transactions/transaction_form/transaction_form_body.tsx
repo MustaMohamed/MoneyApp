@@ -33,7 +33,7 @@ import { FormPickerRow } from './components/form_picker_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import {
   ACCOUNT_STRIP_WRAPPER_PADDING_Y,
-  FACT_ROW_MIN_HEIGHT,
+  resolveNoteInputGeometry,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form.geometry';
 import { TypeTabs } from './components/type_tabs';
@@ -175,6 +175,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const toRowFace = resolveToRowFace({ locked, account: selectedToAccount ?? undefined });
   const { fontScale } = useWindowDimensions();
   const supportingLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
+  const noteGeometry = resolveNoteInputGeometry(fontScale);
 
   return (
     <BottomSheetScrollView
@@ -386,7 +387,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           <View
             testID="note-row"
             className="gap-3 px-4"
-            style={{ minHeight: FACT_ROW_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center' }}
+            style={{
+              minHeight: noteGeometry.minHeight,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
           >
             <Text
               className="font-inter text-content-secondary"
@@ -403,17 +408,19 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               onBlur={handleNoteInputBlur}
               // Android: a single-line edit text keeps the parent's touch lock, so a drag that starts on it never scrolls the form.
               multiline
+              allowFontScaling={noteGeometry.text === undefined}
               submitBehavior="blurAndSubmit"
               variant="secondary"
               className="font-sora text-foreground rounded-none border-0 bg-transparent p-0 tabular-nums"
               style={{
                 flex: 1,
                 minWidth: 0,
-                minHeight: FACT_ROW_MIN_HEIGHT,
+                minHeight: noteGeometry.minHeight,
                 textAlign: 'right',
                 borderColor: INPUT_NO_FOCUS_BORDER_COLOR,
                 fontSize: Type.body,
                 lineHeight: lineHeightFor(Type.body),
+                ...noteGeometry.text,
               }}
             />
           </View>

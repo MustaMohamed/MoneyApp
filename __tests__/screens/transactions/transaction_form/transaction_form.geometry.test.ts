@@ -10,6 +10,7 @@ import {
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
   resolveAccountStripChipGeometry,
+  resolveNoteInputGeometry,
   resolveTransactionFormSkeletonBars,
   resolveTypeTabsGeometry,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
@@ -146,6 +147,24 @@ describe('transaction form content inset', () => {
     expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE).toEqual({
       padding: Spacing.md,
       gap: Spacing.xs,
+    });
+  });
+});
+
+describe('resolveNoteInputGeometry', () => {
+  it('MA-163: leaves the Note to the OS at scale 1, scales its text in the app above it, and grows the row floor once the line box passes it', () => {
+    expect(resolveNoteInputGeometry(1)).toStrictEqual({
+      minHeight: FACT_ROW_MIN_HEIGHT,
+      text: undefined,
+    });
+    expect(resolveNoteInputGeometry(2)).toStrictEqual({
+      minHeight: FACT_ROW_MIN_HEIGHT,
+      text: scaledTextStyle(Type.body, 2),
+    });
+    expect(lineHeightFor(4 * Type.body)).toBeGreaterThan(FACT_ROW_MIN_HEIGHT);
+    expect(resolveNoteInputGeometry(4)).toStrictEqual({
+      minHeight: lineHeightFor(4 * Type.body),
+      text: scaledTextStyle(Type.body, 4),
     });
   });
 });
