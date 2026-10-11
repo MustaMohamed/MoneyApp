@@ -338,11 +338,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 }
                 valueNumberOfLines={budgetLookupError ? 0 : undefined}
                 valueClassName={budgetLookupError ? 'font-inter-medium text-danger' : undefined}
-                valueStyle={
-                  budgetLookupError
-                    ? { fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }
-                    : undefined
-                }
+                valueFontSize={budgetLookupError ? Type.caption : undefined}
                 prefix={
                   <MaterialCommunityIcons
                     name="wallet-outline"

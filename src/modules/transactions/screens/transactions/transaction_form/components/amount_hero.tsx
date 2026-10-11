@@ -8,16 +8,18 @@ import { Text } from '@/components/ui/text';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { maskMoneyFieldText } from '@/utils/money_text';
 
 import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
 import {
+  AMOUNT_CODE_STYLE,
   AMOUNT_ENTRY_MAX_FONT_SCALE,
   AMOUNT_ERROR_LINE_HEIGHT,
   AMOUNT_ERROR_LINE_STYLE,
+  AMOUNT_FLANK_STYLE,
 } from './transaction_form.geometry';
 
 const amountClass = tv({
@@ -31,10 +33,6 @@ const amountClass = tv({
     },
   },
 });
-
-// Auto basis and no shrink: a flank is never narrower than the code it holds, and the two grow by equal shares.
-const FLANK_STYLE = { flexGrow: 1, flexShrink: 0, flexBasis: 'auto' } as const;
-const CODE_STYLE = { fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) };
 
 interface Props {
   onChange: (value: string) => void;
@@ -61,8 +59,8 @@ export function AmountHero({
       style={{ flexDirection: 'row', alignItems: 'baseline' }}
       className="border-separator border-b py-4"
     >
-      <View style={{ ...FLANK_STYLE, alignItems: 'flex-end' }}>
-        <Text className="font-inter text-muted mr-2" style={CODE_STYLE}>
+      <View style={{ ...AMOUNT_FLANK_STYLE, alignItems: 'flex-end' }}>
+        <Text className="font-inter text-muted mr-2" style={AMOUNT_CODE_STYLE}>
           {currency}
         </Text>
       </View>
@@ -100,10 +98,10 @@ export function AmountHero({
           />
         ) : null}
       </View>
-      <View style={FLANK_STYLE}>
+      <View style={AMOUNT_FLANK_STYLE}>
         <Text
           className="font-inter text-muted mr-2"
-          style={{ ...CODE_STYLE, opacity: 0 }}
+          style={{ ...AMOUNT_CODE_STYLE, opacity: 0 }}
           importantForAccessibility="no-hide-descendants"
           accessibilityElementsHidden
         >

@@ -24,6 +24,20 @@ describe('resolveSheetSizeAboveOne', () => {
 });
 
 describe('resolveSnapPoints', () => {
+  it('MA-163: the seven sizes ascend along the steps resolveSheetSizeAboveOne takes', () => {
+    const percent = (size: Parameters<typeof resolveSheetSizeAboveOne>[0]) =>
+      Number.parseFloat(String(resolveSnapPoints(size, undefined)[0]));
+    const steps = [percent('xxs')];
+    let size: Parameters<typeof resolveSheetSizeAboveOne>[0] = 'xxs';
+    while (resolveSheetSizeAboveOne(size, 2) !== size) {
+      size = resolveSheetSizeAboveOne(size, 2);
+      steps.push(percent(size));
+    }
+
+    expect(size).toBe('xxl');
+    expect(steps).toStrictEqual([25, 35, 45, 60, 75, 85, 95]);
+  });
+
   it('xxs preset resolves to 25%', () => {
     expect(resolveSnapPoints('xxs', undefined)).toEqual(['25%']);
   });

@@ -18,6 +18,12 @@ export function useTransactionFormNoteReveal(): TransactionFormNoteReveal {
   const lastHeightRef = useRef<number | undefined>(undefined);
   const requestFrame = usePendingFrame();
 
+  const scrollToEndNextFrame = useCallback(() => {
+    requestFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: false });
+    });
+  }, [requestFrame]);
+
   const handleScrollLayout = useCallback(
     (event: LayoutChangeEvent) => {
       const height = event.nativeEvent.layout.height;
@@ -26,20 +32,16 @@ export function useTransactionFormNoteReveal(): TransactionFormNoteReveal {
       if (previousHeight === undefined || height >= previousHeight) return;
       if (!noteFocusedRef.current) return;
       // A view command runs before the mount items queued with it, so the scroll waits for the frame after the shrink mounts.
-      requestFrame(() => {
-        scrollRef.current?.scrollToEnd({ animated: false });
-      });
+      scrollToEndNextFrame();
     },
-    [requestFrame],
+    [scrollToEndNextFrame],
   );
 
   const handleNoteFocus = useCallback(() => {
     noteFocusedRef.current = true;
     // With the keyboard already up the scroll's frame does not shrink, so the focus asks for the end itself.
-    requestFrame(() => {
-      scrollRef.current?.scrollToEnd({ animated: false });
-    });
-  }, [requestFrame]);
+    scrollToEndNextFrame();
+  }, [scrollToEndNextFrame]);
 
   const handleNoteBlur = useCallback(() => {
     noteFocusedRef.current = false;

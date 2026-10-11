@@ -22,7 +22,9 @@ interface FormPickerRowProps {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   valueClassName?: string;
-  valueStyle?: TextStyle;
+  valueStyle?: Omit<TextStyle, 'fontSize' | 'lineHeight'>;
+  /** The value's size at scale 1; a one-line value is scaled from it above scale 1. */
+  valueFontSize?: number;
   valueNumberOfLines?: number;
   divider?: boolean;
 }
@@ -40,6 +42,7 @@ export function FormPickerRow({
   accessibilityHint,
   valueClassName,
   valueStyle,
+  valueFontSize = Type.body,
   valueNumberOfLines = 1,
   divider = true,
 }: FormPickerRowProps): React.ReactElement {
@@ -47,7 +50,7 @@ export function FormPickerRow({
   // A one-line value is scaled by the app above scale 1, so its ellipsis stays inside its box; any other count keeps OS scaling.
   const oneLine =
     valueNumberOfLines === 1
-      ? resolveOneLineTextProps(scaledTextStyleAboveOne(Type.body, fontScale))
+      ? resolveOneLineTextProps(scaledTextStyleAboveOne(valueFontSize, fontScale))
       : undefined;
 
   return (
@@ -92,8 +95,8 @@ export function FormPickerRow({
             {
               flexShrink: 1,
               textAlign: 'right',
-              fontSize: Type.body,
-              lineHeight: lineHeightFor(Type.body),
+              fontSize: valueFontSize,
+              lineHeight: lineHeightFor(valueFontSize),
             },
             oneLine?.style,
             valueStyle,

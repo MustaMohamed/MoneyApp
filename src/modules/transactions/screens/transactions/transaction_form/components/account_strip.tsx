@@ -65,6 +65,7 @@ export function AccountStrip({
   );
   const { fontScale } = useWindowDimensions();
   const chipGeometry = resolveAccountStripChipGeometry(fontScale);
+  const chipLabel = resolveOneLineTextProps(chipGeometry.label);
   const emptyLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.caption, fontScale));
 
   return (
@@ -146,9 +147,9 @@ export function AccountStrip({
                     />
                   ) : undefined
                 }
-                labelNumberOfLines={1}
-                labelAllowFontScaling={chipGeometry.label === undefined}
-                labelStyle={{ ...chipGeometry.label, flexShrink: 1, textAlign: 'left' }}
+                labelNumberOfLines={chipLabel.numberOfLines}
+                labelAllowFontScaling={chipLabel.allowFontScaling}
+                labelStyle={{ ...chipLabel.style, textAlign: 'left' }}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',

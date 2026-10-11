@@ -1,5 +1,6 @@
 import type { Insets } from 'react-native';
 
+import { SELECTABLE_PILL_LABEL_FONT_SIZE } from '@/components/ui/chip.geometry';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
@@ -60,6 +61,13 @@ export const ACCOUNT_STRIP_INSET_X = Spacing.md;
 export const ACCOUNT_STRIP_PADDING_Y = Math.max(Spacing.xxs, ACCOUNT_STRIP_CHIP_SLOP_Y);
 export const ACCOUNT_STRIP_WRAPPER_PADDING_Y = ACCOUNT_STRIP_PADDING_Y - ACCOUNT_STRIP_CHIP_SLOP_Y;
 
+/** Auto basis and no shrink: a flank of the amount row is never narrower than the code it holds, and the two grow by equal shares. */
+export const AMOUNT_FLANK_STYLE = { flexGrow: 1, flexShrink: 0, flexBasis: 'auto' } as const;
+export const AMOUNT_CODE_STYLE = {
+  fontSize: Type.bodyStrong,
+  lineHeight: lineHeightFor(Type.bodyStrong),
+};
+
 /** A money figure at entry size stops growing at the top of the gated text scale range. */
 export const AMOUNT_ENTRY_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
 
@@ -68,7 +76,7 @@ export function resolveAccountStripChipGeometry(fontScale: number): {
   height: number;
   label: ScaledTextStyle | undefined;
 } {
-  const label = scaledTextStyleAboveOne(Type.micro, fontScale);
+  const label = scaledTextStyleAboveOne(SELECTABLE_PILL_LABEL_FONT_SIZE, fontScale);
   return { height: Math.max(ACCOUNT_STRIP_CHIP_HEIGHT, label?.lineHeight ?? 0), label };
 }
 

@@ -19,7 +19,7 @@ export { useBottomSheetAwareHandlers } from 'heroui-native';
 export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(72);
 
 const SHEET_SIZES = ['xxs', 'xs', 'sm', 'md', 'lg', 'xl', 'xxl'] as const;
-export type SheetSize = (typeof SHEET_SIZES)[number];
+type SheetSize = (typeof SHEET_SIZES)[number];
 
 /** Above font scale 1 a sheet that cannot scroll takes `aboveOne`, or the next size up, so no content sits under its footer. */
 export function resolveSheetSizeAboveOne(
@@ -100,7 +100,7 @@ interface SheetContentPaddingInput {
   footerHeight: number;
 }
 
-/** The measured footer is the bottom padding of a fitContent sheet and of a scrollable sheet that lifts; a scrollable sheet that does not lift takes the footer's excess over `SHEET_FOOTER_CLEARANCE`; every other sheet keeps HeroUI's own bottom inset. */
+/** The measured footer is the bottom padding of a fitContent sheet and of a scrollable sheet that lifts; a scrollable sheet that does not lift takes the excess of a footer taller than `SHEET_FOOTER_CLEARANCE`; every other sheet keeps HeroUI's own bottom inset. */
 export function resolveSheetContentPadding({
   fitContent,
   scrollable,
@@ -112,8 +112,8 @@ export function resolveSheetContentPadding({
   if (scrollable && hasFooter && liftsAboveKeyboard) {
     return { padding: 0, paddingBottom: footerHeight };
   }
-  if (scrollable && hasFooter) {
-    return { padding: 0, paddingBottom: Math.max(0, footerHeight - SHEET_FOOTER_CLEARANCE) };
+  if (scrollable && hasFooter && footerHeight > SHEET_FOOTER_CLEARANCE) {
+    return { padding: 0, paddingBottom: footerHeight - SHEET_FOOTER_CLEARANCE };
   }
   return { padding: 0 };
 }

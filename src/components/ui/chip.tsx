@@ -9,7 +9,11 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import { resolveHeroPillGeometry, resolveSuccessChipGeometry } from '@/components/ui/chip.geometry';
+import {
+  SELECTABLE_PILL_LABEL_FONT_SIZE,
+  resolveHeroPillGeometry,
+  resolveSuccessChipGeometry,
+} from '@/components/ui/chip.geometry';
 import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
 import { Colors, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
@@ -99,7 +103,13 @@ export function SelectablePill({
         className={
           selected ? SELECTABLE_PILL_LABEL_CLASS.selected : SELECTABLE_PILL_LABEL_CLASS.unselected
         }
-        style={[{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }, labelStyle]}
+        style={[
+          {
+            fontSize: SELECTABLE_PILL_LABEL_FONT_SIZE,
+            lineHeight: lineHeightFor(SELECTABLE_PILL_LABEL_FONT_SIZE),
+          },
+          labelStyle,
+        ]}
       >
         {label}
       </Chip.Label>
