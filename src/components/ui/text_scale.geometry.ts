@@ -75,8 +75,9 @@ export function resolveLoneWordLines(
   return fontScale <= 1 || /\s/.test(text.trim()) ? lines : 1;
 }
 
-const ENDS_IN_WORD = /[\p{L}\p{N}]$/u;
-const STARTS_IN_WORD = /^[\p{L}\p{N}]/u;
+// An apostrophe is part of its word: Android breaks a line beside one only inside a word.
+const ENDS_IN_WORD = /[\p{L}\p{N}'’]$/u;
+const STARTS_IN_WORD = /^[\p{L}\p{N}'’]/u;
 
 /** The first laid-out line, up to the cap, whose word runs on to the next line, else the cap: a line cut there ends in `…` and splits no word. */
 export function resolveWordSafeLines(
@@ -90,6 +91,11 @@ export function resolveWordSafeLines(
     }
   }
   return lines;
+}
+
+/** `undefined` above font scale 1, where an OS-scaled capped line ends in a cut `…` and the text wraps whole instead; the caller's `lines` at or below. */
+export function resolveUncappedLinesAboveOne(lines: number, fontScale: number): number | undefined {
+  return fontScale > 1 ? undefined : lines;
 }
 
 export interface FitAmountTextProps {

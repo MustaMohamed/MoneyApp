@@ -5,7 +5,6 @@ import { useWindowDimensions } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { FormLabelText } from '@/components/ui/form_label_text';
-import { resolveTaggedRowLabelLines } from '@/components/ui/form_label_text.geometry';
 import { Input } from '@/components/ui/input';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import type { Currency } from '@/constants/enums';
@@ -19,6 +18,7 @@ import {
   MIN_PAYMENT_REFUSES_ZERO,
   type CreditFieldValues,
 } from '../../utils/credit_fields.schema';
+import { resolveTaggedRowLabelLines } from './account_form.geometry';
 import { FieldMessageRail } from './field_message_rail';
 
 export interface CreditCardFieldsProps<T extends CreditFieldValues> {

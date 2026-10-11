@@ -8,6 +8,7 @@ import {
   resolveFitAmountTextProps,
   resolveLoneWordLines,
   resolveRowStacking,
+  resolveUncappedLinesAboveOne,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { Colors, LetterSpacing, Size, TouchSize, Type, lineHeightFor } from '@/constants/theme';
@@ -193,8 +194,7 @@ export function BudgetSummarySpentRow({
   usedLabel: string;
 }) {
   const { fontScale } = useWindowDimensions();
-  // Above font scale 1 the spent line wraps with no cap, where a third OS-scaled line ended in a cut `…`.
-  const spentLines = resolveRowStacking(fontScale) === 'stacked' ? undefined : 2;
+  const spentLines = resolveUncappedLinesAboveOne(2, fontScale);
   return (
     <View className="mt-0.5 flex-row items-center justify-between gap-2">
       <Text

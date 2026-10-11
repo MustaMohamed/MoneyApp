@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { FITTED_LINE_SLACK, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Colors, FontFamily, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { MonthResultVM } from '@/modules/budget/screens/budget/budget.helpers';
@@ -20,6 +20,9 @@ export function MonthLedger({ results }: { results: MonthResultVM[] }) {
   // `results` arrives oldest first, so the ledger renders newest first.
   const ordered = [...results].reverse();
   const { fontScale } = useWindowDimensions();
+  // One device pixel past the gap: the two boxes round to whole pixels and read under 8 dp without it.
+  const descriptionStyle =
+    fontScale > 1 ? { marginRight: Spacing.xs + FITTED_LINE_SLACK } : undefined;
   const monthStyle = {
     width: resolveLedgerMonthColumnWidth(fontScale),
     ...scaledTextStyle(Type.body, fontScale),
@@ -36,7 +39,7 @@ export function MonthLedger({ results }: { results: MonthResultVM[] }) {
               {label(r.yearMonth, r.isProvisional)}
             </Text>
             <Text
-              style={styles.det}
+              style={[styles.det, descriptionStyle]}
             >{`${formatAmount(r.spent)} of ${formatAmount(r.limit)}${r.isProvisional ? ' · so far' : ''}`}</Text>
             <View style={[styles.delta, positive ? styles.deltaPos : styles.deltaNeg]}>
               <Text
@@ -76,8 +79,6 @@ const styles = StyleSheet.create({
   mo: { fontFamily: FontFamily.interSemi, color: Colors.dark.text1 },
   det: {
     flex: 1,
-    // One device pixel past the gap: the two boxes round to whole pixels and read under 8 dp without it.
-    marginRight: Spacing.xs + StyleSheet.hairlineWidth,
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
     lineHeight: lineHeightFor(Type.micro),

@@ -1,7 +1,4 @@
-import {
-  resolveFormLabelReserve,
-  resolveTaggedRowLabelLines,
-} from '@/components/ui/form_label_text.geometry';
+import { resolveFormLabelReserve } from '@/components/ui/form_label_text.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Type } from '@/constants/theme';
 
@@ -46,15 +43,5 @@ describe('resolveFormLabelReserve with a tag line', () => {
 
   it('MA-171: with no line reserved there is no reserve at font scale 2', () => {
     expect(resolveFormLabelReserve(undefined, 2, true)).toBeUndefined();
-  });
-});
-
-describe('resolveTaggedRowLabelLines', () => {
-  it('MA-171: reserves no line at font scale 1', () => {
-    expect(resolveTaggedRowLabelLines(1)).toBeUndefined();
-  });
-
-  it.each([1.3, 2])('MA-171: reserves two lines at font scale %s', (fontScale) => {
-    expect(resolveTaggedRowLabelLines(fontScale)).toBe(2);
   });
 });

@@ -21,12 +21,13 @@ interface TitleWithChipProps {
 export function TitleWithChip({ name, titleFontSize, children }: TitleWithChipProps) {
   const { fontScale } = useWindowDimensions();
   const stacked = resolveRowStacking(fontScale) === 'stacked';
-  const { numberOfLines, onTextLayout } = useWordSafeLines(name, TITLE_LINES, fontScale);
+  const { numberOfLines, onTextLayout, onLayout } = useWordSafeLines(name, TITLE_LINES, fontScale);
   return (
     <View className={stacked ? undefined : 'flex-row items-start gap-1.5'}>
       <Typography
         numberOfLines={numberOfLines}
         onTextLayout={onTextLayout}
+        onLayout={onLayout}
         allowFontScaling={false}
         style={scaledTextStyle(titleFontSize, fontScale)}
         className={

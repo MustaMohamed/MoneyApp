@@ -6,6 +6,7 @@ import {
   resolveLoneWordLines,
   resolveOneLineTextProps,
   resolveRowStacking,
+  resolveUncappedLinesAboveOne,
   resolveWordSafeLines,
   scaledFontSize,
   scaledTextStyle,
@@ -110,6 +111,19 @@ describe('resolveWordSafeLines', () => {
 
   it('MA-171: with no cap stays uncapped when every break falls between words', () => {
     expect(resolveWordSafeLines(['Food & ', 'Dining'], undefined)).toBeUndefined();
+  });
+
+  it('MA-171: reads an apostrophe on either side of a break as part of the word', () => {
+    expect(resolveWordSafeLines(["Children'", 's activities'], 2)).toBe(1);
+    expect(resolveWordSafeLines(['Children', "'s activities"], 2)).toBe(1);
+  });
+});
+
+describe('resolveUncappedLinesAboveOne', () => {
+  it('MA-171: keeps the cap of the caller at font scale 1 and gives none above it', () => {
+    expect(resolveUncappedLinesAboveOne(2, 1)).toBe(2);
+    expect(resolveUncappedLinesAboveOne(2, 1.3)).toBeUndefined();
+    expect(resolveUncappedLinesAboveOne(1, 2)).toBeUndefined();
   });
 });
 

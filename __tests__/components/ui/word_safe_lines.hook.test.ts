@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
-import type { TextLayoutEvent } from 'react-native';
+import type { LayoutChangeEvent, TextLayoutEvent } from 'react-native';
 
 import { useWordSafeLines } from '@/components/ui/word_safe_lines.hook';
 
@@ -13,10 +13,14 @@ const LONG_WORD_NAME = 'Entertainment subscriptions';
 const SPLIT_LAYOUT = ['Entertainm', 'ent subscri'];
 const CAPPED_TEXT = 'Entertain…';
 // Android reports a capped line as its drawn text padded with U+FEFF to the length of the source text.
-const CAPPED_LAYOUT = [CAPPED_TEXT + '﻿'.repeat(LONG_WORD_NAME.length - CAPPED_TEXT.length)];
+const CAPPED_LAYOUT = [CAPPED_TEXT + '\uFEFF'.repeat(LONG_WORD_NAME.length - CAPPED_TEXT.length)];
 
 function textLayoutEvent(lines: readonly string[]): TextLayoutEvent {
   return { nativeEvent: { lines: lines.map((text) => ({ text })) } } as unknown as TextLayoutEvent;
+}
+
+function layoutEvent(width: number): LayoutChangeEvent {
+  return { nativeEvent: { layout: { width } } } as unknown as LayoutChangeEvent;
 }
 
 async function mountWordSafeLines(initialProps: WordSafeLinesProps) {
@@ -28,6 +32,7 @@ async function mountWordSafeLines(initialProps: WordSafeLinesProps) {
     hook,
     layOut: (lines: readonly string[]) =>
       act(() => hook.result.current.onTextLayout?.(textLayoutEvent(lines))),
+    resize: (width: number) => act(() => hook.result.current.onLayout?.(layoutEvent(width))),
   };
 }
 
@@ -37,6 +42,7 @@ describe('useWordSafeLines', () => {
 
     expect(hook.result.current.numberOfLines).toBe(2);
     expect(hook.result.current.onTextLayout).toBeUndefined();
+    expect(hook.result.current.onLayout).toBeUndefined();
   });
 
   it('MA-171: at font scale 2 a lone word starts on one line with a layout handler', async () => {
@@ -89,6 +95,35 @@ describe('useWordSafeLines', () => {
     expect(hook.result.current.numberOfLines).toBe(1);
 
     await hook.rerender({ text: 'Food & Dining', lines: 2, fontScale: 2 });
+
+    expect(hook.result.current.numberOfLines).toBe(2);
+  });
+
+  it('MA-171: a new width of the text box starts again from the cap of the caller, and the same width leaves the lowered cap', async () => {
+    const { hook, layOut, resize } = await mountWordSafeLines({
+      text: LONG_WORD_NAME,
+      lines: 2,
+      fontScale: 2,
+    });
+    await resize(173);
+    await layOut(SPLIT_LAYOUT);
+    expect(hook.result.current.numberOfLines).toBe(1);
+
+    await resize(173);
+    expect(hook.result.current.numberOfLines).toBe(1);
+
+    await resize(260);
+    expect(hook.result.current.numberOfLines).toBe(2);
+  });
+
+  it('MA-171: a layout whose lines belong to another text leaves the cap of the caller', async () => {
+    const { hook, layOut } = await mountWordSafeLines({
+      text: 'Food & Dining',
+      lines: 2,
+      fontScale: 2,
+    });
+
+    await layOut(SPLIT_LAYOUT);
 
     expect(hook.result.current.numberOfLines).toBe(2);
   });

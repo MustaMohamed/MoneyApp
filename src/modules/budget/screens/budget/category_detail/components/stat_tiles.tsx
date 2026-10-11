@@ -42,11 +42,13 @@ export function StatTiles({ history }: { history: CategoryHistoryVM }) {
 }
 
 function Tile({ value, label, valueColor }: { value: string; label: string; valueColor?: string }) {
-  const valueText = resolveFitAmountTextProps(Type.subhead, useWindowDimensions().fontScale);
+  const { fontScale } = useWindowDimensions();
+  const valueText = resolveFitAmountTextProps(Type.subhead, fontScale);
   return (
     <View style={styles.tile}>
       <Text
         {...valueText}
+        numberOfLines={fontScale > 1 ? valueText.numberOfLines : undefined}
         style={[styles.value, valueText.style, valueColor ? { color: valueColor } : undefined]}
       >
         {value}

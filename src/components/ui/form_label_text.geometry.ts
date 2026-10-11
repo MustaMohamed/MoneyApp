@@ -12,8 +12,3 @@ export function resolveFormLabelReserve(
   const lines = reserveLines + (tagLine && fontScale > 1 ? 1 : 0);
   return { text, minHeight: lines * text.lineHeight };
 }
-
-/** Above scale 1 a label in a row with a tagged label keeps two lines, so both fields of the row start at one height. */
-export function resolveTaggedRowLabelLines(fontScale: number): 2 | undefined {
-  return fontScale <= 1 ? undefined : 2;
-}

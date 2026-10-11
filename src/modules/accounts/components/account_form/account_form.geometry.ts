@@ -94,6 +94,11 @@ export function resolveBalanceRowLabelLines(fontScale: number): 1 | 2 {
   return fontScale <= 1 ? 1 : 2;
 }
 
+/** Above scale 1 a label in a row with a tagged label keeps two lines, so both fields of the row start at one height. */
+export function resolveTaggedRowLabelLines(fontScale: number): 2 | undefined {
+  return fontScale <= 1 ? undefined : 2;
+}
+
 export function chunkTypeOptions(
   options: readonly TypeOption[],
   columns: number,

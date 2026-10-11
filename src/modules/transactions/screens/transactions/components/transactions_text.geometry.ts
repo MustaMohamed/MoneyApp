@@ -87,5 +87,7 @@ export function resolveDayHeaderNetMaxWidth(
   fontScale: number,
   headerWidth: number,
 ): number | undefined {
-  return fontScale <= 1 ? undefined : (headerWidth - 2 * Spacing.md) / 2;
+  return fontScale <= 1
+    ? undefined
+    : (headerWidth - 2 * DAY_HEADER_ROOT_STYLE.paddingHorizontal) / 2;
 }

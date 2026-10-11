@@ -5,7 +5,7 @@ import { View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/ui/text';
 import {
   resolveOneLineTextProps,
-  resolveRowStacking,
+  resolveUncappedLinesAboveOne,
   scaledTextStyleAboveOne,
 } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type } from '@/constants/theme';
@@ -19,8 +19,7 @@ interface SpendingPlanDetailCategoryRowProps {
 
 export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategoryRowProps) {
   const { fontScale } = useWindowDimensions();
-  // Above font scale 1 the status line wraps with no cap and the row grows under its minimum height.
-  const statusLines = resolveRowStacking(fontScale) === 'stacked' ? undefined : 1;
+  const statusLines = resolveUncappedLinesAboveOne(1, fontScale);
   return (
     <View
       accessible
