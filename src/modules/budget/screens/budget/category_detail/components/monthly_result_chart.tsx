@@ -1,15 +1,24 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Type, lineHeightFor } from '@/constants/theme';
 import type { MonthResultVM } from '@/modules/budget/screens/budget/budget.helpers';
+import { BUDGET_CHART_LABEL_MAX_FONT_SCALE } from '@/modules/budget/screens/budget/budget_text.geometry';
 import { ms } from '@/utils/responsive';
 
 export function MonthlyResultChart({ results }: { results: MonthResultVM[] }) {
   const maxAbs = Math.max(1, ...results.map((r) => Math.abs(r.delta)));
   const hasProvisional = results.some((r) => r.isProvisional);
+  const { fontScale } = useWindowDimensions();
+  // Above font scale 1 the labels share one size up to the stop, and the fit only takes a label still wider than its column.
+  const labelText = scaledTextStyleAboveOne(
+    Type.chip,
+    fontScale,
+    BUDGET_CHART_LABEL_MAX_FONT_SCALE,
+  );
   return (
     <View>
       <View style={styles.chart}>
@@ -39,7 +48,13 @@ export function MonthlyResultChart({ results }: { results: MonthResultVM[] }) {
       </View>
       <View style={styles.labels}>
         {results.map((r) => (
-          <Text key={r.yearMonth} style={styles.label}>
+          <Text
+            key={r.yearMonth}
+            style={[styles.label, labelText]}
+            numberOfLines={labelText ? 1 : undefined}
+            allowFontScaling={labelText === undefined}
+            adjustsFontSizeToFit={labelText !== undefined}
+          >
             {monthAbbrev(r.yearMonth)}
             {r.isProvisional ? '*' : ''}
           </Text>

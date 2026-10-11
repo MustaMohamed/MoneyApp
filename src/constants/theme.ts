@@ -192,6 +192,7 @@ export const Size = {
   budgetCategoryColumn: ms(46),
   budgetCategoryRing: ms(42),
   budgetRuleValueColumn: ms(72),
+  budgetLedgerMonthColumn: ms(54),
   budgetRuleChevronColumn: ms(18),
   budgetRuleRowMinHeight: ms(62),
   budgetNamedRing: ms(34),

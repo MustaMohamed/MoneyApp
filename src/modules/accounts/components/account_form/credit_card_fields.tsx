@@ -1,9 +1,11 @@
 import { ControlField, Label, Typography } from 'heroui-native';
 import React from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { useWindowDimensions } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { FormLabelText } from '@/components/ui/form_label_text';
+import { resolveTaggedRowLabelLines } from '@/components/ui/form_label_text.geometry';
 import { Input } from '@/components/ui/input';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import type { Currency } from '@/constants/enums';
@@ -53,12 +55,17 @@ export function CreditCardFields<T extends CreditFieldValues>({
   // Credit limit faults wrap to two lines in a half-width cell; APR faults fit one at full width.
   const moneyReserve = hideHelpers ? 2 : undefined;
   const aprReserve = hideHelpers ? 1 : undefined;
+  const labelLines = resolveTaggedRowLabelLines(useWindowDimensions().fontScale);
 
   return (
     <>
       <Box style={{ flexDirection: 'row', gap: Spacing.xs }}>
         <Box style={{ flex: 1 }}>
-          <FormLabelText label={Strings.accountCreditLimitLabel} />
+          <FormLabelText
+            label={Strings.accountCreditLimitLabel}
+            reserveLines={labelLines}
+            reserveTagLine
+          />
           <Controller
             control={control}
             name="credit_limit"
@@ -90,7 +97,11 @@ export function CreditCardFields<T extends CreditFieldValues>({
           />
         </Box>
         <Box style={{ flex: 1 }}>
-          <FormLabelText label={Strings.accountMinPaymentLabel} tag={Strings.fieldOptionalTag} />
+          <FormLabelText
+            label={Strings.accountMinPaymentLabel}
+            tag={Strings.fieldOptionalTag}
+            reserveLines={labelLines}
+          />
           <Controller
             control={control}
             name="min_payment"

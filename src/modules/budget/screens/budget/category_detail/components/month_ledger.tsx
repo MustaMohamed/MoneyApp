@@ -1,10 +1,12 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Colors, FontFamily, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { MonthResultVM } from '@/modules/budget/screens/budget/budget.helpers';
+import { resolveLedgerMonthColumnWidth } from '@/modules/budget/screens/budget/budget_text.geometry';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
@@ -17,6 +19,11 @@ import { ms } from '@/utils/responsive';
 export function MonthLedger({ results }: { results: MonthResultVM[] }) {
   // `results` arrives oldest first, so the ledger renders newest first.
   const ordered = [...results].reverse();
+  const { fontScale } = useWindowDimensions();
+  const monthStyle = {
+    width: resolveLedgerMonthColumnWidth(fontScale),
+    ...scaledTextStyle(Type.body, fontScale),
+  };
   return (
     <View>
       {ordered.map((r) => {
@@ -25,7 +32,9 @@ export function MonthLedger({ results }: { results: MonthResultVM[] }) {
         const deltaMag = formatDisplayMagnitude(r.delta, Currency.EGP);
         return (
           <View key={r.yearMonth} style={styles.row}>
-            <Text style={styles.mo}>{label(r.yearMonth, r.isProvisional)}</Text>
+            <Text style={[styles.mo, monthStyle]} numberOfLines={1} allowFontScaling={false}>
+              {label(r.yearMonth, r.isProvisional)}
+            </Text>
             <Text
               style={styles.det}
             >{`${formatAmount(r.spent)} of ${formatAmount(r.limit)}${r.isProvisional ? ' · so far' : ''}`}</Text>
@@ -64,15 +73,11 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.dark.border,
   },
-  mo: {
-    width: ms(54),
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.body,
-    lineHeight: lineHeightFor(Type.body),
-    color: Colors.dark.text1,
-  },
+  mo: { fontFamily: FontFamily.interSemi, color: Colors.dark.text1 },
   det: {
     flex: 1,
+    // One device pixel past the gap: the two boxes round to whole pixels and read under 8 dp without it.
+    marginRight: Spacing.xs + StyleSheet.hairlineWidth,
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
     lineHeight: lineHeightFor(Type.micro),

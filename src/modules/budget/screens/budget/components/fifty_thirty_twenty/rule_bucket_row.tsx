@@ -8,6 +8,7 @@ import {
   resolveFitAmountTextProps,
   resolveLoneWordLines,
   resolveOneLineTextProps,
+  resolveRowStacking,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup } from '@/constants/enums';
@@ -27,6 +28,8 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
   const presentation = bucket.presentation;
   const { fontScale } = useWindowDimensions();
   const varianceText = resolveFitAmountTextProps(Type.bodyStrong, fontScale);
+  // Above font scale 1 the details line wraps with no cap, where one OS-scaled line ended in a cut `…`.
+  const detailsLines = resolveRowStacking(fontScale) === 'stacked' ? undefined : 1;
 
   return (
     <Accordion.Item value={bucket.group}>
@@ -92,7 +95,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
             <Text
               style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
               className="font-inter text-content-secondary mt-0.5"
-              numberOfLines={1}
+              numberOfLines={detailsLines}
             >
               {presentation.detailsLabel}
             </Text>

@@ -81,3 +81,11 @@ export function resolveDayHeaderGeometry(fontScale: number): DayHeaderGeometry {
   const pillHeight = text.lineHeight + 2 * Spacing.xxxs;
   return { ...text, pillHeight, height: Spacing.md + pillHeight + Spacing.xs };
 }
+
+/** Above font scale 1 the net's box stops at half the header's inner width, the share a row's value track takes, and a wider net shrinks to fit. */
+export function resolveDayHeaderNetMaxWidth(
+  fontScale: number,
+  headerWidth: number,
+): number | undefined {
+  return fontScale <= 1 ? undefined : (headerWidth - 2 * Spacing.md) / 2;
+}

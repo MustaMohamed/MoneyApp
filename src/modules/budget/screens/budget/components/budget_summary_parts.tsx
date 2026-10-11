@@ -4,7 +4,12 @@ import { Fragment, type ComponentProps } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { resolveFitAmountTextProps, resolveRowStacking } from '@/components/ui/text_scale.geometry';
+import {
+  resolveFitAmountTextProps,
+  resolveLoneWordLines,
+  resolveRowStacking,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { Colors, LetterSpacing, Size, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 
 // Half the stacked metric row at most, so a label word keeps its line beside a long value.
@@ -63,17 +68,15 @@ export function BudgetSummaryHeader({
   const { fontScale } = useWindowDimensions();
   // Above font scale 1 the eyebrow and the trailing label wrap between words, where one line cut inside a word.
   const labelLines = resolveRowStacking(fontScale) === 'stacked' ? 2 : 1;
+  const labelText = scaledTextStyle(Type.meta, fontScale);
   return (
     <>
       <View className="flex-row items-center justify-between gap-2">
         <Text
-          style={{
-            fontSize: Type.meta,
-            lineHeight: lineHeightFor(Type.meta),
-            letterSpacing: LetterSpacing.eyebrow,
-          }}
+          allowFontScaling={false}
+          style={{ ...labelText, letterSpacing: LetterSpacing.eyebrow }}
           className="font-inter-semibold text-content-secondary shrink uppercase"
-          numberOfLines={labelLines}
+          numberOfLines={resolveLoneWordLines(eyebrowLabel, labelLines, fontScale)}
         >
           {eyebrowLabel}
         </Text>
@@ -165,9 +168,10 @@ export function BudgetSummaryHeader({
           </Chip>
         ) : trailingLabel ? (
           <Text
-            style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+            allowFontScaling={false}
+            style={labelText}
             className="font-inter-semibold text-content-secondary shrink"
-            numberOfLines={labelLines}
+            numberOfLines={resolveLoneWordLines(trailingLabel, labelLines, fontScale)}
           >
             {trailingLabel}
           </Text>
@@ -188,12 +192,15 @@ export function BudgetSummarySpentRow({
   plannedLabel: string;
   usedLabel: string;
 }) {
+  const { fontScale } = useWindowDimensions();
+  // Above font scale 1 the spent line wraps with no cap, where a third OS-scaled line ended in a cut `…`.
+  const spentLines = resolveRowStacking(fontScale) === 'stacked' ? undefined : 2;
   return (
     <View className="mt-0.5 flex-row items-center justify-between gap-2">
       <Text
         style={{ flex: 1, fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
         className="font-inter-medium text-content-secondary"
-        numberOfLines={2}
+        numberOfLines={spentLines}
       >
         <Text className="font-inter-semibold text-foreground">{spentLabel}</Text>
         {connectorLabel ? ` ${connectorLabel} ` : ''}
