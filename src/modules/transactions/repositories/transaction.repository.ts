@@ -15,6 +15,7 @@ import { toLocalDateString } from '@/utils/format_date';
 
 import {
   deleteTransactionRow,
+  getAnyTransactionExists,
   getTransactionById,
   getTransactionMonthAggregate,
   getTransactions,
@@ -265,6 +266,11 @@ export class TransactionRepository implements ITransactionRepository, ITransacti
   async getAll(query: TransactionListQuery = {}): Promise<Transaction[]> {
     const db = await getDb();
     return getTransactions(db, query);
+  }
+
+  async hasAny(): Promise<boolean> {
+    const db = await getDb();
+    return getAnyTransactionExists(db);
   }
 
   async getMonthAggregate(query: TransactionAggregateQuery): Promise<TransactionMonthAggregate> {

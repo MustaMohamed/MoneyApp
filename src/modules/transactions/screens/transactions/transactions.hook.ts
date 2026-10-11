@@ -292,8 +292,7 @@ export function useTransactions() {
     const requestId = beginExistenceRequest();
     setExistenceFailed(false);
     try {
-      const rows = await transactionRepository.getAll({ limit: 1 });
-      resolveExistence(requestId, version, rows.length > 0);
+      resolveExistence(requestId, version, await transactionRepository.hasAny());
     } catch (err) {
       console.error('[transactions] any-transaction read failed:', err);
       // A rejection nothing waits on sets no flag: the way back into the empty month reads again.
