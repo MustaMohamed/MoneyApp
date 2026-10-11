@@ -9,7 +9,7 @@ export interface WordSafeLines {
   onLayout: ((event: LayoutChangeEvent) => void) | undefined;
 }
 
-/** Above font scale 1 the line cap drops to the line where a laid-out word runs on, so the text ends in `…` and splits no word; a new box width starts again from the caller's cap. */
+/** Above font scale 1 the line cap drops to the line where a laid-out word runs on, so the text ends in `…` and splits no word; a wider box starts again from the caller's cap. */
 export function useWordSafeLines(
   text: string,
   lines: number | undefined,
@@ -34,7 +34,8 @@ export function useWordSafeLines(
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const previousWidth = widthRef.current;
     widthRef.current = event.nativeEvent.layout.width;
-    if (previousWidth !== undefined && previousWidth !== widthRef.current) setLowered(undefined);
+    // A narrower box keeps the cap: its own text layout lowers it, and that event comes before this one.
+    if (previousWidth !== undefined && widthRef.current > previousWidth) setLowered(undefined);
   }, []);
 
   return fontScale <= 1

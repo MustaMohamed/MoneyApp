@@ -127,4 +127,21 @@ describe('useWordSafeLines', () => {
 
     expect(hook.result.current.numberOfLines).toBe(2);
   });
+
+  it('MA-171: a narrower box reported after the layout that lowered the cap leaves the lowered cap', async () => {
+    const { hook, resize } = await mountWordSafeLines({
+      text: LONG_WORD_NAME,
+      lines: 2,
+      fontScale: 2,
+    });
+    await resize(260);
+    expect(hook.result.current.numberOfLines).toBe(2);
+
+    await act(() => {
+      hook.result.current.onTextLayout?.(textLayoutEvent(SPLIT_LAYOUT));
+      hook.result.current.onLayout?.(layoutEvent(173));
+    });
+
+    expect(hook.result.current.numberOfLines).toBe(1);
+  });
 });
