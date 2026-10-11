@@ -32,13 +32,13 @@ afterEach(() => {
 });
 
 describe('the wrapper toast', () => {
-  it('puts the check-circle, in the success colour, before a success label', async () => {
+  it('puts the check-circle, in the success colour, before a success label in the default variant', async () => {
     const { result } = await renderHook(() => useToast());
 
     result.current.toast.show({ label: 'x', variant: 'success' });
 
     const options = forwarded() as { icon: ReactElement };
-    expect(options).toEqual({ label: 'x', variant: 'success', icon: expect.anything() });
+    expect(options).toEqual({ label: 'x', variant: 'default', icon: expect.anything() });
     const { getByTestId } = await render(options.icon);
     expect(getByTestId('icon-check-circle')).toHaveStyle({
       color: Colors.dark.positive,
@@ -63,17 +63,15 @@ describe('the wrapper toast', () => {
     expect(forwarded()).toBe('x');
   });
 
-  it('keeps an icon the caller supplied', async () => {
+  it('keeps an icon the caller supplied on a success config, in the default variant', async () => {
     const { result } = await renderHook(() => useToast());
-    const options: ToastShowOptions = {
-      label: 'x',
-      variant: 'success',
-      icon: createElement(View),
-    };
+    const icon = createElement(View);
 
-    result.current.toast.show(options);
+    result.current.toast.show({ label: 'x', variant: 'success', icon });
 
-    expect(forwarded()).toBe(options);
+    const options = forwarded() as { icon: ReactElement };
+    expect(options).toEqual({ label: 'x', variant: 'default', icon: expect.anything() });
+    expect(options.icon).toBe(icon);
   });
 
   it('puts the check-circle on a success config whose component is undefined', async () => {
@@ -81,7 +79,7 @@ describe('the wrapper toast', () => {
 
     result.current.toast.show({ label: 'x', variant: 'success', component: undefined });
 
-    expect(forwarded()).toEqual({ label: 'x', variant: 'success', icon: expect.anything() });
+    expect(forwarded()).toEqual({ label: 'x', variant: 'default', icon: expect.anything() });
   });
 
   it('forwards a custom component call untouched', async () => {

@@ -78,6 +78,12 @@ jest.mock('@/components/ui/empty_state', () => {
     },
   };
 });
+jest.mock('@/components/ui/error_state', () => ({
+  ErrorState: ({ title, testID }: { title: string; testID?: string }) => {
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return <Text testID={testID}>{title}</Text>;
+  },
+}));
 jest.mock('@/components/ui/swipeable_row', () => ({ closeAllRows: jest.fn() }));
 jest.mock('@/modules/transactions/screens/transactions/components/transactions_hero', () => {
   const heroRenders = { count: 0 };

@@ -1258,11 +1258,13 @@ export const Strings = {
   totalsWithinIncome: 'Within income',
   totalsOverIncome: (pct: number) => `${pct}% of income · over`,
   totalsNetCredit: 'Credits exceed expenses',
-  transactionsLoadError: 'Could not load transactions.',
-  transactionsRefreshError: 'Could not refresh transactions.',
+  transactionsLoadError: "Couldn't load your transactions",
+  transactionsLoadErrorDescription:
+    'Something went wrong reading your data. Your transactions are still there.',
+  transactionsRefreshError: "Couldn't refresh your transactions.",
   transactionsTotalsLoadError: "Couldn't load this month's figures.",
-  transactionsLoadMoreError: 'Could not load more transactions.',
-  transactionsAccountLookupError: 'Could not load account details.',
+  transactionsLoadMoreError: "Couldn't load more.",
+  transactionsAccountLookupError: "Couldn't load account names.",
   transactionsLoadRetry: 'Try again',
 
   // §6 Transactions: Hero

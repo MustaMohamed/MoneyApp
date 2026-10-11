@@ -99,6 +99,14 @@ describe('semantic colour agreement — theme.ts vs theme_tokens.ts vs global.cs
     }
   });
 
+  it('overlay-foreground is declared at text1, the colour a success toast prints its label in', () => {
+    const cssValues = cssVarValues(css, 'overlay-foreground');
+    expect(cssValues).toHaveLength(2);
+    for (const value of cssValues) {
+      expect(value).toBe(Colors.dark.text1.toLowerCase());
+    }
+  });
+
   it('segment-foreground clears 4.5:1 on the segment fill it is read against', () => {
     const fills = cssVarValues(css, 'segment');
     const inks = cssVarValues(css, 'segment-foreground');

@@ -14,6 +14,7 @@ export function TransactionFormDataError({ onRetry }: Props): React.ReactElement
       onRetry={onRetry}
       flatRetry
       retrySize="md"
+      tinted
       testID="transaction-form-data-error"
     />
   );

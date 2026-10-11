@@ -1,7 +1,10 @@
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { Strings } from '@/constants/strings';
 
-import { resolveDetailLoadErrorTitle } from './detail_load_error.helpers';
+import {
+  resolveDetailLoadErrorAlertProps,
+  resolveDetailLoadErrorTitle,
+} from './detail_load_error.helpers';
 
 interface DetailLoadErrorProps {
   floating?: boolean;
@@ -14,7 +17,7 @@ export function DetailLoadError({
 }: DetailLoadErrorProps): React.ReactElement {
   return (
     <LoadErrorAlert
-      mode={floating ? 'floating' : 'fill'}
+      {...resolveDetailLoadErrorAlertProps(floating)}
       title={resolveDetailLoadErrorTitle(floating)}
       retryLabel={Strings.detailLoadRetry}
       onRetry={onRetry}

@@ -79,12 +79,14 @@ const mockGetMonthAggregate = jest.fn<
 >();
 const mockGetScopedTotals = jest.fn<Promise<PeriodTotals>, [TransactionTotalsScope]>();
 const mockGetAll = jest.fn<Promise<Transaction[]>, [query?: { limit?: number }]>();
+const mockHasAny = jest.fn<Promise<boolean>, []>();
 const mockToast = { show: jest.fn() };
 
 jest.mock('@/modules/transactions/repositories/transaction.repository', () => ({
   ...jest.requireActual<object>('@/modules/transactions/repositories/transaction.repository'),
   transactionRepository: {
     getAll: (query?: { limit?: number }) => mockGetAll(query),
+    hasAny: () => mockHasAny(),
     getMonthAggregate: (query: TransactionAggregateQuery) => mockGetMonthAggregate(query),
     getScopedTotals: (scope: TransactionTotalsScope) => mockGetScopedTotals(scope),
   },
@@ -232,6 +234,8 @@ beforeEach(() => {
   mockGetScopedTotals.mockResolvedValue(EMPTY_TOTALS);
   mockGetAll.mockReset();
   mockGetAll.mockResolvedValue([]);
+  mockHasAny.mockReset();
+  mockHasAny.mockResolvedValue(false);
   mockToast.show.mockReset();
 });
 
@@ -2510,15 +2514,15 @@ describe('useTransactions any-transaction read (MA-093)', () => {
 
   it('reads once for an empty unfiltered month and holds the answer at the current mutationVersion', async () => {
     setupStores({ mutationVersion: 4 });
-    mockGetAll.mockResolvedValue([JUNE_TRANSACTION]);
+    mockHasAny.mockResolvedValue(true);
 
     await renderHook(() => useTransactions());
 
     await waitFor(() =>
       expect(heldAnswer()).toEqual({ hasAnyTransaction: true, existenceVersion: 4 }),
     );
-    expect(mockGetAll).toHaveBeenCalledTimes(1);
-    expect(mockGetAll).toHaveBeenCalledWith({ limit: 1 });
+    expect(mockHasAny).toHaveBeenCalledTimes(1);
+    expect(mockGetAll).not.toHaveBeenCalled();
     expect(readFailed()).toBe(false);
   });
 
@@ -2527,12 +2531,12 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     const { result, rerender } = await renderRerenderable();
     await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
     await settle();
-    expect(mockGetAll).not.toHaveBeenCalled();
+    expect(mockHasAny).not.toHaveBeenCalled();
 
     transactionStoreState = { ...transactionStoreState, ...emptySnapshot() };
     await rerender({});
 
-    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
   });
 
   it.each<[string, Record<string, unknown>, () => void]>([
@@ -2563,14 +2567,14 @@ describe('useTransactions any-transaction read (MA-093)', () => {
       await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
       await settle();
       expect(result.current.state.listStatus).toBe('empty');
-      expect(mockGetAll).not.toHaveBeenCalled();
+      expect(mockHasAny).not.toHaveBeenCalled();
 
       await act(() => {
         transactionStoreState = { ...transactionStoreState, ...emptySnapshot() };
         result.current.resetFilters();
       });
 
-      await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
     },
   );
 
@@ -2579,7 +2583,7 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     await waitFor(() =>
       expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 }),
     );
-    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    expect(mockHasAny).toHaveBeenCalledTimes(1);
     const juneKey = getTransactionQueryKey(JUNE_QUERY);
 
     await act(() => {
@@ -2596,7 +2600,7 @@ describe('useTransactions any-transaction read (MA-093)', () => {
 
     expect(result.current.state.selectedMonth).toBe('2026-06');
     expect(result.current.state.listStatus).toBe('empty');
-    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    expect(mockHasAny).toHaveBeenCalledTimes(1);
   });
 
   it('reads again once a write moves mutationVersion', async () => {
@@ -2604,7 +2608,7 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     await waitFor(() =>
       expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 }),
     );
-    mockGetAll.mockResolvedValue([JUNE_TRANSACTION]);
+    mockHasAny.mockResolvedValue(true);
 
     transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
     await rerender({});
@@ -2612,11 +2616,11 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     await waitFor(() =>
       expect(heldAnswer()).toEqual({ hasAnyTransaction: true, existenceVersion: 1 }),
     );
-    expect(mockGetAll).toHaveBeenCalledTimes(2);
+    expect(mockHasAny).toHaveBeenCalledTimes(2);
   });
 
   it('logs a rejected read, sets the failure flag, and does not read again on a re-render', async () => {
-    mockGetAll.mockRejectedValue(new Error('db down'));
+    mockHasAny.mockRejectedValue(new Error('db down'));
     const { rerender } = await renderRerenderable();
 
     await waitFor(() => expect(readFailed()).toBe(true));
@@ -2624,7 +2628,7 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     await rerender({});
     await settle();
 
-    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    expect(mockHasAny).toHaveBeenCalledTimes(1);
     expect(readFailed()).toBe(true);
     expect(heldAnswer()).toEqual({ hasAnyTransaction: undefined, existenceVersion: undefined });
   });
@@ -2633,11 +2637,11 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     ['Try again', (hook) => hook.retryFailedLoads()],
     ['a pull to refresh', (hook) => hook.onRefresh()],
   ])('%s reads again after a failed read and clears the flag', async (_name, run) => {
-    mockGetAll.mockRejectedValueOnce(new Error('db down'));
+    mockHasAny.mockRejectedValueOnce(new Error('db down'));
     const { result } = await renderHook(() => useTransactions());
     await waitFor(() => expect(readFailed()).toBe(true));
-    expect(mockGetAll).toHaveBeenCalledTimes(1);
-    mockGetAll.mockResolvedValue([JUNE_TRANSACTION]);
+    expect(mockHasAny).toHaveBeenCalledTimes(1);
+    mockHasAny.mockResolvedValue(true);
 
     await act(async () => {
       await run(result.current);
@@ -2646,12 +2650,12 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     await waitFor(() =>
       expect(heldAnswer()).toEqual({ hasAnyTransaction: true, existenceVersion: 0 }),
     );
-    expect(mockGetAll).toHaveBeenCalledTimes(2);
+    expect(mockHasAny).toHaveBeenCalledTimes(2);
     expect(readFailed()).toBe(false);
   });
 
   it('after a failed read, a type tab switched on and back to all reads again', async () => {
-    mockGetAll.mockRejectedValueOnce(new Error('db down'));
+    mockHasAny.mockRejectedValueOnce(new Error('db down'));
     const { result } = await renderHook(() => useTransactions());
     await waitFor(() => expect(readFailed()).toBe(true));
 
@@ -2664,20 +2668,20 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     });
     await settle();
     expect(result.current.state.listStatus).toBe('empty');
-    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    expect(mockHasAny).toHaveBeenCalledTimes(1);
 
     await act(() => {
       transactionStoreState = { ...transactionStoreState, ...emptySnapshot() };
       useTransactionsScreenStore.getState().setActiveFilter('all');
     });
 
-    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(readFailed()).toBe(false));
     expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 });
   });
 
   it('after a failed read, no render on the way back to all reads the first-load error before the retry answers', async () => {
-    mockGetAll.mockRejectedValueOnce(new Error('db down'));
+    mockHasAny.mockRejectedValueOnce(new Error('db down'));
     const firstLoadErrorFrames: boolean[] = [];
     const { result } = await renderHook(() => {
       const hook = useTransactions();
@@ -2704,20 +2708,20 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     );
     await settle();
 
-    expect(mockGetAll).toHaveBeenCalledTimes(2);
+    expect(mockHasAny).toHaveBeenCalledTimes(2);
     expect(firstLoadErrorFrames.length).toBeGreaterThan(0);
     expect(firstLoadErrorFrames).not.toContain(true);
   });
 
   it('a rejection that lands after a filter went on sets no failure flag', async () => {
     let rejectRead!: (error: Error) => void;
-    mockGetAll.mockReturnValueOnce(
-      new Promise<Transaction[]>((_resolve, reject) => {
+    mockHasAny.mockReturnValueOnce(
+      new Promise<boolean>((_resolve, reject) => {
         rejectRead = reject;
       }),
     );
     await renderHook(() => useTransactions());
-    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
     await act(() => {
       transactionStoreState = {
         ...transactionStoreState,
@@ -2740,9 +2744,9 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     ['an answered month', false],
     ['a failed read', true],
   ])('focus and its queued task add no read on %s', async (_name, fails) => {
-    if (fails) mockGetAll.mockRejectedValue(new Error('db down'));
+    if (fails) mockHasAny.mockRejectedValue(new Error('db down'));
     await renderHook(() => useTransactions());
-    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
     await settle();
     expect(readFailed()).toBe(fails);
 
@@ -2763,45 +2767,45 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     await settle();
 
     expect(mockInteractionTasks).toHaveLength(2);
-    expect(mockGetAll).toHaveBeenCalledTimes(1);
+    expect(mockHasAny).toHaveBeenCalledTimes(1);
     expect(readFailed()).toBe(fails);
   });
 
   it('drops an answer that lands after a newer request began', async () => {
-    let resolveFirst!: (rows: Transaction[]) => void;
-    mockGetAll.mockReturnValueOnce(
-      new Promise<Transaction[]>((resolve) => {
+    let resolveFirst!: (answer: boolean) => void;
+    mockHasAny.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
         resolveFirst = resolve;
       }),
     );
     const { rerender } = await renderRerenderable();
-    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
 
     transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
     await rerender({});
     await waitFor(() =>
       expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 1 }),
     );
-    expect(mockGetAll).toHaveBeenCalledTimes(2);
+    expect(mockHasAny).toHaveBeenCalledTimes(2);
 
     await act(async () => {
-      resolveFirst([JUNE_TRANSACTION]);
+      resolveFirst(true);
     });
     await settle();
 
     expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 1 });
-    expect(mockGetAll).toHaveBeenCalledTimes(2);
+    expect(mockHasAny).toHaveBeenCalledTimes(2);
   });
 
   it('drops a rejection that lands after a newer request began', async () => {
     let rejectFirst!: (error: Error) => void;
-    mockGetAll.mockReturnValueOnce(
-      new Promise<Transaction[]>((_resolve, reject) => {
+    mockHasAny.mockReturnValueOnce(
+      new Promise<boolean>((_resolve, reject) => {
         rejectFirst = reject;
       }),
     );
     const { rerender } = await renderRerenderable();
-    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
 
     transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
     await rerender({});
@@ -2856,7 +2860,7 @@ describe('useTransactions empty blocks (MA-093)', () => {
 
   it('an empty July with a transaction in another month reads the empty-month block, named July, with the link', async () => {
     pinNow('2026-09-15T12:00:00');
-    mockGetAll.mockResolvedValue([JUNE_TRANSACTION]);
+    mockHasAny.mockResolvedValue(true);
 
     const { result } = await renderHook(() => useTransactions());
 
@@ -2868,7 +2872,7 @@ describe('useTransactions empty blocks (MA-093)', () => {
 
   it('drops the link when the empty month is the current one, on its last evening', async () => {
     pinNow('2026-07-31T23:30:00');
-    mockGetAll.mockResolvedValue([JUNE_TRANSACTION]);
+    mockHasAny.mockResolvedValue(true);
 
     const { result } = await renderHook(() => useTransactions());
 
@@ -2884,23 +2888,24 @@ describe('useTransactions empty blocks (MA-093)', () => {
     await waitFor(() =>
       expect(heldAnswer()).toEqual({ hasAnyTransaction: false, existenceVersion: 0 }),
     );
+    expect(mockHasAny).toHaveBeenCalledTimes(1);
     expect(result.current.state.emptyVariant).toBe('noData');
     expect(result.current.state.showsBackToThisMonth).toBe(false);
   });
 
   it('holds the skeleton and no block while the read is pending', async () => {
-    mockGetAll.mockReturnValue(new Promise(() => {}));
+    mockHasAny.mockReturnValue(new Promise(() => {}));
 
     const { result } = await renderHook(() => useTransactions());
 
-    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
     expect(result.current.state.showInitialSkeleton).toBe(true);
     expect(result.current.state.emptyVariant).toBe('none');
     expect(result.current.state.showFirstLoadError).toBe(false);
   });
 
   it('reads the first-load error, never an empty block, when the read fails', async () => {
-    mockGetAll.mockRejectedValue(new Error('db down'));
+    mockHasAny.mockRejectedValue(new Error('db down'));
 
     const { result } = await renderHook(() => useTransactions());
 
@@ -2910,29 +2915,29 @@ describe('useTransactions empty blocks (MA-093)', () => {
     expect(result.current.state.loadErrorVariant).toBe('none');
   });
 
-  it.each<[string, string, Transaction[], Transaction[]]>([
-    ['emptyMonth', 'noData', [JUNE_TRANSACTION], []],
-    ['noData', 'emptyMonth', [], [JUNE_TRANSACTION]],
+  it.each<[string, string, boolean, boolean]>([
+    ['emptyMonth', 'noData', true, false],
+    ['noData', 'emptyMonth', false, true],
   ])(
     'the %s block becomes %s once the read after a write answers',
-    async (before, after, firstRows, nextRows) => {
-      mockGetAll.mockResolvedValue(firstRows);
+    async (before, after, firstAnswer, nextAnswer) => {
+      mockHasAny.mockResolvedValue(firstAnswer);
       const { result, rerender } = await renderRerenderable();
-      await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(result.current.state.emptyVariant).toBe(before));
-      mockGetAll.mockResolvedValue(nextRows);
+      mockHasAny.mockResolvedValue(nextAnswer);
 
       transactionStoreState = { ...transactionStoreState, mutationVersion: 1 };
       await rerender({});
 
       await waitFor(() => expect(result.current.state.emptyVariant).toBe(after));
-      expect(mockGetAll).toHaveBeenCalledTimes(2);
+      expect(mockHasAny).toHaveBeenCalledTimes(2);
     },
   );
 
   it('holds the skeleton, never the last block, while the read after a write is pending', async () => {
-    mockGetAll.mockReturnValue(new Promise(() => {}));
-    mockGetAll.mockResolvedValueOnce([JUNE_TRANSACTION]);
+    mockHasAny.mockReturnValue(new Promise(() => {}));
+    mockHasAny.mockResolvedValueOnce(true);
     const { result, rerender } = await renderRerenderable();
     await waitFor(() => expect(result.current.state.emptyVariant).toBe('emptyMonth'));
 
@@ -2941,7 +2946,7 @@ describe('useTransactions empty blocks (MA-093)', () => {
 
     expect(result.current.state.emptyVariant).toBe('none');
     expect(result.current.state.showInitialSkeleton).toBe(true);
-    await waitFor(() => expect(mockGetAll).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(2));
   });
 
   it('with the clock pinned, backToThisMonth returns the month row to the pinned month', async () => {

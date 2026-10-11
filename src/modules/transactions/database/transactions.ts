@@ -281,6 +281,13 @@ export async function getTransactionCountByAccount(
   return row?.count ?? 0;
 }
 
+export async function getAnyTransactionExists(db: SQLiteDatabase): Promise<boolean> {
+  const row = await db.getFirstAsync<{ found: number }>(
+    'SELECT 1 AS found FROM transactions LIMIT 1',
+  );
+  return row !== null;
+}
+
 export async function getTransactionById(
   db: SQLiteDatabase,
   id: string,
