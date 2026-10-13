@@ -5,7 +5,7 @@ import { Dimensions } from 'react-native';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type } from '@/constants/theme';
+import { Type, lineHeightFor } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 const mockScrollToEnd = jest.fn();
@@ -544,7 +544,7 @@ describe('MA-168 converted amount under the amount', () => {
     });
   });
 
-  it('holds the line to one line at the size the app scales, above font scale 1', async () => {
+  it("holds the line to one line in the amount error's line box, which the OS scales, above font scale 1", async () => {
     const { fontScale } = Dimensions.get('window');
     expect(fontScale).toBeGreaterThan(1);
     useAddTransactionStore.getState().setAmountStr('15');
@@ -552,8 +552,9 @@ describe('MA-168 converted amount under the amount', () => {
 
     const line = screen.getByTestId('converted-amount-line');
     expect(line).toHaveProp('numberOfLines', 1);
-    expect(line).toHaveProp('allowFontScaling', false);
-    expect(line).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
+    expect(line).not.toHaveProp('allowFontScaling', false);
+    expect(line).toHaveStyle({ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) });
+    expect(line).not.toHaveStyle(scaledTextStyle(Type.micro, fontScale));
   });
 
   it('prints the USD the destination receives on the edit sheet of an EGP to USD transfer', async () => {

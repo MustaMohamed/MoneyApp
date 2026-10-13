@@ -739,13 +739,7 @@ describe('resolveTransactionFormFooterVisible', () => {
 });
 
 describe('MA-168 converted amount', () => {
-  interface ConvertInput {
-    type: TransactionType;
-    amountText: string;
-    sourceCurrency: Currency | undefined;
-    destinationCurrency: Currency | undefined;
-    exchangeRateText: string;
-  }
+  type ConvertInput = Parameters<typeof resolveConvertedAmount>[0];
 
   // A USD 100 expense at 49; each case names only the fields it changes.
   const convert = (input: Partial<ConvertInput>) =>

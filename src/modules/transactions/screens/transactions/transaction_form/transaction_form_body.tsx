@@ -34,6 +34,7 @@ import { FormPickerRow } from './components/form_picker_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import {
   ACCOUNT_STRIP_WRAPPER_PADDING_Y,
+  AMOUNT_MESSAGE_TEXT_STYLE,
   resolveNoteInputGeometry,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form.geometry';
@@ -110,17 +111,13 @@ function ValidationSlot({ testID, liveTestID, message, children }: ValidationSlo
       style={{ minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT }}
       className="justify-center px-4"
     >
-      {/* Fabric flattens a View whose only prop is the live region; the testID keeps it. */}
-      <View testID={liveTestID} accessibilityLiveRegion="polite">
+      {/* collapsable={false} keeps the View: Fabric flattens one whose only prop is the live region. */}
+      <View testID={liveTestID} collapsable={false} accessibilityLiveRegion="polite">
         <FormErrorText
           message={message}
           numberOfLines={1}
           disableAnimation
-          style={{
-            fontSize: Type.micro,
-            lineHeight: lineHeightFor(Type.micro),
-            textAlign: 'center',
-          }}
+          style={AMOUNT_MESSAGE_TEXT_STYLE}
         />
       </View>
       {children}

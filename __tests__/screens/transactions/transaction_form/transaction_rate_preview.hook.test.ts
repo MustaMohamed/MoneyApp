@@ -96,7 +96,7 @@ describe('useTransactionRatePreview', () => {
     expect(result.current).toEqual({ amount: 9812, currency: Currency.EGP });
   });
 
-  // Each row is a resolver throw condition the hook guards; reaching the resolver throws in render.
+  // Each row is a throw condition of the domain resolver; resolveConvertedAmount gates or catches it, so the hook never throws in render.
   it.each([
     ['nothing typed yet', { amount: '' }],
     ['an amount the parser cannot read', { amount: '1,23' }],

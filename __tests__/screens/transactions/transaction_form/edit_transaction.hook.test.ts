@@ -1063,4 +1063,34 @@ describe('MA-168 converted amount on the edit sheet', () => {
 
     expect(convertedFor(result.current)).toEqual({ amount: 100, currency: Currency.USD });
   });
+
+  it("converts a USD expense on a deleted account from that account's currency", async () => {
+    const deletedAccountUSD = makeTestAccount({
+      ...mockAccountUSD,
+      id: 'a-usd-gone',
+      name: '',
+      is_archived: 0,
+      is_deleted: 1,
+    });
+    useAccountStore.setState({
+      accountLookupById: { [deletedAccountUSD.id]: deletedAccountUSD },
+    });
+    const usdTx = makeTestTransaction({
+      ...mockTxExpense,
+      id: 't-usd-gone',
+      account_id: deletedAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 490,
+      exchange_rate: 49,
+    });
+    useEditTransactionStore.getState().loadFromTx(usdTx);
+    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    expect(result.current.state.selectedAccount?.id).toBe(deletedAccountUSD.id);
+    expect(result.current.state.selectedAccount?.is_deleted).toBe(1);
+    expect(Number(result.current.state.exchangeRate)).toBe(49);
+
+    expect(convertedFor(result.current)).toEqual({ amount: 490, currency: Currency.EGP });
+  });
 });

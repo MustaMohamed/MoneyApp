@@ -261,9 +261,9 @@ export function resolveConvertedAmount(input: {
     if (sourceCurrency === Currency.USD) {
       return { amount: resolved.egpAmount, currency: Currency.EGP };
     }
-    return resolved.toAmount === null
+    return resolved.toAmount === null || destinationCurrency === undefined
       ? undefined
-      : { amount: resolved.toAmount, currency: Currency.USD };
+      : { amount: resolved.toAmount, currency: destinationCurrency };
   } catch (error) {
     if (error instanceof TransactionAmountError) return undefined;
     throw error;

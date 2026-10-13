@@ -6,7 +6,7 @@ import { type ConvertedAmount, resolveConvertedAmount } from '../transaction_for
 import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
 
-interface RatePreviewInput {
+export interface RatePreviewInput {
   mode: TransactionFormMode;
   type: TransactionType;
   sourceCurrency: Currency | undefined;
