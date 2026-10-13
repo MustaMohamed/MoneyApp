@@ -58,6 +58,12 @@ identity value, which is the fix for the multiply, not an argument for hiding th
 the two meanings into one prop would make the placeholder and the frame-2 suppression
 indistinguishable at the call site.
 
+**Superseded in part 2026-10-13 (#695).** One statement in this section no longer holds: the
+transaction forms set `previewHidden` on every add and edit sheet, where the paragraph above has
+them never set it, and an EGP-source amount paid into a USD account prints the USD its destination
+receives on the line under the amount, where it has the identity value in the row.
+`docs/adr/2026-10-13-converted-amount.md` §1 and §2 record both.
+
 ## 4. Where each surface's preview is derived, and why they differ
 
 | Surface | Derived in | Because |
@@ -73,6 +79,12 @@ the rate-row wrapper already use, so a keystroke re-renders the row and nothing 
 
 Do not hoist this derivation into `useAddTransaction` or `useEditTransaction` for symmetry with the
 pay sheet. The asymmetry is the point.
+
+**Superseded in part 2026-10-13 (#695).** One statement in this section no longer holds: the
+rate-row wrapper no longer subscribes to the amount, and a keystroke re-renders
+`ConvertedAmountLine` under the amount, where the paragraph above has it re-render the row.
+`useTransactionRatePreview` still derives the figure, as `ConvertedAmount | undefined`.
+`docs/adr/2026-10-13-converted-amount.md` §4 records it.
 
 ## 5. The schema must not accept what the write path rejects
 

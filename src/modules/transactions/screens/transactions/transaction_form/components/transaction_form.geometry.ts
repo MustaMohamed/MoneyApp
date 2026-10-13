@@ -37,6 +37,13 @@ export const AMOUNT_ERROR_LINE_STYLE = {
   bottom: 0,
 } as const;
 
+/** The amount's message slot draws its error and its converted amount in this one line box, which the OS scales, so a swap moves nothing. */
+export const AMOUNT_MESSAGE_TEXT_STYLE = {
+  fontSize: Type.micro,
+  lineHeight: lineHeightFor(Type.micro),
+  textAlign: 'center',
+} as const;
+
 /** The sheet frames' 118 by 40 row, ruled 2026-09-27 (MA-122) over the canvas base rule's 64-wide column. */
 export const ACCOUNT_STRIP_CHIP_WIDTH = ms(118);
 export const ACCOUNT_STRIP_CHIP_HEIGHT = ms(40);

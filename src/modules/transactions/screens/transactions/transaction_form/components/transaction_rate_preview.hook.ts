@@ -1,18 +1,12 @@
 import { useMemo } from 'react';
 
 import type { Currency, TransactionType } from '@/constants/enums';
-import {
-  requiresDestination,
-  requiresExchangeRate,
-  resolveTransactionAmounts,
-  TransactionAmountError,
-} from '@/modules/transactions/domain/transaction_amounts';
-import { parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 
+import { type ConvertedAmount, resolveConvertedAmount } from '../transaction_form.helpers';
 import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
 
-interface RatePreviewInput {
+export interface RatePreviewInput {
   mode: TransactionFormMode;
   type: TransactionType;
   sourceCurrency: Currency | undefined;
@@ -21,39 +15,20 @@ interface RatePreviewInput {
   exchangeRate: string;
 }
 
-/** The `≈ … EGP` figure under the rate row, derived by the same resolver the save runs. */
-export function useTransactionRatePreview(input: RatePreviewInput): number | undefined {
+/** The converted amount under the amount, derived by the same resolver the save runs. */
+export function useTransactionRatePreview(input: RatePreviewInput): ConvertedAmount | undefined {
   const { mode, type, sourceCurrency, destinationCurrency, exchangeRate } = input;
-  const amountStr = useTransactionAmount(mode);
+  const amountText = useTransactionAmount(mode);
 
-  return useMemo(() => {
-    if (sourceCurrency === undefined) return undefined;
-
-    const hasDestination = requiresDestination(type);
-    if (hasDestination && destinationCurrency === undefined) return undefined;
-
-    const amount = parsePositiveDecimal(amountStr);
-    if (amount === undefined) return undefined;
-
-    const rate = parseRateText(exchangeRate);
-    const needsRate = requiresExchangeRate(
-      sourceCurrency,
-      hasDestination ? destinationCurrency : undefined,
-    );
-    if (needsRate && rate === undefined) return undefined;
-
-    try {
-      return resolveTransactionAmounts({
+  return useMemo(
+    () =>
+      resolveConvertedAmount({
         type,
-        amount,
+        amountText,
         sourceCurrency,
         destinationCurrency,
-        exchangeRate: rate,
-      }).egpAmount;
-    } catch (error) {
-      // An amount too large to store throws; fall back to the placeholder, never a render crash.
-      if (error instanceof TransactionAmountError) return undefined;
-      throw error;
-    }
-  }, [amountStr, destinationCurrency, exchangeRate, sourceCurrency, type]);
+        exchangeRateText: exchangeRate,
+      }),
+    [amountText, destinationCurrency, exchangeRate, sourceCurrency, type],
+  );
 }

@@ -58,3 +58,15 @@ describe('MA-106 saved toast and prerequisite state copy', () => {
     expect(stale).toEqual([]);
   });
 });
+
+describe('MA-168 converted amount copy', () => {
+  it('prints the amount and its code after the sign on every pair, with no words after the code', () => {
+    expect(Strings.addTxConvertedAmount('735 EGP')).toBe('≈ 735 EGP');
+    expect(Strings.addTxConvertedAmount('102.04 USD')).toBe('≈ 102.04 USD');
+  });
+
+  it('reads a dash with no code when there is nothing to convert, and leaves the pay sheet its own preview string', () => {
+    expect(Strings.addTxConvertedAmountNone).toBe('≈ —');
+    expect(Strings.addTxEgpPreview).toBe('≈ {amount} EGP');
+  });
+});

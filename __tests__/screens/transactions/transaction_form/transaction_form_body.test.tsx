@@ -2,8 +2,10 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react-n
 import React from 'react';
 import { Dimensions } from 'react-native';
 
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Type, lineHeightFor } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 const mockScrollToEnd = jest.fn();
@@ -47,24 +49,33 @@ jest.mock(
     return { DateRow: () => ReactLocal.createElement(RNView, { testID: 'date-row' }) };
   },
 );
+const mockExchangeRateRowProps: Array<{ previewEgpAmount?: number; previewHidden?: boolean }> = [];
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row',
-  () => ({ ExchangeRateRow: () => null }),
+  () => ({
+    ExchangeRateRow: (props: { previewEgpAmount?: number; previewHidden?: boolean }) => {
+      mockExchangeRateRowProps.push(props);
+      return null;
+    },
+  }),
 );
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/type_tabs',
   () => ({ TypeTabs: () => null }),
 );
 
+import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import {
   ACCOUNT_STRIP_CHIP_RADIUS,
   ACCOUNT_STRIP_CHIP_WIDTH,
   ACCOUNT_STRIP_GAP,
+  AMOUNT_MESSAGE_TEXT_STYLE,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   resolveAccountStripChipGeometry,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
+import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 import {
   resolveAccountStripChips,
   resolveLockedStripChips,
@@ -419,6 +430,153 @@ describe('TransactionFormBody fact rows', () => {
     expect(
       within(screen.getByTestId('budget-row')).getByText(Strings.addTxPickBudgetTitle),
     ).toHaveProp('numberOfLines', 1);
+  });
+});
+
+describe('MA-168 rate card', () => {
+  beforeEach(() => useAddTransactionStore.getState().reset());
+  // The body is still mounted here, so the reset is an update to its amount subscriber.
+  afterEach(async () => {
+    await act(() => useAddTransactionStore.getState().reset());
+  });
+
+  it('hides the rate card preview and hands it no converted amount of its own', async () => {
+    mockExchangeRateRowProps.length = 0;
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        requiresRate
+        selectedAccount={makeTestAccount({ id: 'account-usd', currency: Currency.USD })}
+        currency={Currency.USD}
+        exchangeRate="49"
+      />,
+    );
+
+    expect(mockExchangeRateRowProps).not.toHaveLength(0);
+    expect(mockExchangeRateRowProps.at(-1)?.previewHidden).toBe(true);
+    expect(mockExchangeRateRowProps.at(-1)?.previewEgpAmount).toBeUndefined();
+  });
+
+  it('speaks no label left from the stored state once the rate row holds a field', async () => {
+    const { ExchangeRateRow: RealExchangeRateRow } = jest.requireActual<
+      typeof import('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row')
+    >('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row');
+    const rowProps = {
+      value: '49',
+      onChange: jest.fn(),
+      onToggleOverride: jest.fn(),
+      rateUpdatedAt: null,
+      previewEgpAmount: undefined,
+    };
+    const { rerender } = await render(
+      <RealExchangeRateRow {...rowProps} overrideEnabled={false} />,
+    );
+
+    expect(screen.getByTestId('exchange-rate-row')).toHaveProp(
+      'accessibilityLabel',
+      Strings.addTxRateEditAccessibility,
+    );
+
+    await rerender(<RealExchangeRateRow {...rowProps} overrideEnabled />);
+
+    expect(screen.getByTestId('exchange-rate-row')).toHaveProp('accessibilityLabel', '');
+  });
+});
+
+describe('MA-168 converted amount under the amount', () => {
+  const usdAccount = makeTestAccount({ id: 'account-usd', currency: Currency.USD });
+  const egpAccount = makeTestAccount({ id: 'account-egp', currency: Currency.EGP });
+  const usdExpense = (
+    <TransactionFormBody
+      {...baseProps}
+      requiresRate
+      selectedAccount={usdAccount}
+      currency={Currency.USD}
+      exchangeRate="49"
+    />
+  );
+
+  beforeEach(() => {
+    useAddTransactionStore.getState().reset();
+    useEditTransactionStore.getState().reset();
+  });
+  // The body is still mounted here, so each reset is an update to the line's amount subscriber.
+  afterEach(async () => {
+    await act(() => {
+      useAddTransactionStore.getState().reset();
+      useEditTransactionStore.getState().reset();
+    });
+  });
+
+  it('prints the EGP value of a USD expense in the amount slot, outside the live region', async () => {
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(usdExpense);
+
+    const slot = screen.getByTestId('amount-error-slot');
+    const live = screen.getByTestId('amount-error-live');
+    expect(within(slot).getByTestId('converted-amount-line')).toHaveTextContent('≈ 735 EGP');
+    expect(within(slot).getByTestId('amount-error-live')).toBeTruthy();
+    expect(within(live).queryByTestId('converted-amount-line')).toBeNull();
+    expect(live).toHaveProp('accessibilityLiveRegion', 'polite');
+    const slotLiveRegion: unknown = slot.props.accessibilityLiveRegion;
+    expect(slotLiveRegion).toBeUndefined();
+  });
+
+  it("gives the slot to an amount error: the message in the live region in the slot's text style, no converted amount, the same floor", async () => {
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(React.cloneElement(usdExpense, { amountError: 'Enter an amount' }));
+
+    const slot = screen.getByTestId('amount-error-slot');
+    const message = within(screen.getByTestId('amount-error-live')).getByText('Enter an amount');
+    // jest.setup.js mocks FieldError as a pass-through Text, so the message carries its style under textProps.
+    expect(message).toHaveProp('textProps', {
+      numberOfLines: 1,
+      style: AMOUNT_MESSAGE_TEXT_STYLE,
+    });
+    expect(screen.queryByTestId('converted-amount-line')).toBeNull();
+    expect(slot).toHaveStyle({ minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT });
+  });
+
+  it('mounts no converted amount when no USD account is involved', async () => {
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(React.cloneElement(usdExpense, { requiresRate: false }));
+
+    expect(screen.queryByTestId('converted-amount-line')).toBeNull();
+    expect(screen.getByTestId('amount-error-slot')).toHaveStyle({
+      minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
+    });
+  });
+
+  it("holds the line to one line in the amount error's line box, which the OS scales, above font scale 1", async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(usdExpense);
+
+    const line = screen.getByTestId('converted-amount-line');
+    expect(line).toHaveProp('numberOfLines', 1);
+    expect(line).not.toHaveProp('allowFontScaling', false);
+    expect(line).toHaveStyle(AMOUNT_MESSAGE_TEXT_STYLE);
+    expect(line).toHaveStyle({ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) });
+    expect(line).not.toHaveStyle(scaledTextStyle(Type.micro, fontScale));
+  });
+
+  it('prints the USD the destination receives on the edit sheet of an EGP to USD transfer', async () => {
+    useEditTransactionStore.getState().setAmountStr('5000');
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        formMode="edit"
+        type={TransactionType.Transfer}
+        requiresRate
+        selectedAccount={egpAccount}
+        selectedToAccount={usdAccount}
+        exchangeRate="49"
+      />,
+    );
+
+    expect(screen.getByTestId('converted-amount-line')).toHaveTextContent('≈ 102.04 USD');
   });
 });
 
