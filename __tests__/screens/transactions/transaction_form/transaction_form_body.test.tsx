@@ -2,8 +2,10 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react-n
 import React from 'react';
 import { Dimensions } from 'react-native';
 
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Type } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 const mockScrollToEnd = jest.fn();
@@ -72,6 +74,7 @@ import {
   resolveAccountStripChipGeometry,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
+import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 import {
   resolveAccountStripChips,
   resolveLockedStripChips,
@@ -477,6 +480,97 @@ describe('MA-168 rate card', () => {
     await rerender(<RealExchangeRateRow {...rowProps} overrideEnabled />);
 
     expect(screen.getByTestId('exchange-rate-row')).toHaveProp('accessibilityLabel', '');
+  });
+});
+
+describe('MA-168 converted amount under the amount', () => {
+  const usdAccount = makeTestAccount({ id: 'account-usd', currency: Currency.USD });
+  const egpAccount = makeTestAccount({ id: 'account-egp', currency: Currency.EGP });
+  const usdExpense = (
+    <TransactionFormBody
+      {...baseProps}
+      requiresRate
+      selectedAccount={usdAccount}
+      currency={Currency.USD}
+      exchangeRate="49"
+    />
+  );
+
+  beforeEach(() => {
+    useAddTransactionStore.getState().reset();
+    useEditTransactionStore.getState().reset();
+  });
+  // The body is still mounted here, so each reset is an update to the line's amount subscriber.
+  afterEach(async () => {
+    await act(() => {
+      useAddTransactionStore.getState().reset();
+      useEditTransactionStore.getState().reset();
+    });
+  });
+
+  it('prints the EGP value of a USD expense in the amount slot, outside the live region', async () => {
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(usdExpense);
+
+    const slot = screen.getByTestId('amount-error-slot');
+    const live = screen.getByTestId('amount-error-live');
+    expect(within(slot).getByTestId('converted-amount-line')).toHaveTextContent('≈ 735 EGP');
+    expect(within(slot).getByTestId('amount-error-live')).toBeTruthy();
+    expect(within(live).queryByTestId('converted-amount-line')).toBeNull();
+    expect(live).toHaveProp('accessibilityLiveRegion', 'polite');
+    const slotLiveRegion: unknown = slot.props.accessibilityLiveRegion;
+    expect(slotLiveRegion).toBeUndefined();
+  });
+
+  it('gives the slot to an amount error: the message in the live region, no converted amount, the same floor', async () => {
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(React.cloneElement(usdExpense, { amountError: 'Enter an amount' }));
+
+    const slot = screen.getByTestId('amount-error-slot');
+    expect(
+      within(screen.getByTestId('amount-error-live')).getByText('Enter an amount'),
+    ).toBeTruthy();
+    expect(screen.queryByTestId('converted-amount-line')).toBeNull();
+    expect(slot).toHaveStyle({ minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT });
+  });
+
+  it('mounts no converted amount when no USD account is involved', async () => {
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(React.cloneElement(usdExpense, { requiresRate: false }));
+
+    expect(screen.queryByTestId('converted-amount-line')).toBeNull();
+    expect(screen.getByTestId('amount-error-slot')).toHaveStyle({
+      minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT,
+    });
+  });
+
+  it('holds the line to one line at the size the app scales, above font scale 1', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(usdExpense);
+
+    const line = screen.getByTestId('converted-amount-line');
+    expect(line).toHaveProp('numberOfLines', 1);
+    expect(line).toHaveProp('allowFontScaling', false);
+    expect(line).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
+  });
+
+  it('prints the USD the destination receives on the edit sheet of an EGP to USD transfer', async () => {
+    useEditTransactionStore.getState().setAmountStr('5000');
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        formMode="edit"
+        type={TransactionType.Transfer}
+        requiresRate
+        selectedAccount={egpAccount}
+        selectedToAccount={usdAccount}
+        exchangeRate="49"
+      />,
+    );
+
+    expect(screen.getByTestId('converted-amount-line')).toHaveTextContent('≈ 102.04 USD');
   });
 });
 
