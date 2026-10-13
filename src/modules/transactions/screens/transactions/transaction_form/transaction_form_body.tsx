@@ -27,6 +27,7 @@ import { ms } from '@/utils/responsive';
 
 import { AccountStrip } from './components/account_strip';
 import { AmountHero } from './components/amount_hero';
+import { ConvertedAmountLine } from './components/converted_amount_line';
 import { DangerRing } from './components/danger_ring';
 import { DateRow } from './components/date_row';
 import { FormPickerRow } from './components/form_picker_row';
@@ -97,23 +98,32 @@ const FACT_CELL_CLASS = 'border-separator border-b px-4';
 
 interface ValidationSlotProps {
   testID: string;
+  liveTestID: string;
   message?: string;
+  children?: React.ReactNode;
 }
 
-function ValidationSlot({ testID, message }: ValidationSlotProps) {
+function ValidationSlot({ testID, liveTestID, message, children }: ValidationSlotProps) {
   return (
     <View
       testID={testID}
       style={{ minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT }}
       className="justify-center px-4"
-      accessibilityLiveRegion="polite"
     >
-      <FormErrorText
-        message={message}
-        numberOfLines={1}
-        disableAnimation
-        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro), textAlign: 'center' }}
-      />
+      {/* Fabric flattens a View whose only prop is the live region; the testID keeps it. */}
+      <View testID={liveTestID} accessibilityLiveRegion="polite">
+        <FormErrorText
+          message={message}
+          numberOfLines={1}
+          disableAnimation
+          style={{
+            fontSize: Type.micro,
+            lineHeight: lineHeightFor(Type.micro),
+            textAlign: 'center',
+          }}
+        />
+      </View>
+      {children}
     </View>
   );
 }
@@ -236,7 +246,21 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         mode={formMode}
         invalid={amountError !== undefined}
       />
-      <ValidationSlot testID="amount-error-slot" message={amountError} />
+      <ValidationSlot
+        testID="amount-error-slot"
+        liveTestID="amount-error-live"
+        message={amountError}
+      >
+        {requiresRate && amountError === undefined ? (
+          <ConvertedAmountLine
+            mode={formMode}
+            type={type}
+            sourceCurrency={selectedAccount?.currency}
+            destinationCurrency={selectedToAccount?.currency}
+            exchangeRate={exchangeRate}
+          />
+        ) : null}
+      </ValidationSlot>
 
       <View testID="transaction-form-fact-inset" style={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}>
         <ListCard testID="transaction-form-fact-group">
@@ -371,10 +395,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 overrideEnabled={rateOverride}
                 onToggleOverride={toggleRateOverride}
                 rateUpdatedAt={rateUpdatedAt}
-                mode={formMode}
-                type={type}
-                sourceCurrency={selectedAccount?.currency}
-                destinationCurrency={selectedToAccount?.currency}
                 error={rateError}
               />
             </View>

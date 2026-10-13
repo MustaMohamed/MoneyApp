@@ -1,4 +1,4 @@
-import { AccountType, CategoryType, type Currency, TransactionType } from '@/constants/enums';
+import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
@@ -13,9 +13,10 @@ import {
   resolveRowTile,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { resolveAccountName } from '@/utils/account_name';
+import { formatDisplayAmount } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import { parseRateText } from '@/utils/parse_decimal';
+import { parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 
 export interface TransactionFormSemantics {
   isCardCredit: boolean;
@@ -222,6 +223,57 @@ export function resolveDestinationFloorError(input: {
     if (error instanceof TransactionAmountError) return undefined;
     throw error;
   }
+}
+
+export interface ConvertedAmount {
+  amount: number;
+  currency: Currency;
+}
+
+/** The leg in the rate's direction, from the resolver the save runs; `undefined` with no USD side or nothing to convert yet. */
+export function resolveConvertedAmount(input: {
+  type: TransactionType;
+  amountText: string;
+  sourceCurrency: Currency | undefined;
+  destinationCurrency: Currency | undefined;
+  exchangeRateText: string;
+}): ConvertedAmount | undefined {
+  const { type, amountText, sourceCurrency, destinationCurrency, exchangeRateText } = input;
+  if (sourceCurrency === undefined) return undefined;
+  const hasDestination = requiresDestination(type);
+  if (hasDestination && destinationCurrency === undefined) return undefined;
+  const amount = parsePositiveDecimal(amountText);
+  if (amount === undefined) return undefined;
+  const exchangeRate = parseRateText(exchangeRateText);
+  const usesUsd = requiresExchangeRate(
+    sourceCurrency,
+    hasDestination ? destinationCurrency : undefined,
+  );
+  if (!usesUsd || exchangeRate === undefined) return undefined;
+  try {
+    const resolved = resolveTransactionAmounts({
+      type,
+      amount,
+      sourceCurrency,
+      destinationCurrency,
+      exchangeRate,
+    });
+    if (sourceCurrency === Currency.USD) {
+      return { amount: resolved.egpAmount, currency: Currency.EGP };
+    }
+    return resolved.toAmount === null
+      ? undefined
+      : { amount: resolved.toAmount, currency: Currency.USD };
+  } catch (error) {
+    if (error instanceof TransactionAmountError) return undefined;
+    throw error;
+  }
+}
+
+export function formatConvertedAmount(converted: ConvertedAmount | undefined): string {
+  return converted === undefined
+    ? Strings.addTxConvertedAmountNone
+    : Strings.addTxConvertedAmount(formatDisplayAmount(converted.amount, converted.currency));
 }
 
 function resolveArchivedAccountLine(error: unknown): string | undefined {

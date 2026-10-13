@@ -72,7 +72,7 @@ export function ExchangeRateRow({
         testID="exchange-rate-row"
         onPress={overrideEnabled ? undefined : onToggleOverride}
         accessibilityRole={overrideEnabled ? undefined : 'button'}
-        accessibilityLabel={overrideEnabled ? undefined : Strings.addTxRateEditAccessibility}
+        accessibilityLabel={overrideEnabled ? '' : Strings.addTxRateEditAccessibility}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <View style={{ flex: 1 }}>
