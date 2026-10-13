@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
@@ -33,8 +33,8 @@ async function preview(input: {
 }
 
 describe('useTransactionRatePreview', () => {
-  // The rate converts the destination leg, so an EGP source previews its own amount.
-  it('renders the identity amount for an EGP source paid into a USD account', async () => {
+  // The rate converts the destination leg: an EGP source shows the USD its destination receives.
+  it('divides for an EGP source paid into a USD account', async () => {
     expect(
       await preview({
         amount: '5000',
@@ -42,7 +42,7 @@ describe('useTransactionRatePreview', () => {
         sourceCurrency: Currency.EGP,
         destinationCurrency: Currency.USD,
       }),
-    ).toBe(5000);
+    ).toEqual({ amount: 101.92, currency: Currency.USD });
   });
 
   it.each([
@@ -51,13 +51,49 @@ describe('useTransactionRatePreview', () => {
   ] as const)('multiplies for %s', async (_label, type, destinationCurrency) => {
     expect(
       await preview({ amount: '100', type, sourceCurrency: Currency.USD, destinationCurrency }),
-    ).toBe(4906);
+    ).toEqual({ amount: 4906, currency: Currency.EGP });
   });
 
-  it('needs no rate when neither side is USD', async () => {
-    expect(await preview({ amount: '250', sourceCurrency: Currency.EGP, exchangeRate: '' })).toBe(
-      250,
+  it('has no converted amount when neither side is USD', async () => {
+    expect(
+      await preview({ amount: '250', sourceCurrency: Currency.EGP, exchangeRate: '' }),
+    ).toBeUndefined();
+  });
+
+  it('follows the rate as it is typed', async () => {
+    useAddTransactionStore.getState().setAmountStr('100');
+    const { result, rerender } = await renderHook(
+      ({ exchangeRate }: { exchangeRate: string }) =>
+        useTransactionRatePreview({
+          mode: 'add',
+          type: TransactionType.Expense,
+          sourceCurrency: Currency.USD,
+          destinationCurrency: undefined,
+          exchangeRate,
+        }),
+      { initialProps: { exchangeRate: RATE } },
     );
+
+    await rerender({ exchangeRate: '50' });
+
+    expect(result.current).toEqual({ amount: 5000, currency: Currency.EGP });
+  });
+
+  it('follows the amount as it is typed', async () => {
+    useAddTransactionStore.getState().setAmountStr('100');
+    const { result } = await renderHook(() =>
+      useTransactionRatePreview({
+        mode: 'add',
+        type: TransactionType.Expense,
+        sourceCurrency: Currency.USD,
+        destinationCurrency: undefined,
+        exchangeRate: RATE,
+      }),
+    );
+
+    await act(() => useAddTransactionStore.getState().setAmountStr('200'));
+
+    expect(result.current).toEqual({ amount: 9812, currency: Currency.EGP });
   });
 
   // Each row is a resolver throw condition the hook guards; reaching the resolver throws in render.
@@ -125,6 +161,6 @@ describe('useTransactionRatePreview', () => {
       }),
     );
 
-    expect(result.current).toBe(4906);
+    expect(result.current).toEqual({ amount: 4906, currency: Currency.EGP });
   });
 });

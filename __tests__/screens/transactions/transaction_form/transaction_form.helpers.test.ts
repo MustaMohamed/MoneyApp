@@ -1,16 +1,21 @@
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
-import { TransactionAmountError } from '@/modules/transactions/domain/transaction_amounts';
+import {
+  resolveTransactionAmounts,
+  TransactionAmountError,
+} from '@/modules/transactions/domain/transaction_amounts';
 import {
   TransactionAccountArchivedError,
   TransactionValidationError,
 } from '@/modules/transactions/repositories/transaction.errors';
 import {
   countTransactionFormFieldErrors,
+  formatConvertedAmount,
   resolveAccountPreselect,
   resolveAccountStripChips,
   resolveBudgetFieldError,
+  resolveConvertedAmount,
   resolveDestinationFloorError,
   resolveEligibleFromAccounts,
   resolveEligibleToAccounts,
@@ -730,5 +735,154 @@ describe('resolveTransactionFormFooterVisible', () => {
         hasAccounts: false,
       }),
     ).toBe(false);
+  });
+});
+
+describe('MA-168 converted amount', () => {
+  interface ConvertInput {
+    type: TransactionType;
+    amountText: string;
+    sourceCurrency: Currency | undefined;
+    destinationCurrency: Currency | undefined;
+    exchangeRateText: string;
+  }
+
+  // A USD 100 expense at 49; each case names only the fields it changes.
+  const convert = (input: Partial<ConvertInput>) =>
+    resolveConvertedAmount({
+      type: TransactionType.Expense,
+      amountText: '100',
+      sourceCurrency: Currency.USD,
+      destinationCurrency: undefined,
+      exchangeRateText: '49',
+      ...input,
+    });
+
+  it.each([
+    ['an expense', TransactionType.Expense],
+    ['an income', TransactionType.Income],
+  ] as const)('multiplies %s of USD 15 to EGP 735', (_label, type) => {
+    const converted = convert({ type, amountText: '15' });
+
+    expect(converted).toEqual({ amount: 735, currency: Currency.EGP });
+    expect(formatConvertedAmount(converted)).toBe('≈ 735 EGP');
+  });
+
+  it.each([
+    ['a transfer', TransactionType.Transfer],
+    ['a card payment', TransactionType.CCPayment],
+  ] as const)(
+    'divides %s of EGP 5,000 into the USD 102.04 the destination receives',
+    (_label, type) => {
+      const converted = convert({
+        type,
+        amountText: '5000',
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.USD,
+      });
+
+      expect(converted).toEqual({ amount: 102.04, currency: Currency.USD });
+      expect(formatConvertedAmount(converted)).toBe('≈ 102.04 USD');
+    },
+  );
+
+  it('multiplies a USD 100 transfer to an EGP account to EGP 4,900', () => {
+    const converted = convert({
+      type: TransactionType.Transfer,
+      destinationCurrency: Currency.EGP,
+    });
+
+    expect(converted).toEqual({ amount: 4900, currency: Currency.EGP });
+    expect(formatConvertedAmount(converted)).toBe('≈ 4,900 EGP');
+  });
+
+  it('shows a USD to USD transfer as the EGP 4,900 the ledger stores, while the destination receives the 100', () => {
+    const converted = convert({
+      type: TransactionType.Transfer,
+      destinationCurrency: Currency.USD,
+    });
+
+    expect(converted).toEqual({ amount: 4900, currency: Currency.EGP });
+    expect(formatConvertedAmount(converted)).toBe('≈ 4,900 EGP');
+    expect(
+      resolveTransactionAmounts({
+        type: TransactionType.Transfer,
+        amount: 100,
+        sourceCurrency: Currency.USD,
+        destinationCurrency: Currency.USD,
+        exchangeRate: 49,
+      }),
+    ).toMatchObject({ toAmount: 100, egpAmount: 4900 });
+  });
+
+  it.each([
+    ['an EGP expense', { sourceCurrency: Currency.EGP }],
+    [
+      'an EGP to EGP transfer',
+      {
+        type: TransactionType.Transfer,
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.EGP,
+      },
+    ],
+    [
+      'an EGP to EGP transfer with no rate',
+      {
+        type: TransactionType.Transfer,
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.EGP,
+        exchangeRateText: '',
+      },
+    ],
+  ] as const)('has no converted amount for %s', (_label, input) => {
+    expect(convert(input)).toBeUndefined();
+  });
+
+  it('prints USD 0.01 as 0.49 EGP, never as zero', () => {
+    const converted = convert({ amountText: '0.01' });
+
+    expect(converted).toEqual({ amount: 0.49, currency: Currency.EGP });
+    expect(formatConvertedAmount(converted)).toBe('≈ 0.49 EGP');
+  });
+
+  // The resolver rounds the amount to 1.00 first; one division of 1.005 by 40 gives 0.03.
+  it('takes the resolver rounding: EGP 1.005 at 40 is USD 0.02', () => {
+    expect(
+      convert({
+        type: TransactionType.Transfer,
+        amountText: '1.005',
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.USD,
+        exchangeRateText: '40',
+      }),
+    ).toEqual({ amount: 0.02, currency: Currency.USD });
+  });
+
+  it.each([
+    ['no amount typed', { amountText: '' }],
+    ['an amount the parser cannot read', { amountText: '1,23' }],
+    ['an amount under the money floor', { amountText: '0.004' }],
+    ['no rate with a USD side', { exchangeRateText: '' }],
+    ['a rate half typed', { exchangeRateText: '49.' }],
+    ['a rate of zero', { exchangeRateText: '0' }],
+    ['a rate that is not a number', { exchangeRateText: 'abc' }],
+    ['no source account', { sourceCurrency: undefined }],
+    ['a USD transfer with no To account picked', { type: TransactionType.Transfer }],
+    [
+      'a destination leg that rounds to zero: 0.2 EGP at 50',
+      {
+        type: TransactionType.Transfer,
+        amountText: '0.2',
+        sourceCurrency: Currency.EGP,
+        destinationCurrency: Currency.USD,
+        exchangeRateText: '50',
+      },
+    ],
+    ['an amount of 20 digits', { amountText: '99999999999999999999' }],
+  ] as const)('reads a dash for %s', (_label, input) => {
+    const converted = convert(input);
+
+    expect(converted).toBeUndefined();
+    expect(formatConvertedAmount(converted)).toBe('≈ —');
   });
 });

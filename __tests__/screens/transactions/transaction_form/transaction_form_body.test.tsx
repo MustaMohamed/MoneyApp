@@ -47,15 +47,22 @@ jest.mock(
     return { DateRow: () => ReactLocal.createElement(RNView, { testID: 'date-row' }) };
   },
 );
+const mockExchangeRateRowProps: Array<{ previewEgpAmount?: number; previewHidden?: boolean }> = [];
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row',
-  () => ({ ExchangeRateRow: () => null }),
+  () => ({
+    ExchangeRateRow: (props: { previewEgpAmount?: number; previewHidden?: boolean }) => {
+      mockExchangeRateRowProps.push(props);
+      return null;
+    },
+  }),
 );
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/type_tabs',
   () => ({ TypeTabs: () => null }),
 );
 
+import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import {
   ACCOUNT_STRIP_CHIP_RADIUS,
   ACCOUNT_STRIP_CHIP_WIDTH,
@@ -419,6 +426,57 @@ describe('TransactionFormBody fact rows', () => {
     expect(
       within(screen.getByTestId('budget-row')).getByText(Strings.addTxPickBudgetTitle),
     ).toHaveProp('numberOfLines', 1);
+  });
+});
+
+describe('MA-168 rate card', () => {
+  beforeEach(() => useAddTransactionStore.getState().reset());
+  // The body is still mounted here, so the reset is an update to its amount subscriber.
+  afterEach(async () => {
+    await act(() => useAddTransactionStore.getState().reset());
+  });
+
+  it('hides the rate card preview and hands it no converted amount of its own', async () => {
+    mockExchangeRateRowProps.length = 0;
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        requiresRate
+        selectedAccount={makeTestAccount({ id: 'account-usd', currency: Currency.USD })}
+        currency={Currency.USD}
+        exchangeRate="49"
+      />,
+    );
+
+    expect(mockExchangeRateRowProps).not.toHaveLength(0);
+    expect(mockExchangeRateRowProps.at(-1)?.previewHidden).toBe(true);
+    expect(mockExchangeRateRowProps.at(-1)?.previewEgpAmount).toBeUndefined();
+  });
+
+  it('speaks no label left from the stored state once the rate row holds a field', async () => {
+    const { ExchangeRateRow: RealExchangeRateRow } = jest.requireActual<
+      typeof import('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row')
+    >('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row');
+    const rowProps = {
+      value: '49',
+      onChange: jest.fn(),
+      onToggleOverride: jest.fn(),
+      rateUpdatedAt: null,
+      previewEgpAmount: undefined,
+    };
+    const { rerender } = await render(
+      <RealExchangeRateRow {...rowProps} overrideEnabled={false} />,
+    );
+
+    expect(screen.getByTestId('exchange-rate-row')).toHaveProp(
+      'accessibilityLabel',
+      Strings.addTxRateEditAccessibility,
+    );
+
+    await rerender(<RealExchangeRateRow {...rowProps} overrideEnabled />);
+
+    expect(screen.getByTestId('exchange-rate-row')).toHaveProp('accessibilityLabel', '');
   });
 });
 

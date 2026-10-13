@@ -12,6 +12,7 @@ import { TransactionAccountArchivedError } from '@/modules/transactions/reposito
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
+import { resolveConvertedAmount } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import {
   installMockUpdateTransaction,
@@ -1003,5 +1004,63 @@ describe('useEditTransaction — destination-leg floor', () => {
       't-transfer',
       expect.objectContaining({ to_amount: 0.01 }),
     );
+  });
+});
+
+describe('MA-168 converted amount on the edit sheet', () => {
+  // The five values the edit sheet hands the line under the amount.
+  const convertedFor = (hook: ReturnType<typeof useEditTransaction>) =>
+    resolveConvertedAmount({
+      type: hook.state.type,
+      amountText: useEditTransactionStore.getState().amountStr,
+      sourceCurrency: hook.state.selectedAccount?.currency,
+      destinationCurrency: hook.state.selectedToAccount?.currency,
+      exchangeRateText: hook.state.exchangeRate,
+    });
+
+  it("converts a USD expense on an archived account at the transaction's own rate, then at the rate typed", async () => {
+    const usdTx = makeTestTransaction({
+      ...mockTxExpense,
+      id: 't-usd',
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 490,
+      exchange_rate: 49,
+    });
+    useEditTransactionStore.getState().loadFromTx(usdTx);
+    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    expect(result.current.state.selectedAccount?.id).toBe(mockAccountUSD.id);
+    expect(Number(result.current.state.exchangeRate)).toBe(49);
+
+    expect(convertedFor(result.current)).toEqual({ amount: 490, currency: Currency.EGP });
+
+    await act(() => result.current.setExchangeRate('50'));
+
+    expect(convertedFor(result.current)).toEqual({ amount: 500, currency: Currency.EGP });
+  });
+
+  it('converts an EGP transfer into an archived USD account to the USD that account receives', async () => {
+    const transferTx = makeTestTransaction({
+      ...mockTxExpense,
+      id: 't-transfer-usd',
+      type: TransactionType.Transfer,
+      account_id: mockAccountEGP.id,
+      to_account_id: mockAccountUSD.id,
+      category_id: null,
+      amount: 4900,
+      egp_amount: 4900,
+      to_amount: 100,
+      exchange_rate: 49,
+    });
+    useEditTransactionStore.getState().loadFromTx(transferTx);
+    const { result } = await renderHook(() => useEditTransaction(transferTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    expect(result.current.state.selectedAccount?.id).toBe(mockAccountEGP.id);
+    expect(result.current.state.selectedToAccount?.id).toBe(mockAccountUSD.id);
+    expect(Number(result.current.state.exchangeRate)).toBe(49);
+
+    expect(convertedFor(result.current)).toEqual({ amount: 100, currency: Currency.USD });
   });
 });
