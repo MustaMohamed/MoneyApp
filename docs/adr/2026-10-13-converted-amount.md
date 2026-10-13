@@ -3,7 +3,7 @@
 - **Date:** 2026-10-13
 - **Status:** accepted
 - **Ticket:** MA-168 (#695), under MA-096 (#552), epic #543
-- **Applies to:** `src/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers.ts`, `components/converted_amount_line.tsx`, `components/transaction_rate_preview.hook.ts`, `components/transaction_exchange_rate_row.tsx`, `transaction_form_body.tsx` and `components/exchange_rate_row.tsx` in the same folder
+- **Applies to:** `src/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers.ts`, `components/converted_amount_line.tsx`, `components/transaction_rate_preview.hook.ts`, `components/transaction_exchange_rate_row.tsx`, `components/transaction_form.geometry.ts`, `transaction_form_body.tsx` and `components/exchange_rate_row.tsx` in the same folder
 - **Supersedes in part:** `docs/adr/2026-08-25-pay-sheet-conversion-preview.md` §3 and §4
 
 The add and edit sheet printed `≈ {amount} EGP` inside the rate card, from `egpAmount` alone. For EGP 5,000 paid into a USD account at 49 it printed `≈ 5,000.00 EGP`, the source amount under another label, which is the half of audit M40 that was still open. The user ruled on 2026-10-08 that the converted amount sits under the amount, in the amount's message slot, as the amount and its code alone on every currency pair.

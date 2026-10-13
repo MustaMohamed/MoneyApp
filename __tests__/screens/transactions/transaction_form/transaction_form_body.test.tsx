@@ -69,6 +69,7 @@ import {
   ACCOUNT_STRIP_CHIP_RADIUS,
   ACCOUNT_STRIP_CHIP_WIDTH,
   ACCOUNT_STRIP_GAP,
+  AMOUNT_MESSAGE_TEXT_STYLE,
   FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   resolveAccountStripChipGeometry,
@@ -522,14 +523,17 @@ describe('MA-168 converted amount under the amount', () => {
     expect(slotLiveRegion).toBeUndefined();
   });
 
-  it('gives the slot to an amount error: the message in the live region, no converted amount, the same floor', async () => {
+  it("gives the slot to an amount error: the message in the live region in the slot's text style, no converted amount, the same floor", async () => {
     useAddTransactionStore.getState().setAmountStr('15');
     await render(React.cloneElement(usdExpense, { amountError: 'Enter an amount' }));
 
     const slot = screen.getByTestId('amount-error-slot');
-    expect(
-      within(screen.getByTestId('amount-error-live')).getByText('Enter an amount'),
-    ).toBeTruthy();
+    const message = within(screen.getByTestId('amount-error-live')).getByText('Enter an amount');
+    // jest.setup.js mocks FieldError as a pass-through Text, so the message carries its style under textProps.
+    expect(message).toHaveProp('textProps', {
+      numberOfLines: 1,
+      style: AMOUNT_MESSAGE_TEXT_STYLE,
+    });
     expect(screen.queryByTestId('converted-amount-line')).toBeNull();
     expect(slot).toHaveStyle({ minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT });
   });
@@ -553,6 +557,7 @@ describe('MA-168 converted amount under the amount', () => {
     const line = screen.getByTestId('converted-amount-line');
     expect(line).toHaveProp('numberOfLines', 1);
     expect(line).not.toHaveProp('allowFontScaling', false);
+    expect(line).toHaveStyle(AMOUNT_MESSAGE_TEXT_STYLE);
     expect(line).toHaveStyle({ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) });
     expect(line).not.toHaveStyle(scaledTextStyle(Type.micro, fontScale));
   });
