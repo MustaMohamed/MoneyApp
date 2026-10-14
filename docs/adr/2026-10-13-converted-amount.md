@@ -12,7 +12,7 @@ The add and edit sheet printed `≈ {amount} EGP` inside the rate card, from `eg
 
 `TransactionExchangeRateRow` passes `previewHidden` and `previewEgpAmount={undefined}` to `ExchangeRateRow` on every add and edit sheet. Its props are `Omit<ComponentProps<typeof ExchangeRateRow>, 'previewEgpAmount' | 'previewHidden'>`, so no caller on the form can turn the card's preview back on. `ExchangeRateRow`, its props and its preview block do not change, and the commitments pay sheet still draws `≈ {amount} EGP` from them.
 
-**Amended 2026-10-14, MA-169 (#696).** `TransactionExchangeRateRow` now names its own props, `ownerId`, `value`, `onCommit`, `overrideEnabled`, `onToggleOverride` and `rateUpdatedAt`, in place of the `Omit` above, and still takes neither preview prop: it passes `previewHidden` and `previewEgpAmount={undefined}` as before, and mounts the rate editor beside the card.
+**Amended 2026-10-14, MA-169 (#696).** `TransactionExchangeRateRow` now names its own props, `ownerId`, `value`, `onCommit`, `overrideEnabled`, `onToggleOverride` and `rateUpdatedAt`, in place of the `Omit` above, and still takes neither preview prop: it passes `previewHidden` and `previewEgpAmount={undefined}` as before. The rate editor mounts apart from the card, in `TransactionRateEditor` from the same file, which `TransactionFormBody` renders outside its `requiresRate` gate, so the editor's sheet is mounted before any keyboard show.
 
 ## 2. The converted amount is one leg of `resolveTransactionAmounts`
 
