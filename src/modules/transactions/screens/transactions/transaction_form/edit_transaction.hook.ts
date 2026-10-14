@@ -31,9 +31,9 @@ import { useEditTransactionState } from './edit_transaction.state';
 import { useEditTransactionStore } from './edit_transaction.store';
 import {
   REFINE_DESPITE_FIELD_ERRORS,
+  applyRateCommit,
   resolveDestinationFloorError,
   resolveLockedStripChips,
-  resolveRateCommit,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
   resolveTransactionSaveError,
@@ -495,14 +495,14 @@ export function useEditTransaction(
       clearError();
       form.setValue('note', v);
     },
-    commitExchangeRate: (text: string) => {
-      const commit = resolveRateCommit({ text, storedRate: rate });
-      if (commit === undefined) return false;
-      clearError();
-      setRateOverride(commit.override);
-      form.setValue('exchangeRate', commit.exchangeRate);
-      return true;
-    },
+    commitExchangeRate: (text: string) =>
+      applyRateCommit({
+        text,
+        storedRate: rate,
+        clearError,
+        setRateOverride,
+        setExchangeRate: (exchangeRate) => form.setValue('exchangeRate', exchangeRate),
+      }),
     toggleRateOverride,
     setShowCategoryPicker,
     setShowBudgetPicker,

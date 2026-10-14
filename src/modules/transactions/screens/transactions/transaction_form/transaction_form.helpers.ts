@@ -283,6 +283,22 @@ export function resolveRateCommit(input: {
   return { exchangeRate: override ? text : formatStoredMoneyText(storedRate), override };
 }
 
+/** Both form hooks' `commitExchangeRate`: a refused rate writes nothing; an accepted one clears the save error, then sets the override and the rate. */
+export function applyRateCommit(input: {
+  text: string;
+  storedRate: number;
+  clearError: () => void;
+  setRateOverride: (override: boolean) => void;
+  setExchangeRate: (exchangeRate: string) => void;
+}): boolean {
+  const commit = resolveRateCommit({ text: input.text, storedRate: input.storedRate });
+  if (commit === undefined) return false;
+  input.clearError();
+  input.setRateOverride(commit.override);
+  input.setExchangeRate(commit.exchangeRate);
+  return true;
+}
+
 export function formatConvertedAmount(converted: ConvertedAmount | undefined): string {
   return converted === undefined
     ? Strings.addTxConvertedAmountNone

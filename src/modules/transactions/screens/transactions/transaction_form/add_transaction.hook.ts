@@ -26,12 +26,12 @@ import { useAddTransactionStore } from './add_transaction.store';
 import { resolveBudgetAssignment } from './budget_assignment.helpers';
 import {
   REFINE_DESPITE_FIELD_ERRORS,
+  applyRateCommit,
   resolveAccountPreselect,
   resolveAccountStripChips,
   resolveDestinationFloorError,
   resolveEligibleFromAccounts,
   resolveEligibleToAccounts,
-  resolveRateCommit,
   resolveStripSelectedId,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
@@ -625,14 +625,14 @@ export function useAddTransaction(
       clearError();
       form.setValue('note', v);
     },
-    commitExchangeRate: (text: string) => {
-      const commit = resolveRateCommit({ text, storedRate: rate });
-      if (commit === undefined) return false;
-      clearError();
-      setRateOverride(commit.override);
-      form.setValue('exchangeRate', commit.exchangeRate);
-      return true;
-    },
+    commitExchangeRate: (text: string) =>
+      applyRateCommit({
+        text,
+        storedRate: rate,
+        clearError,
+        setRateOverride,
+        setExchangeRate: (exchangeRate) => form.setValue('exchangeRate', exchangeRate),
+      }),
     toggleRateOverride,
     setShowToPicker,
     setShowCategoryPicker,
