@@ -1,3 +1,5 @@
+import type { Platform } from 'react-native';
+
 import {
   INPUT_BORDER_WIDTH,
   INPUT_HIDDEN_TEXT_STYLE,
@@ -30,6 +32,34 @@ describe('resolveInputRestTextEnd', () => {
       expect(resolveInputRestTextEnd(suffixWidth)).toBe(INPUT_PADDING_INLINE + INPUT_BORDER_WIDTH);
     },
   );
+});
+
+interface AndroidInputGeometry {
+  INPUT_BORDER_WIDTH: number;
+  INPUT_REST_TEXT_START: number;
+  resolveInputRestTextEnd: typeof resolveInputRestTextEnd;
+}
+
+// The border width computes at module load, so the Android copy loads after its mock.
+function loadAndroidInputGeometry(): AndroidInputGeometry {
+  let loaded: AndroidInputGeometry | undefined;
+  jest.isolateModules(() => {
+    const isolated = jest.requireActual<{ Platform: typeof Platform }>('react-native');
+    jest.replaceProperty(isolated.Platform, 'OS', 'android');
+    loaded = jest.requireActual<AndroidInputGeometry>('@/components/ui/input.geometry');
+  });
+  if (loaded === undefined) throw new Error('the Android input geometry did not load');
+  return loaded;
+}
+
+describe('input rest geometry on Android', () => {
+  it("MA-179: the value at rest sits inside the input's 1.5 dp Android border at both ends", () => {
+    const android = loadAndroidInputGeometry();
+    expect(android.INPUT_BORDER_WIDTH).toBe(1.5);
+    expect(android.INPUT_REST_TEXT_START).toBe(13.5);
+    expect(android.resolveInputRestTextEnd(64)).toBe(65.5);
+    expect(android.resolveInputRestTextEnd(undefined)).toBe(13.5);
+  });
 });
 
 describe('INPUT_HIDDEN_TEXT_STYLE', () => {

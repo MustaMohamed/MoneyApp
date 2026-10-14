@@ -4,6 +4,7 @@ import type { BlurEvent, FocusEvent, LayoutChangeEvent } from 'react-native';
 import {
   INPUT_BORDER_WIDTH,
   INPUT_PADDING_INLINE,
+  INPUT_REST_SELECTION,
   type InputValueAtRest,
 } from '@/components/ui/input.geometry';
 import { useInputValueAtRest } from '@/components/ui/input.hook';
@@ -70,6 +71,22 @@ describe('useInputValueAtRest', () => {
     expect(onFocus).toHaveBeenCalledWith(FOCUS_EVENT);
     expect(onBlur).toHaveBeenCalledTimes(1);
     expect(onBlur).toHaveBeenCalledWith(BLUR_EVENT);
+  });
+
+  it("MA-179: 'fit' at font scale 2 puts the hidden text's caret at its start at rest, frees it while focused and puts it back after the blur", async () => {
+    const { hook } = await mountValueAtRest({ valueAtRest: 'fit', value: LIMIT, fontScale: 2 });
+    expect(hook.result.current.restSelection).toEqual(INPUT_REST_SELECTION);
+
+    await act(() => defined(hook.result.current.onFocus, 'onFocus')(FOCUS_EVENT));
+    expect(hook.result.current.restSelection).toBeUndefined();
+
+    await act(() => defined(hook.result.current.onBlur, 'onBlur')(BLUR_EVENT));
+    expect(hook.result.current.restSelection).toEqual(INPUT_REST_SELECTION);
+  });
+
+  it('MA-179: with no valueAtRest the caret is left to the caller at font scale 2', async () => {
+    const { hook } = await mountValueAtRest({ valueAtRest: undefined, value: LIMIT, fontScale: 2 });
+    expect(hook.result.current.restSelection).toBeUndefined();
   });
 
   it.each([

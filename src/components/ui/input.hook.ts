@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import type { BlurEvent, FocusEvent, LayoutChangeEvent, TextInputProps } from 'react-native';
 
 import {
+  INPUT_REST_SELECTION,
   type InputValueAtRest,
   isInputRestOverlay,
   resolveInputRestTextEnd,
@@ -18,6 +19,8 @@ export interface InputValueAtRestOptions {
 export interface InputValueAtRestBinding {
   shown: InputValueAtRest | undefined;
   restTextEnd: number;
+  /** The hidden text's caret at its start while a value shows at rest, so a tap on its first glyph lands there; `undefined` otherwise. */
+  restSelection: typeof INPUT_REST_SELECTION | undefined;
   onFocus: TextInputProps['onFocus'];
   onBlur: TextInputProps['onBlur'];
   onSuffixLayout: ((event: LayoutChangeEvent) => void) | undefined;
@@ -56,9 +59,11 @@ export function useInputValueAtRest({
 
   const atRest = fontScale > 1 && !focused && value !== undefined && value !== '';
   const overlays = isInputRestOverlay(valueAtRest);
+  const shown = atRest ? valueAtRest : undefined;
   return {
-    shown: atRest ? valueAtRest : undefined,
+    shown,
     restTextEnd: resolveInputRestTextEnd(suffixWidth),
+    restSelection: shown === undefined ? undefined : INPUT_REST_SELECTION,
     onFocus: valueAtRest === undefined ? onFocus : handleFocus,
     onBlur: valueAtRest === undefined ? onBlur : handleBlur,
     onSuffixLayout: overlays ? handleSuffixLayout : undefined,

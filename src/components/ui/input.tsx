@@ -15,7 +15,6 @@ import { View, useWindowDimensions } from 'react-native';
 
 import {
   INPUT_HIDDEN_TEXT_STYLE,
-  INPUT_REST_SELECTION,
   INPUT_REST_TEXT_START,
   type InputRestOverlay,
   type InputValueAtRest,
@@ -110,7 +109,7 @@ export function Input({
         : [INPUT_TEXT_STYLE, style, INPUT_HIDDEN_TEXT_STYLE],
     ...inputProps,
     value,
-    selection: binding.shown === 'start' ? INPUT_REST_SELECTION : selection,
+    selection: binding.restSelection ?? selection,
     onFocus: binding.onFocus,
     onBlur: binding.onBlur,
   };
