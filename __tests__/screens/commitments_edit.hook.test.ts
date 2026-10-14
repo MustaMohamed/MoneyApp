@@ -595,8 +595,10 @@ describe('useEditCommitment', () => {
       },
     );
 
-    it('a Save on the second commitment while the first commitment save is in flight writes nothing', async () => {
+    it('a Save on the second commitment while the first commitment save is in flight writes nothing and leaves the form unsubmitted', async () => {
       const hook = await renderHook(() => useEditCommitment());
+      expect(hook.result.current.form.formState.isSubmitted).toBe(false);
+      expect(hook.result.current.form.formState.submitCount).toBe(0);
       const { pending, inFlight } = await startSave(hook);
 
       await openOn(hook, 'com-2');
@@ -606,8 +608,75 @@ describe('useEditCommitment', () => {
 
       expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
       expect(updateCommitmentMock).toHaveBeenCalledWith('com-1', expect.anything());
+      expect(hook.result.current.form.formState.isSubmitted).toBe(false);
+      expect(hook.result.current.form.formState.submitCount).toBe(0);
 
       await settle(inFlight, () => pending.resolve());
+    });
+
+    it.each(settles)(
+      'a first commitment save that %s after the route opens on a missing id leaves once and navigates nowhere else',
+      async (_outcome, finish) => {
+        const hook = await renderHook(() => useEditCommitment());
+        const { pending, inFlight } = await startSave(hook);
+
+        await openOn(hook, 'com-missing');
+        await settle(inFlight, () => finish(pending));
+
+        expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
+        expect(updateCommitmentMock).toHaveBeenCalledWith('com-1', expect.anything());
+        expect(mockRouterBack).toHaveBeenCalled();
+        expect(mockRouterDismissTo).not.toHaveBeenCalled();
+        expect(mockRouterDismissAll).not.toHaveBeenCalled();
+        expect(mockRouterReplace).not.toHaveBeenCalled();
+        expect(hook.result.current.state.saveError).toBeUndefined();
+      },
+    );
+
+    it.each(settles)(
+      'a first commitment deactivate that %s after the route opens on a missing id leaves once and navigates nowhere else',
+      async (_outcome, finish) => {
+        const hook = await renderHook(() => useEditCommitment());
+        const { pending, inFlight } = await startDeactivate(hook);
+
+        await openOn(hook, 'com-missing');
+        await settle(inFlight, () => finish(pending));
+
+        expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
+        expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
+        expect(mockRouterBack).toHaveBeenCalled();
+        expect(mockRouterDismissTo).not.toHaveBeenCalled();
+        expect(mockRouterDismissAll).not.toHaveBeenCalled();
+        expect(mockRouterReplace).not.toHaveBeenCalled();
+        expect(hook.result.current.state.saveError).toBeUndefined();
+      },
+    );
+
+    it('a Save after the route opens on the second commitment writes the second and leaves', async () => {
+      const hook = await renderHook(() => useEditCommitment());
+
+      await openOn(hook, 'com-2');
+      await act(async () => {
+        await hook.result.current.onSubmit();
+      });
+
+      expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
+      expect(updateCommitmentMock).toHaveBeenCalledWith('com-2', expect.anything());
+      expect(mockRouterDismissTo).toHaveBeenCalledWith('/commitments');
+    });
+
+    it('a Confirm after the route opens on the second commitment deactivates the second and leaves', async () => {
+      const hook = await renderHook(() => useEditCommitment());
+
+      await openOn(hook, 'com-2');
+      await act(async () => hook.result.current.handleDeactivate());
+      await act(async () => {
+        await hook.result.current.confirmDeactivate();
+      });
+
+      expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
+      expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-2');
+      expect(mockRouterReplace).toHaveBeenCalledWith('/commitments');
     });
 
     it('a Confirm while a save is in flight does not deactivate', async () => {
