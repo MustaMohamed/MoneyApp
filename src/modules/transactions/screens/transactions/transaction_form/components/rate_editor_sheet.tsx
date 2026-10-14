@@ -1,5 +1,5 @@
 import { Input } from 'heroui-native';
-import type { RefObject } from 'react';
+import { type RefObject, useCallback } from 'react';
 import { type TextInput, View, useWindowDimensions } from 'react-native';
 
 import { Box } from '@/components/ui/box';
@@ -70,6 +70,11 @@ interface RateEditorSheetProps {
 export function RateEditorSheet(props: RateEditorSheetProps): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const { inputRef, focusInput } = useRateEditorFocus();
+  const { onOpenSettled, onCloseSettled } = props;
+  const handleOpenComplete = useCallback(() => {
+    focusInput();
+    onOpenSettled();
+  }, [focusInput, onOpenSettled]);
   const footer = (
     <Box style={{ flexDirection: 'row' }} className="gap-2">
       <Box style={{ flex: 1 }}>
@@ -100,11 +105,8 @@ export function RateEditorSheet(props: RateEditorSheetProps): React.ReactElement
         if (!open) props.onCancel();
       }}
       // A focus on the open flag raises the keyboard before the sheet settles and leaves the body under it.
-      onOpenComplete={() => {
-        focusInput();
-        props.onOpenSettled();
-      }}
-      onCloseComplete={props.onCloseSettled}
+      onOpenComplete={handleOpenComplete}
+      onCloseComplete={onCloseSettled}
       title={Strings.addTxRateLabel}
       size={resolveSheetSizeAboveOne('sm', fontScale)}
       footer={footer}

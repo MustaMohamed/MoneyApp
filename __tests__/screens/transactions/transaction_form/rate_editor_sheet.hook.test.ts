@@ -1,8 +1,9 @@
 import { act, renderHook } from '@testing-library/react-native';
-import type { TextInput } from 'react-native';
+import { Keyboard, type TextInput } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import {
+  openRateEditor,
   useRateEditor,
   useRateEditorFocus,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/rate_editor_sheet.hook';
@@ -203,6 +204,65 @@ describe('useRateEditor inside a close', () => {
     const second = await mountEditor(ADD_OWNER, '49', true);
     await act(() => second.result.current.open());
     expect(second.result.current.state).toEqual({ isOpen: true, draft: '49', error: undefined });
+  });
+});
+
+describe('openRateEditor and the keyboard', () => {
+  it('leaves the keyboard alone on a reopen refused inside a settled close, and dismisses it once on the open after the close settles', async () => {
+    const dismiss = jest.spyOn(Keyboard, 'dismiss');
+    const { result } = await mountEditor(ADD_OWNER, '50', true);
+    await act(() => result.current.open());
+    await act(() => result.current.settleOpen());
+    await act(() => result.current.cancel());
+    dismiss.mockClear();
+
+    await act(() => openRateEditor(ADD_OWNER, '50'));
+    expect(dismiss).toHaveBeenCalledTimes(0);
+    expect(result.current.state.isOpen).toBe(false);
+
+    await act(() => result.current.settleClose());
+    await act(() => openRateEditor(ADD_OWNER, '50'));
+    expect(dismiss).toHaveBeenCalledTimes(1);
+    expect(result.current.state.isOpen).toBe(true);
+    dismiss.mockRestore();
+  });
+});
+
+describe('useRateEditor action identity', () => {
+  it('returns the same settleOpen, settleClose, done and cancel across keystrokes', async () => {
+    const { result } = await mountEditor(ADD_OWNER, '50', true);
+    await act(() => result.current.open());
+    const before = result.current;
+
+    await act(() => result.current.setDraft('4'));
+    await act(() => result.current.setDraft('48'));
+
+    expect(result.current.state.draft).toBe('48');
+    expect(result.current.settleOpen).toBe(before.settleOpen);
+    expect(result.current.settleClose).toBe(before.settleClose);
+    expect(result.current.done).toBe(before.done);
+    expect(result.current.cancel).toBe(before.cancel);
+    expect(result.current.setDraft).toBe(before.setDraft);
+    expect(result.current.open).toBe(before.open);
+  });
+
+  it('calls the latest onCommit from a done that kept its identity', async () => {
+    const firstCommit = jest.fn().mockReturnValue(true);
+    const latestCommit = jest.fn().mockReturnValue(true);
+    const { result, rerender } = await renderHook(
+      ({ onCommit }: { onCommit: (text: string) => boolean }) =>
+        useRateEditor(ADD_OWNER, '50', onCommit),
+      { initialProps: { onCommit: firstCommit } },
+    );
+    const done = result.current.done;
+    await rerender({ onCommit: latestCommit });
+    await act(() => result.current.open());
+
+    await act(() => result.current.done());
+
+    expect(result.current.done).toBe(done);
+    expect(firstCommit).not.toHaveBeenCalled();
+    expect(latestCommit).toHaveBeenCalledWith('50');
   });
 });
 

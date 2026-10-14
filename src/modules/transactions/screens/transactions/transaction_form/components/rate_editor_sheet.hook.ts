@@ -1,16 +1,18 @@
-import { type RefObject, useEffect, useRef } from 'react';
+import { type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Keyboard, type TextInput } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 
-import { useRateEditorSheetState } from './rate_editor_sheet.state';
+import { refusesOpen, useRateEditorSheetState } from './rate_editor_sheet.state';
 
-/** Opens the owner's editor without subscribing to it. */
+/** Opens the owner's editor without subscribing to it; a refused reopen changes nothing. */
 export function openRateEditor(ownerId: string, value: string): void {
+  const editorState = useRateEditorSheetState.getState();
+  if (refusesOpen(editorState, ownerId)) return;
   // gorhom replays a keyboard show cached before the field's focus without the navigation bar's inset, so the editor lifts short.
   Keyboard.dismiss();
-  useRateEditorSheetState.getState().open(ownerId, value);
+  editorState.open(ownerId, value);
 }
 
 export function useRateEditor(ownerId: string, value: string, onCommit: (text: string) => boolean) {
@@ -22,24 +24,35 @@ export function useRateEditor(ownerId: string, value: string, onCommit: (text: s
       error: state.error,
     })),
   );
-  const setDraftText = useRateEditorSheetState.getState().setDraft;
-  const refuse = useRateEditorSheetState.getState().refuse;
-  const close = useRateEditorSheetState.getState().close;
-  const settleOpen = useRateEditorSheetState.getState().settleOpen;
-  const settleClose = useRateEditorSheetState.getState().settleClose;
-  const release = useRateEditorSheetState.getState().release;
+  // The actions below keep their identity per owner and read these at call time.
+  const valueRef = useRef(value);
+  const onCommitRef = useRef(onCommit);
+  useLayoutEffect(() => {
+    valueRef.current = value;
+    onCommitRef.current = onCommit;
+  });
 
-  useEffect(() => () => release(ownerId), [ownerId, release]);
+  const actions = useMemo(() => {
+    const store = useRateEditorSheetState.getState();
+    return {
+      open: () => openRateEditor(ownerId, valueRef.current),
+      setDraft: (text: string) => store.setDraft(ownerId, text),
+      cancel: () => store.close(ownerId),
+      // Only Done checks the rate; a keystroke clears the message and checks nothing.
+      done: () => {
+        const editorState = useRateEditorSheetState.getState();
+        if (editorState.activeOwnerId !== ownerId || !editorState.isOpen) return;
+        if (onCommitRef.current(editorState.draft)) store.close(ownerId);
+        else store.refuse(ownerId, Strings.addTxErrRateInvalid);
+      },
+      settleOpen: () => store.settleOpen(ownerId),
+      settleClose: () => store.settleClose(ownerId),
+    };
+  }, [ownerId]);
+
+  useEffect(() => () => useRateEditorSheetState.getState().release(ownerId), [ownerId]);
 
   const ownsEditor = activeOwnerId === ownerId;
-
-  // Only Done checks the rate; a keystroke clears the message and checks nothing.
-  function done() {
-    const editorState = useRateEditorSheetState.getState();
-    if (editorState.activeOwnerId !== ownerId || !editorState.isOpen) return;
-    if (onCommit(editorState.draft)) close(ownerId);
-    else refuse(ownerId, Strings.addTxErrRateInvalid);
-  }
 
   return {
     state: {
@@ -47,12 +60,7 @@ export function useRateEditor(ownerId: string, value: string, onCommit: (text: s
       draft: ownsEditor ? draft : value,
       error: ownsEditor ? error : undefined,
     },
-    open: () => openRateEditor(ownerId, value),
-    setDraft: (text: string) => setDraftText(ownerId, text),
-    cancel: () => close(ownerId),
-    done,
-    settleOpen: () => settleOpen(ownerId),
-    settleClose: () => settleClose(ownerId),
+    ...actions,
   };
 }
 
@@ -61,5 +69,6 @@ export function useRateEditorFocus(): {
   focusInput: () => void;
 } {
   const inputRef = useRef<TextInput | null>(null);
-  return { inputRef, focusInput: () => inputRef.current?.focus() };
+  const focusInput = useCallback(() => inputRef.current?.focus(), []);
+  return { inputRef, focusInput };
 }

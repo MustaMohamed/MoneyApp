@@ -24,6 +24,14 @@ type RateEditorSheetState = RateEditorSheetStateShape & {
   reset: () => void;
 };
 
+/** A reopen inside a settled open's close is refused: gorhom reports no index for it, so the field would get no focus. */
+export function refusesOpen(
+  state: Pick<RateEditorSheetStateShape, 'activeOwnerId' | 'closing'>,
+  ownerId: string,
+): boolean {
+  return state.closing && state.activeOwnerId === ownerId;
+}
+
 const INITIAL_STATE: RateEditorSheetStateShape = {
   activeOwnerId: undefined,
   isOpen: false,
@@ -39,7 +47,7 @@ export const useRateEditorSheetState = createMoneyAppSelectors(
 
     open: (activeOwnerId, rateText) =>
       set((state) =>
-        state.closing && state.activeOwnerId === activeOwnerId
+        refusesOpen(state, activeOwnerId)
           ? {}
           : {
               activeOwnerId,
