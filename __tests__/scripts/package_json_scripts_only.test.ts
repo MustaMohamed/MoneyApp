@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
+
+import { cleanEnv, commit, git, removeTempDirs, tempDir } from '@/test_helpers/git_repo';
 
 const source = path.join(__dirname, '..', '..', 'scripts', 'package_json_scripts_only.mjs');
 
@@ -24,33 +25,7 @@ const BASE = {
   dependencies: { react: '19.0.0', 'react-native': '0.81.0' },
 };
 
-const dirs: string[] = [];
 let elsewhere = '';
-
-function tempDir(prefix: string): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-  dirs.push(dir);
-  return dir;
-}
-
-// A hook or a dev shell can export GIT_DIR; it may not reach the temp repos.
-function cleanEnv(): NodeJS.ProcessEnv {
-  const env = { ...process.env };
-  for (const key of Object.keys(env)) {
-    if (key.startsWith('GIT_')) delete env[key];
-  }
-  return env;
-}
-
-function git(repo: string, args: string[]): string {
-  const r = spawnSync(
-    'git',
-    ['-c', 'user.email=pkg@test', '-c', 'user.name=pkg', '-c', 'commit.gpgsign=false', ...args],
-    { cwd: repo, encoding: 'utf8', env: cleanEnv() },
-  );
-  if (r.status !== 0) throw new Error(`git ${args.join(' ')}: ${r.stderr}`);
-  return r.stdout.trim();
-}
 
 function json(value: unknown, indent: number | string = 2): string {
   return `${JSON.stringify(value, null, indent)}\n`;
@@ -60,12 +35,6 @@ function setPackageJson(repo: string, text: string | undefined): void {
   const file = path.join(repo, 'package.json');
   if (text === undefined) fs.rmSync(file);
   else fs.writeFileSync(file, text);
-}
-
-function commit(repo: string): string {
-  git(repo, ['add', '-A']);
-  git(repo, ['commit', '-q', '--no-verify', '-m', 'step']);
-  return git(repo, ['rev-parse', 'HEAD']);
 }
 
 function newRepo(packageJson: string): string {
@@ -111,9 +80,7 @@ beforeAll(() => {
   elsewhere = tempDir('ma191-cwd-');
 });
 
-afterAll(() => {
-  for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
-});
+afterAll(removeTempDirs);
 
 describe('package_json_scripts_only, working tree against HEAD', () => {
   it.each<[string, string]>([
@@ -183,6 +150,34 @@ describe('package_json_scripts_only, working tree against HEAD', () => {
       ),
     ).toEqual({ status: 1, stdout: '' });
   });
+
+  const REACHED = {
+    lint: 'oxlint',
+    postinstall: 'npm run apply-patches',
+    'apply-patches': 'patch-package',
+  };
+
+  it.each<[string, Record<string, string>, number]>([
+    [
+      'exits 1 when apply-patches, which postinstall runs by name, is edited',
+      { ...REACHED, 'apply-patches': 'patch-package --error-on-fail' },
+      1,
+    ],
+    [
+      'exits 1 when preapply-patches is added beside a reached apply-patches',
+      { ...REACHED, 'preapply-patches': 'node a.js' },
+      1,
+    ],
+    [
+      'exits 0 when lint is edited beside a reached apply-patches',
+      { ...REACHED, lint: 'oxlint --fix' },
+      0,
+    ],
+  ])('%s', (_label, after, status) => {
+    expect(
+      workingTree(json({ ...BASE, scripts: REACHED }), json({ ...BASE, scripts: after })),
+    ).toEqual({ status, stdout: '' });
+  });
 });
 
 describe('package_json_scripts_only, two revisions', () => {
@@ -219,6 +214,13 @@ describe('package_json_scripts_only, two revisions', () => {
 
   it('exits 1 for HEAD^1 HEAD on a commit that deletes package.json', () => {
     expect(lastCommit(json(BASE), undefined)).toEqual({ status: 1, stdout: '' });
+  });
+
+  it.each([
+    ['HEAD', ''],
+    ['', 'HEAD'],
+  ])('exits 1 for %j %j, an empty revision given as an argument', (oldRev, newRev) => {
+    expect(run(newRepo(json(BASE)), [oldRev, newRev])).toEqual({ status: 1, stdout: '' });
   });
 
   it('exits 1 with no argument', () => {

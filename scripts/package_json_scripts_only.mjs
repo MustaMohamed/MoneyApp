@@ -38,9 +38,16 @@ function packageForm(text) {
   const pkg = JSON.parse(text);
   if (!isRecord(pkg) || !isRecord(pkg.scripts)) return canonical(pkg);
   const { scripts, ...rest } = pkg;
-  const kept = Object.fromEntries(
-    Object.entries(scripts).filter(([name]) => INSTALL_SCRIPTS.has(name)),
-  );
+  const reached = new Set(Object.keys(scripts).filter((name) => INSTALL_SCRIPTS.has(name)));
+  // A Set visits entries added while it is iterated, so this loop runs to a fixpoint.
+  for (const name of reached) {
+    const command = scripts[name];
+    const tokens = typeof command === 'string' ? command.split(/[\s;&|]+/) : [];
+    for (const next of [...tokens, `pre${name}`, `post${name}`]) {
+      if (Object.hasOwn(scripts, next)) reached.add(next);
+    }
+  }
+  const kept = Object.fromEntries(Object.entries(scripts).filter(([name]) => reached.has(name)));
   return canonical(Object.keys(kept).length > 0 ? { ...rest, scripts: kept } : rest);
 }
 
@@ -56,7 +63,7 @@ function atRev(rev) {
 /** @param {string[]} args @returns {boolean} */
 function scriptsOnly(args) {
   const [oldRev, newRev] = args;
-  if (!oldRev) return false;
+  if (!oldRev || newRev === '') return false;
   try {
     const next =
       args.length > 1 ? atRev(newRev) : fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8');

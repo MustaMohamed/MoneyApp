@@ -420,16 +420,25 @@ pkg_scripts_only() {
   node "$ROOT/scripts/package_json_scripts_only.mjs" "$@" >/dev/null 2>&1
 }
 
+# Prints the file list $1, one per line, without its package.json line when pkg_scripts_only, given the remaining arguments, confines that change.
+drop_confined_pkg() {
+  local files="$1"
+  shift
+  if grep -qxF 'package.json' <<<"$files" && pkg_scripts_only "$@"; then
+    files="$(grep -vxF 'package.json' <<<"$files" || true)"
+  fi
+  [ -z "$files" ] || printf '%s\n' "$files"
+}
+
 native_changes() {
   local files mb
   files="$({ git -C "$ROOT" diff --name-only "$1"...HEAD 2>/dev/null || true
     git -C "$ROOT" diff --name-only HEAD 2>/dev/null || true
     git -C "$ROOT" ls-files --others --exclude-standard 2>/dev/null || true
   } | sort -u | grep -E "$NATIVE_RE" || true)"
-  if grep -qxF 'package.json' <<<"$files" && mb="$(git -C "$ROOT" merge-base "$1" HEAD 2>/dev/null)" && pkg_scripts_only "$mb"; then
-    files="$(grep -vxF 'package.json' <<<"$files" || true)"
-  fi
-  [ -z "$files" ] || printf '%s\n' "$files"
+  # With no merge-base the empty revision makes pkg_scripts_only fail, so package.json stays.
+  mb="$(git -C "$ROOT" merge-base "$1" HEAD 2>/dev/null)" || mb=""
+  drop_confined_pkg "$files" "$mb"
 }
 
 # The newest native-surface commit on the first-parent line from the merge-base of the base and HEAD, as "<commit time> <short sha>"; empty when there is none or no merge-base.
@@ -446,12 +455,7 @@ base_native_commit() {
 
 # One commit's native-surface files against its first parent, one per line.
 commit_native_files() {
-  local files
-  files="$(git -C "$ROOT" log -1 --first-parent -m --format= --name-only "$1" -- 2>/dev/null | grep -E "$NATIVE_RE" || true)"
-  if grep -qxF 'package.json' <<<"$files" && pkg_scripts_only "$1^1" "$1"; then
-    files="$(grep -vxF 'package.json' <<<"$files" || true)"
-  fi
-  [ -z "$files" ] || printf '%s\n' "$files"
+  drop_confined_pkg "$(git -C "$ROOT" log -1 --first-parent -m --format= --name-only "$1" -- 2>/dev/null | grep -E "$NATIVE_RE" || true)" "$1^1" "$1"
 }
 
 # The installed APK's own file time, in epoch seconds; empty when the app is not installed.
