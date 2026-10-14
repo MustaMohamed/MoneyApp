@@ -334,8 +334,7 @@ const NAMED_ROWS = [
   },
   {
     files: [
-      `${ACCOUNTS}/components/account_form/field_message_rail.tsx`,
-      `${ACCOUNTS}/screens/accounts/detail/components/adjust_balance_sheet.tsx`,
+      `${ACCOUNTS}/components/field_message_rail.tsx`,
       `${ACCOUNTS}/components/account_form/account_color_sheet.tsx`,
       `${COMMITMENTS}/components/commitment_form_body.tsx`,
     ],

@@ -1,8 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { cn, Typography } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 
+import { useMessageGlyphShift } from '@/components/ui/message_glyph.hook';
 import { Colors, Spacing, Type } from '@/constants/theme';
 
 import {
@@ -23,6 +24,8 @@ export interface StatusTrackProps {
 /** Idle hugs one line; a message or footnote wraps to every line it needs, growing the footer upward — the CTA below never moves. */
 export function StatusTrack({ footnote, message, testID }: StatusTrackProps) {
   const model = resolveStatusTrack(footnote, message);
+  const { fontScale } = useWindowDimensions();
+  const { shift, onTextLayout } = useMessageGlyphShift(STATUS_TRACK_LINE_HEIGHT, fontScale);
 
   return (
     <View
@@ -40,6 +43,8 @@ export function StatusTrack({ footnote, message, testID }: StatusTrackProps) {
         style={{
           width: STATUS_GLYPH_BOX,
           height: STATUS_TRACK_LINE_HEIGHT,
+          // An idle track with no footnote has no line to centre on, and a shifted empty box would grow it.
+          marginTop: model.glyph === 'none' ? 0 : shift,
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -66,6 +71,7 @@ export function StatusTrack({ footnote, message, testID }: StatusTrackProps) {
         // oxlint-disable-next-line moneyapp/font-size-pairs-line-height -- STATUS_TRACK_LINE_HEIGHT is Math.floor(Size.statusTrack / 2) (src/components/ui/status_track.geometry.ts:5), the track's one-line box at any device scale; lineHeightFor's 1.3 ratio would not equal it.
         style={{ fontSize: Type.caption, lineHeight: STATUS_TRACK_LINE_HEIGHT, flex: 1 }}
         className={cn(model.tone === 'error' ? 'text-danger' : 'text-content-secondary')}
+        onTextLayout={onTextLayout}
       >
         {model.text}
       </Typography>

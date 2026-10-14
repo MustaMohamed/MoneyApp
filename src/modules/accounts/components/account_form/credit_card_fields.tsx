@@ -18,8 +18,8 @@ import {
   MIN_PAYMENT_REFUSES_ZERO,
   type CreditFieldValues,
 } from '../../utils/credit_fields.schema';
+import { FieldMessageRail } from '../field_message_rail';
 import { resolveTaggedRowLabelLines } from './account_form.geometry';
-import { FieldMessageRail } from './field_message_rail';
 
 export interface CreditCardFieldsProps<T extends CreditFieldValues> {
   form: UseFormReturn<T>;
