@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { useAccountColorSheetState } from '@/modules/accounts/components/account_form/account_color_sheet.state';
 import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_palette';
 import { buildEditAccountDraft } from '@/modules/accounts/screens/accounts/edit_account/edit_account.helpers';
 import { useEditAccount } from '@/modules/accounts/screens/accounts/edit_account/edit_account.hook';
@@ -93,6 +94,7 @@ function setup() {
   loadError = false;
   mockUpdateAccount.mockResolvedValue(undefined);
   useEditAccountState.getState().reset();
+  useAccountColorSheetState.getState().reset();
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
     archivedAccounts,
@@ -736,6 +738,95 @@ describe('useEditAccount', () => {
       expect(hook.result.current.state.statusMessage).toBeUndefined();
       expect(hook.result.current.state.saving).toBe(false);
       expect(hook.result.current.form.getValues()).toEqual(buildEditAccountDraft(card));
+    });
+
+    it('a success of the first account save, landing after the switch, navigates nowhere', async () => {
+      const pending = deferred<void>();
+      mockUpdateAccount.mockReturnValueOnce(pending.promise);
+      const hook = await renderHook(() => useEditAccount());
+      await edit(hook, { name: 'CIB Payroll' });
+      let inFlight: Promise<void> | undefined;
+      await act(async () => {
+        inFlight = hook.result.current.submit();
+      });
+
+      await openOn(hook, 'card-1');
+      await act(async () => {
+        pending.resolve();
+        await inFlight;
+      });
+
+      expect(mockUpdateAccount).toHaveBeenCalledTimes(1);
+      expect(mockUpdateAccount).toHaveBeenCalledWith(
+        'acc-1',
+        expect.objectContaining({ name: 'CIB Payroll' }),
+      );
+      expect(mockDismissTo).not.toHaveBeenCalled();
+      expect(hook.result.current.state.saving).toBe(false);
+      expect(hook.result.current.form.getValues()).toEqual(buildEditAccountDraft(card));
+    });
+
+    it.each([
+      ['resolves', (pending: ReturnType<typeof deferred<void>>) => pending.resolve()],
+      [
+        'rejects',
+        (pending: ReturnType<typeof deferred<void>>) => pending.reject(new Error('disk full')),
+      ],
+    ])(
+      'a first account save that %s after the switch leaves the second account unsubmitted, with its edits kept',
+      async (_outcome, settle) => {
+        consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const pending = deferred<void>();
+        mockUpdateAccount.mockReturnValueOnce(pending.promise);
+        const hook = await renderHook(() => useEditAccount());
+        await edit(hook, { name: 'CIB Payroll' });
+        let inFlight: Promise<void> | undefined;
+        await act(async () => {
+          inFlight = hook.result.current.submit();
+        });
+
+        await openOn(hook, 'card-1');
+        await act(async () => {
+          hook.result.current.form.setValue('name', 'Visa Platinum', {
+            shouldDirty: true,
+            shouldTouch: true,
+          });
+        });
+        await act(async () => {
+          settle(pending);
+          await inFlight;
+        });
+
+        const { form } = hook.result.current;
+        expect(form.formState.isSubmitted).toBe(false);
+        expect(form.formState.submitCount).toBe(0);
+        expect(form.getValues('name')).toBe('Visa Platinum');
+        expect(form.getFieldState('name')).toEqual(
+          expect.objectContaining({ isDirty: true, isTouched: true }),
+        );
+
+        await act(async () => {
+          await hook.result.current.form
+            .register('name')
+            .onChange({ target: { name: 'name', value: '' }, type: 'change' });
+        });
+
+        expect(hook.result.current.form.formState.errors).toEqual({});
+        expect(hook.result.current.state.statusMessage).toBeUndefined();
+      },
+    );
+
+    it('closes a colour sheet staged on the first account', async () => {
+      const hook = await renderHook(() => useEditAccount());
+      await act(async () => {
+        useAccountColorSheetState.getState().open('accounts/edit_account', '#1B2B4B');
+        useAccountColorSheetState.getState().stage('#7A2E3B');
+      });
+
+      await openOn(hook, 'card-1');
+
+      expect(useAccountColorSheetState.getState().openOwner).toBeUndefined();
+      expect(useAccountColorSheetState.getState().stagedColor).toBeUndefined();
     });
 
     it('keeps what the user typed through a reload of the accounts on one account', async () => {
