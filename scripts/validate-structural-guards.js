@@ -13,6 +13,7 @@ const UI = 'src/components/ui';
 const BUDGET = 'src/modules/budget/screens/budget';
 const TRANSACTIONS = 'src/modules/transactions/screens/transactions';
 const COMMITMENTS = 'src/modules/commitments/screens/commitments';
+const ACCOUNT_FORM = 'src/modules/accounts/components/account_form';
 const BUDGET_INDEX = `${BUDGET}/index.tsx`;
 const TRANSACTIONS_INDEX = `${TRANSACTIONS}/index.tsx`;
 const COMMITMENTS_INDEX = `${COMMITMENTS}/index.tsx`;
@@ -92,6 +93,23 @@ function stateScreen(rel, kind) {
       ),
     ],
     needs: 'a state-screen component draws its layout from the shared resolver with its own kind',
+  };
+}
+
+const KEPT_VIEW = /(?<![\w$])collapsable=\{false\}/;
+// A pattern, not a parser: a prop that holds `<` or `>` ends the tag early, so hoist its value.
+const OPENING_TAG = /<[A-Za-z][^<>]*>/g;
+const KEEPS_LIVE_REGION =
+  'Android flattens a view that holds layout only, and its live region goes with it (#725)';
+
+/** @param {RegExp} marker @returns {Requirement} */
+function keptLiveRegion(marker) {
+  return {
+    found: (source) => {
+      const holders = [...source.matchAll(OPENING_TAG)].filter(([text]) => marker.test(text));
+      return holders.length > 0 && holders.every(([text]) => KEPT_VIEW.test(text));
+    },
+    missing: 'no `collapsable={false}` on the view that holds the live region',
   };
 }
 
@@ -284,6 +302,21 @@ const NAMED_ROWS = [
       specifier('@/utils/money'),
     ],
     rule: 'in the account info rows; a money derivation lives in `src/modules/accounts/domain/account_figures.ts` (#666)',
+  },
+  {
+    files: [
+      `${ACCOUNT_FORM}/field_message_rail.tsx`,
+      'src/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.tsx',
+      `${ACCOUNT_FORM}/account_color_sheet.tsx`,
+      `${COMMITMENTS}/components/commitment_form_body.tsx`,
+    ],
+    required: [keptLiveRegion(literal('accessibilityLiveRegion='))],
+    needs: KEEPS_LIVE_REGION,
+  },
+  {
+    files: [`${UI}/status_track.tsx`],
+    required: [keptLiveRegion(literal('{...model.a11y}'))],
+    needs: KEEPS_LIVE_REGION,
   },
 ];
 

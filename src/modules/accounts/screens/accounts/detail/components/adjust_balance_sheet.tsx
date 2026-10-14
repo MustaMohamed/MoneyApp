@@ -72,7 +72,7 @@ function AdjustBalanceSheetBody({
         }
       />
       {/* One track for helper and error, announced live; `FieldMessageRail` is RHF-bound and this sheet is not, so the shape is reused, not the component. */}
-      <Box style={FIELD_MESSAGE_RAIL_STYLE} accessibilityLiveRegion="polite">
+      <Box style={FIELD_MESSAGE_RAIL_STYLE} collapsable={false} accessibilityLiveRegion="polite">
         {error ? (
           <FormErrorText
             message={error}
