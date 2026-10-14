@@ -4,6 +4,7 @@ import { CategoryReloadError } from '@/modules/categories/repositories/category.
 import type { ICategoryRepository } from '@/modules/categories/repositories/category.repository';
 import { createCategoryStore } from '@/modules/categories/store/category.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { deferred } from '@/test_helpers/deferred';
 
 const mockCategory = (overrides: Partial<Category> = {}): Category => ({
   id: 'cat-1',
@@ -30,16 +31,6 @@ function makeRepo(overrides: Partial<ICategoryRepository> = {}): ICategoryReposi
     getTransactionCount: jest.fn().mockResolvedValue(0),
     ...overrides,
   };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (error: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
 }
 
 describe('categoryStore.loadCategories', () => {

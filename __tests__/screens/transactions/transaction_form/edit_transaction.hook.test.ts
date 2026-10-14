@@ -14,6 +14,7 @@ import { useEditTransactionState } from '@/modules/transactions/screens/transact
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 import { resolveConvertedAmount } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { deferred } from '@/test_helpers/deferred';
 import {
   installMockUpdateTransaction,
   makeTestAccount,
@@ -167,11 +168,10 @@ describe('useEditTransaction', () => {
   });
 
   it('does not save while matching budgets are still loading', async () => {
-    let resolveBudgets: (budgets: Budget[]) => void = () => {};
-    const pendingBudgets = new Promise<Budget[]>((resolve) => {
-      resolveBudgets = resolve;
-    });
-    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
+    const pendingBudgets = deferred<Budget[]>();
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockReturnValue(pendingBudgets.promise);
     const updateTx = installMockUpdateTransaction();
     const { result } = await renderHook(() =>
       useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
@@ -182,7 +182,7 @@ describe('useEditTransaction', () => {
     await act(async () => result.current.handleSave());
 
     expect(updateTx).not.toHaveBeenCalled();
-    await act(async () => resolveBudgets([]));
+    await act(async () => pendingBudgets.resolve([]));
     expect(result.current.state.showBudgetField).toBe(false);
   });
 
@@ -279,11 +279,8 @@ describe('useEditTransaction', () => {
   });
 
   it('submits once and completes once when save is pressed twice', async () => {
-    let resolveSave: () => void = () => {};
-    const pendingSave = new Promise<void>((resolve) => {
-      resolveSave = resolve;
-    });
-    const updateTx = installMockUpdateTransaction(() => pendingSave);
+    const pendingSave = deferred();
+    const updateTx = installMockUpdateTransaction(() => pendingSave.promise);
     const onSaved = jest.fn(() => {
       expect(useEditTransactionState.getState().saving).toBe(true);
     });
@@ -301,7 +298,7 @@ describe('useEditTransaction', () => {
     await waitFor(() => expect(updateTx).toHaveBeenCalledTimes(1));
 
     await act(async () => {
-      resolveSave();
+      pendingSave.resolve();
       await Promise.all([firstSave!, secondSave!]);
     });
 

@@ -17,6 +17,7 @@ import type {
 import { createCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import type { CommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { deferred } from '@/test_helpers/deferred';
 
 const MAY = '2026-05';
 const DAY_ONE = new Date('2026-05-08T23:30:00.000Z');
@@ -108,16 +109,6 @@ function makeRepository(overrides: Partial<ICommitmentRepository> = {}): ICommit
     getMonthSnapshot: jest.fn().mockResolvedValue(snapshot()),
     ...overrides,
   };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (error: unknown) => void;
-  const promise = new Promise<T>((done, fail) => {
-    resolve = done;
-    reject = fail;
-  });
-  return { promise, resolve, reject };
 }
 
 async function flushMicrotasks() {

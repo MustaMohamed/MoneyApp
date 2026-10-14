@@ -17,6 +17,7 @@ import { useTxDetailState } from '@/modules/transactions/screens/transactions/de
 import { useTxDetailStore } from '@/modules/transactions/screens/transactions/detail/detail.store';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -122,16 +123,6 @@ let transactionStoreState: {
   deleteTransaction: jest.Mock;
   mutationVersion: number;
 };
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (error: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, resolve, reject };
-}
 
 beforeEach(() => {
   jest.clearAllMocks();

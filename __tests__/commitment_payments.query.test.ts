@@ -19,6 +19,7 @@ import {
   updatePaymentStatus,
 } from '@/modules/commitments/database/commitment_payments';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { deferred } from '@/test_helpers/deferred';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -314,8 +315,8 @@ describe('addPayments', () => {
 
 describe('insertPaymentRows', () => {
   it('serializes bounded INSERT OR IGNORE chunks without opening a transaction', async () => {
-    const first = deferredRun();
-    const second = deferredRun();
+    const first = deferred<SQLite.SQLiteRunResult>();
+    const second = deferred<SQLite.SQLiteRunResult>();
     const runAsync = jest
       .fn()
       .mockReturnValueOnce(first.promise)
@@ -385,14 +386,6 @@ describe('getActiveCommitmentDueDates', () => {
     );
   });
 });
-
-function deferredRun() {
-  let resolve!: (value: { changes: number; lastInsertRowId: number }) => void;
-  const promise = new Promise<{ changes: number; lastInsertRowId: number }>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
 
 describe('getExistingDueDates', () => {
   it('returns due_date strings for the given commitment', async () => {

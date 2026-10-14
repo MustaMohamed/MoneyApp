@@ -7,6 +7,7 @@ import { useAddCommitment } from '@/modules/commitments/screens/commitments/add_
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
 import { COMMITMENT_AMOUNT_REFUSES_ZERO } from '@/modules/commitments/screens/commitments/commitment_form.shared';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
@@ -30,14 +31,6 @@ jest.mock('@/modules/commitments/screens/commitments/add_commitment/add_commitme
 
 const addCommitmentMock = jest.fn().mockResolvedValue(undefined);
 const generatePaymentsMock = jest.fn().mockResolvedValue(undefined);
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
 
 function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({

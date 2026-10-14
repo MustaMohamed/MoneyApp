@@ -10,6 +10,7 @@ import {
   createOnboardingStore,
   useOnboardingStore,
 } from '@/modules/onboarding/store/onboarding.store';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -49,16 +50,6 @@ const fakeAccounts = [
 
 const RATE = 48.6;
 const RATE_UPDATED_AT = '2026-08-01T00:00:00.000Z';
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
 
 function setup() {
   const { useRouter } = require('expo-router');

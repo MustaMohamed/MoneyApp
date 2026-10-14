@@ -7,6 +7,7 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useReplacementAccountSheet } from '@/modules/accounts/screens/accounts/detail/components/replacement_account_sheet.hook';
 import { useReplacementAccountSheetState } from '@/modules/accounts/screens/accounts/detail/components/replacement_account_sheet.state';
 import { makeAccountCommitmentRef } from '@/test_helpers/commitment';
+import { deferred } from '@/test_helpers/deferred';
 
 const mockBack = jest.fn();
 const mockToast = { show: jest.fn() };
@@ -108,13 +109,8 @@ describe('useReplacementAccountSheet', () => {
   it('is busy while the write runs, with the last failure cleared, and settles after it', async () => {
     sheetState().open('acc-2');
     sheetState().setMoveAndDeleteError('Not deleted');
-    let finish!: () => void;
-    mockDeleteAccountMovingCommitments.mockImplementationOnce(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = resolve;
-        }),
-    );
+    const write = deferred();
+    mockDeleteAccountMovingCommitments.mockImplementationOnce(() => write.promise);
     const { result } = await renderHook(() => useReplacementAccountSheet(input()));
 
     let pending!: Promise<void>;
@@ -126,7 +122,7 @@ describe('useReplacementAccountSheet', () => {
     expect(result.current.state.errorMessage).toBeUndefined();
 
     await act(async () => {
-      finish();
+      write.resolve();
       await pending;
     });
 

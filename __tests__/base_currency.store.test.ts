@@ -4,20 +4,13 @@ import {
   createBaseCurrencyStore,
   useBaseCurrencyStore,
 } from '@/modules/currency/store/base_currency.store';
+import { deferred } from '@/test_helpers/deferred';
 
 function makeRepo(): jest.Mocked<IBaseCurrencyRepository> {
   return {
     set: jest.fn().mockResolvedValue(undefined),
     load: jest.fn().mockResolvedValue(Currency.EGP),
   };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((res) => {
-    resolve = res;
-  });
-  return { promise, resolve };
 }
 
 let repo: jest.Mocked<IBaseCurrencyRepository>;

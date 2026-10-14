@@ -4,20 +4,7 @@ import type {
   IAccountActivityRepository,
 } from '@/modules/accounts/repositories/account_activity.repository';
 import { createAccountActivityStore } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
-
-function deferred<T>(): {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (reason: unknown) => void;
-} {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-  return { promise, resolve, reject };
-}
+import { deferred } from '@/test_helpers/deferred';
 
 const NOW = new Date('2026-09-15T12:00:00.000Z');
 

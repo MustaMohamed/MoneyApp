@@ -4,6 +4,7 @@ import { Strings } from '@/constants/strings';
 import { useIncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet.hook';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
+import { deferred } from '@/test_helpers/deferred';
 import { MoneyTextMappingError, parseRequiredMoneyText } from '@/utils/money_text';
 
 // Spread the real module and wrap only `parseRequiredMoneyText`; other tests drive the rest.
@@ -12,20 +13,6 @@ jest.mock('@/utils/money_text', () => {
   return { ...actual, parseRequiredMoneyText: jest.fn(actual.parseRequiredMoneyText) };
 });
 const mockedParseRequiredMoneyText = parseRequiredMoneyText as jest.Mock;
-
-function deferred() {
-  let resolve: (() => void) | undefined;
-  let reject: ((reason?: unknown) => void) | undefined;
-  const promise = new Promise<void>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return {
-    promise,
-    resolve: () => resolve?.(),
-    reject: (reason?: unknown) => reject?.(reason),
-  };
-}
 
 beforeEach(() => {
   useIncomeSheetState.getState().reset();

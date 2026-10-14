@@ -12,6 +12,7 @@ import { resolveSetBudgetFieldGeometry } from '@/modules/budget/screens/budget/c
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { makeTestBudgetEditTarget, makeTestBudgetableCategory } from '@/test_helpers/budget';
+import { deferred } from '@/test_helpers/deferred';
 import { ms } from '@/utils/responsive';
 
 let mockSetBudget: jest.Mock<Promise<void>, [unknown]>;
@@ -144,14 +145,6 @@ jest.mock('heroui-native', () => {
 });
 
 const categories = [makeTestBudgetableCategory()];
-
-function deferred() {
-  let resolve: (() => void) | undefined;
-  const promise = new Promise<void>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve: () => resolve?.() };
-}
 
 const existingBudget = makeTestBudgetEditTarget();
 

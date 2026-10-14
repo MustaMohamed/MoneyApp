@@ -10,6 +10,7 @@ import type {
   NewAccountInput,
   UpdateAccountInput,
 } from '@/repositories/account.repository';
+import { deferred } from '@/test_helpers/deferred';
 
 const mockAccount: Account = {
   id: 'test-id',
@@ -64,17 +65,6 @@ function makeRepo(overrides: Partial<IAccountRepository> = {}): IAccountReposito
     confirmBalanceReviewed: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-
-  return { promise, resolve, reject };
 }
 
 let consoleErrorSpy: jest.SpyInstance;

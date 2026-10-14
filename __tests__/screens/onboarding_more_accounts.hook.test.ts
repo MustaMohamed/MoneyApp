@@ -5,6 +5,7 @@ import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useMoreAccounts } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.hook';
 import { useMoreAccountsTransitionState } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.state';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('expo-router', () => ({
@@ -115,13 +116,8 @@ describe('useMoreAccounts', () => {
   });
 
   it('handleAddAnother is inert while handleContinue is in flight — no navigate, no double-navigate on completion', async () => {
-    let resolveSetStep!: (value: OnboardingStep) => void;
-    mockSetStep.mockImplementationOnce(
-      () =>
-        new Promise<OnboardingStep>((resolve) => {
-          resolveSetStep = resolve;
-        }),
-    );
+    const setStep = deferred<OnboardingStep>();
+    mockSetStep.mockImplementationOnce(() => setStep.promise);
     const { result } = await renderHook(() => useMoreAccounts());
 
     let continuePromise!: Promise<void>;
@@ -136,7 +132,7 @@ describe('useMoreAccounts', () => {
     expect(mockReplace).not.toHaveBeenCalled();
 
     await act(async () => {
-      resolveSetStep(OnboardingStep.N4);
+      setStep.resolve(OnboardingStep.N4);
       await continuePromise;
     });
 
@@ -154,13 +150,8 @@ describe('useMoreAccounts', () => {
   });
 
   it('handleAddFirstAccount is inert while handleContinue is in flight — no navigate, no double-navigate on completion', async () => {
-    let resolveSetStep!: (value: OnboardingStep) => void;
-    mockSetStep.mockImplementationOnce(
-      () =>
-        new Promise<OnboardingStep>((resolve) => {
-          resolveSetStep = resolve;
-        }),
-    );
+    const setStep = deferred<OnboardingStep>();
+    mockSetStep.mockImplementationOnce(() => setStep.promise);
     const { result } = await renderHook(() => useMoreAccounts());
 
     let continuePromise!: Promise<void>;
@@ -175,7 +166,7 @@ describe('useMoreAccounts', () => {
     expect(mockReplace).not.toHaveBeenCalled();
 
     await act(async () => {
-      resolveSetStep(OnboardingStep.N4);
+      setStep.resolve(OnboardingStep.N4);
       await continuePromise;
     });
 

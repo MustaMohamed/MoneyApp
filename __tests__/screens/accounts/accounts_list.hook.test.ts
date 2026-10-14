@@ -11,6 +11,7 @@ import { type Account, useAccountStore } from '@/modules/accounts/store/account.
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
@@ -95,15 +96,6 @@ let currencyState: {
 let dashboardStoreState: {
   snapshot: { statsMap: Record<string, { month_in: number; month_out: number }> } | undefined;
 };
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-
-  return { promise, resolve };
-}
 
 beforeEach(() => {
   jest.clearAllMocks();

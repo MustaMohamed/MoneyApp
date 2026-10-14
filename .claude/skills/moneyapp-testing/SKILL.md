@@ -32,6 +32,8 @@ Fixtures come from `@/test_helpers/transaction.ts` (`makeTestAccount`, `makeTest
 
 Suites that open raw better-sqlite3 handles (migration and schema tests) must not close them as the last statement of the `it` — a test that throws mid-body strands the handle. Use `registerOpenDbsDrain()` from `@/test_helpers/sqlite_drain`: call it once at module scope, push every `new Database(':memory:')` onto the returned array, and its `afterEach` closes them all even on failure.
 
+A test that settles a promise by hand takes `deferred<T>()` from `@/test_helpers/deferred`, which returns `{ promise, resolve, reject }` with `T` defaulting to `void`. A test file defines no deferred helper of its own and captures no settler out of a `new Promise` executor.
+
 ## Migration testing — the runner caveat
 
 `MIGRATIONS.map(m => m.up).join()` is fine for building schema in repository tests, **but it bypasses `runMigrations`** — the code that actually upgrades every user's database. The audit (H11) found all 35 SQLite suites used the concat shortcut and the runner had zero coverage. Rules:

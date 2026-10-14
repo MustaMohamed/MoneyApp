@@ -2,16 +2,7 @@ import { OnboardingStep } from '@/constants/enums';
 import { ONBOARDING_STEP_HREF } from '@/modules/onboarding/domain/onboarding_route';
 import { runOnboardingTransition } from '@/modules/onboarding/domain/onboarding_transition';
 import { createOnboardingTransitionState } from '@/modules/onboarding/screens/onboarding/onboarding_transition.state';
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
+import { deferred } from '@/test_helpers/deferred';
 
 describe('runOnboardingTransition', () => {
   it('calls persist before navigate, in that order', async () => {

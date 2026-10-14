@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { useAppReadyStore } from '@/store/ready.store';
+import { deferred } from '@/test_helpers/deferred';
 import { useAppInit } from '@/utils/use_layout_init.hook';
 
 const mockGetDb = jest.fn<Promise<unknown>, []>();
@@ -43,16 +44,6 @@ jest.mock('@/modules/commitments/store/commitment.store', () => ({
   },
 }));
 jest.mock('@/utils/zod_config', () => {});
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (error: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
 
 async function flushStartup() {
   await act(async () => {

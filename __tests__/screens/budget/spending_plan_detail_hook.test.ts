@@ -5,6 +5,7 @@ import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budge
 import { useSpendingPlanDetail } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.hook';
 import { useSpendingPlanDetailState } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.state';
 import { useSpendingPlanDetailStore } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.store';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 const mockRouterBack = jest.fn();
@@ -107,18 +108,11 @@ describe('useSpendingPlanDetail', () => {
   });
 
   it('ignores an older response after the route changes to another plan', async () => {
-    let resolveFirst:
-      | ((value: { plan: SpendingPlanWithCategories; spend: {} }) => void)
-      | undefined;
+    const first = deferred<{ plan: SpendingPlanWithCategories; spend: {} }>();
     const firstPlan = { ...plan, id: 'plan_trip', name: 'Old plan' };
     const secondPlan = { ...plan, id: 'plan_second', name: 'Current plan' };
     mockGetDetails
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveFirst = resolve;
-          }),
-      )
+      .mockImplementationOnce(() => first.promise)
       .mockResolvedValueOnce({ plan: secondPlan, spend: {} });
 
     const { result, rerender } = await renderHook(() => useSpendingPlanDetail());
@@ -134,7 +128,7 @@ describe('useSpendingPlanDetail', () => {
     await waitFor(() => expect(result.current.state.plan?.name).toBe('Current plan'));
 
     await act(async () => {
-      resolveFirst?.({ plan: firstPlan, spend: {} });
+      first.resolve({ plan: firstPlan, spend: {} });
     });
 
     expect(result.current.state.plan?.name).toBe('Current plan');

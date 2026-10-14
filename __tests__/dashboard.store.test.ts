@@ -5,20 +5,7 @@ import type {
   IDashboardRepository,
 } from '@/modules/dashboard/repositories/dashboard.repository';
 import { createDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
-
-function deferred<T>(): {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (reason: unknown) => void;
-} {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-  return { promise, resolve, reject };
-}
+import { deferred } from '@/test_helpers/deferred';
 
 function input(yearMonth: string): DashboardLoadInput {
   return { yearMonth, now: new Date(`${yearMonth}-15T12:00:00.000Z`) };
