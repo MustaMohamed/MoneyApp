@@ -57,6 +57,8 @@ export const Colors = {
     heroGrad2: '#223060',
     heroGrad3: '#192A4A',
     transparent: 'transparent',
+    // Alpha 1/255: Android Fabric reads a colour of 0 as unset (`HostPlatformColor.h:18`), so a `transparent` text draws in the platform default.
+    hiddenText: '#00000001',
   },
 } as const;
 

@@ -5,11 +5,11 @@ import { resolveLoneWordLines, resolveWordSafeLines } from '@/components/ui/text
 
 export interface WordSafeLines {
   numberOfLines: number | undefined;
-  onTextLayout: ((event: TextLayoutEvent) => void) | undefined;
-  onLayout: ((event: LayoutChangeEvent) => void) | undefined;
+  onTextLayout: (event: TextLayoutEvent) => void;
+  onLayout: (event: LayoutChangeEvent) => void;
 }
 
-/** Above font scale 1 the line cap drops to the line where a laid-out word runs on, so the text ends in `…` and splits no word; a wider box starts again from the caller's cap. */
+/** At any font scale the line cap drops to the line where a laid-out word runs on, so the text ends in `…` and splits no word; a wider box starts again from the caller's cap. */
 export function useWordSafeLines(
   text: string,
   lines: number | undefined,
@@ -51,7 +51,5 @@ export function useWordSafeLines(
     if (previousWidth !== undefined && widthRef.current > previousWidth) setLowered(undefined);
   }, []);
 
-  return fontScale <= 1
-    ? { numberOfLines: lines, onTextLayout: undefined, onLayout: undefined }
-    : { numberOfLines: cap, onTextLayout: handleTextLayout, onLayout: handleLayout };
+  return { numberOfLines: cap, onTextLayout: handleTextLayout, onLayout: handleLayout };
 }

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { CHIP_MD_PADDING_BLOCK } from '@/components/ui/chip.geometry';
+import { INPUT_PADDING_INLINE } from '@/components/ui/input.geometry';
 import { TABS_LIST_PADDING, TABS_TRIGGER_PADDING_BLOCK } from '@/components/ui/tabs.geometry';
 import { CURRENCY_TABS_LIST_CHROME } from '@/modules/accounts/components/account_form/account_form.geometry';
 
@@ -56,13 +57,21 @@ function toPx(value: string): number {
   throw new Error(`not a px or --spacing length: ${value}`);
 }
 
-function px(file: 'chip.css' | 'tabs.css', selector: string, property: string): number {
+function px(
+  file: 'chip.css' | 'input.css' | 'tabs.css',
+  selector: string,
+  property: string,
+): number {
   return toPx(declaration(vendorCss(...HEROUI_STYLES, file), selector, property));
 }
 
 describe('HeroUI CSS mirrors: each unscaled constant equals the vendor declaration it copies, and each override names the property the vendor declares', () => {
   it("MA-162: CHIP_MD_PADDING_BLOCK is .chip__root--size-md's padding-block", () => {
     expect(CHIP_MD_PADDING_BLOCK).toBe(px('chip.css', '.chip__root--size-md', 'padding-block'));
+  });
+
+  it("MA-179: INPUT_PADDING_INLINE is .input__input's padding-inline", () => {
+    expect(INPUT_PADDING_INLINE).toBe(px('input.css', '.input__input', 'padding-inline'));
   });
 
   it("MA-162: TABS_TRIGGER_PADDING_BLOCK is .tabs__trigger's padding-block", () => {
