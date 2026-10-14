@@ -31,10 +31,8 @@ import { ConvertedAmountLine } from './components/converted_amount_line';
 import { DangerRing } from './components/danger_ring';
 import { DateRow } from './components/date_row';
 import { FormPickerRow } from './components/form_picker_row';
-import {
-  TransactionExchangeRateRow,
-  TransactionRateEditor,
-} from './components/transaction_exchange_rate_row';
+import { TransactionRateEditor } from './components/rate_editor_sheet';
+import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import {
   ACCOUNT_STRIP_WRAPPER_PADDING_Y,
   AMOUNT_MESSAGE_TEXT_STYLE,
@@ -391,7 +389,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               <TransactionExchangeRateRow
                 ownerId={datePickerOwnerId}
                 value={exchangeRate}
-                onCommit={commitExchangeRate}
                 overrideEnabled={rateOverride}
                 onToggleOverride={toggleRateOverride}
                 rateUpdatedAt={rateUpdatedAt}

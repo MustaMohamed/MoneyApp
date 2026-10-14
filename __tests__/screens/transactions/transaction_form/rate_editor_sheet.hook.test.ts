@@ -143,6 +143,69 @@ describe('useRateEditor', () => {
   });
 });
 
+describe('useRateEditor inside a close', () => {
+  it('commits nothing when Done follows Cancel before the close settles', async () => {
+    const { result, onCommit } = await mountEditor(ADD_OWNER, '50', true);
+    await act(() => result.current.open());
+    await act(() => result.current.setDraft('48'));
+
+    await act(() => result.current.cancel());
+    await act(() => result.current.done());
+
+    expect(onCommit).toHaveBeenCalledTimes(0);
+    expect(result.current.state.isOpen).toBe(false);
+  });
+
+  it('refuses a reopen while a settled open closes after Cancel, and reopens once the close settles', async () => {
+    const { result } = await mountEditor(ADD_OWNER, '50', true);
+    await act(() => result.current.open());
+    await act(() => result.current.settleOpen());
+    await act(() => result.current.cancel());
+
+    await act(() => result.current.open());
+    expect(result.current.state.isOpen).toBe(false);
+
+    await act(() => result.current.settleClose());
+    await act(() => result.current.open());
+    expect(result.current.state).toEqual({ isOpen: true, draft: '50', error: undefined });
+  });
+
+  it('refuses a reopen while a settled open closes after Done, and reopens once the close settles', async () => {
+    const { result } = await mountEditor(ADD_OWNER, '50', true);
+    await act(() => result.current.open());
+    await act(() => result.current.settleOpen());
+    await act(() => result.current.done());
+
+    await act(() => result.current.open());
+    expect(result.current.state.isOpen).toBe(false);
+
+    await act(() => result.current.settleClose());
+    await act(() => result.current.open());
+    expect(result.current.state.isOpen).toBe(true);
+  });
+
+  it('reopens at once after a close of an open that never settled, whose close reports nothing', async () => {
+    const { result } = await mountEditor(ADD_OWNER, '50', true);
+    await act(() => result.current.open());
+    await act(() => result.current.cancel());
+
+    await act(() => result.current.open());
+    expect(result.current.state.isOpen).toBe(true);
+  });
+
+  it('reopens after a release that came inside a close', async () => {
+    const first = await mountEditor(ADD_OWNER, '50', true);
+    await act(() => first.result.current.open());
+    await act(() => first.result.current.settleOpen());
+    await act(() => first.result.current.cancel());
+    await first.unmount();
+
+    const second = await mountEditor(ADD_OWNER, '49', true);
+    await act(() => second.result.current.open());
+    expect(second.result.current.state).toEqual({ isOpen: true, draft: '49', error: undefined });
+  });
+});
+
 describe('useRateEditorFocus', () => {
   it('focuses the input the ref holds, once, and does nothing with no input mounted', async () => {
     const { result } = await renderHook(() => useRateEditorFocus());

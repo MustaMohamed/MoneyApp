@@ -539,6 +539,11 @@ describe('MA-168 rate card', () => {
     const storedRow = screen.getByTestId('exchange-rate-row');
     expect(storedRow).toHaveProp('accessibilityRole', 'button');
     expect(storedRow).toHaveProp('accessibilityLabel', Strings.addTxRateEditAccessibility);
+
+    await rerender(<RealExchangeRateRow {...rowProps} value="52.137035" overrideEnabled={false} />);
+    expect(screen.getByText('52.14')).toBeTruthy();
+    await rerender(<RealExchangeRateRow {...rowProps} value="049" overrideEnabled />);
+    expect(screen.getByText('49.00')).toBeTruthy();
   });
 });
 
@@ -547,6 +552,14 @@ describe('MA-169 rate editor opened from the card', () => {
     useRateEditorSheetState.getState().reset();
     mockExchangeRateRowProps.length = 0;
     mockSheetProps.length = 0;
+  });
+
+  it('mounts the editor closed with no rate required, so its sheet is mounted outside the rate gate', async () => {
+    await render(<TransactionFormBody {...baseProps} requiresRate={false} />);
+
+    const editorSheet = mockSheetProps.filter((props) => props.title === Strings.addTxRateLabel);
+    expect(editorSheet).not.toHaveLength(0);
+    expect(editorSheet.at(-1)?.isOpen).toBe(false);
   });
 
   it('opens on the form rate, closes on onOpenChange(false) with no commit, commits a typed 48 once at Done and closes, and stays open with the message on a refused commit', async () => {

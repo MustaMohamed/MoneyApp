@@ -7,8 +7,11 @@ import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatRateDisplayMagnitude } from '@/utils/format_amount';
+import { parseRateText } from '@/utils/parse_decimal';
 import { ms } from '@/utils/responsive';
+
+import { RATE_MESSAGE_SLOT_STYLE } from './transaction_form.geometry';
 
 const STALE_THRESHOLD_DAYS = 30;
 const RATE_PREVIEW_AMOUNT_DECIMALS = 2;
@@ -21,6 +24,12 @@ function isStale(rateUpdatedAt: string | null): boolean {
   if (isNaN(updated)) return false;
   const ageMs = Date.now() - updated;
   return ageMs > STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+}
+
+// The card prints the rate as every rate prints; the editor's field keeps it as typed.
+function formatCardRate(value: string): string {
+  const rate = parseRateText(value);
+  return rate === undefined ? value : formatRateDisplayMagnitude(rate).text;
 }
 
 function formatDateShort(iso: string): string {
@@ -132,7 +141,7 @@ export function ExchangeRateRow({
             className="font-sora-semibold text-foreground"
             style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
           >
-            {value}
+            {onOpenEditor === undefined ? value : formatCardRate(value)}
           </Text>
         )}
       </PressableFeedback>
@@ -170,8 +179,7 @@ export function ExchangeRateRow({
 
       <View
         testID="exchange-rate-error-slot"
-        style={{ minHeight: ms(16) }}
-        className="justify-center"
+        style={RATE_MESSAGE_SLOT_STYLE}
         accessibilityLiveRegion="polite"
       >
         <FormErrorText

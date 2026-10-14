@@ -13,8 +13,8 @@ import {
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 
-import { useRateEditorFocus } from './rate_editor_sheet.hook';
-import { RATE_EDITOR_MESSAGE_SLOT_STYLE } from './transaction_form.geometry';
+import { useRateEditor, useRateEditorFocus } from './rate_editor_sheet.hook';
+import { RATE_MESSAGE_SLOT_STYLE } from './transaction_form.geometry';
 
 interface RateEditorSheetBodyProps {
   inputRef: RefObject<TextInput | null>;
@@ -43,7 +43,7 @@ function RateEditorSheetBody({ inputRef, draft, error, onChangeText }: RateEdito
       />
       <View
         testID="rate-editor-message-slot"
-        style={RATE_EDITOR_MESSAGE_SLOT_STYLE}
+        style={RATE_MESSAGE_SLOT_STYLE}
         accessibilityLiveRegion="polite"
       >
         <FormErrorText
@@ -63,6 +63,8 @@ interface RateEditorSheetProps {
   onChangeText: (text: string) => void;
   onCancel: () => void;
   onDone: () => void;
+  onOpenSettled: () => void;
+  onCloseSettled: () => void;
 }
 
 export function RateEditorSheet(props: RateEditorSheetProps): React.ReactElement {
@@ -98,7 +100,11 @@ export function RateEditorSheet(props: RateEditorSheetProps): React.ReactElement
         if (!open) props.onCancel();
       }}
       // A focus on the open flag raises the keyboard before the sheet settles and leaves the body under it.
-      onOpenComplete={focusInput}
+      onOpenComplete={() => {
+        focusInput();
+        props.onOpenSettled();
+      }}
+      onCloseComplete={props.onCloseSettled}
       title={Strings.addTxRateLabel}
       size={resolveSheetSizeAboveOne('sm', fontScale)}
       footer={footer}
@@ -111,5 +117,33 @@ export function RateEditorSheet(props: RateEditorSheetProps): React.ReactElement
         onChangeText={props.onChangeText}
       />
     </Sheet>
+  );
+}
+
+interface TransactionRateEditorProps {
+  ownerId: string;
+  value: string;
+  onCommit: (text: string) => boolean;
+}
+
+// Mounted with the form body, not the card, so its sheet has seen every keyboard event before the card opens it.
+export function TransactionRateEditor({
+  ownerId,
+  value,
+  onCommit,
+}: TransactionRateEditorProps): React.ReactElement {
+  const editor = useRateEditor(ownerId, value, onCommit);
+
+  return (
+    <RateEditorSheet
+      isOpen={editor.state.isOpen}
+      draft={editor.state.draft}
+      error={editor.state.error}
+      onChangeText={editor.setDraft}
+      onCancel={editor.cancel}
+      onDone={editor.done}
+      onOpenSettled={editor.settleOpen}
+      onCloseSettled={editor.settleClose}
+    />
   );
 }
