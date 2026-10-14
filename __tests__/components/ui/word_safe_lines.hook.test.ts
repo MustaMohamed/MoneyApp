@@ -31,18 +31,46 @@ async function mountWordSafeLines(initialProps: WordSafeLinesProps) {
   return {
     hook,
     layOut: (lines: readonly string[]) =>
-      act(() => hook.result.current.onTextLayout?.(textLayoutEvent(lines))),
-    resize: (width: number) => act(() => hook.result.current.onLayout?.(layoutEvent(width))),
+      act(() => hook.result.current.onTextLayout(textLayoutEvent(lines))),
+    resize: (width: number) => act(() => hook.result.current.onLayout(layoutEvent(width))),
   };
 }
 
 describe('useWordSafeLines', () => {
-  it('MA-171: at font scale 1 returns the cap of the caller and no layout handler', async () => {
+  it('MA-179: at font scale 1 starts at the cap of the caller with both layout handlers', async () => {
     const { hook } = await mountWordSafeLines({ text: LONG_WORD_NAME, lines: 2, fontScale: 1 });
 
     expect(hook.result.current.numberOfLines).toBe(2);
-    expect(hook.result.current.onTextLayout).toBeUndefined();
-    expect(hook.result.current.onLayout).toBeUndefined();
+    expect(hook.result.current.onTextLayout).toEqual(expect.any(Function));
+    expect(hook.result.current.onLayout).toEqual(expect.any(Function));
+  });
+
+  it.each([1, 0.85])(
+    'MA-179: at font scale %s a layout that splits a word lowers the cap from 2 to line 1',
+    async (fontScale) => {
+      const { hook, layOut } = await mountWordSafeLines({
+        text: LONG_WORD_NAME,
+        lines: 2,
+        fontScale,
+      });
+      expect(hook.result.current.numberOfLines).toBe(2);
+
+      await layOut(SPLIT_LAYOUT);
+
+      expect(hook.result.current.numberOfLines).toBe(1);
+    },
+  );
+
+  it('MA-179: at font scale 1 a layout broken between words keeps the cap of the caller', async () => {
+    const { hook, layOut } = await mountWordSafeLines({
+      text: LONG_WORD_NAME,
+      lines: 2,
+      fontScale: 1,
+    });
+
+    await layOut(['Entertainment ', 'subscriptions']);
+
+    expect(hook.result.current.numberOfLines).toBe(2);
   });
 
   it('MA-171: at font scale 2 a lone word starts on one line with a layout handler', async () => {
@@ -138,8 +166,8 @@ describe('useWordSafeLines', () => {
     expect(hook.result.current.numberOfLines).toBe(2);
 
     await act(() => {
-      hook.result.current.onTextLayout?.(textLayoutEvent(SPLIT_LAYOUT));
-      hook.result.current.onLayout?.(layoutEvent(173));
+      hook.result.current.onTextLayout(textLayoutEvent(SPLIT_LAYOUT));
+      hook.result.current.onLayout(layoutEvent(173));
     });
 
     expect(hook.result.current.numberOfLines).toBe(1);
@@ -170,8 +198,8 @@ describe('useWordSafeLines', () => {
     await hook.rerender({ text: LONG_WORD_NAME, lines: 2, fontScale: 2 });
 
     await act(() => {
-      hook.result.current.onTextLayout?.(textLayoutEvent(SPLIT_LAYOUT));
-      hook.result.current.onLayout?.(layoutEvent(260));
+      hook.result.current.onTextLayout(textLayoutEvent(SPLIT_LAYOUT));
+      hook.result.current.onLayout(layoutEvent(260));
     });
 
     expect(hook.result.current.numberOfLines).toBe(1);
