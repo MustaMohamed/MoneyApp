@@ -422,8 +422,9 @@ native_changes() {
 
 # The newest commit reachable from the base that touches the native surface, as "<commit time> <short sha>"; empty when there is none.
 base_native_commit() {
-  git -C "$ROOT" log --format='@%ct %h' --name-only "$1" 2>/dev/null \
-    | NATIVE_RE="$NATIVE_RE" awk '/^@/ { c = substr($0, 2); next } $0 ~ ENVIRON["NATIVE_RE"] { print c; exit }' || true
+  # A \001 header cannot collide with a path line: git quotes any path holding a control character.
+  git -C "$ROOT" log --format='%x01%ct %h' --name-only "$1" 2>/dev/null \
+    | NATIVE_RE="$NATIVE_RE" awk 'index($0, "\001") == 1 { c = substr($0, 2); next } $0 ~ ENVIRON["NATIVE_RE"] { print c; exit }' || true
 }
 
 # The installed APK's own file time, in epoch seconds; empty when the app is not installed.
