@@ -26,7 +26,7 @@ import { Colors } from '@/constants/theme';
 export const INPUT_NO_FOCUS_BORDER_COLOR = Colors.shared.transparent;
 
 const INPUT_TEXT_STYLE = { includeFontPadding: false, textAlignVertical: 'center' } as const;
-const INPUT_HIDDEN_TEXT_STYLE = { color: Colors.shared.transparent } as const;
+const INPUT_HIDDEN_TEXT_STYLE = { color: Colors.shared.hiddenText } as const;
 
 export interface InputProps extends HInputProps {
   className?: string;
