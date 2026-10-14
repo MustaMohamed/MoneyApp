@@ -17,7 +17,7 @@ interface TitleWithChipProps {
   children: React.ReactElement;
 }
 
-/** A row's title beside its chip, and above font scale 1 the chip under a title that splits no word. */
+/** A row's title, which splits no word at any font scale, beside its chip, and above font scale 1 the chip under it. */
 export function TitleWithChip({ name, titleFontSize, children }: TitleWithChipProps) {
   const { fontScale } = useWindowDimensions();
   const stacked = resolveRowStacking(fontScale) === 'stacked';

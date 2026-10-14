@@ -11,6 +11,7 @@ import {
   resolveUncappedLinesAboveOne,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
+import { useWordSafeLines } from '@/components/ui/word_safe_lines.hook';
 import { Colors, LetterSpacing, Size, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 
 // Half the stacked metric row at most, so a label word keeps its line beside a long value.
@@ -20,6 +21,7 @@ const STACKED_METRIC_PRESSABLE_STYLE = {
   ...STACKED_METRIC_ROW_STYLE,
   minHeight: TouchSize.min,
 } as const;
+const STACKED_BALANCE_STYLE = { flexShrink: 1 } as const;
 
 interface BudgetSummaryHeaderProps {
   eyebrowLabel: string;
@@ -67,9 +69,16 @@ export function BudgetSummaryHeader({
   onTrailingAction,
 }: BudgetSummaryHeaderProps) {
   const { fontScale } = useWindowDimensions();
+  const stacked = resolveRowStacking(fontScale) === 'stacked';
   // Above font scale 1 the eyebrow and the trailing label wrap between words, where one line cut inside a word.
-  const labelLines = resolveRowStacking(fontScale) === 'stacked' ? 2 : 1;
+  const labelLines = stacked ? 2 : 1;
   const labelText = scaledTextStyle(Type.meta, fontScale);
+  const balanceText = resolveFitAmountTextProps(Type.summary, fontScale);
+  const emptyLines = useWordSafeLines(
+    emptyLabel ?? '',
+    resolveUncappedLinesAboveOne(2, fontScale),
+    fontScale,
+  );
   return (
     <>
       <View className="flex-row items-center justify-between gap-2">
@@ -93,7 +102,28 @@ export function BudgetSummaryHeader({
       </View>
 
       <View className="mt-0.5 min-h-8 flex-row items-center justify-between gap-3">
-        {hasData ? (
+        {hasData && stacked ? (
+          <View
+            style={STACKED_BALANCE_STYLE}
+            accessible
+            accessibilityRole="text"
+            accessibilityLabel={`${balanceLabel} ${balanceMetaLabel}`}
+          >
+            <Text
+              {...balanceText}
+              style={{ ...balanceText.style, color: balanceColor }}
+              className="font-sora-bold"
+            >
+              {balanceLabel}
+            </Text>
+            <Text
+              style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+              className="font-inter-medium text-content-secondary"
+            >
+              {balanceMetaLabel}
+            </Text>
+          </View>
+        ) : hasData ? (
           <Text
             style={{
               color: balanceColor,
@@ -114,9 +144,12 @@ export function BudgetSummaryHeader({
           </Text>
         ) : (
           <Text
-            style={{ fontSize: Type.title, lineHeight: lineHeightFor(Type.title) }}
+            allowFontScaling={false}
+            style={scaledTextStyle(Type.title, fontScale)}
             className="font-sora-bold text-foreground flex-1"
-            numberOfLines={2}
+            numberOfLines={emptyLines.numberOfLines}
+            onTextLayout={emptyLines.onTextLayout}
+            onLayout={emptyLines.onLayout}
           >
             {emptyLabel}
           </Text>
