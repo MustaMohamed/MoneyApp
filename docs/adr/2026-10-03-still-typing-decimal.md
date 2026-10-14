@@ -19,15 +19,17 @@ The function is a predicate over text. It changes no parser, pattern or floor, s
 
 The five fields a hook action writes are the pay sheet amount and rate, the income amount, the set-budget limit and the manual rate. Each goes through `setTypedDecimal(form, name, text, refusesZero, isSubmitted)` in the same file, which calls the hold first. A text the hold refuses it stores with `setValue`, marks dirty and, once the form is submitted, validates with `trigger(name)`. `trigger` writes its result when the resolver settles and does not check that the value is still the one it read (`node_modules/react-hook-form/dist/index.esm.mjs:2447-2462`), so a validation one keystroke started can settle after a later keystroke was held. When its validation settles, `setTypedDecimal` reads the field again and clears the fault if the value is by then a still-typing text. A fault for an older text never stays under a held text.
 
-Every Save runs the schema unchanged, so Save refuses `48.` and, where zero is refused, `0` and `0.0`, with the shipped messages. A re-validation another field causes also runs the schema unchanged. On the transaction sheet a pick in another row flags a half-typed rate left behind, and a fault Save raised on the rate stays until the rate's text changes.
+Every Save runs the schema unchanged, so Save refuses `48.` and, where zero is refused, `0` and `0.0`, with the shipped messages. A re-validation another field causes also runs the schema unchanged. The add and edit transaction sheets are the exception for the rate, which their schemas no longer check: see the amendment below.
 
-On the add and edit transaction sheets the rate re-validates through an effect, not through the keystroke. The effect is split in two. Each hook keeps the one that runs on every pick and validates in full. The other exists once, in `useTransactionFormRate` in `transaction_form_rate.hook.ts`, beside the ref that names the held text and the hold-or-set step both hooks' `setExchangeRate` call. It runs on a rate change and skips only when the form's rate, read when the effect runs, is the text that step last held. Seeds that write the stored rate never pass through `setExchangeRate`, so they validate.
+On the add and edit transaction sheets the rate is typed in the rate editor, whose hook is `components/rate_editor_sheet.hook.ts` and calls no hold. A keystroke there clears the editor's message and checks nothing. Each hook's pick effect, which validates in full after a refused Save, takes the form's rate among its deps, so a committed rate, a Reset to global and a pick's seed each re-validate the form.
+
+**Amended 2026-10-14, MA-169 (#696).** The transaction sheets check the rate once, at the rate editor's Done, through `resolveRateCommit` in `transaction_form.helpers.ts`. A text it refuses, `48.`, `0` and `0.0` included, keeps the editor open with its message and never reaches the form. Save and the picks never validate the rate, which leaves both schemas, the field errors and the footer count. `transaction_form_rate.hook.ts` and its held-text ref are removed.
 
 ## 3. The fields, and which refuse zero
 
 | Field | Where the hold is called | Refuses zero |
 |---|---|---|
-| Transaction rate, add and edit sheet | `transaction_form_rate.hook.ts`, which both transaction hooks use | yes |
+| Transaction rate, add and edit sheet | no hold: `components/rate_editor_sheet.hook.ts` checks the rate only at Done (MA-169) | yes |
 | Pay sheet amount | `pay_sheet.hook.ts`, through `setTypedDecimal` | yes |
 | Pay sheet rate | `pay_sheet.hook.ts`, through `setTypedDecimal` | yes |
 | Commitment amount, add and edit form | `commitment_form_body.tsx` | yes |
