@@ -1,5 +1,5 @@
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
-import { useEffect, useId, useMemo } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
@@ -60,10 +60,15 @@ export function useEditCommitment() {
     defaultValues: commitment ? buildEditDefaults(commitment) : undefined,
   });
 
+  const draftedIdRef = useRef<string | undefined>(commitment ? id : undefined);
+  // Keyed on the route's id, never `commitment`: every commitments reload publishes a new object, and a reset on it drops what was typed.
   useEffect(() => {
-    if (!commitment) return;
+    if (!commitment || draftedIdRef.current === id) return;
+    draftedIdRef.current = id;
     form.reset(buildEditDefaults(commitment));
-  }, [commitment]); // oxlint-disable-line react-hooks/exhaustive-deps
+    setSaveError(owner, undefined);
+    setDeactivateDialogVisible(owner, false);
+  }, [id, commitment, form, owner, setSaveError, setDeactivateDialogVisible]);
 
   useEffect(() => {
     claim(owner);
@@ -79,11 +84,12 @@ export function useEditCommitment() {
   }
 
   async function onValid(data: CommitmentFormValues) {
-    if (!id) return;
+    // Read off the store: two taps in one frame both see the render's `saving` as false.
+    if (!commitment || useEditCommitmentState.getState().entries[owner]?.saving) return;
     setSaveError(owner, undefined);
     setSaving(owner, true);
     try {
-      await updateCommitment(id, {
+      await updateCommitment(commitment.id, {
         name: data.name,
         amount_type: data.amountType,
         amount: data.amount ?? null,
@@ -100,12 +106,30 @@ export function useEditCommitment() {
         end_after_count:
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
+      // A write landing after the route moved to another commitment must not navigate off the one the screen shows.
+      if (draftedIdRef.current !== commitment.id) return;
       if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
       else router.dismissTo('/commitments');
     } catch {
-      setSaveError(owner, Strings.commitmentsSaveError);
+      // A failure landing after the route moved to another commitment belongs to no commitment the screen shows.
+      if (draftedIdRef.current === commitment.id) setSaveError(owner, Strings.commitmentsSaveError);
     } finally {
       setSaving(owner, false);
+    }
+  }
+
+  async function onSubmit(): Promise<void> {
+    const startedOn = draftedIdRef.current;
+    await form.handleSubmit(onValid)();
+    // `handleSubmit` marks the form submitted after `onValid` returns, so only a reset after it unmarks the next commitment.
+    if (draftedIdRef.current !== startedOn) {
+      form.reset(undefined, {
+        keepValues: true,
+        keepDefaultValues: true,
+        keepDirty: true,
+        keepTouched: true,
+        keepErrors: true,
+      });
     }
   }
 
@@ -114,14 +138,17 @@ export function useEditCommitment() {
   }
 
   async function confirmDeactivate() {
-    if (!id) return;
+    if (!commitment || useEditCommitmentState.getState().entries[owner]?.saving) return;
     setSaving(owner, true);
     try {
-      await deactivateCommitment(id);
+      await deactivateCommitment(commitment.id);
+      // The confirmation open now belongs to the commitment the route moved to, so it stays and nothing navigates.
+      if (draftedIdRef.current !== commitment.id) return;
       setDeactivateDialogVisible(owner, false);
       if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
       else router.replace('/commitments');
     } catch {
+      if (draftedIdRef.current !== commitment.id) return;
       // The sheet is a portal over the form, so it must close for the banner to show.
       setDeactivateDialogVisible(owner, false);
       setSaveError(owner, Strings.commitmentsSaveError);
@@ -143,7 +170,7 @@ export function useEditCommitment() {
       accounts,
     },
     form,
-    onSubmit: form.handleSubmit(onValid),
+    onSubmit,
     handleDeactivate,
     confirmDeactivate,
     cancelDeactivate,
