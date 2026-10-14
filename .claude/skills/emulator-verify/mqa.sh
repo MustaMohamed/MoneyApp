@@ -410,30 +410,48 @@ cmd_build() {
   ls -lh "$ROOT/$APK"
 }
 
-# Native surface: a change to any of these paths reaches the device only in a new APK; everything else ships over Metro.
+# Native surface: a change to any of these paths reaches the device only in a new APK, except a package.json change pkg_scripts_only confines; everything else ships over Metro.
 NATIVE_RE='^(package(-lock)?\.json|app\.json|eas\.json|patches/|android/|ios/|.*\.gradle|gradle\.properties)'
 # Who builds on a REBUILD verdict; every REBUILD line ends with it.
 BUILD_WHO='A /ship implementer or a /prep probe builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds.'
 
+# Returns 0 when package.json at <old-rev> and at <new-rev>, or in the working tree, differs only in scripts npm does not run on install; any failure, node missing included, reads as reaching the APK.
+pkg_scripts_only() {
+  node "$ROOT/scripts/package_json_scripts_only.mjs" "$@" >/dev/null 2>&1
+}
+
 native_changes() {
-  { git -C "$ROOT" diff --name-only "$1"...HEAD 2>/dev/null || true
+  local files mb
+  files="$({ git -C "$ROOT" diff --name-only "$1"...HEAD 2>/dev/null || true
     git -C "$ROOT" diff --name-only HEAD 2>/dev/null || true
     git -C "$ROOT" ls-files --others --exclude-standard 2>/dev/null || true
-  } | sort -u | grep -E "$NATIVE_RE" || true
+  } | sort -u | grep -E "$NATIVE_RE" || true)"
+  if grep -qxF 'package.json' <<<"$files" && mb="$(git -C "$ROOT" merge-base "$1" HEAD 2>/dev/null)" && pkg_scripts_only "$mb"; then
+    files="$(grep -vxF 'package.json' <<<"$files" || true)"
+  fi
+  [ -z "$files" ] || echo "$files"
 }
 
 # The newest native-surface commit on the first-parent line from the merge-base of the base and HEAD, as "<commit time> <short sha>"; empty when there is none or no merge-base.
 base_native_commit() {
-  local mb
+  local mb candidates c
   mb="$(git -C "$ROOT" merge-base "$1" HEAD 2>/dev/null)" || return 0
   # A \001 header cannot collide with a path line: git quotes any path holding a control character.
-  git -C "$ROOT" log --first-parent -m --format='%x01%ct %h' --name-only "$mb" -- 2>/dev/null \
-    | NATIVE_RE="$NATIVE_RE" awk 'index($0, "\001") == 1 { c = substr($0, 2); next } $0 ~ ENVIRON["NATIVE_RE"] { print c; exit }' || true
+  candidates="$(git -C "$ROOT" log --first-parent -m --format='%x01%ct %h' --name-only "$mb" -- 2>/dev/null \
+    | NATIVE_RE="$NATIVE_RE" awk 'index($0, "\001") == 1 { c = substr($0, 2); next } c != "" && $0 ~ ENVIRON["NATIVE_RE"] { print c; c = "" }' || true)"
+  while IFS= read -r c; do
+    if [ -n "$c" ] && [ -n "$(commit_native_files "${c#* }")" ]; then echo "$c"; return 0; fi
+  done <<<"$candidates"
 }
 
 # One commit's native-surface files against its first parent, one per line.
 commit_native_files() {
-  git -C "$ROOT" log -1 --first-parent -m --format= --name-only "$1" -- 2>/dev/null | grep -E "$NATIVE_RE" || true
+  local files
+  files="$(git -C "$ROOT" log -1 --first-parent -m --format= --name-only "$1" -- 2>/dev/null | grep -E "$NATIVE_RE" || true)"
+  if grep -qxF 'package.json' <<<"$files" && pkg_scripts_only "$1^1" "$1"; then
+    files="$(grep -vxF 'package.json' <<<"$files" || true)"
+  fi
+  [ -z "$files" ] || echo "$files"
 }
 
 # The installed APK's own file time, in epoch seconds; empty when the app is not installed.
