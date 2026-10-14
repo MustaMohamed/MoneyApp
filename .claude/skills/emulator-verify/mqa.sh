@@ -410,14 +410,20 @@ cmd_build() {
   ls -lh "$ROOT/$APK"
 }
 
-# Native surface: a change to any of these means the installed APK is stale and
-# a rebuild is mandatory. Everything else ships over Metro, so an APK already on
-# the device is current by construction — reuse it and skip ~10 minutes.
+# Native surface: a change to any of these paths reaches the device only in a new APK; everything else ships over Metro.
+NATIVE_RE='^(package(-lock)?\.json|app\.json|eas\.json|patches/|android/|ios/|.*\.gradle|gradle\.properties)'
+
 native_changes() {
   { git -C "$ROOT" diff --name-only "$1"...HEAD 2>/dev/null || true
     git -C "$ROOT" diff --name-only HEAD 2>/dev/null || true
     git -C "$ROOT" ls-files --others --exclude-standard 2>/dev/null || true
-  } | sort -u | grep -E '^(package(-lock)?\.json|app\.json|eas\.json|patches/|android/|ios/|.*\.gradle|gradle\.properties)' || true
+  } | sort -u | grep -E "$NATIVE_RE" || true
+}
+
+# The newest commit reachable from the base that touches the native surface, as "<commit time> <short sha>"; empty when there is none.
+base_native_commit() {
+  git -C "$ROOT" log --format='@%ct %h' --name-only "$1" 2>/dev/null \
+    | NATIVE_RE="$NATIVE_RE" awk '/^@/ { c = substr($0, 2); next } $0 ~ ENVIRON["NATIVE_RE"] { print c; exit }' || true
 }
 
 # The installed APK's own file time, in epoch seconds; empty when the app is not installed.
@@ -427,13 +433,23 @@ apk_time() {
   [ -z "$p" ] || a shell stat -c %Y "$p" 2>/dev/null | tr -d '\r'
 }
 
-# Prints the verdict and returns 0 when a build is needed; an APK installed after the newest native change already carries it (the lens's case).
+# Prints the verdict and returns 0 when a build is needed: the APK on the device predates the newest native change on this branch, or with none here, on the base.
 build_verdict() {
-  local base="${1:-origin/main}" changed newest t
+  local base="${1:-origin/main}" changed newest t hit
   changed="$(native_changes "$base")"
   if [ -z "$changed" ]; then
     if [ -n "$S" ] && ! a shell pm list packages 2>/dev/null | grep -q "$PKG"; then
       echo "REBUILD: $PKG is not installed on $S. A /ship implementer builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds."; return 0
+    fi
+    hit=""; [ -z "$S" ] || hit="$(base_native_commit "$base")"
+    if [ -n "$hit" ]; then
+      t="$(apk_time)" || t=""
+      if [ -n "$t" ] && [ "$t" -gt "${hit%% *}" ]; then
+        echo "REUSE: no native surface change since $base, and the APK on $S was installed after its newest one, ${hit#* }; this branch reaches the device over Metro."; return 1
+      fi
+      echo "REBUILD: $base changed the native surface in ${hit#* }, and the APK on $S predates it. A /ship implementer builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds."
+      git -C "$ROOT" diff-tree --root --no-commit-id --name-only -r "${hit#* }" 2>/dev/null | grep -E "$NATIVE_RE" | sed 's/^/  /' || true
+      return 0
     fi
     echo "REUSE: no native surface change since $base; this branch reaches the device over Metro."; return 1
   fi

@@ -3,7 +3,7 @@
 - **Date:** 2026-10-03
 - **Status:** accepted
 - **Ticket:** MA-141 (#634), under #602
-- **Applies to:** `patches/react-native+0.86.3.patch`, `app.json`
+- **Applies to:** `patches/react-native+0.86.3.patch`, `app.json`, `.claude/skills/emulator-verify/mqa.sh`
 
 On Android a truncated line in Inter or Sora could draw its `…` wider than the space Android reserved for it, so the last dot was cut, or on a right-aligned line the first glyph. This record fixes it once, below every text, with a patch on React Native's text view and a build setting that puts the patch in every APK. Line cites in React Native files are to the unpatched 0.86.3 sources.
 
@@ -62,8 +62,13 @@ Px clear is the background between the third dot and the text box's right bound 
 | Home account card names | 2.0 | 135.2 to 135.6 by 47.24 | each ends `…` | 28, 5, 39 |
 | Home account card `Month In`, right-aligned, truncated | 1.0 | 147.0 by 16.38 | first glyph whole | 4, 15, 6 |
 
-Every other chip label on both edit sheets reads three whole dots at both scales, 5 to 36 px clear, and every other name and caption on the accounts list at 2.0, 8 to 56 px clear. At 1.0 the row's label and badge print whole, and at 2.0 each `Month In` value draws whole on one line in a box of 96.0, 101.3 and 95.6 dp. The `/prep` probe read the first three rows on slot 2's APK on 2026-10-14 with the same kept characters, 35, 11 and 13 px for Acceptance lines 2 to 4 and 11 to 22 px for the long titles at 1.0; the 1 px between the two reads is this read's box bound, rounded down to a whole pixel.
+Every other chip label on both edit sheets reads three whole dots at both scales, 5 to 36 px clear, and every other name and caption on the accounts list at 2.0, 8 to 56 px clear. At 1.0 the row's label and badge print whole, and at 2.0 the three `Month In` boxes read 96.0, 101.3 and 95.6 dp, the widths MA-140 recorded for the values drawn whole and shrunk. The `/prep` probe read the first three rows on slot 2's APK on 2026-10-14 with the same kept characters, 35, 11 and 13 px for Acceptance lines 2 to 4 and 11 to 22 px for the long titles at 1.0; the 1 px between the two reads is this read's box bound, rounded down to a whole pixel.
 
 **Verdict: whole.** Each line of Acceptance lines 2 to 4 shows three whole dots on an APK built with the patch, and every line MA-141 fixed reads as it did on MA-141's own shots.
 
 **Cause, read.** The APK PR #716 read held no build of the patch: slot 3's APK was installed on 2026-09-15, before `/prep` 634 began on 2026-10-03 20:43, and its dex holds neither field. `build_verdict` printed `REUSE` because PR #716's branch had no native-surface change against `origin/main`, and it read the APK's install time only when the branch had one. The patch does not change.
+
+**The rule the build verdict now applies.** On a branch with no native-surface change of its own, with a device claimed and the app installed, `build_verdict` in `.claude/skills/emulator-verify/mqa.sh` reads the newest commit reachable from the base, `origin/main` by default, that touches the native surface. An APK installed after that commit's time reads `REUSE`; an older APK, or one whose install time cannot be read, reads `REBUILD` and lists that commit's native-surface files. With no device claimed, a base that does not resolve, or no such commit, the verdict stays `REUSE`, as before this rule. The diff read and the history read share one spelling of the native surface. The rule reads times, and nothing records what an APK was built from, so it has two false readings:
+
+- An APK built from a branch before that branch's squash merge reads `REBUILD` once after the merge, since the merge commit is newer than the install.
+- An APK built from another branch and installed after the newest native-surface commit on `main` reads `REUSE`, whatever native change that branch carried.
