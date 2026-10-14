@@ -98,6 +98,14 @@ before a snapshot; a looping animation (the transaction sheet's loading skeleton
 and each read, wait or tap on it fails after 30 s. mqa names the cause and a tap skips its
 press. Prove such a state with `shot`, and use `tapxy` to leave it.
 
+**agent-device can read the launcher in front while the app is.** agent-device 0.21.13 reads
+the front app from the first `mCurrentFocus=Window{` line of `dumpsys window`. An ANR record
+that `dumpsys window lastanr` still holds prints first, and can name the launcher for two hours
+after the ANR. mqa reads `topResumedActivity` instead. When that names the app, a `tap` or
+`tapxy` that agent-device fails on its post-press check counts, with one `mqa:` line naming
+both reads, and a `wait` miss names both reads. When mqa also reads another app, the press failed.
+Check a slot with `adb -s <serial> shell dumpsys window lastanr`.
+
 ## The device claim
 
 Three tickets verify at once, so there are three emulators and a session owns one
