@@ -454,6 +454,7 @@ export function CommitmentFormBody({
         <View
           style={{ minHeight: ms(16) }}
           className="justify-center"
+          collapsable={false}
           accessibilityLiveRegion="polite"
         >
           <FormErrorText

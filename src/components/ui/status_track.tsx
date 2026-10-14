@@ -27,6 +27,7 @@ export function StatusTrack({ footnote, message, testID }: StatusTrackProps) {
   return (
     <View
       testID={testID}
+      collapsable={false}
       style={{
         minHeight: STATUS_TRACK_LINE_HEIGHT,
         flexDirection: 'row',

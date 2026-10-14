@@ -13,6 +13,7 @@ const UI = 'src/components/ui';
 const BUDGET = 'src/modules/budget/screens/budget';
 const TRANSACTIONS = 'src/modules/transactions/screens/transactions';
 const COMMITMENTS = 'src/modules/commitments/screens/commitments';
+const ACCOUNTS = 'src/modules/accounts';
 const BUDGET_INDEX = `${BUDGET}/index.tsx`;
 const TRANSACTIONS_INDEX = `${TRANSACTIONS}/index.tsx`;
 const COMMITMENTS_INDEX = `${COMMITMENTS}/index.tsx`;
@@ -93,6 +94,52 @@ function stateScreen(rel, kind) {
     ],
     needs: 'a state-screen component draws its layout from the shared resolver with its own kind',
   };
+}
+
+const LIVE_REGION = 'accessibilityLiveRegion=';
+const KEPT_VIEW = /(?<![\w$])collapsable=\{false\}/;
+// The props that keep a View on Android, `ViewShadowNode.cpp:50-72`; `testID={expr}` may be undefined.
+const KEEPER =
+  /(?<=\s)(?:collapsable=\{false\}|accessible(?:=\{true\})?(?![\w$=])|(?:testID|nativeID)="[^"]+")/;
+const QUOTED = /"[^"]*"|'[^']*'|`[^`]*`/g;
+// A non-empty string's contents become `x`, so a keeper word inside another prop's value reads as no prop.
+function keepsView(/** @type {string} */ tag) {
+  return KEEPER.test(
+    tag.replace(QUOTED, (quoted) => (quoted.length > 2 ? `${quoted[0]}x${quoted[0]}` : quoted)),
+  );
+}
+// A `<` or `>` in a prop value other than an arrow's `=>` still ends the tag early.
+const OPENING_TAG = /<[A-Za-z](?:=>|[^<>])*>/g;
+const KEEPS_LIVE_REGION =
+  'Android flattens a view that holds layout only, and its live region goes with it (#725)';
+
+/** @param {string} source @param {RegExp} pattern @returns {string[]} */
+function tagsHolding(source, pattern) {
+  return [...source.matchAll(OPENING_TAG)]
+    .map(([text]) => text)
+    .filter((text) => pattern.test(text));
+}
+
+/** @param {string} marker @returns {Requirement} */
+function readableMarker(marker) {
+  const pattern = literal(marker);
+  return {
+    found: (source) => source.split(marker).length - 1 === tagsHolding(source, pattern).length,
+    missing: `a tag the pattern cannot read holds \`${marker}\`, so hoist the value of its prop that holds \`<\` or \`>\``,
+  };
+}
+
+/** @param {string} marker @returns {Requirement[]} */
+function keptLiveRegion(marker) {
+  const pattern = literal(marker);
+  return [
+    readableMarker(marker),
+    holds(pattern, `no element holds \`${marker}\``),
+    {
+      found: (source) => tagsHolding(source, pattern).every((text) => KEPT_VIEW.test(text)),
+      missing: 'no `collapsable={false}` on the view that holds the live region',
+    },
+  ];
 }
 
 // `wholeSource` is regex source for the whole specifier, the string after `from`, `import` or `require(`.
@@ -285,6 +332,21 @@ const NAMED_ROWS = [
     ],
     rule: 'in the account info rows; a money derivation lives in `src/modules/accounts/domain/account_figures.ts` (#666)',
   },
+  {
+    files: [
+      `${ACCOUNTS}/components/account_form/field_message_rail.tsx`,
+      `${ACCOUNTS}/screens/accounts/detail/components/adjust_balance_sheet.tsx`,
+      `${ACCOUNTS}/components/account_form/account_color_sheet.tsx`,
+      `${COMMITMENTS}/components/commitment_form_body.tsx`,
+    ],
+    required: keptLiveRegion(LIVE_REGION),
+    needs: KEEPS_LIVE_REGION,
+  },
+  {
+    files: [`${UI}/status_track.tsx`],
+    required: keptLiveRegion('{...model.a11y}'),
+    needs: KEEPS_LIVE_REGION,
+  },
 ];
 
 const TREE_ROWS = [
@@ -306,6 +368,20 @@ const TREE_ROWS = [
     matches: () => true,
     banned: [literal('transaction_form_v2'), literal('TransactionFormV2')],
     rule: 'names a versioned transaction form; `transaction_form` is the one canonical module',
+  },
+  {
+    name: 'T4, every .tsx under src/',
+    matches: (/** @type {string} */ rel) => rel.endsWith('.tsx'),
+    required: [
+      readableMarker(LIVE_REGION),
+      {
+        found: (/** @type {string} */ source) =>
+          tagsHolding(source, literal(LIVE_REGION)).every(keepsView),
+        missing:
+          'an element holds `accessibilityLiveRegion=` without `collapsable={false}`, `accessible`, or a literal `testID` or `nativeID`',
+      },
+    ],
+    needs: KEEPS_LIVE_REGION,
   },
 ];
 
@@ -392,15 +468,21 @@ for (const rel of namedFiles.filter((named) => !load(named))) {
   errors.push(`${rel}: not in the tree; move its rows in ${SCRIPT}`);
 }
 
+/** @typedef {{ banned?: RegExp[], rule?: string, required?: Requirement[], needs?: string }} Row */
+
+/** @param {string} rel @param {string[]} lines @param {Row} row */
+function reportRow(rel, lines, row) {
+  reportBanned(rel, lines, row.banned ?? [], row.rule);
+  const source = lines.join('\n');
+  for (const { found, missing } of row.required ?? []) {
+    if (!found(source)) errors.push(`${rel}: ${missing}; ${row.needs}`);
+  }
+}
+
 for (const row of NAMED_ROWS) {
   for (const rel of row.files) {
     const lines = load(rel);
-    if (!lines) continue;
-    reportBanned(rel, lines, row.banned ?? [], row.rule);
-    const source = lines.join('\n');
-    for (const { found, missing } of row.required ?? []) {
-      if (!found(source)) errors.push(`${rel}: ${missing}; ${row.needs}`);
-    }
+    if (lines) reportRow(rel, lines, row);
   }
 }
 
@@ -413,7 +495,7 @@ for (const row of TREE_ROWS) {
   const files = srcFiles.filter(row.matches);
   // A row over zero files would pass with its guard gone.
   if (files.length === 0) errors.push(`${row.name}: matches no file`);
-  for (const rel of files) reportBanned(rel, load(rel) ?? [], row.banned, row.rule);
+  for (const rel of files) reportRow(rel, load(rel) ?? [], row);
 }
 
 for (const rel of DELETED_PATHS) {

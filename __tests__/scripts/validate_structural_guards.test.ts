@@ -29,12 +29,26 @@ const DASHBOARD_INDEX = 'src/modules/dashboard/screens/dashboard/index.tsx';
 const GOALS_INDEX = 'src/modules/goals/screens/goals/index.tsx';
 const ACCOUNT_INFO_ROWS = 'src/modules/accounts/utils/account_info_rows.ts';
 const VERSIONED_FILE = 'src/modules/transactions/seeded_surface.ts';
+const FIELD_MESSAGE_RAIL = 'src/modules/accounts/components/account_form/field_message_rail.tsx';
+const ADJUST_BALANCE_SHEET =
+  'src/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.tsx';
+const ACCOUNT_COLOR_SHEET = 'src/modules/accounts/components/account_form/account_color_sheet.tsx';
+const COMMITMENT_FORM_BODY = `${COMMITMENTS}/components/commitment_form_body.tsx`;
+const STATUS_TRACK = 'src/components/ui/status_track.tsx';
 
 const STYLESHEET_SEED = 'const seeded = StyleSheet.create({});';
 const SHADOW_SEED = '<Card className="shadow-none" />';
 const ASYNC_SEED = 'const seeded = async () => 1;';
 const NO_FILE = 'matches no file';
 const OUTSIDE_PROVIDER = 'sits outside';
+const KEPT_VIEW = 'collapsable={false}';
+const NO_KEPT_VIEW = 'no `collapsable={false}` on the view that holds the live region';
+const LIVE_REGION = 'accessibilityLiveRegion="polite"';
+const NO_HOLDER = 'no element holds';
+const CUT_TAG = 'a tag the pattern cannot read holds';
+const NO_KEEPER =
+  'an element holds `accessibilityLiveRegion=` without `collapsable={false}`, `accessible`, or a literal `testID` or `nativeID`';
+const SEEDED_LIVE_REGION = 'src/modules/accounts/seeded_live_region.tsx';
 
 // A seed finds its target by the pattern the guard matches, so a reworded line in src/ fails no case.
 function importFrom(module: string): RegExp {
@@ -404,6 +418,15 @@ function withoutKind(rel: string, kind: string, swapped: string): RequiredSeed {
   };
 }
 
+function withoutKeptView(rel: string, where: string): RequiredSeed {
+  return {
+    guard: `${KEPT_VIEW} on the live region in ${where}`,
+    rel,
+    seed: () => replaceEvery(rel, KEPT_VIEW, ''),
+    words: NO_KEPT_VIEW,
+  };
+}
+
 // The import seeds and the tag seeds are spread over the tab screens, so no two edit the same text.
 const REQUIRED: RequiredSeed[] = [
   withoutTag(TRANSACTIONS_INDEX, 'MonthFilter', 'the transactions screen'),
@@ -436,6 +459,11 @@ const REQUIRED: RequiredSeed[] = [
   withoutKind(EMPTY_STATE, 'empty', 'error'),
   withoutImport(ERROR_STATE, GEOMETRY, 'resolveStateScreenLayout', 'ErrorState'),
   withoutKind(ERROR_STATE, 'error', 'empty'),
+  withoutKeptView(FIELD_MESSAGE_RAIL, 'the account form field message rail'),
+  withoutKeptView(ADJUST_BALANCE_SHEET, 'the adjust balance sheet'),
+  withoutKeptView(ACCOUNT_COLOR_SHEET, 'the account colour sheet'),
+  withoutKeptView(COMMITMENT_FORM_BODY, 'the commitment form'),
+  withoutKeptView(STATUS_TRACK, 'the footer status line'),
 ];
 
 const DELETED_PATHS = [
@@ -572,6 +600,55 @@ describe('validate-structural-guards.js, named files', () => {
 
     expectClean(runGuard());
   });
+
+  it('reports the commitment form when the prop sits on a view other than the live region', () => {
+    replaceEvery(COMMITMENT_FORM_BODY, KEPT_VIEW, '');
+    appendLine(COMMITMENT_FORM_BODY, `<View ${KEPT_VIEW} />`);
+
+    expectReported(runGuard(), [lineFor(COMMITMENT_FORM_BODY, NO_KEPT_VIEW)]);
+  });
+
+  it.each([
+    {
+      rel: FIELD_MESSAGE_RAIL,
+      search: LIVE_REGION,
+      replacement: '',
+      words: `${NO_HOLDER} \`accessibilityLiveRegion=\``,
+      absent: NO_KEPT_VIEW,
+    },
+    {
+      rel: STATUS_TRACK,
+      search: '{...model.a11y}',
+      replacement: '',
+      words: `${NO_HOLDER} \`{...model.a11y}\``,
+      absent: NO_KEPT_VIEW,
+    },
+    {
+      rel: STATUS_TRACK,
+      search: '{...model.a11y}',
+      replacement: 'hitSlop={n > 0 ? 4 : 0} {...model.a11y}',
+      words: `${CUT_TAG} \`{...model.a11y}\``,
+      absent: NO_HOLDER,
+    },
+  ])(
+    'reports $rel with its own words when $search becomes "$replacement"',
+    ({ rel, search, replacement, words, absent }) => {
+      replaceEvery(rel, search, replacement);
+
+      const result = runGuard();
+
+      expectReported(result, [lineFor(rel, words)]);
+      expect(
+        stderrLines(result).filter((line) => line.startsWith(`${rel}:`) && line.includes(absent)),
+      ).toEqual([]);
+    },
+  );
+
+  it('exits 0 when an arrow-function prop sits before the live region on the kept view', () => {
+    replaceOnce(COMMITMENT_FORM_BODY, LIVE_REGION, `onLayout={(e) => setH(e)} ${LIVE_REGION}`);
+
+    expectClean(runGuard());
+  });
 });
 
 describe('validate-structural-guards.js, tree rows and deleted paths', () => {
@@ -606,6 +683,37 @@ describe('validate-structural-guards.js, tree rows and deleted paths', () => {
 
   it('exits 0 on a store accessor named useState in a screen template', () => {
     appendLine(locate(isTemplate), 'useFooState.useState.bar();');
+
+    expectClean(runGuard());
+  });
+
+  it.each([
+    { tag: `<View style={{ flex: 1 }} ${LIVE_REGION} />`, words: NO_KEEPER },
+    { tag: `<View testID={testID} ${LIVE_REGION} />`, words: NO_KEEPER },
+    { tag: `<View accessible={false} ${LIVE_REGION} />`, words: NO_KEEPER },
+    { tag: `<View testID="" ${LIVE_REGION} />`, words: NO_KEEPER },
+    {
+      tag: `<View style={s} accessibilityHint="Opens accessible menu" ${LIVE_REGION} />`,
+      words: NO_KEEPER,
+    },
+    {
+      tag: `<View style={{ minHeight: lines > 1 ? 32 : 16 }} ${LIVE_REGION} />`,
+      words: `${CUT_TAG} \`accessibilityLiveRegion=\``,
+    },
+  ])('T4: reports a live region on $tag', ({ tag, words }) => {
+    write(SEEDED_LIVE_REGION, `${tag}\n`);
+
+    expectReported(runGuard(), [lineFor(SEEDED_LIVE_REGION, words)]);
+  });
+
+  it.each([
+    'collapsable={false}',
+    'accessible',
+    'accessible={true}',
+    'testID="seeded"',
+    'nativeID="seeded"',
+  ])('T4: exits 0 on a live region kept by %s', (keeper) => {
+    write(SEEDED_LIVE_REGION, `<View ${keeper} ${LIVE_REGION} />\n`);
 
     expectClean(runGuard());
   });

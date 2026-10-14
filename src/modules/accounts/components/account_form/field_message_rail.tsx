@@ -29,7 +29,11 @@ export interface FieldMessageTrackProps {
 /** Holds a fixed message track, so helper and error copy swap without shifting anything. */
 export function FieldMessageTrack({ error, helper, reserveErrorLines }: FieldMessageTrackProps) {
   return (
-    <Box style={fieldMessageRailStyle(reserveErrorLines)} accessibilityLiveRegion="polite">
+    <Box
+      style={fieldMessageRailStyle(reserveErrorLines)}
+      collapsable={false}
+      accessibilityLiveRegion="polite"
+    >
       {error ? (
         <Box
           style={{

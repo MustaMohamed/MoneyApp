@@ -96,7 +96,7 @@ export function AccountColorSheet({ isOpen, onOpenChange, onConfirm }: AccountCo
               backgroundColor: staged,
             }}
           />
-          <Box style={{ flex: 1 }} accessibilityLiveRegion="polite">
+          <Box style={{ flex: 1 }} collapsable={false} accessibilityLiveRegion="polite">
             <Typography className="font-sora-semibold text-foreground text-[16px]">
               {previewEntry?.familyLabel ?? Strings.accountColorCustom}
             </Typography>
