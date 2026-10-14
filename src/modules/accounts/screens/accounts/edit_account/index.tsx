@@ -22,10 +22,7 @@ import { formatAccountBalanceParts } from '@/utils/format_amount';
 import { AccountColorField } from '../../../components/account_form/account_color_field';
 import { FIELD_MESSAGE_TEXT_LINE_HEIGHT } from '../../../components/account_form/account_form.geometry';
 import { CreditCardFields } from '../../../components/account_form/credit_card_fields';
-import {
-  FieldMessageRail,
-  FieldMessageTrack,
-} from '../../../components/account_form/field_message_rail';
+import { FieldMessageRail, FieldMessageTrack } from '../../../components/field_message_rail';
 import { LockedField } from './components/locked_field';
 import { useEditAccount } from './edit_account.hook';
 

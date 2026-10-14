@@ -114,3 +114,13 @@ export function resolveFitAmountTextProps(fontSize: number, fontScale: number): 
     style: scaledTextStyle(fontSize, fontScale),
   };
 }
+
+/** How far a glyph beside a message moves so its offset from the first line's centre stays as at scale 1; `0` until that line is measured. */
+export function resolveMessageGlyphShift(
+  lineHeightAtOne: number,
+  firstLineHeight: number | undefined,
+  fontScale: number,
+): number {
+  if (fontScale === 1 || firstLineHeight === undefined) return 0;
+  return (firstLineHeight - lineHeightAtOne) / 2;
+}

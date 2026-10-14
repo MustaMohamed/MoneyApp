@@ -3,7 +3,7 @@
 - **Date:** 2026-09-16
 - **Status:** accepted
 - **Ticket:** #514 (MA-078), under #504; extended by #515 (MA-079), which renders the credit draft
-- **Applies to:** `src/modules/accounts/screens/accounts/edit_account/edit_account.helpers.ts`, `src/modules/accounts/screens/accounts/edit_account/edit_account.hook.ts`, `src/modules/accounts/screens/accounts/edit_account/index.tsx`, `src/modules/accounts/components/account_form/account_form.helpers.ts`, `src/modules/accounts/components/account_form/account_form.geometry.ts`, `src/modules/accounts/components/account_form/field_message_rail.tsx`, `src/modules/accounts/components/account_form/credit_card_fields.tsx`, `src/constants/strings.ts`
+- **Applies to:** `src/modules/accounts/screens/accounts/edit_account/edit_account.helpers.ts`, `src/modules/accounts/screens/accounts/edit_account/edit_account.hook.ts`, `src/modules/accounts/screens/accounts/edit_account/index.tsx`, `src/modules/accounts/components/account_form/account_form.helpers.ts`, `src/modules/accounts/components/account_form/account_form.geometry.ts`, `src/modules/accounts/components/field_message_rail.tsx`, `src/modules/accounts/components/account_form/credit_card_fields.tsx`, `src/constants/strings.ts`
 
 The Edit account screen seeds its form from the stored row and saves through `toUpdateAccountInput`. The form holds the credit columns as text, so the text it seeds decides what a save writes back.
 

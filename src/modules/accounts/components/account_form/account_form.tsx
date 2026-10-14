@@ -12,6 +12,7 @@ import { CurrencySelector } from '@/modules/currency';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
 
 import { BALANCE_REFUSES_ZERO, type AddAccountFormData } from '../../utils/add_account.schema';
+import { FieldMessageRail } from '../field_message_rail';
 import { AccountColorField } from './account_color_field';
 import {
   CURRENCY_CELL_WIDTH,
@@ -24,7 +25,6 @@ import {
 import { AccountTypeSelector } from './account_type_selector';
 import { BalanceCurrencySuffix } from './balance_currency_suffix';
 import { CreditCardSlot } from './credit_card_slot';
-import { FieldMessageRail } from './field_message_rail';
 
 export interface AccountFormProps {
   form: UseFormReturn<AddAccountFormData>;

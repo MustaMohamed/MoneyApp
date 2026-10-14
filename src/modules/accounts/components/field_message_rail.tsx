@@ -2,16 +2,18 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Typography } from 'heroui-native';
 import React from 'react';
 import { useFormState, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
+import { useWindowDimensions } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { FormErrorText } from '@/components/ui/form_error_text';
+import { useMessageGlyphShift } from '@/components/ui/message_glyph.hook';
 import { Colors, Type } from '@/constants/theme';
 
 import {
   FIELD_MESSAGE_GLYPH,
   FIELD_MESSAGE_TEXT_LINE_HEIGHT,
   fieldMessageRailStyle,
-} from './account_form.geometry';
+} from './account_form/account_form.geometry';
 
 export interface FieldMessageRailProps<T extends FieldValues> {
   control: Control<T>;
@@ -28,6 +30,9 @@ export interface FieldMessageTrackProps {
 
 /** Holds a fixed message track, so helper and error copy swap without shifting anything. */
 export function FieldMessageTrack({ error, helper, reserveErrorLines }: FieldMessageTrackProps) {
+  const { fontScale } = useWindowDimensions();
+  const { shift, onTextLayout } = useMessageGlyphShift(FIELD_MESSAGE_TEXT_LINE_HEIGHT, fontScale);
+
   return (
     <Box
       style={fieldMessageRailStyle(reserveErrorLines)}
@@ -46,7 +51,7 @@ export function FieldMessageTrack({ error, helper, reserveErrorLines }: FieldMes
             name="alert-circle-outline"
             size={FIELD_MESSAGE_GLYPH.size}
             color={Colors.dark.negative}
-            style={{ marginTop: FIELD_MESSAGE_GLYPH.topInset }}
+            style={{ marginTop: FIELD_MESSAGE_GLYPH.topInset + shift }}
           />
           <Box style={{ flex: 1 }}>
             {/* Helper's own type size (mockup keeps one size across both states); animation off so the error exists in the a11y tree immediately. */}
@@ -54,6 +59,7 @@ export function FieldMessageTrack({ error, helper, reserveErrorLines }: FieldMes
               message={error}
               disableAnimation
               style={{ fontSize: Type.detail, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT }}
+              onTextLayout={onTextLayout}
             />
           </Box>
         </Box>

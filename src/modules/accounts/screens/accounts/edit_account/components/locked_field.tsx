@@ -5,7 +5,7 @@ import { FormLabelText } from '@/components/ui/form_label_text';
 import { Input } from '@/components/ui/input';
 import type { InputRestOverlay } from '@/components/ui/input.geometry';
 
-import { FieldMessageTrack } from '../../../../components/account_form/field_message_rail';
+import { FieldMessageTrack } from '../../../../components/field_message_rail';
 
 // HeroUI's disabled field and suffix halve their opacity; D1's read-only box is surface, separator border and 70% text, fully opaque.
 const LOCKED_TEXT_CLASS = 'text-foreground/70';

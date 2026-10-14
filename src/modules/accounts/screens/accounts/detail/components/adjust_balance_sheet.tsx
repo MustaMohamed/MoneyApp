@@ -17,7 +17,7 @@ import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 import { formatAccountBalance } from '@/utils/format_amount';
 
-import { FieldMessageTrack } from '../../../../components/account_form/field_message_rail';
+import { FieldMessageTrack } from '../../../../components/field_message_rail';
 import { parseAdjustInput } from './adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
 

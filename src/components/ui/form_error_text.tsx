@@ -8,6 +8,7 @@ export interface FormErrorTextProps {
   numberOfLines?: TextProps['numberOfLines'];
   disableAnimation?: boolean;
   style?: TextProps['style'];
+  onTextLayout?: TextProps['onTextLayout'];
 }
 
 export function FormErrorText({
@@ -16,12 +17,13 @@ export function FormErrorText({
   numberOfLines,
   disableAnimation = false,
   style,
+  onTextLayout,
 }: FormErrorTextProps) {
   return (
     <FieldError
       isInvalid={!!message}
       className={className}
-      textProps={{ numberOfLines, style }}
+      textProps={{ numberOfLines, style, onTextLayout }}
       animation={disableAnimation ? 'disabled' : undefined}
     >
       {message}
