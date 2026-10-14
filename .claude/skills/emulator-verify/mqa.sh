@@ -429,7 +429,7 @@ native_changes() {
   if grep -qxF 'package.json' <<<"$files" && mb="$(git -C "$ROOT" merge-base "$1" HEAD 2>/dev/null)" && pkg_scripts_only "$mb"; then
     files="$(grep -vxF 'package.json' <<<"$files" || true)"
   fi
-  [ -z "$files" ] || echo "$files"
+  [ -z "$files" ] || printf '%s\n' "$files"
 }
 
 # The newest native-surface commit on the first-parent line from the merge-base of the base and HEAD, as "<commit time> <short sha>"; empty when there is none or no merge-base.
@@ -451,7 +451,7 @@ commit_native_files() {
   if grep -qxF 'package.json' <<<"$files" && pkg_scripts_only "$1^1" "$1"; then
     files="$(grep -vxF 'package.json' <<<"$files" || true)"
   fi
-  [ -z "$files" ] || echo "$files"
+  [ -z "$files" ] || printf '%s\n' "$files"
 }
 
 # The installed APK's own file time, in epoch seconds; empty when the app is not installed.
