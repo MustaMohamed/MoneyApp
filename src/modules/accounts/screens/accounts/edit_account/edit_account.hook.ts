@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useId, useMemo } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { useWatch } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -70,6 +70,15 @@ export function useEditAccount() {
     defaultValues: account ? buildEditAccountDraft(account) : undefined,
   });
 
+  const draftedId = useRef(id);
+  // Keyed on the route's id, never `account`: every accounts reload publishes a new object, and a reset on it drops what was typed.
+  useEffect(() => {
+    if (!account || draftedId.current === id) return;
+    draftedId.current = id;
+    form.reset(buildEditAccountDraft(account));
+    setSaveError(owner, undefined);
+  }, [id, account, form, owner, setSaveError]);
+
   // APR unmounts with tracking off, and after a submit only the switch revalidates, so its fault would stay counted.
   const interestTracking = useWatch({ control: form.control, name: 'interest_tracking' });
   useEffect(() => {
@@ -85,7 +94,8 @@ export function useEditAccount() {
       await updateAccount(account.id, toUpdateAccountInput(data, account));
     } catch (error) {
       console.error('[editAccount] updateAccount failed:', error);
-      setSaveError(owner, Strings.editAccountSaveError);
+      // A failure landing after the route moved to another account belongs to no account the screen shows.
+      if (draftedId.current === account.id) setSaveError(owner, Strings.editAccountSaveError);
       return;
     } finally {
       setSaving(owner, false);
