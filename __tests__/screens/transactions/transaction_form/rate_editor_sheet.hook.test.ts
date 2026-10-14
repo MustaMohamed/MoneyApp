@@ -17,9 +17,13 @@ function storeFields() {
   return { activeOwnerId, isOpen, draft, error };
 }
 
+const STORED_RATE_TEXT = '50';
+
 async function mountEditor(ownerId: string, value: string, commits: boolean) {
   const onCommit = jest.fn().mockReturnValue(commits);
-  const { result, unmount } = await renderHook(() => useRateEditor(ownerId, value, onCommit));
+  const { result, unmount } = await renderHook(() =>
+    useRateEditor(ownerId, value, onCommit, STORED_RATE_TEXT),
+  );
   return { result, unmount, onCommit };
 }
 
@@ -251,7 +255,7 @@ describe('useRateEditor action identity', () => {
     const latestCommit = jest.fn().mockReturnValue(true);
     const { result, rerender } = await renderHook(
       ({ onCommit }: { onCommit: (text: string) => boolean }) =>
-        useRateEditor(ADD_OWNER, '50', onCommit),
+        useRateEditor(ADD_OWNER, '50', onCommit, STORED_RATE_TEXT),
       { initialProps: { onCommit: firstCommit } },
     );
     const done = result.current.done;
@@ -263,6 +267,61 @@ describe('useRateEditor action identity', () => {
     expect(result.current.done).toBe(done);
     expect(firstCommit).not.toHaveBeenCalled();
     expect(latestCommit).toHaveBeenCalledWith('50');
+  });
+});
+
+describe('MA-170 useRateEditor Reset to stored rate', () => {
+  it('refills the stored rate and stays open, then Done commits it once and closes', async () => {
+    const { result, onCommit } = await mountEditor(ADD_OWNER, '48', true);
+    await act(() => result.current.open());
+    expect(result.current.state.draft).toBe('48');
+
+    await act(() => result.current.resetToStoredRate());
+
+    expect(result.current.state).toEqual({ isOpen: true, draft: '50', error: undefined });
+    expect(onCommit).not.toHaveBeenCalled();
+
+    await act(() => result.current.done());
+
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit).toHaveBeenCalledWith('50');
+    expect(result.current.state.isOpen).toBe(false);
+  });
+
+  it('clears the message a refused Done left', async () => {
+    const { result } = await mountEditor(ADD_OWNER, '48', false);
+    await act(() => result.current.open());
+    await act(() => result.current.setDraft('50abc'));
+    await act(() => result.current.done());
+    expect(result.current.state.error).toBe(Strings.addTxErrRateInvalid);
+
+    await act(() => result.current.resetToStoredRate());
+
+    expect(result.current.state).toEqual({ isOpen: true, draft: '50', error: undefined });
+  });
+
+  it('keeps its identity across keystrokes', async () => {
+    const { result } = await mountEditor(ADD_OWNER, '48', true);
+    await act(() => result.current.open());
+    const before = result.current.resetToStoredRate;
+    expect(before).toEqual(expect.any(Function));
+
+    await act(() => result.current.setDraft('4'));
+    await act(() => result.current.setDraft('47'));
+
+    expect(result.current.resetToStoredRate).toBe(before);
+  });
+
+  it("leaves the active owner's draft as it was through a second owner's reset", async () => {
+    const first = await mountEditor(ADD_OWNER, '48', true);
+    const second = await mountEditor(EDIT_OWNER, '49', true);
+    await act(() => first.result.current.open());
+    await act(() => first.result.current.setDraft('47'));
+
+    await act(() => second.result.current.resetToStoredRate());
+
+    expect(first.result.current.state).toEqual({ isOpen: true, draft: '47', error: undefined });
+    expect(second.result.current.state.isOpen).toBe(false);
   });
 });
 

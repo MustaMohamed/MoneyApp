@@ -149,6 +149,7 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   rateOverride: false,
   toggleRateOverride: jest.fn(),
   rateUpdatedAt: null,
+  storedRate: 50,
   date: '2026-07-21',
   setDate: jest.fn(),
   note: '',
@@ -511,6 +512,31 @@ describe('MA-168 rate card', () => {
     await rerender(<RealExchangeRateRow {...rowProps} overrideEnabled />);
 
     expect(screen.getByTestId('exchange-rate-row')).toHaveProp('accessibilityLabel', '');
+  });
+
+  it("MA-170: the pay sheet's card keeps its stored line and stale line, and its Custom rate and Reset to global", async () => {
+    const { ExchangeRateRow: RealExchangeRateRow } = jest.requireActual<
+      typeof import('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row')
+    >('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row');
+    const rowProps = {
+      value: '49',
+      onChange: jest.fn(),
+      onToggleOverride: jest.fn(),
+      rateUpdatedAt: '2000-01-01T12:00:00.000Z',
+      previewEgpAmount: undefined,
+    };
+    const { rerender } = await render(
+      <RealExchangeRateRow {...rowProps} overrideEnabled={false} />,
+    );
+
+    expect(screen.getByText('Using stored rate · Last updated Jan 1, 2000')).toBeTruthy();
+    expect(screen.getByText('Rate may be stale')).toBeTruthy();
+
+    await rerender(<RealExchangeRateRow {...rowProps} overrideEnabled />);
+
+    expect(screen.getByText('Custom rate')).toBeTruthy();
+    expect(screen.getByText('Reset to global')).toBeTruthy();
+    expect(screen.getByText('Rate may be stale')).toBeTruthy();
   });
 
   it('MA-169: given onOpenEditor, the card is a button that speaks the stored-rate label with a custom rate as with the stored one, opens the editor on a press, and draws no field', async () => {

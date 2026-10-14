@@ -10,8 +10,12 @@ import {
   TransactionValidationError,
 } from '@/modules/transactions/repositories/transaction.errors';
 import {
+  applyRateCommit,
   countTransactionFormFieldErrors,
   formatConvertedAmount,
+  formatRateRowValue,
+  formatStoredRateLine,
+  isRateStale,
   resolveAccountPreselect,
   resolveAccountStripChips,
   resolveBudgetFieldError,
@@ -21,6 +25,7 @@ import {
   resolveEligibleToAccounts,
   resolveLockedStripChips,
   resolveRateCommit,
+  resolveRateEditorSource,
   resolveStripSelectedId,
   resolveToRowFace,
   resolveTransactionDeleteError,
@@ -745,6 +750,102 @@ describe('MA-169 resolveRateCommit', () => {
     expect(resolveRateCommit({ text: '0.0000001', storedRate: 1e-7 })).toEqual({
       exchangeRate: '0.0000001',
       override: false,
+    });
+  });
+});
+
+describe('MA-170 applyRateCommit with no override setter', () => {
+  it('writes 49 at a stored 50, clears the error once and returns true', () => {
+    const clearError = jest.fn();
+    const setExchangeRate = jest.fn();
+
+    expect(applyRateCommit({ text: '49', storedRate: 50, clearError, setExchangeRate })).toBe(true);
+
+    expect(clearError).toHaveBeenCalledTimes(1);
+    expect(setExchangeRate).toHaveBeenCalledTimes(1);
+    expect(setExchangeRate).toHaveBeenCalledWith('49');
+  });
+});
+
+describe('MA-170 the stale check, the stored-rate line, the editor source and the row text', () => {
+  const DAY_MS = 86_400_000;
+  const after = (update: string, days: number) => Date.parse(update) + days * DAY_MS;
+
+  describe('isRateStale', () => {
+    it.each([
+      ['2026-09-01T12:00:00.000Z'],
+      ['2026-08-31T12:00:00.000Z'],
+      ['2028-02-15T12:00:00.000Z'],
+    ])('from %s: fresh at 29 and at exactly 30 days, stale at 31', (update) => {
+      expect(isRateStale(update, after(update, 29))).toBe(false);
+      expect(isRateStale(update, after(update, 30))).toBe(false);
+      expect(isRateStale(update, after(update, 31))).toBe(true);
+    });
+
+    it('reads an update a day in the future as fresh', () => {
+      const update = '2026-09-01T12:00:00.000Z';
+
+      expect(isRateStale(update, after(update, -1))).toBe(false);
+    });
+
+    it.each([
+      ['no update time', null],
+      ['an unparseable update time', 'not a date'],
+    ])('never reads stale for %s', (_label, update) => {
+      expect(isRateStale(update, after('2026-09-01T12:00:00.000Z', 3650))).toBe(false);
+    });
+  });
+
+  describe('formatStoredRateLine', () => {
+    it('joins the stored line and the short date of the update', () => {
+      expect(formatStoredRateLine('2026-09-01T12:00:00.000Z')).toBe(
+        'Using stored rate · Last updated Sep 1, 2026',
+      );
+    });
+
+    it('reads the stored line alone with no update time', () => {
+      expect(formatStoredRateLine(null)).toBe('Using stored rate');
+    });
+  });
+
+  describe('resolveRateEditorSource at a stored 50', () => {
+    it.each(['50', '50.0'])('reads %p as the stored rate under the stored line', (draftText) => {
+      expect(
+        resolveRateEditorSource({
+          draftText,
+          storedRate: 50,
+          rateUpdatedAt: '2026-09-01T12:00:00.000Z',
+        }),
+      ).toEqual({
+        usesStoredRate: true,
+        line: 'Using stored rate · Last updated Sep 1, 2026',
+      });
+      expect(resolveRateEditorSource({ draftText, storedRate: 50, rateUpdatedAt: null })).toEqual({
+        usesStoredRate: true,
+        line: 'Using stored rate',
+      });
+    });
+
+    it.each(['49', '', '48.', '0', '50abc'])('reads %p as a custom rate', (draftText) => {
+      expect(
+        resolveRateEditorSource({
+          draftText,
+          storedRate: 50,
+          rateUpdatedAt: '2026-09-01T12:00:00.000Z',
+        }),
+      ).toEqual({ usesStoredRate: false, line: 'Custom rate · EGP per 1 USD' });
+    });
+  });
+
+  describe('formatRateRowValue', () => {
+    it.each([
+      ['52.137035', '52.14'],
+      ['49', '49.00'],
+      ['0.0000001', '0.0000001'],
+      ['', ''],
+      ['0', '0'],
+    ])('prints %p as %p', (rateText, expected) => {
+      expect(formatRateRowValue(rateText)).toBe(expected);
     });
   });
 });

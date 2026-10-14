@@ -665,14 +665,14 @@ describe('useAddTransaction — MA-169 a rate committed at Done', () => {
     },
   );
 
-  it('writes 49 at a stored 50 with the override on, and Reset to global returns the stored rate', async () => {
+  it('writes 49 at a stored 50 with the override on, and a Done on the stored text returns the stored rate', async () => {
     const { result } = await mountUsdDraft();
 
     expect(await commitRate(result, '49')).toBe(true);
     expect(result.current.state.exchangeRate).toBe('49');
     expect(result.current.state.rateOverride).toBe(true);
 
-    await act(() => result.current.toggleRateOverride());
+    expect(await commitRate(result, '50')).toBe(true);
     expect(result.current.state.exchangeRate).toBe('50');
     expect(result.current.state.rateOverride).toBe(false);
   });
@@ -734,7 +734,7 @@ describe('useAddTransaction — MA-169 a rate committed at Done', () => {
     expect(addTx).not.toHaveBeenCalled();
   });
 
-  it('after a refused Save on a floor fault a committed rate caused, Reset to global clears the fault and the count', async () => {
+  it('after a refused Save on a floor fault a committed rate caused, a Done on the stored text clears the fault and the count', async () => {
     const { result, addTx } = await mountEgpToUsdTransfer('0.26');
     await commitRate(result, '60');
     await act(async () => result.current.handleSave());
@@ -743,13 +743,22 @@ describe('useAddTransaction — MA-169 a rate committed at Done', () => {
     );
     expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
 
-    await act(() => result.current.toggleRateOverride());
-    await settleValidation();
+    expect(await commitRate(result, '50')).toBe(true);
 
     expect(result.current.state.exchangeRate).toBe('50');
+    expect(result.current.state.rateOverride).toBe(false);
     expect(result.current.state.errors.amount).toBeUndefined();
     expect(result.current.state.status).toBeUndefined();
     expect(addTx).not.toHaveBeenCalled();
+  });
+});
+
+describe('useAddTransaction — MA-170 the stored rate', () => {
+  it('hands the body the stored rate unrounded', async () => {
+    useCurrencyStore.setState({ rate: 52.137035, rate_updated_at: null });
+    const { result } = await renderHook(() => useAddTransaction(jest.fn()));
+
+    expect(result.current.state.storedRate).toBe(52.137035);
   });
 });
 
@@ -1191,14 +1200,16 @@ describe('useAddTransaction — rate prefills re-parse', () => {
     expect(result.current.state.exchangeRate).toBe('0.0000001');
   });
 
-  it('reseeds the same positional text when the override toggles back off', async () => {
+  it('writes the same positional text when a Done on the stored text follows a custom rate', async () => {
     useCurrencyStore.setState({ rate: 1e-7, rate_updated_at: null });
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
-    await act(() => result.current.toggleRateOverride());
     await act(() => result.current.commitExchangeRate('48'));
-    await act(() => result.current.toggleRateOverride());
+    expect(result.current.state.rateOverride).toBe(true);
+
+    await act(() => result.current.commitExchangeRate('0.0000001'));
 
     expect(result.current.state.exchangeRate).toBe('0.0000001');
+    expect(result.current.state.rateOverride).toBe(false);
   });
 });
 

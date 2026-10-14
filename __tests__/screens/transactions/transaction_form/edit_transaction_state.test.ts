@@ -14,7 +14,6 @@ describe('useEditTransactionState', () => {
       budgetLookupError: undefined,
       errorMessage: undefined,
       preserveBudgetNull: false,
-      rateOverride: false,
     });
   });
 
@@ -62,7 +61,6 @@ describe('useEditTransactionState', () => {
     useEditTransactionState.getState().setSaving(true);
     useEditTransactionState.getState().setShowCategoryPicker(true);
     useEditTransactionState.getState().setPreserveBudgetNull(true);
-    useEditTransactionState.getState().setRateOverride(true);
 
     useEditTransactionState.getState().reset();
 
@@ -70,7 +68,6 @@ describe('useEditTransactionState', () => {
       saving: false,
       showCategoryPicker: false,
       preserveBudgetNull: false,
-      rateOverride: false,
     });
   });
 });
