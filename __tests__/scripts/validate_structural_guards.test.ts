@@ -30,8 +30,6 @@ const GOALS_INDEX = 'src/modules/goals/screens/goals/index.tsx';
 const ACCOUNT_INFO_ROWS = 'src/modules/accounts/utils/account_info_rows.ts';
 const VERSIONED_FILE = 'src/modules/transactions/seeded_surface.ts';
 const FIELD_MESSAGE_RAIL = 'src/modules/accounts/components/account_form/field_message_rail.tsx';
-const ADJUST_BALANCE_SHEET =
-  'src/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.tsx';
 const ACCOUNT_COLOR_SHEET = 'src/modules/accounts/components/account_form/account_color_sheet.tsx';
 const COMMITMENT_FORM_BODY = `${COMMITMENTS}/components/commitment_form_body.tsx`;
 const STATUS_TRACK = 'src/components/ui/status_track.tsx';
@@ -460,7 +458,6 @@ const REQUIRED: RequiredSeed[] = [
   withoutImport(ERROR_STATE, GEOMETRY, 'resolveStateScreenLayout', 'ErrorState'),
   withoutKind(ERROR_STATE, 'error', 'empty'),
   withoutKeptView(FIELD_MESSAGE_RAIL, 'the account form field message rail'),
-  withoutKeptView(ADJUST_BALANCE_SHEET, 'the adjust balance sheet'),
   withoutKeptView(ACCOUNT_COLOR_SHEET, 'the account colour sheet'),
   withoutKeptView(COMMITMENT_FORM_BODY, 'the commitment form'),
   withoutKeptView(STATUS_TRACK, 'the footer status line'),

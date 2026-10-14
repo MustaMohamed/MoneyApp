@@ -1,12 +1,18 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
 import { resolveSheetSizeAboveOne } from '@/components/ui/sheet';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { FIELD_MESSAGE_RAIL_STYLE } from '@/modules/accounts/components/account_form/account_form.geometry';
 import { AdjustBalanceSheet } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet';
 import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
+
+jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return ({ name }: { name: string }) => <View testID={`icon-${name}`} />;
+});
 
 const mockSheetSize = jest.fn();
 jest.mock('@/components/ui/sheet', () => ({
@@ -149,6 +155,63 @@ describe('AdjustBalanceSheet save failure', () => {
       expect(getByTestId('balance-error')).toHaveTextContent(Strings.adjustBalanceSaveError),
     );
     expect(onSave).toHaveBeenCalledWith(31000);
+  });
+});
+
+type HostNode = ReturnType<typeof screen.getByTestId>;
+
+const ALERT_GLYPH = 'icon-alert-circle-outline';
+const ERROR_ID = 'balance-error';
+
+function liveRegionAbove(node: HostNode): HostNode {
+  let current: HostNode | null = node;
+  while (current) {
+    const liveRegion: unknown = current.props.accessibilityLiveRegion;
+    if (liveRegion !== undefined) return current;
+    current = current.parent;
+  }
+  throw new Error('no view above the message holds a live region');
+}
+
+function messageOrder(track: HostNode): string[] {
+  return within(track)
+    .getAllByTestId(new RegExp(`^(${ALERT_GLYPH}|${ERROR_ID})$`))
+    .map((node) => {
+      const id: unknown = node.props.testID;
+      return typeof id === 'string' ? id : '';
+    });
+}
+
+describe('AdjustBalanceSheet message track', () => {
+  it('MA-184: an unreadable amount swaps the helper for the alert glyph, then the parse error, in the live track', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const { getByTestId, getByText, queryByTestId, queryByText } = await renderSheet(onSave);
+
+    expect(getByText(Strings.adjustBalanceHelper)).toBeTruthy();
+    expect(queryByTestId(ALERT_GLYPH)).toBeNull();
+
+    await fireEvent.changeText(getByTestId('balance-input'), '27,500abc');
+    await fireEvent.press(getByText(Strings.adjustBalanceSave));
+
+    const track = liveRegionAbove(getByTestId(ERROR_ID));
+    expect(getByTestId(ERROR_ID)).toHaveTextContent(Strings.errBalanceInvalid);
+    expect(queryByText(Strings.adjustBalanceHelper)).toBeNull();
+    expect(track).toHaveProp('accessibilityLiveRegion', 'polite');
+    expect(track).toHaveProp('collapsable', false);
+    expect(track).toHaveStyle(FIELD_MESSAGE_RAIL_STYLE);
+    expect(messageOrder(track)).toEqual([ALERT_GLYPH, ERROR_ID]);
+  });
+
+  it('MA-184: a rejected save shows the alert glyph, then the save error', async () => {
+    const onSave = jest.fn().mockRejectedValue(new Error('db write failed'));
+    const { getByTestId, getByText } = await renderSheet(onSave);
+
+    await fireEvent.press(getByText(Strings.adjustBalanceSave));
+
+    await waitFor(() =>
+      expect(getByTestId(ERROR_ID)).toHaveTextContent(Strings.adjustBalanceSaveError),
+    );
+    expect(messageOrder(liveRegionAbove(getByTestId(ERROR_ID)))).toEqual([ALERT_GLYPH, ERROR_ID]);
   });
 });
 
