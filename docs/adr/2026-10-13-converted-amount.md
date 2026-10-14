@@ -14,6 +14,8 @@ The add and edit sheet printed `≈ {amount} EGP` inside the rate card, from `eg
 
 **Amended 2026-10-14, MA-169 (#696).** `TransactionExchangeRateRow` now names its own props, `ownerId`, `value`, `overrideEnabled`, `onToggleOverride` and `rateUpdatedAt`, in place of the `Omit` above, and still takes neither preview prop: it passes `previewHidden` and `previewEgpAmount={undefined}` as before. The card opens the rate editor through `openRateEditor` and holds no editor state. The editor mounts apart from the card, in `TransactionRateEditor` from `components/rate_editor_sheet.tsx`, which `TransactionFormBody` renders outside its `requiresRate` gate.
 
+**Amended 2026-10-14, MA-170 (#697).** `TransactionExchangeRateRow` is removed and the form draws no card: the Rate row opens the editor, whose converted amount is `ConvertedAmountLine` at the draft. See `docs/adr/2026-10-14-rate-row.md` §1, §5 and §7.
+
 ## 2. The converted amount is one leg of `resolveTransactionAmounts`
 
 `resolveConvertedAmount(input: { type: TransactionType; amountText: string; sourceCurrency: Currency | undefined; destinationCurrency: Currency | undefined; exchangeRateText: string }): ConvertedAmount | undefined` parses the two texts with `parsePositiveDecimal` and `parseRateText` and calls `resolveTransactionAmounts` once, with the arguments the save passes. It returns a leg of that result and does no arithmetic on it.
@@ -45,6 +47,8 @@ A USD to USD transfer shows the EGP value the ledger stores, 4,900 for USD 100, 
 `ExchangeRateRow` passes `accessibilityLabel` `''` on its row while the override is on, where it passed `undefined`. React Native Android writes a content description only for a non-null label, so `undefined` left `Use a custom exchange rate` on the pressable around the input. The same line serves the pay sheet, by the 2026-10-08 Decisions on #695.
 
 **Amended 2026-10-14, MA-169 (#696).** A row given `onOpenEditor` never draws the field: the press opens the rate editor in every state, so the row is a button that speaks `Strings.addTxRateEditAccessibility` with the override on as with it off. The pay sheet's row takes no `onOpenEditor` and keeps `''` while its override is on.
+
+**Amended 2026-10-14, MA-170 (#697).** `onOpenEditor` and its branch are removed with the form's card, and `ExchangeRateRow` has one props shape again; the pay sheet's row keeps `''` while its override is on. See `docs/adr/2026-10-14-rate-row.md` §7.
 
 ## What this does not decide
 
