@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/text_scale.geometry';
 import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type } from '@/constants/theme';
+import { lineHeightFor, Type } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
@@ -119,5 +119,40 @@ describe('MonthlyRuleSummary', () => {
       `${contextSpentLabel} ${contextConnectorLabel} ${contextPlannedLabel}`,
     );
     expect(spentLine.props.numberOfLines).toBeUndefined();
+  });
+
+  it('fits the balance amount on one line above a font scale of 1 and reads it as one node', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const lens = vm(20_000, [budget()]);
+    const screen = await render(<MonthlyRuleSummary vm={lens} onEditIncome={jest.fn()} />);
+
+    const { balanceLabel, balanceMetaLabel } = lens.summary.presentation;
+    const balance = screen.getByLabelText(`${balanceLabel} ${balanceMetaLabel}`);
+
+    const fit = resolveFitAmountTextProps(Type.summary, fontScale);
+    expect(fit.adjustsFontSizeToFit).toBe(true);
+    const amount = within(balance).getByText(balanceLabel);
+    expect(amount).toHaveProp('numberOfLines', fit.numberOfLines);
+    expect(amount).toHaveProp('allowFontScaling', fit.allowFontScaling);
+    expect(amount).toHaveProp('adjustsFontSizeToFit', fit.adjustsFontSizeToFit);
+    expect(amount).toHaveStyle(scaledTextStyle(Type.summary, fontScale));
+
+    const meta = within(balance).getByText(balanceMetaLabel);
+    expect(meta.props.numberOfLines).toBeUndefined();
+    expect(meta).toHaveStyle({ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) });
+  });
+
+  it('scales the empty label app-side with no line cap above a font scale of 1', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const lens = vm(null, [budget()]);
+    const screen = await render(<MonthlyRuleSummary vm={lens} onEditIncome={jest.fn()} />);
+
+    expect(lens.summary.presentation.emptyLabel).toBe(Strings.budget5030SetPlanningIncome);
+    const emptyLabel = screen.getByText(Strings.budget5030SetPlanningIncome);
+    expect(emptyLabel).toHaveProp('allowFontScaling', false);
+    expect(emptyLabel).toHaveStyle(scaledTextStyle(Type.title, fontScale));
+    expect(emptyLabel.props.numberOfLines).toBeUndefined();
   });
 });
