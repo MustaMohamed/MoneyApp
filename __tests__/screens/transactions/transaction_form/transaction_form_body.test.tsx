@@ -528,16 +528,17 @@ describe('MA-168 rate card', () => {
     const { rerender } = await render(<RealExchangeRateRow {...rowProps} overrideEnabled />);
 
     const row = screen.getByTestId('exchange-rate-row');
-    expect(screen.getByRole('button', { name: Strings.addTxRateEditAccessibility })).toBe(row);
+    expect(row).toHaveProp('accessibilityRole', 'button');
+    expect(row).toHaveProp('accessibilityLabel', Strings.addTxRateEditAccessibility);
     expect(screen.queryByTestId('exchange-rate-input')).toBeNull();
 
     await fireEvent.press(row);
     expect(onOpenEditor).toHaveBeenCalledTimes(1);
 
     await rerender(<RealExchangeRateRow {...rowProps} overrideEnabled={false} />);
-    expect(screen.getByRole('button', { name: Strings.addTxRateEditAccessibility })).toBe(
-      screen.getByTestId('exchange-rate-row'),
-    );
+    const storedRow = screen.getByTestId('exchange-rate-row');
+    expect(storedRow).toHaveProp('accessibilityRole', 'button');
+    expect(storedRow).toHaveProp('accessibilityLabel', Strings.addTxRateEditAccessibility);
   });
 });
 
