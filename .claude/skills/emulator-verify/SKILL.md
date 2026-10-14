@@ -212,10 +212,12 @@ default.
 2. **An APK — but usually not a new one.** `mqa install` wants
    `android/app/build/outputs/apk/debug/app-debug.apk`, and `android/` is gitignored.
    `mqa up` prints `build: REUSE` or `build: REBUILD`. A rebuild is
-   mandatory only when the **native surface** moved: `package.json`, `package-lock.json`,
-   `app.json`, `eas.json`, `patches/`, or anything under `android/`/`ios/`, and the APK on the
-   device was installed before the newest such change. An APK installed after it already
-   carries it, which is the render lens's case. Everything else reaches the device over Metro.
+   mandatory when the **native surface** (`package.json`, `package-lock.json`, `app.json`,
+   `eas.json`, `patches/`, `gradle.properties` at the root, any path containing `.gradle`,
+   or anything under `android/`/`ios/`) moved, on this branch or on the `main` history it
+   holds, after the APK on the device was installed. An APK installed after the newest such
+   change already carries it, which is the render lens's case. Everything else reaches the
+   device over Metro.
    In a `/ship` run, typed or unattended, the implementer asks nothing: it builds and
    installs once for the device its worktree claimed, `mqa build` then `mqa install`, one
    call each, under [queue column.md](../queue/references/column.md) § Permission rule,

@@ -37,3 +37,35 @@ The patch, the flag, `mqa build`'s check that `android/settings.gradle` carries 
 ## 6. Limits
 
 The reserve is measured at the paint's size, which is the outer text's size. A nested run larger than its outer text, and OS-scaled text above font scale 1.0, still overrun it, and both stay with ADR `2026-09-27-transactions-search-tally.md` §7. A text with a character outside every `CustomStyleSpan`, or a run whose span has no font family, keeps the constructed face (§2), so its reserve is still Roboto's `…`.
+
+## 7. The three cut reads of PR #716 came from an APK without the patch
+
+PR #716's render pass (MA-163, #682) read three truncated lines with the last dot cut, on `Pixel_2_API_34_3` with `build: REUSE`. MA-178 (#718) read them again on 2026-10-14, in this order.
+
+- **The device.** Slot 3, `Pixel_2_API_34_3`, `emulator-5558`, held with `mqa claim 3` over a stale row from MA-186's removed worktree.
+- **The APK found on slot 3, before any build.** File time 2026-09-15 02:38:12 +0300, read as `apk_time` reads it (`pm path`, then `stat -c %Y` on that path). `unzip -p <the pulled apk> 'classes*.dex' | grep -a -c <name>` prints 0 for `mConstructedTypeface`, the field the patch has held since MA-141's probe build, and 0 for `mEllipsisProbe`, the field the merged patch added. It prints 1 for React Native's own `mShouldAdjustSpannableFontSize`, so the read finds field names in this dex.
+- **The other two slots,** read by the `/prep` conductor on 2026-10-13 and 2026-10-14. Slot 1's APK, file time 2026-10-03 21:34, prints 1 for `mConstructedTypeface` and 0 for `mEllipsisProbe`: MA-141's probe build, a patched APK from before `mEllipsisProbe` existed. Slot 2's, file time 2026-10-07 14:46, prints 1 for both.
+- **The APK built here.** Built on the branch at a commit whose native surface is `origin/main`'s at `b005195b`: `npx expo prebuild --platform android`, `mqa build` (5m 5s), `mqa install`. Both counts print 1 on `android/app/build/outputs/apk/debug/app-debug.apk` before the install, and on the APK pulled from the device after it. The first `mqa install` failed with `Broken pipe (32)` from the device's package service and left the old APK in place; the second installed it at 2026-10-14 17:01:29 +0300. `mqa up` printed `build: REUSE` before the build and after it.
+- **The walk.** The four rows of `.claude/skills/emulator-verify/features/` that read these lines, `transaction_form.md` `edit strip ellipsis, typeface`, `accounts_list.md` `list walk, large font`, `transactions.md` `row ellipsis, typeface` and `dashboard.md` `account card ellipsis, typeface`, at 1.0 and 2.0 (the accounts list at 2.0, as its row names). After the install the slot's system process stopped responding until an `adb reboot`, and agent-device's snapshot helper kept crashing on it, so the walk ran under `MQA_UI=uiautomator`. Shots and walk files are in `~/.ship/MoneyApp/MA-178/findings/render/`.
+
+Px clear is the background between the third dot and the text box's right bound from `mqa bounds`, on the full shot at 2.625 px per dp; for a right-aligned value it is the background between the box's left bound and the first glyph.
+
+| Line | Scale | Box, dp | Drawn | Px clear |
+|---|---|---|---|---|
+| Acceptance 2: the edit strip's locked `Payoneer Dollars` chip | 2.0 | 46.1 by 30.10 | `P…` | 35 |
+| Acceptance 3: the archived caption `Bank · 4,820 EGP` | 2.0 | 82.3 by 30.10 | `Bank …`, no `·` | 11 |
+| Acceptance 4: the edit strip's dimmed `CIB Current Account` chip | 1.0 | 67.4 by 15.24 | `CIB Curre…` | 12 |
+| The transaction row's five long titles | 1.0 | 124.2 to 224.4 by 21.33 | each ends `…` | 10 to 21 |
+| Every transaction row title | 2.0 | 123.0 to 181.0 by 42.29 | each ends `…` | 6 to 49 |
+| `Budget assigned` label, `Commitment` badge label | 2.0 | 32.4 by 25.14, 19.8 by 26.29 | `B…`, `…` | 6, 5 |
+| Home account card names | 1.0 | 157.3 to 157.7 by 23.24 | each ends `…` | 14, 38, 19 |
+| Home account card names | 2.0 | 135.2 to 135.6 by 47.24 | each ends `…` | 28, 5, 39 |
+| Home account card `Month In`, right-aligned, truncated | 1.0 | 147.0 by 16.38 | first glyph whole | 4, 15, 6 |
+
+Every other chip label on both edit sheets reads three whole dots at both scales, 5 to 36 px clear, and every other name and caption on the accounts list at 2.0, 8 to 56 px clear. At 1.0 the row's label and badge print whole, and at 2.0 the three `Month In` boxes read 96.0, 101.3 and 95.6 dp, the widths MA-140 recorded for the values drawn whole and shrunk. The `/prep` probe read the first three rows on slot 2's APK on 2026-10-14 with the same kept characters, 35, 11 and 13 px for Acceptance lines 2 to 4 and 11 to 22 px for the long titles at 1.0; the 1 px between the two reads is this read's box bound, rounded down to a whole pixel.
+
+**Verdict: whole.** Each line of Acceptance lines 2 to 4 shows three whole dots on an APK built with the patch, and every line MA-141 fixed reads as it did on MA-141's own shots.
+
+**Cause, read.** The APK PR #716 read held no build of the patch: slot 3's APK was installed on 2026-09-15, before `/prep` 634 began on 2026-10-03 20:43, and its dex holds neither field. `build_verdict` printed `REUSE` because PR #716's branch had no native-surface change against `origin/main`, and it read the APK's install time only when the branch had one. The patch does not change.
+
+**The build verdict.** The rule that now reads `REBUILD` for an APK older than the native history a branch holds is ADR [2026-10-14-build-verdict-reads-base-history.md](2026-10-14-build-verdict-reads-base-history.md).
