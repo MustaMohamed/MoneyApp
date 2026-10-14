@@ -832,19 +832,43 @@ cmd_read() {
 ad_press() {
   local t="$1" f w ref
   case "$t" in '~'*) ad find "${t#\~}" click 2>/dev/null && return ;; *) ad press "$(sel "$t")" 2>/dev/null && return ;; esac
+  press_landed && return
   # A row and the texts inside it match together; when one candidate's label holds every other's, they are one element: press that one.
   if [[ "$AD_ERR" == *AMBIGUOUS_MATCH*Candidates* ]]; then
     ref="$("$PY" -c '
 import re, sys
 c = re.findall(r"^\s*@(e\d+) \[[^]]*\] \"(.*)\"$", sys.stdin.read(), re.M)
 print(next((r for r, l in c if all(o in l for _, o in c)), ""))' <<<"$AD_ERR")"
-    if [ -n "$ref" ]; then ad press "@$ref"; return; fi
+    if [ -n "$ref" ]; then ad_tap press "@$ref"; return; fi
   fi
   case "$AD_ERR" in *'not safe to press'*) ;; *) ad_explain >&2; suggest "$t"; return 1 ;; esac
   ad_explain >&2
   f="$(snap_file)"; w="$(query where "$f" "$(sel "$t")")"; SWIPE_BOX="$(query box "$f" "$(sel "$t")")"
   case "$w" in above) cmd_scroll up --until "$t" >&2 ;; *) cmd_scroll down --until "$t" >&2 ;; esac
-  case "$t" in '~'*) ad find "${t#\~}" click ;; *) ad press "$(sel "$t")" ;; esac
+  case "$t" in '~'*) ad_tap find "${t#\~}" click ;; *) ad_tap press "$(sel "$t")" ;; esac
+}
+
+# agent-device sends the tap before its own front-app read, which a stale ANR record in dumpsys window can turn to the launcher.
+press_landed() {
+  local pkg top
+  front_misread "* left $PKG and foregrounded *" "s/.* left $PKG and foregrounded \([^ ]*[^. ]\)\..*/\1/p" || return 1
+  case "$pkg" in *launcher*) ;; *) return 1 ;; esac
+  echo "mqa: agent-device read $pkg in front after the press, mqa reads $top; the press counts" >&2
+}
+# Sets the caller's pkg (agent-device's read, by sed $2) and top (mqa's read) when $AD_ERR matches glob $1 and mqa reads the app in front.
+front_misread() {
+  case "$AD_ERR" in $1) ;; *) return 1 ;; esac
+  top="$(top_activity)" || true
+  case "$top" in "$PKG/"*) ;; *) return 1 ;; esac
+  pkg="$(sed -n "$2" <<<"$AD_ERR" | head -1)"
+}
+ad_tap() {
+  local rc=0
+  ad "$@" 2>/dev/null || rc=$?
+  if [ "$rc" -eq 0 ]; then [ -z "$AD_ERR" ] || ad_explain >&2; return 0; fi
+  press_landed && return
+  [ -z "$AD_ERR" ] || ad_explain >&2
+  return "$rc"
 }
 
 cmd_press() {
@@ -886,11 +910,17 @@ cmd_wait() {
   local t="${1:?usage: mqa wait <selector> [ms]}" ms="${2:-10000}" end
   if uses_ad; then
     need_device
-    wait_or_poll "$t" "$ms" "$ms" || { ad_explain >&2; suggest "$t"; return 1; }
+    wait_or_poll "$t" "$ms" "$ms" || { ad_explain >&2; front_reads; suggest "$t"; return 1; }
     echo "saw $t"; return
   fi
   ua_poll "$t" "$ms" || { suggest "$t"; die "timed out after ${ms}ms waiting for $t"; }
   echo "saw $t"
+}
+
+front_reads() {
+  local pkg top
+  front_misread "* is foreground instead of $PKG.*" 's/.* failed because \([^ ]*\) is foreground instead of .*/\1/p' || return 0
+  echo "mqa: agent-device read $pkg in front, mqa reads $top; the app is in front, so the target is what is missing" >&2
 }
 
 # agent-device's wait can lose its capture session on a loaded device while a plain snapshot still reads: poll those for $3 ms, after the optional gate command $4.
@@ -1174,7 +1204,7 @@ case "${1:-help}" in
   fill)     cmd_fill "${2:?selector}" "${3?text}" ;;
   wait)     cmd_wait "${2:?selector}" "${3:-10000}" ;;
   scroll)   shift; cmd_scroll "$@" ;;
-  tapxy)    need_device; if uses_ad; then ad press "${2:?x}" "${3:?y}"; else cmd_ime_down; a shell input tap "${2:?x}" "${3:?y}"; dump; fi ;;
+  tapxy)    need_device; if uses_ad; then ad_tap press "${2:?x}" "${3:?y}"; else cmd_ime_down; a shell input tap "${2:?x}" "${3:?y}"; dump; fi ;;
   type)     if uses_ad; then need_device; ad type "${2:?text}"; else cmd_type "${2:?text}"; fi ;;
   clear)    if uses_ad; then need_device; a shell input keyevent 123 $(printf '67 %.0s' $(seq 1 60)); else cmd_clear; fi ;;
   key)      cmd_key "${2:?keycode}" ;;
