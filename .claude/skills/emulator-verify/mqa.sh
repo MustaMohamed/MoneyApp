@@ -412,6 +412,8 @@ cmd_build() {
 
 # Native surface: a change to any of these paths reaches the device only in a new APK; everything else ships over Metro.
 NATIVE_RE='^(package(-lock)?\.json|app\.json|eas\.json|patches/|android/|ios/|.*\.gradle|gradle\.properties)'
+# Who builds on a REBUILD verdict; every REBUILD line ends with it.
+BUILD_WHO='A /ship implementer or a /prep probe builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds.'
 
 native_changes() {
   { git -C "$ROOT" diff --name-only "$1"...HEAD 2>/dev/null || true
@@ -420,11 +422,18 @@ native_changes() {
   } | sort -u | grep -E "$NATIVE_RE" || true
 }
 
-# The newest commit reachable from the base that touches the native surface, as "<commit time> <short sha>"; empty when there is none.
+# The newest native-surface commit on the first-parent line from the merge-base of the base and HEAD, as "<commit time> <short sha>"; empty when there is none or no merge-base.
 base_native_commit() {
+  local mb
+  mb="$(git -C "$ROOT" merge-base "$1" HEAD 2>/dev/null)" || return 0
   # A \001 header cannot collide with a path line: git quotes any path holding a control character.
-  git -C "$ROOT" log --format='%x01%ct %h' --name-only "$1" 2>/dev/null \
+  git -C "$ROOT" log --first-parent -m --format='%x01%ct %h' --name-only "$mb" -- 2>/dev/null \
     | NATIVE_RE="$NATIVE_RE" awk 'index($0, "\001") == 1 { c = substr($0, 2); next } $0 ~ ENVIRON["NATIVE_RE"] { print c; exit }' || true
+}
+
+# One commit's native-surface files against its first parent, one per line.
+commit_native_files() {
+  git -C "$ROOT" log -1 --first-parent -m --format= --name-only "$1" -- 2>/dev/null | grep -E "$NATIVE_RE" || true
 }
 
 # The installed APK's own file time, in epoch seconds; empty when the app is not installed.
@@ -434,13 +443,13 @@ apk_time() {
   [ -z "$p" ] || a shell stat -c %Y "$p" 2>/dev/null | tr -d '\r'
 }
 
-# Prints the verdict and returns 0 when a build is needed: the APK on the device predates the newest native change on this branch, or with none here, on the base.
+# Prints the verdict and returns 0 when a build is needed: the APK on the device predates the later of this branch's newest native change and base_native_commit.
 build_verdict() {
   local base="${1:-origin/main}" changed newest t hit
   changed="$(native_changes "$base")"
   if [ -z "$changed" ]; then
     if [ -n "$S" ] && ! a shell pm list packages 2>/dev/null | grep -q "$PKG"; then
-      echo "REBUILD: $PKG is not installed on $S. A /ship implementer builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds."; return 0
+      echo "REBUILD: $PKG is not installed on $S. $BUILD_WHO"; return 0
     fi
     hit=""; [ -z "$S" ] || hit="$(base_native_commit "$base")"
     if [ -n "$hit" ]; then
@@ -448,8 +457,8 @@ build_verdict() {
       if [ -n "$t" ] && [ "$t" -gt "${hit%% *}" ]; then
         echo "REUSE: no native surface change since $base, and the APK on $S was installed after its newest one, ${hit#* }; this branch reaches the device over Metro."; return 1
       fi
-      echo "REBUILD: $base changed the native surface in ${hit#* }, and the APK on $S predates it. A /ship implementer builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds."
-      git -C "$ROOT" diff-tree --root --no-commit-id --name-only -r "${hit#* }" 2>/dev/null | grep -E "$NATIVE_RE" | sed 's/^/  /' || true
+      echo "REBUILD: $base changed the native surface in ${hit#* }, and the APK on $S predates it. $BUILD_WHO"
+      commit_native_files "${hit#* }" | sed 's/^/  /'
       return 0
     fi
     echo "REUSE: no native surface change since $base; this branch reaches the device over Metro."; return 1
@@ -458,12 +467,14 @@ build_verdict() {
   if [ -n "$(git -C "$ROOT" status --porcelain -- $changed 2>/dev/null)" ]; then newest="$(date +%s)"; else
     newest="$(git -C "$ROOT" log -1 --format=%ct "$base"..HEAD -- $changed 2>/dev/null)"; fi
   t=""; [ -z "$S" ] || t="$(apk_time)"
+  hit=""; [ -z "$S" ] || hit="$(base_native_commit "$base")"
+  if [ -n "$hit" ] && [ -n "$newest" ] && [ "${hit%% *}" -gt "$newest" ]; then newest="${hit%% *}"; else hit=""; fi
   if [ -n "$t" ] && [ -n "$newest" ] && [ "$t" -gt "$newest" ]; then
     echo "REUSE: the native surface changed since $base, and the APK on $S was installed after the newest change; a missing native module on screen means rebuild."
     return 1
   fi
-  echo "REBUILD: native surface changed since $base, and the APK on ${S:-the device} predates it. A /ship implementer builds, one call each: mqa build, then mqa install. Any other session asks first; the render lens never builds."
-  sed 's/^/  /' <<<"$changed"
+  echo "REBUILD: native surface changed since $base, and the APK on ${S:-the device} predates it. $BUILD_WHO"
+  { echo "$changed"; [ -z "$hit" ] || commit_native_files "${hit#* }"; } | sort -u | sed 's/^/  /'
   return 0
 }
 

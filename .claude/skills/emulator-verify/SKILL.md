@@ -213,8 +213,9 @@ default.
    `android/app/build/outputs/apk/debug/app-debug.apk`, and `android/` is gitignored.
    `mqa up` prints `build: REUSE` or `build: REBUILD`. A rebuild is
    mandatory when the **native surface** (`package.json`, `package-lock.json`, `app.json`,
-   `eas.json`, `patches/`, or anything under `android/`/`ios/`) moved, on this branch or on
-   `main`, after the APK on the device was installed. An APK installed after the newest such
+   `eas.json`, `patches/`, `gradle.properties` at the root, any path containing `.gradle`,
+   or anything under `android/`/`ios/`) moved, on this branch or on the `main` history it
+   holds, after the APK on the device was installed. An APK installed after the newest such
    change already carries it, which is the render lens's case. Everything else reaches the
    device over Metro.
    In a `/ship` run, typed or unattended, the implementer asks nothing: it builds and
