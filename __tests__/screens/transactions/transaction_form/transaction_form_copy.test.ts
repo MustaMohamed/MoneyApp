@@ -59,6 +59,15 @@ describe('MA-106 saved toast and prerequisite state copy', () => {
   });
 });
 
+describe('MA-169 rate editor copy', () => {
+  it('titles the editor Rate, refuses a bad rate with one message, and takes the date picker sheet Cancel and Done', () => {
+    expect(Strings.addTxRateLabel).toBe('Rate');
+    expect(Strings.addTxErrRateInvalid).toBe('Enter a valid rate greater than 0');
+    expect(Strings.addTxDatePickerCancel).toBe('Cancel');
+    expect(Strings.addTxDatePickerDone).toBe('Done');
+  });
+});
+
 describe('MA-168 converted amount copy', () => {
   it('prints the amount and its code after the sign on every pair, with no words after the code', () => {
     expect(Strings.addTxConvertedAmount('735 EGP')).toBe('≈ 735 EGP');

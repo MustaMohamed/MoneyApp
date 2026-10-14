@@ -16,6 +16,7 @@ import { resolveAccountName } from '@/utils/account_name';
 import { formatDisplayAmount } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
+import { formatStoredMoneyText } from '@/utils/money_text';
 import { parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
 
 export interface TransactionFormSemantics {
@@ -270,6 +271,34 @@ export function resolveConvertedAmount(input: {
   }
 }
 
+/** The editor's Done: a rate that parses commits as typed, unless it is the stored rate, which commits as stored. */
+export function resolveRateCommit(input: {
+  text: string;
+  storedRate: number;
+}): { exchangeRate: string; override: boolean } | undefined {
+  const { text, storedRate } = input;
+  const parsed = parseRateText(text);
+  if (parsed === undefined) return undefined;
+  const override = parsed !== storedRate;
+  return { exchangeRate: override ? text : formatStoredMoneyText(storedRate), override };
+}
+
+/** Both form hooks' `commitExchangeRate`: a refused rate writes nothing; an accepted one clears the save error, then sets the override and the rate. */
+export function applyRateCommit(input: {
+  text: string;
+  storedRate: number;
+  clearError: () => void;
+  setRateOverride: (override: boolean) => void;
+  setExchangeRate: (exchangeRate: string) => void;
+}): boolean {
+  const commit = resolveRateCommit({ text: input.text, storedRate: input.storedRate });
+  if (commit === undefined) return false;
+  input.clearError();
+  input.setRateOverride(commit.override);
+  input.setExchangeRate(commit.exchangeRate);
+  return true;
+}
+
 export function formatConvertedAmount(converted: ConvertedAmount | undefined): string {
   return converted === undefined
     ? Strings.addTxConvertedAmountNone
@@ -322,7 +351,6 @@ export interface TransactionFormFieldErrors {
   toAccount?: string;
   category?: string;
   budget?: string;
-  rate?: string;
 }
 
 /** Zod skips a refinement after an aborting field issue; this runs it on any object so every fault reports on one Save. */

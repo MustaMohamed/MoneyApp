@@ -44,6 +44,12 @@ export const AMOUNT_MESSAGE_TEXT_STYLE = {
   textAlign: 'center',
 } as const;
 
+/** The rate card's and the rate editor's message slots: a floor and no fixed height, so a message wrapped at a large font scale stays whole. */
+export const RATE_MESSAGE_SLOT_STYLE = {
+  minHeight: ms(16),
+  justifyContent: 'center',
+} as const;
+
 /** The sheet frames' 118 by 40 row, ruled 2026-09-27 (MA-122) over the canvas base rule's 64-wide column. */
 export const ACCOUNT_STRIP_CHIP_WIDTH = ms(118);
 export const ACCOUNT_STRIP_CHIP_HEIGHT = ms(40);

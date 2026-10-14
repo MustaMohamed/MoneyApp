@@ -31,6 +31,7 @@ import { ConvertedAmountLine } from './components/converted_amount_line';
 import { DangerRing } from './components/danger_ring';
 import { DateRow } from './components/date_row';
 import { FormPickerRow } from './components/form_picker_row';
+import { TransactionRateEditor } from './components/rate_editor_sheet';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import {
   ACCOUNT_STRIP_WRAPPER_PADDING_Y,
@@ -74,11 +75,11 @@ interface BaseProps {
   /** The rate demand flag (either side USD), not the source currency. */
   requiresRate: boolean;
   exchangeRate: string;
-  setExchangeRate: (v: string) => void;
+  /** The rate editor's Done; `false` keeps the editor open with its message. */
+  commitExchangeRate: (text: string) => boolean;
   rateOverride: boolean;
   toggleRateOverride: () => void;
   rateUpdatedAt: string | null;
-  rateError?: string;
   date: string;
   setDate: (v: string) => void;
   note: string;
@@ -153,11 +154,10 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     budgetError,
     requiresRate,
     exchangeRate,
-    setExchangeRate,
+    commitExchangeRate,
     rateOverride,
     toggleRateOverride,
     rateUpdatedAt,
-    rateError,
     date,
     setDate,
     note,
@@ -387,12 +387,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           {requiresRate ? (
             <View className="border-separator border-b px-4 pb-3">
               <TransactionExchangeRateRow
+                ownerId={datePickerOwnerId}
                 value={exchangeRate}
-                onChange={setExchangeRate}
                 overrideEnabled={rateOverride}
                 onToggleOverride={toggleRateOverride}
                 rateUpdatedAt={rateUpdatedAt}
-                error={rateError}
               />
             </View>
           ) : null}
@@ -443,6 +442,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           </View>
         </ListCard>
       </View>
+      <TransactionRateEditor
+        ownerId={datePickerOwnerId}
+        value={exchangeRate}
+        onCommit={commitExchangeRate}
+      />
     </BottomSheetScrollView>
   );
 }

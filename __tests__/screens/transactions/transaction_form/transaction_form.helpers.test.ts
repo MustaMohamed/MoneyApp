@@ -20,6 +20,7 @@ import {
   resolveEligibleFromAccounts,
   resolveEligibleToAccounts,
   resolveLockedStripChips,
+  resolveRateCommit,
   resolveStripSelectedId,
   resolveToRowFace,
   resolveTransactionDeleteError,
@@ -289,15 +290,6 @@ describe('MA-105 footer status line', () => {
     expect(resolveTransactionFormStatus({ errors })).toBe('Fix the 2 fields marked above.');
   });
 
-  it('counts the rate row, which keeps its own inline line', () => {
-    expect(
-      countTransactionFormFieldErrors({ rate: 'Enter a rate', account: 'Pick an account' }),
-    ).toBe(2);
-    expect(resolveTransactionFormStatus({ errors: { rate: 'Enter a rate' } })).toBe(
-      'Fix the 1 field marked above.',
-    );
-  });
-
   it('counts only the keys whose message is set', () => {
     const errors: TransactionFormFieldErrors = {
       amount: undefined,
@@ -305,7 +297,6 @@ describe('MA-105 footer status line', () => {
       toAccount: undefined,
       category: 'Pick a category',
       budget: undefined,
-      rate: undefined,
     };
 
     expect(countTransactionFormFieldErrors(errors)).toBe(1);
@@ -334,10 +325,9 @@ describe('MA-105 footer status line', () => {
       toAccount: 'Pick where the money goes',
       category: 'Pick a category',
       budget: 'Pick a budget',
-      rate: 'Enter a rate',
     };
 
-    expect(countTransactionFormFieldErrors(errors)).toBe(6);
+    expect(countTransactionFormFieldErrors(errors)).toBe(5);
     expect(countTransactionFormFieldErrors({ budget: lookupFailed }, lookupFailed)).toBe(0);
   });
 
@@ -735,6 +725,27 @@ describe('resolveTransactionFormFooterVisible', () => {
         hasAccounts: false,
       }),
     ).toBe(false);
+  });
+});
+
+describe('MA-169 resolveRateCommit', () => {
+  it.each([
+    ['49', { exchangeRate: '49', override: true }],
+    ['50', { exchangeRate: '50', override: false }],
+    ['50.0', { exchangeRate: '50', override: false }],
+  ])('commits %p at a stored 50 as %p', (text, expected) => {
+    expect(resolveRateCommit({ text, storedRate: 50 })).toEqual(expected);
+  });
+
+  it.each(['', '0', '-5', '48.', '50abc'])('refuses %p at a stored 50', (text) => {
+    expect(resolveRateCommit({ text, storedRate: 50 })).toBeUndefined();
+  });
+
+  it('reads 0.0000001 at a stored 1e-7 as the stored rate, in positional text', () => {
+    expect(resolveRateCommit({ text: '0.0000001', storedRate: 1e-7 })).toEqual({
+      exchangeRate: '0.0000001',
+      override: false,
+    });
   });
 });
 

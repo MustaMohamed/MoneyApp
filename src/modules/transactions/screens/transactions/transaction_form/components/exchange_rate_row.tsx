@@ -7,8 +7,11 @@ import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
-import { formatAmount } from '@/utils/format_amount';
+import { formatAmount, formatRateDisplayMagnitude } from '@/utils/format_amount';
+import { parseRateText } from '@/utils/parse_decimal';
 import { ms } from '@/utils/responsive';
+
+import { RATE_MESSAGE_SLOT_STYLE } from './transaction_form.geometry';
 
 const STALE_THRESHOLD_DAYS = 30;
 const RATE_PREVIEW_AMOUNT_DECIMALS = 2;
@@ -23,6 +26,12 @@ function isStale(rateUpdatedAt: string | null): boolean {
   return ageMs > STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
 }
 
+// The card prints the rate as every rate prints; the editor's field keeps it as typed.
+function formatCardRate(value: string): string {
+  const rate = parseRateText(value);
+  return rate === undefined ? value : formatRateDisplayMagnitude(rate).text;
+}
+
 function formatDateShort(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
@@ -31,9 +40,8 @@ function formatDateShort(iso: string): string {
   });
 }
 
-interface Props {
+interface SharedProps {
   value: string;
-  onChange: (v: string) => void;
   overrideEnabled: boolean;
   onToggleOverride: () => void;
   rateUpdatedAt: string | null;
@@ -43,8 +51,14 @@ interface Props {
   previewHidden?: boolean;
   /** Subtitle saying why a rate is required for a payment that converts nothing. */
   purposeCaption?: string;
-  error?: string;
 }
+
+/** With `onOpenEditor` the card is a button in every state and the rate is typed in the editor, never on the card. */
+type Props = SharedProps &
+  (
+    | { onOpenEditor: () => void; onChange?: never; error?: never }
+    | { onOpenEditor?: never; onChange: (v: string) => void; error?: string }
+  );
 
 export function ExchangeRateRow({
   value,
@@ -56,9 +70,11 @@ export function ExchangeRateRow({
   previewHidden = false,
   purposeCaption,
   error,
+  onOpenEditor,
 }: Props): React.ReactElement {
   const stale = isStale(rateUpdatedAt);
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+  const showsInput = overrideEnabled && onOpenEditor === undefined;
 
   const subtitle = overrideEnabled
     ? Strings.addTxRateSourceCustom
@@ -70,9 +86,9 @@ export function ExchangeRateRow({
     <View className="border-accent/30 bg-accent/10 mt-3 rounded-md border px-3 py-3">
       <PressableFeedback
         testID="exchange-rate-row"
-        onPress={overrideEnabled ? undefined : onToggleOverride}
-        accessibilityRole={overrideEnabled ? undefined : 'button'}
-        accessibilityLabel={overrideEnabled ? '' : Strings.addTxRateEditAccessibility}
+        onPress={onOpenEditor ?? (overrideEnabled ? undefined : onToggleOverride)}
+        accessibilityRole={showsInput ? undefined : 'button'}
+        accessibilityLabel={showsInput ? '' : Strings.addTxRateEditAccessibility}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <View style={{ flex: 1 }}>
@@ -105,7 +121,7 @@ export function ExchangeRateRow({
             </Text>
           ) : null}
         </View>
-        {overrideEnabled ? (
+        {showsInput ? (
           <View style={{ width: 100 }}>
             <Input
               testID="exchange-rate-input"
@@ -125,7 +141,7 @@ export function ExchangeRateRow({
             className="font-sora-semibold text-foreground"
             style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
           >
-            {value}
+            {onOpenEditor === undefined ? value : formatCardRate(value)}
           </Text>
         )}
       </PressableFeedback>
@@ -163,8 +179,7 @@ export function ExchangeRateRow({
 
       <View
         testID="exchange-rate-error-slot"
-        style={{ minHeight: ms(16) }}
-        className="justify-center"
+        style={RATE_MESSAGE_SLOT_STYLE}
         accessibilityLiveRegion="polite"
       >
         <FormErrorText

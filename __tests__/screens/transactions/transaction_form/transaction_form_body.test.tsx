@@ -24,9 +24,33 @@ jest.mock('@gorhom/bottom-sheet', () => {
   };
 });
 jest.mock('@/components/account_type_pill', () => ({ TYPE_OPTIONS: [] }));
-jest.mock('@/components/ui/sheet', () => ({
-  useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
-}));
+type MockSheetProps = React.PropsWithChildren<{
+  isOpen: boolean;
+  title?: string;
+  footer?: React.ReactNode;
+  onOpenChange: (open: boolean) => void;
+}>;
+const mockSheetProps: MockSheetProps[] = [];
+jest.mock('@/components/ui/sheet', () => {
+  const ReactLocal = jest.requireActual<typeof import('react')>('react');
+  const { Text: RNText, View: RNView } =
+    jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    Sheet: (props: MockSheetProps) => {
+      mockSheetProps.push(props);
+      if (!props.isOpen) return null;
+      return ReactLocal.createElement(
+        RNView,
+        { testID: 'mock-sheet' },
+        ReactLocal.createElement(RNText, null, props.title),
+        props.children,
+        props.footer,
+      );
+    },
+    resolveSheetSizeAboveOne: (size: string) => size,
+    useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
+  };
+});
 const mockAmountHeroProps: Array<{ invalid?: boolean }> = [];
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/amount_hero',
@@ -49,11 +73,16 @@ jest.mock(
     return { DateRow: () => ReactLocal.createElement(RNView, { testID: 'date-row' }) };
   },
 );
-const mockExchangeRateRowProps: Array<{ previewEgpAmount?: number; previewHidden?: boolean }> = [];
+type MockExchangeRateRowProps = {
+  previewEgpAmount?: number;
+  previewHidden?: boolean;
+  onOpenEditor?: () => void;
+};
+const mockExchangeRateRowProps: MockExchangeRateRowProps[] = [];
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row',
   () => ({
-    ExchangeRateRow: (props: { previewEgpAmount?: number; previewHidden?: boolean }) => {
+    ExchangeRateRow: (props: MockExchangeRateRowProps) => {
       mockExchangeRateRowProps.push(props);
       return null;
     },
@@ -65,6 +94,7 @@ jest.mock(
 );
 
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
+import { useRateEditorSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/rate_editor_sheet.state';
 import {
   ACCOUNT_STRIP_CHIP_RADIUS,
   ACCOUNT_STRIP_CHIP_WIDTH,
@@ -115,7 +145,7 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   onRetryBudgetLookup: jest.fn(),
   requiresRate: false,
   exchangeRate: '',
-  setExchangeRate: jest.fn(),
+  commitExchangeRate: jest.fn(),
   rateOverride: false,
   toggleRateOverride: jest.fn(),
   rateUpdatedAt: null,
@@ -481,6 +511,107 @@ describe('MA-168 rate card', () => {
     await rerender(<RealExchangeRateRow {...rowProps} overrideEnabled />);
 
     expect(screen.getByTestId('exchange-rate-row')).toHaveProp('accessibilityLabel', '');
+  });
+
+  it('MA-169: given onOpenEditor, the card is a button that speaks the stored-rate label with a custom rate as with the stored one, opens the editor on a press, and draws no field', async () => {
+    const { ExchangeRateRow: RealExchangeRateRow } = jest.requireActual<
+      typeof import('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row')
+    >('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row');
+    const onOpenEditor = jest.fn();
+    const rowProps = {
+      value: '49',
+      onOpenEditor,
+      onToggleOverride: jest.fn(),
+      rateUpdatedAt: null,
+      previewEgpAmount: undefined,
+    };
+    const { rerender } = await render(<RealExchangeRateRow {...rowProps} overrideEnabled />);
+
+    const row = screen.getByTestId('exchange-rate-row');
+    expect(row).toHaveProp('accessibilityRole', 'button');
+    expect(row).toHaveProp('accessibilityLabel', Strings.addTxRateEditAccessibility);
+    expect(screen.queryByTestId('exchange-rate-input')).toBeNull();
+
+    await fireEvent.press(row);
+    expect(onOpenEditor).toHaveBeenCalledTimes(1);
+
+    await rerender(<RealExchangeRateRow {...rowProps} overrideEnabled={false} />);
+    const storedRow = screen.getByTestId('exchange-rate-row');
+    expect(storedRow).toHaveProp('accessibilityRole', 'button');
+    expect(storedRow).toHaveProp('accessibilityLabel', Strings.addTxRateEditAccessibility);
+
+    await rerender(<RealExchangeRateRow {...rowProps} value="52.137035" overrideEnabled={false} />);
+    expect(screen.getByText('52.14')).toBeTruthy();
+    await rerender(<RealExchangeRateRow {...rowProps} value="049" overrideEnabled />);
+    expect(screen.getByText('49.00')).toBeTruthy();
+  });
+});
+
+describe('MA-169 rate editor opened from the card', () => {
+  beforeEach(() => {
+    useRateEditorSheetState.getState().reset();
+    mockExchangeRateRowProps.length = 0;
+    mockSheetProps.length = 0;
+  });
+
+  it('mounts the editor closed with no rate required, so its sheet is mounted outside the rate gate', async () => {
+    await render(<TransactionFormBody {...baseProps} requiresRate={false} />);
+
+    const editorSheet = mockSheetProps.filter((props) => props.title === Strings.addTxRateLabel);
+    expect(editorSheet).not.toHaveLength(0);
+    expect(editorSheet.at(-1)?.isOpen).toBe(false);
+  });
+
+  it('opens on the form rate, closes on onOpenChange(false) with no commit, commits a typed 48 once at Done and closes, and stays open with the message on a refused commit', async () => {
+    const commitExchangeRate = jest.fn().mockReturnValue(true);
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        requiresRate
+        selectedAccount={makeTestAccount({ id: 'account-usd', currency: Currency.USD })}
+        currency={Currency.USD}
+        exchangeRate="49"
+        commitExchangeRate={commitExchangeRate}
+      />,
+    );
+    const openEditor = async () => {
+      const { onOpenEditor } = mockExchangeRateRowProps.at(-1) ?? {};
+      expect(onOpenEditor).toEqual(expect.any(Function));
+      await act(() => onOpenEditor?.());
+    };
+    const editorSheet = () =>
+      mockSheetProps.filter((props) => props.title === Strings.addTxRateLabel).at(-1);
+    expect(screen.queryByTestId('rate-editor-input')).toBeNull();
+
+    await openEditor();
+    expect(within(screen.getByTestId('mock-sheet')).getByText(Strings.addTxRateLabel)).toBeTruthy();
+    expect(screen.getByTestId('rate-editor-input')).toHaveDisplayValue('49');
+    expect(
+      within(screen.getByTestId('rate-editor-message-slot')).queryByText(
+        Strings.addTxErrRateInvalid,
+      ),
+    ).toBeNull();
+
+    await act(() => editorSheet()?.onOpenChange(false));
+    expect(screen.queryByTestId('rate-editor-input')).toBeNull();
+    expect(commitExchangeRate).not.toHaveBeenCalled();
+
+    await openEditor();
+    await fireEvent.changeText(screen.getByTestId('rate-editor-input'), '48');
+    await fireEvent.press(screen.getByTestId('rate-editor-done'));
+    expect(commitExchangeRate).toHaveBeenCalledTimes(1);
+    expect(commitExchangeRate).toHaveBeenCalledWith('48');
+    expect(screen.queryByTestId('rate-editor-input')).toBeNull();
+
+    commitExchangeRate.mockReturnValue(false);
+    await openEditor();
+    await fireEvent.changeText(screen.getByTestId('rate-editor-input'), '48.');
+    await fireEvent.press(screen.getByTestId('rate-editor-done'));
+    expect(commitExchangeRate).toHaveBeenLastCalledWith('48.');
+    expect(screen.getByTestId('rate-editor-input')).toBeTruthy();
+    expect(
+      within(screen.getByTestId('rate-editor-message-slot')).getByText(Strings.addTxErrRateInvalid),
+    ).toBeTruthy();
   });
 });
 

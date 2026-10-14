@@ -132,6 +132,8 @@ export interface SheetProps {
   onOpenChange: (open: boolean) => void;
   /** Called after a previously open sheet settles at its closed index. */
   onCloseComplete?: () => void;
+  /** Called once per open, after the sheet settles at its open index; a sheet that focuses a field as it opens focuses it here. */
+  onOpenComplete?: () => void;
   title?: string;
   /** Preset height; `snapPoints` overrides it and `fitContent` ignores it. Defaults to lg. */
   size?: SheetSize;
@@ -158,6 +160,7 @@ export function Sheet({
   isOpen,
   onOpenChange,
   onCloseComplete,
+  onOpenComplete,
   title,
   size,
   snapPoints,
@@ -176,7 +179,7 @@ export function Sheet({
   // Measured, not derived: the footer's height is inset- and content-dependent, and gorhom's dynamic sizing does not fully count an absolute footer.
   const [footerHeight, setFooterHeight] = useState(0);
   const { closeLifecycle, handleSheetIndexChange, handleSheetClosed, handleSheetCloseRequest } =
-    useSheetCloseLifecycle(isOpen, onCloseComplete);
+    useSheetCloseLifecycle(isOpen, onCloseComplete, onOpenComplete);
   // Plain View props, which no animated style writes: a sheet closed at rest stays hidden whatever redraws its content.
   const closedAtRestProps = resolveSheetClosedAtRestProps(closeLifecycle);
   const handleOpenChange = (open: boolean) => {

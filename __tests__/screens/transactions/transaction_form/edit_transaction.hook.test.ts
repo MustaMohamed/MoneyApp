@@ -132,77 +132,6 @@ describe('useEditTransaction', () => {
     expect(retry).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects malformed exchange rates for an archived USD transaction', async () => {
-    const usdTx = {
-      ...mockTxExpense,
-      account_id: mockAccountUSD.id,
-      currency: Currency.USD,
-      amount: 10,
-      egp_amount: 500,
-      exchange_rate: 50,
-    };
-    useEditTransactionStore.getState().loadFromTx(usdTx);
-    const updateTx = installMockUpdateTransaction();
-    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
-    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    await act(() => result.current.setExchangeRate('50abc'));
-
-    await act(async () => result.current.handleSave());
-
-    expect(result.current.state.selectedAccount?.id).toBe(mockAccountUSD.id);
-    expect(result.current.state.errors.rate).toBeDefined();
-    expect(updateTx).not.toHaveBeenCalled();
-  });
-
-  it('MA-105: a rate typed after a failed Save clears its fault and the count', async () => {
-    const usdTx = {
-      ...mockTxExpense,
-      account_id: mockAccountUSD.id,
-      currency: Currency.USD,
-      amount: 10,
-      egp_amount: 500,
-      exchange_rate: 50,
-    };
-    useEditTransactionStore.getState().loadFromTx(usdTx);
-    const updateTx = installMockUpdateTransaction();
-    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
-    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    await act(() => result.current.setExchangeRate(''));
-    await act(async () => result.current.handleSave());
-    expect(result.current.state.errors.rate).toBeDefined();
-    expect(result.current.state.status).toBe('Fix the 1 field marked above.');
-
-    await act(() => result.current.setExchangeRate('50'));
-
-    await waitFor(() => expect(result.current.state.errors.rate).toBeUndefined());
-    expect(result.current.state.status).toBeUndefined();
-    expect(updateTx).not.toHaveBeenCalled();
-  });
-
-  it('MA-105: an empty amount does not hide the rate fault, and Save reads Fix the 2 fields', async () => {
-    const usdTx = {
-      ...mockTxExpense,
-      account_id: mockAccountUSD.id,
-      currency: Currency.USD,
-      amount: 10,
-      egp_amount: 500,
-      exchange_rate: 50,
-    };
-    useEditTransactionStore.getState().loadFromTx(usdTx);
-    const updateTx = installMockUpdateTransaction();
-    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
-    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    await act(() => result.current.setAmountStr(''));
-    await act(() => result.current.setExchangeRate('50abc'));
-
-    await act(async () => result.current.handleSave());
-
-    expect(result.current.state.errors.amount).toBeDefined();
-    expect(result.current.state.errors.rate).toBeDefined();
-    expect(result.current.state.status).toBe('Fix the 2 fields marked above.');
-    expect(updateTx).not.toHaveBeenCalled();
-  });
-
   it('uses expense categories and budget eligibility for an existing Card credit', async () => {
     const creditTx = {
       ...mockTxExpense,
@@ -631,150 +560,156 @@ async function settleValidation() {
   });
 }
 
-async function typeRate(result: EditHookResult, text: string) {
-  await act(() => result.current.setExchangeRate(text));
+async function commitRate(result: EditHookResult, text: string) {
+  const returned: boolean[] = [];
+  await act(() => {
+    returned.push(result.current.commitExchangeRate(text));
+  });
   await settleValidation();
+  return returned[0];
 }
 
-describe('useEditTransaction — MA-115 a half-typed rate after a failed Save', () => {
-  const usdTx = {
+describe('useEditTransaction — MA-169 a rate committed at Done', () => {
+  const usdTx = makeTestTransaction({
     ...mockTxExpense,
     account_id: mockAccountUSD.id,
     currency: Currency.USD,
     amount: 10,
     egp_amount: 500,
     exchange_rate: 50,
-  };
+  });
+  const transferTx = makeTestTransaction({
+    ...mockTxExpense,
+    id: 't-transfer',
+    type: TransactionType.Transfer,
+    account_id: mockAccountEGP.id,
+    to_account_id: mockAccountUSD.id,
+    category_id: null,
+    amount: 100,
+    egp_amount: 100,
+    to_amount: 2,
+    exchange_rate: 50,
+  });
 
-  async function mountUsdEdit() {
-    useEditTransactionStore.getState().loadFromTx(usdTx);
+  async function mountEdit(tx: typeof usdTx) {
+    useEditTransactionStore.getState().loadFromTx(tx);
     const updateTx = installMockUpdateTransaction();
-    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() => useEditTransaction(tx, jest.fn(), jest.fn()));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     return { result, updateTx };
   }
 
-  async function mountRefusedEmptyRate() {
-    const edit = await mountUsdEdit();
-    await typeRate(edit.result, '');
-    await act(async () => edit.result.current.handleSave());
-    expect(edit.result.current.state.errors.rate).toBe(Strings.addTxErrRateRequired);
-    expect(edit.result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
-    return edit;
-  }
+  it.each(['', '0', '-5', '48.', '50abc'])(
+    'refuses %p: returns false and leaves the rate and the override as they were',
+    async (text) => {
+      const { result } = await mountEdit(usdTx);
 
-  it('typing 48.5 shows no rate fault and no count at "48." or at "48.5"', async () => {
-    const { result } = await mountRefusedEmptyRate();
+      expect(await commitRate(result, text)).toBe(false);
 
-    await typeRate(result, '4');
-    await typeRate(result, '48');
-    await typeRate(result, '48.');
-    expect(result.current.state.errors.rate).toBeUndefined();
-    expect(result.current.state.status).toBeUndefined();
+      expect(result.current.state.exchangeRate).toBe('50');
+      expect(result.current.state.rateOverride).toBe(false);
+    },
+  );
 
-    await typeRate(result, '48.5');
-    expect(result.current.state.errors.rate).toBeUndefined();
-    expect(result.current.state.status).toBeUndefined();
+  it('writes 49 at a stored 50 with the override on, and Reset to global returns the stored rate', async () => {
+    const { result } = await mountEdit(usdTx);
+
+    expect(await commitRate(result, '49')).toBe(true);
+    expect(result.current.state.exchangeRate).toBe('49');
+    expect(result.current.state.rateOverride).toBe(true);
+
+    await act(() => result.current.toggleRateOverride());
+    expect(result.current.state.exchangeRate).toBe('50');
+    expect(result.current.state.rateOverride).toBe(false);
   });
 
-  it('typing 0.05 shows no rate fault at "0", "0.", "0.0" or "0.05"', async () => {
-    const { result } = await mountRefusedEmptyRate();
+  it('reads the stored rate committed with the override off', async () => {
+    const { result } = await mountEdit(usdTx);
+    await commitRate(result, '49');
 
-    await typeRate(result, '0');
-    expect(result.current.state.errors.rate).toBeUndefined();
-    expect(result.current.state.status).toBeUndefined();
-
-    await typeRate(result, '0.');
-    expect(result.current.state.errors.rate).toBeUndefined();
-    expect(result.current.state.status).toBeUndefined();
-
-    await typeRate(result, '0.0');
-    expect(result.current.state.errors.rate).toBeUndefined();
-    expect(result.current.state.status).toBeUndefined();
-
-    await typeRate(result, '0.05');
-    expect(result.current.state.errors.rate).toBeUndefined();
-    expect(result.current.state.status).toBeUndefined();
+    expect(await commitRate(result, '50')).toBe(true);
+    expect(result.current.state.exchangeRate).toBe('50');
+    expect(result.current.state.rateOverride).toBe(false);
   });
 
-  it('a complete rate the form refuses shows its fault as typed, and a cleared rate reads required', async () => {
-    const { result } = await mountRefusedEmptyRate();
-
-    await typeRate(result, '50abc');
-    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateInvalid);
-    expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
-
-    await typeRate(result, '');
-    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateRequired);
-    expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
-  });
-
-  it('a pick in another row flags a half-typed rate left behind', async () => {
-    const { result } = await mountRefusedEmptyRate();
-    await typeRate(result, '48.');
-    expect(result.current.state.errors.rate).toBeUndefined();
-    expect(result.current.state.status).toBeUndefined();
-
-    await act(() => result.current.selectCategory(mockCategoryShop));
-    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    await settleValidation();
-
-    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateInvalid);
-    expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
-  });
-
-  it('a fault Save raised on "48." stays through a pick and clears when the rate text changes', async () => {
-    const { result } = await mountUsdEdit();
-    await typeRate(result, '48.');
-    await act(async () => result.current.handleSave());
-    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateInvalid);
-
-    await act(() => result.current.selectCategory(mockCategoryShop));
-    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    await settleValidation();
-    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateInvalid);
-
-    await typeRate(result, '48.5');
-    expect(result.current.state.errors.rate).toBeUndefined();
-    expect(result.current.state.status).toBeUndefined();
-  });
-
-  it('a clear and "48." sent back to back leave no rate fault', async () => {
-    const { result } = await mountRefusedEmptyRate();
-    await typeRate(result, '50abc');
-    expect(result.current.state.errors.rate).toBe(Strings.addTxErrRateInvalid);
-
-    await act(() => {
-      result.current.setExchangeRate('');
-      result.current.setExchangeRate('48.');
-    });
-    await settleValidation();
-
-    expect(result.current.state.errors.rate).toBeUndefined();
-    expect(result.current.state.status).toBeUndefined();
-  });
-
-  it('before any Save "48." raises nothing', async () => {
-    const { result } = await mountUsdEdit();
-
-    await typeRate(result, '48.');
-
-    expect(result.current.state.errors.rate).toBeUndefined();
-    expect(result.current.state.status).toBeUndefined();
-  });
-
-  it.each([
-    ['48.', Strings.addTxErrRateInvalid],
-    ['0', Strings.addTxErrRateInvalid],
-    ['0.0', Strings.addTxErrRateInvalid],
-    ['', Strings.addTxErrRateRequired],
-  ])('Save with the rate %p reads %p and writes nothing', async (text, message) => {
-    const { result, updateTx } = await mountUsdEdit();
-    await typeRate(result, text);
+  it('saves the committed rate as typed: exchange_rate 49', async () => {
+    const { result, updateTx } = await mountEdit(usdTx);
+    await commitRate(result, '49');
 
     await act(async () => result.current.handleSave());
 
-    expect(result.current.state.errors.rate).toBe(message);
+    expect(updateTx).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ amount: 10, egp_amount: 490, exchange_rate: 49 }),
+    );
+  });
+
+  it('saves the stored rate unrounded once Reset to global drops a committed rate', async () => {
+    useCurrencyStore.setState({ rate: 52.137035, rate_updated_at: null });
+    const { result, updateTx } = await mountEdit(usdTx);
+    await commitRate(result, '49');
+    await act(() => result.current.toggleRateOverride());
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ exchange_rate: 52.137035 }),
+    );
+  });
+
+  it("opens on the transaction's own 49 under a stored 52 with the override off, saves 49, and a Done on 49 turns the override on", async () => {
+    useCurrencyStore.setState({ rate: 52, rate_updated_at: null });
+    const ownRateTx = makeTestTransaction({ ...usdTx, egp_amount: 490, exchange_rate: 49 });
+    const { result, updateTx } = await mountEdit(ownRateTx);
+    expect(result.current.state.exchangeRate).toBe('49');
+    expect(result.current.state.rateOverride).toBe(false);
+
+    await act(async () => result.current.handleSave());
+    expect(updateTx).toHaveBeenCalledWith('t1', expect.objectContaining({ exchange_rate: 49 }));
+
+    expect(await commitRate(result, '49')).toBe(true);
+    expect(result.current.state.exchangeRate).toBe('49');
+    expect(result.current.state.rateOverride).toBe(true);
+  });
+
+  it('after a refused Save, a committed rate re-checks the amount floor at once, both ways', async () => {
+    const { result, updateTx } = await mountEdit(transferTx);
+    await act(() => result.current.setAmountStr('0.2'));
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.errors.amount).toBe(
+      Strings.addTxErrConvertedBelowMin(Currency.USD),
+    );
+    expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
+
+    await commitRate(result, '0.1');
+    expect(result.current.state.errors.amount).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
+
+    await commitRate(result, '50');
+    expect(result.current.state.errors.amount).toBe(
+      Strings.addTxErrConvertedBelowMin(Currency.USD),
+    );
+    expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
+    expect(updateTx).not.toHaveBeenCalled();
+  });
+
+  it('after a refused Save on a floor fault a committed rate caused, Reset to global clears the fault and the count', async () => {
+    const { result, updateTx } = await mountEdit(transferTx);
+    await act(() => result.current.setAmountStr('0.26'));
+    await commitRate(result, '60');
+    await act(async () => result.current.handleSave());
+    expect(result.current.state.errors.amount).toBe(
+      Strings.addTxErrConvertedBelowMin(Currency.USD),
+    );
+    expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
+
+    await act(() => result.current.toggleRateOverride());
+    await settleValidation();
+
+    expect(result.current.state.exchangeRate).toBe('50');
+    expect(result.current.state.errors.amount).toBeUndefined();
+    expect(result.current.state.status).toBeUndefined();
     expect(updateTx).not.toHaveBeenCalled();
   });
 });
@@ -894,7 +829,7 @@ describe('useEditTransaction — the MIN_MONEY_AMOUNT floor', () => {
     const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     await act(() => result.current.setAmountStr('10.005'));
-    await act(() => result.current.setExchangeRate('48'));
+    await act(() => result.current.commitExchangeRate('48'));
 
     await act(async () => result.current.handleSave());
 
@@ -930,7 +865,6 @@ describe('useEditTransaction — rate prefills re-parse', () => {
 
     await act(async () => result.current.handleSave());
 
-    expect(result.current.state.errors.rate).toBeUndefined();
     expect(updateTx).toHaveBeenCalledWith('t1', expect.objectContaining({ exchange_rate: 1e-7 }));
   });
 
@@ -980,7 +914,7 @@ describe('useEditTransaction — destination-leg floor', () => {
     const updateTx = installMockUpdateTransaction();
     const { result } = await renderHook(() => useEditTransaction(transferTx, jest.fn(), jest.fn()));
     await act(() => result.current.setAmountStr('0.2'));
-    await act(() => result.current.setExchangeRate('50'));
+    await act(() => result.current.commitExchangeRate('50'));
 
     await act(async () => result.current.handleSave());
 
@@ -995,7 +929,7 @@ describe('useEditTransaction — destination-leg floor', () => {
     const updateTx = installMockUpdateTransaction();
     const { result } = await renderHook(() => useEditTransaction(transferTx, jest.fn(), jest.fn()));
     await act(() => result.current.setAmountStr('0.26'));
-    await act(() => result.current.setExchangeRate('50'));
+    await act(() => result.current.commitExchangeRate('50'));
 
     await act(async () => result.current.handleSave());
 
@@ -1036,7 +970,7 @@ describe('MA-168 converted amount on the edit sheet', () => {
 
     expect(convertedFor(result.current)).toEqual({ amount: 490, currency: Currency.EGP });
 
-    await act(() => result.current.setExchangeRate('50'));
+    await act(() => result.current.commitExchangeRate('50'));
 
     expect(convertedFor(result.current)).toEqual({ amount: 500, currency: Currency.EGP });
   });

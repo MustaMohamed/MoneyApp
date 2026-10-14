@@ -1,9 +1,30 @@
-import type { ComponentProps } from 'react';
-
 import { ExchangeRateRow } from './exchange_rate_row';
+import { openRateEditor } from './rate_editor_sheet.hook';
 
-type Props = Omit<ComponentProps<typeof ExchangeRateRow>, 'previewEgpAmount' | 'previewHidden'>;
+interface Props {
+  ownerId: string;
+  value: string;
+  overrideEnabled: boolean;
+  onToggleOverride: () => void;
+  rateUpdatedAt: string | null;
+}
 
-export function TransactionExchangeRateRow(props: Props): React.ReactElement {
-  return <ExchangeRateRow {...props} previewHidden previewEgpAmount={undefined} />;
+export function TransactionExchangeRateRow({
+  ownerId,
+  value,
+  overrideEnabled,
+  onToggleOverride,
+  rateUpdatedAt,
+}: Props): React.ReactElement {
+  return (
+    <ExchangeRateRow
+      value={value}
+      onOpenEditor={() => openRateEditor(ownerId, value)}
+      overrideEnabled={overrideEnabled}
+      onToggleOverride={onToggleOverride}
+      rateUpdatedAt={rateUpdatedAt}
+      previewHidden
+      previewEgpAmount={undefined}
+    />
+  );
 }
