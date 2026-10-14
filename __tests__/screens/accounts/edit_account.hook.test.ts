@@ -14,8 +14,7 @@ import {
   MIN_PAYMENT_REFUSES_ZERO,
 } from '@/modules/accounts/utils/credit_fields.schema';
 import type { EditAccountFormData } from '@/modules/accounts/utils/edit_account.schema';
-import type { Deferred } from '@/test_helpers/deferred';
-import { deferred } from '@/test_helpers/deferred';
+import { deferred, type Deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';

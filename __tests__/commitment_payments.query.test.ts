@@ -315,8 +315,8 @@ describe('addPayments', () => {
 
 describe('insertPaymentRows', () => {
   it('serializes bounded INSERT OR IGNORE chunks without opening a transaction', async () => {
-    const first = deferred<{ changes: number; lastInsertRowId: number }>();
-    const second = deferred<{ changes: number; lastInsertRowId: number }>();
+    const first = deferred<SQLite.SQLiteRunResult>();
+    const second = deferred<SQLite.SQLiteRunResult>();
     const runAsync = jest
       .fn()
       .mockReturnValueOnce(first.promise)
