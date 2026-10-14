@@ -42,7 +42,7 @@ function packageForm(text) {
   // A Set visits entries added while it is iterated, so this loop runs to a fixpoint.
   for (const name of reached) {
     const command = scripts[name];
-    const tokens = typeof command === 'string' ? command.split(/[\s;&|]+/) : [];
+    const tokens = typeof command === 'string' ? command.split(/[\s;&|()<>'"`]+/) : [];
     for (const next of [...tokens, `pre${name}`, `post${name}`]) {
       if (Object.hasOwn(scripts, next)) reached.add(next);
     }

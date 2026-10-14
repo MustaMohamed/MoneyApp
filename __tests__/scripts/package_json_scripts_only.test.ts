@@ -178,6 +178,17 @@ describe('package_json_scripts_only, working tree against HEAD', () => {
       workingTree(json({ ...BASE, scripts: REACHED }), json({ ...BASE, scripts: after })),
     ).toEqual({ status, stdout: '' });
   });
+
+  it("exits 1 when apply-patches, which postinstall runs inside sh -c '…', is edited", () => {
+    const quoted = { ...REACHED, postinstall: "sh -c 'npm run apply-patches'" };
+
+    expect(
+      workingTree(
+        json({ ...BASE, scripts: quoted }),
+        json({ ...BASE, scripts: { ...quoted, 'apply-patches': 'patch-package --error-on-fail' } }),
+      ),
+    ).toEqual({ status: 1, stdout: '' });
+  });
 });
 
 describe('package_json_scripts_only, two revisions', () => {
