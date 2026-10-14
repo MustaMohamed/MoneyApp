@@ -5,7 +5,6 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,10 +17,7 @@ import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 import { formatAccountBalance } from '@/utils/format_amount';
 
-import {
-  FIELD_MESSAGE_RAIL_STYLE,
-  FIELD_MESSAGE_TEXT_LINE_HEIGHT,
-} from '../../../../components/account_form/account_form.geometry';
+import { FieldMessageTrack } from '../../../../components/account_form/field_message_rail';
 import { parseAdjustInput } from './adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
 
@@ -71,24 +67,7 @@ function AdjustBalanceSheetBody({
           <Typography className="text-muted font-sora-bold text-[15px]">{currency}</Typography>
         }
       />
-      {/* One track for helper and error, announced live; `FieldMessageRail` is RHF-bound and this sheet is not, so the shape is reused, not the component. */}
-      <Box style={FIELD_MESSAGE_RAIL_STYLE} collapsable={false} accessibilityLiveRegion="polite">
-        {error ? (
-          <FormErrorText
-            message={error}
-            disableAnimation
-            style={{ fontSize: Type.detail, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT }}
-          />
-        ) : (
-          // Not HeroUI `Description`: it paints `--color-muted` and this copy must stay readable.
-          <Typography
-            className="font-inter text-foreground"
-            style={{ fontSize: Type.detail, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT }}
-          >
-            {Strings.adjustBalanceHelper}
-          </Typography>
-        )}
-      </Box>
+      <FieldMessageTrack error={error} helper={Strings.adjustBalanceHelper} />
     </Box>
   );
 }
