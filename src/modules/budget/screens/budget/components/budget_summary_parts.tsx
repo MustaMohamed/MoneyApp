@@ -22,6 +22,7 @@ const STACKED_METRIC_PRESSABLE_STYLE = {
   minHeight: TouchSize.min,
 } as const;
 const STACKED_BALANCE_STYLE = { flexShrink: 1 } as const;
+const META_TEXT_STYLE = { fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) } as const;
 
 interface BudgetSummaryHeaderProps {
   eyebrowLabel: string;
@@ -92,7 +93,7 @@ export function BudgetSummaryHeader({
         </Text>
         {eyebrowTrailingLabel ? (
           <Text
-            style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+            style={META_TEXT_STYLE}
             className="font-inter-semibold text-content-secondary shrink-0"
             numberOfLines={1}
           >
@@ -116,10 +117,7 @@ export function BudgetSummaryHeader({
             >
               {balanceLabel}
             </Text>
-            <Text
-              style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
-              className="font-inter-medium text-content-secondary"
-            >
+            <Text style={META_TEXT_STYLE} className="font-inter-medium text-content-secondary">
               {balanceMetaLabel}
             </Text>
           </View>
@@ -134,10 +132,7 @@ export function BudgetSummaryHeader({
             numberOfLines={2}
           >
             {balanceLabel}
-            <Text
-              style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
-              className="font-inter-medium text-content-secondary"
-            >
+            <Text style={META_TEXT_STYLE} className="font-inter-medium text-content-secondary">
               {' '}
               {balanceMetaLabel}
             </Text>
@@ -158,7 +153,7 @@ export function BudgetSummaryHeader({
           <View className="shrink-0 flex-row items-center gap-1.5">
             {trailingLabel ? (
               <Text
-                style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+                style={META_TEXT_STYLE}
                 className="font-inter-semibold text-content-secondary shrink"
                 numberOfLines={1}
               >
@@ -193,10 +188,7 @@ export function BudgetSummaryHeader({
             animation="disable-all"
             className="min-h-7 px-2 py-0"
           >
-            <Chip.Label
-              style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
-              className="font-inter-semibold capitalize"
-            >
+            <Chip.Label style={META_TEXT_STYLE} className="font-inter-semibold capitalize">
               {trailingChipLabel}
             </Chip.Label>
           </Chip>

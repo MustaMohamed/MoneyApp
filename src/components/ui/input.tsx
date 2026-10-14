@@ -14,9 +14,12 @@ import type { ReactNode } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import {
+  INPUT_HIDDEN_TEXT_STYLE,
   INPUT_REST_SELECTION,
-  type InputRestTextInsets,
+  INPUT_REST_TEXT_START,
+  type InputRestOverlay,
   type InputValueAtRest,
+  isInputRestOverlay,
   resolveInputRestTextProps,
 } from '@/components/ui/input.geometry';
 import { useInputValueAtRest } from '@/components/ui/input.hook';
@@ -26,7 +29,7 @@ import { Colors } from '@/constants/theme';
 export const INPUT_NO_FOCUS_BORDER_COLOR = Colors.shared.transparent;
 
 const INPUT_TEXT_STYLE = { includeFontPadding: false, textAlignVertical: 'center' } as const;
-const INPUT_HIDDEN_TEXT_STYLE = { color: Colors.shared.hiddenText } as const;
+const REST_VALUE_CLASS = 'font-inter text-foreground';
 
 export interface InputProps extends HInputProps {
   className?: string;
@@ -38,20 +41,22 @@ export interface InputProps extends HInputProps {
   suffixClassName?: string;
   /** Caps `errorMessage` at N lines; uncapped it wraps and widens a fixed-height slot. */
   errorNumberOfLines?: number;
-  /** Above font scale 1, how the value shows while the field has no focus; unset, the input shows it as it scrolled. */
+  /** Above font scale 1, how the value shows while the field has no focus; an overlay assumes the input's own start padding and its `text-[16px]` step, drawn as `Type.subhead`. */
   valueAtRest?: InputValueAtRest;
+  /** The overlay text's class for `'fit'` and `'ellipsis'`. */
+  restValueClassName?: string;
 }
 
 interface RestValueProps {
-  display: 'fit' | 'ellipsis';
-  insets: InputRestTextInsets;
+  display: InputRestOverlay;
+  end: number;
   value: string | undefined;
-  isDisabled: boolean | undefined;
+  className: string;
   fontScale: number;
 }
 
 /** The value at rest drawn over the input box; the input under it keeps the tap and the screen reader. */
-function RestValue({ display, insets, value, isDisabled, fontScale }: RestValueProps) {
+function RestValue({ display, end, value, className, fontScale }: RestValueProps) {
   return (
     <View
       pointerEvents="none"
@@ -61,15 +66,12 @@ function RestValue({ display, insets, value, isDisabled, fontScale }: RestValueP
         position: 'absolute',
         top: 0,
         bottom: 0,
-        start: insets.start,
-        end: insets.end,
+        start: INPUT_REST_TEXT_START,
+        end,
         justifyContent: 'center',
       }}
     >
-      <Typography
-        {...resolveInputRestTextProps(display, fontScale)}
-        className={isDisabled ? 'font-inter text-foreground/70' : 'font-inter text-foreground'}
-      >
+      <Typography {...resolveInputRestTextProps(display, fontScale)} className={className}>
         {value}
       </Typography>
     </View>
@@ -89,6 +91,7 @@ export function Input({
   suffixClassName,
   style,
   valueAtRest,
+  restValueClassName = REST_VALUE_CLASS,
   value,
   selection,
   onFocus,
@@ -98,8 +101,8 @@ export function Input({
   const invalid = isInvalid ?? false;
   const { fontScale } = useWindowDimensions();
   const binding = useInputValueAtRest({ valueAtRest, value, fontScale, onFocus, onBlur });
-  const restDisplay =
-    binding.shown === 'fit' || binding.shown === 'ellipsis' ? binding.shown : undefined;
+  const restDisplay = isInputRestOverlay(binding.shown) ? binding.shown : undefined;
+  const fieldClassName = cn('font-inter py-2 text-[16px]', className);
   const fieldProps = {
     style:
       restDisplay === undefined
@@ -115,9 +118,9 @@ export function Input({
     restDisplay === undefined ? null : (
       <RestValue
         display={restDisplay}
-        insets={binding.insets}
+        end={binding.restTextEnd}
         value={value}
-        isDisabled={isDisabled}
+        className={restValueClassName}
         fontScale={fontScale}
       />
     );
@@ -126,10 +129,7 @@ export function Input({
       {label ? <Label>{label}</Label> : null}
       {suffix ? (
         <InputGroup isDisabled={isDisabled}>
-          <InputGroup.Input
-            className={cn('font-inter py-2 text-[16px]', className)}
-            {...fieldProps}
-          />
+          <InputGroup.Input className={fieldClassName} {...fieldProps} />
           {restValue}
           <InputGroup.Suffix
             isDecorative
@@ -139,13 +139,13 @@ export function Input({
             {suffix}
           </InputGroup.Suffix>
         </InputGroup>
-      ) : valueAtRest === 'fit' || valueAtRest === 'ellipsis' ? (
+      ) : isInputRestOverlay(valueAtRest) ? (
         <View>
-          <HInput className={cn('font-inter py-2 text-[16px]', className)} {...fieldProps} />
+          <HInput className={fieldClassName} {...fieldProps} />
           {restValue}
         </View>
       ) : (
-        <HInput className={cn('font-inter py-2 text-[16px]', className)} {...fieldProps} />
+        <HInput className={fieldClassName} {...fieldProps} />
       )}
       {helperText ? <Description>{helperText}</Description> : null}
       {errorMessage ? (

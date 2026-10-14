@@ -1,7 +1,11 @@
 import { act, renderHook } from '@testing-library/react-native';
 import type { BlurEvent, FocusEvent, LayoutChangeEvent } from 'react-native';
 
-import { INPUT_PADDING_INLINE, type InputValueAtRest } from '@/components/ui/input.geometry';
+import {
+  INPUT_BORDER_WIDTH,
+  INPUT_PADDING_INLINE,
+  type InputValueAtRest,
+} from '@/components/ui/input.geometry';
 import { useInputValueAtRest } from '@/components/ui/input.hook';
 
 interface ValueAtRestProps {
@@ -88,15 +92,12 @@ describe('useInputValueAtRest', () => {
     expect(hook.result.current.onSuffixLayout).toBeUndefined();
   });
 
-  it("MA-179: the suffix's measured width of 64 ends the value at 64, after the field padding before any layout", async () => {
+  it("MA-179: the suffix's measured width of 64 ends the value at 64 inside the input's border, at the field padding before any layout", async () => {
     const { hook } = await mountValueAtRest({ valueAtRest: 'fit', value: LIMIT, fontScale: 2 });
-    expect(hook.result.current.insets).toEqual({
-      start: INPUT_PADDING_INLINE,
-      end: INPUT_PADDING_INLINE,
-    });
+    expect(hook.result.current.restTextEnd).toBe(INPUT_PADDING_INLINE + INPUT_BORDER_WIDTH);
 
     await act(() => defined(hook.result.current.onSuffixLayout, 'onSuffixLayout')(layoutEvent(64)));
 
-    expect(hook.result.current.insets).toEqual({ start: INPUT_PADDING_INLINE, end: 64 });
+    expect(hook.result.current.restTextEnd).toBe(64 + INPUT_BORDER_WIDTH);
   });
 });

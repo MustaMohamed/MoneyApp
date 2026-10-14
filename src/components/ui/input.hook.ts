@@ -2,9 +2,9 @@ import { useCallback, useState } from 'react';
 import type { BlurEvent, FocusEvent, LayoutChangeEvent, TextInputProps } from 'react-native';
 
 import {
-  type InputRestTextInsets,
   type InputValueAtRest,
-  resolveInputRestTextInsets,
+  isInputRestOverlay,
+  resolveInputRestTextEnd,
 } from '@/components/ui/input.geometry';
 
 export interface InputValueAtRestOptions {
@@ -17,7 +17,7 @@ export interface InputValueAtRestOptions {
 
 export interface InputValueAtRestBinding {
   shown: InputValueAtRest | undefined;
-  insets: InputRestTextInsets;
+  restTextEnd: number;
   onFocus: TextInputProps['onFocus'];
   onBlur: TextInputProps['onBlur'];
   onSuffixLayout: ((event: LayoutChangeEvent) => void) | undefined;
@@ -55,10 +55,10 @@ export function useInputValueAtRest({
   }, []);
 
   const atRest = fontScale > 1 && !focused && value !== undefined && value !== '';
-  const overlays = valueAtRest === 'fit' || valueAtRest === 'ellipsis';
+  const overlays = isInputRestOverlay(valueAtRest);
   return {
     shown: atRest ? valueAtRest : undefined,
-    insets: resolveInputRestTextInsets(suffixWidth),
+    restTextEnd: resolveInputRestTextEnd(suffixWidth),
     onFocus: valueAtRest === undefined ? onFocus : handleFocus,
     onBlur: valueAtRest === undefined ? onBlur : handleBlur,
     onSuffixLayout: overlays ? handleSuffixLayout : undefined,
