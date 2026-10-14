@@ -43,6 +43,12 @@ const NO_FILE = 'matches no file';
 const OUTSIDE_PROVIDER = 'sits outside';
 const KEPT_VIEW = 'collapsable={false}';
 const NO_KEPT_VIEW = 'no `collapsable={false}` on the view that holds the live region';
+const LIVE_REGION = 'accessibilityLiveRegion="polite"';
+const NO_HOLDER = 'no element holds';
+const CUT_TAG = 'a tag the pattern cannot read holds';
+const NO_KEEPER =
+  'an element holds `accessibilityLiveRegion=` without `collapsable={false}`, `accessible`, or a literal `testID` or `nativeID`';
+const SEEDED_LIVE_REGION = 'src/modules/accounts/seeded_live_region.tsx';
 
 // A seed finds its target by the pattern the guard matches, so a reworded line in src/ fails no case.
 function importFrom(module: string): RegExp {
@@ -603,12 +609,45 @@ describe('validate-structural-guards.js, named files', () => {
   });
 
   it.each([
-    { rel: FIELD_MESSAGE_RAIL, marker: 'accessibilityLiveRegion="polite"' },
-    { rel: STATUS_TRACK, marker: '{...model.a11y}' },
-  ])('reports $rel when no view in it holds its live region', ({ rel, marker }) => {
-    replaceEvery(rel, marker, '');
+    {
+      rel: FIELD_MESSAGE_RAIL,
+      search: LIVE_REGION,
+      replacement: '',
+      words: `${NO_HOLDER} \`accessibilityLiveRegion=\``,
+      absent: NO_KEPT_VIEW,
+    },
+    {
+      rel: STATUS_TRACK,
+      search: '{...model.a11y}',
+      replacement: '',
+      words: `${NO_HOLDER} \`{...model.a11y}\``,
+      absent: NO_KEPT_VIEW,
+    },
+    {
+      rel: STATUS_TRACK,
+      search: '{...model.a11y}',
+      replacement: 'hitSlop={n > 0 ? 4 : 0} {...model.a11y}',
+      words: `${CUT_TAG} \`{...model.a11y}\``,
+      absent: NO_HOLDER,
+    },
+  ])(
+    'reports $rel with its own words when $search becomes "$replacement"',
+    ({ rel, search, replacement, words, absent }) => {
+      replaceEvery(rel, search, replacement);
 
-    expectReported(runGuard(), [lineFor(rel, NO_KEPT_VIEW)]);
+      const result = runGuard();
+
+      expectReported(result, [lineFor(rel, words)]);
+      expect(
+        stderrLines(result).filter((line) => line.startsWith(`${rel}:`) && line.includes(absent)),
+      ).toEqual([]);
+    },
+  );
+
+  it('exits 0 when an arrow-function prop sits before the live region on the kept view', () => {
+    replaceOnce(COMMITMENT_FORM_BODY, LIVE_REGION, `onLayout={(e) => setH(e)} ${LIVE_REGION}`);
+
+    expectClean(runGuard());
   });
 });
 
@@ -644,6 +683,33 @@ describe('validate-structural-guards.js, tree rows and deleted paths', () => {
 
   it('exits 0 on a store accessor named useState in a screen template', () => {
     appendLine(locate(isTemplate), 'useFooState.useState.bar();');
+
+    expectClean(runGuard());
+  });
+
+  it.each([
+    { tag: `<View style={{ flex: 1 }} ${LIVE_REGION} />`, words: NO_KEEPER },
+    { tag: `<View testID={testID} ${LIVE_REGION} />`, words: NO_KEEPER },
+    { tag: `<View accessible={false} ${LIVE_REGION} />`, words: NO_KEEPER },
+    { tag: `<View testID="" ${LIVE_REGION} />`, words: NO_KEEPER },
+    {
+      tag: `<View style={{ minHeight: lines > 1 ? 32 : 16 }} ${LIVE_REGION} />`,
+      words: `${CUT_TAG} \`accessibilityLiveRegion=\``,
+    },
+  ])('T4: reports a live region on $tag', ({ tag, words }) => {
+    write(SEEDED_LIVE_REGION, `${tag}\n`);
+
+    expectReported(runGuard(), [lineFor(SEEDED_LIVE_REGION, words)]);
+  });
+
+  it.each([
+    'collapsable={false}',
+    'accessible',
+    'accessible={true}',
+    'testID="seeded"',
+    'nativeID="seeded"',
+  ])('T4: exits 0 on a live region kept by %s', (keeper) => {
+    write(SEEDED_LIVE_REGION, `<View ${keeper} ${LIVE_REGION} />\n`);
 
     expectClean(runGuard());
   });
