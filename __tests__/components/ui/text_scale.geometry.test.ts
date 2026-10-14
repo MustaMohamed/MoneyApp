@@ -4,6 +4,7 @@ import {
   FITTED_LINE_SLACK,
   resolveFitAmountTextProps,
   resolveLoneWordLines,
+  resolveMessageGlyphShift,
   resolveOneLineTextProps,
   resolveRowStacking,
   resolveUncappedLinesAboveOne,
@@ -144,5 +145,23 @@ describe('resolveFitAmountTextProps', () => {
       adjustsFontSizeToFit: true,
       style: scaledTextStyle(Type.title, 2),
     });
+  });
+});
+
+describe('resolveMessageGlyphShift', () => {
+  it('MA-184: at font scale 1 keeps the glyph where it sits, whatever the drawn line', () => {
+    expect(resolveMessageGlyphShift(20, 20.19, 1)).toBe(0);
+  });
+
+  it('MA-184: at font scale 2 keeps the glyph where it sits until a first line is measured', () => {
+    expect(resolveMessageGlyphShift(20, undefined, 2)).toBe(0);
+  });
+
+  it('MA-184: at font scale 2 moves the glyph down by half the growth of the drawn first line', () => {
+    expect(resolveMessageGlyphShift(20, 34.29, 2)).toBeCloseTo(7.145, 6);
+  });
+
+  it('MA-184: at font scale 0.85 moves the glyph up by half the shrink of the drawn first line', () => {
+    expect(resolveMessageGlyphShift(20, 17.14, 0.85)).toBeCloseTo(-1.43, 6);
   });
 });

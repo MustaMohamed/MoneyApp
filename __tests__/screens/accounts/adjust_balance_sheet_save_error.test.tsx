@@ -99,65 +99,6 @@ function renderSheet(onSave: (v: number) => void | Promise<void>, isLoading = fa
   );
 }
 
-beforeEach(() => {
-  jest.clearAllMocks();
-  useAdjustBalanceSheetState.getState().reset();
-});
-
-describe('AdjustBalanceSheet save failure', () => {
-  it('H5: surfaces a rejected save on the sheet instead of dropping it', async () => {
-    const onSave = jest.fn().mockRejectedValue(new Error('db write failed'));
-    const { getByTestId, getByText } = await renderSheet(onSave);
-
-    await fireEvent.press(getByText(Strings.adjustBalanceSave));
-
-    expect(onSave).toHaveBeenCalledWith(CURRENT_BALANCE);
-    await waitFor(() =>
-      expect(getByTestId('balance-error')).toHaveTextContent(Strings.adjustBalanceSaveError),
-    );
-    // The parse error asks the user to change the value; this one asks them to retry it.
-    expect(getByTestId('balance-error')).not.toHaveTextContent(Strings.errBalanceInvalid);
-  });
-
-  it('says nothing when the save succeeds', async () => {
-    const onSave = jest.fn().mockResolvedValue(undefined);
-    const { getByText, queryByTestId } = await renderSheet(onSave);
-
-    await fireEvent.press(getByText(Strings.adjustBalanceSave));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(CURRENT_BALANCE));
-    expect(queryByTestId('balance-error')).toBeNull();
-  });
-
-  it('shows the parse error and never reaches the store on unreadable input', async () => {
-    const onSave = jest.fn().mockResolvedValue(undefined);
-    const { getByTestId, getByText } = await renderSheet(onSave);
-
-    await fireEvent.changeText(getByTestId('balance-input'), '27,500abc');
-    await fireEvent.press(getByText(Strings.adjustBalanceSave));
-
-    expect(onSave).not.toHaveBeenCalled();
-    expect(getByTestId('balance-error')).toHaveTextContent(Strings.errBalanceInvalid);
-  });
-
-  it('replaces the parse error with the save error rather than stacking them', async () => {
-    const onSave = jest.fn().mockRejectedValue(new Error('db write failed'));
-    const { getByTestId, getByText } = await renderSheet(onSave);
-
-    await fireEvent.changeText(getByTestId('balance-input'), 'abc');
-    await fireEvent.press(getByText(Strings.adjustBalanceSave));
-    expect(getByTestId('balance-error')).toHaveTextContent(Strings.errBalanceInvalid);
-
-    await fireEvent.changeText(getByTestId('balance-input'), '31000');
-    await fireEvent.press(getByText(Strings.adjustBalanceSave));
-
-    await waitFor(() =>
-      expect(getByTestId('balance-error')).toHaveTextContent(Strings.adjustBalanceSaveError),
-    );
-    expect(onSave).toHaveBeenCalledWith(31000);
-  });
-});
-
 type HostNode = ReturnType<typeof screen.getByTestId>;
 
 const ALERT_GLYPH = 'icon-alert-circle-outline';
@@ -182,8 +123,38 @@ function messageOrder(track: HostNode): string[] {
     });
 }
 
-describe('AdjustBalanceSheet message track', () => {
-  it('MA-184: an unreadable amount swaps the helper for the alert glyph, then the parse error, in the live track', async () => {
+beforeEach(() => {
+  jest.clearAllMocks();
+  useAdjustBalanceSheetState.getState().reset();
+});
+
+describe('AdjustBalanceSheet save failure', () => {
+  it('H5: surfaces a rejected save on the sheet instead of dropping it', async () => {
+    const onSave = jest.fn().mockRejectedValue(new Error('db write failed'));
+    const { getByTestId, getByText } = await renderSheet(onSave);
+
+    await fireEvent.press(getByText(Strings.adjustBalanceSave));
+
+    expect(onSave).toHaveBeenCalledWith(CURRENT_BALANCE);
+    await waitFor(() =>
+      expect(getByTestId('balance-error')).toHaveTextContent(Strings.adjustBalanceSaveError),
+    );
+    // The parse error asks the user to change the value; this one asks them to retry it.
+    expect(getByTestId('balance-error')).not.toHaveTextContent(Strings.errBalanceInvalid);
+    expect(messageOrder(liveRegionAbove(getByTestId(ERROR_ID)))).toEqual([ALERT_GLYPH, ERROR_ID]);
+  });
+
+  it('says nothing when the save succeeds', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const { getByText, queryByTestId } = await renderSheet(onSave);
+
+    await fireEvent.press(getByText(Strings.adjustBalanceSave));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(CURRENT_BALANCE));
+    expect(queryByTestId('balance-error')).toBeNull();
+  });
+
+  it('shows the parse error and never reaches the store on unreadable input', async () => {
     const onSave = jest.fn().mockResolvedValue(undefined);
     const { getByTestId, getByText, queryByTestId, queryByText } = await renderSheet(onSave);
 
@@ -193,25 +164,31 @@ describe('AdjustBalanceSheet message track', () => {
     await fireEvent.changeText(getByTestId('balance-input'), '27,500abc');
     await fireEvent.press(getByText(Strings.adjustBalanceSave));
 
-    const track = liveRegionAbove(getByTestId(ERROR_ID));
-    expect(getByTestId(ERROR_ID)).toHaveTextContent(Strings.errBalanceInvalid);
+    expect(onSave).not.toHaveBeenCalled();
+    expect(getByTestId('balance-error')).toHaveTextContent(Strings.errBalanceInvalid);
     expect(queryByText(Strings.adjustBalanceHelper)).toBeNull();
+    const track = liveRegionAbove(getByTestId(ERROR_ID));
+    expect(messageOrder(track)).toEqual([ALERT_GLYPH, ERROR_ID]);
     expect(track).toHaveProp('accessibilityLiveRegion', 'polite');
     expect(track).toHaveProp('collapsable', false);
     expect(track).toHaveStyle(FIELD_MESSAGE_RAIL_STYLE);
-    expect(messageOrder(track)).toEqual([ALERT_GLYPH, ERROR_ID]);
   });
 
-  it('MA-184: a rejected save shows the alert glyph, then the save error', async () => {
+  it('replaces the parse error with the save error rather than stacking them', async () => {
     const onSave = jest.fn().mockRejectedValue(new Error('db write failed'));
     const { getByTestId, getByText } = await renderSheet(onSave);
 
+    await fireEvent.changeText(getByTestId('balance-input'), 'abc');
+    await fireEvent.press(getByText(Strings.adjustBalanceSave));
+    expect(getByTestId('balance-error')).toHaveTextContent(Strings.errBalanceInvalid);
+
+    await fireEvent.changeText(getByTestId('balance-input'), '31000');
     await fireEvent.press(getByText(Strings.adjustBalanceSave));
 
     await waitFor(() =>
-      expect(getByTestId(ERROR_ID)).toHaveTextContent(Strings.adjustBalanceSaveError),
+      expect(getByTestId('balance-error')).toHaveTextContent(Strings.adjustBalanceSaveError),
     );
-    expect(messageOrder(liveRegionAbove(getByTestId(ERROR_ID)))).toEqual([ALERT_GLYPH, ERROR_ID]);
+    expect(onSave).toHaveBeenCalledWith(31000);
   });
 });
 
