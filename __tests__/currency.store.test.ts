@@ -1,6 +1,7 @@
 import { isRateUsable } from '@/modules/accounts/domain/account_aggregation';
 import { createCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
+import { deferred } from '@/test_helpers/deferred';
 
 const INITIAL_EXPECTATION = {
   rate: 50,
@@ -26,16 +27,6 @@ function makeTrackedRepo(seed: Record<string, string> = {}) {
 
 function makeRepo(seed: Record<string, string> = {}): IAppSettingsRepository {
   return makeTrackedRepo(seed).repo;
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (error: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
 }
 
 function rateResponse(rate: number): Response {

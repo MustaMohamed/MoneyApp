@@ -19,6 +19,7 @@ import {
 } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { formatStoredMoneyText } from '@/utils/money_text';
 
@@ -86,14 +87,6 @@ const p1: CommitmentPayment = {
   updated_at: '2026-01-01T00:00:00.000Z',
 };
 const p2: CommitmentPayment = { ...p1, id: 'p2', due_date: '2026-06-01' };
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
-}
 
 const entries = () => usePaySheetState.getState().entries;
 

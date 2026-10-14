@@ -12,6 +12,7 @@ import {
   useTransactionStore,
 } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
+import { deferred } from '@/test_helpers/deferred';
 
 const NOW = '2026-05-01T12:00:00.000Z';
 
@@ -39,16 +40,6 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
     ...overrides,
     revolving_balance_delta: overrides.revolving_balance_delta ?? null,
   };
-}
-
-function deferred<T>() {
-  let resolve!: (v: T) => void;
-  let reject!: (err: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
 }
 
 interface MockTransactionRepository {

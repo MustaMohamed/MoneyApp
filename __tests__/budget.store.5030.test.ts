@@ -2,19 +2,12 @@ import { BudgetGroup } from '@/constants/enums';
 import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
 import type { BudgetMonthSnapshot } from '@/modules/budget/repositories/budget.repository';
 import { createBudgetStore, type BudgetStoreRepository } from '@/modules/budget/store/budget.store';
+import { deferred } from '@/test_helpers/deferred';
 
 jest.mock('@/modules/budget/repositories/budget.repository', () => ({
   budgetRepository: {},
   currentYearMonth: jest.fn().mockReturnValue('2026-05'),
 }));
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
-}
 
 function makeRepo(
   incomeByMonth: Record<string, number | null> = {},

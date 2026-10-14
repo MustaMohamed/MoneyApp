@@ -1,16 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { deferred } from '@/test_helpers/deferred';
 import { useAsync } from '@/utils/use_async.hook';
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
 
 describe('useAsync', () => {
   it('sets loading while the wrapped promise is pending and returns the resolved value', async () => {

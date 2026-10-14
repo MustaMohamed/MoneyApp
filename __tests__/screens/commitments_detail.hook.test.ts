@@ -18,6 +18,7 @@ import { useCommitmentDetail } from '@/modules/commitments/screens/commitments/d
 import { useCommitmentDetailState } from '@/modules/commitments/screens/commitments/detail/detail.state';
 import { useCommitmentDetailStore } from '@/modules/commitments/screens/commitments/detail/detail.store';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 type DetailParams = { id: string; originTxId?: string; originTxCopy?: string };
@@ -69,14 +70,6 @@ function paramsWrapper(params: DetailParams) {
   return function ParamsWrapper({ children }: PropsWithChildren): React.ReactElement {
     return createElement(mockParamsContext.Provider, { value: params }, children);
   };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
 }
 
 const commitment: Commitment = {

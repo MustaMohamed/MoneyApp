@@ -1,6 +1,7 @@
 import { OnboardingStep } from '@/constants/enums';
 import type { IOnboardingRepository } from '@/modules/onboarding/repositories/onboarding.repository';
 import { createOnboardingStore, useOnboardingStore } from '@/store/onboarding.store';
+import { deferred } from '@/test_helpers/deferred';
 
 function makeRepo(): jest.Mocked<IOnboardingRepository> {
   return {
@@ -11,14 +12,6 @@ function makeRepo(): jest.Mocked<IOnboardingRepository> {
       step: OnboardingStep.N1,
     }),
   };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((res) => {
-    resolve = res;
-  });
-  return { promise, resolve };
 }
 
 let repo: jest.Mocked<IOnboardingRepository>;

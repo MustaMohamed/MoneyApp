@@ -4,20 +4,7 @@ import type {
   IArchivedAccountDetailRepository,
 } from '@/modules/accounts/repositories/archived_account_detail.repository';
 import { createArchivedAccountDetailStore } from '@/modules/accounts/screens/accounts/detail/archived_account_detail.store';
-
-function deferred<T>(): {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (reason: unknown) => void;
-} {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-  return { promise, resolve, reject };
-}
+import { deferred } from '@/test_helpers/deferred';
 
 function input(accountId: string, mutationVersion = 0): ArchivedAccountDetailLoadInput {
   return { accountId, mutationVersion };

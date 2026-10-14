@@ -14,6 +14,8 @@ import {
   MIN_PAYMENT_REFUSES_ZERO,
 } from '@/modules/accounts/utils/credit_fields.schema';
 import type { EditAccountFormData } from '@/modules/accounts/utils/edit_account.schema';
+import type { Deferred } from '@/test_helpers/deferred';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
 import { holdStillTypingDecimal } from '@/utils/use_zod_form.hook';
@@ -101,16 +103,6 @@ function setup() {
     loadError,
     updateAccount: mockUpdateAccount,
   }));
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: Error) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, resolve, reject };
 }
 
 type Hook = Awaited<ReturnType<typeof renderHook<ReturnType<typeof useEditAccount>, unknown>>>;
@@ -767,11 +759,8 @@ describe('useEditAccount', () => {
     });
 
     it.each([
-      ['resolves', (pending: ReturnType<typeof deferred<void>>) => pending.resolve()],
-      [
-        'rejects',
-        (pending: ReturnType<typeof deferred<void>>) => pending.reject(new Error('disk full')),
-      ],
+      ['resolves', (pending: Deferred<void>) => pending.resolve()],
+      ['rejects', (pending: Deferred<void>) => pending.reject(new Error('disk full'))],
     ])(
       'a first account save that %s after the switch leaves the second account unsubmitted, with its edits kept',
       async (_outcome, settle) => {
