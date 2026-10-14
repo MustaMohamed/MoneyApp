@@ -101,6 +101,13 @@ const KEPT_VIEW = /(?<![\w$])collapsable=\{false\}/;
 // The props that keep a View on Android, `ViewShadowNode.cpp:50-72`; `testID={expr}` may be undefined.
 const KEEPER =
   /(?<=\s)(?:collapsable=\{false\}|accessible(?:=\{true\})?(?![\w$=])|(?:testID|nativeID)="[^"]+")/;
+const QUOTED = /"[^"]*"|'[^']*'|`[^`]*`/g;
+// A non-empty string's contents become `x`, so a keeper word inside another prop's value reads as no prop.
+function keepsView(/** @type {string} */ tag) {
+  return KEEPER.test(
+    tag.replace(QUOTED, (quoted) => (quoted.length > 2 ? `${quoted[0]}x${quoted[0]}` : quoted)),
+  );
+}
 // A `<` or `>` in a prop value other than an arrow's `=>` still ends the tag early.
 const OPENING_TAG = /<[A-Za-z](?:=>|[^<>])*>/g;
 const KEEPS_LIVE_REGION =
@@ -369,7 +376,7 @@ const TREE_ROWS = [
       readableMarker(LIVE_REGION),
       {
         found: (/** @type {string} */ source) =>
-          tagsHolding(source, literal(LIVE_REGION)).every((text) => KEEPER.test(text)),
+          tagsHolding(source, literal(LIVE_REGION)).every(keepsView),
         missing:
           'an element holds `accessibilityLiveRegion=` without `collapsable={false}`, `accessible`, or a literal `testID` or `nativeID`',
       },

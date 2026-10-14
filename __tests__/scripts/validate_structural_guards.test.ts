@@ -693,6 +693,10 @@ describe('validate-structural-guards.js, tree rows and deleted paths', () => {
     { tag: `<View accessible={false} ${LIVE_REGION} />`, words: NO_KEEPER },
     { tag: `<View testID="" ${LIVE_REGION} />`, words: NO_KEEPER },
     {
+      tag: `<View style={s} accessibilityHint="Opens accessible menu" ${LIVE_REGION} />`,
+      words: NO_KEEPER,
+    },
+    {
       tag: `<View style={{ minHeight: lines > 1 ? 32 : 16 }} ${LIVE_REGION} />`,
       words: `${CUT_TAG} \`accessibilityLiveRegion=\``,
     },
