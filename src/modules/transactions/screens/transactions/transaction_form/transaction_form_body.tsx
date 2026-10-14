@@ -22,6 +22,7 @@ import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_g
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { isRateStale } from '@/modules/currency/store/currency.helpers';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
@@ -39,6 +40,7 @@ import {
   resolveNoteInputGeometry,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form.geometry';
+import type { RatePreviewInput } from './components/transaction_rate_preview.hook';
 import { TypeTabs } from './components/type_tabs';
 import {
   type AccountStripChip,
@@ -78,7 +80,7 @@ interface BaseProps {
   /** The rate editor's Done; `false` keeps the editor open with its message. */
   commitExchangeRate: (text: string) => boolean;
   rateUpdatedAt: string | null;
-  /** The app's stored rate, which the editor's line and Reset read. */
+  /** The currency store's rate, not the transaction's own `exchangeRate`. */
   storedRate: number;
   date: string;
   setDate: (v: string) => void;
@@ -182,6 +184,13 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const supportingLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
   const noteGeometry = resolveNoteInputGeometry(fontScale);
+  const ratePreview: Omit<RatePreviewInput, 'exchangeRate'> = {
+    mode: formMode,
+    type,
+    sourceCurrency: selectedAccount?.currency,
+    destinationCurrency: selectedToAccount?.currency,
+  };
+  const rateStale = isRateStale(rateUpdatedAt, Date.now());
 
   return (
     <BottomSheetScrollView
@@ -248,13 +257,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         message={amountError}
       >
         {requiresRate && amountError === undefined ? (
-          <ConvertedAmountLine
-            mode={formMode}
-            type={type}
-            sourceCurrency={selectedAccount?.currency}
-            destinationCurrency={selectedToAccount?.currency}
-            exchangeRate={exchangeRate}
-          />
+          <ConvertedAmountLine {...ratePreview} exchangeRate={exchangeRate} />
         ) : null}
       </ValidationSlot>
 
@@ -385,11 +388,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
 
           {requiresRate ? (
             <View className={FACT_CELL_CLASS}>
-              <RateRow
-                ownerId={datePickerOwnerId}
-                value={exchangeRate}
-                rateUpdatedAt={rateUpdatedAt}
-              />
+              <RateRow ownerId={datePickerOwnerId} value={exchangeRate} stale={rateStale} />
             </View>
           ) : null}
 
@@ -445,10 +444,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         onCommit={commitExchangeRate}
         storedRate={storedRate}
         rateUpdatedAt={rateUpdatedAt}
-        mode={formMode}
-        type={type}
-        sourceCurrency={selectedAccount?.currency}
-        destinationCurrency={selectedToAccount?.currency}
+        stale={rateStale}
+        {...ratePreview}
       />
     </BottomSheetScrollView>
   );

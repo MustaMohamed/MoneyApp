@@ -1,6 +1,7 @@
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { formatStoredRateLine } from '@/modules/currency/store/currency.helpers';
 import {
   requiresDestination,
   requiresExchangeRate,
@@ -271,34 +272,14 @@ export function resolveConvertedAmount(input: {
   }
 }
 
-export const RATE_STALE_THRESHOLD_DAYS = 30;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** Strictly past 30 days from the stored rate's update; no update time, an unparseable one or a future one is fresh. */
-export function isRateStale(rateUpdatedAt: string | null, nowMs: number): boolean {
-  if (rateUpdatedAt === null) return false;
-  const updated = new Date(rateUpdatedAt).getTime();
-  if (isNaN(updated)) return false;
-  return nowMs - updated > RATE_STALE_THRESHOLD_DAYS * DAY_MS;
-}
-
-export function formatStoredRateLine(rateUpdatedAt: string | null): string {
-  if (rateUpdatedAt === null) return Strings.addTxRateSourceStored;
-  const date = new Date(rateUpdatedAt).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-  return `${Strings.addTxRateSourceStored} · ${Strings.addTxRateLastUpdated.replace('{date}', date)}`;
-}
-
 /** The editor's line: the stored rate's line only while the draft parses to the stored rate, the equality Done commits by. */
 export function resolveRateEditorSource(input: {
   draftText: string;
   storedRate: number;
   rateUpdatedAt: string | null;
 }): { usesStoredRate: boolean; line: string } {
-  const usesStoredRate = parseRateText(input.draftText) === input.storedRate;
+  const usesStoredRate =
+    resolveRateCommit({ text: input.draftText, storedRate: input.storedRate })?.override === false;
   return {
     usesStoredRate,
     line: usesStoredRate

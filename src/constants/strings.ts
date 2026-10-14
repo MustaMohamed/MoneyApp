@@ -1349,7 +1349,7 @@ export const Strings = {
   addTxRateSourceStored: 'Using stored rate',
   addTxRateSourceCustom: 'Custom rate',
   addTxRateSourceCustomPerUsd: 'Custom rate · EGP per 1 USD',
-  addTxRateLastUpdated: 'Last updated {date}',
+  addTxRateLastUpdated: (date: string) => `Last updated ${date}`,
   addTxRateReset: 'Reset to global',
   addTxRateResetToStored: 'Reset to stored rate',
   addTxRateResetToStoredAccessibility: 'Reset exchange rate to the stored rate',

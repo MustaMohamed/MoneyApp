@@ -1,5 +1,5 @@
 import { ListGroup, cn } from 'heroui-native';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { View, type TextStyle, useWindowDimensions } from 'react-native';
 
 import {
@@ -15,7 +15,7 @@ interface FormPickerRowProps {
   testID: string;
   label: string;
   /** A line under the label; the label and it shrink together so the row grows past its floor. */
-  labelCaption?: ReactNode;
+  labelCaption?: ReactElement;
   value: string;
   onPress?: () => void;
   disabled?: boolean;
@@ -84,7 +84,7 @@ export function FormPickerRow({
       {labelCaption === undefined ? (
         labelNode
       ) : (
-        <View style={{ flexShrink: 1, minWidth: 0 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           {labelNode}
           {labelCaption}
         </View>
@@ -92,7 +92,8 @@ export function FormPickerRow({
       <View
         className="gap-2"
         style={{
-          flex: 1,
+          // With a caption the rate keeps its natural width and the caption takes the ellipsis.
+          flex: labelCaption === undefined ? 1 : 0,
           minWidth: 0,
           flexDirection: 'row',
           alignItems: 'center',

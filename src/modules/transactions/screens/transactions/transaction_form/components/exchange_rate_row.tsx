@@ -7,17 +7,17 @@ import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
+import { formatStoredRateLine, isRateStale } from '@/modules/currency/store/currency.helpers';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
-import { formatStoredRateLine, isRateStale } from '../transaction_form.helpers';
 import { RATE_MESSAGE_SLOT_STYLE } from './transaction_form.geometry';
 
 const RATE_PREVIEW_AMOUNT_DECIMALS = 2;
 // Shown when the EGP value is not derivable yet; `previewHidden` removes the line instead.
 const PREVIEW_PLACEHOLDER = '—';
 
-interface SharedProps {
+interface Props {
   value: string;
   overrideEnabled: boolean;
   onToggleOverride: () => void;
@@ -28,9 +28,9 @@ interface SharedProps {
   previewHidden?: boolean;
   /** Subtitle saying why a rate is required for a payment that converts nothing. */
   purposeCaption?: string;
+  onChange: (v: string) => void;
+  error?: string;
 }
-
-type Props = SharedProps & { onChange: (v: string) => void; error?: string };
 
 export function ExchangeRateRow({
   value,
@@ -45,7 +45,6 @@ export function ExchangeRateRow({
 }: Props): React.ReactElement {
   const stale = isRateStale(rateUpdatedAt, Date.now());
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
-  const showsInput = overrideEnabled;
 
   const subtitle = overrideEnabled
     ? Strings.addTxRateSourceCustom
@@ -56,8 +55,8 @@ export function ExchangeRateRow({
       <PressableFeedback
         testID="exchange-rate-row"
         onPress={overrideEnabled ? undefined : onToggleOverride}
-        accessibilityRole={showsInput ? undefined : 'button'}
-        accessibilityLabel={showsInput ? '' : Strings.addTxRateEditAccessibility}
+        accessibilityRole={overrideEnabled ? undefined : 'button'}
+        accessibilityLabel={overrideEnabled ? '' : Strings.addTxRateEditAccessibility}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <View style={{ flex: 1 }}>
@@ -90,7 +89,7 @@ export function ExchangeRateRow({
             </Text>
           ) : null}
         </View>
-        {showsInput ? (
+        {overrideEnabled ? (
           <View style={{ width: 100 }}>
             <Input
               testID="exchange-rate-input"

@@ -1,29 +1,21 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useWindowDimensions } from 'react-native';
 
-import { Text } from '@/components/ui/text';
-import {
-  resolveOneLineTextProps,
-  scaledTextStyleAboveOne,
-} from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { formatRateRowValue, isRateStale } from '../transaction_form.helpers';
+import { formatRateRowValue } from '../transaction_form.helpers';
 import { FormPickerRow } from './form_picker_row';
 import { openRateEditor } from './rate_editor_sheet.hook';
+import { RateStaleLine } from './rate_stale_line';
 
 interface Props {
   ownerId: string;
   value: string;
-  rateUpdatedAt: string | null;
+  stale: boolean;
 }
 
-export function RateRow({ ownerId, value, rateUpdatedAt }: Props): React.ReactElement {
-  const { fontScale } = useWindowDimensions();
-  const captionLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
-
+export function RateRow({ ownerId, value, stale }: Props): React.ReactElement {
   return (
     <FormPickerRow
       testID="exchange-rate-row"
@@ -32,22 +24,7 @@ export function RateRow({ ownerId, value, rateUpdatedAt }: Props): React.ReactEl
       divider={false}
       // The editor opens on the form's own text; the row's rounding never reaches it.
       onPress={() => openRateEditor(ownerId, value)}
-      labelCaption={
-        isRateStale(rateUpdatedAt, Date.now()) ? (
-          <Text
-            testID="exchange-rate-row-stale"
-            className="font-inter text-warning"
-            {...captionLine}
-            style={{
-              fontSize: Type.micro,
-              lineHeight: lineHeightFor(Type.micro),
-              ...captionLine.style,
-            }}
-          >
-            {Strings.addTxRateStale}
-          </Text>
-        ) : undefined
-      }
+      labelCaption={stale ? <RateStaleLine testID="exchange-rate-row-stale" /> : undefined}
       suffix={
         <MaterialCommunityIcons name="chevron-right" size={Size.iconSm} color={CoreTokens.text2} />
       }
