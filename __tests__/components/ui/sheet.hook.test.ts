@@ -131,6 +131,94 @@ describe('useSheetCloseLifecycle', () => {
   });
 });
 
+async function mountSheetReportingOpen(isOpen: boolean, reportsOpen = true) {
+  const onOpenComplete = jest.fn();
+  const hook = await renderHook(
+    (props: { open: boolean; reportsOpen: boolean }) =>
+      useSheetCloseLifecycle(props.open, undefined, props.reportsOpen ? onOpenComplete : undefined),
+    { initialProps: { open: isOpen, reportsOpen } },
+  );
+  const settleAt = (index: number) => act(() => hook.result.current.handleSheetIndexChange(index));
+  const setOpen = (open: boolean, nextReportsOpen = reportsOpen) =>
+    hook.rerender({ open, reportsOpen: nextReportsOpen });
+  return {
+    onOpenComplete,
+    settleAt,
+    setOpen,
+    requestClose: () => act(() => hook.result.current.handleSheetCloseRequest()),
+    closeThenReopen: async () => {
+      await setOpen(false);
+      await settleAt(-1);
+      await setOpen(true);
+    },
+  };
+}
+
+describe('useSheetCloseLifecycle, the settled open it reports', () => {
+  it('calls onOpenComplete once for an index of 0 on an open sheet', async () => {
+    const sheet = await mountSheetReportingOpen(true);
+    expect(sheet.onOpenComplete).not.toHaveBeenCalled();
+
+    await sheet.settleAt(0);
+    expect(sheet.onOpenComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls nothing more for a second index of 0 or more in the same open', async () => {
+    const sheet = await mountSheetReportingOpen(false);
+    await sheet.setOpen(true);
+    await sheet.settleAt(0);
+    await sheet.settleAt(0);
+    await sheet.settleAt(1);
+
+    expect(sheet.onOpenComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls nothing for a close request on an open no index has reported, or for the 0 that follows it', async () => {
+    const sheet = await mountSheetReportingOpen(true);
+    await sheet.requestClose();
+    await sheet.settleAt(0);
+    expect(sheet.onOpenComplete).not.toHaveBeenCalled();
+
+    await sheet.closeThenReopen();
+    await sheet.settleAt(0);
+    expect(sheet.onOpenComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls nothing for an index of 0 after isOpen dropped', async () => {
+    const sheet = await mountSheetReportingOpen(true);
+    await sheet.setOpen(false);
+    await sheet.settleAt(0);
+    expect(sheet.onOpenComplete).not.toHaveBeenCalled();
+
+    await sheet.settleAt(-1);
+    await sheet.setOpen(true);
+    await sheet.settleAt(0);
+    expect(sheet.onOpenComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls it again on the first index of a reopened sheet', async () => {
+    const sheet = await mountSheetReportingOpen(true);
+    await sheet.settleAt(0);
+    await sheet.closeThenReopen();
+    expect(sheet.onOpenComplete).toHaveBeenCalledTimes(1);
+
+    await sheet.settleAt(0);
+    expect(sheet.onOpenComplete).toHaveBeenCalledTimes(2);
+  });
+
+  it('throws nothing for an index of 0 with no handler passed, and calls one passed at the next open', async () => {
+    const sheet = await mountSheetReportingOpen(true, false);
+    await sheet.settleAt(0);
+    expect(sheet.onOpenComplete).not.toHaveBeenCalled();
+
+    await sheet.setOpen(false, true);
+    await sheet.settleAt(-1);
+    await sheet.setOpen(true, true);
+    await sheet.settleAt(0);
+    expect(sheet.onOpenComplete).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe.each([
   { sheet: 'a sheet with a close-complete handler', withHandler: true },
   { sheet: 'a sheet with no close-complete handler', withHandler: false },
