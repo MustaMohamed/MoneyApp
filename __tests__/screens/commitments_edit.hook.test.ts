@@ -5,7 +5,10 @@ import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
-import { COMMITMENT_AMOUNT_REFUSES_ZERO } from '@/modules/commitments/screens/commitments/commitment_form.shared';
+import {
+  COMMITMENT_AMOUNT_REFUSES_ZERO,
+  buildEditDefaults,
+} from '@/modules/commitments/screens/commitments/commitment_form.shared';
 import { useEditCommitment } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.hook';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
@@ -61,14 +64,17 @@ const commitment: Commitment = {
   updated_at: '2026-01-01T00:00:00.000Z',
 };
 
+let commitments: Commitment[] = [commitment];
+
 const updateCommitmentMock = jest.fn().mockResolvedValue(undefined);
 const deactivateCommitmentMock = jest.fn().mockResolvedValue(undefined);
 
 function setup() {
   updateCommitmentMock.mockResolvedValue(undefined);
   deactivateCommitmentMock.mockResolvedValue(undefined);
+  commitments = [commitment];
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    commitments: [commitment],
+    commitments,
     payments: [],
     selectedMonth: '2026-05',
     updateCommitment: updateCommitmentMock,
@@ -81,6 +87,10 @@ function setup() {
     categories: [],
   }));
 }
+
+type Pending = ReturnType<typeof deferred<void>>;
+
+type Hook = Awaited<ReturnType<typeof renderHook<ReturnType<typeof useEditCommitment>, unknown>>>;
 
 const entries = () => useEditCommitmentState.getState().entries;
 
@@ -399,5 +409,241 @@ describe('useEditCommitment', () => {
     expect(entries()[upperOwner]).toBe(before);
     expect(upper.result.current.state.saveError).toBeUndefined();
     expect(mockRouterReplace).not.toHaveBeenCalled();
+  });
+
+  describe('MA-188 the route opens on a second commitment on the mounted screen', () => {
+    const second: Commitment = {
+      id: 'com-2',
+      name: 'Cloud storage',
+      amount_type: AmountType.Variable,
+      amount: 15,
+      currency: Currency.USD,
+      category_id: 'category-software',
+      recurrence_every: 2,
+      recurrence_period: RecurrencePeriod.Weeks,
+      start_date: '2026-03-31',
+      account_id: 'acc-usd',
+      notes: 'Family plan',
+      duration_type: DurationType.AfterCount,
+      end_date: '2026-12-31',
+      end_after_count: 12,
+      is_active: 1,
+      created_at: '2026-03-31T00:00:00.000Z',
+      updated_at: '2026-03-31T00:00:00.000Z',
+    };
+
+    const settles: [string, (pending: Pending) => void][] = [
+      ['resolves', (pending) => pending.resolve()],
+      ['rejects', (pending) => pending.reject(new Error('disk full'))],
+    ];
+
+    beforeEach(() => {
+      commitments = [commitment, second];
+    });
+
+    async function openOn(hook: Hook, id: string) {
+      mockParams = { id };
+      mockPathname.current = `/commitments/${id}/edit`;
+      await hook.rerender({});
+    }
+
+    async function typeName(hook: Hook, name: string) {
+      await act(async () => {
+        hook.result.current.form.setValue('name', name, { shouldDirty: true, shouldTouch: true });
+      });
+    }
+
+    async function startSave(hook: Hook) {
+      const pending = deferred<void>();
+      updateCommitmentMock.mockReturnValueOnce(pending.promise);
+      let inFlight = Promise.resolve();
+      await act(async () => {
+        inFlight = hook.result.current.onSubmit();
+      });
+      expect(hook.result.current.state.saving).toBe(true);
+      return { pending, inFlight };
+    }
+
+    async function startDeactivate(hook: Hook) {
+      const pending = deferred<void>();
+      deactivateCommitmentMock.mockReturnValueOnce(pending.promise);
+      await act(async () => hook.result.current.handleDeactivate());
+      let inFlight = Promise.resolve();
+      await act(async () => {
+        inFlight = hook.result.current.confirmDeactivate();
+      });
+      expect(hook.result.current.state.saving).toBe(true);
+      return { pending, inFlight };
+    }
+
+    async function settle(inFlight: Promise<void>, finish: () => void) {
+      await act(async () => {
+        finish();
+        await inFlight;
+      });
+    }
+
+    function expectNoNavigation() {
+      expect(mockRouterDismissTo).not.toHaveBeenCalled();
+      expect(mockRouterBack).not.toHaveBeenCalled();
+      expect(mockRouterDismissAll).not.toHaveBeenCalled();
+      expect(mockRouterReplace).not.toHaveBeenCalled();
+    }
+
+    it('keeps what the user typed through a reload of the commitments on one commitment', async () => {
+      const hook = await renderHook(() => useEditCommitment());
+      await typeName(hook, 'Typed name');
+
+      commitments = [{ ...commitment }, second];
+      await hook.rerender({});
+
+      expect(hook.result.current.form.getValues('name')).toBe('Typed name');
+    });
+
+    it('every field shows the second commitment stored values', async () => {
+      const hook = await renderHook(() => useEditCommitment());
+      await typeName(hook, 'Typed name');
+
+      await openOn(hook, 'com-2');
+
+      expect(hook.result.current.form.getValues()).toEqual(buildEditDefaults(second));
+    });
+
+    it('drops a settled save failure of the first commitment', async () => {
+      updateCommitmentMock.mockRejectedValueOnce(new Error('disk full'));
+      const hook = await renderHook(() => useEditCommitment());
+      await act(async () => {
+        await hook.result.current.onSubmit();
+      });
+      expect(hook.result.current.state.saveError).toBe(Strings.commitmentsSaveError);
+
+      await openOn(hook, 'com-2');
+
+      expect(hook.result.current.state.saveError).toBeUndefined();
+    });
+
+    it('closes a deactivate confirmation opened on the first commitment', async () => {
+      const hook = await renderHook(() => useEditCommitment());
+      await act(async () => hook.result.current.handleDeactivate());
+      expect(hook.result.current.state.deactivateDialogVisible).toBe(true);
+
+      await openOn(hook, 'com-2');
+
+      expect(hook.result.current.state.deactivateDialogVisible).toBe(false);
+    });
+
+    it('a commitment that loads after mount drafts its stored values', async () => {
+      commitments = [];
+      const hook = await renderHook(() => useEditCommitment());
+
+      commitments = [commitment];
+      await hook.rerender({});
+
+      expect(hook.result.current.form.getValues()).toEqual(buildEditDefaults(commitment));
+    });
+
+    it('leaves the screen when the route opens on an id the commitments lack, and Save and Confirm write nothing', async () => {
+      const hook = await renderHook(() => useEditCommitment());
+      expect(mockRouterBack).not.toHaveBeenCalled();
+
+      await openOn(hook, 'com-missing');
+
+      expect(mockRouterBack).toHaveBeenCalled();
+      await act(async () => {
+        await hook.result.current.onSubmit();
+        await hook.result.current.confirmDeactivate();
+      });
+      expect(updateCommitmentMock).not.toHaveBeenCalled();
+      expect(deactivateCommitmentMock).not.toHaveBeenCalled();
+    });
+
+    it.each(settles)(
+      'a first commitment save that %s after the switch shows no error and navigates nowhere',
+      async (_outcome, finish) => {
+        const hook = await renderHook(() => useEditCommitment());
+        const { pending, inFlight } = await startSave(hook);
+
+        await openOn(hook, 'com-2');
+        await settle(inFlight, () => finish(pending));
+
+        expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
+        expect(updateCommitmentMock).toHaveBeenCalledWith('com-1', expect.anything());
+        expectNoNavigation();
+        expect(hook.result.current.state.saveError).toBeUndefined();
+        expect(hook.result.current.state.saving).toBe(false);
+        expect(hook.result.current.form.getValues()).toEqual(buildEditDefaults(second));
+      },
+    );
+
+    it.each(settles)(
+      'a first commitment deactivate that %s after the confirmation reopens on the second navigates nowhere and keeps it open',
+      async (_outcome, finish) => {
+        const hook = await renderHook(() => useEditCommitment());
+        const { pending, inFlight } = await startDeactivate(hook);
+
+        await openOn(hook, 'com-2');
+        await act(async () => hook.result.current.handleDeactivate());
+        expect(hook.result.current.state.deactivateDialogVisible).toBe(true);
+        await settle(inFlight, () => finish(pending));
+
+        expect(deactivateCommitmentMock).toHaveBeenCalledTimes(1);
+        expect(deactivateCommitmentMock).toHaveBeenCalledWith('com-1');
+        expectNoNavigation();
+        expect(hook.result.current.state.deactivateDialogVisible).toBe(true);
+        expect(hook.result.current.state.saveError).toBeUndefined();
+        expect(hook.result.current.state.saving).toBe(false);
+      },
+    );
+
+    it('a Save on the second commitment while the first commitment save is in flight writes nothing', async () => {
+      const hook = await renderHook(() => useEditCommitment());
+      const { pending, inFlight } = await startSave(hook);
+
+      await openOn(hook, 'com-2');
+      await act(async () => {
+        await hook.result.current.onSubmit();
+      });
+
+      expect(updateCommitmentMock).toHaveBeenCalledTimes(1);
+      expect(updateCommitmentMock).toHaveBeenCalledWith('com-1', expect.anything());
+
+      await settle(inFlight, () => pending.resolve());
+    });
+
+    it('a Confirm while a save is in flight does not deactivate', async () => {
+      const hook = await renderHook(() => useEditCommitment());
+      const { pending, inFlight } = await startSave(hook);
+
+      await act(async () => hook.result.current.handleDeactivate());
+      await act(async () => {
+        await hook.result.current.confirmDeactivate();
+      });
+
+      expect(deactivateCommitmentMock).not.toHaveBeenCalled();
+
+      await settle(inFlight, () => pending.resolve());
+    });
+
+    it.each(settles)(
+      'a first commitment save that %s after the switch leaves the second commitment unsubmitted, with its edits kept',
+      async (_outcome, finish) => {
+        const hook = await renderHook(() => useEditCommitment());
+        expect(hook.result.current.form.formState.isSubmitted).toBe(false);
+        expect(hook.result.current.form.formState.submitCount).toBe(0);
+        const { pending, inFlight } = await startSave(hook);
+
+        await openOn(hook, 'com-2');
+        await typeName(hook, 'Typed on second');
+        await settle(inFlight, () => finish(pending));
+
+        const { form } = hook.result.current;
+        expect(form.formState.isSubmitted).toBe(false);
+        expect(form.formState.submitCount).toBe(0);
+        expect(form.getValues('name')).toBe('Typed on second');
+        expect(form.getFieldState('name')).toEqual(
+          expect.objectContaining({ isDirty: true, isTouched: true }),
+        );
+      },
+    );
   });
 });
