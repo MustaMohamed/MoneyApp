@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useId, useMemo } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { useWatch } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -7,6 +7,7 @@ import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
+import { useAccountColorSheetState } from '../../../components/account_form/account_color_sheet.state';
 import { toUpdateAccountInput } from '../../../components/account_form/account_form.helpers';
 import { useAccountStore } from '../../../store/account.store';
 import {
@@ -70,6 +71,17 @@ export function useEditAccount() {
     defaultValues: account ? buildEditAccountDraft(account) : undefined,
   });
 
+  const draftedIdRef = useRef(id);
+  // Keyed on the route's id, never `account`: every accounts reload publishes a new object, and a reset on it drops what was typed.
+  useEffect(() => {
+    if (!account || draftedIdRef.current === id) return;
+    draftedIdRef.current = id;
+    form.reset(buildEditAccountDraft(account));
+    setSaveError(owner, undefined);
+    // The sheet stages the first account's colour outside the form, so its Confirm would write it onto this one.
+    useAccountColorSheetState.getState().close();
+  }, [id, account, form, owner, setSaveError]);
+
   // APR unmounts with tracking off, and after a submit only the switch revalidates, so its fault would stay counted.
   const interestTracking = useWatch({ control: form.control, name: 'interest_tracking' });
   useEffect(() => {
@@ -85,15 +97,33 @@ export function useEditAccount() {
       await updateAccount(account.id, toUpdateAccountInput(data, account));
     } catch (error) {
       console.error('[editAccount] updateAccount failed:', error);
-      setSaveError(owner, Strings.editAccountSaveError);
+      // A failure landing after the route moved to another account belongs to no account the screen shows.
+      if (draftedIdRef.current === account.id) setSaveError(owner, Strings.editAccountSaveError);
       return;
     } finally {
       setSaving(owner, false);
     }
+    // A write landing after the route moved to another account must not navigate off the one the screen shows.
+    if (draftedIdRef.current !== account.id) return;
     // The detail never reads `loadError`, so a landed write over a failed reload pops to the list that does.
     if (useAccountStore.getState().loadError) router.dismissTo(ACCOUNTS_LIST);
     // POP_TO selects by route, so it steps over a duplicate edit a double tap pushed and never pops the detail.
     else router.dismissTo(accountDetailRoute(account.id));
+  }
+
+  async function submit() {
+    const startedOn = draftedIdRef.current;
+    await form.handleSubmit(onValid)();
+    // `handleSubmit` marks the form submitted after `onValid` returns, so only a reset after it unmarks the next account.
+    if (draftedIdRef.current !== startedOn) {
+      form.reset(undefined, {
+        keepValues: true,
+        keepDefaultValues: true,
+        keepDirty: true,
+        keepTouched: true,
+        keepErrors: true,
+      });
+    }
   }
 
   const statusMessage = resolveEditStatusMessage({
@@ -104,7 +134,7 @@ export function useEditAccount() {
   return {
     state: { account, saving, statusMessage },
     form,
-    submit: form.handleSubmit(onValid),
+    submit,
     onBack: () => router.back(),
   };
 }
