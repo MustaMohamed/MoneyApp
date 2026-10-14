@@ -2,6 +2,8 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { DEFAULT_ACCOUNT_COLOR } from '@/modules/accounts/constants/account_palette';
+import { buildEditAccountDraft } from '@/modules/accounts/screens/accounts/edit_account/edit_account.helpers';
 import { useEditAccount } from '@/modules/accounts/screens/accounts/edit_account/edit_account.hook';
 import { useEditAccountState } from '@/modules/accounts/screens/accounts/edit_account/edit_account.state';
 import { useAccountStore, type Account } from '@/modules/accounts/store/account.store';
@@ -101,10 +103,12 @@ function setup() {
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
     resolve = resolvePromise;
+    reject = rejectPromise;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 type Hook = Awaited<ReturnType<typeof renderHook<ReturnType<typeof useEditAccount>, unknown>>>;
@@ -581,5 +585,183 @@ describe('useEditAccount', () => {
     await hook.unmount();
 
     expect(useEditAccountState.getState().entries).toEqual({});
+  });
+
+  describe('MA-186 the route opens on a second account on the mounted screen', () => {
+    let consoleError: jest.SpyInstance | undefined;
+
+    afterEach(() => {
+      consoleError?.mockRestore();
+      consoleError = undefined;
+    });
+
+    async function openOn(hook: Hook, id: string) {
+      mockParams = { id };
+      await hook.rerender({});
+    }
+
+    it('bank to card: every field shows the card stored values', async () => {
+      const hook = await renderHook(() => useEditAccount());
+      await edit(hook, { name: 'CIB Payroll', color: '#7A2E3B' });
+
+      await openOn(hook, 'card-1');
+
+      expect(hook.result.current.state.account).toBe(card);
+      expect(hook.result.current.form.getValues()).toEqual(buildEditAccountDraft(card));
+    });
+
+    it('card to bank: every field shows the bank stored values', async () => {
+      mockParams = { id: 'card-1' };
+      const hook = await renderHook(() => useEditAccount());
+      await edit(hook, { credit_limit: '12,000.00', apr: '19.9' });
+
+      await openOn(hook, 'acc-1');
+
+      expect(hook.result.current.state.account).toBe(bank);
+      expect(hook.result.current.form.getValues()).toEqual(buildEditAccountDraft(bank));
+    });
+
+    it('card to card: the fields show the second card, and Save writes its own values', async () => {
+      mockParams = { id: 'card-1' };
+      const hook = await renderHook(() => useEditAccount());
+      await edit(hook, { credit_limit: '12,000.00', color: '#7A2E3B' });
+
+      await openOn(hook, 'card-3');
+
+      expect(hook.result.current.form.getValues()).toEqual(buildEditAccountDraft(untrackedCard));
+
+      await edit(hook, { name: 'QNB Rewards' });
+      await submit(hook);
+
+      expect(mockUpdateAccount).toHaveBeenCalledTimes(1);
+      expect(mockUpdateAccount).toHaveBeenCalledWith('card-3', {
+        name: 'QNB Rewards',
+        color: DEFAULT_ACCOUNT_COLOR,
+        credit_limit: 20000,
+        minimum_payment: 200,
+        statement_due_day: null,
+        interest_tracking: 0,
+        apr: null,
+      });
+    });
+
+    it('a Save after a bank to card switch writes the card values with the edit, then dismisses to the card', async () => {
+      const hook = await renderHook(() => useEditAccount());
+      await edit(hook, { color: '#7A2E3B' });
+
+      await openOn(hook, 'card-1');
+      await edit(hook, { name: 'CIB Platinum' });
+      await submit(hook);
+
+      expect(mockUpdateAccount).toHaveBeenCalledTimes(1);
+      expect(mockUpdateAccount).toHaveBeenCalledWith('card-1', {
+        name: 'CIB Platinum',
+        color: '#1B2B4B',
+        credit_limit: 1500.5,
+        minimum_payment: 200,
+        statement_due_day: 15,
+        interest_tracking: 1,
+        apr: 24.5,
+      });
+      expect(mockDismissTo).toHaveBeenCalledWith('/accounts/card-1');
+    });
+
+    it('an unchanged Save after the switch writes the second account stored values', async () => {
+      const hook = await renderHook(() => useEditAccount());
+
+      await openOn(hook, 'card-1');
+      await submit(hook);
+
+      expect(mockUpdateAccount).toHaveBeenCalledTimes(1);
+      expect(mockUpdateAccount).toHaveBeenCalledWith('card-1', {
+        name: 'CIB Visa',
+        color: '#1B2B4B',
+        credit_limit: 1500.5,
+        minimum_payment: 200,
+        statement_due_day: 15,
+        interest_tracking: 1,
+        apr: 24.5,
+      });
+    });
+
+    it('drops the first account field errors and its count', async () => {
+      mockParams = { id: 'card-1' };
+      const hook = await renderHook(() => useEditAccount());
+      await edit(hook, { credit_limit: '' });
+      await submit(hook);
+      expect(hook.result.current.state.statusMessage).toBe(Strings.fixFieldsMarkedAbove(1));
+
+      await openOn(hook, 'acc-1');
+
+      expect(hook.result.current.state.statusMessage).toBeUndefined();
+      expect(hook.result.current.form.formState.errors).toEqual({});
+    });
+
+    it('drops a settled save failure of the first account', async () => {
+      consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockUpdateAccount.mockRejectedValueOnce(new Error('disk full'));
+      const hook = await renderHook(() => useEditAccount());
+      await edit(hook, { name: 'CIB Payroll' });
+      await submit(hook);
+      expect(hook.result.current.state.statusMessage).toBe(Strings.editAccountSaveError);
+
+      await openOn(hook, 'card-1');
+
+      expect(hook.result.current.state.statusMessage).toBeUndefined();
+    });
+
+    it('a failure of the first account save, landing after the switch, never marks the second', async () => {
+      consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const pending = deferred<void>();
+      mockUpdateAccount.mockReturnValueOnce(pending.promise);
+      const hook = await renderHook(() => useEditAccount());
+      await edit(hook, { name: 'CIB Payroll' });
+      let inFlight: Promise<void> | undefined;
+      await act(async () => {
+        inFlight = hook.result.current.submit();
+      });
+      expect(hook.result.current.state.saving).toBe(true);
+
+      await openOn(hook, 'card-1');
+      await act(async () => {
+        pending.reject(new Error('disk full'));
+        await inFlight;
+      });
+
+      expect(mockUpdateAccount).toHaveBeenCalledTimes(1);
+      expect(mockUpdateAccount).toHaveBeenCalledWith(
+        'acc-1',
+        expect.objectContaining({ name: 'CIB Payroll' }),
+      );
+      expect(hook.result.current.state.statusMessage).toBeUndefined();
+      expect(hook.result.current.state.saving).toBe(false);
+      expect(hook.result.current.form.getValues()).toEqual(buildEditAccountDraft(card));
+    });
+
+    it('keeps what the user typed through a reload of the accounts on one account', async () => {
+      const hook = await renderHook(() => useEditAccount());
+      await edit(hook, { name: 'CIB Payroll' });
+
+      accounts = [{ ...bank }, card, paidDownCard, untrackedCard];
+      await hook.rerender({});
+
+      expect(hook.result.current.state.account).not.toBe(bank);
+      expect(hook.result.current.state.account).toEqual(bank);
+      expect(hook.result.current.form.getValues('name')).toBe('CIB Payroll');
+    });
+
+    it.each(['arch-1', 'acc-missing'])(
+      'leaves the screen when the route opens on %s, and a Save writes nothing',
+      async (id) => {
+        const hook = await renderHook(() => useEditAccount());
+        expect(mockBack).not.toHaveBeenCalled();
+
+        await openOn(hook, id);
+
+        expect(mockBack).toHaveBeenCalled();
+        await submit(hook);
+        expect(mockUpdateAccount).not.toHaveBeenCalled();
+      },
+    );
   });
 });
