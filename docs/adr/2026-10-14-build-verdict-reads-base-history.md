@@ -20,15 +20,16 @@ The base is `origin/main` unless `mqa needs-build <base>` names another. On a br
 
 `NATIVE_RE` in `mqa.sh` is the native surface: `package.json`, `package-lock.json`, `app.json`, `eas.json`, `patches/`, `android/`, `ios/`, any path containing `.gradle`, and `gradle.properties` at the root. The diff read, the history read and the list a `REBUILD` prints all use it, and `SKILL.md` § Running from a task worktree lists the same paths. Who builds on a `REBUILD` is one string too, `BUILD_WHO`, which ends every `REBUILD` line: a `/ship` implementer or a `/prep` probe builds, any other session asks first, and the render lens never builds.
 
-**Amended 2026-10-14, MA-191 (#742).** A `package.json` change confined to whitespace, key order or scripts npm does not run on install is not a native-surface change. npm runs eight scripts on install: `preinstall`, `install`, `postinstall`, `prepublish`, `preprepare`, `prepare`, `postprepare` and `dependencies`. A change to one of them, or to any field outside `scripts`, reaches the APK. A `package.json` side that is absent, as in a root commit or a deletion, or that does not parse as JSON, reaches the APK too. `scripts/package_json_scripts_only.mjs` is the one spelling of the exception: it exits 0 only when both sides parse and agree once every other script is dropped and every object's keys are sorted. Each reader compares its own pair of sides. The branch half compares the merge-base with the working tree. The history half compares each commit with its first parent and skips a commit whose only native-surface change is confined this way. A `REBUILD` never lists a confined `package.json`. The `Patched React Native compiles (Android)` gate in `.github/workflows/pr-checks.yml` compares `HEAD^1` with `HEAD`, and skips the compile when `package.json` is the only one of its four paths that changed and the change is confined.
+**Amended 2026-10-14, MA-191 (#742).** A `package.json` change confined to whitespace, key order or scripts npm does not run on install is not a native-surface change. npm runs eight scripts on install: `preinstall`, `install`, `postinstall`, `prepublish`, `preprepare`, `prepare`, `postprepare` and `dependencies`. A script one of them reaches by name, with its `pre` and `post` hooks, counts as run on install too, to a fixpoint. A change to any of these, or to any field outside `scripts`, reaches the APK. A `package.json` side that is absent, as in a root commit or a deletion, or that does not parse as JSON, reaches the APK too. `scripts/package_json_scripts_only.mjs` is the one spelling of the exception: it exits 0 only when both sides parse and agree once every other script is dropped and every object's keys are sorted. Each reader compares its own pair of sides. The branch half compares the merge-base with the working tree. The history half compares each commit with its first parent and skips a commit whose only native-surface change is confined this way. A `REBUILD` never lists a confined `package.json`. The `Patched React Native compiles (Android)` gate in `.github/workflows/pr-checks.yml` compares `HEAD^1` with `HEAD`, and skips the compile when `package.json` is the only one of its four paths that changed and the change is confined.
 
 ## 3. False readings
 
-The rule reads times, and nothing records what an APK was built from, so it reads wrong in three cases.
+The rule reads times, and nothing records what an APK was built from, so it reads wrong in four cases.
 
 - An APK built before a native commit and installed after it reads `REUSE` without that change, since the install is newer than the commit.
 - An APK built from a branch before that branch's squash merge reads `REBUILD` once after the merge, since the merge commit is newer than the install.
 - An APK built from another branch and installed after the newest native commit this branch holds reads `REUSE`, whatever native change that other branch carried.
+- An APK built from an earlier state of this branch reads `REUSE` when a later commit or the working tree reverts that state's native change, since the branch half compares the merge-base with the working tree. A scripts-only `package.json` edit beside the revert reads the same.
 
 ## 4. Cost
 
@@ -36,5 +37,5 @@ Every native-surface commit on `main` makes the next run on each slot read `REBU
 
 ## What this does not decide
 
-- A stamp of the native surface an APK was built from, which would remove the three false readings.
+- A stamp of the native surface an APK was built from, which would remove the four false readings.
 - Which `package.json` changes reach the device beyond the scripts-only exception, which §2's amendment states.
