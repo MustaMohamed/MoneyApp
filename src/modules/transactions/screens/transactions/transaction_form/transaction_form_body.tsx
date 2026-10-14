@@ -32,7 +32,7 @@ import { DangerRing } from './components/danger_ring';
 import { DateRow } from './components/date_row';
 import { FormPickerRow } from './components/form_picker_row';
 import { TransactionRateEditor } from './components/rate_editor_sheet';
-import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
+import { RateRow } from './components/rate_row';
 import {
   ACCOUNT_STRIP_WRAPPER_PADDING_Y,
   AMOUNT_MESSAGE_TEXT_STYLE,
@@ -77,9 +77,9 @@ interface BaseProps {
   exchangeRate: string;
   /** The rate editor's Done; `false` keeps the editor open with its message. */
   commitExchangeRate: (text: string) => boolean;
-  rateOverride: boolean;
-  toggleRateOverride: () => void;
   rateUpdatedAt: string | null;
+  /** The app's stored rate, which the editor's line and Reset read. */
+  storedRate: number;
   date: string;
   setDate: (v: string) => void;
   note: string;
@@ -155,9 +155,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     requiresRate,
     exchangeRate,
     commitExchangeRate,
-    rateOverride,
-    toggleRateOverride,
     rateUpdatedAt,
+    storedRate,
     date,
     setDate,
     note,
@@ -385,12 +384,10 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           ) : null}
 
           {requiresRate ? (
-            <View className="border-separator border-b px-4 pb-3">
-              <TransactionExchangeRateRow
+            <View className={FACT_CELL_CLASS}>
+              <RateRow
                 ownerId={datePickerOwnerId}
                 value={exchangeRate}
-                overrideEnabled={rateOverride}
-                onToggleOverride={toggleRateOverride}
                 rateUpdatedAt={rateUpdatedAt}
               />
             </View>
@@ -446,6 +443,12 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         ownerId={datePickerOwnerId}
         value={exchangeRate}
         onCommit={commitExchangeRate}
+        storedRate={storedRate}
+        rateUpdatedAt={rateUpdatedAt}
+        mode={formMode}
+        type={type}
+        sourceCurrency={selectedAccount?.currency}
+        destinationCurrency={selectedToAccount?.currency}
       />
     </BottomSheetScrollView>
   );

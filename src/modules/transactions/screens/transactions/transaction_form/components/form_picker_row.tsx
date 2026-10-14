@@ -14,6 +14,8 @@ import { FACT_ROW_MIN_HEIGHT } from './transaction_form.geometry';
 interface FormPickerRowProps {
   testID: string;
   label: string;
+  /** A line under the label; the label and it shrink together so the row grows past its floor. */
+  labelCaption?: ReactNode;
   value: string;
   onPress?: () => void;
   disabled?: boolean;
@@ -33,6 +35,7 @@ interface FormPickerRowProps {
 export function FormPickerRow({
   testID,
   label,
+  labelCaption,
   value,
   onPress,
   disabled = false,
@@ -52,6 +55,14 @@ export function FormPickerRow({
     valueNumberOfLines === 1
       ? resolveOneLineTextProps(scaledTextStyleAboveOne(valueFontSize, fontScale))
       : undefined;
+  const labelNode = (
+    <ListGroup.ItemDescription
+      className="font-inter text-content-secondary"
+      style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+    >
+      {label}
+    </ListGroup.ItemDescription>
+  );
 
   return (
     <ListGroup.Item
@@ -70,12 +81,14 @@ export function FormPickerRow({
         justifyContent: 'space-between',
       }}
     >
-      <ListGroup.ItemDescription
-        className="font-inter text-content-secondary"
-        style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
-      >
-        {label}
-      </ListGroup.ItemDescription>
+      {labelCaption === undefined ? (
+        labelNode
+      ) : (
+        <View style={{ flexShrink: 1, minWidth: 0 }}>
+          {labelNode}
+          {labelCaption}
+        </View>
+      )}
       <View
         className="gap-2"
         style={{

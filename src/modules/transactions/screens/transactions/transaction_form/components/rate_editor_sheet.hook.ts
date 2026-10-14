@@ -15,7 +15,12 @@ export function openRateEditor(ownerId: string, value: string): void {
   editorState.open(ownerId, value);
 }
 
-export function useRateEditor(ownerId: string, value: string, onCommit: (text: string) => boolean) {
+export function useRateEditor(
+  ownerId: string,
+  value: string,
+  onCommit: (text: string) => boolean,
+  storedRateText: string,
+) {
   const { activeOwnerId, isOpen, draft, error } = useRateEditorSheetState(
     useShallow((state) => ({
       activeOwnerId: state.activeOwnerId,
@@ -27,9 +32,11 @@ export function useRateEditor(ownerId: string, value: string, onCommit: (text: s
   // The actions below keep their identity per owner and read these at call time.
   const valueRef = useRef(value);
   const onCommitRef = useRef(onCommit);
+  const storedRateTextRef = useRef(storedRateText);
   useLayoutEffect(() => {
     valueRef.current = value;
     onCommitRef.current = onCommit;
+    storedRateTextRef.current = storedRateText;
   });
 
   const actions = useMemo(() => {
@@ -37,6 +44,8 @@ export function useRateEditor(ownerId: string, value: string, onCommit: (text: s
     return {
       open: () => openRateEditor(ownerId, valueRef.current),
       setDraft: (text: string) => store.setDraft(ownerId, text),
+      // Refills the field and keeps the editor open; only Done writes the rate.
+      resetToStoredRate: () => store.setDraft(ownerId, storedRateTextRef.current),
       cancel: () => store.close(ownerId),
       // Only Done checks the rate; a keystroke clears the message and checks nothing.
       done: () => {

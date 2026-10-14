@@ -4,15 +4,21 @@ import { formatConvertedAmount } from '../transaction_form.helpers';
 import { AMOUNT_MESSAGE_TEXT_STYLE } from './transaction_form.geometry';
 import { type RatePreviewInput, useTransactionRatePreview } from './transaction_rate_preview.hook';
 
-export function ConvertedAmountLine(props: RatePreviewInput): React.ReactElement {
-  const converted = useTransactionRatePreview(props);
+type Props = RatePreviewInput & { testID?: string; textAlign?: 'center' | 'left' };
+
+export function ConvertedAmountLine({
+  testID = 'converted-amount-line',
+  textAlign = AMOUNT_MESSAGE_TEXT_STYLE.textAlign,
+  ...input
+}: Props): React.ReactElement {
+  const converted = useTransactionRatePreview(input);
 
   return (
     <Text
-      testID="converted-amount-line"
+      testID={testID}
       className="font-inter text-muted"
       numberOfLines={1}
-      style={AMOUNT_MESSAGE_TEXT_STYLE}
+      style={{ ...AMOUNT_MESSAGE_TEXT_STYLE, textAlign }}
     >
       {formatConvertedAmount(converted)}
     </Text>

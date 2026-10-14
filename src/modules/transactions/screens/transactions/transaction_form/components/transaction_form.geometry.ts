@@ -50,6 +50,13 @@ export const RATE_MESSAGE_SLOT_STYLE = {
   justifyContent: 'center',
 } as const;
 
+/** The rate editor's Reset slot: the touch floor whether or not the link shows, so typing a rate moves nothing. */
+export const RATE_RESET_SLOT_STYLE = {
+  minHeight: TouchSize.min,
+  alignItems: 'flex-end',
+  justifyContent: 'center',
+} as const;
+
 /** The sheet frames' 118 by 40 row, ruled 2026-09-27 (MA-122) over the canvas base rule's 64-wide column. */
 export const ACCOUNT_STRIP_CHIP_WIDTH = ms(118);
 export const ACCOUNT_STRIP_CHIP_HEIGHT = ms(40);

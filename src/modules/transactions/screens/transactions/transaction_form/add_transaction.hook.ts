@@ -486,12 +486,6 @@ export function useAddTransaction(
     form.setValue('budgetId', '');
   }
 
-  function toggleRateOverride() {
-    const next = !rateOverride;
-    setRateOverride(next);
-    if (!next) form.setValue('exchangeRate', formatStoredMoneyText(rate));
-  }
-
   function selectAccount(account: Account) {
     clearError();
     const nextSemantics = resolveTransactionFormSemantics(type, account.type);
@@ -606,6 +600,7 @@ export function useAddTransaction(
         Boolean(categoryId) &&
         (budgetsLoading || Boolean(budgetLookupError) || availableBudgets.length > 0),
       rateUpdatedAt,
+      storedRate: rate,
     },
     setType: (nextType: TransactionType) => {
       clearError();
@@ -633,7 +628,6 @@ export function useAddTransaction(
         setRateOverride,
         setExchangeRate: (exchangeRate) => form.setValue('exchangeRate', exchangeRate),
       }),
-    toggleRateOverride,
     setShowToPicker,
     setShowCategoryPicker,
     setShowBudgetPicker,

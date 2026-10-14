@@ -83,9 +83,8 @@ export function AddTransactionSession(props: AddTransactionSessionProps): React.
           requiresRate={hook.state.requiresRate}
           exchangeRate={hook.state.exchangeRate}
           commitExchangeRate={hook.commitExchangeRate}
-          rateOverride={hook.state.rateOverride}
-          toggleRateOverride={hook.toggleRateOverride}
           rateUpdatedAt={hook.state.rateUpdatedAt}
+          storedRate={hook.state.storedRate}
           date={hook.state.date}
           setDate={hook.setDate}
           note={hook.state.note}
