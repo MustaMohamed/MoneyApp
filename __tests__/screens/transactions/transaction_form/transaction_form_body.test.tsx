@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react-n
 import React from 'react';
 import { Dimensions } from 'react-native';
 
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { scaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { TouchSize, Type, lineHeightFor } from '@/constants/theme';
@@ -721,6 +721,29 @@ describe('MA-170 rate editor lines', () => {
     expect(screen.getByTestId('rate-editor-input')).toHaveDisplayValue('52.137035');
     expect(sourceLine()).toHaveTextContent(/^Using stored rate$/);
     expect(screen.queryByTestId('rate-editor-reset')).toBeNull();
+  });
+
+  it("scales the editor's converted amount in JS above font scale 1, while the line under the amount keeps OS scaling", async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        requiresRate
+        selectedAccount={usdAccount}
+        currency={Currency.USD}
+        exchangeRate="49"
+        storedRate={50}
+      />,
+    );
+    await openFromRow();
+
+    expect(convertedAmount()).toHaveTextContent('≈ 735 EGP');
+    expect(convertedAmount()).toHaveProp('allowFontScaling', false);
+    expect(convertedAmount()).toHaveStyle({ ...scaledTextStyleAboveOne(Type.micro, fontScale) });
+    expect(convertedAmount()).not.toHaveStyle({ fontSize: Type.micro });
+    expect(screen.getByTestId('converted-amount-line')).not.toHaveProp('allowFontScaling', false);
   });
 });
 

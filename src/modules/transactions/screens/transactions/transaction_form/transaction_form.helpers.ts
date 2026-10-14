@@ -1,7 +1,6 @@
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
-import { formatStoredRateLine } from '@/modules/currency/store/currency.helpers';
 import {
   requiresDestination,
   requiresExchangeRate,
@@ -19,6 +18,8 @@ import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { formatStoredMoneyText } from '@/utils/money_text';
 import { parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
+
+import { formatStoredRateLine } from './components/stored_rate_line.helpers';
 
 export interface TransactionFormSemantics {
   isCardCredit: boolean;

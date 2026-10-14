@@ -55,10 +55,18 @@ export function FormPickerRow({
     valueNumberOfLines === 1
       ? resolveOneLineTextProps(scaledTextStyleAboveOne(valueFontSize, fontScale))
       : undefined;
+  const labelStyle = { flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) };
+  // Beside a caption the label holds one line, since the value may take the row.
+  const labelOneLine =
+    labelCaption === undefined
+      ? undefined
+      : resolveOneLineTextProps(scaledTextStyleAboveOne(Type.body, fontScale));
   const labelNode = (
     <ListGroup.ItemDescription
       className="font-inter text-content-secondary"
-      style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+      numberOfLines={labelOneLine?.numberOfLines}
+      allowFontScaling={labelOneLine?.allowFontScaling}
+      style={labelOneLine === undefined ? labelStyle : [labelStyle, labelOneLine.style]}
     >
       {label}
     </ListGroup.ItemDescription>
@@ -92,8 +100,10 @@ export function FormPickerRow({
       <View
         className="gap-2"
         style={{
-          // With a caption the rate keeps its natural width and the caption takes the ellipsis.
-          flex: labelCaption === undefined ? 1 : 0,
+          // With a caption the rate keeps its natural width until the row runs out, and the caption takes the ellipsis first.
+          ...(labelCaption === undefined
+            ? { flex: 1 }
+            : { flexGrow: 0, flexShrink: 1, flexBasis: 'auto' as const }),
           minWidth: 0,
           flexDirection: 'row',
           alignItems: 'center',

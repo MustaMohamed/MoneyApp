@@ -1,7 +1,7 @@
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
-import { formatStoredRateLine, isRateStale } from '@/modules/currency/store/currency.helpers';
+import { isRateStale } from '@/modules/currency/store/currency.helpers';
 import {
   resolveTransactionAmounts,
   TransactionAmountError,
@@ -10,6 +10,7 @@ import {
   TransactionAccountArchivedError,
   TransactionValidationError,
 } from '@/modules/transactions/repositories/transaction.errors';
+import { formatStoredRateLine } from '@/modules/transactions/screens/transactions/transaction_form/components/stored_rate_line.helpers';
 import {
   applyRateCommit,
   countTransactionFormFieldErrors,

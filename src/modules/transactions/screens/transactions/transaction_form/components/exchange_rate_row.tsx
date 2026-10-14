@@ -7,10 +7,11 @@ import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
-import { formatStoredRateLine, isRateStale } from '@/modules/currency/store/currency.helpers';
+import { isRateStale } from '@/modules/currency/store/currency.helpers';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
+import { formatStoredRateLine } from './stored_rate_line.helpers';
 import { RATE_MESSAGE_SLOT_STYLE } from './transaction_form.geometry';
 
 const RATE_PREVIEW_AMOUNT_DECIMALS = 2;
