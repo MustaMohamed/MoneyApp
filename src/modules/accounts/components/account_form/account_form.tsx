@@ -61,6 +61,7 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
               maxLength={30}
               isInvalid={fieldState.invalid}
               accessibilityLabel={Strings.accountNameLabel}
+              valueAtRest="start"
             />
           )}
         />
@@ -88,6 +89,7 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
                 isInvalid={fieldState.invalid}
                 accessibilityLabel={balanceField.label}
                 suffix={<BalanceCurrencySuffix control={control} />}
+                valueAtRest="fit"
               />
             )}
           />

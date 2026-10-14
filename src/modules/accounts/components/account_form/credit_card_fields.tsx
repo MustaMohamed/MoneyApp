@@ -86,6 +86,7 @@ export function CreditCardFields<T extends CreditFieldValues>({
                 isInvalid={fieldState.invalid}
                 accessibilityLabel={Strings.accountCreditLimitLabel}
                 suffix={moneySuffix}
+                valueAtRest="fit"
               />
             )}
           />
@@ -122,6 +123,7 @@ export function CreditCardFields<T extends CreditFieldValues>({
                 isInvalid={fieldState.invalid}
                 accessibilityLabel={Strings.accountMinPaymentLabel}
                 suffix={moneySuffix}
+                valueAtRest="fit"
               />
             )}
           />

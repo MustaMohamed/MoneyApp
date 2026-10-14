@@ -78,6 +78,7 @@ export default function EditAccountScreen() {
               maxLength={30}
               isInvalid={fieldState.invalid}
               accessibilityLabel={Strings.editAccountNameLabel}
+              valueAtRest="start"
             />
           )}
         />
@@ -129,6 +130,7 @@ export default function EditAccountScreen() {
               label={Strings.accountBalanceLabel}
               value={formatAccountBalanceParts(account.opening_balance, account.currency).amount}
               helper={Strings.editAccountBalanceHelper}
+              valueAtRest="fit"
               suffix={
                 <Box style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
                   <Typography

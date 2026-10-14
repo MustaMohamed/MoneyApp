@@ -16,10 +16,18 @@ interface Props {
   value: string;
   suffix: ReactNode;
   helper?: string;
+  /** Above font scale 1: an amount shrinks to fit, a word ends in `…`. */
+  valueAtRest?: 'fit' | 'ellipsis';
 }
 
 /** Canvas `.box.ro` (D1, D2): a label, a disabled field and its message track, never editable. */
-export function LockedField({ label, value, suffix, helper }: Props): React.ReactElement {
+export function LockedField({
+  label,
+  value,
+  suffix,
+  helper,
+  valueAtRest = 'ellipsis',
+}: Props): React.ReactElement {
   return (
     <>
       <FormLabelText label={label} />
@@ -30,6 +38,7 @@ export function LockedField({ label, value, suffix, helper }: Props): React.Reac
         accessibilityLabel={label}
         suffix={suffix}
         suffixClassName={LOCKED_SUFFIX_CLASS}
+        valueAtRest={valueAtRest}
       />
       <FieldMessageTrack helper={helper} />
     </>
