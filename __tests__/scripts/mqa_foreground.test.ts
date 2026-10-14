@@ -22,7 +22,9 @@ const AGENT_DEVICE_STUB = [
   '    if [ "$STUB_AD" = nomatch ]; then echo "Error (COMMAND_FAILED): No element matches $2" >&2; exit 1; fi',
   '    target="$2"',
   '    if [ "$#" -eq 3 ] && [[ "$2" =~ ^[0-9]+$ ]] && [[ "$3" =~ ^[0-9]+$ ]]; then target="coordinate tap"; fi',
-  '    echo "Error (COMMAND_FAILED): press $target left com.moneyapp.app and foregrounded com.google.android.apps.nexuslauncher. The tap likely escaped the app." >&2',
+  '    fg=com.google.android.apps.nexuslauncher',
+  '    if [ "$STUB_AD" = systemui ]; then fg=com.android.systemui; fi',
+  '    echo "Error (COMMAND_FAILED): press $target left com.moneyapp.app and foregrounded $fg. The tap likely escaped the app." >&2',
   '    exit 1 ;;',
   '  wait)',
   '    echo "Error (COMMAND_FAILED): wait failed because com.google.android.apps.nexuslauncher is foreground instead of com.moneyapp.app." >&2',
@@ -43,7 +45,7 @@ const ADB_STUB = [
   '',
 ].join('\n');
 
-type AgentDeviceMode = 'escaped' | 'nomatch' | 'pass';
+type AgentDeviceMode = 'escaped' | 'nomatch' | 'pass' | 'systemui';
 
 interface Scenario {
   args: string[];
@@ -114,31 +116,33 @@ afterAll(() => {
 });
 
 describe('mqa press under agent-device when its post-press check names the launcher', () => {
-  it('(a) tap @e8 with the app in front counts the press with one line naming both reads', () => {
-    const r = run({ args: ['tap', '@e8'], top: APP_TOP });
+  it.each([
+    ['tap @e8', ['tap', '@e8']],
+    ['tapxy 540 960', ['tapxy', '540', '960']],
+  ])(
+    '%s with the app in front counts the press with one line naming both reads',
+    (_label, args) => {
+      const r = run({ args, top: APP_TOP });
 
-    expect(r.status).toBe(0);
-    expect(r.presses).toHaveLength(1);
-    const both = r.linesWith(LAUNCHER, APP_TOP);
-    expect(both).toHaveLength(1);
-    expect(both[0]).toMatch(/^mqa:/);
-    expect(r.linesWith(LAUNCHER)).toHaveLength(1);
-    expect(r.linesWith('COMMAND_FAILED')).toEqual([]);
+      expect(r.status).toBe(0);
+      expect(r.presses).toHaveLength(1);
+      const both = r.linesWith(LAUNCHER, APP_TOP);
+      expect(both).toHaveLength(1);
+      expect(both[0]).toMatch(/^mqa:/);
+      expect(r.linesWith(LAUNCHER)).toHaveLength(1);
+      expect(r.linesWith('COMMAND_FAILED')).toEqual([]);
+    },
+  );
+
+  it('tap @e8 fails as today when agent-device names System UI in front, with the app in front by mqa', () => {
+    const r = run({ args: ['tap', '@e8'], top: APP_TOP, ad: 'systemui' });
+
+    expect(r.status).toBe(1);
+    expect(r.linesWith('com.android.systemui', APP_TOP)).toEqual([]);
+    expect(r.linesWith('foregrounded com.android.systemui')).toHaveLength(1);
   });
 
-  it('(b) tapxy with the app in front counts the press with one line naming both reads', () => {
-    const r = run({ args: ['tapxy', '540', '960'], top: APP_TOP });
-
-    expect(r.status).toBe(0);
-    expect(r.presses).toHaveLength(1);
-    const both = r.linesWith(LAUNCHER, APP_TOP);
-    expect(both).toHaveLength(1);
-    expect(both[0]).toMatch(/^mqa:/);
-    expect(r.linesWith(LAUNCHER)).toHaveLength(1);
-    expect(r.linesWith('COMMAND_FAILED')).toEqual([]);
-  });
-
-  it('(c) tap @e8 fails as today when mqa also reads the launcher in front', () => {
+  it('tap @e8 fails as today when mqa also reads the launcher in front', () => {
     const r = run({ args: ['tap', '@e8'], top: LAUNCHER_TOP });
 
     expect(r.status).toBe(1);
@@ -146,21 +150,21 @@ describe('mqa press under agent-device when its post-press check names the launc
     expect(r.linesWith(LAUNCHER)).toHaveLength(1);
   });
 
-  it('(d) tap @e8 fails as today when mqa reads no top activity', () => {
+  it('tap @e8 fails as today when mqa reads no top activity', () => {
     const r = run({ args: ['tap', '@e8'], top: '' });
 
     expect(r.status).toBe(1);
     expect(r.linesWith(ESCAPED)).toHaveLength(1);
   });
 
-  it('(e) tap @e8 fails as today on a miss that is not the foreground check, with the app in front', () => {
+  it('tap @e8 fails as today on a miss that is not the foreground check, with the app in front', () => {
     const r = run({ args: ['tap', '@e8'], top: APP_TOP, ad: 'nomatch' });
 
     expect(r.status).toBe(1);
     expect(r.linesWith('No element matches @e8')).toHaveLength(1);
   });
 
-  it('(f) tapxy fails as today when mqa also reads the launcher in front', () => {
+  it('tapxy fails as today when mqa also reads the launcher in front', () => {
     const r = run({ args: ['tapxy', '540', '960'], top: LAUNCHER_TOP });
 
     expect(r.status).toBe(1);
@@ -168,7 +172,7 @@ describe('mqa press under agent-device when its post-press check names the launc
     expect(r.linesWith(ESCAPED)).toHaveLength(1);
   });
 
-  it('(i) tapxy that agent-device passes prints its stdout and nothing on stderr', () => {
+  it('tapxy that agent-device passes prints its stdout and nothing on stderr', () => {
     const r = run({ args: ['tapxy', '540', '960'], top: APP_TOP, ad: 'pass' });
 
     expect(r.status).toBe(0);
@@ -180,7 +184,7 @@ describe('mqa press under agent-device when its post-press check names the launc
 
 describe('mqa wait under agent-device when agent-device blames another app in front', () => {
   it(
-    '(g) a miss with the app in front still fails and names both reads in one line',
+    'a miss with the app in front still fails and names both reads in one line',
     () => {
       const r = run({
         args: ['wait', 'label="Name"', '1000'],
@@ -197,7 +201,7 @@ describe('mqa wait under agent-device when agent-device blames another app in fr
   );
 
   it(
-    '(h) a miss with the launcher in front fails as today with one line naming the launcher',
+    'a miss with the launcher in front fails as today with one line naming the launcher',
     () => {
       const r = run({
         args: ['wait', 'label="Name"', '1000'],
@@ -210,4 +214,18 @@ describe('mqa wait under agent-device when agent-device blames another app in fr
     },
     WAIT_TIMEOUT_MS,
   );
+});
+
+describe('the agent-device messages the stub copies', () => {
+  it('come from the installed agent-device 0.21.13', () => {
+    const manifest = path.join(repoRoot, 'node_modules', 'agent-device', 'package.json');
+    const { version } = JSON.parse(fs.readFileSync(manifest, 'utf8')) as { version: string };
+
+    if (version !== '0.21.13') {
+      throw new Error(
+        `agent-device is ${version}, not 0.21.13: re-read the press message in dist/src/interaction2.js and the selector message in dist/src/selector-runtime.js, then this suite's stub and press_landed and front_reads in mqa.sh`,
+      );
+    }
+    expect(version).toBe('0.21.13');
+  });
 });

@@ -851,18 +851,23 @@ print(next((r for r, l in c if all(o in l for _, o in c)), ""))' <<<"$AD_ERR")"
 # agent-device sends the tap before its own front-app read, which a stale ANR record in dumpsys window can turn to the launcher.
 press_landed() {
   local pkg top
-  case "$AD_ERR" in *" left $PKG and foregrounded "*) ;; *) return 1 ;; esac
+  front_misread "* left $PKG and foregrounded *" "s/.* left $PKG and foregrounded \([^ ]*[^. ]\)\..*/\1/p" || return 1
+  case "$pkg" in *launcher*) ;; *) return 1 ;; esac
+  echo "mqa: agent-device read $pkg in front after the press, mqa reads $top; the press counts" >&2
+}
+# Sets the caller's pkg (agent-device's read, by sed $2) and top (mqa's read) when $AD_ERR matches glob $1 and mqa reads the app in front.
+front_misread() {
+  case "$AD_ERR" in $1) ;; *) return 1 ;; esac
   top="$(top_activity)" || true
   case "$top" in "$PKG/"*) ;; *) return 1 ;; esac
-  pkg="$(sed -n "s/.* left $PKG and foregrounded \([^ ]*[^. ]\)\..*/\1/p" <<<"$AD_ERR" | head -1)"
-  echo "mqa: agent-device read $pkg in front after the press, mqa reads $top; the press counts" >&2
+  pkg="$(sed -n "$2" <<<"$AD_ERR" | head -1)"
 }
 ad_tap() {
   local rc=0
   ad "$@" 2>/dev/null || rc=$?
   if [ "$rc" -eq 0 ]; then [ -z "$AD_ERR" ] || ad_explain >&2; return 0; fi
   press_landed && return
-  ad_explain >&2
+  [ -z "$AD_ERR" ] || ad_explain >&2
   return "$rc"
 }
 
@@ -912,13 +917,9 @@ cmd_wait() {
   echo "saw $t"
 }
 
-# A wait agent-device blames on another app in front, while mqa reads the app there, missed its target.
 front_reads() {
   local pkg top
-  case "$AD_ERR" in *" is foreground instead of $PKG."*) ;; *) return 0 ;; esac
-  top="$(top_activity)" || true
-  case "$top" in "$PKG/"*) ;; *) return 0 ;; esac
-  pkg="$(sed -n 's/.* failed because \([^ ]*\) is foreground instead of .*/\1/p' <<<"$AD_ERR" | head -1)"
+  front_misread "* is foreground instead of $PKG.*" 's/.* failed because \([^ ]*\) is foreground instead of .*/\1/p' || return 0
   echo "mqa: agent-device read $pkg in front, mqa reads $top; the app is in front, so the target is what is missing" >&2
 }
 

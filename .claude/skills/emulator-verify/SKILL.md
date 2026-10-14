@@ -102,8 +102,9 @@ press. Prove such a state with `shot`, and use `tapxy` to leave it.
 the front app from the first `mCurrentFocus=Window{` line of `dumpsys window`. An ANR record
 that `dumpsys window lastanr` still holds prints first, and can name the launcher for two hours
 after the ANR. mqa reads `topResumedActivity` instead. When that names the app, a `tap` or
-`tapxy` that agent-device fails on its post-press check counts, with one `mqa:` line naming
-both reads, and a `wait` miss names both reads. When mqa also reads another app, the press failed.
+`tapxy` that agent-device fails on its post-press check counts if agent-device named a
+launcher, with one `mqa:` line naming both reads, and a `wait` miss names both reads. A press
+agent-device fails naming System UI or Settings, or one where mqa also reads another app, failed.
 Check a slot with `adb -s <serial> shell dumpsys window lastanr`.
 
 ## The device claim
