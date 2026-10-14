@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
+
+import { cleanEnv, commit, git, removeTempDirs, tempDir } from '@/test_helpers/git_repo';
 
 const repoRoot = path.join(__dirname, '..', '..');
 const mqaSh = path.join(repoRoot, '.claude', 'skills', 'emulator-verify', 'mqa.sh');
@@ -12,65 +13,25 @@ const SERIAL = 'emulator-5554';
 const DAY = 86_400;
 const T0 = 1_790_000_000;
 
-const dirs: string[] = [];
 let stubBin = '';
 let leaseDir = '';
 let workDir = '';
-
-function tempDir(prefix: string): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-  dirs.push(dir);
-  return dir;
-}
-
-// A hook or a dev shell can export GIT_DIR or MQA_SERIAL; neither may reach the temp repos.
-function cleanEnv(): NodeJS.ProcessEnv {
-  const env = { ...process.env };
-  for (const key of Object.keys(env)) {
-    if (key.startsWith('GIT_') || key.startsWith('MQA_')) delete env[key];
-  }
-  return env;
-}
-
-function git(repo: string, args: string[], epoch?: number): string {
-  const env = cleanEnv();
-  if (epoch !== undefined) {
-    env.GIT_AUTHOR_DATE = `@${epoch} +0000`;
-    env.GIT_COMMITTER_DATE = `@${epoch} +0000`;
-  }
-  const r = spawnSync(
-    'git',
-    ['-c', 'user.email=mqa@test', '-c', 'user.name=mqa', '-c', 'commit.gpgsign=false', ...args],
-    { cwd: repo, encoding: 'utf8', env },
-  );
-  if (r.status !== 0) throw new Error(`git ${args.join(' ')}: ${r.stderr}`);
-  return r.stdout.trim();
-}
 
 function write(repo: string, file: string, text: string): void {
   fs.mkdirSync(path.dirname(path.join(repo, file)), { recursive: true });
   fs.writeFileSync(path.join(repo, file), text);
 }
 
-function commit(repo: string, epoch: number, message: string): string {
-  git(repo, ['add', '-A']);
-  git(repo, ['commit', '-q', '--no-verify', '-m', message], epoch);
-  return git(repo, ['rev-parse', 'HEAD']);
-}
-
 function newRepo(): string {
   const repo = tempDir('ma178-repo-');
   git(repo, ['init', '-q', '-b', 'main']);
   write(repo, '.claude/skills/emulator-verify/mqa.sh', fs.readFileSync(mqaSh, 'utf8'));
-  // Copied when present: without it mqa reads every package.json change as native.
-  if (fs.existsSync(scriptsOnly)) {
-    write(repo, 'scripts/package_json_scripts_only.mjs', fs.readFileSync(scriptsOnly, 'utf8'));
-  }
+  write(repo, 'scripts/package_json_scripts_only.mjs', fs.readFileSync(scriptsOnly, 'utf8'));
   return repo;
 }
 
 function needsBuild(repo: string, apkTime: string, extraEnv: Record<string, string> = {}) {
-  const env = cleanEnv();
+  const env = cleanEnv('MQA_');
   const r = spawnSync(
     'bash',
     ['.claude/skills/emulator-verify/mqa.sh', 'needs-build', 'main', '--exit-code'],
@@ -161,9 +122,7 @@ beforeAll(() => {
   git(atPathRepo, ['checkout', '-q', '-b', 'feat']);
 });
 
-afterAll(() => {
-  for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
-});
+afterAll(removeTempDirs);
 
 const BASE_REBUILD = new RegExp(
   `^REBUILD: main changed the native surface in ([0-9a-f]{4,40}), and the APK on ${SERIAL} predates it\\.`,
@@ -172,6 +131,19 @@ const BASE_REUSE = new RegExp(
   `^REUSE: no native surface change since main, and the APK on ${SERIAL} was installed after its newest one, ([0-9a-f]{4,40}); this branch reaches the device over Metro\\.$`,
 );
 const BRANCH_REBUILD = /^REBUILD: native surface changed since main, /;
+
+function expectVerdict(
+  r: ReturnType<typeof needsBuild>,
+  pattern: RegExp,
+  sha: string,
+  status: number,
+): void {
+  const match = pattern.exec(r.lines[0]);
+  expect(match).not.toBeNull();
+  expect(sha.startsWith(match?.[1] ?? '-')).toBe(true);
+  expect(r.status).toBe(status);
+  expect(r.stderr).toBe('');
+}
 
 const PKG = {
   name: 'fixture',
@@ -235,21 +207,14 @@ describe('mqa needs-build, base side', () => {
   it("rebuilds when the APK is a day older than the newest native-surface commit on main, listing that commit's files", () => {
     const r = needsBuild(nativeRepo, String(T0 - DAY));
 
-    expect(r.lines[0]).toMatch(BASE_REBUILD);
-    expect(nativeSha.startsWith(BASE_REBUILD.exec(r.lines[0])?.[1] ?? '-')).toBe(true);
+    expectVerdict(r, BASE_REBUILD, nativeSha, 0);
     expect(r.lines[1]).toBe('  package.json');
-    expect(r.status).toBe(0);
-    expect(r.stderr).toBe('');
   });
 
   it('reuses when the APK is a day newer than that commit, naming it', () => {
     const r = needsBuild(nativeRepo, String(T0 + DAY));
 
-    const match = BASE_REUSE.exec(r.lines[0]);
-    expect(match).not.toBeNull();
-    expect(nativeSha.startsWith(match?.[1] ?? '-')).toBe(true);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toBe('');
+    expectVerdict(r, BASE_REUSE, nativeSha, 1);
   });
 
   it('keeps the old reuse line when main holds no native-surface commit', () => {
@@ -265,30 +230,19 @@ describe('mqa needs-build, base side', () => {
   it('rebuilds when the APK time cannot be read, on the repo of the first case', () => {
     const r = needsBuild(nativeRepo, '');
 
-    expect(r.lines[0]).toMatch(BASE_REBUILD);
-    expect(nativeSha.startsWith(BASE_REBUILD.exec(r.lines[0])?.[1] ?? '-')).toBe(true);
-    expect(r.status).toBe(0);
-    expect(r.stderr).toBe('');
+    expectVerdict(r, BASE_REBUILD, nativeSha, 0);
   });
 
   it("reuses an APK newer than the fork's native commit when main gained a native commit after the fork", () => {
     const r = needsBuild(forkedRepo, String(T0 + 2 * DAY));
 
-    const match = BASE_REUSE.exec(r.lines[0]);
-    expect(match).not.toBeNull();
-    expect(forkedSha.startsWith(match?.[1] ?? '-')).toBe(true);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toBe('');
+    expectVerdict(r, BASE_REUSE, forkedSha, 1);
   });
 
   it('names the native commit when it also touches a path starting with @', () => {
     const r = needsBuild(atPathRepo, String(T0 + DAY));
 
-    const match = BASE_REUSE.exec(r.lines[0]);
-    expect(match).not.toBeNull();
-    expect(atPathSha.startsWith(match?.[1] ?? '-')).toBe(true);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toBe('');
+    expectVerdict(r, BASE_REUSE, atPathSha, 1);
   });
 
   it.each<[string, (repo: string) => void]>([
@@ -318,11 +272,7 @@ describe('mqa needs-build, base side', () => {
 
       const r = needsBuild(repo, String(T0 + DAY));
 
-      const match = BASE_REUSE.exec(r.lines[0]);
-      expect(match).not.toBeNull();
-      expect(t0Sha.startsWith(match?.[1] ?? '-')).toBe(true);
-      expect(r.status).toBe(1);
-      expect(r.stderr).toBe('');
+      expectVerdict(r, BASE_REUSE, t0Sha, 1);
     },
   );
 
@@ -364,12 +314,8 @@ describe('mqa needs-build, base side', () => {
 
       const r = needsBuild(repo, String(T0 + DAY));
 
-      const match = BASE_REBUILD.exec(r.lines[0]);
-      expect(match).not.toBeNull();
-      expect(laterSha.startsWith(match?.[1] ?? '-')).toBe(true);
+      expectVerdict(r, BASE_REBUILD, laterSha, 0);
       expect(r.lines).toContain(file);
-      expect(r.status).toBe(0);
-      expect(r.stderr).toBe('');
     },
   );
 
@@ -381,13 +327,9 @@ describe('mqa needs-build, base side', () => {
 
     const r = needsBuild(repo, String(T0 + DAY));
 
-    const match = BASE_REBUILD.exec(r.lines[0]);
-    expect(match).not.toBeNull();
-    expect(laterSha.startsWith(match?.[1] ?? '-')).toBe(true);
+    expectVerdict(r, BASE_REBUILD, laterSha, 0);
     expect(r.lines).toContain('  app.json');
     expect(r.lines).not.toContain('  package.json');
-    expect(r.status).toBe(0);
-    expect(r.stderr).toBe('');
   });
 
   it('rebuilds when main merges, after the APK, a side branch that moved a dependency, naming the merge', () => {
@@ -395,12 +337,8 @@ describe('mqa needs-build, base side', () => {
 
     const r = needsBuild(repo, String(T0 + 2 * DAY));
 
-    const match = BASE_REBUILD.exec(r.lines[0]);
-    expect(match).not.toBeNull();
-    expect(mergeSha.startsWith(match?.[1] ?? '-')).toBe(true);
+    expectVerdict(r, BASE_REBUILD, mergeSha, 0);
     expect(r.lines).toContain('  package.json');
-    expect(r.status).toBe(0);
-    expect(r.stderr).toBe('');
   });
 
   it('reuses when main merges, after the APK, a lint-only side branch, naming the T0 commit', () => {
@@ -408,11 +346,7 @@ describe('mqa needs-build, base side', () => {
 
     const r = needsBuild(repo, String(T0 + 2 * DAY));
 
-    const match = BASE_REUSE.exec(r.lines[0]);
-    expect(match).not.toBeNull();
-    expect(t0Sha.startsWith(match?.[1] ?? '-')).toBe(true);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toBe('');
+    expectVerdict(r, BASE_REUSE, t0Sha, 1);
   });
 
   it('rebuilds naming the T0 commit when the APK time cannot be read, past a later lint-only commit', () => {
@@ -420,12 +354,8 @@ describe('mqa needs-build, base side', () => {
 
     const r = needsBuild(repo, '');
 
-    const match = BASE_REBUILD.exec(r.lines[0]);
-    expect(match).not.toBeNull();
-    expect(t0Sha.startsWith(match?.[1] ?? '-')).toBe(true);
+    expectVerdict(r, BASE_REBUILD, t0Sha, 0);
     expect(r.lines).toContain('  package.json');
-    expect(r.status).toBe(0);
-    expect(r.stderr).toBe('');
   });
 });
 
@@ -461,11 +391,7 @@ describe('mqa needs-build, branch side', () => {
 
       const r = needsBuild(repo, String(T0 + DAY));
 
-      const match = BASE_REUSE.exec(r.lines[0]);
-      expect(match).not.toBeNull();
-      expect(t0Sha.startsWith(match?.[1] ?? '-')).toBe(true);
-      expect(r.status).toBe(1);
-      expect(r.stderr).toBe('');
+      expectVerdict(r, BASE_REUSE, t0Sha, 1);
     },
   );
 
