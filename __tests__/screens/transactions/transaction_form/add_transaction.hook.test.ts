@@ -12,6 +12,7 @@ import { useAddTransactionState } from '@/modules/transactions/screens/transacti
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import type { TransactionFormPrerequisiteStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
+import { deferred } from '@/test_helpers/deferred';
 import {
   installMockAddTransaction,
   makeTestAccount,
@@ -130,11 +131,10 @@ describe('useAddTransaction — named budget assignment', () => {
   });
 
   it('does not save while matching budgets are still loading', async () => {
-    let resolveBudgets: (budgets: Budget[]) => void = () => {};
-    const pendingBudgets = new Promise<Budget[]>((resolve) => {
-      resolveBudgets = resolve;
-    });
-    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
+    const pendingBudgets = deferred<Budget[]>();
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockReturnValue(pendingBudgets.promise);
     const addTx = installMockAddTransaction();
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
 
@@ -147,7 +147,7 @@ describe('useAddTransaction — named budget assignment', () => {
     await act(async () => result.current.handleSave());
 
     expect(addTx).not.toHaveBeenCalled();
-    await act(async () => resolveBudgets([]));
+    await act(async () => pendingBudgets.resolve([]));
     expect(result.current.state.showBudgetField).toBe(false);
   });
 
@@ -192,11 +192,10 @@ describe('useAddTransaction — named budget assignment', () => {
   });
 
   it('does not write a completed budget lookup after unmount', async () => {
-    let resolveBudgets: (budgets: Budget[]) => void = () => {};
-    const pendingBudgets = new Promise<Budget[]>((resolve) => {
-      resolveBudgets = resolve;
-    });
-    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
+    const pendingBudgets = deferred<Budget[]>();
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockReturnValue(pendingBudgets.promise);
     const setAvailableBudgets = jest.spyOn(
       useAddTransactionStore.getState(),
       'setAvailableBudgets',
@@ -209,22 +208,19 @@ describe('useAddTransaction — named budget assignment', () => {
     await unmount();
     setAvailableBudgets.mockClear();
     setBudgetsLoading.mockClear();
-    await act(async () => resolveBudgets([mockBudget('b1', 'Monthly meals')]));
+    await act(async () => pendingBudgets.resolve([mockBudget('b1', 'Monthly meals')]));
 
     expect(setAvailableBudgets).not.toHaveBeenCalled();
     expect(setBudgetsLoading).not.toHaveBeenCalled();
   });
 
   it('clears a stale budget selection while another month is loading', async () => {
-    let resolveAugust: (budgets: Budget[]) => void = () => {};
-    const augustBudgets = new Promise<Budget[]>((resolve) => {
-      resolveAugust = resolve;
-    });
+    const augustBudgets = deferred<Budget[]>();
     jest
       .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
       .mockImplementation(async (_categoryId, yearMonth) => {
         if (yearMonth === '2026-07') return [mockBudget('b1', 'Monthly meals')];
-        return augustBudgets;
+        return augustBudgets.promise;
       });
     const { result } = await renderHook(() => useAddTransaction(jest.fn()));
 
@@ -236,7 +232,7 @@ describe('useAddTransaction — named budget assignment', () => {
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
     expect(result.current.state.selectedBudget).toBeNull();
     expect(result.current.state.availableBudgets).toEqual([]);
-    await act(async () => resolveAugust([]));
+    await act(async () => augustBudgets.resolve([]));
   });
 
   it('auto-selects one matching budget and saves its id', async () => {
@@ -478,11 +474,8 @@ describe('useAddTransaction — validation', () => {
   });
 
   it('submits once and completes once when save is pressed twice', async () => {
-    let resolveSave: (transaction: ReturnType<typeof makeTestTransaction>) => void = () => {};
-    const pendingSave = new Promise<ReturnType<typeof makeTestTransaction>>((resolve) => {
-      resolveSave = resolve;
-    });
-    const addTx = installMockAddTransaction(() => pendingSave);
+    const pendingSave = deferred<ReturnType<typeof makeTestTransaction>>();
+    const addTx = installMockAddTransaction(() => pendingSave.promise);
     const onSaved = jest.fn(() => {
       expect(useAddTransactionState.getState().saving).toBe(true);
     });
@@ -502,7 +495,7 @@ describe('useAddTransaction — validation', () => {
     await waitFor(() => expect(addTx).toHaveBeenCalledTimes(1));
 
     await act(async () => {
-      resolveSave(makeTestTransaction());
+      pendingSave.resolve(makeTestTransaction());
       await Promise.all([firstSave!, secondSave!]);
     });
 

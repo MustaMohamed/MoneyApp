@@ -3,6 +3,7 @@ const mockNativeCancel = jest.fn();
 
 import { InteractionManager } from 'react-native';
 
+import { deferred } from '@/test_helpers/deferred';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 describe('runAfterInteractions', () => {
@@ -117,16 +118,13 @@ describe('runAfterInteractions', () => {
   });
 
   it('suppresses rejection delivery after cancellation', async () => {
-    let reject!: (error: unknown) => void;
-    const promise = new Promise<void>((_, rejectPromise) => {
-      reject = rejectPromise;
-    });
+    const pending = deferred();
     const onError = jest.fn();
-    const task = runAfterInteractions(() => promise, { onError });
+    const task = runAfterInteractions(() => pending.promise, { onError });
     mockScheduledCallbacks[0]?.();
 
     task.cancel();
-    reject(new Error('late failure'));
+    pending.reject(new Error('late failure'));
     await Promise.resolve();
     await Promise.resolve();
 

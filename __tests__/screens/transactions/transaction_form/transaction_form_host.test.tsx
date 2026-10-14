@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { deferred } from '@/test_helpers/deferred';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 
@@ -283,13 +284,8 @@ describe('TransactionFormHost', () => {
       saving: false,
       disabled: false,
     });
-    let resolveSubmit: () => void = () => {};
-    const submit = jest.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveSubmit = resolve;
-        }),
-    );
+    const pendingSubmit = deferred();
+    const submit = jest.fn(() => pendingSubmit.promise);
     const { result } = await renderHook(() => useTransactionFormHost());
     await act(() => result.current.registerSubmit(sessionId, submit));
 
@@ -299,7 +295,7 @@ describe('TransactionFormHost', () => {
     });
     expect(submit).toHaveBeenCalledTimes(1);
 
-    await act(async () => resolveSubmit());
+    await act(async () => pendingSubmit.resolve());
     await act(() => result.current.handleSave());
     expect(submit).toHaveBeenCalledTimes(2);
   });

@@ -8,6 +8,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionFormPrerequisites } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.hook';
+import { deferred } from '@/test_helpers/deferred';
 
 const account: Account = {
   id: 'account-1',
@@ -118,16 +119,8 @@ describe('useTransactionFormPrerequisites', () => {
   });
 
   it('ignores completion from a replaced session', async () => {
-    let resolveAccounts: () => void = () => {};
-    const loadAccounts = jest.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveAccounts = () => {
-            useAccountStore.setState({ accounts: [account], hasLoaded: true });
-            resolve();
-          };
-        }),
-    );
+    const pendingAccounts = deferred();
+    const loadAccounts = jest.fn(() => pendingAccounts.promise);
     useAccountStore.setState({ loadAccounts });
     useCategoryStore.setState({ hasLoaded: true });
     useTransactionFormState.getState().openAdd();
@@ -137,7 +130,10 @@ describe('useTransactionFormPrerequisites', () => {
     await waitFor(() => expect(loadAccounts).toHaveBeenCalledTimes(1));
 
     await act(() => useTransactionFormState.getState().openEdit(createTransaction()));
-    await act(resolveAccounts);
+    await act(() => {
+      useAccountStore.setState({ accounts: [account], hasLoaded: true });
+      pendingAccounts.resolve();
+    });
     await act(async () => Promise.resolve());
 
     expect(useTransactionFormState.getState()).toMatchObject({

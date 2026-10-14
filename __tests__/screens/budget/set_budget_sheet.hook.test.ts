@@ -9,6 +9,7 @@ import {
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { makeTestBudgetEditTarget, makeTestBudgetableCategory } from '@/test_helpers/budget';
+import { deferred } from '@/test_helpers/deferred';
 import { MoneyTextMappingError, parseRequiredMoneyText } from '@/utils/money_text';
 
 // `useBottomSheetAwareHandlers` needs a mounted sheet context `renderHook` does not provide.
@@ -52,11 +53,8 @@ describe('useSetBudgetSheetSave', () => {
   });
 
   it('prevents duplicate save operations while a save is running', async () => {
-    let resolveSave: () => void = () => {};
-    const pendingSave = new Promise<void>((resolve) => {
-      resolveSave = resolve;
-    });
-    const operation = jest.fn(() => pendingSave);
+    const pendingSave = deferred();
+    const operation = jest.fn(() => pendingSave.promise);
     const { result } = await renderHook(() => useSetBudgetSheetSave());
 
     let firstSave!: Promise<boolean>;
@@ -68,7 +66,7 @@ describe('useSetBudgetSheetSave', () => {
     });
     expect(operation).toHaveBeenCalledTimes(1);
 
-    await act(async () => resolveSave());
+    await act(async () => pendingSave.resolve());
     await expect(firstSave).resolves.toBe(true);
   });
 });

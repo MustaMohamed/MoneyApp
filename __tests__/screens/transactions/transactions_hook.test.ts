@@ -22,6 +22,7 @@ import { useTransactionsState } from '@/modules/transactions/screens/transaction
 import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
+import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
 
@@ -378,9 +379,9 @@ describe('useTransactions monthly totals', () => {
     let resolveLeft: ((aggregate: TransactionMonthAggregate) => void) | undefined;
     mockGetMonthAggregate.mockImplementation((query) => {
       if (query.search === 'rent' && query.dateFrom === '2026-07-01') {
-        return new Promise<TransactionMonthAggregate>((resolve) => {
-          resolveLeft = resolve;
-        });
+        const left = deferred<TransactionMonthAggregate>();
+        resolveLeft = left.resolve;
+        return left.promise;
       }
       return Promise.resolve({ ...EMPTY_AGGREGATE, matchCount: query.search === 'rental' ? 5 : 0 });
     });
@@ -850,12 +851,8 @@ describe('useTransactions query ownership', () => {
   it('MA-089: shows the refresh indicator only while a user pull is in flight', async () => {
     mockGetMonthAggregate.mockResolvedValue(EMPTY_AGGREGATE);
     setupStores({ transactions: [TRANSACTION], status: 'refreshing' });
-    let resolveRefresh!: () => void;
-    refresh.mockReturnValue(
-      new Promise<void>((resolve) => {
-        resolveRefresh = resolve;
-      }),
-    );
+    const pendingRefresh = deferred();
+    refresh.mockReturnValue(pendingRefresh.promise);
     const { result } = await renderHook(() => useTransactions());
 
     let pull: Promise<void> | undefined;
@@ -867,7 +864,7 @@ describe('useTransactions query ownership', () => {
     expect(result.current.state.refreshing).toBe(true);
 
     await act(async () => {
-      resolveRefresh();
+      pendingRefresh.resolve();
       await pull;
     });
 
@@ -876,12 +873,10 @@ describe('useTransactions query ownership', () => {
 
   it('MA-089: shows the refresh indicator while a tapped Retry refetches the loaded rows', async () => {
     setupStores({ transactions: [TRANSACTION], status: 'refreshErrorWithData' });
-    let resolveRetry!: () => void;
+    const pendingRetry = deferred();
     retry.mockImplementation(() => {
       transactionStoreState = { ...transactionStoreState, status: 'refreshing' };
-      return new Promise<void>((resolve) => {
-        resolveRetry = resolve;
-      });
+      return pendingRetry.promise;
     });
     const { result } = await renderHook(() => useTransactions());
     expect(result.current.state.refreshing).toBe(false);
@@ -896,7 +891,7 @@ describe('useTransactions query ownership', () => {
     expect(result.current.state.refreshing).toBe(true);
 
     await act(async () => {
-      resolveRetry();
+      pendingRetry.resolve();
       await tapped;
     });
 
@@ -2027,18 +2022,14 @@ describe('useTransactions day sections', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     serveDay(-450, 3);
     const { result } = await renderReadyRows();
-    let rejectLoad!: (error: Error) => void;
-    mockGetMonthAggregate.mockReturnValue(
-      new Promise((_resolve, reject) => {
-        rejectLoad = reject;
-      }),
-    );
+    const pendingLoad = deferred<TransactionMonthAggregate>();
+    mockGetMonthAggregate.mockReturnValue(pendingLoad.promise);
 
     await searchCoffee();
     expect(result.current.state.sections[0].figures).toEqual({ mode: 'skeleton' });
 
     await act(async () => {
-      rejectLoad(new Error('db down'));
+      pendingLoad.reject(new Error('db down'));
     });
     await waitFor(() => expect(result.current.state.totalsStatus).toBe('refreshErrorWithData'));
 
@@ -2148,13 +2139,9 @@ describe('useTransactions account scope change (MA-107)', () => {
 
   async function failChipTap(whilePending: (landed: Landed) => void = () => {}): Promise<Landed> {
     const landed = await renderLanded([], true);
-    let rejectLoad!: (error: Error) => void;
+    const pendingLoad = deferred<TransactionMonthAggregate>();
     mockGetMonthAggregate.mockClear();
-    mockGetMonthAggregate.mockReturnValue(
-      new Promise((_resolve, reject) => {
-        rejectLoad = reject;
-      }),
-    );
+    mockGetMonthAggregate.mockReturnValue(pendingLoad.promise);
     await act(() => {
       transactionStoreState.queryKey = WALLET_KEY;
       transactionStoreState.snapshotKey = WALLET_KEY;
@@ -2164,7 +2151,7 @@ describe('useTransactions account scope change (MA-107)', () => {
     whilePending(landed);
 
     await act(async () => {
-      rejectLoad(new Error('db down'));
+      pendingLoad.reject(new Error('db down'));
     });
     await waitFor(() => expect(landed.result.current.state.totalsStatus).toBe('firstLoadError'));
     return landed;
@@ -2314,20 +2301,16 @@ describe('useTransactions account scope change (MA-107)', () => {
 
   it("shows the skeleton, then the new scope's own figures once they land", async () => {
     const { result } = await renderLanded();
-    let resolveLoad!: (aggregate: TransactionMonthAggregate) => void;
+    const pendingLoad = deferred<TransactionMonthAggregate>();
     mockGetMonthAggregate.mockClear();
-    mockGetMonthAggregate.mockReturnValue(
-      new Promise((resolve) => {
-        resolveLoad = resolve;
-      }),
-    );
+    mockGetMonthAggregate.mockReturnValue(pendingLoad.promise);
 
     await act(() => result.current.toggleAccountChip('acc-1'));
     await waitForAggregateUnder(['acc-1']);
     expect(result.current.state.hero.mode).toBe('skeleton');
 
     await act(async () => {
-      resolveLoad({ ...EMPTY_AGGREGATE, scoped: { ...WALLET_JULY } });
+      pendingLoad.resolve({ ...EMPTY_AGGREGATE, scoped: { ...WALLET_JULY } });
     });
     await waitFor(() => expect(result.current.state.totalsStatus).toBe('ready'));
 
@@ -2714,12 +2697,8 @@ describe('useTransactions any-transaction read (MA-093)', () => {
   });
 
   it('a rejection that lands after a filter went on sets no failure flag', async () => {
-    let rejectRead!: (error: Error) => void;
-    mockHasAny.mockReturnValueOnce(
-      new Promise<boolean>((_resolve, reject) => {
-        rejectRead = reject;
-      }),
-    );
+    const pendingRead = deferred<boolean>();
+    mockHasAny.mockReturnValueOnce(pendingRead.promise);
     await renderHook(() => useTransactions());
     await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
     await act(() => {
@@ -2732,7 +2711,7 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     await settle();
 
     await act(async () => {
-      rejectRead(new Error('db down'));
+      pendingRead.reject(new Error('db down'));
     });
     await settle();
 
@@ -2772,12 +2751,8 @@ describe('useTransactions any-transaction read (MA-093)', () => {
   });
 
   it('drops an answer that lands after a newer request began', async () => {
-    let resolveFirst!: (answer: boolean) => void;
-    mockHasAny.mockReturnValueOnce(
-      new Promise<boolean>((resolve) => {
-        resolveFirst = resolve;
-      }),
-    );
+    const first = deferred<boolean>();
+    mockHasAny.mockReturnValueOnce(first.promise);
     const { rerender } = await renderRerenderable();
     await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
 
@@ -2789,7 +2764,7 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     expect(mockHasAny).toHaveBeenCalledTimes(2);
 
     await act(async () => {
-      resolveFirst(true);
+      first.resolve(true);
     });
     await settle();
 
@@ -2798,12 +2773,8 @@ describe('useTransactions any-transaction read (MA-093)', () => {
   });
 
   it('drops a rejection that lands after a newer request began', async () => {
-    let rejectFirst!: (error: Error) => void;
-    mockHasAny.mockReturnValueOnce(
-      new Promise<boolean>((_resolve, reject) => {
-        rejectFirst = reject;
-      }),
-    );
+    const first = deferred<boolean>();
+    mockHasAny.mockReturnValueOnce(first.promise);
     const { rerender } = await renderRerenderable();
     await waitFor(() => expect(mockHasAny).toHaveBeenCalledTimes(1));
 
@@ -2814,7 +2785,7 @@ describe('useTransactions any-transaction read (MA-093)', () => {
     );
 
     await act(async () => {
-      rejectFirst(new Error('db down'));
+      first.reject(new Error('db down'));
     });
     await settle();
 
@@ -2997,13 +2968,8 @@ describe('useTransactions delete dialog (MA-093)', () => {
   });
 
   it('stays busy with no toast while the delete is in flight, then closes and shows the toast once', async () => {
-    let resolveDelete!: () => void;
-    const pendingDelete = jest.fn<Promise<void>, [string]>(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveDelete = resolve;
-        }),
-    );
+    const deletion = deferred();
+    const pendingDelete = jest.fn<Promise<void>, [string]>(() => deletion.promise);
     setupSeeded({ deleteTransaction: pendingDelete });
     const { result } = await renderHook(() => useTransactions());
     await act(() => result.current.requestDelete('tx-1'));
@@ -3019,7 +2985,7 @@ describe('useTransactions delete dialog (MA-093)', () => {
     expect(mockToast.show).not.toHaveBeenCalled();
 
     await act(async () => {
-      resolveDelete();
+      deletion.resolve();
       await confirmed;
     });
 

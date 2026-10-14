@@ -1,5 +1,6 @@
 import type { BudgetMonthSnapshot } from '@/modules/budget/repositories/budget.repository';
 import { createBudgetStore, type BudgetStoreRepository } from '@/modules/budget/store/budget.store';
+import { deferred } from '@/test_helpers/deferred';
 
 const NOW = '2026-07-01T00:00:00.000Z';
 
@@ -110,28 +111,18 @@ describe('budget store spending plans', () => {
   });
 
   it('does not let an older month request overwrite a newer month request', async () => {
-    let resolveJuly: ((value: BudgetMonthSnapshot) => void) | undefined;
-    let resolveAugust: ((value: BudgetMonthSnapshot) => void) | undefined;
+    const july = deferred<BudgetMonthSnapshot>();
+    const august = deferred<BudgetMonthSnapshot>();
     budgetRepository.getMonthSnapshot
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveJuly = resolve;
-          }),
-      )
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveAugust = resolve;
-          }),
-      );
+      .mockImplementationOnce(() => july.promise)
+      .mockImplementationOnce(() => august.promise);
     const store = createBudgetStore(budgetRepository);
 
     const julyLoad = store.getState().load('2026-07');
     const augustLoad = store.getState().load('2026-08');
-    resolveAugust?.(snapshot('2026-08', { spendingPlans: [plan('august', 'August')] }));
+    august.resolve(snapshot('2026-08', { spendingPlans: [plan('august', 'August')] }));
     await augustLoad;
-    resolveJuly?.(snapshot('2026-07', { spendingPlans: [plan('july', 'July')] }));
+    july.resolve(snapshot('2026-07', { spendingPlans: [plan('july', 'July')] }));
     await julyLoad;
 
     expect(store.getState().loadedMonth).toBe('2026-08');
@@ -139,21 +130,16 @@ describe('budget store spending plans', () => {
   });
 
   it('ignores an older failed request after a newer month has loaded', async () => {
-    let rejectJuly: ((error: Error) => void) | undefined;
+    const july = deferred<BudgetMonthSnapshot>();
     budgetRepository.getMonthSnapshot
-      .mockImplementationOnce(
-        () =>
-          new Promise((_resolve, reject) => {
-            rejectJuly = reject;
-          }),
-      )
+      .mockImplementationOnce(() => july.promise)
       .mockResolvedValueOnce(snapshot('2026-08', { spendingPlans: [plan('august', 'August')] }));
     const store = createBudgetStore(budgetRepository);
 
     const julyLoad = store.getState().load('2026-07');
     const augustLoad = store.getState().load('2026-08');
     await augustLoad;
-    rejectJuly?.(new Error('stale request failed'));
+    july.reject(new Error('stale request failed'));
     await julyLoad;
 
     expect(store.getState().loadedMonth).toBe('2026-08');

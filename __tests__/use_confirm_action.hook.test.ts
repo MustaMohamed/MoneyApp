@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { deferred } from '@/test_helpers/deferred';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 describe('useConfirmAction', () => {
@@ -45,13 +46,8 @@ describe('useConfirmAction', () => {
   });
 
   it('confirm() sets busy=true during action, busy=false after', async () => {
-    let resolveFn!: () => void;
-    const action = jest.fn(
-      () =>
-        new Promise<void>((res) => {
-          resolveFn = res;
-        }),
-    );
+    const pendingAction = deferred();
+    const action = jest.fn(() => pendingAction.promise);
     const { result } = await renderHook(() => useConfirmAction<string>(action));
     await act(() => {
       result.current.request('tx-99');
@@ -64,20 +60,15 @@ describe('useConfirmAction', () => {
     expect(result.current.busy).toBe(true);
 
     await act(async () => {
-      resolveFn();
+      pendingAction.resolve();
       await confirmPromise;
     });
     expect(result.current.busy).toBe(false);
   });
 
   it('confirm() while already busy does NOT invoke action a second time', async () => {
-    let resolveFn!: () => void;
-    const action = jest.fn(
-      () =>
-        new Promise<void>((res) => {
-          resolveFn = res;
-        }),
-    );
+    const pendingAction = deferred();
+    const action = jest.fn(() => pendingAction.promise);
     const { result } = await renderHook(() => useConfirmAction<string>(action));
     await act(() => {
       result.current.request('tx-1');
@@ -93,7 +84,7 @@ describe('useConfirmAction', () => {
     });
 
     await act(async () => {
-      resolveFn();
+      pendingAction.resolve();
       await p1;
     });
 
