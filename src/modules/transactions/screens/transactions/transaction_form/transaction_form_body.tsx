@@ -74,11 +74,11 @@ interface BaseProps {
   /** The rate demand flag (either side USD), not the source currency. */
   requiresRate: boolean;
   exchangeRate: string;
-  setExchangeRate: (v: string) => void;
+  /** The rate editor's Done; `false` keeps the editor open with its message. */
+  commitExchangeRate: (text: string) => boolean;
   rateOverride: boolean;
   toggleRateOverride: () => void;
   rateUpdatedAt: string | null;
-  rateError?: string;
   date: string;
   setDate: (v: string) => void;
   note: string;
@@ -153,11 +153,10 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     budgetError,
     requiresRate,
     exchangeRate,
-    setExchangeRate,
+    commitExchangeRate,
     rateOverride,
     toggleRateOverride,
     rateUpdatedAt,
-    rateError,
     date,
     setDate,
     note,
@@ -387,12 +386,12 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           {requiresRate ? (
             <View className="border-separator border-b px-4 pb-3">
               <TransactionExchangeRateRow
+                ownerId={datePickerOwnerId}
                 value={exchangeRate}
-                onChange={setExchangeRate}
+                onCommit={commitExchangeRate}
                 overrideEnabled={rateOverride}
                 onToggleOverride={toggleRateOverride}
                 rateUpdatedAt={rateUpdatedAt}
-                error={rateError}
               />
             </View>
           ) : null}

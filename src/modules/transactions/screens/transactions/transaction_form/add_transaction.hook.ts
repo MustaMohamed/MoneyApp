@@ -31,6 +31,7 @@ import {
   resolveDestinationFloorError,
   resolveEligibleFromAccounts,
   resolveEligibleToAccounts,
+  resolveRateCommit,
   resolveStripSelectedId,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
@@ -39,7 +40,6 @@ import {
   type TransactionFormFieldErrors,
 } from './transaction_form.helpers';
 import { type TransactionFormPrerequisiteController } from './transaction_form_prerequisites.helpers';
-import { useTransactionFormRate } from './transaction_form_rate.hook';
 
 export type AddTransactionFormValues = {
   amount: number;
@@ -162,28 +162,6 @@ function createSchema(
             message: Strings.addTxErrTransferNoCc,
             path: ['toAccountId'],
           });
-        }
-      }
-
-      const needsRate = requiresExchangeRate(
-        acc?.currency,
-        isTransferOrCC ? toAcc?.currency : undefined,
-      );
-      if (needsRate) {
-        if (!data.exchangeRate) {
-          ctx.addIssue({
-            code: 'custom',
-            message: Strings.addTxErrRateRequired,
-            path: ['exchangeRate'],
-          });
-        } else {
-          if (parseRateText(data.exchangeRate) === undefined) {
-            ctx.addIssue({
-              code: 'custom',
-              message: Strings.addTxErrRateInvalid,
-              path: ['exchangeRate'],
-            });
-          }
         }
       }
 
@@ -359,7 +337,6 @@ export function useAddTransaction(
     toAccount: form.formState.errors.toAccountId?.message,
     category: form.formState.errors.categoryId?.message,
     budget: budgetLookupError ?? form.formState.errors.budgetId?.message,
-    rate: form.formState.errors.exchangeRate?.message,
   } satisfies TransactionFormFieldErrors;
 
   useEffect(() => {
@@ -438,18 +415,11 @@ export function useAddTransaction(
     void form.trigger();
   }
 
-  // After a failed Save, every pick re-runs full validation against the schema this render built.
+  // After a failed Save, every pick and every rate change re-runs full validation against the schema this render built.
   useEffect(() => {
     revalidateAfterSubmit();
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- the picks and the schema decide when it runs; revalidateAfterSubmit is rebuilt each render and reads the form when called
-  }, [schema, accountId, toAccountId, categoryId, formBudgetId, date]);
-
-  const setRateText = useTransactionFormRate(
-    form,
-    'exchangeRate',
-    exchangeRate,
-    revalidateAfterSubmit,
-  );
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- the picks, the rate and the schema decide when it runs; revalidateAfterSubmit is rebuilt each render and reads the form when called
+  }, [schema, accountId, toAccountId, categoryId, formBudgetId, date, exchangeRate]);
 
   async function onValid(data: AddTransactionFormValues) {
     const formState = useAddTransactionState.getState();
@@ -655,9 +625,13 @@ export function useAddTransaction(
       clearError();
       form.setValue('note', v);
     },
-    setExchangeRate: (v: string) => {
+    commitExchangeRate: (text: string) => {
+      const commit = resolveRateCommit({ text, storedRate: rate });
+      if (commit === undefined) return false;
       clearError();
-      setRateText(v);
+      setRateOverride(commit.override);
+      form.setValue('exchangeRate', commit.exchangeRate);
+      return true;
     },
     toggleRateOverride,
     setShowToPicker,

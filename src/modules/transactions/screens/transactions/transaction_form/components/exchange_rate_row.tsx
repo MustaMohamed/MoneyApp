@@ -31,9 +31,8 @@ function formatDateShort(iso: string): string {
   });
 }
 
-interface Props {
+interface SharedProps {
   value: string;
-  onChange: (v: string) => void;
   overrideEnabled: boolean;
   onToggleOverride: () => void;
   rateUpdatedAt: string | null;
@@ -43,8 +42,14 @@ interface Props {
   previewHidden?: boolean;
   /** Subtitle saying why a rate is required for a payment that converts nothing. */
   purposeCaption?: string;
-  error?: string;
 }
+
+/** With `onOpenEditor` the card is a button in every state and the rate is typed in the editor, never on the card. */
+type Props = SharedProps &
+  (
+    | { onOpenEditor: () => void; onChange?: never; error?: never }
+    | { onOpenEditor?: never; onChange: (v: string) => void; error?: string }
+  );
 
 export function ExchangeRateRow({
   value,
@@ -56,9 +61,11 @@ export function ExchangeRateRow({
   previewHidden = false,
   purposeCaption,
   error,
+  onOpenEditor,
 }: Props): React.ReactElement {
   const stale = isStale(rateUpdatedAt);
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+  const showsInput = overrideEnabled && onOpenEditor === undefined;
 
   const subtitle = overrideEnabled
     ? Strings.addTxRateSourceCustom
@@ -70,9 +77,9 @@ export function ExchangeRateRow({
     <View className="border-accent/30 bg-accent/10 mt-3 rounded-md border px-3 py-3">
       <PressableFeedback
         testID="exchange-rate-row"
-        onPress={overrideEnabled ? undefined : onToggleOverride}
-        accessibilityRole={overrideEnabled ? undefined : 'button'}
-        accessibilityLabel={overrideEnabled ? '' : Strings.addTxRateEditAccessibility}
+        onPress={onOpenEditor ?? (overrideEnabled ? undefined : onToggleOverride)}
+        accessibilityRole={showsInput ? undefined : 'button'}
+        accessibilityLabel={showsInput ? '' : Strings.addTxRateEditAccessibility}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <View style={{ flex: 1 }}>
@@ -105,7 +112,7 @@ export function ExchangeRateRow({
             </Text>
           ) : null}
         </View>
-        {overrideEnabled ? (
+        {showsInput ? (
           <View style={{ width: 100 }}>
             <Input
               testID="exchange-rate-input"

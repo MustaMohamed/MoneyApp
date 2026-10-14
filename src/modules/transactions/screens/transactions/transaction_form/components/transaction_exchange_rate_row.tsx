@@ -1,9 +1,46 @@
-import type { ComponentProps } from 'react';
-
 import { ExchangeRateRow } from './exchange_rate_row';
+import { RateEditorSheet } from './rate_editor_sheet';
+import { useRateEditor } from './rate_editor_sheet.hook';
 
-type Props = Omit<ComponentProps<typeof ExchangeRateRow>, 'previewEgpAmount' | 'previewHidden'>;
+interface Props {
+  ownerId: string;
+  value: string;
+  onCommit: (text: string) => boolean;
+  overrideEnabled: boolean;
+  onToggleOverride: () => void;
+  rateUpdatedAt: string | null;
+}
 
-export function TransactionExchangeRateRow(props: Props): React.ReactElement {
-  return <ExchangeRateRow {...props} previewHidden previewEgpAmount={undefined} />;
+export function TransactionExchangeRateRow({
+  ownerId,
+  value,
+  onCommit,
+  overrideEnabled,
+  onToggleOverride,
+  rateUpdatedAt,
+}: Props): React.ReactElement {
+  const editor = useRateEditor(ownerId, value, onCommit);
+
+  return (
+    <>
+      <ExchangeRateRow
+        value={value}
+        onOpenEditor={editor.open}
+        overrideEnabled={overrideEnabled}
+        onToggleOverride={onToggleOverride}
+        rateUpdatedAt={rateUpdatedAt}
+        previewHidden
+        previewEgpAmount={undefined}
+      />
+      {/* Mounted with the card, so its sheet is in place when a keyboard show arrives before the field's focus. */}
+      <RateEditorSheet
+        isOpen={editor.state.isOpen}
+        draft={editor.state.draft}
+        error={editor.state.error}
+        onChangeText={editor.setDraft}
+        onCancel={editor.cancel}
+        onDone={editor.done}
+      />
+    </>
+  );
 }

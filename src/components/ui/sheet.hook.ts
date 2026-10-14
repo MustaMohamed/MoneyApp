@@ -17,10 +17,11 @@ interface SheetCloseLifecycleHook {
 // The fields a render reads: a report that changes none of them, `openReported` alone, stays in the ref and schedules no render.
 const RENDERED_FIELDS = ['isOpen', 'hasOpened', 'completed', 'restsClosed'] as const;
 
-/** Holds the sheet's close lifecycle as state, so the render after a settled close reads it; `onCloseComplete` runs once per settled close. */
+/** Holds the sheet's close lifecycle as state, so the render after a settled close reads it; `onCloseComplete` runs once per settled close, `onOpenComplete` once per settled open. */
 export function useSheetCloseLifecycle(
   isOpen: boolean,
   onCloseComplete: (() => void) | undefined,
+  onOpenComplete?: () => void,
 ): SheetCloseLifecycleHook {
   const [storedLifecycle, setStoredLifecycle] = useState(() => createSheetCloseLifecycle(isOpen));
   const closeLifecycle =
@@ -33,8 +34,9 @@ export function useSheetCloseLifecycle(
   const closeLifecycleRef = useRef(closeLifecycle);
   if (closeLifecycle !== storedLifecycle) closeLifecycleRef.current = closeLifecycle;
 
-  const handleSheetIndexChange = useCallback(
-    (index: number) => {
+  // `fromIndexReport` is false for the close request's stand-in 0, which reports no settled open.
+  const settle = useCallback(
+    (index: number, fromIndexReport: boolean) => {
       const settlement = settleSheetCloseLifecycle(closeLifecycleRef.current, index);
       if (settlement.lifecycle === closeLifecycleRef.current) return;
       const previous = closeLifecycleRef.current;
@@ -43,17 +45,20 @@ export function useSheetCloseLifecycle(
         setStoredLifecycle(settlement.lifecycle);
       }
       if (settlement.shouldComplete) onCloseComplete?.();
+      if (fromIndexReport && previous.isOpen && !previous.openReported) onOpenComplete?.();
     },
-    [onCloseComplete],
+    [onCloseComplete, onOpenComplete],
   );
+
+  const handleSheetIndexChange = useCallback((index: number) => settle(index, true), [settle]);
 
   const handleSheetClosed = useCallback(() => handleSheetIndexChange(-1), [handleSheetIndexChange]);
 
   // HeroUI's close request reaches JS ahead of an animated close's -1, so on an open no index has reported it reports that open as an index of 0 does.
   const handleSheetCloseRequest = useCallback(() => {
     const lifecycle = closeLifecycleRef.current;
-    if (lifecycle.isOpen && !lifecycle.openReported) handleSheetIndexChange(0);
-  }, [handleSheetIndexChange]);
+    if (lifecycle.isOpen && !lifecycle.openReported) settle(0, false);
+  }, [settle]);
 
   // gorhom reported the closed position while `isOpen` still read true, so nothing reports it again after the drop.
   const settlesOnDrop = !isOpen && closeLifecycle.restsClosed;

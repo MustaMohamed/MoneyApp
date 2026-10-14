@@ -33,13 +33,13 @@ import {
   REFINE_DESPITE_FIELD_ERRORS,
   resolveDestinationFloorError,
   resolveLockedStripChips,
+  resolveRateCommit,
   resolveTransactionFormSemantics,
   resolveTransactionFormStatus,
   resolveTransactionSaveError,
   type TransactionFormFieldErrors,
 } from './transaction_form.helpers';
 import { type TransactionFormPrerequisiteController } from './transaction_form_prerequisites.helpers';
-import { useTransactionFormRate } from './transaction_form_rate.hook';
 
 const ignorePrerequisiteRetry = () => {};
 
@@ -48,7 +48,6 @@ function createEditSchema(
   categoryType: ReturnType<typeof resolveTransactionFormSemantics>['categoryType'],
   categories: Category[],
   requiresBudgetSelection: boolean,
-  requiresRate: boolean,
   sourceCurrency: Currency | undefined,
   destinationCurrency: Currency | undefined,
   readAmountText: () => string,
@@ -90,22 +89,6 @@ function createEditSchema(
           path: ['budgetId'],
         });
       }
-      if (requiresRate) {
-        if (!data.exchangeRate) {
-          context.addIssue({
-            code: 'custom',
-            message: Strings.addTxErrRateRequired,
-            path: ['exchangeRate'],
-          });
-        } else if (parseRateText(data.exchangeRate) === undefined) {
-          context.addIssue({
-            code: 'custom',
-            message: Strings.addTxErrRateInvalid,
-            path: ['exchangeRate'],
-          });
-        }
-      }
-
       // The destination leg can round below the money floor even when the entered amount clears it.
       const destinationFloorError = resolveDestinationFloorError({
         type,
@@ -232,7 +215,6 @@ export function useEditTransaction(
         semantics.categoryType,
         categories,
         requiresBudgetSelection,
-        requiresRate,
         sourceCurrency,
         destinationCurrency,
         // An accessor, not the value: the hook does not re-render on typing (by design).
@@ -242,7 +224,6 @@ export function useEditTransaction(
       categories,
       destinationCurrency,
       requiresBudgetSelection,
-      requiresRate,
       semantics.categoryType,
       sourceCurrency,
       type,
@@ -281,7 +262,6 @@ export function useEditTransaction(
     amount: form.formState.errors.amount?.message,
     category: form.formState.errors.categoryId?.message,
     budget: budgetLookupError ?? form.formState.errors.budgetId?.message,
-    rate: form.formState.errors.exchangeRate?.message,
   } satisfies TransactionFormFieldErrors;
 
   const budgetRequestRef = useRef(0);
@@ -363,18 +343,11 @@ export function useEditTransaction(
     void form.trigger();
   }
 
-  // After a failed Save, every pick re-runs full validation against the schema this render built.
+  // After a failed Save, every pick and every rate change re-runs full validation against the schema this render built.
   useEffect(() => {
     revalidateAfterSubmit();
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- the picks and the schema decide when it runs; revalidateAfterSubmit is rebuilt each render and reads the form when called
-  }, [schema, categoryId, formBudgetId, date]);
-
-  const setRateText = useTransactionFormRate(
-    form,
-    'exchangeRate',
-    exchangeRate,
-    revalidateAfterSubmit,
-  );
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- the picks, the rate and the schema decide when it runs; revalidateAfterSubmit is rebuilt each render and reads the form when called
+  }, [schema, categoryId, formBudgetId, date, exchangeRate]);
 
   async function onValid(data: EditTransactionFormValues) {
     const formState = useEditTransactionState.getState();
@@ -522,9 +495,13 @@ export function useEditTransaction(
       clearError();
       form.setValue('note', v);
     },
-    setExchangeRate: (v: string) => {
+    commitExchangeRate: (text: string) => {
+      const commit = resolveRateCommit({ text, storedRate: rate });
+      if (commit === undefined) return false;
       clearError();
-      setRateText(v);
+      setRateOverride(commit.override);
+      form.setValue('exchangeRate', commit.exchangeRate);
+      return true;
     },
     toggleRateOverride,
     setShowCategoryPicker,
