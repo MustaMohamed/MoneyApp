@@ -12,6 +12,7 @@ import {
   stackedPrefixOf,
   stackedTransactionDetailRoute,
 } from '@/modules/navigation/domain/stacked_route';
+import { useRouteDraft } from '@/utils/use_route_draft.hook';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useCommitmentStore } from '../../../store/commitment.store';
@@ -60,10 +61,20 @@ export function useEditCommitment() {
     defaultValues: commitment ? buildEditDefaults(commitment) : undefined,
   });
 
-  useEffect(() => {
-    if (!commitment) return;
-    form.reset(buildEditDefaults(commitment));
-  }, [commitment]); // oxlint-disable-line react-hooks/exhaustive-deps
+  // Read off the store: two taps in one frame both see the render's `saving` as false.
+  const isSaving = (): boolean => useEditCommitmentState.getState().entries[owner]?.saving === true;
+  const onRedraft = (): void => {
+    setSaveError(owner, undefined);
+    setDeactivateDialogVisible(owner, false);
+  };
+  const { isCurrent, submit } = useRouteDraft({
+    id,
+    entity: commitment,
+    form,
+    buildDraft: buildEditDefaults,
+    onRedraft,
+    isBusy: isSaving,
+  });
 
   useEffect(() => {
     claim(owner);
@@ -79,11 +90,11 @@ export function useEditCommitment() {
   }
 
   async function onValid(data: CommitmentFormValues) {
-    if (!id) return;
+    if (!commitment || !isCurrent(commitment.id) || isSaving()) return;
     setSaveError(owner, undefined);
     setSaving(owner, true);
     try {
-      await updateCommitment(id, {
+      await updateCommitment(commitment.id, {
         name: data.name,
         amount_type: data.amountType,
         amount: data.amount ?? null,
@@ -100,28 +111,33 @@ export function useEditCommitment() {
         end_after_count:
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
+      if (!isCurrent(commitment.id)) return;
       if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
       else router.dismissTo('/commitments');
     } catch {
-      setSaveError(owner, Strings.commitmentsSaveError);
+      if (isCurrent(commitment.id)) setSaveError(owner, Strings.commitmentsSaveError);
     } finally {
       setSaving(owner, false);
     }
   }
+
+  const onSubmit = (): Promise<void> => submit(onValid);
 
   function handleDeactivate() {
     setDeactivateDialogVisible(owner, true);
   }
 
   async function confirmDeactivate() {
-    if (!id) return;
+    if (!commitment || !isCurrent(commitment.id) || isSaving()) return;
     setSaving(owner, true);
     try {
-      await deactivateCommitment(id);
+      await deactivateCommitment(commitment.id);
+      if (!isCurrent(commitment.id)) return;
       setDeactivateDialogVisible(owner, false);
       if (stackedPrefix === STACKED_PREFIX) leaveStackedSubtree();
       else router.replace('/commitments');
     } catch {
+      if (!isCurrent(commitment.id)) return;
       // The sheet is a portal over the form, so it must close for the banner to show.
       setDeactivateDialogVisible(owner, false);
       setSaveError(owner, Strings.commitmentsSaveError);
@@ -143,7 +159,7 @@ export function useEditCommitment() {
       accounts,
     },
     form,
-    onSubmit: form.handleSubmit(onValid),
+    onSubmit,
     handleDeactivate,
     confirmDeactivate,
     cancelDeactivate,
