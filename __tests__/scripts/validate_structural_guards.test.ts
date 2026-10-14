@@ -29,12 +29,20 @@ const DASHBOARD_INDEX = 'src/modules/dashboard/screens/dashboard/index.tsx';
 const GOALS_INDEX = 'src/modules/goals/screens/goals/index.tsx';
 const ACCOUNT_INFO_ROWS = 'src/modules/accounts/utils/account_info_rows.ts';
 const VERSIONED_FILE = 'src/modules/transactions/seeded_surface.ts';
+const FIELD_MESSAGE_RAIL = 'src/modules/accounts/components/account_form/field_message_rail.tsx';
+const ADJUST_BALANCE_SHEET =
+  'src/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.tsx';
+const ACCOUNT_COLOR_SHEET = 'src/modules/accounts/components/account_form/account_color_sheet.tsx';
+const COMMITMENT_FORM_BODY = `${COMMITMENTS}/components/commitment_form_body.tsx`;
+const STATUS_TRACK = 'src/components/ui/status_track.tsx';
 
 const STYLESHEET_SEED = 'const seeded = StyleSheet.create({});';
 const SHADOW_SEED = '<Card className="shadow-none" />';
 const ASYNC_SEED = 'const seeded = async () => 1;';
 const NO_FILE = 'matches no file';
 const OUTSIDE_PROVIDER = 'sits outside';
+const KEPT_VIEW = 'collapsable={false}';
+const NO_KEPT_VIEW = 'no `collapsable={false}` on the view that holds the live region';
 
 // A seed finds its target by the pattern the guard matches, so a reworded line in src/ fails no case.
 function importFrom(module: string): RegExp {
@@ -404,6 +412,15 @@ function withoutKind(rel: string, kind: string, swapped: string): RequiredSeed {
   };
 }
 
+function withoutKeptView(rel: string, where: string): RequiredSeed {
+  return {
+    guard: `${KEPT_VIEW} on the live region in ${where}`,
+    rel,
+    seed: () => replaceEvery(rel, KEPT_VIEW, ''),
+    words: NO_KEPT_VIEW,
+  };
+}
+
 // The import seeds and the tag seeds are spread over the tab screens, so no two edit the same text.
 const REQUIRED: RequiredSeed[] = [
   withoutTag(TRANSACTIONS_INDEX, 'MonthFilter', 'the transactions screen'),
@@ -436,6 +453,11 @@ const REQUIRED: RequiredSeed[] = [
   withoutKind(EMPTY_STATE, 'empty', 'error'),
   withoutImport(ERROR_STATE, GEOMETRY, 'resolveStateScreenLayout', 'ErrorState'),
   withoutKind(ERROR_STATE, 'error', 'empty'),
+  withoutKeptView(FIELD_MESSAGE_RAIL, 'the account form field message rail'),
+  withoutKeptView(ADJUST_BALANCE_SHEET, 'the adjust balance sheet'),
+  withoutKeptView(ACCOUNT_COLOR_SHEET, 'the account colour sheet'),
+  withoutKeptView(COMMITMENT_FORM_BODY, 'the commitment form'),
+  withoutKeptView(STATUS_TRACK, 'the footer status line'),
 ];
 
 const DELETED_PATHS = [
@@ -571,6 +593,22 @@ describe('validate-structural-guards.js, named files', () => {
     );
 
     expectClean(runGuard());
+  });
+
+  it('reports the commitment form when the prop sits on a view other than the live region', () => {
+    replaceEvery(COMMITMENT_FORM_BODY, KEPT_VIEW, '');
+    appendLine(COMMITMENT_FORM_BODY, `<View ${KEPT_VIEW} />`);
+
+    expectReported(runGuard(), [lineFor(COMMITMENT_FORM_BODY, NO_KEPT_VIEW)]);
+  });
+
+  it.each([
+    { rel: FIELD_MESSAGE_RAIL, marker: 'accessibilityLiveRegion="polite"' },
+    { rel: STATUS_TRACK, marker: '{...model.a11y}' },
+  ])('reports $rel when no view in it holds its live region', ({ rel, marker }) => {
+    replaceEvery(rel, marker, '');
+
+    expectReported(runGuard(), [lineFor(rel, NO_KEPT_VIEW)]);
   });
 });
 
