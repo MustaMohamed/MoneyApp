@@ -85,6 +85,7 @@ The add and edit sheet, over any tab. Host `src/modules/transactions/screens/tra
 
 ## Gotchas
 
+- After one `fab-button` tap on Home, Commitments or Budget, the tree lists the add sheet twice: two `Add transaction` groups, each with an `amount-hero-value` field, at one box (MA-175). `mqa fill` and `mqa tap` on `id="amount-hero-value"`, `id="category-row"`, a category cell or `label="Save"` read `AMBIGUOUS_MATCH`; take the first box from `mqa bounds` whose centre is on screen, `tapxy` its centre, and `mqa type` the amount.
 - The detail's edit icon label (`Strings.detailEditAccessibility`) equals the sheet title in edit, so `grep -c 'Edit transaction'` over `mqa read` on the detail counts one before the sheet opens and two after. The FAB menu pill reads `Add Transaction` (title case, `fab.tsx:143`), the sheet title `Add transaction`: grep the sheet title case-sensitively.
 - The compact `SegmentedTabs` is shared with the list's type tabs and the accounts-list rail (`transactions.md` § Gotchas); one read of a trigger holds on all three, and a divergence is a caller override.
 - The type tabs' hit slop is `touchFloorSlop(28) + Spacing.xxxxs`, 9 dp above and below each 28 dp trigger at 1.0, so it ends 5 dp past the 36 track on each side, inside the wrapper's `py-2`. No `hitSlop` shows in `mqa bounds`: `type tabs hit area` proves it by a tap (MA-109).
