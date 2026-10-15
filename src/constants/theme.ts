@@ -231,6 +231,8 @@ export const Size = {
   securityIconBox: ms(40),
   flagBox: ms(36),
   shieldBox: ms(48),
+  /** Transaction detail hero tile, frame C1 `.id-hero-tile`; the same ms(48) as `shieldBox` by design. */
+  detailHeroTile: ms(48),
   colorDot: ms(20),
   /** Accounts list B1: colour tile, row minimum, the grip slot MA-016 fills, the See-all chevron. */
   accountTile: ms(28),

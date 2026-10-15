@@ -1,6 +1,15 @@
-import { AccountType, Currency, TransactionType } from '@/constants/enums';
+import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { InfoTokens } from '@/constants/theme_tokens';
+import { CategoryColors } from '@/constants/theme';
+import {
+  AccentCCTokens,
+  CoreTokens,
+  GoldTokens,
+  InfoTokens,
+  SemanticTokens,
+} from '@/constants/theme_tokens';
+import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
+import { contrastRatio } from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { STACKED_PREFIX } from '@/modules/navigation/domain/stacked_route';
@@ -10,8 +19,10 @@ import {
   getAccountTypeIcon,
   getCommitmentPaymentRoute,
   resolveDetailViewState,
+  resolveHeroTileGlyphColor,
 } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 import type { TransactionDetailStatus } from '@/modules/transactions/screens/transactions/detail/detail.state';
+import { makeTestCategory } from '@/test_helpers/transaction';
 import { formatCurrencyAmount } from '@/utils/format_amount';
 
 const now = '2026-07-20T12:00:00.000Z';
@@ -204,11 +215,14 @@ describe('buildTransactionDetailPresentation', () => {
         account: account({ type: AccountType.CreditCard, currency: Currency.EGP }),
       }),
     ).toMatchObject({
-      title: Strings.cardCreditTitle,
-      amountText: '+250 EGP',
       categoryBadge: Strings.cardCreditTitle,
       categoryBadgeTone: 'info',
-      heroColor: InfoTokens[500],
+      hero: {
+        title: Strings.cardCreditTitle,
+        amountAccessibilityLabel: '+250 EGP',
+        amountValue: '+250',
+        typeColor: InfoTokens[500],
+      },
     });
   });
 
@@ -226,8 +240,8 @@ describe('buildTransactionDetailPresentation', () => {
       buildTransactionDetailPresentation({
         tx: transaction({ type: TransactionType.Expense, egp_amount: 0.4 }),
         account: account({}),
-      }).amountText,
-    ).toBe('−0.40 EGP');
+      }).hero,
+    ).toMatchObject({ amountAccessibilityLabel: '−0.40 EGP', amountValue: '−0.40' });
   });
 
   it('does not escalate once the site precision would print a nonzero digit', () => {
@@ -235,8 +249,8 @@ describe('buildTransactionDetailPresentation', () => {
       buildTransactionDetailPresentation({
         tx: transaction({ type: TransactionType.Expense, egp_amount: 0.6 }),
         account: account({}),
-      }).amountText,
-    ).toBe('−1 EGP');
+      }).hero,
+    ).toMatchObject({ amountAccessibilityLabel: '−1 EGP', amountValue: '−1' });
   });
 
   // Pins the #318 delegation's third branch: a transfer takes the unsigned accessible text.
@@ -245,8 +259,8 @@ describe('buildTransactionDetailPresentation', () => {
       buildTransactionDetailPresentation({
         tx: transaction({}),
         account: account({}),
-      }),
-    ).toMatchObject({ amountText: '4,850 EGP' });
+      }).hero,
+    ).toMatchObject({ amountAccessibilityLabel: '4,850 EGP', amountValue: '4,850' });
   });
 
   it('keeps the rate at 2dp regardless of the EGP amount default — the tripwire that would catch a find-and-replace onto formatCurrencyAmount', () => {
@@ -258,6 +272,210 @@ describe('buildTransactionDetailPresentation', () => {
     // `formatCurrencyAmount` gives EGP 0dp, the wrong decimals for a rate; this pins that.
     expect(formatCurrencyAmount(48.6, Currency.EGP)).toBe('49 EGP');
   });
+});
+
+describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
+  const egpAccount = account({ name: 'CIB', currency: Currency.EGP });
+  const egpDestination = account({ id: 'destination', name: 'Wallet', currency: Currency.EGP });
+  const card = account({
+    id: 'destination',
+    name: 'Visa',
+    type: AccountType.CreditCard,
+    currency: Currency.EGP,
+  });
+  const groceries = makeTestCategory({ name: 'Groceries', color: '#5C7FC4', icon: 'cart' });
+  const salary = makeTestCategory({
+    id: 'salary',
+    name: 'Salary',
+    type: CategoryType.Income,
+    color: '#478D6E',
+    icon: 'briefcase',
+  });
+
+  // Frame C1's moment: Tue 22 Sep 2026, 6:40 PM.
+  function egp(overrides: Partial<Transaction>): Transaction {
+    return transaction({
+      currency: Currency.EGP,
+      exchange_rate: null,
+      to_account_id: null,
+      to_amount: null,
+      transaction_date: '2026-09-22',
+      transaction_time: '18:40:00',
+      ...overrides,
+    });
+  }
+
+  const expenseInput = {
+    tx: egp({
+      type: TransactionType.Expense,
+      amount: 1_240,
+      egp_amount: 1_240,
+      category_id: groceries.id,
+    }),
+    account: egpAccount,
+    category: groceries,
+  };
+  const incomeInput = {
+    tx: egp({
+      type: TransactionType.Income,
+      amount: 22_300,
+      egp_amount: 22_300,
+      category_id: salary.id,
+    }),
+    account: egpAccount,
+    category: salary,
+  };
+  const transferInput = {
+    tx: egp({ amount: 5_000, egp_amount: 5_000, to_account_id: 'destination', to_amount: 5_000 }),
+    account: egpAccount,
+    toAccount: egpDestination,
+  };
+  const cardPaymentInput = {
+    tx: egp({
+      type: TransactionType.CCPayment,
+      amount: 5_000,
+      egp_amount: 5_000,
+      to_account_id: 'destination',
+      to_amount: 5_000,
+    }),
+    account: egpAccount,
+    toAccount: card,
+  };
+  const cardCreditInput = {
+    tx: egp({ type: TransactionType.Income, amount: 3_120, egp_amount: 3_120 }),
+    account: account({ type: AccountType.CreditCard, currency: Currency.EGP }),
+  };
+
+  it('frame C1: an expense heroes its category, the Expense badge, the signed EGP amount and the weekday caption', () => {
+    const badge = resolveAccountBadgeColors(SemanticTokens.negative);
+    const presentation = buildTransactionDetailPresentation(expenseInput);
+
+    expect(presentation.hero).toEqual({
+      title: 'Groceries',
+      typeLabel: 'Expense',
+      typeIcon: 'arrow-up',
+      typeColor: SemanticTokens.negative,
+      badgeFill: badge.fill,
+      badgeForeground: badge.foreground,
+      tileColor: '#5C7FC4',
+      tileGlyph: 'cart',
+      tileGlyphColor: CoreTokens.text1,
+      amountValue: '−1,240',
+      amountCode: 'EGP',
+      amountAccessibilityLabel: '−1,240 EGP',
+      caption: 'Tue 22 Sep 2026, 6:40 PM',
+    });
+    expect(presentation.dateTimeText).toBe('Tue 22 Sep 2026, 6:40 PM');
+  });
+
+  it('frame C2: an income takes the Income badge in the success colour, signed plus', () => {
+    expect(buildTransactionDetailPresentation(incomeInput).hero).toMatchObject({
+      title: 'Salary',
+      typeLabel: 'Income',
+      typeIcon: 'arrow-down',
+      typeColor: SemanticTokens.positive,
+      tileColor: '#478D6E',
+      tileGlyph: 'briefcase',
+      amountValue: '+22,300',
+      amountCode: 'EGP',
+    });
+  });
+
+  it('frame C3: a transfer takes the swap glyph on info blue, unsigned', () => {
+    expect(buildTransactionDetailPresentation(transferInput).hero).toMatchObject({
+      title: 'Transfer',
+      typeLabel: 'Transfer',
+      typeIcon: 'swap-horizontal',
+      typeColor: InfoTokens[500],
+      tileColor: InfoTokens[500],
+      tileGlyph: 'swap-horizontal',
+      tileGlyphColor: CoreTokens.bg,
+      amountValue: '5,000',
+      amountAccessibilityLabel: '5,000 EGP',
+      caption: 'Tue 22 Sep 2026, 6:40 PM',
+    });
+  });
+
+  it('frame C4: a card payment is titled CC Payment, the refund glyph on the card accent, unsigned', () => {
+    expect(buildTransactionDetailPresentation(cardPaymentInput).hero).toMatchObject({
+      title: 'CC Payment',
+      typeLabel: 'CC Payment',
+      typeIcon: 'credit-card-refund',
+      typeColor: AccentCCTokens[500],
+      tileColor: AccentCCTokens[500],
+      tileGlyph: 'credit-card-refund',
+      tileGlyphColor: CoreTokens.text1,
+      amountValue: '5,000',
+    });
+  });
+
+  it('frame C13: card credit is titled and badged Card credit, the refund glyph on info blue, signed plus', () => {
+    const badge = resolveAccountBadgeColors(InfoTokens[500]);
+
+    expect(buildTransactionDetailPresentation(cardCreditInput).hero).toMatchObject({
+      title: 'Card credit',
+      typeLabel: 'Card credit',
+      typeIcon: 'credit-card-refund',
+      typeColor: InfoTokens[500],
+      badgeFill: badge.fill,
+      badgeForeground: badge.foreground,
+      tileColor: InfoTokens[500],
+      tileGlyph: 'credit-card-refund',
+      tileGlyphColor: CoreTokens.bg,
+      amountValue: '+3,120',
+    });
+  });
+
+  it('titles an expense whose category does not resolve Uncategorized, on the gold fallback tile', () => {
+    const presentation = buildTransactionDetailPresentation({
+      tx: egp({ type: TransactionType.Expense, category_id: 'deleted-category' }),
+      account: egpAccount,
+    });
+
+    expect(presentation.hero).toMatchObject({
+      title: 'Uncategorized',
+      tileGlyph: 'shape-outline',
+      tileColor: GoldTokens[500],
+      tileGlyphColor: CoreTokens.bg,
+    });
+    expect(presentation.categoryLabel).toBe('Uncategorized');
+  });
+
+  it.each([
+    ['an expense', expenseInput, 'Groceries'],
+    ['an income', incomeInput, 'Salary'],
+    ['a transfer', transferInput, 'Transfer'],
+    ['a card payment', cardPaymentInput, 'CC Payment'],
+    ['card credit', cardCreditInput, 'Card credit'],
+  ])('keeps the hero title of %s when it carries a note', (_name, input, title) => {
+    const noted = buildTransactionDetailPresentation({
+      ...input,
+      tx: { ...input.tx, note: 'Dinner with Sam' },
+    });
+
+    expect(noted.hero).toMatchObject({ title });
+  });
+
+  it('frame C6: a commitment-owned expense heroes as a plain one and names Commitment on its Source row', () => {
+    const plain = buildTransactionDetailPresentation(expenseInput);
+    const owned = buildTransactionDetailPresentation({
+      ...expenseInput,
+      tx: { ...expenseInput.tx, commitment_payment_id: 'payment' },
+    });
+
+    expect(owned.hero).toMatchObject({ typeLabel: 'Expense' });
+    expect(owned.hero).toEqual(plain.hero);
+    expect(owned.sourceLabel).toBe(Strings.typeBadgeCommitment);
+  });
+});
+
+describe('resolveHeroTileGlyphColor', () => {
+  it.each([...CategoryColors, GoldTokens[500], InfoTokens[500], AccentCCTokens[500]])(
+    'clears 3:1 on the %s tile',
+    (fill) => {
+      expect(contrastRatio(fill, resolveHeroTileGlyphColor(fill))).toBeGreaterThanOrEqual(3);
+    },
+  );
 });
 
 describe('buildTransactionDetailPresentation — deleted accounts (MA-020)', () => {

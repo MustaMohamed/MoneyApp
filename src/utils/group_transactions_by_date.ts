@@ -1,5 +1,6 @@
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/database/entities/transaction.entity';
+import { formatWeekdayDate } from '@/utils/format_date';
 import { MONTHS_SHORT, WEEKDAYS_SHORT } from '@/utils/year_month';
 
 export interface TransactionDateGroup {
@@ -36,9 +37,9 @@ function labelFor(date: string, today: string, yesterday: string, thisYear: numb
   if (date === today) return Strings.todayLabel;
   if (date === yesterday) return Strings.yesterdayLabel;
   const [year, month, day] = date.split('-').map(Number);
+  if (year !== thisYear) return formatWeekdayDate(date);
   const weekday = WEEKDAYS_SHORT[new Date(year, month - 1, day).getDay()];
-  const label = `${weekday} ${day} ${MONTHS_SHORT[month - 1]}`;
-  return year === thisYear ? label : `${label} ${year}`;
+  return `${weekday} ${day} ${MONTHS_SHORT[month - 1]}`;
 }
 
 function ymd(d: Date): string {

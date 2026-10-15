@@ -3,6 +3,7 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Type, lineHeightFor } from '@/constants/theme';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -14,28 +15,51 @@ export interface StatusBadgeProps {
   foreground: string;
   icon?: IconName;
   size?: 'sm' | 'md';
+  /** Given, the label draws at this app scale on one line; omitted, the OS scales it. */
+  fontScale?: number;
 }
 
+// Raw, never ms(): the detail hero's geometry adds it above and below the label.
+export const STATUS_BADGE_PADDING_VERTICAL = 2;
 const ICON_SIZE = { sm: 10, md: 12 } as const;
 const LABEL_STYLE = {
   sm: { fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) },
   md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
 } as const;
 
-export function StatusBadge({ label, fill, foreground, icon, size = 'sm' }: StatusBadgeProps) {
+export function StatusBadge({
+  label,
+  fill,
+  foreground,
+  icon,
+  size = 'sm',
+  fontScale,
+}: StatusBadgeProps) {
+  const scaled = fontScale !== undefined;
   return (
     <View
       style={{
         backgroundColor: fill,
         flexDirection: 'row',
         alignItems: 'center',
+        paddingVertical: STATUS_BADGE_PADDING_VERTICAL,
       }}
-      className="gap-0.5 rounded-full px-1.5 py-0.5"
+      className="gap-0.5 rounded-full px-1.5"
     >
       {icon != null ? (
         <MaterialCommunityIcons name={icon} size={ICON_SIZE[size]} color={foreground} />
       ) : null}
-      <Typography className="font-inter" style={{ color: foreground, ...LABEL_STYLE[size] }}>
+      <Typography
+        allowFontScaling={!scaled}
+        numberOfLines={scaled ? 1 : undefined}
+        className="font-inter"
+        style={{
+          color: foreground,
+          ...(scaled
+            ? { ...scaledTextStyle(LABEL_STYLE[size].fontSize, fontScale), flexShrink: 1 }
+            : LABEL_STYLE[size]),
+        }}
+      >
         {label}
       </Typography>
     </View>

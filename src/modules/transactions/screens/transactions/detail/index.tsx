@@ -53,15 +53,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
       ) : hasDetailContent ? (
         <>
           <ScreenScroll>
-            <DetailHero
-              tx={transaction}
-              category={detail.category}
-              amountText={detail.amountText}
-              title={detail.title}
-              dateTimeText={detail.dateTimeText}
-              badgeLabel={detail.categoryBadge}
-              heroColor={detail.heroColor}
-            />
+            <DetailHero hero={detail.hero} />
 
             {detail.isTransferLike ? (
               transferFlow ? (

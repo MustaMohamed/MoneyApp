@@ -1,16 +1,24 @@
 import { Card, SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
+import { HeroShell } from '@/components/ui/hero_shell';
 import { ScreenScroll } from '@/components/ui/screen';
 import { ScaledBar } from '@/components/ui/skeleton_bar';
 import { Strings } from '@/constants/strings';
+import { Radius, Size, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
 import {
   buildDetailSkeletonGeometry,
   DETAIL_ACTION_MIN_HEIGHT,
-  DETAIL_HERO_MIN_HEIGHT,
+  DETAIL_HERO_BADGE_GAP,
+  DETAIL_HERO_CAPTION_GAP,
+  DETAIL_HERO_OVERLINE_GAP,
+  DETAIL_HERO_PADDING,
+  DETAIL_HERO_SHELL_STYLE,
+  DETAIL_HERO_TILE_GAP,
   DETAIL_NOTE_MIN_HEIGHT,
+  resolveDetailHeroGeometry,
   resolveTransferCardHeight,
   resolveTransferSkeletonCellHeight,
 } from './detail.geometry';
@@ -60,22 +68,61 @@ export function TransactionDetailSkeleton({ transaction }: Props): React.ReactEl
   }
 
   const geometry = buildDetailSkeletonGeometry(transaction, fontScale);
+  const hero = resolveDetailHeroGeometry(fontScale);
   return (
     <ScreenScroll
       testID="transaction-detail-skeleton"
       accessibilityLabel={Strings.loadingTransactionA11y}
     >
       <SkeletonGroup isLoading isSkeletonOnly>
-        <View
-          testID="transaction-detail-skeleton-hero"
-          className="border-border mx-4 mt-4 items-center justify-center rounded-xl border px-4 py-4"
-          style={{ minHeight: DETAIL_HERO_MIN_HEIGHT }}
-        >
-          <ScaledBar height={20} className="w-20 rounded-full" />
-          <ScaledBar height={36} className="mt-4 w-48 rounded-lg" />
-          <ScaledBar height={16} className="mt-3 w-32 rounded-md" />
-          <ScaledBar height={12} className="mt-2 w-28 rounded-md" />
-        </View>
+        <HeroShell glowOpacity={0} style={DETAIL_HERO_SHELL_STYLE}>
+          <View
+            testID="transaction-detail-skeleton-hero"
+            style={{ padding: DETAIL_HERO_PADDING, height: hero.height }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: DETAIL_HERO_TILE_GAP,
+                height: hero.topHeight,
+              }}
+            >
+              <SkeletonGroup.Item
+                style={{
+                  width: Size.detailHeroTile,
+                  height: Size.detailHeroTile,
+                  borderRadius: Radius.md,
+                }}
+              />
+              <View style={{ flex: 1 }}>
+                <SkeletonGroup.Item
+                  className="w-35 rounded-md"
+                  style={{ height: lineHeightFor(hero.titleFontSize) }}
+                />
+                <SkeletonGroup.Item
+                  className="w-16 rounded-full"
+                  style={{ height: hero.badgeHeight, marginTop: DETAIL_HERO_BADGE_GAP }}
+                />
+              </View>
+            </View>
+            <SkeletonGroup.Item
+              className="w-15 rounded-md"
+              style={{
+                height: lineHeightFor(hero.overlineFontSize),
+                marginTop: DETAIL_HERO_OVERLINE_GAP,
+              }}
+            />
+            <SkeletonGroup.Item className="w-45 rounded-lg" style={{ height: hero.amountHeight }} />
+            <SkeletonGroup.Item
+              className="w-38 rounded-md"
+              style={{
+                height: lineHeightFor(hero.captionFontSize),
+                marginTop: DETAIL_HERO_CAPTION_GAP,
+              }}
+            />
+          </View>
+        </HeroShell>
         {geometry.showTransfer ? <TransferFlowSkeletonCard /> : null}
         <Card
           testID="transaction-detail-skeleton-rows"

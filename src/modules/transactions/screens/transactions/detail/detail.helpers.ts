@@ -1,8 +1,15 @@
 import { ACCOUNT_TYPE_ICONS, type AccountTypeIconName } from '@/constants/account_type_icons';
 import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
+import { CoreTokens, InfoTokens } from '@/constants/theme_tokens';
+import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
+import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
+import {
+  NON_TEXT_MIN_CONTRAST_RATIO,
+  contrastRatio,
+} from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
@@ -22,11 +29,13 @@ import {
   formatExchangeRateSentence,
   signAmountText,
 } from '@/utils/format_amount';
-import { formatLongDate } from '@/utils/format_date';
+import { formatWeekdayDate } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
-import { formatTransactionTitle } from '@/utils/format_transaction_title';
 
-import { isCardCredit } from '../components/transaction_row.helpers';
+import {
+  buildTransactionRowPresentation,
+  isCardCredit,
+} from '../components/transaction_row.helpers';
 import type { BadgeTone } from './components/detail_row';
 import type { TransactionDetailStatus } from './detail.state';
 
@@ -68,12 +77,21 @@ const TYPE_BADGE_TONE: Record<TransactionType, BadgeTone> = {
   [TransactionType.CCPayment]: 'accent-cc',
 };
 
-const TYPE_HERO_COLOR: Record<TransactionType, string> = {
-  [TransactionType.Expense]: SemanticTokens.negative,
-  [TransactionType.Income]: SemanticTokens.positive,
-  [TransactionType.Transfer]: InfoTokens[500],
-  [TransactionType.CCPayment]: AccentCCTokens[500],
+// Frames C1 and C2 draw bare arrows where `TRANSACTION_TYPE_ICONS` draws circled ones.
+const BARE_ARROW_ICON: Partial<Record<TransactionType, IconName>> = {
+  [TransactionType.Expense]: 'arrow-up',
+  [TransactionType.Income]: 'arrow-down',
 };
+
+const CARD_CREDIT_ICON: IconName = 'credit-card-refund';
+
+const DETAIL_HERO_CURRENCY = Currency.EGP;
+
+export function resolveHeroTileGlyphColor(fill: string): string {
+  return contrastRatio(fill, CoreTokens.text1) >= NON_TEXT_MIN_CONTRAST_RATIO
+    ? CoreTokens.text1
+    : CoreTokens.bg;
+}
 
 export interface TransactionDetailPresentationInput {
   tx: Transaction;
@@ -83,14 +101,28 @@ export interface TransactionDetailPresentationInput {
   budget?: Budget;
 }
 
-export interface TransactionDetailPresentation {
+export interface TransactionDetailHero {
   title: string;
-  amountText: string;
+  typeLabel: string;
+  typeIcon: IconName;
+  typeColor: string;
+  badgeFill: string;
+  badgeForeground: string;
+  tileColor: string;
+  tileGlyph: IconName;
+  tileGlyphColor: string;
+  amountValue: string;
+  amountCode: string;
+  amountAccessibilityLabel: string;
+  caption: string;
+}
+
+export interface TransactionDetailPresentation {
+  hero: TransactionDetailHero;
   dateTimeText: string;
   categoryLabel: string;
   categoryBadge: string;
   categoryBadgeTone: BadgeTone;
-  heroColor: string;
   accountLabel: string;
   accountTypeLabel?: string;
   accountIcon: IconName;
@@ -98,7 +130,6 @@ export interface TransactionDetailPresentation {
   exchangeRateText?: string;
   budgetLabel?: string;
   sourceLabel: string;
-  category?: Category;
   isTransferLike: boolean;
   transferFlow: {
     fromAccount: Account;
@@ -124,12 +155,27 @@ export function transferCellAmountText(
   return { display: signAmountText(withCode, signPrefix, printsAsZero), accessible: withCode };
 }
 
-/** Delegates to `transferCellAmountText` so the zero-aware sign rule has one home (#318). */
-function signedAmount(tx: Transaction): string {
+interface HeroAmount {
+  value: string;
+  accessibilityLabel: string;
+  code: string;
+}
+
+function heroAmount(tx: Transaction): HeroAmount {
+  const { text, withCode, printsAsZero } = formatDisplayAmountParts(
+    tx.egp_amount,
+    DETAIL_HERO_CURRENCY,
+  );
+  const code: string = CURRENCY_CONFIG[DETAIL_HERO_CURRENCY].code;
+  if (tx.type !== TransactionType.Expense && tx.type !== TransactionType.Income) {
+    return { value: text, accessibilityLabel: withCode, code };
+  }
   const sign = tx.type === TransactionType.Expense ? MINUS_SIGN : PLUS_SIGN;
-  const cell = transferCellAmountText(tx.egp_amount, Currency.EGP, sign);
-  const signed = tx.type === TransactionType.Expense || tx.type === TransactionType.Income;
-  return signed ? cell.display : cell.accessible;
+  return {
+    value: signAmountText(text, sign, printsAsZero),
+    accessibilityLabel: signAmountText(withCode, sign, printsAsZero),
+    code,
+  };
 }
 
 export function buildTransactionDetailPresentation({
@@ -140,22 +186,40 @@ export function buildTransactionDetailPresentation({
   budget,
 }: TransactionDetailPresentationInput): TransactionDetailPresentation {
   const cardCredit = isCardCredit(tx, account);
-  const formattedTitle = formatTransactionTitle({ tx, account, toAccount, category });
   const categoryBadge = cardCredit ? Strings.cardCreditTitle : TYPE_BADGE[tx.type];
   const categoryBadgeTone = cardCredit ? 'info' : TYPE_BADGE_TONE[tx.type];
   const isTransferLike =
     tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment;
   const destinationAmount = tx.to_amount ?? tx.egp_amount;
   const destinationCurrency = toAccount?.currency ?? Currency.EGP;
+  const row = buildTransactionRowPresentation({ tx, account, toAccount, category });
+  const typeColor = cardCredit ? InfoTokens[500] : TRANSACTION_TYPE_ICONS[tx.type].color;
+  const amount = heroAmount(tx);
+  const badge = resolveAccountBadgeColors(typeColor);
+  const dateTimeText = `${formatWeekdayDate(tx.transaction_date)}, ${formatTime12h(tx.transaction_time)}`;
 
   return {
-    title: cardCredit ? Strings.cardCreditTitle : formattedTitle.title,
-    amountText: signedAmount(tx),
-    dateTimeText: `${formatLongDate(tx.transaction_date)} · ${formatTime12h(tx.transaction_time)}`,
+    hero: {
+      title: row.title,
+      typeLabel: categoryBadge,
+      typeIcon: cardCredit
+        ? CARD_CREDIT_ICON
+        : (BARE_ARROW_ICON[tx.type] ?? TRANSACTION_TYPE_ICONS[tx.type].name),
+      typeColor,
+      badgeFill: badge.fill,
+      badgeForeground: badge.foreground,
+      tileColor: row.glyphColor,
+      tileGlyph: row.glyphName,
+      tileGlyphColor: resolveHeroTileGlyphColor(row.glyphColor),
+      amountValue: amount.value,
+      amountCode: amount.code,
+      amountAccessibilityLabel: amount.accessibilityLabel,
+      caption: dateTimeText,
+    },
+    dateTimeText,
     categoryLabel: category?.name ?? (isTransferLike ? categoryBadge : Strings.uncategorized),
     categoryBadge,
     categoryBadgeTone,
-    heroColor: cardCredit ? InfoTokens[500] : TYPE_HERO_COLOR[tx.type],
     accountLabel: toAccount
       ? `${resolveAccountName(account)} → ${resolveAccountName(toAccount)}`
       : resolveAccountName(account),
@@ -169,7 +233,6 @@ export function buildTransactionDetailPresentation({
       tx.budget_id === null ? undefined : (budget?.name ?? Strings.detailBudgetUnavailable),
     sourceLabel:
       tx.commitment_payment_id === null ? Strings.detailManualSource : Strings.typeBadgeCommitment,
-    category,
     isTransferLike,
     transferFlow:
       isTransferLike && account && toAccount
