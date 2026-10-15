@@ -1,19 +1,4 @@
-import { WEEKDAYS_SHORT } from '@/utils/year_month';
-
-const MONTHS_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-] as const;
+import { MONTHS_SHORT, WEEKDAYS_SHORT } from '@/utils/year_month';
 
 const MONTHS_LONG = [
   'January',

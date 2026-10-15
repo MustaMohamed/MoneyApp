@@ -6,7 +6,6 @@ import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { AccountType, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type } from '@/constants/theme';
-import { SemanticTokens } from '@/constants/theme_tokens';
 import { resolveDetailHeroGeometry } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import { DetailHero } from '@/modules/transactions/screens/transactions/detail/components/detail_hero';
 import { buildTransactionDetailPresentation } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
@@ -41,7 +40,7 @@ describe('DetailHero', () => {
     // Tree order: the title, then the badge label.
     const cardCredit = screen.getAllByText(Strings.cardCreditTitle);
     expect(cardCredit).toHaveLength(2);
-    const badgeLabel = cardCredit[1];
+    const [title, badgeLabel] = cardCredit;
     expect(screen.queryByText(Strings.typeBadgeIncome)).toBeNull();
     expect(screen.getByText(Strings.detailAmountOverline)).toBeTruthy();
     expect(screen.getByText(hero.caption)).toBeTruthy();
@@ -54,6 +53,17 @@ describe('DetailHero', () => {
 
     expect(badgeLabel).toHaveProp('allowFontScaling', false);
     expect(badgeLabel).toHaveStyle(scaledTextStyle(Type.micro, fontScale));
+
+    const scaledTexts = [
+      [title, geometry.titleFontSize],
+      [screen.getByText(Strings.detailAmountOverline), geometry.overlineFontSize],
+      [screen.getByText(hero.caption), geometry.captionFontSize],
+      [screen.getByText(hero.amountCode), geometry.codeFontSize],
+    ] as const;
+    for (const [text, fontSize] of scaledTexts) {
+      expect(text).toHaveProp('allowFontScaling', false);
+      expect(text).toHaveStyle({ fontSize });
+    }
   });
 
   it('frame C1: the glow takes the category colour, not the type colour', async () => {
@@ -67,6 +77,5 @@ describe('DetailHero', () => {
 
     const shell = screen.getByTestId('detail-hero-shell');
     expect(shell).toHaveProp('accessibilityLabel', '#5C7FC4');
-    expect(shell).not.toHaveProp('accessibilityLabel', SemanticTokens.negative);
   });
 });

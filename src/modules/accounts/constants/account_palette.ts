@@ -58,6 +58,9 @@ function relativeLuminance(hex: string): number {
   );
 }
 
+// WCAG 2.2 non-text contrast: a glyph or a ring clears 3:1 on what it sits on.
+export const NON_TEXT_MIN_CONTRAST_RATIO = 3;
+
 /** WCAG contrast ratio between two #RRGGBB strings. 1 (identical) to 21. */
 export function contrastRatio(a: string, b: string): number {
   const la = relativeLuminance(a);

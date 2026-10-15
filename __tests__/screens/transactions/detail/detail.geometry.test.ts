@@ -1,9 +1,11 @@
+import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import { FITTED_LINE_SLACK, scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import {
   buildDetailSkeletonGeometry,
   DETAIL_ACCOUNT_ROW_HEIGHT,
+  DETAIL_HERO_AMOUNT_MAX_FONT_SCALE,
   DETAIL_HERO_BADGE_GAP,
   DETAIL_HERO_CAPTION_GAP,
   DETAIL_HERO_OVERLINE_GAP,
@@ -45,10 +47,8 @@ function transferLinesAt(fontScale: number): number {
   );
 }
 
-// Decision 2026-10-08: the hero amount stops growing at font scale 1.3.
-const HERO_AMOUNT_CAP = 1.3;
-// The literal 4: StatusBadge's unscaled `py-0.5` on each side, which no font scale grows.
-const HERO_BADGE_CHROME = 4;
+// StatusBadge's padding above and below its label, which no font scale grows.
+const HERO_BADGE_CHROME = 2 * STATUS_BADGE_PADDING_VERTICAL;
 
 function heroBadgeAt(fontScale: number): number {
   return lineBox(Type.micro, fontScale) + HERO_BADGE_CHROME;
@@ -63,7 +63,8 @@ function heroTopAt(fontScale: number): number {
 
 function heroAmountAt(fontScale: number): number {
   return (
-    lineHeightFor(scaledFontSize(Type.detailHero, fontScale, HERO_AMOUNT_CAP)) + FITTED_LINE_SLACK
+    lineHeightFor(scaledFontSize(Type.detailHero, fontScale, DETAIL_HERO_AMOUNT_MAX_FONT_SCALE)) +
+    FITTED_LINE_SLACK
   );
 }
 
@@ -96,7 +97,7 @@ describe('resolveDetailHeroGeometry', () => {
   it.each([2, 3])(
     'holds the amount and its code at their 1.3 sizes at font scale %s',
     (fontScale) => {
-      const capped = resolveDetailHeroGeometry(HERO_AMOUNT_CAP);
+      const capped = resolveDetailHeroGeometry(DETAIL_HERO_AMOUNT_MAX_FONT_SCALE);
       const geometry = resolveDetailHeroGeometry(fontScale);
 
       expect(geometry.amountFontSize).toBe(capped.amountFontSize);

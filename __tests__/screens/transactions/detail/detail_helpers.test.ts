@@ -219,7 +219,7 @@ describe('buildTransactionDetailPresentation', () => {
       categoryBadgeTone: 'info',
       hero: {
         title: Strings.cardCreditTitle,
-        amountText: '+250 EGP',
+        amountAccessibilityLabel: '+250 EGP',
         amountValue: '+250',
         typeColor: InfoTokens[500],
       },
@@ -241,7 +241,7 @@ describe('buildTransactionDetailPresentation', () => {
         tx: transaction({ type: TransactionType.Expense, egp_amount: 0.4 }),
         account: account({}),
       }).hero,
-    ).toMatchObject({ amountText: '−0.40 EGP', amountValue: '−0.40' });
+    ).toMatchObject({ amountAccessibilityLabel: '−0.40 EGP', amountValue: '−0.40' });
   });
 
   it('does not escalate once the site precision would print a nonzero digit', () => {
@@ -250,7 +250,7 @@ describe('buildTransactionDetailPresentation', () => {
         tx: transaction({ type: TransactionType.Expense, egp_amount: 0.6 }),
         account: account({}),
       }).hero,
-    ).toMatchObject({ amountText: '−1 EGP', amountValue: '−1' });
+    ).toMatchObject({ amountAccessibilityLabel: '−1 EGP', amountValue: '−1' });
   });
 
   // Pins the #318 delegation's third branch: a transfer takes the unsigned accessible text.
@@ -260,7 +260,7 @@ describe('buildTransactionDetailPresentation', () => {
         tx: transaction({}),
         account: account({}),
       }).hero,
-    ).toMatchObject({ amountText: '4,850 EGP', amountValue: '4,850' });
+    ).toMatchObject({ amountAccessibilityLabel: '4,850 EGP', amountValue: '4,850' });
   });
 
   it('keeps the rate at 2dp regardless of the EGP amount default — the tripwire that would catch a find-and-replace onto formatCurrencyAmount', () => {
@@ -362,7 +362,7 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
       tileGlyphColor: CoreTokens.text1,
       amountValue: '−1,240',
       amountCode: 'EGP',
-      amountText: '−1,240 EGP',
+      amountAccessibilityLabel: '−1,240 EGP',
       caption: 'Tue 22 Sep 2026, 6:40 PM',
     });
     expect(presentation.dateTimeText).toBe('Tue 22 Sep 2026, 6:40 PM');
@@ -391,7 +391,7 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
       tileGlyph: 'swap-horizontal',
       tileGlyphColor: CoreTokens.bg,
       amountValue: '5,000',
-      amountText: '5,000 EGP',
+      amountAccessibilityLabel: '5,000 EGP',
       caption: 'Tue 22 Sep 2026, 6:40 PM',
     });
   });

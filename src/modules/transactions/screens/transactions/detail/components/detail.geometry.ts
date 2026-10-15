@@ -1,4 +1,5 @@
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
+import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import {
   FITTED_LINE_SLACK,
   scaledFontSize,
@@ -9,7 +10,6 @@ import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
 
-/** The hero amount and its code stop growing past this OS font scale, as the display headline does. */
 export const DETAIL_HERO_AMOUNT_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
 export const DETAIL_HERO_SHELL_STYLE = { marginTop: Spacing.xs };
 export const DETAIL_HERO_PADDING = Spacing.md;
@@ -19,8 +19,7 @@ export const DETAIL_HERO_OVERLINE_GAP = Spacing.md;
 export const DETAIL_HERO_CAPTION_GAP = Spacing.xxs;
 export const DETAIL_HERO_CODE_GAP = ms(6);
 export const DETAIL_HERO_CODE_OPACITY = 0.8;
-// Raw, never ms(): StatusBadge's unscaled `py-0.5` on each side.
-const DETAIL_HERO_BADGE_CHROME = 2 * 2;
+const DETAIL_HERO_BADGE_CHROME = 2 * STATUS_BADGE_PADDING_VERTICAL;
 export const DETAIL_ROW_HEIGHT = ms(58);
 export const DETAIL_ACCOUNT_ROW_HEIGHT = ms(70);
 export const DETAIL_TRANSFER_MIN_HEIGHT = ms(126);
@@ -36,7 +35,7 @@ const DETAIL_TRANSFER_CELL_CHROME = 48;
 // Raw, never ms(): the skeleton transfer cell's `h-20` at scale 1 and below.
 const DETAIL_TRANSFER_SKELETON_CELL_HEIGHT = 80;
 
-export interface DetailHeroGeometry {
+interface DetailHeroGeometry {
   titleFontSize: number;
   overlineFontSize: number;
   amountFontSize: number;

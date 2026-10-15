@@ -3,9 +3,13 @@ import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { AccentCCTokens, CoreTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
+import { CoreTokens, InfoTokens } from '@/constants/theme_tokens';
+import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
 import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
-import { contrastRatio } from '@/modules/accounts/constants/account_palette';
+import {
+  NON_TEXT_MIN_CONTRAST_RATIO,
+  contrastRatio,
+} from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
@@ -73,28 +77,18 @@ const TYPE_BADGE_TONE: Record<TransactionType, BadgeTone> = {
   [TransactionType.CCPayment]: 'accent-cc',
 };
 
-const TYPE_COLOR: Record<TransactionType, string> = {
-  [TransactionType.Expense]: SemanticTokens.negative,
-  [TransactionType.Income]: SemanticTokens.positive,
-  [TransactionType.Transfer]: InfoTokens[500],
-  [TransactionType.CCPayment]: AccentCCTokens[500],
-};
-
-const TYPE_ICON: Record<TransactionType, IconName> = {
+// Frames C1 and C2 draw bare arrows where `TRANSACTION_TYPE_ICONS` draws circled ones.
+const BARE_ARROW_ICON: Partial<Record<TransactionType, IconName>> = {
   [TransactionType.Expense]: 'arrow-up',
   [TransactionType.Income]: 'arrow-down',
-  [TransactionType.Transfer]: 'swap-horizontal',
-  [TransactionType.CCPayment]: 'credit-card-refund',
 };
 
 const CARD_CREDIT_ICON: IconName = 'credit-card-refund';
 
-// ADR 2026-09-26: a glyph on a category-colour fill clears 3:1.
-const HERO_TILE_GLYPH_MIN_CONTRAST = 3;
+const DETAIL_HERO_CURRENCY = Currency.EGP;
 
-/** The light ink where it clears 3:1 on the tile fill, the dark ink elsewhere. */
 export function resolveHeroTileGlyphColor(fill: string): string {
-  return contrastRatio(fill, CoreTokens.text1) >= HERO_TILE_GLYPH_MIN_CONTRAST
+  return contrastRatio(fill, CoreTokens.text1) >= NON_TEXT_MIN_CONTRAST_RATIO
     ? CoreTokens.text1
     : CoreTokens.bg;
 }
@@ -119,7 +113,7 @@ export interface TransactionDetailHero {
   tileGlyphColor: string;
   amountValue: string;
   amountCode: string;
-  amountText: string;
+  amountAccessibilityLabel: string;
   caption: string;
 }
 
@@ -161,23 +155,27 @@ export function transferCellAmountText(
   return { display: signAmountText(withCode, signPrefix, printsAsZero), accessible: withCode };
 }
 
-function flowSign(tx: Transaction): Exclude<AmountSign, ''> {
-  return tx.type === TransactionType.Expense ? MINUS_SIGN : PLUS_SIGN;
+interface HeroAmount {
+  value: string;
+  accessibilityLabel: string;
+  code: string;
 }
 
-function isSignedFlow(tx: Transaction): boolean {
-  return tx.type === TransactionType.Expense || tx.type === TransactionType.Income;
-}
-
-/** Delegates to `transferCellAmountText` so the zero-aware sign rule has one home (#318). */
-function signedAmount(tx: Transaction): string {
-  const cell = transferCellAmountText(tx.egp_amount, Currency.EGP, flowSign(tx));
-  return isSignedFlow(tx) ? cell.display : cell.accessible;
-}
-
-function heroAmountValue(tx: Transaction): string {
-  const { text, printsAsZero } = formatDisplayAmountParts(tx.egp_amount, Currency.EGP);
-  return isSignedFlow(tx) ? signAmountText(text, flowSign(tx), printsAsZero) : text;
+function heroAmount(tx: Transaction): HeroAmount {
+  const { text, withCode, printsAsZero } = formatDisplayAmountParts(
+    tx.egp_amount,
+    DETAIL_HERO_CURRENCY,
+  );
+  const code: string = CURRENCY_CONFIG[DETAIL_HERO_CURRENCY].code;
+  if (tx.type !== TransactionType.Expense && tx.type !== TransactionType.Income) {
+    return { value: text, accessibilityLabel: withCode, code };
+  }
+  const sign = tx.type === TransactionType.Expense ? MINUS_SIGN : PLUS_SIGN;
+  return {
+    value: signAmountText(text, sign, printsAsZero),
+    accessibilityLabel: signAmountText(withCode, sign, printsAsZero),
+    code,
+  };
 }
 
 export function buildTransactionDetailPresentation({
@@ -195,7 +193,8 @@ export function buildTransactionDetailPresentation({
   const destinationAmount = tx.to_amount ?? tx.egp_amount;
   const destinationCurrency = toAccount?.currency ?? Currency.EGP;
   const row = buildTransactionRowPresentation({ tx, account, toAccount, category });
-  const typeColor = cardCredit ? InfoTokens[500] : TYPE_COLOR[tx.type];
+  const typeColor = cardCredit ? InfoTokens[500] : TRANSACTION_TYPE_ICONS[tx.type].color;
+  const amount = heroAmount(tx);
   const badge = resolveAccountBadgeColors(typeColor);
   const dateTimeText = `${formatWeekdayDate(tx.transaction_date)}, ${formatTime12h(tx.transaction_time)}`;
 
@@ -203,16 +202,18 @@ export function buildTransactionDetailPresentation({
     hero: {
       title: row.title,
       typeLabel: categoryBadge,
-      typeIcon: cardCredit ? CARD_CREDIT_ICON : TYPE_ICON[tx.type],
+      typeIcon: cardCredit
+        ? CARD_CREDIT_ICON
+        : (BARE_ARROW_ICON[tx.type] ?? TRANSACTION_TYPE_ICONS[tx.type].name),
       typeColor,
       badgeFill: badge.fill,
       badgeForeground: badge.foreground,
       tileColor: row.glyphColor,
       tileGlyph: row.glyphName,
       tileGlyphColor: resolveHeroTileGlyphColor(row.glyphColor),
-      amountValue: heroAmountValue(tx),
-      amountCode: CURRENCY_CONFIG[Currency.EGP].code,
-      amountText: signedAmount(tx),
+      amountValue: amount.value,
+      amountCode: amount.code,
+      amountAccessibilityLabel: amount.accessibilityLabel,
       caption: dateTimeText,
     },
     dateTimeText,

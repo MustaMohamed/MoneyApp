@@ -19,6 +19,8 @@ export interface StatusBadgeProps {
   fontScale?: number;
 }
 
+// Raw, never ms(): the detail hero's geometry adds it above and below the label.
+export const STATUS_BADGE_PADDING_VERTICAL = 2;
 const ICON_SIZE = { sm: 10, md: 12 } as const;
 const LABEL_STYLE = {
   sm: { fontSize: Type.pillLabel, lineHeight: lineHeightFor(Type.pillLabel) },
@@ -40,8 +42,9 @@ export function StatusBadge({
         backgroundColor: fill,
         flexDirection: 'row',
         alignItems: 'center',
+        paddingVertical: STATUS_BADGE_PADDING_VERTICAL,
       }}
-      className="gap-0.5 rounded-full px-1.5 py-0.5"
+      className="gap-0.5 rounded-full px-1.5"
     >
       {icon != null ? (
         <MaterialCommunityIcons name={icon} size={ICON_SIZE[size]} color={foreground} />

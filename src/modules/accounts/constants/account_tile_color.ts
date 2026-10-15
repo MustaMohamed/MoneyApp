@@ -3,7 +3,12 @@ import { Colors } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { mixHex } from './account_badge_color';
-import { DEFAULT_ACCOUNT_COLOR, contrastRatio, findAccountColor } from './account_palette';
+import {
+  DEFAULT_ACCOUNT_COLOR,
+  NON_TEXT_MIN_CONTRAST_RATIO,
+  contrastRatio,
+  findAccountColor,
+} from './account_palette';
 
 type AccountTileColors = { background: string; glyph: string; border?: string };
 
@@ -20,7 +25,6 @@ export const ARCHIVED_HERO_OPACITY = 0.85;
 
 // The hero gradient's middle stop as the archived hero paints it; a ring that clears it clears the list card surface too.
 const HOLLOW_BACKDROP = mixHex(HERO_GRADIENT_COLORS[1], CoreTokens.bg, ARCHIVED_HERO_OPACITY);
-const HOLLOW_MIN_CONTRAST_RATIO = 3;
 const TEXT_SHARE_STEP = 0.05;
 const TEXT_STEP_COUNT = Math.ceil(1 / TEXT_SHARE_STEP);
 
@@ -39,7 +43,7 @@ function resolveHollowTileColor(hex: string): string {
     hex,
     (candidate) =>
       contrastRatio(mixHex(candidate, CoreTokens.bg, ARCHIVED_HERO_OPACITY), HOLLOW_BACKDROP) >=
-      HOLLOW_MIN_CONTRAST_RATIO,
+      NON_TEXT_MIN_CONTRAST_RATIO,
   );
 }
 

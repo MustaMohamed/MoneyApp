@@ -101,7 +101,7 @@ export function DetailHero({ hero }: Props): React.ReactElement {
         {/* A container `gap`, not a `marginLeft` on a nested Text: RN Android drops margins on inline text. */}
         <View
           accessible
-          accessibilityLabel={hero.amountText}
+          accessibilityLabel={hero.amountAccessibilityLabel}
           style={{
             flexDirection: 'row',
             alignItems: 'baseline',
