@@ -1,5 +1,5 @@
 diff --git a/node_modules/@gorhom/bottom-sheet/src/hooks/useAnimatedKeyboard.ts b/node_modules/@gorhom/bottom-sheet/src/hooks/useAnimatedKeyboard.ts
-index d7051bf..9883b13 100644
+index d7051bf..f842ed0 100644
 --- a/node_modules/@gorhom/bottom-sheet/src/hooks/useAnimatedKeyboard.ts
 +++ b/node_modules/@gorhom/bottom-sheet/src/hooks/useAnimatedKeyboard.ts
 @@ -40,10 +40,10 @@ export const useAnimatedKeyboard = () => {
@@ -27,7 +27,7 @@ index d7051bf..9883b13 100644
          return;
        }
  
-+      // Patched (MA-185): replay the cached show with its navigation bar inset, as a live show adds it.
++      // Patched for MA-185: replay the cached show with its navigation bar inset, as a live show adds it.
        handleKeyboardEvent(
          cachedState.status,
          cachedState.height,
