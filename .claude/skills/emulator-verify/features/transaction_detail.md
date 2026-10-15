@@ -39,7 +39,7 @@ Route `/transactions/detail/[id]`, and its `/stacked` twin when reached from a s
 
 ## Gotchas
 
-- The hero badge is `StatusBadge` at `md` with no node of its own, so its height is its label `TextView` plus 4 (`py-0.5` twice).
+- The hero badge is `StatusBadge` at `md` with no node of its own, so its height is its label `TextView` plus 4 (`STATUS_BADGE_PADDING_VERTICAL` in `src/components/ui/status_badge.tsx`, twice).
 
 ## Seeding and forcing states
 

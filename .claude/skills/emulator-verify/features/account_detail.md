@@ -27,7 +27,7 @@ The canvas draws one account type per frame. Every state below is checked on a b
 | adjust balance sheet, keyboard up | no frame, MA-033 | tap the amount field | `Save` reachable above the keyboard; shot |
 | archive dialog | G2 | `$MQA tap 'Archive'` on the body button | title `Archive <name>?`, body from `accountDetailArchiveBody`, flat buttons; shot |
 | archive failure | no frame, MA-046 | source force on the write | error copy; db unchanged |
-| status badge line box | C1/C2, MA-086 | the hero as it mounts on each account | the badge label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(10))` = 14 ± 1 high, so the pill is 14 + 4 (`py-0.5`) = 18, on both; one shot per account. The `md` size has no live site and rests on the lint pair alone |
+| status badge line box | C1/C2, MA-086 | the hero as it mounts on each account | the badge label's `TextView` bounds ÷ 2.625 read `lineHeightFor(msFont(10))` = 14 ± 1 high, so the pill is 14 + 4 (`STATUS_BADGE_PADDING_VERTICAL` twice) = 18, on both; one shot per account. The `md` size has no live site and rests on the lint pair alone |
 | blank-named | no frame, MA-059 | seed push `name = ''` | header and hero read `Unnamed account` |
 | activity row, tile off | no frame, MA-090 | the seeded bank's expense with a note, dated today | one shot: no account tile, the category glyph before the title, caption `<note> · Today, <time>`; the row's bounds ÷ 2.625 read `ms(60)` = 63 ± 1 on the 411 dp Pixel_2 |
 | activity row, transfer | no frame, MA-090 | a transfer from the open account | one shot: the other account's single 28 tile, caption `<from> → <to> · <day label>` |
