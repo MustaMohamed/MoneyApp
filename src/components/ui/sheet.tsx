@@ -284,7 +284,7 @@ export function Sheet({
             onClose={handleSheetClosed}
             {...resolveKeyboardProps(liftsAboveKeyboard)}
             enablePanDownToClose={isDismissable}
-            // Not `enableContentPanningGesture`: toggling it swaps the content's view type and remounts the body mid-close.
+            // Not `enableContentPanningGesture`: toggling it swaps the content's view type and remounts the body mid-close, blurring a focused field before the close cleanup reads it.
             {...resolveSheetCloseGestureProps(closeLifecycle)}
             backgroundClassName="bg-surface"
             handleIndicatorClassName="bg-border"
