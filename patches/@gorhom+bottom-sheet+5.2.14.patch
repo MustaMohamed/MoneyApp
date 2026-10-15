@@ -1,0 +1,40 @@
+diff --git a/node_modules/@gorhom/bottom-sheet/src/hooks/useAnimatedKeyboard.ts b/node_modules/@gorhom/bottom-sheet/src/hooks/useAnimatedKeyboard.ts
+index d7051bf..f842ed0 100644
+--- a/node_modules/@gorhom/bottom-sheet/src/hooks/useAnimatedKeyboard.ts
++++ b/node_modules/@gorhom/bottom-sheet/src/hooks/useAnimatedKeyboard.ts
+@@ -40,10 +40,10 @@ export const useAnimatedKeyboard = () => {
+   //#region variables
+   const textInputNodesRef = useRef(new Set<number>());
+   const state = useSharedValue(INITIAL_STATE);
+-  const temporaryCachedState = useSharedValue<Omit<
++  const temporaryCachedState = useSharedValue<(Omit<
+     KeyboardState,
+     'heightWithinContainer' | 'target'
+-  > | null>(null);
++  > & { bottomOffset?: number }) | null>(null);
+   //#endregion
+ 
+   //#region worklets
+@@ -69,6 +69,7 @@ export const useAnimatedKeyboard = () => {
+           height,
+           duration,
+           easing,
++          bottomOffset,
+         });
+         return;
+       }
+@@ -161,11 +162,13 @@ export const useAnimatedKeyboard = () => {
+         return;
+       }
+ 
++      // Patched for MA-185: replay the cached show with its navigation bar inset, as a live show adds it.
+       handleKeyboardEvent(
+         cachedState.status,
+         cachedState.height,
+         cachedState.duration,
+-        cachedState.easing
++        cachedState.easing,
++        cachedState.bottomOffset
+       );
+     },
+     [temporaryCachedState, handleKeyboardEvent]

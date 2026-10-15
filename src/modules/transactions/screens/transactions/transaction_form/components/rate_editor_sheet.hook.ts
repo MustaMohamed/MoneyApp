@@ -1,5 +1,5 @@
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { Keyboard, type TextInput } from 'react-native';
+import type { TextInput } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
@@ -10,8 +10,6 @@ import { refusesOpen, useRateEditorSheetState } from './rate_editor_sheet.state'
 export function openRateEditor(ownerId: string, value: string): void {
   const editorState = useRateEditorSheetState.getState();
   if (refusesOpen(editorState, ownerId)) return;
-  // gorhom replays a keyboard show cached before the field's focus without the navigation bar's inset, so the editor lifts short.
-  Keyboard.dismiss();
   editorState.open(ownerId, value);
 }
 

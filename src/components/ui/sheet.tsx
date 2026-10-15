@@ -60,8 +60,16 @@ export function resolveSnapPoints(
   return [SIZE_PCT[size ?? 'lg']];
 }
 
+// A JSX spread has no excess-property check, so the resolvers pick their keys from Content's props and a renamed key fails typecheck.
+type SheetContentProps = React.ComponentProps<typeof BottomSheet.Content>;
+
 // gorhom skips its own keyboard compensation under `adjustResize`, so a footer sheet must claim `adjustPan`.
-export function resolveKeyboardProps(liftsAboveKeyboard: boolean) {
+export function resolveKeyboardProps(
+  liftsAboveKeyboard: boolean,
+): Pick<
+  SheetContentProps,
+  'keyboardBehavior' | 'keyboardBlurBehavior' | 'android_keyboardInputMode'
+> {
   return {
     keyboardBehavior: 'interactive',
     keyboardBlurBehavior: 'restore',
@@ -125,6 +133,16 @@ export function resolveSheetClosedAtRestProps(lifecycle: SheetCloseLifecycle): {
 } {
   if (!lifecycle.isOpen && !lifecycle.hasOpened) return { opacity: 0, pointerEvents: 'none' };
   return { opacity: 1, pointerEvents: 'box-none' };
+}
+
+const SHEET_CLOSING_FAIL_OFFSET: [number, number] = [-1, 1];
+
+/** A sheet whose close is in flight fails every drag before it starts, so the close runs to its end; any other sends no offsets. */
+export function resolveSheetCloseGestureProps(
+  lifecycle: SheetCloseLifecycle,
+): Pick<SheetContentProps, 'failOffsetX' | 'failOffsetY'> {
+  if (lifecycle.isOpen || !lifecycle.hasOpened) return {};
+  return { failOffsetX: SHEET_CLOSING_FAIL_OFFSET, failOffsetY: SHEET_CLOSING_FAIL_OFFSET };
 }
 
 export interface SheetProps {
@@ -273,6 +291,8 @@ export function Sheet({
             onClose={handleSheetClosed}
             {...resolveKeyboardProps(liftsAboveKeyboard)}
             enablePanDownToClose={isDismissable}
+            // Not `enableContentPanningGesture`: toggling it swaps the content's view type and remounts the body mid-close, blurring a focused field before the close cleanup reads it.
+            {...resolveSheetCloseGestureProps(closeLifecycle)}
             backgroundClassName="bg-surface"
             handleIndicatorClassName="bg-border"
             {...(footer !== undefined ? { footerComponent: renderFooter } : {})}

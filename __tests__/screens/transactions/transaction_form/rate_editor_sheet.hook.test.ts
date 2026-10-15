@@ -212,7 +212,9 @@ describe('useRateEditor inside a close', () => {
 });
 
 describe('openRateEditor and the keyboard', () => {
-  it('leaves the keyboard alone on a reopen refused inside a settled close, and dismisses it once on the open after the close settles', async () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('leaves a keyboard already up where it is on a reopen refused inside a settled close and on the open after the close settles', async () => {
     const dismiss = jest.spyOn(Keyboard, 'dismiss');
     const { result } = await mountEditor(ADD_OWNER, '50', true);
     await act(() => result.current.open());
@@ -226,9 +228,8 @@ describe('openRateEditor and the keyboard', () => {
 
     await act(() => result.current.settleClose());
     await act(() => openRateEditor(ADD_OWNER, '50'));
-    expect(dismiss).toHaveBeenCalledTimes(1);
+    expect(dismiss).toHaveBeenCalledTimes(0);
     expect(result.current.state.isOpen).toBe(true);
-    dismiss.mockRestore();
   });
 });
 

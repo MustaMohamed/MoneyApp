@@ -1,4 +1,7 @@
-import { resolveSheetClosedAtRestProps } from '@/components/ui/sheet';
+import {
+  resolveSheetCloseGestureProps,
+  resolveSheetClosedAtRestProps,
+} from '@/components/ui/sheet';
 import {
   createSheetCloseLifecycle,
   settleSheetCloseLifecycle,
@@ -56,5 +59,49 @@ describe('resolveSheetClosedAtRestProps', () => {
     expect(resolveSheetClosedAtRestProps(reopened)).toEqual(SHOWN);
     expect(staleClose.shouldComplete).toBe(false);
     expect(resolveSheetClosedAtRestProps(staleClose.lifecycle)).toEqual(SHOWN);
+  });
+});
+
+describe('resolveSheetCloseGestureProps', () => {
+  const FAILS_EVERY_DRAG = { failOffsetX: [-1, 1], failOffsetY: [-1, 1] };
+
+  it('sends no offsets for a sheet never opened, one mounted open and one opened later', () => {
+    const mounted = createSheetCloseLifecycle(false);
+    const mountedOpen = createSheetCloseLifecycle(true);
+    const openedLater = syncSheetCloseLifecycle(mounted, true);
+
+    expect(resolveSheetCloseGestureProps(mounted)).toStrictEqual({});
+    expect(resolveSheetCloseGestureProps(syncSheetCloseLifecycle(mounted, false))).toStrictEqual(
+      {},
+    );
+    expect(resolveSheetCloseGestureProps(mountedOpen)).toStrictEqual({});
+    expect(resolveSheetCloseGestureProps(openedLater)).toStrictEqual({});
+  });
+
+  it('fails every drag on a closing sheet, and still after a stale index 0 report', () => {
+    const closing = openedThenClosing();
+    const staleOpenReport = settleSheetCloseLifecycle(closing, 0);
+
+    expect(resolveSheetCloseGestureProps(closing)).toStrictEqual(FAILS_EVERY_DRAG);
+    expect(staleOpenReport.shouldComplete).toBe(false);
+    expect(resolveSheetCloseGestureProps(staleOpenReport.lifecycle)).toStrictEqual(
+      FAILS_EVERY_DRAG,
+    );
+  });
+
+  it('sends no offsets once the close settles at -1, and on the render after it', () => {
+    const settled = settleSheetCloseLifecycle(openedThenClosing(), -1);
+
+    expect(settled.shouldComplete).toBe(true);
+    expect(resolveSheetCloseGestureProps(settled.lifecycle)).toStrictEqual({});
+    expect(
+      resolveSheetCloseGestureProps(syncSheetCloseLifecycle(settled.lifecycle, false)),
+    ).toStrictEqual({});
+  });
+
+  it('sends no offsets for a sheet reopened inside its close', () => {
+    const reopened = syncSheetCloseLifecycle(openedThenClosing(), true);
+
+    expect(resolveSheetCloseGestureProps(reopened)).toStrictEqual({});
   });
 });
