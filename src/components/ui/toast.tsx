@@ -9,13 +9,14 @@ import {
 import { useMemo, type ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { TOAST_ANIMATION } from '@/components/ui/toast.anim';
 import { useToastClearanceState } from '@/components/ui/toast_clearance.state';
 import { Colors, Size } from '@/constants/theme';
 
 /** One toast at a time, at the bottom — the app's only toast configuration. */
 export const TOAST_PROVIDER_PROPS = {
   maxVisibleToasts: 1,
-  defaultProps: { placement: 'bottom' },
+  defaultProps: { placement: 'bottom', animation: TOAST_ANIMATION },
 } satisfies ToastProviderProps;
 
 // Undefined keeps HeroUI's safe-area default, the position on a screen without the tab bar.

@@ -9,21 +9,15 @@ import {
 
 import { SelectablePill } from '@/components/ui/chip';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
-import { Size, Spacing, touchFloorSlop } from '@/constants/theme';
+import { Size, Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
+import { CHIP_SLOP_Y, ROW_PADDING_BOTTOM, ROW_PADDING_TOP } from './account_chips.geometry';
 import type { AccountChipModel } from './account_chips.helpers';
 import { HERO_SHELL_MARGIN_BOTTOM } from './transactions_hero';
 
 /** Frame A1: 6 between chips, 8 below; 9 above plus the hero shell's edge reads A1's 10. */
 const CHIP_GAP = ms(6);
-
-/** Lifts the compact chip to the touch floor; unscaled, so it can outgrow the scaled paddings on a small phone. */
-const CHIP_SLOP_Y = touchFloorSlop(Size.compactChipHeight);
-
-/** Android drops a touch outside the ScrollView, so each padding holds the whole slop. */
-const ROW_PADDING_TOP = Math.max(ms(9), CHIP_SLOP_Y);
-const ROW_PADDING_BOTTOM = Math.max(Spacing.xs, CHIP_SLOP_Y);
 
 /** Cancels the hero shell's bottom margin, which other hero states keep, so the padding alone sets the gap. */
 const ROW_MARGIN_TOP = -HERO_SHELL_MARGIN_BOTTOM;

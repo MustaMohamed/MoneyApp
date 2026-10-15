@@ -28,9 +28,9 @@ describe('resolveLoadErrorAlertTone', () => {
 
 describe('resolveLoadErrorRetryHitSlop', () => {
   it.each(FONT_SCALES)(
-    'a tinted sm retry at font scale %s takes a tap in a band of the touch floor',
+    'an sm retry at font scale %s, tinted or not, takes a tap in a band of the touch floor',
     (fontScale) => {
-      const slop = resolveLoadErrorRetryHitSlop('sm', fontScale, true);
+      const slop = resolveLoadErrorRetryHitSlop('sm', fontScale);
       const height = resolveSmallButtonHeight(fontScale);
       const band = height + (slop?.top ?? 0) + (slop?.bottom ?? 0);
 
@@ -41,12 +41,8 @@ describe('resolveLoadErrorRetryHitSlop', () => {
     },
   );
 
-  it.each(FONT_SCALES)('a tinted md retry at font scale %s gets no slop', (fontScale) => {
-    expect(resolveLoadErrorRetryHitSlop('md', fontScale, true)).toBeUndefined();
-  });
-
-  it.each(FONT_SCALES)('an untinted sm retry at font scale %s gets no slop', (fontScale) => {
-    expect(resolveLoadErrorRetryHitSlop('sm', fontScale, false)).toBeUndefined();
+  it.each(FONT_SCALES)('an md retry at font scale %s gets no slop', (fontScale) => {
+    expect(resolveLoadErrorRetryHitSlop('md', fontScale)).toBeUndefined();
   });
 });
 

@@ -1,7 +1,7 @@
 import type { ButtonSize } from 'heroui-native';
 
 import { resolveSmallButtonHeight } from '@/components/ui/button.geometry';
-import { Spacing, TOUCH_SLOP_PIXEL_MARGIN, touchFloorSlop } from '@/constants/theme';
+import { Spacing, type TouchFloorHitSlop, touchFloorHitSlop } from '@/constants/theme';
 
 type LoadErrorAlertMode = 'fill' | 'inline' | 'floating' | 'bare';
 
@@ -20,11 +20,9 @@ export function resolveLoadErrorAlertTone(
 export function resolveLoadErrorRetryHitSlop(
   retrySize: ButtonSize,
   fontScale: number,
-  tinted: boolean,
-): { top: number; bottom: number } | undefined {
-  if (!tinted || retrySize !== 'sm') return undefined;
-  const slop = touchFloorSlop(resolveSmallButtonHeight(fontScale)) + TOUCH_SLOP_PIXEL_MARGIN;
-  return { top: slop, bottom: slop };
+): TouchFloorHitSlop | undefined {
+  if (retrySize !== 'sm') return undefined;
+  return touchFloorHitSlop(resolveSmallButtonHeight(fontScale));
 }
 
 /** The toast's bottom inset that leaves the frames' gap above a floating alert's top edge. */
