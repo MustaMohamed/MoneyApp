@@ -1,4 +1,4 @@
-import { Input } from 'heroui-native';
+import { Input, PressableFeedback } from 'heroui-native';
 import { type RefObject, useCallback } from 'react';
 import { type TextInput, View, useWindowDimensions } from 'react-native';
 
@@ -10,22 +10,51 @@ import {
   resolveSheetSizeAboveOne,
   useBottomSheetAwareHandlers,
 } from '@/components/ui/sheet';
+import { Text } from '@/components/ui/text';
+import {
+  resolveOneLineTextProps,
+  scaledTextStyleAboveOne,
+} from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { TouchSize, Type, lineHeightFor } from '@/constants/theme';
+import { formatStoredMoneyText } from '@/utils/money_text';
 
+import { resolveRateEditorSource } from '../transaction_form.helpers';
+import { ConvertedAmountLine } from './converted_amount_line';
 import { useRateEditor, useRateEditorFocus } from './rate_editor_sheet.hook';
-import { RATE_MESSAGE_SLOT_STYLE } from './transaction_form.geometry';
+import { RateStaleLine } from './rate_stale_line';
+import { RATE_MESSAGE_SLOT_STYLE, RATE_RESET_SLOT_STYLE } from './transaction_form.geometry';
+import type { RatePreviewInput } from './transaction_rate_preview.hook';
+
+type RatePreviewContext = Omit<RatePreviewInput, 'exchangeRate'>;
 
 interface RateEditorSheetBodyProps {
   inputRef: RefObject<TextInput | null>;
   draft: string;
   error: string | undefined;
   onChangeText: (text: string) => void;
+  sourceLine: string;
+  stale: boolean;
+  showsReset: boolean;
+  onReset: () => void;
+  preview: RatePreviewContext;
 }
 
 // Its own component so `useBottomSheetAwareHandlers` runs inside the sheet's context.
-function RateEditorSheetBody({ inputRef, draft, error, onChangeText }: RateEditorSheetBodyProps) {
+function RateEditorSheetBody({
+  inputRef,
+  draft,
+  error,
+  onChangeText,
+  sourceLine,
+  stale,
+  showsReset,
+  onReset,
+  preview,
+}: RateEditorSheetBodyProps) {
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+  const { fontScale } = useWindowDimensions();
+  const oneLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
 
   return (
     <View className="px-4 pt-2">
@@ -41,6 +70,15 @@ function RateEditorSheetBody({ inputRef, draft, error, onChangeText }: RateEdito
         accessibilityLabel={Strings.addTxRateInputAccessibility}
         isInvalid={error !== undefined}
       />
+      <Text
+        testID="rate-editor-source-line"
+        className="font-inter text-muted mt-1"
+        {...oneLine}
+        style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro), ...oneLine.style }}
+      >
+        {sourceLine}
+      </Text>
+      {stale ? <RateStaleLine testID="rate-editor-stale-line" /> : null}
       <View
         testID="rate-editor-message-slot"
         style={RATE_MESSAGE_SLOT_STYLE}
@@ -52,25 +90,53 @@ function RateEditorSheetBody({ inputRef, draft, error, onChangeText }: RateEdito
           style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
         />
       </View>
+      <ConvertedAmountLine
+        {...preview}
+        exchangeRate={draft}
+        testID="rate-editor-converted-amount"
+        textAlign="left"
+        oneLine={oneLine}
+      />
+      <View testID="rate-editor-reset-slot" style={RATE_RESET_SLOT_STYLE}>
+        {showsReset ? (
+          <PressableFeedback
+            testID="rate-editor-reset"
+            onPress={onReset}
+            accessibilityRole="button"
+            accessibilityLabel={Strings.addTxRateResetToStoredAccessibility}
+            style={{ minHeight: TouchSize.min, justifyContent: 'center' }}
+          >
+            <Text
+              className="font-inter text-accent"
+              style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
+            >
+              {Strings.addTxRateResetToStored}
+            </Text>
+          </PressableFeedback>
+        ) : null}
+      </View>
     </View>
   );
 }
 
-interface RateEditorSheetProps {
+interface RateEditorSheetProps extends Omit<RateEditorSheetBodyProps, 'inputRef'> {
   isOpen: boolean;
-  draft: string;
-  error: string | undefined;
-  onChangeText: (text: string) => void;
   onCancel: () => void;
   onDone: () => void;
   onOpenSettled: () => void;
   onCloseSettled: () => void;
 }
 
-export function RateEditorSheet(props: RateEditorSheetProps): React.ReactElement {
+export function RateEditorSheet({
+  isOpen,
+  onCancel,
+  onDone,
+  onOpenSettled,
+  onCloseSettled,
+  ...body
+}: RateEditorSheetProps): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const { inputRef, focusInput } = useRateEditorFocus();
-  const { onOpenSettled, onCloseSettled } = props;
   const handleOpenComplete = useCallback(() => {
     focusInput();
     onOpenSettled();
@@ -83,7 +149,7 @@ export function RateEditorSheet(props: RateEditorSheetProps): React.ReactElement
           variant="secondary"
           flat
           label={Strings.addTxDatePickerCancel}
-          onPress={props.onCancel}
+          onPress={onCancel}
         />
       </Box>
       <Box style={{ flex: 1 }}>
@@ -92,7 +158,7 @@ export function RateEditorSheet(props: RateEditorSheetProps): React.ReactElement
           variant="primary"
           flat
           label={Strings.addTxDatePickerDone}
-          onPress={props.onDone}
+          onPress={onDone}
         />
       </Box>
     </Box>
@@ -100,9 +166,9 @@ export function RateEditorSheet(props: RateEditorSheetProps): React.ReactElement
 
   return (
     <Sheet
-      isOpen={props.isOpen}
+      isOpen={isOpen}
       onOpenChange={(open) => {
-        if (!open) props.onCancel();
+        if (!open) onCancel();
       }}
       // A focus on the open flag raises the keyboard before the sheet settles and leaves the body under it.
       onOpenComplete={handleOpenComplete}
@@ -112,29 +178,36 @@ export function RateEditorSheet(props: RateEditorSheetProps): React.ReactElement
       footer={footer}
       liftsAboveKeyboard
     >
-      <RateEditorSheetBody
-        inputRef={inputRef}
-        draft={props.draft}
-        error={props.error}
-        onChangeText={props.onChangeText}
-      />
+      <RateEditorSheetBody inputRef={inputRef} {...body} />
     </Sheet>
   );
 }
 
-interface TransactionRateEditorProps {
+interface TransactionRateEditorProps extends RatePreviewContext {
   ownerId: string;
   value: string;
   onCommit: (text: string) => boolean;
+  storedRate: number;
+  rateUpdatedAt: string | null;
+  stale: boolean;
 }
 
-// Mounted with the form body, not the card, so its sheet has seen every keyboard event before the card opens it.
+// Mounted with the form body, not the row, so its sheet has seen every keyboard event before the row opens it.
 export function TransactionRateEditor({
   ownerId,
   value,
   onCommit,
+  storedRate,
+  rateUpdatedAt,
+  stale,
+  ...preview
 }: TransactionRateEditorProps): React.ReactElement {
-  const editor = useRateEditor(ownerId, value, onCommit);
+  const editor = useRateEditor(ownerId, value, onCommit, formatStoredMoneyText(storedRate));
+  const source = resolveRateEditorSource({
+    draftText: editor.state.draft,
+    storedRate,
+    rateUpdatedAt,
+  });
 
   return (
     <RateEditorSheet
@@ -146,6 +219,11 @@ export function TransactionRateEditor({
       onDone={editor.done}
       onOpenSettled={editor.settleOpen}
       onCloseSettled={editor.settleClose}
+      sourceLine={source.line}
+      stale={stale}
+      showsReset={!source.usesStoredRate}
+      onReset={editor.resetToStoredRate}
+      preview={preview}
     />
   );
 }

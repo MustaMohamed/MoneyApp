@@ -7,40 +7,18 @@ import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
-import { formatAmount, formatRateDisplayMagnitude } from '@/utils/format_amount';
-import { parseRateText } from '@/utils/parse_decimal';
+import { isRateStale } from '@/modules/currency/store/currency.helpers';
+import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
+import { formatStoredRateLine } from './stored_rate_line.helpers';
 import { RATE_MESSAGE_SLOT_STYLE } from './transaction_form.geometry';
 
-const STALE_THRESHOLD_DAYS = 30;
 const RATE_PREVIEW_AMOUNT_DECIMALS = 2;
 // Shown when the EGP value is not derivable yet; `previewHidden` removes the line instead.
 const PREVIEW_PLACEHOLDER = '—';
 
-function isStale(rateUpdatedAt: string | null): boolean {
-  if (!rateUpdatedAt) return false;
-  const updated = new Date(rateUpdatedAt).getTime();
-  if (isNaN(updated)) return false;
-  const ageMs = Date.now() - updated;
-  return ageMs > STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
-}
-
-// The card prints the rate as every rate prints; the editor's field keeps it as typed.
-function formatCardRate(value: string): string {
-  const rate = parseRateText(value);
-  return rate === undefined ? value : formatRateDisplayMagnitude(rate).text;
-}
-
-function formatDateShort(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-interface SharedProps {
+interface Props {
   value: string;
   overrideEnabled: boolean;
   onToggleOverride: () => void;
@@ -51,14 +29,9 @@ interface SharedProps {
   previewHidden?: boolean;
   /** Subtitle saying why a rate is required for a payment that converts nothing. */
   purposeCaption?: string;
+  onChange: (v: string) => void;
+  error?: string;
 }
-
-/** With `onOpenEditor` the card is a button in every state and the rate is typed in the editor, never on the card. */
-type Props = SharedProps &
-  (
-    | { onOpenEditor: () => void; onChange?: never; error?: never }
-    | { onOpenEditor?: never; onChange: (v: string) => void; error?: string }
-  );
 
 export function ExchangeRateRow({
   value,
@@ -70,25 +43,21 @@ export function ExchangeRateRow({
   previewHidden = false,
   purposeCaption,
   error,
-  onOpenEditor,
 }: Props): React.ReactElement {
-  const stale = isStale(rateUpdatedAt);
+  const stale = isRateStale(rateUpdatedAt, Date.now());
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
-  const showsInput = overrideEnabled && onOpenEditor === undefined;
 
   const subtitle = overrideEnabled
     ? Strings.addTxRateSourceCustom
-    : rateUpdatedAt
-      ? `${Strings.addTxRateSourceStored} · ${Strings.addTxRateLastUpdated.replace('{date}', formatDateShort(rateUpdatedAt))}`
-      : Strings.addTxRateSourceStored;
+    : formatStoredRateLine(rateUpdatedAt);
 
   return (
     <View className="border-accent/30 bg-accent/10 mt-3 rounded-md border px-3 py-3">
       <PressableFeedback
         testID="exchange-rate-row"
-        onPress={onOpenEditor ?? (overrideEnabled ? undefined : onToggleOverride)}
-        accessibilityRole={showsInput ? undefined : 'button'}
-        accessibilityLabel={showsInput ? '' : Strings.addTxRateEditAccessibility}
+        onPress={overrideEnabled ? undefined : onToggleOverride}
+        accessibilityRole={overrideEnabled ? undefined : 'button'}
+        accessibilityLabel={overrideEnabled ? '' : Strings.addTxRateEditAccessibility}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <View style={{ flex: 1 }}>
@@ -121,7 +90,7 @@ export function ExchangeRateRow({
             </Text>
           ) : null}
         </View>
-        {showsInput ? (
+        {overrideEnabled ? (
           <View style={{ width: 100 }}>
             <Input
               testID="exchange-rate-input"
@@ -141,7 +110,7 @@ export function ExchangeRateRow({
             className="font-sora-semibold text-foreground"
             style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
           >
-            {onOpenEditor === undefined ? value : formatCardRate(value)}
+            {value}
           </Text>
         )}
       </PressableFeedback>

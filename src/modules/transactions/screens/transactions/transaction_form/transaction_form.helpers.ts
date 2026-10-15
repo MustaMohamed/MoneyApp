@@ -13,11 +13,13 @@ import {
   resolveRowTile,
 } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { resolveAccountName } from '@/utils/account_name';
-import { formatDisplayAmount } from '@/utils/format_amount';
+import { formatDisplayAmount, formatRateDisplayMagnitude } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { formatStoredMoneyText } from '@/utils/money_text';
 import { parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
+
+import { formatStoredRateLine } from './components/stored_rate_line.helpers';
 
 export interface TransactionFormSemantics {
   isCardCredit: boolean;
@@ -271,6 +273,28 @@ export function resolveConvertedAmount(input: {
   }
 }
 
+/** The editor's line: the stored rate's line only while the draft parses to the stored rate, the equality Done commits by. */
+export function resolveRateEditorSource(input: {
+  draftText: string;
+  storedRate: number;
+  rateUpdatedAt: string | null;
+}): { usesStoredRate: boolean; line: string } {
+  const usesStoredRate =
+    resolveRateCommit({ text: input.draftText, storedRate: input.storedRate })?.override === false;
+  return {
+    usesStoredRate,
+    line: usesStoredRate
+      ? formatStoredRateLine(input.rateUpdatedAt)
+      : Strings.addTxRateSourceCustomPerUsd,
+  };
+}
+
+/** The rate as every rate prints; the rounding is display only, and text the formatter refuses prints as typed. */
+export function formatRateRowValue(rateText: string): string {
+  const rate = parseRateText(rateText);
+  return rate === undefined ? rateText : formatRateDisplayMagnitude(rate).text;
+}
+
 /** The editor's Done: a rate that parses commits as typed, unless it is the stored rate, which commits as stored. */
 export function resolveRateCommit(input: {
   text: string;
@@ -283,18 +307,18 @@ export function resolveRateCommit(input: {
   return { exchangeRate: override ? text : formatStoredMoneyText(storedRate), override };
 }
 
-/** Both form hooks' `commitExchangeRate`: a refused rate writes nothing; an accepted one clears the save error, then sets the override and the rate. */
+/** Both form hooks' `commitExchangeRate`: a refused rate writes nothing; an accepted one clears the save error, then sets the override when given and the rate. */
 export function applyRateCommit(input: {
   text: string;
   storedRate: number;
   clearError: () => void;
-  setRateOverride: (override: boolean) => void;
+  setRateOverride?: (override: boolean) => void;
   setExchangeRate: (exchangeRate: string) => void;
 }): boolean {
   const commit = resolveRateCommit({ text: input.text, storedRate: input.storedRate });
   if (commit === undefined) return false;
   input.clearError();
-  input.setRateOverride(commit.override);
+  input.setRateOverride?.(commit.override);
   input.setExchangeRate(commit.exchangeRate);
   return true;
 }

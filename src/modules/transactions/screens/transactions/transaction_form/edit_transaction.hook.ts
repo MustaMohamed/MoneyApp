@@ -21,7 +21,6 @@ import {
   type UpdateTransactionInput,
 } from '@/modules/transactions/store/transaction.store';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
-import { formatStoredMoneyText } from '@/utils/money_text';
 import { parseDecimalText, parseRateText } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -146,7 +145,6 @@ export function useEditTransaction(
     budgetLookupError,
     errorMessage,
     preserveBudgetNull,
-    rateOverride,
   } = useEditTransactionState(
     useShallow((s) => ({
       saving: s.saving,
@@ -158,7 +156,6 @@ export function useEditTransaction(
       budgetLookupError: s.budgetLookupError,
       errorMessage: s.errorMessage,
       preserveBudgetNull: s.preserveBudgetNull,
-      rateOverride: s.rateOverride,
     })),
   );
   const setSaving = useEditTransactionState.getState().setSaving;
@@ -171,7 +168,6 @@ export function useEditTransaction(
   const retryBudgetLookup = useEditTransactionState.getState().retryBudgetLookup;
   const clearError = useEditTransactionState.getState().clearError;
   const setPreserveBudgetNull = useEditTransactionState.getState().setPreserveBudgetNull;
-  const setRateOverride = useEditTransactionState.getState().setRateOverride;
 
   const effectiveDataStatus =
     prerequisites?.status ?? (accountsLoaded && categoriesLoaded ? 'ready' : 'loading');
@@ -416,12 +412,6 @@ export function useEditTransaction(
     form.setValue('budgetId', '');
   }
 
-  function toggleRateOverride() {
-    const next = !rateOverride;
-    setRateOverride(next);
-    if (!next) form.setValue('exchangeRate', formatStoredMoneyText(rate));
-  }
-
   function selectCategory(category: Category) {
     clearError();
     invalidateBudgetEligibility(category.id, date);
@@ -449,7 +439,6 @@ export function useEditTransaction(
       note,
       date,
       exchangeRate,
-      rateOverride,
       isCardCredit: semantics.isCardCredit,
       typeLabel: semantics.typeLabel,
       typeSupportingText: semantics.supportingText,
@@ -480,6 +469,7 @@ export function useEditTransaction(
           Boolean(budgetId) ||
           availableBudgets.length > 0),
       rateUpdatedAt,
+      storedRate: rate,
     },
     setAmountStr: (value: string) => {
       if (useEditTransactionState.getState().errorMessage) clearError();
@@ -500,10 +490,8 @@ export function useEditTransaction(
         text,
         storedRate: rate,
         clearError,
-        setRateOverride,
         setExchangeRate: (exchangeRate) => form.setValue('exchangeRate', exchangeRate),
       }),
-    toggleRateOverride,
     setShowCategoryPicker,
     setShowBudgetPicker,
     completePickerClose,

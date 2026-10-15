@@ -16,7 +16,6 @@ interface EditTransactionStateShape {
   budgetLookupError: string | undefined;
   errorMessage: string | undefined;
   preserveBudgetNull: boolean;
-  rateOverride: boolean;
 }
 
 type EditTransactionState = EditTransactionStateShape & {
@@ -30,7 +29,6 @@ type EditTransactionState = EditTransactionStateShape & {
   retryBudgetLookup: () => void;
   clearError: () => void;
   setPreserveBudgetNull: (v: boolean) => void;
-  setRateOverride: (v: boolean) => void;
   reset: () => void;
 };
 
@@ -44,7 +42,6 @@ const INITIAL_STATE: EditTransactionStateShape = {
   budgetLookupError: undefined,
   errorMessage: undefined,
   preserveBudgetNull: false,
-  rateOverride: false,
 };
 
 export const useEditTransactionState = createMoneyAppSelectors(
@@ -86,7 +83,6 @@ export const useEditTransactionState = createMoneyAppSelectors(
     clearError: () =>
       set((state) => (state.errorMessage === undefined ? state : { errorMessage: undefined })),
     setPreserveBudgetNull: (v) => set({ preserveBudgetNull: v }),
-    setRateOverride: (v) => set({ rateOverride: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

@@ -22,6 +22,7 @@ import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_g
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { isRateStale } from '@/modules/currency/store/currency.helpers';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
@@ -32,13 +33,14 @@ import { DangerRing } from './components/danger_ring';
 import { DateRow } from './components/date_row';
 import { FormPickerRow } from './components/form_picker_row';
 import { TransactionRateEditor } from './components/rate_editor_sheet';
-import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
+import { RateRow } from './components/rate_row';
 import {
   ACCOUNT_STRIP_WRAPPER_PADDING_Y,
   AMOUNT_MESSAGE_TEXT_STYLE,
   resolveNoteInputGeometry,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
 } from './components/transaction_form.geometry';
+import type { RatePreviewInput } from './components/transaction_rate_preview.hook';
 import { TypeTabs } from './components/type_tabs';
 import {
   type AccountStripChip,
@@ -77,9 +79,9 @@ interface BaseProps {
   exchangeRate: string;
   /** The rate editor's Done; `false` keeps the editor open with its message. */
   commitExchangeRate: (text: string) => boolean;
-  rateOverride: boolean;
-  toggleRateOverride: () => void;
   rateUpdatedAt: string | null;
+  /** The currency store's rate, not the transaction's own `exchangeRate`. */
+  storedRate: number;
   date: string;
   setDate: (v: string) => void;
   note: string;
@@ -155,9 +157,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     requiresRate,
     exchangeRate,
     commitExchangeRate,
-    rateOverride,
-    toggleRateOverride,
     rateUpdatedAt,
+    storedRate,
     date,
     setDate,
     note,
@@ -183,6 +184,13 @@ export function TransactionFormBody(props: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const supportingLine = resolveOneLineTextProps(scaledTextStyleAboveOne(Type.micro, fontScale));
   const noteGeometry = resolveNoteInputGeometry(fontScale);
+  const ratePreview: Omit<RatePreviewInput, 'exchangeRate'> = {
+    mode: formMode,
+    type,
+    sourceCurrency: selectedAccount?.currency,
+    destinationCurrency: selectedToAccount?.currency,
+  };
+  const rateStale = isRateStale(rateUpdatedAt, Date.now());
 
   return (
     <BottomSheetScrollView
@@ -249,13 +257,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         message={amountError}
       >
         {requiresRate && amountError === undefined ? (
-          <ConvertedAmountLine
-            mode={formMode}
-            type={type}
-            sourceCurrency={selectedAccount?.currency}
-            destinationCurrency={selectedToAccount?.currency}
-            exchangeRate={exchangeRate}
-          />
+          <ConvertedAmountLine {...ratePreview} exchangeRate={exchangeRate} />
         ) : null}
       </ValidationSlot>
 
@@ -385,14 +387,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           ) : null}
 
           {requiresRate ? (
-            <View className="border-separator border-b px-4 pb-3">
-              <TransactionExchangeRateRow
-                ownerId={datePickerOwnerId}
-                value={exchangeRate}
-                overrideEnabled={rateOverride}
-                onToggleOverride={toggleRateOverride}
-                rateUpdatedAt={rateUpdatedAt}
-              />
+            <View className={FACT_CELL_CLASS}>
+              <RateRow ownerId={datePickerOwnerId} value={exchangeRate} stale={rateStale} />
             </View>
           ) : null}
 
@@ -446,6 +442,10 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         ownerId={datePickerOwnerId}
         value={exchangeRate}
         onCommit={commitExchangeRate}
+        storedRate={storedRate}
+        rateUpdatedAt={rateUpdatedAt}
+        stale={rateStale}
+        {...ratePreview}
       />
     </BottomSheetScrollView>
   );

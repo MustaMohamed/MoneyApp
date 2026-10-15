@@ -1,6 +1,16 @@
 import { z } from 'zod';
 
 export const RATE_REFRESH_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const RATE_STALE_THRESHOLD_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Strictly past 30 days from the stored rate's update; no update time, an unparseable one or a future one is fresh. */
+export function isRateStale(rateUpdatedAt: string | null, nowMs: number): boolean {
+  if (rateUpdatedAt === null) return false;
+  const updated = new Date(rateUpdatedAt).getTime();
+  if (isNaN(updated)) return false;
+  return nowMs - updated > RATE_STALE_THRESHOLD_DAYS * DAY_MS;
+}
 
 const persistedRatePattern = /^(?:\d+(?:\.\d+)?|\.\d+)$/;
 const persistedTimestampSchema = z.iso.datetime();

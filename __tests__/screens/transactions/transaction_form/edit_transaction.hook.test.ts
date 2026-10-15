@@ -597,36 +597,32 @@ describe('useEditTransaction — MA-169 a rate committed at Done', () => {
   }
 
   it.each(['', '0', '-5', '48.', '50abc'])(
-    'refuses %p: returns false and leaves the rate and the override as they were',
+    'refuses %p: returns false and leaves the rate as it was',
     async (text) => {
       const { result } = await mountEdit(usdTx);
 
       expect(await commitRate(result, text)).toBe(false);
 
       expect(result.current.state.exchangeRate).toBe('50');
-      expect(result.current.state.rateOverride).toBe(false);
     },
   );
 
-  it('writes 49 at a stored 50 with the override on, and Reset to global returns the stored rate', async () => {
+  it('writes 49 at a stored 50, and a Done on the stored text returns the stored rate', async () => {
     const { result } = await mountEdit(usdTx);
 
     expect(await commitRate(result, '49')).toBe(true);
     expect(result.current.state.exchangeRate).toBe('49');
-    expect(result.current.state.rateOverride).toBe(true);
-
-    await act(() => result.current.toggleRateOverride());
-    expect(result.current.state.exchangeRate).toBe('50');
-    expect(result.current.state.rateOverride).toBe(false);
-  });
-
-  it('reads the stored rate committed with the override off', async () => {
-    const { result } = await mountEdit(usdTx);
-    await commitRate(result, '49');
 
     expect(await commitRate(result, '50')).toBe(true);
     expect(result.current.state.exchangeRate).toBe('50');
-    expect(result.current.state.rateOverride).toBe(false);
+  });
+
+  it('reads the stored rate committed as 50.0 as the stored text', async () => {
+    const { result } = await mountEdit(usdTx);
+    await commitRate(result, '49');
+
+    expect(await commitRate(result, '50.0')).toBe(true);
+    expect(result.current.state.exchangeRate).toBe('50');
   });
 
   it('saves the committed rate as typed: exchange_rate 49', async () => {
@@ -641,11 +637,12 @@ describe('useEditTransaction — MA-169 a rate committed at Done', () => {
     );
   });
 
-  it('saves the stored rate unrounded once Reset to global drops a committed rate', async () => {
+  it('saves the stored rate unrounded once a Done on the stored text drops a committed rate', async () => {
     useCurrencyStore.setState({ rate: 52.137035, rate_updated_at: null });
     const { result, updateTx } = await mountEdit(usdTx);
     await commitRate(result, '49');
-    await act(() => result.current.toggleRateOverride());
+    expect(await commitRate(result, '52.137035')).toBe(true);
+    expect(result.current.state.exchangeRate).toBe('52.137035');
 
     await act(async () => result.current.handleSave());
 
@@ -655,19 +652,17 @@ describe('useEditTransaction — MA-169 a rate committed at Done', () => {
     );
   });
 
-  it("opens on the transaction's own 49 under a stored 52 with the override off, saves 49, and a Done on 49 turns the override on", async () => {
+  it("opens on the transaction's own 49 under a stored 52, saves 49, and a Done on 49 keeps 49", async () => {
     useCurrencyStore.setState({ rate: 52, rate_updated_at: null });
     const ownRateTx = makeTestTransaction({ ...usdTx, egp_amount: 490, exchange_rate: 49 });
     const { result, updateTx } = await mountEdit(ownRateTx);
     expect(result.current.state.exchangeRate).toBe('49');
-    expect(result.current.state.rateOverride).toBe(false);
 
     await act(async () => result.current.handleSave());
     expect(updateTx).toHaveBeenCalledWith('t1', expect.objectContaining({ exchange_rate: 49 }));
 
     expect(await commitRate(result, '49')).toBe(true);
     expect(result.current.state.exchangeRate).toBe('49');
-    expect(result.current.state.rateOverride).toBe(true);
   });
 
   it('after a refused Save, a committed rate re-checks the amount floor at once, both ways', async () => {
@@ -691,7 +686,7 @@ describe('useEditTransaction — MA-169 a rate committed at Done', () => {
     expect(updateTx).not.toHaveBeenCalled();
   });
 
-  it('after a refused Save on a floor fault a committed rate caused, Reset to global clears the fault and the count', async () => {
+  it('after a refused Save on a floor fault a committed rate caused, a Done on the stored text clears the fault and the count', async () => {
     const { result, updateTx } = await mountEdit(transferTx);
     await act(() => result.current.setAmountStr('0.26'));
     await commitRate(result, '60');
@@ -701,13 +696,24 @@ describe('useEditTransaction — MA-169 a rate committed at Done', () => {
     );
     expect(result.current.state.status).toBe(Strings.fixFieldsMarkedAbove(1));
 
-    await act(() => result.current.toggleRateOverride());
-    await settleValidation();
+    expect(await commitRate(result, '50')).toBe(true);
 
     expect(result.current.state.exchangeRate).toBe('50');
     expect(result.current.state.errors.amount).toBeUndefined();
     expect(result.current.state.status).toBeUndefined();
     expect(updateTx).not.toHaveBeenCalled();
+  });
+});
+
+describe('useEditTransaction — MA-170 the stored rate', () => {
+  it('hands the body the stored rate unrounded', async () => {
+    useCurrencyStore.setState({ rate: 52.137035, rate_updated_at: null });
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+
+    expect(result.current.state.storedRate).toBe(52.137035);
   });
 });
 
@@ -991,6 +997,7 @@ describe('MA-168 converted amount on the edit sheet', () => {
     expect(result.current.state.selectedAccount?.id).toBe(mockAccountEGP.id);
     expect(result.current.state.selectedToAccount?.id).toBe(mockAccountUSD.id);
     expect(Number(result.current.state.exchangeRate)).toBe(49);
+    expect(result.current.state.requiresRate).toBe(true);
 
     expect(convertedFor(result.current)).toEqual({ amount: 100, currency: Currency.USD });
   });
@@ -1021,6 +1028,7 @@ describe('MA-168 converted amount on the edit sheet', () => {
     expect(result.current.state.selectedAccount?.id).toBe(deletedAccountUSD.id);
     expect(result.current.state.selectedAccount?.is_deleted).toBe(1);
     expect(Number(result.current.state.exchangeRate)).toBe(49);
+    expect(result.current.state.requiresRate).toBe(true);
 
     expect(convertedFor(result.current)).toEqual({ amount: 490, currency: Currency.EGP });
   });

@@ -2,10 +2,10 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react-n
 import React from 'react';
 import { Dimensions } from 'react-native';
 
-import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { scaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { TouchSize, Type, lineHeightFor } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 const mockScrollToEnd = jest.fn();
@@ -73,27 +73,13 @@ jest.mock(
     return { DateRow: () => ReactLocal.createElement(RNView, { testID: 'date-row' }) };
   },
 );
-type MockExchangeRateRowProps = {
-  previewEgpAmount?: number;
-  previewHidden?: boolean;
-  onOpenEditor?: () => void;
-};
-const mockExchangeRateRowProps: MockExchangeRateRowProps[] = [];
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row',
-  () => ({
-    ExchangeRateRow: (props: MockExchangeRateRowProps) => {
-      mockExchangeRateRowProps.push(props);
-      return null;
-    },
-  }),
-);
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/type_tabs',
   () => ({ TypeTabs: () => null }),
 );
 
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
+import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
 import { useRateEditorSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/rate_editor_sheet.state';
 import {
   ACCOUNT_STRIP_CHIP_RADIUS,
@@ -146,9 +132,8 @@ const baseProps: React.ComponentProps<typeof TransactionFormBody> = {
   requiresRate: false,
   exchangeRate: '',
   commitExchangeRate: jest.fn(),
-  rateOverride: false,
-  toggleRateOverride: jest.fn(),
   rateUpdatedAt: null,
+  storedRate: 50,
   date: '2026-07-21',
   setDate: jest.fn(),
   note: '',
@@ -463,35 +448,8 @@ describe('TransactionFormBody fact rows', () => {
   });
 });
 
-describe('MA-168 rate card', () => {
-  beforeEach(() => useAddTransactionStore.getState().reset());
-  // The body is still mounted here, so the reset is an update to its amount subscriber.
-  afterEach(async () => {
-    await act(() => useAddTransactionStore.getState().reset());
-  });
-
-  it('hides the rate card preview and hands it no converted amount of its own', async () => {
-    mockExchangeRateRowProps.length = 0;
-    useAddTransactionStore.getState().setAmountStr('15');
-    await render(
-      <TransactionFormBody
-        {...baseProps}
-        requiresRate
-        selectedAccount={makeTestAccount({ id: 'account-usd', currency: Currency.USD })}
-        currency={Currency.USD}
-        exchangeRate="49"
-      />,
-    );
-
-    expect(mockExchangeRateRowProps).not.toHaveLength(0);
-    expect(mockExchangeRateRowProps.at(-1)?.previewHidden).toBe(true);
-    expect(mockExchangeRateRowProps.at(-1)?.previewEgpAmount).toBeUndefined();
-  });
-
+describe("ExchangeRateRow, the pay sheet's card", () => {
   it('speaks no label left from the stored state once the rate row holds a field', async () => {
-    const { ExchangeRateRow: RealExchangeRateRow } = jest.requireActual<
-      typeof import('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row')
-    >('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row');
     const rowProps = {
       value: '49',
       onChange: jest.fn(),
@@ -499,58 +457,299 @@ describe('MA-168 rate card', () => {
       rateUpdatedAt: null,
       previewEgpAmount: undefined,
     };
-    const { rerender } = await render(
-      <RealExchangeRateRow {...rowProps} overrideEnabled={false} />,
-    );
+    const { rerender } = await render(<ExchangeRateRow {...rowProps} overrideEnabled={false} />);
 
     expect(screen.getByTestId('exchange-rate-row')).toHaveProp(
       'accessibilityLabel',
       Strings.addTxRateEditAccessibility,
     );
 
-    await rerender(<RealExchangeRateRow {...rowProps} overrideEnabled />);
+    await rerender(<ExchangeRateRow {...rowProps} overrideEnabled />);
 
     expect(screen.getByTestId('exchange-rate-row')).toHaveProp('accessibilityLabel', '');
   });
 
-  it('MA-169: given onOpenEditor, the card is a button that speaks the stored-rate label with a custom rate as with the stored one, opens the editor on a press, and draws no field', async () => {
-    const { ExchangeRateRow: RealExchangeRateRow } = jest.requireActual<
-      typeof import('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row')
-    >('@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row');
-    const onOpenEditor = jest.fn();
+  it("MA-170: the pay sheet's card keeps its stored line and stale line, and its Custom rate and Reset to global", async () => {
     const rowProps = {
       value: '49',
-      onOpenEditor,
+      onChange: jest.fn(),
       onToggleOverride: jest.fn(),
-      rateUpdatedAt: null,
+      rateUpdatedAt: '2000-01-01T12:00:00.000Z',
       previewEgpAmount: undefined,
     };
-    const { rerender } = await render(<RealExchangeRateRow {...rowProps} overrideEnabled />);
+    const { rerender } = await render(<ExchangeRateRow {...rowProps} overrideEnabled={false} />);
 
-    const row = screen.getByTestId('exchange-rate-row');
-    expect(row).toHaveProp('accessibilityRole', 'button');
-    expect(row).toHaveProp('accessibilityLabel', Strings.addTxRateEditAccessibility);
-    expect(screen.queryByTestId('exchange-rate-input')).toBeNull();
+    expect(screen.getByText('Using stored rate · Last updated Jan 1, 2000')).toBeTruthy();
+    expect(screen.getByText('Rate may be stale')).toBeTruthy();
 
-    await fireEvent.press(row);
-    expect(onOpenEditor).toHaveBeenCalledTimes(1);
+    await rerender(<ExchangeRateRow {...rowProps} overrideEnabled />);
 
-    await rerender(<RealExchangeRateRow {...rowProps} overrideEnabled={false} />);
-    const storedRow = screen.getByTestId('exchange-rate-row');
-    expect(storedRow).toHaveProp('accessibilityRole', 'button');
-    expect(storedRow).toHaveProp('accessibilityLabel', Strings.addTxRateEditAccessibility);
-
-    await rerender(<RealExchangeRateRow {...rowProps} value="52.137035" overrideEnabled={false} />);
-    expect(screen.getByText('52.14')).toBeTruthy();
-    await rerender(<RealExchangeRateRow {...rowProps} value="049" overrideEnabled />);
-    expect(screen.getByText('49.00')).toBeTruthy();
+    expect(screen.getByText('Custom rate')).toBeTruthy();
+    expect(screen.getByText('Reset to global')).toBeTruthy();
+    expect(screen.getByText('Rate may be stale')).toBeTruthy();
   });
 });
 
-describe('MA-169 rate editor opened from the card', () => {
+describe('MA-170 Rate row', () => {
+  const usdAccount = makeTestAccount({ id: 'account-usd', currency: Currency.USD });
+  const usdExpense = (
+    <TransactionFormBody
+      {...baseProps}
+      requiresRate
+      showBudgetField
+      selectedAccount={usdAccount}
+      currency={Currency.USD}
+      exchangeRate="52.137035"
+    />
+  );
+
+  beforeEach(() => useRateEditorSheetState.getState().reset());
+
+  it('sits between Budget and Date in the fact group as a button at the fact-row floor that speaks Rate and the formatted rate, with no Exchange Rate card', async () => {
+    await render(usdExpense);
+
+    const group = within(screen.getByTestId('transaction-form-fact-group'));
+    expect(
+      group
+        .getAllByTestId(/^(budget-row|exchange-rate-row|date-row)$/)
+        .map((node): unknown => node.props.testID),
+    ).toEqual(['budget-row', 'exchange-rate-row', 'date-row']);
+    const row = screen.getByTestId('exchange-rate-row');
+    expect(row).toHaveProp('accessibilityRole', 'button');
+    expect(row).toHaveProp('accessibilityLabel', 'Rate, 52.14');
+    expect(row).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    expect(within(row).getByText(Strings.addTxRateLabel)).toBeTruthy();
+    expect(within(row).getByText('52.14')).toBeTruthy();
+    expect(screen.queryByText(Strings.currencyRateLabel)).toBeNull();
+    expect(screen.queryByText(Strings.addTxRateReset)).toBeNull();
+    expect(screen.queryByTestId('exchange-rate-input')).toBeNull();
+  });
+
+  it('opens the rate editor on a press, holding the unrounded form rate', async () => {
+    await render(usdExpense);
+
+    expect(screen.queryByTestId('rate-editor-input')).toBeNull();
+    await fireEvent.press(screen.getByTestId('exchange-rate-row'));
+
+    expect(screen.getByTestId('rate-editor-input')).toHaveDisplayValue('52.137035');
+  });
+
+  it('shows Rate may be stale under its label past 30 days, and not with no update time, a button speaking its label and rate in both', async () => {
+    const { rerender } = await render(
+      React.cloneElement(usdExpense, { rateUpdatedAt: '2000-01-01T12:00:00.000Z' }),
+    );
+
+    const staleRow = screen.getByTestId('exchange-rate-row');
+    expect(within(staleRow).getByTestId('exchange-rate-row-stale')).toHaveTextContent(
+      Strings.addTxRateStale,
+    );
+    expect(staleRow).toHaveProp('accessibilityRole', 'button');
+    expect(staleRow).toHaveProp('accessibilityLabel', 'Rate, 52.14');
+
+    await rerender(React.cloneElement(usdExpense, { rateUpdatedAt: null }));
+
+    const row = screen.getByTestId('exchange-rate-row');
+    expect(screen.queryByTestId('exchange-rate-row-stale')).toBeNull();
+    expect(within(row).queryByText(Strings.addTxRateStale)).toBeNull();
+    expect(row).toHaveProp('accessibilityRole', 'button');
+    expect(row).toHaveProp('accessibilityLabel', 'Rate, 52.14');
+  });
+
+  it('mounts no Rate row when no USD account is involved', async () => {
+    await render(React.cloneElement(usdExpense, { requiresRate: false }));
+
+    expect(screen.queryByTestId('exchange-rate-row')).toBeNull();
+  });
+});
+
+describe('MA-170 rate editor lines', () => {
+  const usdAccount = makeTestAccount({ id: 'account-usd', currency: Currency.USD });
+  const egpAccount = makeTestAccount({ id: 'account-egp', currency: Currency.EGP });
+  const openFromRow = () => fireEvent.press(screen.getByTestId('exchange-rate-row'));
+  const sourceLine = () => screen.getByTestId('rate-editor-source-line');
+  const convertedAmount = () => screen.getByTestId('rate-editor-converted-amount');
+
   beforeEach(() => {
     useRateEditorSheetState.getState().reset();
-    mockExchangeRateRowProps.length = 0;
+    useAddTransactionStore.getState().reset();
+    useEditTransactionStore.getState().reset();
+  });
+  // The body is still mounted here, so each reset is an update to its amount subscribers.
+  afterEach(async () => {
+    await act(() => {
+      useAddTransactionStore.getState().reset();
+      useEditTransactionStore.getState().reset();
+    });
+  });
+
+  it('reads Custom rate with Reset and the amount at the draft; Reset refills the stored rate, clears the message and stays open; Done writes it', async () => {
+    const commitExchangeRate = jest.fn().mockReturnValue(false);
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        requiresRate
+        selectedAccount={usdAccount}
+        currency={Currency.USD}
+        exchangeRate="49"
+        storedRate={50}
+        commitExchangeRate={commitExchangeRate}
+      />,
+    );
+    await openFromRow();
+
+    expect(screen.getByTestId('rate-editor-input')).toHaveDisplayValue('49');
+    expect(sourceLine()).toHaveTextContent(Strings.addTxRateSourceCustomPerUsd);
+    expect(screen.getByTestId('rate-editor-reset')).toHaveProp('accessibilityRole', 'button');
+    expect(screen.getByTestId('rate-editor-reset')).toHaveProp(
+      'accessibilityLabel',
+      Strings.addTxRateResetToStoredAccessibility,
+    );
+    expect(
+      within(screen.getByTestId('rate-editor-reset')).getByText(Strings.addTxRateResetToStored),
+    ).toBeTruthy();
+    expect(screen.getByTestId('rate-editor-reset')).toHaveStyle({ minHeight: TouchSize.min });
+    expect(screen.getByTestId('rate-editor-reset-slot')).toHaveStyle({ minHeight: TouchSize.min });
+    expect(convertedAmount()).toHaveTextContent('≈ 735 EGP');
+
+    await fireEvent.changeText(screen.getByTestId('rate-editor-input'), '48.');
+    expect(convertedAmount()).toHaveTextContent(Strings.addTxConvertedAmountNone);
+
+    await fireEvent.press(screen.getByTestId('rate-editor-done'));
+    expect(commitExchangeRate).toHaveBeenLastCalledWith('48.');
+    expect(
+      within(screen.getByTestId('rate-editor-message-slot')).getByText(Strings.addTxErrRateInvalid),
+    ).toBeTruthy();
+    expect(convertedAmount()).toHaveTextContent(Strings.addTxConvertedAmountNone);
+    expect(sourceLine()).toHaveTextContent(Strings.addTxRateSourceCustomPerUsd);
+    expect(screen.getByTestId('rate-editor-reset')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('rate-editor-reset'));
+    expect(screen.getByTestId('rate-editor-input')).toHaveDisplayValue('50');
+    expect(sourceLine()).toHaveTextContent(/^Using stored rate$/);
+    expect(screen.queryByTestId('rate-editor-reset')).toBeNull();
+    expect(screen.getByTestId('rate-editor-reset-slot')).toHaveStyle({ minHeight: TouchSize.min });
+    expect(
+      within(screen.getByTestId('rate-editor-message-slot')).queryByText(
+        Strings.addTxErrRateInvalid,
+      ),
+    ).toBeNull();
+    expect(convertedAmount()).toHaveTextContent('≈ 750 EGP');
+    expect(commitExchangeRate).toHaveBeenCalledTimes(1);
+
+    commitExchangeRate.mockReturnValue(true);
+    await fireEvent.press(screen.getByTestId('rate-editor-done'));
+    expect(commitExchangeRate).toHaveBeenCalledTimes(2);
+    expect(commitExchangeRate).toHaveBeenLastCalledWith('50');
+    expect(screen.queryByTestId('rate-editor-input')).toBeNull();
+  });
+
+  it('prints the USD an EGP to USD transfer receives at the draft, and a dash before the To account is picked', async () => {
+    useAddTransactionStore.getState().setAmountStr('5000');
+    const transfer = (
+      <TransactionFormBody
+        {...baseProps}
+        type={TransactionType.Transfer}
+        requiresRate
+        selectedAccount={egpAccount}
+        selectedToAccount={usdAccount}
+        exchangeRate="49"
+      />
+    );
+    const { rerender } = await render(transfer);
+    await openFromRow();
+
+    expect(convertedAmount()).toHaveTextContent('≈ 102.04 USD');
+
+    await rerender(React.cloneElement(transfer, { selectedToAccount: null }));
+
+    expect(convertedAmount()).toHaveTextContent(Strings.addTxConvertedAmountNone);
+  });
+
+  it('reads the stored line with its date and the stale line past 30 days, keeps the stale line for a typed rate, and drops it with no update time', async () => {
+    const stale = (
+      <TransactionFormBody
+        {...baseProps}
+        requiresRate
+        selectedAccount={usdAccount}
+        currency={Currency.USD}
+        exchangeRate="50"
+        storedRate={50}
+        rateUpdatedAt="2000-01-01T12:00:00.000Z"
+      />
+    );
+    const { rerender } = await render(stale);
+    await openFromRow();
+
+    expect(sourceLine()).toHaveTextContent(/^Using stored rate · Last updated Jan 1, 2000$/);
+    expect(screen.getByTestId('rate-editor-stale-line')).toHaveTextContent(Strings.addTxRateStale);
+    expect(screen.queryByTestId('rate-editor-reset')).toBeNull();
+    expect(convertedAmount()).toHaveTextContent(Strings.addTxConvertedAmountNone);
+
+    await fireEvent.changeText(screen.getByTestId('rate-editor-input'), '49');
+    expect(sourceLine()).toHaveTextContent(Strings.addTxRateSourceCustomPerUsd);
+    expect(screen.getByTestId('rate-editor-stale-line')).toHaveTextContent(Strings.addTxRateStale);
+
+    await rerender(React.cloneElement(stale, { rateUpdatedAt: null }));
+    expect(screen.queryByTestId('rate-editor-stale-line')).toBeNull();
+
+    await fireEvent.changeText(screen.getByTestId('rate-editor-input'), '50');
+    expect(sourceLine()).toHaveTextContent(/^Using stored rate$/);
+    expect(screen.queryByTestId('rate-editor-stale-line')).toBeNull();
+  });
+
+  it("opens an edit whose rate differs from the stored one on Custom rate with Reset, and Reset moves the field to the stored rate's text", async () => {
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        datePickerOwnerId="edit:1"
+        formMode="edit"
+        requiresRate
+        selectedAccount={usdAccount}
+        currency={Currency.USD}
+        exchangeRate="49"
+        storedRate={52.137035}
+      />,
+    );
+    await openFromRow();
+
+    expect(screen.getByTestId('rate-editor-input')).toHaveDisplayValue('49');
+    expect(sourceLine()).toHaveTextContent(Strings.addTxRateSourceCustomPerUsd);
+
+    await fireEvent.press(screen.getByTestId('rate-editor-reset'));
+
+    expect(screen.getByTestId('rate-editor-input')).toHaveDisplayValue('52.137035');
+    expect(sourceLine()).toHaveTextContent(/^Using stored rate$/);
+    expect(screen.queryByTestId('rate-editor-reset')).toBeNull();
+  });
+
+  it("scales the editor's converted amount in JS above font scale 1, while the line under the amount keeps OS scaling", async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    useAddTransactionStore.getState().setAmountStr('15');
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        requiresRate
+        selectedAccount={usdAccount}
+        currency={Currency.USD}
+        exchangeRate="49"
+        storedRate={50}
+      />,
+    );
+    await openFromRow();
+
+    expect(convertedAmount()).toHaveTextContent('≈ 735 EGP');
+    expect(convertedAmount()).toHaveProp('allowFontScaling', false);
+    expect(convertedAmount()).toHaveStyle({ ...scaledTextStyleAboveOne(Type.micro, fontScale) });
+    expect(convertedAmount()).not.toHaveStyle({ fontSize: Type.micro });
+    expect(screen.getByTestId('converted-amount-line')).not.toHaveProp('allowFontScaling', false);
+  });
+});
+
+describe('MA-169 rate editor opened from the Rate row', () => {
+  beforeEach(() => {
+    useRateEditorSheetState.getState().reset();
     mockSheetProps.length = 0;
   });
 
@@ -574,11 +773,7 @@ describe('MA-169 rate editor opened from the card', () => {
         commitExchangeRate={commitExchangeRate}
       />,
     );
-    const openEditor = async () => {
-      const { onOpenEditor } = mockExchangeRateRowProps.at(-1) ?? {};
-      expect(onOpenEditor).toEqual(expect.any(Function));
-      await act(() => onOpenEditor?.());
-    };
+    const openEditor = () => fireEvent.press(screen.getByTestId('exchange-rate-row'));
     const editorSheet = () =>
       mockSheetProps.filter((props) => props.title === Strings.addTxRateLabel).at(-1);
     expect(screen.queryByTestId('rate-editor-input')).toBeNull();

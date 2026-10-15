@@ -1,5 +1,5 @@
 import { ListGroup, cn } from 'heroui-native';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { View, type TextStyle, useWindowDimensions } from 'react-native';
 
 import {
@@ -14,6 +14,8 @@ import { FACT_ROW_MIN_HEIGHT } from './transaction_form.geometry';
 interface FormPickerRowProps {
   testID: string;
   label: string;
+  /** A line under the label; the label and it shrink together so the row grows past its floor. */
+  labelCaption?: ReactElement;
   value: string;
   onPress?: () => void;
   disabled?: boolean;
@@ -33,6 +35,7 @@ interface FormPickerRowProps {
 export function FormPickerRow({
   testID,
   label,
+  labelCaption,
   value,
   onPress,
   disabled = false,
@@ -52,6 +55,22 @@ export function FormPickerRow({
     valueNumberOfLines === 1
       ? resolveOneLineTextProps(scaledTextStyleAboveOne(valueFontSize, fontScale))
       : undefined;
+  const labelStyle = { flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) };
+  // Beside a caption the label holds one line, since the value may take the row.
+  const labelOneLine =
+    labelCaption === undefined
+      ? undefined
+      : resolveOneLineTextProps(scaledTextStyleAboveOne(Type.body, fontScale));
+  const labelNode = (
+    <ListGroup.ItemDescription
+      className="font-inter text-content-secondary"
+      numberOfLines={labelOneLine?.numberOfLines}
+      allowFontScaling={labelOneLine?.allowFontScaling}
+      style={labelOneLine === undefined ? labelStyle : [labelStyle, labelOneLine.style]}
+    >
+      {label}
+    </ListGroup.ItemDescription>
+  );
 
   return (
     <ListGroup.Item
@@ -70,16 +89,21 @@ export function FormPickerRow({
         justifyContent: 'space-between',
       }}
     >
-      <ListGroup.ItemDescription
-        className="font-inter text-content-secondary"
-        style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
-      >
-        {label}
-      </ListGroup.ItemDescription>
+      {labelCaption === undefined ? (
+        labelNode
+      ) : (
+        <View style={{ flex: 1, minWidth: 0 }}>
+          {labelNode}
+          {labelCaption}
+        </View>
+      )}
       <View
         className="gap-2"
         style={{
-          flex: 1,
+          // With a caption the rate keeps its natural width until the row runs out, and the caption takes the ellipsis first.
+          ...(labelCaption === undefined
+            ? { flex: 1 }
+            : { flexGrow: 0, flexShrink: 1, flexBasis: 'auto' as const }),
           minWidth: 0,
           flexDirection: 'row',
           alignItems: 'center',
