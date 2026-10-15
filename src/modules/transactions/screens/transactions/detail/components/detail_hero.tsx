@@ -1,115 +1,155 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Typography } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { HeroShell } from '@/components/ui/hero_shell';
-import { Text } from '@/components/ui/text';
-import { TypeBadge } from '@/components/ui/type_badge';
-import { Size, Type, lineHeightFor, withAlpha } from '@/constants/theme';
-import { CoreTokens } from '@/constants/theme_tokens';
-import type { Category } from '@/modules/categories/entities/category.entity';
-import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { toIconName } from '@/utils/icon_name_guard';
+import { StatusBadge } from '@/components/ui/status_badge';
+import { Strings } from '@/constants/strings';
+import { Radius, Size, lineHeightFor } from '@/constants/theme';
 
-import { DETAIL_HERO_MIN_HEIGHT } from './detail.geometry';
+import type { TransactionDetailHero } from '../detail.helpers';
+import {
+  DETAIL_HERO_BADGE_GAP,
+  DETAIL_HERO_CAPTION_GAP,
+  DETAIL_HERO_CODE_GAP,
+  DETAIL_HERO_CODE_OPACITY,
+  DETAIL_HERO_OVERLINE_GAP,
+  DETAIL_HERO_PADDING,
+  DETAIL_HERO_SHELL_STYLE,
+  DETAIL_HERO_TILE_GAP,
+  resolveDetailHeroGeometry,
+} from './detail.geometry';
 
 interface Props {
-  tx: Transaction;
-  category?: Category;
-  amountText: string;
-  title: string;
-  dateTimeText: string;
-  badgeLabel: string;
-  heroColor: string;
+  hero: TransactionDetailHero;
 }
 
-export function DetailHero({
-  tx,
-  category,
-  amountText,
-  title,
-  dateTimeText,
-  badgeLabel,
-  heroColor,
-}: Props): React.ReactElement {
-  const categoryColor = category?.color ?? CoreTokens.text2;
+export function DetailHero({ hero }: Props): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  const geometry = resolveDetailHeroGeometry(fontScale);
 
   return (
-    <HeroShell glowColor={heroColor}>
+    <HeroShell glowColor={hero.tileColor} style={DETAIL_HERO_SHELL_STYLE}>
       <View
         testID="transaction-detail-hero"
-        className="items-center px-4 py-4"
-        style={{ minHeight: DETAIL_HERO_MIN_HEIGHT, justifyContent: 'center' }}
+        style={{ padding: DETAIL_HERO_PADDING, height: geometry.height }}
       >
-        <View className="mb-3 flex-row gap-2">
-          <View
-            className="rounded-full border px-2.5 py-0.5"
-            style={{
-              borderColor: withAlpha(heroColor, '55'),
-              backgroundColor: withAlpha(heroColor, '1A'),
-            }}
-          >
-            <Text
-              className="font-inter-semibold"
-              style={{
-                color: heroColor,
-                fontSize: Type.overline,
-                lineHeight: lineHeightFor(Type.overline),
-              }}
-            >
-              {badgeLabel}
-            </Text>
-          </View>
-          {tx.commitment_payment_id != null ? <TypeBadge type="commitment" size="md" /> : null}
-        </View>
-        <Text
-          className="font-sora-extrabold"
+        <View
           style={{
-            color: heroColor,
-            fontSize: Type.detailHero,
-            lineHeight: lineHeightFor(Type.detailHero),
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: DETAIL_HERO_TILE_GAP,
+            height: geometry.topHeight,
           }}
         >
-          {amountText}
-        </Text>
-        {category ? (
           <View
-            className="mt-4 flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
             style={{
-              backgroundColor: withAlpha(categoryColor, '1F'),
-              borderWidth: 1,
-              borderColor: withAlpha(categoryColor, '40'),
+              width: Size.detailHeroTile,
+              height: Size.detailHeroTile,
+              borderRadius: Radius.md,
+              backgroundColor: hero.tileColor,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <MaterialCommunityIcons
-              name={toIconName(category.icon, 'shape-outline')}
-              size={Size.filterSegmentIcon}
-              color={categoryColor}
+              name={hero.tileGlyph}
+              size={Size.iconLg}
+              color={hero.tileGlyphColor}
             />
-            <Text
-              className="font-inter-semibold"
+          </View>
+          <View style={{ flex: 1 }}>
+            <Typography
+              allowFontScaling={false}
+              numberOfLines={1}
+              className="font-sora-semibold text-foreground"
               style={{
-                color: categoryColor,
-                fontSize: Type.micro,
-                lineHeight: lineHeightFor(Type.micro),
+                fontSize: geometry.titleFontSize,
+                lineHeight: lineHeightFor(geometry.titleFontSize),
               }}
             >
-              {category.name}
-            </Text>
+              {hero.title}
+            </Typography>
+            {/* A column child stretches by default, which would run the pill the full width. */}
+            <View style={{ alignSelf: 'flex-start', marginTop: DETAIL_HERO_BADGE_GAP }}>
+              <StatusBadge
+                label={hero.typeLabel}
+                fill={hero.badgeFill}
+                foreground={hero.badgeForeground}
+                icon={hero.typeIcon}
+                size="md"
+                fontScale={fontScale}
+              />
+            </View>
           </View>
-        ) : null}
-        <Text
-          className="font-inter-medium text-foreground/70 mt-2 text-center"
-          style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
+        </View>
+
+        <Typography
+          allowFontScaling={false}
+          numberOfLines={1}
+          className="font-inter text-foreground/70 tracking-wider uppercase"
+          style={{
+            marginTop: DETAIL_HERO_OVERLINE_GAP,
+            fontSize: geometry.overlineFontSize,
+            lineHeight: lineHeightFor(geometry.overlineFontSize),
+          }}
         >
-          {title}
-        </Text>
-        <Text
-          className="font-inter text-foreground/55 mt-2"
-          style={{ fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) }}
+          {Strings.detailAmountOverline}
+        </Typography>
+
+        {/* A container `gap`, not a `marginLeft` on a nested Text: RN Android drops margins on inline text. */}
+        <View
+          accessible
+          accessibilityLabel={hero.amountText}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'baseline',
+            gap: DETAIL_HERO_CODE_GAP,
+            height: geometry.amountHeight,
+          }}
         >
-          {dateTimeText}
-        </Text>
+          <Typography
+            allowFontScaling={false}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            className="font-sora-bold tabular-nums"
+            style={{
+              flexShrink: 1,
+              color: hero.typeColor,
+              fontSize: geometry.amountFontSize,
+              lineHeight: lineHeightFor(geometry.amountFontSize),
+            }}
+          >
+            {hero.amountValue}
+          </Typography>
+          <Typography
+            allowFontScaling={false}
+            className="font-sora-semibold"
+            style={{
+              flexShrink: 0,
+              color: hero.typeColor,
+              opacity: DETAIL_HERO_CODE_OPACITY,
+              fontSize: geometry.codeFontSize,
+              lineHeight: lineHeightFor(geometry.codeFontSize),
+            }}
+          >
+            {hero.amountCode}
+          </Typography>
+        </View>
+
+        <Typography
+          allowFontScaling={false}
+          numberOfLines={1}
+          className="font-inter text-foreground/55"
+          style={{
+            marginTop: DETAIL_HERO_CAPTION_GAP,
+            fontSize: geometry.captionFontSize,
+            lineHeight: lineHeightFor(geometry.captionFontSize),
+          }}
+        >
+          {hero.caption}
+        </Typography>
       </View>
     </HeroShell>
   );
