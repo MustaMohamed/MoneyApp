@@ -13,11 +13,10 @@ import {
   Radius,
   Size,
   Spacing,
-  TOUCH_SLOP_PIXEL_MARGIN,
   TouchSize,
   Type,
   lineHeightFor,
-  touchFloorSlop,
+  touchFloorHitSlop,
 } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
@@ -67,8 +66,7 @@ export const ACCOUNT_STRIP_CHIP_PADDING_X = ms(10);
 export const ACCOUNT_STRIP_TILE_NAME_GAP = Spacing.xs;
 export const ACCOUNT_STRIP_DIMMED_OPACITY = 0.6;
 /** Lifts the 40-high chip past the touch floor. */
-export const ACCOUNT_STRIP_CHIP_SLOP_Y =
-  touchFloorSlop(ACCOUNT_STRIP_CHIP_HEIGHT) + TOUCH_SLOP_PIXEL_MARGIN;
+export const ACCOUNT_STRIP_CHIP_SLOP_Y = touchFloorHitSlop(ACCOUNT_STRIP_CHIP_HEIGHT).top;
 /** Horizontally the slop stops at half the gap, so a neighbour keeps its side. */
 export const ACCOUNT_STRIP_HIT_SLOP: Readonly<Insets> = Object.freeze({
   top: ACCOUNT_STRIP_CHIP_SLOP_Y,
@@ -184,10 +182,9 @@ export function resolveTypeTabsGeometry(fontScale: number): {
 } {
   const { compact } = resolveSegmentedTabsGeometry(fontScale);
   const listHeight = Math.max(Size.typeTabsTrack, compact.listHeight);
-  const slop = touchFloorSlop(compact.triggerHeight) + TOUCH_SLOP_PIXEL_MARGIN;
   return {
     listHeight,
     skeletonHeight: fontScale <= 1 ? TRANSACTION_FORM_SKELETON_GEOMETRY.tabBar : listHeight,
-    triggerHitSlop: { top: slop, bottom: slop },
+    triggerHitSlop: touchFloorHitSlop(compact.triggerHeight),
   };
 }

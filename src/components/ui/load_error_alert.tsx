@@ -140,7 +140,7 @@ export function LoadErrorAlert(props: LoadErrorAlertProps) {
     testID,
   } = props;
   const tone = resolveLoadErrorAlertTone(props.mode ?? 'fill', tinted);
-  const retryHitSlop = resolveLoadErrorRetryHitSlop(retrySize, fontScale, tinted);
+  const retryHitSlop = resolveLoadErrorRetryHitSlop(retrySize, fontScale);
 
   // Two literals, not `flat={flatRetry}`: `ButtonProps` discriminates on `flat: true`.
   const retryButton = flatRetry ? (

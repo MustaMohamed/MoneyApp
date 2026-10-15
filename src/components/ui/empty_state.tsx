@@ -10,7 +10,7 @@ import {
 import { Text } from '@/components/ui/text';
 import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Spacing, Type, touchFloorSlop } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Type, touchFloorHitSlop } from '@/constants/theme';
 
 // Ruled genuinely different from ErrorState, not merged (#290). Evidence and the
 // rejected merge shape: docs/adr/2026-09-01-empty-error-state-stay-separate.md
@@ -174,8 +174,7 @@ export function resolveEmptyStateCopy(props: EmptyStateProps): EmptyStateCopy {
 
 /** The slop on each side that lifts the link's padded line box to the touch floor. */
 export function resolveEmptyStateLinkHitSlop(lineHeight: number): { top: number; bottom: number } {
-  const slop = touchFloorSlop(lineHeight + 2 * Spacing.xs);
-  return { top: slop, bottom: slop };
+  return touchFloorHitSlop(lineHeight + 2 * Spacing.xs);
 }
 
 /** An opt-in, never an override: the `'inline'`-only parameter cannot force a variant out of it. */

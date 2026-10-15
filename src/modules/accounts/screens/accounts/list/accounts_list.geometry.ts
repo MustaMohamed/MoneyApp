@@ -9,7 +9,7 @@ import {
   TouchSize,
   Type,
   lineHeightFor,
-  touchFloorSlop,
+  touchFloorHitSlop,
   withAlpha,
 } from '@/constants/theme';
 
@@ -104,8 +104,7 @@ export const ACCOUNTS_LIST_GRIP_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze(
 
 /** B6 grip: none on the left, or a tap on the balance's edge stops opening the account. */
 export const ACCOUNTS_LIST_GRIP_HIT_SLOP: Readonly<Insets> = Object.freeze({
-  top: touchFloorSlop(Size.reorderGripSlot),
-  bottom: touchFloorSlop(Size.reorderGripSlot),
+  ...touchFloorHitSlop(Size.reorderGripSlot),
   right: TouchSize.min - Size.reorderGripSlot,
   left: 0,
 });
