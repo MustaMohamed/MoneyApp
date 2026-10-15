@@ -4,9 +4,10 @@ import { Dimensions, type ViewStyle } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
+import { Size, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
-  DETAIL_HERO_MIN_HEIGHT,
+  resolveDetailHeroGeometry,
   resolveDetailRowHeight,
   resolveTransferCardHeight,
   resolveTransferSkeletonCellHeight,
@@ -17,6 +18,14 @@ import { barHeight } from '@/test_helpers/skeleton';
 const BAR = 'skeleton-bar';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+jest.mock('@/components/ui/hero_shell', () => {
+  const ReactLocal = jest.requireActual<typeof import('react')>('react');
+  const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    HeroShell: ({ children }: { children: ReactNode }) =>
+      ReactLocal.createElement(RNView, { testID: 'detail-hero-shell' }, children),
+  };
+});
 jest.mock('heroui-native', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -45,6 +54,7 @@ describe('TransactionDetailSkeleton', () => {
     const { fontScale } = Dimensions.get('window');
     expect(fontScale).toBeGreaterThan(1);
     const bar = (height: number): number => resolveSkeletonBarHeight(height, fontScale);
+    const hero = resolveDetailHeroGeometry(fontScale);
 
     const transaction: Transaction = {
       id: 'transfer-1',
@@ -75,18 +85,19 @@ describe('TransactionDetailSkeleton', () => {
       within(getByTestId(testID)).getAllByTestId(BAR).map(barHeight);
 
     expect(getByTestId('transaction-detail-skeleton-transfer')).toBeTruthy();
-    expect(getByTestId('transaction-detail-skeleton-hero')).toHaveStyle({
-      minHeight: DETAIL_HERO_MIN_HEIGHT,
-    });
+    expect(getByTestId('transaction-detail-skeleton-hero')).toHaveStyle({ height: hero.height });
     expect(getByTestId('transaction-detail-skeleton-note')).toBeTruthy();
     expect(getByTestId('transaction-detail-skeleton-actions')).toBeTruthy();
     expect(getAllByTestId('transaction-detail-skeleton-row')).toHaveLength(7);
 
+    // Tile, title, badge, overline, amount, caption: the loaded hero's boxes in order.
     expect(barsIn('transaction-detail-skeleton-hero')).toEqual([
-      bar(20),
-      bar(36),
-      bar(16),
-      bar(12),
+      Size.detailHeroTile,
+      lineHeightFor(hero.titleFontSize),
+      hero.badgeHeight,
+      lineHeightFor(hero.overlineFontSize),
+      hero.amountHeight,
+      lineHeightFor(hero.captionFontSize),
     ]);
     expect(barsIn('transaction-detail-skeleton-note')).toEqual([bar(12), bar(16)]);
     expect(barsIn('transaction-detail-skeleton-actions')).toEqual([bar(52), bar(52)]);

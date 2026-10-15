@@ -1,9 +1,13 @@
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
+import { FITTED_LINE_SLACK, scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
-import { lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import {
   buildDetailSkeletonGeometry,
   DETAIL_ACCOUNT_ROW_HEIGHT,
+  DETAIL_HERO_BADGE_GAP,
+  DETAIL_HERO_CAPTION_GAP,
+  DETAIL_HERO_OVERLINE_GAP,
+  DETAIL_HERO_PADDING,
   DETAIL_ROW_HEIGHT,
   DETAIL_ROW_LABEL_FONT_SIZE,
   DETAIL_ROW_VALUE_FONT_SIZE,
@@ -11,6 +15,7 @@ import {
   DETAIL_TRANSFER_LABEL_FONT_SIZE,
   DETAIL_TRANSFER_MIN_HEIGHT,
   DETAIL_TRANSFER_NAME_FONT_SIZE,
+  resolveDetailHeroGeometry,
   resolveDetailRowHeight,
   resolveTransferCardHeight,
   resolveTransferCellHeight,
@@ -39,6 +44,82 @@ function transferLinesAt(fontScale: number): number {
     lineBox(DETAIL_TRANSFER_AMOUNT_FONT_SIZE, fontScale)
   );
 }
+
+// Decision 2026-10-08: the hero amount stops growing at font scale 1.3.
+const HERO_AMOUNT_CAP = 1.3;
+// The literal 4: StatusBadge's unscaled `py-0.5` on each side, which no font scale grows.
+const HERO_BADGE_CHROME = 4;
+
+function heroBadgeAt(fontScale: number): number {
+  return lineBox(Type.micro, fontScale) + HERO_BADGE_CHROME;
+}
+
+function heroTopAt(fontScale: number): number {
+  return Math.max(
+    Size.detailHeroTile,
+    lineBox(Type.headline, fontScale) + DETAIL_HERO_BADGE_GAP + heroBadgeAt(fontScale),
+  );
+}
+
+function heroAmountAt(fontScale: number): number {
+  return (
+    lineHeightFor(scaledFontSize(Type.detailHero, fontScale, HERO_AMOUNT_CAP)) + FITTED_LINE_SLACK
+  );
+}
+
+function heroHeightAt(fontScale: number): number {
+  return (
+    2 * DETAIL_HERO_PADDING +
+    heroTopAt(fontScale) +
+    DETAIL_HERO_OVERLINE_GAP +
+    lineBox(Type.micro, fontScale) +
+    heroAmountAt(fontScale) +
+    DETAIL_HERO_CAPTION_GAP +
+    lineBox(Type.micro, fontScale)
+  );
+}
+
+describe('resolveDetailHeroGeometry', () => {
+  it.each([0.85, 1, 1.3, 2, 3])(
+    'sums padding, top row, overline, amount and caption at font scale %s',
+    (fontScale) => {
+      const geometry = resolveDetailHeroGeometry(fontScale);
+
+      expect(geometry.badgeHeight).toBe(heroBadgeAt(fontScale));
+      expect(geometry.topHeight).toBe(heroTopAt(fontScale));
+      expect(geometry.topHeight).toBeGreaterThanOrEqual(Size.detailHeroTile);
+      expect(geometry.amountHeight).toBe(heroAmountAt(fontScale));
+      expect(geometry.height).toBe(heroHeightAt(fontScale));
+    },
+  );
+
+  it.each([2, 3])(
+    'holds the amount and its code at their 1.3 sizes at font scale %s',
+    (fontScale) => {
+      const capped = resolveDetailHeroGeometry(HERO_AMOUNT_CAP);
+      const geometry = resolveDetailHeroGeometry(fontScale);
+
+      expect(geometry.amountFontSize).toBe(capped.amountFontSize);
+      expect(geometry.codeFontSize).toBe(capped.codeFontSize);
+    },
+  );
+
+  it('draws the amount at Type.detailHero at font scale 1', () => {
+    expect(resolveDetailHeroGeometry(1).amountFontSize).toBe(Type.detailHero);
+  });
+
+  it('grows the title with no cap', () => {
+    expect(resolveDetailHeroGeometry(2).titleFontSize).toBe(Type.headline * 2);
+  });
+
+  it('grows from 1.3 to 2 by the title, badge, overline and caption line boxes alone', () => {
+    const growth = (fontSize: number): number => lineBox(fontSize, 2) - lineBox(fontSize, 1.3);
+
+    expect(resolveDetailHeroGeometry(2).height - resolveDetailHeroGeometry(1.3).height).toBe(
+      growth(Type.headline) + 3 * growth(Type.micro),
+    );
+  });
+});
 
 describe('resolveDetailRowHeight', () => {
   it.each([0.85, 1])('keeps the 1.0 row and account row heights at font scale %s', (fontScale) => {

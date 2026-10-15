@@ -2,6 +2,7 @@ import {
   formatShortDate,
   formatLongDate,
   formatMonthYear,
+  formatWeekdayDate,
   nextDueDate,
   toLocalDateString,
 } from '@/utils/format_date';
@@ -27,6 +28,21 @@ describe('formatLongDate', () => {
   });
   it('formats December', () => {
     expect(formatLongDate('2025-12-31')).toBe('December 31, 2025');
+  });
+});
+
+describe('formatWeekdayDate', () => {
+  it('prints frame C1 hero caption date', () => {
+    expect(formatWeekdayDate('2026-09-22')).toBe('Tue 22 Sep 2026');
+  });
+  it('prints a leap day', () => {
+    expect(formatWeekdayDate('2028-02-29')).toBe('Tue 29 Feb 2028');
+  });
+  it('prints a month end', () => {
+    expect(formatWeekdayDate('2026-09-30')).toBe('Wed 30 Sep 2026');
+  });
+  it('prints the first of a year with the day unpadded', () => {
+    expect(formatWeekdayDate('2027-01-01')).toBe('Fri 1 Jan 2027');
   });
 });
 
