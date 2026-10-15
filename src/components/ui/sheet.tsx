@@ -127,6 +127,17 @@ export function resolveSheetClosedAtRestProps(lifecycle: SheetCloseLifecycle): {
   return { opacity: 1, pointerEvents: 'box-none' };
 }
 
+const SHEET_CLOSING_FAIL_OFFSET: [number, number] = [-1, 1];
+
+/** A sheet whose close is in flight fails every drag before it starts, so the close runs to its end; any other sends no offsets. */
+export function resolveSheetCloseGestureProps(lifecycle: SheetCloseLifecycle): {
+  failOffsetX?: [number, number];
+  failOffsetY?: [number, number];
+} {
+  if (lifecycle.isOpen || !lifecycle.hasOpened) return {};
+  return { failOffsetX: SHEET_CLOSING_FAIL_OFFSET, failOffsetY: SHEET_CLOSING_FAIL_OFFSET };
+}
+
 export interface SheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -273,6 +284,8 @@ export function Sheet({
             onClose={handleSheetClosed}
             {...resolveKeyboardProps(liftsAboveKeyboard)}
             enablePanDownToClose={isDismissable}
+            // Not `enableContentPanningGesture`: toggling it swaps the content's view type and remounts the body mid-close.
+            {...resolveSheetCloseGestureProps(closeLifecycle)}
             backgroundClassName="bg-surface"
             handleIndicatorClassName="bg-border"
             {...(footer !== undefined ? { footerComponent: renderFooter } : {})}
