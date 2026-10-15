@@ -134,10 +134,13 @@ jobs:
         run: |
           changed="$(git diff --name-only HEAD^1 HEAD -- patches app.json package.json package-lock.json)"
           echo "$changed"
-          if [ -n "$changed" ]; then
-            echo "compile=true" >> "$GITHUB_OUTPUT"
-          else
+          if [ -z "$changed" ]; then
             echo "compile=false" >> "$GITHUB_OUTPUT"
+          elif [ "$changed" = package.json ] && node scripts/package_json_scripts_only.mjs HEAD^1 HEAD; then
+            echo "package.json changed only scripts npm does not run on install; the compile is skipped"
+            echo "compile=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "compile=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Restore Gradle caches
         if: steps.gate.outputs.compile == 'true'

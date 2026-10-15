@@ -84,7 +84,7 @@ npm run format:check \
   && echo "✓ CI parity green, safe to push"
 ```
 
-Of the jobs after `Install`, the one the chain does not run is `Patched React Native compiles (Android)`. When a pull request changes `patches/**`, `app.json`, `package.json` or `package-lock.json`, it compiles ReactAndroid's Java and Kotlin from the patched source; on any other pull request it passes without compiling. Only a local or EAS build compiles a C++ hunk in a patch. Locally `mqa build` or `npx expo run:android` runs the job's compile inside the Android build. The job has no retry, so re-run one that dies on a download and not on the compile.
+Of the jobs after `Install`, the one the chain does not run is `Patched React Native compiles (Android)`. When a pull request changes `patches/**`, `app.json`, `package.json` or `package-lock.json`, it compiles ReactAndroid's Java and Kotlin from the patched source; on any other pull request, and on one whose only such change is a `package.json` change confined to scripts npm does not run on install (`scripts/package_json_scripts_only.mjs`), it passes without compiling. Only a local or EAS build compiles a C++ hunk in a patch. Locally `mqa build` or `npx expo run:android` runs the job's compile inside the Android build. The job has no retry, so re-run one that dies on a download and not on the compile.
 
 Gotcha: even pinned, `expo-doctor` validates against Expo's **live** requirement table, so it can go red with zero commits when Expo moves an SDK requirement. If it fails on a version you didn't touch, that's why; fix with `npx expo install --check` or `expo.install.exclude`. Keep the pinned tool version here and in `.github/workflows/pr-checks.yml` in sync; bump it deliberately.
 

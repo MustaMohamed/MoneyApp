@@ -215,9 +215,14 @@ default.
    mandatory when the **native surface** (`package.json`, `package-lock.json`, `app.json`,
    `eas.json`, `patches/`, `gradle.properties` at the root, any path containing `.gradle`,
    or anything under `android/`/`ios/`) moved, on this branch or on the `main` history it
-   holds, after the APK on the device was installed. An APK installed after the newest such
-   change already carries it, which is the render lens's case. Everything else reaches the
-   device over Metro.
+   holds, after the APK on the device was installed. A `package.json` change confined to
+   whitespace, key order or scripts npm does not run on install is not a native-surface
+   change. npm runs `preinstall`, `install`, `postinstall`, `prepublish`, `preprepare`,
+   `prepare`, `postprepare` and `dependencies` on install, and any script one of them
+   reaches by name, with its `pre` and `post` hooks. A `package.json` absent on either
+   side, or one that does not parse, is a native-surface change. An APK installed after
+   the newest native-surface change already carries it, which is the render lens's case.
+   Everything else reaches the device over Metro.
    In a `/ship` run, typed or unattended, the implementer asks nothing: it builds and
    installs once for the device its worktree claimed, `mqa build` then `mqa install`, one
    call each, under [queue column.md](../queue/references/column.md) § Permission rule,
