@@ -6,6 +6,11 @@ import { View } from 'react-native';
 import { useToast } from '@/components/ui/toast';
 import { Colors, Size } from '@/constants/theme';
 
+jest.mock('react-native-reanimated', () => ({
+  FadeIn: { duration: (ms: number) => ({ fade: 'in', ms }) },
+  FadeOut: { duration: (ms: number) => ({ fade: 'out', ms }) },
+}));
+
 // A host Text carrying the glyph's props, so the test finds it by name, not by JSX nesting.
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { createElement: create } = jest.requireActual<typeof import('react')>('react');

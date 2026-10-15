@@ -1,5 +1,10 @@
 import { TOAST_PROVIDER_PROPS, resolveToastInsets } from '@/components/ui/toast';
 
+jest.mock('react-native-reanimated', () => ({
+  FadeIn: { duration: (ms: number) => ({ fade: 'in', ms }) },
+  FadeOut: { duration: (ms: number) => ({ fade: 'out', ms }) },
+}));
+
 describe('the app toast configuration', () => {
   it('places toasts at the bottom', () => {
     expect(TOAST_PROVIDER_PROPS.defaultProps.placement).toBe('bottom');
@@ -7,6 +12,13 @@ describe('the app toast configuration', () => {
 
   it('shows one at a time', () => {
     expect(TOAST_PROVIDER_PROPS.maxVisibleToasts).toBe(1);
+  });
+
+  it('fades every toast in over 200 ms and out over 150 ms where it rests, at either placement', () => {
+    expect(TOAST_PROVIDER_PROPS.defaultProps.animation).toStrictEqual({
+      entering: { top: { fade: 'in', ms: 200 }, bottom: { fade: 'in', ms: 200 } },
+      exiting: { top: { fade: 'out', ms: 150 }, bottom: { fade: 'out', ms: 150 } },
+    });
   });
 });
 

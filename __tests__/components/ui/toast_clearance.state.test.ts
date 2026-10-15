@@ -5,6 +5,11 @@ import {
   useToastClearanceState,
 } from '@/components/ui/toast_clearance.state';
 
+jest.mock('react-native-reanimated', () => ({
+  FadeIn: { duration: (ms: number) => ({ fade: 'in', ms }) },
+  FadeOut: { duration: (ms: number) => ({ fade: 'out', ms }) },
+}));
+
 describe('useToastClearanceState', () => {
   beforeEach(() => {
     useToastClearanceState.getState().reset();

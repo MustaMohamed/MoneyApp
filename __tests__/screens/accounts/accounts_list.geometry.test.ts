@@ -4,6 +4,7 @@ import {
   Radius,
   Size,
   Spacing,
+  TOUCH_SLOP_PIXEL_MARGIN,
   TouchSize,
   Type,
   lineHeightFor,
@@ -260,6 +261,15 @@ describe('accounts list grip hit slop (B6)', () => {
       TouchSize.min,
     );
     expect(Size.reorderGripSlot + Number(right)).toBeGreaterThanOrEqual(TouchSize.min);
+  });
+
+  it('splits the vertical slop evenly and adds the pixel margin on each side', () => {
+    const { top, bottom } = ACCOUNTS_LIST_GRIP_HIT_SLOP;
+    expect(top).toBe(bottom);
+    expect(Size.reorderGripSlot + Number(top) + Number(bottom)).toBeCloseTo(
+      TouchSize.min + 2 * TOUCH_SLOP_PIXEL_MARGIN,
+      5,
+    );
   });
 
   it('is frozen', () => {
