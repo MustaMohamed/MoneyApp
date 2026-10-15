@@ -276,15 +276,21 @@ export const TouchSize = {
 } as const;
 
 /** The hit-slop on each side that lifts `height` to the touch floor; zero at or past it. */
-export function touchFloorSlop(height: number): number {
+function touchFloorSlop(height: number): number {
   return Math.max(0, (TouchSize.min - height) / 2);
 }
 
 /** Added to a slop sized to the touch floor: Android truncates a slop's dp to whole pixels, so one sized to exactly the floor misses by one. */
 export const TOUCH_SLOP_PIXEL_MARGIN = Spacing.xxxxs;
 
+/** Dp past a control's top and bottom edges that still take its tap. */
+export interface TouchFloorHitSlop {
+  top: number;
+  bottom: number;
+}
+
 /** The top and bottom slop that lift `height` to the touch floor, the pixel margin included. */
-export function touchFloorHitSlop(height: number): { top: number; bottom: number } {
+export function touchFloorHitSlop(height: number): TouchFloorHitSlop {
   const slop = touchFloorSlop(height) + TOUCH_SLOP_PIXEL_MARGIN;
   return { top: slop, bottom: slop };
 }

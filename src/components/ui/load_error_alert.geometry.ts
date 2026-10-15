@@ -1,7 +1,7 @@
 import type { ButtonSize } from 'heroui-native';
 
 import { resolveSmallButtonHeight } from '@/components/ui/button.geometry';
-import { Spacing, touchFloorHitSlop } from '@/constants/theme';
+import { Spacing, type TouchFloorHitSlop, touchFloorHitSlop } from '@/constants/theme';
 
 type LoadErrorAlertMode = 'fill' | 'inline' | 'floating' | 'bare';
 
@@ -20,7 +20,7 @@ export function resolveLoadErrorAlertTone(
 export function resolveLoadErrorRetryHitSlop(
   retrySize: ButtonSize,
   fontScale: number,
-): { top: number; bottom: number } | undefined {
+): TouchFloorHitSlop | undefined {
   if (retrySize !== 'sm') return undefined;
   return touchFloorHitSlop(resolveSmallButtonHeight(fontScale));
 }

@@ -6,10 +6,13 @@ import { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { deferred } from '@/test_helpers/deferred';
 
-jest.mock('react-native-reanimated', () => ({
-  FadeIn: { duration: (ms: number) => ({ fade: 'in', ms }) },
-  FadeOut: { duration: (ms: number) => ({ fade: 'out', ms }) },
-}));
+jest.mock('react-native-reanimated', () =>
+  jest
+    .requireActual<typeof import('@/test_helpers/mock_reanimated_fade')>(
+      '@/test_helpers/mock_reanimated_fade',
+    )
+    .mockReanimatedFade(),
+);
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 

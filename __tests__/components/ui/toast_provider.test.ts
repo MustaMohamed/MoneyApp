@@ -1,9 +1,12 @@
 import { TOAST_PROVIDER_PROPS, resolveToastInsets } from '@/components/ui/toast';
 
-jest.mock('react-native-reanimated', () => ({
-  FadeIn: { duration: (ms: number) => ({ fade: 'in', ms }) },
-  FadeOut: { duration: (ms: number) => ({ fade: 'out', ms }) },
-}));
+jest.mock('react-native-reanimated', () =>
+  jest
+    .requireActual<typeof import('@/test_helpers/mock_reanimated_fade')>(
+      '@/test_helpers/mock_reanimated_fade',
+    )
+    .mockReanimatedFade(),
+);
 
 describe('the app toast configuration', () => {
   it('places toasts at the bottom', () => {

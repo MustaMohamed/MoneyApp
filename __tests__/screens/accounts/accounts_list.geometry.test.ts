@@ -260,7 +260,10 @@ describe('accounts list grip hit slop (B6)', () => {
     expect(Size.reorderGripSlot + Number(top) + Number(bottom)).toBeGreaterThanOrEqual(
       TouchSize.min,
     );
-    expect(Size.reorderGripSlot + Number(right)).toBeGreaterThanOrEqual(TouchSize.min);
+    expect(Size.reorderGripSlot + Number(right)).toBeCloseTo(
+      TouchSize.min + TOUCH_SLOP_PIXEL_MARGIN,
+      5,
+    );
   });
 
   it('splits the vertical slop evenly and adds the pixel margin on each side', () => {

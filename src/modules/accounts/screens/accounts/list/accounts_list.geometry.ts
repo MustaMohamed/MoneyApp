@@ -6,6 +6,7 @@ import {
   Radius,
   Size,
   Spacing,
+  TOUCH_SLOP_PIXEL_MARGIN,
   TouchSize,
   Type,
   lineHeightFor,
@@ -105,7 +106,7 @@ export const ACCOUNTS_LIST_GRIP_SLOT_STYLE: Readonly<ViewStyle> = Object.freeze(
 /** B6 grip: none on the left, or a tap on the balance's edge stops opening the account. */
 export const ACCOUNTS_LIST_GRIP_HIT_SLOP: Readonly<Insets> = Object.freeze({
   ...touchFloorHitSlop(Size.reorderGripSlot),
-  right: TouchSize.min - Size.reorderGripSlot,
+  right: TouchSize.min - Size.reorderGripSlot + TOUCH_SLOP_PIXEL_MARGIN,
   left: 0,
 });
 
