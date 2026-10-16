@@ -4,7 +4,8 @@ import DateTimePicker, {
 import { View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
-import { Sheet, resolveSheetSizeAboveOne } from '@/components/ui/sheet';
+import { Sheet } from '@/components/ui/sheet';
+import { resolveSheetSizeAboveOne } from '@/components/ui/sheet.helpers';
 import { Strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
 

@@ -38,7 +38,6 @@ jest.mock('@react-native-community/datetimepicker', () => ({
   DateTimePickerAndroid: { open: jest.fn() },
 }));
 jest.mock('@/components/ui/sheet', () => ({
-  SHEET_FOOTER_CLEARANCE: 120,
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
   Sheet: ({
     isOpen,

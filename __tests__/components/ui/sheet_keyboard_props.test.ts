@@ -1,4 +1,4 @@
-import { resolveKeyboardProps, shouldBlurInputOnClose } from '@/components/ui/sheet';
+import { resolveKeyboardProps, shouldBlurInputOnClose } from '@/components/ui/sheet.helpers';
 
 type FocusedInput = Parameters<typeof shouldBlurInputOnClose>[0]['focusedNow'];
 

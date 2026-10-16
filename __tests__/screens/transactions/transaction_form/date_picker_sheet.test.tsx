@@ -19,9 +19,6 @@ jest.mock('@react-native-community/datetimepicker', () => ({
 }));
 
 jest.mock('@/components/ui/sheet', () => ({
-  resolveSheetSizeAboveOne:
-    jest.requireActual<typeof import('@/components/ui/sheet')>('@/components/ui/sheet')
-      .resolveSheetSizeAboveOne,
   Sheet: ({
     isOpen,
     size,
@@ -64,7 +61,7 @@ jest.mock('@/components/ui/button', () => ({
   },
 }));
 
-import { resolveSheetSizeAboveOne } from '@/components/ui/sheet';
+import { resolveSheetSizeAboveOne } from '@/components/ui/sheet.helpers';
 import { Strings } from '@/constants/strings';
 import { useDatePickerSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/date_picker_sheet.state';
 import { DateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/date_row';

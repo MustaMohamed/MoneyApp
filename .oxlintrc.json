@@ -109,6 +109,46 @@
         "typescript/no-floating-promises": "warn",
         "typescript/no-deprecated": "warn"
       }
+    },
+    // The sheet's resolvers load neither HeroUI, the bottom sheet engine nor the component at run time; types pass.
+    {
+      "files": ["src/components/ui/sheet.helpers.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "heroui-native",
+                "allowTypeImports": true,
+                "message": "sheet.helpers.ts is logic-only: take HeroUI as `import type`."
+              },
+              {
+                "name": "@gorhom/bottom-sheet",
+                "allowTypeImports": true,
+                "message": "sheet.helpers.ts is logic-only: take the bottom sheet engine as `import type`."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["heroui-native/*"],
+                "allowTypeImports": true,
+                "message": "sheet.helpers.ts is logic-only: take HeroUI as `import type`."
+              },
+              {
+                "group": ["@gorhom/bottom-sheet/*"],
+                "allowTypeImports": true,
+                "message": "sheet.helpers.ts is logic-only: take the bottom sheet engine as `import type`."
+              },
+              {
+                "regex": "(^|/)sheet$",
+                "allowTypeImports": true,
+                "message": "sheet.helpers.ts takes only types from the sheet component."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

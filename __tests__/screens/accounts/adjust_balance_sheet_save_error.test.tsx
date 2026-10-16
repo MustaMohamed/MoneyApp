@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
-import { resolveSheetSizeAboveOne } from '@/components/ui/sheet';
+import { resolveSheetSizeAboveOne } from '@/components/ui/sheet.helpers';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { FIELD_MESSAGE_RAIL_STYLE } from '@/modules/accounts/components/account_form/account_form.geometry';
@@ -16,9 +16,6 @@ jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
 
 const mockSheetSize = jest.fn();
 jest.mock('@/components/ui/sheet', () => ({
-  resolveSheetSizeAboveOne:
-    jest.requireActual<typeof import('@/components/ui/sheet')>('@/components/ui/sheet')
-      .resolveSheetSizeAboveOne,
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
   Sheet: ({
     isOpen,

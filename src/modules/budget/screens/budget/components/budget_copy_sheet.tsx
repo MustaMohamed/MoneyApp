@@ -7,7 +7,8 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { MonthFilter } from '@/components/ui/month_filter';
-import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { Sheet } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import {

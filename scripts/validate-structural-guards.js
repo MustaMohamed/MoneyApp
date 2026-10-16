@@ -346,6 +346,17 @@ const NAMED_ROWS = [
     required: keptLiveRegion('{...model.a11y}'),
     needs: KEEPS_LIVE_REGION,
   },
+  {
+    files: [`${UI}/sheet.helpers.ts`],
+    required: [
+      holds(
+        literal('export const SHEET_FOOTER_CLEARANCE'),
+        'no `export const SHEET_FOOTER_CLEARANCE`',
+      ),
+    ],
+    needs:
+      "the sheet's resolvers live here, and the `.oxlintrc.json` override that refuses their value imports of HeroUI, gorhom and the sheet component names this path",
+  },
 ];
 
 const TREE_ROWS = [

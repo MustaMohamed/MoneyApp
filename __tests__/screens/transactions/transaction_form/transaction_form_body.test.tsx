@@ -47,7 +47,6 @@ jest.mock('@/components/ui/sheet', () => {
         props.footer,
       );
     },
-    resolveSheetSizeAboveOne: (size: string) => size,
     useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
   };
 });

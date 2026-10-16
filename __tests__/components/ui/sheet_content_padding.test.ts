@@ -1,4 +1,4 @@
-import { SHEET_FOOTER_CLEARANCE, resolveSheetContentPadding } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE, resolveSheetContentPadding } from '@/components/ui/sheet.helpers';
 
 const FOOTER_HEIGHT = 106;
 

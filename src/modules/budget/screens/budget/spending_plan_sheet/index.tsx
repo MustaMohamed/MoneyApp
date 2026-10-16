@@ -1,7 +1,8 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
 import { Button } from '@/components/ui/button';
-import { SHEET_FOOTER_CLEARANCE, Sheet } from '@/components/ui/sheet';
+import { Sheet } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { SpendingPlanAllocations } from '@/modules/budget/screens/budget/spending_plan_sheet/components/spending_plan_allocations';

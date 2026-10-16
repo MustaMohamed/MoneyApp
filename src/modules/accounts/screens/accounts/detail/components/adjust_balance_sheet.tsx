@@ -7,11 +7,8 @@ import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
-import {
-  Sheet,
-  resolveSheetSizeAboveOne,
-  useBottomSheetAwareHandlers,
-} from '@/components/ui/sheet';
+import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { resolveSheetSizeAboveOne } from '@/components/ui/sheet.helpers';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
