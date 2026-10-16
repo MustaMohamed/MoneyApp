@@ -1441,6 +1441,34 @@
       "header": "Part of #186 · Depends on nothing · Verify none · Flags none · Reviewed none",
       "parent": 186,
       "children": []
+    },
+    {
+      "number": 188,
+      "status": "Ready For Development",
+      "title": "MA-188 — Pullable last on the board, frees one",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": []
+    },
+    {
+      "number": 189,
+      "status": "Defined",
+      "title": "MA-189 — Defined, waits on 188",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on MA-188 (#188) · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": []
     }
   ],
   "offBoard": [

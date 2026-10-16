@@ -805,6 +805,12 @@ function analyze(snapshot, scope) {
     a.rank = i + 1;
   });
   const firstFor = (who) => ranked.find((a) => a.actor === who)?.number ?? null;
+  const candidates = Object.fromEntries(
+    ['Defined', 'Ready For Development', 'Planned'].map((column) => [
+      column,
+      ranked.filter((a) => a.queue === column).map((a) => a.number),
+    ]),
+  );
   return {
     fetchedAt: snapshot.fetchedAt,
     scope: scope ?? null,
@@ -813,6 +819,7 @@ function analyze(snapshot, scope) {
     cap: capOf(actions, ctx),
     graph: openLeaves > 8 || deepestChain >= 2,
     next: { you: firstFor('you'), session: firstFor('session'), page: firstFor('page') },
+    candidates,
     actions,
     ctx,
   };

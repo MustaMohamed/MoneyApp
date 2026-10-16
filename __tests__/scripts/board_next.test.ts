@@ -399,6 +399,24 @@ describe('board_next leases and the queue column', () => {
     expect(byNumber(list, 110).queue).toBe('Defined');
   });
 
+  test('candidates list each column by rank, so a ticket that frees one goes before one higher on the board', () => {
+    const out = JSON.parse(run('--format', 'json').stdout) as {
+      candidates: Record<string, number[]>;
+    };
+    expect(out.candidates['Ready For Development']).toEqual([108, 188, 116, 162]);
+    for (const [column, numbers] of Object.entries(out.candidates)) {
+      const ranks = numbers.map((n) => byNumber(list, n).rank ?? 0);
+      expect({ column, ranks }).toEqual({ column, ranks: [...ranks].sort((a, b) => a - b) });
+      expect(numbers.every((n) => byNumber(list, n).queue === column)).toBe(true);
+    }
+    expect(Object.values(out.candidates).flat().sort()).toEqual(
+      list
+        .filter((a) => a.queue)
+        .map((a) => a.number)
+        .sort(),
+    );
+  });
+
   test('a Defined leaf with Reviewed none and an open Depends on is not queued', () => {
     const a = byNumber(list, 155);
     expect([a.command, a.actor]).toEqual(['/issue-review 155', 'session']);
