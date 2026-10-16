@@ -378,7 +378,7 @@ export function StatCards({
                   style={captionText}
                   className="text-muted"
                 >
-                  vs {prevMonthLabel}
+                  {Strings.totalsVsPrev(prevMonthLabel)}
                 </Text>
               </View>
               <Text
@@ -387,7 +387,7 @@ export function StatCards({
                 style={captionText}
                 className="text-muted"
               >
-                {monthSpendCount} {Strings.dashMonthSpentTxsUnit}
+                {Strings.dashMonthSpentTxs(monthSpendCount)}
               </Text>
             </View>
           </>

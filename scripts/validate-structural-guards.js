@@ -393,6 +393,12 @@ const TREE_ROWS = [
     ],
     needs: KEEPS_LIVE_REGION,
   },
+  {
+    name: 'T5, every .tsx under src/',
+    matches: (/** @type {string} */ rel) => rel.endsWith('.tsx'),
+    banned: [/[\w$]*[aA]ccessibility(?:Label|Hint)=(?:["']|\{\s*['"])/],
+    rule: 'holds the words of an accessibility label or hint; they live in `src/constants/strings.ts`',
+  },
 ];
 
 const CSS_IMPORT = /^\s*import\s+['"]([^'"]*global\.css)['"]/;

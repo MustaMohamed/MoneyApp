@@ -96,7 +96,7 @@ export default function CategoriesScreen() {
           onValueChange={setActiveTab}
           variant="solid-gold"
           listClassName="w-full"
-          accessibilityLabel="Category type"
+          accessibilityLabel={Strings.categoriesTypeAccessibility}
         />
       </View>
 

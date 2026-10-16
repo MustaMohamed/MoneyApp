@@ -181,26 +181,56 @@ export const HERO_PILL_STYLE: Readonly<ViewStyle> = Object.freeze({
 export interface HeroPillProps {
   label: string;
   glyph: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  testID?: string;
+  /** The pill's height floor; a taller caption line box wins over it. */
+  minHeight?: number;
+  /** The label wraps whole across lines instead of holding one. */
+  wraps?: boolean;
+  accessible?: boolean;
 }
 
-/** N4's hero-card pill, mockup.html:696-702, `.hero-pill`. */
-export function HeroPill({ label, glyph }: HeroPillProps): React.ReactElement {
-  const geometry = resolveHeroPillGeometry(useWindowDimensions().fontScale);
+/** The N4 ready card's and the dashboard hero's pill, mockup.html:696-702, `.hero-pill`. */
+export function HeroPill({
+  label,
+  glyph,
+  testID,
+  minHeight = 0,
+  wraps = false,
+  accessible = true,
+}: HeroPillProps): React.ReactElement {
+  const geometry = resolveHeroPillGeometry(useWindowDimensions().fontScale, minHeight);
 
   return (
     <Chip
       variant="secondary"
       color="default"
       animation="disable-all"
-      style={{ ...HERO_PILL_STYLE, height: geometry.height }}
+      testID={testID}
+      accessible={accessible}
+      pointerEvents="none"
+      style={{
+        ...HERO_PILL_STYLE,
+        minHeight: geometry.height,
+        height: wraps ? undefined : geometry.height,
+      }}
     >
       <MaterialCommunityIcons name={glyph} size={HERO_PILL_GLYPH} color={CoreTokens.text1} />
-      <Chip.Label
-        {...resolveOneLineTextProps(geometry.label)}
-        className="text-foreground font-inter"
-      >
-        {label}
-      </Chip.Label>
+      {wraps ? (
+        <Chip.Label
+          allowFontScaling={false}
+          style={{ ...geometry.label, flexShrink: 1 }}
+          className="text-foreground font-inter"
+        >
+          {label}
+        </Chip.Label>
+      ) : (
+        <Chip.Label
+          {...resolveOneLineTextProps(geometry.label)}
+          className="text-foreground font-inter"
+        >
+          {label}
+        </Chip.Label>
+      )}
     </Chip>
   );
 }

@@ -3,6 +3,7 @@ import { Skeleton } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
+import { HeroPill } from '@/components/ui/chip';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
@@ -133,7 +134,6 @@ export function HeroCard({
   onPress,
 }: HeroCardProps) {
   const { fontScale } = useWindowDimensions();
-  const pillText = scaledTextStyle(Type.caption, fontScale);
   const pillMinHeight = resolveSkeletonBarHeight(DASHBOARD_HERO_PILL_SKELETON_HEIGHT, fontScale);
   const totalAccounts = assetsCount + liabilitiesCount;
   const foreignCurrency = foreignCurrencyFor(baseCurrency);
@@ -248,68 +248,34 @@ export function HeroCard({
             className="flex-row flex-wrap px-3 pb-5"
             style={{ flexDirection: 'row', gap: ms(6) }}
           >
-            <View
+            {/* Assets, not net worth: the sheet's ≈ caption differs on purpose. */}
+            <HeroPill
               testID="dashboard-hero-foreign-pill"
-              className="flex-row items-center rounded-full px-2 py-1"
-              style={{
-                flexDirection: 'row',
-                gap: ms(4),
-                alignItems: 'center',
-                minHeight: pillMinHeight,
-                backgroundColor: Colors.dark.overlayWhite7,
-              }}
-            >
-              <MaterialCommunityIcons
-                name="approximately-equal"
-                size={ms(11)}
-                color={Colors.dark.text1}
-              />
-              {/* Assets, not net worth: the sheet's ≈ caption differs on purpose. */}
-              <Text allowFontScaling={false} className="text-foreground" style={pillText}>
-                {assetsForeignText ??
-                  Strings.netWorthBreakdownForeignUnavailable(
-                    CURRENCY_CONFIG[foreignCurrency].code,
-                  )}
-              </Text>
-            </View>
+              glyph="approximately-equal"
+              label={
+                assetsForeignText ??
+                Strings.netWorthBreakdownForeignUnavailable(CURRENCY_CONFIG[foreignCurrency].code)
+              }
+              minHeight={pillMinHeight}
+              wraps
+              accessible={false}
+            />
             {isRateUsable ? (
-              <View
+              <HeroPill
                 testID="dashboard-hero-rate-pill"
-                className="flex-row items-center rounded-full px-2 py-1"
-                style={{
-                  flexDirection: 'row',
-                  gap: ms(4),
-                  alignItems: 'center',
-                  minHeight: pillMinHeight,
-                  backgroundColor: Colors.dark.overlayWhite7,
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="swap-horizontal"
-                  size={ms(11)}
-                  color={Colors.dark.text1}
-                />
-                <Text allowFontScaling={false} className="text-foreground" style={pillText}>
-                  {formatExchangeRate(rate)}
-                </Text>
-              </View>
+                glyph="swap-horizontal"
+                label={formatExchangeRate(rate)}
+                minHeight={pillMinHeight}
+                accessible={false}
+              />
             ) : null}
-            <View
+            <HeroPill
               testID="dashboard-hero-accounts-pill"
-              className="flex-row items-center rounded-full px-2 py-1"
-              style={{
-                flexDirection: 'row',
-                gap: ms(4),
-                alignItems: 'center',
-                minHeight: pillMinHeight,
-                backgroundColor: Colors.dark.overlayWhite7,
-              }}
-            >
-              <MaterialCommunityIcons name="bank-outline" size={ms(11)} color={Colors.dark.text1} />
-              <Text allowFontScaling={false} className="text-foreground" style={pillText}>
-                {totalAccounts} {Strings.o6AccountsUnit}
-              </Text>
-            </View>
+              glyph="bank-outline"
+              label={Strings.n4PillAccounts(totalAccounts)}
+              minHeight={pillMinHeight}
+              accessible={false}
+            />
           </View>
         </>
       )}

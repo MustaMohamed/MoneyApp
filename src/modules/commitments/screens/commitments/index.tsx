@@ -222,7 +222,7 @@ export default function CommitmentsScreen() {
         selectedFilter={state.statusFilter}
         onSelectedFilterChange={setStatusFilter}
         filters={COMMITMENT_FILTERS}
-        filterAccessibilityLabel="Commitment status filter"
+        filterAccessibilityLabel={Strings.commitmentStatusFilterAccessibility}
       />
 
       {state.presentation === 'contentWithError' ? (

@@ -213,9 +213,6 @@ export const Strings = {
   accountColorTriggerA11y: (family: string, tone: string) =>
     `Account colour: ${family}, ${tone.toLowerCase()}`,
 
-  // Rendered by the dashboard hero card, not N4, despite the onboarding prefix.
-  o6AccountsUnit: 'accounts',
-
   // Placeholder dashboard
   placeholderTitle: 'Dashboard coming soon',
   placeholderSubtitle: 'M1 complete — M1.5 next.',
@@ -238,13 +235,20 @@ export const Strings = {
   cardMonthStartLabel: 'Month Start',
   cardChangeLabel: 'Change',
 
+  appName: 'MoneyApp',
+  dashboardSettingsAccessibility: 'Settings',
+  fabAddAccessibility: 'Add',
+  fabMenuAddTransaction: 'Add Transaction',
+  fabMenuAddAccount: 'Add Account',
+  fabMenuAddCommitment: 'Add Commitment',
   dashAddPrefix: 'Add',
   dashAvailableToSpend: 'Available to Spend',
   dashNetWorthTitle: 'Net Worth',
   dashAssetsLabel: 'Assets',
   dashLiabilitiesLabel: 'Liabilities',
   dashMonthSpentTitle: 'Spent This Month',
-  dashMonthSpentTxsUnit: 'txs',
+  dashMonthSpentTxs: (n: number) => (n === 1 ? '1 tx' : `${n} txs`),
+  dashboardBreakdownDueOn: (date: string) => `due ${date}`,
   dashMonthSpentSpentLabel: 'Spent',
   dashMonthSpentRefundedLabel: 'Refunded',
   dashSeeAll: 'See all',
@@ -558,6 +562,9 @@ export const Strings = {
   budgetDetailCategories: 'Categories',
   budgetDetailInProgress: '* in progress',
   budgetDetailPlanned: 'Planned',
+  budgetDetailPartOf: (part: string | number, whole: string | number) => `${part} of ${whole}`,
+  budgetDetailSoFarSuffix: ' · so far',
+  budgetDetailMonthsShort: (n: number) => `${n} mo`,
   budgetDetailCompleted: 'Complete',
   budgetToolCopy: 'Copy',
   budgetToolCategory: 'Budget',
@@ -826,6 +833,9 @@ export const Strings = {
   categoriesTitle: 'Categories',
   categoriesTabExpense: 'Expense',
   categoriesTabIncome: 'Income',
+  categoriesTypeAccessibility: 'Category type',
+  categoriesEditAccessibility: 'Edit category',
+  categoriesDeleteAccessibility: 'Delete category',
   categoriesDefaultSection: 'DEFAULTS',
   categoriesCustomSection: 'CUSTOM',
   categoriesAddBtn: 'Add Category',
@@ -1179,7 +1189,8 @@ export const Strings = {
   commitmentsRecurrenceUnitWeeks: 'Weeks',
   commitmentsRecurrenceUnitMonths: 'Months',
   commitmentsRecurrenceUnitYears: 'Years',
-  commitmentsDurationAfterCountOf: (n: number) => `After ${n} payments`,
+  commitmentsDurationAfterCountOf: (n: number) =>
+    n === 1 ? 'After 1 payment' : `After ${n} payments`,
   commitmentsDurationUntilDateOf: (date: string) => `Until ${date}`,
   commitmentsDetailNotFound: 'Commitment not found',
 
@@ -1324,6 +1335,7 @@ export const Strings = {
     `${label}, commitment recurrence filter`,
   commitmentFilterAmountCurrencyAccessibility: 'Commitment amount currency',
   transactionTypeFilterAccessibility: 'Transaction type filter',
+  commitmentStatusFilterAccessibility: 'Commitment status filter',
 
   // §6 Transactions: Detail flow (TransferFlowCard labels)
   detailFlowFromLabel: 'From',

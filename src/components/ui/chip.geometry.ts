@@ -27,7 +27,7 @@ export function resolveSuccessChipGeometry(fontScale: number): ChipLabelGeometry
   return resolveChipLabelGeometry(fontScale, CHIP_MD_PADDING_BLOCK, Size.compactChipHeight);
 }
 
-/** mockup.html:699, `.hero-pill` at `var(--type-caption)`; `HERO_PILL_HEIGHT` at scale 1, the 4pt padding pair around the scaled caption line. */
-export function resolveHeroPillGeometry(fontScale: number): ChipLabelGeometry {
-  return resolveChipLabelGeometry(fontScale, Spacing.xxs);
+/** mockup.html:699, `.hero-pill` at `var(--type-caption)`; `HERO_PILL_HEIGHT` at scale 1, the 4pt padding pair around the scaled caption line, never shorter than `floor`. */
+export function resolveHeroPillGeometry(fontScale: number, floor = 0): ChipLabelGeometry {
+  return resolveChipLabelGeometry(fontScale, Spacing.xxs, floor);
 }

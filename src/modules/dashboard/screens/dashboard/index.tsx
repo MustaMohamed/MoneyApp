@@ -107,7 +107,7 @@ export default function DashboardScreen() {
           }}
         >
           <Typography.Heading type="h3" weight="bold" truncate className="font-sora">
-            MoneyApp
+            {Strings.appName}
           </Typography.Heading>
           <Button
             variant="ghost"
@@ -117,7 +117,7 @@ export default function DashboardScreen() {
             style={{ width: Size.backBtn, height: Size.backBtn }}
             onPress={goToSettings}
             accessibilityRole="button"
-            accessibilityLabel="Settings"
+            accessibilityLabel={Strings.dashboardSettingsAccessibility}
           >
             <MaterialCommunityIcons name="cog" size={Size.iconMd} color={Colors.dark.text2} />
           </Button>

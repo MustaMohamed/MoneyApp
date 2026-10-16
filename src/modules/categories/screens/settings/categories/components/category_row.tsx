@@ -4,6 +4,7 @@ import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { Strings } from '@/constants/strings';
 import { Colors, Radius, Size, Spacing, withAlpha } from '@/constants/theme';
 import type { Category } from '@/modules/categories/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -56,7 +57,7 @@ function CategoryRowComponent({
               hitSlop={8}
               style={styles.actionBtn}
               accessibilityRole="button"
-              accessibilityLabel="Edit category"
+              accessibilityLabel={Strings.categoriesEditAccessibility}
             >
               <MaterialCommunityIcons
                 name="pencil-outline"
@@ -70,7 +71,7 @@ function CategoryRowComponent({
               style={styles.actionBtn}
               isDisabled={isDeleteDisabled}
               accessibilityRole="button"
-              accessibilityLabel="Delete category"
+              accessibilityLabel={Strings.categoriesDeleteAccessibility}
             >
               <MaterialCommunityIcons
                 name="trash-can-outline"
