@@ -6,7 +6,6 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   buildDetailSkeletonGeometry,
-  DETAIL_ACCOUNT_ROW_HEIGHT,
   DETAIL_HERO_AMOUNT_MAX_FONT_SCALE,
   DETAIL_HERO_BADGE_GAP,
   DETAIL_HERO_CAPTION_GAP,
@@ -38,10 +37,6 @@ function rowLinesAt(fontScale: number): number {
   return (
     lineBox(DETAIL_ROW_LABEL_FONT_SIZE, fontScale) + lineBox(DETAIL_ROW_VALUE_FONT_SIZE, fontScale)
   );
-}
-
-function accountRowLinesAt(fontScale: number): number {
-  return rowLinesAt(fontScale) + lineBox(DETAIL_ROW_LABEL_FONT_SIZE, fontScale);
 }
 
 function transferLinesAt(fontScale: number): number {
@@ -128,9 +123,8 @@ describe('resolveDetailHeroGeometry', () => {
 });
 
 describe('resolveDetailRowHeight', () => {
-  it.each([0.85, 1])('keeps the 1.0 row and account row heights at font scale %s', (fontScale) => {
+  it.each([0.85, 1])('keeps the 1.0 row height at font scale %s', (fontScale) => {
     expect(resolveDetailRowHeight(fontScale)).toBe(DETAIL_ROW_HEIGHT);
-    expect(resolveDetailRowHeight(fontScale, true)).toBe(DETAIL_ACCOUNT_ROW_HEIGHT);
   });
 
   it.each([2, 3])('adds the grown line boxes to the row at font scale %s', (fontScale) => {
@@ -139,18 +133,6 @@ describe('resolveDetailRowHeight', () => {
     expect(row).toBe(DETAIL_ROW_HEIGHT + rowLinesAt(fontScale) - rowLinesAt(1));
     expect(row).toBeGreaterThan(DETAIL_ROW_HEIGHT);
   });
-
-  it.each([2, 3])(
-    'adds the grown line boxes, the sublabel among them, to the account row at font scale %s',
-    (fontScale) => {
-      const accountRow = resolveDetailRowHeight(fontScale, true);
-
-      expect(accountRow).toBe(
-        DETAIL_ACCOUNT_ROW_HEIGHT + accountRowLinesAt(fontScale) - accountRowLinesAt(1),
-      );
-      expect(accountRow).toBeGreaterThan(DETAIL_ACCOUNT_ROW_HEIGHT);
-    },
-  );
 });
 
 describe('resolveTransferCellHeight', () => {

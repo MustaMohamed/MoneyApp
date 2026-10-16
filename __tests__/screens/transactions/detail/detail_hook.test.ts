@@ -278,7 +278,7 @@ describe('useTransactionDetail loading', () => {
 
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
-    expect(result.current.state.derived?.accountLabel).toBe(Strings.unknownAccount);
+    expect(result.current.state.derived?.accountRow?.name).toBe(Strings.unknownAccount);
     expect(consoleSpy).toHaveBeenCalledWith(
       '[transactionDetail] account lookup failed',
       expect.any(Error),
@@ -567,19 +567,14 @@ describe('useTransactionDetail account lookup', () => {
     await lower.rerender({});
     await upper.rerender({});
 
-    expect(lower.result.current.state.derived?.accountLabel).toBe('Cash → Dollar Vault');
-    expect(lower.result.current.state.derived?.transferFlow).not.toBeNull();
-    expect(upper.result.current.state.derived?.accountLabel).toBe(
-      `Cash → ${Strings.deletedAccount}`,
-    );
-    expect(upper.result.current.state.derived?.transferFlow).not.toBeNull();
+    expect(lower.result.current.state.derived?.transferFlow?.toAccount.id).toBe('archived-a');
+    expect(upper.result.current.state.derived?.transferFlow?.toAccount.id).toBe('deleted-b');
 
     await upper.unmount();
     await act(async () => lowerFocus?.());
     await lower.rerender({});
 
-    expect(lower.result.current.state.derived?.accountLabel).toBe('Cash → Dollar Vault');
-    expect(lower.result.current.state.derived?.transferFlow).not.toBeNull();
+    expect(lower.result.current.state.derived?.transferFlow?.toAccount.id).toBe('archived-a');
   });
 });
 

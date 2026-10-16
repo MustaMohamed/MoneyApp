@@ -203,7 +203,7 @@ describe('buildTransactionDetailPresentation', () => {
       }),
     ).toMatchObject({
       budgetLabel: 'Conference meals',
-      sourceLabel: Strings.typeBadgeCommitment,
+      source: 'commitment',
     });
   });
 
@@ -221,8 +221,6 @@ describe('buildTransactionDetailPresentation', () => {
         account: account({ type: AccountType.CreditCard, currency: Currency.EGP }),
       }),
     ).toMatchObject({
-      categoryBadge: Strings.cardCreditTitle,
-      categoryBadgeTone: 'info',
       hero: {
         title: Strings.cardCreditTitle,
         amountAccessibilityLabel: '+250 EGP',
@@ -385,7 +383,8 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
       amountAccessibilityLabel: '−1,240 EGP',
       caption: 'Tue 22 Sep 2026, 6:40 PM',
     });
-    expect(presentation.dateTimeText).toBe('Tue 22 Sep 2026, 6:40 PM');
+    expect(presentation.dateText).toBe('Tue 22 Sep 2026');
+    expect(presentation.timeText).toBe('6:40 PM');
   });
 
   it('frame C2: an income takes the Income badge in the success colour, signed plus', () => {
@@ -458,7 +457,7 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
       tileColor: GoldTokens[500],
       tileGlyphColor: CoreTokens.bg,
     });
-    expect(presentation.categoryLabel).toBe('Uncategorized');
+    expect(presentation.categoryRow?.name).toBe('Uncategorized');
   });
 
   it.each([
@@ -485,7 +484,7 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
 
     expect(owned.hero).toMatchObject({ typeLabel: 'Expense' });
     expect(owned.hero).toEqual(plain.hero);
-    expect(owned.sourceLabel).toBe(Strings.typeBadgeCommitment);
+    expect(owned.source).toBe('commitment');
   });
 });
 
@@ -1044,26 +1043,6 @@ describe('resolveHeroTileGlyphColor', () => {
 describe('buildTransactionDetailPresentation — deleted accounts (MA-020)', () => {
   const deletedSource = account({ id: 'source', name: '', is_archived: 1, is_deleted: 1 });
 
-  it('labels a transfer whose destination was deleted', () => {
-    expect(
-      buildTransactionDetailPresentation({
-        tx: transaction({}),
-        account: account({ name: 'USD wallet' }),
-        toAccount: account({ id: 'destination', name: '', is_archived: 1, is_deleted: 1 }),
-      }).accountLabel,
-    ).toBe(`USD wallet → ${Strings.deletedAccount}`);
-  });
-
-  it('labels a transfer whose source was deleted, keeping the live destination named', () => {
-    expect(
-      buildTransactionDetailPresentation({
-        tx: transaction({}),
-        account: deletedSource,
-        toAccount: account({ id: 'destination', name: 'Chase' }),
-      }).accountLabel,
-    ).toBe(`${Strings.deletedAccount} → Chase`);
-  });
-
   it('labels a single-account transaction on a deleted account', () => {
     expect(
       buildTransactionDetailPresentation({
@@ -1073,22 +1052,12 @@ describe('buildTransactionDetailPresentation — deleted accounts (MA-020)', () 
           to_amount: null,
         }),
         account: deletedSource,
-      }).accountLabel,
+      }).accountRow?.name,
     ).toBe(Strings.deletedAccount);
   });
 });
 
 describe('buildTransactionDetailPresentation — blank-named accounts (MA-062)', () => {
-  it('labels a transfer whose destination has a blank name', () => {
-    expect(
-      buildTransactionDetailPresentation({
-        tx: transaction({}),
-        account: account({ name: 'USD wallet' }),
-        toAccount: account({ id: 'destination', name: '' }),
-      }).accountLabel,
-    ).toBe(`USD wallet → ${Strings.unnamedAccount}`);
-  });
-
   it('labels a single-account transaction on a blank-named account', () => {
     expect(
       buildTransactionDetailPresentation({
@@ -1098,7 +1067,7 @@ describe('buildTransactionDetailPresentation — blank-named accounts (MA-062)',
           to_amount: null,
         }),
         account: account({ name: '' }),
-      }).accountLabel,
+      }).accountRow?.name,
     ).toBe(Strings.unnamedAccount);
   });
 });
