@@ -68,7 +68,7 @@ function ActionRowContent({
 
 export function ActionRow(props: Props): React.ReactElement {
   return (
-    <View className="px-4 pt-4 pb-6">
+    <View testID="detail-actions" className="px-4 pt-4 pb-6">
       <ActionRowContent {...props} />
     </View>
   );
