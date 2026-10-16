@@ -68,17 +68,18 @@ function isNavOptionStyleValue(node) {
 }
 
 const A11Y_TEXT_NAME = /[aA]ccessibility(?:Label|Hint)$/;
+const LETTER = /\p{L}/u;
 
-/** Words held in place: a non-empty string or plain template literal, or a ternary, logical or `+` expression with one as a branch. */
+/** Words held in place: a string or plain template literal with a letter in it, or a ternary, logical or `+` expression with one as a branch. */
 function holdsLiteralText(node) {
   if (!node) return false;
   switch (node.type) {
     case 'Literal':
-      return typeof node.value === 'string' && node.value.trim() !== '';
+      return typeof node.value === 'string' && LETTER.test(node.value);
     case 'TemplateLiteral':
       return (
         node.expressions.length === 0 &&
-        node.quasis.some((quasi) => (quasi.value.cooked ?? quasi.value.raw).trim() !== '')
+        node.quasis.some((quasi) => LETTER.test(quasi.value.cooked ?? quasi.value.raw))
       );
     case 'ConditionalExpression':
       return holdsLiteralText(node.consequent) || holdsLiteralText(node.alternate);

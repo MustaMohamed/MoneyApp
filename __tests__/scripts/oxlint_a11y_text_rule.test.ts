@@ -18,7 +18,7 @@ interface Fixture {
   line?: number;
 }
 
-// An empty string holds no words, so `label ?? ''` passes.
+// A string with no letter holds no words, so `label ?? ''` and a `', '` separator pass.
 const FIXTURES: Fixture[] = [
   {
     name: 'quoted_label.tsx',
@@ -106,6 +106,16 @@ const FIXTURES: Fixture[] = [
     name: 'strings_plus_name.tsx',
     content:
       'export const A = ({ name }: { name: string }) => (\n  <View accessibilityLabel={Strings.a + name} />\n);\n',
+  },
+  {
+    name: 'name_comma_amount.tsx',
+    content:
+      "export const A = ({ name, amountText }: { name: string; amountText: string }) => (\n  <View accessibilityLabel={name + ', ' + amountText} />\n);\n",
+  },
+  {
+    name: 'strings_colon_formatted.tsx',
+    content:
+      "export const A = ({ formatted }: { formatted: string }) => (\n  <View accessibilityLabel={Strings.a + ': ' + formatted} />\n);\n",
   },
 ];
 
