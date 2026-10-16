@@ -5,10 +5,11 @@ import {
   scaledFontSize,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
-import { Currency, TransactionType } from '@/constants/enums';
+import { Currency } from '@/constants/enums';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import type { ConvertedAmount } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { ms } from '@/utils/responsive';
 
 export const DETAIL_HERO_AMOUNT_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
@@ -133,15 +134,10 @@ export function resolveTransferSkeletonCellHeight(fontScale: number): number {
     : resolveTransferCellHeight(fontScale);
 }
 
-export interface DetailAmountRowFigure {
-  amount: number;
-  currency: Currency;
-}
-
 /** A USD transaction's EGP amount, or what an EGP transfer or card payment delivered in USD; a stored rate means USD is involved. */
 export function resolveDetailAmountRowFigure(
   transaction: Transaction,
-): DetailAmountRowFigure | undefined {
+): ConvertedAmount | undefined {
   if (transaction.currency === Currency.USD) {
     return { amount: transaction.egp_amount, currency: Currency.EGP };
   }
@@ -159,8 +155,7 @@ export function buildDetailSkeletonGeometry(
   transaction: Transaction,
   fontScale: number,
 ): DetailSkeletonGeometry {
-  const showTransfer =
-    transaction.type === TransactionType.Transfer || transaction.type === TransactionType.CCPayment;
+  const showTransfer = requiresDestination(transaction.type);
   const rowHeight = resolveDetailRowHeight(fontScale);
   const rowHeights = [
     rowHeight,

@@ -9,11 +9,11 @@ The detail hero printed `egp_amount` in EGP for every transaction, so a USD 15 e
 
 ## 1. The hero prints `tx.amount` in `tx.currency`
 
-`heroAmount(tx)` formats `tx.amount` in `tx.currency` through `formatDisplayAmountParts`, with the code `CURRENCY_CONFIG[tx.currency].code`. That is the list row's primary amount for every type, which `detail_helpers.test.ts` pins against `buildTransactionRowPresentation(input).primaryAmount` on expense, income, card credit, and transfer and card payment on all four currency pairs. The sign rule does not change: `−` on an expense, `+` on an income, none on a transfer or card payment, and none on a figure that prints as zero. `DETAIL_HERO_CURRENCY` is removed.
+The hero reads the list row's own function, `primaryAmountFor(tx, cardCredit)` in `components/transaction_row.helpers.ts`, which formats `tx.amount` in `tx.currency` through `formatDisplayAmountParts`. Its `text` is the hero's `amountValue` and its `withCode` the hero's `amountAccessibilityLabel`; `amountCode` is `CURRENCY_CONFIG[tx.currency].code`. One function prints both, so the hero and the row cannot drift, and `detail_helpers.test.ts` still compares them on expense, income, card credit, and transfer and card payment on all four currency pairs. The sign rule does not change: `−` on an expense, `+` on an income and a card credit, none on a transfer or card payment, and none on a figure that prints as zero. `DETAIL_HERO_CURRENCY` is removed.
 
 ## 2. One function picks the amount row from the transaction alone
 
-`resolveDetailAmountRowFigure(transaction: Transaction): DetailAmountRowFigure | undefined`, in `detail/components/detail.geometry.ts`, returns the figure the row prints. It reads the transaction alone, so the skeleton, which has no accounts, picks the same row the loaded screen does. It lives in the geometry file because the helpers import geometry and not the reverse.
+`resolveDetailAmountRowFigure(transaction: Transaction): ConvertedAmount | undefined`, in `detail/components/detail.geometry.ts`, returns the figure the row prints, in the `{ amount, currency }` shape the form's converted amount uses (`docs/adr/2026-10-13-converted-amount.md` §2). It reads the transaction alone, so the skeleton, which has no accounts, picks the same row the loaded screen does. It lives in the geometry file because the helpers import geometry and not the reverse.
 
 | Transaction | Returns | At rate 49 |
 |---|---|---|
