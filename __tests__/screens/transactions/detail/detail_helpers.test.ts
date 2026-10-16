@@ -16,6 +16,7 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { STACKED_PREFIX } from '@/modules/navigation/domain/stacked_route';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { buildTransactionRowPresentation } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+import { buildDetailSkeletonGeometry } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import {
   buildTransactionDetailPresentation,
   getAccountTypeIcon,
@@ -1070,4 +1071,137 @@ describe('buildTransactionDetailPresentation — blank-named accounts (MA-062)',
       }).accountRow?.name,
     ).toBe(Strings.unnamedAccount);
   });
+});
+
+describe('buildTransactionDetailPresentation — fact rows as data (MA-181)', () => {
+  const cib = account({ name: 'CIB', currency: Currency.EGP, color: AcctTokens.lapis.rich });
+  const wallet = account({ id: 'destination', name: 'Wallet', currency: Currency.USD });
+  const groceries = makeTestCategory({
+    id: 'groceries',
+    name: 'Groceries',
+    color: '#5C7FC4',
+    icon: 'cart',
+  });
+  const archivedBadge = { label: Strings.detailAccountArchived, tone: 'neutral' };
+  const capturedBadge = { label: Strings.capturedBadge, tone: 'accent' };
+  const commitmentBadge = { label: Strings.typeBadgeCommitment, tone: 'accent' };
+
+  function egp(overrides: Partial<Transaction>): Transaction {
+    return transaction({
+      currency: Currency.EGP,
+      exchange_rate: null,
+      to_account_id: null,
+      to_amount: null,
+      budget_id: null,
+      commitment_payment_id: null,
+      transaction_date: '2026-09-22',
+      transaction_time: '18:40:00',
+      ...overrides,
+    });
+  }
+
+  const expense = egp({
+    type: TransactionType.Expense,
+    amount: 1_240,
+    egp_amount: 1_240,
+    category_id: groceries.id,
+  });
+
+  function rows(input: TransactionDetailPresentationInput) {
+    return buildTransactionDetailPresentation(input).facts.map(({ label, value, badge }) => ({
+      label,
+      value,
+      badge,
+    }));
+  }
+
+  const tail = (source: { value?: string; badge?: object }) => [
+    { label: 'Date', value: 'Tue 22 Sep 2026', badge: undefined },
+    { label: 'Time', value: '6:40 PM', badge: undefined },
+    { label: 'Source', value: source.value, badge: source.badge },
+  ];
+
+  it('frame C1: an expense reads Account, Category, Date, Time and Source, the source Manual entry with no badge', () => {
+    expect(rows({ tx: expense, account: cib, category: groceries })).toEqual([
+      { label: 'Account', value: 'CIB', badge: undefined },
+      { label: 'Category', value: 'Groceries', badge: undefined },
+      ...tail({ value: Strings.detailManualSource }),
+    ]);
+  });
+
+  it('frame C3: an EGP to USD transfer reads Amount in USD over Rate with the Captured badge, and no Account or Category row', () => {
+    const transfer = egp({
+      type: TransactionType.Transfer,
+      amount: 5_000,
+      egp_amount: 5_000,
+      to_account_id: wallet.id,
+      to_amount: 102.04,
+      exchange_rate: 49,
+    });
+
+    expect(rows({ tx: transfer, account: cib, toAccount: wallet })).toEqual([
+      { label: 'Amount in USD', value: '102.04 USD', badge: undefined },
+      { label: 'Rate', value: '1 USD = 49.00 EGP', badge: capturedBadge },
+      ...tail({ value: Strings.detailManualSource }),
+    ]);
+  });
+
+  it('frame C4: a card payment reads Date, Time and Source alone', () => {
+    const payment = egp({
+      type: TransactionType.CCPayment,
+      amount: 5_000,
+      egp_amount: 5_000,
+      to_account_id: 'destination',
+      to_amount: 5_000,
+    });
+
+    expect(rows({ tx: payment, account: cib })).toEqual(
+      tail({ value: Strings.detailManualSource }),
+    );
+  });
+
+  it("frame C6: a commitment's payment reads the Commitment badge alone on its Source row", () => {
+    const payment = { ...expense, commitment_payment_id: 'payment' };
+
+    expect(rows({ tx: payment, account: cib, category: groceries }).at(-1)).toEqual({
+      label: 'Source',
+      value: undefined,
+      badge: commitmentBadge,
+    });
+  });
+
+  it('frame C7: an archived account reads its name with the Archived badge on its Account row', () => {
+    const archived = account({ name: 'Old HSBC', currency: Currency.EGP, is_archived: 1 });
+
+    expect(rows({ tx: expense, account: archived, category: groceries })[0]).toEqual({
+      label: 'Account',
+      value: 'Old HSBC',
+      badge: archivedBadge,
+    });
+  });
+
+  it.each([
+    [TransactionType.Expense, null],
+    [TransactionType.Income, null],
+    [TransactionType.Transfer, 'destination'],
+    [TransactionType.CCPayment, 'destination'],
+  ])(
+    'frame C10: the skeleton holds one slot per fact row on a USD %s with a budget and a rate',
+    (type, toAccountId) => {
+      const tx = transaction({
+        type,
+        currency: Currency.USD,
+        amount: 15,
+        egp_amount: 735,
+        exchange_rate: 49,
+        budget_id: 'budget',
+        to_account_id: toAccountId,
+        to_amount: toAccountId === null ? null : 15,
+      });
+
+      expect(buildDetailSkeletonGeometry(tx, 1).rowHeights).toHaveLength(
+        buildTransactionDetailPresentation({ tx, account: cib }).facts.length,
+      );
+    },
+  );
 });

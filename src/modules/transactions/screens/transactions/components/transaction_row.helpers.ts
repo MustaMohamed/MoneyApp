@@ -162,14 +162,14 @@ export function isCardCredit(tx: Transaction, account?: Account): boolean {
   return tx.type === TransactionType.Income && account?.type === AccountType.CreditCard;
 }
 
+export function resolveHollowGraphiteTile(type: AccountType): RowTile {
+  return { color: AcctTokens.graphite.rich, type, hollow: true };
+}
+
 /** An unresolved or deleted account draws the hollow graphite tile; an archived one stays filled. */
 export function resolveRowTile(account: Account | undefined): RowTile {
   if (account === undefined || account.is_deleted === 1) {
-    return {
-      color: AcctTokens.graphite.rich,
-      type: account?.type ?? AccountType.Bank,
-      hollow: true,
-    };
+    return resolveHollowGraphiteTile(account?.type ?? AccountType.Bank);
   }
   return { color: account.color, type: account.type, hollow: false };
 }

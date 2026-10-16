@@ -18,13 +18,13 @@ import { stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
 import { resolveTransactionDeleteError } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
-import { resolveAccountName } from '@/utils/account_name';
 
 import {
   buildTransactionDetailPresentation,
-  findFrozenLeg,
+  type DetailActions,
   getCommitmentPaymentRoute,
   resolveDetailActionSet,
+  resolveDetailActions,
   resolveDetailViewState,
 } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useTxDetailState } from './detail.state';
@@ -179,12 +179,13 @@ export function useTransactionDetail(id: string) {
     currentRefreshError,
   );
   const commitmentPaymentId = currentTx?.commitment_payment_id ?? undefined;
-  const archivedLeg = currentTx ? findFrozenLeg(currentTx, accountsById) : undefined;
-  const actionSet = currentTx ? resolveDetailActionSet(currentTx, accountsById) : 'editDelete';
+  const actions: DetailActions = currentTx
+    ? resolveDetailActions(currentTx, accountsById)
+    : { actionSet: 'editDelete' };
   const loadingActionSet = loadingTransactionHint
     ? resolveDetailActionSet(loadingTransactionHint, accountsById)
     : 'editDelete';
-  const isMutable = actionSet === 'editDelete';
+  const isMutable = actions.actionSet === 'editDelete';
 
   const derived = useMemo(() => {
     if (!currentTx) return null;
@@ -262,13 +263,12 @@ export function useTransactionDetail(id: string) {
       refreshError: currentRefreshError,
       confirmVisible,
       deleting,
-      actionSet,
+      actions,
+      actionSet: actions.actionSet,
       loadingActionSet,
       isEditable: isMutable,
       isDeletable: isMutable,
-      archivedAccountLine: archivedLeg
-        ? Strings.transactionAccountArchived(resolveAccountName(archivedLeg))
-        : undefined,
+      archivedAccountLine: actions.actionSet === 'archivedNotice' ? actions.notice : undefined,
     },
     openDeleteConfirm,
     closeDeleteConfirm,

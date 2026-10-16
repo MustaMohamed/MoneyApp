@@ -648,6 +648,7 @@ describe('useTransactionDetail archived account (MA-053)', () => {
       await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
       expect(result.current.state.actionSet).toBe('viewCommitment');
+      expect(result.current.state.archivedAccountLine).toBeUndefined();
     },
   );
 

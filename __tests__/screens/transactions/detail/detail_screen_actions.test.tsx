@@ -14,13 +14,11 @@ import { ActionRow } from '@/modules/transactions/screens/transactions/detail/co
 import { DetailHeader } from '@/modules/transactions/screens/transactions/detail/components/detail_header';
 
 describe('transaction detail actions', () => {
-  it("frame C6: shows View commitment alone, flat, for a commitment's payment, and no notice on an archived account", async () => {
+  it("frame C6: shows View commitment alone, flat, for a commitment's payment", async () => {
     const onViewCommitment = jest.fn();
-    const notice = Strings.transactionAccountArchived('Old HSBC');
     const screen = await render(
       <ActionRow
         actionSet="viewCommitment"
-        notice={notice}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
         onViewCommitment={onViewCommitment}
@@ -29,7 +27,6 @@ describe('transaction detail actions', () => {
 
     expect(screen.queryByText(Strings.detailEditButton)).toBeNull();
     expect(screen.queryByText(Strings.detailDeleteButton)).toBeNull();
-    expect(screen.queryByText(notice)).toBeNull();
     expect(screen.getByText(Strings.viewCommitment).parent).toHaveStyle({
       borderRadius: Radius.cta,
     });

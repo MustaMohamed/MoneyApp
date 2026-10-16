@@ -123,7 +123,6 @@ export function resolveDetailRowHeight(fontScale: number): number {
   return Math.max(DETAIL_ROW_HEIGHT, DETAIL_ROW_HEIGHT + rowLines(fontScale) - rowLines(1));
 }
 
-/** The padded taller of the value line and the account tile, at the touch floor, in whole device pixels. */
 export function resolveDetailFactRowHeight(fontScale: number): number {
   return PixelRatio.roundToNearestPixel(
     Math.max(
@@ -170,22 +169,34 @@ export function resolveDetailAmountRowFigure(
   return undefined;
 }
 
+export type DetailFactSlot =
+  | { kind: 'account' | 'category' | 'budget' | 'date' | 'time' | 'source' }
+  | { kind: 'amount'; figure: ConvertedAmount }
+  | { kind: 'rate'; rate: number };
+
+export type DetailFactKind = DetailFactSlot['kind'];
+
+/** The fact rows a transaction shows, in order, read from the transaction alone so the skeleton holds the same rows. */
+export function resolveDetailFactSlots(transaction: Transaction): DetailFactSlot[] {
+  const slots: DetailFactSlot[] = [];
+  if (!requiresDestination(transaction.type)) slots.push({ kind: 'account' }, { kind: 'category' });
+  if (transaction.budget_id !== null) slots.push({ kind: 'budget' });
+  const figure = resolveDetailAmountRowFigure(transaction);
+  if (figure) slots.push({ kind: 'amount', figure });
+  if (transaction.exchange_rate !== null) {
+    slots.push({ kind: 'rate', rate: transaction.exchange_rate });
+  }
+  slots.push({ kind: 'date' }, { kind: 'time' }, { kind: 'source' });
+  return slots;
+}
+
 export function buildDetailSkeletonGeometry(
   transaction: Transaction,
   fontScale: number,
 ): DetailSkeletonGeometry {
   const showTransfer = requiresDestination(transaction.type);
   const rowHeight = resolveDetailFactRowHeight(fontScale);
-  // The loaded rows in order: Account, Category, Budget, the amount row, Rate, Date, Time, Source.
-  const rowHeights = [
-    ...(showTransfer ? [] : [rowHeight, rowHeight]),
-    ...(transaction.budget_id !== null ? [rowHeight] : []),
-    ...(resolveDetailAmountRowFigure(transaction) ? [rowHeight] : []),
-    ...(transaction.exchange_rate !== null ? [rowHeight] : []),
-    rowHeight,
-    rowHeight,
-    rowHeight,
-  ];
+  const rowHeights = resolveDetailFactSlots(transaction).map(() => rowHeight);
 
   return {
     rowHeights,

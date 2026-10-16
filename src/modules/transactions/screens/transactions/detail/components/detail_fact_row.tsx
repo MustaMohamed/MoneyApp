@@ -1,28 +1,28 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip, ListGroup } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { resolveOneLineTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
+import { AccountColorTile } from '@/components/ui/account_color_tile';
+import {
+  resolveFitAmountTextProps,
+  resolveOneLineTextProps,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
+import { Size } from '@/constants/theme';
 
+import type { DetailFact, DetailFactLeading } from '../detail.helpers';
 import {
   DETAIL_FACT_BADGE_FONT_SIZE,
   DETAIL_FACT_FONT_SIZE,
   DETAIL_FACT_ROW_PADDING,
+  DETAIL_FACT_TILE,
   DETAIL_FACT_VALUE_GAP,
   resolveDetailFactRowHeight,
 } from './detail.geometry';
 
-export interface DetailFactBadge {
-  label: string;
-  tone: 'accent' | 'neutral';
-}
-
 interface Props {
-  label: string;
-  value?: string;
-  leading?: React.ReactNode;
-  badge?: DetailFactBadge;
-  valueFace?: 'sora' | 'inter';
+  fact: DetailFact;
   showDivider?: boolean;
 }
 
@@ -47,20 +47,38 @@ const VALUE_CLASS_NAMES = {
   inter: 'font-inter text-foreground',
 } as const;
 
+function FactLeading({ leading }: { leading: DetailFactLeading }): React.ReactElement {
+  switch (leading.kind) {
+    case 'tile':
+      return (
+        <AccountColorTile {...leading.tile} size={DETAIL_FACT_TILE} glyphSize={Size.iconMicro} />
+      );
+    case 'glyph':
+      return (
+        <MaterialCommunityIcons
+          name={leading.glyphName}
+          size={Size.iconXs}
+          color={leading.glyphColor}
+        />
+      );
+    default: {
+      const unhandled: never = leading;
+      return unhandled;
+    }
+  }
+}
+
 /** Canvas `.fact`: the label left and held whole, the value right and shrinking first, one line each. */
-export function DetailFactRow({
-  label,
-  value,
-  leading,
-  badge,
-  valueFace = 'sora',
-  showDivider = true,
-}: Props): React.ReactElement {
+export function DetailFactRow({ fact, showDivider = true }: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const text = resolveOneLineTextProps(scaledTextStyle(DETAIL_FACT_FONT_SIZE, fontScale));
-  const chip = badge ? BADGE_CHIPS[badge.tone] : undefined;
+  const valueText = fact.fitsValue
+    ? resolveFitAmountTextProps(DETAIL_FACT_FONT_SIZE, fontScale)
+    : text;
+  const chip = fact.badge ? BADGE_CHIPS[fact.badge.tone] : undefined;
   return (
     <ListGroup.Item
+      // `py-0`: HeroUI's own 16 dp item padding would cut every text in a 44 dp row.
       className={`flex-row items-center justify-between gap-3 px-4 py-0 ${showDivider ? 'border-separator border-b' : ''}`}
       style={{
         height: resolveDetailFactRowHeight(fontScale),
@@ -72,7 +90,7 @@ export function DetailFactRow({
         className="font-inter text-content-secondary"
         style={[text.style, { flexShrink: 0 }]}
       >
-        {label}
+        {fact.label}
       </ListGroup.ItemDescription>
       <View
         style={{
@@ -83,13 +101,17 @@ export function DetailFactRow({
           gap: DETAIL_FACT_VALUE_GAP,
         }}
       >
-        {leading}
-        {value === undefined ? null : (
-          <ListGroup.ItemTitle {...text} className={VALUE_CLASS_NAMES[valueFace]}>
-            {value}
+        {fact.leading ? <FactLeading leading={fact.leading} /> : null}
+        {fact.value === undefined ? null : (
+          <ListGroup.ItemTitle
+            {...valueText}
+            className={VALUE_CLASS_NAMES[fact.valueFace]}
+            style={[valueText.style, { flexShrink: 1 }]}
+          >
+            {fact.value}
           </ListGroup.ItemTitle>
         )}
-        {badge && chip ? (
+        {fact.badge && chip ? (
           <Chip
             size="sm"
             variant={chip.variant}
@@ -102,7 +124,7 @@ export function DetailFactRow({
               {...resolveOneLineTextProps(scaledTextStyle(DETAIL_FACT_BADGE_FONT_SIZE, fontScale))}
               className={chip.labelClassName}
             >
-              {badge.label}
+              {fact.badge.label}
             </Chip.Label>
           </Chip>
         ) : null}
