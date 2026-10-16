@@ -1,6 +1,6 @@
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import { FITTED_LINE_SLACK, scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Currency } from '@/constants/enums';
+import { Currency, TransactionType } from '@/constants/enums';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import {
   buildDetailSkeletonGeometry,
@@ -17,6 +17,7 @@ import {
   DETAIL_TRANSFER_LABEL_FONT_SIZE,
   DETAIL_TRANSFER_MIN_HEIGHT,
   DETAIL_TRANSFER_NAME_FONT_SIZE,
+  resolveDetailAmountRowFigure,
   resolveDetailHeroGeometry,
   resolveDetailRowHeight,
   resolveTransferCardHeight,
@@ -205,6 +206,111 @@ describe('buildDetailSkeletonGeometry', () => {
       accountRow,
       row,
       row,
+      row,
+      row,
+      row,
+    ]);
+  });
+});
+
+describe('resolveDetailAmountRowFigure (MA-192)', () => {
+  const RATE = 49;
+  const usdExpense = makeTestTransaction({
+    currency: Currency.USD,
+    amount: 15,
+    egp_amount: 735,
+    exchange_rate: RATE,
+  });
+  const usdLeg = (type: TransactionType, toAmount: number) =>
+    makeTestTransaction({
+      type,
+      currency: Currency.USD,
+      amount: 100,
+      egp_amount: 4_900,
+      exchange_rate: RATE,
+      to_account_id: 'account-2',
+      to_amount: toAmount,
+      category_id: null,
+    });
+  const egpLeg = (type: TransactionType, exchangeRate: number | null, toAmount: number | null) =>
+    makeTestTransaction({
+      type,
+      currency: Currency.EGP,
+      amount: 5_000,
+      egp_amount: 5_000,
+      exchange_rate: exchangeRate,
+      to_account_id: 'account-2',
+      to_amount: toAmount,
+      category_id: null,
+    });
+  // A commitment's payment toward a USD commitment from an EGP account: a rate, no USD leg.
+  const commitmentPayment = makeTestTransaction({
+    currency: Currency.EGP,
+    amount: 735,
+    egp_amount: 735,
+    exchange_rate: RATE,
+    commitment_payment_id: 'payment-1',
+  });
+
+  it('gives a USD expense its EGP amount, with or without a stored rate', () => {
+    expect(resolveDetailAmountRowFigure(usdExpense)).toEqual({
+      amount: 735,
+      currency: Currency.EGP,
+    });
+    expect(resolveDetailAmountRowFigure({ ...usdExpense, exchange_rate: null })).toEqual({
+      amount: 735,
+      currency: Currency.EGP,
+    });
+  });
+
+  it.each([
+    ['a transfer to EGP', TransactionType.Transfer, 4_900],
+    ['a transfer to USD', TransactionType.Transfer, 100],
+    ['a card payment to EGP', TransactionType.CCPayment, 4_900],
+    ['a card payment to USD', TransactionType.CCPayment, 100],
+  ])('gives USD 100 sent as %s its EGP amount', (_name, type, toAmount) => {
+    expect(resolveDetailAmountRowFigure(usdLeg(type, toAmount))).toEqual({
+      amount: 4_900,
+      currency: Currency.EGP,
+    });
+  });
+
+  it.each([
+    ['a transfer', TransactionType.Transfer],
+    ['a card payment', TransactionType.CCPayment],
+  ])('gives EGP 5,000 sent as %s to USD what arrived, in USD', (_name, type) => {
+    expect(resolveDetailAmountRowFigure(egpLeg(type, RATE, 102.04))).toEqual({
+      amount: 102.04,
+      currency: Currency.USD,
+    });
+  });
+
+  it('gives no figure to an EGP transaction with no USD leg, and to a commitment payment', () => {
+    expect({
+      egpToEgpTransfer: resolveDetailAmountRowFigure(egpLeg(TransactionType.Transfer, null, 5_000)),
+      egpExpense: resolveDetailAmountRowFigure(makeTestTransaction()),
+      egpTransferWithNoArrival: resolveDetailAmountRowFigure(
+        egpLeg(TransactionType.Transfer, RATE, null),
+      ),
+      commitmentPayment: resolveDetailAmountRowFigure(commitmentPayment),
+    }).toEqual({
+      egpToEgpTransfer: undefined,
+      egpExpense: undefined,
+      egpTransferWithNoArrival: undefined,
+      commitmentPayment: undefined,
+    });
+  });
+
+  it('frame C10: the skeleton holds the Amount in USD slot of an EGP to USD transfer at 2.0, and none for a commitment payment that stores a rate', () => {
+    const row = resolveDetailRowHeight(2);
+    const accountRow = resolveDetailRowHeight(2, true);
+
+    expect(
+      buildDetailSkeletonGeometry(egpLeg(TransactionType.Transfer, RATE, 102.04), 2).rowHeights,
+    ).toEqual([row, accountRow, row, row, row, row]);
+    expect(buildDetailSkeletonGeometry(commitmentPayment, 2).rowHeights).toEqual([
+      row,
+      accountRow,
       row,
       row,
       row,

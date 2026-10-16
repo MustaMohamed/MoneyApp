@@ -14,12 +14,14 @@ import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { STACKED_PREFIX } from '@/modules/navigation/domain/stacked_route';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { buildTransactionRowPresentation } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import {
   buildTransactionDetailPresentation,
   getAccountTypeIcon,
   getCommitmentPaymentRoute,
   resolveDetailViewState,
   resolveHeroTileGlyphColor,
+  type TransactionDetailPresentationInput,
 } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 import type { TransactionDetailStatus } from '@/modules/transactions/screens/transactions/detail/detail.state';
 import { makeTestCategory } from '@/test_helpers/transaction';
@@ -226,20 +228,20 @@ describe('buildTransactionDetailPresentation', () => {
     });
   });
 
-  it('renders the USD original amount at the config default', () => {
-    const { originalAmountText } = buildTransactionDetailPresentation({
-      tx: transaction({ amount: 1200 }),
-      account: account({ currency: Currency.USD }),
-    });
-    expect(originalAmountText).toBe('1,200.00 USD');
-  });
-
   // The sign is composed, so `formatAmount`'s -0 guard never sees a rounded-away magnitude.
   it('escalates to 2dp rather than print a sign beside a rounded-away magnitude', () => {
     expect(
       buildTransactionDetailPresentation({
-        tx: transaction({ type: TransactionType.Expense, egp_amount: 0.4 }),
-        account: account({}),
+        tx: transaction({
+          type: TransactionType.Expense,
+          currency: Currency.EGP,
+          amount: 0.4,
+          egp_amount: 0.4,
+          exchange_rate: null,
+          to_account_id: null,
+          to_amount: null,
+        }),
+        account: account({ currency: Currency.EGP }),
       }).hero,
     ).toMatchObject({ amountAccessibilityLabel: '−0.40 EGP', amountValue: '−0.40' });
   });
@@ -247,8 +249,16 @@ describe('buildTransactionDetailPresentation', () => {
   it('does not escalate once the site precision would print a nonzero digit', () => {
     expect(
       buildTransactionDetailPresentation({
-        tx: transaction({ type: TransactionType.Expense, egp_amount: 0.6 }),
-        account: account({}),
+        tx: transaction({
+          type: TransactionType.Expense,
+          currency: Currency.EGP,
+          amount: 0.6,
+          egp_amount: 0.6,
+          exchange_rate: null,
+          to_account_id: null,
+          to_amount: null,
+        }),
+        account: account({ currency: Currency.EGP }),
       }).hero,
     ).toMatchObject({ amountAccessibilityLabel: '−1 EGP', amountValue: '−1' });
   });
@@ -257,8 +267,14 @@ describe('buildTransactionDetailPresentation', () => {
   it('leaves a transfer amount unsigned', () => {
     expect(
       buildTransactionDetailPresentation({
-        tx: transaction({}),
-        account: account({}),
+        tx: transaction({
+          currency: Currency.EGP,
+          amount: 4_850,
+          egp_amount: 4_850,
+          exchange_rate: null,
+          to_amount: 4_850,
+        }),
+        account: account({ currency: Currency.EGP }),
       }).hero,
     ).toMatchObject({ amountAccessibilityLabel: '4,850 EGP', amountValue: '4,850' });
   });
@@ -466,6 +482,237 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
     expect(owned.hero).toMatchObject({ typeLabel: 'Expense' });
     expect(owned.hero).toEqual(plain.hero);
     expect(owned.sourceLabel).toBe(Strings.typeBadgeCommitment);
+  });
+});
+
+describe('buildTransactionDetailPresentation — amount in its own currency (MA-192)', () => {
+  const RATE = 49;
+  const egpAccount = account({ name: 'CIB', currency: Currency.EGP });
+  const usdAccount = account({ name: 'Chase', currency: Currency.USD });
+
+  function single(
+    type: TransactionType.Expense | TransactionType.Income,
+    currency: Currency,
+    overrides: Partial<Transaction> = {},
+  ): Transaction {
+    const usd = currency === Currency.USD;
+    return transaction({
+      type,
+      currency,
+      amount: usd ? 15 : 1_240,
+      egp_amount: usd ? 735 : 1_240,
+      exchange_rate: usd ? RATE : null,
+      to_account_id: null,
+      to_amount: null,
+      ...overrides,
+    });
+  }
+
+  // Each pair at rate 49: EGP 5,000 arrives as USD 102.04, USD 100 counts as EGP 4,900.
+  function twoAccount(
+    type: TransactionType.Transfer | TransactionType.CCPayment,
+    from: Currency,
+    to: Currency,
+  ): TransactionDetailPresentationInput {
+    const fromUsd = from === Currency.USD;
+    const toUsd = to === Currency.USD;
+    const toAmount = fromUsd ? (toUsd ? 100 : 4_900) : toUsd ? 102.04 : 5_000;
+    return {
+      tx: transaction({
+        type,
+        currency: from,
+        amount: fromUsd ? 100 : 5_000,
+        egp_amount: fromUsd ? 4_900 : 5_000,
+        exchange_rate: fromUsd || toUsd ? RATE : null,
+        to_amount: toAmount,
+      }),
+      account: fromUsd ? usdAccount : egpAccount,
+      toAccount: account({
+        id: 'destination',
+        name: 'Destination',
+        type: type === TransactionType.CCPayment ? AccountType.CreditCard : AccountType.Bank,
+        currency: to,
+      }),
+    };
+  }
+
+  // A commitment's payment toward a USD commitment from an EGP account: a rate, no USD leg.
+  const commitmentPayment = single(TransactionType.Expense, Currency.EGP, {
+    amount: 735,
+    egp_amount: 735,
+    exchange_rate: RATE,
+    commitment_payment_id: 'payment',
+  });
+
+  describe('the hero', () => {
+    it('frame C5: a USD 15 expense heroes −15.00 USD, not its EGP amount', () => {
+      expect(
+        buildTransactionDetailPresentation({
+          tx: single(TransactionType.Expense, Currency.USD),
+          account: usdAccount,
+        }).hero,
+      ).toMatchObject({
+        amountValue: '−15.00',
+        amountCode: 'USD',
+        amountAccessibilityLabel: '−15.00 USD',
+      });
+    });
+
+    it.each([
+      ['a USD 100 transfer to EGP', TransactionType.Transfer],
+      ['a USD 100 card payment to an EGP card', TransactionType.CCPayment],
+    ] as const)('%s heroes 100.00 USD, unsigned', (_name, type) => {
+      expect(
+        buildTransactionDetailPresentation(twoAccount(type, Currency.USD, Currency.EGP)).hero,
+      ).toMatchObject({
+        amountValue: '100.00',
+        amountCode: 'USD',
+        amountAccessibilityLabel: '100.00 USD',
+      });
+    });
+
+    it('prints the list row primary amount for every type and currency pair', () => {
+      const cardCredit = (currency: Currency): TransactionDetailPresentationInput => ({
+        tx: single(TransactionType.Income, currency),
+        account: account({ type: AccountType.CreditCard, currency }),
+      });
+      const inputs: Record<string, TransactionDetailPresentationInput> = {
+        egpExpense: { tx: single(TransactionType.Expense, Currency.EGP), account: egpAccount },
+        usdExpense: { tx: single(TransactionType.Expense, Currency.USD), account: usdAccount },
+        egpIncome: { tx: single(TransactionType.Income, Currency.EGP), account: egpAccount },
+        usdIncome: { tx: single(TransactionType.Income, Currency.USD), account: usdAccount },
+        egpCardCredit: cardCredit(Currency.EGP),
+        usdCardCredit: cardCredit(Currency.USD),
+      };
+      for (const type of [TransactionType.Transfer, TransactionType.CCPayment] as const) {
+        for (const from of [Currency.EGP, Currency.USD]) {
+          for (const to of [Currency.EGP, Currency.USD]) {
+            inputs[`${type} ${from} to ${to}`] = twoAccount(type, from, to);
+          }
+        }
+      }
+      const hero = Object.fromEntries(
+        Object.entries(inputs).map(([name, input]) => [
+          name,
+          buildTransactionDetailPresentation(input).hero.amountValue,
+        ]),
+      );
+      const row = Object.fromEntries(
+        Object.entries(inputs).map(([name, input]) => [
+          name,
+          buildTransactionRowPresentation(input).primaryAmount,
+        ]),
+      );
+
+      expect(hero).toEqual(row);
+    });
+  });
+
+  describe('the Amount in EGP and Amount in USD rows', () => {
+    it('frame C5: a USD 15 expense shows Amount in EGP 735 EGP beside its rate, and the same row with no rate stored', () => {
+      const rated = buildTransactionDetailPresentation({
+        tx: single(TransactionType.Expense, Currency.USD),
+        account: usdAccount,
+      });
+      const unrated = buildTransactionDetailPresentation({
+        tx: single(TransactionType.Expense, Currency.USD, { exchange_rate: null }),
+        account: usdAccount,
+      });
+
+      expect(rated.amountRow).toEqual({ label: 'Amount in EGP', value: '735 EGP' });
+      expect(rated.exchangeRateText).toBe('1 USD = 49.00 EGP');
+      expect(unrated.amountRow).toEqual({ label: 'Amount in EGP', value: '735 EGP' });
+    });
+
+    it.each([
+      ['a transfer to EGP', TransactionType.Transfer, Currency.EGP],
+      ['a transfer to USD', TransactionType.Transfer, Currency.USD],
+      ['a card payment to an EGP card', TransactionType.CCPayment, Currency.EGP],
+      ['a card payment to a USD card', TransactionType.CCPayment, Currency.USD],
+    ] as const)('USD 100 sent as %s shows Amount in EGP 4,900 EGP', (_name, type, to) => {
+      expect(
+        buildTransactionDetailPresentation(twoAccount(type, Currency.USD, to)).amountRow,
+      ).toEqual({ label: 'Amount in EGP', value: '4,900 EGP' });
+    });
+
+    it.each([
+      ['a transfer, destination resolved', TransactionType.Transfer, true],
+      ['a transfer, destination not resolved', TransactionType.Transfer, false],
+      ['a card payment, destination resolved', TransactionType.CCPayment, true],
+      ['a card payment, destination not resolved', TransactionType.CCPayment, false],
+    ] as const)(
+      'EGP 5,000 sent to USD as %s shows Amount in USD 102.04 USD',
+      (_name, type, resolved) => {
+        const input = twoAccount(type, Currency.EGP, Currency.USD);
+
+        expect(
+          buildTransactionDetailPresentation({
+            ...input,
+            toAccount: resolved ? input.toAccount : undefined,
+          }).amountRow,
+        ).toEqual({ label: 'Amount in USD', value: '102.04 USD' });
+      },
+    );
+
+    it('an EGP transaction shows an amount row only when it sends to USD', () => {
+      const rows = {
+        expense: buildTransactionDetailPresentation({
+          tx: single(TransactionType.Expense, Currency.EGP),
+          account: egpAccount,
+        }).amountRow,
+        income: buildTransactionDetailPresentation({
+          tx: single(TransactionType.Income, Currency.EGP),
+          account: egpAccount,
+        }).amountRow,
+        transferToEgp: buildTransactionDetailPresentation(
+          twoAccount(TransactionType.Transfer, Currency.EGP, Currency.EGP),
+        ).amountRow,
+        cardPaymentToEgp: buildTransactionDetailPresentation(
+          twoAccount(TransactionType.CCPayment, Currency.EGP, Currency.EGP),
+        ).amountRow,
+        transferToUsd: buildTransactionDetailPresentation(
+          twoAccount(TransactionType.Transfer, Currency.EGP, Currency.USD),
+        ).amountRow,
+        cardPaymentToUsd: buildTransactionDetailPresentation(
+          twoAccount(TransactionType.CCPayment, Currency.EGP, Currency.USD),
+        ).amountRow,
+      };
+      const arrived = { label: 'Amount in USD', value: '102.04 USD' };
+
+      expect(rows).toEqual({
+        expense: undefined,
+        income: undefined,
+        transferToEgp: undefined,
+        cardPaymentToEgp: undefined,
+        transferToUsd: arrived,
+        cardPaymentToUsd: arrived,
+      });
+    });
+
+    it('a commitment payment in EGP at rate 49 shows its Rate row alone, where an EGP transfer to USD at that rate adds Amount in USD', () => {
+      const payment = buildTransactionDetailPresentation({
+        tx: commitmentPayment,
+        account: egpAccount,
+      });
+      const transfer = buildTransactionDetailPresentation(
+        twoAccount(TransactionType.Transfer, Currency.EGP, Currency.USD),
+      );
+
+      expect(payment.amountRow).toBeUndefined();
+      expect(payment.exchangeRateText).toBe('1 USD = 49.00 EGP');
+      expect(payment.hero).toMatchObject({ amountValue: '−735', amountCode: 'EGP' });
+      expect(transfer.exchangeRateText).toBe('1 USD = 49.00 EGP');
+      expect(transfer.amountRow).toEqual({ label: 'Amount in USD', value: '102.04 USD' });
+    });
+
+    it('prints a USD 0.01 expense at rate 49 as Amount in EGP 0.49 EGP, escalated past 0 dp', () => {
+      expect(
+        buildTransactionDetailPresentation({
+          tx: single(TransactionType.Expense, Currency.USD, { amount: 0.01, egp_amount: 0.49 }),
+          account: usdAccount,
+        }).amountRow,
+      ).toEqual({ label: 'Amount in EGP', value: '0.49 EGP' });
+    });
   });
 });
 
