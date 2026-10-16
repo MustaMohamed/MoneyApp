@@ -10,7 +10,6 @@ import {
   getTransactionAccountIds,
   mergeAccountsById,
 } from '@/modules/accounts/store/account_lookup.helpers';
-import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
@@ -23,7 +22,9 @@ import { resolveAccountName } from '@/utils/account_name';
 
 import {
   buildTransactionDetailPresentation,
+  findFrozenLeg,
   getCommitmentPaymentRoute,
+  resolveDetailActionSet,
   resolveDetailViewState,
 } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useTxDetailState } from './detail.state';
@@ -179,12 +180,12 @@ export function useTransactionDetail(id: string) {
   );
   const commitmentPaymentId = currentTx?.commitment_payment_id ?? undefined;
   const isCommitmentOwned = commitmentPaymentId !== undefined;
-  const archivedLeg = currentTx
-    ? getTransactionAccountIds(currentTx)
-        .map((accountId) => accountsById.get(accountId))
-        .find((account) => account !== undefined && isFrozenAccount(account))
-    : undefined;
-  const isMutable = !isCommitmentOwned && archivedLeg === undefined;
+  const archivedLeg = currentTx ? findFrozenLeg(currentTx, accountsById) : undefined;
+  const actionSet = currentTx ? resolveDetailActionSet(currentTx, accountsById) : 'editDelete';
+  const loadingActionSet = loadingTransactionHint
+    ? resolveDetailActionSet(loadingTransactionHint, accountsById)
+    : 'editDelete';
+  const isMutable = actionSet === 'editDelete';
 
   const derived = useMemo(() => {
     if (!currentTx) return null;
@@ -263,6 +264,8 @@ export function useTransactionDetail(id: string) {
       confirmVisible,
       deleting,
       isCommitmentOwned,
+      actionSet,
+      loadingActionSet,
       isEditable: isMutable,
       isDeletable: isMutable,
       archivedAccountLine: archivedLeg

@@ -3,7 +3,7 @@ import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { CoreTokens, InfoTokens } from '@/constants/theme_tokens';
+import { AcctTokens, CoreTokens, InfoTokens } from '@/constants/theme_tokens';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
 import { resolveAccountBadgeColors } from '@/modules/accounts/constants/account_badge_color';
 import {
@@ -11,6 +11,8 @@ import {
   contrastRatio,
 } from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { getTransactionAccountIds } from '@/modules/accounts/store/account_lookup.helpers';
+import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
@@ -37,6 +39,9 @@ import {
   buildTransactionRowPresentation,
   isCardCredit,
   primaryAmountFor,
+  resolveCategoryGlyph,
+  resolveRowTile,
+  type RowTile,
 } from '../components/transaction_row.helpers';
 import { resolveDetailAmountRowFigure } from './components/detail.geometry';
 import type { BadgeTone } from './components/detail_row';
@@ -127,6 +132,11 @@ export interface TransactionDetailPresentation {
   accountLabel: string;
   accountTypeLabel?: string;
   accountIcon: IconName;
+  accountRow?: DetailAccountRow;
+  categoryRow?: DetailCategoryRow;
+  dateText: string;
+  timeText: string;
+  source: DetailSource;
   amountRow?: DetailAmountRowText;
   exchangeRateText?: string;
   budgetLabel?: string;
@@ -138,6 +148,56 @@ export interface TransactionDetailPresentation {
     fromAmountText: TransferCellText;
     toAmountText: TransferCellText;
   } | null;
+}
+
+export interface DetailAccountRow {
+  name: string;
+  tile: RowTile;
+  archived: boolean;
+}
+
+export interface DetailCategoryRow {
+  name: string;
+  glyphName: IconName;
+  glyphColor: string;
+}
+
+export type DetailSource = 'manual' | 'commitment';
+
+export type DetailActionSet = 'editDelete' | 'viewCommitment' | 'archivedNotice';
+
+/** A deleted account is archived too, yet never frozen: it keeps its row's tile and is never marked archived. */
+export function resolveDetailAccountRow(account: Account | undefined): DetailAccountRow {
+  const archived = account !== undefined && isFrozenAccount(account);
+  return {
+    name: resolveAccountName(account),
+    tile: archived
+      ? { color: AcctTokens.graphite.rich, type: account.type, hollow: true }
+      : resolveRowTile(account),
+    archived,
+  };
+}
+
+export function findFrozenLeg(
+  tx: Pick<Transaction, 'account_id' | 'to_account_id'>,
+  accountsById: ReadonlyMap<string, Account>,
+): Account | undefined {
+  return getTransactionAccountIds(tx)
+    .map((accountId) => accountsById.get(accountId))
+    .find((account) => account !== undefined && isFrozenAccount(account));
+}
+
+/** A commitment's payment is checked first, so it shows View commitment on an archived account too. */
+export function resolveDetailActionSet(
+  tx: Pick<Transaction, 'account_id' | 'to_account_id' | 'commitment_payment_id'>,
+  accountsById: ReadonlyMap<string, Account>,
+): DetailActionSet {
+  if (tx.commitment_payment_id !== null) return 'viewCommitment';
+  return findFrozenLeg(tx, accountsById) ? 'archivedNotice' : 'editDelete';
+}
+
+export function resolveDetailActionBarCount(actionSet: DetailActionSet): 1 | 2 {
+  return actionSet === 'editDelete' ? 2 : 1;
 }
 
 export interface DetailAmountRowText {
@@ -187,7 +247,9 @@ export function buildTransactionDetailPresentation({
   const typeColor = cardCredit ? InfoTokens[500] : TRANSACTION_TYPE_ICONS[tx.type].color;
   const amount = primaryAmountFor(tx, cardCredit);
   const badge = resolveAccountBadgeColors(typeColor);
-  const dateTimeText = `${formatWeekdayDate(tx.transaction_date)}, ${formatTime12h(tx.transaction_time)}`;
+  const dateText = formatWeekdayDate(tx.transaction_date);
+  const timeText = formatTime12h(tx.transaction_time);
+  const dateTimeText = `${dateText}, ${timeText}`;
 
   return {
     hero: {
@@ -216,6 +278,13 @@ export function buildTransactionDetailPresentation({
       : resolveAccountName(account),
     accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
     accountIcon: getAccountTypeIcon(account?.type),
+    accountRow: isTransferLike ? undefined : resolveDetailAccountRow(account),
+    categoryRow: isTransferLike
+      ? undefined
+      : { name: category?.name ?? Strings.uncategorized, ...resolveCategoryGlyph(category) },
+    dateText,
+    timeText,
+    source: tx.commitment_payment_id === null ? 'manual' : 'commitment',
     amountRow: amountRowText(tx),
     exchangeRateText:
       tx.exchange_rate === null ? undefined : formatExchangeRateSentence(tx.exchange_rate),

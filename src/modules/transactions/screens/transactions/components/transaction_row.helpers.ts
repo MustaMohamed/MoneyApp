@@ -137,7 +137,7 @@ export interface TransactionRowPresentation {
   accessibilityLabel: string;
 }
 
-interface RowGlyph {
+export interface RowGlyph {
   glyphName: IconName;
   glyphColor: string;
 }
@@ -234,12 +234,14 @@ function amountClassNameFor(tx: Transaction, cardCredit: boolean): string {
 
 function glyphFor(tx: Transaction, cardCredit: boolean, category?: Category): RowGlyph {
   if (cardCredit) return CARD_CREDIT_GLYPH;
-  return (
-    TYPE_GLYPHS[tx.type] ?? {
-      glyphName: toIconName(category?.icon, FALLBACK_ICON),
-      glyphColor: category?.color ?? GoldTokens[500],
-    }
-  );
+  return TYPE_GLYPHS[tx.type] ?? resolveCategoryGlyph(category);
+}
+
+export function resolveCategoryGlyph(category: Category | undefined): RowGlyph {
+  return {
+    glyphName: toIconName(category?.icon, FALLBACK_ICON),
+    glyphColor: category?.color ?? GoldTokens[500],
+  };
 }
 
 export function buildTransactionRowPresentation(
