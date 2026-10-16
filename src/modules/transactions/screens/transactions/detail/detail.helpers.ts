@@ -44,11 +44,7 @@ import {
   resolveRowTile,
   type RowTile,
 } from '../components/transaction_row.helpers';
-import {
-  type DetailFactKind,
-  resolveDetailAmountRowFigure,
-  resolveDetailFactSlots,
-} from './components/detail.geometry';
+import { type DetailFactKind, resolveDetailFactSlots } from './components/detail.geometry';
 import type { TransactionDetailStatus } from './detail.state';
 
 type IconName = AccountTypeIconName;
@@ -122,14 +118,6 @@ export interface TransactionDetailHero {
 
 export interface TransactionDetailPresentation {
   hero: TransactionDetailHero;
-  accountRow?: DetailAccountRow;
-  categoryRow?: DetailCategoryRow;
-  dateText: string;
-  timeText: string;
-  source: DetailSource;
-  amountRow?: DetailAmountRowText;
-  exchangeRateText?: string;
-  budgetLabel?: string;
   facts: readonly DetailFact[];
   isTransferLike: boolean;
   transferFlow: {
@@ -144,12 +132,6 @@ export interface DetailAccountRow {
   name: string;
   tile: RowTile;
   archived: boolean;
-}
-
-export interface DetailCategoryRow {
-  name: string;
-  glyphName: IconName;
-  glyphColor: string;
 }
 
 export type DetailSource = 'manual' | 'commitment';
@@ -313,7 +295,6 @@ export function buildTransactionDetailPresentation({
   };
   const budgetName = budget?.name ?? Strings.detailBudgetUnavailable;
   const source: DetailSource = tx.commitment_payment_id === null ? 'manual' : 'commitment';
-  const amountFigure = resolveDetailAmountRowFigure(tx);
   const facts = resolveDetailFactSlots(tx).map((slot): DetailFact => {
     switch (slot.kind) {
       case 'account':
@@ -377,15 +358,6 @@ export function buildTransactionDetailPresentation({
       amountAccessibilityLabel: amount.withCode,
       caption: `${dateText}, ${timeText}`,
     },
-    accountRow: isTransferLike ? undefined : accountRow,
-    categoryRow: isTransferLike ? undefined : categoryRow,
-    dateText,
-    timeText,
-    source,
-    amountRow: amountFigure ? amountRowText(amountFigure) : undefined,
-    exchangeRateText:
-      tx.exchange_rate === null ? undefined : formatExchangeRateSentence(tx.exchange_rate),
-    budgetLabel: tx.budget_id === null ? undefined : budgetName,
     facts,
     isTransferLike,
     transferFlow:

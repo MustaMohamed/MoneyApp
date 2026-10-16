@@ -16,7 +16,10 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { STACKED_PREFIX } from '@/modules/navigation/domain/stacked_route';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { buildTransactionRowPresentation } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
-import { buildDetailSkeletonGeometry } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
+import {
+  buildDetailSkeletonGeometry,
+  type DetailFactKind,
+} from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import {
   buildTransactionDetailPresentation,
   getAccountTypeIcon,
@@ -26,11 +29,58 @@ import {
   resolveDetailActionSet,
   resolveDetailViewState,
   resolveHeroTileGlyphColor,
+  type DetailFact,
+  type TransactionDetailPresentation,
   type TransactionDetailPresentationInput,
 } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 import type { TransactionDetailStatus } from '@/modules/transactions/screens/transactions/detail/detail.state';
 import { makeTestCategory } from '@/test_helpers/transaction';
 import { formatCurrencyAmount } from '@/utils/format_amount';
+
+// The presentation exposes its rows as `facts` alone; this reads one back by kind.
+function factOf(
+  presentation: TransactionDetailPresentation | null | undefined,
+  kind: DetailFactKind,
+): DetailFact | undefined {
+  return presentation?.facts.find((fact) => fact.kind === kind);
+}
+
+function accountRowOf(presentation: TransactionDetailPresentation) {
+  const fact = factOf(presentation, 'account');
+  if (fact?.leading?.kind !== 'tile') return undefined;
+  return {
+    name: fact.value,
+    tile: fact.leading.tile,
+    archived: fact.badge?.label === Strings.detailAccountArchived,
+  };
+}
+
+function categoryRowOf(presentation: TransactionDetailPresentation) {
+  const fact = factOf(presentation, 'category');
+  if (fact?.leading?.kind !== 'glyph') return undefined;
+  return {
+    name: fact.value,
+    glyphName: fact.leading.glyphName,
+    glyphColor: fact.leading.glyphColor,
+  };
+}
+
+function amountRowOf(presentation: TransactionDetailPresentation) {
+  const fact = factOf(presentation, 'amount');
+  return fact && { label: fact.label, value: fact.value };
+}
+
+// Manual entry is the Source row's value with no badge; a commitment's payment is the badge alone.
+function sourceOf(
+  presentation: TransactionDetailPresentation,
+): 'manual' | 'commitment' | undefined {
+  const fact = factOf(presentation, 'source');
+  if (fact?.value === Strings.detailManualSource && fact.badge === undefined) return 'manual';
+  if (fact?.value === undefined && fact?.badge?.label === Strings.typeBadgeCommitment) {
+    return 'commitment';
+  }
+  return undefined;
+}
 
 const now = '2026-07-20T12:00:00.000Z';
 
@@ -189,23 +239,21 @@ describe('buildTransactionDetailPresentation', () => {
       updated_at: now,
     };
 
-    expect(
-      buildTransactionDetailPresentation({
-        tx: transaction({
-          type: TransactionType.Expense,
-          currency: Currency.EGP,
-          to_account_id: null,
-          to_amount: null,
-          budget_id: budget.id,
-          commitment_payment_id: 'payment',
-        }),
-        account: account({ currency: Currency.EGP }),
-        budget,
+    const presentation = buildTransactionDetailPresentation({
+      tx: transaction({
+        type: TransactionType.Expense,
+        currency: Currency.EGP,
+        to_account_id: null,
+        to_amount: null,
+        budget_id: budget.id,
+        commitment_payment_id: 'payment',
       }),
-    ).toMatchObject({
-      budgetLabel: 'Conference meals',
-      source: 'commitment',
+      account: account({ currency: Currency.EGP }),
+      budget,
     });
+
+    expect(factOf(presentation, 'budget')?.value).toBe('Conference meals');
+    expect(sourceOf(presentation)).toBe('commitment');
   });
 
   it('presents credit-card income as Card credit', () => {
@@ -283,10 +331,13 @@ describe('buildTransactionDetailPresentation', () => {
   });
 
   it('keeps the rate at 2dp regardless of the EGP amount default — the tripwire that would catch a find-and-replace onto formatCurrencyAmount', () => {
-    const { exchangeRateText } = buildTransactionDetailPresentation({
-      tx: transaction({ exchange_rate: 48.6 }),
-      account: account({ currency: Currency.USD }),
-    });
+    const exchangeRateText = factOf(
+      buildTransactionDetailPresentation({
+        tx: transaction({ exchange_rate: 48.6 }),
+        account: account({ currency: Currency.USD }),
+      }),
+      'rate',
+    )?.value;
     expect(exchangeRateText).toBe('1 USD = 48.60 EGP');
     // `formatCurrencyAmount` gives EGP 0dp, the wrong decimals for a rate; this pins that.
     expect(formatCurrencyAmount(48.6, Currency.EGP)).toBe('49 EGP');
@@ -384,8 +435,8 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
       amountAccessibilityLabel: '−1,240 EGP',
       caption: 'Tue 22 Sep 2026, 6:40 PM',
     });
-    expect(presentation.dateText).toBe('Tue 22 Sep 2026');
-    expect(presentation.timeText).toBe('6:40 PM');
+    expect(factOf(presentation, 'date')?.value).toBe('Tue 22 Sep 2026');
+    expect(factOf(presentation, 'time')?.value).toBe('6:40 PM');
   });
 
   it('frame C2: an income takes the Income badge in the success colour, signed plus', () => {
@@ -458,7 +509,7 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
       tileColor: GoldTokens[500],
       tileGlyphColor: CoreTokens.bg,
     });
-    expect(presentation.categoryRow?.name).toBe('Uncategorized');
+    expect(factOf(presentation, 'category')?.value).toBe('Uncategorized');
   });
 
   it.each([
@@ -485,7 +536,7 @@ describe('buildTransactionDetailPresentation — hero (MA-180)', () => {
 
     expect(owned.hero).toMatchObject({ typeLabel: 'Expense' });
     expect(owned.hero).toEqual(plain.hero);
-    expect(owned.source).toBe('commitment');
+    expect(sourceOf(owned)).toBe('commitment');
   });
 });
 
@@ -623,9 +674,9 @@ describe('buildTransactionDetailPresentation — amount in its own currency (MA-
         account: usdAccount,
       });
 
-      expect(rated.amountRow).toEqual({ label: 'Amount in EGP', value: '735 EGP' });
-      expect(rated.exchangeRateText).toBe('1 USD = 49.00 EGP');
-      expect(unrated.amountRow).toEqual({ label: 'Amount in EGP', value: '735 EGP' });
+      expect(amountRowOf(rated)).toEqual({ label: 'Amount in EGP', value: '735 EGP' });
+      expect(factOf(rated, 'rate')?.value).toBe('1 USD = 49.00 EGP');
+      expect(amountRowOf(unrated)).toEqual({ label: 'Amount in EGP', value: '735 EGP' });
     });
 
     it.each([
@@ -635,7 +686,7 @@ describe('buildTransactionDetailPresentation — amount in its own currency (MA-
       ['a card payment to a USD card', TransactionType.CCPayment, Currency.USD],
     ] as const)('USD 100 sent as %s shows Amount in EGP 4,900 EGP', (_name, type, to) => {
       expect(
-        buildTransactionDetailPresentation(twoAccount(type, Currency.USD, to)).amountRow,
+        amountRowOf(buildTransactionDetailPresentation(twoAccount(type, Currency.USD, to))),
       ).toEqual({ label: 'Amount in EGP', value: '4,900 EGP' });
     });
 
@@ -650,36 +701,50 @@ describe('buildTransactionDetailPresentation — amount in its own currency (MA-
         const input = twoAccount(type, Currency.EGP, Currency.USD);
 
         expect(
-          buildTransactionDetailPresentation({
-            ...input,
-            toAccount: resolved ? input.toAccount : undefined,
-          }).amountRow,
+          amountRowOf(
+            buildTransactionDetailPresentation({
+              ...input,
+              toAccount: resolved ? input.toAccount : undefined,
+            }),
+          ),
         ).toEqual({ label: 'Amount in USD', value: '102.04 USD' });
       },
     );
 
     it('an EGP transaction shows an amount row only when it sends to USD', () => {
       const rows = {
-        expense: buildTransactionDetailPresentation({
-          tx: single(TransactionType.Expense, Currency.EGP),
-          account: egpAccount,
-        }).amountRow,
-        income: buildTransactionDetailPresentation({
-          tx: single(TransactionType.Income, Currency.EGP),
-          account: egpAccount,
-        }).amountRow,
-        transferToEgp: buildTransactionDetailPresentation(
-          twoAccount(TransactionType.Transfer, Currency.EGP, Currency.EGP),
-        ).amountRow,
-        cardPaymentToEgp: buildTransactionDetailPresentation(
-          twoAccount(TransactionType.CCPayment, Currency.EGP, Currency.EGP),
-        ).amountRow,
-        transferToUsd: buildTransactionDetailPresentation(
-          twoAccount(TransactionType.Transfer, Currency.EGP, Currency.USD),
-        ).amountRow,
-        cardPaymentToUsd: buildTransactionDetailPresentation(
-          twoAccount(TransactionType.CCPayment, Currency.EGP, Currency.USD),
-        ).amountRow,
+        expense: amountRowOf(
+          buildTransactionDetailPresentation({
+            tx: single(TransactionType.Expense, Currency.EGP),
+            account: egpAccount,
+          }),
+        ),
+        income: amountRowOf(
+          buildTransactionDetailPresentation({
+            tx: single(TransactionType.Income, Currency.EGP),
+            account: egpAccount,
+          }),
+        ),
+        transferToEgp: amountRowOf(
+          buildTransactionDetailPresentation(
+            twoAccount(TransactionType.Transfer, Currency.EGP, Currency.EGP),
+          ),
+        ),
+        cardPaymentToEgp: amountRowOf(
+          buildTransactionDetailPresentation(
+            twoAccount(TransactionType.CCPayment, Currency.EGP, Currency.EGP),
+          ),
+        ),
+        transferToUsd: amountRowOf(
+          buildTransactionDetailPresentation(
+            twoAccount(TransactionType.Transfer, Currency.EGP, Currency.USD),
+          ),
+        ),
+        cardPaymentToUsd: amountRowOf(
+          buildTransactionDetailPresentation(
+            twoAccount(TransactionType.CCPayment, Currency.EGP, Currency.USD),
+          ),
+        ),
       };
       const arrived = { label: 'Amount in USD', value: '102.04 USD' };
 
@@ -702,19 +767,21 @@ describe('buildTransactionDetailPresentation — amount in its own currency (MA-
         twoAccount(TransactionType.Transfer, Currency.EGP, Currency.USD),
       );
 
-      expect(payment.amountRow).toBeUndefined();
-      expect(payment.exchangeRateText).toBe('1 USD = 49.00 EGP');
+      expect(amountRowOf(payment)).toBeUndefined();
+      expect(factOf(payment, 'rate')?.value).toBe('1 USD = 49.00 EGP');
       expect(payment.hero).toMatchObject({ amountValue: '−735', amountCode: 'EGP' });
-      expect(transfer.exchangeRateText).toBe('1 USD = 49.00 EGP');
-      expect(transfer.amountRow).toEqual({ label: 'Amount in USD', value: '102.04 USD' });
+      expect(factOf(transfer, 'rate')?.value).toBe('1 USD = 49.00 EGP');
+      expect(amountRowOf(transfer)).toEqual({ label: 'Amount in USD', value: '102.04 USD' });
     });
 
     it('prints a USD 0.01 expense at rate 49 as Amount in EGP 0.49 EGP, escalated past 0 dp', () => {
       expect(
-        buildTransactionDetailPresentation({
-          tx: single(TransactionType.Expense, Currency.USD, { amount: 0.01, egp_amount: 0.49 }),
-          account: usdAccount,
-        }).amountRow,
+        amountRowOf(
+          buildTransactionDetailPresentation({
+            tx: single(TransactionType.Expense, Currency.USD, { amount: 0.01, egp_amount: 0.49 }),
+            account: usdAccount,
+          }),
+        ),
       ).toEqual({ label: 'Amount in EGP', value: '0.49 EGP' });
     });
   });
@@ -906,16 +973,16 @@ describe('buildTransactionDetailPresentation — fact rows (MA-181)', () => {
   it('frame C1: an expense reads its account on its tile, its glyph in the category colour, the weekday date, the time and a manual source', () => {
     const presentation = buildTransactionDetailPresentation(expenseInput);
 
-    expect(presentation.accountRow).toEqual(cibRow);
-    expect(presentation.categoryRow).toEqual({
+    expect(accountRowOf(presentation)).toEqual(cibRow);
+    expect(categoryRowOf(presentation)).toEqual({
       name: 'Groceries',
       glyphName: 'cart',
       glyphColor: '#5C7FC4',
     });
     expect({
-      dateText: presentation.dateText,
-      timeText: presentation.timeText,
-      source: presentation.source,
+      dateText: factOf(presentation, 'date')?.value,
+      timeText: factOf(presentation, 'time')?.value,
+      source: sourceOf(presentation),
     }).toEqual({ dateText: 'Tue 22 Sep 2026', timeText: '6:40 PM', source: 'manual' });
   });
 
@@ -931,13 +998,13 @@ describe('buildTransactionDetailPresentation — fact rows (MA-181)', () => {
       category: salary,
     });
 
-    expect(presentation.accountRow).toEqual(cibRow);
-    expect(presentation.categoryRow).toEqual({
+    expect(accountRowOf(presentation)).toEqual(cibRow);
+    expect(categoryRowOf(presentation)).toEqual({
       name: 'Salary',
       glyphName: 'briefcase',
       glyphColor: '#478D6E',
     });
-    expect(presentation.source).toBe('manual');
+    expect(sourceOf(presentation)).toBe('manual');
   });
 
   it.each([
@@ -974,11 +1041,11 @@ describe('buildTransactionDetailPresentation — fact rows (MA-181)', () => {
       const presentation = buildTransactionDetailPresentation(input);
 
       expect({
-        accountRow: presentation.accountRow,
-        categoryRow: presentation.categoryRow,
-        dateText: presentation.dateText,
-        timeText: presentation.timeText,
-        source: presentation.source,
+        accountRow: accountRowOf(presentation),
+        categoryRow: categoryRowOf(presentation),
+        dateText: factOf(presentation, 'date')?.value,
+        timeText: factOf(presentation, 'time')?.value,
+        source: sourceOf(presentation),
       }).toEqual({
         accountRow: undefined,
         categoryRow: undefined,
@@ -1002,7 +1069,7 @@ describe('buildTransactionDetailPresentation — fact rows (MA-181)', () => {
       category: refunds,
     });
 
-    expect(presentation.categoryRow).toEqual({
+    expect(categoryRowOf(presentation)).toEqual({
       name: 'Refunds',
       glyphName: 'cash-refund',
       glyphColor: '#478D6E',
@@ -1011,10 +1078,12 @@ describe('buildTransactionDetailPresentation — fact rows (MA-181)', () => {
 
   it('keeps Uncategorized on the fallback glyph in gold when the category does not resolve', () => {
     expect(
-      buildTransactionDetailPresentation({
-        tx: egp({ type: TransactionType.Expense, category_id: 'deleted-category' }),
-        account: cib,
-      }).categoryRow,
+      categoryRowOf(
+        buildTransactionDetailPresentation({
+          tx: egp({ type: TransactionType.Expense, category_id: 'deleted-category' }),
+          account: cib,
+        }),
+      ),
     ).toEqual({
       name: Strings.uncategorized,
       glyphName: 'shape-outline',
@@ -1024,10 +1093,12 @@ describe('buildTransactionDetailPresentation — fact rows (MA-181)', () => {
 
   it("frame C6: a commitment's payment reads its source as the commitment", () => {
     expect(
-      buildTransactionDetailPresentation({
-        ...expenseInput,
-        tx: { ...expenseInput.tx, commitment_payment_id: 'payment' },
-      }).source,
+      sourceOf(
+        buildTransactionDetailPresentation({
+          ...expenseInput,
+          tx: { ...expenseInput.tx, commitment_payment_id: 'payment' },
+        }),
+      ),
     ).toBe('commitment');
   });
 });
@@ -1046,14 +1117,17 @@ describe('buildTransactionDetailPresentation — deleted accounts (MA-020)', () 
 
   it('labels a single-account transaction on a deleted account', () => {
     expect(
-      buildTransactionDetailPresentation({
-        tx: transaction({
-          type: TransactionType.Expense,
-          to_account_id: null,
-          to_amount: null,
+      factOf(
+        buildTransactionDetailPresentation({
+          tx: transaction({
+            type: TransactionType.Expense,
+            to_account_id: null,
+            to_amount: null,
+          }),
+          account: deletedSource,
         }),
-        account: deletedSource,
-      }).accountRow?.name,
+        'account',
+      )?.value,
     ).toBe(Strings.deletedAccount);
   });
 });
@@ -1061,14 +1135,17 @@ describe('buildTransactionDetailPresentation — deleted accounts (MA-020)', () 
 describe('buildTransactionDetailPresentation — blank-named accounts (MA-062)', () => {
   it('labels a single-account transaction on a blank-named account', () => {
     expect(
-      buildTransactionDetailPresentation({
-        tx: transaction({
-          type: TransactionType.Expense,
-          to_account_id: null,
-          to_amount: null,
+      factOf(
+        buildTransactionDetailPresentation({
+          tx: transaction({
+            type: TransactionType.Expense,
+            to_account_id: null,
+            to_amount: null,
+          }),
+          account: account({ name: '' }),
         }),
-        account: account({ name: '' }),
-      }).accountRow?.name,
+        'account',
+      )?.value,
     ).toBe(Strings.unnamedAccount);
   });
 });
@@ -1177,6 +1254,37 @@ describe('buildTransactionDetailPresentation — fact rows as data (MA-181)', ()
       label: 'Account',
       value: 'Old HSBC',
       badge: archivedBadge,
+    });
+  });
+
+  it('frame C5: only the amount and Rate facts fit their value, on a USD expense with a budget and a rate', () => {
+    const tx = transaction({
+      type: TransactionType.Expense,
+      currency: Currency.USD,
+      amount: 15,
+      egp_amount: 735,
+      exchange_rate: 49,
+      budget_id: 'budget',
+      to_account_id: null,
+      to_amount: null,
+    });
+
+    expect(
+      Object.fromEntries(
+        buildTransactionDetailPresentation({ tx, account: cib }).facts.map((fact) => [
+          fact.kind,
+          fact.fitsValue,
+        ]),
+      ),
+    ).toEqual({
+      account: false,
+      category: false,
+      budget: false,
+      amount: true,
+      rate: true,
+      date: false,
+      time: false,
+      source: false,
     });
   });
 

@@ -12,6 +12,11 @@ import type { CommitmentPayment } from '@/modules/commitments/entities/commitmen
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
+import type { DetailFactKind } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
+import type {
+  DetailFact,
+  TransactionDetailPresentation,
+} from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 import { useTransactionDetail } from '@/modules/transactions/screens/transactions/detail/detail.hook';
 import { useTxDetailState } from '@/modules/transactions/screens/transactions/detail/detail.state';
 import { useTxDetailStore } from '@/modules/transactions/screens/transactions/detail/detail.store';
@@ -20,6 +25,14 @@ import { useTransactionStore } from '@/modules/transactions/store/transaction.st
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
+
+// The presentation exposes its rows as `facts` alone; this reads one back by kind.
+function factOf(
+  presentation: TransactionDetailPresentation | null | undefined,
+  kind: DetailFactKind,
+): DetailFact | undefined {
+  return presentation?.facts.find((fact) => fact.kind === kind);
+}
 
 const mockGetBudgetById = jest.fn<Promise<Budget | undefined>, [string]>();
 const mockGetCommitmentPaymentById = jest.fn<Promise<CommitmentPayment | undefined>, [string]>();
@@ -234,10 +247,14 @@ describe('useTransactionDetail loading', () => {
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(mockGetBudgetById).toHaveBeenCalledWith('budget-1');
     expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
-    expect(result.current.state.derived?.budgetLabel).toBe(Strings.detailBudgetUnavailable);
+    expect(factOf(result.current.state.derived, 'budget')?.value).toBe(
+      Strings.detailBudgetUnavailable,
+    );
 
     pendingBudget.resolve(budget);
-    await waitFor(() => expect(result.current.state.derived?.budgetLabel).toBe('Travel meals'));
+    await waitFor(() =>
+      expect(factOf(result.current.state.derived, 'budget')?.value).toBe('Travel meals'),
+    );
   });
 
   it('publishes the transaction before ancillary account metadata resolves', async () => {
@@ -262,7 +279,9 @@ describe('useTransactionDetail loading', () => {
 
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
-    expect(result.current.state.derived?.budgetLabel).toBe(Strings.detailBudgetUnavailable);
+    expect(factOf(result.current.state.derived, 'budget')?.value).toBe(
+      Strings.detailBudgetUnavailable,
+    );
     expect(consoleSpy).toHaveBeenCalledWith(
       '[transactionDetail] budget lookup failed',
       expect.any(Error),
@@ -278,7 +297,7 @@ describe('useTransactionDetail loading', () => {
 
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
-    expect(result.current.state.derived?.accountRow?.name).toBe(Strings.unknownAccount);
+    expect(factOf(result.current.state.derived, 'account')?.value).toBe(Strings.unknownAccount);
     expect(consoleSpy).toHaveBeenCalledWith(
       '[transactionDetail] account lookup failed',
       expect.any(Error),
@@ -591,10 +610,11 @@ describe('useTransactionDetail archived account (MA-053)', () => {
 
     expect(result.current.state.isEditable).toBe(false);
     expect(result.current.state.isDeletable).toBe(false);
-    expect(result.current.state.archivedAccountLine).toBe(
-      Strings.transactionAccountArchived('Old Card'),
-    );
-    expect(result.current.state.actionSet).toBe('archivedNotice');
+    expect(result.current.state.actions).toEqual({
+      actionSet: 'archivedNotice',
+      notice: Strings.transactionAccountArchived('Old Card'),
+    });
+    expect(result.current.state.actions.actionSet).toBe('archivedNotice');
 
     await act(() => result.current.openEdit());
     await act(() => result.current.openDeleteConfirm());
@@ -611,12 +631,13 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
-    expect(result.current.state.archivedAccountLine).toBe(
-      Strings.transactionAccountArchived(Strings.unnamedAccount),
-    );
+    expect(result.current.state.actions).toEqual({
+      actionSet: 'archivedNotice',
+      notice: Strings.transactionAccountArchived(Strings.unnamedAccount),
+    });
     expect(result.current.state.isEditable).toBe(false);
     expect(result.current.state.isDeletable).toBe(false);
-    expect(result.current.state.actionSet).toBe('archivedNotice');
+    expect(result.current.state.actions.actionSet).toBe('archivedNotice');
   });
 
   it('keeps edit and delete on a deleted source, with no line', async () => {
@@ -629,8 +650,8 @@ describe('useTransactionDetail archived account (MA-053)', () => {
 
     expect(result.current.state.isEditable).toBe(true);
     expect(result.current.state.isDeletable).toBe(true);
-    expect(result.current.state.archivedAccountLine).toBeUndefined();
-    expect(result.current.state.actionSet).toBe('editDelete');
+    expect(result.current.state.actions).toEqual({ actionSet: 'editDelete' });
+    expect(result.current.state.actions.actionSet).toBe('editDelete');
   });
 
   const paymentAccounts: Array<[string, Partial<Account>]> = [
@@ -647,8 +668,8 @@ describe('useTransactionDetail archived account (MA-053)', () => {
       const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
       await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
-      expect(result.current.state.actionSet).toBe('viewCommitment');
-      expect(result.current.state.archivedAccountLine).toBeUndefined();
+      expect(result.current.state.actions).toEqual({ actionSet: 'viewCommitment' });
+      expect(result.current.state.actions.notice).toBeUndefined();
     },
   );
 
@@ -665,14 +686,15 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     await waitFor(() =>
-      expect(result.current.state.archivedAccountLine).toBe(
-        Strings.transactionAccountArchived(archivedCounterparty.name),
-      ),
+      expect(result.current.state.actions).toEqual({
+        actionSet: 'archivedNotice',
+        notice: Strings.transactionAccountArchived(archivedCounterparty.name),
+      }),
     );
 
     expect(result.current.state.isEditable).toBe(false);
     expect(result.current.state.isDeletable).toBe(false);
-    expect(result.current.state.actionSet).toBe('archivedNotice');
+    expect(result.current.state.actions.actionSet).toBe('archivedNotice');
   });
 
   it('alerts the line when the repository refuses the delete', async () => {
