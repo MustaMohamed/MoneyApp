@@ -3,6 +3,7 @@ import type React from 'react';
 import { PixelRatio } from 'react-native';
 
 import { resolveRowStacking, scaledFontSize } from '@/components/ui/text_scale.geometry';
+import { TYPE_BADGE_VERTICAL_CHROME } from '@/components/ui/type_badge';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -44,9 +45,8 @@ export const TRANSACTION_ROW_LINE_GAP = ms(2);
 export const TRANSACTION_ROW_DUAL_OFFSET = ms(16);
 export const TRANSACTION_ROW_DUAL_RING = ms(2);
 export const TRANSACTION_ROW_DUAL_RING_COLOR = CoreTokens.surface;
-// TypeBadge's `sm` chrome: the unscaled `py-[2px]` and 1 dp border it carries on each side.
-export const TRANSACTION_ROW_TITLE_BADGE_CHROME = 2 * (2 + 1);
-// Mirrors TypeBadge's `sm` box: its label line box plus its chrome.
+export const TRANSACTION_ROW_TITLE_BADGE_CHROME = TYPE_BADGE_VERTICAL_CHROME;
+// Mirrors TypeBadge's box: its label line box plus its chrome.
 export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT =
   lineHeightFor(Type.compactBadge) + TRANSACTION_ROW_TITLE_BADGE_CHROME;
 export const TRANSACTION_ROW_CAPTION_SEPARATOR = ' · ';
@@ -191,7 +191,7 @@ function leadFor(tx: Transaction, account?: Account, toAccount?: Account): strin
   return tx.note?.trim() || undefined;
 }
 
-function primaryAmountFor(
+export function primaryAmountFor(
   tx: Transaction,
   cardCredit: boolean,
 ): { text: string; withCode: string } {

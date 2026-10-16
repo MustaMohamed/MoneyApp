@@ -5,9 +5,11 @@ import {
   scaledFontSize,
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
-import { Currency, TransactionType } from '@/constants/enums';
+import { Currency } from '@/constants/enums';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import type { ConvertedAmount } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { ms } from '@/utils/responsive';
 
 export const DETAIL_HERO_AMOUNT_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
@@ -132,19 +134,35 @@ export function resolveTransferSkeletonCellHeight(fontScale: number): number {
     : resolveTransferCellHeight(fontScale);
 }
 
+/** A USD transaction's EGP amount, or what an EGP transfer or card payment delivered in USD; a stored rate means USD is involved. */
+export function resolveDetailAmountRowFigure(
+  transaction: Transaction,
+): ConvertedAmount | undefined {
+  if (transaction.currency === Currency.USD) {
+    return { amount: transaction.egp_amount, currency: Currency.EGP };
+  }
+  if (
+    requiresDestination(transaction.type) &&
+    transaction.exchange_rate !== null &&
+    transaction.to_amount !== null
+  ) {
+    return { amount: transaction.to_amount, currency: Currency.USD };
+  }
+  return undefined;
+}
+
 export function buildDetailSkeletonGeometry(
   transaction: Transaction,
   fontScale: number,
 ): DetailSkeletonGeometry {
-  const showTransfer =
-    transaction.type === TransactionType.Transfer || transaction.type === TransactionType.CCPayment;
+  const showTransfer = requiresDestination(transaction.type);
   const rowHeight = resolveDetailRowHeight(fontScale);
   const rowHeights = [
     rowHeight,
     resolveDetailRowHeight(fontScale, true),
     ...(transaction.budget_id ? [rowHeight] : []),
     rowHeight,
-    ...(transaction.currency === Currency.USD ? [rowHeight] : []),
+    ...(resolveDetailAmountRowFigure(transaction) ? [rowHeight] : []),
     ...(transaction.exchange_rate !== null ? [rowHeight] : []),
     rowHeight,
   ];

@@ -10,29 +10,35 @@ import { Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 
 export type TypeBadgeKind = 'commitment' | 'goal' | 'bill';
-export type TypeBadgeSize = 'sm' | 'md';
 
 interface Props {
   type: TypeBadgeKind;
-  size?: TypeBadgeSize;
   /** Given, the label draws at this scale (ADR 2026-09-27 §7), and the badge may shrink. */
   fontScale?: number;
 }
 
+// Raw, never ms(): the list row's title line adds the vertical chrome above and below the label.
+const BORDER_WIDTH = 1;
+const PADDING_VERTICAL = 2;
+const PADDING_HORIZONTAL = 8;
+const GAP = 4;
+export const TYPE_BADGE_VERTICAL_CHROME = 2 * (PADDING_VERTICAL + BORDER_WIDTH);
+const WRAP_STYLE = {
+  borderWidth: BORDER_WIDTH,
+  paddingVertical: PADDING_VERTICAL,
+  paddingHorizontal: PADDING_HORIZONTAL,
+  gap: GAP,
+};
+
 const wrap = tv({
-  base: 'flex-row items-center rounded-full border',
+  base: 'flex-row items-center rounded-full',
   variants: {
     type: {
       commitment: 'bg-accent/15 border-accent/30',
       goal: 'bg-success/15 border-success/30',
       bill: 'bg-warning/15 border-warning/30',
     },
-    size: {
-      sm: 'px-2 py-[2px] gap-1',
-      md: 'px-2.5 py-1 gap-1.5',
-    },
   },
-  defaultVariants: { size: 'sm' },
 });
 
 const labelVariants = tv({
@@ -46,15 +52,12 @@ const labelVariants = tv({
   },
 });
 
-const LABEL_STYLE = {
-  sm: { fontSize: Type.compactBadge, lineHeight: lineHeightFor(Type.compactBadge) },
-  md: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
-} as const;
+const LABEL_STYLE = { fontSize: Type.compactBadge, lineHeight: lineHeightFor(Type.compactBadge) };
 
-const ICON_SIZE: Record<TypeBadgeSize, number> = { sm: 10, md: 12 };
+const ICON_SIZE = 10;
 
-// The `wrap` chrome beside the icon: the 1 dp border and the `px-*` on each side, and the `gap-*`.
-const CHROME_WIDTH: Record<TypeBadgeSize, number> = { sm: 2 * (1 + 8) + 4, md: 2 * (1 + 10) + 6 };
+// The chrome beside the icon: the border and the horizontal padding on each side, and the gap.
+const CHROME_WIDTH = 2 * (BORDER_WIDTH + PADDING_HORIZONTAL) + GAP;
 
 // A `…` in ems of the label's size, so the narrowest badge still draws one.
 const ELLIPSIS_EM = 1;
@@ -78,31 +81,27 @@ const LABEL: Record<TypeBadgeKind, string> = {
 };
 
 /** The narrowest a scaled badge gets: its icon and a `…`. */
-export function resolveTypeBadgeMinWidth(fontScale: number, size: TypeBadgeSize = 'sm'): number {
-  return (
-    CHROME_WIDTH[size] +
-    ICON_SIZE[size] +
-    scaledFontSize(LABEL_STYLE[size].fontSize, fontScale) * ELLIPSIS_EM
-  );
+export function resolveTypeBadgeMinWidth(fontScale: number): number {
+  return CHROME_WIDTH + ICON_SIZE + scaledFontSize(LABEL_STYLE.fontSize, fontScale) * ELLIPSIS_EM;
 }
 
-export function TypeBadge({ type, size = 'sm', fontScale }: Props): React.ReactElement {
+export function TypeBadge({ type, fontScale }: Props): React.ReactElement {
   const shrinks = fontScale !== undefined;
   return (
     <View
       accessibilityRole="text"
       accessibilityLabel={LABEL[type]}
-      className={wrap({ type, size })}
-      style={shrinks ? { flexShrink: 1 } : undefined}
+      className={wrap({ type })}
+      style={shrinks ? { ...WRAP_STYLE, flexShrink: 1 } : WRAP_STYLE}
     >
-      <MaterialCommunityIcons name={ICON[type]} size={ICON_SIZE[size]} color={ICON_COLOR[type]} />
+      <MaterialCommunityIcons name={ICON[type]} size={ICON_SIZE} color={ICON_COLOR[type]} />
       <Text
         allowFontScaling={!shrinks}
         className={labelVariants({ type })}
         style={
           shrinks
-            ? { ...scaledTextStyle(LABEL_STYLE[size].fontSize, fontScale), flexShrink: 1 }
-            : LABEL_STYLE[size]
+            ? { ...scaledTextStyle(LABEL_STYLE.fontSize, fontScale), flexShrink: 1 }
+            : LABEL_STYLE
         }
         numberOfLines={shrinks ? 1 : undefined}
       >

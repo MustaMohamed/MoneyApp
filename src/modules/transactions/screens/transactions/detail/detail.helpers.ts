@@ -18,13 +18,14 @@ import {
   type StackedPrefix,
   TABBED_ORIGIN,
 } from '@/modules/navigation/domain/stacked_route';
+import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { resolveAccountName } from '@/utils/account_name';
 import {
   type AmountSign,
   MINUS_SIGN,
   PLUS_SIGN,
-  formatCurrencyAmount,
+  formatDisplayAmount,
   formatDisplayAmountParts,
   formatExchangeRateSentence,
   signAmountText,
@@ -35,7 +36,9 @@ import { formatTime12h } from '@/utils/format_time_12h';
 import {
   buildTransactionRowPresentation,
   isCardCredit,
+  primaryAmountFor,
 } from '../components/transaction_row.helpers';
+import { resolveDetailAmountRowFigure } from './components/detail.geometry';
 import type { BadgeTone } from './components/detail_row';
 import type { TransactionDetailStatus } from './detail.state';
 
@@ -85,8 +88,6 @@ const BARE_ARROW_ICON: Partial<Record<TransactionType, IconName>> = {
 
 const CARD_CREDIT_ICON: IconName = 'credit-card-refund';
 
-const DETAIL_HERO_CURRENCY = Currency.EGP;
-
 export function resolveHeroTileGlyphColor(fill: string): string {
   return contrastRatio(fill, CoreTokens.text1) >= NON_TEXT_MIN_CONTRAST_RATIO
     ? CoreTokens.text1
@@ -126,7 +127,7 @@ export interface TransactionDetailPresentation {
   accountLabel: string;
   accountTypeLabel?: string;
   accountIcon: IconName;
-  originalAmountText?: string;
+  amountRow?: DetailAmountRowText;
   exchangeRateText?: string;
   budgetLabel?: string;
   sourceLabel: string;
@@ -137,6 +138,11 @@ export interface TransactionDetailPresentation {
     fromAmountText: TransferCellText;
     toAmountText: TransferCellText;
   } | null;
+}
+
+export interface DetailAmountRowText {
+  label: string;
+  value: string;
 }
 
 /** Signed display text, plus unsigned text `Strings.detailOpenAccountAccessibility` composes. */
@@ -155,26 +161,12 @@ export function transferCellAmountText(
   return { display: signAmountText(withCode, signPrefix, printsAsZero), accessible: withCode };
 }
 
-interface HeroAmount {
-  value: string;
-  accessibilityLabel: string;
-  code: string;
-}
-
-function heroAmount(tx: Transaction): HeroAmount {
-  const { text, withCode, printsAsZero } = formatDisplayAmountParts(
-    tx.egp_amount,
-    DETAIL_HERO_CURRENCY,
-  );
-  const code: string = CURRENCY_CONFIG[DETAIL_HERO_CURRENCY].code;
-  if (tx.type !== TransactionType.Expense && tx.type !== TransactionType.Income) {
-    return { value: text, accessibilityLabel: withCode, code };
-  }
-  const sign = tx.type === TransactionType.Expense ? MINUS_SIGN : PLUS_SIGN;
+function amountRowText(tx: Transaction): DetailAmountRowText | undefined {
+  const figure = resolveDetailAmountRowFigure(tx);
+  if (!figure) return undefined;
   return {
-    value: signAmountText(text, sign, printsAsZero),
-    accessibilityLabel: signAmountText(withCode, sign, printsAsZero),
-    code,
+    label: figure.currency === Currency.EGP ? Strings.detailAmountInEgp : Strings.detailAmountInUsd,
+    value: formatDisplayAmount(figure.amount, figure.currency),
   };
 }
 
@@ -188,13 +180,12 @@ export function buildTransactionDetailPresentation({
   const cardCredit = isCardCredit(tx, account);
   const categoryBadge = cardCredit ? Strings.cardCreditTitle : TYPE_BADGE[tx.type];
   const categoryBadgeTone = cardCredit ? 'info' : TYPE_BADGE_TONE[tx.type];
-  const isTransferLike =
-    tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment;
+  const isTransferLike = requiresDestination(tx.type);
   const destinationAmount = tx.to_amount ?? tx.egp_amount;
   const destinationCurrency = toAccount?.currency ?? Currency.EGP;
   const row = buildTransactionRowPresentation({ tx, account, toAccount, category });
   const typeColor = cardCredit ? InfoTokens[500] : TRANSACTION_TYPE_ICONS[tx.type].color;
-  const amount = heroAmount(tx);
+  const amount = primaryAmountFor(tx, cardCredit);
   const badge = resolveAccountBadgeColors(typeColor);
   const dateTimeText = `${formatWeekdayDate(tx.transaction_date)}, ${formatTime12h(tx.transaction_time)}`;
 
@@ -211,9 +202,9 @@ export function buildTransactionDetailPresentation({
       tileColor: row.glyphColor,
       tileGlyph: row.glyphName,
       tileGlyphColor: resolveHeroTileGlyphColor(row.glyphColor),
-      amountValue: amount.value,
-      amountCode: amount.code,
-      amountAccessibilityLabel: amount.accessibilityLabel,
+      amountValue: amount.text,
+      amountCode: CURRENCY_CONFIG[tx.currency].code,
+      amountAccessibilityLabel: amount.withCode,
       caption: dateTimeText,
     },
     dateTimeText,
@@ -225,8 +216,7 @@ export function buildTransactionDetailPresentation({
       : resolveAccountName(account),
     accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
     accountIcon: getAccountTypeIcon(account?.type),
-    originalAmountText:
-      tx.currency === Currency.USD ? formatCurrencyAmount(tx.amount, Currency.USD) : undefined,
+    amountRow: amountRowText(tx),
     exchangeRateText:
       tx.exchange_rate === null ? undefined : formatExchangeRateSentence(tx.exchange_rate),
     budgetLabel:
