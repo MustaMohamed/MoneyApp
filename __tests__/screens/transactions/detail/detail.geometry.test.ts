@@ -1,7 +1,9 @@
+import { PixelRatio } from 'react-native';
+
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import { FITTED_LINE_SLACK, scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   buildDetailSkeletonGeometry,
   DETAIL_ACCOUNT_ROW_HEIGHT,
@@ -18,6 +20,7 @@ import {
   DETAIL_TRANSFER_MIN_HEIGHT,
   DETAIL_TRANSFER_NAME_FONT_SIZE,
   resolveDetailAmountRowFigure,
+  resolveDetailFactRowHeight,
   resolveDetailHeroGeometry,
   resolveDetailRowHeight,
   resolveTransferCardHeight,
@@ -25,6 +28,7 @@ import {
   resolveTransferSkeletonCellHeight,
 } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import { makeTestTransaction } from '@/test_helpers/transaction';
+import { ms } from '@/utils/responsive';
 
 function lineBox(fontSize: number, fontScale: number): number {
   return lineHeightFor(scaledFontSize(fontSize, fontScale));
@@ -190,20 +194,42 @@ describe('resolveTransferSkeletonCellHeight', () => {
   });
 });
 
+describe('resolveDetailFactRowHeight (MA-181)', () => {
+  // Frame C1 `.fact`: 8 above and below the taller of the 14/20 value line and the 20 account tile.
+  function paddedLineAt(fontScale: number): number {
+    return 2 * Spacing.xs + Math.max(lineBox(Type.body, fontScale), ms(20));
+  }
+
+  it.each([0.85, 1])('stands at the 44 touch floor at font scale %s', (fontScale) => {
+    expect(resolveDetailFactRowHeight(fontScale)).toBe(
+      PixelRatio.roundToNearestPixel(TouchSize.min),
+    );
+  });
+
+  it.each([2, 3])(
+    'is the padded value line in whole device pixels, above the touch floor, at font scale %s',
+    (fontScale) => {
+      const row = resolveDetailFactRowHeight(fontScale);
+
+      expect(row).toBe(PixelRatio.roundToNearestPixel(paddedLineAt(fontScale)));
+      expect(row).toBeGreaterThan(TouchSize.min);
+    },
+  );
+});
+
 describe('buildDetailSkeletonGeometry', () => {
-  it('gives a USD transaction with a budget and an exchange rate seven row heights at 2.0, the account row second', () => {
+  it('frame C10: gives a USD expense with a budget and a rate eight fact-row slots at 2.0, Account, Category, Budget, Amount in EGP, Rate, Date, Time and Source', () => {
     const transaction = makeTestTransaction({
       currency: Currency.USD,
       budget_id: 'budget-1',
       exchange_rate: 48.5,
     });
-    const row = resolveDetailRowHeight(2);
-    const accountRow = resolveDetailRowHeight(2, true);
+    const row = resolveDetailFactRowHeight(2);
 
-    expect(accountRow).toBeGreaterThan(row);
     expect(buildDetailSkeletonGeometry(transaction, 2).rowHeights).toEqual([
       row,
-      accountRow,
+      row,
+      row,
       row,
       row,
       row,
@@ -301,19 +327,16 @@ describe('resolveDetailAmountRowFigure (MA-192)', () => {
     });
   });
 
-  it('frame C10: the skeleton holds the Amount in USD slot of an EGP to USD transfer at 2.0, and none for a commitment payment that stores a rate', () => {
-    const row = resolveDetailRowHeight(2);
-    const accountRow = resolveDetailRowHeight(2, true);
+  it('frame C10: the skeleton holds five fact-row slots for an EGP to USD transfer with a rate, three for an EGP card payment and six for a commitment payment that stores a rate, at 2.0', () => {
+    const slots = (count: number) =>
+      Array.from({ length: count }, () => resolveDetailFactRowHeight(2));
 
-    expect(
-      buildDetailSkeletonGeometry(egpLeg(TransactionType.Transfer, RATE, 102.04), 2).rowHeights,
-    ).toEqual([row, accountRow, row, row, row, row]);
-    expect(buildDetailSkeletonGeometry(commitmentPayment, 2).rowHeights).toEqual([
-      row,
-      accountRow,
-      row,
-      row,
-      row,
-    ]);
+    expect({
+      transfer: buildDetailSkeletonGeometry(egpLeg(TransactionType.Transfer, RATE, 102.04), 2)
+        .rowHeights,
+      cardPayment: buildDetailSkeletonGeometry(egpLeg(TransactionType.CCPayment, null, 5_000), 2)
+        .rowHeights,
+      commitmentPayment: buildDetailSkeletonGeometry(commitmentPayment, 2).rowHeights,
+    }).toEqual({ transfer: slots(5), cardPayment: slots(3), commitmentPayment: slots(6) });
   });
 });

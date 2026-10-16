@@ -14,6 +14,7 @@ import {
 } from '@/constants/theme_tokens';
 import {
   buildTransactionRowPresentation,
+  resolveCategoryGlyph,
   resolveRowTile,
   resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
@@ -564,6 +565,29 @@ describe('resolveRowTile', () => {
       color: AcctTokens.graphite.rich,
       type: AccountType.Bank,
       hollow: true,
+    });
+  });
+});
+
+describe('resolveCategoryGlyph (MA-181)', () => {
+  it('gives a category its own icon in its own colour', () => {
+    expect(resolveCategoryGlyph(groceries)).toEqual({
+      glyphName: 'cart',
+      glyphColor: AccentTokens.spice,
+    });
+  });
+
+  it('gives an unresolved category the fallback glyph in gold', () => {
+    expect(resolveCategoryGlyph(undefined)).toEqual({
+      glyphName: 'shape-outline',
+      glyphColor: GoldTokens[500],
+    });
+  });
+
+  it("gives a category with a blank icon the fallback glyph in the category's colour", () => {
+    expect(resolveCategoryGlyph({ ...groceries, icon: '' })).toEqual({
+      glyphName: 'shape-outline',
+      glyphColor: AccentTokens.spice,
     });
   });
 });

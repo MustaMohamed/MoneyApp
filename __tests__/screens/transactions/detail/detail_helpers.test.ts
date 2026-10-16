@@ -3,6 +3,7 @@ import { Strings } from '@/constants/strings';
 import { CategoryColors } from '@/constants/theme';
 import {
   AccentCCTokens,
+  AcctTokens,
   CoreTokens,
   GoldTokens,
   InfoTokens,
@@ -19,6 +20,9 @@ import {
   buildTransactionDetailPresentation,
   getAccountTypeIcon,
   getCommitmentPaymentRoute,
+  resolveDetailAccountRow,
+  resolveDetailActionBarCount,
+  resolveDetailActionSet,
   resolveDetailViewState,
   resolveHeroTileGlyphColor,
   type TransactionDetailPresentationInput,
@@ -713,6 +717,318 @@ describe('buildTransactionDetailPresentation — amount in its own currency (MA-
         }).amountRow,
       ).toEqual({ label: 'Amount in EGP', value: '0.49 EGP' });
     });
+  });
+});
+
+describe('resolveDetailActionSet (MA-181)', () => {
+  const active = account({ id: 'source', name: 'CIB', currency: Currency.EGP });
+  const archived = account({ id: 'source', name: 'Old HSBC', is_archived: 1 });
+  const deleted = account({ id: 'source', name: '', is_archived: 1, is_deleted: 1 });
+  const archivedDestination = account({ id: 'destination', name: 'Dollar Vault', is_archived: 1 });
+  const liveDestination = account({ id: 'destination', name: 'Wallet' });
+  const expense = transaction({
+    type: TransactionType.Expense,
+    to_account_id: null,
+    to_amount: null,
+  });
+  const payment = { ...expense, commitment_payment_id: 'payment-1' };
+  const byId = (...accounts: Account[]): ReadonlyMap<string, Account> =>
+    new Map(accounts.map((a) => [a.id, a]));
+
+  it.each([
+    ['a plain expense', 'editDelete', expense, byId(active)],
+    ["a commitment's payment", 'viewCommitment', payment, byId(active)],
+    ['an expense on an archived source', 'archivedNotice', expense, byId(archived)],
+    [
+      'a transfer to an archived destination',
+      'archivedNotice',
+      transaction({}),
+      byId(active, archivedDestination),
+    ],
+    ["a commitment's payment on an archived account", 'viewCommitment', payment, byId(archived)],
+    ['an expense on a deleted source', 'editDelete', expense, byId(deleted)],
+    [
+      'a transfer from a deleted source',
+      'editDelete',
+      transaction({}),
+      byId(deleted, liveDestination),
+    ],
+    ['an expense whose account did not resolve', 'editDelete', expense, byId()],
+  ])('gives %s the %s set', (_name, expected, tx, accountsById) => {
+    expect(resolveDetailActionSet(tx, accountsById)).toBe(expected);
+  });
+});
+
+describe('resolveDetailActionBarCount (MA-181)', () => {
+  it('holds two bars for Edit and Delete, and one for View commitment or the archived notice', () => {
+    expect({
+      editDelete: resolveDetailActionBarCount('editDelete'),
+      viewCommitment: resolveDetailActionBarCount('viewCommitment'),
+      archivedNotice: resolveDetailActionBarCount('archivedNotice'),
+    }).toEqual({ editDelete: 2, viewCommitment: 1, archivedNotice: 1 });
+  });
+});
+
+describe('resolveDetailAccountRow (MA-181)', () => {
+  const graphiteHollow = (type: AccountType) => ({
+    color: AcctTokens.graphite.rich,
+    type,
+    hollow: true,
+  });
+
+  it('draws an active account by its name on its own filled tile', () => {
+    expect(
+      resolveDetailAccountRow(
+        account({ name: 'CIB', type: AccountType.Bank, color: AcctTokens.lapis.rich }),
+      ),
+    ).toEqual({
+      name: 'CIB',
+      tile: { color: AcctTokens.lapis.rich, type: AccountType.Bank, hollow: false },
+      archived: false,
+    });
+  });
+
+  it('frame C7: draws an archived account on the graphite hollow tile, marked archived', () => {
+    expect(
+      resolveDetailAccountRow(
+        account({
+          name: 'Old HSBC',
+          type: AccountType.CreditCard,
+          color: AcctTokens.lapis.rich,
+          is_archived: 1,
+        }),
+      ),
+    ).toEqual({
+      name: 'Old HSBC',
+      tile: graphiteHollow(AccountType.CreditCard),
+      archived: true,
+    });
+  });
+
+  it('draws a deleted account as Deleted Account on the graphite hollow tile, never archived', () => {
+    expect(
+      resolveDetailAccountRow(
+        account({
+          name: '',
+          type: AccountType.SmartWallet,
+          color: AcctTokens.lapis.rich,
+          is_archived: 1,
+          is_deleted: 1,
+        }),
+      ),
+    ).toEqual({
+      name: Strings.deletedAccount,
+      tile: graphiteHollow(AccountType.SmartWallet),
+      archived: false,
+    });
+  });
+
+  it('audit L27: draws an unresolved account as Unknown account on the graphite hollow tile', () => {
+    expect(resolveDetailAccountRow(undefined)).toEqual({
+      name: Strings.unknownAccount,
+      tile: graphiteHollow(AccountType.Bank),
+      archived: false,
+    });
+  });
+
+  it('draws a blank-named active account as Unnamed account on its own filled tile', () => {
+    expect(
+      resolveDetailAccountRow(
+        account({ name: '   ', type: AccountType.Bank, color: AcctTokens.lapis.rich }),
+      ),
+    ).toEqual({
+      name: Strings.unnamedAccount,
+      tile: { color: AcctTokens.lapis.rich, type: AccountType.Bank, hollow: false },
+      archived: false,
+    });
+  });
+});
+
+describe('buildTransactionDetailPresentation — fact rows (MA-181)', () => {
+  const cib = account({ name: 'CIB', currency: Currency.EGP, color: AcctTokens.lapis.rich });
+  const cibRow = {
+    name: 'CIB',
+    tile: { color: AcctTokens.lapis.rich, type: AccountType.Bank, hollow: false },
+    archived: false,
+  };
+  const wallet = account({ id: 'destination', name: 'Wallet', currency: Currency.EGP });
+  const visa = account({
+    id: 'destination',
+    name: 'Visa',
+    type: AccountType.CreditCard,
+    currency: Currency.EGP,
+  });
+  const groceries = makeTestCategory({
+    id: 'groceries',
+    name: 'Groceries',
+    color: '#5C7FC4',
+    icon: 'cart',
+  });
+  const salary = makeTestCategory({
+    id: 'salary',
+    name: 'Salary',
+    type: CategoryType.Income,
+    color: '#478D6E',
+    icon: 'briefcase',
+  });
+  const refunds = makeTestCategory({
+    id: 'refunds',
+    name: 'Refunds',
+    type: CategoryType.Income,
+    color: '#478D6E',
+    icon: 'cash-refund',
+  });
+
+  // Frame C1's moment: Tue 22 Sep 2026, 6:40 PM.
+  function egp(overrides: Partial<Transaction>): Transaction {
+    return transaction({
+      currency: Currency.EGP,
+      exchange_rate: null,
+      to_account_id: null,
+      to_amount: null,
+      transaction_date: '2026-09-22',
+      transaction_time: '18:40:00',
+      ...overrides,
+    });
+  }
+
+  const expenseInput = {
+    tx: egp({
+      type: TransactionType.Expense,
+      amount: 1_240,
+      egp_amount: 1_240,
+      category_id: groceries.id,
+    }),
+    account: cib,
+    category: groceries,
+  };
+
+  it('frame C1: an expense reads its account on its tile, its glyph in the category colour, the weekday date, the time and a manual source', () => {
+    const presentation = buildTransactionDetailPresentation(expenseInput);
+
+    expect(presentation.accountRow).toEqual(cibRow);
+    expect(presentation.categoryRow).toEqual({
+      name: 'Groceries',
+      glyphName: 'cart',
+      glyphColor: '#5C7FC4',
+    });
+    expect({
+      dateText: presentation.dateText,
+      timeText: presentation.timeText,
+      source: presentation.source,
+    }).toEqual({ dateText: 'Tue 22 Sep 2026', timeText: '6:40 PM', source: 'manual' });
+  });
+
+  it('frame C2: an income reads the same rows', () => {
+    const presentation = buildTransactionDetailPresentation({
+      tx: egp({
+        type: TransactionType.Income,
+        amount: 22_300,
+        egp_amount: 22_300,
+        category_id: salary.id,
+      }),
+      account: cib,
+      category: salary,
+    });
+
+    expect(presentation.accountRow).toEqual(cibRow);
+    expect(presentation.categoryRow).toEqual({
+      name: 'Salary',
+      glyphName: 'briefcase',
+      glyphColor: '#478D6E',
+    });
+    expect(presentation.source).toBe('manual');
+  });
+
+  it.each([
+    [
+      'frame C3: a transfer',
+      {
+        tx: egp({
+          amount: 5_000,
+          egp_amount: 5_000,
+          to_account_id: 'destination',
+          to_amount: 5_000,
+        }),
+        account: cib,
+        toAccount: wallet,
+      },
+    ],
+    [
+      'frame C4: a card payment',
+      {
+        tx: egp({
+          type: TransactionType.CCPayment,
+          amount: 5_000,
+          egp_amount: 5_000,
+          to_account_id: 'destination',
+          to_amount: 5_000,
+        }),
+        account: cib,
+        toAccount: visa,
+      },
+    ],
+  ])(
+    '%s has no Account and no Category row, and keeps its Date, Time and Source',
+    (_name, input) => {
+      const presentation = buildTransactionDetailPresentation(input);
+
+      expect({
+        accountRow: presentation.accountRow,
+        categoryRow: presentation.categoryRow,
+        dateText: presentation.dateText,
+        timeText: presentation.timeText,
+        source: presentation.source,
+      }).toEqual({
+        accountRow: undefined,
+        categoryRow: undefined,
+        dateText: 'Tue 22 Sep 2026',
+        timeText: '6:40 PM',
+        source: 'manual',
+      });
+    },
+  );
+
+  it("frame C13: card credit keeps its category's own glyph and colour on its Category row, never the refund glyph", () => {
+    const card = account({ name: 'Visa', type: AccountType.CreditCard, currency: Currency.EGP });
+    const presentation = buildTransactionDetailPresentation({
+      tx: egp({
+        type: TransactionType.Income,
+        amount: 3_120,
+        egp_amount: 3_120,
+        category_id: refunds.id,
+      }),
+      account: card,
+      category: refunds,
+    });
+
+    expect(presentation.categoryRow).toEqual({
+      name: 'Refunds',
+      glyphName: 'cash-refund',
+      glyphColor: '#478D6E',
+    });
+  });
+
+  it('keeps Uncategorized on the fallback glyph in gold when the category does not resolve', () => {
+    expect(
+      buildTransactionDetailPresentation({
+        tx: egp({ type: TransactionType.Expense, category_id: 'deleted-category' }),
+        account: cib,
+      }).categoryRow,
+    ).toEqual({
+      name: Strings.uncategorized,
+      glyphName: 'shape-outline',
+      glyphColor: GoldTokens[500],
+    });
+  });
+
+  it("frame C6: a commitment's payment reads its source as the commitment", () => {
+    expect(
+      buildTransactionDetailPresentation({
+        ...expenseInput,
+        tx: { ...expenseInput.tx, commitment_payment_id: 'payment' },
+      }).source,
+    ).toBe('commitment');
   });
 });
 

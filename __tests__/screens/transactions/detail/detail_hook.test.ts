@@ -599,6 +599,7 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     expect(result.current.state.archivedAccountLine).toBe(
       Strings.transactionAccountArchived('Old Card'),
     );
+    expect(result.current.state.actionSet).toBe('archivedNotice');
 
     await act(() => result.current.openEdit());
     await act(() => result.current.openDeleteConfirm());
@@ -620,6 +621,7 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     );
     expect(result.current.state.isEditable).toBe(false);
     expect(result.current.state.isDeletable).toBe(false);
+    expect(result.current.state.actionSet).toBe('archivedNotice');
   });
 
   it('keeps edit and delete on a deleted source, with no line', async () => {
@@ -633,7 +635,26 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     expect(result.current.state.isEditable).toBe(true);
     expect(result.current.state.isDeletable).toBe(true);
     expect(result.current.state.archivedAccountLine).toBeUndefined();
+    expect(result.current.state.actionSet).toBe('editDelete');
   });
+
+  const paymentAccounts: Array<[string, Partial<Account>]> = [
+    ['an archived account', { name: 'Old Card', is_archived: 1 }],
+    ['a deleted account', { name: '', is_archived: 1, is_deleted: 1 }],
+  ];
+
+  it.each(paymentAccounts)(
+    "frame C6: a commitment's payment on %s shows View commitment alone",
+    async (_name, overrides) => {
+      accountStoreState.accountLookupById = {
+        'account-1': makeTestAccount({ id: 'account-1', ...overrides }),
+      };
+      const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+      await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+      expect(result.current.state.actionSet).toBe('viewCommitment');
+    },
+  );
 
   it('hides edit and delete on a transfer whose destination is archived', async () => {
     accountStoreState.accounts = [makeTestAccount({ name: 'Cash' })];
@@ -655,6 +676,7 @@ describe('useTransactionDetail archived account (MA-053)', () => {
 
     expect(result.current.state.isEditable).toBe(false);
     expect(result.current.state.isDeletable).toBe(false);
+    expect(result.current.state.actionSet).toBe('archivedNotice');
   });
 
   it('alerts the line when the repository refuses the delete', async () => {
@@ -674,5 +696,41 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     expect(Alert.alert).toHaveBeenCalledWith(Strings.transactionAccountArchived('Old Card'));
     expect(router.back).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
+  });
+});
+
+describe('useTransactionDetail loading action set (MA-181)', () => {
+  const ordinaryTransaction: Transaction = { ...linkedTransaction, commitment_payment_id: null };
+
+  async function loadingActionSetFor(hint?: Transaction) {
+    const pending = deferred<Transaction>();
+    getById.mockReturnValue(pending.promise);
+    transactionStoreState.transactions = hint ? [hint] : [];
+
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
+    expect(result.current.state.viewState).toBe('loading');
+    const actionSet = result.current.state.loadingActionSet;
+
+    pending.resolve(hint ?? ordinaryTransaction);
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    return actionSet;
+  }
+
+  it('frame C10: holds the archived notice for a listed transaction on an archived account', async () => {
+    accountStoreState.archivedAccounts = [
+      makeTestAccount({ id: 'account-1', name: 'Old Card', is_archived: 1 }),
+    ];
+
+    expect(await loadingActionSetFor(ordinaryTransaction)).toBe('archivedNotice');
+  });
+
+  it("frame C10: holds View commitment for a listed commitment's payment", async () => {
+    accountStoreState.accounts = [makeTestAccount({ id: 'account-1' })];
+
+    expect(await loadingActionSetFor(linkedTransaction)).toBe('viewCommitment');
+  });
+
+  it('holds Edit and Delete when the list does not hold the transaction', async () => {
+    expect(await loadingActionSetFor()).toBe('editDelete');
   });
 });
