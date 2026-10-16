@@ -69,7 +69,7 @@ function isNavOptionStyleValue(node) {
 
 const A11Y_TEXT_NAME = /[aA]ccessibility(?:Label|Hint)$/;
 
-/** Words held in place: a non-empty string or plain template literal, or a ternary or logical expression with one as a branch. */
+/** Words held in place: a non-empty string or plain template literal, or a ternary, logical or `+` expression with one as a branch. */
 function holdsLiteralText(node) {
   if (!node) return false;
   switch (node.type) {
@@ -84,6 +84,8 @@ function holdsLiteralText(node) {
       return holdsLiteralText(node.consequent) || holdsLiteralText(node.alternate);
     case 'LogicalExpression':
       return holdsLiteralText(node.left) || holdsLiteralText(node.right);
+    case 'BinaryExpression':
+      return node.operator === '+' && (holdsLiteralText(node.left) || holdsLiteralText(node.right));
     default:
       return false;
   }

@@ -69,6 +69,17 @@ const FIXTURES: Fixture[] = [
     line: 2,
   },
   {
+    name: 'concatenated_literals.tsx',
+    content: "export const A = () => <View accessibilityLabel={'Go ' + 'back'} />;\n",
+    line: 1,
+  },
+  {
+    name: 'literal_plus_name.tsx',
+    content:
+      "export const A = ({ name }: { name: string }) => (\n  <View accessibilityLabel={'Go ' + name} />\n);\n",
+    line: 2,
+  },
+  {
     name: 'strings_member.tsx',
     content: 'export const A = () => <View accessibilityLabel={Strings.goBackAccessibility} />;\n',
   },
@@ -90,6 +101,11 @@ const FIXTURES: Fixture[] = [
   {
     name: 'object_strings.ts',
     content: 'export const options = { accessibilityLabel: Strings.home };\n',
+  },
+  {
+    name: 'strings_plus_name.tsx',
+    content:
+      'export const A = ({ name }: { name: string }) => (\n  <View accessibilityLabel={Strings.a + name} />\n);\n',
   },
 ];
 

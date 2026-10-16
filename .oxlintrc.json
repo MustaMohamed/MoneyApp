@@ -91,8 +91,8 @@
       }
     },
     {
-      // Test helpers build fixture view models whose labels are test data, not copy.
-      "files": ["src/test_helpers/**/*.ts"],
+      // The budget test helper's fixture view model holds labels that are test data, not copy.
+      "files": ["src/test_helpers/budget.ts"],
       "rules": {
         "moneyapp/no-literal-a11y-text": "off"
       }
