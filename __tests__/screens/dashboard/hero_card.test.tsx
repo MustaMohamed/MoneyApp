@@ -224,6 +224,7 @@ describe('HeroCard pills drawn by the shared hero pill (MA-173)', () => {
 
     for (const testID of HERO_PILL_IDS) {
       expect(getByTestId(testID)).toHaveProp('accessible', false);
+      expect(getByTestId(testID)).toHaveProp('focusable', false);
       expect(getByTestId(testID)).toHaveProp('pointerEvents', 'none');
     }
   });

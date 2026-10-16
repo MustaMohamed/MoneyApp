@@ -7,15 +7,12 @@ import { useKeyboardLiftAnim } from '@/components/ui/keyboard_lift.anim';
 import { Screen } from '@/components/ui/screen';
 import { Colors } from '@/constants/theme';
 
-import { OnboardingHeader } from './onboarding_header';
+import { OnboardingHeader, type OnboardingHeaderProps } from './onboarding_header';
 import { OnboardingProgressRail } from './onboarding_progress_rail';
 import type { OnboardingStepIndex } from './onboarding_shell.geometry';
 
-export interface OnboardingShellProps {
+interface OnboardingShellBaseProps {
   step: OnboardingStepIndex;
-  /** Omit for the N1 brand header. */
-  title?: string;
-  onBack?: () => void;
   /** Idle copy; the status track is never empty. */
   footnote: string;
   /** When set, replaces the footnote in the identical box. */
@@ -26,24 +23,22 @@ export interface OnboardingShellProps {
   background?: ReactNode;
 }
 
+export type OnboardingShellProps = OnboardingShellBaseProps & OnboardingHeaderProps;
+
 /** `Screen` applies safe-area insets as padding, so a wash inside would start below it. */
-export function OnboardingShell({
-  step,
-  title,
-  onBack,
-  footnote,
-  statusMessage,
-  cta,
-  children,
-  background,
-}: OnboardingShellProps) {
+export function OnboardingShell(props: OnboardingShellProps) {
+  const { step, footnote, statusMessage, cta, children, background } = props;
   const keyboardLift = useKeyboardLiftAnim();
 
   return (
     <View style={{ flex: 1 }} className="bg-background">
       {background}
       <Screen style={{ backgroundColor: Colors.shared.transparent }}>
-        <OnboardingHeader title={title} onBack={onBack} />
+        {props.title !== undefined ? (
+          <OnboardingHeader title={props.title} onBack={props.onBack} />
+        ) : (
+          <OnboardingHeader />
+        )}
         <OnboardingProgressRail step={step} />
         <View style={{ flex: 1 }}>{children}</View>
         <Animated.View style={keyboardLift}>

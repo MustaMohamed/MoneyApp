@@ -14,6 +14,11 @@ import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
+import {
+  STATUS_COLORS,
+  STATUS_COUNTER_ORDER,
+  STATUS_ICONS,
+} from '@/modules/commitments/utils/commitment_status';
 import { formatCurrencyTotals } from '@/utils/format_amount';
 import { wholePercentOf } from '@/utils/money';
 import { ms } from '@/utils/responsive';
@@ -151,19 +156,14 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
           <View
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
           >
-            <StatusCounter icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
-            <StatusCounter
-              icon="alert-circle"
-              color={Colors.dark.negative}
-              value={counts.overdue}
-            />
-            <StatusCounter icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
-            <StatusCounter
-              icon="calendar-clock"
-              color={Colors.dark.text2}
-              value={counts.upcoming}
-            />
-            <StatusCounter icon="minus-circle" color={Colors.dark.text3} value={counts.skipped} />
+            {STATUS_COUNTER_ORDER.map((status) => (
+              <StatusCounter
+                key={status}
+                icon={STATUS_ICONS[status]}
+                color={STATUS_COLORS[status]}
+                value={counts[status]}
+              />
+            ))}
           </View>
         </>
       )}

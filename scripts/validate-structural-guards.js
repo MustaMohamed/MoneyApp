@@ -393,12 +393,6 @@ const TREE_ROWS = [
     ],
     needs: KEEPS_LIVE_REGION,
   },
-  {
-    name: 'T5, every .tsx under src/',
-    matches: (/** @type {string} */ rel) => rel.endsWith('.tsx'),
-    banned: [/[\w$]*[aA]ccessibility(?:Label|Hint)=(?:["']|\{\s*['"])/],
-    rule: 'holds the words of an accessibility label or hint; they live in `src/constants/strings.ts`',
-  },
 ];
 
 const CSS_IMPORT = /^\s*import\s+['"]([^'"]*global\.css)['"]/;
@@ -407,6 +401,8 @@ const ONE_MOUNT = 'the root layout mounts exactly one';
 const DELETED_PATHS = [
   `${BUDGET}/spending_plan_sheet/spending_plan_sheet.styles.ts`,
   `${UI}/tab_header.tsx`,
+  `${COMMITMENTS}/components/commitment_header.tsx`,
+  `${COMMITMENTS}/components/commitment_header.geometry.ts`,
   `${TRANSACTIONS}/transaction_form_v2`,
 ];
 

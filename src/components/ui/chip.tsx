@@ -166,7 +166,7 @@ const HERO_PILL_GLYPH = ms(11);
 /** mockup.html:697-699, `.hero-pill`'s 4pt padding pair plus one caption line box. */
 export const HERO_PILL_HEIGHT = Spacing.xxs * 2 + lineHeightFor(Type.caption);
 
-/** mockup.html:696-701, `.hero-pill`; without the explicit `height` the row clips. */
+/** mockup.html:696-701, `.hero-pill`; a one-line pill needs the explicit `height` or the row clips, a wrapping one rests on the `minHeight` floor. */
 export const HERO_PILL_STYLE: Readonly<ViewStyle> = Object.freeze({
   flexDirection: 'row',
   alignItems: 'center',
@@ -207,6 +207,7 @@ export function HeroPill({
       animation="disable-all"
       testID={testID}
       accessible={accessible}
+      focusable={accessible}
       pointerEvents="none"
       style={{
         ...HERO_PILL_STYLE,
@@ -215,22 +216,13 @@ export function HeroPill({
       }}
     >
       <MaterialCommunityIcons name={glyph} size={HERO_PILL_GLYPH} color={CoreTokens.text1} />
-      {wraps ? (
-        <Chip.Label
-          allowFontScaling={false}
-          style={{ ...geometry.label, flexShrink: 1 }}
-          className="text-foreground font-inter"
-        >
-          {label}
-        </Chip.Label>
-      ) : (
-        <Chip.Label
-          {...resolveOneLineTextProps(geometry.label)}
-          className="text-foreground font-inter"
-        >
-          {label}
-        </Chip.Label>
-      )}
+      <Chip.Label
+        {...resolveOneLineTextProps(geometry.label)}
+        numberOfLines={wraps ? undefined : 1}
+        className="text-foreground font-inter"
+      >
+        {label}
+      </Chip.Label>
     </Chip>
   );
 }

@@ -67,6 +67,35 @@ function isNavOptionStyleValue(node) {
   );
 }
 
+const A11Y_TEXT_NAME = /[aA]ccessibility(?:Label|Hint)$/;
+
+/** Words held in place: a non-empty string or plain template literal, or a ternary or logical expression with one as a branch. */
+function holdsLiteralText(node) {
+  if (!node) return false;
+  switch (node.type) {
+    case 'Literal':
+      return typeof node.value === 'string' && node.value.trim() !== '';
+    case 'TemplateLiteral':
+      return (
+        node.expressions.length === 0 &&
+        node.quasis.some((quasi) => (quasi.value.cooked ?? quasi.value.raw).trim() !== '')
+      );
+    case 'ConditionalExpression':
+      return holdsLiteralText(node.consequent) || holdsLiteralText(node.alternate);
+    case 'LogicalExpression':
+      return holdsLiteralText(node.left) || holdsLiteralText(node.right);
+    default:
+      return false;
+  }
+}
+
+function propertyKeyName(node) {
+  if (node.computed) return undefined;
+  if (node.key.type === 'Identifier') return node.key.name;
+  if (node.key.type === 'Literal' && typeof node.key.value === 'string') return node.key.value;
+  return undefined;
+}
+
 module.exports = {
   meta: { name: 'moneyapp' },
   rules: {
@@ -106,6 +135,36 @@ module.exports = {
             }
             if (isFieldMessageIdentifier(lineHeightProp.value)) return;
             context.report({ node: fontSizeProp, messageId: 'unpaired' });
+          },
+        };
+      },
+    },
+    'no-literal-a11y-text': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description:
+            'An accessibility label or hint, as a JSX attribute or an object key, reads its words from src/constants/strings.ts, never from a literal.',
+        },
+        messages: {
+          literal:
+            'This accessibility label or hint holds its words as a literal: read them from `src/constants/strings.ts` (CLAUDE.md Conventions, Strings).',
+        },
+      },
+      create(context) {
+        return {
+          JSXAttribute(node) {
+            if (node.name.type !== 'JSXIdentifier' || !A11Y_TEXT_NAME.test(node.name.name)) return;
+            const value =
+              node.value && node.value.type === 'JSXExpressionContainer'
+                ? node.value.expression
+                : node.value;
+            if (holdsLiteralText(value)) context.report({ node, messageId: 'literal' });
+          },
+          Property(node) {
+            const name = propertyKeyName(node);
+            if (name === undefined || !A11Y_TEXT_NAME.test(name)) return;
+            if (holdsLiteralText(node.value)) context.report({ node, messageId: 'literal' });
           },
         };
       },

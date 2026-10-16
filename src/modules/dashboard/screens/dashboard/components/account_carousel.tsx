@@ -122,60 +122,54 @@ export function AccountCarousel({
     [cardWidth],
   );
 
-  if (shouldVirtualizeAccountCarousel(accounts.length)) {
-    return (
-      <GestureDetector gesture={rowGesture}>
-        <FlatList
-          horizontal
-          data={items}
-          renderItem={renderItem}
-          keyExtractor={getAccountCarouselItemKey}
-          ItemSeparatorComponent={AccountCarouselSeparator}
-          getItemLayout={getItemLayout}
-          initialNumToRender={3}
-          maxToRenderPerBatch={3}
-          windowSize={3}
-          removeClippedSubviews={Platform.OS === 'android'}
-          showsHorizontalScrollIndicator={false}
-          // With Android's overscroll on, a row flung back to its start rests past it and the next tap only moves it back.
-          overScrollMode="never"
-          contentContainerStyle={{
-            paddingHorizontal: Spacing.md,
-            paddingVertical: Spacing.xxs,
-            alignItems: 'stretch',
-          }}
+  const row = shouldVirtualizeAccountCarousel(accounts.length) ? (
+    <FlatList
+      horizontal
+      data={items}
+      renderItem={renderItem}
+      keyExtractor={getAccountCarouselItemKey}
+      ItemSeparatorComponent={AccountCarouselSeparator}
+      getItemLayout={getItemLayout}
+      initialNumToRender={3}
+      maxToRenderPerBatch={3}
+      windowSize={3}
+      removeClippedSubviews={Platform.OS === 'android'}
+      showsHorizontalScrollIndicator={false}
+      // With Android's overscroll on, a row flung back to its start rests past it and the next tap only moves it back.
+      overScrollMode="never"
+      contentContainerStyle={{
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xxs,
+        alignItems: 'stretch',
+      }}
+    />
+  ) : (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      overScrollMode="never"
+      contentContainerStyle={{
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xxs,
+        columnGap: Spacing.xs,
+        alignItems: 'stretch',
+      }}
+    >
+      {accounts.map((account) => (
+        <AccountCard
+          key={account.id}
+          account={account}
+          baseCurrency={baseCurrency}
+          rate={rate}
+          isRateUsable={isRateUsable}
+          stats={statsMap[account.id]}
+          width={cardWidth}
+          onPress={accountPressHandlers.get(account.id)!}
         />
-      </GestureDetector>
-    );
-  }
-
-  return (
-    <GestureDetector gesture={rowGesture}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        overScrollMode="never"
-        contentContainerStyle={{
-          paddingHorizontal: Spacing.md,
-          paddingVertical: Spacing.xxs,
-          columnGap: Spacing.xs,
-          alignItems: 'stretch',
-        }}
-      >
-        {accounts.map((account) => (
-          <AccountCard
-            key={account.id}
-            account={account}
-            baseCurrency={baseCurrency}
-            rate={rate}
-            isRateUsable={isRateUsable}
-            stats={statsMap[account.id]}
-            width={cardWidth}
-            onPress={accountPressHandlers.get(account.id)!}
-          />
-        ))}
-        <AddCard onPress={onAddPress} width={cardWidth} />
-      </ScrollView>
-    </GestureDetector>
+      ))}
+      <AddCard onPress={onAddPress} width={cardWidth} />
+    </ScrollView>
   );
+
+  return <GestureDetector gesture={rowGesture}>{row}</GestureDetector>;
 }

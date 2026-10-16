@@ -1,5 +1,4 @@
 import { Typography } from 'heroui-native';
-import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { LogoMark } from '@/components/ui/logo_mark';
@@ -8,16 +7,17 @@ import { resolveStackHeaderGeometry } from '@/components/ui/stack_header.geometr
 import { Strings } from '@/constants/strings';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 
-export interface OnboardingHeaderProps {
-  /** Omit for the N1 brand header. */
-  title?: string;
-  onBack?: () => void;
-}
+/** A titled step always takes its back handler; omit both for the N1 brand header. */
+export type OnboardingHeaderProps =
+  | { title: string; onBack: () => void }
+  | { title?: undefined; onBack?: undefined };
 
-export function OnboardingHeader({ title, onBack }: OnboardingHeaderProps) {
-  const geometry = resolveStackHeaderGeometry(useWindowDimensions().fontScale);
+export function OnboardingHeader(props: OnboardingHeaderProps) {
+  const { fontScale } = useWindowDimensions();
 
-  if (title !== undefined) return <StackHeader title={title} onBack={onBack} />;
+  if (props.title !== undefined) return <StackHeader title={props.title} onBack={props.onBack} />;
+
+  const geometry = resolveStackHeaderGeometry(fontScale);
 
   return (
     <View
@@ -31,7 +31,7 @@ export function OnboardingHeader({ title, onBack }: OnboardingHeaderProps) {
           className="font-sora-bold"
           style={{ fontSize: Type.subhead, lineHeight: lineHeightFor(Type.subhead) }}
         >
-          {Strings.n1HeaderWordmark}
+          {Strings.appName}
         </Typography>
       </View>
       <Typography

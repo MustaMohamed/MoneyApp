@@ -35,6 +35,15 @@ export const STATUS_ICONS: Record<CommitmentPaymentStatus, IconName> = {
   [CommitmentPaymentStatus.Skipped]: 'minus-circle',
 };
 
+/** The status counters' order on the Home Commitments card and the Commitments summary. */
+export const STATUS_COUNTER_ORDER: readonly CommitmentPaymentStatus[] = [
+  CommitmentPaymentStatus.Paid,
+  CommitmentPaymentStatus.Overdue,
+  CommitmentPaymentStatus.Due,
+  CommitmentPaymentStatus.Upcoming,
+  CommitmentPaymentStatus.Skipped,
+];
+
 export interface DisplayAmount {
   amount: number | undefined;
   showTilde: boolean;

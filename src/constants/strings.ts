@@ -123,6 +123,7 @@ export const Strings = {
     n === 1
       ? 'Your only account is a credit card, so this is what you owe. Add a bank or cash account for the full picture.'
       : 'Your accounts are all credit cards, so this is what you owe. Add a bank or cash account for the full picture.',
+  // The dashboard hero's accounts pill reads this too; both print the same count.
   n4PillAccounts: (n: number) => (n === 1 ? '1 account' : `${n} accounts`), // mockup.html:2337 / :2573
   n4PillOpeningBal: (n: number) => (n === 1 ? 'opening balance' : 'opening balances'), // mockup.html:2338 / :2574
   // `n` is the foreign-account count, not the total account count.
@@ -135,7 +136,6 @@ export const Strings = {
   n2StepName: 'Add your first account',
   n3StepName: 'Add more accounts',
   n4StepName: 'Review and finish',
-  n1HeaderWordmark: 'MoneyApp',
   n1HeaderSetup: 'Setup',
   n2HeaderTitle: 'Add your first account', // mockup.html:1334
   // Byte-identical to n3AddAnother and deliberately its own key — header title vs button label (the n3ListLabel/n3HeaderTitle precedent).
@@ -217,6 +217,14 @@ export const Strings = {
   placeholderTitle: 'Dashboard coming soon',
   placeholderSubtitle: 'M1 complete — M1.5 next.',
 
+  // App shell: the app name, the dashboard's settings button, and the add button with its menu
+  appName: 'MoneyApp',
+  dashboardSettingsAccessibility: 'Settings',
+  fabAddAccessibility: 'Add',
+  fabMenuAddTransaction: 'Add Transaction',
+  fabMenuAddAccount: 'Add Account',
+  fabMenuAddCommitment: 'Add Commitment',
+
   // Dashboard (U2): account card info rows
   cardLimitLabel: 'Limit',
   cardAvailableLabel: 'Available',
@@ -235,12 +243,6 @@ export const Strings = {
   cardMonthStartLabel: 'Month Start',
   cardChangeLabel: 'Change',
 
-  appName: 'MoneyApp',
-  dashboardSettingsAccessibility: 'Settings',
-  fabAddAccessibility: 'Add',
-  fabMenuAddTransaction: 'Add Transaction',
-  fabMenuAddAccount: 'Add Account',
-  fabMenuAddCommitment: 'Add Commitment',
   dashAddPrefix: 'Add',
   dashAvailableToSpend: 'Available to Spend',
   dashNetWorthTitle: 'Net Worth',
@@ -248,7 +250,6 @@ export const Strings = {
   dashLiabilitiesLabel: 'Liabilities',
   dashMonthSpentTitle: 'Spent This Month',
   dashMonthSpentTxs: (n: number) => (n === 1 ? '1 tx' : `${n} txs`),
-  dashboardBreakdownDueOn: (date: string) => `due ${date}`,
   dashMonthSpentSpentLabel: 'Spent',
   dashMonthSpentRefundedLabel: 'Refunded',
   dashSeeAll: 'See all',
@@ -273,6 +274,7 @@ export const Strings = {
   dashboardBreakdownReserveCaption: 'Savings',
   dashboardBreakdownTotalDebt: 'Total debt',
   dashboardBreakdownInCredit: 'In credit',
+  dashboardBreakdownDueOn: (date: string) => `due ${date}`,
   // `code` is the other currency from the base, not the base itself.
   netWorthBreakdownForeignUnavailable: (code: string) => `— ${code}`,
   netWorthBreakdownForeignApprox: (amount: string) => `≈ ${amount}`,

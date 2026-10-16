@@ -64,7 +64,6 @@ type Predicate = (rel: string) => boolean;
 const isStateFile: Predicate = (rel) => rel.endsWith('.state.ts');
 const isTemplate: Predicate = (rel) =>
   rel.startsWith('src/modules/') && rel.includes('/screens/') && rel.endsWith('/index.tsx');
-const isTsx: Predicate = (rel) => rel.endsWith('.tsx');
 
 let fakeRoot = '';
 const touched = new Set<string>();
@@ -353,18 +352,6 @@ const BANNED: BannedSeed[] = [
     target: isTemplate,
     text: 'const [a] = R.useState(0);',
     token: 'useState',
-  },
-  {
-    guard: 'T5: a quoted accessibilityLabel in a .tsx',
-    target: isTsx,
-    text: '<View accessibilityLabel="Seeded" />',
-    token: 'accessibilityLabel="',
-  },
-  {
-    guard: 'T5: a braced string filterAccessibilityLabel in a .tsx',
-    target: isTsx,
-    text: "<FilterRail filterAccessibilityLabel={'Seeded'} />",
-    token: "filterAccessibilityLabel={'",
   },
   {
     guard: 'convertCurrency in the account info rows',
