@@ -1,4 +1,4 @@
-import { resolveSheetSizeAboveOne, resolveSnapPoints } from '@/components/ui/sheet';
+import { resolveSheetSizeAboveOne, resolveSnapPoints } from '@/components/ui/sheet.helpers';
 
 describe('resolveSheetSizeAboveOne', () => {
   it.each([1, 0.85])('keeps sm at font scale %s', (fontScale) => {

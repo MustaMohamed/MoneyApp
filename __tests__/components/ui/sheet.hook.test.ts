@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { resolveSheetClosedAtRestProps } from '@/components/ui/sheet';
+import { resolveSheetClosedAtRestProps } from '@/components/ui/sheet.helpers';
 import { useSheetCloseLifecycle } from '@/components/ui/sheet.hook';
 
 const HIDDEN = { opacity: 0, pointerEvents: 'none' };

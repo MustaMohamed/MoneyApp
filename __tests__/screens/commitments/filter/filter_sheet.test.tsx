@@ -15,7 +15,6 @@ jest.mock('@gorhom/bottom-sheet', () => ({
   BottomSheetScrollView: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 jest.mock('@/components/ui/sheet', () => ({
-  SHEET_FOOTER_CLEARANCE: 124,
   Sheet: ({
     isOpen,
     title,

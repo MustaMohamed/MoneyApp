@@ -1,7 +1,7 @@
 import {
   resolveSheetCloseGestureProps,
   resolveSheetClosedAtRestProps,
-} from '@/components/ui/sheet';
+} from '@/components/ui/sheet.helpers';
 import {
   createSheetCloseLifecycle,
   settleSheetCloseLifecycle,
