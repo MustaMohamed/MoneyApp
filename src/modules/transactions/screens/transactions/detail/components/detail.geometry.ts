@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
 
@@ -132,6 +133,28 @@ export function resolveTransferSkeletonCellHeight(fontScale: number): number {
     : resolveTransferCellHeight(fontScale);
 }
 
+export interface DetailAmountRowFigure {
+  amount: number;
+  currency: Currency;
+}
+
+/** A USD transaction's EGP amount, or what an EGP transfer or card payment delivered in USD; a stored rate means USD is involved. */
+export function resolveDetailAmountRowFigure(
+  transaction: Transaction,
+): DetailAmountRowFigure | undefined {
+  if (transaction.currency === Currency.USD) {
+    return { amount: transaction.egp_amount, currency: Currency.EGP };
+  }
+  if (
+    requiresDestination(transaction.type) &&
+    transaction.exchange_rate !== null &&
+    transaction.to_amount !== null
+  ) {
+    return { amount: transaction.to_amount, currency: Currency.USD };
+  }
+  return undefined;
+}
+
 export function buildDetailSkeletonGeometry(
   transaction: Transaction,
   fontScale: number,
@@ -144,7 +167,7 @@ export function buildDetailSkeletonGeometry(
     resolveDetailRowHeight(fontScale, true),
     ...(transaction.budget_id ? [rowHeight] : []),
     rowHeight,
-    ...(transaction.currency === Currency.USD ? [rowHeight] : []),
+    ...(resolveDetailAmountRowFigure(transaction) ? [rowHeight] : []),
     ...(transaction.exchange_rate !== null ? [rowHeight] : []),
     rowHeight,
   ];

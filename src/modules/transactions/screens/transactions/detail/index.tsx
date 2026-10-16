@@ -97,11 +97,11 @@ export default function TransactionDetailScreen(): React.ReactElement {
                 label={Strings.detailDateTime}
                 value={detail.dateTimeText}
               />
-              {detail.originalAmountText ? (
+              {detail.amountRow ? (
                 <DetailRow
                   icon="currency-usd"
-                  label={Strings.detailOriginalAmount}
-                  value={detail.originalAmountText}
+                  label={detail.amountRow.label}
+                  value={detail.amountRow.value}
                 />
               ) : null}
               {detail.exchangeRateText ? (

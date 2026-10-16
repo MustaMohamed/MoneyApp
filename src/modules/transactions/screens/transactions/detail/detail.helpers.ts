@@ -24,7 +24,7 @@ import {
   type AmountSign,
   MINUS_SIGN,
   PLUS_SIGN,
-  formatCurrencyAmount,
+  formatDisplayAmount,
   formatDisplayAmountParts,
   formatExchangeRateSentence,
   signAmountText,
@@ -36,6 +36,7 @@ import {
   buildTransactionRowPresentation,
   isCardCredit,
 } from '../components/transaction_row.helpers';
+import { resolveDetailAmountRowFigure } from './components/detail.geometry';
 import type { BadgeTone } from './components/detail_row';
 import type { TransactionDetailStatus } from './detail.state';
 
@@ -85,8 +86,6 @@ const BARE_ARROW_ICON: Partial<Record<TransactionType, IconName>> = {
 
 const CARD_CREDIT_ICON: IconName = 'credit-card-refund';
 
-const DETAIL_HERO_CURRENCY = Currency.EGP;
-
 export function resolveHeroTileGlyphColor(fill: string): string {
   return contrastRatio(fill, CoreTokens.text1) >= NON_TEXT_MIN_CONTRAST_RATIO
     ? CoreTokens.text1
@@ -126,7 +125,7 @@ export interface TransactionDetailPresentation {
   accountLabel: string;
   accountTypeLabel?: string;
   accountIcon: IconName;
-  originalAmountText?: string;
+  amountRow?: DetailAmountRowText;
   exchangeRateText?: string;
   budgetLabel?: string;
   sourceLabel: string;
@@ -137,6 +136,11 @@ export interface TransactionDetailPresentation {
     fromAmountText: TransferCellText;
     toAmountText: TransferCellText;
   } | null;
+}
+
+export interface DetailAmountRowText {
+  label: string;
+  value: string;
 }
 
 /** Signed display text, plus unsigned text `Strings.detailOpenAccountAccessibility` composes. */
@@ -162,11 +166,8 @@ interface HeroAmount {
 }
 
 function heroAmount(tx: Transaction): HeroAmount {
-  const { text, withCode, printsAsZero } = formatDisplayAmountParts(
-    tx.egp_amount,
-    DETAIL_HERO_CURRENCY,
-  );
-  const code: string = CURRENCY_CONFIG[DETAIL_HERO_CURRENCY].code;
+  const { text, withCode, printsAsZero } = formatDisplayAmountParts(tx.amount, tx.currency);
+  const code: string = CURRENCY_CONFIG[tx.currency].code;
   if (tx.type !== TransactionType.Expense && tx.type !== TransactionType.Income) {
     return { value: text, accessibilityLabel: withCode, code };
   }
@@ -175,6 +176,15 @@ function heroAmount(tx: Transaction): HeroAmount {
     value: signAmountText(text, sign, printsAsZero),
     accessibilityLabel: signAmountText(withCode, sign, printsAsZero),
     code,
+  };
+}
+
+function amountRowText(tx: Transaction): DetailAmountRowText | undefined {
+  const figure = resolveDetailAmountRowFigure(tx);
+  if (!figure) return undefined;
+  return {
+    label: figure.currency === Currency.EGP ? Strings.detailAmountInEgp : Strings.detailAmountInUsd,
+    value: formatDisplayAmount(figure.amount, figure.currency),
   };
 }
 
@@ -225,8 +235,7 @@ export function buildTransactionDetailPresentation({
       : resolveAccountName(account),
     accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
     accountIcon: getAccountTypeIcon(account?.type),
-    originalAmountText:
-      tx.currency === Currency.USD ? formatCurrencyAmount(tx.amount, Currency.USD) : undefined,
+    amountRow: amountRowText(tx),
     exchangeRateText:
       tx.exchange_rate === null ? undefined : formatExchangeRateSentence(tx.exchange_rate),
     budgetLabel:
