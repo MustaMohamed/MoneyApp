@@ -37,6 +37,8 @@ export const DETAIL_FACT_BADGE_FONT_SIZE = Type.compactBadge;
 export const DETAIL_FACT_ROW_PADDING = Spacing.xs;
 export const DETAIL_FACT_TILE = ms(20);
 export const DETAIL_FACT_VALUE_GAP = Spacing.xs;
+// A fitted value's line box takes one device pixel of slack from the padding, so the row keeps its height.
+export const DETAIL_FACT_FITTED_ROW_PADDING = DETAIL_FACT_ROW_PADDING - FITTED_LINE_SLACK / 2;
 export const DETAIL_TRANSFER_LABEL_FONT_SIZE = Type.compactBadge;
 export const DETAIL_TRANSFER_NAME_FONT_SIZE = Type.detail;
 export const DETAIL_TRANSFER_AMOUNT_FONT_SIZE = Type.micro;

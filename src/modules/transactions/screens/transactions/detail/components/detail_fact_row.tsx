@@ -14,6 +14,7 @@ import { Size } from '@/constants/theme';
 import type { DetailFact, DetailFactLeading } from '../detail.helpers';
 import {
   DETAIL_FACT_BADGE_FONT_SIZE,
+  DETAIL_FACT_FITTED_ROW_PADDING,
   DETAIL_FACT_FONT_SIZE,
   DETAIL_FACT_ROW_PADDING,
   DETAIL_FACT_TILE,
@@ -82,7 +83,7 @@ export function DetailFactRow({ fact, showDivider = true }: Props): React.ReactE
       className={`flex-row items-center justify-between gap-3 px-4 py-0 ${showDivider ? 'border-separator border-b' : ''}`}
       style={{
         height: resolveDetailFactRowHeight(fontScale),
-        paddingVertical: DETAIL_FACT_ROW_PADDING,
+        paddingVertical: fact.fitsValue ? DETAIL_FACT_FITTED_ROW_PADDING : DETAIL_FACT_ROW_PADDING,
       }}
     >
       <ListGroup.ItemDescription
