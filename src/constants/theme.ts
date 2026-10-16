@@ -209,6 +209,7 @@ export const Size = {
   plansEmptyTextWidth: ms(280),
   compactBodyLineHeight: ms(20),
   iconMicro: ms(12),
+  statusCounterIcon: ms(13),
   iconBack: ms(20),
   /** Same ms(20) as `iconBack` by design; the design's toast glyph (G3), not the back chevron. Do not dedupe. */
   toastIcon: ms(20),

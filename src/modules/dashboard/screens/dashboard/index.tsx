@@ -76,7 +76,7 @@ export default function DashboardScreen() {
     [setSelectedSegment],
   );
 
-  // The offset gates let the account carousel win horizontal scrolling until the pan is decisive.
+  // Each account carousel blocks this pan, so a sideways drag that starts on a row belongs to the row.
   const SWIPE_THRESHOLD = 50;
   const swipeGesture = useMemo(
     () =>
@@ -234,6 +234,7 @@ export default function DashboardScreen() {
                           count={state.groupedAccounts[type]?.length ?? 0}
                         />
                         <AccountCarousel
+                          segmentSwipe={swipeGesture}
                           type={type}
                           accounts={state.groupedAccounts[type] ?? []}
                           baseCurrency={state.baseCurrency}
