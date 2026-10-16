@@ -4,7 +4,7 @@ The add and edit sheet, over any tab. Host `src/modules/transactions/screens/tra
 
 ## Reach it
 
-- Add: the FAB on the Transactions or Dashboard tab, `$MQA tap 'Add'` (`fab.tsx:213`), then the menu pill `$MQA tap 'Add Transaction'`.
+- Add: the FAB on the Transactions or Dashboard tab, `$MQA tap 'Add'` (`Strings.fabAddAccessibility`), then the menu pill `$MQA tap 'Add Transaction'`.
 - Add from an account: the account detail's add path (`account_detail.hook.ts:381`, `openAdd({ accountId })`) opens the sheet after a jump to the Transactions tab, the account preselected.
 - Edit: a transaction row on the list (`transactions.md` § Outbound), then the detail header's edit icon, `$MQA tap 'Edit transaction'` (`detail_header.tsx:34`, `Strings.detailEditAccessibility`).
 - Edit from a list row: swipe the row left from inside it, `adb -s <serial> shell input swipe 800 <row centre px> 100 <row centre px> 400`, the centre from `mqa bounds` on the row's label, then `$MQA tap 'label="Edit"'` (`transaction_row.tsx`, `Strings.swipeEdit`).
@@ -88,7 +88,7 @@ The add and edit sheet, over any tab. Host `src/modules/transactions/screens/tra
 ## Gotchas
 
 - After one `fab-button` tap on Home, Commitments or Budget, the tree lists the add sheet twice: two `Add transaction` groups, each with an `amount-hero-value` field, at one box (MA-175). `mqa fill` and `mqa tap` on `id="amount-hero-value"`, `id="category-row"`, a category cell or `label="Save"` read `AMBIGUOUS_MATCH`; take the first box from `mqa bounds` whose centre is on screen, `tapxy` its centre, and `mqa type` the amount.
-- The detail's edit icon label (`Strings.detailEditAccessibility`) equals the sheet title in edit, so `grep -c 'Edit transaction'` over `mqa read` on the detail counts one before the sheet opens and two after. The FAB menu pill reads `Add Transaction` (title case, `fab.tsx:143`), the sheet title `Add transaction`: grep the sheet title case-sensitively.
+- The detail's edit icon label (`Strings.detailEditAccessibility`) equals the sheet title in edit, so `grep -c 'Edit transaction'` over `mqa read` on the detail counts one before the sheet opens and two after. The FAB menu pill reads `Add Transaction` (title case, `Strings.fabMenuAddTransaction`), the sheet title `Add transaction`: grep the sheet title case-sensitively.
 - The compact `SegmentedTabs` is shared with the list's type tabs and the accounts-list rail (`transactions.md` § Gotchas); one read of a trigger holds on all three, and a divergence is a caller override.
 - The type tabs' hit slop is `touchFloorHitSlop(28)`, 9 dp above and below each 28 dp trigger at 1.0, so it ends 5 dp past the 36 track on each side, inside the wrapper's `py-2`. No `hitSlop` shows in `mqa bounds`: `type tabs hit area` proves it by a tap (MA-109).
 - The fact rows are `ListGroup.Item` pressables: they are the clickable nodes, so `mqa bounds` on the row's testID, not on its key or value text. A 44 dp row reads 43.81 or 44.19 (115 or 116 px): one device pixel of rounding, not a short row.

@@ -3,11 +3,11 @@ import { View } from 'react-native';
 
 import { LoadingCenter } from '@/components/ui/loading_center';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { StackHeader } from '@/components/ui/stack_header';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
 
-import { CommitmentHeader } from '../components/commitment_header';
 import { CurrentCycleCard } from './components/current_cycle_card';
 import { DetailHero } from './components/detail_hero';
 import { DetailLoadError } from './components/detail_load_error';
@@ -24,7 +24,7 @@ export default function CommitmentDetailScreen() {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <CommitmentHeader
+      <StackHeader
         title={state.commitment?.name ?? ''}
         onBack={goBack}
         right={

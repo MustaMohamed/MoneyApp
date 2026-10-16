@@ -10,6 +10,7 @@ import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { StackHeader } from '@/components/ui/stack_header';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
 import {
@@ -40,7 +41,6 @@ import {
   detectPreset,
 } from '../commitment_form.shared';
 import { useCommitmentFormBodyPickers } from './commitment_form_body.hook';
-import { CommitmentHeader } from './commitment_header';
 import { DecimalAmountInput } from './decimal_amount_input';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
@@ -181,7 +181,7 @@ export function CommitmentFormBody({
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <CommitmentHeader title={title} onBack={() => router.back()} large={false} />
+      <StackHeader title={title} onBack={() => router.back()} />
 
       <ScreenScroll
         contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}

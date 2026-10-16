@@ -100,7 +100,6 @@ export const Type = {
   subhead: msFont(16),
   emptyTitle: msFont(17),
   title: msFont(18),
-  pageTitle: msFont(20),
   headline: msFont(22),
   hero: msFont(28),
   summary: msFont(31),
@@ -160,8 +159,6 @@ export const Size = {
   monthYearStepTrack: 32,
   // Raw 36 for the same reason: the transaction form's type tab row, `h-9`, at scale 1.
   typeTabsTrack: 36,
-  // Raw 56 for the same reason: the commitment header's `h-14` box at scale 1.
-  commitmentHeaderHeight: 56,
   // Raw 36 for the same reason: a header text action's box, formerly the account detail Edit's `h-9 w-9`, at scale 1.
   headerTextActionTrack: 36,
   // Raw 40 for the same reason: the spending plan sheet's name and total fields, formerly `h-10`, at scale 1.
