@@ -1,3 +1,5 @@
+import { PixelRatio } from 'react-native';
+
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import {
@@ -6,7 +8,7 @@ import {
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import type { ConvertedAmount } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
@@ -29,6 +31,12 @@ export const DETAIL_NOTE_MIN_HEIGHT = ms(82);
 export const DETAIL_ACTION_MIN_HEIGHT = ms(92);
 export const DETAIL_ROW_LABEL_FONT_SIZE = Type.overline;
 export const DETAIL_ROW_VALUE_FONT_SIZE = Type.meta;
+// Canvas `.fact`: the 14/20 label and value, the 9.5 badge, 8 above and below, the 20 account tile, 8 between value parts.
+export const DETAIL_FACT_FONT_SIZE = Type.body;
+export const DETAIL_FACT_BADGE_FONT_SIZE = Type.compactBadge;
+export const DETAIL_FACT_ROW_PADDING = Spacing.xs;
+export const DETAIL_FACT_TILE = ms(20);
+export const DETAIL_FACT_VALUE_GAP = Spacing.xs;
 export const DETAIL_TRANSFER_LABEL_FONT_SIZE = Type.compactBadge;
 export const DETAIL_TRANSFER_NAME_FONT_SIZE = Type.detail;
 export const DETAIL_TRANSFER_AMOUNT_FONT_SIZE = Type.micro;
@@ -115,6 +123,17 @@ export function resolveDetailRowHeight(fontScale: number, reserveSublabel = fals
   return Math.max(base, base + rowLines(fontScale, reserveSublabel) - rowLines(1, reserveSublabel));
 }
 
+/** The padded taller of the value line and the account tile, at the touch floor, in whole device pixels. */
+export function resolveDetailFactRowHeight(fontScale: number): number {
+  return PixelRatio.roundToNearestPixel(
+    Math.max(
+      TouchSize.min,
+      2 * DETAIL_FACT_ROW_PADDING +
+        Math.max(scaledTextStyle(DETAIL_FACT_FONT_SIZE, fontScale).lineHeight, DETAIL_FACT_TILE),
+    ),
+  );
+}
+
 export function resolveTransferCellHeight(fontScale: number): number {
   return transferLines(fontScale) + DETAIL_TRANSFER_CELL_CHROME;
 }
@@ -156,14 +175,15 @@ export function buildDetailSkeletonGeometry(
   fontScale: number,
 ): DetailSkeletonGeometry {
   const showTransfer = requiresDestination(transaction.type);
-  const rowHeight = resolveDetailRowHeight(fontScale);
+  const rowHeight = resolveDetailFactRowHeight(fontScale);
+  // The loaded rows in order: Account, Category, Budget, the amount row, Rate, Date, Time, Source.
   const rowHeights = [
-    rowHeight,
-    resolveDetailRowHeight(fontScale, true),
-    ...(transaction.budget_id ? [rowHeight] : []),
-    rowHeight,
+    ...(showTransfer ? [] : [rowHeight, rowHeight]),
+    ...(transaction.budget_id !== null ? [rowHeight] : []),
     ...(resolveDetailAmountRowFigure(transaction) ? [rowHeight] : []),
     ...(transaction.exchange_rate !== null ? [rowHeight] : []),
+    rowHeight,
+    rowHeight,
     rowHeight,
   ];
 

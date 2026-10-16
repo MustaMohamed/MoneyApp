@@ -45,7 +45,10 @@ export default function TransactionDetailScreen(): React.ReactElement {
       />
 
       {state.viewState === 'loading' ? (
-        <TransactionDetailSkeleton transaction={state.loadingTransactionHint} />
+        <TransactionDetailSkeleton
+          transaction={state.loadingTransactionHint}
+          actionSet={state.loadingActionSet}
+        />
       ) : state.viewState === 'notFound' ? (
         <NotFoundState />
       ) : state.viewState === 'firstLoadError' ? (
