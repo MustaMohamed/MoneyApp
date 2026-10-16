@@ -5,11 +5,17 @@ import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { StatusCounter } from '@/components/ui/status_counter';
 import { Text } from '@/components/ui/text';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Type } from '@/constants/theme';
+import {
+  STATUS_COLORS,
+  STATUS_COUNTER_ORDER,
+  STATUS_ICONS,
+} from '@/modules/commitments/utils/commitment_status';
 import { formatCurrencyTotals } from '@/utils/format_amount';
 import { formatMonthYear } from '@/utils/format_date';
 import { wholePercentOf } from '@/utils/money';
@@ -31,8 +37,6 @@ interface Props {
   isLoading: boolean;
   onPress: () => void;
 }
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT = ms(33);
 const DASHBOARD_COMMITMENTS_PROGRESS_HEIGHT = ms(3);
@@ -221,33 +225,19 @@ export function CommitmentsCard({
                 className="flex-row items-center justify-between"
                 style={{ flexDirection: 'row' }}
               >
-                <Stat icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
-                <Stat icon="alert-circle" color={Colors.dark.negative} value={counts.overdue} />
-                <Stat icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
-                <Stat icon="calendar-clock" color={Colors.dark.text2} value={counts.upcoming} />
-                <Stat icon="minus-circle" color={Colors.dark.text3} value={counts.skipped} />
+                {STATUS_COUNTER_ORDER.map((status) => (
+                  <StatusCounter
+                    key={status}
+                    icon={STATUS_ICONS[status]}
+                    color={STATUS_COLORS[status]}
+                    value={counts[status]}
+                  />
+                ))}
               </View>
             </>
           )}
         </Card.Body>
       </Card>
     </PressableFeedback>
-  );
-}
-
-function Stat({ icon, color, value }: { icon: IconName; color: string; value: number }) {
-  const { fontScale } = useWindowDimensions();
-  return (
-    <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
-      <MaterialCommunityIcons name={icon} size={ms(13)} color={color} />
-      <Text
-        variant="caption"
-        allowFontScaling={false}
-        style={{ ...scaledTextStyle(Type.micro, fontScale), color }}
-        className="font-inter-semibold"
-      >
-        {value}
-      </Text>
-    </View>
   );
 }

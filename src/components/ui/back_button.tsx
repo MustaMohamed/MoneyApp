@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
 import React from 'react';
 
+import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
@@ -15,7 +16,7 @@ export function BackButton({ onPress }: BackButtonProps) {
       onPress={onPress}
       className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
       accessibilityRole="button"
-      accessibilityLabel="Go back"
+      accessibilityLabel={Strings.goBackAccessibility}
     >
       <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color={CoreTokens.text2} />
     </PressableFeedback>

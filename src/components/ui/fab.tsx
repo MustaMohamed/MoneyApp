@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/text';
+import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -140,19 +141,19 @@ export function FAB({
   const menuItems: MenuItem[] = [
     {
       testID: 'fab-menu-item-0',
-      label: 'Add Transaction',
+      label: Strings.fabMenuAddTransaction,
       icon: 'swap-horizontal',
       onPress: onAddTransaction,
     },
     {
       testID: 'fab-menu-item-1',
-      label: 'Add Account',
+      label: Strings.fabMenuAddAccount,
       icon: 'bank',
       onPress: onAddAccount,
     },
     {
       testID: 'fab-menu-item-2',
-      label: 'Add Commitment',
+      label: Strings.fabMenuAddCommitment,
       icon: 'calendar-check',
       onPress: onAddCommitment,
     },
@@ -210,7 +211,7 @@ export function FAB({
             onPress={onFABPress}
             style={styles.fab}
             accessibilityRole="button"
-            accessibilityLabel="Add"
+            accessibilityLabel={Strings.fabAddAccessibility}
           >
             <LinearGradient
               colors={[GoldTokens[500], GoldTokens[600]]}

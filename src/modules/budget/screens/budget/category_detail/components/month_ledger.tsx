@@ -4,6 +4,7 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { FITTED_LINE_SLACK, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import type { MonthResultVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { resolveLedgerMonthColumnWidth } from '@/modules/budget/screens/budget/budget_text.geometry';
@@ -40,7 +41,7 @@ export function MonthLedger({ results }: { results: MonthResultVM[] }) {
             </Text>
             <Text
               style={[styles.det, descriptionStyle]}
-            >{`${formatAmount(r.spent)} of ${formatAmount(r.limit)}${r.isProvisional ? ' · so far' : ''}`}</Text>
+            >{`${Strings.budgetDetailPartOf(formatAmount(r.spent), formatAmount(r.limit))}${r.isProvisional ? Strings.budgetDetailSoFarSuffix : ''}`}</Text>
             <View style={[styles.delta, positive ? styles.deltaPos : styles.deltaNeg]}>
               <Text
                 style={[styles.deltaText, positive ? styles.deltaTextPos : styles.deltaTextNeg]}

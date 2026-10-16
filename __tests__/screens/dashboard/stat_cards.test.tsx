@@ -197,7 +197,7 @@ describe('StatCards text at the window font scale', () => {
     const footerTexts = [
       getByText(`${baseProps.monthSpendDeltaPct}%`),
       getByText('vs Jun'),
-      getByText(`${baseProps.monthSpendCount} ${Strings.dashMonthSpentTxsUnit}`),
+      getByText(Strings.dashMonthSpentTxs(baseProps.monthSpendCount)),
     ];
 
     for (const text of footerTexts) {

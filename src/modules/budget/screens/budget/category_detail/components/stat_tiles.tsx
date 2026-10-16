@@ -30,11 +30,11 @@ export function StatTiles({ history }: { history: CategoryHistoryVM }) {
       <Tile
         value={netLabel}
         valueColor={net >= 0 ? Colors.dark.positive : Colors.dark.negative}
-        label={`${Strings.budgetDetailNet} · ${history.monthsTotal} mo`}
+        label={`${Strings.budgetDetailNet} · ${Strings.budgetDetailMonthsShort(history.monthsTotal)}`}
       />
       <Tile value={formatAmount(Math.round(history.avgPerMonth))} label={Strings.budgetDetailAvg} />
       <Tile
-        value={`${history.monthsUnder} of ${history.monthsTotal}`}
+        value={Strings.budgetDetailPartOf(history.monthsUnder, history.monthsTotal)}
         label={Strings.budgetDetailUnder}
       />
     </View>

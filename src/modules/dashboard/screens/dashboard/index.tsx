@@ -76,7 +76,7 @@ export default function DashboardScreen() {
     [setSelectedSegment],
   );
 
-  // The offset gates let the account carousel win horizontal scrolling until the pan is decisive.
+  // Each account carousel blocks this pan, so a sideways drag that starts on a row belongs to the row.
   const SWIPE_THRESHOLD = 50;
   const swipeGesture = useMemo(
     () =>
@@ -107,7 +107,7 @@ export default function DashboardScreen() {
           }}
         >
           <Typography.Heading type="h3" weight="bold" truncate className="font-sora">
-            MoneyApp
+            {Strings.appName}
           </Typography.Heading>
           <Button
             variant="ghost"
@@ -117,7 +117,7 @@ export default function DashboardScreen() {
             style={{ width: Size.backBtn, height: Size.backBtn }}
             onPress={goToSettings}
             accessibilityRole="button"
-            accessibilityLabel="Settings"
+            accessibilityLabel={Strings.dashboardSettingsAccessibility}
           >
             <MaterialCommunityIcons name="cog" size={Size.iconMd} color={Colors.dark.text2} />
           </Button>
@@ -234,6 +234,7 @@ export default function DashboardScreen() {
                           count={state.groupedAccounts[type]?.length ?? 0}
                         />
                         <AccountCarousel
+                          segmentSwipe={swipeGesture}
                           type={type}
                           accounts={state.groupedAccounts[type] ?? []}
                           baseCurrency={state.baseCurrency}

@@ -166,7 +166,7 @@ const HERO_PILL_GLYPH = ms(11);
 /** mockup.html:697-699, `.hero-pill`'s 4pt padding pair plus one caption line box. */
 export const HERO_PILL_HEIGHT = Spacing.xxs * 2 + lineHeightFor(Type.caption);
 
-/** mockup.html:696-701, `.hero-pill`; without the explicit `height` the row clips. */
+/** mockup.html:696-701, `.hero-pill`; a one-line pill needs the explicit `height` or the row clips, a wrapping one rests on the `minHeight` floor. */
 export const HERO_PILL_STYLE: Readonly<ViewStyle> = Object.freeze({
   flexDirection: 'row',
   alignItems: 'center',
@@ -181,22 +181,44 @@ export const HERO_PILL_STYLE: Readonly<ViewStyle> = Object.freeze({
 export interface HeroPillProps {
   label: string;
   glyph: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  testID?: string;
+  /** The pill's height floor; a taller caption line box wins over it. */
+  minHeight?: number;
+  /** The label wraps whole across lines instead of holding one. */
+  wraps?: boolean;
+  accessible?: boolean;
 }
 
-/** N4's hero-card pill, mockup.html:696-702, `.hero-pill`. */
-export function HeroPill({ label, glyph }: HeroPillProps): React.ReactElement {
-  const geometry = resolveHeroPillGeometry(useWindowDimensions().fontScale);
+/** The N4 ready card's and the dashboard hero's pill, mockup.html:696-702, `.hero-pill`. */
+export function HeroPill({
+  label,
+  glyph,
+  testID,
+  minHeight = 0,
+  wraps = false,
+  accessible = true,
+}: HeroPillProps): React.ReactElement {
+  const geometry = resolveHeroPillGeometry(useWindowDimensions().fontScale, minHeight);
 
   return (
     <Chip
       variant="secondary"
       color="default"
       animation="disable-all"
-      style={{ ...HERO_PILL_STYLE, height: geometry.height }}
+      testID={testID}
+      accessible={accessible}
+      focusable={accessible}
+      pointerEvents="none"
+      style={{
+        ...HERO_PILL_STYLE,
+        minHeight: geometry.height,
+        height: wraps ? undefined : geometry.height,
+      }}
     >
       <MaterialCommunityIcons name={glyph} size={HERO_PILL_GLYPH} color={CoreTokens.text1} />
       <Chip.Label
         {...resolveOneLineTextProps(geometry.label)}
+        numberOfLines={wraps ? undefined : 1}
         className="text-foreground font-inter"
       >
         {label}

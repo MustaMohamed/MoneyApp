@@ -1,9 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card, Skeleton } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { StatusCounter } from '@/components/ui/status_counter';
 import { Text } from '@/components/ui/text';
 import {
   resolveFitAmountTextProps,
@@ -14,6 +14,11 @@ import type { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
+import {
+  STATUS_COLORS,
+  STATUS_COUNTER_ORDER,
+  STATUS_ICONS,
+} from '@/modules/commitments/utils/commitment_status';
 import { formatCurrencyTotals } from '@/utils/format_amount';
 import { wholePercentOf } from '@/utils/money';
 import { ms } from '@/utils/responsive';
@@ -31,7 +36,6 @@ interface SummaryHeaderProps {
   isLoading?: boolean;
 }
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const SUMMARY_ROW_HEIGHT = ms(27);
 const SUMMARY_PROGRESS_HEIGHT = ms(3);
 const SUMMARY_STATS_ROW_HEIGHT = ms(13);
@@ -152,30 +156,17 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
           <View
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
           >
-            <Stat icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
-            <Stat icon="alert-circle" color={Colors.dark.negative} value={counts.overdue} />
-            <Stat icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
-            <Stat icon="calendar-clock" color={Colors.dark.text2} value={counts.upcoming} />
-            <Stat icon="minus-circle" color={Colors.dark.text3} value={counts.skipped} />
+            {STATUS_COUNTER_ORDER.map((status) => (
+              <StatusCounter
+                key={status}
+                icon={STATUS_ICONS[status]}
+                color={STATUS_COLORS[status]}
+                value={counts[status]}
+              />
+            ))}
           </View>
         </>
       )}
     </Card>
-  );
-}
-
-function Stat({ icon, color, value }: { icon: IconName; color: string; value: number }) {
-  const { fontScale } = useWindowDimensions();
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
-      <MaterialCommunityIcons name={icon} size={13} color={color} />
-      <Text
-        allowFontScaling={false}
-        className="font-sora-semibold"
-        style={{ ...scaledTextStyle(Type.micro, fontScale), color }}
-      >
-        {value}
-      </Text>
-    </View>
   );
 }

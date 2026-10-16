@@ -401,6 +401,8 @@ const ONE_MOUNT = 'the root layout mounts exactly one';
 const DELETED_PATHS = [
   `${BUDGET}/spending_plan_sheet/spending_plan_sheet.styles.ts`,
   `${UI}/tab_header.tsx`,
+  `${COMMITMENTS}/components/commitment_header.tsx`,
+  `${COMMITMENTS}/components/commitment_header.geometry.ts`,
   `${TRANSACTIONS}/transaction_form_v2`,
 ];
 

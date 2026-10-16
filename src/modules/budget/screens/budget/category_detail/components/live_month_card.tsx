@@ -42,7 +42,7 @@ export function LiveMonthCard({
           {formatAmount(result.spent)}
           <Text
             style={styles.of}
-          >{`  ${Strings.budgetSummarySpent.toLowerCase()} of ${formatAmount(result.limit)}`}</Text>
+          >{`  ${Strings.budgetDetailPartOf(Strings.budgetSummarySpent.toLowerCase(), formatAmount(result.limit))}`}</Text>
         </Text>
         <BudgetBar pct={pct} status={result.status} height={ms(8)} />
       </View>

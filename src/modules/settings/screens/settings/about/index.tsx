@@ -20,7 +20,7 @@ export default function AboutScreen() {
             <MaterialCommunityIcons name="chart-line" size={40} color={Colors.shared.cairoGold} />
           </View>
 
-          <Text className="text-foreground font-sora-bold mb-1 text-xl">MoneyApp</Text>
+          <Text className="text-foreground font-sora-bold mb-1 text-xl">{Strings.appName}</Text>
 
           <Text className="text-muted font-inter text-sm">
             {Strings.aboutVersion(state.version)}

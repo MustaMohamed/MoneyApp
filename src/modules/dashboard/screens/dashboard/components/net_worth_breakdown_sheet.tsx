@@ -224,7 +224,7 @@ function NetWorthBreakdownBody({
                   row.balance < 0
                     ? Strings.dashboardBreakdownInCredit
                     : row.statementDueDay != null && row.statementDueDay > 0
-                      ? `due ${nextDueDate(row.statementDueDay)}`
+                      ? Strings.dashboardBreakdownDueOn(nextDueDate(row.statementDueDay))
                       : undefined
                 }
                 value={formatLiabilityRowValue(row.balance, baseCurrency)}

@@ -1,7 +1,8 @@
 import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { Dimensions, type StyleProp, type ViewStyle } from 'react-native';
+import { Dimensions, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
 
+import { resolveHeroPillGeometry } from '@/components/ui/chip.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
@@ -58,7 +59,28 @@ jest.mock('heroui-native', () => {
     style?: StyleProp<ViewStyle>;
     testID?: string;
   }) => React.createElement(View, { testID: testID ?? 'skeleton-item', style }, children);
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  const ChipRoot = ({
+    variant: _variant,
+    color: _color,
+    animation: _animation,
+    className: _className,
+    children,
+    ...rest
+  }: React.ComponentProps<typeof View> & {
+    variant?: unknown;
+    color?: unknown;
+    animation?: unknown;
+    className?: string;
+  }) => React.createElement(View, rest, children);
+  const ChipLabel = ({
+    className: _className,
+    children,
+    ...rest
+  }: React.ComponentProps<typeof Text> & { className?: string }) =>
+    React.createElement(Text, rest, children);
   return {
+    Chip: Object.assign(ChipRoot, { Label: ChipLabel }),
     SkeletonGroup: Object.assign(SkeletonGroupRoot, { Item: SkeletonGroupItem }),
     Skeleton: ({
       animation,
@@ -111,7 +133,7 @@ describe('HeroCard skeleton loading', () => {
     expect(queryByText(/8,650/)).toBeNull();
     expect(queryByTestId('dashboard-hero-rate-pill')).toBeNull();
     expect(queryByText(/176\.00 USD/)).toBeNull();
-    expect(queryByText(`1 ${Strings.o6AccountsUnit}`)).toBeNull();
+    expect(queryByText(Strings.n4PillAccounts(1))).toBeNull();
     expect(queryByTestId('skeleton-group-only')).toBeNull();
     expect(getByTestId('dashboard-hero-skeleton-amount').props.animation).toEqual({
       entering: 'disabled',
@@ -163,7 +185,7 @@ describe('HeroCard loaded text at the window font scale', () => {
     const pillTexts = [
       getByText('176.00 USD'),
       getByText('49.06 EGP/USD'),
-      getByText(`1 ${Strings.o6AccountsUnit}`),
+      getByText(Strings.n4PillAccounts(1)),
     ];
 
     expect(amount).toHaveProp('allowFontScaling', false);
@@ -187,6 +209,49 @@ describe('HeroCard loaded text at the window font scale', () => {
         minHeight: resolveSkeletonBarHeight(ms(20), fontScale),
       });
     }
+  });
+});
+
+const HERO_PILL_IDS = [
+  'dashboard-hero-foreign-pill',
+  'dashboard-hero-rate-pill',
+  'dashboard-hero-accounts-pill',
+] as const;
+
+describe('HeroCard pills drawn by the shared hero pill (MA-173)', () => {
+  it('keeps each pill out of the accessibility tree and out of the touch path', async () => {
+    const { getByTestId } = await render(<HeroCard {...baseProps} isLoading={false} />);
+
+    for (const testID of HERO_PILL_IDS) {
+      expect(getByTestId(testID)).toHaveProp('accessible', false);
+      expect(getByTestId(testID)).toHaveProp('focusable', false);
+      expect(getByTestId(testID)).toHaveProp('pointerEvents', 'none');
+    }
+  });
+
+  it('frees the foreign pill of a fixed height and holds the rate and accounts pills at the floored height', async () => {
+    const { fontScale } = Dimensions.get('window');
+    const { getByTestId } = await render(<HeroCard {...baseProps} isLoading={false} />);
+    const floored = resolveHeroPillGeometry(
+      fontScale,
+      resolveSkeletonBarHeight(ms(20), fontScale),
+    ).height;
+
+    const foreign: { props: { style?: StyleProp<ViewStyle> } } = getByTestId(
+      'dashboard-hero-foreign-pill',
+    );
+
+    expect(StyleSheet.flatten(foreign.props.style).height).toBeUndefined();
+    expect(getByTestId('dashboard-hero-rate-pill')).toHaveStyle({ height: floored });
+    expect(getByTestId('dashboard-hero-accounts-pill')).toHaveStyle({ height: floored });
+  });
+
+  it('lets the foreign amount wrap with no line cap, and holds the rate and accounts labels to one line', async () => {
+    const { getByText } = await render(<HeroCard {...baseProps} isLoading={false} />);
+
+    expect(getByText('176.00 USD').props.numberOfLines).toBeUndefined();
+    expect(getByText('49.06 EGP/USD')).toHaveProp('numberOfLines', 1);
+    expect(getByText(Strings.n4PillAccounts(1))).toHaveProp('numberOfLines', 1);
   });
 });
 
