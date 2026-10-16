@@ -8,10 +8,7 @@ function rowBadgeMinWidth(fontScale: number): number {
 }
 
 describe('resolveTypeBadgeMinWidth (MA-192)', () => {
-  it.each([1, 2])(
-    'has one size, the list row draws, at font scale %s, whatever size a caller names',
-    (fontScale) => {
-      expect(resolveTypeBadgeMinWidth(fontScale)).toBe(rowBadgeMinWidth(fontScale));
-    },
-  );
+  it.each([1, 2])('has one size, the list row draws, at font scale %s', (fontScale) => {
+    expect(resolveTypeBadgeMinWidth(fontScale)).toBe(rowBadgeMinWidth(fontScale));
+  });
 });
