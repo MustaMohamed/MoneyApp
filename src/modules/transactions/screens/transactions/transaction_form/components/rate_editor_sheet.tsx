@@ -5,11 +5,8 @@ import { type TextInput, View, useWindowDimensions } from 'react-native';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
-import {
-  Sheet,
-  resolveSheetSizeAboveOne,
-  useBottomSheetAwareHandlers,
-} from '@/components/ui/sheet';
+import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { resolveSheetSizeAboveOne } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
 import {
   resolveOneLineTextProps,

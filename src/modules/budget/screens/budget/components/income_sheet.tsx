@@ -4,11 +4,8 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Sheet,
-  resolveSheetSizeAboveOne,
-  useBottomSheetAwareHandlers,
-} from '@/components/ui/sheet';
+import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { resolveSheetSizeAboveOne } from '@/components/ui/sheet.helpers';
 import { Strings } from '@/constants/strings';
 import { useIncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet.hook';
 
