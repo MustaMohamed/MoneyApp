@@ -5,7 +5,7 @@ import { HeroShell } from '@/components/ui/hero_shell';
 import { ScreenScroll } from '@/components/ui/screen';
 import { ScaledBar } from '@/components/ui/skeleton_bar';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
 import { resolveDetailActionBarCount, type DetailActionSet } from '../detail.helpers';
@@ -152,11 +152,11 @@ export function TransactionDetailSkeleton({ transaction, actionSet }: Props): Re
         {geometry.showNote ? (
           <Card
             testID="transaction-detail-skeleton-note"
-            className="border-separator mx-4 mt-4 rounded-2xl border p-4"
+            className="border-separator mx-4 mt-4 rounded-2xl border px-4 py-3"
             style={{ minHeight: DETAIL_NOTE_MIN_HEIGHT, boxShadow: 'none' }}
           >
-            <ScaledBar height={12} className="w-20 rounded-md" />
-            <ScaledBar height={16} className="mt-3 w-full rounded-md" />
+            <ScaledBar height={lineHeightFor(Type.overline)} className="w-12 rounded-md" />
+            <ScaledBar height={lineHeightFor(Type.body)} className="mt-1 w-full rounded-md" />
           </Card>
         ) : null}
         <View

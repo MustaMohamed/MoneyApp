@@ -4,7 +4,7 @@ import { Dimensions, type ViewStyle } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
-import { Size, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   resolveDetailFactRowHeight,
@@ -102,7 +102,11 @@ describe('TransactionDetailSkeleton', () => {
       hero.amountHeight,
       lineHeightFor(hero.captionFontSize),
     ]);
-    expect(barsIn('transaction-detail-skeleton-note')).toEqual([bar(12), bar(16)]);
+    // The loaded note card's overline and one body line, so a one-line note stands as tall loaded.
+    expect(barsIn('transaction-detail-skeleton-note')).toEqual([
+      bar(lineHeightFor(Type.overline)),
+      bar(lineHeightFor(Type.body)),
+    ]);
     expect(barsIn('transaction-detail-skeleton-actions')).toEqual([
       Size.ctaFooterTrack,
       Size.ctaFooterTrack,
