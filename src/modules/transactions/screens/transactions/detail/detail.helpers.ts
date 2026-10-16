@@ -134,7 +134,7 @@ export interface DetailAccountRow {
   archived: boolean;
 }
 
-export type DetailSource = 'manual' | 'commitment';
+type DetailSource = 'manual' | 'commitment';
 
 export type DetailActionSet = 'editDelete' | 'viewCommitment' | 'archivedNotice';
 
@@ -234,7 +234,7 @@ export function resolveDetailActionBarCount(actionSet: DetailActionSet): 1 | 2 {
   }
 }
 
-export interface DetailAmountRowText {
+interface DetailAmountRowText {
   label: string;
   value: string;
 }

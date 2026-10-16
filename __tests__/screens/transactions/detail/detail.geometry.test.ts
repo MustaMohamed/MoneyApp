@@ -1,11 +1,17 @@
 import { PixelRatio } from 'react-native';
 
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
-import { FITTED_LINE_SLACK, scaledFontSize } from '@/components/ui/text_scale.geometry';
+import {
+  FITTED_LINE_SLACK,
+  scaledFontSize,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import {
   buildDetailSkeletonGeometry,
+  DETAIL_FACT_FITTED_ROW_PADDING,
+  DETAIL_FACT_FONT_SIZE,
   DETAIL_HERO_AMOUNT_MAX_FONT_SCALE,
   DETAIL_HERO_BADGE_GAP,
   DETAIL_HERO_CAPTION_GAP,
@@ -195,6 +201,18 @@ describe('resolveDetailFactRowHeight (MA-181)', () => {
 
       expect(row).toBe(PixelRatio.roundToNearestPixel(paddedLineAt(fontScale)));
       expect(row).toBeGreaterThan(TouchSize.min);
+    },
+  );
+
+  it.each([1, 2, 3])(
+    'holds a fitted value line and one device pixel of slack inside its padding at font scale %s',
+    (fontScale) => {
+      const fittedLineBox =
+        resolveDetailFactRowHeight(fontScale) - 2 * DETAIL_FACT_FITTED_ROW_PADDING;
+
+      expect(fittedLineBox + 1e-9).toBeGreaterThanOrEqual(
+        scaledTextStyle(DETAIL_FACT_FONT_SIZE, fontScale).lineHeight + FITTED_LINE_SLACK,
+      );
     },
   );
 });
