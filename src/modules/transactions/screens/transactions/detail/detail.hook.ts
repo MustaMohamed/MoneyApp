@@ -179,7 +179,6 @@ export function useTransactionDetail(id: string) {
     currentRefreshError,
   );
   const commitmentPaymentId = currentTx?.commitment_payment_id ?? undefined;
-  const isCommitmentOwned = commitmentPaymentId !== undefined;
   const archivedLeg = currentTx ? findFrozenLeg(currentTx, accountsById) : undefined;
   const actionSet = currentTx ? resolveDetailActionSet(currentTx, accountsById) : 'editDelete';
   const loadingActionSet = loadingTransactionHint
@@ -263,7 +262,6 @@ export function useTransactionDetail(id: string) {
       refreshError: currentRefreshError,
       confirmVisible,
       deleting,
-      isCommitmentOwned,
       actionSet,
       loadingActionSet,
       isEditable: isMutable,

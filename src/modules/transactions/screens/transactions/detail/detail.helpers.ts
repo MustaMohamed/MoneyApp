@@ -1,5 +1,4 @@
 import { ACCOUNT_TYPE_ICONS, type AccountTypeIconName } from '@/constants/account_type_icons';
-import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -44,7 +43,6 @@ import {
   type RowTile,
 } from '../components/transaction_row.helpers';
 import { resolveDetailAmountRowFigure } from './components/detail.geometry';
-import type { BadgeTone } from './components/detail_row';
 import type { TransactionDetailStatus } from './detail.state';
 
 type IconName = AccountTypeIconName;
@@ -76,13 +74,6 @@ const TYPE_BADGE: Record<TransactionType, string> = {
   [TransactionType.Income]: Strings.typeBadgeIncome,
   [TransactionType.Transfer]: Strings.typeBadgeTransfer,
   [TransactionType.CCPayment]: Strings.typeBadgeCcPayment,
-};
-
-const TYPE_BADGE_TONE: Record<TransactionType, BadgeTone> = {
-  [TransactionType.Expense]: 'danger',
-  [TransactionType.Income]: 'success',
-  [TransactionType.Transfer]: 'info',
-  [TransactionType.CCPayment]: 'accent-cc',
 };
 
 // Frames C1 and C2 draw bare arrows where `TRANSACTION_TYPE_ICONS` draws circled ones.
@@ -125,13 +116,6 @@ export interface TransactionDetailHero {
 
 export interface TransactionDetailPresentation {
   hero: TransactionDetailHero;
-  dateTimeText: string;
-  categoryLabel: string;
-  categoryBadge: string;
-  categoryBadgeTone: BadgeTone;
-  accountLabel: string;
-  accountTypeLabel?: string;
-  accountIcon: IconName;
   accountRow?: DetailAccountRow;
   categoryRow?: DetailCategoryRow;
   dateText: string;
@@ -140,7 +124,6 @@ export interface TransactionDetailPresentation {
   amountRow?: DetailAmountRowText;
   exchangeRateText?: string;
   budgetLabel?: string;
-  sourceLabel: string;
   isTransferLike: boolean;
   transferFlow: {
     fromAccount: Account;
@@ -238,8 +221,7 @@ export function buildTransactionDetailPresentation({
   budget,
 }: TransactionDetailPresentationInput): TransactionDetailPresentation {
   const cardCredit = isCardCredit(tx, account);
-  const categoryBadge = cardCredit ? Strings.cardCreditTitle : TYPE_BADGE[tx.type];
-  const categoryBadgeTone = cardCredit ? 'info' : TYPE_BADGE_TONE[tx.type];
+  const typeLabel = cardCredit ? Strings.cardCreditTitle : TYPE_BADGE[tx.type];
   const isTransferLike = requiresDestination(tx.type);
   const destinationAmount = tx.to_amount ?? tx.egp_amount;
   const destinationCurrency = toAccount?.currency ?? Currency.EGP;
@@ -249,12 +231,11 @@ export function buildTransactionDetailPresentation({
   const badge = resolveAccountBadgeColors(typeColor);
   const dateText = formatWeekdayDate(tx.transaction_date);
   const timeText = formatTime12h(tx.transaction_time);
-  const dateTimeText = `${dateText}, ${timeText}`;
 
   return {
     hero: {
       title: row.title,
-      typeLabel: categoryBadge,
+      typeLabel,
       typeIcon: cardCredit
         ? CARD_CREDIT_ICON
         : (BARE_ARROW_ICON[tx.type] ?? TRANSACTION_TYPE_ICONS[tx.type].name),
@@ -267,17 +248,8 @@ export function buildTransactionDetailPresentation({
       amountValue: amount.text,
       amountCode: CURRENCY_CONFIG[tx.currency].code,
       amountAccessibilityLabel: amount.withCode,
-      caption: dateTimeText,
+      caption: `${dateText}, ${timeText}`,
     },
-    dateTimeText,
-    categoryLabel: category?.name ?? (isTransferLike ? categoryBadge : Strings.uncategorized),
-    categoryBadge,
-    categoryBadgeTone,
-    accountLabel: toAccount
-      ? `${resolveAccountName(account)} → ${resolveAccountName(toAccount)}`
-      : resolveAccountName(account),
-    accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
-    accountIcon: getAccountTypeIcon(account?.type),
     accountRow: isTransferLike ? undefined : resolveDetailAccountRow(account),
     categoryRow: isTransferLike
       ? undefined
@@ -290,8 +262,6 @@ export function buildTransactionDetailPresentation({
       tx.exchange_rate === null ? undefined : formatExchangeRateSentence(tx.exchange_rate),
     budgetLabel:
       tx.budget_id === null ? undefined : (budget?.name ?? Strings.detailBudgetUnavailable),
-    sourceLabel:
-      tx.commitment_payment_id === null ? Strings.detailManualSource : Strings.typeBadgeCommitment,
     isTransferLike,
     transferFlow:
       isTransferLike && account && toAccount

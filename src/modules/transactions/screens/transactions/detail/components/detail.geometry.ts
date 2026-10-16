@@ -25,10 +25,10 @@ export const DETAIL_HERO_CODE_GAP = ms(6);
 export const DETAIL_HERO_CODE_OPACITY = 0.8;
 const DETAIL_HERO_BADGE_CHROME = 2 * STATUS_BADGE_PADDING_VERTICAL;
 export const DETAIL_ROW_HEIGHT = ms(58);
-export const DETAIL_ACCOUNT_ROW_HEIGHT = ms(70);
 export const DETAIL_TRANSFER_MIN_HEIGHT = ms(126);
-export const DETAIL_NOTE_MIN_HEIGHT = ms(82);
-export const DETAIL_ACTION_MIN_HEIGHT = ms(92);
+// Canvas `.note-card` holding one line: its 12 padding, the overline, a 4 gap and the body line.
+export const DETAIL_NOTE_MIN_HEIGHT =
+  2 * Spacing.sm + lineHeightFor(Type.overline) + Spacing.xxs + lineHeightFor(Type.body);
 export const DETAIL_ROW_LABEL_FONT_SIZE = Type.overline;
 export const DETAIL_ROW_VALUE_FONT_SIZE = Type.meta;
 // Canvas `.fact`: the 14/20 label and value, the 9.5 badge, 8 above and below, the 20 account tile, 8 between value parts.
@@ -103,10 +103,11 @@ export interface DetailSkeletonGeometry {
   showNote: boolean;
 }
 
-function rowLines(fontScale: number, reserveSublabel: boolean): number {
-  const label = scaledTextStyle(DETAIL_ROW_LABEL_FONT_SIZE, fontScale).lineHeight;
-  const lines = label + scaledTextStyle(DETAIL_ROW_VALUE_FONT_SIZE, fontScale).lineHeight;
-  return reserveSublabel ? lines + label : lines;
+function rowLines(fontScale: number): number {
+  return (
+    scaledTextStyle(DETAIL_ROW_LABEL_FONT_SIZE, fontScale).lineHeight +
+    scaledTextStyle(DETAIL_ROW_VALUE_FONT_SIZE, fontScale).lineHeight
+  );
 }
 
 function transferLines(fontScale: number): number {
@@ -118,9 +119,8 @@ function transferLines(fontScale: number): number {
 }
 
 /** The row keeps its 1.0 space around its lines and never drops below its 1.0 height. */
-export function resolveDetailRowHeight(fontScale: number, reserveSublabel = false): number {
-  const base = reserveSublabel ? DETAIL_ACCOUNT_ROW_HEIGHT : DETAIL_ROW_HEIGHT;
-  return Math.max(base, base + rowLines(fontScale, reserveSublabel) - rowLines(1, reserveSublabel));
+export function resolveDetailRowHeight(fontScale: number): number {
+  return Math.max(DETAIL_ROW_HEIGHT, DETAIL_ROW_HEIGHT + rowLines(fontScale) - rowLines(1));
 }
 
 /** The padded taller of the value line and the account tile, at the touch floor, in whole device pixels. */

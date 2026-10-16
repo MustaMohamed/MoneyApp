@@ -961,7 +961,6 @@ export const Strings = {
   detailCategory: 'Category',
   detailAccount: 'Account',
   detailAccountArchived: 'Archived',
-  detailDateTime: 'DATE & TIME',
   detailDate: 'Date',
   detailTime: 'Time',
   detailAmountInEgp: 'Amount in EGP',
