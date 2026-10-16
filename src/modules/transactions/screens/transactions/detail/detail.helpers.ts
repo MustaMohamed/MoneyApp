@@ -1,5 +1,4 @@
 import { ACCOUNT_TYPE_ICONS, type AccountTypeIconName } from '@/constants/account_type_icons';
-import { ACCOUNT_TYPE_LABELS } from '@/constants/account_type_labels';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -11,6 +10,8 @@ import {
   contrastRatio,
 } from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { getTransactionAccountIds } from '@/modules/accounts/store/account_lookup.helpers';
+import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
@@ -20,6 +21,7 @@ import {
 } from '@/modules/navigation/domain/stacked_route';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import type { ConvertedAmount } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { resolveAccountName } from '@/utils/account_name';
 import {
   type AmountSign,
@@ -37,9 +39,12 @@ import {
   buildTransactionRowPresentation,
   isCardCredit,
   primaryAmountFor,
+  resolveCategoryGlyph,
+  resolveHollowGraphiteTile,
+  resolveRowTile,
+  type RowTile,
 } from '../components/transaction_row.helpers';
-import { resolveDetailAmountRowFigure } from './components/detail.geometry';
-import type { BadgeTone } from './components/detail_row';
+import { type DetailFactKind, resolveDetailFactSlots } from './components/detail.geometry';
 import type { TransactionDetailStatus } from './detail.state';
 
 type IconName = AccountTypeIconName;
@@ -71,13 +76,6 @@ const TYPE_BADGE: Record<TransactionType, string> = {
   [TransactionType.Income]: Strings.typeBadgeIncome,
   [TransactionType.Transfer]: Strings.typeBadgeTransfer,
   [TransactionType.CCPayment]: Strings.typeBadgeCcPayment,
-};
-
-const TYPE_BADGE_TONE: Record<TransactionType, BadgeTone> = {
-  [TransactionType.Expense]: 'danger',
-  [TransactionType.Income]: 'success',
-  [TransactionType.Transfer]: 'info',
-  [TransactionType.CCPayment]: 'accent-cc',
 };
 
 // Frames C1 and C2 draw bare arrows where `TRANSACTION_TYPE_ICONS` draws circled ones.
@@ -120,17 +118,7 @@ export interface TransactionDetailHero {
 
 export interface TransactionDetailPresentation {
   hero: TransactionDetailHero;
-  dateTimeText: string;
-  categoryLabel: string;
-  categoryBadge: string;
-  categoryBadgeTone: BadgeTone;
-  accountLabel: string;
-  accountTypeLabel?: string;
-  accountIcon: IconName;
-  amountRow?: DetailAmountRowText;
-  exchangeRateText?: string;
-  budgetLabel?: string;
-  sourceLabel: string;
+  facts: readonly DetailFact[];
   isTransferLike: boolean;
   transferFlow: {
     fromAccount: Account;
@@ -140,7 +128,113 @@ export interface TransactionDetailPresentation {
   } | null;
 }
 
-export interface DetailAmountRowText {
+export interface DetailAccountRow {
+  name: string;
+  tile: RowTile;
+  archived: boolean;
+}
+
+type DetailSource = 'manual' | 'commitment';
+
+export type DetailActionSet = 'editDelete' | 'viewCommitment' | 'archivedNotice';
+
+// The notice rides on the one set that draws it.
+export type DetailActions =
+  | { actionSet: 'editDelete'; notice?: never }
+  | { actionSet: 'viewCommitment'; notice?: never }
+  | { actionSet: 'archivedNotice'; notice: string };
+
+export interface DetailFactBadge {
+  label: string;
+  tone: 'accent' | 'neutral';
+}
+
+export type DetailFactLeading =
+  | { kind: 'tile'; tile: RowTile }
+  | { kind: 'glyph'; glyphName: IconName; glyphColor: string };
+
+export interface DetailFact {
+  kind: DetailFactKind;
+  label: string;
+  value?: string;
+  badge?: DetailFactBadge;
+  leading?: DetailFactLeading;
+  valueFace: 'sora' | 'inter';
+  // A money figure or a rate shrinks to fit before it ends in an ellipsis.
+  fitsValue: boolean;
+}
+
+const ARCHIVED_BADGE: DetailFactBadge = { label: Strings.detailAccountArchived, tone: 'neutral' };
+const CAPTURED_BADGE: DetailFactBadge = { label: Strings.capturedBadge, tone: 'accent' };
+const COMMITMENT_BADGE: DetailFactBadge = { label: Strings.typeBadgeCommitment, tone: 'accent' };
+
+// Decision 2026-10-08: a commitment's payment shows its badge alone, with no commitment name.
+const SOURCE_FACTS: Record<DetailSource, Pick<DetailFact, 'value' | 'badge'>> = {
+  manual: { value: Strings.detailManualSource },
+  commitment: { badge: COMMITMENT_BADGE },
+};
+
+/** A deleted account is archived too, yet never frozen: it keeps its row's tile and is never marked archived. */
+export function resolveDetailAccountRow(account: Account | undefined): DetailAccountRow {
+  const archived = account !== undefined && isFrozenAccount(account);
+  return {
+    name: resolveAccountName(account),
+    tile: archived ? resolveHollowGraphiteTile(account.type) : resolveRowTile(account),
+    archived,
+  };
+}
+
+export function findFrozenLeg(
+  tx: Pick<Transaction, 'account_id' | 'to_account_id'>,
+  accountsById: ReadonlyMap<string, Account>,
+): Account | undefined {
+  return getTransactionAccountIds(tx)
+    .map((accountId) => accountsById.get(accountId))
+    .find((account) => account !== undefined && isFrozenAccount(account));
+}
+
+type ActionTransaction = Pick<
+  Transaction,
+  'account_id' | 'to_account_id' | 'commitment_payment_id'
+>;
+
+/** A commitment's payment is checked first, so it shows View commitment on an archived account too. */
+export function resolveDetailActions(
+  tx: ActionTransaction,
+  accountsById: ReadonlyMap<string, Account>,
+): DetailActions {
+  if (tx.commitment_payment_id !== null) return { actionSet: 'viewCommitment' };
+  const frozenLeg = findFrozenLeg(tx, accountsById);
+  return frozenLeg
+    ? {
+        actionSet: 'archivedNotice',
+        notice: Strings.transactionAccountArchived(resolveAccountName(frozenLeg)),
+      }
+    : { actionSet: 'editDelete' };
+}
+
+export function resolveDetailActionSet(
+  tx: ActionTransaction,
+  accountsById: ReadonlyMap<string, Account>,
+): DetailActionSet {
+  return resolveDetailActions(tx, accountsById).actionSet;
+}
+
+export function resolveDetailActionBarCount(actionSet: DetailActionSet): 1 | 2 {
+  switch (actionSet) {
+    case 'editDelete':
+      return 2;
+    case 'viewCommitment':
+    case 'archivedNotice':
+      return 1;
+    default: {
+      const unhandled: never = actionSet;
+      return unhandled;
+    }
+  }
+}
+
+interface DetailAmountRowText {
   label: string;
   value: string;
 }
@@ -161,13 +255,19 @@ export function transferCellAmountText(
   return { display: signAmountText(withCode, signPrefix, printsAsZero), accessible: withCode };
 }
 
-function amountRowText(tx: Transaction): DetailAmountRowText | undefined {
-  const figure = resolveDetailAmountRowFigure(tx);
-  if (!figure) return undefined;
+function amountRowText(figure: ConvertedAmount): DetailAmountRowText {
   return {
     label: figure.currency === Currency.EGP ? Strings.detailAmountInEgp : Strings.detailAmountInUsd,
     value: formatDisplayAmount(figure.amount, figure.currency),
   };
+}
+
+function fact(
+  kind: DetailFactKind,
+  label: string,
+  rest: Partial<Omit<DetailFact, 'kind' | 'label'>> = {},
+): DetailFact {
+  return { kind, label, valueFace: 'sora', fitsValue: false, ...rest };
 }
 
 export function buildTransactionDetailPresentation({
@@ -178,8 +278,7 @@ export function buildTransactionDetailPresentation({
   budget,
 }: TransactionDetailPresentationInput): TransactionDetailPresentation {
   const cardCredit = isCardCredit(tx, account);
-  const categoryBadge = cardCredit ? Strings.cardCreditTitle : TYPE_BADGE[tx.type];
-  const categoryBadgeTone = cardCredit ? 'info' : TYPE_BADGE_TONE[tx.type];
+  const typeLabel = cardCredit ? Strings.cardCreditTitle : TYPE_BADGE[tx.type];
   const isTransferLike = requiresDestination(tx.type);
   const destinationAmount = tx.to_amount ?? tx.egp_amount;
   const destinationCurrency = toAccount?.currency ?? Currency.EGP;
@@ -187,12 +286,64 @@ export function buildTransactionDetailPresentation({
   const typeColor = cardCredit ? InfoTokens[500] : TRANSACTION_TYPE_ICONS[tx.type].color;
   const amount = primaryAmountFor(tx, cardCredit);
   const badge = resolveAccountBadgeColors(typeColor);
-  const dateTimeText = `${formatWeekdayDate(tx.transaction_date)}, ${formatTime12h(tx.transaction_time)}`;
+  const dateText = formatWeekdayDate(tx.transaction_date);
+  const timeText = formatTime12h(tx.transaction_time);
+  const accountRow = resolveDetailAccountRow(account);
+  const categoryRow = {
+    name: category?.name ?? Strings.uncategorized,
+    ...resolveCategoryGlyph(category),
+  };
+  const budgetName = budget?.name ?? Strings.detailBudgetUnavailable;
+  const source: DetailSource = tx.commitment_payment_id === null ? 'manual' : 'commitment';
+  const facts = resolveDetailFactSlots(tx).map((slot): DetailFact => {
+    switch (slot.kind) {
+      case 'account':
+        return fact(slot.kind, Strings.detailAccount, {
+          value: accountRow.name,
+          leading: { kind: 'tile', tile: accountRow.tile },
+          badge: accountRow.archived ? ARCHIVED_BADGE : undefined,
+        });
+      case 'category':
+        return fact(slot.kind, Strings.detailCategory, {
+          value: categoryRow.name,
+          leading: {
+            kind: 'glyph',
+            glyphName: categoryRow.glyphName,
+            glyphColor: categoryRow.glyphColor,
+          },
+        });
+      case 'budget':
+        return fact(slot.kind, Strings.detailBudget, { value: budgetName });
+      case 'amount': {
+        const amountRow = amountRowText(slot.figure);
+        return fact(slot.kind, amountRow.label, { value: amountRow.value, fitsValue: true });
+      }
+      case 'rate':
+        return fact(slot.kind, Strings.detailExchangeRate, {
+          value: formatExchangeRateSentence(slot.rate),
+          badge: CAPTURED_BADGE,
+          fitsValue: true,
+        });
+      case 'date':
+        return fact(slot.kind, Strings.detailDate, { value: dateText });
+      case 'time':
+        return fact(slot.kind, Strings.detailTime, { value: timeText });
+      case 'source':
+        return fact(slot.kind, Strings.detailSource, {
+          ...SOURCE_FACTS[source],
+          valueFace: 'inter',
+        });
+      default: {
+        const unhandled: never = slot;
+        return unhandled;
+      }
+    }
+  });
 
   return {
     hero: {
       title: row.title,
-      typeLabel: categoryBadge,
+      typeLabel,
       typeIcon: cardCredit
         ? CARD_CREDIT_ICON
         : (BARE_ARROW_ICON[tx.type] ?? TRANSACTION_TYPE_ICONS[tx.type].name),
@@ -205,24 +356,9 @@ export function buildTransactionDetailPresentation({
       amountValue: amount.text,
       amountCode: CURRENCY_CONFIG[tx.currency].code,
       amountAccessibilityLabel: amount.withCode,
-      caption: dateTimeText,
+      caption: `${dateText}, ${timeText}`,
     },
-    dateTimeText,
-    categoryLabel: category?.name ?? (isTransferLike ? categoryBadge : Strings.uncategorized),
-    categoryBadge,
-    categoryBadgeTone,
-    accountLabel: toAccount
-      ? `${resolveAccountName(account)} → ${resolveAccountName(toAccount)}`
-      : resolveAccountName(account),
-    accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
-    accountIcon: getAccountTypeIcon(account?.type),
-    amountRow: amountRowText(tx),
-    exchangeRateText:
-      tx.exchange_rate === null ? undefined : formatExchangeRateSentence(tx.exchange_rate),
-    budgetLabel:
-      tx.budget_id === null ? undefined : (budget?.name ?? Strings.detailBudgetUnavailable),
-    sourceLabel:
-      tx.commitment_payment_id === null ? Strings.detailManualSource : Strings.typeBadgeCommitment,
+    facts,
     isTransferLike,
     transferFlow:
       isTransferLike && account && toAccount

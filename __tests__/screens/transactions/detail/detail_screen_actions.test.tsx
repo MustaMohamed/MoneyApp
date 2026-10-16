@@ -9,16 +9,27 @@ jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
 
 import { resolveStackHeaderGeometry } from '@/components/ui/stack_header.geometry';
 import { Strings } from '@/constants/strings';
+import { Radius } from '@/constants/theme';
 import { ActionRow } from '@/modules/transactions/screens/transactions/detail/components/action_row';
 import { DetailHeader } from '@/modules/transactions/screens/transactions/detail/components/detail_header';
 
 describe('transaction detail actions', () => {
-  it('shows only the owning commitment action for a linked transaction', async () => {
+  it("frame C6: shows View commitment alone, flat, for a commitment's payment", async () => {
     const onViewCommitment = jest.fn();
-    const screen = await render(<ActionRow onViewCommitment={onViewCommitment} />);
+    const screen = await render(
+      <ActionRow
+        actionSet="viewCommitment"
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+        onViewCommitment={onViewCommitment}
+      />,
+    );
 
     expect(screen.queryByText(Strings.detailEditButton)).toBeNull();
     expect(screen.queryByText(Strings.detailDeleteButton)).toBeNull();
+    expect(screen.getByText(Strings.viewCommitment).parent).toHaveStyle({
+      borderRadius: Radius.cta,
+    });
     await fireEvent.press(screen.getByText(Strings.viewCommitment));
     expect(onViewCommitment).toHaveBeenCalledTimes(1);
   });
@@ -57,12 +68,50 @@ describe('transaction detail actions', () => {
     expect(screen.queryByLabelText(Strings.detailEditAccessibility)).toBeNull();
   });
 
-  it('shows only delete at the bottom for an ordinary transaction', async () => {
-    const screen = await render(<ActionRow onDelete={jest.fn()} />);
+  it('frame C1: shows flat Edit and Delete for an ordinary transaction, each pressing its own handler', async () => {
+    const onEdit = jest.fn();
+    const onDelete = jest.fn();
+    const onViewCommitment = jest.fn();
+    const screen = await render(
+      <ActionRow
+        actionSet="editDelete"
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onViewCommitment={onViewCommitment}
+      />,
+    );
 
+    for (const label of [Strings.detailEditButton, Strings.detailDeleteButton]) {
+      expect(screen.getByText(label)).toHaveProp('allowFontScaling', false);
+      expect(screen.getByText(label)).toHaveProp('numberOfLines', 1);
+      expect(screen.getByText(label).parent).toHaveStyle({ borderRadius: Radius.cta });
+    }
+    expect(screen.queryByText(Strings.viewCommitment)).toBeNull();
+
+    await fireEvent.press(screen.getByText(Strings.detailEditButton));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onDelete).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByText(Strings.detailDeleteButton));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onViewCommitment).not.toHaveBeenCalled();
+  });
+
+  it('frame C7: shows the archived notice in place of every action', async () => {
+    const notice = Strings.transactionAccountArchived('Old HSBC');
+    const screen = await render(
+      <ActionRow
+        actionSet="archivedNotice"
+        notice={notice}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+        onViewCommitment={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText(notice)).toBeTruthy();
     expect(screen.queryByText(Strings.detailEditButton)).toBeNull();
-    expect(screen.getByText(Strings.detailDeleteButton)).toHaveProp('allowFontScaling', false);
-    expect(screen.getByText(Strings.detailDeleteButton)).toHaveProp('numberOfLines', 1);
+    expect(screen.queryByText(Strings.detailDeleteButton)).toBeNull();
     expect(screen.queryByText(Strings.viewCommitment)).toBeNull();
   });
 });

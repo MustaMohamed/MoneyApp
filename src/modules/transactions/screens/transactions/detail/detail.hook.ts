@@ -10,7 +10,6 @@ import {
   getTransactionAccountIds,
   mergeAccountsById,
 } from '@/modules/accounts/store/account_lookup.helpers';
-import { isFrozenAccount } from '@/modules/accounts/utils/is_frozen_account';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
@@ -19,11 +18,13 @@ import { stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
 import { resolveTransactionDeleteError } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
-import { resolveAccountName } from '@/utils/account_name';
 
 import {
   buildTransactionDetailPresentation,
+  type DetailActions,
   getCommitmentPaymentRoute,
+  resolveDetailActionSet,
+  resolveDetailActions,
   resolveDetailViewState,
 } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useTxDetailState } from './detail.state';
@@ -178,13 +179,13 @@ export function useTransactionDetail(id: string) {
     currentRefreshError,
   );
   const commitmentPaymentId = currentTx?.commitment_payment_id ?? undefined;
-  const isCommitmentOwned = commitmentPaymentId !== undefined;
-  const archivedLeg = currentTx
-    ? getTransactionAccountIds(currentTx)
-        .map((accountId) => accountsById.get(accountId))
-        .find((account) => account !== undefined && isFrozenAccount(account))
-    : undefined;
-  const isMutable = !isCommitmentOwned && archivedLeg === undefined;
+  const actions: DetailActions = currentTx
+    ? resolveDetailActions(currentTx, accountsById)
+    : { actionSet: 'editDelete' };
+  const loadingActionSet = loadingTransactionHint
+    ? resolveDetailActionSet(loadingTransactionHint, accountsById)
+    : 'editDelete';
+  const isMutable = actions.actionSet === 'editDelete';
 
   const derived = useMemo(() => {
     if (!currentTx) return null;
@@ -262,12 +263,10 @@ export function useTransactionDetail(id: string) {
       refreshError: currentRefreshError,
       confirmVisible,
       deleting,
-      isCommitmentOwned,
+      actions,
+      loadingActionSet,
       isEditable: isMutable,
       isDeletable: isMutable,
-      archivedAccountLine: archivedLeg
-        ? Strings.transactionAccountArchived(resolveAccountName(archivedLeg))
-        : undefined,
     },
     openDeleteConfirm,
     closeDeleteConfirm,

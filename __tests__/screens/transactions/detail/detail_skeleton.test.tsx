@@ -4,11 +4,11 @@ import { Dimensions, type ViewStyle } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
-import { Size, lineHeightFor } from '@/constants/theme';
+import { Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
+  resolveDetailFactRowHeight,
   resolveDetailHeroGeometry,
-  resolveDetailRowHeight,
   resolveTransferCardHeight,
   resolveTransferSkeletonCellHeight,
 } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
@@ -41,8 +41,33 @@ jest.mock('heroui-native', () => {
 });
 
 describe('TransactionDetailSkeleton', () => {
+  const transferHint: Transaction = {
+    id: 'transfer-1',
+    type: TransactionType.Transfer,
+    amount: 100,
+    currency: Currency.USD,
+    egp_amount: 4_850,
+    exchange_rate: 48.5,
+    to_amount: 4_850,
+    minimum_payment_snapshot: null,
+    revolving_balance_delta: null,
+    account_id: 'source',
+    to_account_id: 'destination',
+    category_id: null,
+    budget_id: 'budget-1',
+    note: 'Trip transfer',
+    transaction_date: '2026-07-19',
+    transaction_time: '12:00:00',
+    commitment_payment_id: null,
+    installment_id: null,
+    created_at: '2026-07-19T12:00:00.000Z',
+    updated_at: '2026-07-19T12:00:00.000Z',
+  };
+
   it('uses a neutral loading surface when transaction geometry is unknown', async () => {
-    const { getByTestId, queryByTestId } = await render(<TransactionDetailSkeleton />);
+    const { getByTestId, queryByTestId } = await render(
+      <TransactionDetailSkeleton actionSet="editDelete" />,
+    );
 
     const loading = getByTestId('transaction-detail-neutral-loading');
     expect(loading).toBeTruthy();
@@ -56,30 +81,8 @@ describe('TransactionDetailSkeleton', () => {
     const bar = (height: number): number => resolveSkeletonBarHeight(height, fontScale);
     const hero = resolveDetailHeroGeometry(fontScale);
 
-    const transaction: Transaction = {
-      id: 'transfer-1',
-      type: TransactionType.Transfer,
-      amount: 100,
-      currency: Currency.USD,
-      egp_amount: 4_850,
-      exchange_rate: 48.5,
-      to_amount: 4_850,
-      minimum_payment_snapshot: null,
-      revolving_balance_delta: null,
-      account_id: 'source',
-      to_account_id: 'destination',
-      category_id: null,
-      budget_id: 'budget-1',
-      note: 'Trip transfer',
-      transaction_date: '2026-07-19',
-      transaction_time: '12:00:00',
-      commitment_payment_id: null,
-      installment_id: null,
-      created_at: '2026-07-19T12:00:00.000Z',
-      updated_at: '2026-07-19T12:00:00.000Z',
-    };
     const { getAllByTestId, getByTestId } = await render(
-      <TransactionDetailSkeleton transaction={transaction} />,
+      <TransactionDetailSkeleton transaction={transferHint} actionSet="editDelete" />,
     );
     const barsIn = (testID: string): ViewStyle['height'][] =>
       within(getByTestId(testID)).getAllByTestId(BAR).map(barHeight);
@@ -88,7 +91,7 @@ describe('TransactionDetailSkeleton', () => {
     expect(getByTestId('transaction-detail-skeleton-hero')).toHaveStyle({ height: hero.height });
     expect(getByTestId('transaction-detail-skeleton-note')).toBeTruthy();
     expect(getByTestId('transaction-detail-skeleton-actions')).toBeTruthy();
-    expect(getAllByTestId('transaction-detail-skeleton-row')).toHaveLength(7);
+    expect(getAllByTestId('transaction-detail-skeleton-row')).toHaveLength(6);
 
     // Tile, title, badge, overline, amount, caption: the loaded hero's boxes in order.
     expect(barsIn('transaction-detail-skeleton-hero')).toEqual([
@@ -99,17 +102,20 @@ describe('TransactionDetailSkeleton', () => {
       hero.amountHeight,
       lineHeightFor(hero.captionFontSize),
     ]);
-    expect(barsIn('transaction-detail-skeleton-note')).toEqual([bar(12), bar(16)]);
-    expect(barsIn('transaction-detail-skeleton-actions')).toEqual([bar(52), bar(52)]);
+    // The loaded note card's overline and one body line, so a one-line note stands as tall loaded.
+    expect(barsIn('transaction-detail-skeleton-note')).toEqual([
+      bar(lineHeightFor(Type.overline)),
+      bar(lineHeightFor(Type.body)),
+    ]);
+    expect(barsIn('transaction-detail-skeleton-actions')).toEqual([
+      Size.ctaFooterTrack,
+      Size.ctaFooterTrack,
+    ]);
 
     const rows = getAllByTestId('transaction-detail-skeleton-row');
     for (const row of rows) {
-      expect(within(row).getAllByTestId(BAR).map(barHeight)).toEqual([undefined, bar(12), bar(16)]);
-    }
-    expect(rows[0]).toHaveStyle({ height: resolveDetailRowHeight(fontScale) });
-    expect(rows[1]).toHaveStyle({ height: resolveDetailRowHeight(fontScale, true) });
-    for (const row of rows.slice(2)) {
-      expect(row).toHaveStyle({ height: resolveDetailRowHeight(fontScale) });
+      expect(row).toHaveStyle({ height: resolveDetailFactRowHeight(fontScale) });
+      expect(within(row).getAllByTestId(BAR).map(barHeight)).toEqual([bar(14), bar(14)]);
     }
 
     expect(getByTestId('transaction-detail-skeleton-transfer')).toHaveStyle({
@@ -117,5 +123,28 @@ describe('TransactionDetailSkeleton', () => {
     });
     const cell = resolveTransferSkeletonCellHeight(fontScale);
     expect(barsIn('transaction-detail-skeleton-transfer')).toEqual([cell, undefined, cell]);
+  });
+
+  it('draws one action bar where the loaded screen shows View commitment', async () => {
+    const commitmentPayment: Transaction = {
+      ...transferHint,
+      id: 'payment-1',
+      type: TransactionType.Expense,
+      currency: Currency.EGP,
+      exchange_rate: null,
+      to_account_id: null,
+      to_amount: null,
+      category_id: 'category-1',
+      budget_id: null,
+      note: null,
+      commitment_payment_id: 'commitment-payment-1',
+    };
+    const { getByTestId } = await render(
+      <TransactionDetailSkeleton transaction={commitmentPayment} actionSet="viewCommitment" />,
+    );
+
+    expect(
+      within(getByTestId('transaction-detail-skeleton-actions')).getAllByTestId(BAR).map(barHeight),
+    ).toEqual([Size.ctaFooterTrack]);
   });
 });

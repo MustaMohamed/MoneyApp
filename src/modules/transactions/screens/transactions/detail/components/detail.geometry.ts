@@ -1,3 +1,5 @@
+import { PixelRatio } from 'react-native';
+
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import {
@@ -6,7 +8,7 @@ import {
   scaledTextStyle,
 } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
+import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import type { ConvertedAmount } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
@@ -23,12 +25,20 @@ export const DETAIL_HERO_CODE_GAP = ms(6);
 export const DETAIL_HERO_CODE_OPACITY = 0.8;
 const DETAIL_HERO_BADGE_CHROME = 2 * STATUS_BADGE_PADDING_VERTICAL;
 export const DETAIL_ROW_HEIGHT = ms(58);
-export const DETAIL_ACCOUNT_ROW_HEIGHT = ms(70);
 export const DETAIL_TRANSFER_MIN_HEIGHT = ms(126);
-export const DETAIL_NOTE_MIN_HEIGHT = ms(82);
-export const DETAIL_ACTION_MIN_HEIGHT = ms(92);
+// Canvas `.note-card` holding one line: its 12 padding, the overline, a 4 gap and the body line.
+export const DETAIL_NOTE_MIN_HEIGHT =
+  2 * Spacing.sm + lineHeightFor(Type.overline) + Spacing.xxs + lineHeightFor(Type.body);
 export const DETAIL_ROW_LABEL_FONT_SIZE = Type.overline;
 export const DETAIL_ROW_VALUE_FONT_SIZE = Type.meta;
+// Canvas `.fact`: the 14/20 label and value, the 9.5 badge, 8 above and below, the 20 account tile, 8 between value parts.
+export const DETAIL_FACT_FONT_SIZE = Type.body;
+export const DETAIL_FACT_BADGE_FONT_SIZE = Type.compactBadge;
+export const DETAIL_FACT_ROW_PADDING = Spacing.xs;
+export const DETAIL_FACT_TILE = ms(20);
+export const DETAIL_FACT_VALUE_GAP = Spacing.xs;
+// A fitted value's line box takes one device pixel of slack from the padding, so the row keeps its height.
+export const DETAIL_FACT_FITTED_ROW_PADDING = DETAIL_FACT_ROW_PADDING - FITTED_LINE_SLACK / 2;
 export const DETAIL_TRANSFER_LABEL_FONT_SIZE = Type.compactBadge;
 export const DETAIL_TRANSFER_NAME_FONT_SIZE = Type.detail;
 export const DETAIL_TRANSFER_AMOUNT_FONT_SIZE = Type.micro;
@@ -95,10 +105,11 @@ export interface DetailSkeletonGeometry {
   showNote: boolean;
 }
 
-function rowLines(fontScale: number, reserveSublabel: boolean): number {
-  const label = scaledTextStyle(DETAIL_ROW_LABEL_FONT_SIZE, fontScale).lineHeight;
-  const lines = label + scaledTextStyle(DETAIL_ROW_VALUE_FONT_SIZE, fontScale).lineHeight;
-  return reserveSublabel ? lines + label : lines;
+function rowLines(fontScale: number): number {
+  return (
+    scaledTextStyle(DETAIL_ROW_LABEL_FONT_SIZE, fontScale).lineHeight +
+    scaledTextStyle(DETAIL_ROW_VALUE_FONT_SIZE, fontScale).lineHeight
+  );
 }
 
 function transferLines(fontScale: number): number {
@@ -110,9 +121,18 @@ function transferLines(fontScale: number): number {
 }
 
 /** The row keeps its 1.0 space around its lines and never drops below its 1.0 height. */
-export function resolveDetailRowHeight(fontScale: number, reserveSublabel = false): number {
-  const base = reserveSublabel ? DETAIL_ACCOUNT_ROW_HEIGHT : DETAIL_ROW_HEIGHT;
-  return Math.max(base, base + rowLines(fontScale, reserveSublabel) - rowLines(1, reserveSublabel));
+export function resolveDetailRowHeight(fontScale: number): number {
+  return Math.max(DETAIL_ROW_HEIGHT, DETAIL_ROW_HEIGHT + rowLines(fontScale) - rowLines(1));
+}
+
+export function resolveDetailFactRowHeight(fontScale: number): number {
+  return PixelRatio.roundToNearestPixel(
+    Math.max(
+      TouchSize.min,
+      2 * DETAIL_FACT_ROW_PADDING +
+        Math.max(scaledTextStyle(DETAIL_FACT_FONT_SIZE, fontScale).lineHeight, DETAIL_FACT_TILE),
+    ),
+  );
 }
 
 export function resolveTransferCellHeight(fontScale: number): number {
@@ -151,21 +171,34 @@ export function resolveDetailAmountRowFigure(
   return undefined;
 }
 
+export type DetailFactSlot =
+  | { kind: 'account' | 'category' | 'budget' | 'date' | 'time' | 'source' }
+  | { kind: 'amount'; figure: ConvertedAmount }
+  | { kind: 'rate'; rate: number };
+
+export type DetailFactKind = DetailFactSlot['kind'];
+
+/** The fact rows a transaction shows, in order, read from the transaction alone so the skeleton holds the same rows. */
+export function resolveDetailFactSlots(transaction: Transaction): DetailFactSlot[] {
+  const slots: DetailFactSlot[] = [];
+  if (!requiresDestination(transaction.type)) slots.push({ kind: 'account' }, { kind: 'category' });
+  if (transaction.budget_id !== null) slots.push({ kind: 'budget' });
+  const figure = resolveDetailAmountRowFigure(transaction);
+  if (figure) slots.push({ kind: 'amount', figure });
+  if (transaction.exchange_rate !== null) {
+    slots.push({ kind: 'rate', rate: transaction.exchange_rate });
+  }
+  slots.push({ kind: 'date' }, { kind: 'time' }, { kind: 'source' });
+  return slots;
+}
+
 export function buildDetailSkeletonGeometry(
   transaction: Transaction,
   fontScale: number,
 ): DetailSkeletonGeometry {
   const showTransfer = requiresDestination(transaction.type);
-  const rowHeight = resolveDetailRowHeight(fontScale);
-  const rowHeights = [
-    rowHeight,
-    resolveDetailRowHeight(fontScale, true),
-    ...(transaction.budget_id ? [rowHeight] : []),
-    rowHeight,
-    ...(resolveDetailAmountRowFigure(transaction) ? [rowHeight] : []),
-    ...(transaction.exchange_rate !== null ? [rowHeight] : []),
-    rowHeight,
-  ];
+  const rowHeight = resolveDetailFactRowHeight(fontScale);
+  const rowHeights = resolveDetailFactSlots(transaction).map(() => rowHeight);
 
   return {
     rowHeights,

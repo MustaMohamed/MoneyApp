@@ -5,12 +5,12 @@ import { HeroShell } from '@/components/ui/hero_shell';
 import { ScreenScroll } from '@/components/ui/screen';
 import { ScaledBar } from '@/components/ui/skeleton_bar';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
+import { resolveDetailActionBarCount, type DetailActionSet } from '../detail.helpers';
 import {
   buildDetailSkeletonGeometry,
-  DETAIL_ACTION_MIN_HEIGHT,
   DETAIL_HERO_BADGE_GAP,
   DETAIL_HERO_CAPTION_GAP,
   DETAIL_HERO_OVERLINE_GAP,
@@ -25,6 +25,7 @@ import {
 
 interface Props {
   transaction?: Transaction | null;
+  actionSet: DetailActionSet;
 }
 
 export function TransferFlowSkeletonCard(): React.ReactElement {
@@ -47,7 +48,7 @@ export function TransferFlowSkeletonCard(): React.ReactElement {
   );
 }
 
-export function TransactionDetailSkeleton({ transaction }: Props): React.ReactElement {
+export function TransactionDetailSkeleton({ transaction, actionSet }: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   if (!transaction) {
     return (
@@ -136,33 +137,39 @@ export function TransactionDetailSkeleton({ transaction }: Props): React.ReactEl
               className={
                 row < geometry.rowHeights.length - 1 ? 'border-separator border-b px-4' : 'px-4'
               }
-              style={{ height, flexDirection: 'row', alignItems: 'center' }}
+              style={{
+                height,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
             >
-              <SkeletonGroup.Item className="h-7 w-7 rounded-md" />
-              <View className="ml-3 flex-1 gap-1.5">
-                <ScaledBar height={12} className="w-20 rounded-md" />
-                <ScaledBar height={16} className="w-36 rounded-md" />
-              </View>
+              <ScaledBar height={14} className="w-16 rounded-md" />
+              <ScaledBar height={14} className="w-28 rounded-md" />
             </View>
           ))}
         </Card>
         {geometry.showNote ? (
           <Card
             testID="transaction-detail-skeleton-note"
-            className="border-separator mx-4 mt-4 rounded-2xl border p-4"
+            className="border-separator mx-4 mt-4 rounded-2xl border px-4 py-3"
             style={{ minHeight: DETAIL_NOTE_MIN_HEIGHT, boxShadow: 'none' }}
           >
-            <ScaledBar height={12} className="w-20 rounded-md" />
-            <ScaledBar height={16} className="mt-3 w-full rounded-md" />
+            <ScaledBar height={lineHeightFor(Type.overline)} className="w-12 rounded-md" />
+            <ScaledBar height={lineHeightFor(Type.body)} className="mt-1 w-full rounded-md" />
           </Card>
         ) : null}
         <View
           testID="transaction-detail-skeleton-actions"
-          className="flex-row gap-2.5 px-4 pt-4 pb-6"
-          style={{ minHeight: DETAIL_ACTION_MIN_HEIGHT }}
+          className="gap-2 px-4 pt-4 pb-6"
+          style={{ flexDirection: 'row' }}
         >
-          <ScaledBar height={52} className="flex-1 rounded-xl" />
-          <ScaledBar height={52} className="flex-1 rounded-xl" />
+          {Array.from({ length: resolveDetailActionBarCount(actionSet) }, (_, bar) => (
+            <SkeletonGroup.Item
+              key={bar}
+              style={{ flex: 1, height: Size.ctaFooterTrack, borderRadius: Radius.cta }}
+            />
+          ))}
         </View>
       </SkeletonGroup>
     </ScreenScroll>

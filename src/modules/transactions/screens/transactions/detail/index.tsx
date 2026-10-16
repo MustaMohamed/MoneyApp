@@ -2,14 +2,13 @@ import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
 import { Screen, ScreenScroll } from '@/components/ui/screen';
-import { Strings } from '@/constants/strings';
 
 import { TxDeleteConfirmSheet } from '../components/tx_delete_confirm_sheet';
 import { ActionRow } from './components/action_row';
+import { DetailFactRow } from './components/detail_fact_row';
 import { DetailHeader } from './components/detail_header';
 import { DetailHero } from './components/detail_hero';
 import { DetailLoadError } from './components/detail_load_error';
-import { DetailRow } from './components/detail_row';
 import { DetailRowsCard } from './components/detail_rows_card';
 import { TransactionDetailSkeleton, TransferFlowSkeletonCard } from './components/detail_skeleton';
 import { NotFoundState } from './components/not_found_state';
@@ -45,7 +44,10 @@ export default function TransactionDetailScreen(): React.ReactElement {
       />
 
       {state.viewState === 'loading' ? (
-        <TransactionDetailSkeleton transaction={state.loadingTransactionHint} />
+        <TransactionDetailSkeleton
+          transaction={state.loadingTransactionHint}
+          actionSet={state.loadingActionSet}
+        />
       ) : state.viewState === 'notFound' ? (
         <NotFoundState />
       ) : state.viewState === 'firstLoadError' ? (
@@ -71,69 +73,25 @@ export default function TransactionDetailScreen(): React.ReactElement {
             ) : null}
 
             <DetailRowsCard>
-              <DetailRow
-                icon="shape"
-                label={Strings.detailCategory}
-                value={detail.categoryLabel}
-                badge={detail.categoryBadge}
-                badgeTone={detail.categoryBadgeTone}
-              />
-              <DetailRow
-                icon={detail.accountIcon}
-                label={Strings.detailAccount}
-                value={detail.accountLabel}
-                sublabel={detail.accountTypeLabel}
-                reserveSublabel
-              />
-              {detail.budgetLabel ? (
-                <DetailRow
-                  icon="wallet-outline"
-                  label={Strings.detailBudget}
-                  value={detail.budgetLabel}
+              {detail.facts.map((fact, index) => (
+                <DetailFactRow
+                  key={fact.kind}
+                  fact={fact}
+                  showDivider={index < detail.facts.length - 1}
                 />
-              ) : null}
-              <DetailRow
-                icon="calendar"
-                label={Strings.detailDateTime}
-                value={detail.dateTimeText}
-              />
-              {detail.amountRow ? (
-                <DetailRow
-                  icon="currency-usd"
-                  label={detail.amountRow.label}
-                  value={detail.amountRow.value}
-                />
-              ) : null}
-              {detail.exchangeRateText ? (
-                <DetailRow
-                  icon="earth"
-                  label={Strings.detailExchangeRate}
-                  value={detail.exchangeRateText}
-                  badge={Strings.capturedBadge}
-                />
-              ) : null}
-              <DetailRow
-                icon={state.isCommitmentOwned ? 'calendar-check-outline' : 'pencil-outline'}
-                label={Strings.detailSource}
-                value={detail.sourceLabel}
-                showDivider={false}
-              />
+              ))}
             </DetailRowsCard>
 
-            {/* Own card, not a `DetailRow`: a long note wraps instead of clipping to two lines. */}
             <NoteCard note={transaction.note} />
 
-            {state.isCommitmentOwned ? (
-              <ActionRow
-                onViewCommitment={() => {
-                  void openCommitment();
-                }}
-              />
-            ) : state.archivedAccountLine ? (
-              <ActionRow notice={state.archivedAccountLine} />
-            ) : (
-              <ActionRow onDelete={openDeleteConfirm} />
-            )}
+            <ActionRow
+              {...state.actions}
+              onEdit={openEdit}
+              onDelete={openDeleteConfirm}
+              onViewCommitment={() => {
+                void openCommitment();
+              }}
+            />
           </ScreenScroll>
 
           {state.isDeletable ? (
