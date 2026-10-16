@@ -42,4 +42,11 @@ describe('resolveHeroPillGeometry', () => {
     expect(g.label).toEqual(label);
     expect(g.height).toBe(2 * Spacing.xxs + label.lineHeight);
   });
+
+  it('MA-173: a floor above the line box is the height, a floor below it leaves the line box', () => {
+    const lineBox = 2 * Spacing.xxs + scaledTextStyle(Type.caption, 2).lineHeight;
+
+    expect(resolveHeroPillGeometry(2, lineBox + 1).height).toBe(lineBox + 1);
+    expect(resolveHeroPillGeometry(2, lineBox - 1).height).toBe(lineBox);
+  });
 });
