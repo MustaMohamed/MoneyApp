@@ -44,9 +44,9 @@ export const TRANSACTION_ROW_LINE_GAP = ms(2);
 export const TRANSACTION_ROW_DUAL_OFFSET = ms(16);
 export const TRANSACTION_ROW_DUAL_RING = ms(2);
 export const TRANSACTION_ROW_DUAL_RING_COLOR = CoreTokens.surface;
-// TypeBadge's `sm` chrome: the unscaled `py-[2px]` and 1 dp border it carries on each side.
+// TypeBadge's chrome: the unscaled `py-[2px]` and 1 dp border it carries on each side.
 export const TRANSACTION_ROW_TITLE_BADGE_CHROME = 2 * (2 + 1);
-// Mirrors TypeBadge's `sm` box: its label line box plus its chrome.
+// Mirrors TypeBadge's box: its label line box plus its chrome.
 export const TRANSACTION_ROW_TITLE_BADGE_HEIGHT =
   lineHeightFor(Type.compactBadge) + TRANSACTION_ROW_TITLE_BADGE_CHROME;
 export const TRANSACTION_ROW_CAPTION_SEPARATOR = ' · ';
