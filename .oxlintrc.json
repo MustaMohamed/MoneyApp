@@ -127,14 +127,21 @@
                 "name": "@gorhom/bottom-sheet",
                 "allowTypeImports": true,
                 "message": "sheet.helpers.ts is logic-only: take the bottom sheet engine as `import type`."
-              },
+              }
+            ],
+            "patterns": [
               {
-                "name": "./sheet",
+                "group": ["heroui-native/*"],
                 "allowTypeImports": true,
-                "message": "sheet.helpers.ts takes only types from the sheet component."
+                "message": "sheet.helpers.ts is logic-only: take HeroUI as `import type`."
               },
               {
-                "name": "@/components/ui/sheet",
+                "group": ["@gorhom/bottom-sheet/*"],
+                "allowTypeImports": true,
+                "message": "sheet.helpers.ts is logic-only: take the bottom sheet engine as `import type`."
+              },
+              {
+                "regex": "(^|/)sheet$",
                 "allowTypeImports": true,
                 "message": "sheet.helpers.ts takes only types from the sheet component."
               }
