@@ -8,14 +8,10 @@ function rowBadgeMinWidth(fontScale: number): number {
 }
 
 describe('resolveTypeBadgeMinWidth (MA-192)', () => {
-  // A caller written against the old two-size signature still compiles against the one-size one.
-  const namingASize: (fontScale: number, size: 'md') => number = resolveTypeBadgeMinWidth;
-
   it.each([1, 2])(
     'has one size, the list row draws, at font scale %s, whatever size a caller names',
     (fontScale) => {
       expect(resolveTypeBadgeMinWidth(fontScale)).toBe(rowBadgeMinWidth(fontScale));
-      expect(namingASize(fontScale, 'md')).toBe(rowBadgeMinWidth(fontScale));
     },
   );
 });

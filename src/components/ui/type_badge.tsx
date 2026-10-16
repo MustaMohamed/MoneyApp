@@ -17,8 +17,21 @@ interface Props {
   fontScale?: number;
 }
 
+// Raw, never ms(): the list row's title line adds the vertical chrome above and below the label.
+const BORDER_WIDTH = 1;
+const PADDING_VERTICAL = 2;
+const PADDING_HORIZONTAL = 8;
+const GAP = 4;
+export const TYPE_BADGE_VERTICAL_CHROME = 2 * (PADDING_VERTICAL + BORDER_WIDTH);
+const WRAP_STYLE = {
+  borderWidth: BORDER_WIDTH,
+  paddingVertical: PADDING_VERTICAL,
+  paddingHorizontal: PADDING_HORIZONTAL,
+  gap: GAP,
+};
+
 const wrap = tv({
-  base: 'flex-row items-center rounded-full border px-2 py-[2px] gap-1',
+  base: 'flex-row items-center rounded-full',
   variants: {
     type: {
       commitment: 'bg-accent/15 border-accent/30',
@@ -43,8 +56,8 @@ const LABEL_STYLE = { fontSize: Type.compactBadge, lineHeight: lineHeightFor(Typ
 
 const ICON_SIZE = 10;
 
-// The `wrap` chrome beside the icon: the 1 dp border and the `px-2` on each side, and the `gap-1`.
-const CHROME_WIDTH = 2 * (1 + 8) + 4;
+// The chrome beside the icon: the border and the horizontal padding on each side, and the gap.
+const CHROME_WIDTH = 2 * (BORDER_WIDTH + PADDING_HORIZONTAL) + GAP;
 
 // A `…` in ems of the label's size, so the narrowest badge still draws one.
 const ELLIPSIS_EM = 1;
@@ -79,7 +92,7 @@ export function TypeBadge({ type, fontScale }: Props): React.ReactElement {
       accessibilityRole="text"
       accessibilityLabel={LABEL[type]}
       className={wrap({ type })}
-      style={shrinks ? { flexShrink: 1 } : undefined}
+      style={shrinks ? { ...WRAP_STYLE, flexShrink: 1 } : WRAP_STYLE}
     >
       <MaterialCommunityIcons name={ICON[type]} size={ICON_SIZE} color={ICON_COLOR[type]} />
       <Text
