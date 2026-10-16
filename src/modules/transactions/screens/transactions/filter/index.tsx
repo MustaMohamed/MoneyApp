@@ -3,7 +3,8 @@ import React from 'react';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { Sheet } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Strings } from '@/constants/strings';
 
 import { AccountAccordion } from './components/account_accordion';

@@ -8,7 +8,8 @@ import { Platform, View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Button } from '@/components/ui/button';
-import { Sheet, SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';

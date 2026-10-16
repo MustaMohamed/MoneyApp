@@ -7,7 +7,8 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
-import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { Sheet } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';

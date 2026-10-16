@@ -8,7 +8,8 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet, SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';

@@ -24,7 +24,7 @@ import { useSheetCloseLifecycle } from './sheet.hook';
 
 // Keyboard inputs: wire this onto an `Input`'s `onFocus`/`onBlur` inside a sheet.
 export { useBottomSheetAwareHandlers } from 'heroui-native';
-export { SHEET_FOOTER_CLEARANCE, resolveSheetSizeAboveOne } from './sheet.helpers';
+export { resolveSheetSizeAboveOne } from './sheet.helpers';
 
 export interface SheetProps {
   isOpen: boolean;

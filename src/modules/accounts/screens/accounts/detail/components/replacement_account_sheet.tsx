@@ -3,7 +3,8 @@ import { Radio, RadioGroup } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
-import { SHEET_FOOTER_CLEARANCE, Sheet } from '@/components/ui/sheet';
+import { Sheet } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';

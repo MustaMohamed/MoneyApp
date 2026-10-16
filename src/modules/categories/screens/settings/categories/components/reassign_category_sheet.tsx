@@ -5,7 +5,8 @@ import { StyleSheet, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
-import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { Sheet } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet.helpers';
 import { Strings } from '@/constants/strings';
 import { Colors, Radius, Size, Spacing, withAlpha } from '@/constants/theme';
 import type { Category } from '@/modules/categories/store/category.store';
