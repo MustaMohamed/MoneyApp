@@ -213,6 +213,14 @@ describe('board_next text', () => {
     );
   });
 
+  test('inside a bucket a ticket that frees one reads before one higher on the board', () => {
+    const lines = run('--format', 'text').stdout.split('\n');
+    const at = (n: number) => lines.findIndex((l) => l.startsWith(`#${n} `));
+    expect(at(188)).toBeGreaterThan(-1);
+    expect(at(188)).toBeLessThan(at(116));
+    expect(at(193)).toBeLessThan(at(110));
+  });
+
   test('a ticket with an open record reads as yours, with /queue asks', () => {
     const lines = run('--format', 'text').stdout.split('\n');
     expect(lines).toContain('#146 MA-146 · Defined · 1 open question · /queue asks');
@@ -399,22 +407,21 @@ describe('board_next leases and the queue column', () => {
     expect(byNumber(list, 110).queue).toBe('Defined');
   });
 
-  test('candidates list each column by rank, so a ticket that frees one goes before one higher on the board', () => {
-    const out = JSON.parse(run('--format', 'json').stdout) as {
-      candidates: Record<string, number[]>;
-    };
-    expect(out.candidates['Ready For Development']).toEqual([108, 188, 116, 162]);
-    for (const [column, numbers] of Object.entries(out.candidates)) {
-      const ranks = numbers.map((n) => byNumber(list, n).rank ?? 0);
-      expect({ column, ranks }).toEqual({ column, ranks: [...ranks].sort((a, b) => a - b) });
-      expect(numbers.every((n) => byNumber(list, n).queue === column)).toBe(true);
-    }
-    expect(Object.values(out.candidates).flat().sort()).toEqual(
-      list
-        .filter((a) => a.queue)
-        .map((a) => a.number)
-        .sort(),
-    );
+  test.each([
+    ['Ready For Development', [108, 162, 188, 116]],
+    ['Planned', [104, 192, 190, 106]],
+    ['Defined', [193, 110, 127, 141, 148, 151, 165, 174]],
+  ])(
+    'the actions of %s are in queue order: what a close frees first, a resume before a fresh ship',
+    (column, order) => {
+      expect(list.filter((a) => a.queue === column).map((a) => a.number)).toEqual(order);
+    },
+  );
+
+  test("what waits on an open parent counts toward each open child's rank, not its frees", () => {
+    expect(byNumber(list, 161).frees).toEqual([195]);
+    expect([byNumber(list, 162).frees, byNumber(list, 162).unblocks]).toEqual([[], 1]);
+    expect(byNumber(list, 163).unblocks).toBe(1);
   });
 
   test('a Defined leaf with Reviewed none and an open Depends on is not queued', () => {

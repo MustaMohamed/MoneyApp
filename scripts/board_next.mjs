@@ -771,6 +771,7 @@ function analyze(snapshot, scope) {
   let deepestChain = 0;
   for (const a of openNodes) deepestChain = Math.max(deepestChain, depthOf(a.number));
   const openLeaves = openNodes.filter((a) => !a.isParent).length;
+  const stage = new Map(actions.map((a) => [a, a.rank]));
   for (const a of actions) a.rank = undefined;
 
   const waiters = new Map();
@@ -779,16 +780,31 @@ function analyze(snapshot, scope) {
     a.depth = depthOf(a.number);
     for (const d of a.waitsOn) waiters.set(d, [...(waiters.get(d) ?? []), a.number]);
   }
+  // A parent closes with its last child, so what waits on an open parent waits on each open child.
+  const freedBy = (n) => {
+    const out = [...(waiters.get(n) ?? [])];
+    const up = new Set();
+    for (
+      let p = ctx.byNumber.get(n)?.parent;
+      openSet.has(p) && !up.has(p);
+      p = ctx.byNumber.get(p)?.parent
+    ) {
+      up.add(p);
+      out.push(...(waiters.get(p) ?? []));
+    }
+    return out;
+  };
   for (const a of openNodes) {
     a.frees = waiters.get(a.number) ?? [];
     const seen = new Set();
-    const stack = [...a.frees];
+    const stack = freedBy(a.number);
     while (stack.length) {
       const x = stack.pop();
       if (seen.has(x)) continue;
       seen.add(x);
-      stack.push(...(waiters.get(x) ?? []));
+      stack.push(...freedBy(x));
     }
+    seen.delete(a.number);
     a.unblocks = seen.size;
   }
   const defineCmd = (a) => /^\/(issue-review|boundaries|tickets)/.test(a.command ?? '');
@@ -805,11 +821,13 @@ function analyze(snapshot, scope) {
     a.rank = i + 1;
   });
   const firstFor = (who) => ranked.find((a) => a.actor === who)?.number ?? null;
-  const candidates = Object.fromEntries(
-    ['Defined', 'Ready For Development', 'Planned'].map((column) => [
-      column,
-      ranked.filter((a) => a.queue === column).map((a) => a.number),
-    ]),
+  const place = new Map(ranked.map((a, i) => [a, i]));
+  actions.sort(
+    (a, b) =>
+      BUCKETS.indexOf(a.bucket) - BUCKETS.indexOf(b.bucket) ||
+      stage.get(a) - stage.get(b) ||
+      (place.get(a) ?? Infinity) - (place.get(b) ?? Infinity) ||
+      a.boardIndex - b.boardIndex,
   );
   return {
     fetchedAt: snapshot.fetchedAt,
@@ -819,7 +837,6 @@ function analyze(snapshot, scope) {
     cap: capOf(actions, ctx),
     graph: openLeaves > 8 || deepestChain >= 2,
     next: { you: firstFor('you'), session: firstFor('session'), page: firstFor('page') },
-    candidates,
     actions,
     ctx,
   };
