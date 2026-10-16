@@ -1,6 +1,6 @@
 {
   "fetchedAt": "2026-09-08T10:00:00Z",
-  "shipState": ["MA-104"],
+  "shipState": ["MA-104", "MA-192"],
   "items": [
     {
       "number": 100,
@@ -1441,6 +1441,144 @@
       "header": "Part of #186 · Depends on nothing · Verify none · Flags none · Reviewed none",
       "parent": 186,
       "children": []
+    },
+    {
+      "number": 188,
+      "status": "Ready For Development",
+      "title": "MA-188 — Pullable last on the board, frees one",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": []
+    },
+    {
+      "number": 189,
+      "status": "Defined",
+      "title": "MA-189 — Defined, waits on 188",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on MA-188 (#188) · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [],
+      "size": {
+        "files": 1,
+        "lines": 40
+      }
+    },
+    {
+      "number": 190,
+      "status": "Planned",
+      "title": "MA-190 — Planned last on the board, frees one",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [
+        {
+          "name": "feat/MA-190-planned",
+          "committedDate": "2026-09-07T04:00:00Z"
+        }
+      ],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": []
+    },
+    {
+      "number": 191,
+      "status": "Defined",
+      "title": "MA-191 — Defined, waits on 190",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on MA-190 (#190) · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [],
+      "size": {
+        "files": 1,
+        "lines": 40
+      }
+    },
+    {
+      "number": 192,
+      "status": "In Progress",
+      "title": "MA-192 — Implementing, ship state here, frees none",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [
+        {
+          "name": "feat/MA-192-implementing",
+          "committedDate": "2026-09-08T04:00:00Z"
+        }
+      ],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": []
+    },
+    {
+      "number": 193,
+      "status": "Defined",
+      "title": "MA-193 — Defined, Reviewed none, last on the board, frees one",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on nothing · Verify none · Flags none · Reviewed none",
+      "parent": null,
+      "children": []
+    },
+    {
+      "number": 194,
+      "status": "Defined",
+      "title": "MA-194 — Defined, waits on 193",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on MA-193 (#193) · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [],
+      "size": {
+        "files": 1,
+        "lines": 40
+      }
+    },
+    {
+      "number": 195,
+      "status": "Defined",
+      "title": "MA-195 — Defined, waits on parent 161",
+      "state": "open",
+      "labels": [],
+      "milestone": "MA-fixture",
+      "branches": [],
+      "prs": [],
+      "comments": [],
+      "header": "Part of #100 · Depends on MA-161 (#161) · Verify none · Flags none · Reviewed 2026-09-07",
+      "parent": null,
+      "children": [],
+      "size": {
+        "files": 1,
+        "lines": 40
+      }
     }
   ],
   "offBoard": [
