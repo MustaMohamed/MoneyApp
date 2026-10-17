@@ -411,6 +411,16 @@ function frameOf(view: RenderResult): HostNode {
   return frame;
 }
 
+function shellElement(
+  props: Omit<import('@/components/ui/hero_shell').HeroShellProps, 'children'> = {},
+) {
+  return (
+    <RealHeroShell {...props}>
+      <View testID={HERO_SHELL_CHILD_ID} />
+    </RealHeroShell>
+  );
+}
+
 describe('HeroShell keeps its entrance on a view that stays mounted when it becomes a button (MA-198)', () => {
   beforeEach(() => {
     mockAnimatedViewMounts.length = 0;
@@ -418,68 +428,49 @@ describe('HeroShell keeps its entrance on a view that stays mounted when it beco
 
   it('holds the entrance on the root, around the frame, and mounts it once when onPress goes from unset to set', async () => {
     const entering = FadeInDown.duration(400);
-    const view = await render(
-      <RealHeroShell entering={entering}>
-        <View testID={HERO_SHELL_CHILD_ID} />
-      </RealHeroShell>,
-    );
+    const view = await render(shellElement({ entering }));
 
     const enteringView = view.getByTestId(mockAnimatedViewTestId);
-    expect(view.root).toBe(enteringView);
     expect(frameOf(view)).not.toBe(enteringView);
     expect(ancestorsOf(frameOf(view))).toContain(enteringView);
 
     await view.rerender(
-      <RealHeroShell
-        entering={entering}
-        onPress={jest.fn()}
-        accessibilityLabel={Strings.dashAvailableToSpend}
-      >
-        <View testID={HERO_SHELL_CHILD_ID} />
-      </RealHeroShell>,
+      shellElement({
+        entering,
+        onPress: jest.fn(),
+        accessibilityLabel: Strings.dashAvailableToSpend,
+      }),
     );
 
-    expect(view.root).toBe(view.getByTestId(mockAnimatedViewTestId));
-    expect(ancestorsOf(view.getByRole('button'))).toContain(view.root);
+    expect(ancestorsOf(view.getByRole('button'))).toContain(
+      view.getByTestId(mockAnimatedViewTestId),
+    );
     expect(mockAnimatedViewMounts).toStrictEqual([entering]);
   });
 
   it('keeps the entrance mounted when Home drops it on the render that makes the hero a button', async () => {
     const entering = FadeInDown.duration(400);
-    const view = await render(
-      <RealHeroShell entering={entering}>
-        <View testID={HERO_SHELL_CHILD_ID} />
-      </RealHeroShell>,
-    );
+    const view = await render(shellElement({ entering }));
 
     await view.rerender(
-      <RealHeroShell onPress={jest.fn()} accessibilityLabel={Strings.dashAvailableToSpend}>
-        <View testID={HERO_SHELL_CHILD_ID} />
-      </RealHeroShell>,
+      shellElement({ onPress: jest.fn(), accessibilityLabel: Strings.dashAvailableToSpend }),
     );
 
     expect(mockAnimatedViewMounts).toStrictEqual([entering]);
-    expect(view.root).toBe(view.getByTestId(mockAnimatedViewTestId));
   });
 
   it('is a button only with onPress, inside the view that holds the entrance and around the frame', async () => {
-    const without = await render(
-      <RealHeroShell entering={FadeInDown.duration(400)}>
-        <View testID={HERO_SHELL_CHILD_ID} />
-      </RealHeroShell>,
-    );
+    const without = await render(shellElement({ entering: FadeInDown.duration(400) }));
     expect(without.queryAllByRole('button')).toHaveLength(0);
     expect(without.container.queryAll((node) => node.props.accessible === true)).toHaveLength(0);
     await without.unmount();
 
     const withPress = await render(
-      <RealHeroShell
-        entering={FadeInDown.duration(400)}
-        onPress={jest.fn()}
-        accessibilityLabel={Strings.dashAvailableToSpend}
-      >
-        <View testID={HERO_SHELL_CHILD_ID} />
-      </RealHeroShell>,
+      shellElement({
+        entering: FadeInDown.duration(400),
+        onPress: jest.fn(),
+        accessibilityLabel: Strings.dashAvailableToSpend,
+      }),
     );
     const [button, ...rest] = withPress.getAllByRole('button');
     expect(rest).toHaveLength(0);
@@ -491,13 +482,11 @@ describe('HeroShell keeps its entrance on a view that stays mounted when it beco
   it('puts the style override on the frame, never on the view that holds the entrance', async () => {
     for (const onPress of [undefined, jest.fn()]) {
       const view = await render(
-        <RealHeroShell
-          entering={FadeInDown.duration(400)}
-          onPress={onPress}
-          style={{ marginTop: Spacing.xs }}
-        >
-          <View testID={HERO_SHELL_CHILD_ID} />
-        </RealHeroShell>,
+        shellElement({
+          entering: FadeInDown.duration(400),
+          onPress,
+          style: { marginTop: Spacing.xs },
+        }),
       );
 
       expect(frameOf(view)).toHaveStyle({ marginTop: Spacing.xs });

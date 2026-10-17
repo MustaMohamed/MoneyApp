@@ -47,7 +47,7 @@ export interface HeroShellProps {
   entering?: EnteringAnimation;
 }
 
-// The 16s mirror `mx-4 mt-4 rounded-2xl`.
+// Unscaled 16s match `mx-4 mt-4 rounded-2xl`; `ms()`-scaled tokens would move every hero's frame.
 const frameStyle: ViewStyle = {
   marginHorizontal: 16,
   marginTop: 16,
