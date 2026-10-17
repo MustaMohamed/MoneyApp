@@ -159,19 +159,18 @@ export default function DashboardScreen() {
               <View>
                 {segment === 'overview' ? (
                   <>
-                    <Animated.View entering={heroEntering}>
-                      <HeroCard
-                        netWorth={state.netWorth}
-                        baseCurrency={state.baseCurrency}
-                        rate={state.rate}
-                        isRateUsable={state.isRateUsable}
-                        isManualOverride={state.isManualOverride}
-                        assetsCount={state.accountCounts.assets}
-                        liabilitiesCount={state.accountCounts.liabilities}
-                        isLoading={presentation.cardLoading}
-                        onPress={presentation.hasSnapshot ? openBreakdown : undefined}
-                      />
-                    </Animated.View>
+                    <HeroCard
+                      netWorth={state.netWorth}
+                      baseCurrency={state.baseCurrency}
+                      rate={state.rate}
+                      isRateUsable={state.isRateUsable}
+                      isManualOverride={state.isManualOverride}
+                      assetsCount={state.accountCounts.assets}
+                      liabilitiesCount={state.accountCounts.liabilities}
+                      isLoading={presentation.cardLoading}
+                      onPress={presentation.hasSnapshot ? openBreakdown : undefined}
+                      entering={heroEntering}
+                    />
 
                     <Animated.View entering={statsEntering}>
                       <StatCards
