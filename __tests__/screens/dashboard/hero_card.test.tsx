@@ -426,7 +426,7 @@ describe('HeroShell keeps its entrance on a view that stays mounted when it beco
     mockAnimatedViewMounts.length = 0;
   });
 
-  it('holds the entrance on the root, around the frame, and mounts it once when onPress goes from unset to set', async () => {
+  it('holds the entrance around the frame, and mounts it once when onPress goes from unset to set', async () => {
     const entering = FadeInDown.duration(400);
     const view = await render(shellElement({ entering }));
 
