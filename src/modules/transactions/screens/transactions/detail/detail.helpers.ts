@@ -122,7 +122,6 @@ export interface TransactionDetailPresentation {
   transferFlow: TransferFlow | null;
 }
 
-/** A cell with no `amountText` prints no leg, and one with no `open` takes no tap. */
 export interface TransferFlowCell {
   name: string;
   tile: RowTile;
@@ -133,6 +132,22 @@ export interface TransferFlowCell {
 export interface TransferFlow {
   from: TransferFlowCell;
   to: TransferFlowCell;
+}
+
+export type TransferFlowView =
+  | { kind: 'none' }
+  | { kind: 'pending' }
+  | { kind: 'cells'; flow: TransferFlow };
+
+/** The skeleton stands only while a side is unresolved and this copy's account lookup has not settled. */
+export function resolveTransferFlowView(
+  flow: TransferFlow | null,
+  hasUnresolvedAccount: boolean,
+  lookupSettled: boolean,
+): TransferFlowView {
+  if (flow === null) return { kind: 'none' };
+  if (hasUnresolvedAccount && !lookupSettled) return { kind: 'pending' };
+  return { kind: 'cells', flow };
 }
 
 export interface DetailAccountRow {

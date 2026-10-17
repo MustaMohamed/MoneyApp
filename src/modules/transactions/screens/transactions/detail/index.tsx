@@ -56,11 +56,11 @@ export default function TransactionDetailScreen(): React.ReactElement {
           <ScreenScroll>
             <DetailHero hero={detail.hero} />
 
-            {detail.transferFlow === null ? null : state.transferFlowPending ? (
+            {state.transferFlowView.kind === 'pending' ? (
               <TransferFlowSkeletonCard />
-            ) : (
-              <TransferFlowCard flow={detail.transferFlow} onOpenAccount={openAccount} />
-            )}
+            ) : state.transferFlowView.kind === 'cells' ? (
+              <TransferFlowCard flow={state.transferFlowView.flow} onOpenAccount={openAccount} />
+            ) : null}
 
             <DetailRowsCard>
               {detail.facts.map((fact, index) => (

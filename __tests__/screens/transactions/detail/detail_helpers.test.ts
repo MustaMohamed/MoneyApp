@@ -28,9 +28,11 @@ import {
   resolveDetailActionSet,
   resolveDetailViewState,
   resolveHeroTileGlyphColor,
+  resolveTransferFlowView,
   type DetailFact,
   type TransactionDetailPresentation,
   type TransactionDetailPresentationInput,
+  type TransferFlow,
 } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 import type { TransactionDetailStatus } from '@/modules/transactions/screens/transactions/detail/detail.state';
 import { makeTestCategory } from '@/test_helpers/transaction';
@@ -1471,5 +1473,39 @@ describe('buildTransactionDetailPresentation — flow cells (MA-196)', () => {
       transfer: flowFor(TransactionType.Transfer, 'destination') !== null,
       ccPayment: flowFor(TransactionType.CCPayment, 'destination') !== null,
     }).toEqual({ expense: null, income: null, transfer: true, ccPayment: true });
+  });
+});
+
+describe('resolveTransferFlowView (MA-196)', () => {
+  const flow: TransferFlow = {
+    from: {
+      name: 'CIB',
+      tile: { color: AcctTokens.lapis.rich, type: AccountType.Bank, hollow: false },
+    },
+    to: {
+      name: Strings.unknownAccount,
+      tile: { color: AcctTokens.graphite.rich, type: AccountType.Bank, hollow: true },
+    },
+  };
+
+  it('is none without a flow, whatever the lookup', () => {
+    expect([
+      resolveTransferFlowView(null, true, false),
+      resolveTransferFlowView(null, false, true),
+    ]).toEqual([{ kind: 'none' }, { kind: 'none' }]);
+  });
+
+  it('is pending while a side is unresolved and the lookup has not settled', () => {
+    expect(resolveTransferFlowView(flow, true, false)).toEqual({ kind: 'pending' });
+  });
+
+  it('draws the cells once the lookup settled, or when every side resolved', () => {
+    expect([
+      resolveTransferFlowView(flow, true, true),
+      resolveTransferFlowView(flow, false, false),
+    ]).toEqual([
+      { kind: 'cells', flow },
+      { kind: 'cells', flow },
+    ]);
   });
 });

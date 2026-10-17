@@ -700,7 +700,7 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
     const rendered = await renderHook(() => {
       const detail = useTransactionDetail(tx.id);
       seen.push({
-        pending: detail.state.transferFlowPending,
+        pending: detail.state.transferFlowView.kind === 'pending',
         flow: detail.state.derived?.transferFlow,
       });
       return detail;
@@ -722,14 +722,14 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
     const { result } = await renderTransfer(transferTo(deletedCounterparty.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
-    expect(result.current.state.transferFlowPending).toBe(true);
+    expect(result.current.state.transferFlowView.kind).toBe('pending');
 
     await act(async () => {
       pending.resolve();
       await pending.promise;
     });
 
-    await waitFor(() => expect(result.current.state.transferFlowPending).toBe(false));
+    await waitFor(() => expect(result.current.state.transferFlowView.kind).toBe('cells'));
     expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.deletedAccount);
     expect(result.current.state.derived?.transferFlow?.to.open).toBeUndefined();
   });
@@ -740,7 +740,7 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
     await waitFor(() => expect(loadAccountLookup).toHaveBeenCalledTimes(2));
     await waitFor(() => {
       expect(result.current.state.viewState).toBe('ready');
-      expect(result.current.state.transferFlowPending).toBe(false);
+      expect(result.current.state.transferFlowView.kind).toBe('cells');
     });
 
     const flow = result.current.state.derived?.transferFlow;
@@ -759,7 +759,7 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
     await waitFor(() => expect(loadAccountLookup).toHaveBeenCalledTimes(2));
     await waitFor(() => {
       expect(result.current.state.viewState).toBe('ready');
-      expect(result.current.state.transferFlowPending).toBe(false);
+      expect(result.current.state.transferFlowView.kind).toBe('cells');
     });
 
     expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.deletedAccount);
@@ -767,6 +767,45 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
       .filter((render) => render.pending === false && render.flow)
       .map((render) => render.flow?.to.name);
     expect(settledNames).not.toContain(Strings.unknownAccount);
+  });
+
+  it('a lookup that rejects without writing is asked once more, so a deleted side never reads Unknown account once settled', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    loadAccountLookup.mockImplementationOnce(() => Promise.reject(new Error('overtaken')));
+
+    const { result, seen } = await renderTransfer(transferTo(deletedCounterparty.id));
+
+    await waitFor(() => expect(loadAccountLookup).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.state.transferFlowView.kind).toBe('cells'));
+
+    expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.deletedAccount);
+    const settledNames = seen
+      .filter((render) => render.pending === false && render.flow)
+      .map((render) => render.flow?.to.name);
+    expect(settledNames).not.toContain(Strings.unknownAccount);
+    consoleSpy.mockRestore();
+  });
+
+  it('a refresh that fails while the first lookup is in flight draws the cells under the refresh error', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const pending = deferred();
+    loadAccountLookup.mockImplementationOnce(() => pending.promise);
+
+    const { result } = await renderTransfer(transferTo('missing-z'));
+    await waitFor(() => expect(result.current.state.transferFlowView.kind).toBe('pending'));
+
+    getById.mockRejectedValueOnce(new Error('refresh failed'));
+    await act(async () => result.current.reload());
+
+    await waitFor(() => expect(result.current.state.refreshError).toBe(true));
+    expect(result.current.state.transferFlowView.kind).toBe('cells');
+    expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.unknownAccount);
+
+    await act(async () => {
+      pending.resolve();
+      await pending.promise;
+    });
+    consoleSpy.mockRestore();
   });
 
   it('a rejected lookup settles: both cells draw and the refresh error shows', async () => {
@@ -780,7 +819,7 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
 
     await waitFor(() => {
       expect(result.current.state.viewState).toBe('refreshErrorWithData');
-      expect(result.current.state.transferFlowPending).toBe(false);
+      expect(result.current.state.transferFlowView.kind).toBe('cells');
     });
 
     const flow = result.current.state.derived?.transferFlow;
@@ -811,7 +850,7 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
     const { result, seen } = await renderTransfer(transferTo('missing-z'));
     await waitFor(() => {
       expect(result.current.state.viewState).toBe('ready');
-      expect(result.current.state.transferFlowPending).toBe(false);
+      expect(result.current.state.transferFlowView.kind).toBe('cells');
     });
     expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.unknownAccount);
     const rendersBefore = seen.length;

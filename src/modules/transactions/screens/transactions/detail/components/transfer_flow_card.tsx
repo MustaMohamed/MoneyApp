@@ -13,6 +13,7 @@ import { GoldTokens } from '@/constants/theme_tokens';
 import type { TransferFlow, TransferFlowCell } from '../detail.helpers';
 import {
   DETAIL_TRANSFER_AMOUNT_FONT_SIZE,
+  DETAIL_TRANSFER_CELL_GAP,
   DETAIL_TRANSFER_LABEL_FONT_SIZE,
   DETAIL_TRANSFER_NAME_FONT_SIZE,
   DETAIL_TRANSFER_TILE,
@@ -42,8 +43,8 @@ function Cell({
   const content = (
     <View
       testID="transaction-detail-transfer-cell"
-      className="items-center gap-1"
-      style={{ height: resolveTransferCellHeight(fontScale) }}
+      className="items-center"
+      style={{ height: resolveTransferCellHeight(fontScale), gap: DETAIL_TRANSFER_CELL_GAP }}
     >
       <Text
         className="font-inter-semibold text-foreground/55 tracking-wide uppercase"

@@ -141,12 +141,26 @@ describe('resolveDetailRowHeight', () => {
   });
 });
 
+// The card's `p-3.5` and its 1 border, top and bottom, which the stretched cell sits inside.
+const TRANSFER_CARD_CHROME = 2 * 14 + 2 * 1;
+
 describe('resolveTransferCellHeight', () => {
-  // The literal 48: the cell's 36 tile and its 6, 4 and 2 gaps, none of which scales with text.
+  // The tile and the three gaps between its four parts scale with the width, never with the text.
   it.each([0.85, 1, 2, 3])(
-    'is the three line boxes plus the 48 of tile and gaps at font scale %s',
+    'is the three line boxes plus the tile and three gaps at font scale %s',
     (fontScale) => {
-      expect(resolveTransferCellHeight(fontScale)).toBe(transferLinesAt(fontScale) + 48);
+      expect(resolveTransferCellHeight(fontScale)).toBe(
+        transferLinesAt(fontScale) + Size.typeIconBox + 3 * Spacing.xxs,
+      );
+    },
+  );
+
+  it.each([1, 2])(
+    'fits inside the card less its padding and border at font scale %s',
+    (fontScale) => {
+      expect(resolveTransferCellHeight(fontScale)).toBeLessThanOrEqual(
+        resolveTransferCardHeight(fontScale) - TRANSFER_CARD_CHROME,
+      );
     },
   );
 });
