@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Button, Separator, Surface, Tabs, Typography } from 'heroui-native';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
@@ -58,11 +58,7 @@ export default function DashboardScreen() {
     goToBudget,
     goToCommitments,
   } = useDashboard();
-  const { heroStyle, startEntrance, statsEntering, sectionEntering } = useDashboardAnim();
-
-  useEffect(() => {
-    startEntrance();
-  }, [startEntrance]);
+  const { heroEntering, statsEntering, sectionEntering } = useDashboardAnim();
 
   const presentation = state.presentation;
   const visibleTypes = TYPE_ORDER.filter((type) => state.groupedAccounts[type]?.length);
@@ -163,7 +159,7 @@ export default function DashboardScreen() {
               <View>
                 {segment === 'overview' ? (
                   <>
-                    <Animated.View style={heroStyle}>
+                    <Animated.View entering={heroEntering}>
                       <HeroCard
                         netWorth={state.netWorth}
                         baseCurrency={state.baseCurrency}

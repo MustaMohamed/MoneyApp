@@ -3,20 +3,13 @@ import { renderHook } from '@testing-library/react-native';
 // Reanimated's own jest mock leaves `useReducedMotion` unimplemented, so stub the chain here.
 const mockUseReducedMotion = jest.fn();
 const mockFirstMount = jest.fn();
-const builder = {
-  duration(durationMs: number) {
-    return { ...this, durationMs };
-  },
-  withInitialValues(initialValues: { translateY: number }) {
-    return { ...this, initialValues };
-  },
-  delay(delayMs: number) {
-    return { ...this, delayMs };
-  },
-};
 jest.mock('react-native-reanimated', () => ({
   useReducedMotion: () => mockUseReducedMotion(),
-  FadeInDown: builder,
+  FadeInDown: jest
+    .requireActual<typeof import('@/test_helpers/mock_reanimated_builder')>(
+      '@/test_helpers/mock_reanimated_builder',
+    )
+    .mockEnteringBuilder(),
 }));
 jest.mock('@/utils/use_first_mount_entering.hook', () => ({
   useFirstMountEntering: (...args: unknown[]) => mockFirstMount(...args),
