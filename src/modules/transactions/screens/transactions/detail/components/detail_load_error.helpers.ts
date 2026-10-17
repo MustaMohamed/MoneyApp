@@ -5,19 +5,16 @@ export function resolveDetailLoadErrorTitle(floating: boolean): string {
   return floating ? Strings.detailRefreshErrorTitle : Strings.detailLoadErrorTitle;
 }
 
+// `satisfies`, since the JSX spread these reach the alert through runs no excess-key check.
 const FLOATING_ALERT_PROPS = {
   mode: 'floating',
   tinted: true,
+  flatRetry: true,
 } satisfies Partial<Extract<LoadErrorAlertProps, { mode: 'floating' }>>;
 
-// The first-load alert stays plain until MA-094 replaces it with the error-state block.
-const FILL_ALERT_PROPS = {
-  mode: 'fill',
-  tinted: false,
-} satisfies Partial<Extract<LoadErrorAlertProps, { mode?: 'fill' }>>;
-
+/** `undefined` for the first load, which draws the error-state block and no alert. */
 export function resolveDetailLoadErrorAlertProps(
   floating: boolean,
-): typeof FLOATING_ALERT_PROPS | typeof FILL_ALERT_PROPS {
-  return floating ? FLOATING_ALERT_PROPS : FILL_ALERT_PROPS;
+): typeof FLOATING_ALERT_PROPS | undefined {
+  return floating ? FLOATING_ALERT_PROPS : undefined;
 }

@@ -15,10 +15,10 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
-import { resolveTransactionDeleteError } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 
+import { reloadAccountActivityAfterDelete, useTransactionDelete } from '../transaction_delete.hook';
 import {
   buildTransactionDetailPresentation,
   type DetailActions,
@@ -40,19 +40,17 @@ export function useTransactionDetail(id: string) {
   const setBudget = useTxDetailStore.getState().setBudget;
   const clearForId = useTxDetailStore.getState().clearForId;
   const releaseData = useTxDetailStore.getState().release;
-  const { activeId, status, revalidating, refreshError, confirmVisible, deleting, reloadKey } =
-    useTxDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
+  const { activeId, status, revalidating, refreshError, reloadKey } = useTxDetailState(
+    useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY),
+  );
   const beginLoad = useTxDetailState.getState().beginLoad;
   const resolve = useTxDetailState.getState().resolve;
   const resolveNotFound = useTxDetailState.getState().resolveNotFound;
   const failLoad = useTxDetailState.getState().failLoad;
-  const setConfirmVisible = useTxDetailState.getState().setConfirmVisible;
-  const setDeleting = useTxDetailState.getState().setDeleting;
   const bumpReload = useTxDetailState.getState().bumpReload;
   const releaseUi = useTxDetailState.getState().release;
 
   const getById = useTransactionStore.getState().getById;
-  const deleteTransaction = useTransactionStore.getState().deleteTransaction;
 
   const { accounts, archivedAccounts, accountLookupById, accountLookupError } = useAccountStore(
     useShallow((s) => ({
@@ -165,6 +163,16 @@ export function useTransactionDetail(id: string) {
     [accountLookupById, accounts, archivedAccounts],
   );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const popAfterDelete = useCallback(async () => {
+    router.back();
+    await reloadAccountActivityAfterDelete();
+  }, []);
+  const {
+    state: deleteState,
+    request: requestDelete,
+    cancel: closeDeleteConfirm,
+    confirm: confirmDelete,
+  } = useTransactionDelete(owner, accountsById, popAfterDelete);
 
   const currentRevalidating = activeId === id && revalidating;
   const hasUnresolvedAccount =
@@ -204,26 +212,8 @@ export function useTransactionDetail(id: string) {
   }, [accountsById, budget, categoriesById, currentTx]);
 
   const openDeleteConfirm = useCallback(() => {
-    if (isMutable) setConfirmVisible(owner, true);
-  }, [isMutable, owner, setConfirmVisible]);
-  const closeDeleteConfirm = useCallback(() => {
-    if (!deleting) setConfirmVisible(owner, false);
-  }, [deleting, owner, setConfirmVisible]);
-
-  const confirmDelete = useCallback(async () => {
-    if (!currentTx || !isMutable) return;
-    setDeleting(owner, true);
-    try {
-      await deleteTransaction(currentTx.id);
-      router.back();
-    } catch (e) {
-      console.error('[transactionDetail] delete failed', e);
-      Alert.alert(resolveTransactionDeleteError(e));
-    } finally {
-      setDeleting(owner, false);
-      setConfirmVisible(owner, false);
-    }
-  }, [currentTx, isMutable, owner, deleteTransaction, setDeleting, setConfirmVisible]);
+    if (currentTx !== null && isMutable) requestDelete(currentTx);
+  }, [currentTx, isMutable, requestDelete]);
 
   const openCommitment = useCallback(async () => {
     if (!commitmentPaymentId) return;
@@ -261,8 +251,10 @@ export function useTransactionDetail(id: string) {
       derived,
       revalidating: currentRevalidating,
       refreshError: currentRefreshError,
-      confirmVisible,
-      deleting,
+      confirmVisible: deleteState.openTransactionId !== undefined,
+      deleteBody: deleteState.body,
+      deleteBusy: deleteState.busy,
+      deleteErrorMessage: deleteState.errorMessage,
       actions,
       loadingActionSet,
       isEditable: isMutable,
