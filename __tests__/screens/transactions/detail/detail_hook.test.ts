@@ -786,6 +786,22 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
     consoleSpy.mockRestore();
   });
 
+  it('a lookup that fails and sets the error is not asked again, and the cells draw under the error', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    loadAccountLookup.mockImplementation(() => {
+      accountStoreState.accountLookupError = true;
+      return Promise.reject(new Error('read failed'));
+    });
+
+    const { result } = await renderTransfer(transferTo(deletedCounterparty.id));
+
+    await waitFor(() => expect(result.current.state.transferFlowView.kind).toBe('cells'));
+    expect(loadAccountLookup).toHaveBeenCalledTimes(1);
+    expect(result.current.state.refreshError).toBe(true);
+    expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.unknownAccount);
+    consoleSpy.mockRestore();
+  });
+
   it('a refresh that fails while the first lookup is in flight draws the cells under the refresh error', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const pending = deferred();

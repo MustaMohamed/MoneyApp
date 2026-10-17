@@ -1,4 +1,4 @@
-import { PixelRatio } from 'react-native';
+import { Dimensions, PixelRatio } from 'react-native';
 
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import {
@@ -155,12 +155,37 @@ describe('resolveTransferCellHeight', () => {
     },
   );
 
-  it.each([1, 2])(
-    'fits inside the card less its padding and border at font scale %s',
-    (fontScale) => {
-      expect(resolveTransferCellHeight(fontScale)).toBeLessThanOrEqual(
-        resolveTransferCardHeight(fontScale) - TRANSFER_CARD_CHROME,
-      );
+  // Jest's window is 375 dp; a cell cut by its card shows only below about 357 dp, so the geometry loads at those widths.
+  function transferFitAt(width: number, fontScale: number): { cell: number; inner: number } {
+    let fit = { cell: 0, inner: 0 };
+    jest.isolateModules(() => {
+      const isolated = jest.requireActual<{ Dimensions: typeof Dimensions }>('react-native');
+      jest
+        .spyOn(isolated.Dimensions, 'get')
+        .mockReturnValue({ width, height: 800, scale: PixelRatio.get(), fontScale: 1 });
+      const geometry = jest.requireActual<{
+        resolveTransferCardHeight: typeof resolveTransferCardHeight;
+        resolveTransferCellHeight: typeof resolveTransferCellHeight;
+      }>('@/modules/transactions/screens/transactions/detail/components/detail.geometry');
+      fit = {
+        cell: geometry.resolveTransferCellHeight(fontScale),
+        inner: geometry.resolveTransferCardHeight(fontScale) - TRANSFER_CARD_CHROME,
+      };
+    });
+    return fit;
+  }
+
+  it.each([
+    [331, 1],
+    [331, 2],
+    [357, 1],
+    [357, 2],
+  ])(
+    'fits inside the card less its padding and border on a %s dp window at font scale %s',
+    (width, fontScale) => {
+      const { cell, inner } = transferFitAt(width, fontScale);
+
+      expect(cell).toBeLessThanOrEqual(inner);
     },
   );
 });
