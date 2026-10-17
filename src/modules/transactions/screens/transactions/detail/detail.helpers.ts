@@ -1,6 +1,6 @@
-import { ACCOUNT_TYPE_ICONS, type AccountTypeIconName } from '@/constants/account_type_icons';
+import type { AccountTypeIconName } from '@/constants/account_type_icons';
 import { CURRENCY_CONFIG } from '@/constants/currency';
-import { AccountType, Currency, TransactionType } from '@/constants/enums';
+import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, InfoTokens } from '@/constants/theme_tokens';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
@@ -119,13 +119,20 @@ export interface TransactionDetailHero {
 export interface TransactionDetailPresentation {
   hero: TransactionDetailHero;
   facts: readonly DetailFact[];
-  isTransferLike: boolean;
-  transferFlow: {
-    fromAccount: Account;
-    toAccount: Account;
-    fromAmountText: TransferCellText;
-    toAmountText: TransferCellText;
-  } | null;
+  transferFlow: TransferFlow | null;
+}
+
+/** A cell with no `amountText` prints no leg, and one with no `open` takes no tap. */
+export interface TransferFlowCell {
+  name: string;
+  tile: RowTile;
+  amountText?: TransferCellText;
+  open?: { accountId: string; accessibilityLabel: string };
+}
+
+export interface TransferFlow {
+  from: TransferFlowCell;
+  to: TransferFlowCell;
 }
 
 export interface DetailAccountRow {
@@ -255,6 +262,26 @@ export function transferCellAmountText(
   return { display: signAmountText(withCode, signPrefix, printsAsZero), accessible: withCode };
 }
 
+/** Only a resolved account that is not deleted opens: the account detail reads a deleted id as not found. */
+function transferFlowCell(
+  account: Account | undefined,
+  amountText: TransferCellText | undefined,
+): TransferFlowCell {
+  const { name, tile } = resolveDetailAccountRow(account);
+  const opens = account !== undefined && account.is_deleted === 0 && amountText !== undefined;
+  return {
+    name,
+    tile,
+    amountText,
+    open: opens
+      ? {
+          accountId: account.id,
+          accessibilityLabel: Strings.detailOpenAccountAccessibility(name, amountText.accessible),
+        }
+      : undefined,
+  };
+}
+
 function amountRowText(figure: ConvertedAmount): DetailAmountRowText {
   return {
     label: figure.currency === Currency.EGP ? Strings.detailAmountInEgp : Strings.detailAmountInUsd,
@@ -279,9 +306,6 @@ export function buildTransactionDetailPresentation({
 }: TransactionDetailPresentationInput): TransactionDetailPresentation {
   const cardCredit = isCardCredit(tx, account);
   const typeLabel = cardCredit ? Strings.cardCreditTitle : TYPE_BADGE[tx.type];
-  const isTransferLike = requiresDestination(tx.type);
-  const destinationAmount = tx.to_amount ?? tx.egp_amount;
-  const destinationCurrency = toAccount?.currency ?? Currency.EGP;
   const row = buildTransactionRowPresentation({ tx, account, toAccount, category });
   const typeColor = cardCredit ? InfoTokens[500] : TRANSACTION_TYPE_ICONS[tx.type].color;
   const amount = primaryAmountFor(tx, cardCredit);
@@ -359,25 +383,22 @@ export function buildTransactionDetailPresentation({
       caption: `${dateText}, ${timeText}`,
     },
     facts,
-    isTransferLike,
-    transferFlow:
-      isTransferLike && account && toAccount
-        ? {
-            fromAccount: account,
+    transferFlow: requiresDestination(tx.type)
+      ? {
+          from: transferFlowCell(
+            account,
+            transferCellAmountText(tx.amount, tx.currency, MINUS_SIGN),
+          ),
+          // What arrived is in the destination's currency, so an unresolved one prints no leg.
+          to: transferFlowCell(
             toAccount,
-            fromAmountText: transferCellAmountText(tx.amount, tx.currency, MINUS_SIGN),
-            toAmountText: transferCellAmountText(destinationAmount, destinationCurrency, PLUS_SIGN),
-          }
-        : null,
+            toAccount
+              ? transferCellAmountText(tx.to_amount ?? tx.egp_amount, toAccount.currency, PLUS_SIGN)
+              : undefined,
+          ),
+        }
+      : null,
   };
-}
-
-export function getAccountTypeIcon(type: string | undefined): IconName {
-  if (type && type in ACCOUNT_TYPE_ICONS) {
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 'in' guard confirms type is a valid AccountType key
-    return ACCOUNT_TYPE_ICONS[type as AccountType];
-  }
-  return 'card-bulleted-outline';
 }
 
 export function getCommitmentPaymentRoute(

@@ -79,13 +79,13 @@ export function useTransactionDetail(id: string) {
   const setBudget = useTxDetailStore.getState().setBudget;
   const clearForId = useTxDetailStore.getState().clearForId;
   const releaseData = useTxDetailStore.getState().release;
-  const { activeId, status, revalidating, refreshError, reloadKey } = useTxDetailState(
-    useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY),
-  );
+  const { activeId, status, revalidating, refreshError, reloadKey, accountLookupSettled } =
+    useTxDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
   const beginLoad = useTxDetailState.getState().beginLoad;
   const resolve = useTxDetailState.getState().resolve;
   const resolveNotFound = useTxDetailState.getState().resolveNotFound;
   const failLoad = useTxDetailState.getState().failLoad;
+  const settleAccountLookup = useTxDetailState.getState().settleAccountLookup;
   const bumpReload = useTxDetailState.getState().bumpReload;
   const releaseUi = useTxDetailState.getState().release;
 
@@ -126,13 +126,28 @@ export function useTransactionDetail(id: string) {
         resolve(owner, id);
 
         const accountIds = getTransactionAccountIds(transaction);
-        try {
-          void Promise.resolve(loadAccountLookup(accountIds)).catch((error) => {
+        // An async body turns a synchronous throw into the rejection the catch logs.
+        const lookUpAccounts = async (): Promise<void> => {
+          await loadAccountLookup(accountIds);
+          if (cancelled) return;
+          const accountState = useAccountStore.getState();
+          const known = mergeAccountsById(
+            accountState.accounts,
+            accountState.archivedAccounts,
+            accountState.accountLookupById,
+          );
+          // A lookup a newer loadAccounts overtook resolves without writing, so a missing id is asked once more.
+          if (findMissingAccountIds(accountIds, known).length > 0) {
+            await loadAccountLookup(accountIds);
+          }
+        };
+        void lookUpAccounts()
+          .catch((error) => {
             console.error('[transactionDetail] account lookup failed', error);
+          })
+          .finally(() => {
+            if (!cancelled) settleAccountLookup(owner, id);
           });
-        } catch (error) {
-          console.error('[transactionDetail] account lookup failed', error);
-        }
 
         if (transaction.budget_id) {
           const budgetId = transaction.budget_id;
@@ -168,6 +183,7 @@ export function useTransactionDetail(id: string) {
     resolve,
     resolveNotFound,
     setBudget,
+    settleAccountLookup,
     setTx,
   ]);
 
@@ -252,6 +268,12 @@ export function useTransactionDetail(id: string) {
     });
   }, [accountsById, budget, categoriesById, currentTx]);
 
+  const transferFlowPending =
+    derived !== null &&
+    derived.transferFlow !== null &&
+    hasUnresolvedAccount &&
+    !(activeId === id && accountLookupSettled);
+
   const openDeleteConfirm = useCallback(() => {
     if (currentTx !== null && isMutable) requestDelete(currentTx);
   }, [currentTx, isMutable, requestDelete]);
@@ -290,6 +312,7 @@ export function useTransactionDetail(id: string) {
       loadingTransactionHint,
       tx: currentTx,
       derived,
+      transferFlowPending,
       revalidating: currentRevalidating,
       refreshError: currentRefreshError,
       confirmVisible: deleteState.openTransactionId !== undefined,
