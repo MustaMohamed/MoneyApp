@@ -2,24 +2,12 @@ import { renderHook } from '@testing-library/react-native';
 
 // Self-contained: the real module and its own mock throw at import, and the hero entrance is built at import.
 jest.mock('react-native-reanimated', () => {
-  const builder = {
-    duration(durationMs: number) {
-      return { ...this, durationMs };
-    },
-    delay(delayMs: number) {
-      return { ...this, delayMs };
-    },
-    withInitialValues(initialValues: { translateY: number }) {
-      return { ...this, initialValues };
-    },
-  };
-  return {
-    FadeInDown: builder,
-    FadeInUp: builder,
-    useSharedValue: (value: unknown) => ({ value }),
-    useAnimatedStyle: (factory: () => unknown) => factory(),
-    withTiming: (value: unknown) => value,
-  };
+  const builder = jest
+    .requireActual<typeof import('@/test_helpers/mock_reanimated_builder')>(
+      '@/test_helpers/mock_reanimated_builder',
+    )
+    .mockEnteringBuilder();
+  return { FadeInDown: builder, FadeInUp: builder };
 });
 
 import { useDashboardAnim } from '@/modules/dashboard/screens/dashboard/dashboard.anim';
