@@ -17,11 +17,20 @@ jest.mock('@/components/ui/load_error_alert.hook', () => ({
 jest.mock('uniwind', () => ({ withUniwind: <T,>(component: T): T => component }));
 
 import { resolveStackHeaderGeometry } from '@/components/ui/stack_header.geometry';
+import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Radius } from '@/constants/theme';
+import { resolveRowTile } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { ActionRow } from '@/modules/transactions/screens/transactions/detail/components/action_row';
+import { resolveTransferCellHeight } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import { DetailHeader } from '@/modules/transactions/screens/transactions/detail/components/detail_header';
 import { DetailLoadError } from '@/modules/transactions/screens/transactions/detail/components/detail_load_error';
+import { TransferFlowCard } from '@/modules/transactions/screens/transactions/detail/components/transfer_flow_card';
+import {
+  type TransferFlow,
+  transferCellAmountText,
+} from '@/modules/transactions/screens/transactions/detail/detail.helpers';
+import { makeTestAccount } from '@/test_helpers/transaction';
 
 describe('transaction detail actions', () => {
   it("frame C6: shows View commitment alone, flat, for a commitment's payment", async () => {
@@ -151,5 +160,62 @@ describe('transaction detail load errors (MA-182)', () => {
     await fireEvent.press(screen.getByText(Strings.detailLoadRetry));
     expect(onRetry).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(Strings.detailLoadErrorDescription)).toBeNull();
+  });
+});
+
+describe('transaction detail transfer flow card (MA-196)', () => {
+  it('a deleted To cell takes no tap, the resolved From cell opens its account, and both cells stand at the scaled cell height', async () => {
+    const fromAccount = makeTestAccount({
+      id: 'account-hsbc',
+      name: 'HSBC',
+      type: AccountType.Bank,
+    });
+    const toAccount = makeTestAccount({
+      id: 'account-vault',
+      name: 'Dollar Vault',
+      type: AccountType.Bank,
+      currency: Currency.USD,
+      is_deleted: 1,
+    });
+    const fromAmount = transferCellAmountText(5000, Currency.EGP, '−');
+    const fromLabel = Strings.detailOpenAccountAccessibility(
+      fromAccount.name,
+      fromAmount.accessible,
+    );
+    const flow: TransferFlow = {
+      from: {
+        name: fromAccount.name,
+        tile: resolveRowTile(fromAccount),
+        amountText: fromAmount,
+        open: { accountId: fromAccount.id, accessibilityLabel: fromLabel },
+      },
+      to: {
+        name: Strings.deletedAccount,
+        tile: resolveRowTile(toAccount),
+        amountText: transferCellAmountText(102.04, Currency.USD, '+'),
+      },
+    };
+    const onOpenAccount = jest.fn();
+    const screen = await render(<TransferFlowCard flow={flow} onOpenAccount={onOpenAccount} />);
+
+    expect(
+      screen.container.queryAll(
+        (node) => typeof node.type === 'string' && node.props.accessibilityRole === 'button',
+      ),
+    ).toHaveLength(1);
+    expect(screen.getByText(Strings.deletedAccount)).toBeTruthy();
+
+    await fireEvent.press(screen.getByText(Strings.deletedAccount));
+    expect(onOpenAccount).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByLabelText(fromLabel));
+    expect(onOpenAccount).toHaveBeenCalledTimes(1);
+    expect(onOpenAccount).toHaveBeenCalledWith(fromAccount.id);
+
+    const cells = screen.getAllByTestId('transaction-detail-transfer-cell');
+    expect(cells).toHaveLength(2);
+    const height = resolveTransferCellHeight(Dimensions.get('window').fontScale);
+    for (const cell of cells) {
+      expect(cell).toHaveStyle({ height });
+    }
   });
 });

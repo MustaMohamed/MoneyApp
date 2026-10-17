@@ -663,14 +663,169 @@ describe('useTransactionDetail account lookup', () => {
     await lower.rerender({});
     await upper.rerender({});
 
-    expect(lower.result.current.state.derived?.transferFlow?.toAccount.id).toBe('archived-a');
-    expect(upper.result.current.state.derived?.transferFlow?.toAccount.id).toBe('deleted-b');
+    expect(lower.result.current.state.derived?.transferFlow?.to.name).toBe('Dollar Vault');
+    expect(upper.result.current.state.derived?.transferFlow?.to.name).toBe(Strings.deletedAccount);
 
     await upper.unmount();
     await act(async () => lowerFocus?.());
     await lower.rerender({});
 
-    expect(lower.result.current.state.derived?.transferFlow?.toAccount.id).toBe('archived-a');
+    expect(lower.result.current.state.derived?.transferFlow?.to.name).toBe('Dollar Vault');
+  });
+});
+
+describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
+  const cash = makeTestAccount({ name: 'Cash' });
+  const transferTo = (toAccountId: string): Transaction => ({
+    ...linkedTransaction,
+    id: 'transfer-1',
+    type: TransactionType.Transfer,
+    category_id: null,
+    commitment_payment_id: null,
+    to_account_id: toAccountId,
+    to_amount: 4,
+    exchange_rate: 50,
+  });
+
+  type Detail = ReturnType<typeof useTransactionDetail>;
+  interface SeenRender {
+    pending: boolean | undefined;
+    flow: NonNullable<Detail['state']['derived']>['transferFlow'] | undefined;
+  }
+
+  // Every render's pending flag and flow, so a skeleton or an Unknown account between waits is caught.
+  async function renderTransfer(tx: Transaction) {
+    getById.mockResolvedValue(tx);
+    const seen: SeenRender[] = [];
+    const rendered = await renderHook(() => {
+      const detail = useTransactionDetail(tx.id);
+      seen.push({
+        pending: detail.state.transferFlowPending,
+        flow: detail.state.derived?.transferFlow,
+      });
+      return detail;
+    });
+    return { ...rendered, seen };
+  }
+
+  beforeEach(() => {
+    accountStoreState.accounts = [cash];
+  });
+
+  it('a transfer to a deleted account holds the skeleton until its lookup lands, then draws Deleted Account with no tap', async () => {
+    const pending = deferred();
+    loadAccountLookup.mockImplementationOnce(async (ids: string[]) => {
+      await pending.promise;
+      await mergeLookupRows(ids);
+    });
+
+    const { result } = await renderTransfer(transferTo(deletedCounterparty.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    expect(result.current.state.transferFlowPending).toBe(true);
+
+    await act(async () => {
+      pending.resolve();
+      await pending.promise;
+    });
+
+    await waitFor(() => expect(result.current.state.transferFlowPending).toBe(false));
+    expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.deletedAccount);
+    expect(result.current.state.derived?.transferFlow?.to.open).toBeUndefined();
+  });
+
+  it('a transfer to an id no row holds asks the lookup twice, then draws Unknown account with no amount', async () => {
+    const { result } = await renderTransfer(transferTo('missing-z'));
+
+    await waitFor(() => expect(loadAccountLookup).toHaveBeenCalledTimes(2));
+    await waitFor(() => {
+      expect(result.current.state.viewState).toBe('ready');
+      expect(result.current.state.transferFlowPending).toBe(false);
+    });
+
+    const flow = result.current.state.derived?.transferFlow;
+    expect(flow?.to.name).toBe(Strings.unknownAccount);
+    expect(flow?.to.amountText).toBeUndefined();
+    expect(flow?.to.open).toBeUndefined();
+    expect(loadAccountLookup).toHaveBeenCalledTimes(2);
+    expect(loadAccountLookup).toHaveBeenNthCalledWith(2, expect.arrayContaining(['missing-z']));
+  });
+
+  it('a lookup that resolves without writing is asked once more, so a deleted side never reads Unknown account once settled', async () => {
+    loadAccountLookup.mockImplementationOnce(() => Promise.resolve());
+
+    const { result, seen } = await renderTransfer(transferTo(deletedCounterparty.id));
+
+    await waitFor(() => expect(loadAccountLookup).toHaveBeenCalledTimes(2));
+    await waitFor(() => {
+      expect(result.current.state.viewState).toBe('ready');
+      expect(result.current.state.transferFlowPending).toBe(false);
+    });
+
+    expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.deletedAccount);
+    const settledNames = seen
+      .filter((render) => render.pending === false && render.flow)
+      .map((render) => render.flow?.to.name);
+    expect(settledNames).not.toContain(Strings.unknownAccount);
+  });
+
+  it('a rejected lookup settles: both cells draw and the refresh error shows', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    loadAccountLookup.mockImplementation(() => {
+      accountStoreState.accountLookupError = true;
+      return Promise.reject(new Error('lookup unavailable'));
+    });
+
+    const { result } = await renderTransfer(transferTo(deletedCounterparty.id));
+
+    await waitFor(() => {
+      expect(result.current.state.viewState).toBe('refreshErrorWithData');
+      expect(result.current.state.transferFlowPending).toBe(false);
+    });
+
+    const flow = result.current.state.derived?.transferFlow;
+    expect(flow?.from.name).toBe('Cash');
+    expect(flow?.to.name).toBe(Strings.unknownAccount);
+    expect(result.current.state.refreshError).toBe(true);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[transactionDetail] account lookup failed',
+      expect.any(Error),
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('a transfer whose accounts the active list holds draws its cells from its first ready render', async () => {
+    const savings = makeTestAccount({ id: 'account-2', name: 'Savings' });
+    accountStoreState.accounts = [cash, savings];
+
+    const { result, seen } = await renderTransfer(transferTo(savings.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+
+    const withFlow = seen.filter((render) => render.flow);
+    expect(withFlow.length).toBeGreaterThan(0);
+    expect(withFlow.map((render) => render.pending)).toEqual(withFlow.map(() => false));
+    expect(result.current.state.derived?.transferFlow?.to.name).toBe('Savings');
+  });
+
+  it('a refresh by reload on a settled transfer with an unknown side never returns to the skeleton', async () => {
+    const { result, seen } = await renderTransfer(transferTo('missing-z'));
+    await waitFor(() => {
+      expect(result.current.state.viewState).toBe('ready');
+      expect(result.current.state.transferFlowPending).toBe(false);
+    });
+    expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.unknownAccount);
+    const rendersBefore = seen.length;
+    const lookupsBefore = loadAccountLookup.mock.calls.length;
+
+    await act(async () => result.current.reload());
+    await waitFor(() => expect(getById).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(loadAccountLookup).toHaveBeenCalledTimes(lookupsBefore + 2));
+    await waitFor(() => expect(result.current.state.revalidating).toBe(false));
+    await act(async () => {});
+
+    const afterReload = seen.slice(rendersBefore);
+    expect(afterReload.length).toBeGreaterThan(0);
+    expect(afterReload.map((render) => render.pending)).toEqual(afterReload.map(() => false));
   });
 });
 

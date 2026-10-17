@@ -28,3 +28,5 @@ The field is shared, so a screen shows it only while something it displays is un
 ## 4. Display only
 
 The lookup feeds account names and the currency a transfer leg formats with. Nothing computes or writes an amount from it. An unresolved destination still falls back to EGP at `transaction_row.helpers.ts:111` and `detail.helpers.ts:147`; the banner is what tells the user why the row reads "Unknown account".
+
+**Amended 2026-10-17, MA-196 (#757).** Neither the list row nor the detail's flow card prints an arrived amount for an unresolved destination (`docs/adr/2026-10-17-transfer-flow-cells.md` §1).
