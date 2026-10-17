@@ -47,7 +47,7 @@ export interface HeroShellProps {
   entering?: EnteringAnimation;
 }
 
-// Uniwind mishandles `className` on `Animated.View`; the 16s mirror `mx-4 mt-4 rounded-2xl`.
+// The 16s mirror `mx-4 mt-4 rounded-2xl`.
 const frameStyle: ViewStyle = {
   marginHorizontal: 16,
   marginTop: 16,
@@ -67,8 +67,8 @@ export function HeroShell({
   style,
   entering,
 }: HeroShellProps) {
-  const card = (
-    <Animated.View entering={entering} style={[frameStyle, style]}>
+  const frame = (
+    <View style={[frameStyle, style]}>
       <LinearGradient
         colors={HERO_GRADIENT_COLORS}
         start={HERO_GRADIENT_START}
@@ -86,19 +86,23 @@ export function HeroShell({
         })}
       />
       {children}
-    </Animated.View>
+    </View>
   );
 
-  if (onPress) {
-    return (
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-      >
-        {card}
-      </Pressable>
-    );
-  }
-  return card;
+  // The entrance sits outside the `Pressable` so it survives `onPress` going from unset to set.
+  return (
+    <Animated.View entering={entering}>
+      {onPress ? (
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel}
+        >
+          {frame}
+        </Pressable>
+      ) : (
+        frame
+      )}
+    </Animated.View>
+  );
 }

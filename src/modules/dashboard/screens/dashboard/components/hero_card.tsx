@@ -4,7 +4,7 @@ import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { HeroPill } from '@/components/ui/chip';
-import { HeroShell } from '@/components/ui/hero_shell';
+import { HeroShell, type HeroShellProps } from '@/components/ui/hero_shell';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
@@ -45,6 +45,7 @@ interface HeroCardProps {
   liabilitiesCount: number;
   isLoading: boolean;
   onPress?: () => void;
+  entering?: HeroShellProps['entering'];
 }
 
 function HeroCardSkeleton({ isRateUsable }: { isRateUsable: boolean }): React.ReactElement {
@@ -132,6 +133,7 @@ export function HeroCard({
   liabilitiesCount,
   isLoading,
   onPress,
+  entering,
 }: HeroCardProps) {
   const { fontScale } = useWindowDimensions();
   const pillMinHeight = resolveSkeletonBarHeight(DASHBOARD_HERO_PILL_SKELETON_HEIGHT, fontScale);
@@ -149,6 +151,7 @@ export function HeroCard({
     <HeroShell
       onPress={netWorth.kind === 'rate-needed' ? undefined : onPress}
       accessibilityLabel={Strings.dashAvailableToSpend}
+      entering={entering}
     >
       <View
         className="flex-row items-center justify-between px-3 pt-3"
