@@ -20,6 +20,7 @@ import type {
 import { useTransactionDetail } from '@/modules/transactions/screens/transactions/detail/detail.hook';
 import { useTxDetailState } from '@/modules/transactions/screens/transactions/detail/detail.state';
 import { useTxDetailStore } from '@/modules/transactions/screens/transactions/detail/detail.store';
+import { useTransactionDeleteState } from '@/modules/transactions/screens/transactions/transaction_delete.state';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { deferred } from '@/test_helpers/deferred';
@@ -70,6 +71,25 @@ jest.mock('@/modules/budget/repositories/budget.repository', () => ({
   budgetRepository: { getById: (id: string) => mockGetBudgetById(id) },
 }));
 
+const mockToast = { show: jest.fn() };
+// The wrapper, not HeroUI, so `show` sees exactly what the flow passed.
+jest.mock('@/components/ui/toast', () => ({
+  useToast: () => ({ toast: mockToast, isToastVisible: false }),
+}));
+const mockActivity: { snapshot: { accountId: string } | undefined } = { snapshot: undefined };
+const mockEnsure = jest.fn<Promise<void>, [unknown]>();
+jest.mock('@/modules/accounts/screens/accounts/detail/account_activity.store', () => ({
+  useAccountActivityStore: {
+    getState: () => ({ snapshot: mockActivity.snapshot, ensure: mockEnsure }),
+  },
+}));
+jest.mock('@/utils/run_after_interactions', () => ({
+  runAfterInteractions: (task: () => void) => {
+    task();
+    return { cancel: jest.fn() };
+  },
+}));
+
 const linkedTransaction: Transaction = {
   id: 'transaction-1',
   type: TransactionType.Expense,
@@ -92,6 +112,8 @@ const linkedTransaction: Transaction = {
   created_at: 'now',
   updated_at: 'now',
 };
+const deletableTransaction: Transaction = { ...linkedTransaction, commitment_payment_id: null };
+const DELETED_TOAST = { label: Strings.transactionDeletedToast, variant: 'success' };
 
 const loadCommitments = jest.fn().mockResolvedValue(undefined);
 const setSelectedMonth = jest.fn().mockResolvedValue(undefined);
@@ -145,6 +167,9 @@ beforeEach(() => {
   jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
   useTxDetailStore.getState().reset();
   useTxDetailState.getState().reset();
+  useTransactionDeleteState.getState().reset();
+  mockActivity.snapshot = undefined;
+  mockEnsure.mockResolvedValue(undefined);
   getById = jest.fn().mockResolvedValue(linkedTransaction);
   mockGetBudgetById.mockResolvedValue(undefined);
   const actualFormState = jest
@@ -533,6 +558,42 @@ describe('useTransactionDetail two copies mounted at once', () => {
     expect(lower.result.current.state.viewState).toBe('ready');
     expect(lower.result.current.state.tx).toEqual(linkedTransaction);
   });
+
+  it("one copy opening its delete dialog leaves the other copy's dialog closed and empty", async () => {
+    getById.mockResolvedValue(deletableTransaction);
+    accountStoreState.accountLookupById = {
+      'account-1': makeTestAccount({ id: 'account-1', name: 'Cash' }),
+    };
+    const lower = await renderHook(() => useTransactionDetail(deletableTransaction.id));
+    await waitFor(() => expect(lower.result.current.state.viewState).toBe('ready'));
+    const upper = await renderHook(() => useTransactionDetail(deletableTransaction.id));
+    await waitFor(() => expect(upper.result.current.state.viewState).toBe('ready'));
+
+    await act(async () => upper.result.current.openDeleteConfirm());
+
+    expect(upper.result.current.state.confirmVisible).toBe(true);
+    expect(lower.result.current.state.confirmVisible).toBe(false);
+    expect(lower.result.current.state.deleteBody).toBe('');
+  });
+
+  it('a copy unmounting releases its delete entry and leaves the other copy open', async () => {
+    getById.mockResolvedValue(deletableTransaction);
+    accountStoreState.accountLookupById = {
+      'account-1': makeTestAccount({ id: 'account-1', name: 'Cash' }),
+    };
+    const lower = await renderHook(() => useTransactionDetail(deletableTransaction.id));
+    await waitFor(() => expect(lower.result.current.state.viewState).toBe('ready'));
+    const upper = await renderHook(() => useTransactionDetail(deletableTransaction.id));
+    await waitFor(() => expect(upper.result.current.state.viewState).toBe('ready'));
+    await act(async () => lower.result.current.openDeleteConfirm());
+    await act(async () => upper.result.current.openDeleteConfirm());
+    expect(Object.keys(useTransactionDeleteState.getState().entries)).toHaveLength(2);
+
+    await upper.unmount();
+
+    expect(Object.keys(useTransactionDeleteState.getState().entries)).toHaveLength(1);
+    expect(lower.result.current.state.confirmVisible).toBe(true);
+  });
 });
 
 describe('useTransactionDetail account lookup', () => {
@@ -696,25 +757,6 @@ describe('useTransactionDetail archived account (MA-053)', () => {
     expect(result.current.state.isDeletable).toBe(false);
     expect(result.current.state.actions.actionSet).toBe('archivedNotice');
   });
-
-  it('alerts the line when the repository refuses the delete', async () => {
-    getById.mockResolvedValue(ordinaryTransaction);
-    accountStoreState.accountLookupById = { 'account-1': makeTestAccount({ id: 'account-1' }) };
-    transactionStoreState.deleteTransaction = jest
-      .fn()
-      .mockRejectedValue(
-        new TransactionAccountArchivedError('source', makeTestAccount({ name: 'Old Card' })),
-      );
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
-    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
-
-    await act(async () => result.current.confirmDelete());
-
-    expect(Alert.alert).toHaveBeenCalledWith(Strings.transactionAccountArchived('Old Card'));
-    expect(router.back).not.toHaveBeenCalled();
-    consoleSpy.mockRestore();
-  });
 });
 
 describe('useTransactionDetail loading action set (MA-181)', () => {
@@ -750,5 +792,200 @@ describe('useTransactionDetail loading action set (MA-181)', () => {
 
   it('holds Edit and Delete when the list does not hold the transaction', async () => {
     expect(await loadingActionSetFor()).toBe('editDelete');
+  });
+});
+
+describe('useTransactionDetail delete (MA-182)', () => {
+  const EXPENSE_BODY = '200 EGP returns to Cash. This cannot be undone.';
+
+  beforeEach(() => {
+    getById.mockResolvedValue(deletableTransaction);
+    accountStoreState.accountLookupById = {
+      'account-1': makeTestAccount({ id: 'account-1', name: 'Cash' }),
+    };
+  });
+
+  async function renderOpenDialog() {
+    const rendered = await renderHook(() => useTransactionDetail(deletableTransaction.id));
+    await waitFor(() => expect(rendered.result.current.state.viewState).toBe('ready'));
+    await act(async () => rendered.result.current.openDeleteConfirm());
+    return rendered;
+  }
+
+  function backThenToastOnce(): void {
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(DELETED_TOAST);
+    expect(jest.mocked(router.back).mock.invocationCallOrder[0]).toBeLessThan(
+      mockToast.show.mock.invocationCallOrder[0],
+    );
+  }
+
+  it("frame C11: the open dialog prints the expense's body, not busy and with no line", async () => {
+    const { result } = await renderOpenDialog();
+
+    expect(result.current.state.confirmVisible).toBe(true);
+    expect(result.current.state.deleteBody).toBe(EXPENSE_BODY);
+    expect(result.current.state.deleteBusy).toBe(false);
+    expect(result.current.state.deleteErrorMessage).toBeUndefined();
+  });
+
+  it('reads busy with no back and no toast while the delete is in flight, then closes, backs once and toasts once', async () => {
+    const deletion = deferred();
+    const pendingDelete = jest.fn<Promise<void>, [string]>(() => deletion.promise);
+    transactionStoreState.deleteTransaction = pendingDelete;
+    const { result } = await renderOpenDialog();
+
+    let confirmed: Promise<void> | undefined;
+    await act(() => {
+      confirmed = result.current.confirmDelete();
+    });
+
+    expect(pendingDelete).toHaveBeenCalledWith(deletableTransaction.id);
+    expect(result.current.state.deleteBusy).toBe(true);
+    expect(result.current.state.confirmVisible).toBe(true);
+    expect(router.back).not.toHaveBeenCalled();
+    expect(mockToast.show).not.toHaveBeenCalled();
+
+    await act(async () => {
+      deletion.resolve();
+      await confirmed;
+    });
+
+    expect(result.current.state.deleteBusy).toBe(false);
+    expect(result.current.state.confirmVisible).toBe(false);
+    expect(result.current.state.deleteBody).toBe(EXPENSE_BODY);
+    backThenToastOnce();
+  });
+
+  it('prints the generic failure in the open dialog, with no back and no toast', async () => {
+    transactionStoreState.deleteTransaction = jest.fn().mockRejectedValue(new Error('disk full'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = await renderOpenDialog();
+
+    await act(async () => result.current.confirmDelete());
+
+    expect(result.current.state.deleteErrorMessage).toBe(Strings.errDeleteFailed);
+    expect(result.current.state.confirmVisible).toBe(true);
+    expect(result.current.state.deleteBusy).toBe(false);
+    expect(router.back).not.toHaveBeenCalled();
+    expect(mockToast.show).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('prints the archived refusal in the dialog as the list does, with no system alert', async () => {
+    transactionStoreState.deleteTransaction = jest
+      .fn()
+      .mockRejectedValue(
+        new TransactionAccountArchivedError('source', makeTestAccount({ name: 'Old Card' })),
+      );
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = await renderOpenDialog();
+
+    await act(async () => result.current.confirmDelete());
+
+    expect(result.current.state.deleteErrorMessage).toBe(
+      Strings.transactionAccountArchived('Old Card'),
+    );
+    expect(result.current.state.confirmVisible).toBe(true);
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(router.back).not.toHaveBeenCalled();
+    expect(mockToast.show).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it("over an account detail, backs, reloads that account's activity at the new version, and toasts only once it settles", async () => {
+    mockActivity.snapshot = { accountId: 'account-1' };
+    const reload = deferred();
+    mockEnsure.mockReturnValue(reload.promise);
+    transactionStoreState.deleteTransaction = jest.fn(() => {
+      transactionStoreState.mutationVersion += 1;
+      return Promise.resolve();
+    });
+    const { result } = await renderOpenDialog();
+
+    let confirmed: Promise<void> | undefined;
+    await act(() => {
+      confirmed = result.current.confirmDelete();
+    });
+    await waitFor(() => expect(mockEnsure).toHaveBeenCalledTimes(1));
+
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(mockEnsure).toHaveBeenCalledWith({
+      accountId: 'account-1',
+      mutationVersion: 1,
+      now: expect.any(Date),
+    });
+    expect(mockToast.show).not.toHaveBeenCalled();
+
+    await act(async () => {
+      reload.resolve();
+      await confirmed;
+    });
+
+    backThenToastOnce();
+  });
+
+  it('still backs and toasts once when the activity reload after the delete fails', async () => {
+    mockActivity.snapshot = { accountId: 'account-1' };
+    mockEnsure.mockRejectedValue(new Error('activity read failed'));
+    transactionStoreState.deleteTransaction = jest.fn().mockResolvedValue(undefined);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = await renderOpenDialog();
+
+    await act(async () => result.current.confirmDelete());
+
+    expect(mockEnsure).toHaveBeenCalledTimes(1);
+    expect(result.current.state.deleteErrorMessage).toBeUndefined();
+    backThenToastOnce();
+    consoleSpy.mockRestore();
+  });
+
+  it('with no account detail under it, reloads no activity and toasts after the back', async () => {
+    transactionStoreState.deleteTransaction = jest.fn().mockResolvedValue(undefined);
+    const { result } = await renderOpenDialog();
+
+    await act(async () => result.current.confirmDelete());
+
+    expect(mockEnsure).not.toHaveBeenCalled();
+    backThenToastOnce();
+  });
+
+  it('keeps the dialog open and busy when it is closed during the delete', async () => {
+    const deletion = deferred();
+    transactionStoreState.deleteTransaction = jest.fn(() => deletion.promise);
+    const { result } = await renderOpenDialog();
+    let confirmed: Promise<void> | undefined;
+    await act(() => {
+      confirmed = result.current.confirmDelete();
+    });
+
+    await act(async () => result.current.closeDeleteConfirm());
+
+    expect(result.current.state.confirmVisible).toBe(true);
+    expect(result.current.state.deleteBusy).toBe(true);
+
+    await act(async () => {
+      deletion.resolve();
+      await confirmed;
+    });
+  });
+
+  it('a back that throws once still ends in one toast, with the write standing', async () => {
+    jest.mocked(router.back).mockImplementationOnce(() => {
+      throw new Error('navigation gone');
+    });
+    transactionStoreState.deleteTransaction = jest.fn().mockResolvedValue(undefined);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = await renderOpenDialog();
+
+    await act(async () => result.current.confirmDelete());
+
+    expect(mockToast.show).toHaveBeenCalledTimes(1);
+    expect(mockToast.show).toHaveBeenCalledWith(DELETED_TOAST);
+    expect(result.current.state.confirmVisible).toBe(false);
+    expect(result.current.state.deleteErrorMessage).toBeUndefined();
+    expect(Alert.alert).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });
