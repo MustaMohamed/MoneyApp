@@ -1,7 +1,22 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 
-import { transformSync } from '@babel/core';
+type TransformSync = (
+  code: string,
+  options: Record<string, unknown>,
+) => { code?: string | null } | null;
+
+// Neither babel package is declared: @babel/core is the peer of babel-preset-expo's plugins, the syntax plugin a dependency of its TypeScript transform.
+const PRESET_DIR = path.dirname(require.resolve('babel-preset-expo/package.json'));
+const TS_TRANSFORM_DIR = path.dirname(
+  require.resolve('@babel/plugin-transform-typescript/package.json', { paths: [PRESET_DIR] }),
+);
+const { transformSync } = jest.requireActual<{ transformSync: TransformSync }>(
+  require.resolve('@babel/core', { paths: [PRESET_DIR] }),
+);
+const SYNTAX_TYPESCRIPT = require.resolve('@babel/plugin-syntax-typescript', {
+  paths: [TS_TRANSFORM_DIR],
+});
 
 const ANIM_FILE = path.resolve(
   __dirname,
@@ -23,7 +38,7 @@ function compile(source: string, filename: string): string {
     filename,
     babelrc: false,
     configFile: false,
-    plugins: ['@babel/plugin-syntax-typescript', ['babel-plugin-react-compiler', { target: '19' }]],
+    plugins: [SYNTAX_TYPESCRIPT, ['babel-plugin-react-compiler', { target: '19' }]],
   });
   return output?.code ?? '';
 }
