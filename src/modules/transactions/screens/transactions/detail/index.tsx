@@ -3,7 +3,7 @@ import React from 'react';
 
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 
-import { TxDeleteConfirmSheet } from '../components/tx_delete_confirm_sheet';
+import { TxDeleteDialog } from '../components/tx_delete_dialog';
 import { ActionRow } from './components/action_row';
 import { DetailFactRow } from './components/detail_fact_row';
 import { DetailHeader } from './components/detail_header';
@@ -94,16 +94,16 @@ export default function TransactionDetailScreen(): React.ReactElement {
             />
           </ScreenScroll>
 
-          {state.isDeletable ? (
-            <TxDeleteConfirmSheet
-              isOpen={state.confirmVisible}
-              busy={state.deleting}
-              onCancel={closeDeleteConfirm}
-              onConfirm={() => {
-                void confirmDelete();
-              }}
-            />
-          ) : null}
+          <TxDeleteDialog
+            isOpen={state.confirmVisible}
+            body={state.deleteBody}
+            busy={state.deleteBusy}
+            errorMessage={state.deleteErrorMessage}
+            onCancel={closeDeleteConfirm}
+            onConfirm={() => {
+              void confirmDelete();
+            }}
+          />
 
           {state.refreshError ? <DetailLoadError floating onRetry={reload} /> : null}
         </>

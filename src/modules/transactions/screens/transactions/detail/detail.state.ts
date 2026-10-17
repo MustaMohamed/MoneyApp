@@ -14,8 +14,6 @@ interface TxDetailUiEntry {
   status: TransactionDetailStatus;
   revalidating: boolean;
   refreshError: boolean;
-  confirmVisible: boolean;
-  deleting: boolean;
   reloadKey: number;
 }
 
@@ -28,8 +26,6 @@ type TxDetailState = TxDetailStateShape & {
   resolve: (owner: string, id: string) => void;
   resolveNotFound: (owner: string, id: string) => void;
   failLoad: (owner: string, id: string, preserveData: boolean) => void;
-  setConfirmVisible: (owner: string, v: boolean) => void;
-  setDeleting: (owner: string, v: boolean) => void;
   bumpReload: (owner: string) => void;
   release: (owner: string) => void;
   reset: () => void;
@@ -40,8 +36,6 @@ export const INITIAL_UI_ENTRY: TxDetailUiEntry = Object.freeze({
   status: 'idle',
   revalidating: false,
   refreshError: false,
-  confirmVisible: false,
-  deleting: false,
   reloadKey: 0,
 });
 
@@ -100,17 +94,7 @@ export const useTxDetailState = createMoneyAppSelectors(
             : { ...entry, status: 'firstLoadError', revalidating: false, refreshError: false },
         );
       }),
-    // A released copy can still hold a callback; these three must not write its entry back.
-    setConfirmVisible: (owner, v) =>
-      set((state) => {
-        if (!(owner in state.entries)) return state;
-        return withEntry(state, owner, { ...state.entries[owner], confirmVisible: v });
-      }),
-    setDeleting: (owner, v) =>
-      set((state) => {
-        if (!(owner in state.entries)) return state;
-        return withEntry(state, owner, { ...state.entries[owner], deleting: v });
-      }),
+    // A released copy can still hold a callback; this must not write its entry back.
     bumpReload: (owner) =>
       set((state) => {
         if (!(owner in state.entries)) return state;

@@ -128,6 +128,7 @@ let refresh: jest.Mock;
 let retry: jest.Mock;
 let deleteTransaction: jest.Mock;
 let loadAccountLookup: jest.Mock;
+let loadAccounts: jest.Mock;
 let transactionStoreState: Record<string, unknown>;
 
 const JULY_QUERY = {
@@ -183,6 +184,7 @@ function setupStores(
   retry = jest.fn().mockResolvedValue(undefined);
   deleteTransaction = jest.fn().mockResolvedValue(undefined);
   loadAccountLookup = jest.fn().mockResolvedValue(undefined);
+  loadAccounts = jest.fn().mockResolvedValue(undefined);
 
   attachMockSelectorStore(useAccountStore, () => ({
     accounts: [],
@@ -190,6 +192,7 @@ function setupStores(
     accountLookupById: {},
     accountLookupError: false,
     loadAccountLookup,
+    loadAccounts,
     ...accountOverrides,
   }));
   attachMockSelectorStore(useCategoryStore, () => ({
@@ -266,6 +269,32 @@ describe('useTransactions screen orchestration', () => {
 
     expect(deleteTransaction).toHaveBeenCalledWith('tx-1');
     expect(result.current.state.pendingDeleteId).toBeNull();
+  });
+
+  it('reloads the accounts once after a delete that wrote, so balances read the write', async () => {
+    setupStores({ transactions: [TRANSACTION], status: 'ready' });
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => result.current.requestDelete('tx-1'));
+    await act(async () => result.current.confirmDelete());
+
+    expect(loadAccounts).toHaveBeenCalledTimes(1);
+  });
+
+  it('reloads no accounts after a delete that failed', async () => {
+    setupStores({
+      transactions: [TRANSACTION],
+      status: 'ready',
+      deleteTransaction: jest.fn().mockRejectedValue(new Error('write failed')),
+    });
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = await renderHook(() => useTransactions());
+
+    await act(() => result.current.requestDelete('tx-1'));
+    await act(async () => result.current.confirmDelete());
+
+    expect(loadAccounts).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 
   it('MA-053: keeps the delete pending and names the archived account when the delete is refused', async () => {

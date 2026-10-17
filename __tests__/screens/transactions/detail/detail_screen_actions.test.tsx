@@ -6,12 +6,22 @@ jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return (props: object) => ReactLocal.createElement(View, props);
 });
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+}));
+// The floating arm's toast hold calls `useFocusEffect`, which needs a navigator.
+jest.mock('@/components/ui/load_error_alert.hook', () => ({
+  useFloatingAlertToastHold: () => ({ frameRef: { current: null }, holdClearance: jest.fn() }),
+}));
+// `jest.config.js` leaves uniwind's TypeScript source untransformed.
+jest.mock('uniwind', () => ({ withUniwind: <T,>(component: T): T => component }));
 
 import { resolveStackHeaderGeometry } from '@/components/ui/stack_header.geometry';
 import { Strings } from '@/constants/strings';
 import { Radius } from '@/constants/theme';
 import { ActionRow } from '@/modules/transactions/screens/transactions/detail/components/action_row';
 import { DetailHeader } from '@/modules/transactions/screens/transactions/detail/components/detail_header';
+import { DetailLoadError } from '@/modules/transactions/screens/transactions/detail/components/detail_load_error';
 
 describe('transaction detail actions', () => {
   it("frame C6: shows View commitment alone, flat, for a commitment's payment", async () => {
@@ -113,5 +123,33 @@ describe('transaction detail actions', () => {
     expect(screen.queryByText(Strings.detailEditButton)).toBeNull();
     expect(screen.queryByText(Strings.detailDeleteButton)).toBeNull();
     expect(screen.queryByText(Strings.viewCommitment)).toBeNull();
+  });
+});
+
+describe('transaction detail load errors (MA-182)', () => {
+  it('frame C9: the first load draws the flat error block, and Try again retries once', async () => {
+    const onRetry = jest.fn();
+    const screen = await render(<DetailLoadError onRetry={onRetry} />);
+
+    expect(screen.getByText(Strings.detailLoadErrorTitle)).toBeTruthy();
+    expect(screen.getByText(Strings.detailLoadErrorDescription)).toBeTruthy();
+    expect(screen.getByText(Strings.detailLoadRetry).parent).toHaveStyle({
+      borderRadius: Radius.cta,
+    });
+    await fireEvent.press(screen.getByText(Strings.detailLoadRetry));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('frame C12: a refresh failure floats the alert with a flat Try again, which retries once', async () => {
+    const onRetry = jest.fn();
+    const screen = await render(<DetailLoadError floating onRetry={onRetry} />);
+
+    expect(screen.getByText(Strings.detailRefreshErrorTitle)).toBeTruthy();
+    expect(screen.getByText(Strings.detailLoadRetry).parent).toHaveStyle({
+      borderRadius: Radius.cta,
+    });
+    await fireEvent.press(screen.getByText(Strings.detailLoadRetry));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(Strings.detailLoadErrorDescription)).toBeNull();
   });
 });

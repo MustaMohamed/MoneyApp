@@ -1,10 +1,8 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useToast } from '@/components/ui/toast';
-import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
   findMissingAccountIds,
@@ -14,7 +12,6 @@ import {
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { transactionRepository } from '@/modules/transactions/repositories/transaction.repository';
-import { resolveTransactionDeleteError } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import type { TransactionListStatus } from '@/modules/transactions/store/transaction.store';
@@ -22,11 +19,9 @@ import { getTransactionQueryKey } from '@/modules/transactions/store/transaction
 import { toLocalDateString } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
-import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
 import { buildAccountChips } from './components/account_chips.helpers';
-import { resolveTransactionDeleteBody } from './components/tx_delete_dialog.helpers';
 import {
   countActiveFilters,
   countFunnelFilters,
@@ -38,6 +33,7 @@ import {
 } from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';
 import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
+import { useTransactionDelete } from './transaction_delete.hook';
 import {
   buildDaySections,
   buildSearchTally,
@@ -127,19 +123,6 @@ export function useTransactions() {
   const loadMore = useTransactionStore.getState().loadMore;
   const refresh = useTransactionStore.getState().refresh;
   const retry = useTransactionStore.getState().retry;
-  const deleteTransaction = useTransactionStore.getState().deleteTransaction;
-  const { toast } = useToast();
-  const runDeleteTransaction = useCallback(
-    async (tx: Transaction) => {
-      // Resolves once the refresh after the write settles, so the toast follows the rows.
-      await deleteTransaction(tx.id);
-      toast.show({ label: Strings.transactionDeletedToast, variant: 'success' });
-    },
-    [deleteTransaction, toast],
-  );
-  const deleteAction = useConfirmAction(runDeleteTransaction);
-  const pendingDelete = deleteAction.pendingPayload;
-  const requestDeleteOf = deleteAction.request;
 
   const { accounts, archivedAccounts, accountLookupById, accountLookupError, accountsLoaded } =
     useAccountStore(
@@ -161,8 +144,6 @@ export function useTransactions() {
   const failedTotalsScope = useTransactionsState.useState.failedTotalsScope();
   const userRefreshing = useTransactionsState.useState.userRefreshing();
   const existenceFailed = useTransactionsState.useState.existenceFailed();
-  const deleteBodyTransaction = useTransactionsState.useState.deleteBodyTransaction();
-  const setDeleteBodyTransaction = useTransactionsState.getState().setDeleteBodyTransaction;
   const beginTotalsLoad = useTransactionsState.getState().beginTotalsLoad;
   const resolveTotalsLoad = useTransactionsState.getState().resolveTotalsLoad;
   const failTotalsLoad = useTransactionsState.getState().failTotalsLoad;
@@ -440,6 +421,13 @@ export function useTransactions() {
     () => mergeAccountsById(accounts, archivedAccounts, accountLookupById),
     [accountLookupById, accounts, archivedAccounts],
   );
+  const deleteOwner = useId();
+  const {
+    state: deleteState,
+    request: requestDeleteOf,
+    confirm: confirmDelete,
+    cancel: cancelDelete,
+  } = useTransactionDelete(deleteOwner, accountsById);
   const accountLabelsById = useMemo(() => labelAccountsById(accountsById), [accountsById]);
   const showAccountLookupError =
     accountLookupError && findMissingAccountIds(transactionAccountIds, accountsById).length > 0;
@@ -685,22 +673,10 @@ export function useTransactions() {
         console.warn('[requestDelete] tx not in loaded window:', id);
         return;
       }
-      setDeleteBodyTransaction(tx);
       requestDeleteOf(tx);
     },
-    [currentTransactions, requestDeleteOf, setDeleteBodyTransaction],
+    [currentTransactions, requestDeleteOf],
   );
-  // Read from the last requested transaction, so neither its row leaving nor the close empties it.
-  const deleteBody =
-    deleteBodyTransaction === undefined
-      ? ''
-      : resolveTransactionDeleteBody(
-          deleteBodyTransaction,
-          accountsById.get(deleteBodyTransaction.account_id),
-          deleteBodyTransaction.to_account_id === null
-            ? undefined
-            : accountsById.get(deleteBodyTransaction.to_account_id),
-        );
 
   return {
     state: {
@@ -729,12 +705,10 @@ export function useTransactions() {
       tally,
       searchDisabled: heroMode === 'skeleton' && totalsLoadedYearMonth !== period.yearMonth,
       listRef,
-      pendingDeleteId: pendingDelete?.id ?? null,
-      deleteBody,
-      deleteBusy: deleteAction.busy,
-      deleteErrorMessage: deleteAction.error
-        ? resolveTransactionDeleteError(deleteAction.error)
-        : undefined,
+      pendingDeleteId: deleteState.openTransactionId ?? null,
+      deleteBody: deleteState.body,
+      deleteBusy: deleteState.busy,
+      deleteErrorMessage: deleteState.errorMessage,
     },
     setSearchQuery,
     setActiveFilter,
@@ -755,7 +729,7 @@ export function useTransactions() {
     openAddTransaction,
     backToThisMonth,
     requestDelete,
-    confirmDelete: deleteAction.confirm,
-    cancelDelete: deleteAction.cancel,
+    confirmDelete,
+    cancelDelete,
   };
 }

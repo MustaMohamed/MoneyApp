@@ -81,6 +81,20 @@ describe('createAccountActivityStore', () => {
     expect(repo.getSnapshot).toHaveBeenCalledTimes(1);
   });
 
+  it('joins a second request for the same key while the first is in flight, reading once', async () => {
+    const load = deferred<AccountActivitySnapshot>();
+    const repo = repository(() => load.promise);
+    const store = createAccountActivityStore(repo);
+
+    const first = store.getState().ensure(input('acc-1', 1));
+    const second = store.getState().ensure(input('acc-1', 1));
+    load.resolve(snapshot('acc-1'));
+    await Promise.all([first, second]);
+
+    expect(repo.getSnapshot).toHaveBeenCalledTimes(1);
+    expect(store.getState().status).toBe('ready');
+  });
+
   it.each([
     ['a bumped mutation version', input('acc-1', 1)],
     ['a different account', input('acc-2', 0)],

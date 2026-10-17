@@ -140,12 +140,6 @@ jest.mock('@/modules/transactions/screens/transactions/components/day_header', (
     return <Text>{section.label}</Text>;
   },
 }));
-jest.mock('@/modules/transactions/screens/transactions/components/tx_delete_confirm_sheet', () => ({
-  TxDeleteConfirmSheet: () => {
-    const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <View testID="tx-delete-confirm-sheet" />;
-  },
-}));
 jest.mock('@/modules/transactions/screens/transactions/components/tx_delete_dialog', () => {
   const txDeleteDialogProps: { last: object | undefined } = { last: undefined };
   return {
@@ -706,7 +700,7 @@ describe('TransactionsScreen', () => {
     expect(hook.openAddTransaction).not.toHaveBeenCalled();
   });
 
-  it('MA-093: a pending delete opens the dialog with its body, busy flag and failure line, never the confirm sheet', async () => {
+  it('MA-093: a pending delete opens the dialog with its body, busy flag and failure line', async () => {
     const body = '100 EGP returns to CIB Current. This cannot be undone.';
     const failure = 'Old Card is archived. Restore it to change this transaction.';
     const hook = mockUseTransactions({
@@ -716,7 +710,7 @@ describe('TransactionsScreen', () => {
       deleteErrorMessage: failure,
     });
 
-    const { queryByTestId } = await render(<TransactionsScreen />);
+    await render(<TransactionsScreen />);
 
     expect(txDeleteDialogProps.last).toMatchObject({
       isOpen: true,
@@ -724,7 +718,6 @@ describe('TransactionsScreen', () => {
       busy: true,
       errorMessage: failure,
     });
-    expect(queryByTestId('tx-delete-confirm-sheet')).toBeNull();
     txDeleteDialogProps.last?.onCancel();
     expect(hook.cancelDelete).toHaveBeenCalledTimes(1);
     txDeleteDialogProps.last?.onConfirm();

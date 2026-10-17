@@ -20,14 +20,15 @@ describe('resolveDetailLoadErrorTitle', () => {
 });
 
 describe('resolveDetailLoadErrorAlertProps', () => {
-  it('floats the refresh alert, tinted', () => {
+  it('floats the refresh alert, tinted, with the flat retry', () => {
     expect(resolveDetailLoadErrorAlertProps(true)).toStrictEqual({
       mode: 'floating',
       tinted: true,
+      flatRetry: true,
     });
   });
 
-  it('fills the first-load alert, untinted', () => {
-    expect(resolveDetailLoadErrorAlertProps(false)).toStrictEqual({ mode: 'fill', tinted: false });
+  it('draws no alert on the first load, which takes the flat error block', () => {
+    expect(resolveDetailLoadErrorAlertProps(false)).toBeUndefined();
   });
 });

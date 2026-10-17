@@ -13,7 +13,7 @@ describe('useTxDetailState initial state', () => {
 });
 
 describe('useTxDetailState setters', () => {
-  it('begins an initial load for a new route, hidden and not deleting', () => {
+  it('begins an initial load for a new route, holding no delete state', () => {
     useTxDetailState.getState().beginLoad('owner-a', 't1', false);
 
     expect(entryOf('owner-a')).toEqual({
@@ -21,8 +21,6 @@ describe('useTxDetailState setters', () => {
       status: 'initialLoading',
       revalidating: false,
       refreshError: false,
-      confirmVisible: false,
-      deleting: false,
       reloadKey: 0,
     });
   });
@@ -87,24 +85,6 @@ describe('useTxDetailState setters', () => {
     });
   });
 
-  it('setConfirmVisible toggles the confirm dialog', () => {
-    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
-
-    useTxDetailState.getState().setConfirmVisible('owner-a', true);
-    expect(entryOf('owner-a').confirmVisible).toBe(true);
-    useTxDetailState.getState().setConfirmVisible('owner-a', false);
-    expect(entryOf('owner-a').confirmVisible).toBe(false);
-  });
-
-  it('setDeleting toggles the deleting flag', () => {
-    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
-
-    useTxDetailState.getState().setDeleting('owner-a', true);
-    expect(entryOf('owner-a').deleting).toBe(true);
-    useTxDetailState.getState().setDeleting('owner-a', false);
-    expect(entryOf('owner-a').deleting).toBe(false);
-  });
-
   it('bumpReload increments reloadKey by 1 each call', () => {
     useTxDetailState.getState().beginLoad('owner-a', 't1', false);
 
@@ -119,7 +99,6 @@ describe('useTxDetailState owner isolation', () => {
   it('a second copy starting a load leaves the first copy untouched', () => {
     useTxDetailState.getState().beginLoad('owner-a', 't1', false);
     useTxDetailState.getState().resolve('owner-a', 't1');
-    useTxDetailState.getState().setConfirmVisible('owner-a', true);
     useTxDetailState.getState().bumpReload('owner-a');
     const before = entryOf('owner-a');
 
@@ -151,17 +130,6 @@ describe('useTxDetailState owner isolation', () => {
     expect(entryOf('owner-a').status).toBe('ready');
     expect(entryOf('owner-b').status).toBe('firstLoadError');
   });
-
-  it('a second copy opening its delete confirm leaves the first copy closed', () => {
-    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
-    useTxDetailState.getState().beginLoad('owner-b', 't1', false);
-    useTxDetailState.getState().setDeleting('owner-b', true);
-
-    useTxDetailState.getState().setConfirmVisible('owner-b', true);
-
-    expect(entryOf('owner-a')).toMatchObject({ confirmVisible: false, deleting: false });
-    expect(entryOf('owner-b')).toMatchObject({ confirmVisible: true, deleting: true });
-  });
 });
 
 describe('useTxDetailState release', () => {
@@ -190,8 +158,6 @@ describe('useTxDetailState release', () => {
     useTxDetailState.getState().release('owner-a');
 
     useTxDetailState.getState().bumpReload('owner-a');
-    useTxDetailState.getState().setConfirmVisible('owner-a', true);
-    useTxDetailState.getState().setDeleting('owner-a', true);
 
     expect(useTxDetailState.getState().entries).toEqual({});
   });
@@ -201,8 +167,6 @@ describe('useTxDetailState reset', () => {
   it('drops every copy', () => {
     useTxDetailState.getState().beginLoad('owner-a', 't1', false);
     useTxDetailState.getState().beginLoad('owner-b', 't2', false);
-    useTxDetailState.getState().setConfirmVisible('owner-a', true);
-    useTxDetailState.getState().setDeleting('owner-b', true);
     useTxDetailState.getState().bumpReload('owner-a');
 
     useTxDetailState.getState().reset();

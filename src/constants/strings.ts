@@ -978,7 +978,6 @@ export const Strings = {
   editTxTitle: 'Edit transaction',
   deleteTransaction: 'Delete',
   deleteConfirmTitle: 'Delete this transaction?',
-  deleteConfirmBody: 'The account balance will be restored. This cannot be undone.',
   deleteConfirmBodyExpense: (amount: string, account: string) =>
     `${amount} returns to ${account}. This cannot be undone.`,
   deleteConfirmBodyIncome: (amount: string, account: string) =>
@@ -1354,10 +1353,12 @@ export const Strings = {
   detailEditButton: 'Edit',
   detailNotFoundTitle: 'Transaction not found',
   detailNotFoundBody: 'This transaction may have been deleted.',
-  detailLoadErrorTitle: 'Could not load this transaction.',
-  detailRefreshErrorTitle: 'Could not refresh this transaction.',
+  detailLoadErrorTitle: "Couldn't load this transaction",
+  detailLoadErrorDescription:
+    'Something went wrong reading your data. The transaction is still there.',
+  detailRefreshErrorTitle: "Couldn't refresh this transaction.",
   detailRefreshingAccessibility: 'Refreshing transaction',
-  detailLoadRetry: 'Retry',
+  detailLoadRetry: 'Try again',
 
   // §7: Add / Edit Transaction
   addTxNoAccountsTitle: 'No Accounts Yet',
