@@ -1,35 +1,68 @@
 import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { Dimensions, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
+import { Dimensions, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
+import { FadeInDown } from 'react-native-reanimated';
 
 import { resolveHeroPillGeometry } from '@/components/ui/chip.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type } from '@/constants/theme';
+import { Spacing, Type } from '@/constants/theme';
 import { DASHBOARD_HERO_MAX_FONT_SCALE } from '@/modules/dashboard/screens/dashboard/components/dashboard_card.geometry';
 import { HeroCard } from '@/modules/dashboard/screens/dashboard/components/hero_card';
 import { ms } from '@/utils/responsive';
 
+const mockAnimatedViewTestId = 'mock-animated-view';
+// The entrance each `Animated.View` mounted holding, in mount order: a second mount is a lost entrance.
+const mockAnimatedViewMounts: unknown[] = [];
+
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+jest.mock('react-native-reanimated', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
+  const AnimatedView = ({
+    entering,
+    children,
+    ...rest
+  }: React.ComponentProps<typeof RNView> & { entering?: unknown }) => {
+    const [mountedWith] = React.useState(entering);
+    React.useEffect(() => {
+      mockAnimatedViewMounts.push(mountedWith);
+    }, [mountedWith]);
+    return React.createElement(RNView, { ...rest, testID: mockAnimatedViewTestId }, children);
+  };
+  const builder = jest
+    .requireActual<typeof import('@/test_helpers/mock_reanimated_builder')>(
+      '@/test_helpers/mock_reanimated_builder',
+    )
+    .mockEnteringBuilder();
+  return { __esModule: true, default: { View: AnimatedView }, FadeInDown: builder };
+});
+jest.mock('expo-linear-gradient', () => {
+  const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
+  return { LinearGradient: RNView };
+});
 jest.mock('@/components/ui/hero_shell', () => ({
   // A sentinel child, not a press: `fireEvent` resolves `HeroCard`'s own `onPress` on an ancestor.
   HeroShell: ({
     children,
     style,
     onPress,
+    entering,
   }: {
     children?: ReactNode;
     style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
     onPress?: () => void;
+    entering?: unknown;
   }) => {
-    const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+    const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
     return (
-      <View testID="dashboard-hero-card" style={style}>
-        {onPress ? <View testID="dashboard-hero-press-target" /> : null}
+      <RNView testID="dashboard-hero-card" style={style}>
+        {onPress ? <RNView testID="dashboard-hero-press-target" /> : null}
+        {entering !== undefined ? <RNView testID="dashboard-hero-entering" /> : null}
         {children}
-      </View>
+      </RNView>
     );
   },
 }));
@@ -327,5 +360,151 @@ describe('HeroCard on an EGP-only portfolio with an unverified rate (#257)', () 
     expect(queryByTestId('dashboard-hero-rate-pill')).toBeNull();
     expect(getByText(Strings.netWorthBreakdownForeignUnavailable(Currency.USD))).toBeTruthy();
     expect(getByText(/8,650/)).toBeTruthy();
+  });
+});
+
+describe('HeroCard hands its entrance to the hero frame (MA-198)', () => {
+  it('passes its entering to the shell while loading, on the amount path and on the rate-needed refusal', async () => {
+    const entering = FadeInDown.duration(400);
+
+    for (const props of [
+      { ...baseProps, isLoading: true },
+      { ...baseProps, isLoading: false },
+      { ...rateNeededProps, isLoading: false },
+    ]) {
+      const { queryByTestId, unmount } = await render(<HeroCard {...props} entering={entering} />);
+      expect(queryByTestId('dashboard-hero-entering')).not.toBeNull();
+      await unmount();
+    }
+  });
+
+  it('passes the shell no entrance once Home renders the hero again without one', async () => {
+    const { queryByTestId, rerender } = await render(
+      <HeroCard {...baseProps} isLoading entering={FadeInDown.duration(400)} />,
+    );
+    expect(queryByTestId('dashboard-hero-entering')).not.toBeNull();
+
+    await rerender(<HeroCard {...baseProps} isLoading={false} />);
+
+    expect(queryByTestId('dashboard-hero-entering')).toBeNull();
+  });
+});
+
+const { HeroShell: RealHeroShell } = jest.requireActual<
+  typeof import('@/components/ui/hero_shell')
+>('@/components/ui/hero_shell');
+
+const HERO_SHELL_CHILD_ID = 'hero-shell-child';
+
+type RenderResult = Awaited<ReturnType<typeof render>>;
+type HostNode = NonNullable<RenderResult['root']>;
+
+function ancestorsOf(node: HostNode): HostNode[] {
+  const found: HostNode[] = [];
+  for (let at = node.parent; at; at = at.parent) found.push(at);
+  return found;
+}
+
+function frameOf(view: RenderResult): HostNode {
+  const frame = view.getByTestId(HERO_SHELL_CHILD_ID).parent;
+  if (!frame) throw new Error('the shell child has no host parent');
+  return frame;
+}
+
+describe('HeroShell keeps its entrance on a view that stays mounted when it becomes a button (MA-198)', () => {
+  beforeEach(() => {
+    mockAnimatedViewMounts.length = 0;
+  });
+
+  it('holds the entrance on the root, around the frame, and mounts it once when onPress goes from unset to set', async () => {
+    const entering = FadeInDown.duration(400);
+    const view = await render(
+      <RealHeroShell entering={entering}>
+        <View testID={HERO_SHELL_CHILD_ID} />
+      </RealHeroShell>,
+    );
+
+    const enteringView = view.getByTestId(mockAnimatedViewTestId);
+    expect(view.root).toBe(enteringView);
+    expect(frameOf(view)).not.toBe(enteringView);
+    expect(ancestorsOf(frameOf(view))).toContain(enteringView);
+
+    await view.rerender(
+      <RealHeroShell
+        entering={entering}
+        onPress={jest.fn()}
+        accessibilityLabel={Strings.dashAvailableToSpend}
+      >
+        <View testID={HERO_SHELL_CHILD_ID} />
+      </RealHeroShell>,
+    );
+
+    expect(view.root).toBe(view.getByTestId(mockAnimatedViewTestId));
+    expect(ancestorsOf(view.getByRole('button'))).toContain(view.root);
+    expect(mockAnimatedViewMounts).toStrictEqual([entering]);
+  });
+
+  it('keeps the entrance mounted when Home drops it on the render that makes the hero a button', async () => {
+    const entering = FadeInDown.duration(400);
+    const view = await render(
+      <RealHeroShell entering={entering}>
+        <View testID={HERO_SHELL_CHILD_ID} />
+      </RealHeroShell>,
+    );
+
+    await view.rerender(
+      <RealHeroShell onPress={jest.fn()} accessibilityLabel={Strings.dashAvailableToSpend}>
+        <View testID={HERO_SHELL_CHILD_ID} />
+      </RealHeroShell>,
+    );
+
+    expect(mockAnimatedViewMounts).toStrictEqual([entering]);
+    expect(view.root).toBe(view.getByTestId(mockAnimatedViewTestId));
+  });
+
+  it('is a button only with onPress, inside the view that holds the entrance and around the frame', async () => {
+    const without = await render(
+      <RealHeroShell entering={FadeInDown.duration(400)}>
+        <View testID={HERO_SHELL_CHILD_ID} />
+      </RealHeroShell>,
+    );
+    expect(without.queryAllByRole('button')).toHaveLength(0);
+    expect(without.container.queryAll((node) => node.props.accessible === true)).toHaveLength(0);
+    await without.unmount();
+
+    const withPress = await render(
+      <RealHeroShell
+        entering={FadeInDown.duration(400)}
+        onPress={jest.fn()}
+        accessibilityLabel={Strings.dashAvailableToSpend}
+      >
+        <View testID={HERO_SHELL_CHILD_ID} />
+      </RealHeroShell>,
+    );
+    const [button, ...rest] = withPress.getAllByRole('button');
+    expect(rest).toHaveLength(0);
+    expect(button).toHaveProp('accessibilityLabel', Strings.dashAvailableToSpend);
+    expect(ancestorsOf(button)).toContain(withPress.getByTestId(mockAnimatedViewTestId));
+    expect(ancestorsOf(frameOf(withPress))).toContain(button);
+  });
+
+  it('puts the style override on the frame, never on the view that holds the entrance', async () => {
+    for (const onPress of [undefined, jest.fn()]) {
+      const view = await render(
+        <RealHeroShell
+          entering={FadeInDown.duration(400)}
+          onPress={onPress}
+          style={{ marginTop: Spacing.xs }}
+        >
+          <View testID={HERO_SHELL_CHILD_ID} />
+        </RealHeroShell>,
+      );
+
+      expect(frameOf(view)).toHaveStyle({ marginTop: Spacing.xs });
+      expect(view.getByTestId(mockAnimatedViewTestId)).not.toHaveStyle({
+        marginTop: Spacing.xs,
+      });
+      await view.unmount();
+    }
   });
 });
