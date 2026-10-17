@@ -1,9 +1,10 @@
-import { router, useFocusEffect, usePathname } from 'expo-router';
+import { router, useFocusEffect, useNavigation, usePathname } from 'expo-router';
 import { useCallback, useEffect, useId, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
+import { useAccountActivityStore } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
   findMissingAccountIds,
@@ -17,8 +18,9 @@ import { useCommitmentStore } from '@/modules/commitments/store/commitment.store
 import { stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { runAfterInteractions } from '@/utils/run_after_interactions';
 
-import { reloadAccountActivityAfterDelete, useTransactionDelete } from '../transaction_delete.hook';
+import { useTransactionDelete } from '../transaction_delete.hook';
 import {
   buildTransactionDetailPresentation,
   type DetailActions,
@@ -29,6 +31,43 @@ import {
 } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useTxDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useTxDetailStore } from './detail.store';
+
+const ACCOUNT_DETAIL_ROUTE = 'accounts/[id]/index';
+
+interface NavigatorState {
+  index: number;
+  routes: readonly { name: string; params?: object }[];
+}
+
+/** The account detail this detail pops back to, read from its navigator before the pop. */
+function accountIdBelow(state: NavigatorState | undefined): string | undefined {
+  if (state === undefined || state.index < 1) return undefined;
+  const below = state.routes.at(state.index - 1);
+  if (below?.name !== ACCOUNT_DETAIL_ROUTE) return undefined;
+  const params: unknown = below.params;
+  if (typeof params !== 'object' || params === null || !('id' in params)) return undefined;
+  return typeof params.id === 'string' ? params.id : undefined;
+}
+
+/** Reloads that account's activity card after the pop; never rejects, so the toast cannot hang. */
+function reloadAccountActivityAfterDelete(accountId: string): Promise<void> {
+  return new Promise((resolve) => {
+    runAfterInteractions(async () => {
+      try {
+        // The account detail's own focus load joins this request by key, so the card reloads once.
+        await useAccountActivityStore.getState().ensure({
+          accountId,
+          mutationVersion: useTransactionStore.getState().mutationVersion,
+          now: new Date(),
+        });
+      } catch (error) {
+        console.error('[transactionDetail] activity reload after delete failed', error);
+      } finally {
+        resolve();
+      }
+    });
+  });
+}
 
 export function useTransactionDetail(id: string) {
   const owner = useId();
@@ -163,10 +202,12 @@ export function useTransactionDetail(id: string) {
     [accountLookupById, accounts, archivedAccounts],
   );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const navigation = useNavigation();
   const popAfterDelete = useCallback(async () => {
+    const accountId = accountIdBelow(navigation.getState());
     router.back();
-    await reloadAccountActivityAfterDelete();
-  }, []);
+    if (accountId !== undefined) await reloadAccountActivityAfterDelete(accountId);
+  }, [navigation]);
   const {
     state: deleteState,
     request: requestDelete,

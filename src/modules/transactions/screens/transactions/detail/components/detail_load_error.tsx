@@ -16,6 +16,7 @@ export function DetailLoadError({
   floating = false,
   onRetry,
 }: DetailLoadErrorProps): React.ReactElement {
+  const title = resolveDetailLoadErrorTitle(floating);
   const alertProps = resolveDetailLoadErrorAlertProps(floating);
 
   if (alertProps === undefined) {
@@ -24,7 +25,7 @@ export function DetailLoadError({
         edges={[]}
         flat
         iconName="alert-circle-outline"
-        title={resolveDetailLoadErrorTitle(false)}
+        title={title}
         description={Strings.detailLoadErrorDescription}
         actionLabel={Strings.detailLoadRetry}
         actionAccessibilityLabel={Strings.detailLoadRetry}
@@ -37,7 +38,7 @@ export function DetailLoadError({
   return (
     <LoadErrorAlert
       {...alertProps}
-      title={resolveDetailLoadErrorTitle(floating)}
+      title={title}
       retryLabel={Strings.detailLoadRetry}
       onRetry={onRetry}
       testID="detail-load-error"
