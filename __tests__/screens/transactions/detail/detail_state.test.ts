@@ -22,6 +22,7 @@ describe('useTxDetailState setters', () => {
       revalidating: false,
       refreshError: false,
       reloadKey: 0,
+      accountLookupSettled: false,
     });
   });
 
@@ -92,6 +93,77 @@ describe('useTxDetailState setters', () => {
     expect(entryOf('owner-a').reloadKey).toBe(1);
     useTxDetailState.getState().bumpReload('owner-a');
     expect(entryOf('owner-a').reloadKey).toBe(2);
+  });
+});
+
+describe('useTxDetailState account lookup settled (MA-196)', () => {
+  it('a settle marks the active route settled', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+    useTxDetailState.getState().resolve('owner-a', 't1');
+
+    useTxDetailState.getState().settleAccountLookup('owner-a', 't1');
+
+    expect(entryOf('owner-a')).toMatchObject({ activeId: 't1', accountLookupSettled: true });
+  });
+
+  it('a settle for an obsolete id changes nothing', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+    useTxDetailState.getState().beginLoad('owner-a', 't2', false);
+    const before = useTxDetailState.getState().entries;
+
+    useTxDetailState.getState().settleAccountLookup('owner-a', 't1');
+
+    expect(useTxDetailState.getState().entries).toBe(before);
+    expect(entryOf('owner-a').accountLookupSettled).toBe(false);
+  });
+
+  it('a settle for a released owner creates no entry', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+    useTxDetailState.getState().release('owner-a');
+    const before = useTxDetailState.getState().entries;
+
+    useTxDetailState.getState().settleAccountLookup('owner-a', 't1');
+
+    expect(useTxDetailState.getState().entries).toBe(before);
+    expect(useTxDetailState.getState().entries).toEqual({});
+  });
+
+  it('a settle for an owner that never loaded creates no entry', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+    const before = useTxDetailState.getState().entries;
+
+    useTxDetailState.getState().settleAccountLookup('owner-b', 't1');
+
+    expect(useTxDetailState.getState().entries).toBe(before);
+    expect(Object.keys(useTxDetailState.getState().entries)).toEqual(['owner-a']);
+  });
+
+  it('beginLoad without preserveData clears a settled entry', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+    useTxDetailState.getState().resolve('owner-a', 't1');
+    useTxDetailState.getState().settleAccountLookup('owner-a', 't1');
+
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+
+    expect(entryOf('owner-a')).toMatchObject({
+      activeId: 't1',
+      status: 'initialLoading',
+      accountLookupSettled: false,
+    });
+  });
+
+  it('beginLoad with preserveData keeps a settled entry settled', () => {
+    useTxDetailState.getState().beginLoad('owner-a', 't1', false);
+    useTxDetailState.getState().resolve('owner-a', 't1');
+    useTxDetailState.getState().settleAccountLookup('owner-a', 't1');
+
+    useTxDetailState.getState().beginLoad('owner-a', 't1', true);
+
+    expect(entryOf('owner-a')).toMatchObject({
+      activeId: 't1',
+      revalidating: true,
+      accountLookupSettled: true,
+    });
   });
 });
 

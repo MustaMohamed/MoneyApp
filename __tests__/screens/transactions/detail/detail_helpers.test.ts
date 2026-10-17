@@ -22,7 +22,6 @@ import {
 } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import {
   buildTransactionDetailPresentation,
-  getAccountTypeIcon,
   getCommitmentPaymentRoute,
   resolveDetailAccountRow,
   resolveDetailActionBarCount,
@@ -135,33 +134,6 @@ function transaction(overrides: Partial<Transaction>): Transaction {
   };
 }
 
-describe('getAccountTypeIcon', () => {
-  // Mirrors the account-type to glyph mapping in the dashboard's `account_card.tsx`.
-  const cases: Array<[AccountType, string]> = [
-    [AccountType.Bank, 'bank'],
-    [AccountType.SmartWallet, 'cellphone-nfc'],
-    [AccountType.PhysicalWallet, 'wallet'],
-    [AccountType.PhysicalSavings, 'piggy-bank'],
-    [AccountType.CreditCard, 'credit-card'],
-  ];
-
-  for (const [type, icon] of cases) {
-    it(`returns "${icon}" for ${type}`, () => {
-      expect(getAccountTypeIcon(type)).toBe(icon);
-    });
-  }
-
-  it('falls back to "card-bulleted-outline" when type is undefined', () => {
-    // A transaction referencing an account that no longer exists yields undefined from the lookup.
-    expect(getAccountTypeIcon(undefined)).toBe('card-bulleted-outline');
-  });
-
-  it('falls back to "card-bulleted-outline" for unknown values', () => {
-    // CHECK constraints aside, legacy rows from an older enum could still reach here.
-    expect(getAccountTypeIcon('legacy_type_xyz')).toBe('card-bulleted-outline');
-  });
-});
-
 describe('getCommitmentPaymentRoute', () => {
   it('opens the stacked twin above the tabs and marks the tabbed origin copy', () => {
     expect(getCommitmentPaymentRoute('payment-1', '', 'tx-1')).toBe(
@@ -223,8 +195,8 @@ describe('buildTransactionDetailPresentation', () => {
         toAccount: destination,
       }).transferFlow,
     ).toMatchObject({
-      fromAmountText: { display: '−0.40 EGP', accessible: '0.40 EGP' },
-      toAmountText: { display: '+19.40 USD', accessible: '19.40 USD' },
+      from: { amountText: { display: '−0.40 EGP', accessible: '0.40 EGP' } },
+      to: { amountText: { display: '+19.40 USD', accessible: '19.40 USD' } },
     });
   });
 
@@ -1312,4 +1284,192 @@ describe('buildTransactionDetailPresentation — fact rows as data (MA-181)', ()
       );
     },
   );
+});
+
+describe('buildTransactionDetailPresentation — flow cells (MA-196)', () => {
+  const graphiteHollow = (type: AccountType) => ({
+    color: AcctTokens.graphite.rich,
+    type,
+    hollow: true,
+  });
+  const cib = account({
+    id: 'source',
+    name: 'CIB',
+    type: AccountType.Bank,
+    currency: Currency.EGP,
+    color: AcctTokens.lapis.rich,
+  });
+  const dollarVault = account({
+    id: 'destination',
+    name: 'Dollar Vault',
+    type: AccountType.SmartWallet,
+    currency: Currency.USD,
+    color: AcctTokens.nile.rich,
+  });
+  const visa = account({
+    id: 'destination',
+    name: 'Visa',
+    type: AccountType.CreditCard,
+    currency: Currency.EGP,
+    color: AcctTokens.plum.rich,
+  });
+  // Frame C3: 5,000 EGP left CIB and 102.04 USD arrived in Dollar Vault.
+  const egpToUsd = transaction({
+    type: TransactionType.Transfer,
+    currency: Currency.EGP,
+    amount: 5_000,
+    egp_amount: 5_000,
+    exchange_rate: 49,
+    to_amount: 102.04,
+  });
+  const fromCib = {
+    name: 'CIB',
+    tile: { color: AcctTokens.lapis.rich, type: AccountType.Bank, hollow: false },
+    amountText: { display: '−5,000 EGP', accessible: '5,000 EGP' },
+    open: {
+      accountId: 'source',
+      accessibilityLabel: Strings.detailOpenAccountAccessibility('CIB', '5,000 EGP'),
+    },
+  };
+  const toDollarVault = {
+    name: 'Dollar Vault',
+    tile: { color: AcctTokens.nile.rich, type: AccountType.SmartWallet, hollow: false },
+    amountText: { display: '+102.04 USD', accessible: '102.04 USD' },
+    open: {
+      accountId: 'destination',
+      accessibilityLabel: Strings.detailOpenAccountAccessibility('Dollar Vault', '102.04 USD'),
+    },
+  };
+
+  function flowOf(input: Omit<TransactionDetailPresentationInput, 'tx'>, tx = egpToUsd) {
+    return buildTransactionDetailPresentation({ tx, ...input }).transferFlow;
+  }
+
+  it('frame C3: an EGP to USD transfer draws each account on its own tile with its leg and its tap', () => {
+    expect(flowOf({ account: cib, toAccount: dollarVault })).toEqual({
+      from: fromCib,
+      to: toDollarVault,
+    });
+  });
+
+  it('frame C4: a card payment draws the bank and the card on their own tiles with both legs', () => {
+    const payment = transaction({
+      type: TransactionType.CCPayment,
+      currency: Currency.EGP,
+      amount: 3_000,
+      egp_amount: 3_000,
+      exchange_rate: null,
+      to_amount: null,
+    });
+
+    expect(flowOf({ account: cib, toAccount: visa }, payment)).toEqual({
+      from: {
+        ...fromCib,
+        amountText: { display: '−3,000 EGP', accessible: '3,000 EGP' },
+        open: {
+          accountId: 'source',
+          accessibilityLabel: Strings.detailOpenAccountAccessibility('CIB', '3,000 EGP'),
+        },
+      },
+      to: {
+        name: 'Visa',
+        tile: { color: AcctTokens.plum.rich, type: AccountType.CreditCard, hollow: false },
+        amountText: { display: '+3,000 EGP', accessible: '3,000 EGP' },
+        open: {
+          accountId: 'destination',
+          accessibilityLabel: Strings.detailOpenAccountAccessibility('Visa', '3,000 EGP'),
+        },
+      },
+    });
+  });
+
+  it('frame C7: an archived From side keeps its name, amount and tap on the graphite hollow tile', () => {
+    const flow = flowOf({ account: { ...cib, is_archived: 1 }, toAccount: dollarVault });
+
+    expect(flow).toEqual({
+      from: { ...fromCib, tile: graphiteHollow(AccountType.Bank) },
+      to: toDollarVault,
+    });
+  });
+
+  it('frame C7: an archived To side keeps its name, amount and tap on the graphite hollow tile', () => {
+    const flow = flowOf({ account: cib, toAccount: { ...dollarVault, is_archived: 1 } });
+
+    expect(flow).toEqual({
+      from: fromCib,
+      to: { ...toDollarVault, tile: graphiteHollow(AccountType.SmartWallet) },
+    });
+  });
+
+  it('a deleted From account reads Deleted Account on the graphite hollow tile, keeps its amount and takes no tap', () => {
+    const flow = flowOf({
+      account: { ...cib, name: '', is_archived: 1, is_deleted: 1 },
+      toAccount: dollarVault,
+    });
+
+    expect(flow?.from).toEqual({
+      name: Strings.deletedAccount,
+      tile: graphiteHollow(AccountType.Bank),
+      amountText: fromCib.amountText,
+    });
+    expect(flow?.from.open).toBeUndefined();
+    expect(flow?.to).toEqual(toDollarVault);
+  });
+
+  it('a deleted To account reads Deleted Account on the graphite hollow tile, keeps its amount and takes no tap', () => {
+    const flow = flowOf({
+      account: cib,
+      toAccount: { ...dollarVault, name: '', is_archived: 1, is_deleted: 1 },
+    });
+
+    expect(flow?.from).toEqual(fromCib);
+    expect(flow?.to).toEqual({
+      name: Strings.deletedAccount,
+      tile: graphiteHollow(AccountType.SmartWallet),
+      amountText: toDollarVault.amountText,
+    });
+    expect(flow?.to.open).toBeUndefined();
+  });
+
+  it('audit L27: an unresolved From account reads Unknown account on the graphite hollow tile, still printing the amount, with no tap', () => {
+    const flow = flowOf({ account: undefined, toAccount: dollarVault });
+
+    expect(flow?.from).toEqual({
+      name: Strings.unknownAccount,
+      tile: graphiteHollow(AccountType.Bank),
+      amountText: fromCib.amountText,
+    });
+    expect(flow?.from.open).toBeUndefined();
+    expect(flow?.to).toEqual(toDollarVault);
+  });
+
+  it('audit L27: an unresolved To account reads Unknown account on the graphite hollow tile, with no amount and no tap', () => {
+    const flow = flowOf({ account: cib, toAccount: undefined });
+
+    expect(flow?.from).toEqual(fromCib);
+    expect(flow?.to).toEqual({
+      name: Strings.unknownAccount,
+      tile: graphiteHollow(AccountType.Bank),
+    });
+    expect(flow?.to.amountText).toBeUndefined();
+    expect(flow?.to.open).toBeUndefined();
+  });
+
+  it('holds a flow exactly when the type takes a destination, whether or not its accounts resolved', () => {
+    const flowFor = (type: TransactionType, toAccountId: string | null) =>
+      buildTransactionDetailPresentation({
+        tx: transaction({
+          type,
+          to_account_id: toAccountId,
+          to_amount: toAccountId === null ? null : 4_850,
+        }),
+      }).transferFlow;
+
+    expect({
+      expense: flowFor(TransactionType.Expense, null),
+      income: flowFor(TransactionType.Income, null),
+      transfer: flowFor(TransactionType.Transfer, 'destination') !== null,
+      ccPayment: flowFor(TransactionType.CCPayment, 'destination') !== null,
+    }).toEqual({ expense: null, income: null, transfer: true, ccPayment: true });
+  });
 });
