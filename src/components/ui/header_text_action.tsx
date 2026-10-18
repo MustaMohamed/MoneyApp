@@ -25,8 +25,8 @@ export function HeaderTextAction({ label, onPress }: HeaderTextActionProps) {
       style={{ minWidth: geometry.minWidth, height: geometry.height }}
     >
       <Typography
-        className="font-sora-bold text-accent text-[11px]"
-        allowFontScaling={geometry.label === undefined}
+        className="font-sora-bold text-accent"
+        allowFontScaling={geometry.allowFontScaling}
         style={geometry.label}
       >
         {label}

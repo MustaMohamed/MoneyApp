@@ -1,8 +1,4 @@
-import {
-  type ScaledTextStyle,
-  scaledTextStyle,
-  scaledTextStyleAboveOne,
-} from '@/components/ui/text_scale.geometry';
+import { type ScaledTextStyle, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Size, Type } from '@/constants/theme';
 
 export interface StackHeaderGeometry {
@@ -17,17 +13,27 @@ export function resolveStackHeaderGeometry(fontScale: number): StackHeaderGeomet
 }
 
 export interface HeaderTextActionGeometry {
-  label: ScaledTextStyle | undefined;
+  label: ScaledTextStyle;
+  allowFontScaling: boolean;
   minWidth: number;
   height: number;
 }
 
-/** `HeaderTextAction`'s box: `label` is `undefined` at or below scale 1, where the OS scales the class size. */
+export const HEADER_ACTION_HIT_SLOP = {
+  top: Size.headerActionSlop,
+  bottom: Size.headerActionSlop,
+  left: Size.headerActionSlop,
+  right: Size.headerActionSlop,
+};
+
+/** `HeaderTextAction`'s box: at or below scale 1 the label keeps `Type.micro` and the OS scales it. */
 export function resolveHeaderTextActionGeometry(fontScale: number): HeaderTextActionGeometry {
-  const label = scaledTextStyleAboveOne(Type.micro, fontScale);
+  const allowFontScaling = fontScale <= 1;
+  const label = scaledTextStyle(Type.micro, allowFontScaling ? 1 : fontScale);
   return {
     label,
-    minWidth: Size.headerTextActionTrack,
-    height: Math.max(Size.headerTextActionTrack, (label?.lineHeight ?? 0) + 2 * Size.hairline),
+    allowFontScaling,
+    minWidth: Size.headerActionTrack,
+    height: Math.max(Size.headerActionTrack, label.lineHeight + 2 * Size.hairline),
   };
 }
