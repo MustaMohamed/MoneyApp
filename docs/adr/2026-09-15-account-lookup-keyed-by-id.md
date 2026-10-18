@@ -25,6 +25,8 @@ A load stamps the account reload generation, `loadRequestId`, and drops its resu
 
 The field is shared, so a screen shows it only while something it displays is unresolved. The list shows it while a visible row's account is missing (`transactions.hook.ts:316`), as its floating banner with `transactionsAccountLookupError`, and its Retry re-runs the lookup. The detail shows it while its transaction's account or counterparty is missing (`detail.hook.ts:166`), as its floating refresh error, and its Retry is `reload`.
 
+**Amended 2026-10-18, MA-200 (#766).** A reload no longer drops a lookup's result. A load stamps `resetCount` in place of `loadRequestId`, so only `reset` discards a load in flight (`account.store.ts:129`, `:141`). An overtaken load publishes every row it read except an `is_deleted = 0` copy of an id the store deleted. `refreshDeletedLookup` adds the id to `deletedAccountIds` before it drops the cached copy (`:83`), and `dropCopiesReadBeforeDelete` (`account_lookup.helpers.ts:34`) leaves that copy out. A failed read adds its ids to `failedLookupIds` and sets `accountLookupError` whether or not a reload overtook it. The transaction detail and the edit sheet each ask the lookup once per load.
+
 ## 4. Display only
 
 The lookup feeds account names and the currency a transfer leg formats with. Nothing computes or writes an amount from it. An unresolved destination still falls back to EGP at `transaction_row.helpers.ts:111` and `detail.helpers.ts:147`; the banner is what tells the user why the row reads "Unknown account".
