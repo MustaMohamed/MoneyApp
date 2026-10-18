@@ -1,25 +1,8 @@
-import { Stack, useRouter } from 'expo-router';
-import { View } from 'react-native';
+import { Stack } from 'expo-router';
 
-import { BackButton } from '@/components/ui/back_button';
+import { NativeHeaderBackButton } from '@/components/ui/back_button';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Size, Type } from '@/constants/theme';
-
-// The native header clips its left item at the item's edge, so this padding is the back button's tap band.
-function SettingsBackButton() {
-  const router = useRouter();
-  return (
-    <View
-      style={{
-        paddingLeft: 0,
-        paddingRight: Size.headerActionSlop,
-        paddingVertical: Size.headerActionSlop,
-      }}
-    >
-      <BackButton onPress={() => router.back()} />
-    </View>
-  );
-}
+import { Colors, FontFamily, Type } from '@/constants/theme';
 
 export default function SettingsLayout() {
   return (
@@ -36,19 +19,22 @@ export default function SettingsLayout() {
     >
       <Stack.Screen
         name="index"
-        options={{ title: Strings.settingsTitle, headerLeft: () => <SettingsBackButton /> }}
+        options={{ title: Strings.settingsTitle, headerLeft: () => <NativeHeaderBackButton /> }}
       />
       <Stack.Screen
         name="currency/index"
-        options={{ title: Strings.currencyScreenTitle, headerLeft: () => <SettingsBackButton /> }}
+        options={{
+          title: Strings.currencyScreenTitle,
+          headerLeft: () => <NativeHeaderBackButton />,
+        }}
       />
       <Stack.Screen
         name="categories/index"
-        options={{ title: Strings.categoriesTitle, headerLeft: () => <SettingsBackButton /> }}
+        options={{ title: Strings.categoriesTitle, headerLeft: () => <NativeHeaderBackButton /> }}
       />
       <Stack.Screen
         name="about/index"
-        options={{ title: Strings.aboutTitle, headerLeft: () => <SettingsBackButton /> }}
+        options={{ title: Strings.aboutTitle, headerLeft: () => <NativeHeaderBackButton /> }}
       />
     </Stack>
   );

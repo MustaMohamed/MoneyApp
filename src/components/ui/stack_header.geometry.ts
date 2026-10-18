@@ -1,3 +1,5 @@
+import type { Insets } from 'react-native';
+
 import { type ScaledTextStyle, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Size, Type } from '@/constants/theme';
 
@@ -24,7 +26,13 @@ export const HEADER_ACTION_HIT_SLOP = {
   bottom: Size.headerActionSlop,
   left: Size.headerActionSlop,
   right: Size.headerActionSlop,
-};
+} as const satisfies Insets;
+
+export const NATIVE_HEADER_BACK_PADDING = {
+  paddingLeft: 0,
+  paddingRight: Size.headerActionSlop,
+  paddingVertical: Size.headerActionSlop,
+} as const;
 
 /** `HeaderTextAction`'s box: at or below scale 1 the label keeps `Type.micro` and the OS scales it. */
 export function resolveHeaderTextActionGeometry(fontScale: number): HeaderTextActionGeometry {

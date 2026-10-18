@@ -72,7 +72,7 @@ export default function CategoryBudgetDetailScreen() {
         {state.liveMonth && state.canEditLiveBudget && (
           <HeaderIconAction
             icon="pencil"
-            iconSize={Size.iconBack}
+            iconSize={Size.headerActionIcon}
             iconColor={Colors.dark.gold}
             accessibilityLabel={Strings.budgetEditTitle}
             onPress={editBudget}

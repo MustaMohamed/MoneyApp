@@ -180,6 +180,8 @@ scroll. A swipe the recipe did not need can leave a node at the scroll viewport'
 where `mqa bounds` reads its box shorter (MA-162, `N4 ready card, rate needed, large font`
 in `features/onboarding.md`).
 
+`mqa bounds` keeps a closed sheet's nodes and, just after a Back, the popped screen's (MA-194: `Save budget`, `Add Category` and `Go back` read present on screens that no longer drew them), so a landing or a closed sheet is proven by the shot, not by a read.
+
 ## Uiautomator engine: three ordering rules
 
 These hold under `MQA_UI=uiautomator` only; agent-device's `fill` and its headless keyboard

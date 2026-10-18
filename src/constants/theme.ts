@@ -210,6 +210,8 @@ export const Size = {
   iconMicro: ms(12),
   statusCounterIcon: ms(13),
   iconBack: ms(20),
+  /** Same ms(20) as `iconBack` by design; a header action's glyph, not the back chevron. Do not dedupe. */
+  headerActionIcon: ms(20),
   /** Same ms(20) as `iconBack` by design; the design's toast glyph (G3), not the back chevron. Do not dedupe. */
   toastIcon: ms(20),
   iconXs: ms(16),

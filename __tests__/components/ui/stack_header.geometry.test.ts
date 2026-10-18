@@ -1,5 +1,6 @@
 import {
   HEADER_ACTION_HIT_SLOP,
+  NATIVE_HEADER_BACK_PADDING,
   resolveHeaderTextActionGeometry,
   resolveStackHeaderGeometry,
 } from '@/components/ui/stack_header.geometry';
@@ -79,5 +80,16 @@ describe('HEADER_ACTION_HIT_SLOP', () => {
   // The literal, not the token: a drifted `headerActionSlop` must fail here, not on a device.
   it('takes taps 8 dp past every side of a header action or back button box', () => {
     expect(HEADER_ACTION_HIT_SLOP).toEqual({ top: 8, bottom: 8, left: 8, right: 8 });
+  });
+});
+
+describe('NATIVE_HEADER_BACK_PADDING', () => {
+  // The literal, not the token: the native header clips its left item, so this padding is the settings back button's tap band.
+  it('takes taps 8 dp above, below and right of the native header back button, and none left', () => {
+    expect(NATIVE_HEADER_BACK_PADDING).toEqual({
+      paddingLeft: 0,
+      paddingRight: 8,
+      paddingVertical: 8,
+    });
   });
 });

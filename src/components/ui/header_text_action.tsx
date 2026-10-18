@@ -2,7 +2,7 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { useWindowDimensions } from 'react-native';
 
-import { HeaderActionBox } from '@/components/ui/header_icon_action';
+import { HeaderActionBox } from '@/components/ui/header_action_box';
 import { resolveHeaderTextActionGeometry } from '@/components/ui/stack_header.geometry';
 import { Spacing } from '@/constants/theme';
 

@@ -71,7 +71,7 @@ export default function AccountsListScreen() {
         right={
           <HeaderIconAction
             icon="plus"
-            iconSize={Size.iconBack}
+            iconSize={Size.headerActionIcon}
             iconColor={CoreTokens.text1}
             accessibilityLabel={Strings.emptyAccountsCta}
             onPress={goToAddAccount}
