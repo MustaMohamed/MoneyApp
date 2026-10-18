@@ -12,14 +12,13 @@ import {
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
 import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
+import { formatStoredRateLine } from '@/modules/transactions/utils/stored_rate_line';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatDisplayAmount, formatRateDisplayMagnitude } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';
 import { MIN_MONEY_AMOUNT } from '@/utils/money';
 import { formatStoredMoneyText } from '@/utils/money_text';
 import { parsePositiveDecimal, parseRateText } from '@/utils/parse_decimal';
-
-import { formatStoredRateLine } from './components/stored_rate_line.helpers';
 
 export interface TransactionFormSemantics {
   isCardCredit: boolean;

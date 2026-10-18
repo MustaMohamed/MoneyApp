@@ -5,7 +5,7 @@
 - **Ticket:** MA-016 (issue #270), first execution of backlog Item 4 (consolidate money
   formatting, M1 + M24)
 - **Applies to:** `src/utils/format_amount.ts` (chunk A); the 24 call sites chunk A unblocks
-  (chunks B, C, D) and `src/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row.tsx`
+  (chunks B, C, D) and `src/modules/transactions/components/exchange_rate_row.tsx`
   (chunk D)
 
 ## 1. The accepted arithmetic approximation

@@ -43,12 +43,6 @@ export const AMOUNT_MESSAGE_TEXT_STYLE = {
   textAlign: 'center',
 } as const;
 
-/** The rate card's and the rate editor's message slots: a floor and no fixed height, so a message wrapped at a large font scale stays whole. */
-export const RATE_MESSAGE_SLOT_STYLE = {
-  minHeight: ms(16),
-  justifyContent: 'center',
-} as const;
-
 /** The rate editor's Reset slot: the touch floor whether or not the link shows, so typing a rate moves nothing. */
 export const RATE_RESET_SLOT_STYLE = {
   minHeight: TouchSize.min,

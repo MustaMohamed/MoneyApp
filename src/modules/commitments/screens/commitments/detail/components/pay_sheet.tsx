@@ -16,7 +16,7 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
 import { resolveAccountGlyphColor } from '@/modules/accounts/constants/account_glyph_color';
-import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
+import { ExchangeRateRow } from '@/modules/transactions/components/exchange_rate_row';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatAccountBalance, formatCurrencyAmount } from '@/utils/format_amount';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
