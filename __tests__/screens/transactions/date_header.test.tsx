@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react-native';
 
-import { DateHeader } from '@/modules/transactions/screens/transactions/components/date_header';
+import { DateHeader } from '@/components/ui/date_header';
 
 jest.mock('heroui-native', () => ({
   cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
