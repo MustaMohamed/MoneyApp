@@ -11,7 +11,7 @@ import {
   DETAIL_ROW_LABEL_FONT_SIZE,
   DETAIL_ROW_VALUE_FONT_SIZE,
   resolveDetailRowHeight,
-} from './detail.geometry';
+} from './detail_row.geometry';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 

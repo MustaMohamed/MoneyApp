@@ -1,5 +1,11 @@
 import { Dimensions, PixelRatio } from 'react-native';
 
+import {
+  DETAIL_ROW_HEIGHT,
+  DETAIL_ROW_LABEL_FONT_SIZE,
+  DETAIL_ROW_VALUE_FONT_SIZE,
+  resolveDetailRowHeight,
+} from '@/components/ui/detail_row.geometry';
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import {
   FITTED_LINE_SLACK,
@@ -17,9 +23,6 @@ import {
   DETAIL_HERO_CAPTION_GAP,
   DETAIL_HERO_OVERLINE_GAP,
   DETAIL_HERO_PADDING,
-  DETAIL_ROW_HEIGHT,
-  DETAIL_ROW_LABEL_FONT_SIZE,
-  DETAIL_ROW_VALUE_FONT_SIZE,
   DETAIL_TRANSFER_AMOUNT_FONT_SIZE,
   DETAIL_TRANSFER_LABEL_FONT_SIZE,
   DETAIL_TRANSFER_MIN_HEIGHT,
@@ -27,7 +30,6 @@ import {
   resolveDetailAmountRowFigure,
   resolveDetailFactRowHeight,
   resolveDetailHeroGeometry,
-  resolveDetailRowHeight,
   resolveTransferCardHeight,
   resolveTransferCellHeight,
   resolveTransferSkeletonCellHeight,

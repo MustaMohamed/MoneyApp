@@ -1,9 +1,9 @@
 import Animated from 'react-native-reanimated';
 
+import { DetailRow } from '@/components/ui/detail_row';
+import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
-import { DetailRow } from '@/modules/transactions/screens/transactions/detail/components/detail_row';
-import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatLongDate } from '@/utils/format_date';
 

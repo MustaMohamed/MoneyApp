@@ -4,11 +4,11 @@ import React from 'react';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
+import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
-import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 
 import type { Account } from '../../../../store/account.store';
 import { AccountFactRow } from './account_fact_row';

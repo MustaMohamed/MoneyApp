@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
+import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 
 import { TxDeleteDialog } from '../components/tx_delete_dialog';
@@ -9,7 +10,6 @@ import { DetailFactRow } from './components/detail_fact_row';
 import { DetailHeader } from './components/detail_header';
 import { DetailHero } from './components/detail_hero';
 import { DetailLoadError } from './components/detail_load_error';
-import { DetailRowsCard } from './components/detail_rows_card';
 import { TransactionDetailSkeleton, TransferFlowSkeletonCard } from './components/detail_skeleton';
 import { NotFoundState } from './components/not_found_state';
 import { NoteCard } from './components/note_card';

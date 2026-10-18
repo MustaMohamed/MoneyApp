@@ -37,7 +37,7 @@ The value is `formatDisplayAmount(figure.amount, figure.currency)`, the amount a
 
 ## 5. The labels print in capitals until MA-181
 
-The two rows draw through today's `DetailRow`, unchanged, whose label class carries `uppercase` (`detail/components/detail_row.tsx:89`). They read `AMOUNT IN EGP` and `AMOUNT IN USD` beside the other capitalised labels until MA-181 (#722) moves every row to the new anatomy.
+The two rows draw through today's `DetailRow`, unchanged, whose label class carries `uppercase` (`src/components/ui/detail_row.tsx`). They read `AMOUNT IN EGP` and `AMOUNT IN USD` beside the other capitalised labels until MA-181 (#722) moves every row to the new anatomy.
 
 **Amended 2026-10-16, MA-181 (#722).** The rows draw through `DetailFactRow` (`detail/components/detail_fact_row.tsx`), whose label carries no `uppercase`, so every label reads as stored: `Amount in EGP`, `Amount in USD`, `Rate`. The amount and Rate values print in the foreground through the same formatters, `formatDisplayAmount` and `formatExchangeRateSentence`, never in a category colour (ADR 2026-09-26).
 

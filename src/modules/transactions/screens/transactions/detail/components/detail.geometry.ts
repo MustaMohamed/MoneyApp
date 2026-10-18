@@ -24,13 +24,10 @@ export const DETAIL_HERO_CAPTION_GAP = Spacing.xxs;
 export const DETAIL_HERO_CODE_GAP = ms(6);
 export const DETAIL_HERO_CODE_OPACITY = 0.8;
 const DETAIL_HERO_BADGE_CHROME = 2 * STATUS_BADGE_PADDING_VERTICAL;
-export const DETAIL_ROW_HEIGHT = ms(58);
 export const DETAIL_TRANSFER_MIN_HEIGHT = ms(126);
 // Canvas `.note-card` holding one line: its 12 padding, the overline, a 4 gap and the body line.
 export const DETAIL_NOTE_MIN_HEIGHT =
   2 * Spacing.sm + lineHeightFor(Type.overline) + Spacing.xxs + lineHeightFor(Type.body);
-export const DETAIL_ROW_LABEL_FONT_SIZE = Type.overline;
-export const DETAIL_ROW_VALUE_FONT_SIZE = Type.meta;
 // Canvas `.fact`: the 14/20 label and value, the 9.5 badge, 8 above and below, the 20 account tile, 8 between value parts.
 export const DETAIL_FACT_FONT_SIZE = Type.body;
 export const DETAIL_FACT_BADGE_FONT_SIZE = Type.compactBadge;
@@ -107,24 +104,12 @@ export interface DetailSkeletonGeometry {
   showNote: boolean;
 }
 
-function rowLines(fontScale: number): number {
-  return (
-    scaledTextStyle(DETAIL_ROW_LABEL_FONT_SIZE, fontScale).lineHeight +
-    scaledTextStyle(DETAIL_ROW_VALUE_FONT_SIZE, fontScale).lineHeight
-  );
-}
-
 function transferLines(fontScale: number): number {
   return (
     scaledTextStyle(DETAIL_TRANSFER_LABEL_FONT_SIZE, fontScale).lineHeight +
     scaledTextStyle(DETAIL_TRANSFER_NAME_FONT_SIZE, fontScale).lineHeight +
     scaledTextStyle(DETAIL_TRANSFER_AMOUNT_FONT_SIZE, fontScale).lineHeight
   );
-}
-
-/** The row keeps its 1.0 space around its lines and never drops below its 1.0 height. */
-export function resolveDetailRowHeight(fontScale: number): number {
-  return Math.max(DETAIL_ROW_HEIGHT, DETAIL_ROW_HEIGHT + rowLines(fontScale) - rowLines(1));
 }
 
 export function resolveDetailFactRowHeight(fontScale: number): number {
