@@ -29,3 +29,11 @@ export function findMissingAccountIds(
 ): string[] {
   return ids.filter((id) => !accountsById.has(id));
 }
+
+// A delete is terminal, so a row of a deleted id that is not marked deleted was read before the delete.
+export function dropCopiesReadBeforeDelete(
+  rows: readonly Account[],
+  deletedIds: ReadonlySet<string>,
+): Account[] {
+  return rows.filter((row) => row.is_deleted === 1 || !deletedIds.has(row.id));
+}

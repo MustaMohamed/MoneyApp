@@ -133,40 +133,10 @@ export function useTransactionDetail(id: string) {
         const logLookupFailure = (error: unknown) => {
           console.error('[transactionDetail] account lookup failed', error);
         };
-        // An overtaken lookup settles without writing or setting the error; a missing id is asked again after it, never after a failed read.
-        const askAgainIfMissing = (rejected: boolean) => {
-          if (cancelled) return;
-          const accountState = useAccountStore.getState();
-          if (rejected && accountState.accountLookupError) {
-            settle();
-            return;
-          }
-          const known = mergeAccountsById(
-            accountState.accounts,
-            accountState.archivedAccounts,
-            accountState.accountLookupById,
-          );
-          if (findMissingAccountIds(accountIds, known).length === 0) {
-            settle();
-            return;
-          }
-          try {
-            void Promise.resolve(loadAccountLookup(accountIds))
-              .catch(logLookupFailure)
-              .finally(settle);
-          } catch (error) {
-            logLookupFailure(error);
-            settle();
-          }
-        };
         try {
           void Promise.resolve(loadAccountLookup(accountIds))
-            .then(() => false)
-            .catch((error: unknown) => {
-              logLookupFailure(error);
-              return true;
-            })
-            .then(askAgainIfMissing);
+            .catch(logLookupFailure)
+            .finally(settle);
         } catch (error) {
           logLookupFailure(error);
           settle();

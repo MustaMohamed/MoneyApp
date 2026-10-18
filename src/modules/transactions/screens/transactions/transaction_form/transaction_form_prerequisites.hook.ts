@@ -4,11 +4,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { ensureTransactionFormPrerequisite } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
 
 import type { TransactionFormMode } from './transaction_form.types';
 import { useTransactionFormState } from './transaction_form_host.state';
-import { getMissingTransactionFormAccountIds } from './transaction_form_prerequisites.helpers';
+import {
+  ACCOUNT_LOOKUP_ATTEMPTS,
+  ensureTransactionFormPrerequisite,
+  getMissingTransactionFormAccountIds,
+} from './transaction_form_prerequisites.helpers';
 
 async function loadPrerequisites(
   mode: TransactionFormMode,
@@ -31,6 +34,7 @@ async function loadPrerequisites(
     () => getMissingTransactionFormAccountIds(editingTx).length === 0,
     () =>
       useAccountStore.getState().loadAccountLookup(getMissingTransactionFormAccountIds(editingTx)),
+    ACCOUNT_LOOKUP_ATTEMPTS,
   );
 }
 

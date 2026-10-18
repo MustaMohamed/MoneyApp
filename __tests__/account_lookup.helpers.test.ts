@@ -1,4 +1,5 @@
 import {
+  dropCopiesReadBeforeDelete,
   findMissingAccountIds,
   getTransactionAccountIds,
   mergeAccountsById,
@@ -69,5 +70,35 @@ describe('findMissingAccountIds', () => {
     const accountsById = mergeAccountsById([makeTestAccount({ id: 'a' })], [], {});
 
     expect(findMissingAccountIds(['a'], accountsById)).toEqual([]);
+  });
+});
+
+describe('dropCopiesReadBeforeDelete', () => {
+  it('keeps the deleted row of a deleted id', () => {
+    const deleted = makeTestAccount({ id: 'gone', name: '', is_deleted: 1, is_archived: 1 });
+
+    expect(dropCopiesReadBeforeDelete([deleted], new Set(['gone']))).toEqual([deleted]);
+  });
+
+  it('drops the row of a deleted id that was read before its delete', () => {
+    const copy = makeTestAccount({ id: 'gone', name: 'Before delete', is_archived: 1 });
+    const active = makeTestAccount({ id: 'a' });
+
+    expect(dropCopiesReadBeforeDelete([copy, active], new Set(['gone']))).toEqual([active]);
+  });
+
+  it('keeps active and archived rows of ids not in the set, in input order', () => {
+    const archived = makeTestAccount({ id: 'b', is_archived: 1 });
+    const active = makeTestAccount({ id: 'a' });
+    const rows = [archived, active];
+
+    const kept = dropCopiesReadBeforeDelete(rows, new Set(['gone']));
+
+    expect(kept).toEqual([archived, active]);
+    expect(kept).not.toBe(rows);
+  });
+
+  it('returns an empty array for no rows', () => {
+    expect(dropCopiesReadBeforeDelete([], new Set(['gone']))).toEqual([]);
   });
 });
