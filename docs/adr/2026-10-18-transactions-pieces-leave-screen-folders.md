@@ -9,13 +9,13 @@ Accounts, commitments and dashboard imported rows, cards, a date header, a rate 
 
 ## 1. Homes
 
-The row family goes to `src/modules/transactions/components/`. `transaction_row.helpers.ts` reads the accounts and categories entities and the transactions domain, so it is module UI and not a shared UI piece. The day-card pieces go there too. No other module reads them, and the skeleton that reads them lives there.
+The row family goes to `src/modules/transactions/components/`. `transaction_row.helpers.ts` reads the accounts and categories entities and the transactions domain, so it is module UI and not a shared UI piece. `transaction_row.helpers.ts` is a helper file accounts imports, since `account_activity.helpers.ts` reads `buildTransactionRowPresentation` and `resolveRowTile`, and 2026-09-28 §1 sends such a file to `utils/`. It stays in `components/` because it serves `TransactionRowBody`, which `account_activity_card.tsx` imports beside it, and this ticket moves the row family as one. The day-card pieces go there too. No other module reads them, and the skeleton that reads them lives there.
 
-`ExchangeRateRow` goes to the same folder. It reads `isRateStale` from the currency module and the transactions stored-rate line.
+`ExchangeRateRow` goes to the same folder. Audit M4 recommends `src/components/ui/exchange_rate_row.tsx` (`docs/superpowers/reviews/2026-07-29-full-technical-audit.md:401`). This record departs from it because the row reads `isRateStale` from the currency module and the transactions stored-rate line.
 
 `DetailRow`, `DetailRowsCard` and `DateHeader` go to `src/components/ui/`. They read only shared UI and theme.
 
-The totals helpers split under 2026-09-28 §1. `computeDeltaPct` is a money derivation with no copy and no formatter, so it goes to `domain/`, as `creditUtilization` did under #666. The other totals helpers and `formatStoredRateLine` go to `utils/`. They hold copy and formatters, and no `domain/` file imports either (`git grep -l "constants/strings\|format_amount" -- 'src/modules/*/domain'` prints nothing). `buildTotalsPresentation` stays whole in `utils/`. It returns copy and class names and calls the money helpers for its share, as `budgetBandColor` in `src/modules/budget/utils/budget_summary.ts` calls `compareToPercent` and `exceedsToCent`.
+The totals helpers split under 2026-09-28 §1. `computeDeltaPct` is a money derivation with no copy and no formatter, so it goes to `domain/`, as `creditUtilization` did under #666. The other totals helpers and `formatStoredRateLine` go to `utils/`. They hold copy and formatters, and no `domain/` file imports either (`git grep -l "constants/strings\|format_amount" -- 'src/modules/*/domain'` prints nothing). `buildTotalsPresentation` moved whole to `utils/` with its body unchanged, though it derives the expense share. This ticket bars added assertions, and `.claude/rules/money.md:22` asks every change in `domain/` for worked-number tests. The share's derivation moves to `domain/` under MA-202 (#771).
 
 ## 2. A shared piece imports nothing from a screen folder
 

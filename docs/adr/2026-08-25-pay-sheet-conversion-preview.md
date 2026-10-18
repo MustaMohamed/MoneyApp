@@ -5,8 +5,8 @@
 - **Ticket:** W1B (issues #278, #310)
 - **Applies to:** `usePaySheet` and `pay_sheet.tsx`
   (`src/modules/commitments/screens/commitments/detail/components/`),
-  `ExchangeRateRow` and the new `useTransactionRatePreview`
-  (`src/modules/transactions/screens/transactions/transaction_form/components/`), and
+  `ExchangeRateRow` (`src/modules/transactions/components/exchange_rate_row.tsx`), the new
+  `useTransactionRatePreview` (`src/modules/transactions/screens/transactions/transaction_form/components/`), and
   `requiresExchangeRate` in `src/modules/transactions/domain/transaction_amounts.ts`
 
 The pay sheet computed its converted total as `amountWatch * rateNum` in the render body. For an

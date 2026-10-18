@@ -12,7 +12,7 @@ export const DAY_HEADER_ROOT_STYLE = {
 } as const;
 export const DAY_HEADER_NET_PLACEHOLDER_WIDTH = ms(70);
 
-export interface DayHeaderGeometry {
+interface DayHeaderGeometry {
   fontSize: number;
   lineHeight: number;
   pillHeight: number;

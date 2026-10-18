@@ -14,7 +14,7 @@ export type TotalsMetric = 'income' | 'expense' | 'net';
 export type PolaritySignal = 'good' | 'bad' | 'neutral';
 
 export type DeltaDirection = 'up' | 'down' | 'flat';
-export type TotalsSummaryState = 'noIncome' | 'withinIncome' | 'overIncome' | 'netCredit';
+type TotalsSummaryState = 'noIncome' | 'withinIncome' | 'overIncome' | 'netCredit';
 
 export interface TotalsPresentation {
   state: TotalsSummaryState;
