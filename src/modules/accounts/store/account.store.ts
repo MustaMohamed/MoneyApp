@@ -52,7 +52,8 @@ export function createAccountStore(repo: IAccountRepository) {
   // Ids whose last lookup failed and that no load has answered since; closure state, not store state.
   const failedLookupIds = new Set<string>();
   // Only a reset discards a lookup in flight; a list reload that overtakes one keeps what it read.
-  let resetCount = 0;
+  let lifecycleGeneration = 0;
+  // Ids this store soft-deleted; a lookup drops a copy of one it read before the delete, so every soft-delete path must add here.
   const deletedAccountIds = new Set<string>();
 
   return createMoneyAppSelectors(
@@ -126,7 +127,7 @@ export function createAccountStore(repo: IAccountRepository) {
         },
 
         loadAccountLookup: async (ids) => {
-          const resetsBefore = resetCount;
+          const ownerLifecycle = lifecycleGeneration;
           const { accounts, archivedAccounts, accountLookupById, accountLookupError } = get();
           const known = mergeAccountsById(accounts, archivedAccounts, accountLookupById);
           const missing = findMissingAccountIds([...new Set(ids)], known);
@@ -138,7 +139,7 @@ export function createAccountStore(repo: IAccountRepository) {
 
           try {
             const rows = await repo.getByIdsIncludingArchived(missing);
-            if (resetsBefore !== resetCount) return;
+            if (ownerLifecycle !== lifecycleGeneration) return;
             for (const id of missing) failedLookupIds.delete(id);
             const kept = dropCopiesReadBeforeDelete(rows, deletedAccountIds);
             set((s) => ({
@@ -148,7 +149,7 @@ export function createAccountStore(repo: IAccountRepository) {
               },
             }));
           } catch (err) {
-            if (resetsBefore === resetCount) {
+            if (ownerLifecycle === lifecycleGeneration) {
               for (const id of missing) failedLookupIds.add(id);
               set({ accountLookupError: true });
             }
@@ -191,7 +192,7 @@ export function createAccountStore(repo: IAccountRepository) {
 
         reset: () => {
           loadRequestId += 1;
-          resetCount += 1;
+          lifecycleGeneration += 1;
           failedLookupIds.clear();
           deletedAccountIds.clear();
           set(INITIAL_STATE);
