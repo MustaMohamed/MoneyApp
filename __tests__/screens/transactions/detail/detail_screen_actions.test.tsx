@@ -16,10 +16,13 @@ jest.mock('@/components/ui/load_error_alert.hook', () => ({
 // `jest.config.js` leaves uniwind's TypeScript source untransformed.
 jest.mock('uniwind', () => ({ withUniwind: <T,>(component: T): T => component }));
 
-import { resolveStackHeaderGeometry } from '@/components/ui/stack_header.geometry';
+import {
+  HEADER_ACTION_HIT_SLOP,
+  resolveStackHeaderGeometry,
+} from '@/components/ui/stack_header.geometry';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Radius } from '@/constants/theme';
+import { Radius, Size } from '@/constants/theme';
 import { resolveRowTile } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { ActionRow } from '@/modules/transactions/screens/transactions/detail/components/action_row';
 import { resolveTransferCellHeight } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
@@ -85,6 +88,32 @@ describe('transaction detail actions', () => {
 
     expect(screen.getByLabelText(Strings.detailRefreshingAccessibility)).toBeTruthy();
     expect(screen.queryByLabelText(Strings.detailEditAccessibility)).toBeNull();
+  });
+
+  it('MA-194: edit and back draw the shared header box with its tap band, and the refresh spinner holds that box size', async () => {
+    const screen = await render(
+      <DetailHeader editable refreshing={false} onBack={jest.fn()} onEdit={jest.fn()} />,
+    );
+
+    for (const label of [Strings.detailEditAccessibility, Strings.goBackAccessibility]) {
+      const action = screen.getByLabelText(label);
+      expect(action).toHaveProp('hitSlop', HEADER_ACTION_HIT_SLOP);
+      expect(action).toHaveStyle({
+        width: Size.headerActionTrack,
+        height: Size.headerActionTrack,
+        borderRadius: Radius.sm,
+        borderWidth: Size.hairline,
+      });
+    }
+
+    await screen.rerender(
+      <DetailHeader editable refreshing onBack={jest.fn()} onEdit={jest.fn()} />,
+    );
+
+    expect(screen.getByLabelText(Strings.detailRefreshingAccessibility)).toHaveStyle({
+      width: Size.headerActionTrack,
+      height: Size.headerActionTrack,
+    });
   });
 
   it('frame C1: shows flat Edit and Delete for an ordinary transaction, each pressing its own handler', async () => {

@@ -1,4 +1,6 @@
 import {
+  HEADER_ACTION_HIT_SLOP,
+  NATIVE_HEADER_BACK_PADDING,
   resolveHeaderTextActionGeometry,
   resolveStackHeaderGeometry,
 } from '@/components/ui/stack_header.geometry';
@@ -40,20 +42,25 @@ describe('resolveStackHeaderGeometry', () => {
 });
 
 describe('resolveHeaderTextActionGeometry', () => {
-  // The literal, not the token: a drifted `headerTextActionTrack` must fail here, not on a device.
-  it.each([0.85, 1])('is the 36 box with a label the OS scales at font scale %s', (fontScale) => {
-    expect(resolveHeaderTextActionGeometry(fontScale)).toEqual({
-      label: undefined,
-      minWidth: 36,
-      height: 36,
-    });
-  });
+  // The literal, not the token: a drifted `headerActionTrack` must fail here, not on a device.
+  it.each([0.85, 1])(
+    'is the 36 box with a `Type.micro` label the OS scales at font scale %s',
+    (fontScale) => {
+      expect(resolveHeaderTextActionGeometry(fontScale)).toEqual({
+        label: { fontSize: Type.micro, lineHeight: lineHeightFor(Type.micro) },
+        allowFontScaling: true,
+        minWidth: 36,
+        height: 36,
+      });
+    },
+  );
 
   it('scales the label at font scale 2 in a box no smaller than at 1.0', () => {
     const label = scaledTextStyle(Type.micro, 2);
     const geometry = resolveHeaderTextActionGeometry(2);
 
     expect(geometry.label).toEqual(label);
+    expect(geometry.allowFontScaling).toBe(false);
     expect(geometry.height).toBeGreaterThanOrEqual(label.lineHeight);
     expect(geometry.height).toBeGreaterThanOrEqual(36);
     expect(geometry.minWidth).toBe(36);
@@ -62,8 +69,27 @@ describe('resolveHeaderTextActionGeometry', () => {
   it('grows the box past 36 high at font scale 3 and keeps its 36 floor on width', () => {
     const geometry = resolveHeaderTextActionGeometry(3);
 
+    expect(geometry.allowFontScaling).toBe(false);
     expect(geometry.height).toBe(scaledTextStyle(Type.micro, 3).lineHeight + 2 * Size.hairline);
     expect(geometry.height).toBeGreaterThan(36);
     expect(geometry.minWidth).toBe(36);
+  });
+});
+
+describe('HEADER_ACTION_HIT_SLOP', () => {
+  // The literal, not the token: a drifted `headerActionSlop` must fail here, not on a device.
+  it('takes taps 8 dp past every side of a header action or back button box', () => {
+    expect(HEADER_ACTION_HIT_SLOP).toEqual({ top: 8, bottom: 8, left: 8, right: 8 });
+  });
+});
+
+describe('NATIVE_HEADER_BACK_PADDING', () => {
+  // The literal, not the token: the native header clips its left item, so this padding is the settings back button's tap band.
+  it('takes taps 8 dp above, below and right of the native header back button, and none left', () => {
+    expect(NATIVE_HEADER_BACK_PADDING).toEqual({
+      paddingLeft: 0,
+      paddingRight: 8,
+      paddingVertical: 8,
+    });
   });
 });

@@ -1,7 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
+import { useRouter } from 'expo-router';
 import React from 'react';
+import { View } from 'react-native';
 
+import { HeaderIconAction } from '@/components/ui/header_icon_action';
+import { NATIVE_HEADER_BACK_PADDING } from '@/components/ui/stack_header.geometry';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
@@ -12,13 +14,22 @@ export interface BackButtonProps {
 
 export function BackButton({ onPress }: BackButtonProps) {
   return (
-    <PressableFeedback
-      onPress={onPress}
-      className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
-      accessibilityRole="button"
+    <HeaderIconAction
+      icon="chevron-left"
+      iconSize={Size.iconBack}
+      iconColor={CoreTokens.text2}
       accessibilityLabel={Strings.goBackAccessibility}
-    >
-      <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color={CoreTokens.text2} />
-    </PressableFeedback>
+      onPress={onPress}
+    />
+  );
+}
+
+// The native header clips its left item at the item's edge, so this padding is the back button's tap band.
+export function NativeHeaderBackButton() {
+  const router = useRouter();
+  return (
+    <View style={NATIVE_HEADER_BACK_PADDING}>
+      <BackButton onPress={() => router.back()} />
+    </View>
   );
 }

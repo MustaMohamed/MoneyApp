@@ -159,8 +159,10 @@ export const Size = {
   monthYearStepTrack: 32,
   // Raw 36 for the same reason: the transaction form's type tab row, `h-9`, at scale 1.
   typeTabsTrack: 36,
-  // Raw 36 for the same reason: a header text action's box, formerly the account detail Edit's `h-9 w-9`, at scale 1.
-  headerTextActionTrack: 36,
+  // Raw 36 for the same reason: every header action's and back button's box, formerly `h-9 w-9`, at scale 1.
+  headerActionTrack: 36,
+  // Raw 8, never ms(): the tap band past each side of that box.
+  headerActionSlop: 8,
   // Raw 40 for the same reason: the spending plan sheet's name and total fields, formerly `h-10`, at scale 1.
   spendingPlanFieldTrack: 40,
   // Raw 36 for the same reason: the spending plan sheet's per-category field, formerly `h-9`, at scale 1.
@@ -208,6 +210,8 @@ export const Size = {
   iconMicro: ms(12),
   statusCounterIcon: ms(13),
   iconBack: ms(20),
+  /** Same ms(20) as `iconBack` by design; a header action's glyph, not the back chevron. Do not dedupe. */
+  headerActionIcon: ms(20),
   /** Same ms(20) as `iconBack` by design; the design's toast glyph (G3), not the back chevron. Do not dedupe. */
   toastIcon: ms(20),
   iconXs: ms(16),

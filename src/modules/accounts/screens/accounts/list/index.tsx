@@ -1,17 +1,17 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback, Typography } from 'heroui-native';
+import { Typography } from 'heroui-native';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { ErrorState } from '@/components/ui/error_state';
+import { HeaderIconAction } from '@/components/ui/header_icon_action';
 import { ListCard } from '@/components/ui/list_card';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section_header';
 import { SegmentFilter } from '@/components/ui/segment_filter';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
-import { Radius, Size, Spacing } from '@/constants/theme';
+import { Size, Spacing } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import { useAccountsListDragAnim } from './accounts_list.anim';
@@ -69,16 +69,13 @@ export default function AccountsListScreen() {
         title={Strings.accountsListTitle}
         onBack={onBack}
         right={
-          <PressableFeedback
-            onPress={goToAddAccount}
-            hitSlop={8}
-            className="bg-surface border-border h-9 w-9 items-center justify-center border"
-            style={{ borderRadius: Radius.sm }}
-            accessibilityRole="button"
+          <HeaderIconAction
+            icon="plus"
+            iconSize={Size.headerActionIcon}
+            iconColor={CoreTokens.text1}
             accessibilityLabel={Strings.emptyAccountsCta}
-          >
-            <MaterialCommunityIcons name="plus" size={Size.iconBack} color={CoreTokens.text1} />
-          </PressableFeedback>
+            onPress={goToAddAccount}
+          />
         }
       />
 

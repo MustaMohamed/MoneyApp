@@ -1,10 +1,10 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback, Spinner } from 'heroui-native';
+import { Spinner } from 'heroui-native';
 import React from 'react';
 
+import { HeaderIconAction } from '@/components/ui/header_icon_action';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
-import { Radius, Size } from '@/constants/theme';
+import { Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 
 interface DetailHeaderProps {
@@ -24,23 +24,16 @@ export function DetailHeader({ editable, refreshing, onBack, onEdit }: DetailHea
           <Spinner
             size="sm"
             accessibilityLabel={Strings.detailRefreshingAccessibility}
-            className="h-9 w-9"
+            style={{ width: Size.headerActionTrack, height: Size.headerActionTrack }}
           />
         ) : editable ? (
-          <PressableFeedback
-            onPress={onEdit}
-            hitSlop={8}
-            accessibilityRole="button"
+          <HeaderIconAction
+            icon="pencil-outline"
+            iconSize={Size.iconSm}
+            iconColor={GoldTokens[500]}
             accessibilityLabel={Strings.detailEditAccessibility}
-            className="bg-surface border-border h-9 w-9 items-center justify-center border"
-            style={{ borderRadius: Radius.sm }}
-          >
-            <MaterialCommunityIcons
-              name="pencil-outline"
-              size={Size.iconSm}
-              color={GoldTokens[500]}
-            />
-          </PressableFeedback>
+            onPress={onEdit}
+          />
         ) : undefined
       }
     />

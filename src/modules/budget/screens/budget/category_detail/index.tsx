@@ -1,10 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BackButton } from '@/components/ui/back_button';
 import { Button } from '@/components/ui/button';
+import { HeaderIconAction } from '@/components/ui/header_icon_action';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -12,6 +12,7 @@ import {
   Colors,
   FontFamily,
   Radius,
+  Size,
   Spacing,
   Type,
   lineHeightFor,
@@ -69,15 +70,13 @@ export default function CategoryBudgetDetailScreen() {
         </View>
         <CategoryDetailTitle name={state.name} />
         {state.liveMonth && state.canEditLiveBudget && (
-          <PressableFeedback
-            onPress={editBudget}
-            hitSlop={ms(8)}
-            accessibilityRole="button"
+          <HeaderIconAction
+            icon="pencil"
+            iconSize={Size.headerActionIcon}
+            iconColor={Colors.dark.gold}
             accessibilityLabel={Strings.budgetEditTitle}
-            style={styles.editBtn}
-          >
-            <MaterialCommunityIcons name="pencil" size={ms(20)} color={Colors.dark.gold} />
-          </PressableFeedback>
+            onPress={editBudget}
+          />
         )}
       </View>
 
@@ -119,7 +118,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  editBtn: { padding: ms(4) },
   content: { paddingHorizontal: Spacing.md, paddingBottom: ms(96) },
   section: {
     fontFamily: FontFamily.interMedium,
