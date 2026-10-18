@@ -66,10 +66,9 @@ jest.mock('@/components/ui/button', () => ({
 jest.mock('@/modules/accounts/components/account_picker_sheet', () => ({
   AccountPickerSheet: () => null,
 }));
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row',
-  () => ({ ExchangeRateRow: () => null }),
-);
+jest.mock('@/modules/transactions/components/exchange_rate_row', () => ({
+  ExchangeRateRow: () => null,
+}));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));

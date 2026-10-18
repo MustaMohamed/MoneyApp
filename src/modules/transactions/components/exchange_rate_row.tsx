@@ -8,11 +8,11 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Type, lineHeightFor } from '@/constants/theme';
 import { isRateStale } from '@/modules/currency/store/currency.helpers';
+import { formatStoredRateLine } from '@/modules/transactions/utils/stored_rate_line';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
-import { formatStoredRateLine } from './stored_rate_line.helpers';
-import { RATE_MESSAGE_SLOT_STYLE } from './transaction_form.geometry';
+import { RATE_MESSAGE_SLOT_STYLE } from './exchange_rate_row.geometry';
 
 const RATE_PREVIEW_AMOUNT_DECIMALS = 2;
 // Shown when the EGP value is not derivable yet; `previewHidden` removes the line instead.

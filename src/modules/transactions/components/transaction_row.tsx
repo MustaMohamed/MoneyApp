@@ -17,9 +17,9 @@ import { Strings } from '@/constants/strings';
 import { Radius, Size, Type } from '@/constants/theme';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useDragCancelledPress } from '@/utils/use_drag_cancelled_press.hook';
 
-import type { Transaction } from '../../../entities/transaction.entity';
 import { useRowPressScale } from './transaction_row.anim';
 import {
   buildTransactionRowPresentation,

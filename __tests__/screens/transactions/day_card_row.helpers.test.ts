@@ -7,7 +7,7 @@ import {
   DAY_CARD_INSET,
   resolveDayCardSliceStyle,
   resolveDayCardSwipeCorners,
-} from '@/modules/transactions/screens/transactions/components/day_card_row.helpers';
+} from '@/modules/transactions/components/day_card_row.helpers';
 
 const PIXEL_2_DENSITY = 2.625;
 
@@ -32,9 +32,9 @@ function loadDayCard(os: 'android' | 'ios', density: number): LoadedDayCard {
       DAY_CARD_INSET: number;
       DAY_CARD_BORDER_WIDTH: number;
       resolveDayCardSliceStyle: typeof resolveDayCardSliceStyle;
-    }>('@/modules/transactions/screens/transactions/components/day_card_row.helpers');
+    }>('@/modules/transactions/components/day_card_row.helpers');
     const row = jest.requireActual<{ TRANSACTION_ROW_HEIGHT: number }>(
-      '@/modules/transactions/screens/transactions/components/transaction_row.helpers',
+      '@/modules/transactions/components/transaction_row.helpers',
     );
     loaded = {
       inset: card.DAY_CARD_INSET,

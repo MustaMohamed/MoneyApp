@@ -32,3 +32,5 @@ Every importer names the new path. A re-export in the old file, or a barrel `ind
 ## 4. Screen stores and module `components/` stay open
 
 A screen store read across modules, such as `useDashboardStore` in `accounts_list.hook.ts`, and a module `components/` folder read across modules are not covered here. Both are follow-up tasks under #585.
+
+**Extended 2026-10-18 (#610).** The transactions module's `components/` now holds the row family and the exchange rate row that accounts and commitments read, and the day-card pieces the row skeleton reads. `docs/adr/2026-10-18-transactions-pieces-leave-screen-folders.md` records it.

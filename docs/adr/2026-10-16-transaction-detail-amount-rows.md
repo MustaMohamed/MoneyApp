@@ -9,7 +9,7 @@ The detail hero printed `egp_amount` in EGP for every transaction, so a USD 15 e
 
 ## 1. The hero prints `tx.amount` in `tx.currency`
 
-The hero reads the list row's own function, `primaryAmountFor(tx, cardCredit)` in `components/transaction_row.helpers.ts`, which formats `tx.amount` in `tx.currency` through `formatDisplayAmountParts`. Its `text` is the hero's `amountValue` and its `withCode` the hero's `amountAccessibilityLabel`; `amountCode` is `CURRENCY_CONFIG[tx.currency].code`. One function prints both, so the hero and the row cannot drift, and `detail_helpers.test.ts` still compares them on expense, income, card credit, and transfer and card payment on all four currency pairs. The sign rule does not change: `−` on an expense, `+` on an income and a card credit, none on a transfer or card payment, and none on a figure that prints as zero. `DETAIL_HERO_CURRENCY` is removed.
+The hero reads the list row's own function, `primaryAmountFor(tx, cardCredit)` in `src/modules/transactions/components/transaction_row.helpers.ts`, which formats `tx.amount` in `tx.currency` through `formatDisplayAmountParts`. Its `text` is the hero's `amountValue` and its `withCode` the hero's `amountAccessibilityLabel`; `amountCode` is `CURRENCY_CONFIG[tx.currency].code`. One function prints both, so the hero and the row cannot drift, and `detail_helpers.test.ts` still compares them on expense, income, card credit, and transfer and card payment on all four currency pairs. The sign rule does not change: `−` on an expense, `+` on an income and a card credit, none on a transfer or card payment, and none on a figure that prints as zero. `DETAIL_HERO_CURRENCY` is removed.
 
 ## 2. One function picks the amount row from the transaction alone
 
@@ -37,7 +37,7 @@ The value is `formatDisplayAmount(figure.amount, figure.currency)`, the amount a
 
 ## 5. The labels print in capitals until MA-181
 
-The two rows draw through today's `DetailRow`, unchanged, whose label class carries `uppercase` (`detail/components/detail_row.tsx:89`). They read `AMOUNT IN EGP` and `AMOUNT IN USD` beside the other capitalised labels until MA-181 (#722) moves every row to the new anatomy.
+The two rows draw through today's `DetailRow`, unchanged, whose label class carries `uppercase` (`src/components/ui/detail_row.tsx`). They read `AMOUNT IN EGP` and `AMOUNT IN USD` beside the other capitalised labels until MA-181 (#722) moves every row to the new anatomy.
 
 **Amended 2026-10-16, MA-181 (#722).** The rows draw through `DetailFactRow` (`detail/components/detail_fact_row.tsx`), whose label carries no `uppercase`, so every label reads as stored: `Amount in EGP`, `Amount in USD`, `Rate`. The amount and Rate values print in the foreground through the same formatters, `formatDisplayAmount` and `formatExchangeRateSentence`, never in a category colour (ADR 2026-09-26).
 

@@ -1,11 +1,10 @@
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { isCardCredit } from '@/modules/transactions/components/transaction_row.helpers';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatDisplayAmount } from '@/utils/format_amount';
-
-import { isCardCredit } from './transaction_row.helpers';
 
 /** What deleting `tx` does to the balances; `toAccount` is a transfer's destination or a payment's card. */
 export function resolveTransactionDeleteBody(

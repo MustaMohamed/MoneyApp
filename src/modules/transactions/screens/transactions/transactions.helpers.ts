@@ -5,15 +5,22 @@ import type {
   PeriodTotals,
   TransactionDayAggregate,
 } from '@/modules/transactions/database/transactions';
+import { computeDeltaPct } from '@/modules/transactions/domain/period_delta';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { normalizeIds } from '@/modules/transactions/store/transaction_query.helpers';
+import {
+  buildTotalsPresentation,
+  deltaDisplay,
+  type DeltaDirection,
+  type PolaritySignal,
+  type TotalsPresentation,
+} from '@/modules/transactions/utils/totals_presentation';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
   formatAmount,
   formatDisplayAmount,
   formatDisplayAmountParts,
-  formatDisplayMagnitude,
   formatOwnedAmount,
   formatOwnedAmountParts,
   signAmountText,
@@ -33,29 +40,12 @@ export { currentYearMonth };
 
 export type TransactionPeriod = { type: 'month'; yearMonth: string };
 
-export type TotalsMetric = 'income' | 'expense' | 'net';
-
-export type PolaritySignal = 'good' | 'bad' | 'neutral';
-
 // Frame A1 and the money-colour ADR's decision 5: In in success, Net by sign and neutral at 0; both neutral on a dash.
 export const FLOW_CLASS: Record<PolaritySignal, string> = {
   good: 'text-success',
   bad: 'text-danger',
   neutral: 'text-foreground',
 };
-export type DeltaDirection = 'up' | 'down' | 'flat';
-export type TotalsSummaryState = 'noIncome' | 'withinIncome' | 'overIncome' | 'netCredit';
-
-export interface TotalsPresentation {
-  state: TotalsSummaryState;
-  rawExpenseSharePct: number | null;
-  railPct: number;
-  hasOverflow: boolean;
-  caption: string;
-  captionClassName: string;
-  railClassName: string;
-  accessibilityLabel: string;
-}
 
 export function resolvePeriod(selection: TransactionPeriod): {
   from: string;
@@ -73,100 +63,6 @@ export function resolvePeriod(selection: TransactionPeriod): {
 
 export function previousPeriod(selection: TransactionPeriod): TransactionPeriod {
   return { type: 'month', yearMonth: shiftYearMonth(selection.yearMonth, -1) };
-}
-
-export function computeDeltaPct(current: number, previous: number): number | null {
-  const previousCents = toCents(previous);
-  if (previousCents === 0) return null;
-  return wholePercentOf(toCents(current) - previousCents, Math.abs(previousCents));
-}
-
-export function polarityColor(metric: TotalsMetric, deltaPct: number): PolaritySignal {
-  if (deltaPct === 0) return 'neutral';
-  const direction = deltaPct > 0 ? 'up' : 'down';
-  if (metric === 'expense') return direction === 'up' ? 'bad' : 'good';
-  return direction === 'up' ? 'good' : 'bad';
-}
-
-export function formatSignedAmount(value: number, metric: TotalsMetric): string {
-  const { text, printsAsZero } = formatDisplayMagnitude(value, Currency.EGP);
-  // Expense totals read as outflow, so a positive spend signs negative and a credit positive.
-  const positive = metric === 'expense' ? value < 0 : value >= 0;
-  return signAmountText(text, positive ? PLUS_SIGN : MINUS_SIGN, printsAsZero);
-}
-
-export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentation {
-  const expenseEgp = snapToZero(current.expenseEgp);
-  const incomeCents = toCents(current.incomeEgp);
-  const rawExpenseSharePct =
-    incomeCents > 0 ? wholePercentOf(toCents(expenseEgp), incomeCents) : null;
-  const railPct = Math.max(0, Math.min(100, rawExpenseSharePct ?? 0));
-
-  if (expenseEgp < 0) {
-    return {
-      state: 'netCredit',
-      rawExpenseSharePct,
-      railPct,
-      hasOverflow: false,
-      caption: Strings.totalsNetCredit,
-      captionClassName: 'text-success',
-      railClassName: 'bg-success',
-      accessibilityLabel: Strings.totalsNetCredit,
-    };
-  }
-
-  if (incomeCents <= 0) {
-    return {
-      state: 'noIncome',
-      rawExpenseSharePct: null,
-      railPct: 0,
-      hasOverflow: false,
-      caption: Strings.totalsNoIncome,
-      captionClassName: 'text-muted',
-      railClassName: 'bg-danger',
-      accessibilityLabel: Strings.totalsNoIncome,
-    };
-  }
-
-  if ((rawExpenseSharePct ?? 0) > 100) {
-    return {
-      state: 'overIncome',
-      rawExpenseSharePct,
-      railPct,
-      hasOverflow: true,
-      caption: Strings.totalsOverIncome(rawExpenseSharePct ?? 0),
-      captionClassName: 'text-danger',
-      railClassName: 'bg-danger',
-      accessibilityLabel: Strings.totalsExpenseShareA11y(rawExpenseSharePct ?? 0),
-    };
-  }
-
-  return {
-    state: 'withinIncome',
-    rawExpenseSharePct,
-    railPct,
-    hasOverflow: false,
-    caption: Strings.totalsWithinIncome,
-    captionClassName: 'text-success',
-    railClassName: 'bg-danger',
-    accessibilityLabel: Strings.totalsExpenseShareA11y(rawExpenseSharePct ?? 0),
-  };
-}
-
-export function expenseSharePct(current: PeriodTotals): number {
-  return buildTotalsPresentation(current).railPct;
-}
-
-export function deltaDisplay(
-  metric: TotalsMetric,
-  deltaPct: number | null,
-): { direction: DeltaDirection; label: string; polarity: PolaritySignal } | null {
-  if (deltaPct === null) return null;
-  return {
-    direction: deltaPct > 0 ? 'up' : deltaPct < 0 ? 'down' : 'flat',
-    label: `${Math.abs(deltaPct)}%`,
-    polarity: polarityColor(metric, deltaPct),
-  };
 }
 
 export type TransactionsHeroMode = 'skeleton' | 'dashes' | 'figures';

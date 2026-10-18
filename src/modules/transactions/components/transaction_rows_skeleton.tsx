@@ -7,6 +7,11 @@ import { Radius, Size, lineHeightFor } from '@/constants/theme';
 
 import { DayCardRow } from './day_card_row';
 import {
+  DAY_HEADER_NET_PLACEHOLDER_WIDTH,
+  DAY_HEADER_ROOT_STYLE,
+  resolveDayHeaderGeometry,
+} from './day_header.geometry';
+import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
   TRANSACTION_ROW_CODE_FONT_SIZE,
@@ -15,11 +20,6 @@ import {
   resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
 } from './transaction_row.helpers';
-import {
-  DAY_HEADER_NET_PLACEHOLDER_WIDTH,
-  DAY_HEADER_ROOT_STYLE,
-  resolveDayHeaderGeometry,
-} from './transactions_text.geometry';
 
 const DEFAULT_ROWS = 5;
 

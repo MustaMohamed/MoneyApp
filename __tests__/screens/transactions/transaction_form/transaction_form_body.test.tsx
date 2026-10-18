@@ -77,8 +77,8 @@ jest.mock(
   () => ({ TypeTabs: () => null }),
 );
 
+import { ExchangeRateRow } from '@/modules/transactions/components/exchange_rate_row';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
-import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
 import { useRateEditorSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/rate_editor_sheet.state';
 import {
   ACCOUNT_STRIP_CHIP_RADIUS,

@@ -8,7 +8,7 @@ import {
   formatActivityDayLabel,
   resolveActivityCardView,
 } from '@/modules/accounts/screens/accounts/detail/components/account_activity.helpers';
-import { buildTransactionRowPresentation } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+import { buildTransactionRowPresentation } from '@/modules/transactions/components/transaction_row.helpers';
 import { makeTestAccount, makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
 
 // Local noon, so the label never crosses a day boundary through a UTC offset.

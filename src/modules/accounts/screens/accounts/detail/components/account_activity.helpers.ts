@@ -1,12 +1,12 @@
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import {
   buildTransactionRowPresentation,
   resolveRowTile,
   type TransactionRowPresentation,
   type TransactionRowPresentationInput,
-} from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+} from '@/modules/transactions/components/transaction_row.helpers';
+import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import { resolveAccountName } from '@/utils/account_name';
 import { toLocalDateString } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';

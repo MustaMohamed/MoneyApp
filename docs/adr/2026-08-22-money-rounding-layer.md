@@ -326,7 +326,7 @@ A call from a file outside that entry fails `npm run lint`.
   differ from the digit `roundMoney` would persist for the same raw value: `0.025 EGP` displays
   `'0.03'` (half-expand) while `roundMoney(0.025)` persists `0.02` (half-even). Confirmed, not merely
   argued: no escalate-branch output is ever summed, re-parsed, or fed back into a resolver — it is a
-  terminal display string at all five call sites (`transactions.helpers.ts`, `detail.helpers.ts`,
+  terminal display string at all five call sites (`totals_presentation.ts`, `detail.helpers.ts`,
   `transaction_row.helpers.ts`, `transfer_flow_card.tsx`, `formatCommitmentAmount`). This is a
   residual of §1's write-path rounding mode, not a defect in it, and is scoped to values that are
   simultaneously (a) below the site's display precision and (b) an exact half-unit at the 2dp

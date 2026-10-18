@@ -10,7 +10,6 @@ import {
   TransactionAccountArchivedError,
   TransactionValidationError,
 } from '@/modules/transactions/repositories/transaction.errors';
-import { formatStoredRateLine } from '@/modules/transactions/screens/transactions/transaction_form/components/stored_rate_line.helpers';
 import {
   applyRateCommit,
   countTransactionFormFieldErrors,
@@ -36,6 +35,7 @@ import {
   toTransactionTimestamp,
   type TransactionFormFieldErrors,
 } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
+import { formatStoredRateLine } from '@/modules/transactions/utils/stored_rate_line';
 import { makeTestAccount } from '@/test_helpers/transaction';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 

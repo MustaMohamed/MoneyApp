@@ -7,9 +7,8 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
-import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { resolveDayCardSwipeCorners } from '@/modules/transactions/screens/transactions/components/day_card_row.helpers';
-import { TransactionRow } from '@/modules/transactions/screens/transactions/components/transaction_row';
+import { resolveDayCardSwipeCorners } from '@/modules/transactions/components/day_card_row.helpers';
+import { TransactionRow } from '@/modules/transactions/components/transaction_row';
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
@@ -19,7 +18,8 @@ import {
   resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
   resolveTransactionRowValueTrackMaxWidth,
-} from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+} from '@/modules/transactions/components/transaction_row.helpers';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
 
 interface MockSwipeableRowProps {
@@ -56,7 +56,7 @@ jest.mock('react-native-reanimated', () => {
     useAnimatedStyle: () => ({}),
   };
 });
-jest.mock('@/modules/transactions/screens/transactions/components/transaction_row.anim', () => ({
+jest.mock('@/modules/transactions/components/transaction_row.anim', () => ({
   useRowPressScale: () => ({
     scale: { value: 1 },
     onPressIn: jest.fn(),

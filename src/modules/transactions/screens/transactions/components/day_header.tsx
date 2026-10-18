@@ -4,15 +4,15 @@ import { Text as RNText, View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Colors, Spacing, lineHeightFor } from '@/constants/theme';
-
-import type { TransactionDaySection } from '../transactions.helpers';
 import {
   DAY_HEADER_NET_PLACEHOLDER_WIDTH,
   DAY_HEADER_ROOT_STYLE,
-  INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE,
   resolveDayHeaderGeometry,
   resolveDayHeaderNetMaxWidth,
-} from './transactions_text.geometry';
+} from '@/modules/transactions/components/day_header.geometry';
+
+import type { TransactionDaySection } from '../transactions.helpers';
+import { INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE } from './transactions_text.geometry';
 
 const LABEL_STYLE = { flex: 1, minWidth: 0 } as const;
 const FIGURES_STYLE = {

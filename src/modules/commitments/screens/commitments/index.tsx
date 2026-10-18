@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
+import { DateHeader } from '@/components/ui/date_header';
 import { EmptyState } from '@/components/ui/empty_state';
 import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
@@ -18,7 +19,6 @@ import {
   STATUS_ICONS,
   STATUS_LABELS,
 } from '@/modules/commitments/utils/commitment_status';
-import { DateHeader } from '@/modules/transactions/screens/transactions/components/date_header';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 import { useCommitments } from './commitments.hook';

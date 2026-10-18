@@ -29,7 +29,7 @@ import {
   TRANSACTION_ROW_TITLE_BADGE_HEIGHT,
   TRANSACTION_ROW_TITLE_FONT_SIZE,
   TRANSACTION_ROW_VALUE_TRACK_MAX_SHARE,
-} from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+} from '@/modules/transactions/components/transaction_row.helpers';
 import { makeTestAccount, makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
 
 const cib = makeTestAccount({
@@ -813,7 +813,7 @@ describe('transaction row line geometry', () => {
       jest.spyOn(isolated.PixelRatio, 'get').mockReturnValue(PIXEL_2_DENSITY);
       const row = jest.requireActual<{
         resolveTransactionRowHeight: typeof resolveTransactionRowHeight;
-      }>('@/modules/transactions/screens/transactions/components/transaction_row.helpers');
+      }>('@/modules/transactions/components/transaction_row.helpers');
       heights.push(row.resolveTransactionRowHeight(1.3), row.resolveTransactionRowHeight(2));
     });
 

@@ -1,9 +1,11 @@
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
-  TRANSACTIONS_HERO_MAX_FONT_SCALE,
   resolveDayHeaderGeometry,
   resolveDayHeaderNetMaxWidth,
+} from '@/modules/transactions/components/day_header.geometry';
+import {
+  TRANSACTIONS_HERO_MAX_FONT_SCALE,
   resolveSearchTallyGeometry,
   resolveTransactionsHeroGeometry,
 } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';

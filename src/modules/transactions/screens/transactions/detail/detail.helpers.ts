@@ -19,6 +19,15 @@ import {
   type StackedPrefix,
   TABBED_ORIGIN,
 } from '@/modules/navigation/domain/stacked_route';
+import {
+  buildTransactionRowPresentation,
+  isCardCredit,
+  primaryAmountFor,
+  resolveCategoryGlyph,
+  resolveHollowGraphiteTile,
+  resolveRowTile,
+  type RowTile,
+} from '@/modules/transactions/components/transaction_row.helpers';
 import { requiresDestination } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import type { ConvertedAmount } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
@@ -35,15 +44,6 @@ import {
 import { formatWeekdayDate } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
 
-import {
-  buildTransactionRowPresentation,
-  isCardCredit,
-  primaryAmountFor,
-  resolveCategoryGlyph,
-  resolveHollowGraphiteTile,
-  resolveRowTile,
-  type RowTile,
-} from '../components/transaction_row.helpers';
 import { type DetailFactKind, resolveDetailFactSlots } from './components/detail.geometry';
 import type { TransactionDetailStatus } from './detail.state';
 

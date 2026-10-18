@@ -65,21 +65,18 @@ jest.mock('@/components/ui/button', () => ({
 jest.mock('@/modules/accounts/components/account_picker_sheet', () => ({
   AccountPickerSheet: () => null,
 }));
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row',
-  () => ({
-    ExchangeRateRow: ({ onChange, error }: { onChange: (v: string) => void; error?: string }) => {
-      const { Text, TextInput, View } =
-        jest.requireActual<typeof import('react-native')>('react-native');
-      return (
-        <View>
-          <TextInput testID="rate-input" onChangeText={onChange} />
-          {error ? <Text testID="rate-error">{error}</Text> : null}
-        </View>
-      );
-    },
-  }),
-);
+jest.mock('@/modules/transactions/components/exchange_rate_row', () => ({
+  ExchangeRateRow: ({ onChange, error }: { onChange: (v: string) => void; error?: string }) => {
+    const { Text, TextInput, View } =
+      jest.requireActual<typeof import('react-native')>('react-native');
+    return (
+      <View>
+        <TextInput testID="rate-input" onChangeText={onChange} />
+        {error ? <Text testID="rate-error">{error}</Text> : null}
+      </View>
+    );
+  },
+}));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));

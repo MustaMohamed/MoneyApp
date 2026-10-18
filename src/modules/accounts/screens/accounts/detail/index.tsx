@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
+import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { HeaderTextAction } from '@/components/ui/header_text_action';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { LoadingCenter } from '@/components/ui/loading_center';
@@ -10,7 +11,6 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 import { resolveAccountName } from '@/utils/account_name';
 
 import { useAccountDetail } from './account_detail.hook';
