@@ -1,10 +1,10 @@
-import { PressableFeedback, Typography } from 'heroui-native';
+import { Typography } from 'heroui-native';
 import React from 'react';
 import { useWindowDimensions } from 'react-native';
 
+import { HeaderActionBox } from '@/components/ui/header_icon_action';
 import { resolveHeaderTextActionGeometry } from '@/components/ui/stack_header.geometry';
-
-const hitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
+import { Spacing } from '@/constants/theme';
 
 export interface HeaderTextActionProps {
   label: string;
@@ -16,13 +16,14 @@ export function HeaderTextAction({ label, onPress }: HeaderTextActionProps) {
   const geometry = resolveHeaderTextActionGeometry(fontScale);
 
   return (
-    <PressableFeedback
-      onPress={onPress}
-      hitSlop={hitSlop}
-      accessibilityRole="button"
+    <HeaderActionBox
       accessibilityLabel={label}
-      className="bg-surface border-border items-center justify-center rounded-[8px] border px-1"
-      style={{ minWidth: geometry.minWidth, height: geometry.height }}
+      onPress={onPress}
+      style={{
+        minWidth: geometry.minWidth,
+        height: geometry.height,
+        paddingHorizontal: Spacing.xxs,
+      }}
     >
       <Typography
         className="font-sora-bold text-accent"
@@ -31,6 +32,6 @@ export function HeaderTextAction({ label, onPress }: HeaderTextActionProps) {
       >
         {label}
       </Typography>
-    </PressableFeedback>
+    </HeaderActionBox>
   );
 }
