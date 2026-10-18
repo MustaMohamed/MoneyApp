@@ -9,7 +9,11 @@ import {
   type NewAccountInput,
   type UpdateAccountInput,
 } from '../repositories/account.repository';
-import { findMissingAccountIds, mergeAccountsById } from './account_lookup.helpers';
+import {
+  dropCopiesReadBeforeDelete,
+  findMissingAccountIds,
+  mergeAccountsById,
+} from './account_lookup.helpers';
 
 export type { Account, NewAccountInput, UpdateAccountInput };
 
@@ -47,6 +51,9 @@ export function createAccountStore(repo: IAccountRepository) {
   let loadRequestId = 0;
   // Ids whose last lookup failed and that no load has answered since; closure state, not store state.
   const failedLookupIds = new Set<string>();
+  // Only a reset discards a lookup in flight; a list reload that overtakes one keeps what it read.
+  let resetCount = 0;
+  const deletedAccountIds = new Set<string>();
 
   return createMoneyAppSelectors(
     create<AccountStore>((set, get) => {
@@ -73,6 +80,7 @@ export function createAccountStore(repo: IAccountRepository) {
       };
 
       const refreshDeletedLookup = async (id: string): Promise<void> => {
+        deletedAccountIds.add(id);
         // A cached copy keeps the id known, so the lookup would never fetch the deleted row.
         set((s) =>
           id in s.accountLookupById
@@ -118,7 +126,7 @@ export function createAccountStore(repo: IAccountRepository) {
         },
 
         loadAccountLookup: async (ids) => {
-          const generation = loadRequestId;
+          const resetsBefore = resetCount;
           const { accounts, archivedAccounts, accountLookupById, accountLookupError } = get();
           const known = mergeAccountsById(accounts, archivedAccounts, accountLookupById);
           const missing = findMissingAccountIds([...new Set(ids)], known);
@@ -130,16 +138,17 @@ export function createAccountStore(repo: IAccountRepository) {
 
           try {
             const rows = await repo.getByIdsIncludingArchived(missing);
-            if (generation !== loadRequestId) return;
+            if (resetsBefore !== resetCount) return;
             for (const id of missing) failedLookupIds.delete(id);
+            const kept = dropCopiesReadBeforeDelete(rows, deletedAccountIds);
             set((s) => ({
               accountLookupById: {
                 ...s.accountLookupById,
-                ...Object.fromEntries(rows.map((row) => [row.id, row])),
+                ...Object.fromEntries(kept.map((row) => [row.id, row])),
               },
             }));
           } catch (err) {
-            if (generation === loadRequestId) {
+            if (resetsBefore === resetCount) {
               for (const id of missing) failedLookupIds.add(id);
               set({ accountLookupError: true });
             }
@@ -182,7 +191,9 @@ export function createAccountStore(repo: IAccountRepository) {
 
         reset: () => {
           loadRequestId += 1;
+          resetCount += 1;
           failedLookupIds.clear();
+          deletedAccountIds.clear();
           set(INITIAL_STATE);
         },
       };
