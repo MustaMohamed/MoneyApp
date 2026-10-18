@@ -1,4 +1,4 @@
-import { PixelRatio } from 'react-native';
+import { Dimensions, PixelRatio } from 'react-native';
 
 import { STATUS_BADGE_PADDING_VERTICAL } from '@/components/ui/status_badge';
 import {
@@ -141,12 +141,51 @@ describe('resolveDetailRowHeight', () => {
   });
 });
 
+// The card's `p-3.5` and its 1 border, top and bottom, which the stretched cell sits inside.
+const TRANSFER_CARD_CHROME = 2 * 14 + 2 * 1;
+
 describe('resolveTransferCellHeight', () => {
-  // The literal 48: the cell's 36 tile and its 6, 4 and 2 gaps, none of which scales with text.
+  // The tile and the three gaps between its four parts scale with the width, never with the text.
   it.each([0.85, 1, 2, 3])(
-    'is the three line boxes plus the 48 of tile and gaps at font scale %s',
+    'is the three line boxes plus the tile and three gaps at font scale %s',
     (fontScale) => {
-      expect(resolveTransferCellHeight(fontScale)).toBe(transferLinesAt(fontScale) + 48);
+      expect(resolveTransferCellHeight(fontScale)).toBe(
+        transferLinesAt(fontScale) + Size.typeIconBox + 3 * Spacing.xxs,
+      );
+    },
+  );
+
+  // Jest's window is 375 dp; a cell cut by its card shows only below about 357 dp, so the geometry loads at those widths.
+  function transferFitAt(width: number, fontScale: number): { cell: number; inner: number } {
+    let fit = { cell: 0, inner: 0 };
+    jest.isolateModules(() => {
+      const isolated = jest.requireActual<{ Dimensions: typeof Dimensions }>('react-native');
+      jest
+        .spyOn(isolated.Dimensions, 'get')
+        .mockReturnValue({ width, height: 800, scale: PixelRatio.get(), fontScale: 1 });
+      const geometry = jest.requireActual<{
+        resolveTransferCardHeight: typeof resolveTransferCardHeight;
+        resolveTransferCellHeight: typeof resolveTransferCellHeight;
+      }>('@/modules/transactions/screens/transactions/detail/components/detail.geometry');
+      fit = {
+        cell: geometry.resolveTransferCellHeight(fontScale),
+        inner: geometry.resolveTransferCardHeight(fontScale) - TRANSFER_CARD_CHROME,
+      };
+    });
+    return fit;
+  }
+
+  it.each([
+    [331, 1],
+    [331, 2],
+    [357, 1],
+    [357, 2],
+  ])(
+    'fits inside the card less its padding and border on a %s dp window at font scale %s',
+    (width, fontScale) => {
+      const { cell, inner } = transferFitAt(width, fontScale);
+
+      expect(cell).toBeLessThanOrEqual(inner);
     },
   );
 });

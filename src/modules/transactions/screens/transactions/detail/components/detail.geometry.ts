@@ -42,8 +42,10 @@ export const DETAIL_FACT_FITTED_ROW_PADDING = DETAIL_FACT_ROW_PADDING - FITTED_L
 export const DETAIL_TRANSFER_LABEL_FONT_SIZE = Type.compactBadge;
 export const DETAIL_TRANSFER_NAME_FONT_SIZE = Type.detail;
 export const DETAIL_TRANSFER_AMOUNT_FONT_SIZE = Type.micro;
-// Raw, never ms(): the transfer cell's `h-9` tile and its `mt-1.5`, `mt-1` and `mt-0.5` gaps.
-const DETAIL_TRANSFER_CELL_CHROME = 48;
+// Frame C3's tile and the gap between the cell's label, tile, name and amount, scaled with the card.
+export const DETAIL_TRANSFER_TILE = Size.typeIconBox;
+export const DETAIL_TRANSFER_CELL_GAP = Spacing.xxs;
+const DETAIL_TRANSFER_CELL_CHROME = DETAIL_TRANSFER_TILE + 3 * DETAIL_TRANSFER_CELL_GAP;
 // Raw, never ms(): the skeleton transfer cell's `h-20` at scale 1 and below.
 const DETAIL_TRANSFER_SKELETON_CELL_HEIGHT = 80;
 

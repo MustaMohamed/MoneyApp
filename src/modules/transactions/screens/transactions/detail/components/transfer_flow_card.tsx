@@ -3,47 +3,49 @@ import { Card, PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
+import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { Text } from '@/components/ui/text';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
-import type { Account } from '@/modules/accounts/entities/account.entity';
-import { resolveAccountName } from '@/utils/account_name';
 
-import { getAccountTypeIcon, type TransferCellText } from '../detail.helpers';
+import type { TransferFlow, TransferFlowCell } from '../detail.helpers';
 import {
   DETAIL_TRANSFER_AMOUNT_FONT_SIZE,
+  DETAIL_TRANSFER_CELL_GAP,
   DETAIL_TRANSFER_LABEL_FONT_SIZE,
   DETAIL_TRANSFER_NAME_FONT_SIZE,
+  DETAIL_TRANSFER_TILE,
   resolveTransferCardHeight,
+  resolveTransferCellHeight,
 } from './detail.geometry';
 
 interface Props {
-  fromAccount: Account;
-  toAccount: Account;
-  fromAmountText: TransferCellText;
-  toAmountText: TransferCellText;
-  onPressFrom?: () => void;
-  onPressTo?: () => void;
+  flow: TransferFlow;
+  onOpenAccount: (accountId: string) => void;
 }
+
+// Both wrappers stretch to the card, so the labels, tiles and names of the two cells sit level.
+const CELL_WRAPPER_STYLE = { flex: 1, alignSelf: 'stretch' } as const;
 
 function Cell({
   label,
-  account,
-  amountText,
-  onPress,
+  cell,
+  onOpenAccount,
 }: {
   label: string;
-  account: Account;
-  amountText: TransferCellText;
-  onPress?: () => void;
+  cell: TransferFlowCell;
+  onOpenAccount: (accountId: string) => void;
 }): React.ReactElement {
-  const { display, accessible } = amountText;
   const { fontScale } = useWindowDimensions();
-  const accountName = resolveAccountName(account);
-  const inner = (
-    <View className="flex-1 items-center">
+  const { open } = cell;
+  const content = (
+    <View
+      testID="transaction-detail-transfer-cell"
+      className="items-center"
+      style={{ height: resolveTransferCellHeight(fontScale), gap: DETAIL_TRANSFER_CELL_GAP }}
+    >
       <Text
         className="font-inter-semibold text-foreground/55 tracking-wide uppercase"
         allowFontScaling={false}
@@ -51,74 +53,53 @@ function Cell({
       >
         {label}
       </Text>
-      <View className="bg-accent/15 mt-1.5 h-9 w-9 items-center justify-center rounded-lg">
-        <MaterialCommunityIcons
-          name={getAccountTypeIcon(account.type)}
-          size={Size.iconXs}
-          color={GoldTokens[500]}
-        />
-      </View>
+      <AccountColorTile {...cell.tile} size={DETAIL_TRANSFER_TILE} glyphSize={Size.iconMd} />
       <Text
-        className="font-inter-semibold text-foreground mt-1"
+        className="font-inter-semibold text-foreground"
         allowFontScaling={false}
         style={scaledTextStyle(DETAIL_TRANSFER_NAME_FONT_SIZE, fontScale)}
         numberOfLines={1}
       >
-        {accountName}
+        {cell.name}
       </Text>
-      <Text
-        className="font-sora-semibold text-foreground/85 mt-0.5"
-        allowFontScaling={false}
-        style={scaledTextStyle(DETAIL_TRANSFER_AMOUNT_FONT_SIZE, fontScale)}
-        numberOfLines={1}
-      >
-        {display}
-      </Text>
+      {cell.amountText ? (
+        <Text
+          className="font-sora-semibold text-foreground/85"
+          allowFontScaling={false}
+          style={scaledTextStyle(DETAIL_TRANSFER_AMOUNT_FONT_SIZE, fontScale)}
+          numberOfLines={1}
+        >
+          {cell.amountText.display}
+        </Text>
+      ) : null}
     </View>
   );
 
-  if (onPress) {
+  if (open) {
     return (
       <PressableFeedback
-        onPress={onPress}
+        onPress={() => onOpenAccount(open.accountId)}
         accessibilityRole="button"
-        accessibilityLabel={Strings.detailOpenAccountAccessibility(accountName, accessible)}
-        className="flex-1"
+        accessibilityLabel={open.accessibilityLabel}
+        style={CELL_WRAPPER_STYLE}
       >
-        {inner}
+        {content}
       </PressableFeedback>
     );
   }
-  return inner;
+  return <View style={CELL_WRAPPER_STYLE}>{content}</View>;
 }
 
-export function TransferFlowCard({
-  fromAccount,
-  toAccount,
-  fromAmountText,
-  toAmountText,
-  onPressFrom,
-  onPressTo,
-}: Props): React.ReactElement {
+export function TransferFlowCard({ flow, onOpenAccount }: Props): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   return (
     <Card
       className="border-accent/18 mx-4 mt-4 flex-row items-center gap-2 rounded-2xl border p-3.5"
       style={{ height: resolveTransferCardHeight(fontScale), boxShadow: 'none' }}
     >
-      <Cell
-        label={Strings.detailFlowFromLabel}
-        account={fromAccount}
-        amountText={fromAmountText}
-        onPress={onPressFrom}
-      />
+      <Cell label={Strings.detailFlowFromLabel} cell={flow.from} onOpenAccount={onOpenAccount} />
       <MaterialCommunityIcons name="arrow-right" size={Size.iconBack} color={GoldTokens[500]} />
-      <Cell
-        label={Strings.detailFlowToLabel}
-        account={toAccount}
-        amountText={toAmountText}
-        onPress={onPressTo}
-      />
+      <Cell label={Strings.detailFlowToLabel} cell={flow.to} onOpenAccount={onOpenAccount} />
     </Card>
   );
 }

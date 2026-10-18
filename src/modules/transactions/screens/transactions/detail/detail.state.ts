@@ -15,6 +15,7 @@ interface TxDetailUiEntry {
   revalidating: boolean;
   refreshError: boolean;
   reloadKey: number;
+  accountLookupSettled: boolean;
 }
 
 interface TxDetailStateShape {
@@ -26,6 +27,7 @@ type TxDetailState = TxDetailStateShape & {
   resolve: (owner: string, id: string) => void;
   resolveNotFound: (owner: string, id: string) => void;
   failLoad: (owner: string, id: string, preserveData: boolean) => void;
+  settleAccountLookup: (owner: string, id: string) => void;
   bumpReload: (owner: string) => void;
   release: (owner: string) => void;
   reset: () => void;
@@ -37,6 +39,7 @@ export const INITIAL_UI_ENTRY: TxDetailUiEntry = Object.freeze({
   revalidating: false,
   refreshError: false,
   reloadKey: 0,
+  accountLookupSettled: false,
 });
 
 const initialState = (): TxDetailStateShape => ({ entries: {} });
@@ -51,15 +54,18 @@ export const useTxDetailState = createMoneyAppSelectors(
   create<TxDetailState>((set) => ({
     ...initialState(),
     beginLoad: (owner, activeId, preserveData) =>
-      set((state) =>
-        withEntry(state, owner, {
-          ...(state.entries[owner] ?? INITIAL_UI_ENTRY),
+      set((state) => {
+        const entry = state.entries[owner] ?? INITIAL_UI_ENTRY;
+        return withEntry(state, owner, {
+          ...entry,
           activeId,
           status: preserveData ? 'ready' : 'initialLoading',
           revalidating: preserveData,
           refreshError: false,
-        }),
-      ),
+          // A refresh keeps drawn flow cells; a fresh load waits on its own lookup.
+          accountLookupSettled: preserveData && entry.accountLookupSettled,
+        });
+      }),
     resolve: (owner, id) =>
       set((state) => {
         const entry = state.entries[owner] ?? INITIAL_UI_ENTRY;
@@ -93,6 +99,13 @@ export const useTxDetailState = createMoneyAppSelectors(
             ? { ...entry, status: 'ready', revalidating: false, refreshError: true }
             : { ...entry, status: 'firstLoadError', revalidating: false, refreshError: false },
         );
+      }),
+    settleAccountLookup: (owner, id) =>
+      set((state) => {
+        if (!(owner in state.entries)) return state;
+        const entry = state.entries[owner];
+        if (entry.activeId !== id) return state;
+        return withEntry(state, owner, { ...entry, accountLookupSettled: true });
       }),
     // A released copy can still hold a callback; this must not write its entry back.
     bumpReload: (owner) =>

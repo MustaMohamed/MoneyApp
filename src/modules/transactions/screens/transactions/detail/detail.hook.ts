@@ -28,6 +28,7 @@ import {
   resolveDetailActionSet,
   resolveDetailActions,
   resolveDetailViewState,
+  resolveTransferFlowView,
 } from './detail.helpers';
 import { INITIAL_UI_ENTRY, useTxDetailState } from './detail.state';
 import { INITIAL_DATA_ENTRY, useTxDetailStore } from './detail.store';
@@ -79,13 +80,13 @@ export function useTransactionDetail(id: string) {
   const setBudget = useTxDetailStore.getState().setBudget;
   const clearForId = useTxDetailStore.getState().clearForId;
   const releaseData = useTxDetailStore.getState().release;
-  const { activeId, status, revalidating, refreshError, reloadKey } = useTxDetailState(
-    useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY),
-  );
+  const { activeId, status, revalidating, refreshError, reloadKey, accountLookupSettled } =
+    useTxDetailState(useShallow((s) => s.entries[owner] ?? INITIAL_UI_ENTRY));
   const beginLoad = useTxDetailState.getState().beginLoad;
   const resolve = useTxDetailState.getState().resolve;
   const resolveNotFound = useTxDetailState.getState().resolveNotFound;
   const failLoad = useTxDetailState.getState().failLoad;
+  const settleAccountLookup = useTxDetailState.getState().settleAccountLookup;
   const bumpReload = useTxDetailState.getState().bumpReload;
   const releaseUi = useTxDetailState.getState().release;
 
@@ -126,12 +127,49 @@ export function useTransactionDetail(id: string) {
         resolve(owner, id);
 
         const accountIds = getTransactionAccountIds(transaction);
-        try {
-          void Promise.resolve(loadAccountLookup(accountIds)).catch((error) => {
-            console.error('[transactionDetail] account lookup failed', error);
-          });
-        } catch (error) {
+        const settle = () => {
+          if (!cancelled) settleAccountLookup(owner, id);
+        };
+        const logLookupFailure = (error: unknown) => {
           console.error('[transactionDetail] account lookup failed', error);
+        };
+        // An overtaken lookup settles without writing or setting the error; a missing id is asked again after it, never after a failed read.
+        const askAgainIfMissing = (rejected: boolean) => {
+          if (cancelled) return;
+          const accountState = useAccountStore.getState();
+          if (rejected && accountState.accountLookupError) {
+            settle();
+            return;
+          }
+          const known = mergeAccountsById(
+            accountState.accounts,
+            accountState.archivedAccounts,
+            accountState.accountLookupById,
+          );
+          if (findMissingAccountIds(accountIds, known).length === 0) {
+            settle();
+            return;
+          }
+          try {
+            void Promise.resolve(loadAccountLookup(accountIds))
+              .catch(logLookupFailure)
+              .finally(settle);
+          } catch (error) {
+            logLookupFailure(error);
+            settle();
+          }
+        };
+        try {
+          void Promise.resolve(loadAccountLookup(accountIds))
+            .then(() => false)
+            .catch((error: unknown) => {
+              logLookupFailure(error);
+              return true;
+            })
+            .then(askAgainIfMissing);
+        } catch (error) {
+          logLookupFailure(error);
+          settle();
         }
 
         if (transaction.budget_id) {
@@ -151,7 +189,10 @@ export function useTransactionDetail(id: string) {
       })
       .catch((e) => {
         console.error('[transactionDetail] getById failed', e);
-        if (!cancelled) failLoad(owner, id, preserveData);
+        if (cancelled) return;
+        failLoad(owner, id, preserveData);
+        // A failed refresh runs no lookup of its own, so the cells it keeps must not wait on one.
+        if (preserveData) settleAccountLookup(owner, id);
       });
     return () => {
       cancelled = true;
@@ -168,6 +209,7 @@ export function useTransactionDetail(id: string) {
     resolve,
     resolveNotFound,
     setBudget,
+    settleAccountLookup,
     setTx,
   ]);
 
@@ -252,6 +294,12 @@ export function useTransactionDetail(id: string) {
     });
   }, [accountsById, budget, categoriesById, currentTx]);
 
+  const transferFlowView = resolveTransferFlowView(
+    derived?.transferFlow ?? null,
+    hasUnresolvedAccount,
+    activeId === id && accountLookupSettled,
+  );
+
   const openDeleteConfirm = useCallback(() => {
     if (currentTx !== null && isMutable) requestDelete(currentTx);
   }, [currentTx, isMutable, requestDelete]);
@@ -290,6 +338,7 @@ export function useTransactionDetail(id: string) {
       loadingTransactionHint,
       tx: currentTx,
       derived,
+      transferFlowView,
       revalidating: currentRevalidating,
       refreshError: currentRefreshError,
       confirmVisible: deleteState.openTransactionId !== undefined,

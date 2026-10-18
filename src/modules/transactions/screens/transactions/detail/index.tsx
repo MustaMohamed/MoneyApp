@@ -31,7 +31,6 @@ export default function TransactionDetailScreen(): React.ReactElement {
   } = useTransactionDetail(id);
   const transaction = state.tx;
   const detail = state.derived;
-  const transferFlow = detail?.transferFlow;
   const hasDetailContent = transaction !== null && detail !== null;
 
   return (
@@ -57,19 +56,10 @@ export default function TransactionDetailScreen(): React.ReactElement {
           <ScreenScroll>
             <DetailHero hero={detail.hero} />
 
-            {detail.isTransferLike ? (
-              transferFlow ? (
-                <TransferFlowCard
-                  fromAccount={transferFlow.fromAccount}
-                  toAccount={transferFlow.toAccount}
-                  fromAmountText={transferFlow.fromAmountText}
-                  toAmountText={transferFlow.toAmountText}
-                  onPressFrom={() => openAccount(transferFlow.fromAccount.id)}
-                  onPressTo={() => openAccount(transferFlow.toAccount.id)}
-                />
-              ) : (
-                <TransferFlowSkeletonCard />
-              )
+            {state.transferFlowView.kind === 'pending' ? (
+              <TransferFlowSkeletonCard />
+            ) : state.transferFlowView.kind === 'cells' ? (
+              <TransferFlowCard flow={state.transferFlowView.flow} onOpenAccount={openAccount} />
             ) : null}
 
             <DetailRowsCard>
