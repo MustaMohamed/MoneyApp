@@ -23,7 +23,7 @@ import {
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Radius, Size } from '@/constants/theme';
-import { resolveRowTile } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+import { resolveRowTile } from '@/modules/transactions/components/transaction_row.helpers';
 import { ActionRow } from '@/modules/transactions/screens/transactions/detail/components/action_row';
 import { resolveTransferCellHeight } from '@/modules/transactions/screens/transactions/detail/components/detail.geometry';
 import { DetailHeader } from '@/modules/transactions/screens/transactions/detail/components/detail_header';

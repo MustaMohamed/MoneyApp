@@ -2,16 +2,16 @@ import { AccountType, CategoryType, Currency, TransactionType } from '@/constant
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
+  type RowTile,
+  resolveRowTile,
+} from '@/modules/transactions/components/transaction_row.helpers';
+import {
   requiresDestination,
   requiresExchangeRate,
   resolveTransactionAmounts,
   TransactionAmountError,
 } from '@/modules/transactions/domain/transaction_amounts';
 import { TransactionAccountArchivedError } from '@/modules/transactions/repositories/transaction.errors';
-import {
-  type RowTile,
-  resolveRowTile,
-} from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { resolveAccountName } from '@/utils/account_name';
 import { formatDisplayAmount, formatRateDisplayMagnitude } from '@/utils/format_amount';
 import { toLocalDateString } from '@/utils/format_date';

@@ -3,9 +3,9 @@ import React from 'react';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { SectionHeader } from '@/components/ui/section_header';
 import { Strings } from '@/constants/strings';
-import { TransactionRowBody } from '@/modules/transactions/screens/transactions/components/transaction_row';
-import type { TransactionRowPresentation } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
-import { TransactionRowsSkeleton } from '@/modules/transactions/screens/transactions/components/transaction_rows_skeleton';
+import { TransactionRowBody } from '@/modules/transactions/components/transaction_row';
+import type { TransactionRowPresentation } from '@/modules/transactions/components/transaction_row.helpers';
+import { TransactionRowsSkeleton } from '@/modules/transactions/components/transaction_rows_skeleton';
 import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 
 import type { AccountActivityStatus } from '../account_activity.store';

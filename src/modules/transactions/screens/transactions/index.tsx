@@ -13,18 +13,18 @@ import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
+import { DayCardRow } from '@/modules/transactions/components/day_card_row';
+import { resolveDayCardSwipeCorners } from '@/modules/transactions/components/day_card_row.helpers';
+import { TransactionRow } from '@/modules/transactions/components/transaction_row';
+import { TransactionRowsSkeleton } from '@/modules/transactions/components/transaction_rows_skeleton';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ms } from '@/utils/responsive';
 
 import { AccountChips } from './components/account_chips';
-import { DayCardRow } from './components/day_card_row';
-import { resolveDayCardSwipeCorners } from './components/day_card_row.helpers';
 import { DayHeader } from './components/day_header';
 import { SearchRow } from './components/search_row';
 import { SearchTally } from './components/search_tally';
 import { TransactionLoadError } from './components/transaction_load_error';
-import { TransactionRow } from './components/transaction_row';
-import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
 import { TransactionsHero } from './components/transactions_hero';
 import {
   TRANSACTIONS_RAIL,

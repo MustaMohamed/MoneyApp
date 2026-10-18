@@ -4,6 +4,7 @@ import { Dimensions } from 'react-native';
 
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { lineHeightFor, Radius, Size } from '@/constants/theme';
+import { resolveDayHeaderGeometry } from '@/modules/transactions/components/day_header.geometry';
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,
@@ -11,9 +12,8 @@ import {
   TRANSACTION_ROW_TITLE_FONT_SIZE,
   resolveTransactionRowCaptionLines,
   resolveTransactionRowHeight,
-} from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
-import { TransactionRowsSkeleton } from '@/modules/transactions/screens/transactions/components/transaction_rows_skeleton';
-import { resolveDayHeaderGeometry } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
+} from '@/modules/transactions/components/transaction_row.helpers';
+import { TransactionRowsSkeleton } from '@/modules/transactions/components/transaction_rows_skeleton';
 import { barHeight } from '@/test_helpers/skeleton';
 
 const BAR = 'skeleton-bar';

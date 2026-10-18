@@ -5,8 +5,8 @@ import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Radius } from '@/constants/theme';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
+import { DAY_CARD_INNER_RADIUS } from '@/modules/transactions/components/day_card_row.helpers';
 import TransactionsScreen from '@/modules/transactions/screens/transactions';
-import { DAY_CARD_INNER_RADIUS } from '@/modules/transactions/screens/transactions/components/day_card_row.helpers';
 import { TRANSACTIONS_RAIL } from '@/modules/transactions/screens/transactions/components/transactions_rail.geometry';
 import { useTransactions } from '@/modules/transactions/screens/transactions/transactions.hook';
 import { makeTestTransaction } from '@/test_helpers/transaction';
@@ -112,7 +112,7 @@ jest.mock('@/modules/transactions/screens/transactions/components/account_chips'
     return <View testID="transactions-account-chips" />;
   },
 }));
-jest.mock('@/modules/transactions/screens/transactions/components/transaction_row', () => {
+jest.mock('@/modules/transactions/components/transaction_row', () => {
   const rowSeparators = new Map<string, boolean | undefined>();
   const rowSwipeCorners = new Map<string, unknown>();
   return {
@@ -275,7 +275,7 @@ const { heroRenders } = jest.requireMock<{ heroRenders: { count: number } }>(
 const { rowSeparators, rowSwipeCorners } = jest.requireMock<{
   rowSeparators: Map<string, boolean | undefined>;
   rowSwipeCorners: Map<string, StyleProp<ViewStyle>>;
-}>('@/modules/transactions/screens/transactions/components/transaction_row');
+}>('@/modules/transactions/components/transaction_row');
 
 type DaySection = TransactionsScreenState['sections'][number];
 type HostNode = Parameters<typeof within>[0];

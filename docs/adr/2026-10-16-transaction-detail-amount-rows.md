@@ -9,7 +9,7 @@ The detail hero printed `egp_amount` in EGP for every transaction, so a USD 15 e
 
 ## 1. The hero prints `tx.amount` in `tx.currency`
 
-The hero reads the list row's own function, `primaryAmountFor(tx, cardCredit)` in `components/transaction_row.helpers.ts`, which formats `tx.amount` in `tx.currency` through `formatDisplayAmountParts`. Its `text` is the hero's `amountValue` and its `withCode` the hero's `amountAccessibilityLabel`; `amountCode` is `CURRENCY_CONFIG[tx.currency].code`. One function prints both, so the hero and the row cannot drift, and `detail_helpers.test.ts` still compares them on expense, income, card credit, and transfer and card payment on all four currency pairs. The sign rule does not change: `−` on an expense, `+` on an income and a card credit, none on a transfer or card payment, and none on a figure that prints as zero. `DETAIL_HERO_CURRENCY` is removed.
+The hero reads the list row's own function, `primaryAmountFor(tx, cardCredit)` in `src/modules/transactions/components/transaction_row.helpers.ts`, which formats `tx.amount` in `tx.currency` through `formatDisplayAmountParts`. Its `text` is the hero's `amountValue` and its `withCode` the hero's `amountAccessibilityLabel`; `amountCode` is `CURRENCY_CONFIG[tx.currency].code`. One function prints both, so the hero and the row cannot drift, and `detail_helpers.test.ts` still compares them on expense, income, card credit, and transfer and card payment on all four currency pairs. The sign rule does not change: `−` on an expense, `+` on an income and a card credit, none on a transfer or card payment, and none on a figure that prints as zero. `DETAIL_HERO_CURRENCY` is removed.
 
 ## 2. One function picks the amount row from the transaction alone
 
