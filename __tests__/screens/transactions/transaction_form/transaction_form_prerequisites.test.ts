@@ -158,6 +158,24 @@ describe('useTransactionFormPrerequisites', () => {
     );
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(loadAccountLookup).toHaveBeenCalledTimes(1);
     expect(loadAccountLookup).toHaveBeenCalledWith([archived.id]);
+  });
+
+  it('asks the lookup once and opens on its error state when the lookup publishes nothing for the edited account', async () => {
+    const loadAccountLookup = jest.fn(async () => undefined);
+    useAccountStore.setState({ hasLoaded: true, loadAccountLookup });
+    useCategoryStore.setState({ hasLoaded: true });
+    const tx = createTransaction('missing-account');
+    useTransactionFormState.getState().openEdit(tx);
+    const sessionId = useTransactionFormState.getState().sessionId;
+
+    const { result } = await renderHook(() =>
+      useTransactionFormPrerequisites(sessionId, 'edit', tx),
+    );
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(loadAccountLookup).toHaveBeenCalledTimes(1);
+    expect(loadAccountLookup).toHaveBeenCalledWith(['missing-account']);
   });
 });

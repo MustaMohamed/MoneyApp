@@ -734,34 +734,40 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
     expect(result.current.state.derived?.transferFlow?.to.open).toBeUndefined();
   });
 
-  it('a transfer to an id no row holds asks the lookup twice, then draws Unknown account with no amount', async () => {
+  it('a transfer to an id no row holds asks the lookup once, then draws Unknown account with no amount', async () => {
     const { result } = await renderTransfer(transferTo('missing-z'));
 
-    await waitFor(() => expect(loadAccountLookup).toHaveBeenCalledTimes(2));
     await waitFor(() => {
       expect(result.current.state.viewState).toBe('ready');
       expect(result.current.state.transferFlowView.kind).toBe('cells');
     });
+    await act(async () => {});
 
     const flow = result.current.state.derived?.transferFlow;
     expect(flow?.to.name).toBe(Strings.unknownAccount);
     expect(flow?.to.amountText).toBeUndefined();
     expect(flow?.to.open).toBeUndefined();
-    expect(loadAccountLookup).toHaveBeenCalledTimes(2);
-    expect(loadAccountLookup).toHaveBeenNthCalledWith(2, expect.arrayContaining(['missing-z']));
+    expect(loadAccountLookup).toHaveBeenCalledTimes(1);
+    expect(loadAccountLookup).toHaveBeenCalledWith(expect.arrayContaining(['missing-z']));
   });
 
-  it('a lookup that resolves without writing is asked once more, so a deleted side never reads Unknown account once settled', async () => {
-    loadAccountLookup.mockImplementationOnce(() => Promise.resolve());
-
-    const { result, seen } = await renderTransfer(transferTo(deletedCounterparty.id));
-
-    await waitFor(() => expect(loadAccountLookup).toHaveBeenCalledTimes(2));
-    await waitFor(() => {
-      expect(result.current.state.viewState).toBe('ready');
-      expect(result.current.state.transferFlowView.kind).toBe('cells');
+  it('a lookup that publishes the deleted side after a wait is asked once, and no settled render reads Unknown account', async () => {
+    const pending = deferred();
+    loadAccountLookup.mockImplementationOnce(async (ids: string[]) => {
+      await pending.promise;
+      await mergeLookupRows(ids);
     });
 
+    const { result, seen } = await renderTransfer(transferTo(deletedCounterparty.id));
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    await act(async () => {
+      pending.resolve();
+      await pending.promise;
+    });
+    await waitFor(() => expect(result.current.state.transferFlowView.kind).toBe('cells'));
+    await act(async () => {});
+
+    expect(loadAccountLookup).toHaveBeenCalledTimes(1);
     expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.deletedAccount);
     const settledNames = seen
       .filter((render) => render.pending === false && render.flow)
@@ -769,21 +775,33 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
     expect(settledNames).not.toContain(Strings.unknownAccount);
   });
 
-  it('a lookup that rejects without writing is asked once more, so a deleted side never reads Unknown account once settled', async () => {
+  it('a lookup that rejects and leaves the error down is asked once, and the cells draw', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    loadAccountLookup.mockImplementationOnce(() => Promise.reject(new Error('overtaken')));
+    loadAccountLookup.mockImplementationOnce(() => Promise.reject(new Error('read failed')));
 
-    const { result, seen } = await renderTransfer(transferTo(deletedCounterparty.id));
-
-    await waitFor(() => expect(loadAccountLookup).toHaveBeenCalledTimes(2));
+    const { result } = await renderTransfer(transferTo(deletedCounterparty.id));
     await waitFor(() => expect(result.current.state.transferFlowView.kind).toBe('cells'));
+    await act(async () => {});
 
-    expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.deletedAccount);
-    const settledNames = seen
-      .filter((render) => render.pending === false && render.flow)
-      .map((render) => render.flow?.to.name);
-    expect(settledNames).not.toContain(Strings.unknownAccount);
+    expect(loadAccountLookup).toHaveBeenCalledTimes(1);
+    expect(accountStoreState.accountLookupError).toBe(false);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[transactionDetail] account lookup failed',
+      expect.any(Error),
+    );
     consoleSpy.mockRestore();
+  });
+
+  it('a lookup error another screen left up does not stop a lookup that publishes the deleted side: one ask, Deleted Account, no refresh error', async () => {
+    accountStoreState.accountLookupError = true;
+
+    const { result } = await renderTransfer(transferTo(deletedCounterparty.id));
+    await waitFor(() => expect(result.current.state.transferFlowView.kind).toBe('cells'));
+    await act(async () => {});
+
+    expect(loadAccountLookup).toHaveBeenCalledTimes(1);
+    expect(result.current.state.derived?.transferFlow?.to.name).toBe(Strings.deletedAccount);
+    expect(result.current.state.refreshError).toBe(false);
   });
 
   it('a lookup that fails and sets the error is not asked again, and the cells draw under the error', async () => {
@@ -874,9 +892,10 @@ describe('useTransactionDetail transfer flow lookup (MA-196)', () => {
 
     await act(async () => result.current.reload());
     await waitFor(() => expect(getById).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(loadAccountLookup).toHaveBeenCalledTimes(lookupsBefore + 2));
     await waitFor(() => expect(result.current.state.revalidating).toBe(false));
     await act(async () => {});
+
+    expect(loadAccountLookup).toHaveBeenCalledTimes(lookupsBefore + 1);
 
     const afterReload = seen.slice(rendersBefore);
     expect(afterReload.length).toBeGreaterThan(0);
