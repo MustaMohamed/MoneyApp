@@ -10,15 +10,15 @@ import { Strings } from '@/constants/strings';
 import { Colors, Type, withAlpha } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
+import { computeDeltaPct } from '@/modules/transactions/domain/period_delta';
 import {
-  computeDeltaPct,
   deltaDisplay,
   expenseSharePct,
   formatSignedAmount,
   type DeltaDirection,
   type PolaritySignal,
   type TotalsMetric,
-} from '@/modules/transactions/screens/transactions/transactions.helpers';
+} from '@/modules/transactions/utils/totals_presentation';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 

@@ -1,21 +1,16 @@
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { TransactionDayAggregate } from '@/modules/transactions/database/transactions';
+import { computeDeltaPct } from '@/modules/transactions/domain/period_delta';
 import {
   buildDaySections,
   composeDayHeaderAccessibilityLabel,
   type DaySectionsInput,
-  buildTotalsPresentation,
   buildTransactionsHeroModel,
   currentYearMonth,
   resolvePeriod,
   resolveTransactionsHeroMode,
   previousPeriod,
-  computeDeltaPct,
-  polarityColor,
-  formatSignedAmount,
-  expenseSharePct,
-  deltaDisplay,
   buildSearchTally,
   resolveSearchTallyFiguresMode,
   totalsScopeKey,
@@ -25,6 +20,13 @@ import {
 } from '@/modules/transactions/screens/transactions/transactions.helpers';
 import type { TransactionTotalsStatus } from '@/modules/transactions/screens/transactions/transactions.state';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
+import {
+  buildTotalsPresentation,
+  deltaDisplay,
+  expenseSharePct,
+  formatSignedAmount,
+  polarityColor,
+} from '@/modules/transactions/utils/totals_presentation';
 import { makeTestTransaction } from '@/test_helpers/transaction';
 import type { TransactionDateGroup } from '@/utils/group_transactions_by_date';
 

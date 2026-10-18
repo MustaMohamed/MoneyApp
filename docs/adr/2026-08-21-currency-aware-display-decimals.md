@@ -122,7 +122,7 @@ normalises. The narrowed guard preserves the whole chain with zero edits to any 
 
 ### 2.1 The magnitude/escalate rule: a third population, and why "stays visible" does not apply to it
 
-`transactions.helpers.ts`'s `formatSignedAmount`, `detail.helpers.ts`'s `signedAmount`,
+`totals_presentation.ts`'s `formatSignedAmount`, `detail.helpers.ts`'s `signedAmount`,
 `transaction_row.helpers.ts`'s `primaryAmountFor`, and `transfer_flow_card.tsx`'s
 `transferCellAmountText` never pass a signed value to `formatAmount`. Each routes through
 `formatDisplayMagnitude` and prefixes a sign character it derives on its own — transaction

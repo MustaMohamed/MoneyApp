@@ -7,11 +7,13 @@ import { withUniwind } from 'uniwind';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Strings } from '@/constants/strings';
 import { Spacing, lineHeightFor } from '@/constants/theme';
+import type {
+  DeltaDirection,
+  PolaritySignal,
+} from '@/modules/transactions/utils/totals_presentation';
 
 import {
-  type DeltaDirection,
   FLOW_CLASS,
-  type PolaritySignal,
   type TransactionsHeroChange,
   type TransactionsHeroModel,
 } from '../transactions.helpers';
