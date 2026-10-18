@@ -1,9 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { HeaderIconAction } from '@/components/ui/header_icon_action';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Text } from '@/components/ui/text';
@@ -26,18 +26,13 @@ export default function SpendingPlanDetailScreen() {
         onBack={goBack}
         right={
           state.viewState === 'ready' && plan ? (
-            <PressableFeedback
-              accessibilityRole="button"
+            <HeaderIconAction
+              icon="pencil-outline"
+              iconSize={Size.iconSm}
+              iconColor={Colors.dark.gold}
               accessibilityLabel={`${Strings.budgetPlanEditTitle} ${plan.name}`}
               onPress={editPlan}
-              className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
-            >
-              <MaterialCommunityIcons
-                name="pencil-outline"
-                size={Size.iconSm}
-                color={Colors.dark.gold}
-              />
-            </PressableFeedback>
+            />
           ) : undefined
         }
       />

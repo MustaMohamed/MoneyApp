@@ -1,12 +1,11 @@
-import { PressableFeedback } from 'heroui-native';
 import { View } from 'react-native';
 
+import { HeaderTextAction } from '@/components/ui/header_text_action';
 import { LoadingCenter } from '@/components/ui/loading_center';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { GoldTokens } from '@/constants/theme_tokens';
 
 import { CurrentCycleCard } from './components/current_cycle_card';
 import { DetailHero } from './components/detail_hero';
@@ -29,15 +28,7 @@ export default function CommitmentDetailScreen() {
         onBack={goBack}
         right={
           state.commitment && state.viewState !== 'loading' ? (
-            <PressableFeedback
-              onPress={goToEdit}
-              hitSlop={8}
-              className="min-w-[44px] items-center justify-center px-1"
-            >
-              <Text className="font-inter-semibold text-[15px]" style={{ color: GoldTokens[500] }}>
-                {Strings.commitmentsDetailEdit}
-              </Text>
-            </PressableFeedback>
+            <HeaderTextAction label={Strings.commitmentsDetailEdit} onPress={goToEdit} />
           ) : undefined
         }
       />
