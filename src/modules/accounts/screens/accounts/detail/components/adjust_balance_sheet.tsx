@@ -5,13 +5,19 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
+import { resolveFactRowFlex } from '@/components/ui/fact_row.geometry';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { resolveSheetSizeAboveOne } from '@/components/ui/sheet.helpers';
+import {
+  resolveFitAmountTextProps,
+  resolveOneLineTextProps,
+  scaledTextStyle,
+} from '@/components/ui/text_scale.geometry';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Type, lineHeightFor } from '@/constants/theme';
+import { Type } from '@/constants/theme';
 import { formatAccountBalance } from '@/utils/format_amount';
 
 import { FieldMessageTrack } from '../../../../components/field_message_rail';
@@ -35,19 +41,25 @@ function AdjustBalanceSheetBody({
   onChangeText,
 }: AdjustBalanceSheetBodyProps) {
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+  const { fontScale } = useWindowDimensions();
+  const flex = resolveFactRowFlex(true);
+  const labelText = resolveOneLineTextProps(scaledTextStyle(Type.meta, fontScale));
+  const amountText = resolveFitAmountTextProps(Type.bodyStrong, fontScale);
 
   return (
     <Box className="px-4 pt-2">
-      <Box style={{ flexDirection: 'row' }} className="items-center justify-between pb-3">
+      <Box style={{ flexDirection: 'row' }} className="items-center justify-between gap-3 pb-3">
         <Typography
+          {...labelText}
           className="text-foreground/55 font-inter"
-          style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
+          style={[labelText.style, flex.label]}
         >
           {Strings.accountDetailBalance}
         </Typography>
         <Typography
+          {...amountText}
           className="text-foreground font-sora-semibold tabular-nums"
-          style={{ fontSize: Type.bodyStrong, lineHeight: lineHeightFor(Type.bodyStrong) }}
+          style={[amountText.style, flex.group]}
         >
           {formatAccountBalance(currentBalance, currency)}
         </Typography>
