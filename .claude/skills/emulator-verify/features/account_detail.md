@@ -1,6 +1,6 @@
 # Account detail, active
 
-Route `/accounts/[id]`. Screen `src/modules/accounts/screens/accounts/detail/index.tsx`, hero `detail/components/balance_hero.tsx`, facts `account_fact_row.tsx`, activity `account_activity_card.tsx`, sheet `adjust_balance_sheet.tsx`, dialog `archive_confirmation_dialog.tsx`, alert `balance_review_alert.tsx`. Frames C1, C2, C2b, C3, F2, G1, G2.
+Route `/accounts/[id]`. Screen `src/modules/accounts/screens/accounts/detail/index.tsx`, hero `detail/components/balance_hero.tsx`, facts on the shared `src/components/ui/fact_row.tsx`, activity `account_activity_card.tsx`, sheet `adjust_balance_sheet.tsx`, dialog `archive_confirmation_dialog.tsx`, alert `balance_review_alert.tsx`. Frames C1, C2, C2b, C3, F2, G1, G2.
 
 ## Reach it
 
@@ -16,6 +16,7 @@ The canvas draws one account type per frame. Every state below is checked on a b
 |---|---|---|---|
 | bank with recent activity | C1 | seeded bank with 3+ transactions this month | hero balance, `This month in` / `This month out`, activity rows; shot |
 | credit card, under limit | C2 (`CardsDetail`) | seeded card with limit, min payment, due day, APR | facts render limit, available, min, due, APR two decimals with `%`; shot |
+| facts, large font | C1, C2b, MA-197 | a seeded bank with month activity and a seeded card with a limit, a minimum payment, a due day and an APR, each by `mqa open /accounts/<id>`; the `Font scale` force (README) at 1.0 and 2.0 | in `mqa bounds` each fact row reads `resolveFactRowHeight(scale)` ± 1 dp high, 44.19 at 1.0 and 54.86 at 2.0 on the 411 dp emulator. At 2.0 each amount and count shows every digit on one line, fitted when it must shrink, its label ending in a whole `…` first; `Currency`, `Due day` and `APR` are whole or end in a whole `…`; no text box crosses another. One crop of the facts card per scale on each account |
 | credit card, over limit | no frame, ruled MA-029 | seed `current_balance` past `credit_limit` | caption `Over limit` on hero, dashboard and list; `mqa ui` |
 | bank overdrawn | no frame, ruled MA-027, MA-156 | the overdrawn seed (`accounts_list.md` § States, `overdrawn bank row`): `mqa open /accounts/<Walk Overdrawn's id>` | sign is U+2212 on the hero (`−1,900`), on the caption `Opening −1,900 EGP` and on the `Opening balance` fact `−1,900 EGP`; `grep -c -- '-1,900'` over `mqa read` is 0; `mqa ui` |
 | balance review alert | C2b | seed a card flagged for review | alert card with `Adjust balance`; shot |

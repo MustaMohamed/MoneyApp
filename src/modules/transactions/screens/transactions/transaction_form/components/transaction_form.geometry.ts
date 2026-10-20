@@ -2,6 +2,7 @@ import type { Insets } from 'react-native';
 
 import { SELECTABLE_PILL_LABEL_FONT_SIZE } from '@/components/ui/chip.geometry';
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
+import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import {
@@ -19,8 +20,6 @@ import {
   touchFloorHitSlop,
 } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
-
-export const FACT_ROW_MIN_HEIGHT = TouchSize.min;
 
 /** The gap between the status track and Save. */
 export const TRANSACTION_FORM_STATUS_GAP = Spacing.xs;
@@ -92,13 +91,13 @@ export function resolveAccountStripChipGeometry(fontScale: number): {
   return { height: Math.max(ACCOUNT_STRIP_CHIP_HEIGHT, label?.lineHeight ?? 0), label };
 }
 
-/** Above scale 1 the app scales the Note's text: Android draws the hint without the line box, and an OS-scaled line box is shorter than the hint's own lines; the row's floor grows with the line box. */
+/** Above scale 1 the app scales the Note's text: Android draws the hint without the line box, and an OS-scaled line box is shorter than the hint's own lines; the floor is the shared fact row's height. */
 export function resolveNoteInputGeometry(fontScale: number): {
   minHeight: number;
   text: ScaledTextStyle | undefined;
 } {
   const text = scaledTextStyleAboveOne(Type.body, fontScale);
-  return { minHeight: Math.max(FACT_ROW_MIN_HEIGHT, text?.lineHeight ?? 0), text };
+  return { minHeight: resolveFactRowHeight(fontScale), text };
 }
 
 interface AccountStripRevealInput {
@@ -136,7 +135,6 @@ export const TRANSACTION_FORM_SKELETON_GEOMETRY = {
   amount: ms(40),
   stripBar: { width: ACCOUNT_STRIP_CHIP_WIDTH, height: ACCOUNT_STRIP_CHIP_HEIGHT },
   stripBarCount: 3,
-  factRow: FACT_ROW_MIN_HEIGHT,
   factRowCount: 4,
   keyBar: { width: ms(60), height: lineHeightFor(Type.body) },
   valueBar: { width: ms(100), height: lineHeightFor(Type.body) },
@@ -147,13 +145,14 @@ interface SkeletonBarBox {
   height: number;
 }
 
-/** The sheet skeleton's bars at the OS font scale: the amount bar stops with the amount, the strip bar is the chip's height; widths stay. */
+/** The sheet skeleton's bars at the OS font scale: the amount bar stops with the amount, the strip bar is the chip's height, a fact row the shared row's; widths stay. */
 export function resolveTransactionFormSkeletonBars(fontScale: number): {
   supportingBar: number;
   amount: number;
   stripBar: SkeletonBarBox;
   keyBar: SkeletonBarBox;
   valueBar: SkeletonBarBox;
+  factRow: number;
 } {
   const { supportingBar, amount, stripBar, keyBar, valueBar } = TRANSACTION_FORM_SKELETON_GEOMETRY;
   return {
@@ -165,6 +164,7 @@ export function resolveTransactionFormSkeletonBars(fontScale: number): {
       width: valueBar.width,
       height: resolveSkeletonBarHeight(valueBar.height, fontScale),
     },
+    factRow: resolveFactRowHeight(fontScale),
   };
 }
 

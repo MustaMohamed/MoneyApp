@@ -13,6 +13,7 @@ Route `/accounts/[id]` when `archived_at` is set. Body `detail/components/archiv
 | State | Frame | Force | Proof |
 |---|---|---|---|
 | archived bank, read-only | C4 | seed `archived_at` on a bank with transactions | `Balance when archived`, `Transactions` count, `Commitments paid from it` count, `Unarchive`, `Delete account`; shot |
+| facts, large font | C4, MA-197 | the `archived bank, read-only` seed, `mqa open /accounts/<id>`; the `Font scale` force (README) at 1.0 and 2.0 | in `mqa bounds` the `Currency`, `Transactions` and `Commitments paid from it` rows each read `resolveFactRowHeight(scale)` ± 1 dp high, 44.19 at 1.0 and 54.86 at 2.0 on the 411 dp emulator. At 2.0 the two counts show every digit on one line, each label ending in a whole `…` first; `Currency` is whole or ends in a whole `…`; no text box crosses another. One crop of the facts card per scale |
 | archived credit card | no frame, ruled MA-049 and MA-056 | same on a card | the bank's three rows, no card facts; hero not dimmed; `mqa ui` |
 | unarchive | G3 on the list | `$MQA tap 'Unarchive'` | lands on the list with the toast `<name> restored.`; `mqa db` archived_at null |
 | unarchive name clash | no frame, MA-046 | active account with the same name | refusal copy; db unchanged |

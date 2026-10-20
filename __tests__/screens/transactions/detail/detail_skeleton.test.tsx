@@ -2,12 +2,12 @@ import { render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions, type ViewStyle } from 'react-native';
 
+import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
-  resolveDetailFactRowHeight,
   resolveDetailHeroGeometry,
   resolveTransferCardHeight,
   resolveTransferSkeletonCellHeight,
@@ -114,7 +114,7 @@ describe('TransactionDetailSkeleton', () => {
 
     const rows = getAllByTestId('transaction-detail-skeleton-row');
     for (const row of rows) {
-      expect(row).toHaveStyle({ height: resolveDetailFactRowHeight(fontScale) });
+      expect(row).toHaveStyle({ height: resolveFactRowHeight(fontScale) });
       expect(within(row).getAllByTestId(BAR).map(barHeight)).toEqual([bar(14), bar(14)]);
     }
 

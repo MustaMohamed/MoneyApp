@@ -1,4 +1,5 @@
 import { DISPLAY_HEADLINE_MAX_FONT_SCALE } from '@/components/ui/display_headline.geometry';
+import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { TABS_LIST_PADDING, resolveSegmentedTabsGeometry } from '@/components/ui/tabs.geometry';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
@@ -6,7 +7,6 @@ import {
   ACCOUNT_STRIP_CHIP_HEIGHT,
   ACCOUNT_STRIP_CHIP_WIDTH,
   AMOUNT_ENTRY_MAX_FONT_SCALE,
-  FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   TRANSACTION_FORM_SKELETON_GEOMETRY,
   resolveAccountStripChipGeometry,
@@ -16,16 +16,15 @@ import {
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 
 describe('TRANSACTION_FORM_SKELETON_GEOMETRY', () => {
-  it('draws the strip as three chip-sized bars and each fact row at the fact-row minimum', () => {
-    // Without these, undefined values would compare equal below.
+  it('draws the strip as three chip-sized bars and leaves the fact row height to the font scale (MA-197)', () => {
+    // Without this, an undefined value would compare equal below.
     expect(ACCOUNT_STRIP_CHIP_HEIGHT).toBeDefined();
-    expect(FACT_ROW_MIN_HEIGHT).toBe(TouchSize.min);
     expect(TRANSACTION_FORM_SKELETON_GEOMETRY).toMatchObject({
       stripBar: { width: ACCOUNT_STRIP_CHIP_WIDTH, height: ACCOUNT_STRIP_CHIP_HEIGHT },
       stripBarCount: 3,
-      factRow: FACT_ROW_MIN_HEIGHT,
     });
     expect(TRANSACTION_FORM_SKELETON_GEOMETRY).not.toHaveProperty('accountRow');
+    expect(TRANSACTION_FORM_SKELETON_GEOMETRY).not.toHaveProperty('factRow');
   });
 
   it('draws four fact rows: Category, Budget, Date and Note', () => {
@@ -72,6 +71,7 @@ describe('resolveTransactionFormSkeletonBars', () => {
       keyBar: { width: keyBar.width, height: keyBar.height },
       valueBar: { width: valueBar.width, height: valueBar.height },
       stripBar: { width: ACCOUNT_STRIP_CHIP_WIDTH, height: ACCOUNT_STRIP_CHIP_HEIGHT },
+      factRow: resolveFactRowHeight(1),
     });
   });
 
@@ -90,6 +90,7 @@ describe('resolveTransactionFormSkeletonBars', () => {
         width: ACCOUNT_STRIP_CHIP_WIDTH,
         height: resolveAccountStripChipGeometry(2).height,
       },
+      factRow: resolveFactRowHeight(2),
     });
   });
 
@@ -152,19 +153,31 @@ describe('transaction form content inset', () => {
 });
 
 describe('resolveNoteInputGeometry', () => {
-  it('MA-163: leaves the Note to the OS at scale 1, scales its text in the app above it, and grows the row floor once the line box passes it', () => {
-    expect(resolveNoteInputGeometry(1)).toStrictEqual({
-      minHeight: FACT_ROW_MIN_HEIGHT,
-      text: undefined,
-    });
-    expect(resolveNoteInputGeometry(2)).toStrictEqual({
-      minHeight: FACT_ROW_MIN_HEIGHT,
-      text: scaledTextStyle(Type.body, 2),
-    });
-    expect(lineHeightFor(4 * Type.body)).toBeGreaterThan(FACT_ROW_MIN_HEIGHT);
-    expect(resolveNoteInputGeometry(4)).toStrictEqual({
-      minHeight: lineHeightFor(4 * Type.body),
-      text: scaledTextStyle(Type.body, 4),
-    });
+  it.each([1, 2, 3, 4])(
+    'MA-197: stands the Note at the shared fact row height at font scale %s',
+    (fontScale) => {
+      expect(resolveNoteInputGeometry(fontScale).minHeight).toBe(resolveFactRowHeight(fontScale));
+    },
+  );
+
+  it('MA-163: leaves the Note text to the OS at scale 1 and scales it in the app above it', () => {
+    expect(resolveNoteInputGeometry(1).text).toBeUndefined();
+    expect(resolveNoteInputGeometry(2).text).toEqual(scaledTextStyle(Type.body, 2));
+    expect(resolveNoteInputGeometry(4).text).toEqual(scaledTextStyle(Type.body, 4));
   });
+
+  it('MA-197: gives the Note at 4 its padded line, past the bare line box the floor held before', () => {
+    expect(resolveNoteInputGeometry(4).minHeight).toBeGreaterThan(lineHeightFor(4 * Type.body));
+  });
+});
+
+describe('resolveTransactionFormSkeletonBars fact row (MA-197)', () => {
+  it.each([1, 2, 3])(
+    'stands each skeleton fact row at the shared fact row height at font scale %s',
+    (fontScale) => {
+      expect(resolveTransactionFormSkeletonBars(fontScale).factRow).toBe(
+        resolveFactRowHeight(fontScale),
+      );
+    },
+  );
 });

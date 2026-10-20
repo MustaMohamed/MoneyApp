@@ -5,6 +5,7 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { AccountColorTile } from '@/components/ui/account_color_tile';
+import { FactRow } from '@/components/ui/fact_row';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { INPUT_NO_FOCUS_BORDER_COLOR } from '@/components/ui/input';
 import { ListCard } from '@/components/ui/list_card';
@@ -360,7 +361,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                     ? Strings.addTxBudgetLoading
                     : (budgetLookupError ?? selectedBudget?.name ?? Strings.addTxPickBudgetTitle)
                 }
-                valueNumberOfLines={budgetLookupError ? 0 : undefined}
+                wrapsValue={budgetLookupError !== undefined}
                 valueClassName={budgetLookupError ? 'font-inter-medium text-danger' : undefined}
                 valueFontSize={budgetLookupError ? Type.caption : undefined}
                 prefix={
@@ -396,21 +397,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} divider={false} />
           </View>
 
-          <View
-            testID="note-row"
-            className="gap-3 px-4"
-            style={{
-              minHeight: noteGeometry.minHeight,
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-          >
-            <Text
-              className="font-inter text-content-secondary"
-              style={{ flexShrink: 0, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
-            >
-              {Strings.addTxNoteLabel}
-            </Text>
+          <FactRow testID="note-row" label={Strings.addTxNoteLabel} showDivider={false}>
             <Input
               value={note}
               onChangeText={setNote}
@@ -435,7 +422,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 ...noteGeometry.text,
               }}
             />
-          </View>
+          </FactRow>
         </ListCard>
       </View>
       <TransactionRateEditor
