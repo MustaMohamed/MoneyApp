@@ -1,18 +1,22 @@
-import { ListGroup } from 'heroui-native';
 import React from 'react';
+import type { ViewStyle } from 'react-native';
+
+import { ListCard } from '@/components/ui/list_card';
+import { Radius } from '@/constants/theme';
 
 interface Props {
   children: React.ReactNode;
+  testID?: string;
 }
 
-export function DetailRowsCard({ children }: Props): React.ReactElement {
+const DETAIL_ROWS_CARD_CORNER: Readonly<ViewStyle> = Object.freeze({
+  borderRadius: Radius.detailCard,
+});
+
+export function DetailRowsCard({ children, testID }: Props): React.ReactElement {
   return (
-    <ListGroup
-      variant="default"
-      className="border-separator mx-4 mt-4 overflow-hidden rounded-2xl border p-0"
-      style={{ boxShadow: 'none' }}
-    >
+    <ListCard testID={testID} className="mx-4 mt-4" style={DETAIL_ROWS_CARD_CORNER}>
       {children}
-    </ListGroup>
+    </ListCard>
   );
 }

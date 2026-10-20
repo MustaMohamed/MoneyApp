@@ -137,6 +137,8 @@ export const Radius = {
   sm: ms(8),
   md: ms(12),
   lg: ms(16),
+  // Raw 16, never ms(): `rounded-2xl`, the corner the hero frame and the cards on the detail screens draw at every width.
+  detailCard: 16,
   xl: ms(28),
   pill: ms(11),
   cta: ms(13),

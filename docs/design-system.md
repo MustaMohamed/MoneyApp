@@ -93,6 +93,7 @@ Pair with `FontFamily.*`:
 | `Radius.sm` | 8 | Small chips, dense rows |
 | `Radius.md` | 12 | Cards, inputs |
 | `Radius.lg` | 16 | Large surfaces |
+| `Radius.detailCard` | 16, unscaled | The detail screens' rows cards |
 | `Radius.xl` | 28 | Sheets, modal handles |
 | `Radius.pill` | 11 | Selectable pill rows |
 | `Radius.cta` | 13 | Primary buttons |

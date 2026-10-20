@@ -1,6 +1,7 @@
 import { Card, SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
+import { DetailRowsCard } from '@/components/ui/detail_rows_card';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { ScreenScroll } from '@/components/ui/screen';
 import { ScaledBar } from '@/components/ui/skeleton_bar';
@@ -125,11 +126,7 @@ export function TransactionDetailSkeleton({ transaction, actionSet }: Props): Re
           </View>
         </HeroShell>
         {geometry.showTransfer ? <TransferFlowSkeletonCard /> : null}
-        <Card
-          testID="transaction-detail-skeleton-rows"
-          className="border-separator mx-4 mt-4 overflow-hidden rounded-2xl border p-0"
-          style={{ boxShadow: 'none' }}
-        >
+        <DetailRowsCard testID="transaction-detail-skeleton-rows">
           {geometry.rowHeights.map((height, row) => (
             <View
               key={row}
@@ -148,7 +145,7 @@ export function TransactionDetailSkeleton({ transaction, actionSet }: Props): Re
               <ScaledBar height={14} className="w-28 rounded-md" />
             </View>
           ))}
-        </Card>
+        </DetailRowsCard>
         {geometry.showNote ? (
           <Card
             testID="transaction-detail-skeleton-note"
