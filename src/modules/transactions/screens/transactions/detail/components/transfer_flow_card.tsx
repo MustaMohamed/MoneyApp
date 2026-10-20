@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, PressableFeedback } from 'heroui-native';
+import { PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
@@ -17,9 +17,9 @@ import {
   DETAIL_TRANSFER_LABEL_FONT_SIZE,
   DETAIL_TRANSFER_NAME_FONT_SIZE,
   DETAIL_TRANSFER_TILE,
-  resolveTransferCardHeight,
   resolveTransferCellHeight,
 } from './detail.geometry';
+import { TransferFlowCardFrame } from './detail_card_frames';
 
 interface Props {
   flow: TransferFlow;
@@ -91,15 +91,11 @@ function Cell({
 }
 
 export function TransferFlowCard({ flow, onOpenAccount }: Props): React.ReactElement {
-  const { fontScale } = useWindowDimensions();
   return (
-    <Card
-      className="border-accent/18 mx-4 mt-4 flex-row items-center gap-2 rounded-2xl border p-3.5"
-      style={{ height: resolveTransferCardHeight(fontScale), boxShadow: 'none' }}
-    >
+    <TransferFlowCardFrame className="border-accent/18 flex-row items-center gap-2">
       <Cell label={Strings.detailFlowFromLabel} cell={flow.from} onOpenAccount={onOpenAccount} />
       <MaterialCommunityIcons name="arrow-right" size={Size.iconBack} color={GoldTokens[500]} />
       <Cell label={Strings.detailFlowToLabel} cell={flow.to} onOpenAccount={onOpenAccount} />
-    </Card>
+    </TransferFlowCardFrame>
   );
 }

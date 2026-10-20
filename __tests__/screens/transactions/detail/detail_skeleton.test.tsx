@@ -5,9 +5,10 @@ import { Dimensions, type ViewStyle } from 'react-native';
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
-import { Size, Type, lineHeightFor } from '@/constants/theme';
+import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
+  DETAIL_NOTE_MIN_HEIGHT,
   resolveDetailHeroGeometry,
   resolveTransferCardHeight,
   resolveTransferSkeletonCellHeight,
@@ -36,7 +37,10 @@ jest.mock('heroui-native', () => {
   return {
     Card: ({ children, ...props }: { children?: ReactNode }) =>
       React.createElement(View, props, children),
+    ListGroup: ({ children, ...props }: { children?: ReactNode }) =>
+      React.createElement(View, props, children),
     SkeletonGroup: Object.assign(Group, { Item }),
+    cn: (...classes: unknown[]) => classes.filter(Boolean).join(' '),
   };
 });
 
@@ -121,8 +125,22 @@ describe('TransactionDetailSkeleton', () => {
     expect(getByTestId('transaction-detail-skeleton-transfer')).toHaveStyle({
       height: resolveTransferCardHeight(fontScale),
     });
+    expect(getByTestId('transaction-detail-skeleton-note')).toHaveStyle({
+      minHeight: DETAIL_NOTE_MIN_HEIGHT,
+    });
     const cell = resolveTransferSkeletonCellHeight(fontScale);
     expect(barsIn('transaction-detail-skeleton-transfer')).toEqual([cell, undefined, cell]);
+  });
+
+  it("MA-203: draws the rows card with the loaded rows card's corner and hairline border", async () => {
+    const { getByTestId } = await render(
+      <TransactionDetailSkeleton transaction={transferHint} actionSet="editDelete" />,
+    );
+
+    expect(getByTestId('transaction-detail-skeleton-rows')).toHaveStyle({
+      borderRadius: Radius.detailCard,
+      borderWidth: Size.hairline,
+    });
   });
 
   it('draws one action bar where the loaded screen shows View commitment', async () => {
