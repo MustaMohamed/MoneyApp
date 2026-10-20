@@ -2,12 +2,16 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
+import { resolveFactRowFlex } from '@/components/ui/fact_row.geometry';
 import { resolveSheetSizeAboveOne } from '@/components/ui/sheet.helpers';
+import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Type } from '@/constants/theme';
 import { FIELD_MESSAGE_RAIL_STYLE } from '@/modules/accounts/components/account_form/account_form.geometry';
 import { AdjustBalanceSheet } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet';
 import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
+import { formatAccountBalance } from '@/utils/format_amount';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -196,5 +200,26 @@ describe('AdjustBalanceSheet size', () => {
     await renderSheet(jest.fn());
 
     expect(mockSheetSize).toHaveBeenLastCalledWith(resolveSheetSizeAboveOne('sm', fontScale));
+  });
+});
+
+describe('AdjustBalanceSheet current balance row', () => {
+  it('MA-201: above scale 1 the label gives way to a whole ellipsis before the amount fits', async () => {
+    const { fontScale } = Dimensions.get('window');
+    expect(fontScale).toBeGreaterThan(1);
+    const { getByText } = await renderSheet(jest.fn());
+
+    const amount = getByText(formatAccountBalance(CURRENT_BALANCE, Currency.EGP));
+    expect(amount).toHaveProp('numberOfLines', 1);
+    expect(amount).toHaveProp('allowFontScaling', false);
+    expect(amount).toHaveProp('adjustsFontSizeToFit', true);
+    expect(amount).toHaveStyle(scaledTextStyle(Type.bodyStrong, fontScale));
+    expect(amount).toHaveStyle(resolveFactRowFlex(true).group);
+
+    const label = getByText(Strings.accountDetailBalance);
+    expect(label).toHaveProp('numberOfLines', 1);
+    expect(label).toHaveProp('allowFontScaling', false);
+    expect(label).toHaveStyle(scaledTextStyle(Type.meta, fontScale));
+    expect(label).toHaveStyle(resolveFactRowFlex(true).label);
   });
 });

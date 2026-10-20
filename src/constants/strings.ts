@@ -347,7 +347,7 @@ export const Strings = {
     'Older transactions may have affected this balance. Check it against your card statement.',
   accountBalanceReviewAdjust: 'Adjust balance',
   accountBalanceReviewConfirm: 'Balance is correct',
-  accountBalanceReviewError: 'Could not confirm this balance. Please try again.',
+  accountBalanceReviewError: "Couldn't confirm this balance. Nothing was changed.",
   editAccountTitle: 'Edit account',
   editAccountNameLabel: 'Name',
   editAccountColorLabel: 'Colour',
@@ -429,7 +429,7 @@ export const Strings = {
   adjustBalanceSave: 'Save',
   adjustBalanceCancel: 'Cancel',
   // Not `errBalanceInvalid`: that one asks the user to fix the value, this one to retry it.
-  adjustBalanceSaveError: 'Could not save this balance. Please try again.',
+  adjustBalanceSaveError: "Couldn't save this balance. Nothing was changed. Try again.",
 
   // Settings Main (U23)
   settingsTitle: 'Settings',
