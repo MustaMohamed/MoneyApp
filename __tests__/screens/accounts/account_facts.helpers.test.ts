@@ -50,8 +50,8 @@ function mkCard(overrides: Partial<Account> = {}): Account {
 describe('buildAccountFacts — non-card types', () => {
   it('a bank account shows currency and opening balance', () => {
     expect(buildAccountFacts(mkAccount())).toEqual([
-      { label: 'Currency', value: 'EGP' },
-      { label: 'Opening balance', value: '30,000 EGP' },
+      { label: 'Currency', value: 'EGP', fitsValue: false },
+      { label: 'Opening balance', value: '30,000 EGP', fitsValue: true },
     ]);
   });
 
@@ -59,12 +59,16 @@ describe('buildAccountFacts — non-card types', () => {
     const facts = buildAccountFacts(
       mkAccount({ currency: Currency.USD, opening_balance: 1250.5, current_balance: 1250.5 }),
     );
-    expect(facts[1]).toEqual({ label: 'Opening balance', value: '1,250.50 USD' });
+    expect(facts[1]).toEqual({ label: 'Opening balance', value: '1,250.50 USD', fitsValue: true });
   });
 
   it('MA-156: an overdrawn opening balance takes the owned minus, never the ASCII hyphen', () => {
     const facts = buildAccountFacts(mkAccount({ opening_balance: -1900, current_balance: -1900 }));
-    expect(facts[1]).toEqual({ label: 'Opening balance', value: `${MINUS_SIGN}1,900 EGP` });
+    expect(facts[1]).toEqual({
+      label: 'Opening balance',
+      value: `${MINUS_SIGN}1,900 EGP`,
+      fitsValue: true,
+    });
     expect(facts[1]?.value).toContain(String.fromCodePoint(0x2212));
     expect(facts[1]?.value).not.toContain('-');
   });
@@ -73,7 +77,11 @@ describe('buildAccountFacts — non-card types', () => {
     const facts = buildAccountFacts(
       mkAccount({ currency: Currency.USD, opening_balance: -42.5, current_balance: -42.5 }),
     );
-    expect(facts[1]).toEqual({ label: 'Opening balance', value: `${MINUS_SIGN}42.50 USD` });
+    expect(facts[1]).toEqual({
+      label: 'Opening balance',
+      value: `${MINUS_SIGN}42.50 USD`,
+      fitsValue: true,
+    });
   });
 
   it.each([
@@ -89,10 +97,10 @@ describe('buildAccountFacts — non-card types', () => {
 describe('buildAccountFacts — credit cards', () => {
   it('a fully filled card shows limit, minimum payment, due day and APR', () => {
     expect(buildAccountFacts(mkCard())).toEqual([
-      { label: 'Credit limit', value: '50,000 EGP' },
-      { label: 'Minimum payment', value: '2,500 EGP' },
-      { label: 'Due day', value: '23rd of the month' },
-      { label: 'APR', value: '24.50% · interest tracked' },
+      { label: 'Credit limit', value: '50,000 EGP', fitsValue: true },
+      { label: 'Minimum payment', value: '2,500 EGP', fitsValue: true },
+      { label: 'Due day', value: '23rd of the month', fitsValue: false },
+      { label: 'APR', value: '24.50% · interest tracked', fitsValue: false },
     ]);
   });
 
@@ -111,12 +119,12 @@ describe('buildAccountFacts — credit cards', () => {
 
   it('appends the tracking note to an unset APR', () => {
     const facts = buildAccountFacts(mkCard({ apr: null, interest_tracking: 1 }));
-    expect(facts[3]).toEqual({ label: 'APR', value: '— · interest tracked' });
+    expect(facts[3]).toEqual({ label: 'APR', value: '— · interest tracked', fitsValue: false });
   });
 
   it('drops the tracking note when interest tracking is off', () => {
     const facts = buildAccountFacts(mkCard({ interest_tracking: 0 }));
-    expect(facts[3]).toEqual({ label: 'APR', value: '24.50%' });
+    expect(facts[3]).toEqual({ label: 'APR', value: '24.50%', fitsValue: false });
   });
 
   it.each([
@@ -136,8 +144,8 @@ describe('buildAccountFacts — credit cards', () => {
     const facts = buildAccountFacts(
       mkCard({ currency: Currency.USD, credit_limit: 500, minimum_payment: 25 }),
     );
-    expect(facts[0]).toEqual({ label: 'Credit limit', value: '500.00 USD' });
-    expect(facts[1]).toEqual({ label: 'Minimum payment', value: '25.00 USD' });
+    expect(facts[0]).toEqual({ label: 'Credit limit', value: '500.00 USD', fitsValue: true });
+    expect(facts[1]).toEqual({ label: 'Minimum payment', value: '25.00 USD', fitsValue: true });
   });
 });
 
@@ -151,8 +159,18 @@ describe('buildMonthFacts', () => {
 
   it("colours a bank's month figures the way the dashboard card colours them", () => {
     expect(buildMonthFacts(mkAccount(), stats)).toEqual([
-      { label: 'This month in', value: '1,251 EGP', valueColor: Colors.dark.positive },
-      { label: 'This month out', value: '640 EGP', valueColor: Colors.dark.negative },
+      {
+        label: 'This month in',
+        value: '1,251 EGP',
+        valueColor: Colors.dark.positive,
+        fitsValue: true,
+      },
+      {
+        label: 'This month out',
+        value: '640 EGP',
+        valueColor: Colors.dark.negative,
+        fitsValue: true,
+      },
     ]);
   });
 
@@ -166,15 +184,15 @@ describe('buildMonthFacts', () => {
     expect(
       buildMonthFacts(mkAccount(), { month_in: 0, month_out: 0, week_in: 0, week_out: 0 }),
     ).toEqual([
-      { label: 'This month in', value: '0 EGP', valueColor: Colors.dark.text1 },
-      { label: 'This month out', value: '0 EGP', valueColor: Colors.dark.text1 },
+      { label: 'This month in', value: '0 EGP', valueColor: Colors.dark.text1, fitsValue: true },
+      { label: 'This month out', value: '0 EGP', valueColor: Colors.dark.text1, fitsValue: true },
     ]);
   });
 
   it('holds the two rows at the unset glyph before the load lands', () => {
     expect(buildMonthFacts(mkAccount(), undefined)).toEqual([
-      { label: 'This month in', value: '—' },
-      { label: 'This month out', value: '—' },
+      { label: 'This month in', value: '—', fitsValue: true },
+      { label: 'This month out', value: '—', fitsValue: true },
     ]);
   });
 
@@ -188,14 +206,52 @@ describe('buildMonthFacts', () => {
   });
 });
 
+describe('fitted fact values (MA-197)', () => {
+  const stats: AccountStats = { month_in: 1250, month_out: 640, week_in: 0, week_out: 0 };
+
+  it('fits every amount and count to one line and leaves the currency code, due day and APR text unfitted', () => {
+    const fitsByLabel = Object.fromEntries(
+      [
+        ...buildAccountFacts(mkAccount()),
+        ...buildMonthFacts(mkAccount(), stats),
+        ...buildAccountFacts(mkCard()),
+        ...buildArchivedAccountFacts(mkAccount({ is_archived: 1 }), {
+          transactionCount: 1204,
+          activeCommitmentCount: 3,
+        }),
+      ].map((fact) => [fact.label, fact.fitsValue]),
+    );
+
+    expect(fitsByLabel).toEqual({
+      Currency: false,
+      'Opening balance': true,
+      'This month in': true,
+      'This month out': true,
+      'Credit limit': true,
+      'Minimum payment': true,
+      'Due day': false,
+      APR: false,
+      Transactions: true,
+      'Commitments paid from it': true,
+    });
+  });
+
+  it('fits the month rows while they hold the unset glyph, as once they load', () => {
+    expect(buildMonthFacts(mkAccount(), undefined).map((fact) => fact.fitsValue)).toEqual([
+      true,
+      true,
+    ]);
+  });
+});
+
 describe('buildArchivedAccountFacts', () => {
   const counts = { transactionCount: 42, activeCommitmentCount: 1 };
 
   it('a bank gives currency, transactions and commitments, and nothing else', () => {
     expect(buildArchivedAccountFacts(mkAccount({ is_archived: 1 }), counts)).toEqual([
-      { label: 'Currency', value: 'EGP' },
-      { label: 'Transactions', value: '42' },
-      { label: 'Commitments paid from it', value: '1' },
+      { label: 'Currency', value: 'EGP', fitsValue: false },
+      { label: 'Transactions', value: '42', fitsValue: true },
+      { label: 'Commitments paid from it', value: '1', fitsValue: true },
     ]);
   });
 

@@ -79,3 +79,39 @@ describe('MA-168 converted amount copy', () => {
     expect(Strings.addTxEgpPreview).toBe('≈ {amount} EGP');
   });
 });
+
+describe('MA-097 budget lookup copy and the approved failure strings', () => {
+  it("reads the Budget row's failed lookup as Couldn't load budgets. and its retry as Try again", () => {
+    expect(Strings.addTxBudgetLookupError).toBe("Couldn't load budgets.");
+    expect(Strings.addTxBudgetRetryA11y).toBe('Try again');
+  });
+
+  it('holds the four strings the #543 review approved', () => {
+    expect([
+      Strings.transactionsTotalsLoadError,
+      Strings.transactionsAccountLookupError,
+      Strings.addTxBudgetLookupError,
+      Strings.addTxBudgetRetryA11y,
+    ]).toEqual([
+      "Couldn't load this month's figures.",
+      "Couldn't load account names.",
+      "Couldn't load budgets.",
+      'Try again',
+    ]);
+  });
+
+  it('keeps no string that still reads the old budget lookup failure or its retry', () => {
+    const stale = Object.entries(Strings).filter(
+      ([, value]) =>
+        typeof value === 'string' &&
+        (value.includes('Could not load matching budgets') ||
+          value.includes('Retry matching budget lookup')),
+    );
+
+    expect(stale).toEqual([]);
+  });
+
+  it('drops the From Account picker title, which nothing reads', () => {
+    expect(Object.hasOwn(Strings, 'addTxPickFromTitle')).toBe(false);
+  });
+});

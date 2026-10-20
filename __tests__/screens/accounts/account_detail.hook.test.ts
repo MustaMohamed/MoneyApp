@@ -569,8 +569,16 @@ describe('useAccountDetail — the activity slice the screen renders', () => {
     const { result } = await renderHook(() => useAccountDetail());
 
     expect(result.current.state.activity.monthFacts).toEqual([
-      { label: Strings.accountDetailMonthInLabel, value: Strings.accountDetailFactUnset },
-      { label: Strings.accountDetailMonthOutLabel, value: Strings.accountDetailFactUnset },
+      {
+        label: Strings.accountDetailMonthInLabel,
+        value: Strings.accountDetailFactUnset,
+        fitsValue: true,
+      },
+      {
+        label: Strings.accountDetailMonthOutLabel,
+        value: Strings.accountDetailFactUnset,
+        fitsValue: true,
+      },
     ]);
     expect(result.current.state.activity.rows).toEqual([]);
   });

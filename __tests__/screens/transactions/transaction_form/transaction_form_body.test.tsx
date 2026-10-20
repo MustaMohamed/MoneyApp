@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react-n
 import React from 'react';
 import { Dimensions } from 'react-native';
 
+import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { scaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -85,7 +86,6 @@ import {
   ACCOUNT_STRIP_CHIP_WIDTH,
   ACCOUNT_STRIP_GAP,
   AMOUNT_MESSAGE_TEXT_STYLE,
-  FACT_ROW_MIN_HEIGHT,
   TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
   resolveAccountStripChipGeometry,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
@@ -100,6 +100,11 @@ import {
   TransactionFormBody,
 } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 import { makeTestAccount } from '@/test_helpers/transaction';
+
+// The shared fact row's height at the suite's font scale, above 1.
+function factRowHeight(): number {
+  return resolveFactRowHeight(Dimensions.get('window').fontScale);
+}
 
 const stripAccount = makeTestAccount({
   id: 'account-1',
@@ -205,7 +210,7 @@ describe('TransactionFormBody geometry', () => {
       ['budget-row', 'budget-ring', 'Pick a budget'],
     ]) {
       expect(screen.getByTestId(ring)).toBeTruthy();
-      expect(screen.getByTestId(row)).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+      expect(screen.getByTestId(row)).toHaveStyle({ height: factRowHeight() });
       expect(screen.getByTestId(row)).toHaveProp('accessibilityHint', message);
       expect(screen.queryByText(message)).toBeNull();
     }
@@ -222,7 +227,7 @@ describe('TransactionFormBody geometry', () => {
 
     expect(screen.queryByTestId('to-account-error-slot')).toBeNull();
     expect(screen.getByTestId('to-account-ring')).toBeTruthy();
-    expect(screen.getByTestId('to-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    expect(screen.getByTestId('to-account-row')).toHaveStyle({ height: factRowHeight() });
     expect(screen.getByTestId('to-account-row')).toHaveProp(
       'accessibilityHint',
       'Pick where the money goes',
@@ -231,7 +236,7 @@ describe('TransactionFormBody geometry', () => {
   });
 
   it('rings the budget row for a budget fault but not for a lookup failure, which is a data error', async () => {
-    const lookupError = 'Could not load matching budgets. Try again.';
+    const lookupError = Strings.addTxBudgetLookupError;
     const { rerender } = await render(
       <TransactionFormBody {...baseProps} showBudgetField budgetError="Pick a budget" />,
     );
@@ -297,7 +302,7 @@ describe('TransactionFormBody fact rows', () => {
   it('draws the category picker as a fact row with key and value', async () => {
     await render(<TransactionFormBody {...baseProps} />);
 
-    expect(screen.getByTestId('category-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    expect(screen.getByTestId('category-row')).toHaveStyle({ height: factRowHeight() });
 
     const categoryRow = within(screen.getByTestId('category-row'));
     expect(categoryRow.getByText('Category')).toBeTruthy();
@@ -333,7 +338,7 @@ describe('TransactionFormBody fact rows', () => {
       />,
     );
 
-    expect(screen.getByTestId('to-account-row')).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    expect(screen.getByTestId('to-account-row')).toHaveStyle({ height: factRowHeight() });
     expect(screen.getByTestId('to-account-row')).toHaveProp('accessibilityState', {
       disabled: true,
     });
@@ -373,7 +378,7 @@ describe('TransactionFormBody fact rows', () => {
     const input = screen.getByPlaceholderText(Strings.addTxNotePlaceholder);
     const noteRow = screen.getByTestId('note-row');
     expect(within(noteRow).getByText(Strings.addTxNoteLabel)).toBeTruthy();
-    expect(input).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    expect(input).toHaveStyle({ minHeight: factRowHeight() });
 
     await fireEvent.changeText(input, 'Lunch with the team');
     expect(setNote).toHaveBeenCalledWith('Lunch with the team');
@@ -429,12 +434,15 @@ describe('TransactionFormBody fact rows', () => {
   });
 
   it('MA-163: puts no line cap on the budget lookup failure, so it is whole, and holds a loaded budget to one line', async () => {
-    const lookupError = 'Could not load matching budgets. Try again.';
+    const lookupError = Strings.addTxBudgetLookupError;
     const { rerender } = await render(
       <TransactionFormBody {...baseProps} showBudgetField budgetLookupError={lookupError} />,
     );
 
-    const failure = within(screen.getByTestId('budget-row')).getByText(lookupError);
+    const failedRow = screen.getByTestId('budget-row');
+    expect(failedRow).toHaveStyle({ minHeight: factRowHeight() });
+    expect(failedRow).toHaveProp('accessibilityLabel', Strings.addTxBudgetRetryA11y);
+    const failure = within(failedRow).getByText(lookupError);
     // RN reads 0 and an absent prop alike as no cap.
     const lineCap: unknown = failure.props.numberOfLines;
     expect(lineCap ?? 0).toBe(0);
@@ -516,7 +524,7 @@ describe('MA-170 Rate row', () => {
     const row = screen.getByTestId('exchange-rate-row');
     expect(row).toHaveProp('accessibilityRole', 'button');
     expect(row).toHaveProp('accessibilityLabel', 'Rate, 52.14');
-    expect(row).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+    expect(row).toHaveStyle({ height: factRowHeight() });
     expect(within(row).getByText(Strings.addTxRateLabel)).toBeTruthy();
     expect(within(row).getByText('52.14')).toBeTruthy();
     expect(screen.queryByText(Strings.currencyRateLabel)).toBeNull();
@@ -544,6 +552,7 @@ describe('MA-170 Rate row', () => {
     );
     expect(staleRow).toHaveProp('accessibilityRole', 'button');
     expect(staleRow).toHaveProp('accessibilityLabel', 'Rate, 52.14');
+    expect(staleRow).toHaveStyle({ minHeight: factRowHeight() });
 
     await rerender(React.cloneElement(usdExpense, { rateUpdatedAt: null }));
 
@@ -928,7 +937,7 @@ describe('TransactionFormLoading', () => {
     const factRows = screen.getAllByTestId('transaction-form-skeleton-fact-row');
     expect(factRows).toHaveLength(4);
     for (const row of factRows) {
-      expect(row).toHaveStyle({ minHeight: FACT_ROW_MIN_HEIGHT });
+      expect(row).toHaveStyle({ height: factRowHeight() });
     }
   });
 
