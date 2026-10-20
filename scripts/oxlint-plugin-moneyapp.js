@@ -127,7 +127,7 @@ function resolveTarget(specifier, fileRelativePath) {
   if (specifier.startsWith('@/')) return specifier.slice(2);
   if (specifier.startsWith('./') || specifier.startsWith('../')) {
     const dir = path.posix.dirname(fileRelativePath);
-    const joined = path.posix.normalize(path.posix.join(dir, specifier));
+    const joined = path.posix.join(dir, specifier);
     return joined.startsWith('..') ? undefined : joined;
   }
   return undefined;
