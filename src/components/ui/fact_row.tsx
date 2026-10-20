@@ -85,13 +85,16 @@ export function FactRow({
     inset ? 'px-4' : 'px-0',
     showDivider && 'border-separator border-b',
   );
+  // Edge keys, as `py-0` sets them; a fixed-height row keeps 0, since Android shrinks a fitted line padded inside it.
+  const growingPadding = geometry.minHeight === undefined ? 0 : geometry.paddingVertical;
   const style = {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     height: geometry.height,
     minHeight: geometry.minHeight,
-    paddingVertical: geometry.paddingVertical,
+    paddingTop: growingPadding,
+    paddingBottom: growingPadding,
   } as const;
 
   const labelNode = (
