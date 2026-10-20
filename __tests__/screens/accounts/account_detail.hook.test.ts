@@ -76,10 +76,9 @@ jest.mock('@/modules/transactions/store/transaction.store', () => ({
 jest.mock('@/modules/transactions/store/transactions.store', () => ({
   useTransactionsScreenStore: { getState: () => ({ seedAccountFilter: mockSeedAccountFilter }) },
 }));
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
-  () => ({ useTransactionFormState: { getState: () => ({ openAdd: mockOpenAdd }) } }),
-);
+jest.mock('@/modules/transactions/store/transaction_form_host.state', () => ({
+  useTransactionFormState: { getState: () => ({ openAdd: mockOpenAdd }) },
+}));
 jest.mock(
   '@/modules/accounts/screens/accounts/detail/components/replacement_account_sheet.state',
   () => ({

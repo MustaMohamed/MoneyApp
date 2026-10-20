@@ -6,12 +6,11 @@ import { useAddTransactionState } from '@/modules/transactions/screens/transacti
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
+import { resolveTransactionFormFooterVisible } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
+import type { TransactionFormMode } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.types';
 import type { TransactionFormPrerequisiteStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
+import { areTransactionFormPrerequisitesReady } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
-
-import { resolveTransactionFormFooterVisible } from './transaction_form.helpers';
-import type { TransactionFormMode } from './transaction_form.types';
-import { areTransactionFormPrerequisitesReady } from './transaction_form_prerequisites.helpers';
 
 export type TransactionFormPhase = 'closed' | 'open' | 'closing';
 export type TransactionFormPostCloseAction = 'addAccount' | 'saved';

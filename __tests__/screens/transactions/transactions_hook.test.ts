@@ -42,14 +42,11 @@ jest.mock('expo-router', () => ({
   }),
 }));
 
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
-  () => ({
-    useTransactionFormState: {
-      getState: () => ({ openAdd: mockOpenAdd, openEdit: mockOpenEdit }),
-    },
-  }),
-);
+jest.mock('@/modules/transactions/store/transaction_form_host.state', () => ({
+  useTransactionFormState: {
+    getState: () => ({ openAdd: mockOpenAdd, openEdit: mockOpenEdit }),
+  },
+}));
 
 jest.mock('@/utils/run_after_interactions', () => ({
   runAfterInteractions: jest.fn((callback: () => void | Promise<void>) => {

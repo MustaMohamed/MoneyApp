@@ -16,8 +16,8 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { stackedPrefixOf } from '@/modules/navigation/domain/stacked_route';
-import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 import { useTransactionDelete } from '../transaction_delete.hook';

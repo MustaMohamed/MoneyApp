@@ -21,8 +21,8 @@ import { useTransactionDetail } from '@/modules/transactions/screens/transaction
 import { useTxDetailState } from '@/modules/transactions/screens/transactions/detail/detail.state';
 import { useTxDetailStore } from '@/modules/transactions/screens/transactions/detail/detail.store';
 import { useTransactionDeleteState } from '@/modules/transactions/screens/transactions/transaction_delete.state';
-import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
@@ -74,10 +74,9 @@ jest.mock('@/modules/commitments/store/commitment.store', () => ({
 jest.mock('@/modules/transactions/store/transaction.store', () => ({
   useTransactionStore: jest.fn(),
 }));
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
-  () => ({ useTransactionFormState: { getState: jest.fn() } }),
-);
+jest.mock('@/modules/transactions/store/transaction_form_host.state', () => ({
+  useTransactionFormState: { getState: jest.fn() },
+}));
 jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: {
     getPaymentById: (id: string) => mockGetCommitmentPaymentById(id),
@@ -188,9 +187,9 @@ beforeEach(() => {
   getById = jest.fn().mockResolvedValue(linkedTransaction);
   mockGetBudgetById.mockResolvedValue(undefined);
   const actualFormState = jest
-    .requireActual<
-      typeof import('@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state')
-    >('@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state')
+    .requireActual<typeof import('@/modules/transactions/store/transaction_form_host.state')>(
+      '@/modules/transactions/store/transaction_form_host.state',
+    )
     .useTransactionFormState.getState();
   jest.mocked(useTransactionFormState.getState).mockReturnValue({
     ...actualFormState,

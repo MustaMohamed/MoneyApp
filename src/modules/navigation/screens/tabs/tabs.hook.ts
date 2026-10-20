@@ -10,7 +10,7 @@ import {
   resolveTabLabelStyle,
   resolveTabsGeometry,
 } from '@/modules/navigation/screens/tabs/tabs.helpers';
-import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 
 export function useTabsLayout() {
   const router = useRouter();

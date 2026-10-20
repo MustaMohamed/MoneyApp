@@ -12,9 +12,9 @@ import {
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { transactionRepository } from '@/modules/transactions/repositories/transaction.repository';
-import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import type { TransactionListStatus } from '@/modules/transactions/store/transaction.store';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
 import {
   type TransactionTotalsState,

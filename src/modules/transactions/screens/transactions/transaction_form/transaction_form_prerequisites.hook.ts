@@ -4,9 +4,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 
 import type { TransactionFormMode } from './transaction_form.types';
-import { useTransactionFormState } from './transaction_form_host.state';
 import {
   ACCOUNT_LOOKUP_ATTEMPTS,
   ensureTransactionFormPrerequisite,
