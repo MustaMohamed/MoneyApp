@@ -8,8 +8,8 @@ import { useAccountActivityStore } from '@/modules/accounts/store/account_activi
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { stackedTransactionDetailRoute } from '@/modules/navigation/domain/stacked_route';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
-import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { useTransactionsScreenStore } from '@/modules/transactions/store/transactions.store';
 import { resolveAccountName } from '@/utils/account_name';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { currentYearMonth } from '@/utils/year_month';

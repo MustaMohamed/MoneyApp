@@ -73,7 +73,7 @@ jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore
 jest.mock('@/modules/transactions/store/transaction.store', () => ({
   useTransactionStore: { getState: () => ({ mutationVersion: 3 }) },
 }));
-jest.mock('@/modules/transactions/screens/transactions/transactions.store', () => ({
+jest.mock('@/modules/transactions/store/transactions.store', () => ({
   useTransactionsScreenStore: { getState: () => ({ seedAccountFilter: mockSeedAccountFilter }) },
 }));
 jest.mock(

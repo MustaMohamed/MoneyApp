@@ -18,6 +18,7 @@ import { resolveDayCardSwipeCorners } from '@/modules/transactions/components/da
 import { TransactionRow } from '@/modules/transactions/components/transaction_row';
 import { TransactionRowsSkeleton } from '@/modules/transactions/components/transaction_rows_skeleton';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import type { TransactionFilter } from '@/modules/transactions/store/transactions.store';
 import { ms } from '@/utils/responsive';
 
 import { AccountChips } from './components/account_chips';
@@ -35,7 +36,6 @@ import { TxDeleteDialog } from './components/tx_delete_dialog';
 import { FilterSheet } from './filter';
 import { useTransactions } from './transactions.hook';
 import type { TransactionSection } from './transactions.hook';
-import type { TransactionFilter } from './transactions.store';
 
 const TRANSACTION_FILTERS: ReadonlyArray<SegmentFilterOption<TransactionFilter>> = [
   {

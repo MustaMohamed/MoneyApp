@@ -8,7 +8,7 @@ import {
   EMPTY_FILTERS,
   useFilterStore,
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
-import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
+import { useTransactionsScreenStore } from '@/modules/transactions/store/transactions.store';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 beforeEach(() => {

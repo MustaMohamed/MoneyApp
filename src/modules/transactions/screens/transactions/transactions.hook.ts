@@ -16,6 +16,10 @@ import { useTransactionFormState } from '@/modules/transactions/screens/transact
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import type { TransactionListStatus } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
+import {
+  type TransactionTotalsState,
+  useTransactionsScreenStore,
+} from '@/modules/transactions/store/transactions.store';
 import { toLocalDateString } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
@@ -48,7 +52,6 @@ import {
 } from './transactions.helpers';
 import { buildTransactionsPresentation } from './transactions.presentation';
 import { useTransactionsState } from './transactions.state';
-import { type TransactionTotalsState, useTransactionsScreenStore } from './transactions.store';
 
 export type TransactionSection = TransactionDaySection;
 type ScrollOffsetEvent = { nativeEvent: { contentOffset: { y: number } } };

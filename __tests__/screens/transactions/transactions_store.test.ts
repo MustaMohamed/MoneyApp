@@ -11,7 +11,7 @@ import { totalsScopeKey } from '@/modules/transactions/screens/transactions/tran
 import {
   type TransactionTotalsState,
   useTransactionsScreenStore,
-} from '@/modules/transactions/screens/transactions/transactions.store';
+} from '@/modules/transactions/store/transactions.store';
 
 beforeEach(() => {
   useTransactionsScreenStore.getState().reset();
