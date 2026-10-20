@@ -35,4 +35,4 @@ The bodies of `computeDeltaPct`, `polarityColor`, `formatSignedAmount`, `buildTo
 
 ## 5. Out of scope
 
-`transactions.store` and `transaction_form_host.state`, read from accounts and navigation, stay in the screen folders. They are the follow-up task named on #585.
+A module `components/` folder read across modules is the follow-up task named on #585. `transactions.store` and `transaction_form_host.state`, read from accounts and navigation, left the screen folders for `src/modules/transactions/store/` under #763; `docs/adr/2026-09-28-shared-helpers-leave-screen-folders.md` §4 records the homes.

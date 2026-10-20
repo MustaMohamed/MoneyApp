@@ -3,7 +3,7 @@
 - **Date:** 2026-09-28
 - **Status:** accepted
 - **Ticket:** #611 (MA-129), under #585
-- **Applies to:** `src/utils/format_amount.ts`, `src/modules/accounts/utils/account_info_rows.ts`, `src/modules/commitments/utils/commitment_status.ts`, `src/modules/commitments/utils/recurrence_label.ts`, `src/modules/budget/utils/budget_summary.ts`, `src/components/ui/keyboard_lift.geometry.ts`, `src/components/ui/keyboard_lift.anim.ts`, `src/components/ui/cta_footer.tsx`
+- **Applies to:** `src/utils/format_amount.ts`, `src/modules/accounts/utils/account_info_rows.ts`, `src/modules/commitments/utils/commitment_status.ts`, `src/modules/commitments/utils/recurrence_label.ts`, `src/modules/budget/utils/budget_summary.ts`, `src/components/ui/keyboard_lift.geometry.ts`, `src/components/ui/keyboard_lift.anim.ts`, `src/components/ui/cta_footer.tsx`, `src/modules/dashboard/store/dashboard.store.ts`, `src/modules/accounts/store/account_activity.store.ts`, `src/modules/transactions/store/transactions.store.ts`, `src/modules/transactions/store/transaction_form_host.state.ts`, `scripts/oxlint-plugin-moneyapp.js`
 
 Accounts and dashboard imported helpers from inside the dashboard, commitments and budget screen folders, and the edit account form imported the onboarding shell's footer and keyboard lift (audit M4). Nothing at a screen file said another module depended on it, so a refactor inside one screen could break a second module with no warning. This record fixes where such a piece lives.
 
@@ -18,6 +18,8 @@ The footer is `CtaFooter` in `cta_footer.tsx`, the rename PR #580 gave `Onboardi
 **Superseded in part 2026-10-04 (#624).** A piece no single module owns lives in `src/utils/`: the owned and owed amount composers, which dashboard, transactions, budget and accounts all print, moved into `src/utils/format_amount.ts`. The account card row builders moved to their owner's `utils/` under this section, from dashboard to accounts. `docs/adr/2026-10-04-owned-owed-composers-shared-home.md` records both.
 
 **Extended 2026-10-04 (#666).** The row builders' money derivations left `utils/` for `src/modules/accounts/domain/account_figures.ts` under this section's `domain/` clause, and `is_over_limit.ts` moved from `constants/` to `domain/`. `docs/adr/2026-10-04-account-figures-in-domain.md` records both.
+
+**Extended 2026-10-20 (#763).** `constants/` holds fixed tables and the colour and label resolvers built on them, their money arithmetic in `domain/`: `src/modules/accounts/constants/available_credit_color.ts` reads `isOverLimit` from `domain/` and keeps its folder. `CLAUDE.md` § Project Structure names the module folders under this reading.
 
 ## 2. The module a piece left keeps no re-export
 
@@ -34,3 +36,5 @@ Every importer names the new path. A re-export in the old file, or a barrel `ind
 A screen store read across modules, such as `useDashboardStore` in `accounts_list.hook.ts`, and a module `components/` folder read across modules are not covered here. Both are follow-up tasks under #585.
 
 **Extended 2026-10-18 (#610).** The transactions module's `components/` now holds the row family and the exchange rate row that accounts and commitments read, and the day-card pieces the row skeleton reads. `docs/adr/2026-10-18-transactions-pieces-leave-screen-folders.md` records it.
+
+**Extended 2026-10-20 (#763).** A screen store or a screen state another module reads lives in the owner's `store/`: `src/modules/dashboard/store/dashboard.store.ts`, read by the accounts list; `src/modules/accounts/store/account_activity.store.ts`, read by the transaction detail; `src/modules/transactions/store/transactions.store.ts` and `src/modules/transactions/store/transaction_form_host.state.ts`, read by the account detail and the tab bar. Each moved whole with `git mv`, its body unchanged but for its import lines, and the screen folder it left keeps no re-export. A moved store or state keeps its imports from its own module's screens, as `src/modules/dashboard/repositories/dashboard.repository.ts:13-17` reads `dashboard.helpers.ts`. The guard is `moneyapp/screens-import-boundary` in `scripts/oxlint-plugin-moneyapp.js`, at `error` in `.oxlintrc.json`: an import from another module's screens folder fails lint anywhere under `src/` but `src/app/` and `src/test_helpers/`, and a screens import, the file's own module included, fails in `src/components/` and in a module's `components/`, `utils/` or `domain/` (2026-10-18 §2). A module `components/` folder read across modules stays open.
