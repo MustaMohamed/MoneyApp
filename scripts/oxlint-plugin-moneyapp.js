@@ -1,4 +1,5 @@
 // oxlint JS plugins are alpha; re-verify the registration and `-f json` shapes on any oxlint bump.
+const path = require('node:path');
 
 const NAV_OPTION_STYLE_KEYS = new Set([
   'headerTitleStyle',
@@ -109,7 +110,7 @@ const SRC_ROOTS = new Set([
   'constants',
   'screens',
 ]);
-const MODULE_SCREENS_TARGET = /^modules\/([^/]+)\/screens\//;
+const MODULE_SCREENS_TARGET = /^modules\/([^/]+)\/screens(?:\/|$)/;
 const SHARED_FOLDER_FILE = /^(?:components\/|modules\/[^/]+\/(?:components|utils|domain)\/)/;
 
 /** The path after the last `src/` segment, or undefined when the file is not under one of its eight children. */
@@ -121,26 +122,13 @@ function srcRelativePath(filename) {
   return SRC_ROOTS.has(relative.split('/')[0]) ? relative : undefined;
 }
 
-function normalizeSegments(segments) {
-  const out = [];
-  for (const segment of segments) {
-    if (segment === '' || segment === '.') continue;
-    if (segment === '..') {
-      if (out.length === 0) return undefined;
-      out.pop();
-    } else {
-      out.push(segment);
-    }
-  }
-  return out.join('/');
-}
-
 /** The import target as a path under `src/`, or undefined for a bare package or a path that leaves `src/`. */
 function resolveTarget(specifier, fileRelativePath) {
   if (specifier.startsWith('@/')) return specifier.slice(2);
   if (specifier.startsWith('./') || specifier.startsWith('../')) {
-    const dir = fileRelativePath.split('/').slice(0, -1);
-    return normalizeSegments([...dir, ...specifier.split('/')]);
+    const dir = path.posix.dirname(fileRelativePath);
+    const joined = path.posix.normalize(path.posix.join(dir, specifier));
+    return joined.startsWith('..') ? undefined : joined;
   }
   return undefined;
 }
@@ -255,7 +243,8 @@ module.exports = {
           const target = resolveTarget(specifier, fileRelativePath);
           if (target === undefined) return;
           const screensModule = MODULE_SCREENS_TARGET.exec(target)?.[1];
-          const targetsScreens = screensModule !== undefined || target.startsWith('screens/');
+          const targetsScreens =
+            screensModule !== undefined || target === 'screens' || target.startsWith('screens/');
           if (inSharedFolder && targetsScreens) {
             context.report({ node, messageId: 'sharedFolder' });
             return;
@@ -286,3 +275,6 @@ module.exports = {
     },
   },
 };
+
+// `validate-structural-guards.js` checks the set against `ls src`; a non-enumerable key keeps the plugin shape oxlint reads.
+Object.defineProperty(module.exports, 'SRC_ROOTS', { value: SRC_ROOTS, enumerable: false });

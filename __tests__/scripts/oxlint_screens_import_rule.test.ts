@@ -59,6 +59,12 @@ const FIXTURES: Fixture[] = [
     line: 1,
   },
   {
+    name: 'src/modules/accounts/screens/a/folder_import.ts',
+    content:
+      "import { useTransactionsStore } from '@/modules/transactions/screens';\nexport const a = useTransactionsStore;\n",
+    line: 1,
+  },
+  {
     name: 'src/store/dashboard.store.ts',
     content:
       "export { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';\n",

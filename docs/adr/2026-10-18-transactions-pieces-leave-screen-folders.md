@@ -31,7 +31,9 @@ Four files were split. `transactions.helpers.ts` imports back `computeDeltaPct`,
 
 ## 4. Money
 
-The bodies of `computeDeltaPct`, `polarityColor`, `formatSignedAmount`, `buildTotalsPresentation`, `expenseSharePct` and `deltaDisplay` did not change, and `transactions_helpers.test.ts` passes with no assertion changed. `scripts/validate-money-rounding.js` lists `expense_share.ts` and `period_delta.ts` under `toCents` and `wholePercentOf`, since #763 moved the share's arithmetic out of `totals_presentation.ts`. The `leftOfIncome` owned-sign entry in `scripts/validate-money-formatting.js` stays on `transactions.helpers.ts`, which still builds that figure.
+The bodies of `computeDeltaPct`, `polarityColor`, `formatSignedAmount`, `buildTotalsPresentation`, `expenseSharePct` and `deltaDisplay` did not change, and `transactions_helpers.test.ts` passes with no assertion changed. `scripts/validate-money-rounding.js` lists `period_delta.ts` and `totals_presentation.ts` under `toCents` and `wholePercentOf`. The `leftOfIncome` owned-sign entry in `scripts/validate-money-formatting.js` stays on `transactions.helpers.ts`, which still builds that figure.
+
+**Extended 2026-10-20 (#763).** `buildTotalsPresentation` now calls `expenseSharePercent` for the share, keeping the snap of the expense and the four states, and `transactions_helpers.test.ts` still passes with no assertion changed. `scripts/validate-money-rounding.js` lists `expense_share.ts` and `period_delta.ts` under `toCents` and `wholePercentOf`, and no longer lists `totals_presentation.ts`, which calls neither.
 
 ## 5. Out of scope
 
