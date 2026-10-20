@@ -93,7 +93,7 @@ jest.mock('@/components/ui/toast', () => ({
   useToast: () => ({ toast: mockToast, isToastVisible: false }),
 }));
 const mockEnsure = jest.fn<Promise<void>, [unknown]>();
-jest.mock('@/modules/accounts/screens/accounts/detail/account_activity.store', () => ({
+jest.mock('@/modules/accounts/store/account_activity.store', () => ({
   useAccountActivityStore: { getState: () => ({ ensure: mockEnsure }) },
 }));
 jest.mock('@/utils/run_after_interactions', () => ({

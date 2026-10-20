@@ -4,8 +4,8 @@ import { Alert } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
-import { useAccountActivityStore } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountActivityStore } from '@/modules/accounts/store/account_activity.store';
 import {
   findMissingAccountIds,
   getTransactionAccountIds,
