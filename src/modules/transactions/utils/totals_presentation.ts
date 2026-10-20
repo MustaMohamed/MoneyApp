@@ -1,13 +1,14 @@
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
+import { expenseSharePercent } from '@/modules/transactions/domain/expense_share';
 import {
   MINUS_SIGN,
   PLUS_SIGN,
   formatDisplayMagnitude,
   signAmountText,
 } from '@/utils/format_amount';
-import { snapToZero, toCents, wholePercentOf } from '@/utils/money';
+import { snapToZero } from '@/utils/money';
 
 export type TotalsMetric = 'income' | 'expense' | 'net';
 
@@ -43,9 +44,7 @@ export function formatSignedAmount(value: number, metric: TotalsMetric): string 
 
 export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentation {
   const expenseEgp = snapToZero(current.expenseEgp);
-  const incomeCents = toCents(current.incomeEgp);
-  const rawExpenseSharePct =
-    incomeCents > 0 ? wholePercentOf(toCents(expenseEgp), incomeCents) : null;
+  const rawExpenseSharePct = expenseSharePercent(expenseEgp, current.incomeEgp);
   const railPct = Math.max(0, Math.min(100, rawExpenseSharePct ?? 0));
 
   if (expenseEgp < 0) {
@@ -61,7 +60,7 @@ export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentati
     };
   }
 
-  if (incomeCents <= 0) {
+  if (rawExpenseSharePct === null) {
     return {
       state: 'noIncome',
       rawExpenseSharePct: null,
@@ -74,16 +73,16 @@ export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentati
     };
   }
 
-  if ((rawExpenseSharePct ?? 0) > 100) {
+  if (rawExpenseSharePct > 100) {
     return {
       state: 'overIncome',
       rawExpenseSharePct,
       railPct,
       hasOverflow: true,
-      caption: Strings.totalsOverIncome(rawExpenseSharePct ?? 0),
+      caption: Strings.totalsOverIncome(rawExpenseSharePct),
       captionClassName: 'text-danger',
       railClassName: 'bg-danger',
-      accessibilityLabel: Strings.totalsExpenseShareA11y(rawExpenseSharePct ?? 0),
+      accessibilityLabel: Strings.totalsExpenseShareA11y(rawExpenseSharePct),
     };
   }
 
@@ -95,7 +94,7 @@ export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentati
     caption: Strings.totalsWithinIncome,
     captionClassName: 'text-success',
     railClassName: 'bg-danger',
-    accessibilityLabel: Strings.totalsExpenseShareA11y(rawExpenseSharePct ?? 0),
+    accessibilityLabel: Strings.totalsExpenseShareA11y(rawExpenseSharePct),
   };
 }
 
