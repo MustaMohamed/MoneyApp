@@ -361,7 +361,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                     ? Strings.addTxBudgetLoading
                     : (budgetLookupError ?? selectedBudget?.name ?? Strings.addTxPickBudgetTitle)
                 }
-                valueNumberOfLines={budgetLookupError ? 0 : undefined}
+                wrapsValue={budgetLookupError !== undefined}
                 valueClassName={budgetLookupError ? 'font-inter-medium text-danger' : undefined}
                 valueFontSize={budgetLookupError ? Type.caption : undefined}
                 prefix={

@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react-n
 import React from 'react';
 import { Dimensions } from 'react-native';
 
-import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
+import { FACT_ROW_PADDING, resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { scaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -302,7 +302,10 @@ describe('TransactionFormBody fact rows', () => {
   it('draws the category picker as a fact row with key and value', async () => {
     await render(<TransactionFormBody {...baseProps} />);
 
-    expect(screen.getByTestId('category-row')).toHaveStyle({ height: factRowHeight() });
+    expect(screen.getByTestId('category-row')).toHaveStyle({
+      height: factRowHeight(),
+      paddingTop: 0,
+    });
 
     const categoryRow = within(screen.getByTestId('category-row'));
     expect(categoryRow.getByText('Category')).toBeTruthy();
@@ -552,7 +555,11 @@ describe('MA-170 Rate row', () => {
     );
     expect(staleRow).toHaveProp('accessibilityRole', 'button');
     expect(staleRow).toHaveProp('accessibilityLabel', 'Rate, 52.14');
-    expect(staleRow).toHaveStyle({ minHeight: factRowHeight() });
+    expect(staleRow).toHaveStyle({
+      minHeight: factRowHeight(),
+      paddingTop: FACT_ROW_PADDING,
+      paddingBottom: FACT_ROW_PADDING,
+    });
 
     await rerender(React.cloneElement(usdExpense, { rateUpdatedAt: null }));
 

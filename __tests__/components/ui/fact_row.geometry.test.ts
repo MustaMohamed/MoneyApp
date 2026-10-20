@@ -2,7 +2,6 @@ import { PixelRatio } from 'react-native';
 
 import {
   FACT_ROW_BADGE_FONT_SIZE,
-  FACT_ROW_FITTED_PADDING,
   FACT_ROW_FONT_SIZE,
   FACT_ROW_PADDING,
   FACT_ROW_TILE,
@@ -14,7 +13,6 @@ import {
   resolveFactRowValueTextProps,
 } from '@/components/ui/fact_row.geometry';
 import {
-  FITTED_LINE_SLACK,
   resolveFitAmountTextProps,
   resolveOneLineTextProps,
   scaledFontSize,
@@ -39,14 +37,12 @@ describe('fact row tokens (MA-197)', () => {
       padding: FACT_ROW_PADDING,
       tile: FACT_ROW_TILE,
       gap: FACT_ROW_VALUE_GAP,
-      fittedPadding: FACT_ROW_FITTED_PADDING,
     }).toEqual({
       font: Type.body,
       badge: Type.compactBadge,
       padding: Spacing.xs,
       tile: ms(20),
       gap: Spacing.xs,
-      fittedPadding: Spacing.xs - FITTED_LINE_SLACK / 2,
     });
   });
 });
@@ -74,22 +70,11 @@ describe('resolveFactRowHeight (MA-197, from MA-181)', () => {
   it('grows from 2.0 to 3.0', () => {
     expect(resolveFactRowHeight(3)).toBeGreaterThan(resolveFactRowHeight(2));
   });
-
-  it.each([1, 2, 3])(
-    'holds a fitted value line and one device pixel of slack inside its fitted padding at font scale %s',
-    (fontScale) => {
-      const fittedLineBox = resolveFactRowHeight(fontScale) - 2 * FACT_ROW_FITTED_PADDING;
-
-      expect(fittedLineBox + 1e-9).toBeGreaterThanOrEqual(
-        scaledTextStyle(FACT_ROW_FONT_SIZE, fontScale).lineHeight + FITTED_LINE_SLACK,
-      );
-    },
-  );
 });
 
 describe('resolveFactRowGeometry (MA-197)', () => {
   const shapes: Array<
-    [string, Partial<FactRowShape>, 'height' | 'minHeight', 'plain' | 'fitted' | 'none', boolean]
+    [string, Partial<FactRowShape>, 'height' | 'minHeight', 'plain' | 'none', boolean]
   > = [
     ['a field, the Note', { holdsField: true }, 'minHeight', 'none', false],
     ['a captioned label, the stale Rate row', { hasCaption: true }, 'minHeight', 'plain', true],
@@ -100,11 +85,11 @@ describe('resolveFactRowGeometry (MA-197)', () => {
       'plain',
       false,
     ],
-    ['a fitted value with no amount, the Rate row', { fitsValue: true }, 'height', 'fitted', false],
-    ['a fitted amount or count', { fitsValue: true, holdsAmount: true }, 'height', 'fitted', true],
-    ['a one-line value', {}, 'height', 'plain', false],
+    ['a fitted value with no amount, the Rate row', { fitsValue: true }, 'height', 'none', false],
+    ['a fitted amount or count', { fitsValue: true, holdsAmount: true }, 'height', 'none', true],
+    ['a one-line value', {}, 'height', 'none', false],
   ];
-  const paddingOf = { plain: FACT_ROW_PADDING, fitted: FACT_ROW_FITTED_PADDING, none: 0 };
+  const paddingOf = { plain: FACT_ROW_PADDING, none: 0 };
 
   describe.each([1, 2, 3])('at font scale %s', (fontScale) => {
     it.each(shapes)(

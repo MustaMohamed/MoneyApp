@@ -24,7 +24,7 @@ export interface FactRowPress {
   accessibilityHint?: string;
 }
 
-export interface FactRowProps {
+interface FactRowBaseProps {
   label: string;
   value?: string;
   valueFace?: 'sora' | 'inter';
@@ -39,13 +39,20 @@ export interface FactRowProps {
   leading?: ReactNode;
   trailing?: ReactNode;
   labelCaption?: ReactNode;
-  /** Takes the value's place; the row then roots on a plain view, so a field keeps its own touch. */
-  children?: ReactNode;
   showDivider?: boolean;
   inset?: boolean;
   testID?: string;
-  press?: FactRowPress;
 }
+
+export type FactRowProps = FactRowBaseProps &
+  (
+    | {
+        /** Takes the value's place; the row then roots on a plain view, so a field keeps its own touch. */
+        children: ReactNode;
+        press?: never;
+      }
+    | { children?: never; press?: FactRowPress }
+  );
 
 /** Canvas `.fact`: the label left and the value right at the shared row height; an amount or a count shows every digit and its label gives way first. */
 export function FactRow({
@@ -85,16 +92,15 @@ export function FactRow({
     inset ? 'px-4' : 'px-0',
     showDivider && 'border-separator border-b',
   );
-  // Edge keys, as `py-0` sets them; a fixed-height row keeps 0, since Android shrinks a fitted line padded inside it.
-  const growingPadding = geometry.minHeight === undefined ? 0 : geometry.paddingVertical;
   const style = {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     height: geometry.height,
     minHeight: geometry.minHeight,
-    paddingTop: growingPadding,
-    paddingBottom: growingPadding,
+    // Edge keys, as `py-0` sets them; a `paddingVertical` loses to it in Yoga.
+    paddingTop: geometry.paddingVertical,
+    paddingBottom: geometry.paddingVertical,
   } as const;
 
   const labelNode = (

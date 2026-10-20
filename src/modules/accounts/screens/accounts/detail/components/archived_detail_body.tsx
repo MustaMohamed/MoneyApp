@@ -12,7 +12,7 @@ import { Size } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 
 import type { Account } from '../../../../store/account.store';
-import { buildArchivedAccountFacts } from './account_facts.helpers';
+import { accountFactRowProps, buildArchivedAccountFacts } from './account_facts.helpers';
 import { BalanceHero } from './balance_hero';
 
 interface ArchivedDetailBodyProps {
@@ -58,11 +58,7 @@ export function ArchivedDetailBody({
         {facts.map((fact, index) => (
           <FactRow
             key={fact.label}
-            label={fact.label}
-            value={fact.value}
-            valueColor={fact.valueColor}
-            fitsValue={fact.fitsValue}
-            holdsAmount={fact.fitsValue}
+            {...accountFactRowProps(fact)}
             showDivider={index < facts.length - 1}
           />
         ))}

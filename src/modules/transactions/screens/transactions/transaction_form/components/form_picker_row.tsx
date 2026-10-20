@@ -2,7 +2,6 @@ import type { ReactElement, ReactNode } from 'react';
 
 import { FactRow } from '@/components/ui/fact_row';
 import { Strings } from '@/constants/strings';
-import { Type } from '@/constants/theme';
 
 interface FormPickerRowProps {
   testID: string;
@@ -19,7 +18,8 @@ interface FormPickerRowProps {
   valueClassName?: string;
   /** The value's size at scale 1; a one-line value is scaled from it above scale 1. */
   valueFontSize?: number;
-  valueNumberOfLines?: number;
+  /** The value wraps with no line cap, growing the row past its floor. */
+  wrapsValue?: boolean;
   divider?: boolean;
 }
 
@@ -36,8 +36,8 @@ export function FormPickerRow({
   accessibilityLabel = Strings.addTxPickerAccessibility(label, value),
   accessibilityHint,
   valueClassName,
-  valueFontSize = Type.body,
-  valueNumberOfLines = 1,
+  valueFontSize,
+  wrapsValue = false,
   divider = true,
 }: FormPickerRowProps): ReactElement {
   return (
@@ -48,7 +48,7 @@ export function FormPickerRow({
       value={value}
       valueClassName={valueClassName}
       valueFontSize={valueFontSize}
-      wrapsValue={valueNumberOfLines !== 1}
+      wrapsValue={wrapsValue}
       leading={prefix}
       trailing={suffix}
       inset={false}

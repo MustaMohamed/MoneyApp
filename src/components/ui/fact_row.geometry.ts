@@ -1,7 +1,6 @@
 import { PixelRatio, type ViewStyle } from 'react-native';
 
 import {
-  FITTED_LINE_SLACK,
   type FitAmountTextProps,
   type OneLineTextProps,
   type ScaledTextStyle,
@@ -18,8 +17,6 @@ export const FACT_ROW_BADGE_FONT_SIZE = Type.compactBadge;
 export const FACT_ROW_PADDING = Spacing.xs;
 export const FACT_ROW_TILE = ms(20);
 export const FACT_ROW_VALUE_GAP = Spacing.xs;
-// A fitted value's line box takes one device pixel of slack from the padding, so the row keeps its height.
-export const FACT_ROW_FITTED_PADDING = FACT_ROW_PADDING - FITTED_LINE_SLACK / 2;
 
 export interface FactRowShape {
   fitsValue: boolean;
@@ -57,7 +54,7 @@ export function resolveFactRowHeight(fontScale: number): number {
   );
 }
 
-/** A field, a caption or a wrapped value grows the row from the shared height; any other row stands at it. */
+/** A field, a caption or a wrapped value grows the row from the shared height; any other row stands at it unpadded, since Android shrinks a fitted line padded inside it. */
 export function resolveFactRowGeometry(shape: FactRowShape, fontScale: number): FactRowGeometry {
   const row = resolveFactRowHeight(fontScale);
   if (shape.holdsField) {
@@ -67,12 +64,7 @@ export function resolveFactRowGeometry(shape: FactRowShape, fontScale: number): 
   if (shape.hasCaption || shape.wrapsValue) {
     return { height: undefined, minHeight: row, paddingVertical: FACT_ROW_PADDING, labelGivesWay };
   }
-  return {
-    height: row,
-    minHeight: undefined,
-    paddingVertical: shape.fitsValue ? FACT_ROW_FITTED_PADDING : FACT_ROW_PADDING,
-    labelGivesWay,
-  };
+  return { height: row, minHeight: undefined, paddingVertical: 0, labelGivesWay };
 }
 
 /** A wrapped value keeps OS scaling and no line cap; a fitted one shrinks to fit; any other is one scaled line ending in `…`. */

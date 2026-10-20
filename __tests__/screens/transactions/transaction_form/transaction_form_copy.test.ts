@@ -110,8 +110,4 @@ describe('MA-097 budget lookup copy and the approved failure strings', () => {
 
     expect(stale).toEqual([]);
   });
-
-  it('drops the From Account picker title, which nothing reads', () => {
-    expect(Object.hasOwn(Strings, 'addTxPickFromTitle')).toBe(false);
-  });
 });

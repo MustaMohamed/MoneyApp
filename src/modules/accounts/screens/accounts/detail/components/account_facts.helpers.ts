@@ -146,3 +146,22 @@ export function buildMonthFacts(account: Account, stats: AccountStats | undefine
     },
   ];
 }
+
+export interface AccountFactRowProps {
+  label: string;
+  value: string;
+  valueColor?: string;
+  fitsValue: boolean;
+  holdsAmount: boolean;
+}
+
+/** Every fitted account fact is an amount or a count, so its label gives way first. */
+export function accountFactRowProps(fact: AccountFact): AccountFactRowProps {
+  return {
+    label: fact.label,
+    value: fact.value,
+    valueColor: fact.valueColor,
+    fitsValue: fact.fitsValue,
+    holdsAmount: fact.fitsValue,
+  };
+}

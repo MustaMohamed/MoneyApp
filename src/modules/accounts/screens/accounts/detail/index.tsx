@@ -16,7 +16,7 @@ import { resolveAccountName } from '@/utils/account_name';
 
 import { useAccountDetail } from './account_detail.hook';
 import { AccountActivityCard } from './components/account_activity_card';
-import { buildAccountFacts } from './components/account_facts.helpers';
+import { accountFactRowProps, buildAccountFacts } from './components/account_facts.helpers';
 import { AdjustBalanceSheet } from './components/adjust_balance_sheet';
 import { ArchiveConfirmationDialog } from './components/archive_confirmation_dialog';
 import { ArchivedDetailBody } from './components/archived_detail_body';
@@ -165,11 +165,7 @@ export default function AccountDetailScreen() {
           {facts.map((fact, index) => (
             <FactRow
               key={fact.label}
-              label={fact.label}
-              value={fact.value}
-              valueColor={fact.valueColor}
-              fitsValue={fact.fitsValue}
-              holdsAmount={fact.fitsValue}
+              {...accountFactRowProps(fact)}
               showDivider={index < facts.length - 1}
             />
           ))}

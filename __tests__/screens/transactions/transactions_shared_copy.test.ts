@@ -165,12 +165,6 @@ describe('strings the transactions module shares with other modules', () => {
       Strings.addTxPickCategoryTitle,
       'Select Category',
     ],
-    [
-      'filterCcPayment',
-      'modules/transactions/screens/transactions/index.tsx',
-      Strings.filterCcPayment,
-      'Credit Pay',
-    ],
   ])('%s, read by %s, stays as shipped', (_key, _readers, value, expected) => {
     expect(value).toBe(expected);
   });
