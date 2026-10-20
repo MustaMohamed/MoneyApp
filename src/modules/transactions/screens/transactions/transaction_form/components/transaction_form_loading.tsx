@@ -96,7 +96,7 @@ export function TransactionFormLoading(): React.ReactElement {
                 testID="transaction-form-skeleton-fact-row"
                 className={row === LAST_FACT_ROW ? 'px-4' : 'border-separator border-b px-4'}
                 style={{
-                  minHeight: TRANSACTION_FORM_SKELETON_GEOMETRY.factRow,
+                  height: bars.factRow,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',

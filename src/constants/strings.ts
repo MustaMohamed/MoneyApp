@@ -529,8 +529,8 @@ export const Strings = {
   addTxBudgetNone: 'No named budget',
   addTxErrBudgetRequired: 'Choose a budget for this expense',
   addTxBudgetLoading: 'Loading matching budgets…',
-  addTxBudgetLookupError: 'Could not load matching budgets. Try again.',
-  addTxBudgetRetryA11y: 'Retry matching budget lookup',
+  addTxBudgetLookupError: "Couldn't load budgets.",
+  addTxBudgetRetryA11y: 'Try again',
   addTxBudgetEmptyTitle: 'No matching budgets',
   addTxBudgetEmptyBody: 'This category has no named budget for the selected month.',
   addTxDatePickerTitle: 'Choose transaction date',
@@ -930,7 +930,6 @@ export const Strings = {
   addTxErrCcPaymentExceedsLiability: 'Payment cannot exceed the current card balance',
   addTxInsufficientBalance: (name: string) => `Insufficient balance in ${name}`,
   addTxPickAccountTitle: 'Select Account',
-  addTxPickFromTitle: 'From Account',
   addTxPickToTitle: 'To Account',
   addTxPickCategoryTitle: 'Select Category',
 

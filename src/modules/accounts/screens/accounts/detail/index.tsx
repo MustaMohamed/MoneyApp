@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
+import { FactRow } from '@/components/ui/fact_row';
 import { HeaderTextAction } from '@/components/ui/header_text_action';
 import { LoadErrorAlert } from '@/components/ui/load_error_alert';
 import { LoadingCenter } from '@/components/ui/loading_center';
@@ -15,7 +16,6 @@ import { resolveAccountName } from '@/utils/account_name';
 
 import { useAccountDetail } from './account_detail.hook';
 import { AccountActivityCard } from './components/account_activity_card';
-import { AccountFactRow } from './components/account_fact_row';
 import { buildAccountFacts } from './components/account_facts.helpers';
 import { AdjustBalanceSheet } from './components/adjust_balance_sheet';
 import { ArchiveConfirmationDialog } from './components/archive_confirmation_dialog';
@@ -163,11 +163,13 @@ export default function AccountDetailScreen() {
 
         <DetailRowsCard>
           {facts.map((fact, index) => (
-            <AccountFactRow
+            <FactRow
               key={fact.label}
               label={fact.label}
               value={fact.value}
               valueColor={fact.valueColor}
+              fitsValue={fact.fitsValue}
+              holdsAmount={fact.fitsValue}
               showDivider={index < facts.length - 1}
             />
           ))}

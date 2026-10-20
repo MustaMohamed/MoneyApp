@@ -12,6 +12,8 @@ export interface AccountFact {
   label: string;
   value: string;
   valueColor?: string;
+  /** An amount or a count: it shrinks to fit above font scale 1 and shows every digit. */
+  fitsValue: boolean;
 }
 
 // APR is a rate, not an amount, so `CURRENCY_CONFIG` decimals do not apply to it.
@@ -46,21 +48,36 @@ export function buildAccountFacts(account: Account): AccountFact[] {
       {
         label: Strings.accountCreditLimitLabel,
         value: amountOrUnset(account.credit_limit, currency),
+        fitsValue: true,
       },
       {
         label: Strings.accountMinPaymentLabel,
         value: amountOrUnset(account.minimum_payment, currency),
+        fitsValue: true,
       },
-      { label: Strings.accountDueDayLabel, value: dueDayValue(account.statement_due_day) },
-      { label: Strings.accountAprLabel, value: aprValue(account.apr, account.interest_tracking) },
+      {
+        label: Strings.accountDueDayLabel,
+        value: dueDayValue(account.statement_due_day),
+        fitsValue: false,
+      },
+      {
+        label: Strings.accountAprLabel,
+        value: aprValue(account.apr, account.interest_tracking),
+        fitsValue: false,
+      },
     ];
   }
 
   return [
-    { label: Strings.accountCurrencyLabel, value: CURRENCY_CONFIG[currency].code },
+    {
+      label: Strings.accountCurrencyLabel,
+      value: CURRENCY_CONFIG[currency].code,
+      fitsValue: false,
+    },
     {
       label: Strings.accountBalanceLabel,
       value: formatAccountBalance(account.opening_balance, currency),
+      fitsValue: true,
     },
   ];
 }
@@ -76,14 +93,20 @@ export function buildArchivedAccountFacts(
   counts: ArchivedAccountCounts,
 ): AccountFact[] {
   return [
-    { label: Strings.accountCurrencyLabel, value: CURRENCY_CONFIG[account.currency].code },
+    {
+      label: Strings.accountCurrencyLabel,
+      value: CURRENCY_CONFIG[account.currency].code,
+      fitsValue: false,
+    },
     {
       label: Strings.accountDetailTransactionsLabel,
       value: formatAmount(counts.transactionCount, COUNT_DISPLAY_DECIMALS),
+      fitsValue: true,
     },
     {
       label: Strings.accountDetailCommitmentsLabel,
       value: formatAmount(counts.activeCommitmentCount, COUNT_DISPLAY_DECIMALS),
+      fitsValue: true,
     },
   ];
 }
@@ -94,8 +117,16 @@ export function buildMonthFacts(account: Account, stats: AccountStats | undefine
 
   if (stats === undefined) {
     return [
-      { label: Strings.accountDetailMonthInLabel, value: Strings.accountDetailFactUnset },
-      { label: Strings.accountDetailMonthOutLabel, value: Strings.accountDetailFactUnset },
+      {
+        label: Strings.accountDetailMonthInLabel,
+        value: Strings.accountDetailFactUnset,
+        fitsValue: true,
+      },
+      {
+        label: Strings.accountDetailMonthOutLabel,
+        value: Strings.accountDetailFactUnset,
+        fitsValue: true,
+      },
     ];
   }
 
@@ -105,11 +136,13 @@ export function buildMonthFacts(account: Account, stats: AccountStats | undefine
       label: Strings.accountDetailMonthInLabel,
       value: monthIn.value,
       valueColor: monthIn.valueColor,
+      fitsValue: true,
     },
     {
       label: Strings.accountDetailMonthOutLabel,
       value: monthOut.value,
       valueColor: monthOut.valueColor,
+      fitsValue: true,
     },
   ];
 }

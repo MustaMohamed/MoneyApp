@@ -5,13 +5,13 @@ import React from 'react';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
+import { FactRow } from '@/components/ui/fact_row';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { SemanticTokens } from '@/constants/theme_tokens';
 
 import type { Account } from '../../../../store/account.store';
-import { AccountFactRow } from './account_fact_row';
 import { buildArchivedAccountFacts } from './account_facts.helpers';
 import { BalanceHero } from './balance_hero';
 
@@ -56,11 +56,13 @@ export function ArchivedDetailBody({
 
       <DetailRowsCard>
         {facts.map((fact, index) => (
-          <AccountFactRow
+          <FactRow
             key={fact.label}
             label={fact.label}
             value={fact.value}
             valueColor={fact.valueColor}
+            fitsValue={fact.fitsValue}
+            holdsAmount={fact.fitsValue}
             showDivider={index < facts.length - 1}
           />
         ))}
