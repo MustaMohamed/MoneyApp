@@ -1,0 +1,51 @@
+# MA-201 — Copy: the account detail's two old-voice failure strings
+base: 5d10496f106fa40ecc5b676107d18388cb10fa60 · verify: emulator · flags: user copy · expected diff: ~5 lines
+
+## Steps
+### 1. The two accounts failure keys read in the accounts voice
+- File: `src/constants/strings.ts` (`accountBalanceReviewError`, `strings.ts:350`; `adjustBalanceSaveError`, `strings.ts:432`)
+- Change: `accountBalanceReviewError` becomes `Couldn't confirm this balance. Nothing was changed.` and `adjustBalanceSaveError` becomes `Couldn't save this balance. Nothing was changed. Try again.`, both from the ticket's Copy section. Both stay plain `string` values, neither optional nor `null`; the comment above `:432` stays. No other line of the file changes, and no reader changes: `account_detail.hook.ts:338`, `balance_review_alert.tsx:28` and `adjust_balance_sheet.tsx:118` read the keys, and the four suites that pin them read the keys too (`account_detail.hook.test.ts:326`, `balance_review_alert.test.tsx:63`, `adjust_balance_sheet_save_error.test.tsx:137` and `:186`), so none of them changes.
+- Test: `first` · `__tests__/screens/accounts/account_failure_copy.strings.test.ts`, new, logic-only, after `edit_account.strings.test.ts` and `transaction_load_error.helpers.test.ts:61-67`. One case per string ships it byte-exact. One `it.each` over the 15 failure keys the accounts module reads at 5d10496f, this list the source (`grep -rhoE 'Strings\.[A-Za-z0-9_]*(Error|Failed|Retry)[A-Za-z0-9_]*' src/modules/accounts` reproduces it; without the tail class `-o` cuts `accountsReadErrorTitle` and `accountsReadErrorDescription` to `accountsReadError`, a key `strings.ts` does not hold), the field validation keys excluded by the Rules: `accountActivityLoadError`, `accountActivityLoadRetry`, `accountBalanceReviewError`, `accountDetailArchiveError`, `accountDetailDeleteError`, `accountDetailLoadError`, `accountDetailLoadRetry`, `accountsArchivedRestoreError`, `accountsReadErrorDescription`, `accountsReadErrorRetry`, `accountsReadErrorTitle`, `accountsReorderError`, `adjustBalanceSaveError`, `editAccountSaveError`, `errAccountSaveFailed`; each asserted not to match `/^Could not/`, not to contain `Please try again`, and not to equal `Retry`. At base the two byte-exact cases and the guard on `accountBalanceReviewError` and `adjustBalanceSaveError` fail; the other 13 pass at base and at head.
+
+### 2. The large-font invalid-amount row reads the new save error
+- File: `.claude/skills/emulator-verify/features/account_detail.md:45` (`adjust balance sheet, invalid amount, large font`)
+- Change: in the Proof cell, the literal `Could not save this balance. Please try again.` becomes `Couldn't save this balance. Nothing was changed. Try again.`, the line description `on two lines with the first ending at `balance.`` becomes the lines read at head: three, `Couldn't save this balance.` / `Nothing was changed. Try` / `again.`, the `TextView` 102.86 dp (3 × 34.29) at top 514.7, bottom 617.6, above `sheet-footer`'s top at 651.0; and the clause `The first error's `TextView` is half the height of the second's ± 1 dp` becomes a line-count ratio: the second's height over the first's equals its line count ± 1 dp per line, `34.29` per line on `Pixel_2_API_34`, the invalid error 34.29 at the same top 514.7 at head. The `MA-184 read at head` figures stay as the pre-MA-201 reading, labelled so; the force, the glyph geometry and `Each error's bottom sits above `sheet-footer`'s top` stay; `mqa db` holds the balance unchanged.
+- Test: `none` · a features file, markdown the emulator pass reads.
+
+### 3. A save-error row at font scale 1.0
+- File: `.claude/skills/emulator-verify/features/account_detail.md` (after `:45`)
+- Change: one new States row, `adjust balance sheet, save error`, `no frame, MA-201`. Force: bank account only, from `adjust balance sheet, positive`; the save-error source force of `:45` (`throw new Error('forced');` as the first line of the `try` in `handleAdjustBalance`, `account_detail.hook.ts:228`, reverted with `git status` clean after), a valid amount, `Save`; the `Font scale` force (README) at 1.0. Proof: `mqa read` holds `Couldn't save this balance. Nothing was changed. Try again.` and no helper; the error's `TextView` sits under the amount field (its top as far below the field's bottom as the helper's was ± 1 dp, `:44`) and its bottom above `sheet-footer`'s top (651.0 at 1.0, `:43`); the error is one line, its `TextView` 19.81 ± 1 dp high at 590.9–610.7, its bottom above `sheet-footer`'s top at 651.0 (probe at 1.0: `s3_save_error_1x.png`, one line under the amount, above Cancel and Save), and the crop shows that one line whole; the glyph geometry of `:45` holds; `mqa db` holds the balance unchanged. One crop of the track.
+- Test: `none` · a features file.
+
+### 4. A confirm-failure row for the review alert at 1.0 and 2.0
+- File: `.claude/skills/emulator-verify/features/account_detail.md` (after `:46`)
+- Change: one new States row, `balance review alert, confirm failure`, `no frame, MA-201`. Force: from `balance review alert` (`:22`, a credit card with `balance_review_required = 1`, `balance_review_alert.helpers.ts:4-6`); source force `throw new Error('forced');` as the first line of the `try` in `handleConfirmBalanceReviewed` (`account_detail.hook.ts:334`), reverted with `git status` clean after; `$MQA tap 'Balance is correct'`; the `Font scale` force (README) at 1.0 and 2.0; at 2.0, `mqa scroll down --until 'label="Balance is correct"'` after the tap and before the buttons' bounds and the crop, since the three-line message pushes both buttons under the 731 dp viewport and `mqa bounds` reads `Balance is correct` and `Adjust balance` as `no match` unscrolled. The `catch` logs at `:337`, so the dev LogBox strip draws at the screen's bottom; in the unscrolled 2.0 frame it covers the message's second line, and the crop is taken after the scroll. Proof: at each scale `mqa read` holds `Couldn't confirm this balance. Nothing was changed.` with `Review this card balance` and `accountBalanceReviewBody` still read; from `mqa bounds` the message's `TextView` lies inside the alert's box, under the body's box and above both buttons' boxes, none of the four intersecting, so the rounded alert clips nothing of it, read at head: at 1.0, no scroll, the message on two lines with `changed.` alone on the second, 40.38 high at 397.3–437.7, the buttons at 449.9, 40.00 high, the alert 304.8–501.8; at 2.0 after the scroll the message on three lines, 102.86 high at 261.7–364.6, the buttons at 376.8–416.8, 40.00 high, `enabled`, the alert's bottom at 428.5, every word whole, the button labels `Balanc…` / `Adjust…`; `Balance is correct` reads `enabled=true` after the failure; at 2.0 the `Alert proof` (README) on the message and the `Button proof` (README) on both buttons; `mqa db` holds `balance_review_required = 1` at both scales. One crop of the alert per scale.
+- Test: `none` · a features file.
+
+## Screens
+- `emulator-verify/features/account_detail.md`: adjust balance sheet, invalid amount, large font (step 2); balance review alert, confirm failure (new, step 4); adjust balance sheet, save error (new, step 3)
+
+## Non-goals
+- The 29 old-voice keys on the startup, dashboard, categories, currency, budget and commitments screens (`strings.ts:12-20`, `:260-262`, `:467-716`, `:830-865`, `:1127-1174`, `:1242`, `:1390`): they wait for their module's redesign.
+- `errAccountSaveFailed` (`strings.ts:168`) and `errBalanceInvalid` (`:164`): outside the class, unchanged.
+- The guard test covers only the keys the accounts module reads; no app-wide guard over `Strings`.
+- No `reserveErrorLines` on the adjust balance sheet, no sheet size change, no change to `field_message_rail.tsx`, `balance_review_alert.tsx` or `adjust_balance_sheet.tsx`.
+- No case in the four `.tsx` suites that pin the keys; they pass unchanged.
+- The add and edit transaction sheet's budget lookup failure and its retry label, shipped in MA-197 (#759).
+
+## Untested inputs
+- Where the 59-character save error wraps: read by the probe, three lines at 2.0 (`Couldn't save this balance.` / `Nothing was changed. Try` / `again.`, 514.7–617.6) and one line at 1.0 (590.9–610.7); steps 2 and 3 carry the figures.
+- The review alert's message at 2.0 inside its rounded container: read by the probe, three lines at 261.7–364.6 after the scroll, the buttons at 376.8–416.8, the alert's bottom at 428.5; step 4 carries the figures.
+
+## Verification
+- Per commit: `npm run format:check && npm run lint && npm run typecheck && npm test -- --ci`
+- Once, before hand-off: the full CI parity chain from `CLAUDE.md`.
+
+## Risks
+- `account_detail.md` · `adjust balance sheet, invalid amount, large font`: the save error takes three lines at 2.0, 102.86 dp from 514.7 to 617.6, above `sheet-footer`'s top at 651.0 (probe, `build: REUSE`); the row's figures are this base's, and a rebase that moves the sheet's size or line height moves them.
+- `account_detail.md` · `adjust balance sheet, save error`: at 1.0 the `sm` sheet (305.14) holds the helper's bottom at 610.7; a two-line error adds one 19.81 line and ends near 631, under 651.0; a reading past 651.0 is a sheet size defect outside this ticket.
+- `account_detail.md` · `balance review alert, confirm failure`: at 2.0 the LogBox strip from `console.error` at `:337` covers the message's second line in the unscrolled frame only; after step 4's scroll the message and both buttons sit inside the alert, bottom 428.5, above the strip.
+- `REBUILD: none`, two string literals and a markdown file; a Metro reload carries them.
+
+## Self-assessment
+Step 1's guard is the least sure part now that every emulator row carries a probe figure. The `it.each` over 15 keys asserts three negatives on the keys the accounts module read at 5d10496f; a failure key added to the module after base passes unseen, and the list is the planner's grep, not a reader of the module. The three rows hold at a probe head on this base with `build: REUSE`: step 2's 617.6 and step 4's 428.5 and the 2.0 scroll move if a rebase changes the sheet's size, the alert's padding or the 34.29 line height, and the implementer re-reads them rather than copying the figures.
