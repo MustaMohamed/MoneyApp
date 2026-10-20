@@ -13,7 +13,7 @@ import { useEditTransaction } from '@/modules/transactions/screens/transactions/
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 import { resolveConvertedAmount } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers';
-import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 import { deferred } from '@/test_helpers/deferred';
 import {
   installMockUpdateTransaction,

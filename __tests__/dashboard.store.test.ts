@@ -4,7 +4,7 @@ import type {
   DashboardSnapshotStatus,
   IDashboardRepository,
 } from '@/modules/dashboard/repositories/dashboard.repository';
-import { createDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
+import { createDashboardStore } from '@/modules/dashboard/store/dashboard.store';
 import { deferred } from '@/test_helpers/deferred';
 
 function input(yearMonth: string): DashboardLoadInput {

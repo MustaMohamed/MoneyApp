@@ -10,7 +10,7 @@ import type {
 } from '@/modules/dashboard/repositories/dashboard.repository';
 import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.hook';
 import { useDashboardState } from '@/modules/dashboard/screens/dashboard/dashboard.state';
-import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
+import { useDashboardStore } from '@/modules/dashboard/store/dashboard.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
@@ -47,7 +47,7 @@ jest.mock('@/utils/run_after_interactions', () => ({
   }),
 }));
 
-jest.mock('@/modules/dashboard/screens/dashboard/dashboard.store', () => ({
+jest.mock('@/modules/dashboard/store/dashboard.store', () => ({
   useDashboardStore: jest.fn(),
 }));
 jest.mock('@/modules/dashboard/screens/dashboard/dashboard.state', () => ({

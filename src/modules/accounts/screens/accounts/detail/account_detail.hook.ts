@@ -4,11 +4,12 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { useToast } from '@/components/ui/toast';
 import { Strings } from '@/constants/strings';
+import { useAccountActivityStore } from '@/modules/accounts/store/account_activity.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { stackedTransactionDetailRoute } from '@/modules/navigation/domain/stacked_route';
-import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
-import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
+import { useTransactionsScreenStore } from '@/modules/transactions/store/transactions.store';
 import { resolveAccountName } from '@/utils/account_name';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { currentYearMonth } from '@/utils/year_month';
@@ -18,7 +19,6 @@ import type { AccountActivityLoadInput } from '../../../repositories/account_act
 import type { ArchivedAccountDetailLoadInput } from '../../../repositories/archived_account_detail.repository';
 import { useAccountStore } from '../../../store/account.store';
 import { getTransactionAccountIds, mergeAccountsById } from '../../../store/account_lookup.helpers';
-import { useAccountActivityStore } from './account_activity.store';
 import { resolveViewState } from './account_detail.helpers';
 import { useAccountDetailState } from './account_detail.state';
 import { useArchivedAccountDetailStore } from './archived_account_detail.store';

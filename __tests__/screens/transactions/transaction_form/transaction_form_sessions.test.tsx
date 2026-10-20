@@ -123,7 +123,7 @@ jest.mock(
 
 import { AddTransactionSession } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction_session';
 import { EditTransactionSession } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction_session';
-import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 
 const tx: Transaction = {
   id: 'tx-1',

@@ -3,7 +3,7 @@
 - **Date:** 2026-09-24
 - **Status:** accepted
 - **Ticket:** MA-102, under #544
-- **Applies to:** `getTransactionMonthAggregate` and `getTransactionScopedTotals` in `src/modules/transactions/database/transactions.ts`; `getMonthAggregate` and `getScopedTotals` on `ITransactionTotalsRepository` in `src/modules/transactions/repositories/transaction.repository.ts`; `TransactionTotalsState`, `beginTotalsRequest`, `resolveTotals` and `failTotals` in `src/modules/transactions/screens/transactions/transactions.store.ts`; `loadTotals` in `src/modules/transactions/screens/transactions/transactions.hook.ts`
+- **Applies to:** `getTransactionMonthAggregate` and `getTransactionScopedTotals` in `src/modules/transactions/database/transactions.ts`; `getMonthAggregate` and `getScopedTotals` on `ITransactionTotalsRepository` in `src/modules/transactions/repositories/transaction.repository.ts`; `TransactionTotalsState`, `beginTotalsRequest`, `resolveTotals` and `failTotals` in `src/modules/transactions/store/transactions.store.ts`; `loadTotals` in `src/modules/transactions/screens/transactions/transactions.hook.ts`
 
 `getTransactionMonthAggregate(db, query)` returns every day of the range that has a matching row with its net and row count, the tally over those rows, and the month's Out, In and Net. The redesigned list reads its day card nets, the count and sum under the search field, and the hero from this one result. Before this record the month totals ignored every filter, the day grouping folded only the loaded page, and nothing counted a search.
 

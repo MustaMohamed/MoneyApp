@@ -510,6 +510,25 @@ for (const row of TREE_ROWS) {
   for (const rel of files) reportRow(rel, load(rel) ?? [], row);
 }
 
+// The screens-import rule scopes a file by the `src/` child it sits under; a child the set misses is silently out of scope.
+const PLUGIN = path.join(__dirname, 'oxlint-plugin-moneyapp.js');
+const SRC_ROOTS_EXEMPT = new Set(['app', 'test_helpers']);
+// The suite's fake root copies this script without the plugin; the repo always has both.
+if (fs.existsSync(PLUGIN) && fs.existsSync(path.join(root, 'src'))) {
+  const { SRC_ROOTS } = require(PLUGIN);
+  const srcChildren = fs
+    .readdirSync(path.join(root, 'src'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && !SRC_ROOTS_EXEMPT.has(entry.name))
+    .map((entry) => entry.name)
+    .sort();
+  const listed = [...SRC_ROOTS].sort();
+  if (srcChildren.join(',') !== listed.join(',')) {
+    errors.push(
+      `scripts/oxlint-plugin-moneyapp.js SRC_ROOTS [${listed.join(', ')}] differs from the folders of src/ outside app and test_helpers [${srcChildren.join(', ')}]; update the set`,
+    );
+  }
+}
+
 for (const rel of DELETED_PATHS) {
   if (fs.existsSync(path.join(root, rel))) {
     errors.push(`${rel}: must not exist; it was deleted and nothing may bring it back`);

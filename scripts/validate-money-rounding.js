@@ -27,9 +27,9 @@ const PERMITTED = {
     'src/utils/money.ts',
   ],
   toCents: [
+    'src/modules/transactions/domain/expense_share.ts',
     'src/modules/transactions/domain/period_delta.ts',
     'src/modules/transactions/screens/transactions/transactions.helpers.ts',
-    'src/modules/transactions/utils/totals_presentation.ts',
     'src/utils/money.ts',
   ],
   sumAllocations: [
@@ -63,9 +63,9 @@ const PERMITTED = {
     'src/modules/budget/screens/budget/spending_plans.helpers.ts',
     'src/modules/commitments/screens/commitments/components/summary_header.tsx',
     'src/modules/dashboard/screens/dashboard/components/commitments_card.tsx',
+    'src/modules/transactions/domain/expense_share.ts',
     'src/modules/transactions/domain/period_delta.ts',
     'src/modules/transactions/screens/transactions/transactions.helpers.ts',
-    'src/modules/transactions/utils/totals_presentation.ts',
     'src/utils/money.ts',
   ],
   wholePercentGap: [

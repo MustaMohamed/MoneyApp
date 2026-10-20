@@ -1,5 +1,6 @@
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import type { AccountActivityStatus } from '@/modules/accounts/store/account_activity.store';
 import {
   buildTransactionRowPresentation,
   resolveRowTile,
@@ -11,8 +12,6 @@ import { resolveAccountName } from '@/utils/account_name';
 import { toLocalDateString } from '@/utils/format_date';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { MONTHS_SHORT } from '@/utils/year_month';
-
-import type { AccountActivityStatus } from '../account_activity.store';
 
 export type ActivityCardBody = 'loading' | 'error' | 'empty' | 'rows';
 

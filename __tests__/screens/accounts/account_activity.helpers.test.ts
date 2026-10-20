@@ -1,13 +1,13 @@
 import { AccountType, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
-import type { AccountActivityStatus } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
 import {
   type ActivityCardBody,
   buildActivityRowPresentation,
   formatActivityDayLabel,
   resolveActivityCardView,
 } from '@/modules/accounts/screens/accounts/detail/components/account_activity.helpers';
+import type { AccountActivityStatus } from '@/modules/accounts/store/account_activity.store';
 import { buildTransactionRowPresentation } from '@/modules/transactions/components/transaction_row.helpers';
 import { makeTestAccount, makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
 

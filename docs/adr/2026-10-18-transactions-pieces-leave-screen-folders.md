@@ -3,7 +3,7 @@
 - **Date:** 2026-10-18
 - **Status:** accepted
 - **Ticket:** #610 (MA-166), under #585
-- **Applies to:** `src/modules/transactions/domain/period_delta.ts`, `src/modules/transactions/utils/totals_presentation.ts`, `src/modules/transactions/utils/stored_rate_line.ts`, `src/modules/transactions/components/transaction_row.tsx`, `src/modules/transactions/components/transaction_row.helpers.ts`, `src/modules/transactions/components/transaction_row.anim.ts`, `src/modules/transactions/components/transaction_rows_skeleton.tsx`, `src/modules/transactions/components/day_card_row.tsx`, `src/modules/transactions/components/day_card_row.helpers.ts`, `src/modules/transactions/components/day_header.geometry.ts`, `src/modules/transactions/components/exchange_rate_row.tsx`, `src/modules/transactions/components/exchange_rate_row.geometry.ts`, `src/components/ui/detail_row.tsx`, `src/components/ui/detail_rows_card.tsx`, `src/components/ui/detail_row.geometry.ts`, `src/components/ui/date_header.tsx`
+- **Applies to:** `src/modules/transactions/domain/period_delta.ts`, `src/modules/transactions/domain/expense_share.ts`, `src/modules/transactions/utils/totals_presentation.ts`, `src/modules/transactions/utils/stored_rate_line.ts`, `src/modules/transactions/components/transaction_row.tsx`, `src/modules/transactions/components/transaction_row.helpers.ts`, `src/modules/transactions/components/transaction_row.anim.ts`, `src/modules/transactions/components/transaction_rows_skeleton.tsx`, `src/modules/transactions/components/day_card_row.tsx`, `src/modules/transactions/components/day_card_row.helpers.ts`, `src/modules/transactions/components/day_header.geometry.ts`, `src/modules/transactions/components/exchange_rate_row.tsx`, `src/modules/transactions/components/exchange_rate_row.geometry.ts`, `src/components/ui/detail_row.tsx`, `src/components/ui/detail_rows_card.tsx`, `src/components/ui/detail_row.geometry.ts`, `src/components/ui/date_header.tsx`
 
 Accounts, commitments and dashboard imported rows, cards, a date header, a rate row and totals helpers from inside the transactions screens (audit M4). A change inside a transactions screen folder could break the account detail, the commitments screens or the dashboard card with no warning at the file. This record extends `docs/adr/2026-09-28-shared-helpers-leave-screen-folders.md` to the transactions module and fixes where each piece lives.
 
@@ -16,6 +16,8 @@ The row family goes to `src/modules/transactions/components/`. `transaction_row.
 `DetailRow`, `DetailRowsCard` and `DateHeader` go to `src/components/ui/`. They read only shared UI and theme.
 
 The totals helpers split under 2026-09-28 §1. `computeDeltaPct` is a money derivation with no copy and no formatter, so it goes to `domain/`, as `creditUtilization` did under #666. The other totals helpers and `formatStoredRateLine` go to `utils/`. They hold copy and formatters, and no `domain/` file imports either (`git grep -l "constants/strings\|format_amount" -- 'src/modules/*/domain'` prints nothing). `buildTotalsPresentation` moved whole to `utils/` with its body unchanged, though it derives the expense share. This ticket bars added assertions, and `.claude/rules/money.md:22` asks every change in `domain/` for worked-number tests. The share's derivation moves to `domain/` under MA-202 (#771).
+
+**Extended 2026-10-20 (#763, folding #771).** The expense share is derived once, by `expenseSharePercent` in `src/modules/transactions/domain/expense_share.ts`: `null` when the income is 0 cents or less, else the whole percent of the expense cents over the income cents. `buildTotalsPresentation` calls it, keeps the `snapToZero` of the expense and still picks the four states, no income, within income, over income and net credit, from the share and the snapped expense. The worked numbers are in `__tests__/transactions/expense_share.test.ts`.
 
 ## 2. A shared piece imports nothing from a screen folder
 
@@ -31,6 +33,8 @@ Four files were split. `transactions.helpers.ts` imports back `computeDeltaPct`,
 
 The bodies of `computeDeltaPct`, `polarityColor`, `formatSignedAmount`, `buildTotalsPresentation`, `expenseSharePct` and `deltaDisplay` did not change, and `transactions_helpers.test.ts` passes with no assertion changed. `scripts/validate-money-rounding.js` lists `period_delta.ts` and `totals_presentation.ts` under `toCents` and `wholePercentOf`. The `leftOfIncome` owned-sign entry in `scripts/validate-money-formatting.js` stays on `transactions.helpers.ts`, which still builds that figure.
 
+**Extended 2026-10-20 (#763).** `buildTotalsPresentation` now calls `expenseSharePercent` for the share, keeping the snap of the expense and the four states, and `transactions_helpers.test.ts` still passes with no assertion changed. `scripts/validate-money-rounding.js` lists `expense_share.ts` and `period_delta.ts` under `toCents` and `wholePercentOf`, and no longer lists `totals_presentation.ts`, which calls neither.
+
 ## 5. Out of scope
 
-`transactions.store` and `transaction_form_host.state`, read from accounts and navigation, stay in the screen folders. They are the follow-up task named on #585.
+A module `components/` folder read across modules is the follow-up task named on #585. `transactions.store` and `transaction_form_host.state`, read from accounts and navigation, left the screen folders for `src/modules/transactions/store/` under #763; `docs/adr/2026-09-28-shared-helpers-leave-screen-folders.md` §4 records the homes.

@@ -7,11 +7,10 @@ import { useToast } from '@/components/ui/toast';
 import { Strings } from '@/constants/strings';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
-
 import {
   isTransactionFormSessionSaving,
   useTransactionFormState,
-} from './transaction_form_host.state';
+} from '@/modules/transactions/store/transaction_form_host.state';
 
 export type TransactionFormSubmit = () => Promise<void>;
 export type RegisterTransactionFormSubmit = (

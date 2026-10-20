@@ -102,7 +102,7 @@ Gotcha: **squash-merged branches never appear in `git branch --merged`**, becaus
 
 ```
 src/app/              ROUTING ONLY: _layout.tsx and index.tsx files only
-src/modules/<domain>/ canonical feature code: database, repositories, store, screens, components
+src/modules/<domain>/ canonical feature code: database, repositories, entities, store, domain, utils, constants, screens, components
 src/components/ui/    shared UI primitives and wrappers
 src/components/       legacy/shared compatibility wrappers only
 src/constants/        enums.ts · secure_store_keys.ts · strings.ts · theme.ts
@@ -120,7 +120,7 @@ docs/superpowers/     frozen history: specs, plans, reviews, QA from the pre-/sc
 .work/<MA-id>/       transient, branch-only workflow files (the /prep plan); removed before merge, never on main
 ```
 
-New domain work belongs under `src/modules/<domain>/` using the existing module shape: `database/`, `repositories/`, `store/`, `screens/`, optional `components/`. No `data/` folder. Root `src/store/`, `src/repositories/`, and most `src/database/` domain files are compatibility surfaces; do not add new consumers.
+New domain work belongs under `src/modules/<domain>/` using the existing module shape: `database/`, `repositories/`, `entities/` (types only), `store/` (data stores, and a screen store or `.state.ts` another module reads; a screen's own `.state.ts` stays beside it, § module screen anatomy), `domain/` (money math and derivations), `utils/` (helpers and types other modules read, display helpers included), `constants/` (fixed tables and the colour and label resolvers built on them, their money arithmetic in `domain/`), `screens/` and optional `components/`, per `docs/adr/2026-09-28-shared-helpers-leave-screen-folders.md` §1. No `data/` folder. Root `src/store/`, `src/repositories/`, and most `src/database/` domain files are compatibility surfaces; do not add new consumers.
 
 ### app/ rules (critical)
 

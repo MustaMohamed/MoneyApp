@@ -5,9 +5,9 @@ import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { useTransactionsScreenStore } from '@/modules/transactions/store/transactions.store';
 import { resolveAccountName } from '@/utils/account_name';
 
-import { useTransactionsScreenStore } from '../transactions.store';
 import {
   advancedFiltersEqual,
   countActiveFilters,

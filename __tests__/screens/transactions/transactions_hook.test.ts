@@ -19,9 +19,9 @@ import {
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
 import { useTransactions } from '@/modules/transactions/screens/transactions/transactions.hook';
 import { useTransactionsState } from '@/modules/transactions/screens/transactions/transactions.state';
-import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
+import { useTransactionsScreenStore } from '@/modules/transactions/store/transactions.store';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount, makeTestCategory } from '@/test_helpers/transaction';
@@ -42,14 +42,11 @@ jest.mock('expo-router', () => ({
   }),
 }));
 
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
-  () => ({
-    useTransactionFormState: {
-      getState: () => ({ openAdd: mockOpenAdd, openEdit: mockOpenEdit }),
-    },
-  }),
-);
+jest.mock('@/modules/transactions/store/transaction_form_host.state', () => ({
+  useTransactionFormState: {
+    getState: () => ({ openAdd: mockOpenAdd, openEdit: mockOpenEdit }),
+  },
+}));
 
 jest.mock('@/utils/run_after_interactions', () => ({
   runAfterInteractions: jest.fn((callback: () => void | Promise<void>) => {

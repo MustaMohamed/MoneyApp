@@ -10,6 +10,7 @@ import type { CommitmentPayment } from '@/modules/commitments/entities/commitmen
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { DashboardLoadInput } from '@/modules/dashboard/repositories/dashboard.repository';
+import { useDashboardStore } from '@/modules/dashboard/store/dashboard.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { formatMonthYear } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
@@ -27,7 +28,6 @@ import {
 } from './dashboard.helpers';
 import { selectDashboardPresentation } from './dashboard.presentation';
 import { useDashboardState } from './dashboard.state';
-import { useDashboardStore } from './dashboard.store';
 import type { DashboardSegment } from './types';
 
 const EMPTY_ACCOUNTS: Account[] = [];

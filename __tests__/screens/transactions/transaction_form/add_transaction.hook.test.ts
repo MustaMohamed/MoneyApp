@@ -10,8 +10,8 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
-import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import type { TransactionFormPrerequisiteStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 import { deferred } from '@/test_helpers/deferred';
 import {
   installMockAddTransaction,

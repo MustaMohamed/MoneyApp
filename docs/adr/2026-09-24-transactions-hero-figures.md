@@ -3,7 +3,7 @@
 - **Date:** 2026-09-24
 - **Status:** accepted
 - **Ticket:** MA-098, under #547
-- **Applies to:** `buildTransactionsHeroModel` and `resolveTransactionsHeroMode` in `src/modules/transactions/screens/transactions/transactions.helpers.ts`; `computeDeltaPct` in `src/modules/transactions/domain/period_delta.ts`; `TransactionsHero` in `src/modules/transactions/screens/transactions/components/transactions_hero.tsx`
+- **Applies to:** `buildTransactionsHeroModel` and `resolveTransactionsHeroMode` in `src/modules/transactions/screens/transactions/transactions.helpers.ts`; `computeDeltaPct` in `src/modules/transactions/domain/period_delta.ts`; `expenseSharePercent` in `src/modules/transactions/domain/expense_share.ts`; `TransactionsHero` in `src/modules/transactions/screens/transactions/components/transactions_hero.tsx`
 
 The top of the transactions tab opens on Out this month, with In, Net and Left of income under it, a rail filled with the share of income spent, and a caption with the days left and last month's Out. Every figure comes from `TransactionMonthAggregate.scoped` for the selected month and `getScopedTotals` for the month before, both scoped by the sheet's account filter alone (the 2026-09-24 transactions-month-aggregate ADR, §2).
 

@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef } from 'react';
 
+import {
+  type TransactionFormFooterState,
+  useTransactionFormState,
+} from '@/modules/transactions/store/transaction_form_host.state';
+
 import type {
   RegisterTransactionFormSubmit,
   TransactionFormSubmit,
 } from './transaction_form_host.hook';
-import {
-  type TransactionFormFooterState,
-  useTransactionFormState,
-} from './transaction_form_host.state';
 
 interface TransactionFormSessionOptions {
   sessionId: number;

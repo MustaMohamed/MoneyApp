@@ -3,7 +3,7 @@ import type {
   AccountActivitySnapshot,
   IAccountActivityRepository,
 } from '@/modules/accounts/repositories/account_activity.repository';
-import { createAccountActivityStore } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
+import { createAccountActivityStore } from '@/modules/accounts/store/account_activity.store';
 import { deferred } from '@/test_helpers/deferred';
 
 const NOW = new Date('2026-09-15T12:00:00.000Z');

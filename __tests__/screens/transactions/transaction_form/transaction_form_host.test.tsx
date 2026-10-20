@@ -104,7 +104,7 @@ jest.mock(
 
 import { TransactionFormHost } from '@/modules/transactions/screens/transactions/transaction_form';
 import { useTransactionFormHost } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.hook';
-import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 
 function createTransaction(): Transaction {
   return {

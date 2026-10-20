@@ -6,7 +6,6 @@ import { Strings } from '@/constants/strings';
 import { AccountNameTakenError } from '@/modules/accounts/repositories/account.errors';
 import type { AccountActivitySnapshot } from '@/modules/accounts/repositories/account_activity.repository';
 import type { ArchivedAccountDetailSnapshot } from '@/modules/accounts/repositories/archived_account_detail.repository';
-import { useAccountActivityStore } from '@/modules/accounts/screens/accounts/detail/account_activity.store';
 import { useAccountDetail } from '@/modules/accounts/screens/accounts/detail/account_detail.hook';
 import { useAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
 import {
@@ -14,6 +13,7 @@ import {
   type ArchivedAccountDetailStatus,
 } from '@/modules/accounts/screens/accounts/detail/archived_account_detail.store';
 import { useAccountStore, type Account } from '@/modules/accounts/store/account.store';
+import { useAccountActivityStore } from '@/modules/accounts/store/account_activity.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { makeAccountCommitmentRef } from '@/test_helpers/commitment';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -63,7 +63,7 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () => {
   return { useAccountDetailState: jest.fn() };
 });
-jest.mock('@/modules/accounts/screens/accounts/detail/account_activity.store', () => ({
+jest.mock('@/modules/accounts/store/account_activity.store', () => ({
   useAccountActivityStore: jest.fn(),
 }));
 jest.mock('@/modules/accounts/screens/accounts/detail/archived_account_detail.store', () => ({
@@ -73,13 +73,12 @@ jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore
 jest.mock('@/modules/transactions/store/transaction.store', () => ({
   useTransactionStore: { getState: () => ({ mutationVersion: 3 }) },
 }));
-jest.mock('@/modules/transactions/screens/transactions/transactions.store', () => ({
+jest.mock('@/modules/transactions/store/transactions.store', () => ({
   useTransactionsScreenStore: { getState: () => ({ seedAccountFilter: mockSeedAccountFilter }) },
 }));
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
-  () => ({ useTransactionFormState: { getState: () => ({ openAdd: mockOpenAdd }) } }),
-);
+jest.mock('@/modules/transactions/store/transaction_form_host.state', () => ({
+  useTransactionFormState: { getState: () => ({ openAdd: mockOpenAdd }) },
+}));
 jest.mock(
   '@/modules/accounts/screens/accounts/detail/components/replacement_account_sheet.state',
   () => ({
