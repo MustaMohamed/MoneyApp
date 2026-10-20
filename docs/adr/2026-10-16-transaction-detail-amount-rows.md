@@ -35,6 +35,8 @@ The value is `formatDisplayAmount(figure.amount, figure.currency)`, the amount a
 
 **Amended 2026-10-16, MA-181 (#722).** The skeleton holds one slot per loaded fact row, each `resolveDetailFactRowHeight(fontScale)` high, and none for Account and Category on a transfer or a card payment, which draw neither row: an EGP to USD transfer with a rate reads five slots, an EGP card payment three, and a commitment's EGP payment that stores a rate six. The amount slot still keys on `resolveDetailAmountRowFigure`, and the Rate slot on the stored rate.
 
+**Amended 2026-10-20, MA-197 (#759).** `resolveDetailFactRowHeight` is now `resolveFactRowHeight` in `src/components/ui/fact_row.geometry.ts`, the row height the account detail and the add and edit sheet share, and the skeleton slots read it. The Amount in EGP and Amount in USD rows mark their value as an amount, so above font scale 1 the label ends in `…` first and the amount shrinks only once the label is spent, where MA-181 held the label whole and shrank the amount first. The Rate row keeps MA-181's order: `Rate` whole and its value fitted.
+
 ## 5. The labels print in capitals until MA-181
 
 The two rows draw through today's `DetailRow`, unchanged, whose label class carries `uppercase` (`src/components/ui/detail_row.tsx`). They read `AMOUNT IN EGP` and `AMOUNT IN USD` beside the other capitalised labels until MA-181 (#722) moves every row to the new anatomy.
