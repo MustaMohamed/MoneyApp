@@ -16,7 +16,7 @@ function themeAt(width: number): Theme {
   return theme;
 }
 
-describe('the detail rows card corner and border', () => {
+describe('Radius.detailCard', () => {
   // `Radius.lg` is `ms(16)`: its value at each width proves the width mock reached `ms()`.
   it.each([
     [320, 14],

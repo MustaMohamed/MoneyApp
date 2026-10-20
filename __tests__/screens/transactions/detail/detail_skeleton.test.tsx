@@ -8,6 +8,7 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { Radius, Size, Type, lineHeightFor } from '@/constants/theme';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
+  DETAIL_NOTE_MIN_HEIGHT,
   resolveDetailHeroGeometry,
   resolveTransferCardHeight,
   resolveTransferSkeletonCellHeight,
@@ -123,6 +124,9 @@ describe('TransactionDetailSkeleton', () => {
 
     expect(getByTestId('transaction-detail-skeleton-transfer')).toHaveStyle({
       height: resolveTransferCardHeight(fontScale),
+    });
+    expect(getByTestId('transaction-detail-skeleton-note')).toHaveStyle({
+      minHeight: DETAIL_NOTE_MIN_HEIGHT,
     });
     const cell = resolveTransferSkeletonCellHeight(fontScale);
     expect(barsIn('transaction-detail-skeleton-transfer')).toEqual([cell, undefined, cell]);

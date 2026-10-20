@@ -1,4 +1,4 @@
-import { Card, SkeletonGroup } from 'heroui-native';
+import { SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
 import { DetailRowsCard } from '@/components/ui/detail_rows_card';
@@ -18,11 +18,10 @@ import {
   DETAIL_HERO_PADDING,
   DETAIL_HERO_SHELL_STYLE,
   DETAIL_HERO_TILE_GAP,
-  DETAIL_NOTE_MIN_HEIGHT,
   resolveDetailHeroGeometry,
-  resolveTransferCardHeight,
   resolveTransferSkeletonCellHeight,
 } from './detail.geometry';
+import { NoteCardFrame, TransferFlowCardFrame } from './detail_card_frames';
 
 interface Props {
   transaction?: Transaction | null;
@@ -33,10 +32,9 @@ export function TransferFlowSkeletonCard(): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const cellHeight = resolveTransferSkeletonCellHeight(fontScale);
   return (
-    <Card
+    <TransferFlowCardFrame
       testID="transaction-detail-skeleton-transfer"
-      className="border-separator mx-4 mt-4 rounded-2xl border p-3.5"
-      style={{ height: resolveTransferCardHeight(fontScale), boxShadow: 'none' }}
+      className="border-separator"
     >
       <SkeletonGroup isLoading isSkeletonOnly>
         <View className="flex-row items-center justify-between">
@@ -45,7 +43,7 @@ export function TransferFlowSkeletonCard(): React.ReactElement {
           <SkeletonGroup.Item className="w-[42%] rounded-lg" style={{ height: cellHeight }} />
         </View>
       </SkeletonGroup>
-    </Card>
+    </TransferFlowCardFrame>
   );
 }
 
@@ -147,14 +145,10 @@ export function TransactionDetailSkeleton({ transaction, actionSet }: Props): Re
           ))}
         </DetailRowsCard>
         {geometry.showNote ? (
-          <Card
-            testID="transaction-detail-skeleton-note"
-            className="border-separator mx-4 mt-4 rounded-2xl border px-4 py-3"
-            style={{ minHeight: DETAIL_NOTE_MIN_HEIGHT, boxShadow: 'none' }}
-          >
+          <NoteCardFrame testID="transaction-detail-skeleton-note">
             <ScaledBar height={lineHeightFor(Type.overline)} className="w-12 rounded-md" />
             <ScaledBar height={lineHeightFor(Type.body)} className="mt-1 w-full rounded-md" />
-          </Card>
+          </NoteCardFrame>
         ) : null}
         <View
           testID="transaction-detail-skeleton-actions"

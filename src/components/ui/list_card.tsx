@@ -6,7 +6,7 @@ import { Radius, Size } from '@/constants/theme';
 
 export interface ListCardProps {
   children: ReactNode;
-  /** Per-caller placement classes only; absent renders exactly what every caller rendered before. */
+  /** Per-caller placement classes only. */
   className?: string;
   /** Per-caller placement, or a corner other than `Radius.lg`; the caller's `borderRadius` wins. */
   style?: StyleProp<ViewStyle>;

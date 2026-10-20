@@ -1,11 +1,10 @@
-import { Card } from 'heroui-native';
 import React from 'react';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { LetterSpacing, Type, lineHeightFor } from '@/constants/theme';
 
-import { DETAIL_NOTE_MIN_HEIGHT } from './detail.geometry';
+import { NoteCardFrame } from './detail_card_frames';
 
 interface Props {
   note: string | null;
@@ -17,11 +16,7 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
   if (!trimmed) return null;
 
   return (
-    <Card
-      testID="detail-note-card"
-      className="border-separator mx-4 mt-4 rounded-2xl border px-4 py-3"
-      style={{ minHeight: DETAIL_NOTE_MIN_HEIGHT, boxShadow: 'none' }}
-    >
+    <NoteCardFrame testID="detail-note-card">
       <Text
         className="font-inter-semibold text-muted uppercase"
         style={{
@@ -38,6 +33,6 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
       >
         {trimmed}
       </Text>
-    </Card>
+    </NoteCardFrame>
   );
 }
