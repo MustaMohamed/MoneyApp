@@ -99,6 +99,63 @@ function propertyKeyName(node) {
   return undefined;
 }
 
+const SRC_ROOTS = new Set([
+  'modules',
+  'components',
+  'store',
+  'utils',
+  'repositories',
+  'database',
+  'constants',
+  'screens',
+]);
+const MODULE_SCREENS_TARGET = /^modules\/([^/]+)\/screens\//;
+const SHARED_FOLDER_FILE = /^(?:components\/|modules\/[^/]+\/(?:components|utils|domain)\/)/;
+
+/** The path after the last `src/` segment, or undefined when the file is not under one of its eight children. */
+function srcRelativePath(filename) {
+  const normalized = filename.replace(/\\/g, '/');
+  const marker = normalized.lastIndexOf('/src/');
+  if (marker === -1) return undefined;
+  const relative = normalized.slice(marker + '/src/'.length);
+  return SRC_ROOTS.has(relative.split('/')[0]) ? relative : undefined;
+}
+
+function normalizeSegments(segments) {
+  const out = [];
+  for (const segment of segments) {
+    if (segment === '' || segment === '.') continue;
+    if (segment === '..') {
+      if (out.length === 0) return undefined;
+      out.pop();
+    } else {
+      out.push(segment);
+    }
+  }
+  return out.join('/');
+}
+
+/** The import target as a path under `src/`, or undefined for a bare package or a path that leaves `src/`. */
+function resolveTarget(specifier, fileRelativePath) {
+  if (specifier.startsWith('@/')) return specifier.slice(2);
+  if (specifier.startsWith('./') || specifier.startsWith('../')) {
+    const dir = fileRelativePath.split('/').slice(0, -1);
+    return normalizeSegments([...dir, ...specifier.split('/')]);
+  }
+  return undefined;
+}
+
+function moduleOf(relativePath) {
+  const match = /^modules\/([^/]+)\//.exec(relativePath);
+  return match ? match[1] : undefined;
+}
+
+function importSourceValue(source) {
+  if (!source) return undefined;
+  if (source.type !== 'Literal' && source.type !== 'StringLiteral') return undefined;
+  return typeof source.value === 'string' ? source.value : undefined;
+}
+
 module.exports = {
   meta: { name: 'moneyapp' },
   rules: {
@@ -168,6 +225,61 @@ module.exports = {
             const name = propertyKeyName(node);
             if (name === undefined || !A11Y_TEXT_NAME.test(name)) return;
             if (holdsLiteralText(node.value)) context.report({ node, messageId: 'literal' });
+          },
+        };
+      },
+    },
+    'screens-import-boundary': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description:
+            "A file under src/ imports nothing from another module's screens folder, and a shared folder (src/components, a module's components, utils or domain) imports nothing from any screens folder; src/app and src/test_helpers are exempt.",
+        },
+        messages: {
+          otherModule:
+            "This file reads another module's screens folder: a piece another module reads lives in that module's store/, utils/, domain/ or components/ (docs/adr/2026-09-28-shared-helpers-leave-screen-folders.md §4). Import it from there.",
+          sharedFolder:
+            'A shared piece imports nothing from a screens folder, its own module included: a back import carries a screen-folder change into every reader of the shared piece (docs/adr/2026-10-18-transactions-pieces-leave-screen-folders.md §2). Move the piece it reads beside it.',
+        },
+      },
+      create(context) {
+        const fileRelativePath = srcRelativePath(context.filename);
+        if (fileRelativePath === undefined) return {};
+        const fileModule = moduleOf(fileRelativePath);
+        const inSharedFolder = SHARED_FOLDER_FILE.test(fileRelativePath);
+
+        function check(node, source) {
+          const specifier = importSourceValue(source);
+          if (specifier === undefined) return;
+          const target = resolveTarget(specifier, fileRelativePath);
+          if (target === undefined) return;
+          const screensModule = MODULE_SCREENS_TARGET.exec(target)?.[1];
+          const targetsScreens = screensModule !== undefined || target.startsWith('screens/');
+          if (inSharedFolder && targetsScreens) {
+            context.report({ node, messageId: 'sharedFolder' });
+            return;
+          }
+          if (screensModule !== undefined && screensModule !== fileModule) {
+            context.report({ node, messageId: 'otherModule' });
+          }
+        }
+
+        return {
+          ImportDeclaration(node) {
+            check(node, node.source);
+          },
+          ExportNamedDeclaration(node) {
+            check(node, node.source);
+          },
+          ExportAllDeclaration(node) {
+            check(node, node.source);
+          },
+          ImportExpression(node) {
+            check(node, node.source);
+          },
+          TSImportType(node) {
+            check(node, node.source);
           },
         };
       },

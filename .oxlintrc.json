@@ -49,6 +49,7 @@
     "expo/no-dynamic-env-var": "error",
     "moneyapp/font-size-pairs-line-height": "error",
     "moneyapp/no-literal-a11y-text": "error",
+    "moneyapp/screens-import-boundary": "error",
     "typescript/no-floating-promises": "error",
     "typescript/no-misused-promises": "error",
     "typescript/await-thenable": "error",
