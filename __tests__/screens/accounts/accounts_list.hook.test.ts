@@ -10,7 +10,7 @@ import { useAccountsListState } from '@/modules/accounts/screens/accounts/list/a
 import { type Account, useAccountStore } from '@/modules/accounts/store/account.store';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
+import { useDashboardStore } from '@/modules/dashboard/store/dashboard.store';
 import { deferred } from '@/test_helpers/deferred';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { makeTestAccount } from '@/test_helpers/transaction';
@@ -49,7 +49,7 @@ jest.mock('@/modules/currency/store/currency.store', () => ({
 jest.mock('@/modules/currency/store/base_currency.store', () => ({
   useBaseCurrencyStore: jest.fn(),
 }));
-jest.mock('@/modules/dashboard/screens/dashboard/dashboard.store', () => ({
+jest.mock('@/modules/dashboard/store/dashboard.store', () => ({
   useDashboardStore: jest.fn(),
 }));
 

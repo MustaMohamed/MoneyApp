@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/toast';
 import { Strings } from '@/constants/strings';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
+import { useDashboardStore } from '@/modules/dashboard/store/dashboard.store';
 import { resolveAccountName } from '@/utils/account_name';
 
 import { isRateUsable } from '../../../domain/account_aggregation';
