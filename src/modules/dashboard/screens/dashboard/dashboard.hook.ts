@@ -7,7 +7,7 @@ import { isRateUsable } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
 import {
-  EMPTY_MONTH_PAYMENT_SUMMARY,
+  emptyMonthPaymentSummary,
   summarizeMonthPayments,
 } from '@/modules/commitments/domain/payment_summary';
 import { useBaseCurrencyStore } from '@/modules/currency/store/base_currency.store';
@@ -172,7 +172,7 @@ export function useDashboard() {
             matchingSnapshot.yearMonth,
             matchingSnapshot.today,
           )
-        : EMPTY_MONTH_PAYMENT_SUMMARY,
+        : emptyMonthPaymentSummary(),
     [matchingSnapshot],
   );
   const spendDeltaPct = useMemo(

@@ -15,10 +15,12 @@ export interface MonthPaymentSummary {
   totalsByCurrency: Map<Currency, number>;
 }
 
-export const EMPTY_MONTH_PAYMENT_SUMMARY: MonthPaymentSummary = {
-  counts: { paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 },
-  totalsByCurrency: new Map(),
-};
+export function emptyMonthPaymentSummary(): MonthPaymentSummary {
+  return {
+    counts: { paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 },
+    totalsByCurrency: new Map(),
+  };
+}
 
 export function summarizeMonthPayments(
   payments: CommitmentPayment[],

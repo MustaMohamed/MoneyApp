@@ -16,7 +16,7 @@ import {
   isSkippedPayment,
   resolvePaymentState,
 } from '../../domain/payment_state';
-import { EMPTY_MONTH_PAYMENT_SUMMARY, summarizeMonthPayments } from '../../domain/payment_summary';
+import { emptyMonthPaymentSummary, summarizeMonthPayments } from '../../domain/payment_summary';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../entities/commitment_payment.entity';
 import { useCommitmentStore } from '../../store/commitment.store';
@@ -165,7 +165,7 @@ export function useCommitments() {
   const { counts, totalsByCurrency } = useMemo(
     () =>
       today === undefined
-        ? EMPTY_MONTH_PAYMENT_SUMMARY
+        ? emptyMonthPaymentSummary()
         : summarizeMonthPayments(activePayments, selectedMonth, today),
     [activePayments, selectedMonth, today],
   );
