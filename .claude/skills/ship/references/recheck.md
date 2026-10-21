@@ -18,7 +18,7 @@ You are verifying fixes against the findings that demanded them, from a read-onl
 3. The attached adjudications are settled; do not re-open them, cite the ledger if you meet one again.
 4. New findings are allowed under the same evidence rule and only on the delta or its blast radius.
 
-Return at most 15 lines, in the shape of `.claude/skills/ship/SKILL.md` § Returns and reads: verdict `fixed`, or `not-fixed <k>` and `findings <k>` as they apply, the counts line, the worktree Bash ran in, `LSP: used | not used, <why>`, and `report:` with the `not-fixed` and `findings` ranges. The report holds the per-finding verdicts (`fixed` | `not-fixed`, with evidence), the new delta findings and one sentence on the riskiest blast-radius path you traced.
+Return at most 15 lines, in the shape of `.claude/skills/ship/references/returns.md`: verdict `fixed`, or `not-fixed <k>` and `findings <k>` as they apply, the counts line, the worktree Bash ran in, `LSP: used | not used, <why>`, and `report:` with the `not-fixed` and `findings` ranges. The report holds the per-finding verdicts (`fixed` | `not-fixed`, with evidence), the new delta findings and one sentence on the riskiest blast-radius path you traced.
 
 ## Exit
 

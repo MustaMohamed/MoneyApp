@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs';
 
 const TESTS = /^(?:__tests__\/|__mocks__\/|src\/test_helpers\/|jest\.setup\.js$)/;
 const GENERATED = /^(?:package-lock|skills-lock)\.json$/;
+// The plan rides the branch until phase 5 removes it; it is never delivered.
+const WORKFLOW = /^\.work\//;
 
 /** @param {{ filename: string, additions: number }[]} files @returns {string} */
 function delivered(files) {
@@ -13,7 +15,7 @@ function delivered(files) {
   let tests = 0;
   for (const f of files) {
     if (TESTS.test(f.filename)) tests += f.additions;
-    else if (!GENERATED.test(f.filename)) {
+    else if (!GENERATED.test(f.filename) && !WORKFLOW.test(f.filename)) {
       outsideFiles += 1;
       outside += f.additions;
     }

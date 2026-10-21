@@ -33,13 +33,16 @@ git -C /Users/musta/Code/projects/practice/MoneyApp fetch origin
 test -d /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX \
   || git -C /Users/musta/Code/projects/practice/MoneyApp worktree add .claude/worktrees/MA-XXX "$BR"
 cd /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX
-# Main moved since /prep: rebase, force-push, and re-comment the plan's blob URL at the new SHA
-git merge-base --is-ancestor origin/main HEAD \
-  || { git rebase origin/main && git push --force-with-lease && gh issue comment <n> --body "Plan: <new blob URL>, rebased onto main"; echo "exit $?"; } 2>&1 | tail -20
+# Main moved since /prep (exit 1): the next call rebases, force-pushes and re-comments the plan's blob URL at the new SHA
+git merge-base --is-ancestor origin/main HEAD; echo "exit $?"
+git rebase origin/main > ~/.ship/MoneyApp/MA-XXX/setup.log 2>&1 \
+  && git push --force-with-lease >> ~/.ship/MoneyApp/MA-XXX/setup.log 2>&1 \
+  && gh issue comment <n> --body "Plan: <new blob URL>, rebased onto main" >> ~/.ship/MoneyApp/MA-XXX/setup.log 2>&1; echo "exit $?"; tail -20 ~/.ship/MoneyApp/MA-XXX/setup.log
 test -L node_modules && rm -f node_modules                                  # a symlink into the primary is never kept
-cmp -s package-lock.json ../../../package-lock.json \
-  && { test -d node_modules || cp -c -R ../../../node_modules node_modules; } \
-  || { npm ci; echo "exit $?"; } 2>&1 | tail -20
+# Lockfile as the primary's (exit 0): the next call copies the primary's node_modules when none is here; otherwise the call after it runs npm ci
+cmp -s package-lock.json ../../../package-lock.json; echo "exit $?"
+test -d node_modules || cp -c -R ../../../node_modules node_modules
+npm ci > ~/.ship/MoneyApp/MA-XXX/npm-ci.log 2>&1; echo "exit $?"; tail -20 ~/.ship/MoneyApp/MA-XXX/npm-ci.log
 gh issue view <n> --json body --jq .body > ~/.ship/MoneyApp/MA-XXX/issue.md
 cp .work/MA-XXX/plan.md ~/.ship/MoneyApp/MA-XXX/plan.md                     # dispatches read this copy; the branch copy leaves before the merge
 ```
@@ -66,7 +69,7 @@ A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), nev
 
 ## Conductor budget
 
-The conductor's budget is 70 tool calls a run, and every call it makes counts: dispatches, reads, Skill calls, `state.md` writes. Entry and Setup count into P1, and a resume's entry into the phase it resumes. At the end of each phase the conductor writes `conductor: <run total> / 70 · P<k> <calls in this phase>` as its own Log line, in the same write that completes the phase's Log line. Phase 5 writes it just before the merge summary ([references/merge.md](references/merge.md)), and a park writes it under `## Parked`, after its record lines. The last `conductor:` line is the one with the highest run total, since the total only grows: `## Parked` sits below `## Log`, so a park's line can sit below a later, higher Log line. A resumed run continues the run total from that line, and the phase figure too when the line names the phase it resumes; otherwise the phase figure starts at 0, and with no `conductor:` line both do. Once the total passes 70, each later line ends `· over in P<j>`, `<j>` the phase in which it passed, and the run continues: nothing parks a run for its count.
+The conductor's budget is 70 tool calls a run, and every call it makes counts: dispatches, reads, Skill calls, `state.md` writes. Entry and Setup count into P1, and a resume's entry into the phase it resumes. At the end of each phase the conductor writes `conductor: <run total> / 70 · P<k> <calls in this phase>` as its own Log line, in the same write that completes the phase's Log line. P3 and P4 repeat per cycle, so each writes it at the end of each cycle's visit, after that cycle's Log line (`P3 c<n>:`), which names the cycle; the phase figure counts that visit's calls. Phase 5 writes it just before the merge summary ([references/merge.md](references/merge.md)), and a park writes it under `## Parked`, after its record lines. The last `conductor:` line is the one with the highest run total, since the total only grows: `## Parked` sits below `## Log`, so a park's line can sit below a later, higher Log line. A resumed run continues the run total from that line, and the phase figure too when the line names the phase it resumes; otherwise the phase figure starts at 0, and with no `conductor:` line both do. Once the total passes 70, each later line ends `· over in P<j>`, `<j>` the phase in which it passed, and the run continues: nothing parks a run for its count.
 
 ## Artifacts
 
@@ -78,7 +81,7 @@ plan.md                          # the plan as committed on the branch; every di
 pr.md                            # the PR body, written at phase 2, completed at phase 5
 state.md                         # phase state, one Log line per phase, written when its dispatch goes and completed when it ends; the only resume point
 findings/cycle-<n>.md            # each triage's consolidated list, what the re-check verifies against
-findings/<role>-<sha>[-<k>].md   # each dispatch's report, § Returns and reads
+findings/<role>-<sha>[-<k>].md   # each dispatch's report, references/returns.md
 findings/chain-<sha>.log         # the implementer's parity chain output
 findings/render/                 # render pass and render lens screenshots
 ```
@@ -106,6 +109,7 @@ cycle: <0-4>
 - <date> conductor: 21 / 70 · P1 21
 - <date> P2: pushed <sha>, PR <url> · correctness 0 / quality 2 / render 1 / code-review 3 (medium), CI green
 - <date> P3 c1: findings written · fix dispatched · fix pushed <sha>
+- <date> conductor: 47 / 70 · P3 12
 
 ## Decisions
 <!-- one line when the decision is made; phase 5 reads every line -->
@@ -120,7 +124,7 @@ cycle: <0-4>
 - <label> → <ruling> (<date>), settled by <ticket text | frame | shipped convention | smallest change>, <why in one line>
 ```
 
-Each phase takes one Log line, written when the phase's dispatch goes and completed when it ends, facts only: SHAs, verdicts, counts, decisions. The REBUILD and `not probed after amend` lines ([references/implement.md](references/implement.md) → Build logged, Amend logged), the `change triaged` lines ([references/merge.md](references/merge.md) → A change after the summary), each dispatch's `budget:` line and the `conductor:` lines stay their own lines. The file stays under 15 KB.
+Each phase, and in P3 and P4 each cycle's visit, takes one Log line, written when the phase's dispatch goes and completed when it ends, facts only: SHAs, verdicts, counts, decisions. The REBUILD and `not probed after amend` lines ([references/implement.md](references/implement.md) → Build logged, Amend logged), the `change triaged` lines ([references/merge.md](references/merge.md) → A change after the summary), each dispatch's `budget:` line and the `conductor:` lines stay their own lines. The file stays under 15 KB.
 
 **Resume inside a phase** (its Log line not completed) reads the rest from the commits, `git log --oneline origin/main..HEAD | tail -20`, the unpushed ones, `git log --oneline origin/<branch>..HEAD | tail -20`, the tree, `git status --short | tail -20`, and `findings/cycle-<cycle>.md` in P3 or P4. Unpushed commits → push and re-point the review worktree, then continue; uncommitted edits → the discard in `references/implement.md` → Re-entry, then re-dispatch the last dispatch.
 
@@ -128,7 +132,7 @@ Each phase takes one Log line, written when the phase's dispatch goes and comple
 
 1. **Subagents never touch the issue or the PR, never push, never merge.** Only the conductor runs `gh`, `git push` and the built-in `code-review`; merges are the human's.
 2. **Reviewers never write code.** Findings route to the implementer, who fixes and commits. If fixing seems faster than re-dispatching, that is the moment this rule exists for.
-3. **Lenses read only, in the review worktree, entered as § Worktrees states, and write their one report** (§ Returns and reads). The one exception is the render lens, which runs the app from the implementation worktree because a symlinked `node_modules` resolves zero routes; it edits nothing there. The implementation worktree otherwise belongs to the implementer alone.
+3. **Lenses read only, in the review worktree, entered as § Worktrees states, and write their one report** ([references/returns.md](references/returns.md)). The one exception is the render lens, which runs the app from the implementation worktree because a symlinked `node_modules` resolves zero routes; it edits nothing there. The implementation worktree otherwise belongs to the implementer alone.
 4. **The run asks the user nothing.** The conductor rules every dispute per § Rulings and parks what it cannot rule per § Parking. The merge is the user's, and no run answers it.
 5. **One branch, one PR, targeting main, opened with `Closes #<n>`.** Never stacked.
 6. **Workflow artifacts never reach main.** The plan rides the branch for review and leaves it before the merge; the one workflow output that merges is a decision record under `docs/adr/`, through a plan step.
@@ -210,19 +214,7 @@ Teardown after the merge, in this order: review worktree (`--force`), implementa
 
 ## Dispatch recipe
 
-A subagent prompt is, in order: the charter from the phase file verbatim; absolute paths (`issue.md`, `plan.md`, the worktree, the diff range or PR URL, the report path); the repo required reading (`CLAUDE.md` at the worktree root and the `.claude/rules/` files matching the touched paths); the return shape of § Returns and reads. The `unslop` skill binds every return; say so. Never paste conversation history, never summarize the ticket or the plan: pass the paths. Re-check dispatches also get `findings/cycle-<n>.md` and `## Adjudications` verbatim; first-pass lenses never get the ledger. § Returns and reads binds every /ship charter, a lens or charter added after it included, and a ticket that adds one carries it.
-
-## Returns and reads
-
-**Return.** A /ship dispatch returns at most 15 lines, in this order: the verdict line, in its charter's words, ending `build: REBUILD <the files mqa up listed>` when the dispatch met it; the counts line, `calls <n> · sha <sha> · files <k>`, `<k>` the repository files it changed, 0 for a read-only dispatch; where the review worktree line of § Worktrees asks for them, `worktree: <the path Bash ran in>` and `LSP: used | not used, <why>`; on the quality lens, one line per danger surface with its Flag or `none`; on the implementer, `chain: <the chain log path>`; last, `report: <absolute path>`, followed by ` · <section> <first>-<last>` for each report section a verdict of the open list sends the conductor to. Nothing else.
-
-**Report.** Everything else is in the report, at the path the dispatch names, `~/.ship/MoneyApp/MA-XXX/findings/<role>-<sha>[-<k>].md`. `<role>` is one of `test-writer`, `implementer`, `correctness`, `quality`, `conformance`, `render`, `verifier`, `recheck`; `<sha>` is the 7-character head the dispatch starts from, a continued fix cycle's SendMessage included; `-<k>` numbers parallel dispatches of one role on one head, the file-disjoint fixers of [references/triage.md](references/triage.md) item 8. Each section is one `## ` heading. For a read-only dispatch the report is the one file it writes, the render lens's walk and screenshots under `findings/render/` aside, and it is never in a worktree. A re-dispatch on the same head overwrites a report the conductor has already read.
-
-**Open list.** The conductor opens a report only on these verdicts: `findings` (a lens, or a re-checker with new delta findings), `not-fixed` (the re-checker), `partial` and `refuted` (the verifier), `over budget`, `build held`, `blocked`, `discrepancy` and `deviations` (the implementer), `failing` (the `after` test writer). It reads the range the `report:` line names, with Read `offset` and `limit`, never the whole file; a range that does not start on its section's heading is found again with `grep -n '^## ' <report>`. A report the next dispatch consumes goes to it by path, and the conductor does not open it: the test writer's to the implementer, the implementer's to the `after` test writer. The implementer returns the path of its chain log, `findings/chain-<sha>.log`.
-
-**Not bound.** The restatement check of a parked record (§ Parking step 2) gets the record text alone, and its restatement is read whole. The built-in `code-review` is a Skill call, not a dispatch, and its return is read as it comes. The three paragraphs above bind neither.
-
-**Shell reads.** The conductor reads PR checks as `gh pr checks <pr-url> --json name,state --jq '.[] | [.name, .state] | join(" ")'`, with no `\(` string interpolation, which the worktree guard refuses. At triage it reads the diff's stat and the Non-goals hunk headers of [references/triage.md](references/triage.md) item 1, and no step reads the full diff. Setup reads the issue's comments as their first lines. A change after the summary is read per [references/merge.md](references/merge.md) → A change after the summary. Every other result ends `2>&1 | tail -20` or `| grep <pattern> | head -20`, and a command whose exit code gates the next step runs as `{ <command>; echo "exit $?"; } 2>&1 | tail -20`.
+A subagent prompt is, in order: the charter from the phase file verbatim; absolute paths (`issue.md`, `plan.md`, the worktree, the diff range or PR URL, the report path); the repo required reading (`CLAUDE.md` at the worktree root and the `.claude/rules/` files matching the touched paths); the return shape of [references/returns.md](references/returns.md). The `unslop` skill binds every return; say so. Never paste conversation history, never summarize the ticket or the plan: pass the paths. Re-check dispatches also get `findings/cycle-<n>.md` and `## Adjudications` verbatim; first-pass lenses never get the ledger. The return shape and the open list of [references/returns.md](references/returns.md) bind every /ship charter, a lens or charter added after it included, and a ticket that adds one carries them. The conductor's own shell reads follow the same file.
 
 ## Red flags, stop and re-read the hard rules
 

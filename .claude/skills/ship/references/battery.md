@@ -8,14 +8,14 @@
 
    ```bash
    cd /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX
-   { git push -u origin <branch> \
-       && gh pr create --base main --title "<type>(<scope>): <the ticket's outcome, imperative> (MA-XXX)" --body-file ~/.ship/MoneyApp/MA-XXX/pr.md
-     echo "exit $?"; } 2>&1 | tail -20   # the push runs the pre-push hook's jest
+   # the push runs the pre-push hook's jest; the log keeps its output out of context
+   git push -u origin <branch> > ~/.ship/MoneyApp/MA-XXX/push.log 2>&1 \
+     && gh pr create --base main --title "<type>(<scope>): <the ticket's outcome, imperative> (MA-XXX)" --body-file ~/.ship/MoneyApp/MA-XXX/pr.md >> ~/.ship/MoneyApp/MA-XXX/push.log 2>&1; echo "exit $?"; tail -20 ~/.ship/MoneyApp/MA-XXX/push.log
    bash scripts/board.sh status <n> "In Review"
    ```
 
    The title is the squash subject; write it here, once, in the conventional shape. The body, written to `pr.md` first, in this order: `Closes #<n>`; the plan's blob URL at its commit (the post-rebase SHA when Setup rebased); one line `Flags: <the header's> · Verify: <the header's>` followed by the diff's shape in a sentence, files, lines and what stays untouched. Phase 5 appends the merge summary to it, [merge.md](merge.md) § Present for merge step 4. Record the PR URL in `state.md`; every later phase targets the PR by URL. Pushing starts CI; nobody waits for it here. Triage reads it, merge confirms it.
-2. **Decide deep mode** (SKILL.md → Deep mode) on the header Flags and `git diff --shortstat origin/main...HEAD -- . ':!__tests__' ':!__mocks__' ':!src/test_helpers' ':!jest.setup.js' ':!.work' ':!package-lock.json' ':!skills-lock.json' 2>&1 | tail -20`, one line whose insertions are the count the ~400-line trigger names; the plan file is left out because it is still on the branch at phase 2. Record `deep_mode`, the trigger and `review_level` in `state.md`. The Flag-path read, `git diff --name-only origin/main...HEAD | grep -vE '^(__tests__|__mocks__|src/test_helpers)/|^\.work/|^jest\.setup\.js$' | head -20`, gives every file outside tests on a diff of 20 or fewer; check it against the Flags row of [ticket-body.md § Header line](../../tickets/references/ticket-body.md#header-line): a Flag the diff needs and the header lacks parks the ticket, SKILL.md → Parking case 1. On a longer diff the quality lens's danger surfaces, checked at triage, are the second read.
+2. **Decide deep mode** (SKILL.md → Deep mode) on the header Flags and `node .claude/skills/ship/scripts/pr_size.mjs <pr> 2>&1 | tail -20`, whose `Delivered: <k> files outside tests, <n> lines` gives the figure the ~400-line trigger names; it leaves out the plan file, still on the branch at phase 2. Record `deep_mode`, the trigger and `review_level` in `state.md`. The Flag-path read, `git diff --name-only origin/main...HEAD | grep -vE '^(__tests__|__mocks__|src/test_helpers)/|^\.work/|^jest\.setup\.js$' | head -20`, filters out the test paths of `.claude/skills/tickets/references/splitting.md` § Size gate and the plan file, and gives every file outside tests on a diff of 20 or fewer; check it against the Flags row of [ticket-body.md § Header line](../../tickets/references/ticket-body.md#header-line): a Flag the diff needs and the header lacks parks the ticket, SKILL.md → Parking case 1. On a longer diff the quality lens's danger surfaces, checked at triage, are the second read.
 3. **Review worktree:** create or re-point `MA-XXX-review` at the pushed SHA (SKILL.md → Worktrees), symlink `node_modules` from the implementation worktree.
 4. **Benchmark inputs** for the quality and conformance lenses: the house-standard reference module, `none named` unless `state.md` → Decisions says otherwise, and the audits under `docs/superpowers/reviews/` (start with `2026-07-29-full-technical-audit.md`; remediation in `docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md`).
 5. **Dispatch in one message**, every lens concurrently, none with the ledger:
@@ -25,7 +25,7 @@
    - **Render lens**, `Verify emulator` only, agent type `render`, charter D plus the plan's Screens section, the implementation worktree path, its Metro port, and the render findings path. It runs from the implementation worktree (Hard rule 3's exception) while the implementer is idle, which it is: dispatches are sequential. A lens whose verdict line carries `build: REBUILD` and the files `mqa up` listed builds nothing: the implementer builds under the hold in [implement.md](implement.md) → Re-entry, then the lens is dispatched again.
    - **Built-in `code-review`**, conductor-invoked on the PR URL, effort passed explicitly every time: `state.md` → `review_level`. Never `--fix`, never `--comment`.
 
-Each lens dispatch: charter, absolute paths (review worktree, `issue.md`, `plan.md`, diff range `origin/main...<sha>`, three-dot, the report path `findings/<lens>-<sha>.md`), the return shape of [SKILL.md](../SKILL.md) → Returns and reads. Charters A to C also get the review worktree line of [SKILL.md](../SKILL.md) → Worktrees.
+Each lens dispatch: charter, absolute paths (review worktree, `issue.md`, `plan.md`, diff range `origin/main...<sha>`, three-dot, the report path `findings/<lens>-<sha>.md`), the return shape of [returns.md](returns.md). Charters A to C also get the review worktree line of [SKILL.md](../SKILL.md) → Worktrees.
 
 ## Charter A: correctness lens (paste)
 
@@ -39,7 +39,7 @@ You are reviewing committed work you did not write. You read from the review wor
 
 Evidence rule: every finding is `path:line`, quoted code, the failing scenario, the smallest fix, severity `blocking` (wrong behaviour, Acceptance violated, swallowed failure) or `note` (should fix, not merge-blocking). A clean class is one line. The findings go to your report, at the path in your dispatch, never into a worktree.
 
-Return at most 15 lines, in the shape of `.claude/skills/ship/SKILL.md` § Returns and reads: verdict `approve` | `findings <k>`, the counts line, the worktree Bash ran in, `LSP: used | not used, <why>`, and `report:` with the `findings` range. The report holds the findings and one sentence on the riskiest thing you checked that turned out fine.
+Return at most 15 lines, in the shape of `.claude/skills/ship/references/returns.md`: verdict `approve` | `findings <k>`, the counts line, the worktree Bash ran in, `LSP: used | not used, <why>`, and `report:` with the `findings` range. The report holds the findings and one sentence on the riskiest thing you checked that turned out fine.
 
 ## Charter B: quality lens (paste)
 
@@ -53,7 +53,7 @@ You are auditing an open PR for quality from a read-only review worktree. Bugs a
 
 Evidence rule as charter A; `blocking` only for what would make a maintainer's next change wrong or slow. Record genuine strengths in one or two lines.
 
-Return at most 15 lines, in the shape of `.claude/skills/ship/SKILL.md` § Returns and reads: verdict `approve` | `findings <k>`, the counts line, the worktree Bash ran in, `LSP: used | not used, <why>`, one line per danger surface with its Flag or `none`, and `report:` with the `findings` range. The report holds the findings and the strengths.
+Return at most 15 lines, in the shape of `.claude/skills/ship/references/returns.md`: verdict `approve` | `findings <k>`, the counts line, the worktree Bash ran in, `LSP: used | not used, <why>`, one line per danger surface with its Flag or `none`, and `report:` with the `findings` range. The report holds the findings and the strengths.
 
 ## Charter C: conformance lens (paste; deep mode only)
 
@@ -64,7 +64,7 @@ You are checking an open PR against the codebase's house standard from a read-on
 3. Compile-time guards beat convention: a hand-maintained vocabulary or parallel list the compiler could check is a finding.
 4. Scope discipline: conformance fixes that belong to a remediation wave get recommended for exclusion, not demanded.
 
-Return at most 15 lines, in the shape of `.claude/skills/ship/SKILL.md` § Returns and reads: verdict `approve` | `findings <k>`, the counts line, the worktree Bash ran in, `LSP: used | not used, <why>`, and `report:` with the `findings` range. The report holds the findings, each with `path:line` and the reference or audit citation, and the audit items this PR closes or declines.
+Return at most 15 lines, in the shape of `.claude/skills/ship/references/returns.md`: verdict `approve` | `findings <k>`, the counts line, the worktree Bash ran in, `LSP: used | not used, <why>`, and `report:` with the `findings` range. The report holds the findings, each with `path:line` and the reference or audit citation, and the audit items this PR closes or declines.
 
 ## Charter D: render lens (paste; `Verify emulator` only)
 
@@ -78,8 +78,8 @@ You are checking what the screens of an open PR show, on the Android emulator, f
 
 Evidence rule: a finding is the scenario, the screenshot path, what the screen showed against what Acceptance or the design says, severity `blocking` (wrong or missing state, clipped content, JS error) or `note`. Report what you could not see. Fonts, shadows, gesture feel and performance are device QA's, not yours; do not report them.
 
-Return at most 15 lines, in the shape of `.claude/skills/ship/SKILL.md` § Returns and reads: verdict `approve` | `findings <k>`, ending `build: REBUILD <files>` when you met it, the counts line, and `report:` with the `findings` range. The report holds the findings and the scenario list you ran, one line each on what it caught or cleared.
+Return at most 15 lines, in the shape of `.claude/skills/ship/references/returns.md`: verdict `approve` | `findings <k>`, ending `build: REBUILD <files>` when you met it, the counts line, and `report:` with the `findings` range. The report holds the findings and the scenario list you ran, one line each on what it caught or cleared.
 
 ## Exit
 
-All returns in (a lens killed by a transient API error is re-run). Record per-lens verdicts and counts in `state.md`, one line, from the returns, with `LSP: not used` beside each lens that returned it, and enter phase 3. A report opens at triage, on a verdict of the open list of [SKILL.md](../SKILL.md) → Returns and reads.
+All returns in (a lens killed by a transient API error is re-run). Record per-lens verdicts and counts in `state.md`, one line, from the returns, with `LSP: not used` beside each lens that returned it, and enter phase 3. A report opens at triage, on a verdict of the open list of [returns.md](returns.md).
