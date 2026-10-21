@@ -6,14 +6,11 @@ import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { resolveAmountRangeDraft } from '@/modules/transactions/utils/amount_range_filter';
+import { formatSelectionSummary } from '@/modules/transactions/utils/filter_selection';
 import { resolveAccountName } from '@/utils/account_name';
 
 import { useCommitmentsScreenState } from '../commitments.state';
-import {
-  commitmentFiltersEqual,
-  countActiveCommitmentFilters,
-  formatCommitmentSelectionSummary,
-} from './filter.helpers';
+import { commitmentFiltersEqual, countActiveCommitmentFilters } from './filter.helpers';
 import { useCommitmentFilterState } from './filter.state';
 import { useCommitmentFilterStore } from './filter.store';
 import { COMMITMENT_AMOUNT_TYPE_OPTIONS, COMMITMENT_RECURRENCE_OPTIONS } from './filter_options';
@@ -65,13 +62,13 @@ export function useCommitmentFilterSheet() {
   const draftCount = countActiveCommitmentFilters(draft);
   const canApply = amountRange.isValid && !commitmentFiltersEqual(draft, appliedFilters);
   const canReset = draftCount > 0 || amountRange.hasText;
-  const accountSummary = formatCommitmentSelectionSummary(
+  const accountSummary = formatSelectionSummary(
     accounts
       .filter((account) => draft.accountIds.includes(account.id))
       .map((account) => resolveAccountName(account)),
     Strings.filterSummaryAccountsEmpty,
   );
-  const categorySummary = formatCommitmentSelectionSummary(
+  const categorySummary = formatSelectionSummary(
     categories
       .filter((category) => draft.categoryIds.includes(category.id))
       .map((category) => category.name),
@@ -79,13 +76,13 @@ export function useCommitmentFilterSheet() {
   );
   const amountActive = amountRange.hasText;
   const amountSummary = amountRange.summary;
-  const amountTypeSummary = formatCommitmentSelectionSummary(
+  const amountTypeSummary = formatSelectionSummary(
     COMMITMENT_AMOUNT_TYPE_OPTIONS.filter((option) => draft.amountTypes.includes(option.value)).map(
       (option) => option.label,
     ),
     Strings.filterAllAmountTypes,
   );
-  const recurrenceSummary = formatCommitmentSelectionSummary(
+  const recurrenceSummary = formatSelectionSummary(
     COMMITMENT_RECURRENCE_OPTIONS.filter((option) =>
       draft.recurrencePresets.includes(option.value),
     ).map((option) => option.label),

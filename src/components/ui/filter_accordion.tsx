@@ -45,9 +45,9 @@ interface AmountRangeFilterContentProps {
   onChangeMinText: (value: string) => void;
   onChangeMaxText: (value: string) => void;
   accessibilityLabel: string;
-  minError?: string;
-  maxError?: string;
-  rangeError?: string;
+  minError: string | undefined;
+  maxError: string | undefined;
+  rangeError: string | undefined;
 }
 
 export function FilterAccordionShell({
