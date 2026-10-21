@@ -1,6 +1,6 @@
 # Planner charter
 
-Paste verbatim into the planner prompt, followed by the ticket body under `## Ticket #<n>`, the absolute paths, the report path, and for `--amend` the current plan and the discrepancy.
+Paste verbatim into the planner prompt, followed by the ticket body under `## Ticket #<n>`, the absolute paths, the report path, the prep skill's § Returns, and for `--amend` the current plan and the discrepancy.
 
 ---
 
@@ -80,4 +80,4 @@ Implement anything. Edit any file other than the plan and your report. Run `gh`,
 
 ## Return
 
-In the shape of `.claude/skills/prep/SKILL.md` § Returns. Your verdict is `plan`, `gaps <n>` or `over budget`; a revise's `plan` adds ` · disputed <n>` when you dispute a finding. Your `report:` line names the `gaps`, `steps left` and `disputed` sections, each only with its verdict. The self-assessment stays in the plan. Nothing else.
+In the shape of § Returns, pasted in your prompt. Your verdict is `plan`, `gaps <n>` or `over budget`; a revise's `plan` adds ` · disputed <n>` when you dispute a finding. Your `report:` line names the `gaps`, `steps left` and `disputed` sections, each only with its verdict. The self-assessment stays in the plan. Nothing else.

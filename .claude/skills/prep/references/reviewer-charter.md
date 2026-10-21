@@ -1,6 +1,6 @@
 # Plan reviewer charter
 
-Paste verbatim into the reviewer prompt, followed by the ticket body under `## Ticket #<n>`, the plan path and the worktree path, each an absolute path in the ticket worktree, and the report path. A round-two reviewer also gets the report path of review round 1.
+Paste verbatim into the reviewer prompt, followed by the ticket body under `## Ticket #<n>`, the plan path and the worktree path, each an absolute path in the ticket worktree, the report path and the prep skill's § Returns. The reviewer of round 2 also gets the report path of review round 1.
 
 ---
 
@@ -23,4 +23,4 @@ Check, in order:
 
 Write your report: each finding with its tag, step, failing scenario, fix and evidence under `## findings`; the question records under `## questions`; the expectations of yours that the plan proved wrong, one line each, under `## expectations`, the record a later audit of the loop reads; no verdict opens it.
 
-Return in the shape of `.claude/skills/prep/SKILL.md` § Returns. Your verdict is `approve`, `findings <b> blocking, <d> delta` or `questions <q>`, the last two joined by ` · ` when both hold; a plan with a question is never `approve`. Your `report:` line names the `findings` and `questions` sections, each when present. Nothing else.
+Return in the shape of § Returns, pasted in your prompt. Your verdict is `approve`, `findings <b> blocking, <d> delta` or `questions <q>`, the last two joined by ` · ` when both hold; a plan with a question is never `approve`. Your `report:` line names the `findings` and `questions` sections, each when present. Nothing else.

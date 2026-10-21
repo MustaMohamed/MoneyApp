@@ -1,6 +1,6 @@
 # Probe charter
 
-Paste verbatim into the probe prompt, followed by the ticket body under `## Ticket #<n>`, the plan path, the probe worktree path, the state list, the shots path and the report path.
+Paste verbatim into the probe prompt, followed by the ticket body under `## Ticket #<n>`, the plan path, the probe worktree path, the state list, the shots path, the report path and the prep skill's § Returns.
 
 ---
 
@@ -28,4 +28,4 @@ On every return after your first device call, `mqa down` then `mqa release`.
 
 Write your report: under `## differs`, each `differs fix` fact with the plan step it changes, and each `differs choice` as a question record's fields from `Asks:` to `Screen:`, `.claude/skills/issue-review/references/question-record.md`, only when the ticket body, the plan and the frame are all silent on which rendering is right, each named on its `Prior art:` line; under `## shots`, the shot paths; and under `## refusal`, the refusal quoted when one ended or cut the run.
 
-Return in the shape of `.claude/skills/prep/SKILL.md` § Returns. Your verdict line joins its parts with ` · `: per state in list order `<state>: matches`, `differs fix`, `differs choice` or `not probed`; then `build: REUSE` or `build: REBUILD <files>`; then `no slot` or `build held` only when the run stopped there; then `refusal` only when one ended or cut the run. Your `report:` line names the `differs` and `refusal` sections, each when present. Nothing else.
+Return in the shape of § Returns, pasted in your prompt. Your verdict line joins its parts with ` · `: per state in list order `<state>: matches`, `differs fix`, `differs choice` or `not probed`; then `build: REUSE` or `build: REBUILD <files>`; then `no slot` or `build held` only when the run stopped there; then `refusal` only when one ended or cut the run. Your `report:` line names the `differs` and `refusal` sections, each when present. Nothing else.
