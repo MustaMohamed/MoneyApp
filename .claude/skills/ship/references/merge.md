@@ -67,7 +67,7 @@ Two callers run this list: the `/ship` session whose watch fired, and `/queue` o
 
 Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the end. In order:
 
-1. Confirm: `gh pr view <pr-url> --json state,mergedAt`, always with the URL. Then `ExitWorktree` (action `keep`), since the worktree guard refuses `git -C` inside a worktree session, and `git -C /Users/musta/Code/projects/practice/MoneyApp checkout main > ~/.ship/MoneyApp/MA-XXX/post-merge.log 2>&1 && git -C /Users/musta/Code/projects/practice/MoneyApp pull --ff-only origin main >> ~/.ship/MoneyApp/MA-XXX/post-merge.log 2>&1; echo "exit $?"; tail -20 ~/.ship/MoneyApp/MA-XXX/post-merge.log`.
+1. Confirm: `gh pr view <pr-url> --json state,mergedAt`, always with the URL. Then a session in a worktree first runs `ExitWorktree` (action `keep`), since the worktree guard refuses `git -C` inside a worktree session; a caller outside a worktree skips it. Then `git -C /Users/musta/Code/projects/practice/MoneyApp checkout main > ~/.ship/MoneyApp/MA-XXX/post-merge.log 2>&1 && git -C /Users/musta/Code/projects/practice/MoneyApp pull --ff-only origin main >> ~/.ship/MoneyApp/MA-XXX/post-merge.log 2>&1; echo "exit $?"; tail -20 ~/.ship/MoneyApp/MA-XXX/post-merge.log`.
 2. Size write-back, one line on the ticket, so the next planner sees the calibration. Skip it when `gh issue view <issue> --json comments --jq '[.comments[].body | select(startswith("Delivered: "))] | length'` prints more than 0; `Delivered: ` is the prefix `pr_size.mjs` prints. `pr_size.mjs` prints the delivered half, counted as `.claude/skills/tickets/references/splitting.md` § Size gate counts it. `<planned>` is the figure from the plan header:
 
    ```bash
