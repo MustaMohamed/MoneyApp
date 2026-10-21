@@ -3,7 +3,7 @@ import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { resolveAccountName } from '@/utils/account_name';
 
-export interface AccountChipTile {
+interface AccountChipTile {
   color: string | null;
   type: AccountType;
 }

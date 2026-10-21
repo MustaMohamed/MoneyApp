@@ -1,5 +1,6 @@
 import type { DayHeaderFigures, DayHeaderSection } from '@/components/ui/day_header';
-import type { SearchTallyModel } from '@/components/ui/search_tally.helpers';
+import type { PolaritySignal } from '@/components/ui/flow_polarity';
+import type { SearchTallyModel } from '@/components/ui/search_tally';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -14,7 +15,6 @@ import {
   buildTotalsPresentation,
   deltaDisplay,
   type DeltaDirection,
-  type PolaritySignal,
   type TotalsPresentation,
 } from '@/modules/transactions/utils/totals_presentation';
 import {

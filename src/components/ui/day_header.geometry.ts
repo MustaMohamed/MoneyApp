@@ -2,6 +2,9 @@ import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
+/** Android reserves a truncated line's `…` in the paint's Roboto (0.669 em), and Inter SemiBold draws it at 0.956 em (StaticLayout.java:1189). */
+export const INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE = 1.45;
+
 /** The day header's row and insets, shared by the header and the list skeleton's header row. */
 export const DAY_HEADER_ROOT_STYLE = {
   flexDirection: 'row',

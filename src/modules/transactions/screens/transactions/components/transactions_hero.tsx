@@ -4,15 +4,12 @@ import React, { type ComponentProps } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { withUniwind } from 'uniwind';
 
-import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/account_chips.geometry';
+import { FLOW_CLASS, type PolaritySignal } from '@/components/ui/flow_polarity';
 import { HeroShell } from '@/components/ui/hero_shell';
-import { FLOW_CLASS } from '@/components/ui/search_tally.helpers';
+import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
 import { Strings } from '@/constants/strings';
 import { Spacing, lineHeightFor } from '@/constants/theme';
-import type {
-  DeltaDirection,
-  PolaritySignal,
-} from '@/modules/transactions/utils/totals_presentation';
+import type { DeltaDirection } from '@/modules/transactions/utils/totals_presentation';
 
 import type { TransactionsHeroChange, TransactionsHeroModel } from '../transactions.helpers';
 import {

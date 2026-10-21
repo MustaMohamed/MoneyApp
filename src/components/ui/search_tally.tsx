@@ -2,10 +2,21 @@ import { Skeleton, Typography } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { resolveSearchTallyGeometry } from '@/components/ui/list_text.geometry';
-import { FLOW_CLASS, type SearchTallyModel } from '@/components/ui/search_tally.helpers';
+import { FLOW_CLASS, type PolaritySignal } from '@/components/ui/flow_polarity';
+import { resolveSearchTallyGeometry } from '@/components/ui/search_tally.geometry';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
+
+export type SearchTallyMode = 'empty' | 'skeleton' | 'failed' | 'figures';
+
+export interface SearchTallyModel {
+  mode: SearchTallyMode;
+  count: string | undefined;
+  label: string;
+  filterSummary: string | undefined;
+  sum: { text: string; polarity: PolaritySignal; currencyCode: string } | undefined;
+  accessibilityLabel: string | undefined;
+}
 
 const SLOT_STYLE = {
   paddingBottom: Spacing.xxs,

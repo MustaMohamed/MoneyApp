@@ -2,13 +2,13 @@ import { Chip, Skeleton } from 'heroui-native';
 import React from 'react';
 import { Text as RNText, View, useWindowDimensions } from 'react-native';
 
-import { INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE } from '@/components/ui/list_text.geometry';
 import { Text } from '@/components/ui/text';
 import { Colors, Spacing, lineHeightFor } from '@/constants/theme';
 
 import {
   DAY_HEADER_NET_PLACEHOLDER_WIDTH,
   DAY_HEADER_ROOT_STYLE,
+  INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE,
   resolveDayHeaderGeometry,
   resolveDayHeaderNetMaxWidth,
 } from './day_header.geometry';

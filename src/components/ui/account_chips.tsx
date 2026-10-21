@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ScrollView,
+  useWindowDimensions,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -8,15 +9,17 @@ import {
 
 import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { SelectablePill } from '@/components/ui/chip';
+import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { Size, Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 import {
   CHIP_SLOP_Y,
-  HERO_SHELL_MARGIN_BOTTOM,
+  CHIP_TILE,
   ROW_PADDING_BOTTOM,
   ROW_PADDING_TOP,
+  resolveTileChipPaddingVertical,
 } from './account_chips.geometry';
 import type { AccountChipModel } from './account_chips.helpers';
 
@@ -36,17 +39,8 @@ const CHIP_HIT_SLOP = Object.freeze({
 
 const CHIP_STYLE = Object.freeze({ minHeight: Size.compactChipHeight });
 
-/** Commitments canvas `.spill .id-tile`: a 20 square with a 14 glyph, as the account strip draws it. */
-const CHIP_TILE = ms(20);
-
-/** The pill's `border` class, unscaled CSS px; React Native counts it inside the chip's height. */
-const PILL_BORDER_WIDTH = 1;
-
-/** Beats the pill's `py-1.5`, so a tile chip holds the compact height; the frame's 6 on the left. */
-const CHIP_TILE_PADDING = Object.freeze({
-  paddingVertical: (Size.compactChipHeight - CHIP_TILE) / 2 - PILL_BORDER_WIDTH,
-  paddingLeft: ms(6),
-});
+/** The frame's 6 left of the tile; the right padding stays the pill's own. */
+const CHIP_TILE_PADDING_LEFT = ms(6);
 
 type ChipFrame = { x: number; width: number };
 
@@ -57,6 +51,18 @@ interface Props {
 }
 
 export function AccountChips({ chips, onToggle, testID }: Props): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  // Beats the pill's `py-1.5`, so a tile chip reads as tall as All accounts.
+  const tileChipStyle = useMemo(
+    () => [
+      CHIP_STYLE,
+      {
+        paddingVertical: resolveTileChipPaddingVertical(fontScale),
+        paddingLeft: CHIP_TILE_PADDING_LEFT,
+      },
+    ],
+    [fontScale],
+  );
   const scrollRef = useRef<ScrollView>(null);
   const chipFramesRef = useRef(new Map<string, ChipFrame>());
   const viewportWidthRef = useRef(0);
@@ -148,7 +154,7 @@ export function AccountChips({ chips, onToggle, testID }: Props): React.ReactEle
                 ? undefined
                 : (event: LayoutChangeEvent) => handleChipLayout(accountId, event)
             }
-            style={tile === undefined ? CHIP_STYLE : [CHIP_STYLE, CHIP_TILE_PADDING]}
+            style={tile === undefined ? CHIP_STYLE : tileChipStyle}
             hitSlop={CHIP_HIT_SLOP}
           />
         );
