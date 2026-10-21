@@ -1,5 +1,5 @@
 import { foreignCurrencyFor } from '@/constants/currency';
-import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
 import {
   assertSupportedCurrency,
   convertCurrency,
@@ -13,8 +13,6 @@ import {
 import { baseEquivalent } from '@/modules/accounts/domain/account_figures';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
-import { isDueInMonth, resolvePaymentState } from '@/modules/commitments/domain/payment_state';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type {
   DashboardBudgetLimitRow,
   DashboardTransactionFactRow,
@@ -301,60 +299,4 @@ export function computeDashboardSpendDeltaPct(
 ): number | null {
   if (!exceedsToCent(previousEgp, 0)) return null;
   return wholePercent(currentEgp - previousEgp, previousEgp);
-}
-
-export function computeDashboardCommitmentSummary(
-  payments: CommitmentPayment[],
-  yearMonth: string,
-  today: string,
-): {
-  counts: {
-    paid: number;
-    overdue: number;
-    due: number;
-    upcoming: number;
-    skipped: number;
-    total: number;
-  };
-  totalsByCurrency: Map<Currency, number>;
-} {
-  const counts = { paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 };
-  const totalsByCurrency = new Map<Currency, number>();
-
-  for (const payment of payments) {
-    const state = resolvePaymentState(payment, today);
-    if (state === CommitmentPaymentStatus.Overdue) counts.overdue++;
-    // A row carried from an earlier month counts as overdue and nowhere else.
-    if (!isDueInMonth(payment, yearMonth)) continue;
-    switch (state) {
-      case CommitmentPaymentStatus.Paid:
-        counts.paid++;
-        break;
-      case CommitmentPaymentStatus.Overdue:
-        break;
-      case CommitmentPaymentStatus.Due:
-        counts.due++;
-        break;
-      case CommitmentPaymentStatus.Upcoming:
-        counts.upcoming++;
-        break;
-      case CommitmentPaymentStatus.Skipped:
-        counts.skipped++;
-        continue;
-    }
-
-    counts.total++;
-    const amount =
-      state === CommitmentPaymentStatus.Paid
-        ? (payment.amount_paid ?? payment.amount_due)
-        : payment.amount_due;
-    if (amount !== null) {
-      totalsByCurrency.set(
-        payment.currency,
-        (totalsByCurrency.get(payment.currency) ?? 0) + amount,
-      );
-    }
-  }
-
-  return { counts, totalsByCurrency };
 }

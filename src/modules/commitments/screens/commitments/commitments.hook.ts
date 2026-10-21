@@ -2,7 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useDeferredValue, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { type Currency, CommitmentPaymentStatus } from '@/constants/enums';
+import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
@@ -16,6 +16,7 @@ import {
   isSkippedPayment,
   resolvePaymentState,
 } from '../../domain/payment_state';
+import { EMPTY_MONTH_PAYMENT_SUMMARY, summarizeMonthPayments } from '../../domain/payment_summary';
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../entities/commitment_payment.entity';
 import { useCommitmentStore } from '../../store/commitment.store';
@@ -138,8 +139,11 @@ export function useCommitments() {
     const upcoming = filteredPayments.filter(
       (p) => stateOf(p) === CommitmentPaymentStatus.Upcoming,
     );
-    const paid = filteredPayments.filter(isPaidPayment);
-    const skipped = filteredPayments.filter(isSkippedPayment);
+    // A row settled after it carried belongs to its due month alone.
+    const paid = filteredPayments.filter((p) => isPaidPayment(p) && isDueInMonth(p, selectedMonth));
+    const skipped = filteredPayments.filter(
+      (p) => isSkippedPayment(p) && isDueInMonth(p, selectedMonth),
+    );
     if (overdue.length > 0) result.push({ title: Strings.commitmentsOverdue, data: overdue });
     if (dueToday.length > 0) result.push({ title: Strings.commitmentsDueToday, data: dueToday });
     if (upcoming.length > 0) result.push({ title: Strings.commitmentsUpcoming, data: upcoming });
@@ -154,41 +158,17 @@ export function useCommitments() {
     debouncedSearch,
     deferredStatusFilter,
     activePayments,
+    selectedMonth,
     today,
   ]);
 
-  const counts = useMemo(() => {
-    let paid = 0;
-    let overdue = 0;
-    let due = 0;
-    let upcoming = 0;
-    let skipped = 0;
-    // Carried rows count as overdue; the total takes the selected month's rows alone.
-    let total = 0;
-    if (today !== undefined) {
-      for (const p of activePayments) {
-        if (!isSkippedPayment(p) && isDueInMonth(p, selectedMonth)) total++;
-        switch (resolvePaymentState(p, today)) {
-          case CommitmentPaymentStatus.Paid:
-            paid++;
-            break;
-          case CommitmentPaymentStatus.Overdue:
-            overdue++;
-            break;
-          case CommitmentPaymentStatus.Due:
-            due++;
-            break;
-          case CommitmentPaymentStatus.Upcoming:
-            upcoming++;
-            break;
-          case CommitmentPaymentStatus.Skipped:
-            skipped++;
-            break;
-        }
-      }
-    }
-    return { paid, overdue, due, upcoming, skipped, total };
-  }, [activePayments, selectedMonth, today]);
+  const { counts, totalsByCurrency } = useMemo(
+    () =>
+      today === undefined
+        ? EMPTY_MONTH_PAYMENT_SUMMARY
+        : summarizeMonthPayments(activePayments, selectedMonth, today),
+    [activePayments, selectedMonth, today],
+  );
   const isEmpty = activePayments.length === 0;
   const activeFilterCount = useMemo(
     () => countActiveCommitmentFilters(appliedFilters),
@@ -196,17 +176,6 @@ export function useCommitments() {
   );
   const hasListFilters =
     statusFilter !== 'all' || searchQuery.trim().length > 0 || activeFilterCount > 0;
-
-  const totalsByCurrency = useMemo(() => {
-    const totals = new Map<Currency, number>();
-    for (const p of activePayments) {
-      if (isSkippedPayment(p) || !isDueInMonth(p, selectedMonth)) continue;
-      const value = isPaidPayment(p) ? (p.amount_paid ?? p.amount_due) : p.amount_due;
-      if (value == null) continue;
-      totals.set(p.currency, (totals.get(p.currency) ?? 0) + value);
-    }
-    return totals;
-  }, [activePayments, selectedMonth]);
 
   const selectedMonthRef = useRef(selectedMonth);
   selectedMonthRef.current = selectedMonth;

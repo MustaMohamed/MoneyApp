@@ -297,14 +297,15 @@ export function createCommitmentStore(
           beginPaymentTransition(paymentId);
           try {
             const skippedDate = toLocalDateString(now);
-            await repo.markAsSkipped(paymentId, skippedDate);
+            const updatedAt = now.toISOString();
+            await repo.markAsSkipped(paymentId, skippedDate, updatedAt);
             set((state) => ({
               payments: state.payments.map((candidate) =>
                 candidate.id === paymentId
                   ? {
                       ...candidate,
                       skipped_date: skippedDate,
-                      updated_at: now.toISOString(),
+                      updated_at: updatedAt,
                     }
                   : candidate,
               ),

@@ -6,12 +6,12 @@ import {
   type DashboardNetWorth,
 } from '@/modules/accounts/domain/account_aggregation';
 import { budgetBandColor } from '@/modules/budget/utils/budget_summary';
+import { summarizeMonthPayments } from '@/modules/commitments/domain/payment_summary';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { shouldShowProportionBar } from '@/modules/dashboard/screens/dashboard/components/net_worth_breakdown_sheet.helpers';
 import {
   buildDashboardBudgetSummary,
   computeDashboardAccountCounts,
-  computeDashboardCommitmentSummary,
   computeDashboardSpendDeltaPct,
   computeLiabilitiesBreakdown,
   computeLiquidityBreakdown,
@@ -1410,12 +1410,12 @@ describe('computeDashboardSpendDeltaPct', () => {
   });
 });
 
-describe('computeDashboardCommitmentSummary', () => {
+describe('summarizeMonthPayments', () => {
   const MONTH = '2026-05';
   const TODAY = '2026-05-08';
 
   it('counts states from the dates and totals non-skipped amounts by native currency', () => {
-    const summary = computeDashboardCommitmentSummary(
+    const summary = summarizeMonthPayments(
       [
         makePayment({
           id: 'paid',
@@ -1466,7 +1466,7 @@ describe('computeDashboardCommitmentSummary', () => {
   });
 
   it('counts an unpaid row due the day before today in overdue and in the total', () => {
-    const summary = computeDashboardCommitmentSummary(
+    const summary = summarizeMonthPayments(
       [makePayment({ id: 'yesterday', due_date: '2026-05-07', amount_due: 40 })],
       MONTH,
       TODAY,
@@ -1483,7 +1483,7 @@ describe('computeDashboardCommitmentSummary', () => {
   });
 
   it('counts a row carried from the month before in overdue, never in the total or the amounts', () => {
-    const summary = computeDashboardCommitmentSummary(
+    const summary = summarizeMonthPayments(
       [
         makePayment({ id: 'carried', due_date: '2026-04-30', amount_due: 300 }),
         makePayment({ id: 'in-month', due_date: '2026-05-20', amount_due: 40 }),
@@ -1504,7 +1504,7 @@ describe('computeDashboardCommitmentSummary', () => {
   });
 
   it('and therefore renders "749 EGP" for the header total — three 249.50 commitments summing to 748.5', () => {
-    const summary = computeDashboardCommitmentSummary(
+    const summary = summarizeMonthPayments(
       [
         makePayment({ id: 'a', due_date: '2026-05-10', amount_due: 249.5 }),
         makePayment({ id: 'b', due_date: '2026-05-11', amount_due: 249.5 }),

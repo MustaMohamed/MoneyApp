@@ -23,7 +23,7 @@ import {
   getPaymentsByMonth,
   insertPaymentRows,
   markCommitmentAsPaid,
-  markPaymentSkipped,
+  updatePaymentSkipped,
 } from '../database/commitment_payments';
 import {
   addCommitment,
@@ -35,6 +35,7 @@ import {
   updateCommitment,
   type UpdateCommitmentData,
 } from '../database/commitments';
+import { carriedDueBound } from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 import { planMissingCommitmentPayments } from './commitment_housekeeping.helpers';
@@ -94,7 +95,7 @@ export interface ICommitmentRepository {
     details: PaymentDetails,
     commitment: Commitment,
   ): Promise<CommitmentPaymentAmounts>;
-  markAsSkipped(paymentId: string, skippedDate: string): Promise<void>;
+  markAsSkipped(paymentId: string, skippedDate: string, updatedAt: string): Promise<void>;
   runHousekeeping(now: Date): Promise<void>;
   getMonthSnapshot(yearMonth: string, today: string): Promise<CommitmentMonthSnapshot>;
 }
@@ -138,13 +139,14 @@ export class CommitmentRepository implements ICommitmentRepository {
 
   async getPaymentsForMonth(yearMonth: string, today: string): Promise<CommitmentPayment[]> {
     const db = await getDb();
-    return getPaymentsByMonth(db, yearMonth, today);
+    return getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today));
   }
 
   async getMonthSnapshot(yearMonth: string, today: string): Promise<CommitmentMonthSnapshot> {
     const db = await getDb();
-    const commitments = await getCommitmentsForMonthSnapshot(db, yearMonth, today);
-    const payments = await getPaymentsByMonth(db, yearMonth, today);
+    const carriedBefore = carriedDueBound(yearMonth, today);
+    const commitments = await getCommitmentsForMonthSnapshot(db, yearMonth, carriedBefore);
+    const payments = await getPaymentsByMonth(db, yearMonth, carriedBefore);
     return { loadedMonth: yearMonth, today, commitments, payments };
   }
 
@@ -255,9 +257,9 @@ export class CommitmentRepository implements ICommitmentRepository {
     return amounts;
   }
 
-  async markAsSkipped(paymentId: string, skippedDate: string): Promise<void> {
+  async markAsSkipped(paymentId: string, skippedDate: string, updatedAt: string): Promise<void> {
     const db = await getDb();
-    await markPaymentSkipped(db, paymentId, skippedDate);
+    await updatePaymentSkipped(db, paymentId, skippedDate, updatedAt);
   }
 }
 

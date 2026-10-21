@@ -172,7 +172,7 @@ describe('DashboardRepository', () => {
 
     const snapshot = await new DashboardRepository().getSnapshot({ yearMonth: '2026-07', now });
 
-    expect(paymentsSpy).toHaveBeenCalledWith(sqlite.database, '2026-07', toLocalDateString(now));
+    expect(paymentsSpy).toHaveBeenCalledWith(sqlite.database, '2026-07', '2026-07-01');
     expect(snapshot.today).toBe(toLocalDateString(now));
     expect(snapshot.commitmentPayments.map((payment) => payment.id)).toEqual([
       'payment-carried',

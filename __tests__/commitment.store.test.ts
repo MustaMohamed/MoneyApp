@@ -647,6 +647,7 @@ describe('commitment store mutation invalidation', () => {
     expect(repository.markAsSkipped).toHaveBeenCalledWith(
       'payment',
       expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
     );
     expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
     expect(store.getState().generation).toBe(1);
@@ -661,7 +662,11 @@ describe('commitment store mutation invalidation', () => {
 
     await store.getState().skipPayment('payment', MAY_8_LOCAL);
 
-    expect(repository.markAsSkipped).toHaveBeenCalledWith('payment', MAY_8);
+    expect(repository.markAsSkipped).toHaveBeenCalledWith(
+      'payment',
+      MAY_8,
+      MAY_8_LOCAL.toISOString(),
+    );
     expect(store.getState().payments).toEqual([
       expect.objectContaining({
         id: 'payment',

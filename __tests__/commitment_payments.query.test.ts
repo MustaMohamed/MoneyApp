@@ -16,7 +16,7 @@ import {
   getPaidCountByCommitment,
   insertPaymentRows,
   markCommitmentAsPaid,
-  markPaymentSkipped,
+  updatePaymentSkipped,
 } from '@/modules/commitments/database/commitment_payments';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { deferred } from '@/test_helpers/deferred';
@@ -213,8 +213,8 @@ describe('getPaymentsByMonth', () => {
       makePayment({ id: 'pay-mar-skipped', due_date: '2026-03-01', skipped_date: '2026-03-02' }),
     ]);
 
-    const may = await getPaymentsByMonth(mockDb, '2026-05', '2026-05-08');
-    const april = await getPaymentsByMonth(mockDb, '2026-04', '2026-05-08');
+    const may = await getPaymentsByMonth(mockDb, '2026-05', '2026-05-01');
+    const april = await getPaymentsByMonth(mockDb, '2026-04', '2026-04-01');
 
     expect(may.map((row) => row.id)).toEqual(['pay-apr-unpaid', 'pay-may-1', 'pay-may-15']);
     expect(april.map((row) => row.id)).toEqual(['pay-apr-unpaid', 'pay-apr-paid']);
@@ -233,7 +233,7 @@ describe('getPaymentsByMonth', () => {
       makePayment({ id: 'pay-apr-unpaid', due_date: '2026-04-01' }),
     ]);
 
-    const march = await getPaymentsByMonth(mockDb, '2026-03', '2026-05-08');
+    const march = await getPaymentsByMonth(mockDb, '2026-03', '2026-03-01');
 
     expect(march.map((row) => row.id)).toEqual(['pay-feb-unpaid', 'pay-mar-15']);
   });
@@ -259,7 +259,7 @@ describe('getPaymentsByMonth', () => {
     ]);
     const mocked = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb;
 
-    const rows = await getPaymentsByMonth(mockDb, '2026-05', '2026-05-08');
+    const rows = await getPaymentsByMonth(mockDb, '2026-05', '2026-05-01');
     const [sql, ...rest] = mocked.getAllAsync.mock.calls.at(-1) as [string, ...unknown[]];
     const plan = explainQueryPlan(realDb, sql, rest).join('\n');
 
@@ -579,17 +579,21 @@ describe('getPaymentById', () => {
   });
 });
 
-describe('markPaymentSkipped', () => {
+describe('updatePaymentSkipped', () => {
   it('writes the given skipped date on an unpaid row', async () => {
     await addPayments(mockDb, [makePayment({ id: 'pay-skip-1', due_date: '2026-05-01' })]);
 
-    await markPaymentSkipped(mockDb, 'pay-skip-1', '2026-05-08');
+    await updatePaymentSkipped(mockDb, 'pay-skip-1', '2026-05-08', '2026-05-08T09:15:00.000Z');
 
     expect(
       realDb
-        .prepare('SELECT paid_date, skipped_date FROM commitment_payments WHERE id = ?')
+        .prepare('SELECT paid_date, skipped_date, updated_at FROM commitment_payments WHERE id = ?')
         .get('pay-skip-1'),
-    ).toEqual({ paid_date: null, skipped_date: '2026-05-08' });
+    ).toEqual({
+      paid_date: null,
+      skipped_date: '2026-05-08',
+      updated_at: '2026-05-08T09:15:00.000Z',
+    });
   });
 
   it('refuses a paid row without overwriting its paid metadata', async () => {
@@ -601,7 +605,7 @@ describe('markPaymentSkipped', () => {
     });
     await addPayments(mockDb, [payment]);
 
-    await expect(markPaymentSkipped(mockDb, payment.id, '2026-05-03')).rejects.toThrow(
+    await expect(updatePaymentSkipped(mockDb, payment.id, '2026-05-03', NOW)).rejects.toThrow(
       `Commitment payment cannot be marked as skipped: ${payment.id}`,
     );
 
@@ -628,7 +632,7 @@ describe('markPaymentSkipped', () => {
     ]);
 
     await expect(
-      markPaymentSkipped(mockDb, 'pay-already-skipped', '2026-05-08'),
+      updatePaymentSkipped(mockDb, 'pay-already-skipped', '2026-05-08', NOW),
     ).resolves.toBeUndefined();
 
     expect(
@@ -639,7 +643,7 @@ describe('markPaymentSkipped', () => {
   });
 
   it('throws not found for a row that does not exist', async () => {
-    await expect(markPaymentSkipped(mockDb, 'pay-missing', '2026-05-08')).rejects.toThrow(
+    await expect(updatePaymentSkipped(mockDb, 'pay-missing', '2026-05-08', NOW)).rejects.toThrow(
       'Commitment payment not found: pay-missing',
     );
   });

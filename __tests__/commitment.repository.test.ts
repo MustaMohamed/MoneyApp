@@ -21,7 +21,7 @@ import {
   getPaymentsByCommitment,
   getPaymentsByMonth,
   markCommitmentAsPaid,
-  markPaymentSkipped,
+  updatePaymentSkipped,
 } from '@/modules/commitments/database/commitment_payments';
 import {
   addCommitment,
@@ -263,7 +263,7 @@ describe('CommitmentRepository.getPaymentsForMonth', () => {
 
     const result = await repo.getPaymentsForMonth('2026-05', '2026-05-08');
 
-    expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-08');
+    expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-01');
     expect(result).toBe(expected);
   });
 });
@@ -281,8 +281,8 @@ describe('CommitmentRepository.getMonthSnapshot', () => {
     });
 
     expect(getDb).toHaveBeenCalledTimes(1);
-    expect(getCommitmentsForMonthSnapshot).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-08');
-    expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-08');
+    expect(getCommitmentsForMonthSnapshot).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-01');
+    expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-01');
   });
 
   it('does not publish a partial result when the second read fails', async () => {
@@ -527,10 +527,15 @@ describe('CommitmentRepository.markAsPaid', () => {
 });
 
 describe('CommitmentRepository.markAsSkipped', () => {
-  it('stores the skipped date it is given through markPaymentSkipped', async () => {
-    await repo.markAsSkipped('p-1', '2026-10-21');
+  it('stores the skipped date it is given through updatePaymentSkipped', async () => {
+    await repo.markAsSkipped('p-1', '2026-10-21', '2026-10-21T08:00:00.000Z');
 
-    expect(markPaymentSkipped).toHaveBeenCalledTimes(1);
-    expect(markPaymentSkipped).toHaveBeenCalledWith(mockDb, 'p-1', '2026-10-21');
+    expect(updatePaymentSkipped).toHaveBeenCalledTimes(1);
+    expect(updatePaymentSkipped).toHaveBeenCalledWith(
+      mockDb,
+      'p-1',
+      '2026-10-21',
+      '2026-10-21T08:00:00.000Z',
+    );
   });
 });

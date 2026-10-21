@@ -618,6 +618,25 @@ describe('useCommitments', () => {
     expect(result.current.state.totalsByCurrency).toEqual(new Map([[Currency.EGP, 200]]));
   });
 
+  it('leaves a carried row paid or skipped since out of every section and count', async () => {
+    setup({
+      payments: [
+        makePayment('carried-paid', CommitmentPaymentStatus.Paid, { due_date: '2026-04-20' }),
+        makePayment('carried-skipped', CommitmentPaymentStatus.Skipped, {
+          due_date: '2026-04-21',
+        }),
+        makePayment('may', CommitmentPaymentStatus.Upcoming),
+      ],
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(sectionIds(result.current.state.sections)).toEqual([
+      [Strings.commitmentsUpcoming, ['may']],
+    ]);
+    expect(result.current.state.counts).toMatchObject({ paid: 0, skipped: 0, total: 1 });
+  });
+
   it('filters by the state the dates derive', async () => {
     setup({
       statusFilter: CommitmentPaymentStatus.Overdue,

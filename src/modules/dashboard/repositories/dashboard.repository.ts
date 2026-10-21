@@ -4,6 +4,7 @@ import { getAccounts } from '@/modules/accounts/database/accounts';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { BudgetDashboardSummaryVM } from '@/modules/budget/utils/budget_summary';
 import { getPaymentsByMonth } from '@/modules/commitments/database/commitment_payments';
+import { carriedDueBound } from '@/modules/commitments/domain/payment_state';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   getDashboardBudgetLimitRows,
@@ -60,7 +61,7 @@ export class DashboardRepository implements IDashboardRepository {
     const [transactionRows, budgetLimits, commitmentPayments, statsMap] = await Promise.all([
       getDashboardTransactionFactRows(db, window),
       getDashboardBudgetLimitRows(db, yearMonth),
-      getPaymentsByMonth(db, yearMonth, today),
+      getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today)),
       getAccountsStats(
         db,
         accounts.map((account) => account.id),

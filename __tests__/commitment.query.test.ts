@@ -222,7 +222,7 @@ describe('getCommitmentsForMonthSnapshot', () => {
       makePayment('selected-payment', inactiveWithPayment.id, '2026-05-12'),
     ]);
 
-    const results = await getCommitmentsForMonthSnapshot(mockDb, '2026-05', '2026-05-08');
+    const results = await getCommitmentsForMonthSnapshot(mockDb, '2026-05', '2026-05-01');
 
     expect(results).toHaveLength(2);
     expect(results.map((row) => row.id)).toEqual(
@@ -243,7 +243,7 @@ describe('getCommitmentsForMonthSnapshot', () => {
       makePayment('settled-paid', settledParent.id, '2026-04-20'),
     ]);
 
-    const results = await getCommitmentsForMonthSnapshot(mockDb, '2026-05', '2026-05-08');
+    const results = await getCommitmentsForMonthSnapshot(mockDb, '2026-05', '2026-05-01');
 
     const ids = results.map((row) => row.id);
     expect(ids).toContain(carriedParent.id);
