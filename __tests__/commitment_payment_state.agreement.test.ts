@@ -1,8 +1,16 @@
 import Database from 'better-sqlite3';
 
 import { MIGRATIONS } from '@/database/migrations';
-import { paidPaymentSql, unpaidPaymentSql } from '@/modules/commitments/database/payment_state_sql';
-import { isPaidPayment, isUnpaidPayment } from '@/modules/commitments/domain/payment_state';
+import {
+  paidPaymentSql,
+  skippedPaymentSql,
+  unpaidPaymentSql,
+} from '@/modules/commitments/database/payment_state_sql';
+import {
+  isPaidPayment,
+  isSkippedPayment,
+  isUnpaidPayment,
+} from '@/modules/commitments/domain/payment_state';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 
 type Row = Pick<CommitmentPayment, 'id' | 'paid_date' | 'skipped_date'>;
@@ -18,6 +26,7 @@ const ROWS: Row[] = [
 const CASES: [string, (alias?: string) => string, (row: Row) => boolean][] = [
   ['unpaid', unpaidPaymentSql, isUnpaidPayment],
   ['paid', paidPaymentSql, isPaidPayment],
+  ['skipped', skippedPaymentSql, isSkippedPayment],
 ];
 
 let db: Database.Database;

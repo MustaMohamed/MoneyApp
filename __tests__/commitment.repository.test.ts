@@ -18,6 +18,7 @@ import {
   getPaidCountByCommitment,
   insertPaymentRows,
   getPaymentById,
+  getPaymentMonthAggregate,
   getPaymentsByCommitment,
   getPaymentsByMonth,
   markCommitmentAsPaid,
@@ -265,6 +266,41 @@ describe('CommitmentRepository.getPaymentsForMonth', () => {
 
     expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05', '2026-05-01');
     expect(result).toBe(expected);
+  });
+});
+
+describe('CommitmentRepository.getMonthAggregate', () => {
+  const aggregate = { paid: { egp: 0, count: 0 } };
+
+  it('passes today as the carried bound for a future month, with the account', async () => {
+    (getPaymentMonthAggregate as jest.Mock).mockResolvedValue(aggregate);
+
+    const result = await repo.getMonthAggregate('2026-07', '2026-05-08', 'acc-1');
+
+    expect(getPaymentMonthAggregate).toHaveBeenCalledWith(mockDb, {
+      yearMonth: '2026-07',
+      today: '2026-05-08',
+      carriedBefore: '2026-05-08',
+      accountId: 'acc-1',
+    });
+    expect(result).toBe(aggregate);
+  });
+
+  it('passes the month start as the carried bound and no account key without an account', async () => {
+    (getPaymentMonthAggregate as jest.Mock).mockResolvedValue(aggregate);
+
+    const result = await repo.getMonthAggregate('2026-05', '2026-05-08');
+
+    expect(getPaymentMonthAggregate).toHaveBeenCalledTimes(1);
+    const [db, scope] = (getPaymentMonthAggregate as jest.Mock).mock.calls[0];
+    expect(db).toBe(mockDb);
+    expect(scope).toEqual({
+      yearMonth: '2026-05',
+      today: '2026-05-08',
+      carriedBefore: '2026-05-01',
+    });
+    expect(scope).not.toHaveProperty('accountId');
+    expect(result).toBe(aggregate);
   });
 });
 
