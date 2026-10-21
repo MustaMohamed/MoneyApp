@@ -5,12 +5,13 @@ import { Text as RNText, View, useWindowDimensions } from 'react-native';
 import { INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE } from '@/components/ui/list_text.geometry';
 import { Text } from '@/components/ui/text';
 import { Colors, Spacing, lineHeightFor } from '@/constants/theme';
+
 import {
   DAY_HEADER_NET_PLACEHOLDER_WIDTH,
   DAY_HEADER_ROOT_STYLE,
   resolveDayHeaderGeometry,
   resolveDayHeaderNetMaxWidth,
-} from '@/modules/transactions/components/day_header.geometry';
+} from './day_header.geometry';
 
 const LABEL_STYLE = { flex: 1, minWidth: 0 } as const;
 const FIGURES_STYLE = {

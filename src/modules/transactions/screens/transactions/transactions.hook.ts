@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { buildAccountChips } from '@/components/ui/account_chips.helpers';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import {
   findMissingAccountIds,
@@ -25,7 +26,6 @@ import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
-import { buildAccountChips } from './components/account_chips.helpers';
 import {
   countActiveFilters,
   countFunnelFilters,

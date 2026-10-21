@@ -1,3 +1,4 @@
+import type { DayHeaderFigures, DayHeaderSection } from '@/components/ui/day_header';
 import type { SearchTallyModel } from '@/components/ui/search_tally.helpers';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
@@ -35,7 +36,6 @@ import {
   shiftYearMonth,
 } from '@/utils/year_month';
 
-import type { DayHeaderFigures, DayHeaderSection } from './components/day_header';
 import type { TransactionTotalsStatus } from './transactions.state';
 
 export { currentYearMonth };

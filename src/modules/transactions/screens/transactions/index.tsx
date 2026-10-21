@@ -3,9 +3,14 @@ import React, { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
+import { AccountChips } from '@/components/ui/account_chips';
+import { DayCardRow } from '@/components/ui/day_card_row';
+import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
+import { DayHeader } from '@/components/ui/day_header';
 import { EmptyState } from '@/components/ui/empty_state';
 import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen } from '@/components/ui/screen';
+import { SearchTally } from '@/components/ui/search_tally';
 import { SegmentFilter, type SegmentFilterOption } from '@/components/ui/segment_filter';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { TransactionType } from '@/constants/enums';
@@ -13,18 +18,13 @@ import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
-import { DayCardRow } from '@/modules/transactions/components/day_card_row';
-import { resolveDayCardSwipeCorners } from '@/modules/transactions/components/day_card_row.helpers';
 import { TransactionRow } from '@/modules/transactions/components/transaction_row';
 import { TransactionRowsSkeleton } from '@/modules/transactions/components/transaction_rows_skeleton';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import type { TransactionFilter } from '@/modules/transactions/store/transactions.store';
 import { ms } from '@/utils/responsive';
 
-import { AccountChips } from './components/account_chips';
-import { DayHeader } from './components/day_header';
 import { SearchRow } from './components/search_row';
-import { SearchTally } from './components/search_tally';
 import { TransactionLoadError } from './components/transaction_load_error';
 import { TransactionsHero } from './components/transactions_hero';
 import {
