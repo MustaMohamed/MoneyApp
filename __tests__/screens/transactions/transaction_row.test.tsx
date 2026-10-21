@@ -2,12 +2,12 @@ import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
 import { Dimensions, PixelRatio, View } from 'react-native';
 
+import { resolveDayCardSwipeCorners } from '@/components/ui/day_card_row.helpers';
 import { resolveFitAmountTextProps, scaledTextStyle } from '@/components/ui/text_scale.geometry';
 import { Currency, TransactionType } from '@/constants/enums';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
-import { resolveDayCardSwipeCorners } from '@/modules/transactions/components/day_card_row.helpers';
 import { TransactionRow } from '@/modules/transactions/components/transaction_row';
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,

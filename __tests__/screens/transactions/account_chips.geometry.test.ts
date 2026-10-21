@@ -1,9 +1,9 @@
-import { Size, TOUCH_SLOP_PIXEL_MARGIN, TouchSize } from '@/constants/theme';
 import {
   CHIP_SLOP_Y,
   ROW_PADDING_BOTTOM,
   ROW_PADDING_TOP,
-} from '@/modules/transactions/screens/transactions/components/account_chips.geometry';
+} from '@/components/ui/account_chips.geometry';
+import { Size, TOUCH_SLOP_PIXEL_MARGIN, TouchSize } from '@/constants/theme';
 
 describe('account chip row geometry', () => {
   it('lifts the compact chip to the touch floor plus the pixel margin on each side', () => {

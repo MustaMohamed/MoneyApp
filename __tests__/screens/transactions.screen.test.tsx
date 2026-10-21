@@ -2,10 +2,10 @@ import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
+import { DAY_CARD_INNER_RADIUS } from '@/components/ui/day_card_row.helpers';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Radius } from '@/constants/theme';
 import { TRANSACTION_TYPE_ICONS } from '@/constants/transaction_type_icons';
-import { DAY_CARD_INNER_RADIUS } from '@/modules/transactions/components/day_card_row.helpers';
 import TransactionsScreen from '@/modules/transactions/screens/transactions';
 import { TRANSACTIONS_RAIL } from '@/modules/transactions/screens/transactions/components/transactions_rail.geometry';
 import { useTransactions } from '@/modules/transactions/screens/transactions/transactions.hook';
@@ -106,7 +106,7 @@ jest.mock('@/modules/transactions/screens/transactions/components/search_row', (
     );
   },
 }));
-jest.mock('@/modules/transactions/screens/transactions/components/account_chips', () => ({
+jest.mock('@/components/ui/account_chips', () => ({
   AccountChips: () => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
     return <View testID="transactions-account-chips" />;
@@ -134,7 +134,7 @@ jest.mock('@/modules/transactions/components/transaction_row', () => {
     },
   };
 });
-jest.mock('@/modules/transactions/screens/transactions/components/day_header', () => ({
+jest.mock('@/components/ui/day_header', () => ({
   DayHeader: ({ section }: { section: { label: string } }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return <Text>{section.label}</Text>;

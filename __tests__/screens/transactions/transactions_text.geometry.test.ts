@@ -1,12 +1,12 @@
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
-import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
   resolveDayHeaderGeometry,
   resolveDayHeaderNetMaxWidth,
-} from '@/modules/transactions/components/day_header.geometry';
+} from '@/components/ui/day_header.geometry';
+import { resolveSearchTallyGeometry } from '@/components/ui/list_text.geometry';
+import { scaledFontSize } from '@/components/ui/text_scale.geometry';
+import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
   TRANSACTIONS_HERO_MAX_FONT_SCALE,
-  resolveSearchTallyGeometry,
   resolveTransactionsHeroGeometry,
 } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
 
