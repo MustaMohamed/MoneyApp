@@ -43,7 +43,6 @@ export const COMMITMENT_ROW_TAG_FONT_SIZE = Type.compactBadge;
 export const COMMITMENT_ROW_LINE_GAP = TRANSACTION_ROW_LINE_GAP;
 export const COMMITMENT_STATUS_TAG_TEXT_MIN_CONTRAST = 4.5;
 
-const NO_VALUE = '—';
 const LABEL_SEPARATOR = ', ';
 const INK_SHARE_STEP = 0.05;
 const INK_STEP_COUNT = Math.round(1 / INK_SHARE_STEP);
@@ -151,8 +150,15 @@ function amountFor(
 ): { text: string; spoken: string } {
   const { amount, showTilde } = resolveDisplayAmount(payment, commitment);
   if (amount === undefined) {
-    const mark = showTilde ? Strings.commitmentRowNoEstimate : NO_VALUE;
-    return { text: mark, spoken: `${mark} ${code}` };
+    return showTilde
+      ? {
+          text: Strings.commitmentRowNoEstimate,
+          spoken: Strings.commitmentRowNoEstimateLabel(code),
+        }
+      : {
+          text: Strings.commitmentRowUnavailable,
+          spoken: Strings.commitmentRowUnavailableLabel(code),
+        };
   }
   const { text, withCode } = formatDisplayAmountParts(amount, payment.currency);
   return showTilde
@@ -170,7 +176,7 @@ export function buildCommitmentRowPresentation({
   account,
   today,
 }: CommitmentRowPresentationInput): CommitmentRowPresentation {
-  const name = commitment?.name ?? NO_VALUE;
+  const name = commitment?.name ?? Strings.commitmentRowUnavailable;
   const status = resolvePaymentState(payment, today);
   const tagColors = COMMITMENT_STATUS_TAG_COLORS[status];
   const dueDay = formatShortWeekdayDate(payment.due_date, today);

@@ -1181,6 +1181,9 @@ export const Strings = {
   commitmentsStatusSkipped: 'Skipped',
   commitmentRowEstimate: (amount: string) => `~ ${amount}`,
   commitmentRowNoEstimate: '~',
+  commitmentRowNoEstimateLabel: (code: string) => `~ ${code}`,
+  commitmentRowUnavailable: '—',
+  commitmentRowUnavailableLabel: (code: string) => `— ${code}`,
 
   // Commitments: recurrence / duration labels
   commitmentsRecurrenceEveryN: (n: number, period: string) =>
