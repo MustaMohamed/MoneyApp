@@ -210,7 +210,9 @@ function fetchSnapshot() {
 
   let shipState = [];
   try {
-    shipState = fs.readdirSync(SHIP_DIR).filter((d) => /^MA-\d+$/.test(d));
+    shipState = fs
+      .readdirSync(SHIP_DIR)
+      .filter((d) => /^MA-\d+$/.test(d) && fs.existsSync(path.join(SHIP_DIR, d, 'state.md')));
   } catch {
     shipState = [];
   }
