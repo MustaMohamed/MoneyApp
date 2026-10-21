@@ -129,7 +129,7 @@
 
 <section>
   <h2>3. /prep: Ready For Development to Planned</h2>
-  <p>A cold planner plans from the ticket alone. Gaps are read against the parent, the frames, the ADRs and the code before anyone is asked. The size gate is counted twice more here and trims, never waives. The probe runs beside the reviewer's first round, one planner revise takes both, and only a blocking finding runs a second round.</p>
+  <p>A cold planner plans from the ticket alone. Gaps are read against the parent, the frames, the ADRs and the code before anyone is asked. The size gate is counted twice more here and trims, never waives. The probe runs beside review round 1, one planner revise takes both, and only a blocking finding runs a second round.</p>
   <div class="board"><svg id="g-prep"></svg></div>
 </section>
 
@@ -355,9 +355,9 @@
       { from: 'd-seam', to: 'blk', pts: [[700, 252], [680, 252], [680, 460], [640, 520]], label: ['2+ seams, unattended,', 'or no seam fits'], kind: 'pk', lab: [713, 446], anchor: 'start' },
       { from: 'd-seam', to: 'd-probe', pts: [[850, 225], [900, 225]], label: 'within', lab: [875, 217] },
       { from: 'd-probe', to: 'probe', pts: [[980, 270], [980, 320]], label: 'rows with a risk', lab: [988, 306], anchor: 'start' },
-      { from: 'probe', to: 'revise', pts: [[1060, 365], [1340, 365]], label: 'facts, not probed, REBUILD', lab: [1068, 358], anchor: 'start' },
+      { from: 'probe', to: 'revise', pts: [[1060, 365], [1340, 365]], label: ['differs fix, not probed,', 'REBUILD'], lab: [1068, 340], anchor: 'start' },
       { from: 'probe', to: 'src', pts: [[940, 386], [940, 424], [600, 424], [600, 354]], label: 'a choice is a gap', kind: 'loop', lab: [600, 438], anchor: 'start' },
-      { from: 'd-probe', to: 'reviewer', pts: [[1060, 225], [1110, 225]], label: 'round 1: beside the probe, or alone', lab: [1066, 168], anchor: 'start' },
+      { from: 'd-probe', to: 'reviewer', pts: [[1060, 225], [1110, 225]], label: 'review round 1: beside the probe, or alone', lab: [1066, 168], anchor: 'start' },
       { from: 'reviewer', to: 'd-rev', pts: [[1280, 225], [1330, 225]] },
       { from: 'd-rev', to: 'revise', pts: [[1405, 270], [1405, 336]], label: ['findings,', 'answered questions'], lab: [1413, 306], anchor: 'start' },
       { from: 'revise', to: 'reviewer', pts: [[1340, 390], [1260, 390], [1260, 270]], label: ['a blocking finding:', 'a fresh reviewer, round 2'], kind: 'loop', lab: [1252, 398], anchor: 'end' },

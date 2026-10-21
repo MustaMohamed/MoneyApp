@@ -4,7 +4,7 @@ Paste verbatim into the probe prompt, followed by the ticket body under `## Tick
 
 ---
 
-You render screen states from a plan you did not write, while a fresh reviewer reads the same unreviewed plan. Your inputs are the ticket body below, the plan, and the probe worktree: a detached checkout of the ticket branch with a real `node_modules`. What you find goes back to the planner in one revise with the reviewer's findings. A review with only deltas fires no second round, so state a one-fix fact the planner can apply as written.
+You render screen states from a plan you did not write, while review round 1 reads the same unreviewed plan. Your inputs are the ticket body below, the plan, and the probe worktree: a detached checkout of the ticket branch with a real `node_modules`. A `differs fix` fact goes to the planner's one revise with the reviewer's findings; a `differs choice` goes to the user or a question record first. A review with only deltas fires no second round, so state a `differs fix` fact the planner can apply as written.
 
 - EnterWorktree into the probe worktree as your first action. Write no repository file outside it; the walk file and every shot go to the shots path, and your findings to the report. When your first Bash call in the probe worktree is refused, return `not probed` for every state, with the refusal quoted, and make no device call. A refusal later in the run keeps the states already judged, returns the rest as `not probed` with the refusal quoted, and still ends with `mqa down` and `mqa release` as below.
 - No commit, no push, no `gh`, no edit to the plan.
@@ -26,12 +26,6 @@ Three measured dangers, each with its guard:
 
 On every return after your first device call, `mqa down` then `mqa release`.
 
-Write your report: under `## differs`, each one-fix fact with the plan step it changes, and each choice as a question record's fields from `Asks:` to `Screen:`, `.claude/skills/issue-review/references/question-record.md`, only when the ticket body, the plan and the frame are all silent on which rendering is right, each named on its `Prior art:` line; the shot paths; the `REBUILD` files; and under `## refusal`, the refusal quoted when one ended or cut the run.
+Write your report: under `## differs`, each `differs fix` fact with the plan step it changes, and each `differs choice` as a question record's fields from `Asks:` to `Screen:`, `.claude/skills/issue-review/references/question-record.md`, only when the ticket body, the plan and the frame are all silent on which rendering is right, each named on its `Prior art:` line; under `## shots`, the shot paths; and under `## refusal`, the refusal quoted when one ended or cut the run.
 
-Return at most 15 lines, in this order:
-
-1. The verdict line, required, joined by ` · `: per state in list order `<state>: matches`, `differs fix`, `differs choice` or `not probed`; then `build: REUSE` or `build: REBUILD`; then `no slot` or `build held` only when the run stopped there; then `refusal` only when one ended or cut the run.
-2. `tool calls <n> · files touched <n>`, required.
-3. `report: <absolute path>`, followed by ` · <section> <first>-<last>` for `differs` and for `refusal`, each when present, its line range in the report.
-
-Nothing else.
+Return in the shape of `.claude/skills/prep/SKILL.md` § Returns. Your verdict line joins its parts with ` · `: per state in list order `<state>: matches`, `differs fix`, `differs choice` or `not probed`; then `build: REUSE` or `build: REBUILD <files>`; then `no slot` or `build held` only when the run stopped there; then `refusal` only when one ended or cut the run. Your `report:` line names the `differs` and `refusal` sections, each when present. Nothing else.

@@ -137,7 +137,7 @@ concurrent ticket waits: `/queue` holds a fourth `Verify emulator` ticket on `mq
 never calls `mqa claim` for a run. To run four at once, add a slot by creating another AVD
 and extending `MQA_SLOTS`. A `/prep` probe's worktree holds its own slot from its first
 `mqa` call and runs `mqa release` before that worktree is removed; with no row free, `/prep`
-dispatches the plan's first review round at once and waits on `mqa claims` before it
+dispatches review round 1 at once and waits on `mqa claims` before it
 dispatches the probe.
 
 ## The feature map, read before scoping
@@ -203,10 +203,10 @@ remove all three.
 implementer's render pass as a self-check before committing, the battery's render lens
 independently, and the lens's run is the one that counts. Both happen in the task
 worktree. `/prep` runs a third on a ticket with marked `Screen checks` rows, the
-[probe](../prep/references/probe-charter.md), beside the plan's first review round, in its
-own worktree with a real `node_modules`. A review with only deltas fires no second round, so
-the probe's facts reach the plan through the planner's one revise. Each worktree needs three
-things it does not have by default.
+[probe](../prep/references/probe-charter.md), beside review round 1, in its own worktree
+with a real `node_modules`. A review with only deltas fires no second round, so the probe's
+`differs fix` facts reach the plan through the planner's one revise. Each worktree needs
+three things it does not have by default.
 
 1. **A real `npm install`.** A worktree's symlinked `node_modules` passes `tsc`, `jest` and
    lint but breaks device builds (expo-router resolves zero routes). It also breaks
