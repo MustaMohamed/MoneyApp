@@ -14,6 +14,7 @@ import {
   resolveHeroPillGeometry,
   resolveSuccessChipGeometry,
 } from '@/components/ui/chip.geometry';
+import { SOLID_GOLD_SELECTED_RADIUS } from '@/components/ui/tabs';
 import { resolveOneLineTextProps } from '@/components/ui/text_scale.geometry';
 import { Colors, Radius, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
@@ -85,11 +86,11 @@ export function SelectablePill({
       accessibilityState={{ selected, disabled }}
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
-      style={style}
+      style={[{ borderRadius: SOLID_GOLD_SELECTED_RADIUS }, style]}
       hitSlop={hitSlop}
       onLayout={onLayout}
       className={cn(
-        'rounded-full border',
+        'border',
         hasAdornment ? 'gap-1.5 px-2.5 py-1.5' : 'px-3 py-1',
         selected
           ? SELECTABLE_PILL_CONTAINER_CLASS.selected
