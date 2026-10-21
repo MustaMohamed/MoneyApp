@@ -1011,12 +1011,12 @@ export const Strings = {
   filterSectionDate: 'Date',
   filterSectionAmount: 'Amount',
   filterSectionAmountType: 'Amount type',
-  filterSectionRecurrence: 'Recurrence',
+  filterSectionRepeats: 'Repeats',
 
   filterAllAccounts: 'All accounts',
   filterAllCategories: 'All categories',
   filterAllAmountTypes: 'All types',
-  filterAllRecurrences: 'All recurrences',
+  filterAllRepeats: 'All',
 
   datePresetToday: 'Today',
   datePresetThisWeek: 'This week',

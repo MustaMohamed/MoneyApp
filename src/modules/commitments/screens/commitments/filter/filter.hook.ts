@@ -5,13 +5,13 @@ import { AmountType, Currency, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { resolveAmountRangeDraft } from '@/modules/transactions/utils/amount_range_filter';
 import { resolveAccountName } from '@/utils/account_name';
 
 import { useCommitmentsScreenState } from '../commitments.state';
 import {
   commitmentFiltersEqual,
   countActiveCommitmentFilters,
-  formatCommitmentAmountSummary,
   formatCommitmentSelectionSummary,
 } from './filter.helpers';
 import { useCommitmentFilterState } from './filter.state';
@@ -54,13 +54,17 @@ export function useCommitmentFilterSheet() {
     if (visible) setDraft(appliedFilters);
   }, [appliedFilters, setDraft, visible]);
 
+  const amountRange = resolveAmountRangeDraft(amountMinText, amountMaxText, draft);
+
   const applyDraft = useCallback(() => {
+    if (!amountRange.isValid) return;
     setAppliedFilters(draft);
     close();
-  }, [close, draft, setAppliedFilters]);
+  }, [amountRange.isValid, close, draft, setAppliedFilters]);
 
   const draftCount = countActiveCommitmentFilters(draft);
-  const canApply = !commitmentFiltersEqual(draft, appliedFilters);
+  const canApply = amountRange.isValid && !commitmentFiltersEqual(draft, appliedFilters);
+  const canReset = draftCount > 0 || amountRange.hasText;
   const accountSummary = formatCommitmentSelectionSummary(
     accounts
       .filter((account) => draft.accountIds.includes(account.id))
@@ -73,8 +77,8 @@ export function useCommitmentFilterSheet() {
       .map((category) => category.name),
     Strings.filterSummaryCategoriesEmpty,
   );
-  const amountActive = draft.amountMin !== undefined || draft.amountMax !== undefined;
-  const amountSummary = formatCommitmentAmountSummary(draft);
+  const amountActive = amountRange.hasText;
+  const amountSummary = amountRange.summary;
   const amountTypeSummary = formatCommitmentSelectionSummary(
     COMMITMENT_AMOUNT_TYPE_OPTIONS.filter((option) => draft.amountTypes.includes(option.value)).map(
       (option) => option.label,
@@ -85,7 +89,7 @@ export function useCommitmentFilterSheet() {
     COMMITMENT_RECURRENCE_OPTIONS.filter((option) =>
       draft.recurrencePresets.includes(option.value),
     ).map((option) => option.label),
-    Strings.filterAllRecurrences,
+    Strings.filterAllRepeats,
   );
 
   return {
@@ -103,8 +107,12 @@ export function useCommitmentFilterSheet() {
       amountSummary,
       amountMinText,
       amountMaxText,
+      amountMinError: amountRange.minError,
+      amountMaxError: amountRange.maxError,
+      amountRangeError: amountRange.rangeError,
       amountTypeSummary,
       recurrenceSummary,
+      canReset,
     },
     close,
     toggleSection,

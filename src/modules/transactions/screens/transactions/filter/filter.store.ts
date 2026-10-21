@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 
 import { Currency } from '@/constants/enums';
+import { parseAmountInput } from '@/modules/transactions/utils/amount_range_filter';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
-
-import { parseAmountInput } from './filter.helpers';
 
 export interface AdvancedFilters {
   accountIds: string[];

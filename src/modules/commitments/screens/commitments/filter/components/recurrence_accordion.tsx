@@ -36,7 +36,7 @@ export function CommitmentRecurrenceAccordion({
 
   return (
     <FilterAccordionShell
-      title={Strings.filterSectionRecurrence}
+      title={Strings.filterSectionRepeats}
       count={selectedCount}
       summary={summary}
       expanded={expanded}

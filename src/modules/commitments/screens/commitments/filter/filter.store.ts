@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 
 import { AmountType, Currency, RecurrencePreset } from '@/constants/enums';
+import { parseAmountInput } from '@/modules/transactions/utils/amount_range_filter';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
-
-import { parseCommitmentAmountInput } from './filter.helpers';
 
 export interface CommitmentAdvancedFilters {
   accountIds: string[];
@@ -99,12 +98,12 @@ export const useCommitmentFilterStore = createMoneyAppSelectors(
     setAmountMinText: (value) =>
       set((state) => ({
         amountMinText: value,
-        draft: { ...state.draft, amountMin: parseCommitmentAmountInput(value) },
+        draft: { ...state.draft, amountMin: parseAmountInput(value) },
       })),
     setAmountMaxText: (value) =>
       set((state) => ({
         amountMaxText: value,
-        draft: { ...state.draft, amountMax: parseCommitmentAmountInput(value) },
+        draft: { ...state.draft, amountMax: parseAmountInput(value) },
       })),
     setAmountCurrency: (currency) =>
       set((state) => ({ draft: { ...state.draft, amountCurrency: currency } })),

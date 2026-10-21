@@ -34,14 +34,16 @@ export function CommitmentFilterSheet(): React.ReactElement {
           <Box testID="commitment-filter-reset-action" style={COMMITMENT_FILTER_SHEET_ACTION_STYLE}>
             <Button
               variant="secondary"
+              flat
               label={Strings.filterReset}
               onPress={filter.resetDraft}
-              isDisabled={filter.state.draftCount === 0}
+              isDisabled={!filter.state.canReset}
             />
           </Box>
           <Box testID="commitment-filter-apply-action" style={COMMITMENT_FILTER_SHEET_ACTION_STYLE}>
             <Button
               variant="primary"
+              flat
               label={
                 filter.state.draftCount > 0
                   ? Strings.filterApplyWithCount(filter.state.draftCount)
@@ -86,6 +88,9 @@ export function CommitmentFilterSheet(): React.ReactElement {
           onChangeCurrency={filter.setAmountCurrency}
           onChangeMinText={filter.setAmountMinText}
           onChangeMaxText={filter.setAmountMaxText}
+          minError={filter.state.amountMinError}
+          maxError={filter.state.amountMaxError}
+          rangeError={filter.state.amountRangeError}
         />
         <CommitmentAmountTypeAccordion
           selectedTypes={filter.state.draft.amountTypes}
