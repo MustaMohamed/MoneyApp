@@ -4,15 +4,14 @@ import { Text as RNText, View, useWindowDimensions } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Colors, Spacing, lineHeightFor } from '@/constants/theme';
+
 import {
   DAY_HEADER_NET_PLACEHOLDER_WIDTH,
   DAY_HEADER_ROOT_STYLE,
+  INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE,
   resolveDayHeaderGeometry,
   resolveDayHeaderNetMaxWidth,
-} from '@/modules/transactions/components/day_header.geometry';
-
-import type { TransactionDaySection } from '../transactions.helpers';
-import { INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE } from './transactions_text.geometry';
+} from './day_header.geometry';
 
 const LABEL_STYLE = { flex: 1, minWidth: 0 } as const;
 const FIGURES_STYLE = {
@@ -30,8 +29,19 @@ const PILL_STYLE = {
   paddingHorizontal: Spacing.xs,
 } as const;
 
+export type DayHeaderFigures =
+  | { mode: 'skeleton' }
+  | { mode: 'failed'; net: string }
+  | { mode: 'figures'; net: string; count: string };
+
+export interface DayHeaderSection {
+  label: string;
+  figures: DayHeaderFigures;
+  accessibilityLabel: string;
+}
+
 interface Props {
-  section: Pick<TransactionDaySection, 'label' | 'figures' | 'accessibilityLabel'>;
+  section: DayHeaderSection;
 }
 
 export const DayHeader = React.memo(function DayHeader({ section }: Props): React.ReactElement {

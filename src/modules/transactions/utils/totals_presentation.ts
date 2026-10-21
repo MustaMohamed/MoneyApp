@@ -1,3 +1,4 @@
+import type { PolaritySignal } from '@/components/ui/flow_polarity';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
@@ -11,8 +12,6 @@ import {
 import { snapToZero } from '@/utils/money';
 
 export type TotalsMetric = 'income' | 'expense' | 'net';
-
-export type PolaritySignal = 'good' | 'bad' | 'neutral';
 
 export type DeltaDirection = 'up' | 'down' | 'flat';
 type TotalsSummaryState = 'noIncome' | 'withinIncome' | 'overIncome' | 'netCredit';

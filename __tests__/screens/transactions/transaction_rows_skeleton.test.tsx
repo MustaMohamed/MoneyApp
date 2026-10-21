@@ -2,9 +2,9 @@ import { render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
+import { resolveDayHeaderGeometry } from '@/components/ui/day_header.geometry';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { lineHeightFor, Radius, Size } from '@/constants/theme';
-import { resolveDayHeaderGeometry } from '@/modules/transactions/components/day_header.geometry';
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,

@@ -1,20 +1,27 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ScrollView,
+  useWindowDimensions,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
 
+import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { SelectablePill } from '@/components/ui/chip';
+import { HERO_SHELL_MARGIN_BOTTOM } from '@/components/ui/hero_shell.geometry';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { Size, Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
-import { CHIP_SLOP_Y, ROW_PADDING_BOTTOM, ROW_PADDING_TOP } from './account_chips.geometry';
+import {
+  CHIP_SLOP_Y,
+  CHIP_TILE,
+  ROW_PADDING_BOTTOM,
+  ROW_PADDING_TOP,
+  resolveTileChipPaddingVertical,
+} from './account_chips.geometry';
 import type { AccountChipModel } from './account_chips.helpers';
-import { HERO_SHELL_MARGIN_BOTTOM } from './transactions_hero';
 
 /** Frame A1: 6 between chips, 8 below; 9 above plus the hero shell's edge reads A1's 10. */
 const CHIP_GAP = ms(6);
@@ -32,17 +39,30 @@ const CHIP_HIT_SLOP = Object.freeze({
 
 const CHIP_STYLE = Object.freeze({ minHeight: Size.compactChipHeight });
 
-/** The sheet's account pill draws its type icon at this size (`account_accordion.tsx`). */
-const CHIP_ICON_SIZE = ms(13);
+/** The frame's 6 left of the tile; the right padding stays the pill's own. */
+const CHIP_TILE_PADDING_LEFT = ms(6);
 
 type ChipFrame = { x: number; width: number };
 
 interface Props {
   chips: readonly AccountChipModel[];
   onToggle: (accountId: string | undefined) => void;
+  testID: string;
 }
 
-export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
+export function AccountChips({ chips, onToggle, testID }: Props): React.ReactElement {
+  const { fontScale } = useWindowDimensions();
+  // Beats the pill's `py-1.5`, so a tile chip reads as tall as All accounts.
+  const tileChipStyle = useMemo(
+    () => [
+      CHIP_STYLE,
+      {
+        paddingVertical: resolveTileChipPaddingVertical(fontScale),
+        paddingLeft: CHIP_TILE_PADDING_LEFT,
+      },
+    ],
+    [fontScale],
+  );
   const scrollRef = useRef<ScrollView>(null);
   const chipFramesRef = useRef(new Map<string, ChipFrame>());
   const viewportWidthRef = useRef(0);
@@ -97,7 +117,7 @@ export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
       showsHorizontalScrollIndicator={false}
       // With Android's overscroll on, a row flung back to its start rests past it and the next tap only moves it back.
       overScrollMode="never"
-      testID="transactions-account-chips"
+      testID={testID}
       onLayout={handleViewportLayout}
       onScroll={handleScroll}
       scrollEventThrottle={16}
@@ -111,18 +131,19 @@ export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
       }}
     >
       {chips.map((chip) => {
-        const accountId = chip.accountId;
+        const { accountId, tile } = chip;
         return (
           <SelectablePill
             key={accountId ?? 'all'}
             label={chip.label}
             accessibilityLabel={chip.accessibilityLabel}
             startIcon={
-              chip.iconName === undefined ? undefined : (
-                <MaterialCommunityIcons
-                  name={chip.iconName}
-                  size={CHIP_ICON_SIZE}
-                  color={chip.iconColor}
+              tile === undefined ? undefined : (
+                <AccountColorTile
+                  color={tile.color}
+                  type={tile.type}
+                  size={CHIP_TILE}
+                  glyphSize={Size.rowGlyph}
                 />
               )
             }
@@ -133,7 +154,7 @@ export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
                 ? undefined
                 : (event: LayoutChangeEvent) => handleChipLayout(accountId, event)
             }
-            style={CHIP_STYLE}
+            style={tile === undefined ? CHIP_STYLE : tileChipStyle}
             hitSlop={CHIP_HIT_SLOP}
           />
         );

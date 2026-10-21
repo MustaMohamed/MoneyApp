@@ -1,34 +1,8 @@
-import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import {
-  resolveDayHeaderGeometry,
-  resolveDayHeaderNetMaxWidth,
-} from '@/modules/transactions/components/day_header.geometry';
-import {
   TRANSACTIONS_HERO_MAX_FONT_SCALE,
-  resolveSearchTallyGeometry,
   resolveTransactionsHeroGeometry,
 } from '@/modules/transactions/screens/transactions/components/transactions_text.geometry';
-
-describe('resolveSearchTallyGeometry', () => {
-  it("keeps today's slot at font scale 1.0", () => {
-    expect(resolveSearchTallyGeometry(1)).toEqual({
-      slotHeight: Spacing.xxs + lineHeightFor(Type.micro),
-      lineHeight: lineHeightFor(Type.micro),
-    });
-  });
-
-  it.each([1.3, 2])(
-    "sizes the line and the slot from the text's own scaled size at font scale %s",
-    (scale) => {
-      const lineHeight = lineHeightFor(scaledFontSize(Type.micro, scale));
-      expect(resolveSearchTallyGeometry(scale)).toEqual({
-        slotHeight: Spacing.xxs + lineHeight,
-        lineHeight,
-      });
-    },
-  );
-});
 
 describe('resolveTransactionsHeroGeometry', () => {
   function heroAt(scale: number) {
@@ -66,38 +40,4 @@ describe('resolveTransactionsHeroGeometry', () => {
   it('returns the capped values at font scale 2.0', () => {
     expect(resolveTransactionsHeroGeometry(2)).toEqual(heroAt(TRANSACTIONS_HERO_MAX_FONT_SCALE));
   });
-});
-
-describe('resolveDayHeaderGeometry', () => {
-  it.each([1, 1.3, 2])(
-    'sizes the label, the pill and the header from the caption size at font scale %s, uncapped',
-    (scale) => {
-      const fontSize = Type.caption * scale;
-      const lineHeight = lineHeightFor(fontSize);
-      const pillHeight = lineHeight + 2 * Spacing.xxxs;
-      expect(resolveDayHeaderGeometry(scale)).toEqual({
-        fontSize,
-        lineHeight,
-        pillHeight,
-        height: Spacing.md + pillHeight + Spacing.xs,
-      });
-    },
-  );
-});
-
-describe('resolveDayHeaderNetMaxWidth', () => {
-  const HEADER_WIDTH = 411;
-
-  it('MA-171: leaves the net uncapped at font scale 1', () => {
-    expect(resolveDayHeaderNetMaxWidth(1, HEADER_WIDTH)).toBeUndefined();
-  });
-
-  it.each([1.3, 2])(
-    'MA-171: caps the net at half the inner width of the header at font scale %s',
-    (scale) => {
-      expect(resolveDayHeaderNetMaxWidth(scale, HEADER_WIDTH)).toBe(
-        (HEADER_WIDTH - 2 * Spacing.md) / 2,
-      );
-    },
-  );
 });

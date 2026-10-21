@@ -7,6 +7,12 @@ export const SELECTABLE_PILL_LABEL_FONT_SIZE = Type.micro;
 // `.chip__root--size-md`'s own `padding-block`, unscaled CSS.
 export const CHIP_MD_PADDING_BLOCK = 4;
 
+// `SelectablePill`'s `border` class, unscaled CSS px; React Native counts it inside the chip's height.
+export const PILL_BORDER_WIDTH = 1;
+
+// A `SelectablePill` with no adornment takes `py-1`, unscaled CSS px.
+export const SELECTABLE_PILL_PADDING_BLOCK = 4;
+
 export interface ChipLabelGeometry {
   height: number;
   label: ScaledTextStyle;

@@ -1,13 +1,13 @@
 import { PixelRatio, Platform } from 'react-native';
 
-import { Radius } from '@/constants/theme';
 import {
   DAY_CARD_BORDER_WIDTH,
   DAY_CARD_INNER_RADIUS,
   DAY_CARD_INSET,
   resolveDayCardSliceStyle,
   resolveDayCardSwipeCorners,
-} from '@/modules/transactions/components/day_card_row.helpers';
+} from '@/components/ui/day_card_row.helpers';
+import { Radius } from '@/constants/theme';
 
 const PIXEL_2_DENSITY = 2.625;
 
@@ -32,7 +32,7 @@ function loadDayCard(os: 'android' | 'ios', density: number): LoadedDayCard {
       DAY_CARD_INSET: number;
       DAY_CARD_BORDER_WIDTH: number;
       resolveDayCardSliceStyle: typeof resolveDayCardSliceStyle;
-    }>('@/modules/transactions/components/day_card_row.helpers');
+    }>('@/components/ui/day_card_row.helpers');
     const row = jest.requireActual<{ TRANSACTION_ROW_HEIGHT: number }>(
       '@/modules/transactions/components/transaction_row.helpers',
     );

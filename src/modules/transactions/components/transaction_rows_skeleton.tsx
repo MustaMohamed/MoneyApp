@@ -1,16 +1,16 @@
 import { SkeletonGroup } from 'heroui-native';
 import { View, useWindowDimensions } from 'react-native';
 
-import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
-import { Strings } from '@/constants/strings';
-import { Radius, Size, lineHeightFor } from '@/constants/theme';
-
-import { DayCardRow } from './day_card_row';
+import { DayCardRow } from '@/components/ui/day_card_row';
 import {
   DAY_HEADER_NET_PLACEHOLDER_WIDTH,
   DAY_HEADER_ROOT_STYLE,
   resolveDayHeaderGeometry,
-} from './day_header.geometry';
+} from '@/components/ui/day_header.geometry';
+import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
+import { Strings } from '@/constants/strings';
+import { Radius, Size, lineHeightFor } from '@/constants/theme';
+
 import {
   TRANSACTION_ROW_AMOUNT_FONT_SIZE,
   TRANSACTION_ROW_CAPTION_FONT_SIZE,

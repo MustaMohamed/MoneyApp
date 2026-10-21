@@ -3,6 +3,7 @@ import { Card, PressableFeedback, Skeleton } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
+import type { PolaritySignal } from '@/components/ui/flow_polarity';
 import { resolveSkeletonBarHeight } from '@/components/ui/skeleton_bar.geometry';
 import { Text } from '@/components/ui/text';
 import { scaledTextStyle } from '@/components/ui/text_scale.geometry';
@@ -16,7 +17,6 @@ import {
   expenseSharePct,
   formatSignedAmount,
   type DeltaDirection,
-  type PolaritySignal,
   type TotalsMetric,
 } from '@/modules/transactions/utils/totals_presentation';
 import { formatMonthYear } from '@/utils/format_date';
