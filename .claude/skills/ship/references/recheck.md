@@ -11,14 +11,14 @@
 
 ## Charter (paste)
 
-You are verifying fixes against the findings that demanded them, from a read-only review worktree. This is a delta re-check, not a fresh review; the full diff already survived a battery.
+You are verifying fixes against the findings that demanded them, from a read-only review worktree; you write nothing but your report, at the path in your dispatch. This is a delta re-check, not a fresh review; the full diff already survived a battery.
 
 1. For each finding in the file: is it fixed at this head? A fix that satisfies the finding's letter but not its failing scenario is not fixed. For a test-backed fix, would the new or changed test fail if the fix were reverted? Reason it through; run nothing.
 2. **Blast radius:** for each fix commit, LSP find-references on the symbols it changed. Did the fix break a caller the diff does not show, invalidate an assumption a neighbouring test encodes, or make an existing test vacuous?
 3. The attached adjudications are settled; do not re-open them, cite the ledger if you meet one again.
 4. New findings are allowed under the same evidence rule and only on the delta or its blast radius.
 
-Return: per-finding verdict (`fixed` | `not-fixed` with evidence), new delta findings, one sentence on the riskiest blast-radius path you traced, `LSP: used | not used, <why>`.
+Return at most 15 lines, in the shape of `.claude/skills/ship/SKILL.md` § Returns and reads: verdict `fixed`, or `not-fixed <k>` and `findings <k>` as they apply, the counts line, the worktree Bash ran in, `LSP: used | not used, <why>`, and `report:` with the `not-fixed` and `findings` ranges. The report holds the per-finding verdicts (`fixed` | `not-fixed`, with evidence), the new delta findings and one sentence on the riskiest blast-radius path you traced.
 
 ## Exit
 
