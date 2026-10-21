@@ -21,6 +21,8 @@ HeroUI Native composes Tailwind classes into Unistyles 3 styles at build time vi
 
 **Every full-screen route uses `<Screen>`/`<ScreenScroll>` from `@/components/ui/screen` — never raw `SafeAreaView`.** Uniwind's `flex-1` className does not propagate reliably through `SafeAreaView` on Android Fabric — it collapses the flex chain and breaks all child layouts. `Screen` bakes `flex: 1` into the `style` prop instead. Same rule inside: use `style={{ flex: 1 }}` / `style={{ flexDirection: 'row' }}` for layout-critical containers; keep `className` for colors, padding, gap, typography. The one typography exception is the `fontSize`/`lineHeight` pair, which § Design System below governs.
 
+**No text node's box overlaps another's by more than 1 dp**, as `mqa bounds` reads the two boxes. The 1 dp is the edge two abutting boxes share, which pixel snapping sets. The Header proof in `.claude/skills/emulator-verify/features/README.md` reads the title against the back button and the right action this way (MA-159).
+
 ## Components — Team Law 7
 
 Load the **`heroui-native` skill** before building any UI: it carries the live catalog, the wrapper inventory, the `Sheet` API, and the BottomSheet patterns.
