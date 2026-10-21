@@ -111,7 +111,7 @@
 <div class="counts">
   <div class="hu"><b>4</b><small>gates in an unattended run: Lock this scope?, Which split? and Create these N?, /queue asks, the merge; a typed run adds Answer these?, Which seam? and a disputed finding</small></div>
   <div><b>9</b><small>board columns, and 26 rows in the transition table of docs/workflow.md</small></div>
-  <div class="pk"><b>7</b><small>roads into Blocked or a parked record: boundaries, issue-review, prep gap, prep seam, prep dispute, ship park, a Depends on reopened</small></div>
+  <div class="pk"><b>8</b><small>roads into Blocked or a parked record: boundaries, issue-review, prep gap, prep seam, prep dispute, prep over budget, ship park, a Depends on reopened</small></div>
   <div><b>5 + 4 + 2</b><small>ship phases, fix cycles at the cap, prep review rounds at the cap</small></div>
 </div>
 
@@ -129,7 +129,7 @@
 
 <section>
   <h2>3. /prep: Ready For Development to Planned</h2>
-  <p>A cold planner plans from the ticket alone. Gaps are read against the parent, the frames, the ADRs and the code before anyone is asked. The size gate is counted twice more here and trims, never waives.</p>
+  <p>A cold planner plans from the ticket alone. Gaps are read against the parent, the frames, the ADRs and the code before anyone is asked. The size gate is counted twice more here and trims, never waives. The probe runs beside the reviewer's first round, one planner revise takes both, and only a blocking finding runs a second round.</p>
   <div class="board"><svg id="g-prep"></svg></div>
 </section>
 
@@ -243,7 +243,7 @@
       { from: 's6', to: 's5', pts: [[scx(6) - 20, SY + SH], [scx(6) - 20, SY + SH + 48], [scx(5) + 20, SY + SH + 48], [scx(5) + 20, SY + SH]], label: ['a change you ask for after the summary:', 'back to triage, below the cap of 4 cycles'], kind: 'hu', lab: [(scx(5) + scx(6)) / 2, SY + SH + 66] },
       { from: 's1', to: 'blocked', pts: [[scx(1) - 60, SY + SH], [scx(1) - 60, 620]], label: ['/boundaries, from Todo', 'or Defined: the lock', 'waits on #m', 'unattended /issue-review:', 'ask parked, stays Defined'], kind: 'pk', lab: [scx(1) - 68, 505], anchor: 'end' },
       { from: 's0', to: 'blocked', pts: [[scx(0) - 40, SY + SH], [scx(0) - 40, 620]], label: '', kind: 'pk' },
-      { from: 's2', to: 'blocked', pts: [[scx(2) + 40, SY + SH], [scx(2) + 40, 620]], label: ['/prep: a gap nobody answers;', 'unattended: two or more seams,', 'a disputed finding;', 'by hand: a Depends on reopened'], kind: 'pk', lab: [scx(2) + 48, 545], anchor: 'start' },
+      { from: 's2', to: 'blocked', pts: [[scx(2) + 40, SY + SH], [scx(2) + 40, 620]], label: ['/prep: a gap nobody answers;', 'unattended: two or more seams,', 'a disputed finding;', 'the planner over budget twice;', 'by hand: a Depends on reopened'], kind: 'pk', lab: [scx(2) + 48, 545], anchor: 'start' },
       { from: 'blocked', to: 's5', pts: [[scx(5) + 50, 620], [scx(5) + 50, SY + SH]], label: ['/queue asks on a /ship park: back to the', 'column Left: names, In Progress or In Review,', 'then /queue Planned resumes it'], kind: 'hu', lab: [scx(5) + 58, 555], anchor: 'start' },
       { from: 's4', to: 'blocked', pts: [[scx(4), SY + SH], [scx(4), 620]], label: ['/ship parks: a Flag the diff needs,', 'a ticket line that cannot hold,', 'gaps from prep --amend'], kind: 'pk', lab: [scx(4) + 8, 550], anchor: 'start' },
       { from: 's5', to: 'blocked', pts: [[scx(5) - 30, SY + SH], [scx(5) - 30, 620]], label: '', kind: 'pk' },
@@ -328,11 +328,12 @@
       { id: 'trim', kind: 'script', x: 690, y: 300, w: 160, h: 66, label: 'trim at the seam', sub: ['remainder → new sibling', 'at Defined, dependents', 'gain the edge'] },
       { id: 'seam', kind: 'human', x: 700, y: 66, w: 140, h: 38, label: 'Which seam?' },
       { id: 'd-probe', kind: 'decision', x: 900, y: 180, w: 160, h: 90, label: 'marked', sub: ['Screen checks?'] },
-      { id: 'probe', kind: 'skill', x: 900, y: 300, w: 160, h: 66, label: 'probe', sub: ['own worktree, emulator', '≤3 states, 60 tool calls', 'matches / one fix / choice'] },
+      { id: 'probe', kind: 'skill', x: 900, y: 320, w: 160, h: 66, label: 'probe', sub: ['own worktree, emulator', '≤3 states, 60 tool calls', 'matches / one fix / choice'] },
       { id: 'reviewer', kind: 'skill', x: 1110, y: 180, w: 170, h: 90, label: 'plan reviewer', sub: ['coverage, no extra work,', 'reality via LSP, tests, order,', 'conventions, size, unruled'] },
       { id: 'd-rev', kind: 'decision', x: 1330, y: 180, w: 150, h: 90, label: 'verdict', sub: ['cap 2 rounds'] },
       { id: 'dispute', kind: 'human', x: 1340, y: 66, w: 150, h: 38, label: 'disputed finding' },
-      { id: 'count', kind: 'script', x: 1530, y: 190, w: 150, h: 66, label: 'conductor counts', sub: ['≤ 8 steps', 'expected diff ≤ ~400', 'either over → trim'] },
+      { id: 'count', kind: 'script', x: 1530, y: 216, w: 150, h: 66, label: 'conductor counts', sub: ['≤ 8 steps', 'expected diff ≤ ~400', 'either over → trim'] },
+      { id: 'revise', kind: 'skill', x: 1340, y: 336, w: 150, h: 66, label: 'planner revise', sub: ['probe results, deltas,', 'answered questions'] },
       { id: 'commit', kind: 'script', x: 1530, y: 490, w: 150, h: 66, label: 'commit + push', sub: ['plan(MA-XXX)', 'Plan: comment on the issue', 'status Planned'] },
       { id: 'blk', kind: 'park', x: 260, y: 490, w: 380, h: 60, label: 'Blocked', sub: ['typed: comment Blocked on a ruling, worktree removed, branch kept', 'unattended: one question record per gap, Left: Ready For Development'] },
       { id: 'amend', kind: 'note', x: 1110, y: 490, w: 300, h: 54, label: '--amend, called by /ship', sub: ['no probe, no board write, gaps return to /ship', 'an amendment over the gate is refused'] },
@@ -353,18 +354,20 @@
       { from: 'seam', to: 'trim', pts: [[840, 85], [870, 85], [870, 333], [850, 333]], kind: 'hu' },
       { from: 'd-seam', to: 'blk', pts: [[700, 252], [680, 252], [680, 460], [640, 520]], label: ['2+ seams, unattended,', 'or no seam fits'], kind: 'pk', lab: [713, 446], anchor: 'start' },
       { from: 'd-seam', to: 'd-probe', pts: [[850, 225], [900, 225]], label: 'within', lab: [875, 217] },
-      { from: 'd-probe', to: 'probe', pts: [[980, 270], [980, 300]], label: 'rows with a risk', lab: [988, 290], anchor: 'start' },
-      { from: 'probe', to: 'planner', pts: [[900, 350], [880, 350], [880, 395], [380, 395], [380, 256]], label: 'facts, not probed, REBUILD → revise', kind: 'loop', lab: [875, 390], anchor: 'end' },
-      { from: 'probe', to: 'src', pts: [[940, 366], [940, 424], [600, 424], [600, 354]], label: 'a choice is a gap', kind: 'loop', lab: [600, 438], anchor: 'start' },
-      { from: 'd-probe', to: 'reviewer', pts: [[1060, 225], [1110, 225]], label: 'none', lab: [1085, 217] },
+      { from: 'd-probe', to: 'probe', pts: [[980, 270], [980, 320]], label: 'rows with a risk', lab: [988, 306], anchor: 'start' },
+      { from: 'probe', to: 'revise', pts: [[1060, 365], [1340, 365]], label: 'facts, not probed, REBUILD', lab: [1068, 358], anchor: 'start' },
+      { from: 'probe', to: 'src', pts: [[940, 386], [940, 424], [600, 424], [600, 354]], label: 'a choice is a gap', kind: 'loop', lab: [600, 438], anchor: 'start' },
+      { from: 'd-probe', to: 'reviewer', pts: [[1060, 225], [1110, 225]], label: 'round 1: beside the probe, or alone', lab: [1066, 168], anchor: 'start' },
       { from: 'reviewer', to: 'd-rev', pts: [[1280, 225], [1330, 225]] },
-      { from: 'd-rev', to: 'planner', pts: [[1405, 270], [1405, 375], [1090, 375], [1090, 170], [420, 170], [420, 190]], label: 'findings or questions → revise, then a fresh reviewer', kind: 'loop', lab: [900, 164] },
+      { from: 'd-rev', to: 'revise', pts: [[1405, 270], [1405, 336]], label: ['findings,', 'answered questions'], lab: [1413, 306], anchor: 'start' },
+      { from: 'revise', to: 'reviewer', pts: [[1340, 390], [1260, 390], [1260, 270]], label: ['a blocking finding:', 'a fresh reviewer, round 2'], kind: 'loop', lab: [1252, 398], anchor: 'end' },
+      { from: 'revise', to: 'count', pts: [[1490, 369], [1545, 369], [1545, 282]], label: ['deltas only:', 'no second round'], lab: [1498, 390], anchor: 'start' },
       { from: 'd-rev', to: 'dispute', pts: [[1405, 180], [1405, 104]], label: 'planner disputes, typed', kind: 'hu', lab: [1413, 145], anchor: 'start' },
       { from: 'dispute', to: 'planner', pts: [[1340, 85], [1300, 85], [1300, 50], [330, 50], [330, 190]], label: 'ruling, one more dispatch', kind: 'hu', lab: [820, 44] },
-      { from: 'd-rev', to: 'blk', pts: [[1360, 262], [1360, 456], [660, 456], [640, 540]], label: 'disputed finding, unattended', kind: 'pk', lab: [1200, 450], anchor: 'start' },
-      { from: 'd-rev', to: 'count', pts: [[1480, 225], [1530, 225]], label: 'approve', lab: [1505, 208] },
-      { from: 'count', to: 'commit', pts: [[1600, 256], [1600, 490]], label: 'both within', lab: [1608, 380], anchor: 'start' },
-      { from: 'count', to: 'trim', pts: [[1530, 240], [1500, 240], [1500, 290], [870, 290], [870, 310], [850, 310]], label: 'over → trim, whatever a ruling said', kind: 'loop', lab: [1200, 284] },
+      { from: 'd-rev', to: 'blk', pts: [[1350, 238], [1350, 322], [1318, 322], [1318, 456], [660, 456], [640, 540]], label: 'disputed finding, unattended', kind: 'pk', lab: [1310, 450], anchor: 'end' },
+      { from: 'd-rev', to: 'count', pts: [[1480, 225], [1530, 225]], label: 'approve, nothing to revise', lab: [1486, 207], anchor: 'start' },
+      { from: 'count', to: 'commit', pts: [[1600, 282], [1600, 490]], label: 'both within', lab: [1608, 380], anchor: 'start' },
+      { from: 'count', to: 'trim', pts: [[1530, 262], [1500, 262], [1500, 284], [870, 284], [870, 310], [850, 310]], label: ['over → trim,', 'whatever a ruling said'], kind: 'loop', lab: [1095, 302], anchor: 'start' },
     ],
   });
 
