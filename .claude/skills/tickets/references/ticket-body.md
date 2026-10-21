@@ -21,7 +21,7 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 - One bullet per string the task adds or alters, verbatim, with where it shows; a string that counts gives its singular, plural and zero forms. Or `none`.
 
 ## Screen checks
-- One row per screen state the change alters, `<features file> · <state> · <risk>`, or `none`. The file is a name under `.claude/skills/emulator-verify/features/`; the state is a name from its States table, or a name followed by `new`; the row copies nothing else from that file. The risk names each condition the state meets, in these words, else `none`: a new component, a height that is not a whole number of dp, a font scale above 1.0, a swipe or a drag, a clipped or rounded container. A migration ticket has one row, the upgraded database opening on the first screen. `/tickets` and `/boundaries` write `none`; `/issue-review` writes the rows.
+- One row per screen state the change alters, `<features file> · <state> · <risk>`, or `none`. The file is a name under `.claude/skills/emulator-verify/features/`; the state is a name from its States table, or a name followed by `new`; the row copies nothing else from that file. The risk names each condition the state meets, in these words, else `none`: a new component, a height that is not a whole number of dp, a font scale above 1.0, a swipe or a drag, a clipped or rounded container. The `device` lines of the invariant list, `.claude/skills/boundaries/references/invariants.md`, take no row: the invariant pass of `.claude/skills/emulator-verify/features/README.md` proves them on every screen the PR touches, at implement and at the battery, and a `large font` row stays for the task's own states. A migration ticket has one row, the upgraded database opening on the first screen. `/tickets` and `/boundaries` write `none`; `/issue-review` writes the rows. A class ticket's rows, in the shape of Context's `Grep:` bullet, come from the family check at /ship triage or from S3b's rewrite at review.
 
 ## Decisions
 - One line per answer to a question on this task, or a line copied unchanged from the parent's Decisions, `<yyyy-mm-dd> · <question> · <option chosen> · <who chose> · <step>`; or `none`.
@@ -34,6 +34,7 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 
 ## Context
 - What the code shows today, for whoever delivers this without the conversation: the screen or path, what happens now against what is wanted, reproduction steps, the files and symbols involved, prior art, the danger surfaces met. The one section where file paths belong. `/boundaries` on a task fills it; `/tickets` writes what its scout found, or `none`.
+- Grep: <command> · <count> sites. On a class ticket only, never in Acceptance: the command that lists its sites and what it returned. A class ticket also has one Acceptance line per site in outcome words, and one Screen checks row per screen state a site changes, `none` only when no site changes what a screen shows.
 - Consumes: the contract this task takes from a sibling ticket, and the ticket that ships it; or `none`.
 - Produces: the contract this task hands a sibling ticket, and the ticket that reads it; or `none`.
 - Size: <k> files outside tests, ~<n> lines, at <sha>: <paths>. Always the last bullet, the list counted per `splitting.md` § Size gate; `/issue-review` recounts it and `/prep` trims a ticket whose list was short. No section other than Context holds a bullet starting `Size:`.
@@ -45,7 +46,7 @@ One paragraph. What we want to achieve by this task and what it unlocks.
 |---|---|
 | Part of | the parent issue number, or `none` for a task recorded on its own |
 | Depends on | `MA-nnn (#N)` list, or `nothing`; real dependencies only |
-| Verify | `emulator` when the task changes what a screen shows, else `none`; on a body with `Screen checks`, `emulator` if and only if that section has a row, binding from the first `/issue-review`. A repository test asserts a write |
+| Verify | `emulator` when the task changes what a screen shows, directly or through a shared component the screen mounts, else `none`; on a body with `Screen checks`, `emulator` if and only if that section has a row, binding from the first `/issue-review`. A repository test asserts a write |
 | Flags | any of `data-loss migration`, `money path`, `native change`, `user copy`, `secure store`; else `none`. These are CLAUDE.md's critical triggers, written where the merge gate reads them |
 | Reviewed | `none` when written; `/issue-review` writes the date when the body passes with no open ask, on a split parent as on a leaf. `board.sh promote` moves only a leaf with a date under a parent with a date, so this field is the road to Ready For Development; a review ends only with every question answered, and a run ended on a deferred question leaves the issue at Defined. No date is written while a question record is open on the issue, `bash scripts/board.sh questions <n>`; a date already written stays. Any rewrite of the body by `/boundaries` or `/tickets` resets it to `none` |
 

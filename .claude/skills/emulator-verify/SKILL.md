@@ -159,8 +159,9 @@ Two independent walks of MA-007, same branch, same defect surface:
 | Found the regression | no | **yes** |
 
 Add a scenario only when you can say **what device-only failure it catches**. Four is a
-normal size. If a claim can be checked with `mqa db`, check it there rather than reading it
-off a screen.
+normal size. The invariant pass of the invariant list, `features/README.md` § Invariant
+pass, runs on at most eight screens outside that count and is not going wide. If a claim
+can be checked with `mqa db`, check it there rather than reading it off a screen.
 
 ## Sync on the value you assert
 

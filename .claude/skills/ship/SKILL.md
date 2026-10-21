@@ -106,6 +106,9 @@ cycle: <0-4>
 
 ## Log
 - <date> P1: dispatched · <sha>, chain green, render pass 3 screens
+- <date> screens: <features file>, …
+- <date> invariants: holds | <screen>: <node>[, …][ · unread <k>]
+- <date> unwalked: <features file>
 - <date> conductor: 21 / 70 · P1 21
 - <date> P2: pushed <sha>, PR <url> · correctness 0 / quality 2 / render 1 / code-review 3 (medium), CI green
 - <date> P3 c1: findings written · fix dispatched · fix pushed <sha>
@@ -124,7 +127,7 @@ cycle: <0-4>
 - <label> → <ruling> (<date>), settled by <ticket text | frame | shipped convention | smallest change>, <why in one line>
 ```
 
-Each phase, and in P3 and P4 each cycle's visit, takes one Log line, written when the phase's dispatch goes and completed when it ends, facts only: SHAs, verdicts, counts, decisions. The REBUILD and `not probed after amend` lines ([references/implement.md](references/implement.md) → Build logged, Amend logged), the `change triaged` lines ([references/merge.md](references/merge.md) → A change after the summary), each dispatch's `budget:` line and the `conductor:` lines stay their own lines. The file stays under 15 KB.
+Each phase, and in P3 and P4 each cycle's visit, takes one Log line, written when the phase's dispatch goes and completed when it ends, facts only: SHAs, verdicts, counts, decisions. The REBUILD, `not probed after amend`, `screens:`, `invariants:` and `unwalked:` lines ([references/implement.md](references/implement.md) → Build logged, Amend logged, Unwalked logged, Exit), the `change triaged` lines ([references/merge.md](references/merge.md) → A change after the summary), each dispatch's `budget:` line and the `conductor:` lines stay their own lines. The file stays under 15 KB.
 
 **Resume inside a phase** (its Log line not completed) reads the rest from the commits, `git log --oneline origin/main..HEAD | tail -20`, the unpushed ones, `git log --oneline origin/<branch>..HEAD | tail -20`, the tree, `git status --short | tail -20`, and `findings/cycle-<cycle>.md` in P3 or P4. Unpushed commits → push and re-point the review worktree, then continue; uncommitted edits → the discard in `references/implement.md` → Re-entry, then re-dispatch the last dispatch.
 
