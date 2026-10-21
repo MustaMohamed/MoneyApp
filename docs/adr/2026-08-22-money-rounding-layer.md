@@ -96,7 +96,7 @@ retained for that purpose. See Addendum A, points 2 and 3.
 | # | Column | Class | Rounding point | Value bound at the write |
 |---|---|---|---|---|
 | 1 | `transactions.amount` | A | `resolveTransactionAmounts`, first line | `amounts.amount` at `transaction.repository.ts:309` / `:409`, supplied by `add_transaction.hook.ts:409-419` / `edit_transaction.hook.ts:312-322` |
-| 2 | `commitment_payments.amount_paid` | A | `resolveCommitmentPaymentAmounts`, first line | `amounts.paymentAmount`, threaded from `commitment.repository.ts:292` into `commitment_payments.ts:274` **in place of `details.amount_paid`**; amended, Addendum B |
+| 2 | `commitment_payments.amount_paid` | A | `resolveCommitmentPaymentAmounts`, first line | `amounts.paymentAmount`, threaded from `commitment.repository.ts:292` into `commitment_payments.ts:385` **in place of `details.amount_paid`**; amended, Addendum B |
 | 3 | `commitments.amount` | B | `CommitmentRepository.add` (`:107`) and `.update` (`:121`), first statement | the rounded field of the composed `Commitment` / `UpdateCommitmentData`, into `commitments.ts:47` / `:91` — `Commitment.amount: number \| null` (null for Variable commitments; amended, Addendum B), so this is the actual production caller of `roundMoney`'s `null` overload |
 | 4 | `budgets.limit_amount` | C | `BudgetRepository.setBudget` (`:326`), first statement — `setLimit` (`:351`) delegates to it | `input.limit` into `setBudgetRow` (`budgets.ts:47`), whose own finite-and-positive check then runs on the rounded value |
 | 5 | budget-month income | C | `BudgetRepository.setExpectedIncome` (`:317`), first statement — **before** `withExclusiveTransactionAsync` | `setBudgetMonthIncome(tx, …)` at `:321`, so `snapshotBudgetMonthCategoryGroups` at `:322` sees the rounded value |
@@ -136,7 +136,7 @@ three counts:
    `edit_transaction.hook.ts` are structurally identical and each pass `data.amount` twice (spec
    row 16). Four places for one column, against one in the resolver.
 2. **It does not close row 18 by construction.** `commitment_payments.amount_paid` is written
-   *inside* `commitment_payments.ts:274` from `details.amount_paid` — the resolver's own input
+   *inside* `commitment_payments.ts:385` from `details.amount_paid` — the resolver's own input
    object. A rounded value in the pay sheet does not reach that line; only "the write binds the
    resolver's return" does. Row 18 is the highest-value row in the ticket and this layer misses it.
 3. **It contradicts `money.md:20`** and leaves the resolver a function that rounds its outputs and
@@ -338,7 +338,7 @@ A call from a file outside that entry fails `npm run lint`.
   `amounts.amount` for the persisted amount; `normalizedAmountsMatch` compares `amount`;
   idempotence test.
 - **c7 (commitments):** resolver returns `paymentAmount`; `markAsPaid` threads it into
-  `commitment_payments.ts:274`; `CommitmentRepository.add` / `.update` round `amount`. Confirm by
+  `commitment_payments.ts:385`; `CommitmentRepository.add` / `.update` round `amount`. Confirm by
   grep that `markAsPaid` has exactly one caller chain (`commitment.store.ts:261` ← `pay_sheet.hook.ts:153`)
   and that nothing passes `updatePaymentStatus`'s optional `amount_paid` field.
 - **c8 (budgets):** `parseLimit` is deleted in favour of `parse_decimal.ts`; the three repository
