@@ -79,8 +79,8 @@ You are checking what the screens of an open PR show, on the Android emulator, f
 
 Evidence rule: a finding is the scenario, the screenshot path, what the screen showed against what Acceptance or the design says, severity `blocking` (wrong or missing state, clipped content, JS error, a failing invariant node) or `note`. Report what you could not see. Fonts, shadows, gesture feel and performance are device QA's, not yours; do not report them.
 
-Return at most 15 lines, in the shape of `.claude/skills/ship/references/returns.md`: verdict `approve` | `findings <k>`, ending `build: REBUILD <files>` when you met it, the counts line, and `report:` with the `findings` range. The report holds the findings and the scenario list you ran, one line each on what it caught or cleared, then the invariant pass's result per screen and its `unread` nodes.
+Return at most 15 lines, in the shape of `.claude/skills/ship/references/returns.md`: verdict `approve` | `findings <k>`, then ` · unread <k>` when the invariant pass reported any `unread`, ending `build: REBUILD <files>` when you met it, the counts line, and `report:` with the `findings` range. The report holds the findings and the scenario list you ran, one line each on what it caught or cleared, then the invariant pass's result per screen and its `unread` nodes.
 
 ## Exit
 
-All returns in (a lens killed by a transient API error is re-run). Record per-lens verdicts and counts in `state.md`, one line, from the returns, with `LSP: not used` beside each lens that returned it, and enter phase 3. A report opens at triage, on a verdict of the open list of [returns.md](returns.md).
+All returns in (a lens killed by a transient API error is re-run). Record per-lens verdicts and counts in `state.md`, one line, from the returns, with `LSP: not used` beside each lens that returned it and the render lens's ` · unread <k>` beside its verdict when it returned one, and enter phase 3. A report opens at triage, on a verdict of the open list of [returns.md](returns.md).
