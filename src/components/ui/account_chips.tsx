@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   ScrollView,
@@ -7,6 +6,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
+import { AccountColorTile } from '@/components/ui/account_color_tile';
 import { SelectablePill } from '@/components/ui/chip';
 import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { Size, Spacing } from '@/constants/theme';
@@ -36,17 +36,27 @@ const CHIP_HIT_SLOP = Object.freeze({
 
 const CHIP_STYLE = Object.freeze({ minHeight: Size.compactChipHeight });
 
-/** The sheet's account pill draws its type icon at this size (`account_accordion.tsx`). */
-const CHIP_ICON_SIZE = ms(13);
+/** Commitments canvas `.spill .id-tile`: a 20 square with a 14 glyph, as the account strip draws it. */
+const CHIP_TILE = ms(20);
+
+/** The pill's `border` class, unscaled CSS px; React Native counts it inside the chip's height. */
+const PILL_BORDER_WIDTH = 1;
+
+/** Beats the pill's `py-1.5`, so a tile chip holds the compact height; the frame's 6 on the left. */
+const CHIP_TILE_PADDING = Object.freeze({
+  paddingVertical: (Size.compactChipHeight - CHIP_TILE) / 2 - PILL_BORDER_WIDTH,
+  paddingLeft: ms(6),
+});
 
 type ChipFrame = { x: number; width: number };
 
 interface Props {
   chips: readonly AccountChipModel[];
   onToggle: (accountId: string | undefined) => void;
+  testID: string;
 }
 
-export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
+export function AccountChips({ chips, onToggle, testID }: Props): React.ReactElement {
   const scrollRef = useRef<ScrollView>(null);
   const chipFramesRef = useRef(new Map<string, ChipFrame>());
   const viewportWidthRef = useRef(0);
@@ -101,7 +111,7 @@ export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
       showsHorizontalScrollIndicator={false}
       // With Android's overscroll on, a row flung back to its start rests past it and the next tap only moves it back.
       overScrollMode="never"
-      testID="transactions-account-chips"
+      testID={testID}
       onLayout={handleViewportLayout}
       onScroll={handleScroll}
       scrollEventThrottle={16}
@@ -115,18 +125,19 @@ export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
       }}
     >
       {chips.map((chip) => {
-        const accountId = chip.accountId;
+        const { accountId, tile } = chip;
         return (
           <SelectablePill
             key={accountId ?? 'all'}
             label={chip.label}
             accessibilityLabel={chip.accessibilityLabel}
             startIcon={
-              chip.iconName === undefined ? undefined : (
-                <MaterialCommunityIcons
-                  name={chip.iconName}
-                  size={CHIP_ICON_SIZE}
-                  color={chip.iconColor}
+              tile === undefined ? undefined : (
+                <AccountColorTile
+                  color={tile.color}
+                  type={tile.type}
+                  size={CHIP_TILE}
+                  glyphSize={Size.rowGlyph}
                 />
               )
             }
@@ -137,7 +148,7 @@ export function AccountChips({ chips, onToggle }: Props): React.ReactElement {
                 ? undefined
                 : (event: LayoutChangeEvent) => handleChipLayout(accountId, event)
             }
-            style={CHIP_STYLE}
+            style={tile === undefined ? CHIP_STYLE : [CHIP_STYLE, CHIP_TILE_PADDING]}
             hitSlop={CHIP_HIT_SLOP}
           />
         );

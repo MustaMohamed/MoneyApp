@@ -134,7 +134,13 @@ export default function TransactionsScreen(): React.ReactElement {
     [state.tally],
   );
   const accountChips = useMemo(
-    () => <AccountChips chips={state.accountChips} onToggle={toggleAccountChip} />,
+    () => (
+      <AccountChips
+        chips={state.accountChips}
+        onToggle={toggleAccountChip}
+        testID="transactions-account-chips"
+      />
+    ),
     [state.accountChips, toggleAccountChip],
   );
 
