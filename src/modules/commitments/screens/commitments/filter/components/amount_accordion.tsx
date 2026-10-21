@@ -15,6 +15,9 @@ interface Props {
   onChangeCurrency: (currency: Currency) => void;
   onChangeMinText: (value: string) => void;
   onChangeMaxText: (value: string) => void;
+  minError?: string;
+  maxError?: string;
+  rangeError?: string;
 }
 
 export function CommitmentAmountAccordion({
@@ -28,6 +31,9 @@ export function CommitmentAmountAccordion({
   onChangeCurrency,
   onChangeMinText,
   onChangeMaxText,
+  minError,
+  maxError,
+  rangeError,
 }: Props): React.ReactElement {
   return (
     <FilterAccordionShell
@@ -44,6 +50,9 @@ export function CommitmentAmountAccordion({
         onChangeCurrency={onChangeCurrency}
         onChangeMinText={onChangeMinText}
         onChangeMaxText={onChangeMaxText}
+        minError={minError}
+        maxError={maxError}
+        rangeError={rangeError}
         accessibilityLabel={Strings.commitmentFilterAmountCurrencyAccessibility}
       />
     </FilterAccordionShell>

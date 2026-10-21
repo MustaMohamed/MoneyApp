@@ -6,15 +6,17 @@ import {
   countFunnelFilters,
   formatAppliedFilterSummary,
   labelAccountsById,
-  parseAmountInput,
   pruneAccountFilter,
   toggleAccountFilter,
-  validateAmountRange,
 } from '@/modules/transactions/screens/transactions/filter/filter.helpers';
 import {
   EMPTY_FILTERS,
   type AdvancedFilters,
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
+import {
+  parseAmountInput,
+  validateAmountRange,
+} from '@/modules/transactions/utils/amount_range_filter';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 describe('advancedFiltersEqual', () => {

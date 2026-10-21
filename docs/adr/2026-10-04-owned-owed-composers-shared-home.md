@@ -21,6 +21,8 @@ The owned-sign composer sat in dashboard's `utils/`, its owed twins in the net w
 - `src/modules/commitments/screens/commitments/filter/filter.helpers.ts`, the whole file, for the three joins of `formatCommitmentAmountSummary`, which prints its numbers through no formatter.
 - `src/utils/format_amount.ts`, the whole file, for the one template the joined formatters share.
 
+**Extended 2026-10-21 (#786).** The commitments filter entry left with `formatCommitmentAmountSummary`. Both filter sheets' amount summary is `formatAmountSummary` in `src/modules/transactions/utils/amount_range_filter.ts`, which joins each bound to its code through `formatCurrencyAmount`. `filterSummaryAmountUpTo` and `filterSummaryAmountFrom` take the formatted amount, as `filterApplyWithCount` takes its count, so no template puts the formatter call one space after the copy and `HAND_JOIN` reads no join there. `HAND_JOIN_ALLOWLIST` holds two entries.
+
 An entry whose file is not tracked, or that covers no match, fails the run in the two forms a stale `OWNED_SIGN_ALLOWLIST` entry takes. The balance-column scan of ADR 2026-10-06 §6 gained three names, `formatDisplayAmount`, `formatDisplayAmountParts` and `formatDisplayMagnitude`, so an unsigned display formatter on `.current_balance` or `.opening_balance` fails as well.
 
 `HAND_JOIN` reads template literals alone and does not see these shapes:
