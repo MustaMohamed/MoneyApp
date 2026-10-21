@@ -33,7 +33,7 @@ task=<task id>
 - any other held lease: stop, naming its skill, its last write and `rm ~/.ship/MoneyApp/queue/leases/<n>` for a user who knows that run is gone;
 - a stale lease: the same stop, reported as stale.
 
-**Touch.** The file's mtime is its last write. The holder touches it at every dispatch and every `state.md` write. A review of a parent touches every lease it holds, the parent's and each child's.
+**Touch.** The file's mtime is its last write. The holder's touch rides the Bash call nearest each dispatch and each `state.md` write, as `touch ~/.ship/MoneyApp/queue/leases/<n> && <command>`, never a call of its own. The three background wait loops keep their own touch each minute: the free-slot wait of [prep](../prep/SKILL.md) step 5, Build held in [implement.md](../ship/references/implement.md) → Re-entry, and the merge watch in [merge.md](../ship/references/merge.md) § Present for merge. A review of a parent touches every lease it holds, the parent's and each child's.
 
 **Release.** The holder removes it at every exit: its reply, a stop, a trim, a parked record. An unattended `/ship` removes it at Awaiting Human and ends. A typed `/ship` keeps it through the merge watch, which touches it each minute, and removes it after the post-merge list.
 
