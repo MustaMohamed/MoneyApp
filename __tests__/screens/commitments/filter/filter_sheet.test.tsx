@@ -9,6 +9,8 @@ import {
 
 const mockResetDraft = jest.fn();
 const mockApplyDraft = jest.fn();
+const mockAmountAccordionProps = jest.fn();
+let mockStateOverrides: Record<string, unknown> = {};
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@gorhom/bottom-sheet', () => ({
@@ -41,18 +43,20 @@ jest.mock('@/components/ui/button', () => ({
   Button: ({
     label,
     variant,
+    flat,
     onPress,
     isDisabled,
   }: {
     label: string;
     variant?: string;
+    flat?: boolean;
     onPress?: () => void;
     isDisabled?: boolean;
   }) => {
     const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return (
       <Pressable accessibilityRole="button" disabled={isDisabled} onPress={onPress}>
-        <Text>{`${variant}:${label}`}</Text>
+        <Text>{`${variant}${flat ? ':flat' : ''}:${label}`}</Text>
       </Pressable>
     );
   },
@@ -71,8 +75,10 @@ jest.mock('@/modules/commitments/screens/commitments/filter/filter.hook', () => 
       },
       draftCount: 3,
       canApply: true,
+      canReset: true,
       accounts: [],
       categories: [],
+      ...mockStateOverrides,
     },
     close: jest.fn(),
     toggleSection: jest.fn(),
@@ -100,8 +106,9 @@ jest.mock('@/modules/commitments/screens/commitments/filter/components/category_
   },
 }));
 jest.mock('@/modules/commitments/screens/commitments/filter/components/amount_accordion', () => ({
-  CommitmentAmountAccordion: () => {
+  CommitmentAmountAccordion: (props: Record<string, unknown>) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    mockAmountAccordionProps(props);
     return <Text>Amount section</Text>;
   },
 }));
@@ -127,6 +134,7 @@ jest.mock(
 describe('CommitmentFilterSheet', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockStateOverrides = {};
   });
 
   it('renders all advanced filter sections', async () => {
@@ -144,8 +152,8 @@ describe('CommitmentFilterSheet', () => {
     const { getByText, getByTestId } = await render(<CommitmentFilterSheet />);
 
     expect(COMMITMENT_FILTER_SHEET_ACTION_STYLE).toEqual({ flex: 1 });
-    expect(getByText(`secondary:${Strings.filterReset}`)).toBeTruthy();
-    expect(getByText(`primary:${Strings.filterApplyWithCount(3)}`)).toBeTruthy();
+    expect(getByText(`secondary:flat:${Strings.filterReset}`)).toBeTruthy();
+    expect(getByText(`primary:flat:${Strings.filterApplyWithCount(3)}`)).toBeTruthy();
     expect(getByTestId('commitment-filter-reset-action')).toHaveStyle(
       COMMITMENT_FILTER_SHEET_ACTION_STYLE,
     );
@@ -157,10 +165,37 @@ describe('CommitmentFilterSheet', () => {
   it('wires Reset and Apply actions from the footer', async () => {
     const { getByText } = await render(<CommitmentFilterSheet />);
 
-    await fireEvent.press(getByText(`secondary:${Strings.filterReset}`));
+    await fireEvent.press(getByText(`secondary:flat:${Strings.filterReset}`));
     expect(mockResetDraft).toHaveBeenCalled();
 
-    await fireEvent.press(getByText(`primary:${Strings.filterApplyWithCount(3)}`));
+    await fireEvent.press(getByText(`primary:flat:${Strings.filterApplyWithCount(3)}`));
     expect(mockApplyDraft).toHaveBeenCalled();
+  });
+
+  it('enables Reset from canReset while no dimension is set (MA-212)', async () => {
+    mockStateOverrides = { draftCount: 0, canReset: true, canApply: false };
+    const { getByText } = await render(<CommitmentFilterSheet />);
+
+    const reset = getByText(new RegExp(`^secondary:.*${Strings.filterReset}$`));
+    expect(reset).toBeEnabled();
+    await fireEvent.press(reset);
+    expect(mockResetDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes the hook amount errors to the Amount section (MA-212)', async () => {
+    mockStateOverrides = {
+      amountMinError: Strings.filterAmountInvalid,
+      amountMaxError: Strings.filterAmountInvalid,
+      amountRangeError: Strings.filterAmountRangeInvalid,
+    };
+    await render(<CommitmentFilterSheet />);
+
+    expect(mockAmountAccordionProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        minError: Strings.filterAmountInvalid,
+        maxError: Strings.filterAmountInvalid,
+        rangeError: Strings.filterAmountRangeInvalid,
+      }),
+    );
   });
 });

@@ -3,6 +3,8 @@ import { Strings } from '@/constants/strings';
 const PAY_SHEET_RATE_CARD =
   'modules/transactions/components/exchange_rate_row.tsx, mounted by modules/commitments/screens/commitments/detail/components/pay_sheet.tsx';
 const COMMITMENT_FILTER = 'modules/commitments/screens/commitments/filter';
+const AMOUNT_RANGE_FILTER =
+  'modules/transactions/utils/amount_range_filter.ts, read by both filter sheets';
 
 // Keys the transactions module shares with other screens, which the MA-097 sweep leaves as they read (MA-197).
 describe('strings the transactions module shares with other modules', () => {
@@ -68,10 +70,10 @@ describe('strings the transactions module shares with other modules', () => {
       'Amount type',
     ],
     [
-      'filterSectionRecurrence',
+      'filterSectionRepeats',
       `${COMMITMENT_FILTER}/components/recurrence_accordion.tsx`,
-      Strings.filterSectionRecurrence,
-      'Recurrence',
+      Strings.filterSectionRepeats,
+      'Repeats',
     ],
     [
       'filterSummaryAccountsEmpty',
@@ -87,22 +89,12 @@ describe('strings the transactions module shares with other modules', () => {
     ],
     [
       'filterSummaryAmountEmpty',
-      `${COMMITMENT_FILTER}/filter.helpers.ts`,
+      AMOUNT_RANGE_FILTER,
       Strings.filterSummaryAmountEmpty,
       'Any amount',
     ],
-    [
-      'filterSummaryAmountUpTo',
-      `${COMMITMENT_FILTER}/filter.helpers.ts`,
-      Strings.filterSummaryAmountUpTo,
-      'Up to',
-    ],
-    [
-      'filterSummaryAmountFrom',
-      `${COMMITMENT_FILTER}/filter.helpers.ts`,
-      Strings.filterSummaryAmountFrom,
-      'From',
-    ],
+    ['filterSummaryAmountUpTo', AMOUNT_RANGE_FILTER, Strings.filterSummaryAmountUpTo, 'Up to'],
+    ['filterSummaryAmountFrom', AMOUNT_RANGE_FILTER, Strings.filterSummaryAmountFrom, 'From'],
     [
       'swipeEdit',
       'budget named_budget_row.tsx and commitments commitment_row.tsx',

@@ -87,6 +87,8 @@ describe('useFilterSheet apply/reset behavior', () => {
     expect(result.current.state.amountMinError).toBeTruthy();
     expect(result.current.state.canApply).toBe(false);
     expect(result.current.state.canReset).toBe(true);
+    expect(result.current.state.amountSummary).toBe(Strings.filterSummaryAmountInvalid);
+    expect(result.current.state.amountActive).toBe(true);
   });
 
   it('blocks a reversed range until the bounds are ordered', async () => {
