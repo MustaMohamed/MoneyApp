@@ -1,3 +1,4 @@
+import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
 import { TransactionType } from '@/constants/enums';
@@ -12,6 +13,7 @@ import { TransactionValidationError } from '@/modules/transactions/repositories/
 import { roundMoney } from '@/utils/money';
 
 import {
+  type ActiveCommitmentDueDate,
   addPayments,
   clearPaymentSkipped,
   deleteUnpaidPaymentsByCommitment,
@@ -40,10 +42,20 @@ import {
   type UpdateCommitmentData,
 } from '../database/commitments';
 import type { CommitmentMonthAggregate } from '../domain/commitment_month_totals';
-import { carriedDueBound, resolveUndoSkip } from '../domain/payment_state';
+import {
+  carriedDueBound,
+  isPaidPayment,
+  isUnpaidPayment,
+  resolveUndoSkip,
+} from '../domain/payment_state';
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
-import { CommitmentUndoRefusedError } from './commitment.errors';
+import {
+  CommitmentNotFoundError,
+  CommitmentPaymentNotFoundError,
+  CommitmentPaymentNotSkippedError,
+  CommitmentUndoRefusedError,
+} from './commitment.errors';
 import { planMissingCommitmentPayments } from './commitment_housekeeping.helpers';
 
 export type NewCommitmentInput = Omit<Commitment, 'id' | 'created_at' | 'updated_at' | 'is_active'>;
@@ -138,17 +150,14 @@ export class CommitmentRepository implements ICommitmentRepository {
     const updateData: UpdateCommitmentData = { ...input };
     await db.withExclusiveTransactionAsync(async (transactionDb) => {
       await updateCommitment(transactionDb, id, updateData);
-      await deleteUnpaidPaymentsByCommitment(transactionDb, id);
       const commitment = await getCommitmentById(transactionDb, id);
-      if (!commitment) throw new Error(`Commitment not found: ${id}`);
+      if (!commitment) throw new CommitmentNotFoundError(id);
+      // An inactive commitment generates no rows, so its unpaid rows must stay.
+      if (commitment.is_active !== 1) return;
+      await deleteUnpaidPaymentsByCommitment(transactionDb, id);
       const existing = await getExistingDueDates(transactionDb, id);
-      const payments = planMissingCommitmentPayments({
-        commitments: [commitment],
-        dueDates: existing.map((due_date) => ({ commitment_id: id, due_date })),
-        now,
-        createId: () => String(uuid.v4()),
-      });
-      await insertPaymentRows(transactionDb, payments);
+      const dueDates = existing.map((due_date) => ({ commitment_id: id, due_date }));
+      await insertPlannedPayments(transactionDb, [commitment], dueDates, now);
     });
   }
 
@@ -195,13 +204,7 @@ export class CommitmentRepository implements ICommitmentRepository {
     await db.withExclusiveTransactionAsync(async (transactionDb) => {
       const commitments = await getCommitments(transactionDb);
       const dueDates = await getActiveCommitmentDueDates(transactionDb);
-      const payments = planMissingCommitmentPayments({
-        commitments,
-        dueDates,
-        now,
-        createId: () => String(uuid.v4()),
-      });
-      await insertPaymentRows(transactionDb, payments);
+      await insertPlannedPayments(transactionDb, commitments, dueDates, now);
       await deactivateExpiredCommitments(transactionDb, asOfDate, timestamp);
     });
   }
@@ -239,9 +242,9 @@ export class CommitmentRepository implements ICommitmentRepository {
   async markAsPaid(paymentId: string, details: PaymentDetails): Promise<CommitmentPaymentAmounts> {
     const db = await getDb();
     const payment = await getPaymentById(db, paymentId);
-    if (!payment) throw new Error(`Commitment payment not found: ${paymentId}`);
+    if (!payment) throw new CommitmentPaymentNotFoundError(paymentId);
     const commitment = await getCommitmentById(db, payment.commitment_id);
-    if (!commitment) throw new Error(`Commitment not found: ${payment.commitment_id}`);
+    if (!commitment) throw new CommitmentNotFoundError(payment.commitment_id);
     const clock = new Date();
     const now = clock.toISOString();
     const account = await getAccountByIdIncludingArchived(db, details.account_id);
@@ -299,24 +302,47 @@ export class CommitmentRepository implements ICommitmentRepository {
     const db = await getDb();
     await db.withExclusiveTransactionAsync(async (transactionDb) => {
       const payment = await getPaymentById(transactionDb, paymentId);
-      if (!payment) throw new Error(`Commitment payment not found: ${paymentId}`);
-      if (payment.paid_date !== null) {
-        throw new Error(`Commitment payment cannot be unskipped: ${paymentId}`);
-      }
-      if (payment.skipped_date === null) return;
+      if (!payment) throw new CommitmentPaymentNotFoundError(paymentId);
+      if (isPaidPayment(payment)) throw new CommitmentPaymentNotSkippedError(paymentId);
+      if (isUnpaidPayment(payment)) return;
       const commitment = await getCommitmentById(transactionDb, payment.commitment_id);
-      if (!commitment) throw new Error(`Commitment not found: ${payment.commitment_id}`);
+      if (!commitment) throw new CommitmentNotFoundError(payment.commitment_id);
       const settledCount = await getSettledCountByCommitment(transactionDb, commitment.id);
       const outcome = resolveUndoSkip(commitment, settledCount, today);
-      if (outcome === 'refuse') throw new CommitmentUndoRefusedError(commitment.id);
-      if ((await clearPaymentSkipped(transactionDb, paymentId, updatedAt)) !== 1) {
-        throw new Error(`Commitment payment cannot be unskipped: ${paymentId}`);
-      }
-      if (outcome === 'reactivate') {
-        await reactivateCommitment(transactionDb, commitment.id, updatedAt);
+      switch (outcome) {
+        case 'refuse':
+          throw new CommitmentUndoRefusedError(commitment.id);
+        case 'clear':
+        case 'reactivate':
+          if ((await clearPaymentSkipped(transactionDb, paymentId, updatedAt)) !== 1) {
+            throw new CommitmentPaymentNotSkippedError(paymentId);
+          }
+          if (outcome === 'reactivate') {
+            await reactivateCommitment(transactionDb, commitment.id, updatedAt);
+          }
+          return;
+        default: {
+          const unhandled: never = outcome;
+          return unhandled;
+        }
       }
     });
   }
+}
+
+async function insertPlannedPayments(
+  db: SQLiteDatabase,
+  commitments: Commitment[],
+  dueDates: ActiveCommitmentDueDate[],
+  now: Date,
+): Promise<void> {
+  const payments = planMissingCommitmentPayments({
+    commitments,
+    dueDates,
+    now,
+    createId: () => String(uuid.v4()),
+  });
+  await insertPaymentRows(db, payments);
 }
 
 function toAccountSnapshot(account: Account) {

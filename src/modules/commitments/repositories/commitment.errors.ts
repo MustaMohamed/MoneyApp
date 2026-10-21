@@ -4,3 +4,24 @@ export class CommitmentUndoRefusedError extends Error {
     this.name = 'CommitmentUndoRefusedError';
   }
 }
+
+export class CommitmentNotFoundError extends Error {
+  constructor(commitmentId: string) {
+    super(`Commitment not found: ${commitmentId}`);
+    this.name = 'CommitmentNotFoundError';
+  }
+}
+
+export class CommitmentPaymentNotFoundError extends Error {
+  constructor(paymentId: string) {
+    super(`Commitment payment not found: ${paymentId}`);
+    this.name = 'CommitmentPaymentNotFoundError';
+  }
+}
+
+export class CommitmentPaymentNotSkippedError extends Error {
+  constructor(paymentId: string) {
+    super(`Commitment payment cannot be unskipped: ${paymentId}`);
+    this.name = 'CommitmentPaymentNotSkippedError';
+  }
+}

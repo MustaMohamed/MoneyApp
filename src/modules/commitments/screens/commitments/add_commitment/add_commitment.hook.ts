@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -24,8 +25,9 @@ export function useAddCommitment() {
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
   const addCommitment = useCommitmentStore.getState().addCommitment;
-  const saving = useAddCommitmentState.useState.saving();
-  const saveError = useAddCommitmentState((s) => s.saveError);
+  const { saving, saveError } = useAddCommitmentState(
+    useShallow((s) => ({ saving: s.saving, saveError: s.saveError })),
+  );
   const setSaving = useAddCommitmentState.getState().setSaving;
   const setSaveError = useAddCommitmentState.getState().setSaveError;
   const reset = useAddCommitmentState.getState().reset;

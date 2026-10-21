@@ -11,14 +11,24 @@ import {
 } from '@/constants/enums';
 import { getDb } from '@/database/client';
 import { MIGRATIONS } from '@/database/migrations';
-import { resolvePaymentState } from '@/modules/commitments/domain/payment_state';
+import { deactivateExpiredCommitments } from '@/modules/commitments/database/commitments';
+import { resolvePaymentState, resolveUndoSkip } from '@/modules/commitments/domain/payment_state';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
-import { CommitmentUndoRefusedError } from '@/modules/commitments/repositories/commitment.errors';
+import {
+  CommitmentPaymentNotFoundError,
+  CommitmentPaymentNotSkippedError,
+  CommitmentUndoRefusedError,
+} from '@/modules/commitments/repositories/commitment.errors';
 import {
   CommitmentRepository,
   type UpdateCommitmentInput,
 } from '@/modules/commitments/repositories/commitment.repository';
+import {
+  bridgeBetterSQLite,
+  createMockSQLiteDatabase,
+  getSQLiteParams,
+} from '@/test_helpers/sqlite';
 
 jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
 jest.mock('react-native-uuid', () => ({ v4: jest.fn() }));
@@ -62,23 +72,27 @@ beforeAll(() => {
     )
     .run(OPENING_BALANCE, OPENING_BALANCE, NOW_ISO, NOW_ISO);
 
-  fakeDb = {
-    getAllAsync: jest.fn(async (sql: string, ...rest: unknown[]) => {
-      const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-      return realDb.prepare(sql).all(...(params as never[]));
-    }),
-    getFirstAsync: jest.fn(async (sql: string, ...rest: unknown[]) => {
-      const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-      return realDb.prepare(sql).get(...(params as never[])) ?? null;
-    }),
-    runAsync: jest.fn(async (sql: string, ...rest: unknown[]) => {
-      if (injectedFailure !== undefined && failsOn(sql) === injectedFailure) {
-        throw new Error(`injected ${injectedFailure} failure`);
-      }
-      const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-      const result = realDb.prepare(sql).run(...(params as never[]));
-      return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
-    }),
+  const sqlite = createMockSQLiteDatabase();
+  bridgeBetterSQLite(sqlite, realDb);
+  sqlite.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
+    if (injectedFailure !== undefined && failsOn(sql) === injectedFailure) {
+      throw new Error(`injected ${injectedFailure} failure`);
+    }
+    const result = realDb.prepare(sql).run(...getSQLiteParams(rest));
+    return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
+  });
+  sqlite.withTransactionAsync.mockImplementation(async (work: () => Promise<void>) => {
+    realDb.exec('BEGIN');
+    try {
+      await work();
+      realDb.exec('COMMIT');
+    } catch (error) {
+      realDb.exec('ROLLBACK');
+      throw error;
+    }
+  });
+  fakeDb = sqlite.database;
+  Object.assign(fakeDb, {
     withExclusiveTransactionAsync: jest.fn(async (work: (db: SQLiteDatabase) => Promise<void>) => {
       realDb.exec('BEGIN IMMEDIATE');
       try {
@@ -89,17 +103,7 @@ beforeAll(() => {
         throw error;
       }
     }),
-    withTransactionAsync: jest.fn(async (work: () => Promise<void>) => {
-      realDb.exec('BEGIN');
-      try {
-        await work();
-        realDb.exec('COMMIT');
-      } catch (error) {
-        realDb.exec('ROLLBACK');
-        throw error;
-      }
-    }),
-  } as unknown as SQLiteDatabase;
+  });
 });
 
 beforeEach(() => {
@@ -312,6 +316,43 @@ describe('CommitmentRepository.update', () => {
     expect(storedCommitment().amount).toBe(100);
     expect(rows()).toEqual(before);
   });
+
+  it('writes only the commitment row when the commitment its end date ended is edited', async () => {
+    const untilMay7 = { duration_type: DurationType.UntilDate, end_date: '2026-05-07' };
+    seed(commitment(untilMay7), [PAID_MARCH, SKIPPED_APRIL, OVERDUE_MAY]);
+    await repository.runHousekeeping(NOW);
+    expect(storedCommitment().is_active).toBe(0);
+    const before = rows();
+
+    await repository.update(
+      'commitment',
+      editInput({ ...untilMay7, name: 'Rent, renamed', amount: 150 }),
+      NOW,
+    );
+
+    expect(row('overdue-may')).toEqual(OVERDUE_MAY);
+    expect(rows()).toEqual(before);
+    expect(storedCommitment()).toMatchObject({ name: 'Rent, renamed', amount: 150, is_active: 0 });
+  });
+});
+
+describe('until-date expiry agrees with resolveUndoSkip', () => {
+  it.each([
+    ['ends the day before', 'ended-before', '2026-05-07'],
+    ['ends on the day', 'ends-today', '2026-05-08'],
+    ['ends the day after', 'ends-after', '2026-05-09'],
+  ])('a commitment that %s', async (_name, id, endDate) => {
+    const row = commitment({ id, duration_type: DurationType.UntilDate, end_date: endDate });
+    seed(row, []);
+
+    await deactivateExpiredCommitments(fakeDb, TODAY, NOW_ISO);
+
+    const { is_active } = realDb
+      .prepare('SELECT is_active FROM commitments WHERE id = ?')
+      .get(id) as Pick<Commitment, 'is_active'>;
+    const endedByDate = resolveUndoSkip({ ...row, is_active: 0 }, 0, TODAY) !== 'refuse';
+    expect(is_active).toBe(endedByDate ? 0 : 1);
+  });
 });
 
 describe('CommitmentRepository.deactivate', () => {
@@ -371,7 +412,7 @@ describe('CommitmentRepository.undoSkip', () => {
     seedMonthly();
 
     await expect(repository.undoSkip('paid-march', TODAY, NOW_ISO)).rejects.toThrow(
-      'Commitment payment cannot be unskipped: paid-march',
+      CommitmentPaymentNotSkippedError,
     );
 
     expect(row('paid-march')).toEqual(PAID_MARCH);
@@ -447,7 +488,7 @@ describe('CommitmentRepository.markAsPaid on a removed row', () => {
     await repository.deactivate('commitment');
 
     await expect(repository.markAsPaid('overdue-may', details)).rejects.toThrow(
-      'Commitment payment not found: overdue-may',
+      CommitmentPaymentNotFoundError,
     );
 
     expect(row('overdue-may')).toBeUndefined();
@@ -461,7 +502,7 @@ describe('CommitmentRepository.markAsPaid on a removed row', () => {
     const after = rows();
 
     await expect(repository.markAsPaid('overdue-may', details)).rejects.toThrow(
-      'Commitment payment not found: overdue-may',
+      CommitmentPaymentNotFoundError,
     );
 
     expect(rows()).toEqual(after);

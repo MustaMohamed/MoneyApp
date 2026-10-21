@@ -36,6 +36,10 @@ import {
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
+  CommitmentNotFoundError,
+  CommitmentPaymentNotFoundError,
+} from '@/modules/commitments/repositories/commitment.errors';
+import {
   CommitmentRepository,
   type NewCommitmentInput,
   type PaymentDetails,
@@ -283,7 +287,7 @@ describe('CommitmentRepository.update', () => {
         },
         new Date('2026-05-08T10:00:00.000Z'),
       ),
-    ).rejects.toThrow('Commitment not found: c-1');
+    ).rejects.toThrow(CommitmentNotFoundError);
 
     expect(mockDb.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
     expect(insertPaymentRows).not.toHaveBeenCalled();
@@ -511,9 +515,7 @@ describe('CommitmentRepository.markAsPaid', () => {
   it('rejects a payment it cannot find and writes nothing', async () => {
     (getPaymentById as jest.Mock).mockResolvedValue(null);
 
-    await expect(repo.markAsPaid('p-1', details)).rejects.toThrow(
-      'Commitment payment not found: p-1',
-    );
+    await expect(repo.markAsPaid('p-1', details)).rejects.toThrow(CommitmentPaymentNotFoundError);
 
     expect(markCommitmentAsPaid).not.toHaveBeenCalled();
   });

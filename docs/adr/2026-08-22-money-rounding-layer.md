@@ -96,7 +96,7 @@ retained for that purpose. See Addendum A, points 2 and 3.
 | # | Column | Class | Rounding point | Value bound at the write |
 |---|---|---|---|---|
 | 1 | `transactions.amount` | A | `resolveTransactionAmounts`, first line | `amounts.amount` at `transaction.repository.ts:309` / `:409`, supplied by `add_transaction.hook.ts:409-419` / `edit_transaction.hook.ts:312-322` |
-| 2 | `commitment_payments.amount_paid` | A | `resolveCommitmentPaymentAmounts`, first line | `amounts.paymentAmount`, threaded from `commitment.repository.ts:207` into `commitment_payments.ts:274` **in place of `details.amount_paid`** |
+| 2 | `commitment_payments.amount_paid` | A | `resolveCommitmentPaymentAmounts`, first line | `amounts.paymentAmount`, threaded from `commitment.repository.ts:291` into `commitment_payments.ts:274` **in place of `details.amount_paid`**; amended, Addendum B |
 | 3 | `commitments.amount` | B | `CommitmentRepository.add` (`:107`) and `.update` (`:121`), first statement | the rounded field of the composed `Commitment` / `UpdateCommitmentData`, into `commitments.ts:47` / `:91` — `Commitment.amount: number \| null` (null for Variable commitments; amended, Addendum B), so this is the actual production caller of `roundMoney`'s `null` overload |
 | 4 | `budgets.limit_amount` | C | `BudgetRepository.setBudget` (`:326`), first statement — `setLimit` (`:351`) delegates to it | `input.limit` into `setBudgetRow` (`budgets.ts:47`), whose own finite-and-positive check then runs on the rounded value |
 | 5 | budget-month income | C | `BudgetRepository.setExpectedIncome` (`:317`), first statement — **before** `withExclusiveTransactionAsync` | `setBudgetMonthIncome(tx, …)` at `:321`, so `snapshotBudgetMonthCategoryGroups` at `:322` sees the rounded value |
@@ -435,4 +435,4 @@ are unchanged.
 5. **Row 2's write resolves by id.** `CommitmentRepository.markAsPaid(paymentId, details)` reads
    the payment and its commitment by id before any write, and rejects when either is gone. It no
    longer takes the commitment from the loaded month. `amounts.paymentAmount` still replaces
-   `details.amount_paid` at the write (`commitment.repository.ts:266`).
+   `details.amount_paid` at the write (`commitment.repository.ts:291`).
