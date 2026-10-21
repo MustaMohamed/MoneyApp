@@ -3,7 +3,7 @@
 - **Date:** 2026-10-13
 - **Status:** accepted
 - **Ticket:** MA-168 (#695), under MA-096 (#552), epic #543
-- **Applies to:** `src/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers.ts`, `components/converted_amount_line.tsx`, `components/transaction_rate_preview.hook.ts`, `components/transaction_form.geometry.ts` and `transaction_form_body.tsx` in the same folder; `src/modules/transactions/components/exchange_rate_row.tsx`
+- **Applies to:** `src/modules/transactions/screens/transactions/transaction_form/transaction_form.helpers.ts`, `components/transaction_rate_preview.hook.ts`, `components/transaction_converted_amount.tsx` and `transaction_form_body.tsx` in the same folder; `src/components/ui/converted_amount_line.tsx`, `src/components/ui/form_sheet.helpers.ts`, `src/components/ui/form_sheet.geometry.ts`; `src/modules/transactions/components/exchange_rate_row.tsx`
 - **Supersedes in part:** `docs/adr/2026-08-25-pay-sheet-conversion-preview.md` §3 and §4
 
 The add and edit sheet printed `≈ {amount} EGP` inside the rate card, from `egpAmount` alone. For EGP 5,000 paid into a USD account at 49 it printed `≈ 5,000.00 EGP`, the source amount under another label, which is the half of audit M40 that was still open. The user ruled on 2026-10-08 that the converted amount sits under the amount, in the amount's message slot, as the amount and its code alone on every currency pair.
@@ -12,7 +12,7 @@ The add and edit sheet printed `≈ {amount} EGP` inside the rate card, from `eg
 
 `TransactionExchangeRateRow` passes `previewHidden` and `previewEgpAmount={undefined}` to `ExchangeRateRow` on every add and edit sheet. Its props are `Omit<ComponentProps<typeof ExchangeRateRow>, 'previewEgpAmount' | 'previewHidden'>`, so no caller on the form can turn the card's preview back on. `ExchangeRateRow`, its props and its preview block do not change, and the commitments pay sheet still draws `≈ {amount} EGP` from them.
 
-**Amended 2026-10-14, MA-169 (#696).** `TransactionExchangeRateRow` now names its own props, `ownerId`, `value`, `overrideEnabled`, `onToggleOverride` and `rateUpdatedAt`, in place of the `Omit` above, and still takes neither preview prop: it passes `previewHidden` and `previewEgpAmount={undefined}` as before. The card opens the rate editor through `openRateEditor` and holds no editor state. The editor mounts apart from the card, in `TransactionRateEditor` from `components/rate_editor_sheet.tsx`, which `TransactionFormBody` renders outside its `requiresRate` gate.
+**Amended 2026-10-14, MA-169 (#696).** `TransactionExchangeRateRow` now names its own props, `ownerId`, `value`, `overrideEnabled`, `onToggleOverride` and `rateUpdatedAt`, in place of the `Omit` above, and still takes neither preview prop: it passes `previewHidden` and `previewEgpAmount={undefined}` as before. The card opens the rate editor through `openRateEditor` and holds no editor state. The editor mounts apart from the card, in `TransactionRateEditor` from `components/transaction_converted_amount.tsx`, over `RateEditor` from `src/components/ui/rate_editor_sheet.tsx`, which `TransactionFormBody` renders outside its `requiresRate` gate.
 
 **Amended 2026-10-14, MA-170 (#697).** `TransactionExchangeRateRow` is removed and the form draws no card: the Rate row opens the editor, whose converted amount is `ConvertedAmountLine` at the draft. See `docs/adr/2026-10-14-rate-row.md` §1, §5 and §7.
 
