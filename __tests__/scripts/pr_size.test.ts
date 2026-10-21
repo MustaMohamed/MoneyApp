@@ -45,6 +45,15 @@ describe('the delivered size written back on merge', () => {
     );
   });
 
+  test('the plan file under .work/ counts on neither side', () => {
+    expect(
+      size([
+        { filename: 'src/modules/accounts/store/accounts.store.ts', additions: 40 },
+        { filename: '.work/MA-XXX/plan.md', additions: 80 },
+      ]),
+    ).toBe('Delivered: 1 files outside tests, 40 lines, 0 lines in tests');
+  });
+
   test('anything but a PR number or --stdin is a usage error', () => {
     expect(spawnSync('node', [script, 'abc'], { encoding: 'utf8' }).status).toBe(2);
   });

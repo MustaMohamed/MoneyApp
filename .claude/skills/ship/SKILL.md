@@ -14,7 +14,7 @@ Delivery of one leaf task from Planned to Awaiting Human with a merge summary, o
 
 **Lease check.** The Entry check of [queue § Lease](../queue/SKILL.md) runs on `<n>` as soon as it is known. When it passes, write the lease at once, before step 1 resumes or step 2 acts: `skill=ship`, `worktree=` the implementation worktree when it exists, else the primary checkout, keeping `task=` when the lease is the run's own.
 
-1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists. First `bash scripts/board.sh questions <n>`: while it prints a record, the run stops there, dispatches nothing, parks nothing and replies `Next: /queue asks`. With none open and the ticket back from Blocked, write `issue.md` again from the issue, as Setup does, before the next dispatch. Then read `state.md`, announce phase, branch, PR and any open loop, load that phase's file, continue. Never redo a completed phase.
+1. **Resume** when `~/.ship/MoneyApp/MA-XXX/state.md` exists. First `bash scripts/board.sh questions <n>`: while it prints a record, the run stops there, dispatches nothing, parks nothing and replies `Next: /queue asks`. With none open and the ticket back from Blocked, write `issue.md` again from the issue, as Setup does, before the next dispatch. Then read `state.md`, announce phase, branch, PR and any open loop, take the call count from the `conductor:` line with the highest run total (§ Conductor budget), load that phase's file, continue. Never redo a completed phase.
 2. Otherwise `bash scripts/board.sh get <n>`:
    - **Planned** → phase 1.
    - **Ready For Development** with no sub-issues → the ticket has no plan: reply `Next: /prep <n>` and run nothing.
@@ -27,24 +27,27 @@ Delivery of one leaf task from Planned to Awaiting Human with a merge summary, o
 
 ```bash
 mkdir -p ~/.ship/MoneyApp/MA-XXX/findings/render
-BR=$(gh issue develop --list <n> | awk -F'\t' '{print $1}' | grep "^feat/MA-XXX-" | head -1)   # prints name<TAB>url per linked branch; empty → stop, the ticket was not planned
+BR=$(gh issue develop --list <n> | awk -F'\t' '{print $1}' | grep -E "^(feat|fix|refactor|perf|docs)/MA-XXX-" | head -1)   # prints name<TAB>url per linked branch; empty → stop, the ticket was not planned
 git -C /Users/musta/Code/projects/practice/MoneyApp fetch origin
 # Reuse the worktree /prep left; create it only when this machine has none:
 test -d /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX \
   || git -C /Users/musta/Code/projects/practice/MoneyApp worktree add .claude/worktrees/MA-XXX "$BR"
 cd /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX
-# Main moved since /prep: rebase, force-push, and re-comment the plan's blob URL at the new SHA
-git merge-base --is-ancestor origin/main HEAD \
-  || { git rebase origin/main && git push --force-with-lease && gh issue comment <n> --body "Plan: <new blob URL>, rebased onto main"; }
+# Main moved since /prep (exit 1): the next call rebases, force-pushes and re-comments the plan's blob URL at the new SHA
+git merge-base --is-ancestor origin/main HEAD; echo "exit $?"
+git rebase origin/main > ~/.ship/MoneyApp/MA-XXX/setup.log 2>&1 \
+  && git push --force-with-lease >> ~/.ship/MoneyApp/MA-XXX/setup.log 2>&1 \
+  && gh issue comment <n> --body "Plan: <new blob URL>, rebased onto main" >> ~/.ship/MoneyApp/MA-XXX/setup.log 2>&1; echo "exit $?"; tail -20 ~/.ship/MoneyApp/MA-XXX/setup.log
 test -L node_modules && rm -f node_modules                                  # a symlink into the primary is never kept
-cmp -s package-lock.json ../../../package-lock.json \
-  && { test -d node_modules || cp -c -R ../../../node_modules node_modules; } \
-  || npm ci
+# Lockfile as the primary's (exit 0): the next call copies the primary's node_modules when none is here; otherwise the call after it runs npm ci
+cmp -s package-lock.json ../../../package-lock.json; echo "exit $?"
+test -d node_modules || cp -c -R ../../../node_modules node_modules
+npm ci > ~/.ship/MoneyApp/MA-XXX/npm-ci.log 2>&1; echo "exit $?"; tail -20 ~/.ship/MoneyApp/MA-XXX/npm-ci.log
 gh issue view <n> --json body --jq .body > ~/.ship/MoneyApp/MA-XXX/issue.md
 cp .work/MA-XXX/plan.md ~/.ship/MoneyApp/MA-XXX/plan.md                     # dispatches read this copy; the branch copy leaves before the merge
 ```
 
-Setup also reads the issue's comments, `gh issue view <n> --json comments --jq '.comments[].body'`. Each that starts `Trimmed at /prep, one seam:` becomes a `state.md` → `## Decisions` line, `<date> <the seam and the remainder's number> · /prep, one seam · <cost if wrong>`, which item 6 of the merge summary prints.
+Setup also reads the first line of each of the issue's comments, `gh issue view <n> --json comments --jq '.comments[].body | split("\n")[0]'`; a trim comment carries its seam and its remainder on that line ([prep step 4](../prep/SKILL.md)). Each that starts `Trimmed at /prep, one seam:` becomes a `state.md` → `## Decisions` line, `<date> <the seam and the remainder's number> · /prep, one seam · <cost if wrong>`, which item 6 of the merge summary prints.
 
 **Lease and working folder**, before any dispatch. Rewrite the lease's `worktree=` to the implementation worktree, per [queue § Lease](../queue/SKILL.md), then EnterWorktree into the implementation worktree as § Worktrees states. A resume has its lease from the Lease check above. On every return from Awaiting Human to In Review, write the lease whole before the next dispatch: `skill=ship`, `worktree=` the implementation worktree, and `task=` kept when the lease is the run's own, absent otherwise ([references/merge.md](references/merge.md) → A change after the summary).
 
@@ -64,18 +67,23 @@ Load `references/<phase>.md` on entering a phase. The file is the method; this t
 
 A phase with nothing to do is recorded as vacuous (`P4: vacuous, no fixes`), never skipped silently. There is no fast lane and no mode: one ticket, one branch, one PR.
 
+## Conductor budget
+
+The conductor's budget is 70 tool calls a run, and every call it makes counts: dispatches, reads, Skill calls, `state.md` writes. Entry and Setup count into P1, and a resume's entry into the phase it resumes. At the end of each phase the conductor writes `conductor: <run total> / 70 · P<k> <calls in this phase>` as its own Log line, in the same write that completes the phase's Log line. P3 and P4 repeat per cycle, so each writes it at the end of each cycle's visit, after that cycle's Log line (`P3 c<n>:`), which names the cycle; the phase figure counts that visit's calls. Phase 5 writes it just before the merge summary ([references/merge.md](references/merge.md)), and a park writes it under `## Parked`, after its record lines. The last `conductor:` line is the one with the highest run total, since the total only grows: `## Parked` sits below `## Log`, so a park's line can sit below a later, higher Log line. A resumed run continues the run total from that line, and the phase figure too when the line names the phase it resumes; otherwise the phase figure starts at 0, and with no `conductor:` line both do. Once the total passes 70, each later line ends `· over in P<j>`, `<j>` the phase in which it passed, and the run continues: nothing parks a run for its count.
+
 ## Artifacts
 
 `~/.ship/MoneyApp/MA-XXX/`, outside every repo and worktree, deleted after the merge ([references/merge.md](references/merge.md) → After the merge). The merge summary is `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, beside the run log, and stays:
 
 ```
-issue.md                 # the ticket body at entry; every dispatch gets this path
-plan.md                  # the plan as committed on the branch; every dispatch gets this path
-pr.md                    # the PR body, written at phase 2, completed at phase 5
-state.md                 # phase state, written after every transition and gate outcome; the only resume point
-findings/cycle-<n>.md    # each triage's consolidated list, what the re-check verifies against
-findings/<lens>.md       # a lens report that outgrew a screen
-findings/render/         # render pass and render lens screenshots
+issue.md                         # the ticket body at entry; every dispatch gets this path
+plan.md                          # the plan as committed on the branch; every dispatch gets this path
+pr.md                            # the PR body, written at phase 2, completed at phase 5
+state.md                         # phase state, one Log line per phase, written when its dispatch goes and completed when it ends; the only resume point
+findings/cycle-<n>.md            # each triage's consolidated list, what the re-check verifies against
+findings/<role>-<sha>[-<k>].md   # each dispatch's report, references/returns.md
+findings/chain-<sha>.log         # the implementer's parity chain output
+findings/render/                 # render pass and render lens screenshots
 ```
 
 Anything a later phase consumes lives in a file, not in conductor context.
@@ -85,7 +93,7 @@ Anything a later phase consumes lives in a file, not in conductor context.
 ```markdown
 # MA-XXX — <title>
 issue: #<n>
-branch: feat/MA-XXX-<slug>
+branch: <type>/MA-XXX-<slug>
 worktree: /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX
 plan: .work/MA-XXX/plan.md @ <sha>
 verify: emulator | none · flags: <as on the ticket>
@@ -98,8 +106,10 @@ cycle: <0-4>
 
 ## Log
 - <date> P1: dispatched · <sha>, chain green, render pass 3 screens
+- <date> conductor: 21 / 70 · P1 21
 - <date> P2: pushed <sha>, PR <url> · correctness 0 / quality 2 / render 1 / code-review 3 (medium), CI green
 - <date> P3 c1: findings written · fix dispatched · fix pushed <sha>
+- <date> conductor: 47 / 70 · P3 12
 
 ## Decisions
 <!-- one line when the decision is made; phase 5 reads every line -->
@@ -114,15 +124,15 @@ cycle: <0-4>
 - <label> → <ruling> (<date>), settled by <ticket text | frame | shipped convention | smallest change>, <why in one line>
 ```
 
-Log entries are facts: SHAs, verdicts, counts, decisions, eight lines at most each, one per sub-step inside a phase (written, dispatched, committed, pushed), so a resume knows where the crash fell. The file stays under 15 KB.
+Each phase, and in P3 and P4 each cycle's visit, takes one Log line, written when the phase's dispatch goes and completed when it ends, facts only: SHAs, verdicts, counts, decisions. The REBUILD and `not probed after amend` lines ([references/implement.md](references/implement.md) → Build logged, Amend logged), the `change triaged` lines ([references/merge.md](references/merge.md) → A change after the summary), each dispatch's `budget:` line and the `conductor:` lines stay their own lines. The file stays under 15 KB.
 
-**Resume inside a phase:** unpushed commits in the worktree → push and re-point the review worktree, then continue from the Log's last line; uncommitted edits → the discard in `references/implement.md` → Re-entry, then re-dispatch the last dispatch.
+**Resume inside a phase** (its Log line not completed) reads the rest from the commits, `git log --oneline origin/main..HEAD | tail -20`, the unpushed ones, `git log --oneline origin/<branch>..HEAD | tail -20`, the tree, `git status --short | tail -20`, and `findings/cycle-<cycle>.md` in P3 or P4. Unpushed commits → push and re-point the review worktree, then continue; uncommitted edits → the discard in `references/implement.md` → Re-entry, then re-dispatch the last dispatch.
 
 ## Hard rules
 
 1. **Subagents never touch the issue or the PR, never push, never merge.** Only the conductor runs `gh`, `git push` and the built-in `code-review`; merges are the human's.
 2. **Reviewers never write code.** Findings route to the implementer, who fixes and commits. If fixing seems faster than re-dispatching, that is the moment this rule exists for.
-3. **Lenses read only, in the review worktree, entered as § Worktrees states.** The one exception is the render lens, which runs the app from the implementation worktree because a symlinked `node_modules` resolves zero routes; it edits nothing there. The implementation worktree otherwise belongs to the implementer alone.
+3. **Lenses read only, in the review worktree, entered as § Worktrees states, and write their one report** ([references/returns.md](references/returns.md)). The one exception is the render lens, which runs the app from the implementation worktree because a symlinked `node_modules` resolves zero routes; it edits nothing there. The implementation worktree otherwise belongs to the implementer alone.
 4. **The run asks the user nothing.** The conductor rules every dispute per § Rulings and parks what it cannot rule per § Parking. The merge is the user's, and no run answers it.
 5. **One branch, one PR, targeting main, opened with `Closes #<n>`.** Never stacked.
 6. **Workflow artifacts never reach main.** The plan rides the branch for review and leaves it before the merge; the one workflow output that merges is a decision record under `docs/adr/`, through a plan step.
@@ -171,7 +181,7 @@ Each ruling is an `## Adjudications` line in `state.md` that names which of the 
 
 Three cases stop a run, typed or unattended alike. The conductor parks each and never decides it.
 
-1. **A Flag the diff needs that the header lacks**, from the Flags row of [ticket-body.md § Header line](../tickets/references/ticket-body.md#header-line), checked at phase 2 entry on `git diff --name-only origin/main...HEAD` ([references/battery.md](references/battery.md) item 2) and at triage on the Flags the quality lens names for its danger surfaces. The record gets a `Miss:` line naming the `/issue-review` check id or the `/prep` step that should have asked.
+1. **A Flag the diff needs that the header lacks**, from the Flags row of [ticket-body.md § Header line](../tickets/references/ticket-body.md#header-line), checked at phase 2 entry on the Flag-path read of [references/battery.md](references/battery.md) item 2 and at triage on the Flags the quality lens names for its danger surfaces. The record gets a `Miss:` line naming the `/issue-review` check id or the `/prep` step that should have asked.
 2. **A ticket line that cannot hold, or that the code contradicts** ([references/triage.md](references/triage.md) item 6). `Miss:` as in case 1.
 3. **Gaps `prep --amend` returns** ([references/implement.md](references/implement.md) → Re-entry), one record per gap and no `Miss:` line.
 
@@ -180,7 +190,7 @@ A park runs in this order:
 1. `bash scripts/board.sh get <n>` gives the column the record's `Left:` names.
 2. One record per question per [question-record.md](../issue-review/references/question-record.md), `Asked by:` naming `ship` and the phase, posted with `gh issue comment <n> --body "$RECORD"` after its restatement check.
 3. `bash scripts/board.sh status <n> Blocked`.
-4. One line per record under `state.md` → `## Parked`: the record URL, the case, and the miss or `none`.
+4. One line per record under `state.md` → `## Parked`: the record URL, the case, and the miss or `none`; then the `conductor:` line of § Conductor budget.
 5. Release the lease, [queue § Lease](../queue/SKILL.md).
 6. Reply with the record URLs and `Next: /queue asks`, and end the run.
 
@@ -204,7 +214,7 @@ Teardown after the merge, in this order: review worktree (`--force`), implementa
 
 ## Dispatch recipe
 
-A subagent prompt is, in order: the charter from the phase file verbatim; absolute paths (`issue.md`, `plan.md`, the worktree, the diff range or PR URL); the repo required reading (`CLAUDE.md` at the worktree root and the `.claude/rules/` files matching the touched paths); the return shape. The `unslop` skill binds every return; say so. Never paste conversation history, never summarize the ticket or the plan: pass the paths. Re-check dispatches also get `findings/cycle-<n>.md` and `## Adjudications` verbatim; first-pass lenses never get the ledger.
+A subagent prompt is, in order: the charter from the phase file verbatim; absolute paths (`issue.md`, `plan.md`, the worktree, the diff range or PR URL, the report path); the repo required reading (`CLAUDE.md` at the worktree root and the `.claude/rules/` files matching the touched paths); the return shape of [references/returns.md](references/returns.md). The `unslop` skill binds every return; say so. Never paste conversation history, never summarize the ticket or the plan: pass the paths. Re-check dispatches also get `findings/cycle-<n>.md` and `## Adjudications` verbatim; first-pass lenses never get the ledger. The return shape and the open list of [references/returns.md](references/returns.md) bind every /ship charter, a lens or charter added after it included, and a ticket that adds one carries them. The conductor's own shell reads follow the same file.
 
 ## Red flags, stop and re-read the hard rules
 
