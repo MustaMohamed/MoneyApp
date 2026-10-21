@@ -2,13 +2,7 @@ import Database from 'better-sqlite3';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
-import {
-  AmountType,
-  Currency,
-  CommitmentPaymentStatus,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { getDb } from '@/database/client';
 import { MIGRATIONS } from '@/database/migrations';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
@@ -79,9 +73,9 @@ function insertPayment(id: string, commitmentId: string, currency: Currency, amo
     .prepare(
       `INSERT INTO commitment_payments
         (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid,
-         currency, exchange_rate_snapshot, account_id, transaction_id, status, notes,
+         currency, exchange_rate_snapshot, account_id, transaction_id, notes,
          created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       id,
@@ -95,7 +89,6 @@ function insertPayment(id: string, commitmentId: string, currency: Currency, amo
       null,
       null,
       null,
-      CommitmentPaymentStatus.Due,
       null,
       NOW_ISO,
       NOW_ISO,

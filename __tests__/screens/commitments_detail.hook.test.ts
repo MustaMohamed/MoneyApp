@@ -2,13 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { createContext, createElement, useContext, type PropsWithChildren } from 'react';
 
-import {
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
@@ -30,6 +24,8 @@ const mockParamsContext = createContext<DetailParams | null>(null);
 let mockParams: DetailParams = { id: 'pay-1' };
 // Each copy reads the params its own wrapper supplies, so two can mount on different payments.
 const mockUseParams = (): DetailParams => useContext(mockParamsContext) ?? mockParams;
+const TODAY = '2026-05-08';
+
 let commitmentsState: Commitment[] = [];
 let paymentsState: CommitmentPayment[] = [];
 
@@ -56,6 +52,7 @@ function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments: commitmentsState,
     payments: paymentsState,
+    today: TODAY,
     skipPayment: mockSkipPayment,
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
@@ -104,7 +101,6 @@ const payment: CommitmentPayment = {
   exchange_rate_snapshot: null,
   account_id: 'account-1',
   transaction_id: null,
-  status: CommitmentPaymentStatus.Due,
   notes: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
@@ -258,7 +254,7 @@ describe('useCommitmentDetail', () => {
       historyError,
     );
 
-    paymentsState = [{ ...payment, status: CommitmentPaymentStatus.Skipped }];
+    paymentsState = [{ ...payment, skipped_date: TODAY }];
     await rerender({});
 
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
@@ -268,7 +264,7 @@ describe('useCommitmentDetail', () => {
     );
     await waitFor(() => expect(result.current.state.viewState).toBe('refreshErrorWithData'));
     expect(useCommitmentDetailStore.getState().entries[owner].allPayments).toBe(rentHistory);
-    expect(result.current.state.allPayments[0].status).toBe(CommitmentPaymentStatus.Skipped);
+    expect(result.current.state.allPayments[0].skipped_date).toBe(TODAY);
     expect(result.current.state.skipConfirmVisible).toBe(false);
     consoleSpy.mockRestore();
   });
@@ -363,7 +359,7 @@ describe('useCommitmentDetail', () => {
     paymentsState = [payment, otherPayment];
     const lateRent = deferred<CommitmentPayment[]>();
     const gym = deferred<CommitmentPayment[]>();
-    const lateRentRows = [{ ...payment, status: CommitmentPaymentStatus.Paid }];
+    const lateRentRows = [{ ...payment, paid_date: TODAY }];
     mockGetPaymentsByCommitment
       .mockResolvedValueOnce(rentHistory)
       .mockReturnValueOnce(lateRent.promise)
@@ -424,12 +420,12 @@ describe('useCommitmentDetail', () => {
     const { result, rerender } = await renderHook(() => useCommitmentDetail());
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
-    paymentsState = [{ ...payment, status: CommitmentPaymentStatus.Paid }];
+    paymentsState = [{ ...payment, paid_date: TODAY }];
     await rerender({});
     await waitFor(() => expect(mockGetPaymentsByCommitment).toHaveBeenCalledTimes(2));
 
-    expect(result.current.state.payment?.status).toBe(CommitmentPaymentStatus.Paid);
-    expect(result.current.state.allPayments[0].status).toBe(CommitmentPaymentStatus.Paid);
+    expect(result.current.state.payment?.paid_date).toBe(TODAY);
+    expect(result.current.state.allPayments[0].paid_date).toBe(TODAY);
     expect(
       useCommitmentDetailStore.getState().entries[result.current.state.owner].allPayments,
     ).toBe(rentHistory);
@@ -652,5 +648,67 @@ describe('useCommitmentDetail two copies mounted at once', () => {
 
     expect(useCommitmentDetailState.getState().entries).toEqual({});
     expect(useCommitmentDetailStore.getState().entries).toEqual({});
+  });
+});
+
+describe('useCommitmentDetail current cycle', () => {
+  async function currentPaymentOf(history: CommitmentPayment[], routeRow: CommitmentPayment) {
+    commitmentsState = [commitment];
+    paymentsState = [routeRow];
+    mockGetPaymentsByCommitment.mockResolvedValue(history);
+    const { result } = await renderHook(() => useCommitmentDetail());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    return result.current.state;
+  }
+
+  it('is the earliest unpaid row when an overdue, a due and an upcoming row exist', async () => {
+    const overdueRow: CommitmentPayment = {
+      ...payment,
+      id: 'cycle-overdue',
+      due_date: '2026-04-01',
+    };
+    const dueRow: CommitmentPayment = { ...payment, due_date: TODAY };
+    const upcomingRow: CommitmentPayment = {
+      ...payment,
+      id: 'cycle-upcoming',
+      due_date: '2026-06-01',
+    };
+
+    const state = await currentPaymentOf([overdueRow, dueRow, upcomingRow], dueRow);
+
+    expect(state.currentPayment?.id).toBe('cycle-overdue');
+    expect(state.today).toBe(TODAY);
+  });
+
+  it('passes over a first row whose skipped date is set', async () => {
+    const skippedRow: CommitmentPayment = {
+      ...payment,
+      id: 'cycle-skipped',
+      due_date: '2026-04-01',
+      skipped_date: '2026-04-02',
+    };
+    const dueRow: CommitmentPayment = { ...payment, due_date: TODAY };
+
+    const state = await currentPaymentOf([skippedRow, dueRow], dueRow);
+
+    expect(state.currentPayment?.id).toBe(payment.id);
+  });
+
+  it('is undefined when every row is paid or skipped', async () => {
+    const paidRow: CommitmentPayment = {
+      ...payment,
+      due_date: '2026-04-01',
+      paid_date: '2026-04-01',
+    };
+    const skippedRow: CommitmentPayment = {
+      ...payment,
+      id: 'cycle-skipped',
+      due_date: TODAY,
+      skipped_date: TODAY,
+    };
+
+    const state = await currentPaymentOf([paidRow, skippedRow], paidRow);
+
+    expect(state.currentPayment).toBeUndefined();
   });
 });

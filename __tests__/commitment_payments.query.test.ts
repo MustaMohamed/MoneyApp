@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
-import { CommitmentPaymentStatus, Currency, TransactionType } from '@/constants/enums';
+import { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { MIGRATIONS } from '@/database/migrations';
 import {
@@ -16,10 +16,11 @@ import {
   getPaidCountByCommitment,
   insertPaymentRows,
   markCommitmentAsPaid,
-  updatePaymentStatus,
+  markPaymentSkipped,
 } from '@/modules/commitments/database/commitment_payments';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { deferred } from '@/test_helpers/deferred';
+import { explainQueryPlan } from '@/test_helpers/sqlite_fixtures';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -123,7 +124,6 @@ function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
     exchange_rate_snapshot: null,
     account_id: null,
     transaction_id: null,
-    status: CommitmentPaymentStatus.Upcoming,
     notes: null,
     created_at: NOW,
     updated_at: NOW,
@@ -162,12 +162,10 @@ describe('getPaymentsByMonth — December year-wrap', () => {
     const decPayment = makePayment({
       id: 'pay-dec-1',
       due_date: '2025-12-15',
-      status: CommitmentPaymentStatus.Upcoming,
     });
     const janPayment = makePayment({
       id: 'pay-jan-1',
       due_date: '2026-01-01',
-      status: CommitmentPaymentStatus.Upcoming,
     });
     await addPayments(mockDb, [decPayment, janPayment]);
 
@@ -183,17 +181,14 @@ describe('getPaymentsByMonth', () => {
     const p1 = makePayment({
       id: 'pay-may-1',
       due_date: '2026-05-01',
-      status: CommitmentPaymentStatus.Upcoming,
     });
     const p2 = makePayment({
       id: 'pay-may-15',
       due_date: '2026-05-15',
-      status: CommitmentPaymentStatus.Due,
     });
     const p3 = makePayment({
       id: 'pay-jun-1',
       due_date: '2026-06-01',
-      status: CommitmentPaymentStatus.Upcoming,
     });
     await addPayments(mockDb, [p1, p2, p3]);
 
@@ -204,57 +199,73 @@ describe('getPaymentsByMonth', () => {
     expect(ids).not.toContain('pay-jun-1');
   });
 
-  it('does not include overdue/upcoming payments from previous months', async () => {
-    const overdue = makePayment({
-      id: 'pay-apr-overdue',
-      due_date: '2026-04-01',
-      status: CommitmentPaymentStatus.Overdue,
-    });
-    const upcoming_old = makePayment({
-      id: 'pay-mar-upcoming',
-      due_date: '2026-03-01',
-      status: CommitmentPaymentStatus.Upcoming,
-    });
-    const current = makePayment({
-      id: 'pay-may-1',
-      due_date: '2026-05-01',
-      status: CommitmentPaymentStatus.Upcoming,
-    });
-    await addPayments(mockDb, [overdue, upcoming_old, current]);
+  it('carries the unpaid rows due before the month in first and leaves settled rows out', async () => {
+    await addPayments(mockDb, [
+      makePayment({ id: 'pay-may-15', due_date: '2026-05-15' }),
+      makePayment({ id: 'pay-may-1', due_date: '2026-05-01' }),
+      makePayment({ id: 'pay-apr-unpaid', due_date: '2026-04-01' }),
+      makePayment({
+        id: 'pay-apr-paid',
+        due_date: '2026-04-28',
+        paid_date: '2026-05-03',
+        amount_paid: 200,
+      }),
+      makePayment({ id: 'pay-mar-skipped', due_date: '2026-03-01', skipped_date: '2026-03-02' }),
+    ]);
 
-    const results = await getPaymentsByMonth(mockDb, '2026-05');
-    const ids = results.map((r) => r.id);
-    expect(ids).not.toContain('pay-apr-overdue');
-    expect(ids).not.toContain('pay-mar-upcoming');
-    expect(ids).toContain('pay-may-1');
+    const may = await getPaymentsByMonth(mockDb, '2026-05', '2026-05-08');
+    const april = await getPaymentsByMonth(mockDb, '2026-04', '2026-05-08');
+
+    expect(may.map((row) => row.id)).toEqual(['pay-apr-unpaid', 'pay-may-1', 'pay-may-15']);
+    expect(april.map((row) => row.id)).toEqual(['pay-apr-unpaid', 'pay-apr-paid']);
   });
 
-  it('excludes paid and skipped payments from previous months', async () => {
-    const paid_old = makePayment({
-      id: 'pay-apr-paid',
-      due_date: '2026-04-01',
-      status: CommitmentPaymentStatus.Paid,
-      paid_date: '2026-04-01',
-      amount_paid: 200,
-    });
-    const skipped_old = makePayment({
-      id: 'pay-mar-skipped',
-      due_date: '2026-03-01',
-      status: CommitmentPaymentStatus.Skipped,
-      skipped_date: '2026-03-01',
-    });
-    const current = makePayment({
-      id: 'pay-may-1',
-      due_date: '2026-05-01',
-      status: CommitmentPaymentStatus.Upcoming,
-    });
-    await addPayments(mockDb, [paid_old, skipped_old, current]);
+  it('carries into a past month only the unpaid rows due before its first day', async () => {
+    await addPayments(mockDb, [
+      makePayment({ id: 'pay-feb-unpaid', due_date: '2026-02-10' }),
+      makePayment({
+        id: 'pay-feb-paid',
+        due_date: '2026-02-01',
+        paid_date: '2026-02-01',
+        amount_paid: 200,
+      }),
+      makePayment({ id: 'pay-mar-15', due_date: '2026-03-15' }),
+      makePayment({ id: 'pay-apr-unpaid', due_date: '2026-04-01' }),
+    ]);
 
-    const results = await getPaymentsByMonth(mockDb, '2026-05');
-    const ids = results.map((r) => r.id);
-    expect(ids).not.toContain('pay-apr-paid');
-    expect(ids).not.toContain('pay-mar-skipped');
-    expect(ids).toContain('pay-may-1');
+    const march = await getPaymentsByMonth(mockDb, '2026-03', '2026-05-08');
+
+    expect(march.map((row) => row.id)).toEqual(['pay-feb-unpaid', 'pay-mar-15']);
+  });
+
+  it('carries into a future month the unpaid rows due before today, never one due today or later', async () => {
+    await addPayments(mockDb, [
+      makePayment({ id: 'pay-may-7', due_date: '2026-05-07' }),
+      makePayment({ id: 'pay-may-8', due_date: '2026-05-08' }),
+      makePayment({ id: 'pay-jun-1', due_date: '2026-06-01' }),
+      makePayment({ id: 'pay-jul-5', due_date: '2026-07-05' }),
+      makePayment({ id: 'pay-apr-skipped', due_date: '2026-04-01', skipped_date: '2026-04-01' }),
+    ]);
+
+    const july = await getPaymentsByMonth(mockDb, '2026-07', '2026-05-08');
+
+    expect(july.map((row) => row.id)).toEqual(['pay-may-7', 'pay-jul-5']);
+  });
+
+  it('reads the carried rows through due-date index searches, never a table scan', async () => {
+    await addPayments(mockDb, [
+      makePayment({ id: 'pay-apr-unpaid', due_date: '2026-04-01' }),
+      makePayment({ id: 'pay-may-1', due_date: '2026-05-01' }),
+    ]);
+    const mocked = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb;
+
+    const rows = await getPaymentsByMonth(mockDb, '2026-05', '2026-05-08');
+    const [sql, ...rest] = mocked.getAllAsync.mock.calls.at(-1) as [string, ...unknown[]];
+    const plan = explainQueryPlan(realDb, sql, rest).join('\n');
+
+    expect(rows.map((row) => row.id)).toEqual(['pay-apr-unpaid', 'pay-may-1']);
+    expect(plan).not.toMatch(/SCAN commitment_payments(?! USING)/);
+    expect(plan).toContain('idx_cp_due_date');
   });
 });
 
@@ -382,7 +393,7 @@ describe('getActiveCommitmentDueDates', () => {
 
     expect(plan.map((row) => row.detail).join('\n')).toContain('idx_cp_commitment_id');
     expect(indexNames.map((row) => row.name)).toEqual(
-      expect.arrayContaining(['idx_cp_commitment_id', 'idx_cp_due_date', 'idx_cp_status']),
+      expect.arrayContaining(['idx_cp_commitment_id', 'idx_cp_due_date']),
     );
   });
 });
@@ -404,29 +415,29 @@ describe('getExistingDueDates', () => {
 });
 
 describe('deleteUnpaidPaymentsByCommitment', () => {
-  it('removes upcoming and due payments but preserves paid and skipped', async () => {
+  it('removes every unpaid row, one due in the past included, and keeps paid and skipped rows', async () => {
     const payments = [
       makePayment({
         id: 'pay-del-upcoming',
         due_date: '2026-06-01',
-        status: CommitmentPaymentStatus.Upcoming,
       }),
       makePayment({
         id: 'pay-del-due',
-        due_date: '2026-05-01',
-        status: CommitmentPaymentStatus.Due,
+        due_date: '2026-05-08',
+      }),
+      makePayment({
+        id: 'pay-del-overdue',
+        due_date: '2026-04-15',
       }),
       makePayment({
         id: 'pay-del-paid',
         due_date: '2026-04-01',
-        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-04-01',
         amount_paid: 200,
       }),
       makePayment({
         id: 'pay-del-skipped',
         due_date: '2026-03-01',
-        status: CommitmentPaymentStatus.Skipped,
         skipped_date: '2026-03-01',
       }),
     ];
@@ -437,12 +448,8 @@ describe('deleteUnpaidPaymentsByCommitment', () => {
     const remaining = realDb.prepare('SELECT id FROM commitment_payments ORDER BY id').all() as {
       id: string;
     }[];
-    const remainingIds = remaining.map((r) => r.id);
 
-    expect(remainingIds).not.toContain('pay-del-upcoming');
-    expect(remainingIds).not.toContain('pay-del-due');
-    expect(remainingIds).toContain('pay-del-paid');
-    expect(remainingIds).toContain('pay-del-skipped');
+    expect(remaining.map((r) => r.id)).toEqual(['pay-del-paid', 'pay-del-skipped']);
   });
 });
 
@@ -452,27 +459,23 @@ describe('getPaidCountByCommitment', () => {
       makePayment({
         id: 'pay-count-1',
         due_date: '2026-03-01',
-        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-03-01',
         amount_paid: 200,
       }),
       makePayment({
         id: 'pay-count-2',
         due_date: '2026-04-01',
-        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-04-01',
         amount_paid: 200,
       }),
       makePayment({
         id: 'pay-count-3',
         due_date: '2026-05-01',
-        status: CommitmentPaymentStatus.Upcoming,
       }),
       makePayment({
         id: 'pay-count-4',
         commitment_id: 'commitment2',
         due_date: '2026-03-01',
-        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-03-01',
         amount_paid: 150,
       }),
@@ -515,21 +518,18 @@ describe('getLastPaidPayment', () => {
       makePayment({
         id: 'pay-last-1',
         due_date: '2026-03-01',
-        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-03-02',
         amount_paid: 200,
       }),
       makePayment({
         id: 'pay-last-2',
         due_date: '2026-04-01',
-        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-04-03',
         amount_paid: 200,
       }),
       makePayment({
         id: 'pay-last-3',
         due_date: '2026-05-01',
-        status: CommitmentPaymentStatus.Upcoming,
       }),
     ];
     await addPayments(mockDb, payments);
@@ -577,96 +577,41 @@ describe('getPaymentById', () => {
   });
 });
 
-describe('updatePaymentStatus', () => {
-  it('updates status and optional fields when fields are provided', async () => {
-    const payment = makePayment({
-      id: 'pay-upd-1',
-      due_date: '2026-05-01',
-      status: CommitmentPaymentStatus.Upcoming,
-    });
-    await addPayments(mockDb, [payment]);
+describe('markPaymentSkipped', () => {
+  it('writes the given skipped date on an unpaid row', async () => {
+    await addPayments(mockDb, [makePayment({ id: 'pay-skip-1', due_date: '2026-05-01' })]);
 
-    await updatePaymentStatus(mockDb, 'pay-upd-1', CommitmentPaymentStatus.Paid, {
-      paid_date: '2026-05-02',
-      amount_paid: 200,
-      account_id: 'acc1',
-      exchange_rate_snapshot: 50,
-    });
+    await markPaymentSkipped(mockDb, 'pay-skip-1', '2026-05-08');
 
-    const row = realDb
-      .prepare('SELECT * FROM commitment_payments WHERE id = ?')
-      .get('pay-upd-1') as Record<string, unknown>;
-    expect(row.status).toBe('paid');
-    expect(row.paid_date).toBe('2026-05-02');
-    expect(row.amount_paid).toBe(200);
-    expect(row.account_id).toBe('acc1');
-    expect(row.exchange_rate_snapshot).toBe(50);
+    expect(
+      realDb
+        .prepare('SELECT paid_date, skipped_date FROM commitment_payments WHERE id = ?')
+        .get('pay-skip-1'),
+    ).toEqual({ paid_date: null, skipped_date: '2026-05-08' });
   });
 
-  it('updates status without optional fields (fields omitted)', async () => {
-    const payment = makePayment({
-      id: 'pay-upd-2',
-      due_date: '2026-05-01',
-      status: CommitmentPaymentStatus.Upcoming,
-    });
-    await addPayments(mockDb, [payment]);
-
-    await updatePaymentStatus(mockDb, 'pay-upd-2', CommitmentPaymentStatus.Skipped);
-
-    const row = realDb
-      .prepare('SELECT * FROM commitment_payments WHERE id = ?')
-      .get('pay-upd-2') as Record<string, unknown>;
-    expect(row.status).toBe('skipped');
-    // `COALESCE` with null keeps the existing value.
-    expect(row.paid_date).toBeNull();
-    expect(row.amount_paid).toBeNull();
-  });
-
-  it('updates skipped_date when provided', async () => {
-    const payment = makePayment({
-      id: 'pay-upd-3',
-      due_date: '2026-05-01',
-      status: CommitmentPaymentStatus.Upcoming,
-    });
-    await addPayments(mockDb, [payment]);
-
-    await updatePaymentStatus(mockDb, 'pay-upd-3', CommitmentPaymentStatus.Skipped, {
-      skipped_date: '2026-05-03',
-    });
-
-    const row = realDb
-      .prepare('SELECT * FROM commitment_payments WHERE id = ?')
-      .get('pay-upd-3') as Record<string, unknown>;
-    expect(row.status).toBe('skipped');
-    expect(row.skipped_date).toBe('2026-05-03');
-  });
-
-  it('rejects skipping a paid payment without overwriting paid metadata', async () => {
+  it('refuses a paid row without overwriting its paid metadata', async () => {
     const payment = makePayment({
       id: 'pay-paid-cannot-skip',
-      status: CommitmentPaymentStatus.Paid,
       paid_date: '2026-05-02',
       amount_paid: 200,
       account_id: 'acc1',
     });
     await addPayments(mockDb, [payment]);
 
-    await expect(
-      updatePaymentStatus(mockDb, payment.id, CommitmentPaymentStatus.Skipped, {
-        skipped_date: '2026-05-03',
-      }),
-    ).rejects.toThrow(`Commitment payment cannot be marked as skipped: ${payment.id}`);
+    await expect(markPaymentSkipped(mockDb, payment.id, '2026-05-03')).rejects.toThrow(
+      `Commitment payment cannot be marked as skipped: ${payment.id}`,
+    );
 
     expect(
       realDb
         .prepare(
-          `SELECT status, paid_date, skipped_date, amount_paid, account_id, transaction_id
+          `SELECT paid_date, skipped_date, amount_paid, account_id, transaction_id
              FROM commitment_payments
             WHERE id = ?`,
         )
         .get(payment.id),
     ).toEqual({
-      status: CommitmentPaymentStatus.Paid,
       paid_date: '2026-05-02',
       skipped_date: null,
       amount_paid: 200,
@@ -674,14 +619,35 @@ describe('updatePaymentStatus', () => {
       transaction_id: null,
     });
   });
+
+  it('returns on a row already skipped and keeps its first skipped date', async () => {
+    await addPayments(mockDb, [
+      makePayment({ id: 'pay-already-skipped', skipped_date: '2026-05-01' }),
+    ]);
+
+    await expect(
+      markPaymentSkipped(mockDb, 'pay-already-skipped', '2026-05-08'),
+    ).resolves.toBeUndefined();
+
+    expect(
+      realDb
+        .prepare('SELECT skipped_date FROM commitment_payments WHERE id = ?')
+        .get('pay-already-skipped'),
+    ).toEqual({ skipped_date: '2026-05-01' });
+  });
+
+  it('throws not found for a row that does not exist', async () => {
+    await expect(markPaymentSkipped(mockDb, 'pay-missing', '2026-05-08')).rejects.toThrow(
+      'Commitment payment not found: pay-missing',
+    );
+  });
 });
 
 describe('markCommitmentAsPaid', () => {
-  it('rejects paying a skipped payment without creating paid metadata or side effects', async () => {
+  it('rejects paying a row whose skipped date is set, without paid metadata or side effects', async () => {
     const payment = makePayment({
       id: 'pay-skipped-cannot-pay',
-      status: CommitmentPaymentStatus.Skipped,
-      skipped_date: '2026-05-02T09:00:00.000Z',
+      skipped_date: '2026-05-02',
     });
     await addPayments(mockDb, [payment]);
 
@@ -702,15 +668,14 @@ describe('markCommitmentAsPaid', () => {
     expect(
       realDb
         .prepare(
-          `SELECT status, paid_date, skipped_date, amount_paid, transaction_id
+          `SELECT paid_date, skipped_date, amount_paid, transaction_id
              FROM commitment_payments
             WHERE id = ?`,
         )
         .get(payment.id),
     ).toEqual({
-      status: CommitmentPaymentStatus.Skipped,
       paid_date: null,
-      skipped_date: '2026-05-02T09:00:00.000Z',
+      skipped_date: '2026-05-02',
       amount_paid: null,
       transaction_id: null,
     });
@@ -761,7 +726,6 @@ describe('markCommitmentAsPaid', () => {
     const payment = makePayment({
       id: 'pay-paid-egp',
       due_date: '2026-05-01',
-      status: CommitmentPaymentStatus.Upcoming,
       amount_due: 200,
       currency: Currency.EGP,
     });
@@ -792,7 +756,6 @@ describe('markCommitmentAsPaid', () => {
     const payRow = realDb
       .prepare('SELECT * FROM commitment_payments WHERE id = ?')
       .get('pay-paid-egp') as Record<string, unknown>;
-    expect(payRow.status).toBe('paid');
     expect(payRow.paid_date).toBe('2026-05-02');
     expect(payRow.amount_paid).toBe(200);
     expect(payRow.transaction_id).toBe('tx-paid-egp');
@@ -813,7 +776,6 @@ describe('markCommitmentAsPaid', () => {
     const payment = makePayment({
       id: 'pay-paid-no-link',
       due_date: '2026-05-01',
-      status: CommitmentPaymentStatus.Upcoming,
       amount_due: 100,
       currency: Currency.EGP,
     });
@@ -852,7 +814,6 @@ describe('markCommitmentAsPaid', () => {
     const payment = makePayment({
       id: 'pay-paid-usd',
       due_date: '2026-05-01',
-      status: CommitmentPaymentStatus.Upcoming,
       amount_due: 10,
       currency: Currency.USD,
     });
@@ -886,7 +847,7 @@ describe('markCommitmentAsPaid', () => {
     const payRow = realDb
       .prepare('SELECT * FROM commitment_payments WHERE id = ?')
       .get('pay-paid-usd') as Record<string, unknown>;
-    expect(payRow.status).toBe('paid');
+    expect(payRow.paid_date).toBe('2026-05-02');
     expect(payRow.exchange_rate_snapshot).toBe(50);
     expect(payRow.notes).toBe('USD payment');
     expect(payRow.transaction_id).toBe('tx-paid-usd');

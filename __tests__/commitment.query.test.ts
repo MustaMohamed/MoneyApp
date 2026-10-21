@@ -1,13 +1,7 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
-import {
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
 import { addPayments } from '@/modules/commitments/database/commitment_payments';
 import {
@@ -15,6 +9,7 @@ import {
   clearCommitmentAccount,
   deactivateCommitment,
   deactivateExpiredCommitments,
+  getActiveCommitmentsByAccount,
   getCommitmentById,
   getCommitments,
   getCommitmentsForMonthSnapshot,
@@ -227,12 +222,32 @@ describe('getCommitmentsForMonthSnapshot', () => {
       makePayment('selected-payment', inactiveWithPayment.id, '2026-05-12'),
     ]);
 
-    const results = await getCommitmentsForMonthSnapshot(mockDb, '2026-05');
+    const results = await getCommitmentsForMonthSnapshot(mockDb, '2026-05', '2026-05-08');
 
     expect(results).toHaveLength(2);
     expect(results.map((row) => row.id)).toEqual(
       expect.arrayContaining([inactiveWithPayment.id, active.id]),
     );
+  });
+
+  it('returns an inactive parent whose only row is an unpaid one carried into the month', async () => {
+    const carriedParent = makeCommitment({ id: 'inactive-carried', is_active: 0 });
+    const settledParent = makeCommitment({ id: 'inactive-settled', is_active: 0 });
+    await addCommitment(mockDb, carriedParent);
+    await addCommitment(mockDb, settledParent);
+    await addPayments(mockDb, [
+      makePayment('carried-unpaid', carriedParent.id, '2026-04-20', {
+        paid_date: null,
+        amount_paid: null,
+      }),
+      makePayment('settled-paid', settledParent.id, '2026-04-20'),
+    ]);
+
+    const results = await getCommitmentsForMonthSnapshot(mockDb, '2026-05', '2026-05-08');
+
+    const ids = results.map((row) => row.id);
+    expect(ids).toContain(carriedParent.id);
+    expect(ids).not.toContain(settledParent.id);
   });
 });
 
@@ -437,16 +452,81 @@ describe('deactivateExpiredCommitments', () => {
                 AND (SELECT COUNT(*)
                        FROM commitment_payments INDEXED BY idx_cp_commitment_id
                       WHERE commitment_id = commitments.id
-                        AND status = 'paid') >= end_after_count)
+                        AND paid_date IS NOT NULL) >= end_after_count)
             )`,
       )
       .all(NOW, '2026-05-08') as Array<{ detail: string }>;
 
     expect(plan.map((row) => row.detail).join('\n')).toContain('idx_cp_commitment_id');
   });
+
+  it('counts a row as paid by its paid date and never counts a skipped one', async () => {
+    await addCommitment(
+      mockDb,
+      makeCommitment({
+        id: 'after-paid-by-date',
+        duration_type: DurationType.AfterCount,
+        end_after_count: 2,
+      }),
+    );
+    await addCommitment(
+      mockDb,
+      makeCommitment({
+        id: 'after-one-skipped',
+        duration_type: DurationType.AfterCount,
+        end_after_count: 2,
+      }),
+    );
+    await addPayments(mockDb, [
+      makePayment('by-date-1', 'after-paid-by-date', '2026-03-01'),
+      makePayment('by-date-2', 'after-paid-by-date', '2026-04-01'),
+      makePayment('one-paid', 'after-one-skipped', '2026-03-01'),
+      makePayment('one-skipped', 'after-one-skipped', '2026-04-01', {
+        paid_date: null,
+        amount_paid: null,
+        skipped_date: '2026-04-02',
+      }),
+    ]);
+
+    await deactivateExpiredCommitments(mockDb, '2026-05-08', NOW);
+
+    expect(realDb.prepare('SELECT id, is_active FROM commitments ORDER BY id').all()).toEqual([
+      { id: 'after-one-skipped', is_active: 1 },
+      { id: 'after-paid-by-date', is_active: 0 },
+    ]);
+  });
 });
 
-function makePayment(id: string, commitmentId: string, dueDate: string): CommitmentPayment {
+describe('getActiveCommitmentsByAccount', () => {
+  it('reads the next due date from rows with neither a paid nor a skipped date', async () => {
+    await addCommitment(mockDb, makeCommitment({ id: 'com-next-due', account_id: 'acc1' }));
+    await addPayments(mockDb, [
+      makePayment('next-paid', 'com-next-due', '2026-03-01'),
+      makePayment('next-skipped', 'com-next-due', '2026-04-01', {
+        paid_date: null,
+        amount_paid: null,
+        skipped_date: '2026-04-02',
+      }),
+      makePayment('next-unpaid', 'com-next-due', '2026-05-01', {
+        paid_date: null,
+        amount_paid: null,
+      }),
+    ]);
+
+    const refs = await getActiveCommitmentsByAccount(mockDb, 'acc1');
+
+    expect(refs.map((ref) => [ref.id, ref.next_due_date])).toEqual([
+      ['com-next-due', '2026-05-01'],
+    ]);
+  });
+});
+
+function makePayment(
+  id: string,
+  commitmentId: string,
+  dueDate: string,
+  overrides: Partial<CommitmentPayment> = {},
+): CommitmentPayment {
   return {
     id,
     commitment_id: commitmentId,
@@ -459,10 +539,10 @@ function makePayment(id: string, commitmentId: string, dueDate: string): Commitm
     exchange_rate_snapshot: null,
     account_id: 'acc1',
     transaction_id: null,
-    status: CommitmentPaymentStatus.Paid,
     notes: null,
     created_at: NOW,
     updated_at: NOW,
+    ...overrides,
   };
 }
 

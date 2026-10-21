@@ -10,6 +10,7 @@ import {
   DurationType,
   RecurrencePeriod,
 } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Category } from '@/modules/categories/entities/category.entity';
@@ -76,24 +77,58 @@ const clearSearchMock = jest.fn();
 const setAppliedFiltersMock = jest.fn();
 const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
 
-function makePayment(id: string, status: CommitmentPaymentStatus): CommitmentPayment {
-  return {
-    id,
-    commitment_id: `commitment-${id}`,
+const TODAY = '2026-05-08';
+
+type PaymentDates = Pick<CommitmentPayment, 'due_date' | 'paid_date' | 'skipped_date'>;
+
+const DATES_BY_STATE: Record<CommitmentPaymentStatus, PaymentDates> = {
+  [CommitmentPaymentStatus.Overdue]: {
     due_date: '2026-05-01',
     paid_date: null,
     skipped_date: null,
+  },
+  [CommitmentPaymentStatus.Due]: { due_date: TODAY, paid_date: null, skipped_date: null },
+  [CommitmentPaymentStatus.Upcoming]: {
+    due_date: '2026-05-20',
+    paid_date: null,
+    skipped_date: null,
+  },
+  [CommitmentPaymentStatus.Paid]: {
+    due_date: '2026-05-01',
+    paid_date: '2026-05-02',
+    skipped_date: null,
+  },
+  [CommitmentPaymentStatus.Skipped]: {
+    due_date: '2026-05-01',
+    paid_date: null,
+    skipped_date: '2026-05-02',
+  },
+};
+
+function makePayment(
+  id: string,
+  state: CommitmentPaymentStatus,
+  overrides: Partial<CommitmentPayment> = {},
+): CommitmentPayment {
+  return {
+    id,
+    commitment_id: `commitment-${id}`,
+    ...DATES_BY_STATE[state],
     amount_due: 100,
     amount_paid: null,
     currency: Currency.EGP,
     exchange_rate_snapshot: null,
     account_id: null,
     transaction_id: null,
-    status,
     notes: null,
     created_at: '2026-05-01T00:00:00.000Z',
     updated_at: '2026-05-01T00:00:00.000Z',
+    ...overrides,
   };
+}
+
+function sectionIds(sections: { title: string; data: CommitmentPayment[] }[]) {
+  return sections.map((section) => [section.title, section.data.map((payment) => payment.id)]);
 }
 
 function makeCommitment(id: string, overrides: Partial<Commitment> = {}): Commitment {
@@ -172,6 +207,7 @@ function setup({
   paymentsLoaded = true,
   loading = false,
   loadError = false,
+  withoutToday = false,
 }: {
   selectedMonth?: string;
   commitments?: Commitment[];
@@ -186,6 +222,7 @@ function setup({
   paymentsLoaded?: boolean;
   loading?: boolean;
   loadError?: boolean;
+  withoutToday?: boolean;
 } = {}) {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments,
@@ -196,6 +233,7 @@ function setup({
     loadedMonth,
     loading,
     loadError,
+    today: withoutToday ? undefined : TODAY,
     setSelectedMonth: setSelectedMonthMock,
     loadMonthSnapshot: loadMonthSnapshotMock,
     skipPayment: jest.fn(),
@@ -526,5 +564,86 @@ describe('useCommitments', () => {
     await act(async () => result.current.navigateMonth('next'));
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2027-01');
+  });
+
+  it('sorts each row into its section and counter by its dates against today', async () => {
+    setup({
+      payments: [
+        makePayment('upcoming', CommitmentPaymentStatus.Upcoming),
+        makePayment('paid', CommitmentPaymentStatus.Paid),
+        makePayment('skipped', CommitmentPaymentStatus.Skipped),
+        makePayment('due', CommitmentPaymentStatus.Due),
+        makePayment('overdue', CommitmentPaymentStatus.Overdue),
+      ],
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(sectionIds(result.current.state.sections)).toEqual([
+      [Strings.commitmentsOverdue, ['overdue']],
+      [Strings.commitmentsDueToday, ['due']],
+      [Strings.commitmentsUpcoming, ['upcoming']],
+      [Strings.commitmentsPaid, ['paid']],
+      [Strings.commitmentsSkipped, ['skipped']],
+    ]);
+    expect(result.current.state.counts).toEqual({
+      paid: 1,
+      overdue: 1,
+      due: 1,
+      upcoming: 1,
+      skipped: 1,
+      total: 4,
+    });
+  });
+
+  it('puts a row carried from the month before first in Overdue, outside the total and the amounts', async () => {
+    setup({
+      payments: [
+        makePayment('carried', CommitmentPaymentStatus.Overdue, {
+          due_date: '2026-04-20',
+          amount_due: 300,
+        }),
+        makePayment('overdue', CommitmentPaymentStatus.Overdue),
+        makePayment('due', CommitmentPaymentStatus.Due),
+      ],
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(sectionIds(result.current.state.sections)[0]).toEqual([
+      Strings.commitmentsOverdue,
+      ['carried', 'overdue'],
+    ]);
+    expect(result.current.state.counts).toMatchObject({ overdue: 2, due: 1, total: 2 });
+    expect(result.current.state.totalsByCurrency).toEqual(new Map([[Currency.EGP, 200]]));
+  });
+
+  it('filters by the state the dates derive', async () => {
+    setup({
+      statusFilter: CommitmentPaymentStatus.Overdue,
+      payments: [
+        makePayment('aged', CommitmentPaymentStatus.Overdue),
+        makePayment('due', CommitmentPaymentStatus.Due),
+      ],
+    });
+
+    const { result } = await renderHook(() => useCommitments());
+
+    expect(
+      result.current.state.sections.flatMap((section) => section.data.map((p) => p.id)),
+    ).toEqual(['aged']);
+  });
+
+  it('mirrors the store today and holds the snapshot until today is published', async () => {
+    setup({ payments: [makePayment('due', CommitmentPaymentStatus.Due)] });
+    const { result: withToday } = await renderHook(() => useCommitments());
+    expect(withToday.current.state.today).toBe(TODAY);
+
+    setup({ payments: [makePayment('due', CommitmentPaymentStatus.Due)], withoutToday: true });
+    const { result: withoutToday } = await renderHook(() => useCommitments());
+
+    expect(withoutToday.current.state.today).toBeUndefined();
+    expect(withoutToday.current.state.hasLoaded).toBe(false);
+    expect(withoutToday.current.state.sections).toEqual([]);
   });
 });

@@ -1,10 +1,4 @@
-import {
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
@@ -25,7 +19,6 @@ function mkPayment(over: Partial<CommitmentPayment>): CommitmentPayment {
     exchange_rate_snapshot: null,
     account_id: null,
     transaction_id: null,
-    status: CommitmentPaymentStatus.Upcoming,
     notes: null,
     created_at: '2026-05-01T00:00:00.000Z',
     updated_at: '2026-05-01T00:00:00.000Z',
@@ -59,7 +52,7 @@ function mkCommitment(over: Partial<Commitment>): Commitment {
 describe('resolveDisplayAmount', () => {
   it('paid: prefers amount_paid', () => {
     const r = resolveDisplayAmount(
-      mkPayment({ status: CommitmentPaymentStatus.Paid, amount_paid: 90, amount_due: 100 }),
+      mkPayment({ paid_date: '2026-05-02', amount_paid: 90, amount_due: 100 }),
       mkCommitment({}),
     );
     expect(r).toEqual({ amount: 90, showTilde: false });
@@ -67,7 +60,7 @@ describe('resolveDisplayAmount', () => {
 
   it('paid with null amount_paid: falls back to amount_due', () => {
     const r = resolveDisplayAmount(
-      mkPayment({ status: CommitmentPaymentStatus.Paid, amount_paid: null, amount_due: 100 }),
+      mkPayment({ paid_date: '2026-05-02', amount_paid: null, amount_due: 100 }),
       mkCommitment({}),
     );
     expect(r.amount).toBe(100);
@@ -75,31 +68,25 @@ describe('resolveDisplayAmount', () => {
 
   it('paid with null amount_paid and null amount_due: falls back to commitment.amount', () => {
     const r = resolveDisplayAmount(
-      mkPayment({ status: CommitmentPaymentStatus.Paid, amount_paid: null, amount_due: null }),
+      mkPayment({ paid_date: '2026-05-02', amount_paid: null, amount_due: null }),
       mkCommitment({ amount: 250 }),
     );
     expect(r.amount).toBe(250);
   });
 
   it('unpaid: uses amount_due', () => {
-    const r = resolveDisplayAmount(
-      mkPayment({ status: CommitmentPaymentStatus.Due, amount_due: 100 }),
-      mkCommitment({}),
-    );
+    const r = resolveDisplayAmount(mkPayment({ amount_due: 100 }), mkCommitment({}));
     expect(r).toEqual({ amount: 100, showTilde: false });
   });
 
   it('unpaid with null amount_due: falls back to commitment.amount', () => {
-    const r = resolveDisplayAmount(
-      mkPayment({ status: CommitmentPaymentStatus.Due, amount_due: null }),
-      mkCommitment({ amount: 250 }),
-    );
+    const r = resolveDisplayAmount(mkPayment({ amount_due: null }), mkCommitment({ amount: 250 }));
     expect(r.amount).toBe(250);
   });
 
   it('unpaid ignores amount_paid even when present', () => {
     const r = resolveDisplayAmount(
-      mkPayment({ status: CommitmentPaymentStatus.Due, amount_due: null, amount_paid: 999 }),
+      mkPayment({ amount_due: null, amount_paid: 999 }),
       mkCommitment({ amount: 250 }),
     );
     expect(r.amount).toBe(250);
@@ -107,7 +94,7 @@ describe('resolveDisplayAmount', () => {
 
   it('variable + unpaid: showTilde true', () => {
     const r = resolveDisplayAmount(
-      mkPayment({ status: CommitmentPaymentStatus.Upcoming }),
+      mkPayment({}),
       mkCommitment({ amount_type: AmountType.Variable }),
     );
     expect(r.showTilde).toBe(true);
@@ -115,7 +102,7 @@ describe('resolveDisplayAmount', () => {
 
   it('variable + paid: showTilde false', () => {
     const r = resolveDisplayAmount(
-      mkPayment({ status: CommitmentPaymentStatus.Paid, amount_paid: 90 }),
+      mkPayment({ paid_date: '2026-05-02', amount_paid: 90 }),
       mkCommitment({ amount_type: AmountType.Variable }),
     );
     expect(r.showTilde).toBe(false);
@@ -123,7 +110,7 @@ describe('resolveDisplayAmount', () => {
 
   it('all amounts null: amount undefined', () => {
     const r = resolveDisplayAmount(
-      mkPayment({ status: CommitmentPaymentStatus.Due, amount_due: null, amount_paid: null }),
+      mkPayment({ amount_due: null, amount_paid: null }),
       mkCommitment({ amount: null }),
     );
     expect(r.amount).toBeUndefined();
@@ -139,7 +126,6 @@ describe('formatCommitmentAmount', () => {
   it('USD payment at 1234.5: currency-aware 2dp, no tilde', () => {
     const text = formatCommitmentAmount(
       mkPayment({
-        status: CommitmentPaymentStatus.Due,
         amount_due: 1234.5,
         currency: Currency.USD,
       }),
@@ -151,7 +137,6 @@ describe('formatCommitmentAmount', () => {
   it('EGP payment at 1234.56: currency-aware 0dp, no tilde', () => {
     const text = formatCommitmentAmount(
       mkPayment({
-        status: CommitmentPaymentStatus.Due,
         amount_due: 1234.56,
         currency: Currency.EGP,
       }),
@@ -163,7 +148,6 @@ describe('formatCommitmentAmount', () => {
   it('variable + unpaid: carries the leading tilde', () => {
     const text = formatCommitmentAmount(
       mkPayment({
-        status: CommitmentPaymentStatus.Upcoming,
         amount_due: 100,
         currency: Currency.EGP,
       }),
@@ -174,7 +158,7 @@ describe('formatCommitmentAmount', () => {
 
   it('no amount to format: undefined', () => {
     const text = formatCommitmentAmount(
-      mkPayment({ status: CommitmentPaymentStatus.Due, amount_due: null, amount_paid: null }),
+      mkPayment({ amount_due: null, amount_paid: null }),
       mkCommitment({ amount: null }),
     );
     expect(text).toBeUndefined();
@@ -183,7 +167,6 @@ describe('formatCommitmentAmount', () => {
   it('EGP payment at 249.50: renders "250 EGP", the ADR worked-example row value', () => {
     const text = formatCommitmentAmount(
       mkPayment({
-        status: CommitmentPaymentStatus.Due,
         amount_due: 249.5,
         currency: Currency.EGP,
       }),
@@ -195,7 +178,6 @@ describe('formatCommitmentAmount', () => {
   it('EGP payment at 0.40: escalates to "0.40 EGP" instead of rounding away to "0 EGP"', () => {
     const text = formatCommitmentAmount(
       mkPayment({
-        status: CommitmentPaymentStatus.Due,
         amount_due: 0.4,
         currency: Currency.EGP,
       }),

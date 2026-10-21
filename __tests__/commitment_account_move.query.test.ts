@@ -44,26 +44,15 @@ function seed(): void {
   const payment = realDb.prepare(
     `INSERT INTO commitment_payments
        (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid, currency,
-        account_id, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 200, ?, 'EGP', ?, ?, ?, ?)`,
+        account_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 200, ?, 'EGP', ?, ?, ?)`,
   );
-  payment.run('pay-paid', 'com-on', '2026-07-01', '2026-07-01', null, 200, FROM, 'paid', NOW, NOW);
-  payment.run(
-    'pay-skipped',
-    'com-on',
-    '2026-08-01',
-    null,
-    '2026-08-01',
-    null,
-    FROM,
-    'skipped',
-    NOW,
-    NOW,
-  );
-  payment.run('pay-overdue', 'com-on', '2026-09-01', null, null, null, FROM, 'overdue', NOW, NOW);
-  payment.run('pay-due', 'com-on', '2026-09-10', null, null, null, FROM, 'due', NOW, NOW);
-  payment.run('pay-upcoming', 'com-on', '2026-10-01', null, null, null, FROM, 'upcoming', NOW, NOW);
-  payment.run('pay-to', 'com-to', '2026-10-01', null, null, null, TO, 'upcoming', NOW, NOW);
+  payment.run('pay-paid', 'com-on', '2026-07-01', '2026-07-01', null, 200, FROM, NOW, NOW);
+  payment.run('pay-skipped', 'com-on', '2026-08-01', null, '2026-08-01', null, FROM, NOW, NOW);
+  payment.run('pay-overdue', 'com-on', '2026-09-01', null, null, null, FROM, NOW, NOW);
+  payment.run('pay-due', 'com-on', '2026-09-10', null, null, null, FROM, NOW, NOW);
+  payment.run('pay-upcoming', 'com-on', '2026-10-01', null, null, null, FROM, NOW, NOW);
+  payment.run('pay-to', 'com-to', '2026-10-01', null, null, null, TO, NOW, NOW);
 }
 
 beforeAll(() => {

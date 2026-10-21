@@ -1,10 +1,4 @@
-import {
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import {
   planMissingCommitmentPayments,
@@ -73,7 +67,6 @@ describe('planMissingCommitmentPayments', () => {
         exchange_rate_snapshot: null,
         account_id: 'account',
         transaction_id: null,
-        status: CommitmentPaymentStatus.Overdue,
         notes: null,
         created_at: NOW.toISOString(),
         updated_at: NOW.toISOString(),
@@ -90,7 +83,6 @@ describe('planMissingCommitmentPayments', () => {
         exchange_rate_snapshot: null,
         account_id: 'account',
         transaction_id: null,
-        status: CommitmentPaymentStatus.Upcoming,
         notes: null,
         created_at: NOW.toISOString(),
         updated_at: NOW.toISOString(),
@@ -107,7 +99,6 @@ describe('planMissingCommitmentPayments', () => {
         exchange_rate_snapshot: null,
         account_id: null,
         transaction_id: null,
-        status: CommitmentPaymentStatus.Due,
         notes: null,
         created_at: NOW.toISOString(),
         updated_at: NOW.toISOString(),

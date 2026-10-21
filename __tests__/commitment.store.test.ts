@@ -1,10 +1,4 @@
-import {
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type {
@@ -59,7 +53,6 @@ function payment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment 
     exchange_rate_snapshot: null,
     account_id: 'account',
     transaction_id: null,
-    status: CommitmentPaymentStatus.Due,
     notes: null,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
@@ -67,12 +60,17 @@ function payment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment 
   };
 }
 
+const MAY_8 = '2026-05-08';
+// Built by the local constructor, so its local calendar date is MAY_8 in every zone.
+const MAY_8_LOCAL = new Date(2026, 4, 8, 0, 30);
+
 function snapshot(
   month = MAY,
   commitments = [commitment()],
   payments = [payment()],
+  today = MAY_8,
 ): CommitmentMonthSnapshot {
-  return { loadedMonth: month, commitments, payments };
+  return { loadedMonth: month, today, commitments, payments };
 }
 
 function paymentAmounts(
@@ -161,26 +159,28 @@ describe('commitment store snapshot ownership', () => {
     });
   });
 
-  it('publishes commitments, payments, and loadedMonth atomically', async () => {
+  it('publishes commitments, payments, loadedMonth and the local today atomically', async () => {
     const next = snapshot();
     const repository = makeRepository({
       getMonthSnapshot: jest.fn().mockResolvedValue(next),
     });
     const store = createCommitmentStore(repository);
-    const published: CommitmentMonthSnapshot[] = [];
+    const published: unknown[] = [];
     const unsubscribe = store.subscribe((state) => {
       if (state.loadedMonth) {
         published.push({
           loadedMonth: state.loadedMonth,
+          today: state.today,
           commitments: state.commitments,
           payments: state.payments,
         });
       }
     });
 
-    await store.getState().loadMonthSnapshot(MAY);
+    await store.getState().loadMonthSnapshot(MAY, MAY_8_LOCAL);
     unsubscribe();
 
+    expect(repository.getMonthSnapshot).toHaveBeenCalledWith(MAY, MAY_8);
     expect(published).toEqual([next]);
     expect(store.getState()).toMatchObject({
       commitmentsLoaded: true,
@@ -260,7 +260,10 @@ describe('commitment store snapshot ownership', () => {
     expect(store.getState().selectedMonth).toBe('2026-06');
     await load;
 
-    expect(repository.getMonthSnapshot).toHaveBeenCalledWith('2026-06');
+    expect(repository.getMonthSnapshot).toHaveBeenCalledWith(
+      '2026-06',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    );
   });
 
   it('does not expose removed loop orchestration actions', () => {
@@ -585,13 +588,13 @@ describe('commitment store mutation invalidation', () => {
     expect(store.getState().payments).toEqual([
       expect.objectContaining({
         id: 'payment',
-        status: CommitmentPaymentStatus.Paid,
         paid_date: paymentDetails.paid_date,
         skipped_date: null,
         amount_paid: paymentAmounts().paymentAmount,
         account_id: paymentDetails.account_id,
       }),
     ]);
+    expect(store.getState().payments[0]).not.toHaveProperty('status');
     expect(store.getState().transitioningPaymentIds).toEqual([]);
 
     refresh.resolve();
@@ -641,9 +644,35 @@ describe('commitment store mutation invalidation', () => {
     await store.getState().skipPayment('payment');
     await flushMicrotasks();
 
-    expect(repository.markAsSkipped).toHaveBeenCalledWith('payment');
+    expect(repository.markAsSkipped).toHaveBeenCalledWith(
+      'payment',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    );
     expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
     expect(store.getState().generation).toBe(1);
+  });
+
+  it('skips with the local calendar date on the repository and on the published copy', async () => {
+    const refresh = deferred<void>();
+    const repository = makeRepository();
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthSnapshot(MAY, MAY_8_LOCAL);
+    (repository.runHousekeeping as jest.Mock).mockReset().mockReturnValue(refresh.promise);
+
+    await store.getState().skipPayment('payment', MAY_8_LOCAL);
+
+    expect(repository.markAsSkipped).toHaveBeenCalledWith('payment', MAY_8);
+    expect(store.getState().payments).toEqual([
+      expect.objectContaining({
+        id: 'payment',
+        paid_date: null,
+        skipped_date: MAY_8,
+        updated_at: MAY_8_LOCAL.toISOString(),
+      }),
+    ]);
+
+    refresh.resolve();
+    await flushMicrotasks();
   });
 
   it('does not invalidate generation when persistence fails', async () => {
@@ -720,16 +749,16 @@ describe('commitment store selectors', () => {
       getMonthSnapshot: jest.fn().mockResolvedValue(snapshot(MAY, commitments, payments)),
     });
     const store = createCommitmentStore(repository);
-    await store.getState().loadMonthSnapshot(MAY);
+    await store.getState().loadMonthSnapshot(MAY, MAY_8_LOCAL);
     return store;
   }
 
-  it('preserves status selectors and skips skipped rows in total count', async () => {
-    const overdue = payment({ id: 'overdue', status: CommitmentPaymentStatus.Overdue });
-    const due = payment({ id: 'due', status: CommitmentPaymentStatus.Due });
-    const upcoming = payment({ id: 'upcoming', status: CommitmentPaymentStatus.Upcoming });
-    const paid = payment({ id: 'paid', status: CommitmentPaymentStatus.Paid });
-    const skipped = payment({ id: 'skipped', status: CommitmentPaymentStatus.Skipped });
+  it('reads the five states from the dates against today and skips skipped rows in total count', async () => {
+    const overdue = payment({ id: 'overdue', due_date: '2026-05-07' });
+    const due = payment({ id: 'due', due_date: MAY_8 });
+    const upcoming = payment({ id: 'upcoming', due_date: '2026-05-09' });
+    const paid = payment({ id: 'paid', due_date: '2026-05-01', paid_date: '2026-05-02' });
+    const skipped = payment({ id: 'skipped', due_date: '2026-05-03', skipped_date: '2026-05-04' });
     const store = await loadedStore([overdue, due, upcoming, paid, skipped]);
 
     expect(store.getState().getOverdue()).toEqual([overdue]);

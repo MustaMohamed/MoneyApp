@@ -1,4 +1,4 @@
-import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { Currency } from '@/constants/enums';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   INITIAL_DATA_ENTRY,
@@ -20,7 +20,6 @@ function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
     exchange_rate_snapshot: null,
     account_id: 'account-1',
     transaction_id: null,
-    status: CommitmentPaymentStatus.Due,
     notes: null,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',

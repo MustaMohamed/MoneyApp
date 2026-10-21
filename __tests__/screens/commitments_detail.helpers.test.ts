@@ -1,4 +1,4 @@
-import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { Currency } from '@/constants/enums';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   overlayStorePayments,
@@ -20,7 +20,6 @@ function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
     exchange_rate_snapshot: null,
     account_id: 'account-1',
     transaction_id: null,
-    status: CommitmentPaymentStatus.Due,
     notes: null,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
@@ -176,8 +175,8 @@ describe('resolveCommitmentDetailViewState', () => {
 
 describe('overlayStorePayments', () => {
   it("replaces a Due history row with the store's Paid row", () => {
-    const due = makePayment({ id: 'pay-1', status: CommitmentPaymentStatus.Due });
-    const paid = makePayment({ id: 'pay-1', status: CommitmentPaymentStatus.Paid });
+    const due = makePayment({ id: 'pay-1' });
+    const paid = makePayment({ id: 'pay-1', paid_date: '2026-05-02' });
 
     const result = overlayStorePayments([due], [paid]);
 
@@ -189,7 +188,7 @@ describe('overlayStorePayments', () => {
     const older = makePayment({ id: 'pay-0', due_date: '2026-04-01' });
     const current = makePayment({ id: 'pay-1', due_date: '2026-05-01' });
     const next = makePayment({ id: 'pay-2', due_date: '2026-06-01' });
-    const skipped = makePayment({ id: 'pay-1', status: CommitmentPaymentStatus.Skipped });
+    const skipped = makePayment({ id: 'pay-1', skipped_date: '2026-05-02' });
     const elsewhere = makePayment({ id: 'pay-9', commitment_id: 'commitment-2' });
 
     const result = overlayStorePayments([older, current, next], [elsewhere, skipped]);

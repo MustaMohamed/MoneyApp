@@ -1,6 +1,5 @@
 import {
   AmountType,
-  CommitmentPaymentStatus,
   Currency,
   DurationType,
   RecurrencePeriod,
@@ -52,7 +51,6 @@ function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
     exchange_rate_snapshot: null,
     account_id: null,
     transaction_id: null,
-    status: CommitmentPaymentStatus.Upcoming,
     notes: 'Payment note',
     created_at: '2026-07-01T00:00:00.000Z',
     updated_at: '2026-07-01T00:00:00.000Z',
@@ -156,7 +154,7 @@ describe('commitment filter helpers', () => {
       commitmentMatchesAdvancedFilters(
         {
           payment: makePayment({
-            status: CommitmentPaymentStatus.Paid,
+            paid_date: '2026-05-02',
             amount_due: 500,
             amount_paid: 450,
             currency: Currency.EGP,

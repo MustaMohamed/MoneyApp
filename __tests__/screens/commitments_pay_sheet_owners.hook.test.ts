@@ -1,12 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
-import {
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -76,7 +70,6 @@ const p1: CommitmentPayment = {
   amount_due: 15,
   amount_paid: null,
   currency: Currency.EGP,
-  status: CommitmentPaymentStatus.Due,
   paid_date: null,
   skipped_date: null,
   account_id: null,

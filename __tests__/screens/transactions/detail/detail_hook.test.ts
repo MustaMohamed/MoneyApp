@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
-import { CommitmentPaymentStatus, Currency, TransactionType } from '@/constants/enums';
+import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -394,7 +394,6 @@ const paidPayment: CommitmentPayment = {
   exchange_rate_snapshot: null,
   account_id: 'account-1',
   transaction_id: 'transaction-1',
-  status: CommitmentPaymentStatus.Paid,
   notes: null,
   created_at: '2026-04-18T10:00:00.000Z',
   updated_at: '2026-04-18T10:00:00.000Z',

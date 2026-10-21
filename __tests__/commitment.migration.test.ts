@@ -1,6 +1,9 @@
 import Database from 'better-sqlite3';
 
 import { MIGRATIONS } from '@/database/migrations';
+import { registerOpenDbsDrain } from '@/test_helpers/sqlite_drain';
+
+const openDbs = registerOpenDbsDrain();
 
 let db: ReturnType<typeof Database>;
 
@@ -120,12 +123,12 @@ describe('migration007 — commitment_payments table', () => {
         'exchange_rate_snapshot',
         'account_id',
         'transaction_id',
-        'status',
         'notes',
         'created_at',
         'updated_at',
       ]),
     );
+    expect(names).not.toContain('status');
   });
 
   it('creates expected indexes', () => {
@@ -137,17 +140,16 @@ describe('migration007 — commitment_payments table', () => {
     const names = indexes.map((i) => i.name);
     expect(names).toContain('idx_cp_commitment_id');
     expect(names).toContain('idx_cp_due_date');
-    expect(names).toContain('idx_cp_status');
+    expect(names).not.toContain('idx_cp_status');
   });
 
-  it('rejects invalid status', () => {
-    const now = new Date().toISOString();
-    expect(() => {
-      db.prepare(
-        `INSERT INTO commitment_payments (id,commitment_id,due_date,currency,status,created_at,updated_at)
-         VALUES ('cp1','c1','2026-05-01','EGP','invalid',?,?)`,
-      ).run(now, now);
-    }).toThrow();
+  it('rejects a second row on the same commitment and due date', () => {
+    const insert = db.prepare(
+      `INSERT INTO commitment_payments (id,commitment_id,due_date,currency,created_at,updated_at)
+       VALUES (?,'c1','2026-05-01','EGP','2026-05-01T00:00:00.000Z','2026-05-01T00:00:00.000Z')`,
+    );
+    insert.run('cp1');
+    expect(() => insert.run('cp2')).toThrow(/UNIQUE constraint failed/);
   });
 
   it('accepts a valid payment row with nullable account_id', () => {
@@ -158,14 +160,19 @@ describe('migration007 — commitment_payments table', () => {
     ).run(now, now);
     expect(() => {
       db.prepare(
-        `INSERT INTO commitment_payments (id,commitment_id,due_date,currency,account_id,status,created_at,updated_at)
-         VALUES ('cp1','c1','2026-05-01','EGP',NULL,'upcoming',?,?)`,
+        `INSERT INTO commitment_payments (id,commitment_id,due_date,currency,account_id,created_at,updated_at)
+         VALUES ('cp1','c1','2026-05-01','EGP',NULL,?,?)`,
       ).run(now, now);
     }).not.toThrow();
   });
 
-  it('is idempotent', () => {
-    expect(() => db.exec(MIGRATIONS.find((m) => m.version === 7)!.up)).not.toThrow();
+  it('is idempotent on a database through 021, where the status column still exists', () => {
+    const through021 = new Database(':memory:');
+    openDbs.push(through021);
+    through021.pragma('foreign_keys = OFF');
+    for (const m of MIGRATIONS.filter(({ version }) => version <= 21)) through021.exec(m.up);
+
+    expect(() => through021.exec(MIGRATIONS.find((m) => m.version === 7)!.up)).not.toThrow();
   });
 
   it('has version 7', () => {

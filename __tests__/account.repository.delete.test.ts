@@ -134,20 +134,20 @@ function seed(): void {
     .prepare(
       `INSERT INTO commitment_payments
          (id, commitment_id, due_date, paid_date, amount_due, amount_paid, currency,
-          account_id, transaction_id, status, created_at, updated_at)
-       VALUES ('pay-1', 'com-target', '2026-09-01', '2026-09-01', 30, 30, 'EGP', ?, 'tx-paid', 'paid', ?, ?)`,
+          account_id, transaction_id, created_at, updated_at)
+       VALUES ('pay-1', 'com-target', '2026-09-01', '2026-09-01', 30, 30, 'EGP', ?, 'tx-paid', ?, ?)`,
     )
     .run(TARGET, NOW, NOW);
   const unpaid = realDb.prepare(
     `INSERT INTO commitment_payments
-       (id, commitment_id, due_date, skipped_date, amount_due, currency, account_id, status,
+       (id, commitment_id, due_date, skipped_date, amount_due, currency, account_id,
         created_at, updated_at)
-     VALUES (?, ?, ?, ?, 200, 'EGP', ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, 200, 'EGP', ?, ?, ?)`,
   );
-  unpaid.run('pay-2', 'com-target', '2026-10-01', null, TARGET, 'upcoming', NOW, NOW);
-  unpaid.run('pay-3', 'com-target', '2026-08-01', null, TARGET, 'overdue', NOW, NOW);
-  unpaid.run('pay-4', 'com-target', '2026-07-01', '2026-07-01', TARGET, 'skipped', NOW, NOW);
-  unpaid.run('pay-5', 'com-survivor', '2026-10-01', null, SURVIVOR, 'upcoming', NOW, NOW);
+  unpaid.run('pay-2', 'com-target', '2026-10-01', null, TARGET, NOW, NOW);
+  unpaid.run('pay-3', 'com-target', '2026-08-01', null, TARGET, NOW, NOW);
+  unpaid.run('pay-4', 'com-target', '2026-07-01', '2026-07-01', TARGET, NOW, NOW);
+  unpaid.run('pay-5', 'com-survivor', '2026-10-01', null, SURVIVOR, NOW, NOW);
 }
 
 function commitmentAccounts(): { account_id: string | null; id: string }[] {
