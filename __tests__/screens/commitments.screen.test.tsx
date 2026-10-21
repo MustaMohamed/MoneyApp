@@ -1,10 +1,12 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { Dimensions } from 'react-native';
 
 import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
+import { resolveCommitmentRowHeight } from '@/modules/commitments/screens/commitments/components/commitment_row.helpers';
 
 jest.mock('@/modules/commitments/screens/commitments/commitments.hook', () => ({
   useCommitments: jest.fn(),
@@ -273,6 +275,27 @@ describe('CommitmentsScreen', () => {
 
     expect(getByTestId('commitment-row-skeletons')).toBeTruthy();
     expect(queryByText('spinner')).toBeNull();
+  });
+
+  it('draws each row skeleton at the loaded row height with tile, name, due-day and amount bars', async () => {
+    mockUseCommitments({
+      hasCommitments: true,
+      paymentsLoaded: false,
+      presentation: 'coldLoading',
+      hasLoaded: false,
+      sections: [],
+    });
+
+    const { getAllByTestId } = await render(<CommitmentsScreen />);
+
+    const rows = getAllByTestId('commitment-row-skeleton');
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row).toHaveStyle({
+        height: resolveCommitmentRowHeight(Dimensions.get('window').fontScale),
+      });
+      expect(within(row).getAllByTestId('skeleton-item')).toHaveLength(4);
+    }
   });
 
   it('keeps the summary and search row mounted during the first commitments load', async () => {
