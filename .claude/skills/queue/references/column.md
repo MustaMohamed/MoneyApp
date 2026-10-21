@@ -50,7 +50,7 @@ Project skills this run may use: issue-review, prep, ship, unslop, emulator-veri
 The lease ~/.ship/MoneyApp/queue/leases/<n> names this task id. The skill rewrites, touches and removes it per .claude/skills/queue/SKILL.md § Lease. Each lease this run writes on a child carries the same task= line.
 A question you cannot answer is parked as a record per .claude/skills/issue-review/references/question-record.md, and the run ends.
 A refused call is never turned into a permission request. It goes into your log line's note, and the run goes on or ends.
-/ship: write the merge summary to ~/.ship/MoneyApp/queue/ship-<n>-summary.md. It holds the heading `## Questions that should have been asked earlier` over a table with the columns Record, Check: one row per `## Parked` line of state.md whose `miss:` is not `none`, the header row alone when there is none.
+/ship: write the merge summary to ~/.ship/MoneyApp/queue/ship-<n>-summary.md. It holds the heading `## Questions that should have been asked earlier` over a table with the columns Record, Check: one row per `## Parked` line of state.md that carries a record URL and whose `miss:` is not `none`, the header row alone when there is none.
 Before your last message, add your line to ~/.ship/MoneyApp/queue/<yyyy-mm-dd>.md in the shape of .claude/skills/queue/references/column.md § Log, `, parent` after its outcome when issue #<n> has open sub-issues, the readings and the model you are running as in its note.
 ```
 

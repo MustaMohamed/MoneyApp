@@ -9,8 +9,8 @@ After the last re-check, before the summary. The plan never reaches main; the PR
 ```bash
 cd /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX
 git ls-files --error-unmatch .work/MA-XXX/plan.md >/dev/null 2>&1 \
-  && git rm -r -q .work/MA-XXX && git commit -m "plan(MA-XXX): remove the plan before merge" && git push \
-  && git show --stat HEAD           # one file, one deletion; paste it into the summary. Already removed (a second visit here): skip
+  && { git rm -r -q .work/MA-XXX && git commit -m "plan(MA-XXX): remove the plan before merge" && git push \
+  && git show --stat HEAD; echo "exit $?"; } 2>&1 | tail -20   # the push runs the pre-push hook; --stat: one file, one deletion, paste it into the summary. Already removed (a second visit here): skip
 ```
 
 A fix loop after this point (a change the user asks for, § A change after the summary) dispatches with `~/.ship/MoneyApp/MA-XXX/plan.md`, which is the same content.
@@ -19,9 +19,9 @@ A fix loop after this point (a change the user asks for, § A change after the s
 
 The run ends in this order:
 
-1. CI, re-read now: `gh pr checks <pr-url>`. Red below the cap of [SKILL.md](../SKILL.md) → Fix loop routes back through phase 3, and nothing below runs. At the cap, the red check is an item 1 finding and the steps below run.
+1. CI, re-read now, by the jq line of [SKILL.md](../SKILL.md) → Returns and reads. Red below the cap of [SKILL.md](../SKILL.md) → Fix loop routes back through phase 3, and nothing below runs. At the cap, the red check is an item 1 finding and the steps below run.
 2. `bash scripts/board.sh status <n> "Awaiting Human"`.
-3. The merge summary below, written to `~/.ship/MoneyApp/queue/ship-<n>-summary.md` by every run, typed or unattended.
+3. Phase 5's `conductor:` line, [SKILL.md](../SKILL.md) → Conductor budget, written to `state.md`; then the merge summary below, written to `~/.ship/MoneyApp/queue/ship-<n>-summary.md` by every run, typed or unattended.
 4. The PR body completed: `pr.md` keeps its three lines from phase 2 and gains the summary file's content from its item 1 on, the PR URL line left out; then `gh pr edit <pr-url> --body-file ~/.ship/MoneyApp/MA-XXX/pr.md`. The body is the PR's own record, read after `state.md` is gone; the summary file stays, the queue's measure reads it.
 5. Item 7's screenshots, sent with `SendUserFile`.
 6. An unattended run removes its lease, [queue § Lease](../../queue/SKILL.md), and writes its log line, [queue column.md](../../queue/references/column.md) § Log.
@@ -34,13 +34,13 @@ The summary is headed by the PR URL, then ten items in this order, each written 
 1. Findings `not fixed` at the cap of [SKILL.md](../SKILL.md) → Fix loop, each with its `path:line`.
 2. Decisions that reached "smallest change": the `state.md` → `## Decisions` lines whose who reads `conductor, smallest change`, each with its cost if wrong.
 3. The header Flags, verbatim, and the `REBUILD` line from `state.md` → Log.
-4. CI as step 1 read it: green, or a non-green check explained. The commits after the last re-check, the plan removal with its `--stat` and anything else, named; never present an unreviewed head as reviewed. Each lens whose `state.md` line reads `LSP: not used`.
+4. CI as step 1 read it: green, or a non-green check explained. The commits after the last re-check, the plan removal with its `--stat` and anything else, named; never present an unreviewed head as reviewed. Each lens whose `state.md` line reads `LSP: not used`. Last, the `state.md` `conductor:` line with the highest run total, from `conductor:` on, verbatim.
 5. What was built, one line per Acceptance line.
 6. Every other decision, under the heading `## Decisions the ticket or plan did not state`: a table with the columns Decision, Who, Cost if wrong, copy decisions first. It reads the `state.md` → `## Decisions` lines item 2 does not hold, and this run's `## Adjudications` lines that items 2 and 9 do not already hold, less those settled by `ticket text`.
 7. One screenshot per `Screen checks` row of `issue.md` on a body that has the section, else per screen the plan's Screens section lists, from `findings/render/`; then each state `state.md` → Log records as not probed.
 8. Tickets opened, by number.
 9. `rejected` findings, each with what settled it, per [SKILL.md](../SKILL.md) → Rulings: the ticket line quoted, the frame file, the convention's `path:line` or the smallest change's `## Decisions` line.
-10. Questions that should have been asked earlier, under the heading `## Questions that should have been asked earlier`: a table with the columns Record, Check, one row per `## Parked` line of `state.md` whose `miss:` is not `none`. Record is the line's record URL, Check is its miss. With no such line the heading and the header row are written alone, never `none`.
+10. Questions that should have been asked earlier, under the heading `## Questions that should have been asked earlier`: a table with the columns Record, Check, one row per `## Parked` line of `state.md` that carries a record URL and whose `miss:` is not `none`. Record is the line's record URL, Check is its miss. With no such line the heading and the header row are written alone, never `none`.
 
 Then wait, with a watch on the merge so the word "merged" is never needed. **The human merges, never the conductor.** A change asked after the summary: § A change after the summary.
 
@@ -55,7 +55,7 @@ An unattended run ends at step 7 with no watch. `/queue` runs § After the merge
 
 ## A change after the summary
 
-A message in the task after the summary, or a PR comment, review or review comment created after the summary file's last write, is a finding of a new triage. [queue column.md](../../queue/references/column.md) § Changes asked at Awaiting Human has the read. A resume at phase 5 runs that read first. Before phase 5 writes the summary file again, it reads for anything newer than the previous file's last write, and a change not yet triaged goes through this section first. Each PR comment, review or review comment triaged, at the cap too, is a `state.md` Log line ending in its URL, `- <date> change triaged: <url>`, and the read skips a URL `state.md` holds.
+A message in the task after the summary, or a PR comment, review or review comment created after the summary file's last write, is a finding of a new triage. [queue column.md](../../queue/references/column.md) § Changes asked at Awaiting Human has the count. The URLs are its `asks` function with the last stage, `| wc -l | tr -d ' '`, replaced by `| head -20`. Each is read alone, its fragment mapped to an API path: `#issuecomment-<id>` to `repos/MustaMohamed/MoneyApp/issues/comments/<id>`, `#pullrequestreview-<id>` to `repos/MustaMohamed/MoneyApp/pulls/<pr>/reviews/<id>`, `#discussion_r<id>` to `repos/MustaMohamed/MoneyApp/pulls/comments/<id>`. The read is `gh api <path> --jq .body | sed -n '1,40p'`, then the next 40 lines while the last read filled its window: by line range, as a report is, never cut to `tail -20`. A resume at phase 5 runs that read first. Before phase 5 writes the summary file again, it reads for anything newer than the previous file's last write, and a change not yet triaged goes through this section first. Each PR comment, review or review comment triaged, at the cap too, is a `state.md` Log line ending in its URL, `- <date> change triaged: <url>`, and the read skips a URL `state.md` holds.
 
 Below the cap of [SKILL.md](../SKILL.md) → Fix loop, the return, in this order: `bash scripts/board.sh status <n> "In Review"`; the lease written whole before the next dispatch, [SKILL.md](../SKILL.md) → Lease and working folder; then phase 3. At the cap nothing is dispatched: the change is `not fixed`, or a ticket by a deferral of [triage.md](triage.md) item 6, and phase 5 writes the summary again.
 
@@ -65,7 +65,7 @@ Two callers run this list: the `/ship` session whose watch fired, and `/queue` o
 
 Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the end. In order:
 
-1. Confirm: `gh pr view <pr-url> --json state,mergedAt`, always with the URL. Then `git -C /Users/musta/Code/projects/practice/MoneyApp checkout main && git pull --ff-only origin main`.
+1. Confirm: `gh pr view <pr-url> --json state,mergedAt`, always with the URL. Then `{ git -C /Users/musta/Code/projects/practice/MoneyApp checkout main && git pull --ff-only origin main; echo "exit $?"; } 2>&1 | tail -20`.
 2. Size write-back, one line on the ticket, so the next planner sees the calibration. Skip it when `gh issue view <issue> --json comments --jq '[.comments[].body | select(startswith("Delivered: "))] | length'` prints more than 0; `Delivered: ` is the prefix `pr_size.mjs` prints. `pr_size.mjs` prints the delivered half, counted as `.claude/skills/tickets/references/splitting.md` § Size gate counts it. `<planned>` is the figure from the plan header:
 
    ```bash
@@ -80,7 +80,7 @@ Run CLAUDE.md's post-merge list, "After I merge a PR", and one more step at the 
 
 ## Checklist
 
-- [ ] Ten items in order, `none` where empty, item 10's heading and table header row written; CI read after the last push
+- [ ] Ten items in order, `none` where empty, item 4 carrying the `conductor:` line with the highest run total, item 10's heading and table header row written; CI read after the last push
 - [ ] Summary in `~/.ship/MoneyApp/queue/ship-<n>-summary.md`, PR body completed with the summary, screenshots sent, summary the last message; nothing else posted on the issue or the PR
 - [ ] Plan removed from the branch before the summary; `git ls-tree origin/main .work` prints nothing after the merge
 - [ ] Merge verified by URL; issue closed; Done and `promote` run
