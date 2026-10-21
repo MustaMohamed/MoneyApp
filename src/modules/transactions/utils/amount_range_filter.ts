@@ -75,10 +75,9 @@ export function formatAmountSummary(bounds: AmountRangeBounds): string {
   if (amountMin === undefined) {
     return amountMax === undefined
       ? Strings.filterSummaryAmountEmpty
-      : `${Strings.filterSummaryAmountUpTo} ${boundWithCode(amountMax)}`;
+      : Strings.filterSummaryAmountUpTo(boundWithCode(amountMax));
   }
-  if (amountMax === undefined)
-    return `${Strings.filterSummaryAmountFrom} ${boundWithCode(amountMin)}`;
+  if (amountMax === undefined) return Strings.filterSummaryAmountFrom(boundWithCode(amountMin));
   return `${bound(amountMin)}–${boundWithCode(amountMax)}`;
 }
 

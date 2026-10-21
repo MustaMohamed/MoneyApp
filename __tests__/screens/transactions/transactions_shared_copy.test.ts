@@ -93,8 +93,18 @@ describe('strings the transactions module shares with other modules', () => {
       Strings.filterSummaryAmountEmpty,
       'Any amount',
     ],
-    ['filterSummaryAmountUpTo', AMOUNT_RANGE_FILTER, Strings.filterSummaryAmountUpTo, 'Up to'],
-    ['filterSummaryAmountFrom', AMOUNT_RANGE_FILTER, Strings.filterSummaryAmountFrom, 'From'],
+    [
+      "filterSummaryAmountUpTo('5,000 EGP')",
+      AMOUNT_RANGE_FILTER,
+      Strings.filterSummaryAmountUpTo('5,000 EGP'),
+      'Up to 5,000 EGP',
+    ],
+    [
+      "filterSummaryAmountFrom('1,000 EGP')",
+      AMOUNT_RANGE_FILTER,
+      Strings.filterSummaryAmountFrom('1,000 EGP'),
+      'From 1,000 EGP',
+    ],
     [
       'swipeEdit',
       'budget named_budget_row.tsx and commitments commitment_row.tsx',

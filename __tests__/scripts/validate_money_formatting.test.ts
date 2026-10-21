@@ -13,12 +13,7 @@ const transactionsHelpersRel =
   'src/modules/transactions/screens/transactions/transactions.helpers.ts';
 const stringsRel = 'src/constants/strings.ts';
 // Every path an allowlist in the script names, in `git ls-files` order.
-const allowlistedRels = [
-  stringsRel,
-  transactionsHelpersRel,
-  'src/modules/transactions/utils/amount_range_filter.ts',
-  'src/utils/format_amount.ts',
-];
+const allowlistedRels = [stringsRel, transactionsHelpersRel, 'src/utils/format_amount.ts'];
 
 const stubDirs: string[] = [];
 
