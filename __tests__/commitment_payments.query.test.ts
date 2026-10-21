@@ -169,7 +169,7 @@ describe('getPaymentsByMonth — December year-wrap', () => {
     });
     await addPayments(mockDb, [decPayment, janPayment]);
 
-    const results = await getPaymentsByMonth(mockDb, '2025-12');
+    const results = await getPaymentsByMonth(mockDb, '2025-12', '2025-12-01');
     const ids = results.map((r) => r.id);
     expect(ids).toContain('pay-dec-1');
     expect(ids).not.toContain('pay-jan-1');
@@ -192,7 +192,7 @@ describe('getPaymentsByMonth', () => {
     });
     await addPayments(mockDb, [p1, p2, p3]);
 
-    const results = await getPaymentsByMonth(mockDb, '2026-05');
+    const results = await getPaymentsByMonth(mockDb, '2026-05', '2026-05-01');
     const ids = results.map((r) => r.id);
     expect(ids).toContain('pay-may-1');
     expect(ids).toContain('pay-may-15');
@@ -343,11 +343,11 @@ describe('insertPaymentRows', () => {
 
     expect(runAsync).toHaveBeenCalledTimes(1);
     expect(String(runAsync.mock.calls[0][0])).toContain('INSERT OR IGNORE');
-    expect(runAsync.mock.calls[0][1]).toHaveLength(60 * 15);
+    expect(runAsync.mock.calls[0][1]).toHaveLength(60 * 14);
     first.resolve({ changes: 1, lastInsertRowId: 1 });
     await Promise.resolve();
     expect(runAsync).toHaveBeenCalledTimes(2);
-    expect(runAsync.mock.calls[1][1]).toHaveLength(15);
+    expect(runAsync.mock.calls[1][1]).toHaveLength(14);
     second.resolve({ changes: 1, lastInsertRowId: 2 });
     await promise;
 
@@ -391,7 +391,9 @@ describe('getActiveCommitmentDueDates', () => {
       )
       .all() as Array<{ name: string }>;
 
-    expect(plan.map((row) => row.detail).join('\n')).toContain('idx_cp_commitment_id');
+    const details = plan.map((row) => row.detail).join('\n');
+    expect(details).not.toMatch(/SCAN payment(?! USING)/);
+    expect(details).not.toContain('USE TEMP B-TREE FOR ORDER BY');
     expect(indexNames.map((row) => row.name)).toEqual(
       expect.arrayContaining(['idx_cp_commitment_id', 'idx_cp_due_date']),
     );
