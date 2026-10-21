@@ -1,17 +1,17 @@
 import { create } from 'zustand';
 
 import { AmountType, Currency, RecurrencePreset } from '@/constants/enums';
-import { parseAmountInput } from '@/modules/transactions/utils/amount_range_filter';
+import {
+  type AmountRangeBounds,
+  parseAmountInput,
+} from '@/modules/transactions/utils/amount_range_filter';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-export interface CommitmentAdvancedFilters {
+export interface CommitmentAdvancedFilters extends AmountRangeBounds {
   accountIds: string[];
   categoryIds: string[];
-  amountCurrency: Currency;
   amountTypes: AmountType[];
   recurrencePresets: RecurrencePreset[];
-  amountMin?: number;
-  amountMax?: number;
 }
 
 export const EMPTY_COMMITMENT_FILTERS: CommitmentAdvancedFilters = {

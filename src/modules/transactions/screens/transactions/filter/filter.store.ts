@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 
 import { Currency } from '@/constants/enums';
-import { parseAmountInput } from '@/modules/transactions/utils/amount_range_filter';
+import {
+  type AmountRangeBounds,
+  parseAmountInput,
+} from '@/modules/transactions/utils/amount_range_filter';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-export interface AdvancedFilters {
+export interface AdvancedFilters extends AmountRangeBounds {
   accountIds: string[];
   categoryIds: string[];
-  amountCurrency: Currency;
-  amountMin?: number;
-  amountMax?: number;
 }
 
 export const EMPTY_FILTERS: AdvancedFilters = {
