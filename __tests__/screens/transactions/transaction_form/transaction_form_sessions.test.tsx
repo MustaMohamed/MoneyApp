@@ -86,16 +86,13 @@ jest.mock(
   }),
 );
 
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/components/no_accounts_empty',
-  () => ({
-    NoAccountsEmpty: ({ onAddAccount }: { onAddAccount: () => void }) => {
-      const { Pressable: RNPressable } =
-        jest.requireActual<typeof import('react-native')>('react-native');
-      return <RNPressable testID="transaction-form-no-accounts" onPress={onAddAccount} />;
-    },
-  }),
-);
+jest.mock('@/components/ui/no_accounts_empty', () => ({
+  NoAccountsEmpty: ({ onAddAccount }: { onAddAccount: () => void }) => {
+    const { Pressable: RNPressable } =
+      jest.requireActual<typeof import('react-native')>('react-native');
+    return <RNPressable testID="transaction-form-no-accounts" onPress={onAddAccount} />;
+  },
+}));
 
 jest.mock('@/modules/accounts/components/account_picker_sheet', () => ({
   AccountPickerSheet: () => {

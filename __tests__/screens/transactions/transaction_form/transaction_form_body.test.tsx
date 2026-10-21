@@ -3,6 +3,13 @@ import React from 'react';
 import { Dimensions } from 'react-native';
 
 import { FACT_ROW_PADDING, resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
+import {
+  ACCOUNT_STRIP_CHIP_RADIUS,
+  ACCOUNT_STRIP_CHIP_WIDTH,
+  ACCOUNT_STRIP_GAP,
+  AMOUNT_MESSAGE_TEXT_STYLE,
+  resolveAccountStripChipGeometry,
+} from '@/components/ui/form_sheet.geometry';
 import { scaledTextStyle, scaledTextStyleAboveOne } from '@/components/ui/text_scale.geometry';
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -53,42 +60,32 @@ jest.mock('@/components/ui/sheet', () => {
 });
 const mockAmountHeroProps: Array<{ invalid?: boolean }> = [];
 jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/components/amount_hero',
+  '@/modules/transactions/screens/transactions/transaction_form/components/transaction_amount_hero',
   () => {
     const ReactLocal = jest.requireActual<typeof import('react')>('react');
     const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
     return {
-      AmountHero: (props: { invalid?: boolean }) => {
+      TransactionAmountHero: (props: { invalid?: boolean }) => {
         mockAmountHeroProps.push(props);
         return ReactLocal.createElement(RNView, { testID: 'amount-hero' });
       },
     };
   },
 );
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/components/date_row',
-  () => {
-    const ReactLocal = jest.requireActual<typeof import('react')>('react');
-    const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
-    return { DateRow: () => ReactLocal.createElement(RNView, { testID: 'date-row' }) };
-  },
-);
+jest.mock('@/components/ui/date_row', () => {
+  const ReactLocal = jest.requireActual<typeof import('react')>('react');
+  const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
+  return { DateRow: () => ReactLocal.createElement(RNView, { testID: 'date-row' }) };
+});
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/type_tabs',
   () => ({ TypeTabs: () => null }),
 );
 
+import { useRateEditorSheetState } from '@/components/ui/rate_editor_sheet.state';
 import { ExchangeRateRow } from '@/modules/transactions/components/exchange_rate_row';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
-import { useRateEditorSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/rate_editor_sheet.state';
-import {
-  ACCOUNT_STRIP_CHIP_RADIUS,
-  ACCOUNT_STRIP_CHIP_WIDTH,
-  ACCOUNT_STRIP_GAP,
-  AMOUNT_MESSAGE_TEXT_STYLE,
-  TRANSACTION_FORM_CONTENT_CONTAINER_STYLE,
-  resolveAccountStripChipGeometry,
-} from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
+import { TRANSACTION_FORM_CONTENT_CONTAINER_STYLE } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form.geometry';
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 import {
@@ -295,6 +292,19 @@ describe('TransactionFormBody geometry', () => {
     await fireEvent.press(screen.getByTestId('category-row'));
     expect(onSelectStripChip).toHaveBeenCalledWith(stripAccount.id);
     expect(onOpenCategoryPicker).toHaveBeenCalledTimes(1);
+  });
+
+  it("MA-206: keeps the strip chip's own corners over the selectable pill's segment radius", async () => {
+    await render(
+      <TransactionFormBody
+        {...baseProps}
+        stripChips={resolveAccountStripChips([stripAccount], stripAccount.id)}
+      />,
+    );
+
+    expect(screen.getByTestId('account-strip-chip-account-1')).toHaveStyle({
+      borderRadius: ACCOUNT_STRIP_CHIP_RADIUS,
+    });
   });
 });
 

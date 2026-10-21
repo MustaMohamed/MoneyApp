@@ -61,11 +61,11 @@ jest.mock('@/components/ui/button', () => ({
   },
 }));
 
+import { useDatePickerSheetState } from '@/components/ui/date_picker_sheet.state';
+import { DateRow } from '@/components/ui/date_row';
 import { resolveFactRowHeight } from '@/components/ui/fact_row.geometry';
 import { resolveSheetSizeAboveOne } from '@/components/ui/sheet.helpers';
 import { Strings } from '@/constants/strings';
-import { useDatePickerSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/date_picker_sheet.state';
-import { DateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/date_row';
 import { useTransactionFormState } from '@/modules/transactions/store/transaction_form_host.state';
 
 describe('transaction date picker', () => {

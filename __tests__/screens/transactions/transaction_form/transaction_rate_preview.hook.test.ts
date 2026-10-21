@@ -26,10 +26,9 @@ async function preview(input: {
       type: input.type ?? TransactionType.Expense,
       sourceCurrency: input.sourceCurrency ?? Currency.USD,
       destinationCurrency: input.destinationCurrency,
-      exchangeRate: input.exchangeRate ?? RATE,
     }),
   );
-  return result.current;
+  return result.current(input.exchangeRate ?? RATE);
 }
 
 describe('useTransactionRatePreview', () => {
@@ -62,21 +61,17 @@ describe('useTransactionRatePreview', () => {
 
   it('follows the rate as it is typed', async () => {
     useAddTransactionStore.getState().setAmountStr('100');
-    const { result, rerender } = await renderHook(
-      ({ exchangeRate }: { exchangeRate: string }) =>
-        useTransactionRatePreview({
-          mode: 'add',
-          type: TransactionType.Expense,
-          sourceCurrency: Currency.USD,
-          destinationCurrency: undefined,
-          exchangeRate,
-        }),
-      { initialProps: { exchangeRate: RATE } },
+    const { result } = await renderHook(() =>
+      useTransactionRatePreview({
+        mode: 'add',
+        type: TransactionType.Expense,
+        sourceCurrency: Currency.USD,
+        destinationCurrency: undefined,
+      }),
     );
 
-    await rerender({ exchangeRate: '50' });
-
-    expect(result.current).toEqual({ amount: 5000, currency: Currency.EGP });
+    expect(result.current(RATE)).toEqual({ amount: 4906, currency: Currency.EGP });
+    expect(result.current('50')).toEqual({ amount: 5000, currency: Currency.EGP });
   });
 
   it('follows the amount as it is typed', async () => {
@@ -87,13 +82,12 @@ describe('useTransactionRatePreview', () => {
         type: TransactionType.Expense,
         sourceCurrency: Currency.USD,
         destinationCurrency: undefined,
-        exchangeRate: RATE,
       }),
     );
 
     await act(() => useAddTransactionStore.getState().setAmountStr('200'));
 
-    expect(result.current).toEqual({ amount: 9812, currency: Currency.EGP });
+    expect(result.current(RATE)).toEqual({ amount: 9812, currency: Currency.EGP });
   });
 
   // Each row is a throw condition of the domain resolver; resolveConvertedAmount gates or catches it, so the hook never throws in render.
@@ -141,11 +135,10 @@ describe('useTransactionRatePreview', () => {
         type: TransactionType.Expense,
         sourceCurrency: undefined,
         destinationCurrency: undefined,
-        exchangeRate: RATE,
       }),
     );
 
-    expect(result.current).toBeUndefined();
+    expect(result.current(RATE)).toBeUndefined();
   });
 
   it('reads the edit store in edit mode', async () => {
@@ -157,10 +150,9 @@ describe('useTransactionRatePreview', () => {
         type: TransactionType.Expense,
         sourceCurrency: Currency.USD,
         destinationCurrency: undefined,
-        exchangeRate: RATE,
       }),
     );
 
-    expect(result.current).toEqual({ amount: 4906, currency: Currency.EGP });
+    expect(result.current(RATE)).toEqual({ amount: 4906, currency: Currency.EGP });
   });
 });
