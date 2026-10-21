@@ -159,8 +159,9 @@ Two independent walks of MA-007, same branch, same defect surface:
 | Found the regression | no | **yes** |
 
 Add a scenario only when you can say **what device-only failure it catches**. Four is a
-normal size. If a claim can be checked with `mqa db`, check it there rather than reading it
-off a screen.
+normal size. The invariant pass of the invariant list, `features/README.md` § Invariant
+pass, runs on at most eight screens outside that count and is not going wide. If a claim
+can be checked with `mqa db`, check it there rather than reading it off a screen.
 
 ## Sync on the value you assert
 
@@ -344,7 +345,7 @@ device QA: this is "verified on emulator", never "QA passed".
 | Reading or waiting on a loading skeleton | It never goes idle, so every read costs 30 s and fails. `shot` it. |
 | `scroll` inside a sheet from a full-screen drag | Pass `--in 'id="<the sheet's scroll view>"'` so the drag starts inside the list. |
 | `scroll --until` as the first call after a launch, `mqa open` or a tap that navigates | `reached <sel> after 1 swipes`, exit 0, on a target the loaded screen shows with no scroll. `mqa wait` first (§ Sync on the value you assert). |
-| Going wide "to be safe" | Measured on MA-007: the 9-scenario walk cost 2× the 4-scenario one **and missed the defect the short one found**. |
+| Going wide "to be safe" | Measured on MA-007: the 9-scenario walk cost 2× the 4-scenario one **and missed the defect the short one found**. The invariant pass of the invariant list, on at most eight screens beside the scenarios, is not going wide. |
 | A walk driven one tool call per tap | Every call is a model turn. Put the scenario in a script and run `mqa walk`. |
 | Waiting on a nearby label, then reading the value | The value can lag the label (MA-102 totals strip). `mqa wait` on the value itself. |
 | Mixing engines in one run | The uiautomator engine refuses while an agent-device session holds the device. `mqa down` first, or stay on one engine. |
