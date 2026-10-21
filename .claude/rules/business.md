@@ -3,6 +3,8 @@ paths:
   - "src/modules/onboarding/**"
   - "src/modules/accounts/**"
   - "src/modules/dashboard/**"
+  - "src/modules/categories/**"
+  - "src/modules/commitments/**"
   - "src/app/index.tsx"
   - "src/constants/secure_store_keys.ts"
 ---
@@ -19,4 +21,4 @@ Other files cite these by number ("business rule 6"); keep the numbering.
 6. `current_balance = opening_balance` at account creation.
 7. Credit card accounts are liabilities (negative net-worth).
 8. Account names are unique across all accounts.
-9. Account, category and commitment names are non-blank. A save refuses a name that is blank once its edge whitespace is stripped, per `docs/adr/2026-09-15-trim-stored-names-in-place.md` §1. A stored name that already strips to `''` stays as stored (§3).
+9. Account, category and commitment names are non-blank. A save refuses a name that is blank once its edge whitespace is stripped, by `stripNameEdges` for categories and commitments (`docs/adr/2026-09-15-trim-stored-names-in-place.md` §1) and by Zod's `.trim()` for accounts (§1, last paragraph). A stored name that already strips to `''` stays as stored (§3).
