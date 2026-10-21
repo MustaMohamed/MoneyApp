@@ -1,6 +1,6 @@
 # Invariant list
 
-/boundaries' code scout and its lock read this list, and /issue-review's S3 checks locked Rules against it. Both write a line the work meets as one Rule in one shape: the line's invariant, the screens it binds, and on a `grep` line every hit as a `path:line` site. `<files>` in a command means the files the work touches. A ticket that adds a line here carries CLAUDE.md critical trigger 2 in its Rules.
+/boundaries' code scout and its lock read this list, and /issue-review's S3 checks locked Rules against it. The lock and S3 write each line the work meets as one Rule, in one shape: the line's invariant, the screens it binds, and on a `grep` line every hit as a `path:line` site. `<files>` in a command means the files the work touches. A ticket that adds a line here carries CLAUDE.md critical trigger 2 in its Rules.
 
 Marks: `device` is proven on the emulator, `grep` carries the command that lists its sites, and `test` names the jest suite that computes it.
 
