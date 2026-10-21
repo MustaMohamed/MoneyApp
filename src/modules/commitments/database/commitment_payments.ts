@@ -1,12 +1,18 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { AmountType, Currency } from '@/constants/enums';
 import { applyAccountDelta } from '@/modules/accounts/database/accounts';
 import { insertTransactionRow } from '@/modules/transactions/database/transactions';
 import type { AccountDelta } from '@/modules/transactions/domain/transaction_policy';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { shiftYearMonth } from '@/utils/year_month';
 
+import type {
+  CommitmentHeldBucket,
+  CommitmentMonthAggregate,
+} from '../domain/commitment_month_totals';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
-import { paidPaymentSql, unpaidPaymentSql } from './payment_state_sql';
+import { paidPaymentSql, skippedPaymentSql, unpaidPaymentSql } from './payment_state_sql';
 
 const INSERT_PAYMENT_PREFIX = `INSERT OR IGNORE INTO commitment_payments
   (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid,
@@ -73,6 +79,110 @@ export async function getPaymentsByMonth(
      ORDER BY due_date ASC, id ASC`,
     [monthStart, nextMonthStr, carriedBefore],
   );
+}
+
+/** `yearMonth` is `YYYY-MM`; `today` and `carriedBefore` are `YYYY-MM-DD`; no `accountId` means every account. */
+export interface PaymentMonthAggregateScope {
+  yearMonth: string;
+  today: string;
+  carriedBefore: string;
+  accountId?: string;
+}
+
+const HELD_BUCKETS = ['skipped', 'overdue', 'due', 'upcoming', 'carried'] as const;
+type HeldBucketName = (typeof HELD_BUCKETS)[number];
+type HeldColumn = `${HeldBucketName}_${'egp' | 'usd' | 'count' | 'variable'}`;
+type PaymentMonthAggregateRow = Record<'paid_egp' | 'paid_count' | HeldColumn, number>;
+
+const HELD_COLUMNS_SQL = HELD_BUCKETS.map(
+  (bucket) =>
+    `COALESCE(SUM(CASE WHEN bucket = '${bucket}' THEN egp_due END), 0) AS ${bucket}_egp,
+     COALESCE(SUM(CASE WHEN bucket = '${bucket}' THEN usd_due END), 0) AS ${bucket}_usd,
+     COUNT(CASE WHEN bucket = '${bucket}' THEN 1 END) AS ${bucket}_count,
+     COALESCE(MAX(CASE WHEN bucket = '${bucket}' THEN is_variable END), 0) AS ${bucket}_variable`,
+).join(',\n');
+
+const HELD_LEGS_SQL = `CASE WHEN payment.currency = ? THEN payment.amount_due END AS egp_due,
+       CASE WHEN payment.currency = ? THEN payment.amount_due END AS usd_due`;
+const PAYMENT_JOINS_SQL = `FROM commitment_payments payment INDEXED BY idx_cp_due_date
+       JOIN commitments commitment ON commitment.id = payment.commitment_id
+       LEFT JOIN transactions transaction_row ON transaction_row.id = payment.transaction_id`;
+
+function heldBucket(
+  row: PaymentMonthAggregateRow | null,
+  bucket: HeldBucketName,
+): CommitmentHeldBucket {
+  return {
+    egp: row?.[`${bucket}_egp`] ?? 0,
+    usd: row?.[`${bucket}_usd`] ?? 0,
+    count: row?.[`${bucket}_count`] ?? 0,
+    hasVariable: row?.[`${bucket}_variable`] === 1,
+  };
+}
+
+/** The month's rows and the carried unpaid rows of `getPaymentsByMonth`, summed per state against `today`. */
+export async function getPaymentMonthAggregate(
+  db: SQLiteDatabase,
+  scope: PaymentMonthAggregateScope,
+): Promise<CommitmentMonthAggregate> {
+  const monthStart = `${scope.yearMonth}-01`;
+  const nextMonthStart = `${shiftYearMonth(scope.yearMonth, 1)}-01`;
+  const accountSql =
+    scope.accountId === undefined
+      ? ''
+      : 'AND COALESCE(payment.account_id, commitment.account_id) = ?';
+  const accountParams = scope.accountId === undefined ? [] : [scope.accountId];
+  const legParams = [Currency.EGP, Currency.USD, AmountType.Variable];
+
+  const row = await db.getFirstAsync<PaymentMonthAggregateRow>(
+    `SELECT
+       COALESCE(SUM(CASE WHEN bucket = 'paid' THEN paid_egp END), 0) AS paid_egp,
+       COUNT(CASE WHEN bucket = 'paid' THEN 1 END) AS paid_count,
+       ${HELD_COLUMNS_SQL}
+     FROM (
+       SELECT
+         CASE
+           WHEN ${paidPaymentSql('payment')} THEN 'paid'
+           WHEN ${skippedPaymentSql('payment')} THEN 'skipped'
+           WHEN payment.due_date < ? THEN 'overdue'
+           WHEN payment.due_date = ? THEN 'due'
+           ELSE 'upcoming'
+         END AS bucket,
+         transaction_row.egp_amount AS paid_egp,
+         ${HELD_LEGS_SQL},
+         commitment.amount_type = ? AS is_variable
+       ${PAYMENT_JOINS_SQL}
+       WHERE payment.due_date >= ? AND payment.due_date < ? ${accountSql}
+       UNION ALL
+       SELECT
+         'carried' AS bucket,
+         NULL AS paid_egp,
+         ${HELD_LEGS_SQL},
+         commitment.amount_type = ? AS is_variable
+       ${PAYMENT_JOINS_SQL}
+       WHERE payment.due_date < ? AND ${unpaidPaymentSql('payment')} ${accountSql}
+     )`,
+    [
+      scope.today,
+      scope.today,
+      ...legParams,
+      monthStart,
+      nextMonthStart,
+      ...accountParams,
+      ...legParams,
+      scope.carriedBefore,
+      ...accountParams,
+    ],
+  );
+
+  return {
+    paid: { egp: row?.paid_egp ?? 0, count: row?.paid_count ?? 0 },
+    skipped: heldBucket(row, 'skipped'),
+    overdue: heldBucket(row, 'overdue'),
+    due: heldBucket(row, 'due'),
+    upcoming: heldBucket(row, 'upcoming'),
+    carried: heldBucket(row, 'carried'),
+  };
 }
 
 export async function getPaymentsByCommitment(

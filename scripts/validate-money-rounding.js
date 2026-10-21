@@ -18,6 +18,7 @@ const PERMITTED = {
     'src/modules/accounts/domain/account_figures.ts',
     'src/modules/accounts/repositories/account.repository.ts',
     'src/modules/budget/repositories/budget.repository.ts',
+    'src/modules/commitments/domain/commitment_month_totals.ts',
     'src/modules/commitments/repositories/commitment.repository.ts',
     'src/modules/dashboard/screens/dashboard/dashboard.helpers.ts',
     'src/modules/onboarding/domain/approximation_pill.ts',
