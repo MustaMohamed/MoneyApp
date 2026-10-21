@@ -15,19 +15,26 @@ export function explainQueryPlan(db: RealSQLiteDatabase, sql: string, rest: unkn
     .map((row) => row.detail);
 }
 
+/** One `INSERT` per record, its columns named by the record's keys. */
+export function insertRecords(
+  db: RealSQLiteDatabase,
+  table: string,
+  records: readonly object[],
+): void {
+  for (const record of records) {
+    const columns = Object.keys(record);
+    db.prepare(
+      `INSERT INTO ${table} (${columns.join(',')}) VALUES (${columns.map((column) => `@${column}`).join(',')})`,
+    ).run(record);
+  }
+}
+
 export function createSeededDatabase(
   seed: ReadonlyArray<readonly [table: string, records: readonly object[]]>,
 ): RealSQLiteDatabase {
   const db = new Database(':memory:');
   db.pragma('foreign_keys = ON');
   db.exec(MIGRATIONS.map((migration) => migration.up).join('\n'));
-  for (const [table, records] of seed) {
-    for (const record of records) {
-      const columns = Object.keys(record);
-      db.prepare(
-        `INSERT INTO ${table} (${columns.join(',')}) VALUES (${columns.map((column) => `@${column}`).join(',')})`,
-      ).run(record);
-    }
-  }
+  for (const [table, records] of seed) insertRecords(db, table, records);
   return db;
 }

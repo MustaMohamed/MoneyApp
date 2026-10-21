@@ -2,12 +2,13 @@ import type {
   CommitmentHeldBucket,
   CommitmentMonthAggregate,
   CommitmentMonthTotals,
+  HeldBucketName,
 } from '@/modules/commitments/domain/commitment_month_totals';
-import { computeCommitmentMonthTotals } from '@/modules/commitments/domain/commitment_month_totals';
-
-type HeldBucketName = 'skipped' | 'overdue' | 'due' | 'upcoming' | 'carried';
-
-const HELD_BUCKETS: HeldBucketName[] = ['skipped', 'overdue', 'due', 'upcoming', 'carried'];
+import {
+  CommitmentMonthTotalsError,
+  computeCommitmentMonthTotals,
+  HELD_BUCKETS,
+} from '@/modules/commitments/domain/commitment_month_totals';
 
 function held(overrides: Partial<CommitmentHeldBucket> = {}): CommitmentHeldBucket {
   return { egp: 0, usd: 0, count: 0, hasVariable: false, ...overrides };
@@ -158,19 +159,22 @@ describe('computeCommitmentMonthTotals — an empty month', () => {
 
 describe('computeCommitmentMonthTotals — the rate', () => {
   it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
-    'throws RangeError at rate %p with a USD leg',
+    'throws CommitmentMonthTotalsError at rate %p with a USD leg',
     (rate) => {
       expect(() =>
         computeCommitmentMonthTotals(aggregate({ due: held({ usd: 10, count: 1 }) }), rate),
-      ).toThrow(RangeError);
+      ).toThrow(CommitmentMonthTotalsError);
     },
   );
 
-  it.each(HELD_BUCKETS)('throws RangeError at rate 0 with a USD leg in %s', (bucket) => {
-    expect(() =>
-      computeCommitmentMonthTotals(aggregate(withBucket(bucket, held({ usd: 1, count: 1 }))), 0),
-    ).toThrow(RangeError);
-  });
+  it.each(HELD_BUCKETS)(
+    'throws CommitmentMonthTotalsError at rate 0 with a USD leg in %s',
+    (bucket) => {
+      expect(() =>
+        computeCommitmentMonthTotals(aggregate(withBucket(bucket, held({ usd: 1, count: 1 }))), 0),
+      ).toThrow(CommitmentMonthTotalsError);
+    },
+  );
 
   it('returns the figures at rate 0 when no bucket has a USD leg', () => {
     const totals = computeCommitmentMonthTotals(

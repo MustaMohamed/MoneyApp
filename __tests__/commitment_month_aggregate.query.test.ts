@@ -11,9 +11,11 @@ import {
   getPaymentsByMonth,
   type PaymentMonthAggregateScope,
 } from '@/modules/commitments/database/commitment_payments';
-import type {
-  CommitmentHeldBucket,
-  CommitmentMonthAggregate,
+import {
+  type CommitmentHeldBucket,
+  type CommitmentMonthAggregate,
+  HELD_BUCKETS,
+  type HeldBucketName,
 } from '@/modules/commitments/domain/commitment_month_totals';
 import { carriedDueBound, resolvePaymentState } from '@/modules/commitments/domain/payment_state';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
@@ -23,6 +25,7 @@ import { bridgeBetterSQLite, getExpoSQLiteTestDatabase } from '@/test_helpers/sq
 import {
   createSeededDatabase,
   explainQueryPlan,
+  insertRecords,
   type RealSQLiteDatabase,
 } from '@/test_helpers/sqlite_fixtures';
 import { makeTestAccount, makeTestTransaction } from '@/test_helpers/transaction';
@@ -178,27 +181,13 @@ const EMPTY: CommitmentMonthAggregate = {
   carried: held(),
 };
 
-type HeldBucketName = 'skipped' | 'overdue' | 'due' | 'upcoming' | 'carried';
-const HELD_BUCKETS: HeldBucketName[] = ['skipped', 'overdue', 'due', 'upcoming', 'carried'];
-
 const sqlite = getExpoSQLiteTestDatabase();
 const db = sqlite.database;
 let realDb: RealSQLiteDatabase;
 
-function insertAll(table: string, records: readonly object[]): void {
-  for (const record of records) {
-    const columns = Object.keys(record);
-    realDb
-      .prepare(
-        `INSERT INTO ${table} (${columns.join(',')}) VALUES (${columns.map((column) => `@${column}`).join(',')})`,
-      )
-      .run(record);
-  }
-}
-
 function seed({ payments, transactions }: Seed): void {
-  insertAll('transactions', transactions);
-  insertAll('commitment_payments', payments);
+  insertRecords(realDb, 'transactions', transactions);
+  insertRecords(realDb, 'commitment_payments', payments);
 }
 
 function aggregateFor(
@@ -224,7 +213,7 @@ beforeEach(() => {
   realDb.exec(
     'DELETE FROM commitment_payments; DELETE FROM transactions; DELETE FROM commitments;',
   );
-  insertAll('commitments', COMMITMENTS);
+  insertRecords(realDb, 'commitments', COMMITMENTS);
 });
 
 afterAll(() => {
@@ -615,6 +604,20 @@ describe('getPaymentMonthAggregate — an empty month', () => {
 });
 
 describe('getPaymentMonthAggregate — agreement with resolvePaymentState', () => {
+  // Each selected month's first and last day, and the next month's first day: [due date, amount, skipped].
+  const MONTH_EDGES: [string, number, boolean][] = [
+    ['2026-03-01', 1, false],
+    ['2026-03-31', 2, true],
+    ['2026-04-01', 4, false],
+    ['2026-04-30', 8, true],
+    ['2026-05-01', 16, true],
+    ['2026-05-31', 32, false],
+    ['2026-06-01', 64, false],
+    ['2026-07-01', 128, true],
+    ['2026-07-31', 256, false],
+    ['2026-08-01', 512, false],
+  ];
+
   beforeEach(() => {
     seed(
       rows(
@@ -642,6 +645,14 @@ describe('getPaymentMonthAggregate — agreement with resolvePaymentState', () =
         usdPayment({ id: 'may_due', due_date: '2026-05-15' }),
         payment({ id: 'may_upcoming', commitment_id: 'c_var', due_date: '2026-05-20' }),
         payment({ id: 'july_upcoming', due_date: '2026-07-05' }),
+        ...MONTH_EDGES.map(([dueDate, amount, isSkipped]) =>
+          (isSkipped ? skipped : payment)({
+            id: `edge_${dueDate}`,
+            commitment_id: 'c_bare',
+            due_date: dueDate,
+            amount_due: amount,
+          }),
+        ),
       ),
     );
   });
@@ -651,28 +662,53 @@ describe('getPaymentMonthAggregate — agreement with resolvePaymentState', () =
     ['2026-05', '2026-05-15'],
     ['2026-07', '2026-05-15'],
     ['2026-03', '2026-03-12'],
-  ])('%s with today %s: the per-state counts match the loaded rows', async (yearMonth, today) => {
-    const loaded = await getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today));
-    const countOf = (state: CommitmentPaymentStatus) =>
-      loaded.filter((row) => resolvePaymentState(row, today) === state).length;
+  ])(
+    '%s with today %s: the per-state counts and sums match the loaded rows',
+    async (yearMonth, today) => {
+      const loaded = await getPaymentsByMonth(db, yearMonth, carriedDueBound(yearMonth, today));
+      const inState = (state: CommitmentPaymentStatus) =>
+        loaded.filter((row) => resolvePaymentState(row, today) === state);
+      const countOf = (state: CommitmentPaymentStatus) => inState(state).length;
+      const legsOf = (state: CommitmentPaymentStatus) => {
+        const sum = (currency: Currency) =>
+          inState(state)
+            .filter((row) => row.currency === currency)
+            .reduce((total, row) => total + (row.amount_due ?? 0), 0);
+        return { egp: sum(Currency.EGP), usd: sum(Currency.USD) };
+      };
 
-    const aggregate = await aggregateFor(yearMonth, today);
+      const aggregate = await aggregateFor(yearMonth, today);
 
-    expect(loaded.length).toBeGreaterThan(0);
-    expect({
-      paid: aggregate.paid.count,
-      skipped: aggregate.skipped.count,
-      overdue: aggregate.overdue.count + aggregate.carried.count,
-      due: aggregate.due.count,
-      upcoming: aggregate.upcoming.count,
-    }).toEqual({
-      paid: countOf(CommitmentPaymentStatus.Paid),
-      skipped: countOf(CommitmentPaymentStatus.Skipped),
-      overdue: countOf(CommitmentPaymentStatus.Overdue),
-      due: countOf(CommitmentPaymentStatus.Due),
-      upcoming: countOf(CommitmentPaymentStatus.Upcoming),
-    });
-  });
+      expect(loaded.length).toBeGreaterThan(0);
+      expect({
+        paid: aggregate.paid.count,
+        skipped: aggregate.skipped.count,
+        overdue: aggregate.overdue.count + aggregate.carried.count,
+        due: aggregate.due.count,
+        upcoming: aggregate.upcoming.count,
+      }).toEqual({
+        paid: countOf(CommitmentPaymentStatus.Paid),
+        skipped: countOf(CommitmentPaymentStatus.Skipped),
+        overdue: countOf(CommitmentPaymentStatus.Overdue),
+        due: countOf(CommitmentPaymentStatus.Due),
+        upcoming: countOf(CommitmentPaymentStatus.Upcoming),
+      });
+      expect({
+        skipped: { egp: aggregate.skipped.egp, usd: aggregate.skipped.usd },
+        overdue: {
+          egp: aggregate.overdue.egp + aggregate.carried.egp,
+          usd: aggregate.overdue.usd + aggregate.carried.usd,
+        },
+        due: { egp: aggregate.due.egp, usd: aggregate.due.usd },
+        upcoming: { egp: aggregate.upcoming.egp, usd: aggregate.upcoming.usd },
+      }).toEqual({
+        skipped: legsOf(CommitmentPaymentStatus.Skipped),
+        overdue: legsOf(CommitmentPaymentStatus.Overdue),
+        due: legsOf(CommitmentPaymentStatus.Due),
+        upcoming: legsOf(CommitmentPaymentStatus.Upcoming),
+      });
+    },
+  );
 });
 
 describe('getPaymentMonthAggregate — query plan', () => {

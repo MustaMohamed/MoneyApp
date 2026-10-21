@@ -44,4 +44,4 @@ The SQL sums are raw. `computeCommitmentMonthTotals` converts each held bucket's
 
 Left to pay and Committed take `~` when the overdue, due or upcoming bucket holds a variable row, estimate or not. Skipped takes it when the skipped bucket does, and Overdue when the carried bucket does. Paid never takes it.
 
-When any held bucket has a USD leg, a rate that is not finite or is at most 0 throws `RangeError`, as `.claude/rules/money.md` asks of a conversion with USD involved. With no USD leg, the totals need no rate and any rate passes.
+When any held bucket has a USD leg, a rate that is not finite or is at most 0 throws `CommitmentMonthTotalsError`, as `.claude/rules/money.md` asks of a conversion with USD involved. With no USD leg, the totals need no rate and any rate passes.

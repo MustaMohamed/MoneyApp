@@ -7,9 +7,11 @@ import type { AccountDelta } from '@/modules/transactions/domain/transaction_pol
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { shiftYearMonth } from '@/utils/year_month';
 
-import type {
-  CommitmentHeldBucket,
-  CommitmentMonthAggregate,
+import {
+  type CommitmentHeldBucket,
+  type CommitmentMonthAggregate,
+  HELD_BUCKETS,
+  type HeldBucketName,
 } from '../domain/commitment_month_totals';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 import { paidPaymentSql, skippedPaymentSql, unpaidPaymentSql } from './payment_state_sql';
@@ -89,8 +91,6 @@ export interface PaymentMonthAggregateScope {
   accountId?: string;
 }
 
-const HELD_BUCKETS = ['skipped', 'overdue', 'due', 'upcoming', 'carried'] as const;
-type HeldBucketName = (typeof HELD_BUCKETS)[number];
 type HeldColumn = `${HeldBucketName}_${'egp' | 'usd' | 'count' | 'variable'}`;
 type PaymentMonthAggregateRow = Record<'paid_egp' | 'paid_count' | HeldColumn, number>;
 
@@ -103,7 +103,9 @@ const HELD_COLUMNS_SQL = HELD_BUCKETS.map(
 ).join(',\n');
 
 const HELD_LEGS_SQL = `CASE WHEN payment.currency = ? THEN payment.amount_due END AS egp_due,
-       CASE WHEN payment.currency = ? THEN payment.amount_due END AS usd_due`;
+       CASE WHEN payment.currency = ? THEN payment.amount_due END AS usd_due,
+       commitment.amount_type = ? AS is_variable`;
+const HELD_LEGS_PARAMS = [Currency.EGP, Currency.USD, AmountType.Variable];
 const PAYMENT_JOINS_SQL = `FROM commitment_payments payment INDEXED BY idx_cp_due_date
        JOIN commitments commitment ON commitment.id = payment.commitment_id
        LEFT JOIN transactions transaction_row ON transaction_row.id = payment.transaction_id`;
@@ -127,12 +129,13 @@ export async function getPaymentMonthAggregate(
 ): Promise<CommitmentMonthAggregate> {
   const monthStart = `${scope.yearMonth}-01`;
   const nextMonthStart = `${shiftYearMonth(scope.yearMonth, 1)}-01`;
-  const accountSql =
+  const account: { sql: string; params: string[] } =
     scope.accountId === undefined
-      ? ''
-      : 'AND COALESCE(payment.account_id, commitment.account_id) = ?';
-  const accountParams = scope.accountId === undefined ? [] : [scope.accountId];
-  const legParams = [Currency.EGP, Currency.USD, AmountType.Variable];
+      ? { sql: '', params: [] }
+      : {
+          sql: 'AND COALESCE(payment.account_id, commitment.account_id) = ?',
+          params: [scope.accountId],
+        };
 
   const row = await db.getFirstAsync<PaymentMonthAggregateRow>(
     `SELECT
@@ -149,29 +152,27 @@ export async function getPaymentMonthAggregate(
            ELSE 'upcoming'
          END AS bucket,
          transaction_row.egp_amount AS paid_egp,
-         ${HELD_LEGS_SQL},
-         commitment.amount_type = ? AS is_variable
+         ${HELD_LEGS_SQL}
        ${PAYMENT_JOINS_SQL}
-       WHERE payment.due_date >= ? AND payment.due_date < ? ${accountSql}
+       WHERE payment.due_date >= ? AND payment.due_date < ? ${account.sql}
        UNION ALL
        SELECT
          'carried' AS bucket,
          NULL AS paid_egp,
-         ${HELD_LEGS_SQL},
-         commitment.amount_type = ? AS is_variable
+         ${HELD_LEGS_SQL}
        ${PAYMENT_JOINS_SQL}
-       WHERE payment.due_date < ? AND ${unpaidPaymentSql('payment')} ${accountSql}
+       WHERE payment.due_date < ? AND ${unpaidPaymentSql('payment')} ${account.sql}
      )`,
     [
       scope.today,
       scope.today,
-      ...legParams,
+      ...HELD_LEGS_PARAMS,
       monthStart,
       nextMonthStart,
-      ...accountParams,
-      ...legParams,
+      ...account.params,
+      ...HELD_LEGS_PARAMS,
       scope.carriedBefore,
-      ...accountParams,
+      ...account.params,
     ],
   );
 

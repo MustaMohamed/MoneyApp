@@ -1,4 +1,4 @@
-import { Currency } from '@/constants/enums';
+import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { convertCurrency } from '@/modules/accounts/domain/account_aggregation';
 import { roundMoney } from '@/utils/money';
 
@@ -16,14 +16,13 @@ export interface CommitmentHeldBucket {
   hasVariable: boolean;
 }
 
-export interface CommitmentMonthAggregate {
-  paid: CommitmentPaidBucket;
-  skipped: CommitmentHeldBucket;
-  overdue: CommitmentHeldBucket;
-  due: CommitmentHeldBucket;
-  upcoming: CommitmentHeldBucket;
-  carried: CommitmentHeldBucket;
-}
+export const HELD_BUCKETS = ['skipped', 'overdue', 'due', 'upcoming', 'carried'] as const;
+export type HeldBucketName = (typeof HELD_BUCKETS)[number];
+
+export type CommitmentMonthAggregate = { paid: CommitmentPaidBucket } & Record<
+  HeldBucketName,
+  CommitmentHeldBucket
+>;
 
 export interface CommitmentMonthFigure {
   egp: number;
@@ -37,17 +36,15 @@ export interface CommitmentMonthTotals {
   skipped: CommitmentMonthFigure;
   overdue: CommitmentMonthFigure;
   carriedCount: number;
-  counts: { paid: number; skipped: number; overdue: number; due: number; upcoming: number };
+  counts: Record<CommitmentPaymentStatus, number>;
 }
 
-function heldBuckets(aggregate: CommitmentMonthAggregate): CommitmentHeldBucket[] {
-  return [
-    aggregate.skipped,
-    aggregate.overdue,
-    aggregate.due,
-    aggregate.upcoming,
-    aggregate.carried,
-  ];
+/** Callers match on the thrown type, never on the message text. */
+export class CommitmentMonthTotalsError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CommitmentMonthTotalsError';
+  }
 }
 
 function heldEgp(bucket: CommitmentHeldBucket, rate: number): number {
@@ -63,9 +60,11 @@ export function computeCommitmentMonthTotals(
   aggregate: CommitmentMonthAggregate,
   rate: number,
 ): CommitmentMonthTotals {
-  const hasUsd = heldBuckets(aggregate).some((bucket) => bucket.usd !== 0);
+  const hasUsd = HELD_BUCKETS.map((name) => aggregate[name]).some((bucket) => bucket.usd !== 0);
   if (hasUsd && (!Number.isFinite(rate) || rate <= 0)) {
-    throw new RangeError(`Rate must be finite and positive with a USD leg: ${rate}`);
+    throw new CommitmentMonthTotalsError(
+      `Rate must be finite and positive with a USD leg: ${rate}`,
+    );
   }
 
   const paid = roundMoney(aggregate.paid.egp);
@@ -92,11 +91,11 @@ export function computeCommitmentMonthTotals(
     },
     carriedCount: aggregate.carried.count,
     counts: {
-      paid: aggregate.paid.count,
-      skipped: aggregate.skipped.count,
-      overdue: aggregate.overdue.count + aggregate.carried.count,
-      due: aggregate.due.count,
-      upcoming: aggregate.upcoming.count,
+      [CommitmentPaymentStatus.Paid]: aggregate.paid.count,
+      [CommitmentPaymentStatus.Skipped]: aggregate.skipped.count,
+      [CommitmentPaymentStatus.Overdue]: aggregate.overdue.count + aggregate.carried.count,
+      [CommitmentPaymentStatus.Due]: aggregate.due.count,
+      [CommitmentPaymentStatus.Upcoming]: aggregate.upcoming.count,
     },
   };
 }
