@@ -5,6 +5,7 @@ import { View, useWindowDimensions } from 'react-native';
 import { withUniwind } from 'uniwind';
 
 import { HeroShell } from '@/components/ui/hero_shell';
+import { FLOW_CLASS } from '@/components/ui/search_tally.helpers';
 import { Strings } from '@/constants/strings';
 import { Spacing, lineHeightFor } from '@/constants/theme';
 import type {
@@ -12,18 +13,14 @@ import type {
   PolaritySignal,
 } from '@/modules/transactions/utils/totals_presentation';
 
-import {
-  FLOW_CLASS,
-  type TransactionsHeroChange,
-  type TransactionsHeroModel,
-} from '../transactions.helpers';
+import type { TransactionsHeroChange, TransactionsHeroModel } from '../transactions.helpers';
+import { HERO_SHELL_MARGIN_BOTTOM } from './account_chips.geometry';
 import {
   type TransactionsHeroGeometry,
   resolveTransactionsHeroGeometry,
 } from './transactions_text.geometry';
 
 const HERO_ROW_GAP = Spacing.sm;
-export const HERO_SHELL_MARGIN_BOTTOM = Spacing.xs;
 // The rail owns the space above the hero; 0 and not dropped, since `HeroShell`'s frame defaults to a top margin.
 const HERO_SHELL_STYLE = { marginTop: 0, marginBottom: HERO_SHELL_MARGIN_BOTTOM } as const;
 

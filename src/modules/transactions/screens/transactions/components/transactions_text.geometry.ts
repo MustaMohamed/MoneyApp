@@ -5,19 +5,6 @@ import { Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 /** The hero's text stops growing past this OS font scale (ADR 2026-09-27-transactions-search-tally §7). */
 export const TRANSACTIONS_HERO_MAX_FONT_SCALE = DISPLAY_HEADLINE_MAX_FONT_SCALE;
 
-/** Android reserves a truncated line's `…` in the paint's Roboto (0.669 em), and Inter SemiBold draws it at 0.956 em (StaticLayout.java:1189). */
-export const INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE = 1.45;
-
-export interface SearchTallyGeometry {
-  slotHeight: number;
-  lineHeight: number;
-}
-
-export function resolveSearchTallyGeometry(fontScale: number): SearchTallyGeometry {
-  const lineHeight = lineHeightFor(scaledFontSize(Type.micro, fontScale));
-  return { slotHeight: Spacing.xxs + lineHeight, lineHeight };
-}
-
 export interface TransactionsHeroGeometry {
   overline: number;
   hero: number;

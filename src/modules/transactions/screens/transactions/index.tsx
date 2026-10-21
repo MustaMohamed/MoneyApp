@@ -129,7 +129,10 @@ export default function TransactionsScreen(): React.ReactElement {
 
   // A memoised element lets React skip the hero when the header re-renders on a keystroke (M25).
   const hero = useMemo(() => <TransactionsHero model={state.hero} />, [state.hero]);
-  const tally = useMemo(() => <SearchTally model={state.tally} />, [state.tally]);
+  const tally = useMemo(
+    () => <SearchTally model={state.tally} testID="transactions-search-tally" />,
+    [state.tally],
+  );
   const accountChips = useMemo(
     () => <AccountChips chips={state.accountChips} onToggle={toggleAccountChip} />,
     [state.accountChips, toggleAccountChip],

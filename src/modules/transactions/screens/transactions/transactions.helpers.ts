@@ -1,3 +1,4 @@
+import type { SearchTallyModel } from '@/components/ui/search_tally.helpers';
 import { CURRENCY_CONFIG } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -34,18 +35,12 @@ import {
   shiftYearMonth,
 } from '@/utils/year_month';
 
+import type { DayHeaderFigures, DayHeaderSection } from './components/day_header';
 import type { TransactionTotalsStatus } from './transactions.state';
 
 export { currentYearMonth };
 
 export type TransactionPeriod = { type: 'month'; yearMonth: string };
-
-// Frame A1 and the money-colour ADR's decision 5: In in success, Net by sign and neutral at 0; both neutral on a dash.
-export const FLOW_CLASS: Record<PolaritySignal, string> = {
-  good: 'text-success',
-  bad: 'text-danger',
-  neutral: 'text-foreground',
-};
 
 export function resolvePeriod(selection: TransactionPeriod): {
   from: string;
@@ -292,8 +287,6 @@ export function buildTransactionsHeroModel(input: TransactionsHeroInput): Transa
   };
 }
 
-export type SearchTallyMode = 'empty' | 'skeleton' | 'failed' | 'figures';
-
 export interface SearchTallyInput {
   isOn: boolean;
   figuresMode: TransactionsHeroMode;
@@ -301,15 +294,6 @@ export interface SearchTallyInput {
   matchNetEgp: number | undefined;
   yearMonth: string;
   filterSummary: string | undefined;
-}
-
-export interface SearchTallyModel {
-  mode: SearchTallyMode;
-  count: string | undefined;
-  label: string;
-  filterSummary: string | undefined;
-  sum: { text: string; polarity: PolaritySignal; currencyCode: string } | undefined;
-  accessibilityLabel: string | undefined;
 }
 
 /** `holdsActiveQuery`: the held figures were loaded for the query on screen; another query's never print. */
@@ -406,16 +390,8 @@ export function buildSearchTally(input: SearchTallyInput): SearchTallyModel {
   );
 }
 
-export type DayHeaderFigures =
-  | { mode: 'skeleton' }
-  | { mode: 'failed'; net: string }
-  | { mode: 'figures'; net: string; count: string };
-
-export interface TransactionDaySection {
+export interface TransactionDaySection extends DayHeaderSection {
   key: string;
-  label: string;
-  figures: DayHeaderFigures;
-  accessibilityLabel: string;
   data: Transaction[];
 }
 

@@ -12,9 +12,13 @@ import { getVisibleScrollOffset } from '@/components/ui/scroll_reveal.geometry';
 import { Size, Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
-import { CHIP_SLOP_Y, ROW_PADDING_BOTTOM, ROW_PADDING_TOP } from './account_chips.geometry';
+import {
+  CHIP_SLOP_Y,
+  HERO_SHELL_MARGIN_BOTTOM,
+  ROW_PADDING_BOTTOM,
+  ROW_PADDING_TOP,
+} from './account_chips.geometry';
 import type { AccountChipModel } from './account_chips.helpers';
-import { HERO_SHELL_MARGIN_BOTTOM } from './transactions_hero';
 
 /** Frame A1: 6 between chips, 8 below; 9 above plus the hero shell's edge reads A1's 10. */
 const CHIP_GAP = ms(6);

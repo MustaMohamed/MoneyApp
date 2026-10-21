@@ -2,11 +2,10 @@ import { Skeleton, Typography } from 'heroui-native';
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
+import { resolveSearchTallyGeometry } from '@/components/ui/list_text.geometry';
+import { FLOW_CLASS, type SearchTallyModel } from '@/components/ui/search_tally.helpers';
 import { scaledFontSize } from '@/components/ui/text_scale.geometry';
 import { Spacing, Type, lineHeightFor } from '@/constants/theme';
-
-import { FLOW_CLASS, type SearchTallyModel } from '../transactions.helpers';
-import { resolveSearchTallyGeometry } from './transactions_text.geometry';
 
 const SLOT_STYLE = {
   paddingBottom: Spacing.xxs,
@@ -84,14 +83,16 @@ function TallyLine({
 
 export const SearchTally = React.memo(function SearchTally({
   model,
+  testID,
 }: {
   model: SearchTallyModel;
+  testID: string;
 }): React.ReactElement {
   const { fontScale } = useWindowDimensions();
   const geometry = resolveSearchTallyGeometry(fontScale);
   return (
     <View
-      testID="transactions-search-tally"
+      testID={testID}
       className="px-4"
       style={[SLOT_STYLE, { height: geometry.slotHeight }]}
       accessible={model.accessibilityLabel !== undefined}

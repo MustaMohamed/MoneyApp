@@ -2,6 +2,7 @@ import { Chip, Skeleton } from 'heroui-native';
 import React from 'react';
 import { Text as RNText, View, useWindowDimensions } from 'react-native';
 
+import { INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE } from '@/components/ui/list_text.geometry';
 import { Text } from '@/components/ui/text';
 import { Colors, Spacing, lineHeightFor } from '@/constants/theme';
 import {
@@ -10,9 +11,6 @@ import {
   resolveDayHeaderGeometry,
   resolveDayHeaderNetMaxWidth,
 } from '@/modules/transactions/components/day_header.geometry';
-
-import type { TransactionDaySection } from '../transactions.helpers';
-import { INTER_SEMIBOLD_ELLIPSIS_RESERVE_SCALE } from './transactions_text.geometry';
 
 const LABEL_STYLE = { flex: 1, minWidth: 0 } as const;
 const FIGURES_STYLE = {
@@ -30,8 +28,19 @@ const PILL_STYLE = {
   paddingHorizontal: Spacing.xs,
 } as const;
 
+export type DayHeaderFigures =
+  | { mode: 'skeleton' }
+  | { mode: 'failed'; net: string }
+  | { mode: 'figures'; net: string; count: string };
+
+export interface DayHeaderSection {
+  label: string;
+  figures: DayHeaderFigures;
+  accessibilityLabel: string;
+}
+
 interface Props {
-  section: Pick<TransactionDaySection, 'label' | 'figures' | 'accessibilityLabel'>;
+  section: DayHeaderSection;
 }
 
 export const DayHeader = React.memo(function DayHeader({ section }: Props): React.ReactElement {
