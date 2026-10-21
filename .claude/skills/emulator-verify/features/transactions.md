@@ -1,6 +1,6 @@
 # Transactions
 
-Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transactions/index.tsx`, month row from `src/components/ui/month_filter.tsx` over the type tabs from `src/components/ui/segment_filter.tsx`, their spacing and hit slops from `components/transactions_rail.geometry.ts`, hero `components/transactions_hero.tsx`, filter sheet `filter/index.tsx` over the shared `src/components/ui/filter_accordion.tsx`. Frames A1 to A14, A16, B1 and B2 come from the transactions canvas (https://claude.ai/artifact/7QJH3AFeoQAXtWmx5vAP2s, epic #543), not `~/.ship/MoneyApp/canvas/`, whose B1 and B2 are the accounts list.
+Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transactions/index.tsx`, month row from `src/components/ui/month_filter.tsx` over the type tabs from `src/components/ui/segment_filter.tsx`, their spacing and hit slops from `components/transactions_rail.geometry.ts`, hero `components/transactions_hero.tsx`, filter sheet `filter/index.tsx` in the shared `src/components/ui/filter_sheet_frame.tsx`, with the shared Accounts, Categories and Amount sections `filter_account_accordion.tsx`, `filter_category_accordion.tsx` and `filter_amount_accordion.tsx` over the shared `src/components/ui/filter_accordion.tsx`. Frames A1 to A14, A16, B1 and B2 come from the transactions canvas (https://claude.ai/artifact/7QJH3AFeoQAXtWmx5vAP2s, epic #543), not `~/.ship/MoneyApp/canvas/`, whose B1 and B2 are the accounts list.
 
 ## Reach it
 
@@ -120,6 +120,7 @@ Route `/transactions`, a tab. Screen `src/modules/transactions/screens/transacti
 ## Gotchas
 
 - `month_filter.tsx` is shared with commitments and budget; a height read here holds there, and a divergence is a caller override.
+- `filter_sheet_frame.tsx` and the Accounts, Categories and Amount sections are shared with the commitments filter sheet (MA-233); a read of the frame or a section here holds there, and a divergence is a caller override.
 - The `hero, change against last month` seed puts rows two and three months back, so on that device `hero, empty month` and `hero, past month` read differently: the first empty month over an empty month before it is four back, and one back shows a change node.
 - `mqa ui` returns nothing while the hero skeleton shimmers: `uiautomator dump` waits for an idle screen. Read the search field through `adb shell dumpsys activity top` instead.
 - A source-forced totals failure logs through `console.error`, so the dev LogBox toast sits over the tab bar in the shot; it is not the screen's alert.
