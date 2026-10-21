@@ -27,7 +27,7 @@ Delivery of one leaf task from Planned to Awaiting Human with a merge summary, o
 
 ```bash
 mkdir -p ~/.ship/MoneyApp/MA-XXX/findings/render
-BR=$(gh issue develop --list <n> | awk -F'\t' '{print $1}' | grep "^feat/MA-XXX-" | head -1)   # prints name<TAB>url per linked branch; empty → stop, the ticket was not planned
+BR=$(gh issue develop --list <n> | awk -F'\t' '{print $1}' | grep -E "^(feat|fix|refactor|perf|docs)/MA-XXX-" | head -1)   # prints name<TAB>url per linked branch; empty → stop, the ticket was not planned
 git -C /Users/musta/Code/projects/practice/MoneyApp fetch origin
 # Reuse the worktree /prep left; create it only when this machine has none:
 test -d /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX \
@@ -93,7 +93,7 @@ Anything a later phase consumes lives in a file, not in conductor context.
 ```markdown
 # MA-XXX — <title>
 issue: #<n>
-branch: feat/MA-XXX-<slug>
+branch: <type>/MA-XXX-<slug>
 worktree: /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX
 plan: .work/MA-XXX/plan.md @ <sha>
 verify: emulator | none · flags: <as on the ticket>
