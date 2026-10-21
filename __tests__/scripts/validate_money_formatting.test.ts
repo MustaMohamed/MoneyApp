@@ -12,13 +12,11 @@ const fixtureRoot = path.join(repoRoot, fixtureRel);
 const transactionsHelpersRel =
   'src/modules/transactions/screens/transactions/transactions.helpers.ts';
 const stringsRel = 'src/constants/strings.ts';
-const commitmentFilterHelpersRel =
-  'src/modules/commitments/screens/commitments/filter/filter.helpers.ts';
 // Every path an allowlist in the script names, in `git ls-files` order.
 const allowlistedRels = [
   stringsRel,
-  commitmentFilterHelpersRel,
   transactionsHelpersRel,
+  'src/modules/transactions/utils/amount_range_filter.ts',
   'src/utils/format_amount.ts',
 ];
 
