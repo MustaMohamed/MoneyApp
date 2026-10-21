@@ -7,7 +7,7 @@
 
 A row of chips sits between the hero and the search field: All accounts first, then one chip per active account in list order. A chip is on when the applied account filter holds exactly its one account, and All accounts is on when it holds none. Each account chip leads with its account-type icon in the account's glyph tone, matching the sheet's account pill, instead of the frame's coloured dot (ruled 2026-09-27).
 
-**Amended 2026-10-21 (#781, MA-207).** Each account chip leads with a 20 dp account-type tile on the account colour, `AccountColorTile`, in place of the type icon in glyph tone, and the chip holds `Size.compactChipHeight`. All accounts has no tile, and an archived or deleted account gets no chip. The tile draws on the transactions list as on the commitments list (ruled 2026-10-20, epic #777).
+**Amended 2026-10-21 (#781, MA-207).** Each account chip leads with a 20 dp account-type tile on the account colour, `AccountColorTile`, in place of the type icon in glyph tone, and the chip holds `Size.compactChipHeight`. All accounts has no tile, and an archived or deleted account gets no chip. `buildAccountChips` restates the `is_archived = 0 AND is_deleted = 0` filter of `getAccounts` (`src/modules/accounts/database/accounts.ts`), so a shared reader that passes another account list still gets no archived or deleted chip. The tile draws on the transactions list as on the commitments list (ruled 2026-10-20, epic #777).
 
 ## 1. The chip writes the applied account filter and nothing else
 
